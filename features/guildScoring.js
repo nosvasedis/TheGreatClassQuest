@@ -277,7 +277,7 @@ export async function recordGuildGloryEvent({
  * @param {number} starDelta - Positive number of stars to add
  */
 export async function updateGuildScores(studentId, starDelta, source = 'star_award') {
-    if (!studentId || starDelta <= 0) return;
+    if (!studentId || !Number.isFinite(Number(starDelta)) || Number(starDelta) === 0) return;
     const student = _getStudent(studentId);
     const guildId = student?.guildId;
     if (!guildId || !GUILD_IDS.includes(guildId)) return;

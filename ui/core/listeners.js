@@ -7,6 +7,7 @@ import { setupHomeListeners } from '../../features/home.js';
 import { wireHeaderClassSelector } from '../headerClassSelector.js';
 
 import * as modals from '../modals.js';
+import { setupSpecialQuestRunnerListeners } from '../modals/specialQuest.js';
 import {
     handleGetQuestUpdate,
     downloadCertificateAsPdf,
@@ -1329,6 +1330,8 @@ export function setupUIListeners() {
         modals.publishParentSummary(studentId);
     });
 
+    setupSpecialQuestRunnerListeners();
+    import('../../features/specialQuestService.js').then(({ reconcilePendingQuestEffects }) => reconcilePendingQuestEffects().catch(() => {}));
     // Initialize Home/Info Listeners
     setupHomeListeners();
     wireHeaderClassSelector();

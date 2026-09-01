@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
 import { handleCancelLesson } from '../../db/actions.js';
+import { QUEST_DEFINITIONS, normalizeQuestType } from '../../features/specialQuestEngine.js';
 
 // --- MAIN FEATURE MODALS ---
 
@@ -26,6 +27,14 @@ export function openDayPlannerModal(dateString, dayCell) {
     
     // 2. SET the date AFTER reset so it sticks
     document.getElementById('quest-event-date').value = dateString;
+
+    const scope = document.getElementById('quest-event-scope');
+    if (scope) {
+        const classes = state.get('currentUserRole') === 'secretary' ? (state.get('allSchoolClasses') || []) : (state.get('allTeachersClasses') || []);
+        const selected = state.get('globalSelectedClassId');
+        scope.innerHTML = classes.map((item) => `<option value="${item.id}" ${item.id === selected ? 'selected' : ''}>${item.logo || '🏫'} ${item.name}</option>`).join('');
+        if (!selected && scope.options.length) scope.options[0].selected = true;
+    }
 
     renderScheduleManagerList(dateString);
     renderQuestEventDetails(); // Clear/Reset details area
@@ -119,26 +128,30 @@ export function renderQuestEventDetails() {
     const completionBonusField = `
         <div>
             <label for="quest-completion-bonus" class="block text-sm font-medium text-gray-700">Completion Bonus (Stars per student)</label>
-            <input type="number" id="quest-completion-bonus" value="1" min="0.5" step="0.5" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+            <input type="number" id="quest-completion-bonus" value="1" min="0.5" max="2" step="0.5" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
         </div>
     `;
 
-    const goalTargetField = (label) => `
+    const goalTargetField = (label, min = 1, max = 30, value = 10) => `
         <div>
             <label for="quest-goal-target" class="block text-sm font-medium text-gray-700">${label}</label>
-            <input type="number" id="quest-goal-target" value="10" min="1" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+            <input type="number" id="quest-goal-target" value="${value}" min="${min}" max="${max}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
         </div>
     `;
+    const presentationFields = `<div><label for="quest-instructions" class="block text-sm font-medium text-gray-700">Instructions</label><textarea id="quest-instructions" maxlength="500" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea></div><div><label for="quest-prompt" class="block text-sm font-medium text-gray-700">Projector prompt (optional)</label><textarea id="quest-prompt" maxlength="160" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea><label class="inline-flex items-center gap-2 mt-2 text-sm"><input id="quest-show-prompt" type="checkbox"> Show prompt on projector</label></div>`;
 
     switch(type) {
         case 'Vocabulary Vault':
-        case 'Grammar Guardians':
-            html = goalTargetField('Goal Target (# of Uses/Sentences)') + completionBonusField;
+        case 'Grammar Guardians': {
+            const normalized = normalizeQuestType(type);
+            const def = QUEST_DEFINITIONS[normalized];
+            html = goalTargetField(`Goal Target (${def.unit})`, def.minTarget, def.maxTarget, def.defaultTarget) + completionBonusField + presentationFields;
             break;
+        }
         case 'The Unbroken Chain':
         case 'The Scribe\'s Sketch':
         case 'Five-Sentence Saga':
-            html = completionBonusField;
+            html = completionBonusField + presentationFields;
             break;
         case 'Reason Bonus Day':
             html = `<div>

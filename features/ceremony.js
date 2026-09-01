@@ -1,6 +1,6 @@
 // /features/ceremony.js
 
-import { db, updateDoc, doc, collection, getDocs, query, where } from '../firebase.js';
+import { db, updateDoc, setDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
@@ -15,6 +15,8 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
+import { resolveCeremonyMode, buildGrowthSpotlights, seededShuffle } from './ceremonyDomain.js';
+import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId } from './ceremonySnapshots.js';
 
 const CEREMONY_REASON_INFO = {
     teamwork: { icon: 'fa-users', chip: 'ceremony-chip--teamwork', name: 'Teamwork' },
@@ -212,6 +214,7 @@ function renderCeremonyIntroSplash(params) {
     const classData = state.get('allSchoolClasses').find((c) => c.id === params.classId);
     const className = classData?.name || 'Your Class';
     const classLogo = classData?.logo || '📚';
+    const isGrowth = params.mode === 'growth_festival';
     const leagueLabel = `League ${params.league}`;
 
     stage.innerHTML = `
@@ -229,9 +232,9 @@ function renderCeremonyIntroSplash(params) {
             <div class="ceremony-intro-splash__details">
                 <span class="ceremony-intro-chip ceremony-intro-chip--amber"><i class="fas fa-route"></i>${leagueLabel}</span>
                 <span class="ceremony-intro-chip ceremony-intro-chip--violet"><i class="fas fa-school"></i>${className}</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--blend"><i class="fas fa-wand-magic-sparkles"></i>Team Quest → Hero's Challenge</span>
+                <span class="ceremony-intro-chip ceremony-intro-chip--blend"><i class="fas ${isGrowth ? 'fa-seedling' : 'fa-wand-magic-sparkles'}"></i>${isGrowth ? 'Growth Festival' : "Team Quest → Hero's Challenge"}</span>
             </div>
-            <p class="ceremony-intro-splash__tagline">League champions rise first — then your class heroes claim the spotlight.</p>
+            <p class="ceremony-intro-splash__tagline">${isGrowth ? 'Every learner brings a special bloom to our garden.' : 'League champions rise first — then your class heroes claim the spotlight.'}</p>
         </div>
     `;
 }
@@ -316,7 +319,7 @@ export function updateCeremonyStatus() {
     }
 }
 
-export async function checkAndInitCeremony(classId) {
+export async function checkAndInitCeremony(classId, { replay = false } = {}) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!classData) return null;
 
@@ -328,22 +331,38 @@ export async function checkAndInitCeremony(classId) {
     const monthName = prevDate.toLocaleString('en-GB', { month: 'long' });
 
     const history = classData.ceremonyHistory || {};
-    if (history[monthKey] && history[monthKey].complete) {
-        return null; 
-    }
+    const snapshotSnap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/ceremony_snapshots', ceremonySnapshotId(classId, monthKey))).catch(() => null);
+    const snapshot = snapshotSnap?.exists?.() ? { id: snapshotSnap.id, ...snapshotSnap.data() } : null;
+    if (history[monthKey] && history[monthKey].complete && !replay) return null;
 
     if (monthKey === now.toISOString().substring(0, 7)) return null; 
     if (!existedByMonthEnd(classData, monthKey)) return null;
 
+    const modeResult = resolveCeremonyMode(classData.questLevel);
+    if (!modeResult.ok) return { blocked: true, reason: modeResult.reason, classId: classData.id, monthKey, monthName };
     return {
         monthKey,
         monthName,
         classId: classData.id,
-        league: classData.questLevel
+        league: classData.questLevel,
+        mode: modeResult.mode,
+        snapshot,
+        replay
     };
 }
 
+export async function replayCeremony(classId) {
+    const params = await checkAndInitCeremony(classId, { replay: true });
+    if (params) startCeremony(params);
+    return params;
+}
 export function startCeremony(params) {
+    const modeResult = resolveCeremonyMode(params.league);
+    if (!modeResult.ok) {
+        const message = modeResult.reason;
+        if (typeof window !== 'undefined') window.alert(message);
+        return false;
+    }
     ceremonyData = {
         active: true,
         phase: 'intro',
@@ -351,7 +370,11 @@ export function startCeremony(params) {
         currentAppClassId: state.get('globalSelectedClassId'), // Identify who is watching
         monthName: params.monthName,
         classId: params.classId,
+        className: params.className || state.get('allSchoolClasses').find((item) => item.id === params.classId)?.name || 'Our Class',
         league: params.league,
+        mode: modeResult.mode,
+        snapshot: params.snapshot || null,
+        replay: Boolean(params.replay),
         classQueue: [],
         studentQueue: [],
         classPointer: 0,
@@ -377,7 +400,7 @@ export function startCeremony(params) {
     aiBox.style.opacity = '0';
     lastCeremonyViewMode = 'intro';
     setCeremonyViewMode('intro');
-    renderCeremonyIntroSplash(params);
+    renderCeremonyIntroSplash({ ...params, mode: modeResult.mode });
 
     title.innerHTML = formatTitleHtml('');
     subtitle.innerHTML = formatTitleHtml('');
@@ -404,6 +427,17 @@ async function loadDataAndAdvance() {
     setCeremonyActionLabel('Summoning Scrolls...');
 
     try {
+        if (ceremonyData.snapshot && ['locked', 'completed'].includes(ceremonyData.snapshot.status)) {
+            hydrateCeremonyFromSnapshot(ceremonyData.snapshot, ceremonyData.replay);
+            advanceCeremony();
+            return;
+        }
+        if (ceremonyData.mode === 'growth_festival') {
+            await loadGrowthCeremonyData();
+            await persistPreparedCeremonySnapshot();
+            advanceCeremony();
+            return;
+        }
         const [year, month] = ceremonyData.monthKey.split('-').map(Number);
         const { monthStart } = getCeremonyMonthBounds(ceremonyData.monthKey);
         const allStudents = state.get('allStudents') || [];
@@ -481,6 +515,7 @@ async function loadDataAndAdvance() {
             const reasons = new Set();
             const reasonCounts = {};
             sLogs.forEach(l => {
+                if (l.reason === 'special_quest') return;
                 const cred = getAwardLogMonthlyStarCredit(l);
                 if (cred >= 3) count3++;
                 else if (cred >= 2) count2++;
@@ -541,6 +576,7 @@ async function loadDataAndAdvance() {
 
         ceremonyData.studentQueue = studentStats.reverse();
         ceremonyData.phase = 'class_reveal';
+        await persistPreparedCeremonySnapshot();
         advanceCeremony();
 
     } catch (e) {
@@ -549,8 +585,129 @@ async function loadDataAndAdvance() {
     }
 }
 
-// --- 3. THE "CONVEYOR BELT" ENGINE ---
+function hydrateCeremonyFromSnapshot(snapshot, replay = false) {
+    ceremonyData.classQueue = snapshot.classResults || snapshot.publicSequence?.classes || [];
+    ceremonyData.studentQueue = snapshot.studentResultsPrivate || snapshot.publicSequence?.students || [];
+    ceremonyData.growthSpotlights = snapshot.spotlights || snapshot.publicSequence?.parade || [];
+    ceremonyData.growthStudents = (snapshot.publicSequence?.parade || snapshot.spotlights || []).map((card) => ({ id: card.studentId, name: card.studentName }));
+    ceremonyData.growthWinners = snapshot.prodigyWinners || [];
+    ceremonyData.classPointer = 0;
+    ceremonyData.studentPointer = 0;
+    ceremonyData.growthPointer = 0;
+    ceremonyData.phase = replay ? (ceremonyData.mode === 'growth_festival' ? 'growth_garden' : 'class_reveal') : (snapshot.playback?.phase || (ceremonyData.mode === 'growth_festival' ? 'growth_garden' : 'class_reveal'));
+    if (!replay) {
+        const index = Math.max(0, Number(snapshot.playback?.index) || 0);
+        if (ceremonyData.phase === 'growth_parade') ceremonyData.growthPointer = index;
+        if (ceremonyData.phase === 'student_reveal') ceremonyData.studentPointer = index;
+        if (ceremonyData.phase === 'class_reveal') ceremonyData.classPointer = index;
+    }
+    if (ceremonyData.mode !== 'growth_festival') ceremonyData.studentQueue = ceremonyData.studentQueue.map((item) => ({ ...item, stats: item.stats || {} }));
+}
 
+async function persistPreparedCeremonySnapshot() {
+    try {
+        const classData = state.get('allSchoolClasses').find((item) => item.id === ceremonyData.classId) || {};
+        const snapshot = await prepareCeremonySnapshot({
+            classId: ceremonyData.classId,
+            className: ceremonyData.className,
+            classLogo: classData.logo || '📚',
+            questLeague: ceremonyData.league,
+            monthKey: ceremonyData.monthKey,
+            schoolYearKey: state.getActiveSchoolYearKey(),
+            classResults: ceremonyData.classQueue || [],
+            studentResults: (ceremonyData.studentQueue || []).map((item) => ({ id: item.id, name: item.name, avatar: item.avatar, score: item.score, count3: item.stats?.count3, count2: item.stats?.count2, uniqueReasons: item.stats?.uniqueReasons, academicAvg: item.stats?.academicAvg })),
+            students: ceremonyData.growthStudents || [],
+            spotlightOptions: {},
+            snapshotVersion: 1
+        });
+        ceremonyData.snapshot = await lockCeremonySnapshot(ceremonyData.classId, ceremonyData.monthKey);
+        return snapshot;
+    } catch (error) {
+        console.warn('Ceremony snapshot persistence unavailable; continuing with in-memory ceremony.', error);
+        return null;
+    }
+}
+
+function persistCeremonyPlayback() {
+    if (!ceremonyData.snapshot || !['locked', 'completed'].includes(ceremonyData.snapshot.status)) return;
+    void saveCeremonyPlayback(ceremonyData.classId, ceremonyData.monthKey, { phase: ceremonyData.phase, index: ceremonyData.growthPointer || ceremonyData.studentPointer || ceremonyData.classPointer || 0 }).catch(() => {});
+}
+
+async function loadGrowthCeremonyData() {
+    const [year, month] = ceremonyData.monthKey.split('-').map(Number);
+    const logs = await fetchLogsForMonth(year, month).catch(() => []);
+    const previousDate = new Date(year, month - 2, 1);
+    const previousLogs = await fetchLogsForMonth(previousDate.getFullYear(), previousDate.getMonth() + 1).catch(() => []);
+    const students = (state.get('allStudents') || []).filter((student) => student.classId === ceremonyData.classId && student.enrollmentStatus !== 'inactive');
+    const classData = (state.get('allSchoolClasses') || []).find((item) => item.id === ceremonyData.classId) || {};
+    const attendance = state.get('allAttendanceRecords') || [];
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const lessonDates = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        const dateKey = `${ceremonyData.monthKey}-${String(day).padStart(2, '0')}`;
+        if (utils.doesClassMeetOnDate(ceremonyData.classId, dateKey, state.get('allSchoolClasses') || [], state.get('allScheduleOverrides') || [], state.get('schoolHolidayRanges') || [], classEndDates)) lessonDates.push(dateKey);
+    }
+    const currentLogsByStudent = Object.fromEntries(students.map((student) => [student.id, logs.filter((log) => log.studentId === student.id)]));
+    const options = Object.fromEntries(students.map((student) => {
+        const absentDates = new Set(attendance.filter((record) => record.studentId === student.id && record.classId === ceremonyData.classId && record.status === 'absent').map((record) => record.date));
+        return [student.id, { currentLogs: currentLogsByStudent[student.id], previousLogs: previousLogs.filter((log) => log.studentId === student.id), attendedLessons: lessonDates.filter((dateKey) => !absentDates.has(dateKey)) }];
+    }));
+    ceremonyData.growthStudents = students;
+    ceremonyData.growthSpotlights = buildGrowthSpotlights(students, options, { classId: ceremonyData.classId, monthKey: ceremonyData.monthKey, snapshotVersion: 1 });
+    ceremonyData.growthPointer = 0;
+    const scores = state.get('allStudentScores') || [];
+    const ranked = students.map((student) => ({ student, score: Number(scores.find((item) => item.id === student.id)?.monthlyStars) || 0 })).sort((a, b) => b.score - a.score);
+    const topScore = ranked[0]?.score || 0;
+    ceremonyData.growthWinners = topScore > 0 ? ranked.filter((item) => item.score === topScore).map((item) => item.student) : [];
+    ceremonyData.phase = 'growth_garden';
+}
+
+function growthStudentCard(card) {
+    const safeName = String(card.studentName || 'Learner').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
+    return `<article class="growth-bloom-card" data-student-id="${card.studentId}"><div class="growth-bloom-icon" aria-hidden="true">🌸</div><h3>${safeName}</h3><p>${String(card.publicText || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]))}</p></article>`;
+}
+
+function advanceGrowthCeremony() {
+    const stage = document.getElementById('ceremony-stage-area');
+    const title = document.getElementById('ceremony-title');
+    const subtitle = document.getElementById('ceremony-subtitle');
+    const btn = document.getElementById('ceremony-action-btn');
+    const screen = document.getElementById('ceremony-screen');
+    if (!stage || !btn) return;
+    persistCeremonyPlayback();
+    screen?.classList.remove('ceremony-phase-suspense');
+    if (ceremonyData.phase === 'growth_garden') {
+        title.innerHTML = formatTitleHtml('Our League Garden');
+        subtitle.innerHTML = formatTitleHtml('Every class grows in its own beautiful way');
+        stage.innerHTML = `<div class="growth-festival-garden" role="region" aria-label="Our League Garden"><div class="growth-garden-gate" aria-hidden="true"></div><div class="growth-garden-cards"><article class="growth-class-card"><span class="growth-class-emblem" aria-hidden="true">🌱</span><h3>${String(ceremonyData.className || 'Our Class').replace(/[<&>]/g, '')}</h3><p>Our class garden is growing together.</p></article></div></div>`;
+        btn.textContent = 'See our blooms'; ceremonyData.phase = 'growth_transition'; return;
+    }
+    if (ceremonyData.phase === 'growth_transition') {
+        title.innerHTML = formatTitleHtml('Every Garden Grows Together'); subtitle.innerHTML = '';
+        stage.innerHTML = `<div class="growth-transition-message"><div class="growth-fireflies" aria-hidden="true">✦ ✧ ✦</div><p>Every child contributed something special.</p></div>`;
+        btn.textContent = 'Begin the Bloom Parade'; ceremonyData.phase = 'growth_parade'; return;
+    }
+    if (ceremonyData.phase === 'growth_parade') {
+        const queue = ceremonyData.growthSpotlights || [];
+        const index = ceremonyData.growthPointer || 0;
+        if (index >= queue.length) { ceremonyData.phase = 'growth_final'; advanceGrowthCeremony(); return; }
+        title.innerHTML = formatTitleHtml('Parade of Blooms'); subtitle.innerHTML = formatTitleHtml('A special part of our garden');
+        stage.innerHTML = growthStudentCard(queue[index]); ceremonyData.growthPointer = index + 1; btn.textContent = index + 1 >= queue.length ? 'Reveal our Golden Bloom' : 'Next Bloom'; return;
+    }
+    if (ceremonyData.phase === 'growth_final') {
+        const winners = ceremonyData.growthWinners || [];
+        title.innerHTML = formatTitleHtml(winners.length ? 'Golden Bloom' : 'Whole Class Garden');
+        subtitle.innerHTML = formatTitleHtml(winners.length ? 'Prodigy of the Month' : 'Everyone helped our garden grow');
+        const winnerNames = winners.map((winner) => `<h2>${String(winner.name || '').replace(/[<&>]/g, '')}</h2>`).join('');
+        stage.innerHTML = `<div class="growth-final-garden"><div class="growth-golden-bloom" aria-hidden="true"></div>${winners.length ? winnerNames : '<h2>Our Whole Class Garden</h2>'}<div class="growth-mini-blooms" aria-label="All class members">${(ceremonyData.growthStudents || []).map((student) => `<span title="${String(student.name || '').replace(/[<&>"]/g, '')}" aria-label="${String(student.name || '').replace(/[<&>"]/g, '')}">🌸</span>`).join('')}</div></div>`;
+        btn.textContent = 'Finish Ceremony'; ceremonyData.phase = 'growth_end'; return;
+    }
+    if (ceremonyData.phase === 'growth_end') {
+        saveCeremonyComplete(); stage.innerHTML = '<div class="growth-outro"><h2>Our garden will keep growing.</h2><div aria-hidden="true">🌿✨</div></div>'; title.innerHTML = formatTitleHtml('Ceremony Complete'); subtitle.innerHTML = ''; btn.textContent = 'Close'; btn.onclick = closeCeremony; ceremonyData.phase = 'end'; return;
+    }
+}
+// --- 3. THE "CONVEYOR BELT" ENGINE ---
 function advanceCeremony() {
     const btn = document.getElementById('ceremony-action-btn');
     const stage = document.getElementById('ceremony-stage-area');
@@ -558,6 +715,12 @@ function advanceCeremony() {
     const aiBox = document.getElementById('ceremony-ai-box');
     const subtitle = document.getElementById('ceremony-subtitle');
     const screen = document.getElementById('ceremony-screen');
+    persistCeremonyPlayback();
+
+    if (ceremonyData.mode === 'growth_festival') {
+        advanceGrowthCeremony();
+        return;
+    }
 
     btn.disabled = false;
     btn.onclick = advanceCeremony; 
@@ -1427,6 +1590,11 @@ function handleDramaticReveal() {
 // --- NEW FUNCTION: RENDER FINAL LEADERBOARD ---
 function renderFinalLeaderboard() {
     const stage = document.getElementById('ceremony-stage-area');
+
+    if (ceremonyData.studentQueue.length && ceremonyData.studentQueue.every((student) => Number(student.score) <= 0)) {
+        stage.innerHTML = '<div class="ceremony-collective-close text-center"><div class="text-7xl mb-4">🌟</div><h2 class="font-title text-5xl text-white">Our Whole Class Quest</h2><p class="text-xl text-indigo-100 mt-3">Every learner helped the class move forward.</p></div>';
+        return;
+    }
     
     const container = document.createElement('div');
     container.className = 'ceremony-leaderboard-container';
@@ -1541,9 +1709,41 @@ async function saveCeremonyComplete() {
     const monthKey = ceremonyData.monthKey;
     try {
         const classRef = doc(db, `artifacts/great-class-quest/public/data/classes`, classId);
+        const snapshotId = `${classId}__${monthKey}`;
+        const snapshotRef = doc(db, 'artifacts/great-class-quest/public/data/ceremony_snapshots', snapshotId);
+        const snapshotPayload = {
+            schemaVersion: 1,
+            schoolYearKey: state.getActiveSchoolYearKey(),
+            classId,
+            className: state.get('allSchoolClasses').find((item) => item.id === classId)?.name || '',
+            questLeague: ceremonyData.league,
+            monthKey,
+            mode: ceremonyData.mode || 'classic_arena',
+            status: 'completed',
+            classResults: ceremonyData.classQueue || [],
+            studentResultsPrivate: ceremonyData.studentQueue || [],
+            classWinner: ceremonyData.classQueue?.[ceremonyData.classQueue.length - 1] || null,
+            prodigyWinners: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthWinners || []) : (ceremonyData.studentQueue?.filter((item) => item.rank === 1) || []),
+            publicSequence: ceremonyData.mode === 'growth_festival' ? { parade: ceremonyData.growthSpotlights || [] } : { classes: ceremonyData.classQueue || [], students: ceremonyData.studentQueue || [] },
+            spotlights: ceremonyData.growthSpotlights || [],
+            sourceGeneratedAt: new Date(),
+            snapshotVersion: 1,
+            playback: { phase: ceremonyData.phase, index: 0, updatedAt: new Date() },
+            completedAt: new Date(),
+            completedBy: state.get('currentUserId')
+        };
+        const existingSnapshot = await getDoc(snapshotRef);
+        if (existingSnapshot.exists() && ['locked', 'completed'].includes(existingSnapshot.data().status)) {
+            await updateDoc(snapshotRef, { status: 'completed', playback: snapshotPayload.playback, completedAt: new Date(), completedBy: state.get('currentUserId') });
+        } else {
+            await setDoc(snapshotRef, snapshotPayload, { merge: true });
+        }
         await updateDoc(classRef, {
             [`ceremonyHistory.${monthKey}.complete`]: true,
-            [`ceremonyHistory.${monthKey}.watchedAt`]: new Date()
+            [`ceremonyHistory.${monthKey}.watchedAt`]: new Date(),
+            [`ceremonyHistory.${monthKey}.snapshotId`]: snapshotId,
+            [`ceremonyHistory.${monthKey}.mode`]: ceremonyData.mode || 'classic_arena',
+            [`ceremonyHistory.${monthKey}.snapshotVersion`]: 1
         });
         
         const classes = state.get('allSchoolClasses');

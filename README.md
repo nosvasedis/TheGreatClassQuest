@@ -331,7 +331,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 🗓️ Special Quest Types (Rules & Mechanics)
 
-*Scheduled via **Quest Calendar** → Day Planner → **Quest Event**. **2× Star Day** doubles awards that day; **Reason Bonus Day** adds +1 star when the chosen virtue matches. Special quests below are **lesson shapes** you run in the room; the planner stores the goal and completion bonus.*
+*Scheduled via **Quest Calendar** → Day Planner → **Quest Event**. Events are class-scoped and active-year bound. Special Quests run through a resumable, transaction-backed runner; completion uses deterministic `special_quest` award logs and can be reversed atomically when Gold is recoverable. **2× Star Day** wins deterministic precedence over a same-day Reason Bonus.*
 
 | Quest | Objective | Mechanics |
 |-------|-----------|-----------|
@@ -381,7 +381,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Generate Certificate** → AI paragraph + PDF download (avatar, themed border/icon by age).
 
 ### Ceremony of the Month
-- **Team Quest** and **Hero's Challenge** tabs **pulse** when last month’s ceremony is pending. It is a **dual** ritual: league **class** ranks, then **Prodigy of the Month** for the selected class (Co-Prodigy allowed). Full-screen reveal with commentary.
+- **Team Quest** and **Hero's Challenge** tabs **pulse** when last month’s ceremony is pending. Nursery/Pre-Junior automatically use the inclusive **Growth Festival** (garden, Bloom Parade, Golden Bloom); every other league uses **Classic Arena**. Results are frozen in versioned snapshots; Growth’s public DOM never contains ranks or scores.
 
 ---
 

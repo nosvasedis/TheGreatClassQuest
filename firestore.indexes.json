@@ -1,6 +1,51 @@
 {
   "indexes": [
     {
+      "collectionGroup": "quest_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "dateKey", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_event_runs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_event_actions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "eventId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ceremony_snapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "monthKey", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "attendance",
       "queryScope": "COLLECTION",
       "fields": [

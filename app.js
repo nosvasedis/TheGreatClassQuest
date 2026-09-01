@@ -866,7 +866,11 @@ function syncAuthRoleUi() {
     }
 }
 
+let authAvailabilityPromise = null;
+
 async function initializeAuthAvailability() {
+    if (authAvailabilityPromise) return authAvailabilityPromise;
+    authAvailabilityPromise = (async () => {
     secretarySetupToken = readSecretarySetupToken();
     if (secretarySetupToken) {
         syncAuthRoleUi();
@@ -883,6 +887,8 @@ async function initializeAuthAvailability() {
         schoolAuthState = 'error';
     }
     syncAuthRoleUi();
+    })().finally(() => { authAvailabilityPromise = null; });
+    return authAvailabilityPromise;
 }
 
 function setAuthRole(role) {

@@ -23,13 +23,14 @@ import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
-import { getTodayDateString, parseFlexibleDate, normalizeToDateString, parseDDMMYYYY } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate, normalizeToDateString, parseDDMMYYYY, doesClassMeetOnDate } from '../../utils.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { retryAdventureLogGeneration } from './quests.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
+import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -839,11 +840,47 @@ export async function handleAddQuestEvent() {
         const btn = document.querySelector('#quest-event-form button[type="submit"]');
         btn.disabled = true; btn.innerText = "Adding...";
 
-        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), withSchoolYear({
-            date, type, details,
+        const scope = document.getElementById('quest-event-scope');
+        const selectedClassIds = scope ? [...scope.selectedOptions].map((option) => option.value) : [state.get('globalSelectedClassId')];
+        const classPool = state.get('currentUserRole') === 'secretary'
+            ? (state.get('allSchoolClasses') || [])
+            : (state.get('allTeachersClasses') || []);
+        const classes = classPool.filter((item) => selectedClassIds.includes(item.id));
+        const normalizedType = normalizeQuestType(type);
+        if (!classes.length && (isSpecialQuestType(normalizedType) || normalizedType === 'double_star_day' || normalizedType === 'reason_bonus_day')) {
+            throw new Error('Select at least one class for this event.');
+        }
+        const overrides = state.get('allScheduleOverrides') || [];
+        const holidays = state.get('schoolHolidayRanges') || [];
+        const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+        const conflicts = classes.filter((classInfo) => !doesClassMeetOnDate(classInfo.id, date, state.get('allSchoolClasses') || [], overrides, holidays, classEndDates));
+        if (conflicts.length) {
+            throw new Error(`No lesson is scheduled for ${conflicts.map((item) => item.name).join(', ')} on this date. Resolve the calendar conflict first.`);
+        }
+        const target = Number(details.goalTarget || QUEST_DEFINITIONS[normalizedType]?.defaultTarget);
+        const instructions = document.getElementById('quest-instructions')?.value || '';
+        const prompt = document.getElementById('quest-prompt')?.value || '';
+        const showTextOnProjector = document.getElementById('quest-show-prompt')?.checked || false;
+        for (const classInfo of classes) {
+            const validation = validateQuestEvent({ type: normalizedType, classId: classInfo.id, dateKey: date, goalSpec: { target }, rewardSpec: { starsPerRecipient: details.completionBonus || 1 } }, { existing: state.get('allQuestEvents') || [] });
+            if (!validation.valid) throw new Error(validation.errors.join(' '));
+        }
+        const docs = (classes.length ? classes : [{ id: null }]).map((classInfo, index) => createQuestEventDocument({
+            type: normalizedType,
+            classId: classInfo.id,
+            dateKey: date,
+            schoolYearKey: state.getActiveSchoolYearKey(),
+            eventGroupId: `${date}__${state.get('currentUserId')}__${Date.now()}`,
+            target,
+            starsPerRecipient: details.completionBonus || 1,
+            instructions,
+            prompt,
+            showTextOnProjector,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-            createdAt: serverTimestamp()
-        }, state.getActiveSchoolYearKey()));
+        }));
+        for (const eventDocument of docs) {
+            await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), { ...eventDocument, details: { ...details, title } });
+        }
         
         showToast('Quest Event added to calendar!', 'success');
         import('../../ui/modals.js').then(m => m.hideModal('day-planner-modal'));

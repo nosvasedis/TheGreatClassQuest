@@ -2,6 +2,7 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
+import { normalizeQuestType, QUEST_TYPE_LABELS } from '../../features/specialQuestEngine.js';
 import { renderAwardStarsStudentList } from './award.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
@@ -332,18 +333,20 @@ export function renderCalendarTab(customLogs = null) {
             // --- Event Icons Map ---
             const eventIcons = QUEST_EVENT_ICONS;
 
-            const questEventsOnThisDay = state.get('allQuestEvents').filter(e => utils.datesMatch(e.date, dateString));
+            const questEventsOnThisDay = state.get('allQuestEvents').filter(e => utils.datesMatch(e.dateKey || e.date, dateString) && (!e.classId || classesOnThisDay.some(c => c.id === e.classId)));
 
             // --- NEW: Render Events as Banners (Outside Scroll) ---
             let questEventsHtml = questEventsOnThisDay.map(e => {
-                const title = e.details?.title || e.type;
-                const icon = eventIcons[e.type] || '📅 Event';
+                const normalizedType = normalizeQuestType(e.type);
+                const title = e.details?.title || QUEST_TYPE_LABELS[normalizedType] || (normalizedType === 'double_star_day' ? '2x Star Day' : normalizedType === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type);
+                const icon = eventIcons[e.type] || eventIcons[title] || '📅 Event';
                 // Vibrant Gradient Style
                 return `
                 <div class="relative group w-full mb-1.5 p-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white shadow-md border border-white/20 flex items-center justify-between z-20 cursor-help transition-all hover:scale-[1.03] hover:shadow-lg" title="${title}">
                     <div class="flex items-center gap-1.5 overflow-hidden">
                         <span class="text-[9px] font-black bg-white/30 px-1.5 py-0.5 rounded-lg backdrop-blur-sm shadow-inner">${icon}</span>
                         <span class="font-title text-[10px] font-bold truncate leading-tight tracking-tight">${title}</span>
+                        ${e.status ? `<span class="quest-status-chip quest-status-chip--${String(e.status).replace(/[^a-z]/g, '')} text-[8px]">${String(e.status).replace('_', ' ')}</span>` : ''}
                     </div>
                     <button class="delete-event-btn bg-white/20 hover:bg-white/40 text-white rounded-full w-4.5 h-4.5 flex items-center justify-center flex-shrink-0 transition-colors" data-id="${e.id}" data-name="${title}">
                         <i class="fas fa-times text-[8px]"></i>

@@ -374,6 +374,7 @@ test('admin readiness target enables storage, functions, and scheduler services'
 
   assert.ok(getRequiredFunctionNames('pro').includes('createParentAccess'));
   assert.ok(getRequiredFunctionNames('pro').includes('purgeStudent'));
+  assert.ok(getRequiredFunctionNames('pro').includes('reconcileSpecialQuestEffects'));
   assert.ok(getRequiredFunctionNames('admin').includes('purgeLeftSchoolStudents'));
   assert.ok(getRequiredFunctionNames('admin').includes('markStudentLeftSchool'));
   assert.ok(getRequiredFunctionNames('admin').includes('activateSecretaryAdmin'));

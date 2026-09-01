@@ -4,6 +4,7 @@ const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestor
 const { getStorage } = require('firebase-admin/storage');
 const crypto = require('node:crypto');
 const functionsV1 = require('firebase-functions/v1');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { HttpsError } = require('firebase-functions/v1/https');
 
 initializeApp();
@@ -21,6 +22,38 @@ const SUBSCRIPTION_DOC = 'appConfig/subscription';
 const SECRETARY_ROLE_DOC = `${PUBLIC_DATA_PATH}/school_roles/secretary`;
 const SECRETARY_BOOTSTRAP_DOC = `${PUBLIC_DATA_PATH}/admin_bootstrap/secretary`;
 const RECENT_AUTH_WINDOW_SECONDS = 10 * 60;
+
+/**
+ * Non-blocking Special Quest effect observer. Core Stars/Gold are committed
+ * by the teacher transaction; the browser applies the existing Guild/Familiar
+ * adapters immediately, while this 2nd-gen trigger records that a retryable
+ * action reached the backend without falsely marking failed effects complete.
+ */
+exports.reconcileSpecialQuestEffects = onDocumentCreated({
+  document: `${PUBLIC_DATA_PATH}/quest_event_actions/{actionId}`,
+  region: FUNCTIONS_REGION,
+}, async (event) => {
+  const action = event.data?.data();
+  if (!action || action.coreStatus !== 'applied') return null;
+  const actionRef = db.doc(`${PUBLIC_DATA_PATH}/quest_event_actions/${event.params.actionId}`);
+  const receiptRef = db.doc(`${PUBLIC_DATA_PATH}/quest_effect_receipts/${event.params.actionId}`);
+  await db.runTransaction(async (transaction) => {
+    const receipt = await transaction.get(receiptRef);
+    if (receipt.exists) return;
+    transaction.set(receiptRef, {
+      schemaVersion: 1,
+      actionId: event.params.actionId,
+      eventId: action.eventId,
+      recipientIds: action.recipientIds || [],
+      effectType: action.type === 'reversal' ? 'reversal' : 'completion',
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    transaction.update(actionRef, {
+      workerObservedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return null;
+});
 
 function getProjectId() {
   return getApp().options.projectId || process.env.GCLOUD_PROJECT || 'gcq-school';

@@ -54,6 +54,7 @@ import { reconcileFamiliarLifecycle } from "../../features/familiars.js";
 import { canUseFeature } from "../../utils/subscription.js";
 import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.js";
 import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
+import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -88,20 +89,15 @@ export async function setStudentStarsForToday(
     await Promise.all(maintenanceTasks);
 
     let finalStarValue = starValue;
-    const activeEvent = state
-        .get("allQuestEvents")
-        .find((e) => datesMatch(e.date, today));
-    if (activeEvent) {
-        if (activeEvent.type === "2x Star Day" && starValue > 0) {
-            finalStarValue *= 2;
-        } else if (
-            activeEvent.type === "Reason Bonus Day" &&
-            activeEvent.details?.reason === reason &&
-            starValue > 0
-        ) {
-            finalStarValue += 1;
-        }
-    }
+    const studentForModifier = state.get("allStudents").find((student) => student.id === studentId);
+    const activeEvents = state.get("allQuestEvents").filter((event) =>
+        datesMatch(event.dateKey || event.date, today) &&
+        (!event.classId || !studentForModifier?.classId || event.classId === studentForModifier.classId)
+    );
+    // Special Quests never stack into an ordinary award. Standard modifiers are
+    // resolved once per class/day with deterministic 2x precedence.
+    const modifier = resolveDailyModifier(activeEvents);
+    finalStarValue = applyDailyModifier(finalStarValue, reason, modifier);
 
     // Audio
     if (

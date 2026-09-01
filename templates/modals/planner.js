@@ -92,6 +92,14 @@ export const plannerModalHTML = `
                                     </optgroup>
                                 </select>
                             </div>
+
+                            <div>
+                                <label for="quest-event-scope" class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Classes</label>
+                                <select id="quest-event-scope" multiple size="3"
+                                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold text-gray-700">
+                                </select>
+                                <p class="text-[11px] text-gray-400 mt-1">Select one or more classes. Special Quests are stored separately per class.</p>
+                            </div>
                             
                             <div id="quest-event-description"
                                 class="hidden text-sm text-purple-700 bg-purple-50 p-4 rounded-xl border-l-4 border-purple-400 font-medium leading-relaxed">

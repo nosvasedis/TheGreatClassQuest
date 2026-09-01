@@ -223,13 +223,24 @@ const SECRETARY_RUNTIME_FUNCTION_NAMES = [
   'backfillSchoolYearData',
 ];
 
+// Core background effects used by the Pro/Elite Quest Calendar. Keep this
+// separate from Parent Access/Secretary names so the onboarding report makes
+// the Special Quest worker visible without implying it is a callable API.
+const CORE_RUNTIME_FUNCTION_NAMES = [
+  'reconcileSpecialQuestEffects',
+];
+
 function getRequiredFunctionNames(readinessTarget) {
   const target = normalizeReadinessTarget(readinessTarget);
   if (target === 'admin') {
-    return Array.from(new Set([...PARENT_RUNTIME_FUNCTION_NAMES, ...SECRETARY_RUNTIME_FUNCTION_NAMES]));
+    return Array.from(new Set([
+      ...CORE_RUNTIME_FUNCTION_NAMES,
+      ...PARENT_RUNTIME_FUNCTION_NAMES,
+      ...SECRETARY_RUNTIME_FUNCTION_NAMES,
+    ]));
   }
   if (target === 'pro') {
-    return [...PARENT_RUNTIME_FUNCTION_NAMES];
+    return Array.from(new Set([...CORE_RUNTIME_FUNCTION_NAMES, ...PARENT_RUNTIME_FUNCTION_NAMES]));
   }
   return [];
 }
@@ -3850,6 +3861,7 @@ module.exports = {
   getRequiredFunctionNames,
   PARENT_RUNTIME_FUNCTION_NAMES,
   SECRETARY_RUNTIME_FUNCTION_NAMES,
+  CORE_RUNTIME_FUNCTION_NAMES,
   summarizeAssessmentDefaults,
   summarizeGoogleErrorText,
   inspectBootstrapAdminAuth,

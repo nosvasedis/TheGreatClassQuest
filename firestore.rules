@@ -224,6 +224,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    function ownsClass(classId) {
+      return signedIn() && exists(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(classId)) &&
+        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data.createdBy.uid == request.auth.uid;
+    }
+
+    function canScheduleClass(classId) {
+      return isSecretary() || (isTeacher() && ownsClass(classId));
+    }
+
+    function canRunClass(classId) {
+      return isTeacher() && ownsClass(classId);
+    }
+
     match /artifacts/great-class-quest/public/data/admin_bootstrap/{docId} {
       allow read, write: if false;
     }
@@ -283,6 +296,38 @@ service cloud.firestore {
         ownsStudent(resource.data.studentId)
       );
       allow create, update, delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/quest_events/{eventId} {
+      allow read: if isStaff();
+      allow create: if canScheduleClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.schemaVersion == 2;
+      allow update: if canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'dateKey', 'date', 'goalSpec', 'rewardSpec', 'presentation', 'updatedAt']);
+      allow delete: if canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data);
+    }
+
+    match /artifacts/great-class-quest/public/data/quest_event_runs/{runId} {
+      allow read: if isStaff();
+      allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate();
+      allow update: if canRunClass(resource.data.classId) && resource.data.eventId == request.resource.data.eventId && resource.data.classId == request.resource.data.classId && resource.data.runVersion == request.resource.data.runVersion && resource.data.schoolYearKey == request.resource.data.schoolYearKey && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'progress', 'finalRecipientIds', 'completedBy', 'completedAt', 'completionActionId', 'rewardSummary', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/quest_event_actions/{actionId} {
+      allow read: if isStaff();
+      allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.coreStatus == 'applied';
+      allow update, delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/quest_effect_receipts/{receiptId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/ceremony_snapshots/{snapshotId} {
+      allow read: if isStaff();
+      allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate();
+      allow update: if canRunClass(resource.data.classId) && resource.data.snapshotVersion == request.resource.data.snapshotVersion && ((resource.data.status == 'draft' && request.resource.data.status == 'draft' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'schoolYearKey', 'classId', 'className', 'classLogo', 'questLeague', 'monthKey', 'mode', 'status', 'classResults', 'studentResultsPrivate', 'classWinner', 'prodigyWinners', 'publicSequence', 'spotlights', 'sourceFingerprint', 'sourceGeneratedAt', 'snapshotVersion', 'playback', 'createdBy', 'updatedAt', 'createdAt'])) || (resource.data.status in ['locked', 'completed'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'playback', 'completedAt', 'completedBy'])));
+      allow delete: if false;
     }
 
     match /artifacts/great-class-quest/public/data/communication_threads/{threadId} {

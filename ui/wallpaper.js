@@ -1974,7 +1974,7 @@ function getSchoolUpcomingEventCard() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const events = state.get('allQuestEvents')
-        .map(e => ({ e, d: utils.parseFlexibleDate(e.date) }))
+        .map(e => ({ e, d: utils.parseFlexibleDate(e.dateKey || e.date) }))
         .filter(({ d }) => d && d >= now)
         .sort((a, b) => a.d - b.d);
 
@@ -1983,7 +1983,7 @@ function getSchoolUpcomingEventCard() {
     const dateStr = events[0].d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
 
     return {
-        html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">Coming Soon</div><h3 class="font-title text-4xl text-white mb-2">${e.details.title}</h3><p class="text-purple-100 text-2xl">${dateStr}</p></div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">Coming Soon</div><h3 class="font-title text-4xl text-white mb-2">${e.details?.title || e.type}</h3><p class="text-purple-100 text-2xl">${dateStr}</p></div>`,
         css: 'float-card-purple'
     };
 }

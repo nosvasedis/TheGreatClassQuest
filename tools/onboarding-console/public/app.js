@@ -406,7 +406,7 @@ function renderCurrentStep() {
               <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro ready (Storage + Parent Access)</option>
               <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent Access + Secretary ready</option>
             </select>
-            <p class="field-hint">Starter is paywall only. Pro enables Storage and deploys/verifies Family Access Cloud Functions. Parent Access + Secretary also enables Cloud Scheduler, verifies leave-school purge, deploys school-year tools (close + open school year), and creates the Secretary activation link.</p>
+            <p class="field-hint">Starter is paywall only. Pro enables Storage, the Special Quest effects worker, and deploys/verifies Family Access Cloud Functions. Parent Access + Secretary also enables Cloud Scheduler, verifies leave-school purge, deploys school-year tools (close + open school year), and creates the Secretary activation link.</p>
           </div>
 
           <div class="field-wrap">

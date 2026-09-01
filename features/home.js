@@ -1,6 +1,8 @@
 import { db, doc, getDoc } from '../firebase.js';
 import * as ceremony from '../features/ceremony.js';
 import * as state from '../state.js';
+import { normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
+import { isSpecialQuestType } from './specialQuestEngine.js';
 import * as utils from '../utils.js';
 import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
@@ -1001,6 +1003,14 @@ async function injectQuizButton() {
 }
 
 export function setupHomeListeners() {
+    document.querySelectorAll('[data-special-quest-id]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const event = (state.get('allQuestEvents') || []).find((item) => item.id === button.dataset.specialQuestId);
+            if (!event) return;
+            const { openSpecialQuestRunner } = await import('../ui/modals/specialQuest.js');
+            openSpecialQuestRunner(event);
+        });
+    });
     const infoBtn = document.getElementById('app-info-btn');
     if (infoBtn) {
         const newBtn = infoBtn.cloneNode(true);
@@ -1227,7 +1237,7 @@ function getReminderPills(classId) {
     const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     sortedEvents.forEach(e => {
-        const eventDate = utils.parseFlexibleDate(e.date);
+        const eventDate = utils.parseFlexibleDate(e.dateKey || e.date);
         if (!eventDate) return;
         eventDate.setHours(0, 0, 0, 0);
 
@@ -1249,7 +1259,8 @@ function getReminderPills(classId) {
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
         const timeText = diffDays === 0 ? "Today!" : (diffDays === 1 ? "Tomorrow!" : `in ${diffDays} days`);
 
-        const title = e.details.title || e.type;
+        const normalizedType = normalizeQuestType(e.type);
+        const title = e.details?.title || QUEST_TYPE_LABELS[normalizedType] || (normalizedType === 'double_star_day' ? '2x Star Day' : normalizedType === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type);
         const isDoubleStar = title.toLowerCase().includes('2x star');
 
         // Ορίζουμε το στυλ: Αν είναι 2x Star Day, βάζουμε χρυσό gradient και animation
@@ -1272,6 +1283,12 @@ function getReminderPills(classId) {
         `);
     });
 
+
+    const todaysSpecial = sortedEvents.find((event) => {
+        const eventDate = utils.parseFlexibleDate(event.dateKey || event.date);
+        return eventDate && eventDate.toDateString() === now.toDateString() && isSpecialQuestType(normalizeQuestType(event.type)) && (!classId || !event.classId || event.classId === classId);
+    });
+    if (todaysSpecial) pills.push(`<button type="button" class="date-pill date-pill--quest bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-2 border-white/60 shadow-lg flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:scale-105 transition-transform" data-special-quest-id="${todaysSpecial.id}"><i class="fas fa-play-circle"></i><span class="font-bold">Start today's Quest</span></button>`);
 
     // 5. ACTIVE BOUNTY (Timer removed — shown in wallpaper mode instead)
     if (classId) {

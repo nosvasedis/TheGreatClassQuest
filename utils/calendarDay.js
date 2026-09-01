@@ -4,6 +4,7 @@ import * as constants from '../constants.js';
 import { datesMatch, getDDMMYYYY, parseDDMMYYYY, getClassesOnDay, simpleHashCode } from '../utils.js';
 import { getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 import { classUsesTests } from '../features/assessmentConfig.js';
+import { normalizeQuestType, QUEST_TYPE_LABELS } from '../features/specialQuestEngine.js';
 
 export const QUEST_EVENT_ICONS = {
     '2x Star Day': '⭐ x2',
@@ -13,6 +14,13 @@ export const QUEST_EVENT_ICONS = {
     'Grammar Guardians': '🛡️ Grammar',
     "The Scribe's Sketch": '✏️ Sketch',
     'Five-Sentence Saga': '📜 Saga',
+    double_star_day: '⭐ x2',
+    reason_bonus_day: '✨ Bonus',
+    vocabulary_vault: '🔑 Vocab',
+    unbroken_chain: '🔗 Chain',
+    grammar_guardians: '🛡️ Grammar',
+    scribes_sketch: '✏️ Sketch',
+    five_sentence_saga: '📜 Saga',
 };
 
 /**
@@ -109,11 +117,11 @@ export function getDayAgenda({
     });
 
     const questEvents = (allQuestEvents || [])
-        .filter((e) => datesMatch(e.date, dateString))
+        .filter((e) => datesMatch(e.dateKey || e.date, dateString))
         .map((e) => ({
             ...e,
-            icon: QUEST_EVENT_ICONS[e.type] || '📅 Event',
-            title: e.details?.title || e.type,
+            icon: QUEST_EVENT_ICONS[e.type] || QUEST_EVENT_ICONS[e.details?.title] || '📅 Event',
+            title: e.details?.title || QUEST_TYPE_LABELS[normalizeQuestType(e.type)] || (normalizeQuestType(e.type) === 'double_star_day' ? '2x Star Day' : normalizeQuestType(e.type) === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type),
         }));
 
     const logsForThisDay = (awardLogs || []).filter((log) => datesMatch(log.date, dateString));

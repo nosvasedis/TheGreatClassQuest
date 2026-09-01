@@ -1,0 +1,11 @@
+export const specialQuestModalHTML = `
+<div id="special-quest-runner-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[80] hidden flex items-center justify-center p-4">
+  <div class="special-quest-runner bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="special-quest-runner-title">
+    <div class="flex items-start justify-between gap-4"><div><p id="special-quest-runner-status" class="quest-status-chip quest-status-chip--active">Active</p><h2 id="special-quest-runner-title" class="font-title text-3xl text-indigo-900 mt-2"></h2><p id="special-quest-runner-instructions" class="text-slate-600 mt-1"></p></div><button id="special-quest-runner-close" class="w-10 h-10 rounded-full bg-slate-100" aria-label="Close">×</button></div>
+    <div class="mt-6"><div class="flex justify-between text-sm font-black text-slate-500"><span>Progress</span><span id="special-quest-runner-count">0/0</span></div><div class="special-quest-progress mt-2"><i id="special-quest-runner-progress" style="width:0%"></i></div></div>
+    <div id="special-quest-runner-controls" class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+    <div class="mt-5"><div class="flex items-center justify-between gap-3"><h3 class="font-title text-lg text-slate-800">Who receives the reward?</h3><span id="special-quest-recipient-count" class="text-xs font-black uppercase tracking-widest text-indigo-500"></span></div><div id="special-quest-recipient-list" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2" aria-label="Quest reward recipients"></div></div>
+    <div id="special-quest-runner-saga" class="hidden mt-4"><label for="special-quest-sentence" class="block text-sm font-bold text-slate-600">Current sentence (optional)</label><textarea id="special-quest-sentence" maxlength="240" rows="3" class="w-full mt-1 border rounded-xl p-3"></textarea></div>
+    <div class="mt-6 flex justify-end gap-3"><button id="special-quest-runner-undo" class="px-4 py-2 rounded-xl bg-slate-100 font-bold">Undo</button><button id="special-quest-runner-complete" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-black" disabled>Complete Quest</button></div>
+  </div>
+</div>`;

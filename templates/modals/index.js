@@ -16,6 +16,7 @@ import { skillTreeModalHTML } from './skillTree.js';
 import { guildHeroesModalHTML } from './guildHeroes.js';
 import { fortunesWheelModalHTML } from './fortunesWheel.js';
 import { studentAnalyticsModalHTML } from './studentAnalytics.js';
+import { specialQuestModalHTML } from './specialQuest.js';
 
 export const allModalsHTML =
     baseModalsHTML +
@@ -33,4 +34,5 @@ export const allModalsHTML =
     skillTreeModalHTML +
     guildHeroesModalHTML +
     fortunesWheelModalHTML +
-    studentAnalyticsModalHTML;
+    studentAnalyticsModalHTML +
+    specialQuestModalHTML;

@@ -30,7 +30,8 @@ export const AWARD_LOG_REASON_GRADIENTS = {
     wheel_fortune: 'from-yellow-400 to-amber-500',
     wheel_curse: 'from-red-700 to-purple-900',
     marked_present: 'from-teal-400 to-emerald-600',
-    excellence: 'from-amber-300 to-yellow-500'
+    excellence: 'from-amber-300 to-yellow-500',
+    special_quest: 'from-violet-500 to-fuchsia-600'
 };
 
 /** Font Awesome icon suffix (without `fa-` prefix sometimes passed as fa-x) — logbook uses `fas ${AWARD_LOG_REASON_ICONS[r]}` */
@@ -50,7 +51,8 @@ export const AWARD_LOG_REASON_ICONS = {
     wheel_fortune: 'fa-wand-magic-sparkles',
     wheel_curse: 'fa-bolt',
     marked_present: 'fa-user-check',
-    excellence: 'fa-star'
+    excellence: 'fa-star',
+    special_quest: 'fa-wand-magic-sparkles'
 };
 
 /** Wallpaper “float card” styling (icon + colours) */
@@ -70,7 +72,8 @@ export const AWARD_REASON_WALLPAPER_FLOAT = {
     wheel_curse: { icon: 'fa-bolt', color: 'text-red-700', css: 'float-card-purple', bg: 'bg-red-100' },
     story_weaver: { icon: 'fa-book-open', color: 'text-violet-700', css: 'float-card-purple', bg: 'bg-violet-100' },
     marked_present: { icon: 'fa-user-check', color: 'text-teal-600', css: 'float-card-green', bg: 'bg-teal-100' },
-    excellence: { icon: 'fa-star', color: 'text-amber-500', css: 'float-card-gold', bg: 'bg-amber-100' }
+    excellence: { icon: 'fa-star', color: 'text-amber-500', css: 'float-card-gold', bg: 'bg-amber-100' },
+    special_quest: { icon: 'fa-wand-magic-sparkles', color: 'text-violet-600', css: 'float-card-purple', bg: 'bg-violet-100' }
 };
 
 export function resolveWallpaperFloatStyle(reason) {

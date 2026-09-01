@@ -1,3 +1,855 @@
-.growth-festival-garden,.growth-final-garden{position:relative;min-height:52vh;padding:clamp(1rem,4vw,4rem);border-radius:2rem;background:linear-gradient(145deg,#d9f7e8,#ffe1d1 48%,#e9ddff);overflow:hidden;color:#334155}.growth-festival-garden{background-image:linear-gradient(145deg,rgba(217,247,232,.88),rgba(255,225,209,.88)),url('/assets/ceremony/growth-festival-garden.webp');background-size:cover;background-position:center}.growth-garden-gate{position:absolute;inset:0;background:url('/assets/ceremony/growth-festival-garden-gate.webp') center/cover no-repeat;opacity:.7;pointer-events:none}.growth-garden-cards,.growth-mini-blooms{position:relative;display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;z-index:1}.growth-class-card,.growth-bloom-card{background:rgba(255,255,255,.86);border:1px solid rgba(255,255,255,.9);border-radius:1.5rem;padding:1.25rem;box-shadow:0 1rem 2rem rgba(80,50,100,.14);text-align:center}.growth-class-card{min-width:220px}.growth-bloom-card{width:min(100%,360px)}.growth-bloom-icon,.growth-golden-bloom{font-size:clamp(3rem,8vw,6rem);line-height:1}.growth-bloom-card h3,.growth-class-card h3,.growth-final-garden h2{font-family:var(--font-title,'Nunito'),sans-serif;font-weight:900;font-size:clamp(1.3rem,3vw,2rem);margin:.5rem 0}.growth-bloom-card p{font-weight:700;color:#475569}.growth-transition-message,.growth-outro{text-align:center;color:white;font-size:clamp(1.5rem,4vw,3rem);font-weight:900;padding:4rem}.growth-fireflies{color:#fde68a;letter-spacing:1rem;font-size:2rem}.growth-final-garden{text-align:center;background:linear-gradient(145deg,#fff7cc,#d9f7e8)}.growth-mini-blooms{margin-top:2rem}.growth-mini-blooms span{font-size:2rem;filter:drop-shadow(0 .2rem .2rem rgba(120,80,30,.2))}
-@media (prefers-reduced-motion:reduce){.growth-festival-garden *,.growth-final-garden *{animation:none!important;transition:opacity .15s linear!important}}
-.growth-bloom-card{background-image:url('/assets/ceremony/growth-festival-bloom-wreath.webp');background-position:center;background-size:contain;background-repeat:no-repeat}.growth-golden-bloom{background:url('/assets/ceremony/growth-festival-golden-bloom.webp') center/contain no-repeat;width:clamp(10rem,26vw,18rem);height:clamp(10rem,26vw,18rem);margin:auto;font-size:0}
+/* ==========================================================================
+   GROWTH FESTIVAL CEREMONY (Nursery & Pre-Junior)
+   Aesthetic: Soft Storybook Fairytale Spring Garden, Warm Sunlight, Mint/Peach/Lilac/Gold
+   ========================================================================== */
+
+/* 1. Garden Stage Containers & Backgrounds */
+.growth-festival-garden,
+.growth-final-garden {
+    position: relative;
+    width: min(96vw, 1100px);
+    min-height: clamp(380px, 58vh, 680px);
+    margin: 0 auto;
+    padding: clamp(1.25rem, 3.5vw, 3rem);
+    border-radius: 2.5rem;
+    background: linear-gradient(145deg, #e6f9f0 0%, #fff0e6 48%, #f2ebff 100%);
+    box-shadow: 0 25px 60px -15px rgba(50, 40, 90, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    color: #334155;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.growth-festival-garden {
+    background-image: 
+        linear-gradient(145deg, rgba(230, 249, 240, 0.88), rgba(255, 240, 230, 0.88) 50%, rgba(242, 235, 255, 0.9)),
+        url('/assets/ceremony/growth-festival-garden.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+.growth-garden-gate {
+    position: absolute;
+    inset: 0;
+    background: url('/assets/ceremony/growth-festival-garden-gate.webp') center/cover no-repeat;
+    opacity: 0.65;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Floating petals — scattered, never a single row of emoji. */
+@keyframes petal-drift {
+    0%, 100% { transform: translate(0, 0) rotate(-10deg) scale(var(--s, 1)); }
+    50% { transform: translate(10px, -18px) rotate(14deg) scale(calc(var(--s, 1) * 1.1)); }
+}
+
+@keyframes petal-bob {
+    0%, 100% { transform: var(--place) translateY(0) rotate(-8deg) scale(var(--s, 1)); }
+    50% { transform: var(--place) translateY(-12px) rotate(10deg) scale(calc(var(--s, 1) * 1.14)); }
+}
+
+.growth-petals {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.growth-petals .growth-petal {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    font-size: calc(1.15rem * var(--s, 1));
+    line-height: 1;
+    filter: drop-shadow(0 6px 10px rgba(251, 191, 36, 0.28));
+    animation: petal-drift 6.8s ease-in-out var(--d, 0s) infinite;
+    will-change: transform;
+}
+
+.growth-bloom-burst {
+    position: absolute;
+    inset: -34%;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.growth-bloom-burst .growth-petal {
+    --place: translate(-50%, -50%) rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a)));
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    font-size: calc(1.25rem * var(--s, 1));
+    line-height: 1;
+    transform: var(--place);
+    filter: drop-shadow(0 8px 12px rgba(251, 191, 36, 0.35));
+    animation: petal-bob 4.2s ease-in-out var(--d, 0s) infinite;
+    will-change: transform;
+}
+
+.growth-mini-blooms-section .growth-petals {
+    inset: -18% -6% auto -6%;
+    height: 4.5rem;
+    overflow: visible;
+}
+
+/* 2. League Garden Cards Grid */
+.growth-garden-cards {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+    flex-wrap: wrap;
+    z-index: 2;
+    width: 100%;
+    max-height: 52vh;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+@keyframes bloom-pop-in {
+    0% { transform: scale(0.85) translateY(24px); opacity: 0; }
+    60% { transform: scale(1.03) translateY(-4px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.growth-class-card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    border-radius: 2rem;
+    padding: 1.5rem 1.25rem;
+    box-shadow: 0 12px 30px -8px rgba(70, 45, 100, 0.12), inset 0 2px 0 rgba(255, 255, 255, 0.9);
+    text-align: center;
+    min-width: 220px;
+    max-width: 280px;
+    flex: 1 1 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    animation: bloom-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.growth-class-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 35px -8px rgba(70, 45, 100, 0.18);
+}
+
+.growth-class-emblem {
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+    animation: gentle-sway 4s ease-in-out infinite;
+}
+
+@keyframes gentle-sway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(4deg) scale(1.05); }
+}
+
+.growth-class-card h3 {
+    font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+    color: #1e293b;
+    margin: 0.25rem 0;
+}
+
+.growth-class-card p {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0.2rem 0;
+}
+
+/* Pathfinder Highlight Badge & Card */
+.growth-class-card--pathfinder {
+    border-color: #fcd34d;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.95));
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3), 0 20px 40px -10px rgba(245, 158, 11, 0.25);
+    position: relative;
+}
+
+.growth-class-card--pathfinder::before {
+    content: '✨';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 1.4rem;
+    animation: spin-slow 8s linear infinite;
+}
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.growth-class-pathfinder {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+    border: 1px solid #fcd34d;
+}
+
+.growth-class-virtue {
+    display: inline-block;
+    margin-top: 0.4rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    background: #fdf2f8;
+    color: #be185d;
+    border: 1px solid #fbcfe8;
+}
+
+/* 3. Transition Screen: Every Garden Grows Together */
+.growth-transition-message {
+    text-align: center;
+    color: #4a3728;
+    padding: clamp(2rem, 6vw, 4rem);
+    max-width: 720px;
+    margin: 0 auto;
+    animation: bloom-pop-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.growth-transition-message h2 {
+    font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 700;
+    color: #9a3412;
+    text-shadow: 0 2px 12px rgba(253, 186, 116, 0.45);
+    margin-bottom: 1rem;
+}
+
+.growth-transition-message p {
+    font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+    font-weight: 600;
+    color: #57534e;
+    text-shadow: none;
+    line-height: 1.5;
+}
+
+.growth-fireflies {
+    color: #fde68a;
+    letter-spacing: 1.2rem;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px rgba(253, 230, 138, 0.8);
+    animation: firefly-glow 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes firefly-glow {
+    0% { opacity: 0.6; transform: scale(0.95); filter: drop-shadow(0 0 5px #fde68a); }
+    100% { opacity: 1; transform: scale(1.05); filter: drop-shadow(0 0 20px #fbbf24); }
+}
+
+/* 4. Student Spotlight: Parade of Blooms */
+.growth-bloom-card-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    z-index: 2;
+}
+
+.growth-bloom-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.94);
+    border: 3px solid rgba(255, 255, 255, 0.98);
+    border-radius: 2.5rem;
+    padding: clamp(1.5rem, 3.5vw, 2.5rem);
+    width: min(92vw, 440px);
+    box-shadow: 0 20px 45px -10px rgba(80, 50, 110, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: bloom-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Circular Floral Wreath around Avatar */
+.growth-bloom-wreath-container {
+    position: relative;
+    width: clamp(140px, 26vw, 190px);
+    height: clamp(140px, 26vw, 190px);
+    margin: 0.5rem auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.growth-bloom-wreath-img {
+    position: absolute;
+    inset: -12px;
+    width: calc(100% + 24px);
+    height: calc(100% + 24px);
+    background: url('/assets/ceremony/growth-festival-bloom-wreath.webp') center/contain no-repeat;
+    pointer-events: none;
+    z-index: 2;
+    animation: wreath-breathe 6s ease-in-out infinite;
+}
+
+@keyframes wreath-breathe {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.03) rotate(3deg); }
+}
+
+.growth-bloom-avatar {
+    width: clamp(100px, 18vw, 130px);
+    height: clamp(100px, 18vw, 130px);
+    border-radius: 50%;
+    object-cover: cover;
+    z-index: 1;
+    border: 4px solid #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    background: linear-gradient(135deg, #a7f3d0, #fed7aa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.growth-bloom-card h3 {
+    font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    color: #0f172a;
+    margin: 0.4rem 0 0.2rem;
+    letter-spacing: -0.01em;
+}
+
+.growth-bloom-spotlight-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.35rem 0 0.75rem;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    font-size: clamp(0.8rem, 1.6vw, 0.95rem);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Color variations for student spotlight pills */
+.growth-pill--kindness { background: #fce7f3; color: #9d174d; border: 1px solid #fbcfe8; }
+.growth-pill--ideas { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.growth-pill--teamwork { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+.growth-pill--steady { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.growth-pill--special { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+.growth-pill--growth { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+
+.growth-bloom-card p {
+    font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+    font-weight: 600;
+    color: #475569;
+    line-height: 1.45;
+    margin: 0.25rem 0 0.5rem;
+    max-width: 360px;
+}
+
+.growth-bloom-counter {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+}
+
+/* 5. Final Reveal: Golden Bloom & Whole Class Garden */
+.growth-final-garden {
+    text-align: center;
+    background: linear-gradient(145deg, #fffbeb 0%, #ecfdf5 50%, #faf5ff 100%);
+    position: relative;
+    overflow: visible;
+}
+
+.growth-golden-bloom-wrap {
+    position: relative;
+    margin: 0.5rem auto 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.growth-golden-bloom-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.growth-golden-wreath-container {
+    position: relative;
+    width: clamp(160px, 28vw, 220px);
+    height: clamp(160px, 28vw, 220px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    overflow: visible;
+}
+
+.growth-golden-bloom-wreath-img {
+    position: absolute;
+    inset: -15px;
+    width: calc(100% + 30px);
+    height: calc(100% + 30px);
+    background: url('/assets/ceremony/growth-festival-golden-bloom.webp') center/contain no-repeat;
+    pointer-events: none;
+    z-index: 2;
+    animation: golden-sunburst 14s linear infinite;
+}
+
+@keyframes golden-sunburst {
+    0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
+    50% { transform: scale(1.05) rotate(180deg); filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.9)); }
+    100% { transform: scale(1) rotate(360deg); filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
+}
+
+.growth-golden-avatar {
+    width: clamp(110px, 20vw, 150px);
+    height: clamp(110px, 20vw, 150px);
+    border-radius: 50%;
+    object-cover: cover;
+    z-index: 1;
+    border: 5px solid #fef08a;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+    background: linear-gradient(135deg, #fef08a, #fed7aa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: #78350f;
+    font-weight: 700;
+}
+
+.growth-golden-title {
+    font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: #92400e;
+    text-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+    margin: 0.2rem 0;
+}
+
+.growth-golden-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 1.2rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 2px solid #fcd34d;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    margin-bottom: 1rem;
+}
+
+/* Whole Class Mini-Blooms Garland */
+.growth-mini-blooms-section {
+    width: 100%;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(203, 213, 225, 0.8);
+    position: relative;
+    z-index: 2;
+}
+
+.growth-mini-blooms-label {
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 0.6rem;
+}
+
+.growth-mini-blooms {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.growth-mini-bloom-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.35rem 0.6rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: default;
+}
+
+.growth-mini-bloom-item:hover {
+    transform: translateY(-3px) scale(1.1);
+    box-shadow: 0 6px 12px rgba(245, 158, 11, 0.15);
+    background: #ffffff;
+}
+
+.growth-mini-bloom-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.08));
+}
+
+.growth-mini-bloom-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 0.15rem;
+    max-width: 68px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 6. Outro Screen */
+.growth-outro {
+    text-align: center;
+    color: #4a3728;
+    padding: clamp(2rem, 6vw, 4rem);
+    animation: bloom-pop-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.growth-outro h2 {
+    font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    color: #9a3412;
+    text-shadow: 0 2px 14px rgba(253, 186, 116, 0.45);
+    margin-bottom: 0.5rem;
+}
+
+.growth-outro p {
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    font-weight: 600;
+    color: #0f766e;
+    text-shadow: none;
+}
+
+.growth-outro-emblems {
+    font-size: 3rem;
+    margin-top: 1.5rem;
+    letter-spacing: 0.5rem;
+    animation: gentle-sway 3s infinite ease-in-out;
+}
+
+/* 7. Growth Festival sky — light, dreamy, age-appropriate (not Classic Arena violet) */
+#ceremony-screen.ceremony-view--growth {
+    background:
+        radial-gradient(circle at 50% 112%, rgba(253, 224, 71, 0.38) 0%, transparent 38%),
+        radial-gradient(circle at 10% 16%, rgba(167, 243, 208, 0.55) 0%, transparent 40%),
+        radial-gradient(circle at 90% 12%, rgba(254, 205, 170, 0.5) 0%, transparent 38%),
+        linear-gradient(165deg, #fff7ed 0%, #ecfdf5 36%, #fdf2f8 70%, #fefce8 100%) !important;
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-bg-gradient {
+    opacity: 1 !important;
+    background:
+        radial-gradient(ellipse at 50% 100%, rgba(252, 211, 77, 0.32) 0%, transparent 56%),
+        radial-gradient(ellipse at 8% 10%, rgba(110, 231, 183, 0.34) 0%, transparent 48%),
+        radial-gradient(ellipse at 92% 14%, rgba(253, 164, 175, 0.22) 0%, transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(236, 253, 245, 0.22)) !important;
+    animation: none !important;
+}
+
+#ceremony-screen.ceremony-view--growth::before,
+#ceremony-screen.ceremony-view--growth::after {
+    mix-blend-mode: normal;
+    opacity: 0.55;
+}
+
+#ceremony-screen.ceremony-view--growth::before {
+    background:
+        radial-gradient(circle, rgba(254, 240, 138, 0.55), transparent 70%),
+        radial-gradient(circle at 28% 78%, rgba(167, 243, 208, 0.35), transparent 46%) !important;
+}
+
+#ceremony-screen.ceremony-view--growth::after {
+    background:
+        radial-gradient(circle, rgba(254, 205, 170, 0.48), transparent 68%),
+        radial-gradient(circle at 74% 28%, rgba(251, 207, 232, 0.32), transparent 44%) !important;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-theme-veil {
+    opacity: 0;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-layout::before {
+    background:
+        radial-gradient(ellipse at center, rgba(253, 224, 71, 0.42) 0%, rgba(167, 243, 208, 0.18) 40%, transparent 74%) !important;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-layout::after {
+    background:
+        linear-gradient(115deg, transparent 0 18%, rgba(255, 255, 255, 0.28) 20%, transparent 32% 58%, rgba(167, 243, 208, 0.12) 62%, transparent 74%),
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.2), transparent 48%) !important;
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-stage-area::before {
+    background:
+        radial-gradient(ellipse at center, rgba(255, 255, 255, 0.28), transparent 56%),
+        conic-gradient(from 90deg at 50% 50%, transparent 0deg, rgba(253, 224, 71, 0.16) 40deg, transparent 70deg, rgba(110, 231, 183, 0.12) 150deg, transparent 190deg, rgba(251, 207, 232, 0.12) 290deg, transparent 330deg) !important;
+}
+
+#ceremony-screen.ceremony-view--growth:has(#ceremony-header.ceremony-header--intro) #ceremony-stage-area {
+    min-height: clamp(340px, 62vh, 640px);
+    max-height: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-title {
+    filter: drop-shadow(0 8px 18px rgba(253, 186, 116, 0.45));
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-title .gradient-text {
+    background: linear-gradient(90deg, #9a3412, #d97706, #be185d, #b45309, #9a3412) !important;
+    background-size: 220% auto !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: shimmer-text 3s linear infinite;
+}
+
+/* Kill gold clip on small copy so a real letter-trace can sit on the light sky.
+   Titles (#ceremony-title, splash title) stay gradient-clipped and are not stroked. */
+#ceremony-screen.ceremony-view--growth #ceremony-subtitle,
+#ceremony-screen.ceremony-view--growth #ceremony-subtitle .gradient-text,
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__kicker,
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__brand,
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__tagline,
+#ceremony-screen.ceremony-view--growth .growth-mini-blooms-label,
+#ceremony-screen.ceremony-view--growth .growth-bloom-counter,
+#ceremony-screen.ceremony-view--growth .growth-class-card p,
+#ceremony-screen.ceremony-view--growth .growth-bloom-card p,
+#ceremony-screen.ceremony-view--growth .growth-transition-message p,
+#ceremony-screen.ceremony-view--growth .growth-outro p,
+#ceremony-screen.ceremony-view--growth #ceremony-ai-text {
+    background: none !important;
+    background-image: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    animation: none !important;
+    filter: none !important;
+    paint-order: stroke fill;
+}
+
+/* White small copy with a dark letter-trace so it holds on the mint-peach sky.
+   Titles (#ceremony-title, splash title) stay gradient-clipped and are not stroked. */
+#ceremony-screen.ceremony-view--growth #ceremony-subtitle,
+#ceremony-screen.ceremony-view--growth #ceremony-subtitle .gradient-text,
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__kicker {
+    -webkit-text-stroke: 1.7px #3f2a14;
+    text-shadow:
+        -1px 0 0 #3f2a14,
+        1px 0 0 #3f2a14,
+        0 -1px 0 #3f2a14,
+        0 1px 0 #3f2a14,
+        -1px -1px 0 #3f2a14,
+        1px -1px 0 #3f2a14,
+        -1px 1px 0 #3f2a14,
+        1px 1px 0 #3f2a14;
+}
+
+/* Dark small copy: cream letter-trace so the outline reads on mint/peach patches. */
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__brand,
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__tagline,
+#ceremony-screen.ceremony-view--growth .growth-mini-blooms-label,
+#ceremony-screen.ceremony-view--growth .growth-bloom-counter,
+#ceremony-screen.ceremony-view--growth .growth-class-card p,
+#ceremony-screen.ceremony-view--growth .growth-bloom-card p,
+#ceremony-screen.ceremony-view--growth .growth-transition-message p,
+#ceremony-screen.ceremony-view--growth .growth-outro p,
+#ceremony-screen.ceremony-view--growth #ceremony-ai-text {
+    -webkit-text-stroke: 1.35px #fffef7;
+    text-shadow:
+        -1px 0 0 #fffef7,
+        1px 0 0 #fffef7,
+        0 -1px 0 #fffef7,
+        0 1px 0 #fffef7;
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-subtitle,
+#ceremony-screen.ceremony-view--growth #ceremony-subtitle .gradient-text {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__kicker {
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__title {
+    background: linear-gradient(92deg, #f59e0b 0%, #ea580c 28%, #db2777 58%, #d97706 100%) !important;
+    background-size: 220% auto !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    filter: drop-shadow(0 6px 16px rgba(251, 146, 60, 0.35));
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__brand {
+    color: #115e59;
+    -webkit-text-fill-color: #115e59;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__tagline {
+    color: #292524;
+    -webkit-text-fill-color: #292524;
+}
+
+#ceremony-screen.ceremony-view--growth .growth-class-card p,
+#ceremony-screen.ceremony-view--growth .growth-mini-blooms-label,
+#ceremony-screen.ceremony-view--growth .growth-bloom-counter {
+    color: #44403c;
+    -webkit-text-fill-color: #44403c;
+}
+
+#ceremony-screen.ceremony-view--growth .growth-bloom-card p,
+#ceremony-screen.ceremony-view--growth .growth-transition-message p {
+    color: #292524;
+    -webkit-text-fill-color: #292524;
+}
+
+#ceremony-screen.ceremony-view--growth .growth-outro p {
+    color: #0f766e;
+    -webkit-text-fill-color: #0f766e;
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-ai-box {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(236, 253, 245, 0.88) 46%, rgba(255, 247, 237, 0.86)) !important;
+    border: 1px solid rgba(253, 186, 116, 0.45) !important;
+    color: #44403c;
+}
+
+#ceremony-screen.ceremony-view--growth #ceremony-ai-text {
+    color: #44403c !important;
+    -webkit-text-fill-color: #44403c !important;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-utility-btn {
+    background: rgba(255, 255, 255, 0.78);
+    color: #57534e;
+    border-color: rgba(180, 83, 9, 0.22);
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-utility-btn:hover {
+    background: #fff;
+    color: #9a3412;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-key-hint {
+    color: rgba(87, 83, 78, 0.7);
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-key-hint kbd {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(180, 83, 9, 0.2);
+    color: #78716c;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__emblem-wrap {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(254, 243, 199, 0.7));
+    border-color: rgba(253, 186, 116, 0.55);
+    box-shadow: 0 0 32px rgba(253, 224, 71, 0.4), 0 12px 28px rgba(251, 146, 60, 0.18);
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__emblem {
+    filter: drop-shadow(0 6px 10px rgba(180, 83, 9, 0.18));
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-splash__ring {
+    border-color: rgba(253, 186, 116, 0.45);
+    box-shadow: 0 0 40px rgba(253, 224, 71, 0.28), 0 0 48px rgba(167, 243, 208, 0.2);
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-chip {
+    box-shadow: 0 10px 22px rgba(180, 83, 9, 0.12);
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-chip--amber {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-chip--violet {
+    background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+    color: #9d174d;
+    border-color: #f9a8d4;
+}
+
+#ceremony-screen.ceremony-view--growth .ceremony-intro-chip--blend {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+
+.ceremony-action-btn--growth {
+    background: linear-gradient(92deg, #fef9c3, #86efac 32%, #fdba74 68%, #f9a8d4);
+    color: #7c2d12;
+    box-shadow:
+        0 10px 28px rgba(251, 146, 60, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75),
+        inset 0 -3px 8px rgba(217, 119, 6, 0.12);
+}
+
+/* 8. Reduced Motion Accessibility Overrides */
+@media (prefers-reduced-motion: reduce) {
+    .growth-festival-garden .growth-class-card,
+    .growth-bloom-card,
+    .growth-golden-bloom-wreath-img,
+    .growth-bloom-wreath-img,
+    .growth-petals .growth-petal,
+    .growth-bloom-burst .growth-petal {
+        animation: none !important;
+        transition: opacity 0.15s linear !important;
+    }
+    .growth-festival-garden .growth-class-card,
+    .growth-bloom-card,
+    .growth-golden-bloom-wreath-img,
+    .growth-bloom-wreath-img,
+    .growth-petals .growth-petal {
+        transform: none !important;
+    }
+}
+

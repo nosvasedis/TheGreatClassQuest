@@ -126,6 +126,7 @@
 @import url('./styles/ceremony2.css');
 @import url('./styles/ceremony_growth.css');
 @import url('./styles/special_quests.css');
+@import url('./styles/quest_events.css');
 
 /* 32. Wallpaper V2/V3: float-bob-v2, wallpaper-float-card, night hub, legibility fixes, mindfulness, seasonal, weather states */
 @import url('./styles/wallpaper2.css');

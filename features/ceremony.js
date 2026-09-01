@@ -2,7 +2,28 @@
 
 import { db, updateDoc, setDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
-import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
+import { 
+    playSound, 
+    ceremonyMusic, 
+    winnerFanfare, 
+    showdownSting, 
+    fadeCeremonyMusic, 
+    stopAllCeremonyAudio, 
+    playCeremonyMusic, 
+    playDrumRoll, 
+    stopDrumRoll, 
+    playWinnerFanfare,
+    playGrowthBloomChime,
+    playGrowthFanfare,
+    playGrowthAmbient,
+    stopGrowthAmbient,
+    playGrowthMusic,
+    stopGrowthMusic,
+    fadeGrowthMusic,
+    crownOfPetalsMusic,
+    toggleCeremonyMute,
+    isCeremonyMuted
+} from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
@@ -15,7 +36,7 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
-import { resolveCeremonyMode, buildGrowthSpotlights, seededShuffle } from './ceremonyDomain.js';
+import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle } from './ceremonyDomain.js';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId } from './ceremonySnapshots.js';
 
 const CEREMONY_REASON_INFO = {
@@ -52,8 +73,14 @@ let ceremonyData = {
     monthName: '',
     classId: null,
     league: null,
-    classQueue: [], 
-    studentQueue: [], 
+    classQueue: [],
+    studentQueue: [],
+    growthGardenClasses: [],
+    growthPathfinderId: null,
+    growthCanonicalStudentResults: [],
+    growthStudents: [],
+    growthSpotlights: [],
+    growthWinners: [],
     classPointer: 0, 
     studentPointer: 0 
 };
@@ -136,6 +163,7 @@ function setCeremonyViewMode(mode) {
         'ceremony-view--classes',
         'ceremony-view--transition',
         'ceremony-view--students',
+        'ceremony-view--growth',
         'ceremony-view--final',
         'ceremony-view--outro',
         'ceremony-theme-morph-active',
@@ -175,6 +203,7 @@ function setCeremonyViewMode(mode) {
             'ceremony-action-btn--classes',
             'ceremony-action-btn--transition',
             'ceremony-action-btn--students',
+            'ceremony-action-btn--growth',
             'ceremony-action-btn--final',
             'ceremony-action-btn--outro'
         );
@@ -381,12 +410,16 @@ export function startCeremony(params) {
         studentPointer: 0
     };
 
+
     const screen = document.getElementById('ceremony-screen');
     const title = document.getElementById('ceremony-title');
     const subtitle = document.getElementById('ceremony-subtitle');
     const actionBtn = document.getElementById('ceremony-action-btn');
     const stage = document.getElementById('ceremony-stage-area');
     const aiBox = document.getElementById('ceremony-ai-box');
+    const closeBtn = document.getElementById('ceremony-close-btn');
+    const soundBtn = document.getElementById('ceremony-sound-btn');
+    const soundIcon = document.getElementById('ceremony-sound-icon');
 
     screen.classList.remove('hidden');
     screen.classList.remove(
@@ -399,7 +432,12 @@ export function startCeremony(params) {
     resetCeremonyStage(stage);
     aiBox.style.opacity = '0';
     lastCeremonyViewMode = 'intro';
-    setCeremonyViewMode('intro');
+    if (modeResult.mode === 'growth_festival') {
+        setCeremonyViewMode('growth');
+        document.getElementById('ceremony-header')?.classList.add('ceremony-header--intro');
+    } else {
+        setCeremonyViewMode('intro');
+    }
     renderCeremonyIntroSplash({ ...params, mode: modeResult.mode });
 
     title.innerHTML = formatTitleHtml('');
@@ -407,15 +445,48 @@ export function startCeremony(params) {
     setCeremonyActionLabel('Start Ceremony');
     actionBtn.onclick = loadDataAndAdvance;
 
-    if (ceremonyMusic.loaded) {
-        ceremonyMusic.volume.value = -12;
-        ceremonyMusic.start();
+    if (closeBtn) closeBtn.onclick = closeCeremony;
+    if (soundBtn) {
+        soundBtn.onclick = () => {
+            const muted = toggleCeremonyMute();
+            if (soundIcon) {
+                soundIcon.className = muted ? 'fas fa-volume-xmark text-sm text-red-400' : 'fas fa-volume-high text-sm';
+            }
+        };
     }
 
-    setTimeout(() => playSound('ceremony_gling'), 420);
+    // Keyboard navigation: Space / Enter advances, Escape closes
+    const handleKeyNav = (e) => {
+        if (!ceremonyData.active) return;
+        if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            const btn = document.getElementById('ceremony-action-btn');
+            if (btn && !btn.disabled) btn.click();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeCeremony();
+        }
+    };
+    window.__ceremonyKeyNavHandler = handleKeyNav;
+    window.removeEventListener('keydown', handleKeyNav);
+    window.addEventListener('keydown', handleKeyNav);
+
+    if (modeResult.mode === 'growth_festival') {
+        playGrowthMusic();
+        setTimeout(() => playGrowthBloomChime(), 420);
+    } else {
+        if (ceremonyMusic.loaded) {
+            ceremonyMusic.volume.value = -12;
+            ceremonyMusic.start();
+        }
+        setTimeout(() => playSound('ceremony_gling'), 420);
+    }
 
     aiBox.style.opacity = '1';
-    document.getElementById('ceremony-ai-text').innerText = 'The scrolls are ready. The arena awaits...';
+    document.getElementById('ceremony-ai-text').innerText = modeResult.mode === 'growth_festival'
+        ? 'Welcome to the garden! Every bloom has a story...'
+        : 'The scrolls are ready. The arena awaits...';
     triggerAICommentary('intro', { month: params.monthName });
 }
 
@@ -589,6 +660,8 @@ function hydrateCeremonyFromSnapshot(snapshot, replay = false) {
     ceremonyData.classQueue = snapshot.classResults || snapshot.publicSequence?.classes || [];
     ceremonyData.studentQueue = snapshot.studentResultsPrivate || snapshot.publicSequence?.students || [];
     ceremonyData.growthSpotlights = snapshot.spotlights || snapshot.publicSequence?.parade || [];
+    ceremonyData.growthGardenClasses = snapshot.publicSequence?.garden || [];
+    ceremonyData.growthPathfinderId = ceremonyData.growthGardenClasses.find((item) => item.isPathfinder)?.id || snapshot.classWinner?.id || null;
     ceremonyData.growthStudents = (snapshot.publicSequence?.parade || snapshot.spotlights || []).map((card) => ({ id: card.studentId, name: card.studentName }));
     ceremonyData.growthWinners = snapshot.prodigyWinners || [];
     ceremonyData.classPointer = 0;
@@ -614,8 +687,10 @@ async function persistPreparedCeremonySnapshot() {
             questLeague: ceremonyData.league,
             monthKey: ceremonyData.monthKey,
             schoolYearKey: state.getActiveSchoolYearKey(),
-            classResults: ceremonyData.classQueue || [],
-            studentResults: (ceremonyData.studentQueue || []).map((item) => ({ id: item.id, name: item.name, avatar: item.avatar, score: item.score, count3: item.stats?.count3, count2: item.stats?.count2, uniqueReasons: item.stats?.uniqueReasons, academicAvg: item.stats?.academicAvg })),
+            classResults: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthGardenClasses || []) : (ceremonyData.classQueue || []),
+            studentResults: ceremonyData.mode === 'growth_festival'
+                ? (ceremonyData.growthCanonicalStudentResults || [])
+                : (ceremonyData.studentQueue || []).map((item) => ({ id: item.id, name: item.name, avatar: item.avatar, score: item.score, count3: item.stats?.count3, count2: item.stats?.count2, uniqueReasons: item.stats?.uniqueReasons, academicAvg: item.stats?.academicAvg })),
             students: ceremonyData.growthStudents || [],
             spotlightOptions: {},
             snapshotVersion: 1
@@ -648,24 +723,147 @@ async function loadGrowthCeremonyData() {
         const dateKey = `${ceremonyData.monthKey}-${String(day).padStart(2, '0')}`;
         if (utils.doesClassMeetOnDate(ceremonyData.classId, dateKey, state.get('allSchoolClasses') || [], state.get('allScheduleOverrides') || [], state.get('schoolHolidayRanges') || [], classEndDates)) lessonDates.push(dateKey);
     }
+    const allLearners = state.get('allStudents') || [];
     const currentLogsByStudent = Object.fromEntries(students.map((student) => [student.id, logs.filter((log) => log.studentId === student.id)]));
+    const currentLogsByLearner = Object.fromEntries(allLearners.map((student) => [student.id, logs.filter((log) => log.studentId === student.id)]));
     const options = Object.fromEntries(students.map((student) => {
         const absentDates = new Set(attendance.filter((record) => record.studentId === student.id && record.classId === ceremonyData.classId && record.status === 'absent').map((record) => record.date));
         return [student.id, { currentLogs: currentLogsByStudent[student.id], previousLogs: previousLogs.filter((log) => log.studentId === student.id), attendedLessons: lessonDates.filter((dateKey) => !absentDates.has(dateKey)) }];
     }));
+    const monthCredits = Object.fromEntries(allLearners.map((student) => [student.id, (currentLogsByLearner[student.id] || []).reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0)]));
+    const allClasses = (state.get('allSchoolClasses') || []).filter((item) => item.questLevel === ceremonyData.league && existedByMonthEnd(item, ceremonyData.monthKey));
+    const ranges = state.get('schoolHolidayRanges') || [];
+    const overrides = state.get('allScheduleOverrides') || [];
+    const classSummaries = allClasses.map((item) => {
+        const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === item.id && existedByMonthEnd(student, ceremonyData.monthKey));
+        const score = classStudents.reduce((sum, student) => sum + (monthCredits[student.id] || 0), 0);
+        const goal = utils.calculateMonthlyClassGoalForDate(item, classStudents.length, ranges, overrides, new Date(year, month - 1, 1), []);
+        const progress = goal > 0 ? Math.round((score / goal) * 100) : 0;
+        const reasonTotals = {};
+        classStudents.forEach((student) => (currentLogsByLearner[student.id] || []).forEach((log) => {
+            if (!['teamwork', 'creativity', 'respect', 'focus'].includes(log.reason)) return;
+            reasonTotals[log.reason] = (reasonTotals[log.reason] || 0) + getAwardLogMonthlyStarCredit(log);
+        }));
+        const topSkill = Object.entries(reasonTotals).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
+        return {
+            id: item.id,
+            name: item.name || 'Our class',
+            className: item.name || 'Our class',
+            logo: item.logo || '📚',
+            topSkill,
+            progressLabel: progress >= 100 ? 'Blooming brightly' : progress >= 60 ? 'Growing steadily' : 'Finding its way',
+            mapZone: getQuestMapZoneForProgressPercent(progress),
+            score
+        };
+    });
+    const canonicalClass = [...classSummaries].sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id)))[0] || null;
+    ceremonyData.growthGardenClasses = seededShuffle(classSummaries, `${ceremonyData.classId}:${ceremonyData.monthKey}:garden`);
+    ceremonyData.growthPathfinderId = canonicalClass?.id || null;
     ceremonyData.growthStudents = students;
     ceremonyData.growthSpotlights = buildGrowthSpotlights(students, options, { classId: ceremonyData.classId, monthKey: ceremonyData.monthKey, snapshotVersion: 1 });
     ceremonyData.growthPointer = 0;
-    const scores = state.get('allStudentScores') || [];
-    const ranked = students.map((student) => ({ student, score: Number(scores.find((item) => item.id === student.id)?.monthlyStars) || 0 })).sort((a, b) => b.score - a.score);
-    const topScore = ranked[0]?.score || 0;
-    ceremonyData.growthWinners = topScore > 0 ? ranked.filter((item) => item.score === topScore).map((item) => item.student) : [];
+    ceremonyData.growthCanonicalStudentResults = students.map((student) => {
+        const logsForStudent = currentLogsByStudent[student.id] || [];
+        const positiveCore = logsForStudent.filter((log) => !['special_quest', 'welcome_back', 'absence'].includes(log.reason) && getAwardLogMonthlyStarCredit(log) > 0);
+        const reasons = new Set(positiveCore.map((log) => log.reason).filter(Boolean));
+        return {
+            id: student.id,
+            name: student.name,
+            avatar: student.avatar,
+            score: monthCredits[student.id] || 0,
+            count3: positiveCore.filter((log) => getAwardLogMonthlyStarCredit(log) >= 3).length,
+            count2: positiveCore.filter((log) => getAwardLogMonthlyStarCredit(log) >= 2 && getAwardLogMonthlyStarCredit(log) < 3).length,
+            uniqueReasons: reasons.size,
+            academicAvg: 0
+        };
+    });
+    const canonicalStudents = chooseCanonicalWinners({ studentResults: ceremonyData.growthCanonicalStudentResults });
+    ceremonyData.growthWinners = canonicalStudents.prodigyWinners.map((winner) => students.find((student) => student.id === winner.id)).filter(Boolean);
     ceremonyData.phase = 'growth_garden';
 }
 
-function growthStudentCard(card) {
-    const safeName = String(card.studentName || 'Learner').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
-    return `<article class="growth-bloom-card" data-student-id="${card.studentId}"><div class="growth-bloom-icon" aria-hidden="true">🌸</div><h3>${safeName}</h3><p>${String(card.publicText || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]))}</p></article>`;
+function getVirtueBadgeMeta(key) {
+    const map = {
+        respect: { label: 'Kind Heart Bloom', icon: '💖', className: 'growth-pill--kindness' },
+        creativity: { label: 'Bright Idea Bloom', icon: '💡', className: 'growth-pill--ideas' },
+        teamwork: { label: 'Teamwork Bloom', icon: '🤝', className: 'growth-pill--teamwork' },
+        focus: { label: 'Steady Little Light', icon: '✨', className: 'growth-pill--steady' },
+        teacher_special_bloom: { label: "Teacher's Special Bloom", icon: '🌟', className: 'growth-pill--special' },
+        growing_stronger: { label: 'Growing Stronger', icon: '🌱', className: 'growth-pill--growth' },
+        rainbow_of_strengths: { label: 'Rainbow of Strengths', icon: '🌈', className: 'growth-pill--special' },
+        steady_little_light: { label: 'Steady Little Light', icon: '✨', className: 'growth-pill--steady' }
+    };
+    return map[key] || { label: 'Special Garden Bloom', icon: '🌸', className: 'growth-pill--special' };
+}
+
+function growthFieldPetalsHtml() {
+    const petals = [
+        ['🌸', '6%', '9%', '0s', '1.2'],
+        ['🌼', '90%', '13%', '0.9s', '0.95'],
+        ['🌷', '13%', '76%', '1.6s', '1.08'],
+        ['🌺', '84%', '70%', '0.35s', '0.9'],
+        ['✿', '47%', '4%', '2s', '0.72'],
+        ['🌸', '23%', '22%', '2.4s', '0.78'],
+        ['🌼', '71%', '83%', '1.15s', '0.82'],
+        ['❀', '94%', '42%', '2.7s', '0.7'],
+        ['🌷', '3%', '45%', '0.55s', '0.88']
+    ];
+    return `<div class="growth-petals" aria-hidden="true">${petals.map(([emoji, x, y, delay, scale]) =>
+        `<span class="growth-petal" style="--x:${x};--y:${y};--d:${delay};--s:${scale}">${emoji}</span>`
+    ).join('')}</div>`;
+}
+
+function growthBloomBurstHtml() {
+    const petals = [
+        ['🌸', '12deg', '56%', '0s', '1.18'],
+        ['🌼', '48deg', '62%', '0.35s', '0.92'],
+        ['🌷', '92deg', '57%', '0.7s', '1.08'],
+        ['🌺', '138deg', '63%', '0.15s', '0.96'],
+        ['🌸', '178deg', '58%', '1s', '0.86'],
+        ['🌼', '222deg', '61%', '0.5s', '1.12'],
+        ['✿', '266deg', '54%', '0.85s', '0.8'],
+        ['🌷', '312deg', '60%', '0.22s', '1.02'],
+        ['❀', '344deg', '52%', '1.2s', '0.76']
+    ];
+    return `<div class="growth-bloom-burst" aria-hidden="true">${petals.map(([emoji, angle, radius, delay, scale]) =>
+        `<span class="growth-petal" style="--a:${angle};--r:${radius};--d:${delay};--s:${scale}">${emoji}</span>`
+    ).join('')}</div>`;
+}
+
+function growthStudentCard(card, index = 0, total = 1) {
+    const safe = (value) => String(value || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
+    const safeName = safe(card.studentName || 'Learner');
+    const safeText = safe(card.publicText || 'Brought joy, curiosity, and kindness to our garden.');
+    const badgeMeta = getVirtueBadgeMeta(card.key);
+
+    const allStudents = state.get('allStudents') || [];
+    const student = allStudents.find((s) => s.id === card.studentId) || (ceremonyData.growthStudents || []).find((s) => s.id === card.studentId);
+    
+    let avatarHtml;
+    if (student && student.avatar) {
+        avatarHtml = `<img src="${safe(student.avatar)}" class="growth-bloom-avatar" alt="${safeName}" loading="lazy" />`;
+    } else {
+        const initials = safeName.slice(0, 2).toUpperCase();
+        avatarHtml = `<div class="growth-bloom-avatar" aria-label="${safeName}">${initials || '🌸'}</div>`;
+    }
+
+    return `
+        <div class="growth-bloom-card-wrap">
+            <article class="growth-bloom-card" data-student-id="${safe(card.studentId)}">
+                <div class="growth-bloom-wreath-container">
+                    <div class="growth-bloom-wreath-img" aria-hidden="true"></div>
+                    ${avatarHtml}
+                </div>
+                <h3>${safeName}</h3>
+                <div class="growth-bloom-spotlight-pill ${badgeMeta.className}">
+                    <span>${badgeMeta.icon}</span>
+                    <span>${badgeMeta.label}</span>
+                </div>
+                <p>${safeText}</p>
+                <div class="growth-bloom-counter">Bloom ${index + 1} of ${total} 🌸</div>
+            </article>
+        </div>
+    `;
 }
 
 function advanceGrowthCeremony() {
@@ -677,34 +875,163 @@ function advanceGrowthCeremony() {
     if (!stage || !btn) return;
     persistCeremonyPlayback();
     screen?.classList.remove('ceremony-phase-suspense');
+
+    const safe = (value) => String(value || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
+
     if (ceremonyData.phase === 'growth_garden') {
+        playGrowthBloomChime();
         title.innerHTML = formatTitleHtml('Our League Garden');
         subtitle.innerHTML = formatTitleHtml('Every class grows in its own beautiful way');
-        stage.innerHTML = `<div class="growth-festival-garden" role="region" aria-label="Our League Garden"><div class="growth-garden-gate" aria-hidden="true"></div><div class="growth-garden-cards"><article class="growth-class-card"><span class="growth-class-emblem" aria-hidden="true">🌱</span><h3>${String(ceremonyData.className || 'Our Class').replace(/[<&>]/g, '')}</h3><p>Our class garden is growing together.</p></article></div></div>`;
-        btn.textContent = 'See our blooms'; ceremonyData.phase = 'growth_transition'; return;
+        const garden = ceremonyData.growthGardenClasses || [];
+        const pathfinder = garden.find((item) => item.id === ceremonyData.growthPathfinderId);
+        const ordered = [...garden.filter((item) => item.id !== ceremonyData.growthPathfinderId), ...(pathfinder ? [pathfinder] : [])];
+        const cards = ordered.map((item) => `
+            <article class="growth-class-card${item.id === ceremonyData.growthPathfinderId ? ' growth-class-card--pathfinder' : ''}">
+                <span class="growth-class-emblem" aria-hidden="true">${safe(item.logo || '🌱')}</span>
+                <h3>${safe(item.className || item.name || 'Our class')}</h3>
+                <p>${safe(item.progressLabel || 'Growing together')}</p>
+                ${item.topSkill ? `<span class="growth-class-virtue">${safe(item.topSkill)} bloom</span>` : ''}
+                ${item.id === ceremonyData.growthPathfinderId ? '<strong class="growth-class-pathfinder">✨ League Pathfinder</strong>' : ''}
+            </article>
+        `).join('');
+        stage.innerHTML = `
+            <div class="growth-festival-garden" role="region" aria-label="Our League Garden">
+                <div class="growth-garden-gate" aria-hidden="true"></div>
+                ${growthFieldPetalsHtml()}
+                <div class="growth-garden-cards">
+                    ${cards || `<article class="growth-class-card"><span class="growth-class-emblem" aria-hidden="true">🌱</span><h3>${safe(ceremonyData.className || 'Our class')}</h3><p>Our class garden is growing together.</p></article>`}
+                </div>
+            </div>
+        `;
+        setCeremonyViewMode('growth');
+        setCeremonyActionLabel('Explore Our Blooms 🌸');
+        ceremonyData.phase = 'growth_transition';
+        return;
     }
+
     if (ceremonyData.phase === 'growth_transition') {
-        title.innerHTML = formatTitleHtml('Every Garden Grows Together'); subtitle.innerHTML = '';
-        stage.innerHTML = `<div class="growth-transition-message"><div class="growth-fireflies" aria-hidden="true">✦ ✧ ✦</div><p>Every child contributed something special.</p></div>`;
-        btn.textContent = 'Begin the Bloom Parade'; ceremonyData.phase = 'growth_parade'; return;
+        playGrowthBloomChime();
+        title.innerHTML = formatTitleHtml('Every Garden Grows Together');
+        subtitle.innerHTML = '';
+        stage.innerHTML = `
+            <div class="growth-transition-message">
+                <div class="growth-fireflies" aria-hidden="true">🌸 ✧ 🌷 ✧ 🌼</div>
+                <h2>A Season of Wonder & Growth</h2>
+                <p>Every little step, warm smile, and helping hand helped our classroom blossom into something extraordinary.</p>
+            </div>
+        `;
+        setCeremonyViewMode('growth');
+        setCeremonyActionLabel('Begin the Bloom Parade 🌺');
+        ceremonyData.phase = 'growth_parade';
+        return;
     }
+
     if (ceremonyData.phase === 'growth_parade') {
         const queue = ceremonyData.growthSpotlights || [];
         const index = ceremonyData.growthPointer || 0;
-        if (index >= queue.length) { ceremonyData.phase = 'growth_final'; advanceGrowthCeremony(); return; }
-        title.innerHTML = formatTitleHtml('Parade of Blooms'); subtitle.innerHTML = formatTitleHtml('A special part of our garden');
-        stage.innerHTML = growthStudentCard(queue[index]); ceremonyData.growthPointer = index + 1; btn.textContent = index + 1 >= queue.length ? 'Reveal our Golden Bloom' : 'Next Bloom'; return;
+        if (index >= queue.length) {
+            ceremonyData.phase = 'growth_final';
+            advanceGrowthCeremony();
+            return;
+        }
+        playGrowthBloomChime();
+        triggerConfetti();
+        title.innerHTML = formatTitleHtml('Parade of Blooms');
+        subtitle.innerHTML = formatTitleHtml('A special part of our garden');
+        stage.innerHTML = growthStudentCard(queue[index], index, queue.length);
+        ceremonyData.growthPointer = index + 1;
+        setCeremonyViewMode('growth');
+        setCeremonyActionLabel(index + 1 >= queue.length ? 'Reveal Our Golden Bloom ✨' : 'Next Bloom 🌸');
+        return;
     }
+
     if (ceremonyData.phase === 'growth_final') {
+        playGrowthFanfare();
+        triggerConfetti();
         const winners = ceremonyData.growthWinners || [];
         title.innerHTML = formatTitleHtml(winners.length ? 'Golden Bloom' : 'Whole Class Garden');
         subtitle.innerHTML = formatTitleHtml(winners.length ? 'Prodigy of the Month' : 'Everyone helped our garden grow');
-        const winnerNames = winners.map((winner) => `<h2>${String(winner.name || '').replace(/[<&>]/g, '')}</h2>`).join('');
-        stage.innerHTML = `<div class="growth-final-garden"><div class="growth-golden-bloom" aria-hidden="true"></div>${winners.length ? winnerNames : '<h2>Our Whole Class Garden</h2>'}<div class="growth-mini-blooms" aria-label="All class members">${(ceremonyData.growthStudents || []).map((student) => `<span title="${String(student.name || '').replace(/[<&>"]/g, '')}" aria-label="${String(student.name || '').replace(/[<&>"]/g, '')}">🌸</span>`).join('')}</div></div>`;
-        btn.textContent = 'Finish Ceremony'; ceremonyData.phase = 'growth_end'; return;
+
+        const allStudents = state.get('allStudents') || [];
+        const winnerCardsHtml = winners.map((winner) => {
+            const safeWinnerName = safe(winner.name || 'Prodigy');
+            const winnerStudent = allStudents.find((s) => s.id === winner.id) || winner;
+            let avatarHtml;
+            if (winnerStudent && winnerStudent.avatar) {
+                avatarHtml = `<img src="${safe(winnerStudent.avatar)}" class="growth-golden-avatar" alt="${safeWinnerName}" loading="lazy" />`;
+            } else {
+                avatarHtml = `<div class="growth-golden-avatar" aria-label="${safeWinnerName}">👑</div>`;
+            }
+            return `
+                <div class="growth-golden-bloom-item">
+                    <div class="growth-golden-wreath-container">
+                        ${growthBloomBurstHtml()}
+                        <div class="growth-golden-bloom-wreath-img" aria-hidden="true"></div>
+                        ${avatarHtml}
+                    </div>
+                    <div class="growth-golden-kicker">✨ Prodigy of the Month ✨</div>
+                    <h2 class="growth-golden-title">${safeWinnerName}</h2>
+                </div>
+            `;
+        }).join('');
+
+        const miniBloomsHtml = (ceremonyData.growthStudents || []).map((student) => {
+            const sName = safe(student.name || 'Learner');
+            const studentObj = allStudents.find((s) => s.id === student.id) || student;
+            const icon = studentObj.avatar ? `<img src="${safe(studentObj.avatar)}" class="w-7 h-7 rounded-full object-cover border border-amber-300 shadow-sm" alt="${sName}" />` : '🌸';
+            return `
+                <div class="growth-mini-bloom-item" title="${sName}">
+                    <span class="growth-mini-bloom-icon" aria-hidden="true">${icon}</span>
+                    <span class="growth-mini-bloom-name">${sName}</span>
+                </div>
+            `;
+        }).join('');
+
+        stage.innerHTML = `
+            <div class="growth-final-garden" role="region" aria-label="Golden Bloom Celebration">
+                ${growthFieldPetalsHtml()}
+                <div class="growth-golden-bloom-wrap">
+                    ${winnerCardsHtml || `
+                        <div class="growth-golden-bloom-item">
+                            <div class="growth-golden-wreath-container">
+                                ${growthBloomBurstHtml()}
+                                <div class="growth-golden-bloom-wreath-img" aria-hidden="true"></div>
+                                <div class="growth-golden-avatar">🌿</div>
+                            </div>
+                            <h2 class="growth-golden-title">Our Whole Class Garden</h2>
+                        </div>
+                    `}
+                </div>
+                <div class="growth-mini-blooms-section">
+                    <div class="growth-mini-blooms-label">Every Blossom in Our Class Family</div>
+                    <div class="growth-mini-blooms" aria-label="All class members">
+                        ${miniBloomsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+        setCeremonyViewMode('growth');
+        setCeremonyActionLabel('Finish Ceremony 🌿');
+        ceremonyData.phase = 'growth_end';
+        return;
     }
+
     if (ceremonyData.phase === 'growth_end') {
-        saveCeremonyComplete(); stage.innerHTML = '<div class="growth-outro"><h2>Our garden will keep growing.</h2><div aria-hidden="true">🌿✨</div></div>'; title.innerHTML = formatTitleHtml('Ceremony Complete'); subtitle.innerHTML = ''; btn.textContent = 'Close'; btn.onclick = closeCeremony; ceremonyData.phase = 'end'; return;
+        saveCeremonyComplete();
+        stage.innerHTML = `
+            <div class="growth-outro">
+                <h2>Our garden will keep blooming!</h2>
+                <p>Thank you for making this month so magical and joyful.</p>
+                <div class="growth-outro-emblems" aria-hidden="true">🌿 🌸 🌼 🦋 🌷</div>
+            </div>
+        `;
+        title.innerHTML = formatTitleHtml('Ceremony Complete');
+        subtitle.innerHTML = '';
+        setCeremonyViewMode('growth');
+        setCeremonyActionLabel('Close');
+        btn.onclick = closeCeremony;
+        ceremonyData.phase = 'end';
+        return;
     }
 }
 // --- 3. THE "CONVEYOR BELT" ENGINE ---
@@ -1758,13 +2085,18 @@ async function saveCeremonyComplete() {
 }
 
 function closeCeremony() {
+    ceremonyData.active = false;
+    if (window.__ceremonyKeyNavHandler) {
+        window.removeEventListener('keydown', window.__ceremonyKeyNavHandler);
+        window.__ceremonyKeyNavHandler = null;
+    }
     const screen = document.getElementById('ceremony-screen');
     screen.classList.add('hidden');
     screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
     stopAllCeremonyAudio();
     import('../features/home.js').then(m => m.renderHomeTab());
 }
-
+        
 function triggerConfetti() {
     const container = document.getElementById('ceremony-confetti-container');
     container.innerHTML = '';

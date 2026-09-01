@@ -747,7 +747,7 @@ export function openAppInfoModal() {
         { emoji: '🌅', title: 'Arrive as the Hero you Are', body: 'Walk into class knowing your avatar is waiting. Check your missions, your familiar, and your stars from last time — then get ready to earn more!' },
         { emoji: '⭐', title: 'Earn Stars & Conquer Bounties', body: 'Answer questions, speak English, help classmates, complete bounties — every great moment earns stars. The teacher notices EVERYTHING in the Quest!' },
         { emoji: '🛒', title: 'Build Your Legend', body: 'Spend Gold in the Mystic Market (your star rank never drops). On Elite, hatch a Familiar. On Pro, level your Hero Class and Skill Tree. Your character is uniquely yours.' },
-        { emoji: '🎉', title: 'Celebrate & Remember', body: 'Ceremony of the Month ranks the classes, then crowns Prodigy of the Month. Hero of the Day is a different, daily spotlight from the Adventure Log.' },
+        { emoji: '🎉', title: 'Celebrate & Remember', body: 'Ceremony of the Month is automatic: Growth Festival for Nursery and Pre-Junior, Classic Arena (classes, then Prodigy) for everyone else. Hero of the Day is a different, daily spotlight from the Adventure Log.' },
     ];
 
     // ─────────── TEACHER DAILY FLOW ───────────
@@ -755,7 +755,7 @@ export function openAppInfoModal() {
         { emoji: '🏫', title: 'Open the class (2 min)', body: 'Follow today’s schedule (or pick a class by hand). Glance at Home. Open Projector Mode whenever the room should see the wallpaper — sky, clocks, story cards. It is not a step you must do first.' },
         { emoji: '⭐', title: 'Award Stars in Real Time', body: 'Tap a cloud and award 1–3 stars for Teamwork, Creativity, Respect, or Focus. Welcome a returning student. Let classmates gift a Hero\'s Boon when the heart is offered. Launch a bounty for a shared timer race.' },
         { emoji: '📝', title: 'Record What Matters', body: 'Set tomorrow\'s Quest Assignment, mark attendance, and Log Today\'s Adventure (you write it on Pro; Elite can illustrate it). That log crowns Hero of the Day. Tests live on Scholar\'s Scroll when your plan includes it.' },
-        { emoji: '🏆', title: 'Review & Celebrate', body: 'Glance at Team Quest and Hero\'s Challenge. When a new month begins, run the Ceremony of the Month (classes, then Prodigy). Students leave talking about the Quest — that is the goal!' },
+        { emoji: '🏆', title: 'Review & Celebrate', body: 'Glance at Team Quest and Hero\'s Challenge. When a new month begins, run the Ceremony of the Month — Growth Festival for Nursery and Pre-Junior, Classic Arena (classes, then Prodigy) for the rest. Students leave talking about the Quest — that is the goal!' },
     ];
 
     const studentSections = getGuideSections('student');

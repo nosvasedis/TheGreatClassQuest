@@ -91,9 +91,13 @@ export function buildGrowthSpotlights(students = [], optionsByStudent = {}, { cl
     return seededShuffle(cards, `${classId}+${monthKey}+${snapshotVersion}`);
 }
 
-export function buildGrowthPublicSequence({ classes = [], spotlights = [], classId = '', monthKey = '', snapshotVersion = 1 } = {}) {
+export function buildGrowthPublicSequence({ classes = [], spotlights = [], pathfinderId = '', classId = '', monthKey = '', snapshotVersion = 1 } = {}) {
+    const publicClasses = classes.map((item) => {
+        const { score, goal, progress, rank, ...safe } = item || {};
+        return { ...safe, isPathfinder: item?.id === pathfinderId };
+    });
     return {
-        garden: seededShuffle(classes.map((item) => ({ ...item, rank: undefined })), `${classId}:${monthKey}:garden`),
+        garden: seededShuffle(publicClasses, `${classId}:${monthKey}:garden`),
         parade: seededShuffle(spotlights, `${classId}:${monthKey}:${snapshotVersion}:parade`),
     };
 }
@@ -103,7 +107,7 @@ export function buildCeremonySnapshot({ classId, className, classLogo, questLeag
     if (!modeResult.ok) throw new Error(modeResult.reason);
     const winners = chooseCanonicalWinners({ classResults, studentResults });
     const spotlights = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthSpotlights(students, spotlightOptions, { classId, monthKey, snapshotVersion }) : [];
-    const publicSequence = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthPublicSequence({ classes: classResults, spotlights, classId, monthKey, snapshotVersion }) : { classes: winners.classResults, students: winners.studentResults };
+    const publicSequence = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthPublicSequence({ classes: classResults, spotlights, pathfinderId: winners.classWinner?.id, classId, monthKey, snapshotVersion }) : { classes: winners.classResults, students: winners.studentResults };
     return {
         schemaVersion: 1, schoolYearKey, classId, className, classLogo, questLeague, monthKey, mode: modeResult.mode, status: 'draft',
         classResults: winners.classResults, studentResultsPrivate: winners.studentResults, classWinner: winners.classWinner, prodigyWinners: winners.prodigyWinners,
@@ -111,4 +115,3 @@ export function buildCeremonySnapshot({ classId, className, classLogo, questLeag
         playback: { phase: 'intro', index: 0, updatedAt: new Date() }, createdBy,
     };
 }
-

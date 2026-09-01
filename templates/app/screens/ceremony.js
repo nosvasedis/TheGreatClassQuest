@@ -18,6 +18,20 @@ export const ceremonyHTML = `
             </div>
         </div>
 
+        <div class="ceremony-utility-bar" role="toolbar" aria-label="Ceremony controls">
+            <button id="ceremony-close-btn" type="button" class="ceremony-utility-btn" title="Exit Ceremony (Esc)" aria-label="Exit Ceremony">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+            <div class="ceremony-utility-bar__end">
+                <span class="ceremony-key-hint">
+                    <kbd>Space</kbd> Next
+                </span>
+                <button id="ceremony-sound-btn" type="button" class="ceremony-utility-btn" title="Toggle Sound" aria-label="Toggle Sound">
+                    <i id="ceremony-sound-icon" class="fas fa-volume-high text-sm"></i>
+                </button>
+            </div>
+        </div>
+
         <div class="relative z-10 ceremony-layout w-full h-full px-3 py-2 md:px-5 md:py-4">
 
             <div id="ceremony-header" class="text-center transform transition-all duration-500">
@@ -29,7 +43,7 @@ export const ceremonyHTML = `
             </div>
 
             <div id="ceremony-stage-area"
-                class="w-full perspective-1000">
+                class="w-full perspective-1000" role="region" aria-live="polite" aria-label="Ceremony stage">
             </div>
 
             <div id="ceremony-ai-box"

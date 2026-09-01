@@ -520,6 +520,10 @@ export function setupUIListeners() {
         const dateString = document.getElementById('day-planner-modal').dataset.date;
         handleAddOneTimeLesson(dateString);
     });
+    document.getElementById('day-planner-schedule-content')?.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-onetime-class]');
+        if (chip) modals.selectOnetimeClass(chip.dataset.onetimeClass);
+    });
 
     // NEW: Mark School Holiday Button
     document.getElementById('day-planner-mark-holiday-btn').addEventListener('click', () => {
@@ -543,6 +547,27 @@ export function setupUIListeners() {
     });
     document.getElementById('quest-event-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddQuestEvent(); });
     document.getElementById('quest-event-type').addEventListener('change', modals.renderQuestEventDetails);
+    document.getElementById('quest-event-form').addEventListener('click', (e) => {
+        const typeCard = e.target.closest('[data-quest-type]');
+        if (typeCard) {
+            modals.selectQuestEventType(typeCard.dataset.questType);
+            return;
+        }
+        const classChip = e.target.closest('[data-quest-class]');
+        if (classChip) {
+            modals.toggleQuestEventClass(classChip.dataset.questClass);
+            return;
+        }
+        const starPick = e.target.closest('[data-star-bonus]');
+        if (starPick) {
+            modals.setQuestEventStarBonus(starPick.dataset.starBonus);
+            return;
+        }
+        const virtuePick = e.target.closest('[data-virtue]');
+        if (virtuePick) {
+            modals.setQuestEventVirtue(virtuePick.dataset.virtue);
+        }
+    });
 
     // Logbook & History
     document.getElementById('logbook-modal-close-btn').addEventListener('click', () => modals.hideModal('logbook-modal'));

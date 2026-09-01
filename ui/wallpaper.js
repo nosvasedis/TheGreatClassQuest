@@ -725,7 +725,8 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
         'quest_map_position', 'class_rank_vs_school', 'class_gold_ranking',
         'reigning_hero_spotlight', 'lesson_milestone',
         // New cards
-        'class_familiar_parade', 'class_familiar_hatch_watch', 'class_gold_top_trio'
+        'class_familiar_parade', 'class_familiar_hatch_watch', 'class_gold_top_trio',
+        'class_special_quest'
     ];
 
     if (!classId) {
@@ -868,6 +869,7 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'motivation_poster': content = getMotivationCard(questLevel); break;
             case 'holiday': content = getNextHolidayCard(); break;
             case 'weather': content = getWeatherCard(); break;
+            case 'class_special_quest': content = getActiveSpecialQuestCard(classId); break;
             case 'class_test_luck': content = getTestLuckCard(classId, questLevel); break;
             case 'upcoming_test_countdown': content = getUpcomingTestCountdownCard(classId, questLevel); break;
             case 'pre_holiday_hype': content = getPreHolidayHypeCard(); break;
@@ -1967,6 +1969,19 @@ function getSchoolAdventureCountCard() {
     return {
         html: `<div class="text-center"><div class="text-8xl mb-2">📚</div><h2 class="font-title text-5xl text-emerald-900">${count}</h2><p class="text-emerald-700 font-bold">Adventures Chronicled</p></div>`,
         css: 'float-card-green'
+    };
+}
+
+function getActiveSpecialQuestCard(classId) {
+    if (!classId) return null;
+    const events = (state.get('allQuestEvents') || []).filter(e => e.classId === classId && (e.status === 'active' || e.status === 'scheduled'));
+    if (!events.length) return null;
+    const event = events[0];
+    const title = event.details?.title || 'Special Class Quest';
+    const prompt = event.presentation?.prompt || event.presentation?.instructions || event.details?.instructions || 'Join forces to achieve our quest goal!';
+    return {
+        html: `<div class="text-center p-6 max-w-xl mx-auto"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-purple-100 text-purple-800 uppercase tracking-wider mb-3"><i class="fas fa-bolt text-amber-500"></i> Active Special Quest</div><div class="text-7xl mb-3 animate-bounce-slow">✨</div><h2 class="font-title text-4xl md:text-5xl text-white mb-3 drop-shadow-md">${title}</h2><p class="text-purple-100 text-lg md:text-xl font-medium leading-relaxed">${prompt}</p></div>`,
+        css: 'float-card-purple'
     };
 }
 

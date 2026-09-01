@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { QUEST_DEFINITIONS, SPECIAL_QUEST_TYPES, createQuestEventDocument, getDefaultProgress, reduceQuestProgress, resolveDailyModifier, applyDailyModifier, validateQuestEvent } from '../features/specialQuestEngine.js';
-import { CEREMONY_MODES, resolveCeremonyMode, seededShuffle, buildGrowthSpotlight, chooseCanonicalWinners } from '../features/ceremonyDomain.js';
+import { CEREMONY_MODES, resolveCeremonyMode, seededShuffle, buildGrowthSpotlight, buildGrowthPublicSequence, chooseCanonicalWinners } from '../features/ceremonyDomain.js';
 import { QUEST_LEAGUE_DEFINITIONS } from '../constants.js';
 
 test('ceremony mode is automatic for every league and blocks invalid values', () => {
@@ -40,8 +40,19 @@ test('growth spotlight is dignity-first and seeded order is stable', () => {
   assert.deepEqual(seededShuffle([1, 2, 3], 'same'), seededShuffle([1, 2, 3], 'same'));
 });
 
+test('growth garden keeps class scores private and reveals the pathfinder without ranks', () => {
+  const sequence = buildGrowthPublicSequence({
+    classes: [{ id: 'class-a', name: 'Nursery A', score: 42, rank: 1, progress: 88, topSkill: 'teamwork' }],
+    pathfinderId: 'class-a',
+    classId: 'class-a',
+    monthKey: '2026-08'
+  });
+  assert.equal(sequence.garden[0].isPathfinder, true);
+  assert.equal('score' in sequence.garden[0], false);
+  assert.equal('rank' in sequence.garden[0], false);
+});
+
 test('canonical winners do not crown zero-data students', () => {
   const result = chooseCanonicalWinners({ studentResults: [{ id: 'a', score: 0 }, { id: 'b', score: 0 }] });
   assert.equal(result.collectiveClose, true); assert.equal(result.prodigyWinners.length, 0);
 });
-

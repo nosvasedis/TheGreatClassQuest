@@ -838,7 +838,8 @@ export async function handleAddQuestEvent() {
         }
 
         const btn = document.querySelector('#quest-event-form button[type="submit"]');
-        btn.disabled = true; btn.innerText = "Adding...";
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-magic" aria-hidden="true"></i><span>Adding...</span>';
 
         const scope = document.getElementById('quest-event-scope');
         const selectedClassIds = scope ? [...scope.selectedOptions].map((option) => option.value) : [state.get('globalSelectedClassId')];
@@ -890,7 +891,10 @@ export async function handleAddQuestEvent() {
         showToast(error.message || 'Failed to save event.', 'error');
     } finally {
         const btn = document.querySelector('#quest-event-form button[type="submit"]');
-        if(btn) { btn.disabled = false; btn.innerText = "Add Event"; }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic" aria-hidden="true"></i><span>Summon Event</span>';
+        }
     }
 }
 

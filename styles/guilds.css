@@ -2966,7 +2966,7 @@
 .guild-power-explainer-card {
     position: relative;
     z-index: 1;
-    width: min(520px, 100%);
+    width: min(640px, 100%);
     border-radius: 1.75rem;
     padding: 1.5rem 1.35rem 1.25rem;
     border: 1.5px solid rgba(255,255,255,0.18);
@@ -3003,7 +3003,7 @@
 .guild-power-explainer-grid {
     margin-top: 1rem;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
 }
 .guild-power-explainer-item {
@@ -3021,8 +3021,15 @@
 }
 .guild-power-explainer-item .v {
     margin-top: 0.35rem;
-    color: rgba(255,255,255,0.72);
-    font-size: 0.82rem;
+    color: #fde68a;
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.45;
+}
+.guild-power-explainer-hint {
+    margin: 0.4rem 0 0;
+    color: rgba(255,255,255,0.68);
+    font-size: 0.78rem;
     line-height: 1.45;
 }
 .guild-power-explainer-note {

@@ -57,7 +57,7 @@
 
 **The Great Class Quest** is a sophisticated web application that gamifies the classroom experience. It replaces traditional behavior charts with a living, breathing RPG-style interface.
 
-- **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and **Prodigy of the Month**, and **guild vs. guild** in a year-long race toward the **Great Guild Ceremony**.
+- **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and **Prodigy of the Month**, and **guild vs. guild** in a year-long race toward the **Grand Guild Ceremony**.
 - **Automated tracking:** Stars, gold, inventory, tests, attendance, and logs are stored in **Firestore** and stay in sync.
 - **AI-powered narrative (Elite):** **Gemini** writes daily chronicles, certificates, and story illustrations.
 - **Live display:** **Projector Mode** turns a classroom PC into a real-time quest dashboard with day/night, weather-aware sky, rotating Director cards, and celebrations.
@@ -72,11 +72,11 @@ The same school year is shared. Each person only sees what they need. All three 
 
 | Interface | Who | What it is for |
 |-----------|-----|----------------|
-| **Teacher** | Classroom teacher | The full Quest: ten tabs, Award Stars, ceremonies, Market. |
+| **Teacher** | Classroom teacher | The full Quest: ten tabs, Award Stars, ceremonies, Market. **Starter**, **Pro**, and **Elite**. |
 | **School Office** (Secretary) | School-year admin | Holidays, year open/close, school grading defaults, family messages. **Elite.** |
 | **Family Portal** (Parent) | One login per child | Progress, homework, attendance snapshot, calm messages. **Pro and Elite.** |
 
-Students do not log in. They live on the classroom screen.
+Students do not log in. They see the Quest on the classroom screen.
 
 ---
 
@@ -103,7 +103,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Team Quest** | Class vs class **League Map** (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), monthly goal (holidays/cancellations), start of **Ceremony of the Month**. |
 | **Hero's Challenge** | Student ranks (**By Class / Global**, Monthly / Total). **Trophy Room**, Hero Stats, **Hall of Prodigies**, certificates. Guild *badges* appear on rows; guild *ranking* is Guild Hall. |
 | **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Familiar** eggs. |
-| **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Great Guild Ceremony**. **Pro.** |
+| **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
 | **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day**. FABs: **Quest Assignment**, **Attendance Chronicle**. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
 | **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |
@@ -238,7 +238,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
   - **Owl Wisdom** – curiosity, thoughtful learning, calm focus.
   - **Phoenix Rising** – resilience, bouncing back, never giving up.
 - **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. Their choices are mapped to traits and used to assign a guild in a fun, narrative way.
-- **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Houses rank by **Guild Power** (fair per-member mix of season Glory, weekly Glory, activity, and momentum) — not raw Total Stars. Totals **do not reset monthly**; June’s **Great Guild Ceremony** crowns the winning guild.
+- **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Houses rank by **Guild Power** — 70% season Glory per member, 15% this week’s Glory per member, 10% activity, 5% momentum — not raw Total Stars. Totals **do not reset monthly**; June’s **Grand Guild Ceremony** crowns the winning guild.
 - **Fortune's Wheel:** Spin on the class’s **last lesson day of the week**, during lesson time, **once per week per class**. **Fortune Ledger** stores outcomes. Magical Analytics expands each crystal column.
 - **Guild Champions:** At the end of each month, the top earner in every guild is **Guild Champion**.
 
@@ -254,7 +254,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## ⭐ Award Stars
 
-- **Reasons:** Teamwork, Creativity, Respect, Focus. Welcome Back is an absence control (not a fifth button). Scholar's Bonus comes from **Starfall**; Story Weaver stars come from **Story Weavers**. On **Pro**, Hero Path adds +10 Gold when the reason matches, plus Skill Tree perks.
+- **Reasons:** Teamwork, Creativity, Respect, Focus. Welcome Back greets a child who was away. Scholar's Bonus comes from **Starfall**; Story Weaver stars come from **Story Weavers**. On **Pro**, Hero Path adds +10 Gold when the reason matches, plus Skill Tree perks.
 - **Effects:** Click award → particle burst + sound (e.g. Magic Chime). **Clarity** (Crystal of Clarity) shows a pulsing gem on the card.
 - **Quest Bounties:** “Post a Bounty” → set **Target** (e.g. 20 stars), **Time limit**, **Reward** (e.g. 5 mins free time). Progress bar on **Award Stars** and **Projector Mode**; victory fanfare when target is hit. **Time Warp Hourglass** adds +5 minutes to active timers.
 - **Hero's Boon / Teacher Boon:** See the economy section above. Heart button on eligible clouds; Teacher Boon in the last week of the month.
@@ -263,7 +263,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 📜 Adventure Log
 
-- **Log Today's Adventure:** Needs stars awarded today; one log per class per day. **Pro:** you write the diary. **Elite:** AI story + storybook image. Each log crowns **Hero of the Day** (Mask of the Protagonist wins if pending; otherwise fair rotation among present students).
+- **Log Today's Adventure:** Needs stars awarded today; one log per class per day. **Pro:** you write the diary. **Elite:** AI story + storybook image. Each log **automatically** crowns **Hero of the Day** (Mask of the Protagonist wins if pending; otherwise fair rotation among present students). You do not pick the name by hand.
 - **Hall of Heroes:** Hero of the Day win tallies and legend tiers — **not** the Prodigy archive. Open it from the log.
 - **Quest Assignment:** Schedule or view **Quest Assignments** (special tasks linked to the log).
 - **Attendance:** Opens **Attendance Chronicle** (month × students matrix, mark present/absent, monthly %).

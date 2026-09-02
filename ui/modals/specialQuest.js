@@ -7,6 +7,8 @@ import * as state from '../../state.js';
 
 let activeEvent = null;
 let activeRun = null;
+let isProjectorMode = false;
+let lastVaultGemCount = null;
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
@@ -45,8 +47,10 @@ function renderInteractiveWidget(type, progress, target, current) {
   if (type === 'vocabulary_vault') {
     const gemsHtml = Array.from({ length: target }, (_, i) => {
       const active = i < current;
-      return `<div class="special-quest-gem ${active ? 'special-quest-gem--active' : ''}" title="Word Gem ${i + 1}">💎</div>`;
+      const pop = lastVaultGemCount !== null && current > lastVaultGemCount && active && i === current - 1;
+      return `<div class="special-quest-gem ${active ? 'special-quest-gem--active' : ''}${pop ? ' special-quest-gem--pop' : ''}" title="Word Gem ${i + 1}">💎</div>`;
     }).join('');
+    lastVaultGemCount = current;
     host.innerHTML = `
       <div class="space-y-1.5">
         <div class="text-xs font-black uppercase tracking-wider text-purple-700 flex items-center justify-between">
@@ -181,7 +185,21 @@ function renderRunner() {
   const current = Number(progress.current || 0);
   document.getElementById('special-quest-runner-count').textContent = `${current} / ${target}`;
   document.getElementById('special-quest-runner-progress').style.width = `${target ? Math.min(100, (current / target) * 100) : 0}%`;
-  document.getElementById('special-quest-runner-complete').disabled = !progress.completed || isCompleted;
+  
+  const completeBtn = document.getElementById('special-quest-runner-complete');
+  if (completeBtn) {
+    completeBtn.disabled = !progress.completed || isCompleted;
+    if (progress.completed && !isCompleted) {
+      completeBtn.classList.add('special-quest-complete--pulse');
+    } else {
+      completeBtn.classList.remove('special-quest-complete--pulse');
+    }
+  }
+
+  if (isProjectorMode) {
+    const projView = document.getElementById('special-quest-projector-view');
+    renderSpecialQuestProjector(projView, activeEvent, activeRun);
+  }
 
   // 4. Interactive Widget for the Specific Mechanic
   renderInteractiveWidget(type, progress, target, current);
@@ -287,6 +305,14 @@ export async function openSpecialQuestRunner(event) {
   activeEvent = event;
   try {
     activeRun = await startQuestRun(event);
+    isProjectorMode = false;
+    lastVaultGemCount = null;
+    const body = document.getElementById('special-quest-runner-body');
+    const projView = document.getElementById('special-quest-projector-view');
+    const toggleBtn = document.getElementById('special-quest-projector-toggle');
+    body?.classList.remove('hidden');
+    projView?.classList.add('hidden');
+    if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-expand"></i> <span>Projector</span>';
     renderRunner();
     showAnimatedModal('special-quest-runner-modal');
   } catch (error) {
@@ -296,6 +322,25 @@ export async function openSpecialQuestRunner(event) {
 
 export function setupSpecialQuestRunnerListeners() {
   document.getElementById('special-quest-runner-close')?.addEventListener('click', () => hideModal('special-quest-runner-modal'));
+
+  // Projector Mode Toggle
+  document.getElementById('special-quest-projector-toggle')?.addEventListener('click', () => {
+    isProjectorMode = !isProjectorMode;
+    const body = document.getElementById('special-quest-runner-body');
+    const projView = document.getElementById('special-quest-projector-view');
+    const toggleBtn = document.getElementById('special-quest-projector-toggle');
+    if (isProjectorMode) {
+      body?.classList.add('hidden');
+      projView?.classList.remove('hidden');
+      if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-compress"></i> <span>Controls</span>';
+      renderSpecialQuestProjector(projView, activeEvent, activeRun);
+    } else {
+      projView?.classList.add('hidden');
+      body?.classList.remove('hidden');
+      if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-expand"></i> <span>Projector</span>';
+      renderRunner();
+    }
+  });
 
   // Select All & Deselect All Recipients
   document.getElementById('special-quest-select-all')?.addEventListener('click', () => {

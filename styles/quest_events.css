@@ -106,21 +106,23 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.2rem;
+    gap: 0.25rem;
     text-align: left;
-    padding: 0.85rem 0.9rem 0.9rem;
-    border-radius: 1.15rem;
+    padding: 0.95rem 1rem 1rem;
+    border-radius: 1.25rem;
     border: 1.5px solid #e2e8f0;
     background: linear-gradient(180deg, #ffffff, #f8fafc);
     color: #334155;
     cursor: pointer;
-    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .quest-event-type-card:hover {
-    transform: translateY(-2px);
-    border-color: #c7d2fe;
-    box-shadow: 0 12px 24px -16px rgba(79, 70, 229, 0.45);
+    transform: translateY(-3px) scale(1.015);
+    border-color: #a5b4fc;
+    box-shadow: 0 14px 28px -14px rgba(79, 70, 229, 0.4);
 }
 
 .quest-event-type-card:focus-visible {
@@ -129,20 +131,34 @@
 }
 
 .quest-event-type-card__glyph {
-    font-size: 1.25rem;
+    font-size: 1.45rem;
     line-height: 1;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.85rem;
+    background: rgba(241, 245, 249, 0.85);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    transition: transform 0.2s ease;
+}
+
+.quest-event-type-card:hover .quest-event-type-card__glyph {
+    transform: scale(1.1) rotate(3deg);
 }
 
 .quest-event-type-card__name {
     font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
-    font-size: 0.98rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #0f172a;
+    letter-spacing: -0.01em;
 }
 
 .quest-event-type-card__hint {
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: #64748b;
     line-height: 1.35;
@@ -150,47 +166,75 @@
 
 .quest-event-type-card--selected {
     border-color: transparent;
-    box-shadow: 0 14px 28px -16px rgba(15, 23, 42, 0.4);
-    transform: translateY(-1px);
+    box-shadow: 0 16px 32px -14px rgba(15, 23, 42, 0.35);
+    transform: translateY(-2px);
 }
 
 .quest-event-type-card--selected .quest-event-type-card__hint {
-    color: #44403c;
+    color: #334155;
 }
 
 .quest-event-type-card--star.quest-event-type-card--selected {
     background: linear-gradient(160deg, #fffbeb, #fef3c7);
-    box-shadow: 0 0 0 2px #fbbf24, 0 14px 28px -14px rgba(245, 158, 11, 0.55);
+    box-shadow: 0 0 0 2.5px #f59e0b, 0 16px 32px -12px rgba(245, 158, 11, 0.5);
+}
+.quest-event-type-card--star.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #fef08a;
+    border-color: #fde047;
 }
 
 .quest-event-type-card--reason.quest-event-type-card--selected {
     background: linear-gradient(160deg, #fdf2f8, #fce7f3);
-    box-shadow: 0 0 0 2px #f472b6, 0 14px 28px -14px rgba(219, 39, 119, 0.4);
+    box-shadow: 0 0 0 2.5px #ec4899, 0 16px 32px -12px rgba(236, 72, 153, 0.45);
+}
+.quest-event-type-card--reason.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #fbcfe8;
+    border-color: #f9a8d4;
 }
 
 .quest-event-type-card--vault.quest-event-type-card--selected {
     background: linear-gradient(160deg, #faf5ff, #f3e8ff);
-    box-shadow: 0 0 0 2px #a855f7, 0 14px 28px -14px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 0 2.5px #9333ea, 0 16px 32px -12px rgba(147, 51, 234, 0.45);
+}
+.quest-event-type-card--vault.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #e9d5ff;
+    border-color: #d8b4fe;
 }
 
 .quest-event-type-card--grammar.quest-event-type-card--selected {
     background: linear-gradient(160deg, #ecfdf5, #d1fae5);
-    box-shadow: 0 0 0 2px #34d399, 0 14px 28px -14px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 0 2.5px #10b981, 0 16px 32px -12px rgba(16, 185, 129, 0.45);
+}
+.quest-event-type-card--grammar.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #a7f3d0;
+    border-color: #6ee7b7;
 }
 
 .quest-event-type-card--chain.quest-event-type-card--selected {
     background: linear-gradient(160deg, #ecfeff, #cffafe);
-    box-shadow: 0 0 0 2px #22d3ee, 0 14px 28px -14px rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 0 2.5px #06b6d4, 0 16px 32px -12px rgba(6, 182, 212, 0.45);
+}
+.quest-event-type-card--chain.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #a5f3fc;
+    border-color: #67e8f9;
 }
 
 .quest-event-type-card--scribe.quest-event-type-card--selected {
     background: linear-gradient(160deg, #fffbeb, #fef3c7);
-    box-shadow: 0 0 0 2px #fbbf24, 0 14px 28px -14px rgba(217, 119, 6, 0.4);
+    box-shadow: 0 0 0 2.5px #d97706, 0 16px 32px -12px rgba(217, 119, 6, 0.45);
+}
+.quest-event-type-card--scribe.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #fde68a;
+    border-color: #fcd34d;
 }
 
 .quest-event-type-card--saga.quest-event-type-card--selected {
     background: linear-gradient(160deg, #eef2ff, #e0e7ff);
-    box-shadow: 0 0 0 2px #818cf8, 0 14px 28px -14px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 0 0 2.5px #6366f1, 0 16px 32px -12px rgba(99, 102, 241, 0.45);
+}
+.quest-event-type-card--saga.quest-event-type-card--selected .quest-event-type-card__glyph {
+    background: #c7d2fe;
+    border-color: #a5b4fc;
 }
 
 .quest-event-class-chips {
@@ -356,22 +400,28 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
+    gap: 0.65rem;
     width: 100%;
-    padding: 1rem 1.2rem;
+    padding: 1.05rem 1.25rem;
     border: 0;
-    border-radius: 1.25rem;
-    background: linear-gradient(92deg, #7c3aed, #c2410c 55%, #d97706);
+    border-radius: 1.35rem;
+    background: linear-gradient(95deg, #7c3aed 0%, #c2410c 50%, #d97706 100%);
+    background-size: 200% auto;
     color: #fff7ed;
     font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    box-shadow: 0 14px 28px -12px rgba(194, 65, 12, 0.55);
-    transition: transform 0.15s ease, filter 0.15s ease;
+    letter-spacing: 0.02em;
+    box-shadow: 0 14px 28px -10px rgba(194, 65, 12, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease, background-position 0.4s ease;
+    cursor: pointer;
 }
 
 .quest-event-submit:hover {
-    filter: brightness(1.05);
+    filter: brightness(1.08);
+    background-position: right center;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px -10px rgba(194, 65, 12, 0.65);
 }
 
 .quest-event-submit:active {
@@ -381,6 +431,81 @@
 .quest-event-submit:disabled {
     opacity: 0.65;
     cursor: wait;
+    filter: none;
+}
+
+/* --- Calendar Event Card (Desktop & Mobile) --- */
+.m-cal-event {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 1.15rem;
+    color: #ffffff;
+    background: linear-gradient(120deg, #7c3aed 0%, #4f46e5 100%);
+    box-shadow: 0 10px 24px -12px rgba(79, 70, 229, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 0.5rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.m-cal-event:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 14px 28px -10px rgba(79, 70, 229, 0.6);
+}
+
+.m-cal-event__icon {
+    flex-shrink: 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.m-cal-event__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.m-cal-event__title {
+    margin: 0;
+    font-family: var(--font-title, 'Fredoka', 'Nunito'), sans-serif;
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.m-cal-event__type {
+    margin: 0.15rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0.9;
+}
+
+.m-cal-event__delete {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+}
+
+.m-cal-event__delete:hover {
+    background: rgba(239, 68, 68, 0.85);
+    transform: scale(1.1);
 }
 
 @media (max-width: 640px) {

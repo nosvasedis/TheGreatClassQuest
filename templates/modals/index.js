@@ -17,6 +17,7 @@ import { guildHeroesModalHTML } from './guildHeroes.js';
 import { fortunesWheelModalHTML } from './fortunesWheel.js';
 import { studentAnalyticsModalHTML } from './studentAnalytics.js';
 import { specialQuestModalHTML } from './specialQuest.js';
+import { heroClassModalsHTML } from './heroClass.js';
 
 export const allModalsHTML =
     baseModalsHTML +
@@ -35,4 +36,5 @@ export const allModalsHTML =
     guildHeroesModalHTML +
     fortunesWheelModalHTML +
     studentAnalyticsModalHTML +
-    specialQuestModalHTML;
+    specialQuestModalHTML +
+    heroClassModalsHTML;

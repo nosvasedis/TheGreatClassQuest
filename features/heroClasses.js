@@ -1,15 +1,27 @@
 // /features/heroClasses.js
-import * as state from '../state.js';
-import { calculateSkillBonus } from './heroSkillTree.js';
+import { calculateSkillBonus, HERO_SKILL_TREE } from './heroSkillTree.js';
+
+function hexToRgbChannels(hex) {
+    const raw = String(hex || '').replace('#', '');
+    const full = raw.length === 3 ? raw.split('').map((c) => c + c).join('') : raw;
+    const n = Number.parseInt(full, 16);
+    if (Number.isNaN(n)) return '124, 58, 237';
+    return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+function themeFromAura(heroClassName) {
+    const accent = HERO_SKILL_TREE[heroClassName]?.auraColor || '#7c3aed';
+    return { accent, rgb: hexToRgbChannels(accent) };
+}
 
 export const HERO_CLASSES = {
-    'Guardian': { reason: 'respect', icon: '🛡️', bonus: 10, desc: '+10 Gold for Respect' },
-    'Sage': { reason: 'creativity', icon: '🔮', bonus: 10, desc: '+10 Gold for Creativity' },
-    'Paladin': { reason: 'teamwork', icon: '⚔️', bonus: 10, desc: '+10 Gold for Teamwork' },
-    'Artificer': { reason: 'focus', icon: '⚙️', bonus: 10, desc: '+10 Gold for Focus' },
-    'Scholar': { reason: 'scholar_s_bonus', icon: '📜', bonus: 10, desc: '+10 Gold for Trial Results' },
-    'Weaver': { reason: 'story_weaver', icon: '✒️', bonus: 10, desc: '+10 Gold for Story Weaver' },
-    'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back' }
+    'Guardian': { reason: 'respect', icon: '🛡️', bonus: 10, desc: '+10 Gold for Respect', theme: themeFromAura('Guardian') },
+    'Sage': { reason: 'creativity', icon: '🔮', bonus: 10, desc: '+10 Gold for Creativity', theme: themeFromAura('Sage') },
+    'Paladin': { reason: 'teamwork', icon: '⚔️', bonus: 10, desc: '+10 Gold for Teamwork', theme: themeFromAura('Paladin') },
+    'Artificer': { reason: 'focus', icon: '⚙️', bonus: 10, desc: '+10 Gold for Focus', theme: themeFromAura('Artificer') },
+    'Scholar': { reason: 'scholar_s_bonus', icon: '📜', bonus: 10, desc: '+10 Gold for Trial Results', theme: themeFromAura('Scholar') },
+    'Weaver': { reason: 'story_weaver', icon: '✒️', bonus: 10, desc: '+10 Gold for Story Weaver', theme: themeFromAura('Weaver') },
+    'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back', theme: themeFromAura('Nomad') }
 };
 
 /**
@@ -50,8 +62,8 @@ export function calculateHeroGold(studentData, reason, starDifference, scoreData
  */
 export function canChangeHeroClass(studentData, newClassSelection) {
     // If they don't have a class yet, they can always choose one
-    if (!studentData.heroClass) return true;
-    
+    if (!studentData?.heroClass) return true;
+
     // If they are not changing the value, it's fine
     if (studentData.heroClass === newClassSelection) return true;
 
@@ -59,4 +71,22 @@ export function canChangeHeroClass(studentData, newClassSelection) {
     if (studentData.isHeroClassLocked) return false;
 
     return true;
+}
+
+/**
+ * Pure lock decision for a Hero Class write.
+ * First pick is free. Saving a different non-empty class after having one locks.
+ * Saving No Class (empty string) does not lock.
+ */
+export function resolveHeroClassChange(studentData, newClassSelection) {
+    const nextClass = newClassSelection ?? '';
+    const currentClass = studentData?.heroClass || '';
+    const alreadyLocked = Boolean(studentData?.isHeroClassLocked);
+
+    if (!canChangeHeroClass(studentData || {}, nextClass)) {
+        return { allowed: false, isNowLocked: alreadyLocked };
+    }
+
+    const isNowLocked = alreadyLocked || Boolean(currentClass && nextClass !== '' && currentClass !== nextClass);
+    return { allowed: true, isNowLocked };
 }

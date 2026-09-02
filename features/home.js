@@ -1162,10 +1162,21 @@ function getReminderPills(classId) {
 
             if (!isDone) {
                 const monthName = new Date(monthKey + "-02").toLocaleString('en-GB', { month: 'long' });
+                const isGrowth = cls.questLevel === 'Nursery' || cls.questLevel === 'Pre-Junior';
+                const pillTheme = isGrowth
+                    ? 'bg-gradient-to-r from-emerald-500 via-pink-500 to-amber-400 text-white border border-pink-300'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400';
+                const pillIcon = isGrowth
+                    ? '<i class="fas fa-seedling text-emerald-100"></i>'
+                    : '<i class="fas fa-trophy text-yellow-300"></i>';
+                const pillLabel = isGrowth
+                    ? `${monthName} Growth Festival! 🌸`
+                    : `${monthName} Ceremony!`;
+
                 pills.push(`
-                    <button id="trigger-ceremony-btn" class="date-pill bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400 shadow-lg animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:scale-105 transition-transform" data-class-id="${classId}">
-                        <i class="fas fa-trophy text-yellow-300"></i>
-                        <span class="font-bold">${monthName} Ceremony!</span>
+                    <button id="trigger-ceremony-btn" class="date-pill ${pillTheme} shadow-lg animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:scale-105 transition-transform" data-class-id="${classId}">
+                        ${pillIcon}
+                        <span class="font-bold">${pillLabel}</span>
                     </button>
                 `);
 

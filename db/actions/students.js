@@ -15,7 +15,7 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { getStartOfMonthString } from '../../utils.js';
-import { canChangeHeroClass } from '../../features/heroClasses.js';
+import { HERO_CLASSES, resolveHeroClassChange } from '../../features/heroClasses.js';
 import * as modals from '../../ui/modals.js';
 import { callGeminiApi } from '../../api.js';
 import { canUseFeature } from '../../utils/subscription.js';
@@ -86,30 +86,52 @@ export async function deleteStudent(studentId) {
     }
 }
 
-export async function handleSaveStudentDetails() {
-    const studentId = document.getElementById('edit-student-id-input-full').value;
-    const newName = document.getElementById('edit-student-name-input-full').value.trim();
-    const classDropdownEl = document.getElementById('edit-student-hero-class');
-    const heroProgressionEnabled = canUseFeature('heroProgression');
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    const newHeroClass = heroProgressionEnabled ? classDropdownEl.value : (student?.heroClass || '');
+export async function saveStudentHeroClass(studentId, heroClass) {
+    const student = (state.get('allStudents') || []).find(s => s.id === studentId);
+    if (!student) {
+        showToast('Student not found.', 'error');
+        return { saved: false, reason: 'missing' };
+    }
 
-    if (!heroProgressionEnabled && student?.heroClass && classDropdownEl?.value !== student.heroClass) {
+    if (!canUseFeature('heroProgression')) {
         showUpgradePrompt({
             feature: 'Hero Classes & Skill Tree',
             tier: 'Pro',
             message: getUpgradeMessage('Pro', 'heroProgression')
         });
-        return;
+        return { saved: false, reason: 'plan' };
     }
 
-    // Check if the class change is allowed
-    if (!canChangeHeroClass(student, newHeroClass)) {
-        showToast('This student has already changed their class once and is now locked!', 'error');
-        return;
+    const nextClass = heroClass || '';
+    if (nextClass && !HERO_CLASSES[nextClass]) {
+        showToast('Unknown Hero Class.', 'error');
+        return { saved: false, reason: 'invalid' };
     }
 
-    // NEW: Read from dropdowns and format
+    const { allowed, isNowLocked } = resolveHeroClassChange(student, nextClass);
+    if (!allowed) {
+        showToast('This student has already chosen their Hero Class and is now locked.', 'error');
+        return { saved: false, reason: 'locked' };
+    }
+
+    const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
+    await updateDoc(studentRef, {
+        heroClass: nextClass,
+        isHeroClassLocked: isNowLocked || false
+    });
+
+    const nextStudents = (state.get('allStudents') || []).map((s) => (
+        s.id === studentId ? { ...s, heroClass: nextClass, isHeroClassLocked: isNowLocked || false } : s
+    ));
+    state.setAllStudents(nextStudents);
+
+    return { saved: true, heroClass: nextClass, isNowLocked: isNowLocked || false };
+}
+
+export async function handleSaveStudentDetails() {
+    const studentId = document.getElementById('edit-student-id-input-full').value;
+    const newName = document.getElementById('edit-student-name-input-full').value.trim();
+
     const bMonth = document.getElementById('edit-student-birthday-month').value;
     const bDay = document.getElementById('edit-student-birthday-day').value;
     const birthday = (bMonth && bDay) ? `0000-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}` : null;
@@ -129,18 +151,10 @@ export async function handleSaveStudentDetails() {
 
     try {
         const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
-        // Determine if we should lock the class now
-        // Lock it if they already had a class and are now changing it to something else
-        const isNowLocked = heroProgressionEnabled
-            ? ((student.heroClass && newHeroClass !== "" && student.heroClass !== newHeroClass) || student.isHeroClassLocked)
-            : !!student.isHeroClassLocked;
-
         await updateDoc(studentRef, {
             name: newName,
             birthday: birthday,
-            nameday: nameday,
-            heroClass: newHeroClass,
-            isHeroClassLocked: isNowLocked || false
+            nameday: nameday
         });
         showToast('Student details updated!', 'success');
         modals.hideModal('edit-student-modal');

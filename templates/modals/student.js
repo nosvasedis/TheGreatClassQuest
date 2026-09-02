@@ -274,25 +274,13 @@ export const studentModalsHTML = `
                     </div>
                 </div>
 
-                <!-- TAB 3: Hero Archetype & Path -->
+                <!-- TAB 3: Hero Path -->
                 <div id="edit-student-panel-hero" class="edit-student-tab-panel hidden space-y-4" role="tabpanel" aria-labelledby="edit-student-tab-hero-btn">
-                    <!-- Hidden/Preserved select for form sync -->
-                    <select id="edit-student-hero-class" class="sr-only" aria-hidden="true" tabindex="-1">
-                        <option value="">No Class Assigned</option>
-                        <option value="Guardian">🛡️ Guardian (Respect)</option>
-                        <option value="Sage">🔮 Sage (Creativity)</option>
-                        <option value="Paladin">⚔️ Paladin (Teamwork)</option>
-                        <option value="Artificer">⚙️ Artificer (Focus)</option>
-                        <option value="Scholar">📜 Scholar (Trials)</option>
-                        <option value="Weaver">✒️ Weaver (Story)</option>
-                        <option value="Nomad">👟 Nomad (Attendance)</option>
-                    </select>
-
                     <div class="flex items-center justify-between gap-2">
                         <div>
                             <h4 class="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
                                 <i class="fas fa-shield-halved text-indigo-600"></i>
-                                <span>Choose Hero Archetype</span>
+                                <span>Hero Path</span>
                             </h4>
                             <p class="text-xs text-slate-500">Each class earns +10 extra Gold for stars in their specialized virtue</p>
                         </div>
@@ -304,146 +292,24 @@ export const studentModalsHTML = `
                         </button>
                     </div>
 
-                    <!-- Interactive Archetype Cards Grid -->
-                    <div id="edit-student-hero-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <!-- Guardian -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Guardian">
-                            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                🛡️
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Guardian</h5>
-                                    <span class="text-[10px] font-black uppercase text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md">Respect</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Respect star</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
+                    <div id="edit-student-hero-summary"
+                        class="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                        <div id="edit-student-hero-summary-icon"
+                            class="w-14 h-14 rounded-2xl bg-indigo-50 text-2xl flex items-center justify-center shrink-0 border border-indigo-100">
+                            🌟
                         </div>
-
-                        <!-- Sage -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Sage">
-                            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 border border-purple-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                🔮
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Sage</h5>
-                                    <span class="text-[10px] font-black uppercase text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-md">Creativity</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Creativity star</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
+                        <div class="min-w-0 flex-1">
+                            <p id="edit-student-hero-summary-name" class="font-bold text-slate-800 text-sm">No Class</p>
+                            <p id="edit-student-hero-summary-virtue" class="text-[11px] text-indigo-600 font-semibold truncate">Unassigned</p>
+                            <p id="edit-student-hero-summary-perk" class="text-[11px] text-slate-500">Leave unassigned, or open the ceremony so they can choose.</p>
                         </div>
-
-                        <!-- Paladin -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Paladin">
-                            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                ⚔️
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Paladin</h5>
-                                    <span class="text-[10px] font-black uppercase text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-md">Teamwork</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Teamwork star</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-
-                        <!-- Artificer -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Artificer">
-                            <div class="w-11 h-11 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                ⚙️
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Artificer</h5>
-                                    <span class="text-[10px] font-black uppercase text-cyan-700 bg-cyan-100 px-1.5 py-0.5 rounded-md">Focus</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Focus star</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-
-                        <!-- Scholar -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Scholar">
-                            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                📜
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Scholar</h5>
-                                    <span class="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">Trials</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Trial result</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-
-                        <!-- Weaver -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Weaver">
-                            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                ✒️
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Weaver</h5>
-                                    <span class="text-[10px] font-black uppercase text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded-md">Story</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Story Weaver star</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-
-                        <!-- Nomad -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="Nomad">
-                            <div class="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 border border-teal-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                👟
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-800 text-sm">Nomad</h5>
-                                    <span class="text-[10px] font-black uppercase text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded-md">Attendance</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500">+10🪙 Gold per Welcome Back star</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-
-                        <!-- Unassigned -->
-                        <div class="hero-archetype-card p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 cursor-pointer transition-all flex items-center gap-3 relative group" data-class="">
-                            <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                ⚪
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <h5 class="font-bold text-slate-700 text-sm">No Class</h5>
-                                    <span class="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">None</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400">Standard student adventurer</p>
-                            </div>
-                            <div class="hero-card-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] items-center justify-center shrink-0">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
+                        <button type="button" id="edit-student-choose-hero-class-btn"
+                            class="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl bubbly-button flex items-center gap-1.5 transition-colors">
+                            <i class="fas fa-hat-wizard"></i>
+                            <span id="edit-student-choose-hero-class-label">Choose Hero Class</span>
+                        </button>
                     </div>
 
-                    <!-- Dynamic Tier & Lock Note -->
                     <div class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-100">
                         <p id="hero-class-tier-note" class="text-xs text-indigo-700 leading-relaxed font-medium">
                             Classes grant +10 extra Gold when earning stars for their specific trait.

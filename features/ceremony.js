@@ -442,7 +442,7 @@ export function startCeremony(params) {
 
     title.innerHTML = formatTitleHtml('');
     subtitle.innerHTML = formatTitleHtml('');
-    setCeremonyActionLabel('Start Ceremony');
+    setCeremonyActionLabel(modeResult.mode === 'growth_festival' ? 'Enter the Garden 🌸' : 'Start Ceremony');
     actionBtn.onclick = loadDataAndAdvance;
 
     if (closeBtn) closeBtn.onclick = closeCeremony;
@@ -830,6 +830,16 @@ function growthBloomBurstHtml() {
     ).join('')}</div>`;
 }
 
+function growthGardenButterfliesHtml() {
+    return `
+        <div class="growth-garden-butterflies" aria-hidden="true">
+            <span class="growth-butterfly growth-butterfly--a">🦋</span>
+            <span class="growth-butterfly growth-butterfly--b">✨</span>
+            <span class="growth-butterfly growth-butterfly--c">🦋</span>
+        </div>
+    `;
+}
+
 function growthStudentCard(card, index = 0, total = 1) {
     const safe = (value) => String(value || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
     const safeName = safe(card.studentName || 'Learner');
@@ -851,6 +861,7 @@ function growthStudentCard(card, index = 0, total = 1) {
         <div class="growth-bloom-card-wrap">
             <article class="growth-bloom-card" data-student-id="${safe(card.studentId)}">
                 <div class="growth-bloom-wreath-container">
+                    ${growthBloomBurstHtml()}
                     <div class="growth-bloom-wreath-img" aria-hidden="true"></div>
                     ${avatarHtml}
                 </div>
@@ -860,7 +871,15 @@ function growthStudentCard(card, index = 0, total = 1) {
                     <span>${badgeMeta.label}</span>
                 </div>
                 <p>${safeText}</p>
-                <div class="growth-bloom-counter">Bloom ${index + 1} of ${total} 🌸</div>
+                <div class="growth-bloom-counter-wrap">
+                    <button type="button" class="growth-bloom-nav-btn growth-bloom-nav-btn--prev" data-growth-nav="prev" ${index === 0 ? 'disabled' : ''} aria-label="Previous Bloom" title="Previous Bloom">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <div class="growth-bloom-counter">Bloom ${index + 1} of ${total} 🌸</div>
+                    <button type="button" class="growth-bloom-nav-btn growth-bloom-nav-btn--next" data-growth-nav="next" ${index + 1 >= total ? 'disabled' : ''} aria-label="Next Bloom" title="Next Bloom">
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </button>
+                </div>
             </article>
         </div>
     `;
@@ -872,6 +891,7 @@ function advanceGrowthCeremony() {
     const subtitle = document.getElementById('ceremony-subtitle');
     const btn = document.getElementById('ceremony-action-btn');
     const screen = document.getElementById('ceremony-screen');
+    const aiText = document.getElementById('ceremony-ai-text');
     if (!stage || !btn) return;
     persistCeremonyPlayback();
     screen?.classList.remove('ceremony-phase-suspense');
@@ -882,6 +902,7 @@ function advanceGrowthCeremony() {
         playGrowthBloomChime();
         title.innerHTML = formatTitleHtml('Our League Garden');
         subtitle.innerHTML = formatTitleHtml('Every class grows in its own beautiful way');
+        if (aiText) aiText.innerText = 'Look how our classroom garden is blossoming together! 🌸🌱';
         const garden = ceremonyData.growthGardenClasses || [];
         const pathfinder = garden.find((item) => item.id === ceremonyData.growthPathfinderId);
         const ordered = [...garden.filter((item) => item.id !== ceremonyData.growthPathfinderId), ...(pathfinder ? [pathfinder] : [])];
@@ -898,6 +919,7 @@ function advanceGrowthCeremony() {
             <div class="growth-festival-garden" role="region" aria-label="Our League Garden">
                 <div class="growth-garden-gate" aria-hidden="true"></div>
                 ${growthFieldPetalsHtml()}
+                ${growthGardenButterfliesHtml()}
                 <div class="growth-garden-cards">
                     ${cards || `<article class="growth-class-card"><span class="growth-class-emblem" aria-hidden="true">🌱</span><h3>${safe(ceremonyData.className || 'Our class')}</h3><p>Our class garden is growing together.</p></article>`}
                 </div>
@@ -913,11 +935,17 @@ function advanceGrowthCeremony() {
         playGrowthBloomChime();
         title.innerHTML = formatTitleHtml('Every Garden Grows Together');
         subtitle.innerHTML = '';
+        if (aiText) aiText.innerText = 'Every little step, warm smile, and kind helping hand made our classroom blossom! 🌷✨';
         stage.innerHTML = `
-            <div class="growth-transition-message">
-                <div class="growth-fireflies" aria-hidden="true">🌸 ✧ 🌷 ✧ 🌼</div>
-                <h2>A Season of Wonder & Growth</h2>
-                <p>Every little step, warm smile, and helping hand helped our classroom blossom into something extraordinary.</p>
+            <div class="growth-festival-garden" role="region" aria-label="Season of Wonder & Growth">
+                <div class="growth-garden-gate" aria-hidden="true"></div>
+                ${growthFieldPetalsHtml()}
+                ${growthGardenButterfliesHtml()}
+                <div class="growth-transition-message">
+                    <div class="growth-fireflies" aria-hidden="true">🌸 ✧ 🌷 ✧ 🌼</div>
+                    <h2>A Season of Wonder &amp; Growth</h2>
+                    <p>Every little step, warm smile, and helping hand helped our classroom blossom into something extraordinary.</p>
+                </div>
             </div>
         `;
         setCeremonyViewMode('growth');
@@ -938,7 +966,30 @@ function advanceGrowthCeremony() {
         triggerConfetti();
         title.innerHTML = formatTitleHtml('Parade of Blooms');
         subtitle.innerHTML = formatTitleHtml('A special part of our garden');
-        stage.innerHTML = growthStudentCard(queue[index], index, queue.length);
+        const currentSpotlight = queue[index];
+        if (aiText && currentSpotlight) {
+            aiText.innerText = `Let's celebrate ${safe(currentSpotlight.studentName || 'Learner')} — ${safe(currentSpotlight.publicText || 'a bright, shining bloom in our garden!')} 🌸`;
+        }
+        stage.innerHTML = `
+            <div class="growth-festival-garden" role="region" aria-label="Parade of Blooms">
+                <div class="growth-garden-gate" aria-hidden="true"></div>
+                ${growthFieldPetalsHtml()}
+                ${growthGardenButterfliesHtml()}
+                ${growthStudentCard(currentSpotlight, index, queue.length)}
+            </div>
+        `;
+        stage.querySelector('[data-growth-nav="prev"]')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (index > 0) {
+                ceremonyData.growthPointer = index - 1;
+                advanceGrowthCeremony();
+            }
+        });
+        stage.querySelector('[data-growth-nav="next"]')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (index + 1 >= queue.length) return;
+            advanceGrowthCeremony();
+        });
         ceremonyData.growthPointer = index + 1;
         setCeremonyViewMode('growth');
         setCeremonyActionLabel(index + 1 >= queue.length ? 'Reveal Our Golden Bloom ✨' : 'Next Bloom 🌸');
@@ -951,6 +1002,11 @@ function advanceGrowthCeremony() {
         const winners = ceremonyData.growthWinners || [];
         title.innerHTML = formatTitleHtml(winners.length ? 'Golden Bloom' : 'Whole Class Garden');
         subtitle.innerHTML = formatTitleHtml(winners.length ? 'Prodigy of the Month' : 'Everyone helped our garden grow');
+        if (aiText) {
+            aiText.innerText = winners.length
+                ? 'Behold our Golden Bloom! A shining flower of wonder in our whole class family! 👑✨'
+                : 'Everyone helped our class family garden grow and blossom together! 🌸💖';
+        }
 
         const allStudents = state.get('allStudents') || [];
         const winnerCardsHtml = winners.map((winner) => {
@@ -990,6 +1046,7 @@ function advanceGrowthCeremony() {
         stage.innerHTML = `
             <div class="growth-final-garden" role="region" aria-label="Golden Bloom Celebration">
                 ${growthFieldPetalsHtml()}
+                ${growthGardenButterfliesHtml()}
                 <div class="growth-golden-bloom-wrap">
                     ${winnerCardsHtml || `
                         <div class="growth-golden-bloom-item">
@@ -1018,11 +1075,17 @@ function advanceGrowthCeremony() {
 
     if (ceremonyData.phase === 'growth_end') {
         saveCeremonyComplete();
+        if (aiText) aiText.innerText = 'Our classroom garden will keep blooming bright all year long! 🌿💖';
         stage.innerHTML = `
-            <div class="growth-outro">
-                <h2>Our garden will keep blooming!</h2>
-                <p>Thank you for making this month so magical and joyful.</p>
-                <div class="growth-outro-emblems" aria-hidden="true">🌿 🌸 🌼 🦋 🌷</div>
+            <div class="growth-festival-garden" role="region" aria-label="Ceremony Complete">
+                <div class="growth-garden-gate" aria-hidden="true"></div>
+                ${growthFieldPetalsHtml()}
+                ${growthGardenButterfliesHtml()}
+                <div class="growth-outro">
+                    <h2>Our garden will keep blooming!</h2>
+                    <p>Thank you for making this month so magical and joyful.</p>
+                    <div class="growth-outro-emblems" aria-hidden="true">🌿 🌸 🌼 🦋 🌷</div>
+                </div>
             </div>
         `;
         title.innerHTML = formatTitleHtml('Ceremony Complete');

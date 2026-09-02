@@ -21,14 +21,22 @@ export const specialQuestModalHTML = `
             <p id="special-quest-runner-instructions" class="text-xs md:text-sm text-indigo-200 mt-0.5 line-clamp-2 max-w-xl"></p>
           </div>
         </div>
-        <button id="special-quest-runner-close" type="button" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/10" aria-label="Close">
-          <i class="fas fa-times"></i>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="special-quest-projector-toggle" type="button" class="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/90 hover:text-white flex items-center gap-1.5 text-xs font-bold transition-all border border-white/15 shadow-sm" aria-label="Toggle Projector Mode">
+            <i class="fas fa-expand"></i> <span>Projector</span>
+          </button>
+          <button id="special-quest-runner-close" type="button" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/10" aria-label="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </div>
     </div>
 
+    <!-- Dedicated Projector Screen Surface -->
+    <div id="special-quest-projector-view" class="hidden min-h-[440px] p-6 md:p-10 flex flex-col items-center justify-center text-center"></div>
+
     <!-- Modal Content Body -->
-    <div class="p-5 md:p-7 space-y-6">
+    <div id="special-quest-runner-body" class="p-5 md:p-7 space-y-6">
       
       <!-- Progress Bar & Count -->
       <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">

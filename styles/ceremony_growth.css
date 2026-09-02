@@ -53,6 +53,35 @@
     50% { transform: var(--place) translateY(-12px) rotate(10deg) scale(calc(var(--s, 1) * 1.14)); }
 }
 
+@keyframes butterfly-flutter {
+    0% { transform: translate(0, 0) rotate(2deg) scale(0.95); }
+    25% { transform: translate(18px, -24px) rotate(12deg) scale(1.05); }
+    50% { transform: translate(32px, -8px) rotate(-6deg) scale(0.98); }
+    75% { transform: translate(14px, -36px) rotate(8deg) scale(1.04); }
+    100% { transform: translate(0, 0) rotate(2deg) scale(0.95); }
+}
+
+.growth-garden-butterflies {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.growth-butterfly {
+    position: absolute;
+    font-size: 1.4rem;
+    filter: drop-shadow(0 4px 8px rgba(251, 146, 60, 0.3));
+    animation: butterfly-flutter 9s ease-in-out infinite;
+    will-change: transform;
+    opacity: 0.88;
+}
+
+.growth-butterfly--a { left: 8%; top: 22%; animation-duration: 10.5s; animation-delay: 0.5s; }
+.growth-butterfly--b { right: 10%; top: 28%; animation-duration: 8.5s; animation-delay: 2.2s; font-size: 1.25rem; }
+.growth-butterfly--c { left: 82%; bottom: 18%; animation-duration: 11s; animation-delay: 1.1s; font-size: 1.35rem; }
+
 .growth-petals {
     position: absolute;
     inset: 0;
@@ -317,7 +346,7 @@
     width: clamp(100px, 18vw, 130px);
     height: clamp(100px, 18vw, 130px);
     border-radius: 50%;
-    object-cover: cover;
+    object-fit: cover;
     z-index: 1;
     border: 4px solid #fff;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
@@ -363,20 +392,59 @@
 .growth-bloom-card p {
     font-size: clamp(0.95rem, 1.8vw, 1.15rem);
     font-weight: 600;
-    color: #475569;
-    line-height: 1.45;
-    margin: 0.25rem 0 0.5rem;
+    color: #334155;
+    line-height: 1.5;
+    margin: 0.25rem 0 0.75rem;
     max-width: 360px;
 }
 
+.growth-bloom-counter-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(241, 245, 249, 0.75);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
 .growth-bloom-counter {
-    display: inline-block;
-    margin-top: 0.5rem;
     font-size: 0.78rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #94a3b8;
+    color: #64748b;
+}
+
+.growth-bloom-nav-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.growth-bloom-nav-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #94a3b8;
+    transform: scale(1.08);
+}
+
+.growth-bloom-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
 }
 
 /* 5. Final Reveal: Golden Bloom & Whole Class Garden */
@@ -422,20 +490,22 @@
     background: url('/assets/ceremony/growth-festival-golden-bloom.webp') center/contain no-repeat;
     pointer-events: none;
     z-index: 2;
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.75));
     animation: golden-sunburst 14s linear infinite;
+    will-change: transform;
 }
 
 @keyframes golden-sunburst {
-    0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
-    50% { transform: scale(1.05) rotate(180deg); filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.9)); }
-    100% { transform: scale(1) rotate(360deg); filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.05) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
 }
 
 .growth-golden-avatar {
     width: clamp(110px, 20vw, 150px);
     height: clamp(110px, 20vw, 150px);
     border-radius: 50%;
-    object-cover: cover;
+    object-fit: cover;
     z-index: 1;
     border: 5px solid #fef08a;
     box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
@@ -688,22 +758,26 @@
         1px 1px 0 #3f2a14;
 }
 
-/* Dark small copy: cream letter-trace so the outline reads on mint/peach patches. */
+/* Dark small copy on bare sky: cream letter-trace so the outline reads on mint/peach patches. */
 #ceremony-screen.ceremony-view--growth .ceremony-intro-splash__brand,
 #ceremony-screen.ceremony-view--growth .ceremony-intro-splash__tagline,
-#ceremony-screen.ceremony-view--growth .growth-mini-blooms-label,
-#ceremony-screen.ceremony-view--growth .growth-bloom-counter,
-#ceremony-screen.ceremony-view--growth .growth-class-card p,
-#ceremony-screen.ceremony-view--growth .growth-bloom-card p,
-#ceremony-screen.ceremony-view--growth .growth-transition-message p,
-#ceremony-screen.ceremony-view--growth .growth-outro p,
-#ceremony-screen.ceremony-view--growth #ceremony-ai-text {
+#ceremony-screen.ceremony-view--growth .growth-mini-blooms-label {
     -webkit-text-stroke: 1.35px #fffef7;
     text-shadow:
         -1px 0 0 #fffef7,
         1px 0 0 #fffef7,
         0 -1px 0 #fffef7,
         0 1px 0 #fffef7;
+}
+
+/* Card copy & AI narrator copy: clean, crisp typography without fuzzy stroke */
+#ceremony-screen.ceremony-view--growth .growth-class-card p,
+#ceremony-screen.ceremony-view--growth .growth-bloom-card p,
+#ceremony-screen.ceremony-view--growth .growth-transition-message p,
+#ceremony-screen.ceremony-view--growth .growth-outro p,
+#ceremony-screen.ceremony-view--growth #ceremony-ai-text {
+    -webkit-text-stroke: 0 !important;
+    text-shadow: none !important;
 }
 
 #ceremony-screen.ceremony-view--growth #ceremony-subtitle,
@@ -840,7 +914,8 @@
     .growth-golden-bloom-wreath-img,
     .growth-bloom-wreath-img,
     .growth-petals .growth-petal,
-    .growth-bloom-burst .growth-petal {
+    .growth-bloom-burst .growth-petal,
+    .growth-butterfly {
         animation: none !important;
         transition: opacity 0.15s linear !important;
     }
@@ -848,8 +923,44 @@
     .growth-bloom-card,
     .growth-golden-bloom-wreath-img,
     .growth-bloom-wreath-img,
-    .growth-petals .growth-petal {
+    .growth-petals .growth-petal,
+    .growth-butterfly {
         transform: none !important;
+    }
+}
+
+/* 9. Responsive adjustments for tablets and smaller screens */
+@media (max-width: 768px) {
+    .growth-festival-garden,
+    .growth-final-garden {
+        width: 96vw;
+        min-height: clamp(340px, 52vh, 560px);
+        padding: 1.25rem 0.85rem;
+        border-radius: 1.75rem;
+    }
+
+    .growth-garden-cards {
+        max-height: 44vh;
+        gap: 0.75rem;
+    }
+
+    .growth-class-card {
+        min-width: 160px;
+        padding: 1rem 0.75rem;
+        border-radius: 1.5rem;
+    }
+
+    .growth-bloom-card {
+        padding: 1.25rem 1rem;
+        border-radius: 2rem;
+    }
+
+    .growth-mini-blooms {
+        gap: 0.35rem;
+    }
+
+    .growth-mini-bloom-item {
+        padding: 0.25rem 0.45rem;
     }
 }
 

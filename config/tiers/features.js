@@ -42,7 +42,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '⚔️',
         description: 'Class identity, leveling, and skill branches',
         tier: 'Pro',
-        teacherExplain: "Assign a class from Manage Students → Edit → the Hero Path tab (seven archetype cards, or No Class). They level by earning stars in that class's matching virtue (not generic XP). Each level offers one of two Skill Tree branches (extra Gold, bonus stars, or help for classmates/guildmates). Matching awards also grant +10 Gold. The first class is free; changing later locks the path. ⚔️🧙",
+        teacherExplain: "Open the Hero Class ceremony from Manage Students (shield on an unsorted child) or Edit → Hero Path → Choose / Change Hero Class. The child previews a class, then Swear this Path. Leave them unassigned for No Class. They level by earning stars in that class's matching virtue (not generic XP). Each level offers one of two Skill Tree branches (extra Gold, bonus stars, or help for classmates/guildmates). Matching awards also grant +10 Gold. The first class is free; changing later locks the path. ⚔️🧙",
         studentExplain: "Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — and level up by earning stars in your specialty. Each level unlocks a new skill on your Skill Tree. Your adventure is YOUR adventure! 🌟"
     },
     adventureLog: {

@@ -145,8 +145,20 @@ function renderMobileCalendarDay(customLogs = null) {
         : `<p class="m-cal-empty">No lessons scheduled</p>`;
 
     const eventsHtml = agenda.questEvents.length
-        ? agenda.questEvents.map((e) => `
-            <article class="m-cal-event">
+        ? agenda.questEvents.map((e) => {
+            const normalized = normalizeQuestType(e.type);
+            const gradients = {
+                double_star_day: 'linear-gradient(120deg, #f59e0b 0%, #eab308 100%)',
+                reason_bonus_day: 'linear-gradient(120deg, #ec4899 0%, #e11d48 100%)',
+                vocabulary_vault: 'linear-gradient(120deg, #9333ea 0%, #4338ca 100%)',
+                grammar_guardians: 'linear-gradient(120deg, #059669 0%, #0f766e 100%)',
+                unbroken_chain: 'linear-gradient(120deg, #0891b2 0%, #2563eb 100%)',
+                scribes_sketch: 'linear-gradient(120deg, #d97706 0%, #ea580c 100%)',
+                five_sentence_saga: 'linear-gradient(120deg, #e11d48 0%, #7c3aed 100%)'
+            };
+            const bg = gradients[normalized] || 'linear-gradient(120deg, #c026d3 0%, #4f46e5 100%)';
+            return `
+            <article class="m-cal-event" style="background: ${bg}">
                 <span class="m-cal-event__icon">${escapeHtml(e.icon)}</span>
                 <div class="m-cal-event__body">
                     <p class="m-cal-event__title">${escapeHtml(e.title)}</p>
@@ -155,7 +167,8 @@ function renderMobileCalendarDay(customLogs = null) {
                 <button type="button" class="m-cal-event__delete delete-event-btn" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.title)}" aria-label="Delete event">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
-            </article>`).join('')
+            </article>`;
+        }).join('')
         : '';
 
     const starsHtml = agenda.starTotal > 0
@@ -340,9 +353,19 @@ export function renderCalendarTab(customLogs = null) {
                 const normalizedType = normalizeQuestType(e.type);
                 const title = e.details?.title || QUEST_TYPE_LABELS[normalizedType] || (normalizedType === 'double_star_day' ? '2x Star Day' : normalizedType === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type);
                 const icon = eventIcons[e.type] || eventIcons[title] || '📅 Event';
+                const gradientMap = {
+                    double_star_day: 'from-amber-500 to-yellow-500 shadow-amber-500/30',
+                    reason_bonus_day: 'from-pink-500 to-rose-600 shadow-pink-500/30',
+                    vocabulary_vault: 'from-purple-600 to-indigo-700 shadow-purple-500/30',
+                    grammar_guardians: 'from-emerald-600 to-teal-700 shadow-emerald-500/30',
+                    unbroken_chain: 'from-cyan-600 to-blue-600 shadow-cyan-500/30',
+                    scribes_sketch: 'from-amber-600 to-orange-600 shadow-orange-500/30',
+                    five_sentence_saga: 'from-rose-600 to-purple-800 shadow-rose-500/30'
+                };
+                const gradientClass = gradientMap[normalizedType] || 'from-fuchsia-600 to-indigo-600 shadow-indigo-500/30';
                 // Vibrant Gradient Style
                 return `
-                <div class="relative group w-full mb-1.5 p-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white shadow-md border border-white/20 flex items-center justify-between z-20 cursor-help transition-all hover:scale-[1.03] hover:shadow-lg" title="${title}">
+                <div class="relative group w-full mb-1.5 p-1.5 rounded-xl bg-gradient-to-r ${gradientClass} text-white shadow-md border border-white/25 flex items-center justify-between z-20 cursor-help transition-all hover:scale-[1.03] hover:shadow-lg" title="${title}">
                     <div class="flex items-center gap-1.5 overflow-hidden">
                         <span class="text-[9px] font-black bg-white/30 px-1.5 py-0.5 rounded-lg backdrop-blur-sm shadow-inner">${icon}</span>
                         <span class="font-title text-[10px] font-bold truncate leading-tight tracking-tight">${title}</span>

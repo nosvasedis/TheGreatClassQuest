@@ -11,6 +11,8 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus, classUsesTests } from '../../features/assessmentConfig.js';
 import { getGuildHouseDisplay } from '../../features/guilds.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { handleAvatarClick } from '../core/avatar.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
@@ -95,16 +97,6 @@ function applyQuestTestSchedulingVisibility(classData) {
     return usesTests;
 }
 
-const HERO_ICONS = {
-    'Guardian': '🛡️',
-    'Sage': '🔮',
-    'Paladin': '⚔️',
-    'Artificer': '⚙️',
-    'Scholar': '📜',
-    'Weaver': '✒️',
-    'Nomad': '👟'
-};
-
 function fillStudentPortrait(el, { studentId, name, avatarUrl, enlargeable }) {
     if (!el) return;
     el.classList.toggle('enlargeable-avatar', Boolean(enlargeable));
@@ -163,7 +155,7 @@ export function switchEditStudentTab(tabName) {
     }
 }
 
-export function openEditStudentModal(studentId) {
+export function openEditStudentModal(studentId, options = {}) {
     const student = (state.get('allStudents') || []).find(s => s.id === studentId);
     if (!student) return;
 
@@ -189,7 +181,7 @@ export function openEditStudentModal(studentId) {
     const avatarStatusEl = document.getElementById('edit-student-avatar-status');
     const heroIconBadge = document.getElementById('edit-student-hero-icon-badge');
 
-    const heroIcon = HERO_ICONS[student.heroClass] || '🌟';
+    const heroIcon = HERO_CLASSES[student.heroClass]?.icon || '🌟';
     if (heroIconBadge) heroIconBadge.textContent = heroIcon;
 
     fillStudentPortrait(headerAvatar, {
@@ -299,70 +291,40 @@ export function openEditStudentModal(studentId) {
         namedayLookupBtn.setAttribute('aria-label', namedayLookupBtn.title);
     }
 
-    // 8. Hero Progression & Interactive Archetype Cards
-    const classDropdown = document.getElementById('edit-student-hero-class');
+    // 8. Hero Path summary + ceremony
     const tierNote = document.getElementById('hero-class-tier-note');
     const heroProgressionEnabled = canUseFeature('heroProgression');
     const isLocked = Boolean(student.isHeroClassLocked);
+    const classInfo = student.heroClass ? HERO_CLASSES[student.heroClass] : null;
 
-    if (classDropdown) classDropdown.value = student.heroClass || "";
+    const summaryIcon = document.getElementById('edit-student-hero-summary-icon');
+    const summaryName = document.getElementById('edit-student-hero-summary-name');
+    const summaryVirtue = document.getElementById('edit-student-hero-summary-virtue');
+    const summaryPerk = document.getElementById('edit-student-hero-summary-perk');
+    const chooseBtn = document.getElementById('edit-student-choose-hero-class-btn');
+    const chooseLabel = document.getElementById('edit-student-choose-hero-class-label');
 
-    if (!heroProgressionEnabled) {
-        if (classDropdown) {
-            classDropdown.disabled = true;
-            classDropdown.title = 'Hero Classes & Skill Tree are available on Pro and above.';
-        }
-        if (tierNote) {
-            tierNote.className = 'text-xs text-rose-600 leading-relaxed font-bold';
-            tierNote.textContent = '🔒 Pro feature: Hero Archetypes and Skill Trees are unlocked on Pro and above.';
-        }
-    } else if (isLocked) {
-        if (classDropdown) {
-            classDropdown.disabled = true;
-            classDropdown.title = "This student has already used their one-time class change.";
-        }
-        if (tierNote) {
-            tierNote.className = 'text-xs text-indigo-700 leading-relaxed italic font-medium';
-            tierNote.textContent = '🔒 Hero Class Locked: This student has already finalized their one-time archetype selection.';
-        }
-    } else {
-        if (classDropdown) {
-            classDropdown.disabled = false;
-            classDropdown.title = "";
-        }
-        if (tierNote) {
-            tierNote.className = 'text-xs text-indigo-700 leading-relaxed font-medium';
-            tierNote.textContent = '⚡ Active Perk: Classes grant +10 extra Gold when earning stars for their specific trait.';
-        }
+    if (summaryIcon) summaryIcon.textContent = classInfo?.icon || '🌟';
+    if (summaryName) summaryName.textContent = classInfo ? student.heroClass : 'No Class';
+    if (summaryVirtue) {
+        summaryVirtue.textContent = classInfo
+            ? getReasonDisplayName(classInfo.reason)
+            : (heroProgressionEnabled ? 'Unassigned' : 'Pro feature');
     }
-
-    // Helper to refresh hero cards visual state
-    const refreshHeroCards = (selectedClass) => {
-        document.querySelectorAll('.hero-archetype-card').forEach(card => {
-            const cardClass = card.dataset.class;
-            const isSelected = cardClass === (selectedClass || "");
-            const checkIcon = card.querySelector('.hero-card-check');
-
-            card.classList.toggle('active', isSelected);
-            card.classList.toggle('card-disabled', !heroProgressionEnabled || isLocked);
-
-            if (checkIcon) {
-                checkIcon.classList.toggle('hidden', !isSelected);
-                checkIcon.classList.toggle('flex', isSelected);
-            }
-        });
-
-        // Update header icon
-        if (heroIconBadge) {
-            heroIconBadge.textContent = HERO_ICONS[selectedClass] || '🌟';
-        }
-    };
-
-    refreshHeroCards(student.heroClass || "");
-
-    // Attach click listeners to hero cards
-    document.querySelectorAll('.hero-archetype-card').forEach(card => {
-        card.onclick = () => {
+    if (summaryPerk) {
+        summaryPerk.textContent = classInfo
+            ? classInfo.desc
+            : 'Leave unassigned, or open the ceremony so they can choose.';
+    }
+    if (chooseLabel) {
+        chooseLabel.textContent = !heroProgressionEnabled
+            ? 'Choose Hero Class'
+            : isLocked
+                ? 'Your Path'
+                : (student.heroClass ? 'Change Hero Class' : 'Choose Hero Class');
+    }
+    if (chooseBtn) {
+        chooseBtn.onclick = () => {
             if (!heroProgressionEnabled) {
                 showUpgradePrompt({
                     feature: 'Hero Classes & Skill Tree',
@@ -371,16 +333,26 @@ export function openEditStudentModal(studentId) {
                 });
                 return;
             }
-            if (isLocked && card.dataset.class !== (student.heroClass || "")) {
-                showToast('This student has already chosen their Hero Class and is now locked.', 'error');
-                return;
-            }
-            const chosenClass = card.dataset.class;
-            if (classDropdown) classDropdown.value = chosenClass;
-            refreshHeroCards(chosenClass);
-            playSound('button_click');
+            import('./heroClass.js').then((h) => h.openHeroClassSelectModal(studentId, { restoreEditStudent: true }));
         };
-    });
+    }
+
+    if (!heroProgressionEnabled) {
+        if (tierNote) {
+            tierNote.className = 'text-xs text-rose-600 leading-relaxed font-bold';
+            tierNote.textContent = '🔒 Pro feature: Hero Archetypes and Skill Trees are unlocked on Pro and above.';
+        }
+    } else if (isLocked) {
+        if (tierNote) {
+            tierNote.className = 'text-xs text-indigo-700 leading-relaxed italic font-medium';
+            tierNote.textContent = '🔒 Hero Class Locked: This student has already finalized their one-time archetype selection.';
+        }
+    } else {
+        if (tierNote) {
+            tierNote.className = 'text-xs text-indigo-700 leading-relaxed font-medium';
+            tierNote.textContent = '⚡ Active Perk: Classes grant +10 extra Gold when earning stars for their specific trait.';
+        }
+    }
 
     // 9. Attach Tab Navigation Listeners
     document.querySelectorAll('.edit-student-tab-btn').forEach(btn => {
@@ -391,7 +363,7 @@ export function openEditStudentModal(studentId) {
     });
 
     // Reset to first tab (Profile)
-    switchEditStudentTab('profile');
+    switchEditStudentTab(options.tab || 'profile');
 
     // 10. Top Close Button
     const topCloseBtn = document.getElementById('edit-student-top-close-btn');

@@ -167,6 +167,9 @@
 /* 41. Skill Tree: RPG path, node glows, and branch card animations */
 @import url('./styles/skill_tree.css');
 
+/* 41b. Hero Class selection ceremony */
+@import url('./styles/hero_class_ceremony.css');
+
 /* 42. Inventory Refresh: Beautiful expanded inventory view */
 @import url('./styles/inventory_refresh.css');
 

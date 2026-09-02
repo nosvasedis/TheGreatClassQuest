@@ -295,6 +295,12 @@ export function renderManageStudentsTab() {
                 ? `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`
                 : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors" title="Pro plan: Guild Sorting Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`;
 
+        const heroClassAction = s.heroClass
+            ? ''
+            : heroProgressionEnabled
+                ? `<button data-id="${s.id}" class="hero-class-select-btn w-7 h-7 flex items-center justify-center bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full bubbly-button transition-colors" title="Choose Hero Class"><i class="fas fa-shield-halved" style="font-size:10px;"></i></button>`
+                : `<button data-id="${s.id}" class="hero-class-select-btn w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors" title="Pro plan: Hero Classes & Skill Tree"><i class="fas fa-shield-halved" style="font-size:10px;"></i></button>`;
+
         const skillTreeBtnCls = !heroProgressionEnabled
             ? 'skill-tree-btn skill-tree-btn-locked w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors'
             : pendingSkill
@@ -318,6 +324,7 @@ export function renderManageStudentsTab() {
             <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
                 <div class="flex items-center gap-1">
                     ${guildAction}
+                    ${heroClassAction}
                     <button data-id="${s.id}" class="${skillTreeBtnCls}" title="${!heroProgressionEnabled ? 'Pro plan: Hero Classes & Skill Tree' : (pendingSkill ? '✨ New Skill Available!' : 'Skill Tree')}">
                         <i class="fas fa-sitemap" style="font-size:10px;"></i>
                     </button>
@@ -382,6 +389,17 @@ export function renderManageStudentsTab() {
             return;
         }
         modals.openSortingQuizModal(btn.dataset.id);
+    }));
+    list.querySelectorAll('.hero-class-select-btn').forEach(btn => btn.addEventListener('click', () => {
+        if (!heroProgressionEnabled) {
+            showUpgradePrompt({
+                feature: 'Hero Classes & Skill Tree',
+                tier: 'Pro',
+                message: getUpgradeMessage('Pro', 'heroProgression')
+            });
+            return;
+        }
+        modals.openHeroClassSelectModal(btn.dataset.id);
     }));
     list.querySelectorAll('.skill-tree-btn').forEach(btn => btn.addEventListener('click', () => {
         if (!heroProgressionEnabled) {

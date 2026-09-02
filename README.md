@@ -119,7 +119,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 ### 1. Setup & Roster (**My Classes**)
 - **Class:** Name, logo, schedule (days/times), **Quest League** (difficulty/age).
 - **Roster:** Add students; each has Total Stars, Monthly Stars, Gold, Inventory, **Hero Class**, avatar, birthday, nameday.
-- **Personalization:** Edit student → Birthday, **Nameday** (Elite: **AI Nameday Lookup** for the Greek Orthodox calendar), **Hero Path** (Pro; first choice free, then lock if they change).
+- **Personalization:** Edit student → Birthday, **Nameday** (Elite: **AI Nameday Lookup** for the Greek Orthodox calendar), **Hero Path** (Pro; **Choose Hero Class** ceremony — first choice free, then lock if they change).
 
 ### 2. The Daily Session (**Award Stars**)
 - Choose a student and one of the four virtues (**Teamwork**, **Creativity**, **Respect**, **Focus**) at 1–3 stars. **Welcome Back** is an absence flow on the cloud, not a fifth reason button. **Scholar’s Bonus** comes from Starfall; **Story Weaver** stars come from the Story Weavers tab.
@@ -247,7 +247,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 ## 👥 My Classes & Roster
 
 - **Classes:** Create/edit class from **Teacher Settings → My Classes** (name, logo, schedule days, Quest League). **Report**, **Overview**, **Edit** per class.
-- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Skill Tree** (Pro; pulses when a new branch is waiting), **Hero's Chronicle** (notes + Elite Oracle), **Avatar Forge** (Elite), **Certificate**, **Move Student**, **Guild Quiz** (Pro, if no guild). **Edit** opens Profile, Special Dates, Hero Path, Quick Hub.
+- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Choose Hero Class** (Pro; shield, only if they have no class yet), **Skill Tree** (Pro; pulses when a new branch is waiting), **Hero's Chronicle** (notes + Elite Oracle), **Avatar Forge** (Elite), **Certificate**, **Move Student**, **Guild Quiz** (Pro, if no guild). **Edit** opens Profile, Special Dates, Hero Path, Quick Hub.
 - **Class overview modal:** Tabs for class details, **Team History** (past performance/story), and shortcuts.
 
 ---

@@ -331,3 +331,44 @@
     text-shadow: 0 2px 10px rgba(245, 158, 11, 0.5);
 }
 
+/* 6. Goal Celebration Pulse */
+@keyframes complete-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7), 0 10px 25px rgba(99, 102, 241, 0.4);
+    }
+    50% {
+        transform: scale(1.04);
+        box-shadow: 0 0 0 10px rgba(168, 85, 247, 0), 0 16px 32px rgba(168, 85, 247, 0.6);
+    }
+}
+
+.special-quest-complete--pulse {
+    animation: complete-pulse 1.6s infinite ease-in-out !important;
+    background: linear-gradient(92deg, #10b981 0%, #6366f1 50%, #a855f7 100%) !important;
+    border: 2px solid #fef08a !important;
+}
+
+/* 7. Interactive Mechanic Pop */
+@keyframes quest-pop {
+    0% { transform: scale(0.85); }
+    50% { transform: scale(1.2) rotate(4deg); }
+    100% { transform: scale(1.1) rotate(0deg); }
+}
+
+.special-quest-gem--pop {
+    animation: quest-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 8. Projector Mode Surface Inside Modal */
+#special-quest-projector-view {
+    border-radius: 0 0 1.5rem 1.5rem;
+    background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+    color: #ffffff;
+}
+
+#special-quest-projector-view .special-quest-projector {
+    background: transparent;
+    padding: clamp(1.5rem, 4vw, 3rem);
+}
+

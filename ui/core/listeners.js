@@ -310,6 +310,7 @@ export function setupUIListeners() {
     document.getElementById('create-class-close-btn').addEventListener('click', () => modals.hideModal('create-class-modal'));
     document.getElementById('create-class-cancel-btn').addEventListener('click', () => modals.hideModal('create-class-modal'));
     if (modals.wireSortingQuizResultDone) modals.wireSortingQuizResultDone();
+    if (modals.wireHeroClassSelectModal) modals.wireHeroClassSelectModal();
     if (modals.wireTeacherBoonModal) modals.wireTeacherBoonModal();
     document.getElementById('hero-stats-close-btn').addEventListener('click', () => modals.hideModal('hero-stats-modal'));
     document.getElementById('hall-of-heroes-btn').addEventListener('click', modals.openHallOfHeroes);

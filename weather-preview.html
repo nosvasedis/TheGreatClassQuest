@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weather skin preview</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body { margin: 0; font-family: Fredoka, ui-rounded, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .preview-toolbar { position: sticky; top: 0; z-index: 80; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: #111827; }
+    .preview-toolbar button { border: 0; border-radius: 999px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+    #preview-stage { position: relative; min-height: 100vh; overflow: hidden; }
+    #award-header-atmosphere header { position: relative; z-index: 2; padding: 1.25rem 1.5rem; color: white; font-size: 1.4rem; font-weight: 800; }
+    #award-immersive-sky { position: absolute; inset: 0; }
+    #app-screen.award-sky-active #award-immersive-sky .award-immersive-sky-gradient { position: absolute; inset: 0; }
+    .cards { position: relative; z-index: 4; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 120px 24px 24px; }
+    .weather-card { min-height: 180px; border-radius: 1.75rem; padding: 20px; position: relative; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div class="preview-toolbar">
+    <button data-skin="header-foggy">Fog</button>
+    <button data-skin="header-icy">Ice</button>
+    <button data-skin="header-hail">Hail</button>
+    <button data-skin="header-rainy weather-light">Light rain</button>
+    <button data-skin="header-rainy weather-heavy">Heavy rain</button>
+    <button data-skin="header-snowy weather-heavy">Heavy snow</button>
+    <button data-night="1">Toggle night</button>
+  </div>
+  <div id="app-screen" class="award-sky-active">
+    <div id="award-header-atmosphere">
+      <header>The Great Class Quest</header>
+    </div>
+    <div id="award-immersive-sky" class="award-immersive-sky" aria-hidden="true">
+      <div class="award-immersive-sky-gradient"></div>
+      <div class="award-immersive-stars"></div>
+      <div class="award-immersive-rain-fx"></div>
+      <div class="award-immersive-snow-fx"></div>
+      <div class="award-immersive-cloudy-fx"></div>
+      <div class="award-immersive-fog-fx"></div>
+      <div class="award-immersive-hail-fx"></div>
+      <div class="award-immersive-sun"></div>
+      <div class="award-immersive-moon"></div>
+    </div>
+    <div class="cards">
+      <div id="weather-card" class="weather-card w-foggy"><div class="weather-info"><div class="text-7xl font-title">12°C</div><div class="text-2xl font-bold uppercase tracking-widest">Foggy</div></div></div>
+    </div>
+  </div>
+  <script>
+    const skins = {
+      'header-foggy': ['w-foggy', 'Foggy'],
+      'header-icy': ['w-icy', 'Icy'],
+      'header-hail': ['w-hail', 'Hail'],
+      'header-rainy weather-light': ['w-rainy', 'Light Rain'],
+      'header-rainy weather-heavy': ['w-rainy', 'Heavy Rain'],
+      'header-snowy weather-heavy': ['w-snowy', 'Heavy Snow']
+    };
+    const header = document.querySelector('header');
+    const sky = document.getElementById('award-immersive-sky');
+    const app = document.getElementById('app-screen');
+    const card = document.getElementById('weather-card');
+    const all = ['header-night','header-foggy','header-icy','header-hail','header-rainy','header-snowy','weather-light','weather-heavy'];
+    function apply(skin, night) {
+      for (const el of [header, sky, app]) {
+        el.classList.remove(...all);
+        for (const c of skin.split(' ')) el.classList.add(c);
+        if (night) el.classList.add('header-night');
+      }
+      const [bg, label] = skins[skin];
+      card.className = 'weather-card ' + bg + (night ? ' weather-night' : '');
+      card.querySelector('.text-2xl').textContent = night ? label + ' Night' : label;
+    }
+    let current = 'header-foggy';
+    let night = false;
+    document.querySelectorAll('[data-skin]').forEach(btn => btn.addEventListener('click', () => {
+      current = btn.dataset.skin;
+      apply(current, night);
+    }));
+    document.querySelector('[data-night]').addEventListener('click', () => {
+      night = !night;
+      apply(current, night);
+    });
+    apply(current, night);
+  </script>
+</body>
+</html>

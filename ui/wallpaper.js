@@ -10,6 +10,7 @@ import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } f
 import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
 import { fetchDailySpice } from '../features/home.js';
 import { PATHFINDER_AWARD_REASON, PATHFINDER_CLASS_QUEST_BONUS_STARS, resolveWallpaperFloatStyle, getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
+import { WALLPAPER_WEATHER_CLASSES, wallpaperClassesForCode } from '../features/weatherTheme.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -2901,7 +2902,7 @@ export async function initSeasonalAtmosphere() {
     const existingFog = document.getElementById('wall-fog-overlay');
     if (existingFog) existingFog.remove();
 
-    wall.classList.remove('weather-clear', 'weather-cloudy', 'weather-rainy', 'weather-snowy', 'weather-stormy');
+    wall.classList.remove(...WALLPAPER_WEATHER_CLASSES);
 
     const layer = document.createElement('div');
     layer.id = 'seasonal-effects-layer';
@@ -2950,48 +2951,27 @@ export async function initSeasonalAtmosphere() {
     if (weatherCode !== null) {
         usedRealWeather = true;
 
-        // 0: Clear Sky
-        if (weatherCode === 0) {
-            wall.classList.add('weather-clear');
-            layer.classList.add('summer-glow');
-        }
+        const weatherClasses = wallpaperClassesForCode(weatherCode);
+        wall.classList.add(...weatherClasses);
+        const wallSkin = weatherClasses[0];
 
-        // 1-2: Mainly Clear / Partly Cloudy (NO extra clouds, sun visible)
-        // 1-2: Mainly Clear / Partly Cloudy (Blue Sky + Some Clouds)
-        else if (weatherCode <= 2) {
-            wall.classList.add('weather-clear'); // Uses the Blue Sky Gradient
-            effectHTML += generateHeavyClouds(8, 0.5); // Add some light clouds manually
-        }
-
-        // 3, 45, 48: Overcast / Fog (ADD extra clouds to obscure sun)
-        else if (weatherCode <= 48) {
-            wall.classList.add('weather-cloudy');
-            effectHTML += generateHeavyClouds(12, 0.6); // Add heavy cloud layer
-
-            if (weatherCode >= 45) {
-                const fog = document.createElement('div');
-                fog.id = 'wall-fog-overlay';
-                fog.className = 'wall-fog-layer';
-                wall.appendChild(fog);
-            }
-        }
-
-        // 51-67, 80-82: Rain (dedicated overlay handles particles via CSS)
-        else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
-            wall.classList.add('weather-rainy');
-            effectHTML += generateHeavyClouds(15, 0.7); // Darker, denser clouds
-        }
-
-        // 71-77, 85-86: Snow (dedicated overlay handles particles via CSS)
-        else if ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86)) {
-            wall.classList.add('weather-snowy');
-            effectHTML += generateHeavyClouds(15, 0.7); // White heavy clouds
-        }
-
-        // 95+: Thunderstorm (dedicated overlay handles rain + flash via CSS)
-        else if (weatherCode >= 95) {
-            wall.classList.add('weather-stormy');
-            effectHTML += generateHeavyClouds(20, 0.9); // Very dense, dark clouds
+        if (wallSkin === 'weather-clear') {
+            if (weatherCode === 0) layer.classList.add('summer-glow');
+            else effectHTML += generateHeavyClouds(8, 0.5);
+        } else if (wallSkin === 'weather-cloudy') {
+            effectHTML += generateHeavyClouds(12, 0.6);
+        } else if (wallSkin === 'weather-foggy') {
+            effectHTML += generateHeavyClouds(10, 0.45);
+            const fog = document.createElement('div');
+            fog.id = 'wall-fog-overlay';
+            fog.className = 'wall-fog-layer';
+            wall.appendChild(fog);
+        } else if (wallSkin === 'weather-rainy' || wallSkin === 'weather-icy') {
+            effectHTML += generateHeavyClouds(15, 0.7);
+        } else if (wallSkin === 'weather-snowy') {
+            effectHTML += generateHeavyClouds(15, 0.7);
+        } else if (wallSkin === 'weather-stormy' || wallSkin === 'weather-hail') {
+            effectHTML += generateHeavyClouds(20, 0.9);
         }
     }
 

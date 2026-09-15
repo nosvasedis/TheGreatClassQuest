@@ -1,6 +1,24 @@
 import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow.mjs';
 import { getAwardLogMonthlyStarCredit } from './features/awardLogReasonMeta.js';
 import { getQuestLeagueDefinition } from './constants.js';
+import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
+
+/**
+ * Mirror header weather onto the Award expanding sky (and related chrome)
+ * so immersive styles do not depend on sibling CSS combinators.
+ */
+export function syncAwardSkyWeather(sourceEl) {
+    const header = sourceEl
+        || document.querySelector('#award-header-atmosphere header')
+        || document.querySelector('header');
+    const next = HEADER_WEATHER_CLASSES.filter((name) => header?.classList?.contains(name));
+    for (const id of ['award-immersive-sky', 'app-screen', 'm-teacher-header']) {
+        const el = document.getElementById(id);
+        if (!el || el === header) continue;
+        el.classList.remove(...HEADER_WEATHER_CLASSES);
+        if (next.length) el.classList.add(...next);
+    }
+}
 
 export function simpleHashCode(str) {
     let hash = 0;
@@ -165,7 +183,8 @@ export function updateDateTime() {
     const now = new Date();
     const dateEl = document.getElementById('current-date');
     const timeEl = document.getElementById('current-time');
-    const header = document.querySelector('header');
+    const header = document.querySelector('#award-header-atmosphere header')
+        || document.querySelector('header');
     const wallScreen = document.getElementById('dynamic-wallpaper-screen');
 
     // 1. Real-Time Solar Check (Greece/Rentis)
@@ -187,6 +206,7 @@ export function updateDateTime() {
         if (header) header.classList.remove('header-night');
         if (wallScreen) wallScreen.classList.remove('is-night');
     }
+    syncAwardSkyWeather(header);
 
     if (dateEl && timeEl) {
         const dateText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });

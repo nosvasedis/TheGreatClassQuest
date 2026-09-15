@@ -20,6 +20,12 @@ import {
     getScheduleEmptyStateMarkupClass,
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
+import {
+    HEADER_WEATHER_CLASSES,
+    headerClassesForTheme,
+    resolveWeatherTheme,
+    withNightWeatherText
+} from './weatherTheme.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -203,28 +209,7 @@ async function executeRenderHome() {
     // --- STEP 1: CALCULATE WEATHER STATE ---
     if (weatherData) {
         theme.temp = `${weatherData.temp}°C`;
-        const code = weatherData.code;
-
-        // Determine Background Class (always the actual condition — night is separate via theme.isNight)
-        if (code === 0) {
-            theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-sun'; theme.weatherText = 'Sunny';
-        } else if (code <= 2) {
-            // Codes 1 & 2: Mainly Clear / Partly Cloudy -> Keep Blue Sky (w-day)
-            theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
-        } else if (code === 3) {
-            // Code 3: Overcast -> Gray Sky
-            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Overcast';
-        } else if (code <= 48) {
-            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-smog'; theme.weatherText = 'Foggy';
-        } else if (code <= 67 || (code >= 80 && code <= 82)) {
-            theme.weatherBg = 'w-rainy'; theme.weatherIcon = 'fa-cloud-rain'; theme.weatherText = 'Rainy';
-        } else if (code <= 77 || (code >= 85 && code <= 86)) {
-            theme.weatherBg = 'w-snowy'; theme.weatherIcon = 'fa-snowflake'; theme.weatherText = 'Snowy';
-        } else if (code >= 95) {
-            theme.weatherBg = 'w-stormy'; theme.weatherIcon = 'fa-bolt'; theme.weatherText = 'Stormy';
-        } else {
-            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Cloudy';
-        }
+        Object.assign(theme, resolveWeatherTheme(weatherData.code));
 
         const nowTime = Date.now();
         const sunset = utils.solarData?.sunset ?? new Date().setHours(20, 0, 0, 0);
@@ -234,14 +219,7 @@ async function executeRenderHome() {
         if (theme.isNight) {
             if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
             if (theme.weatherIcon === 'fa-cloud-sun') theme.weatherIcon = 'fa-cloud-moon';
-            if (theme.weatherText === 'Sunny') theme.weatherText = 'Clear Night';
-            if (theme.weatherText === 'Partly Cloudy') theme.weatherText = 'Cloudy Night';
-            if (theme.weatherText === 'Overcast') theme.weatherText = 'Overcast Night';
-            if (theme.weatherText === 'Foggy') theme.weatherText = 'Foggy Night';
-            if (theme.weatherText === 'Rainy') theme.weatherText = 'Rainy Night';
-            if (theme.weatherText === 'Snowy') theme.weatherText = 'Snowy Night';
-            if (theme.weatherText === 'Stormy') theme.weatherText = 'Stormy Night';
-            if (theme.weatherText === 'Cloudy') theme.weatherText = 'Cloudy Night';
+            theme.weatherText = withNightWeatherText(theme.weatherText);
         }
     } else {
         // Fallback
@@ -258,11 +236,12 @@ async function executeRenderHome() {
     }
 
     // --- STEP 2: APPLY HEADER THEME ---
-    const header = document.querySelector('header');
+    const header = document.querySelector('#award-header-atmosphere header')
+        || document.querySelector('header');
     const awardHeaderAtmosphere = document.getElementById('award-header-atmosphere');
     if (header) {
         // 1. Clean old classes
-        header.classList.remove('header-night', 'header-stormy', 'header-rainy', 'header-snowy', 'header-cloudy');
+        header.classList.remove(...HEADER_WEATHER_CLASSES);
 
         // 2. Reset Background
         header.style.background = '';
@@ -271,35 +250,12 @@ async function executeRenderHome() {
             'relative z-[1] flex w-full min-w-0 items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible transition-all duration-1000';
 
         // Night layer (`header-night`) stacks with concrete weather classes for header + Award sky.
-        if (theme.isNight) {
-            header.classList.add('header-night');
-        }
-
-        switch (theme.weatherBg) {
-            case 'w-stormy':
-                header.classList.add('header-stormy');
-                break;
-            case 'w-rainy':
-                header.classList.add('header-rainy');
-                break;
-            case 'w-snowy':
-                header.classList.add('header-snowy');
-                break;
-            case 'w-cloudy':
-                header.classList.add('header-cloudy');
-                break;
-            default:
-                break;
-        }
+        const headerWeather = headerClassesForTheme(theme, theme.isNight);
+        if (headerWeather.length) header.classList.add(...headerWeather);
 
         const sunny = 'linear-gradient(to right, #89f7fe 0%, #66a6ff 100%)';
         const nightBar = 'linear-gradient(to right, #1e3a8a 0%, #312e81 100%)';
-        const hasWeatherSkin =
-            header.classList.contains('header-night') ||
-            header.classList.contains('header-stormy') ||
-            header.classList.contains('header-rainy') ||
-            header.classList.contains('header-snowy') ||
-            header.classList.contains('header-cloudy');
+        const hasWeatherSkin = HEADER_WEATHER_CLASSES.some((name) => header.classList.contains(name));
 
         if (awardHeaderAtmosphere) {
             if (hasWeatherSkin) {
@@ -322,6 +278,10 @@ async function executeRenderHome() {
         } else if (!hasWeatherSkin && !theme.isNight) {
             header.style.background = sunny;
         }
+
+        utils.syncAwardSkyWeather(header);
+    } else {
+        utils.syncAwardSkyWeather();
     }
 
     // --- STEP 3: CALCULATE TIME GRADIENTS ---
@@ -731,7 +691,7 @@ function getLayout(name, theme, selector, row2, row3) {
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}">
+            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}${theme.intensity ? ` weather-${theme.intensity}` : ''}">
                 <i class="fas ${theme.weatherIcon} weather-sun"></i>
                 <i class="fas fa-cloud weather-cloud"></i>
                 

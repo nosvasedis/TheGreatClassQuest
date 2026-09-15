@@ -335,7 +335,7 @@ body.night-mode {
 
 /* Clear Night (default) — deep indigo to purple */
 .is-night.weather-clear #wall-bg-night,
-.is-night:not(.weather-cloudy):not(.weather-rainy):not(.weather-snowy):not(.weather-stormy) #wall-bg-night {
+.is-night:not(.weather-cloudy):not(.weather-rainy):not(.weather-snowy):not(.weather-stormy):not(.weather-foggy):not(.weather-icy):not(.weather-hail) #wall-bg-night {
     background: linear-gradient(to bottom, #020617 0%, #1e1b4b 40%, #312e81 100%) !important;
 }
 

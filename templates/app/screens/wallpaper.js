@@ -45,6 +45,8 @@ export const wallpaperHTML = `
             <div id="wall-snow-fx" class="wall-weather-plane"></div>
             <div id="wall-cloudy-fx" class="wall-weather-plane"></div>
             <div id="wall-storm-flash" class="wall-weather-plane"></div>
+            <div id="wall-fog-fx" class="wall-weather-plane"></div>
+            <div id="wall-hail-fx" class="wall-weather-plane"></div>
         </div>
 
         <div class="absolute inset-0 pointer-events-none z-10">

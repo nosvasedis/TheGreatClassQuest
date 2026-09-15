@@ -14,6 +14,8 @@ export const awardImmersiveSkyHTML = `
             <div class="award-immersive-rain-fx" aria-hidden="true"></div>
             <div class="award-immersive-snow-fx" aria-hidden="true"></div>
             <div class="award-immersive-cloudy-fx" aria-hidden="true"></div>
+            <div class="award-immersive-fog-fx" aria-hidden="true"></div>
+            <div class="award-immersive-hail-fx" aria-hidden="true"></div>
             <div class="award-immersive-sun" aria-hidden="true"></div>
             <div class="award-immersive-moon" aria-hidden="true"></div>
             <div class="award-immersive-sky-parallax loading-cloud-art-layer" aria-hidden="true">

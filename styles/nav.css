@@ -323,12 +323,30 @@ body.night-mode:not(.projector-mode):has(header.header-night.header-cloudy) #bot
     border-top-color: #64748b;
 }
 
+body.night-mode:not(.projector-mode):has(header.header-night.header-foggy) #bottom-nav-bar {
+    background: linear-gradient(to right, #3f4c5c 0%, #2f3b4a 52%, #1e293b 100%);
+    border-top-color: #64748b;
+}
+
+body.night-mode:not(.projector-mode):has(header.header-night.header-icy) #bottom-nav-bar {
+    background: linear-gradient(to right, #16343c 0%, #0f2a32 52%, #0b1c22 100%);
+    border-top-color: #155e75;
+}
+
+body.night-mode:not(.projector-mode):has(header.header-night.header-hail) #bottom-nav-bar {
+    background: linear-gradient(to right, #0f172a 0%, #312e81 50%, #020617 100%);
+    border-top-color: #4338ca;
+}
+
 /*
  * Cloudy/overcast paints a large drifting ☁️ on `header.header-cloudy::after` (`weather_effects.css`).
  * `header` stays overflow-visible class-wise for tooling, but glyphs must stay inside the chrome
  * whenever we are not immersed (Award). Class picker teleport uses `fixed` while open.
  */
-#award-header-atmosphere > header.header-cloudy {
+#award-header-atmosphere > header.header-cloudy,
+#award-header-atmosphere > header.header-foggy,
+#award-header-atmosphere > header.header-icy,
+#award-header-atmosphere > header.header-hail {
     overflow: hidden;
 }
 

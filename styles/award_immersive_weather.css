@@ -1,14 +1,17 @@
 /*
- * Award immersive sky follows the same weather classes as the real header
- * (`header-night`, `header-stormy`, `header-rainy`, `header-snowy`, `header-cloudy`).
- * `#award-immersive-sky` follows `#award-header-atmosphere`. Mobile chrome
- * (`#m-teacher-header`) is injected between them, so selectors use `~`.
+ * Award immersive sky uses the same weather classes as the header
+ * (`header-night`, `header-stormy`, `header-rainy`, `header-snowy`, `header-cloudy`,
+ * `header-foggy`, `header-icy`, `header-hail`, plus `weather-light` / `weather-heavy`),
+ * copied onto `#award-immersive-sky` so the expanded sky cannot fall back to the
+ * default sunny gradient when chrome siblings sit between header and sky.
  */
 
 /* --- Weather overlay planes (inside clipped #award-immersive-sky) --- */
 .award-immersive-rain-fx,
 .award-immersive-snow-fx,
-.award-immersive-cloudy-fx {
+.award-immersive-cloudy-fx,
+.award-immersive-fog-fx,
+.award-immersive-hail-fx {
     position: absolute;
     inset: 0;
     z-index: 8;
@@ -18,73 +21,131 @@
     visibility: hidden;
 }
 
-/* ---------- Gradient skies — same horizontal linear-gradient as header chrome (weather_effects + misc_wallpaper) ---------- */
+/* ---------- Atmospheric skies — header hues at the top, depth below ---------- */
 #app-screen.award-sky-active
-    #award-header-atmosphere:has(
-        header:not(.header-night):not(.header-stormy):not(.header-rainy):not(.header-snowy):not(.header-cloudy)
-    )
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-snowy):not(.header-cloudy):not(.header-foggy):not(.header-icy):not(.header-hail)
     .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);
+    background:
+        radial-gradient(ellipse 90% 55% at 82% 8%, rgba(129, 140, 248, 0.28) 0%, transparent 52%),
+        radial-gradient(ellipse 120% 70% at 50% -12%, rgba(49, 46, 129, 0.45) 0%, transparent 58%),
+        linear-gradient(to bottom, #1e3a8a 0%, #312e81 48%, #1e1b4b 100%);
 }
 
-/* Clear night — misc_wallpaper header.header-night (no stacked weather skin) */
-#app-screen.award-sky-active
-    #award-header-atmosphere:has(
-        header.header-night:not(.header-stormy):not(.header-rainy):not(.header-snowy):not(.header-cloudy)
-    )
-    ~ #award-immersive-sky
-    .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #1e3a8a 0%, #312e81 100%);
-}
-
-/* Storm — weather_effects.header-stormy */
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-sky-gradient {
+#app-screen.award-sky-active #award-immersive-sky.header-stormy .award-immersive-sky-gradient {
     animation: storm-flash 5s infinite;
-    background: linear-gradient(to right, #374151 0%, #1f2937 100%);
+    background:
+        radial-gradient(ellipse 110% 60% at 50% -8%, rgba(75, 85, 99, 0.35) 0%, transparent 55%),
+        linear-gradient(to top, rgba(15, 23, 42, 0.42) 0%, transparent 48%),
+        linear-gradient(to bottom, #374151 0%, #1f2937 52%, #111827 100%);
 }
 
-/* Rain — weather_effects.header-rainy */
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #4b5563 0%, #374151 100%);
+#app-screen.award-sky-active #award-immersive-sky.header-rainy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 120% 65% at 50% -10%, rgba(148, 163, 184, 0.22) 0%, transparent 56%),
+        linear-gradient(to top, rgba(15, 23, 42, 0.32) 0%, transparent 50%),
+        linear-gradient(to bottom, #4b5563 0%, #3f4b5c 40%, #374151 100%);
 }
 
-/* Snow — weather_effects.header-snowy */
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-snowy) ~ #award-immersive-sky .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #cbd5e1 0%, #94a3b8 100%);
+#app-screen.award-sky-active #award-immersive-sky.header-snowy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 130% 70% at 50% -12%, rgba(248, 250, 252, 0.5) 0%, transparent 58%),
+        radial-gradient(circle at 86% 10%, rgba(226, 232, 240, 0.35) 0%, transparent 42%),
+        linear-gradient(to top, rgba(148, 163, 184, 0.28) 0%, transparent 48%),
+        linear-gradient(to bottom, #cbd5e1 0%, #b0becf 42%, #94a3b8 100%);
 }
 
-/* Cloudy — identical to flat header.chrome (weather_effects.header-cloudy) */
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-cloudy) ~ #award-immersive-sky .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #94a3b8 0%, #64748b 100%);
+#app-screen.award-sky-active #award-immersive-sky.header-cloudy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 140% 72% at 50% -10%, rgba(241, 245, 249, 0.38) 0%, transparent 56%),
+        radial-gradient(ellipse 80% 48% at 86% 8%, rgba(203, 213, 225, 0.28) 0%, transparent 50%),
+        linear-gradient(to top, rgba(71, 85, 105, 0.26) 0%, transparent 48%),
+        linear-gradient(to bottom, #94a3b8 0%, #7d8ea4 38%, #64748b 100%);
 }
 
-/* Night + active weather — misc_wallpaper night + weather bars */
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-stormy) ~ #award-immersive-sky .award-immersive-sky-gradient {
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-stormy .award-immersive-sky-gradient {
     animation: storm-flash 5s infinite;
-    background: linear-gradient(to right, #0f172a 0%, #1e1b4b 55%, #020617 100%);
+    background:
+        radial-gradient(ellipse 100% 55% at 50% -6%, rgba(49, 46, 129, 0.28) 0%, transparent 52%),
+        linear-gradient(to bottom, #0f172a 0%, #1e1b4b 55%, #020617 100%);
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-rainy) ~ #award-immersive-sky .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #1e293b 0%, #334155 50%, #0f172a 100%);
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-rainy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 110% 60% at 50% -8%, rgba(51, 65, 85, 0.4) 0%, transparent 54%),
+        linear-gradient(to bottom, #1e293b 0%, #334155 50%, #0f172a 100%);
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-snowy) ~ #award-immersive-sky .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #475569 0%, #64748b 50%, #334155 100%);
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-snowy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 120% 65% at 50% -10%, rgba(148, 163, 184, 0.28) 0%, transparent 55%),
+        linear-gradient(to bottom, #475569 0%, #64748b 50%, #334155 100%);
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-cloudy) ~ #award-immersive-sky .award-immersive-sky-gradient {
-    background: linear-gradient(to right, #475569 0%, #334155 100%);
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-cloudy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 130% 68% at 50% -10%, rgba(71, 85, 105, 0.4) 0%, transparent 56%),
+        linear-gradient(to bottom, #475569 0%, #334155 100%);
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-foggy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 140% 78% at 50% -8%, rgba(255, 255, 255, 0.58) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 50% at 18% 30%, rgba(248, 250, 252, 0.42) 0%, transparent 62%),
+        linear-gradient(to bottom, #c5d4e0 0%, #dbe4ee 42%, #b7c5d4 100%);
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-icy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 120% 62% at 50% -10%, rgba(165, 243, 252, 0.22) 0%, transparent 56%),
+        linear-gradient(to top, rgba(15, 23, 42, 0.28) 0%, transparent 48%),
+        linear-gradient(to bottom, #5f8a96 0%, #4a7c8a 46%, #3a6570 100%);
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-hail .award-immersive-sky-gradient {
+    animation: storm-flash 5s infinite;
+    background:
+        radial-gradient(ellipse 110% 58% at 50% -8%, rgba(165, 180, 252, 0.28) 0%, transparent 54%),
+        linear-gradient(to top, rgba(15, 23, 42, 0.38) 0%, transparent 48%),
+        linear-gradient(to bottom, #374151 0%, #4338ca 46%, #1f2937 100%);
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-foggy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 130% 70% at 50% -10%, rgba(148, 163, 184, 0.32) 0%, transparent 58%),
+        linear-gradient(to bottom, #3f4c5c 0%, #2f3b4a 48%, #1e293b 100%);
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-icy .award-immersive-sky-gradient {
+    background:
+        radial-gradient(ellipse 110% 58% at 50% -8%, rgba(8, 145, 178, 0.18) 0%, transparent 54%),
+        linear-gradient(to bottom, #16343c 0%, #0f2a32 50%, #0b1c22 100%);
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-hail .award-immersive-sky-gradient {
+    animation: storm-flash 5s infinite;
+    background:
+        radial-gradient(ellipse 100% 55% at 50% -6%, rgba(67, 56, 202, 0.28) 0%, transparent 52%),
+        linear-gradient(to bottom, #0f172a 0%, #312e81 50%, #020617 100%);
 }
 
 /*
  * Full-sky Award: keep everything continuous at the chrome / parallax seam.
  * `weather_effects.css` uses `header.header-stormy { overflow: hidden !important }` (rain layer);
- * while immersed that would flatten FA clouds along the header bottom. This file loads after
- * weather_effects, so the override wins for the active Award state only.
+ * while immersed that would flatten FA clouds along the header bottom. Strip the header's
+ * opaque weather fill so the expanded sky is one atmosphere behind the title.
  */
 #app-screen.award-sky-active:not(.award-sky-leaving) #award-header-atmosphere > header {
     overflow: visible !important;
+    background: transparent !important;
+}
+
+#app-screen.award-sky-active:not(.award-sky-leaving) #m-teacher-header {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+#app-screen.award-sky-active:not(.award-sky-leaving) #m-teacher-header .m-header__glow {
+    opacity: 0;
 }
 
 /* ---------- Starfield (Award night only; sits above gradient, below sun/moon clouds) ---------- */
@@ -174,24 +235,17 @@
     }
 }
 
-#app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-night)
-    ~ #award-immersive-sky
-    .award-immersive-stars {
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-night .award-immersive-stars {
     opacity: 1;
     visibility: visible;
 }
 
-#app-screen.award-sky-active
-    #award-header-atmosphere:has(header.header-night)
-    ~ main
-    #award-stars-tab
-    .award-stars-hero-subtitle {
+#app-screen.award-sky-active.header-night #award-stars-tab .award-stars-hero-subtitle {
     color: #f8fafc;
     text-shadow: 0 1px 3px rgba(15, 23, 42, 0.5);
 }
 
-#app-screen.award-sky-active.award-sky-leaving #award-header-atmosphere:has(header.header-night) ~ #award-immersive-sky .award-immersive-stars {
+#app-screen.award-sky-active.award-sky-leaving #award-immersive-sky.header-night .award-immersive-stars {
     opacity: 0;
     visibility: hidden;
     transition:
@@ -200,26 +254,14 @@
 }
 
 /* Tone down day sheen when not clear/sunny */
-#app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-night)
-    ~ #award-immersive-sky
-    .award-immersive-sky-gradient::after,
-#app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-stormy)
-    ~ #award-immersive-sky
-    .award-immersive-sky-gradient::after,
-#app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-rainy)
-    ~ #award-immersive-sky
-    .award-immersive-sky-gradient::after,
-#app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-snowy)
-    ~ #award-immersive-sky
-    .award-immersive-sky-gradient::after,
-#app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-cloudy)
-    ~ #award-immersive-sky
-    .award-immersive-sky-gradient::after {
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-night .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-stormy .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-rainy .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-snowy .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-cloudy .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-foggy .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-icy .award-immersive-sky-gradient::after,
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky.header-hail .award-immersive-sky-gradient::after {
     animation: none !important;
     opacity: 0.06;
     transform: scaleY(1);
@@ -227,76 +269,115 @@
 
 /* ---------- Parallax lanes ---------- */
 #app-screen.award-sky-active
-    #award-header-atmosphere:has(
-        header.header-night:not(.header-stormy):not(.header-rainy):not(.header-snowy):not(.header-cloudy)
-    )
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-snowy):not(.header-cloudy):not(.header-foggy):not(.header-icy):not(.header-hail)
     .loading-cloud-art {
     opacity: 0.3;
     filter: grayscale(100%) brightness(3.05) saturate(0.22) blur(0.4px)
         drop-shadow(0 10px 20px rgba(30, 27, 129, 0.12));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-stormy .loading-cloud-art {
     opacity: 0.34;
     filter: brightness(0.52) saturate(0.65) blur(0.25px)
         drop-shadow(0 12px 22px rgba(15, 23, 42, 0.35));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-rainy .loading-cloud-art {
     opacity: 0.38;
     filter: brightness(0.62) saturate(0.75) blur(0.28px)
         drop-shadow(0 11px 20px rgba(51, 65, 85, 0.22));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-snowy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-snowy .loading-cloud-art {
     opacity: 0.42;
     filter: brightness(1.06) saturate(0.55) blur(0.18px)
         drop-shadow(0 12px 24px rgba(148, 163, 184, 0.18));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-cloudy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-cloudy .loading-cloud-art {
     opacity: 0.52;
     filter: brightness(0.95) saturate(0.72) blur(0.45px)
         drop-shadow(0 10px 20px rgba(71, 85, 105, 0.14));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-stormy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-stormy .loading-cloud-art {
     opacity: 0.26;
     filter: grayscale(100%) brightness(2.05) saturate(0.18) blur(0.32px)
         drop-shadow(0 12px 24px rgba(15, 23, 42, 0.32));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-rainy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-rainy .loading-cloud-art {
     opacity: 0.28;
     filter: grayscale(100%) brightness(2.55) saturate(0.2) blur(0.34px)
         drop-shadow(0 11px 22px rgba(30, 41, 59, 0.22));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-snowy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-snowy .loading-cloud-art {
     opacity: 0.34;
     filter: grayscale(100%) brightness(3.55) saturate(0.12) blur(0.28px)
         drop-shadow(0 11px 22px rgba(51, 65, 85, 0.16));
 }
 
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-cloudy) ~ #award-immersive-sky .loading-cloud-art {
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-cloudy .loading-cloud-art {
     opacity: 0.3;
     filter: grayscale(100%) brightness(2.85) saturate(0.2) blur(0.42px)
         drop-shadow(0 10px 20px rgba(30, 27, 75, 0.14));
 }
 
+#app-screen.award-sky-active #award-immersive-sky.header-foggy .loading-cloud-art {
+    opacity: 0.28;
+    filter: brightness(1.18) saturate(0.35) blur(1.4px)
+        drop-shadow(0 10px 22px rgba(148, 163, 184, 0.18));
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-icy .loading-cloud-art {
+    opacity: 0.36;
+    filter: brightness(0.78) saturate(0.7) hue-rotate(160deg) blur(0.28px)
+        drop-shadow(0 11px 20px rgba(8, 145, 178, 0.18));
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-hail .loading-cloud-art {
+    opacity: 0.32;
+    filter: brightness(0.55) saturate(0.7) blur(0.22px)
+        drop-shadow(0 12px 22px rgba(49, 46, 129, 0.32));
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-foggy .loading-cloud-art {
+    opacity: 0.22;
+    filter: grayscale(100%) brightness(2.4) saturate(0.18) blur(1.2px)
+        drop-shadow(0 10px 20px rgba(30, 41, 59, 0.2));
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-icy .loading-cloud-art {
+    opacity: 0.26;
+    filter: grayscale(80%) brightness(2.2) saturate(0.25) blur(0.32px)
+        drop-shadow(0 11px 22px rgba(8, 47, 73, 0.24));
+}
+
+#app-screen.award-sky-active #award-immersive-sky.header-night.header-hail .loading-cloud-art {
+    opacity: 0.24;
+    filter: grayscale(100%) brightness(2.05) saturate(0.18) blur(0.3px)
+        drop-shadow(0 12px 24px rgba(15, 23, 42, 0.32));
+}
+
 /* ---------- Sun: hide or soften per weather ---------- */
-#award-header-atmosphere:has(header.header-night) ~ #award-immersive-sky .award-immersive-sun,
-#award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-sun,
-#award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-sun {
+#award-immersive-sky.header-night .award-immersive-sun,
+#award-immersive-sky.header-stormy .award-immersive-sun,
+#award-immersive-sky.header-rainy .award-immersive-sun,
+#award-immersive-sky.header-cloudy .award-immersive-sun,
+#award-immersive-sky.header-icy .award-immersive-sun,
+#award-immersive-sky.header-hail .award-immersive-sun {
     opacity: 0 !important;
     visibility: hidden !important;
     animation: none !important;
 }
 
-#award-header-atmosphere:has(header.header-night) ~ #award-immersive-sky .award-immersive-sun::after,
-#award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-sun::after,
-#award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-sun::after {
+#award-immersive-sky.header-night .award-immersive-sun::after,
+#award-immersive-sky.header-stormy .award-immersive-sun::after,
+#award-immersive-sky.header-rainy .award-immersive-sun::after,
+#award-immersive-sky.header-cloudy .award-immersive-sun::after,
+#award-immersive-sky.header-icy .award-immersive-sun::after,
+#award-immersive-sky.header-hail .award-immersive-sun::after {
     animation: none !important;
 }
 
@@ -313,35 +394,19 @@
     }
 }
 
-@keyframes awardImmersiveSunBloomCloudy {
-    from {
-        opacity: 0;
-        transform: scale(0.34) translate3d(28px, -36px, 0);
-        filter: blur(0);
-    }
-    to {
-        opacity: 0.4;
-        transform: scale(1) translate3d(0, 0, 0);
-        filter: blur(8px);
-    }
-}
-
 #app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-snowy)
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-snowy:not(.header-night)
     .award-immersive-sun {
     animation: awardImmersiveSunBloomSnow calc(var(--award-sky-reveal-duration) + 120ms) var(--award-sky-reveal-ease) 60ms forwards;
 }
 
 #app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-cloudy)
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-foggy:not(.header-night)
     .award-immersive-sun {
-    animation: awardImmersiveSunBloomCloudy calc(var(--award-sky-reveal-duration) + 120ms) var(--award-sky-reveal-ease) 60ms forwards;
-}
-
-#award-header-atmosphere:has(header.header-cloudy) ~ #award-immersive-sky .award-immersive-sun::before {
-    filter: inherit;
+    opacity: 0.22 !important;
+    visibility: visible !important;
+    filter: blur(10px) saturate(0.6);
+    animation: awardImmersiveSunBloomSnow calc(var(--award-sky-reveal-duration) + 120ms) var(--award-sky-reveal-ease) 60ms forwards;
 }
 
 /* ---------- Moon (night only) ---------- */
@@ -389,8 +454,7 @@
     opacity: 0.9;
 }
 
-#award-header-atmosphere:has(header.header-night):not(:has(header.header-stormy)):not(:has(header.header-rainy))
-    ~ #award-immersive-sky
+#award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-icy):not(.header-hail)
     .award-immersive-moon {
     visibility: visible;
 }
@@ -425,34 +489,31 @@
 }
 
 #app-screen.award-sky-active:not(.award-sky-leaving)
-    #award-header-atmosphere:has(header.header-night):not(:has(header.header-stormy)):not(:has(header.header-rainy))
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-icy):not(.header-hail)
     .award-immersive-moon {
     animation: awardImmersiveMoonBloom calc(var(--award-sky-reveal-duration) + 120ms) var(--award-sky-reveal-ease) 70ms forwards;
 }
 
 #app-screen.award-sky-active.award-sky-leaving
-    #award-header-atmosphere:has(header.header-night):not(:has(header.header-stormy)):not(:has(header.header-rainy))
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-icy):not(.header-hail)
     .award-immersive-moon {
     animation: awardImmersiveMoonFold var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards !important;
 }
 
 #app-screen.award-sky-active.award-sky-leaving
-    #award-header-atmosphere:has(header.header-night):not(:has(header.header-stormy)):not(:has(header.header-rainy))
-    ~ #award-immersive-sky
+    #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-icy):not(.header-hail)
     .award-immersive-moon::after {
     animation-play-state: paused;
 }
 
 /* ---------- Rain (storm vs rainy) — reuses weather_effects keyframes ---------- */
-#award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-rain-fx,
-#award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-rain-fx {
+#award-immersive-sky.header-stormy .award-immersive-rain-fx,
+#award-immersive-sky.header-rainy .award-immersive-rain-fx {
     opacity: 1;
     visibility: visible;
 }
 
-#award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-rain-fx::before {
+#award-immersive-sky.header-stormy .award-immersive-rain-fx::before {
     content: '';
     position: absolute;
     top: -50vh;
@@ -473,7 +534,7 @@
     pointer-events: none;
 }
 
-#award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-rain-fx::after {
+#award-immersive-sky.header-stormy .award-immersive-rain-fx::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -484,7 +545,7 @@
     pointer-events: none;
 }
 
-#award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-rain-fx::before {
+#award-immersive-sky.header-rainy .award-immersive-rain-fx::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -499,17 +560,50 @@
     pointer-events: none;
 }
 
-#award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-rain-fx::after {
+#award-immersive-sky.header-rainy .award-immersive-rain-fx::after {
     content: none;
 }
 
-/* ---------- Snow ---------- */
-#award-header-atmosphere:has(header.header-snowy) ~ #award-immersive-sky .award-immersive-snow-fx {
+#award-immersive-sky.header-icy .award-immersive-rain-fx {
     opacity: 1;
     visibility: visible;
 }
 
-#award-header-atmosphere:has(header.header-snowy) ~ #award-immersive-sky .award-immersive-snow-fx::before {
+#award-immersive-sky.header-icy .award-immersive-rain-fx::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(2px 12px at 20% 30%, rgba(224, 255, 255, 0.62), transparent),
+        radial-gradient(2px 10px at 52% 62%, rgba(165, 243, 252, 0.5), transparent),
+        radial-gradient(2px 14px at 78% 18%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(2px 9px at 90% 74%, rgba(186, 230, 253, 0.44), transparent);
+    background-size: 108px 108px;
+    animation: rain-fall 0.95s linear infinite;
+    opacity: 0.62;
+    pointer-events: none;
+}
+
+#award-immersive-sky.header-icy .award-immersive-rain-fx::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(2px 2px at 16% 24%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 44% 68%, rgba(165, 243, 252, 0.75), transparent),
+        radial-gradient(2px 2px at 72% 36%, rgba(255, 255, 255, 0.7), transparent);
+    background-size: 88px 88px;
+    animation: ice-sparkle 3.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* ---------- Snow ---------- */
+#award-immersive-sky.header-snowy .award-immersive-snow-fx {
+    opacity: 1;
+    visibility: visible;
+}
+
+#award-immersive-sky.header-snowy .award-immersive-snow-fx::before {
     content: '❄️';
     position: absolute;
     top: -24px;
@@ -530,82 +624,202 @@
 }
 
 /* ---------- Cloudy drifting motif ---------- */
-#award-header-atmosphere:has(header.header-cloudy) ~ #award-immersive-sky .award-immersive-cloudy-fx {
+#award-immersive-sky.header-cloudy .award-immersive-cloudy-fx {
     opacity: 1;
     visibility: visible;
 }
 
-#award-header-atmosphere:has(header.header-cloudy) ~ #award-immersive-sky .award-immersive-cloudy-fx::before {
+#award-immersive-sky.header-cloudy .award-immersive-cloudy-fx::before {
     content: '☁️';
     font-size: clamp(4rem, 22vw, 11rem);
     position: absolute;
-    top: 14%;
+    top: 12%;
     left: -22%;
-    opacity: 0.14;
+    opacity: 0.2;
     animation: cloud-pass 46s linear infinite;
     pointer-events: none;
-    filter: grayscale(0.15);
+    filter: grayscale(0.2);
+}
+
+#award-immersive-sky.header-cloudy .award-immersive-cloudy-fx::after {
+    content: '☁️';
+    font-size: clamp(3.2rem, 16vw, 8.5rem);
+    position: absolute;
+    top: 28%;
+    left: -30%;
+    opacity: 0.14;
+    animation: cloud-pass 62s linear infinite;
+    animation-delay: -18s;
+    pointer-events: none;
+    filter: grayscale(0.25);
+}
+
+#award-immersive-sky.header-foggy .award-immersive-fog-fx {
+    opacity: 1;
+    visibility: visible;
+}
+
+#award-immersive-sky.header-foggy .award-immersive-fog-fx::before,
+#award-immersive-sky.header-foggy .award-immersive-fog-fx::after {
+    content: '';
+    position: absolute;
+    inset: -28%;
+    pointer-events: none;
+}
+
+#award-immersive-sky.header-foggy .award-immersive-fog-fx::before {
+    background:
+        radial-gradient(ellipse 58% 48% at 18% 40%, rgba(255, 255, 255, 0.55), transparent 70%),
+        radial-gradient(ellipse 46% 42% at 78% 58%, rgba(226, 232, 240, 0.42), transparent 68%);
+    animation: fog-veil-drift 16s ease-in-out infinite alternate;
+}
+
+#award-immersive-sky.header-foggy .award-immersive-fog-fx::after {
+    background:
+        radial-gradient(ellipse 50% 36% at 58% 22%, rgba(248, 250, 252, 0.4), transparent 72%);
+    animation: fog-veil-drift-b 22s ease-in-out infinite alternate;
+}
+
+#award-immersive-sky.header-hail .award-immersive-hail-fx {
+    opacity: 1;
+    visibility: visible;
+}
+
+#award-immersive-sky.header-hail .award-immersive-hail-fx::before {
+    content: '';
+    position: absolute;
+    inset: -12% 0;
+    background-image:
+        radial-gradient(circle 4px at 14% 18%, rgba(248, 250, 252, 0.92), transparent 70%),
+        radial-gradient(circle 3px at 36% 62%, rgba(226, 232, 240, 0.86), transparent 70%),
+        radial-gradient(circle 5px at 58% 28%, rgba(255, 255, 255, 0.9), transparent 70%),
+        radial-gradient(circle 3.5px at 78% 74%, rgba(241, 245, 249, 0.84), transparent 70%),
+        radial-gradient(circle 4px at 92% 40%, rgba(226, 232, 240, 0.8), transparent 70%);
+    background-size: 110px 110px;
+    animation: hail-fall 1.15s linear infinite;
+    pointer-events: none;
+}
+
+#award-immersive-sky.header-hail .award-immersive-hail-fx::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    animation: thunder-flash 10s infinite;
+    animation-delay: 3.2s;
+    pointer-events: none;
+}
+
+#award-immersive-sky.header-rainy.weather-light .award-immersive-rain-fx::before,
+#award-immersive-sky.header-icy.weather-light .award-immersive-rain-fx::before {
+    background-size: 160px 160px;
+    animation-duration: 1.35s;
+    opacity: 0.34;
+}
+
+#award-immersive-sky.header-rainy.weather-heavy .award-immersive-rain-fx::before,
+#award-immersive-sky.header-icy.weather-heavy .award-immersive-rain-fx::before {
+    background-size: 64px 64px;
+    animation-duration: 0.5s;
+    opacity: 0.78;
+}
+
+#award-immersive-sky.header-snowy.weather-light .award-immersive-snow-fx::before {
+    animation-duration: 16s;
+    opacity: 0.42;
+}
+
+#award-immersive-sky.header-snowy.weather-heavy .award-immersive-snow-fx::before {
+    animation-duration: 7s;
+    opacity: 0.82;
+}
+
+#award-immersive-sky.header-hail.weather-heavy .award-immersive-hail-fx::before {
+    background-size: 72px 72px;
+    animation-duration: 0.72s;
+}
+
+#app-screen.award-sky-active.header-cloudy .header-sky-clouds .cloud,
+#app-screen.award-sky-active.header-rainy .header-sky-clouds .cloud,
+#app-screen.award-sky-active.header-stormy .header-sky-clouds .cloud,
+#app-screen.award-sky-active.header-foggy .header-sky-clouds .cloud,
+#app-screen.award-sky-active.header-icy .header-sky-clouds .cloud,
+#app-screen.award-sky-active.header-hail .header-sky-clouds .cloud {
+    color: rgba(255, 255, 255, 0.38);
+    filter: brightness(0.92) saturate(0.7);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #app-screen.award-sky-active #award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-sky-gradient,
-    #app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-stormy) ~ #award-immersive-sky .award-immersive-sky-gradient {
+    #app-screen.award-sky-active #award-immersive-sky.header-stormy .award-immersive-sky-gradient,
+    #app-screen.award-sky-active #award-immersive-sky.header-night.header-stormy .award-immersive-sky-gradient,
+    #app-screen.award-sky-active #award-immersive-sky.header-hail .award-immersive-sky-gradient,
+    #app-screen.award-sky-active #award-immersive-sky.header-night.header-hail .award-immersive-sky-gradient {
         animation: none !important;
     }
 
-    #award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-rain-fx::before,
-    #award-header-atmosphere:has(header.header-rainy) ~ #award-immersive-sky .award-immersive-rain-fx::before {
+    #award-immersive-sky.header-stormy .award-immersive-rain-fx::before,
+    #award-immersive-sky.header-rainy .award-immersive-rain-fx::before,
+    #award-immersive-sky.header-icy .award-immersive-rain-fx::before {
         animation: none !important;
         opacity: 0.28;
     }
 
-    #award-header-atmosphere:has(header.header-stormy) ~ #award-immersive-sky .award-immersive-rain-fx::after {
+    #award-immersive-sky.header-stormy .award-immersive-rain-fx::after,
+    #award-immersive-sky.header-hail .award-immersive-hail-fx::after {
         animation: none !important;
         opacity: 0 !important;
     }
 
-    #award-header-atmosphere:has(header.header-snowy) ~ #award-immersive-sky .award-immersive-snow-fx::before {
+    #award-immersive-sky.header-foggy .award-immersive-fog-fx::before,
+    #award-immersive-sky.header-foggy .award-immersive-fog-fx::after {
+        animation: none !important;
+        opacity: 0.45;
+    }
+
+    #award-immersive-sky.header-hail .award-immersive-hail-fx::before {
+        animation: none !important;
+        opacity: 0.4;
+    }
+
+    #award-immersive-sky.header-snowy .award-immersive-snow-fx::before {
         animation: none !important;
         transform: translateY(18vh);
         opacity: 0.35;
     }
 
-    #award-header-atmosphere:has(header.header-cloudy) ~ #award-immersive-sky .award-immersive-cloudy-fx::before {
+    #award-immersive-sky.header-cloudy .award-immersive-cloudy-fx::before {
         animation: none !important;
         left: 12%;
         opacity: 0.12;
     }
 
     #app-screen.award-sky-active:not(.award-sky-leaving)
-        #award-header-atmosphere:has(header.header-night):not(:has(header.header-stormy)):not(:has(header.header-rainy))
-        ~ #award-immersive-sky
+        #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-icy):not(.header-hail)
         .award-immersive-moon {
         animation: awardImmersiveSkyFadeRm 280ms ease 40ms forwards;
         clip-path: unset;
     }
 
     #app-screen.award-sky-active.award-sky-leaving
-        #award-header-atmosphere:has(header.header-night):not(:has(header.header-stormy)):not(:has(header.header-rainy))
-        ~ #award-immersive-sky
+        #award-immersive-sky.header-night:not(.header-stormy):not(.header-rainy):not(.header-icy):not(.header-hail)
         .award-immersive-moon {
         animation: awardImmersiveRmFadeOut 240ms ease forwards !important;
     }
 
-    #app-screen.award-sky-active #award-header-atmosphere:has(header.header-night) ~ #award-immersive-sky .award-immersive-stars::before,
-    #app-screen.award-sky-active #award-header-atmosphere:has(header.header-night) ~ #award-immersive-sky .award-immersive-stars::after {
+    #app-screen.award-sky-active #award-immersive-sky.header-night .award-immersive-stars::before,
+    #app-screen.award-sky-active #award-immersive-sky.header-night .award-immersive-stars::after {
         animation: none !important;
     }
 
     #app-screen.award-sky-active:not(.award-sky-leaving)
-        #award-header-atmosphere:has(header.header-night)
-        ~ #award-immersive-sky
+        #award-immersive-sky.header-night
         .award-immersive-stars::before {
         opacity: 0.72;
     }
 
     #app-screen.award-sky-active:not(.award-sky-leaving)
-        #award-header-atmosphere:has(header.header-night)
-        ~ #award-immersive-sky
+        #award-immersive-sky.header-night
         .award-immersive-stars::after {
         opacity: 0.58;
     }

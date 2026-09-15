@@ -22,15 +22,51 @@ test('mobile chrome is injected between the award header and the expanding sky',
   );
 });
 
-test('award immersive night/weather sky styles survive a sibling between header and sky', () => {
+test('header weather is copied onto the expanding sky so awards can paint it directly', () => {
+  const home = read('features/home.js');
+  const utils = read('utils.js');
+  const theme = read('features/weatherTheme.js');
+  const chrome = home + utils + theme;
+
+  assert.match(chrome, /['"]award-immersive-sky['"]/);
+  assert.match(utils, /getElementById\(/);
+  assert.match(home, /syncAwardSkyWeather/);
+  assert.match(utils, /syncAwardSkyWeather/);
+  assert.match(
+    theme,
+    /header-night[\s\S]*header-stormy[\s\S]*header-rainy[\s\S]*header-snowy[\s\S]*header-cloudy[\s\S]*header-foggy[\s\S]*header-icy[\s\S]*header-hail/,
+  );
+});
+
+test('award immersive weather is styled from classes on the sky, not header siblings', () => {
   const css = read('styles/award_immersive_weather.css');
 
-  // Adjacent `+` stops matching once #m-teacher-header sits between the two ids,
-  // which leaves nav.css's default daytime gradient on the expanding sky.
-  assert.doesNotMatch(css, /\+\s*#award-immersive-sky/);
-  assert.match(css, /~\s*#award-immersive-sky/);
+  // Sibling `:has() ~` misses the sky whenever chrome sits between the two ids,
+  // which leaves nav.css's default sunny sky under a cloudy/rainy header.
+  assert.doesNotMatch(css, /#award-header-atmosphere:has\([^)]*\)\s*~\s*#award-immersive-sky/);
+  assert.match(css, /#award-immersive-sky\.header-cloudy[\s\S]*?#94a3b8/);
+  assert.match(css, /#award-immersive-sky\.header-rainy[\s\S]*?#4b5563/);
+  assert.match(css, /#award-immersive-sky\.header-stormy[\s\S]*?#374151/);
+  assert.match(css, /#award-immersive-sky\.header-snowy[\s\S]*?#cbd5e1/);
   assert.match(
     css,
-    /header\.header-night:not\(\.header-stormy\):not\(\.header-rainy\):not\(\.header-snowy\):not\(\.header-cloudy\)[\s\S]*?~\s*#award-immersive-sky[\s\S]*?#1e3a8a/,
+    /#award-immersive-sky\.header-night:not\(\.header-stormy\):not\(\.header-rainy\):not\(\.header-snowy\):not\(\.header-cloudy\):not\(\.header-foggy\):not\(\.header-icy\):not\(\.header-hail\)[\s\S]*?#1e3a8a/,
   );
+  assert.match(css, /#award-immersive-sky\.header-foggy[\s\S]*?#c5d4e0/);
+  assert.match(css, /#award-immersive-sky\.header-icy[\s\S]*?#4a7c8a/);
+  assert.match(css, /#award-immersive-sky\.header-hail[\s\S]*?#4338ca/);
+});
+
+test('immersed header chrome lets the weather sky continue through the bar', () => {
+  const css = read('styles/award_immersive_weather.css');
+  assert.match(
+    css,
+    /#app-screen\.award-sky-active:not\(\.award-sky-leaving\) #award-header-atmosphere > header[\s\S]*?background:\s*transparent\s*!important/,
+  );
+});
+
+test('award sky markup includes fog and hail overlay planes', () => {
+  const app = read('templates/app/index.js');
+  assert.match(app, /award-immersive-fog-fx/);
+  assert.match(app, /award-immersive-hail-fx/);
 });

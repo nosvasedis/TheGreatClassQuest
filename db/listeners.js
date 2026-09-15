@@ -694,6 +694,12 @@ export async function setupDataListeners(
                 schoolYearReady = true;
                 maybeFireInitialReady();
                 scheduleHomeRender();
+                if (isTabVisible("guilds-tab")) {
+                    import("../ui/tabs/guilds.js").then((m) => m.renderGuildsTab());
+                }
+                if (isTabVisible("shop-tab")) {
+                    import("../ui/core/shop.js").then((m) => m.initializeShopTab());
+                }
                 const secretaryScreen = document.getElementById("secretary-screen");
                 if (secretaryScreen && !secretaryScreen.classList.contains("hidden")) {
                     maybeRenderSecretaryPortal("admin");

@@ -28,7 +28,7 @@ import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { classUsesDictations, classUsesTests, createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
-import { withSchoolYear } from '../../utils/schoolYear.js';
+import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -188,6 +188,12 @@ function showShopPurchasePopup({
     return true;
 }
 
+function assertGameplaySeasonLive(actionLabel = 'The market') {
+    if (isGameplaySeasonLiveFromAppState(state)) return true;
+    showToast(`${actionLabel} stays sealed until the school year opens.`, 'error');
+    return false;
+}
+
 export async function handleGenerateShopStock() {
     if (isGeneratingShopStock) {
         showToast('Shop restock is already running. Please wait.', 'info');
@@ -195,6 +201,7 @@ export async function handleGenerateShopStock() {
     }
 
     if (!requireEliteAI({ feature: 'Shop item generator' })) return;
+    if (!assertGameplaySeasonLive('The market')) return;
 
     isGeneratingShopStock = true;
     // 1. Determine Context (League)
@@ -616,6 +623,7 @@ export async function handleBulkSaveTrial() {
 }
 
 export async function handleBuyItem(studentId, itemId) {
+    if (!assertGameplaySeasonLive('The market')) return;
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
@@ -990,6 +998,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
 
 export async function handleBuyFamiliarEgg(studentId, typeId) {
     if (!studentId) { showToast('Please select a student first.', 'error'); return; }
+    if (!assertGameplaySeasonLive('The market')) return;
 
     const { canUseFeature } = await import('../../utils/subscription.js');
     const { showUpgradePrompt } = await import('../../utils/upgradePrompt.js');

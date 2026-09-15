@@ -20,6 +20,7 @@ import {
     getScheduleEmptyStateMarkupClass,
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
+import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import {
     HEADER_WEATHER_CLASSES,
     headerClassesForTheme,
@@ -759,11 +760,12 @@ function getScheduleHtml(dateString, activeClassId) {
     const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates);
+    const schoolYearState = state.get('schoolYearState');
 
-    if (todaysClasses.length === 0) {
+    if (isSchoolYearAwaitingOpen(schoolYearState) || todaysClasses.length === 0) {
         const emptyState = resolveScheduleEmptyState({
             date: utils.parseFlexibleDate(dateString) || new Date(),
-            schoolYearState: state.get('schoolYearState'),
+            schoolYearState,
             allSchoolClasses,
             allScheduleOverrides,
             schoolHolidayRanges: state.get('schoolHolidayRanges') || [],

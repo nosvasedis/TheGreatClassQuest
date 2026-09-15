@@ -7,16 +7,11 @@ import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSp
 import { GLORY_EMOJI } from '../../constants.js';
 import * as state from '../../state.js';
 import { getGuildModifierChipPresentation, escapeHtmlAttr as _escapeChipAttr } from '../../features/wheelModifierUi.js';
-import { hasSchoolYearBegun } from '../../utils/schoolYear.js';
+import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 
-/** Guild scores stay frozen until the year starts (calendar) or classes have schedules. */
+/** Guild scores stay frozen while the school year is sealed. */
 function isGuildSeasonLive() {
-    const startsAt = state.getActiveSchoolYearStartDate?.()
-        || state.getActiveSchoolYearDefinition?.()?.startsAt
-        || null;
-    const activeClasses = (state.get('allSchoolClasses') || [])
-        .filter((classData) => classData?.status !== 'archived');
-    return hasSchoolYearBegun({ startsAt, activeClasses, now: new Date() });
+    return isGameplaySeasonLiveFromAppState(state);
 }
 
 // ─── Guild Power explainer overlay ───────────────────────────────────────────

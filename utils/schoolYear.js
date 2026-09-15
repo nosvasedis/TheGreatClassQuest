@@ -89,6 +89,37 @@ export function hasSchoolYearBegun({ startsAt = null, activeClasses = [], now = 
     return getScheduledActiveClasses(activeClasses).length > 0;
 }
 
+/**
+ * Shared live-season gate for Year, Guilds, Market, and other classroom surfaces.
+ * A sealed/awaiting-open year stays frozen even if leftover schedules or the
+ * calendar start date would otherwise make hasSchoolYearBegun() true.
+ */
+export function isGameplaySeasonLive({
+    schoolYearState = null,
+    startsAt = null,
+    activeClasses = [],
+    now = new Date()
+} = {}) {
+    if (isSchoolYearAwaitingOpen(schoolYearState)) return false;
+    return hasSchoolYearBegun({ startsAt, activeClasses, now });
+}
+
+/** Reads the shared season signal from the app state module (or a test double). */
+export function isGameplaySeasonLiveFromAppState(appState, now = new Date()) {
+    if (!appState || typeof appState.get !== 'function') return false;
+    const startsAt = appState.getActiveSchoolYearStartDate?.()
+        || appState.getActiveSchoolYearDefinition?.()?.startsAt
+        || null;
+    const activeClasses = (appState.get('allSchoolClasses') || [])
+        .filter((classData) => String(classData?.status || '').toLowerCase() !== 'archived');
+    return isGameplaySeasonLive({
+        schoolYearState: appState.get('schoolYearState'),
+        startsAt,
+        activeClasses,
+        now
+    });
+}
+
 /** Canonical DD-MM-YYYY for Firestore (same as class end dates). */
 export function normalizeCloseDateInput(value) {
     const canon = normalizeToDateString(value);

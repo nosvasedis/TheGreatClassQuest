@@ -22,7 +22,7 @@ import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
-import { updateShopStudentDisplay } from './shop.js';
+import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
 import {
     handleAddClass,
@@ -657,7 +657,10 @@ export function setupUIListeners() {
     const genShopBtn = document.getElementById('generate-shop-btn');
     if (genShopBtn) {
         genShopBtn.addEventListener('click', () => {
-            // Use dynamic import only for the action, not the UI function
+            if (!isShopSeasonLive()) {
+                showToast('The market stays sealed until the school year opens.', 'error');
+                return;
+            }
             import('../../db/actions.js').then(a => a.handleGenerateShopStock());
         });
     }
@@ -684,6 +687,10 @@ export function setupUIListeners() {
             }
             const buyBtn = e.target.closest('.shop-buy-btn');
             if (buyBtn) {
+                if (!isShopSeasonLive()) {
+                    showToast('The market stays sealed until the school year opens.', 'error');
+                    return;
+                }
                 buyBtn.disabled = true;
                 const studentId = document.getElementById('shop-student-select').value;
                 const itemId = buyBtn.dataset.id;

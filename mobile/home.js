@@ -9,6 +9,7 @@ import {
     getScheduleEmptyStateMarkupClass,
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
+import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 
 const SCHEDULE_GRADIENTS = [
     'from-red-100 to-red-200', 'from-orange-100 to-orange-200', 'from-amber-100 to-amber-200',
@@ -129,11 +130,12 @@ function getClassScheduleRows() {
     const todaysClasses = utils.getClassesOnDay(today, classes, overrides, classEndDates);
     const myIds = new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
     const activeId = state.get('globalSelectedClassId');
+    const schoolYearState = state.get('schoolYearState');
 
-    if (!todaysClasses.length) {
+    if (isSchoolYearAwaitingOpen(schoolYearState) || !todaysClasses.length) {
         const emptyState = resolveScheduleEmptyState({
             date: utils.parseFlexibleDate(today) || new Date(),
-            schoolYearState: state.get('schoolYearState'),
+            schoolYearState,
             allSchoolClasses: classes,
             allScheduleOverrides: overrides,
             schoolHolidayRanges: state.get('schoolHolidayRanges') || [],

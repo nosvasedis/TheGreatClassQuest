@@ -584,6 +584,37 @@ body.projector-mode .bounty-actions {
     display: none;
 }
 
+/* Sealed school year: compact locked market, matching Year's sealed camp height */
+#shop-tab.is-season-sealed .shop-tab-intro {
+    margin-bottom: 0.75rem;
+}
+#shop-tab.is-season-sealed .shop-tab-intro .floating-icon {
+    font-size: 2rem;
+}
+#shop-tab.is-season-sealed .shop-tab-intro #shop-title {
+    font-size: 2.25rem;
+    margin-top: 0.25rem;
+}
+#shop-tab.is-season-sealed .shop-tab-intro #shop-tagline {
+    display: none;
+}
+.shop-window-shell.is-season-sealed {
+    min-height: 325px;
+    overflow: hidden;
+}
+.shop-window-shell.is-season-sealed #shop-command-deck {
+    display: none;
+}
+.shop-window-shell.is-season-sealed #shop-catalog {
+    min-height: 325px;
+    padding: 1.25rem;
+    border-radius: var(--shop-window-r-inner);
+}
+.shop-window-shell.is-season-sealed #shop-curtain-icon {
+    font-size: 3.75rem;
+    margin-bottom: 1rem;
+}
+
 /* Animation when switching classes */
 @keyframes shop-window-refresh {
     0%   { opacity: 1; filter: brightness(1) saturate(1); }

@@ -1,10 +1,10 @@
 // /ui/core/shop.js
 import * as state from '../../state.js';
-import { showToast } from '../effects.js';
 import * as modals from '../modals.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
 import { getSeasonalShopPriceMeta } from '../../utils.js';
+import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 
 // --- SHOP UI HELPERS ---
 
@@ -34,6 +34,47 @@ function shopBuyBtnClass(isFamiliar, variant) {
 }
 
 const SHOPPER_PLACEHOLDER = 'Choose your adventurer…';
+
+const SHOP_CURTAIN_SLEEPING = {
+    icon: '🔮',
+    title: 'The Market Sleeps',
+    message: 'Pick a class from the header to lift the veil — then choose a shopper and browse the stalls.'
+};
+
+const SHOP_CURTAIN_SEALED = {
+    icon: '🔏',
+    title: 'The Market is Sealed',
+    message: 'The school year is sealed — rest your quills and see you in September!'
+};
+
+export function isShopSeasonLive() {
+    return isGameplaySeasonLiveFromAppState(state);
+}
+
+function setShopCurtainCopy({ icon, title, message }) {
+    const iconEl = document.getElementById('shop-curtain-icon');
+    const titleEl = document.getElementById('shop-curtain-title');
+    const messageEl = document.getElementById('shop-curtain-message');
+    if (iconEl) iconEl.textContent = icon;
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+}
+
+function applyShopSeasonLock(isLive) {
+    document.getElementById('shop-tab')?.classList.toggle('is-season-sealed', !isLive);
+    document.getElementById('shop-window')?.classList.toggle('is-season-sealed', !isLive);
+}
+
+function showShopCurtain(copy) {
+    setShopCurtainCopy(copy);
+    document.getElementById('shop-curtain')?.classList.remove('hidden');
+    const items = document.getElementById('shop-items-container');
+    if (items) {
+        items.innerHTML = '';
+        items.classList.add('hidden');
+    }
+    document.getElementById('shop-empty-state')?.classList.add('hidden');
+}
 
 let shopStudentDropdownListenersBound = false;
 
@@ -177,6 +218,18 @@ export function initializeShopTab() {
 }
 
 function initializeShopTabContent() {
+    const seasonLive = isShopSeasonLive();
+    applyShopSeasonLock(seasonLive);
+
+    if (!seasonLive) {
+        populateShopStudentPicker([]);
+        const shopStudentGold = document.getElementById('shop-student-gold');
+        if (shopStudentGold) shopStudentGold.innerText = '0 🪙';
+        document.getElementById('generate-shop-btn')?.classList.add('hidden');
+        showShopCurtain(SHOP_CURTAIN_SEALED);
+        return;
+    }
+
     // 1. Determine Context
     let league = state.get('globalSelectedLeague');
     let classId = state.get('globalSelectedClassId');
@@ -198,15 +251,12 @@ function initializeShopTabContent() {
         const shopStudentGold = document.getElementById('shop-student-gold');
         if (shopStudentGold) shopStudentGold.innerText = "0 🪙";
 
-        const shopCurtain = document.getElementById('shop-curtain');
-        if (shopCurtain) shopCurtain.classList.remove('hidden');
-        document.getElementById('shop-items-container').innerHTML = '';
-        document.getElementById('shop-items-container').classList.add('hidden');
-        document.getElementById('shop-empty-state').classList.add('hidden');
+        showShopCurtain(SHOP_CURTAIN_SLEEPING);
         return;
     }
 
     // Hide curtain now that a class is selected
+    setShopCurtainCopy(SHOP_CURTAIN_SLEEPING);
     const shopCurtain = document.getElementById('shop-curtain');
     if (shopCurtain) shopCurtain.classList.add('hidden');
 
@@ -235,6 +285,19 @@ function initializeShopTabContent() {
 }
 
 export function renderShopUI() {
+    if (!isShopSeasonLive()) {
+        applyShopSeasonLock(false);
+        showShopCurtain(SHOP_CURTAIN_SEALED);
+        return;
+    }
+    applyShopSeasonLock(true);
+    if (!state.get('globalSelectedClassId')) {
+        showShopCurtain(SHOP_CURTAIN_SLEEPING);
+        return;
+    }
+    setShopCurtainCopy(SHOP_CURTAIN_SLEEPING);
+    document.getElementById('shop-curtain')?.classList.add('hidden');
+
     const container = document.getElementById('shop-items-container');
     const emptyState = document.getElementById('shop-empty-state');
     const currentMonthKey = new Date().toISOString().substring(0, 7);

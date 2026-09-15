@@ -3,7 +3,7 @@
 export const shopTabHTML = `
             <div id="shop-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto px-3 sm:px-4">
-                    <div class="text-center mb-6">
+                    <div class="text-center mb-6 shop-tab-intro">
                         <i class="fas fa-store text-fuchsia-600 text-5xl floating-icon"></i>
                         <h2 id="shop-title" class="font-title text-5xl text-fuchsia-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Mystic Market</h2>
@@ -89,9 +89,9 @@ export const shopTabHTML = `
                                 <div class="absolute inset-0 shop-curtain-bg"></div>
                                 <div class="absolute inset-0 pointer-events-none shop-curtain-glow"></div>
                                 <div class="relative z-10 text-center px-6 max-w-md">
-                                    <div class="text-7xl sm:text-8xl mb-5 floating-icon shop-curtain-icon">🔮</div>
-                                    <h3 class="font-title text-3xl sm:text-4xl text-indigo-100 mb-2 tracking-tight">The Market Sleeps</h3>
-                                    <p class="text-indigo-300/85 text-base leading-relaxed">Pick a class from the header to lift the veil — then choose a shopper and browse the stalls.</p>
+                                    <div id="shop-curtain-icon" class="text-7xl sm:text-8xl mb-5 floating-icon shop-curtain-icon">🔮</div>
+                                    <h3 id="shop-curtain-title" class="font-title text-3xl sm:text-4xl text-indigo-100 mb-2 tracking-tight">The Market Sleeps</h3>
+                                    <p id="shop-curtain-message" class="text-indigo-300/85 text-base leading-relaxed">Pick a class from the header to lift the veil — then choose a shopper and browse the stalls.</p>
                                 </div>
                             </div>
 

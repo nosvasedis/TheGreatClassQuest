@@ -5,8 +5,7 @@ import { mainContentHTML } from './tabs/index.js';
 import { navHTML } from './nav.js';
 import { ceremonyHTML } from './screens/ceremony.js';
 import { grandGuildCeremonyHTML } from './screens/grandGuildCeremony.js';
-import { wallpaperHTML } from './screens/wallpaper.js';
-import { celestialMoonHTML } from './celestialMoon.js';
+import { wallpaperHTML, celestialMoonHTML } from './screens/wallpaper.js';
 
 export const awardImmersiveSkyHTML = `
         <div id="award-immersive-sky" class="award-immersive-sky" aria-hidden="true">

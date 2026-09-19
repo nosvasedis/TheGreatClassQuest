@@ -80,18 +80,17 @@ test('award sky markup includes fog and hail overlay planes', () => {
 });
 
 test('award and wallpaper moons share the cartoon Quest moon', () => {
-  const moon = read('templates/app/celestialMoon.js');
   const app = read('templates/app/index.js');
   const wallpaper = read('templates/app/screens/wallpaper.js');
   const awardCss = read('styles/award_immersive_weather.css');
   const wallCss = read('styles/wallpaper.css');
   const wall2 = read('styles/wallpaper2.css');
 
-  assert.match(moon, /moon\.jpg/);
-  assert.doesNotMatch(moon, /GSFC_20171208_Archive_e001861/);
+  assert.match(wallpaper, /moon\.jpg\?url/);
+  assert.match(wallpaper, /export function celestialMoonHTML/);
   assert.ok(fs.existsSync(path.join(root, 'assets/celestial/moon.jpg')));
-  assert.match(app, /celestialMoonHTML\(\)/);
-  assert.match(wallpaper, /celestialMoonHTML\(\)/);
+  assert.match(app, /celestialMoonHTML/);
+  assert.doesNotMatch(app, /celestialMoon\.js/);
   assert.doesNotMatch(wallpaper, /bg-slate-100/);
   assert.doesNotMatch(
     awardCss,

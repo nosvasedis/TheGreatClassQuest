@@ -1,6 +1,10 @@
 // templates/app/screens/wallpaper.js
 
-import { celestialMoonHTML } from '../celestialMoon.js';
+import moonUrl from '../../../assets/celestial/moon.jpg?url';
+
+export function celestialMoonHTML() {
+    return `<img class="gcq-moon__body" src="${moonUrl}" alt="" decoding="async" draggable="false" />`;
+}
 
 export const wallpaperHTML = `
     <div id="dynamic-wallpaper-screen"

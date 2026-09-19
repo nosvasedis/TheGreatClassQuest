@@ -420,11 +420,11 @@
 /* ---------- Moon (night only) ---------- */
 .award-immersive-moon {
     position: absolute;
-    top: clamp(4.25rem, 17vh, 9.5rem);
+    top: clamp(4.25rem, 16vh, 9rem);
     right: min(8vw, 2rem);
     z-index: 2;
-    width: clamp(76px, 15vw, 172px);
-    height: clamp(76px, 15vw, 172px);
+    width: clamp(88px, 17vw, 196px);
+    height: clamp(88px, 17vw, 196px);
     pointer-events: none;
     opacity: 0;
     visibility: hidden;

@@ -54,8 +54,8 @@
 }
 
 /*
- * Shared lunar disc (Award sky + Projector wallpaper).
- * NASA / GSFC nearside photograph, cropped to a sphere with a cool night glow.
+ * Shared cartoon moon (Award sky + Projector wallpaper).
+ * Cream highlight + cyan limb from the art; indigo night bloom + a floating cast shadow.
  */
 .gcq-moon {
     border-radius: 50%;
@@ -63,9 +63,11 @@
     isolation: isolate;
     background: transparent;
     box-shadow:
-        0 0 22px rgba(226, 232, 255, 0.34),
-        0 0 56px rgba(165, 180, 252, 0.22),
-        0 0 90px rgba(99, 102, 241, 0.12);
+        -10px 16px 26px rgba(15, 23, 42, 0.38),
+        0 0 16px rgba(255, 236, 179, 0.42),
+        0 0 36px rgba(186, 230, 253, 0.28),
+        0 0 64px rgba(129, 140, 248, 0.22),
+        0 0 96px rgba(49, 46, 129, 0.16);
 }
 
 .gcq-moon::after {
@@ -75,9 +77,7 @@
     z-index: 1;
     border-radius: 50%;
     pointer-events: none;
-    background:
-        radial-gradient(circle at 32% 28%, rgba(255, 248, 235, 0.16) 0%, transparent 36%),
-        radial-gradient(circle at 78% 74%, rgba(8, 10, 22, 0.22) 0%, transparent 48%);
+    background: radial-gradient(circle at 42% 32%, rgba(255, 252, 235, 0.14) 0%, transparent 36%);
 }
 
 .gcq-moon__body {
@@ -86,15 +86,15 @@
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
-    transform: scale(1.12);
+    transform: scale(1.16);
     transform-origin: 50% 50%;
 }
 
 #wall-moon {
     position: absolute;
-    width: clamp(7.5rem, 16vw, 13rem);
-    height: clamp(7.5rem, 16vw, 13rem);
-    right: 10%;
+    width: clamp(8.5rem, 18vw, 15rem);
+    height: clamp(8.5rem, 18vw, 15rem);
+    right: 8%;
     z-index: 2;
     pointer-events: none;
 }
@@ -502,8 +502,8 @@
 }
 
 @keyframes moonBloom {
-    0% { transform: scale(0.96); }
-    100% { transform: scale(1); }
+    0% { transform: scale(0.97); }
+    100% { transform: scale(1.015); }
 }
 
 #wall-sun {

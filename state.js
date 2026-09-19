@@ -44,6 +44,9 @@ function getDefaultState() {
             messageView: "inbox",
             gradesPage: 0,
             gradesSearch: "",
+            gradesBoardSubTab: "scroll",
+            selectedClassId: "",
+            classPulseSubTab: "overview",
             selectedGradingClassId: "",
         },
         parentView: {

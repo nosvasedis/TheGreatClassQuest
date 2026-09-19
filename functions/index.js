@@ -2024,6 +2024,96 @@ exports.allocateReturningStudents = callable(async (request) => {
   return { ok: true, placedCount: studentIds.length };
 });
 
+exports.assignClassTeacher = callable(async (request) => {
+  const caller = await requireYearOperator(request);
+  await requireFeatureEnabled('secretaryAccess');
+  const classId = String(request.data?.classId || '').trim();
+  const teacherUid = String(request.data?.teacherUid || '').trim();
+  const teacherName = String(request.data?.teacherName || '').trim();
+  if (!classId || !teacherUid) {
+    throw new HttpsError('invalid-argument', 'Choose a class and a teacher.');
+  }
+
+  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get();
+  if (!classSnap.exists) throw new HttpsError('not-found', 'That class was not found.');
+  const classData = classSnap.data() || {};
+  if (classData.status === 'archived') {
+    throw new HttpsError('failed-precondition', 'That class is archived.');
+  }
+
+  const previousOwnerUid = classData.createdBy?.uid || null;
+  const profileSnap = await db.collection(PROFILE_COLLECTION).doc(teacherUid).get();
+  const owner = {
+    uid: teacherUid,
+    name: teacherName || profileSnap.data()?.displayName || classData.createdBy?.name || 'Teacher'
+  };
+
+  if (previousOwnerUid === owner.uid && classData.createdBy?.name === owner.name) {
+    return { ok: true, alreadyAssigned: true, movedStudents: 0 };
+  }
+
+  const yearKey = classData.schoolYearKey || await getActiveSchoolYearKey();
+  const writes = [{
+    ref: classSnap.ref,
+    payload: {
+      createdBy: owner,
+      updatedAt: FieldValue.serverTimestamp()
+    }
+  }];
+
+  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+    .where('classId', '==', classId)
+    .get();
+  const studentMeta = [];
+  for (const studentDoc of studentsSnap.docs) {
+    const studentData = studentDoc.data() || {};
+    studentMeta.push({
+      studentId: studentDoc.id,
+      previousOwnerUid: studentData.createdBy?.uid || previousOwnerUid
+    });
+    writes.push({
+      ref: studentDoc.ref,
+      payload: {
+        createdBy: owner,
+        updatedAt: FieldValue.serverTimestamp()
+      }
+    });
+    writes.push({
+      ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentDoc.id}`),
+      payload: {
+        createdBy: owner,
+        updatedAt: FieldValue.serverTimestamp()
+      }
+    });
+    writes.push({
+      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentDoc.id}_${yearKey}`),
+      payload: withYear({
+        studentId: studentDoc.id,
+        classId,
+        className: classData.name || '',
+        teacher: owner,
+        updatedAt: FieldValue.serverTimestamp()
+      }, yearKey)
+    });
+  }
+
+  await commitBatchChunks(writes);
+  for (const { studentId, previousOwnerUid: previousUid } of studentMeta) {
+    const link = await getParentLink(studentId);
+    await syncStudentThreadParticipants(studentId, {
+      addUid: owner.uid,
+      removeUid: previousUid && previousUid !== owner.uid ? previousUid : null,
+      keepUids: link?.parentUid ? [link.parentUid] : []
+    });
+    await upsertParentSnapshot(studentId, {
+      classId,
+      className: classData.name || ''
+    });
+  }
+
+  return { ok: true, movedStudents: studentMeta.length, teacherName: owner.name };
+});
+
 exports.markStudentLeftSchool = callable(async (request) => {
   await requireYearOperator(request);
   const studentId = String(request.data?.studentId || '').trim();

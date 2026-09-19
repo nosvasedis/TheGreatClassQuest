@@ -464,6 +464,14 @@ function applyLogoPickerChoice(logo) {
         if (preview) preview.textContent = logo;
         return;
     }
+    if (logoPickerTarget === 'secretary') {
+        const input = document.getElementById('class-desk-logo');
+        const button = document.getElementById('class-desk-logo-btn');
+        if (input) input.value = logo;
+        if (button) button.innerText = logo;
+        document.dispatchEvent(new CustomEvent('class-desk-logo-picked', { detail: { logo } }));
+        return;
+    }
     const input = document.getElementById('class-logo');
     const button = document.getElementById('logo-picker-btn');
     if (input) input.value = logo;
@@ -473,6 +481,7 @@ function applyLogoPickerChoice(logo) {
 function getLogoPickerCurrentLogo() {
     if (logoPickerTarget === 'edit') return document.getElementById('edit-class-logo')?.value || '📚';
     if (logoPickerTarget === 'setup') return document.getElementById('setup-class-logo')?.value || '📚';
+    if (logoPickerTarget === 'secretary') return document.getElementById('class-desk-logo')?.value || '📚';
     return document.getElementById('class-logo')?.value || '📚';
 }
 

@@ -76,6 +76,18 @@ export function getThreadStudentLabel(thread, studentMap, classMap) {
     };
 }
 
+export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export function formatClassSchedule(classData) {
+    const days = (classData?.scheduleDays || [])
+        .map((day) => WEEKDAY_LABELS[Number(day)] || '')
+        .filter(Boolean)
+        .join(', ');
+    const time = [classData?.timeStart, classData?.timeEnd].filter(Boolean).join('–');
+    if (days && time) return `${days} • ${time}`;
+    return days || time || 'Schedule not set';
+}
+
 export function avatarVariant(name = '') {
     const colors = ['sky', 'violet', 'emerald', 'rose', 'amber', 'indigo'];
     return colors[(name.charCodeAt(0) || 0) % colors.length];

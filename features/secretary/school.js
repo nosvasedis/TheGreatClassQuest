@@ -3,6 +3,7 @@ import { escapeHtml, renderTabHero, renderSubTabBar, initials } from '../roles/s
 import {
     filteredClasses,
     filteredStudents,
+    formatClassSchedule,
     getClassMap,
     getStudentScoreMap,
     getLatestScoresByStudent,
@@ -10,37 +11,55 @@ import {
 } from './helpers.js';
 import { getAssessmentValueLabel } from '../assessmentConfig.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getNextLessonDate, parseDDMMYYYY } from '../../utils.js';
+import { getQuestLeagueDefinition } from '../../constants.js';
+import { renderClassCockpit } from './classCockpit.js';
+
+function formatLessonLabel(dateKey) {
+    if (!dateKey) return 'No upcoming lesson';
+    const parsed = parseDDMMYYYY(dateKey);
+    if (!parsed || Number.isNaN(parsed.getTime())) return dateKey;
+    return parsed.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function renderLeagueChip(leagueName) {
+    const definition = getQuestLeagueDefinition(leagueName);
+    if (!definition) return `<span class="placement-league-chip placement-league-chip--unknown">${escapeHtml(leagueName || 'League')}</span>`;
+    return `<span class="placement-league-chip league-picker-option--${escapeHtml(definition.pickerTheme)}">${escapeHtml(definition.name)}</span>`;
+}
 
 function renderClassesList() {
     const classes = filteredClasses().slice().sort((a, b) => a.name.localeCompare(b.name));
     const students = state.get('allStudents') || [];
-    const writtenScores = state.get('allWrittenScores') || [];
     const filter = state.get('secretaryView')?.classFilter || '';
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const overrides = state.get('allScheduleOverrides') || [];
+    const holidays = state.get('schoolHolidayRanges') || [];
 
     return `
         <div class="role-filter-bar">
-            <input type="search" id="secretary-class-filter" value="${escapeHtml(filter)}" placeholder="Search classes by name, level, or teacher..." autocomplete="off">
+            <input type="search" id="secretary-class-filter" value="${escapeHtml(filter)}" placeholder="Search classes by name, league, or teacher..." autocomplete="off">
         </div>
         ${classes.length
-            ? classes.map((item) => {
-                const classStudents = students.filter((s) => s.classId === item.id);
-                const classScores = writtenScores.filter((s) => s.classId === item.id);
-                const schedule = (item.scheduleDays || [])
-                    .map((day) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day])
-                    .join(', ');
-                return `
-                    <div class="role-list-row" style="cursor:default">
-                        <div class="role-list-row__avatar role-list-row__avatar--amber">${escapeHtml(item.logo || '📚')}</div>
-                        <div class="role-list-row__body">
-                            <div class="role-list-row__title">${escapeHtml(item.name)}</div>
-                            <div class="role-list-row__meta">${escapeHtml(item.questLevel || 'Level')} • ${escapeHtml(item.createdBy?.name || 'Teacher')} • ${classStudents.length} ${classStudents.length === 1 ? 'student' : 'students'} • ${classScores.length} ${classScores.length === 1 ? 'grade' : 'grades'}</div>
-                            <div class="role-list-row__meta">${escapeHtml(schedule || 'Schedule not set')}${item.timeStart ? ` • ${escapeHtml(item.timeStart)}` : ''}</div>
-                        </div>
-                        <div class="role-list-row__actions">
-                            <button type="button" class="role-chip-btn" data-secretary-edit-class="${item.id}">Edit class</button>
-                        </div>
-                    </div>`;
-            }).join('')
+            ? `<div class="class-overview-grid">
+                ${classes.map((item) => {
+                    const classStudents = students.filter((s) => s.classId === item.id && s.enrollmentStatus !== 'inactive');
+                    const nextLesson = getNextLessonDate(item.id, allSchoolClasses, overrides, holidays, {});
+                    return `
+                        <button type="button" class="class-overview-card" data-secretary-open-class="${item.id}">
+                            <span class="class-overview-card__logo" aria-hidden="true">${escapeHtml(item.logo || '📚')}</span>
+                            <span class="class-overview-card__copy">
+                                <strong>${escapeHtml(item.name)}</strong>
+                                <span class="class-overview-card__meta">
+                                    ${renderLeagueChip(item.questLevel)}
+                                    <span>${escapeHtml(item.createdBy?.name || 'Teacher')}</span>
+                                </span>
+                                <span class="class-overview-card__meta">${classStudents.length} ${classStudents.length === 1 ? 'hero' : 'heroes'} · ${escapeHtml(formatLessonLabel(nextLesson))}</span>
+                                <span class="class-overview-card__meta">${escapeHtml(formatClassSchedule(item))}</span>
+                            </span>
+                        </button>`;
+                }).join('')}
+              </div>`
             : '<div class="role-empty-state">No classes match your search.</div>'
         }
     `;
@@ -88,34 +107,44 @@ function renderStudentsList() {
 }
 
 export function renderSecretarySchool() {
-    const subTab = state.get('secretaryView')?.schoolSubTab || 'classes';
+    const view = state.get('secretaryView') || {};
+    const subTab = view.schoolSubTab || 'classes';
     const classes = filteredClasses();
     const students = filteredStudents();
     const hasFullConsole = canUseFeature('secretaryAccess');
+    const selectedClass = subTab === 'classes'
+        ? (state.get('allSchoolClasses') || []).find((item) => item.id === view.selectedClassId && item.status !== 'archived')
+        : null;
 
     return `
         ${renderTabHero({
             icon: 'fa-school',
             iconColor: 'text-green-600',
             title: 'School',
-            subtitle: hasFullConsole
-                ? 'Find any class or student, then open the tools you need.'
-                : 'A clear, read-only view of every class and student in your school.'
+            subtitle: selectedClass
+                ? `A live look at ${selectedClass.name} — every classroom ritual, read-only.`
+                : (hasFullConsole
+                    ? 'Open a class to see how the Quest is going. Create and edit classes from Admin → School Year.'
+                    : 'A clear, read-only view of every class and student in your school.')
         })}
-        ${renderSubTabBar([
+        ${selectedClass ? '' : renderSubTabBar([
             { key: 'classes', label: 'Classes', icon: 'fa-chalkboard', tone: 'sky' },
             { key: 'students', label: 'Students', icon: 'fa-users', tone: 'emerald' }
         ], subTab, 'data-secretary-school-subtab')}
         <article class="role-card">
-            <div class="role-card__header">
-                <div>
-                    <p class="role-card__eyebrow">${subTab === 'classes' ? 'Class list' : 'Student list'}</p>
-                    <h3 class="role-card__title">${subTab === 'classes' ? 'All classes' : 'All students'}</h3>
-                </div>
-                <div class="role-card__badge">${subTab === 'classes' ? classes.length : students.length} total</div>
-            </div>
-            <div data-secretary-school-panel="classes" class="${subTab === 'classes' ? '' : 'hidden'}">${renderClassesList()}</div>
-            <div data-secretary-school-panel="students" class="${subTab === 'students' ? '' : 'hidden'}">${renderStudentsList()}</div>
+            ${selectedClass
+                ? renderClassCockpit(selectedClass)
+                : `
+                    <div class="role-card__header">
+                        <div>
+                            <p class="role-card__eyebrow">${subTab === 'classes' ? 'Class overview' : 'Student list'}</p>
+                            <h3 class="role-card__title">${subTab === 'classes' ? 'All classes' : 'All students'}</h3>
+                        </div>
+                        <div class="role-card__badge">${subTab === 'classes' ? classes.length : students.length} total</div>
+                    </div>
+                    <div data-secretary-school-panel="classes" class="${subTab === 'classes' ? '' : 'hidden'}">${renderClassesList()}</div>
+                    <div data-secretary-school-panel="students" class="${subTab === 'students' ? '' : 'hidden'}">${renderStudentsList()}</div>
+                `}
         </article>
     `;
 }

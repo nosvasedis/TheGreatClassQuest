@@ -221,6 +221,7 @@ const SECRETARY_RUNTIME_FUNCTION_NAMES = [
   'ensureOpenSchoolYears',
   'backfillRoleAccessData',
   'backfillSchoolYearData',
+  'assignClassTeacher',
 ];
 
 // Core background effects used by the Pro/Elite Quest Calendar. Keep this

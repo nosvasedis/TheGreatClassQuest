@@ -97,3 +97,7 @@ export function purgeStudent(payload = {}) {
 export function transferStudentToClass(payload = {}) {
     return callAdmin('transferStudentToClass', payload);
 }
+
+export function assignClassTeacher(payload = {}) {
+    return callAdmin('assignClassTeacher', payload);
+}

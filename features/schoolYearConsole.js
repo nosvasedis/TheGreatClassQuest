@@ -3,17 +3,19 @@ import { db, doc, setDoc, serverTimestamp } from '../firebase.js';
 import { showToast } from '../ui/effects.js';
 import {
     previewYearRollover,
-    ensureOpenSchoolYears,
-    backfillSchoolYearData,
     closeSchoolYear,
-    openSchoolYear,
-    finalizeRollover
+    openSchoolYear
 } from '../utils/adminRuntime.js';
 import {
     openPlacementWizard,
     renderPlacementLauncher,
     refreshPlacementWizardIfOpen
 } from './placementWizard.js';
+import {
+    openClassWizard,
+    renderClassLauncher,
+    refreshClassWizardIfOpen
+} from './classWizard.js';
 import {
     buildRolloverConfirmationText,
     closeDateToPickerValue,
@@ -27,8 +29,6 @@ import {
     normalizeSchoolYearState,
     PUBLIC_DATA_PATH
 } from '../utils/schoolYear.js';
-
-let lastYearVerification = null;
 
 function escapeHtml(value) {
     return String(value || '')
@@ -197,8 +197,7 @@ function renderPreparingMode({
                     <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
                     <p class="school-year-status-pill school-year-status-pill--calm" role="status">Not started yet</p>
                     <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
-                        Teachers have not set up scheduled classes for this year yet.
-                        End-of-year tools stay hidden until a class has lesson days — or until ${escapeHtml(startsAtLabel)}.
+                        Create this year’s classes for each teacher here. End-of-year tools stay hidden until a class has lesson days — or until ${escapeHtml(startsAtLabel)}.
                     </p>
                 </div>
                 <div class="school-year-status-grid">
@@ -214,6 +213,8 @@ function renderPreparingMode({
                     </div>
                 </div>
             </section>
+
+            ${renderClassLauncher()}
 
             ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
         </div>
@@ -261,6 +262,8 @@ function renderBetweenYearsMode({
                     </div>
                 </div>
             </section>
+
+            ${renderClassLauncher()}
 
             <section class="secretary-card school-year-open-section">
                 <div class="secretary-card__header">
@@ -325,46 +328,31 @@ function renderUnderwayMode({
                 </div>
             </section>
 
+            ${renderClassLauncher()}
+
             ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
 
             <section class="secretary-card school-year-end-section">
                 <div class="secretary-card__header">
                     <div>
                         <p class="secretary-card__eyebrow">End of year</p>
-                        <h3 class="secretary-card__title">Finish when you are ready</h3>
+                        <h3 class="secretary-card__title">Finish the school year</h3>
                     </div>
                     <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
                 </div>
                 <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                    This stores the finished year, keeps gold and guilds, resets live progress, and moves returning students into placement for September.
+                    Check that everything is ready, then type the confirmation. This stores the finished year, keeps gold and guilds, resets live progress, and moves returning students into placement.
                 </p>
-                <div class="school-year-action-stack school-year-action-stack--simple">
-                    <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
-                        <i class="fas fa-list-check mr-2"></i>Check readiness
-                    </button>
-                    <button type="button" id="school-year-finalize-btn" class="secretary-shell__secondary-btn">
-                        <i class="fas fa-flag-checkered mr-2"></i>Finish September setup
-                    </button>
-                </div>
-                <div id="school-year-preview-output" class="school-year-output mt-4"></div>
+                <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
+                    <i class="fas fa-list-check mr-2"></i>Check readiness
+                </button>
                 <label class="secretary-field mt-4">
                     <span>Type exactly: ${escapeHtml(confirmationText)}</span>
-                    <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}">
+                    <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}" ${closeReady ? '' : 'disabled'}>
                 </label>
                 <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn mt-4" ${closeReady ? '' : 'disabled'}>
                     <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : `Available on ${escapeHtml(closeDateSavedLabel)}`}
                 </button>
-                <details class="school-year-repair mt-4">
-                    <summary>Repair data (rarely needed)</summary>
-                    <div class="school-year-action-stack mt-3">
-                        <button type="button" id="school-year-verify-records-btn" class="secretary-shell__secondary-btn">
-                            <i class="fas fa-shield-check mr-2"></i>Check year setup
-                        </button>
-                        <button type="button" id="school-year-backfill-btn" class="secretary-shell__secondary-btn">
-                            <i class="fas fa-wand-magic-sparkles mr-2"></i>Fix missing year details
-                        </button>
-                    </div>
-                </details>
             </section>
 
             ${renderPlacementLauncher({ pendingCount: pendingStudents.length })}
@@ -466,7 +454,6 @@ async function saveSchoolYearCloseDate(button) {
 
 async function runSchoolYearPreview(button) {
     const { schoolYearState } = getSchoolYearSummary();
-    const output = document.getElementById('school-year-preview-output');
     try {
         setBusyState(button, true, 'Checking...');
         const loadingHtml = `
@@ -474,59 +461,19 @@ async function runSchoolYearPreview(button) {
                 <i class="fas fa-spinner fa-spin mr-2"></i> Checking ${escapeHtml(formatSchoolYearLabel(schoolYearState.activeYearKey))}...
             </div>
         `;
-        if (output) output.innerHTML = loadingHtml;
         showPreviewModal(loadingHtml);
         const result = await previewYearRollover({
             closingYearKey: schoolYearState.activeYearKey,
             nextYearKey: schoolYearState.nextYearKey
         });
         const resultHtml = renderPreviewResult(result);
-        if (output) output.innerHTML = resultHtml;
         showPreviewModal(resultHtml);
         showToast(result?.safeToClose ? 'Everything is ready to finish the year.' : 'The check found a few things to review.', result?.safeToClose ? 'success' : 'info');
     } catch (error) {
         console.error('Year close preview failed:', error);
         const errorHtml = `<div class="school-year-alert school-year-alert--danger">${escapeHtml(error?.message || 'Could not run preview.')}</div>`;
-        if (output) output.innerHTML = errorHtml;
         showPreviewModal(errorHtml);
         showToast(error?.message || 'Could not run year-close preview.', 'error');
-    } finally {
-        setBusyState(button, false);
-    }
-}
-
-async function runVerifyYearRecords(button) {
-    try {
-        setBusyState(button, true, 'Verifying...');
-        lastYearVerification = await ensureOpenSchoolYears();
-        showToast(
-            lastYearVerification?.writes
-                ? `${lastYearVerification.writes} missing school-year detail(s) safely added.`
-                : 'The current and next school years are ready.',
-            'success'
-        );
-        onSchoolYearConsoleRerender?.();
-    } catch (error) {
-        console.error('School-year record verification failed:', error);
-        showToast(error?.message || 'Could not verify the school-year records.', 'error');
-    } finally {
-        setBusyState(button, false);
-    }
-}
-
-async function runSchoolYearBackfill(button) {
-    const { schoolYearState } = getSchoolYearSummary();
-    try {
-        setBusyState(button, true, 'Updating year details...');
-        const result = await backfillSchoolYearData({
-            closingYearKey: schoolYearState.activeYearKey,
-            nextYearKey: schoolYearState.nextYearKey
-        });
-        showToast(`School-year details updated: ${result?.writeCount || 0} item(s) fixed.`, 'success');
-        onSchoolYearConsoleRerender?.();
-    } catch (error) {
-        console.error('School year backfill failed:', error);
-        showToast(error?.message || 'Could not repair school-year data.', 'error');
     } finally {
         setBusyState(button, false);
     }
@@ -579,48 +526,20 @@ async function runSchoolYearOpen(button) {
     }
 }
 
-async function runSchoolYearFinalize(button) {
-    const { schoolYearState } = getSchoolYearSummary();
-    try {
-        setBusyState(button, true, 'Finishing September setup...');
-        const result = await finalizeRollover({
-            schoolYearKey: schoolYearState.activeYearKey
-        });
-        showToast(`September setup complete: ${result?.activeStudents || 0} active students checked.`, 'success');
-        onSchoolYearConsoleRerender?.();
-    } catch (error) {
-        console.error('Finalize rollover failed:', error);
-        showToast(error?.message || 'Could not finish the September setup.', 'error');
-    } finally {
-        setBusyState(button, false);
-    }
-}
-
 let onSchoolYearConsoleRerender = null;
 
 export function wireSchoolYearConsoleHandlers({ onRerender }) {
     onSchoolYearConsoleRerender = () => {
         onRerender?.();
         refreshPlacementWizardIfOpen();
+        refreshClassWizardIfOpen();
     };
 }
 
 export function handleSchoolYearConsoleClick(event) {
-    const verifyRecordsBtn = event.target.closest('#school-year-verify-records-btn');
-    if (verifyRecordsBtn) {
-        runVerifyYearRecords(verifyRecordsBtn);
-        return true;
-    }
-
     const previewBtn = event.target.closest('#school-year-preview-btn');
     if (previewBtn) {
         runSchoolYearPreview(previewBtn);
-        return true;
-    }
-
-    const backfillBtn = event.target.closest('#school-year-backfill-btn');
-    if (backfillBtn) {
-        runSchoolYearBackfill(backfillBtn);
         return true;
     }
 
@@ -636,15 +555,15 @@ export function handleSchoolYearConsoleClick(event) {
         return true;
     }
 
-    const finalizeBtn = event.target.closest('#school-year-finalize-btn');
-    if (finalizeBtn) {
-        runSchoolYearFinalize(finalizeBtn);
-        return true;
-    }
-
     const saveCloseDateBtn = event.target.closest('#school-year-save-close-date-btn');
     if (saveCloseDateBtn) {
         saveSchoolYearCloseDate(saveCloseDateBtn);
+        return true;
+    }
+
+    const classDeskBtn = event.target.closest('#school-year-class-desk-open-btn');
+    if (classDeskBtn) {
+        openClassWizard({ onRerender: () => onSchoolYearConsoleRerender?.() });
         return true;
     }
 

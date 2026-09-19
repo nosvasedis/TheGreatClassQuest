@@ -16,7 +16,7 @@ const ADMIN_AREAS = [
     {
         key: 'year',
         label: 'School Year',
-        description: 'Dates and September setup',
+        description: 'Classes, student placement, and the school year',
         icon: 'fa-calendar-alt',
         accent: 'sky'
     },

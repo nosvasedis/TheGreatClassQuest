@@ -4,7 +4,7 @@ import { showToast } from '../ui/effects.js';
 import { getGuildBadgeHtml, getGuildHouseDisplay } from './guilds.js';
 import { escapeHtml, initials, setBusyState } from './roles/shared.js';
 import { avatarVariant } from './secretary/helpers.js';
-import { allocateReturningStudents, markStudentLeftSchool } from '../utils/adminRuntime.js';
+import { allocateReturningStudents, markStudentLeftSchool, finalizeRollover } from '../utils/adminRuntime.js';
 import {
     PLACEMENT_GROUP_MODES,
     buildRosterCounts,
@@ -154,13 +154,12 @@ function renderSuggestedClassChip(student) {
 export function renderPlacementLauncher({ pendingCount } = {}) {
     const waiting = Number(pendingCount || 0);
     if (!waiting) return '';
-    const heroLabel = waiting === 1 ? '1 returning hero is waiting' : `${waiting} returning heroes are waiting`;
     return `
         <section class="secretary-card placement-launcher">
             <div class="placement-launcher__glow" aria-hidden="true"></div>
             <div class="secretary-card__header">
                 <div>
-                    <p class="secretary-card__eyebrow">September placement</p>
+                    <p class="secretary-card__eyebrow">Student placement</p>
                     <h3 class="secretary-card__title">Place returning students</h3>
                 </div>
                 <div class="secretary-card__badge">${waiting} waiting</div>
@@ -169,10 +168,6 @@ export function renderPlacementLauncher({ pendingCount } = {}) {
                 Seat last year’s heroes into this year’s classes. Group by previous class, league, or A–Z —
                 then follow the suggestions.
             </p>
-            <div class="placement-launcher__facts">
-                <span><i class="fas fa-users" aria-hidden="true"></i> ${escapeHtml(heroLabel)}</span>
-                <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> Suggested by last year’s league</span>
-            </div>
             <button type="button" id="school-year-placement-open-btn" class="secretary-shell__primary-btn placement-launcher__cta">
                 <i class="fas fa-hat-wizard mr-2" aria-hidden="true"></i>Start placement
             </button>
@@ -193,7 +188,7 @@ function ensureWizard() {
         <div class="placement-wizard__panel placement-wizard--sheet pop-in">
             <header class="placement-wizard__header">
                 <div class="placement-wizard__heading">
-                    <p class="placement-wizard__eyebrow">September placement</p>
+                    <p class="placement-wizard__eyebrow">Student placement</p>
                     <h3 id="placement-wizard-title" class="placement-wizard__title">Gather the heroes</h3>
                     <p id="placement-wizard-subtitle" class="placement-wizard__subtitle"></p>
                 </div>
@@ -228,7 +223,7 @@ function stepTitle() {
 function stepSubtitle() {
     const waiting = pendingStudents().length;
     if (wizardState.step === STEPS.DONE) {
-        return 'September placement is complete. You can close this guide.';
+        return 'Student placement is complete. You can close this guide.';
     }
     if (wizardState.step === STEPS.CLASS) {
         const count = selectedStudents().length;
@@ -243,8 +238,8 @@ function stepSubtitle() {
             : 'Uncheck anyone who should wait, then seat the rest.';
     }
     return waiting === 1
-        ? 'One returning hero still needs a September class.'
-        : `${waiting} returning heroes still need a September class.`;
+        ? 'One returning hero still needs a class.'
+        : `${waiting} returning heroes still need a class.`;
 }
 
 function renderSteps() {
@@ -344,7 +339,7 @@ function renderGatherBody() {
             <div class="placement-empty">
                 <i class="fas fa-binoculars" aria-hidden="true"></i>
                 <h4>${hasAny ? 'No matches for that search' : 'Nobody is waiting'}</h4>
-                <p>${hasAny ? 'Try another name, class, or league.' : 'Every returning hero already has a September class.'}</p>
+                <p>${hasAny ? 'Try another name, class, or league.' : 'Every returning hero already has a class this year.'}</p>
             </div>
         `;
     }
@@ -414,8 +409,11 @@ function renderClassBody() {
         return `
             <div class="placement-empty">
                 <i class="fas fa-chalkboard" aria-hidden="true"></i>
-                <h4>No September classes yet</h4>
-                <p>Teachers need to create this year’s classes before you can seat returning heroes.</p>
+                <h4>No classes yet this year</h4>
+                <p>Create this year’s classes on the class desk, then come back to seat returning heroes.</p>
+                <button type="button" class="secretary-shell__primary-btn mt-4" data-placement-open-class-desk>
+                    <i class="fas fa-chalkboard-user mr-2" aria-hidden="true"></i>Open class desk
+                </button>
             </div>
         `;
     }
@@ -502,7 +500,7 @@ function renderDoneBody() {
         <div class="placement-success">
             <div class="placement-success__burst" aria-hidden="true">🎉</div>
             <h4>All returning heroes are seated</h4>
-            <p>September placement is finished for now. You can still reopen this guide if someone is waiting later.</p>
+            <p>Student placement is finished for now. You can still reopen this guide if someone is waiting later.</p>
         </div>
     `;
 }
@@ -651,6 +649,14 @@ async function handleWizardClick(event) {
         return;
     }
 
+    const classDeskBtn = event.target.closest('[data-placement-open-class-desk]');
+    if (classDeskBtn) {
+        closePlacementWizard();
+        const { openClassWizard } = await import('./classWizard.js');
+        openClassWizard({ onRerender: onPlacementRerender });
+        return;
+    }
+
     const cancelLeft = event.target.closest('[data-placement-cancel-left]');
     if (cancelLeft) {
         wizardState.confirmLeftStudentId = null;
@@ -730,7 +736,7 @@ async function handleWizardClick(event) {
         }
         if (wizardState.step === STEPS.CLASS) {
             if (!wizardState.selectedClassId) {
-                showToast('Choose a September class.', 'info');
+                showToast('Choose a class.', 'info');
                 return;
             }
             wizardState.step = STEPS.REVIEW;
@@ -780,11 +786,20 @@ function handleWizardKeydown(event) {
     }
 }
 
+async function quietlyFinalizePlacement() {
+    try {
+        await finalizeRollover({ schoolYearKey: state.getActiveSchoolYearKey() });
+        showToast('Guilds are synced for this year.', 'success');
+    } catch (error) {
+        console.warn('Could not sync guilds after placement:', error);
+    }
+}
+
 async function runSeat(button) {
     const classId = wizardState.selectedClassId;
     const studentIds = [...wizardState.selectedStudentIds];
     if (!classId || !studentIds.length) {
-        showToast('Choose a September class and at least one student.', 'info');
+        showToast('Choose a class and at least one student.', 'info');
         return;
     }
     try {
@@ -797,11 +812,12 @@ async function runSeat(button) {
                 ? { ...student, enrollmentStatus: 'active', classId }
                 : student
         )));
-        showToast(placed === 1 ? '1 hero seated for September.' : `${placed} heroes seated for September.`, 'success');
+        showToast(placed === 1 ? '1 hero seated.' : `${placed} heroes seated.`, 'success');
         onPlacementRerender?.();
         pruneSelection();
         if (!pendingStudents().length) {
             wizardState.step = STEPS.DONE;
+            await quietlyFinalizePlacement();
         } else {
             wizardState.step = STEPS.GATHER;
             wizardState.selectedStudentIds = [];
@@ -835,6 +851,7 @@ async function runMarkLeft(button, studentId) {
         onPlacementRerender?.();
         pruneSelection();
         if (!pendingStudents().length) wizardState.step = STEPS.DONE;
+        if (wizardState.step === STEPS.DONE) await quietlyFinalizePlacement();
         paintWizard();
     } catch (error) {
         console.error('Could not mark student left:', error);
@@ -847,7 +864,7 @@ async function runMarkLeft(button, studentId) {
 export function openPlacementWizard({ onRerender } = {}) {
     if (typeof onRerender === 'function') onPlacementRerender = onRerender;
     if (!pendingStudents().length) {
-        showToast('Nobody is waiting for September placement.', 'info');
+        showToast('Nobody is waiting for student placement.', 'info');
         return;
     }
     resetWizardState();

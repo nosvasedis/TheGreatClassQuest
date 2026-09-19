@@ -106,7 +106,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '🏛️',
         description: 'School-wide admin access with full oversight',
         tier: 'Elite',
-        teacherExplain: "The School Office (Secretary) owns the school year, holiday ranges, school-wide grading defaults, and family messages. Teachers still run the lesson; the office keeps the calendar honest. Open it from the header shield when your school has Secretary access. 🏛️🗂️",
+        teacherExplain: "The School Office (Secretary) owns this year's classes, student placement, the school year, holiday ranges, school-wide grading defaults, and family messages. Teachers still run the lesson; the office keeps the calendar honest and seats returning heroes. Open it from the header shield when your school has Secretary access. 🏛️🗂️",
         studentExplain: "Your school office keeps holidays, the school year, and messages organised behind the scenes so every hero's Quest stays in sync. 🏛️"
     },
     quizOfTheWeek: {
@@ -191,7 +191,7 @@ export function getGuideSections(perspective) {
                 features: [
                     { emoji: '🏆', name: "Hero's Challenge", tier: 'starter', teacherExplain: 'Student vs student ranks (By Class or Global, Monthly or Total). Trophy Room holds inventory. Certificates and Hall of Prodigies live here. Guild badges on rows are identity; guild ranking is Guild Hall. 🏆', why: 'Personal accountability beside the class map race.' },
                     { emoji: '👨‍👩‍👧', name: 'Family Portal', tier: 'pro', key: 'parentAccess', teacherExplain: FEATURE_DEFINITIONS.parentAccess.teacherExplain, why: 'Families follow homework and growth without seeing teacher-only notes.' },
-                    { emoji: '🏛️', name: 'School Office', tier: 'elite', key: 'secretaryAccess', teacherExplain: FEATURE_DEFINITIONS.secretaryAccess.teacherExplain, why: 'One person owns holidays and the school year so every teacher calendar matches.' },
+                    { emoji: '🏛️', name: 'School Office', tier: 'elite', key: 'secretaryAccess', teacherExplain: FEATURE_DEFINITIONS.secretaryAccess.teacherExplain, why: 'One person owns classes, student placement, holidays, and the school year so every teacher calendar matches.' },
                 ]
             },
             {

@@ -43,7 +43,7 @@ export const baseModalsHTML = `
     </div>
 
     <div id="logo-picker-modal"
-        class="fixed inset-0 bg-slate-950/55 z-[90] flex items-center justify-center p-3 sm:p-4 hidden backdrop-blur-sm"
+        class="fixed inset-0 bg-slate-950/55 z-[2400] flex items-center justify-center p-3 sm:p-4 hidden backdrop-blur-sm"
         role="dialog" aria-modal="true" aria-labelledby="logo-picker-title">
         <div class="logo-picker-shell pop-in max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             <div class="logo-picker-header">

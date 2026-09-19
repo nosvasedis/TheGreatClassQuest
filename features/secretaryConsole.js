@@ -301,8 +301,61 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
 
         const schoolSubTabBtn = event.target.closest('[data-secretary-school-subtab]');
         if (schoolSubTabBtn) {
-            state.setSecretaryView({ schoolSubTab: schoolSubTabBtn.dataset.secretarySchoolSubtab });
+            state.setSecretaryView({
+                schoolSubTab: schoolSubTabBtn.dataset.secretarySchoolSubtab,
+                selectedClassId: ''
+            });
             renderSecretaryTab('school');
+            return;
+        }
+
+        const openClassBtn = event.target.closest('[data-secretary-open-class]');
+        if (openClassBtn) {
+            state.setSecretaryView({
+                schoolSubTab: 'classes',
+                selectedClassId: openClassBtn.dataset.secretaryOpenClass,
+                classPulseSubTab: 'overview'
+            });
+            renderSecretaryTab('school');
+            return;
+        }
+
+        const classBackBtn = event.target.closest('[data-secretary-class-back]');
+        if (classBackBtn) {
+            state.setSecretaryView({ selectedClassId: '' });
+            renderSecretaryTab('school');
+            return;
+        }
+
+        const pulseBtn = event.target.closest('[data-secretary-class-pulse]');
+        if (pulseBtn) {
+            state.setSecretaryView({ classPulseSubTab: pulseBtn.dataset.secretaryClassPulse });
+            renderSecretaryTab('school');
+            return;
+        }
+
+        const gradesBoardBtn = event.target.closest('[data-secretary-grades-board]');
+        if (gradesBoardBtn) {
+            state.setSecretaryView({ gradesBoardSubTab: gradesBoardBtn.dataset.secretaryGradesBoard, gradesPage: 0 });
+            renderSecretaryTab(getActiveTabKey());
+            return;
+        }
+
+        const openDeskBtn = event.target.closest('[data-secretary-open-class-desk]');
+        if (openDeskBtn) {
+            if (!hasFullSecretaryConsole()) {
+                showToast('Creating and editing classes needs the Elite School Office.', 'info');
+                return;
+            }
+            const classId = openDeskBtn.dataset.secretaryOpenClassDesk;
+            state.setSecretaryView({ activeTab: 'admin', adminSubTab: 'year' });
+            activateSecretaryTab('admin');
+            import('./classWizard.js').then(({ openClassWizard }) => {
+                openClassWizard({
+                    classId,
+                    onRerender: () => renderSecretaryTab('admin')
+                });
+            });
             return;
         }
 
@@ -335,7 +388,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         const gradesPageBtn = event.target.closest('[data-secretary-grades-page]');
         if (gradesPageBtn && !gradesPageBtn.disabled) {
             state.setSecretaryView({ gradesPage: Number(gradesPageBtn.dataset.secretaryGradesPage) });
-            renderSecretaryTab('grades');
+            renderSecretaryTab(getActiveTabKey());
             return;
         }
 
@@ -343,16 +396,6 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         if (messageViewBtn) {
             state.setSecretaryView({ messageView: messageViewBtn.dataset.secretaryMessageView });
             renderSecretaryTab('messages');
-            return;
-        }
-
-        const editClassBtn = event.target.closest('[data-secretary-edit-class]');
-        if (editClassBtn) {
-            if (!hasFullSecretaryConsole()) {
-                showToast('School-wide class editing requires the Elite Secretary Console.', 'info');
-                return;
-            }
-            modals.openEditClassModal(editClassBtn.dataset.secretaryEditClass);
             return;
         }
 
@@ -527,7 +570,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         }
         if (event.target.id === 'secretary-grades-search') {
             state.setSecretaryView({ gradesSearch: event.target.value, gradesPage: 0 });
-            renderSecretaryTab('grades');
+            renderSecretaryTab(getActiveTabKey());
             return;
         }
         if (event.target.id === 'options-school-location-results') {

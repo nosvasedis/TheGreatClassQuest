@@ -40,7 +40,7 @@
       <div class="award-immersive-fog-fx"></div>
       <div class="award-immersive-hail-fx"></div>
       <div class="award-immersive-sun"></div>
-      <div class="award-immersive-moon"></div>
+      <div class="award-immersive-moon gcq-moon" aria-hidden="true"></div>
     </div>
     <div class="cards">
       <div id="weather-card" class="weather-card w-foggy"><div class="weather-info"><div class="text-7xl font-title">12°C</div><div class="text-2xl font-bold uppercase tracking-widest">Foggy</div></div></div>
@@ -81,6 +81,11 @@
       apply(current, night);
     });
     apply(current, night);
+  </script>
+  <script type="module">
+    import { celestialMoonHTML } from './templates/app/celestialMoon.js';
+    const moon = document.querySelector('.award-immersive-moon');
+    if (moon) moon.innerHTML = celestialMoonHTML();
   </script>
 </body>
 </html>

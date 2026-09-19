@@ -6,6 +6,7 @@ import { navHTML } from './nav.js';
 import { ceremonyHTML } from './screens/ceremony.js';
 import { grandGuildCeremonyHTML } from './screens/grandGuildCeremony.js';
 import { wallpaperHTML } from './screens/wallpaper.js';
+import { celestialMoonHTML } from './celestialMoon.js';
 
 export const awardImmersiveSkyHTML = `
         <div id="award-immersive-sky" class="award-immersive-sky" aria-hidden="true">
@@ -17,7 +18,7 @@ export const awardImmersiveSkyHTML = `
             <div class="award-immersive-fog-fx" aria-hidden="true"></div>
             <div class="award-immersive-hail-fx" aria-hidden="true"></div>
             <div class="award-immersive-sun" aria-hidden="true"></div>
-            <div class="award-immersive-moon" aria-hidden="true"></div>
+            <div class="award-immersive-moon gcq-moon" aria-hidden="true">${celestialMoonHTML()}</div>
             <div class="award-immersive-sky-parallax loading-cloud-art-layer" aria-hidden="true">
                 <div class="loading-cloud-art lca-1"></div>
                 <div class="loading-cloud-art lca-2"></div>

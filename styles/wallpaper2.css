@@ -307,9 +307,12 @@
     opacity: 0 !important; /* Hide clouds */
     transition: opacity 2s ease-in-out;
 }
-.weather-clear #wall-sun, .weather-clear #wall-moon {
+.weather-clear #wall-sun {
     opacity: 1 !important;
     filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6)); /* Extra glow */
+}
+.weather-clear #wall-moon {
+    opacity: 1 !important;
 }
 
 /* --- CLOUDY / OVERCAST --- */
@@ -356,9 +359,12 @@
 }
 
 /* Ensure Sun/Moon are extra visible when clear */
-.weather-clear #wall-sun, .weather-clear #wall-moon {
+.weather-clear #wall-sun {
     opacity: 1 !important;
     filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+}
+.weather-clear #wall-moon {
+    opacity: 1 !important;
 }
 
 /* ============================================================

@@ -1,5 +1,7 @@
 // templates/app/screens/wallpaper.js
 
+import { celestialMoonHTML } from '../celestialMoon.js';
+
 export const wallpaperHTML = `
     <div id="dynamic-wallpaper-screen"
         class="hidden fixed inset-0 z-[100] overflow-hidden transition-colors duration-[3000ms] ease-in-out flex flex-col items-center justify-center font-sans">
@@ -22,10 +24,9 @@ export const wallpaperHTML = `
                 style="top: -5%; right: -5%;"></div>
 
             <div id="wall-moon"
-                class="absolute w-48 h-48 rounded-full bg-slate-100 shadow-[0_0_50px_rgba(255,255,255,0.8)] transition-all duration-[3000ms] ease-in-out"
+                class="gcq-moon absolute transition-all duration-[3000ms] ease-in-out"
                 style="top: 110%; right: 10%;">
-                <div class="absolute top-10 left-8 w-8 h-8 bg-slate-200 rounded-full opacity-50"></div>
-                <div class="absolute bottom-12 right-10 w-12 h-12 bg-slate-200 rounded-full opacity-50"></div>
+                ${celestialMoonHTML()}
             </div>
         </div>
 

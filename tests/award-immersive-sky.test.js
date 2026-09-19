@@ -63,10 +63,43 @@ test('immersed header chrome lets the weather sky continue through the bar', () 
     css,
     /#app-screen\.award-sky-active:not\(\.award-sky-leaving\) #award-header-atmosphere > header[\s\S]*?background:\s*transparent\s*!important/,
   );
+  assert.match(
+    css,
+    /#app-screen\.award-sky-active:not\(\.award-sky-leaving\) #award-header-atmosphere > header[\s\S]*?border-bottom-color:\s*transparent\s*!important/,
+  );
+  assert.match(
+    css,
+    /#app-screen\.award-sky-active:not\(\.award-sky-leaving\) \.header-night-stars[\s\S]*?opacity:\s*0\s*!important/,
+  );
 });
 
 test('award sky markup includes fog and hail overlay planes', () => {
   const app = read('templates/app/index.js');
   assert.match(app, /award-immersive-fog-fx/);
   assert.match(app, /award-immersive-hail-fx/);
+});
+
+test('award and wallpaper moons share a lunar photograph, not a white disc', () => {
+  const moon = read('templates/app/celestialMoon.js');
+  const app = read('templates/app/index.js');
+  const wallpaper = read('templates/app/screens/wallpaper.js');
+  const awardCss = read('styles/award_immersive_weather.css');
+  const wallCss = read('styles/wallpaper.css');
+  const wall2 = read('styles/wallpaper2.css');
+
+  assert.match(moon, /moon-nearside\.jpg/);
+  assert.match(moon, /GSFC_20171208_Archive_e001861/);
+  assert.ok(fs.existsSync(path.join(root, 'assets/celestial/moon-nearside.jpg')));
+  assert.match(app, /celestialMoonHTML\(\)/);
+  assert.match(wallpaper, /celestialMoonHTML\(\)/);
+  assert.doesNotMatch(wallpaper, /bg-slate-100/);
+  assert.doesNotMatch(
+    awardCss,
+    /award-immersive-moon::before[\s\S]*#f8fafc/,
+  );
+  assert.match(wallCss, /\.gcq-moon/);
+  assert.doesNotMatch(
+    wall2,
+    /#wall-sun,\s*#wall-moon[\s\S]{0,80}255,\s*215,\s*0/,
+  );
 });

@@ -40,6 +40,14 @@ const STEPS = Object.freeze({
 
 const CREATE_FLOW = [STEPS.TEACHER, STEPS.IDENTITY, STEPS.LEAGUE, STEPS.SCHEDULE, STEPS.REVIEW];
 
+const CREATE_STEPS = Object.freeze([
+    { id: STEPS.TEACHER, label: 'Teacher', icon: 'fa-chalkboard-user' },
+    { id: STEPS.IDENTITY, label: 'Name', icon: 'fa-pen-nib' },
+    { id: STEPS.LEAGUE, label: 'League', icon: 'fa-crown' },
+    { id: STEPS.SCHEDULE, label: 'Schedule', icon: 'fa-clock' },
+    { id: STEPS.REVIEW, label: 'Review', icon: 'fa-clipboard-check' }
+]);
+
 const wizardState = {
     step: STEPS.LIST,
     teacherUid: '',
@@ -264,11 +272,43 @@ function headingCopy() {
 
 function renderSteps() {
     if (wizardState.step === STEPS.LIST || wizardState.step === STEPS.EDIT) return '';
-    const labels = ['Teacher', 'Name', 'League', 'Schedule', 'Review'];
     const index = CREATE_FLOW.indexOf(wizardState.step);
-    return labels.map((label, i) => `
-        <li class="placement-wizard__step${i === index ? ' is-current' : ''}${i < index ? ' is-done' : ''}">${escapeHtml(label)}</li>
-    `).join('');
+    const pct = ((index + 1) / CREATE_FLOW.length) * 100;
+    return `
+        <ol class="class-desk-steps">
+            ${CREATE_STEPS.map((step, i) => {
+                const current = i === index;
+                const done = i < index;
+                const icon = done ? 'fa-check' : step.icon;
+                const inner = `
+                    <span class="class-desk-step__icon" aria-hidden="true"><i class="fas ${icon}"></i></span>
+                    <span class="class-desk-step__label">${escapeHtml(step.label)}</span>
+                `;
+                if (done) {
+                    return `
+                        <li>
+                            <button type="button"
+                                class="class-desk-step is-done"
+                                data-class-desk-goto="${escapeHtml(step.id)}"
+                                aria-label="Back to ${escapeHtml(step.label)}">
+                                ${inner}
+                            </button>
+                        </li>
+                    `;
+                }
+                return `
+                    <li>
+                        <span class="class-desk-step${current ? ' is-current' : ''}"${current ? ' aria-current="step"' : ''}>
+                            ${inner}
+                        </span>
+                    </li>
+                `;
+            }).join('')}
+        </ol>
+        <div class="class-desk-progress" aria-hidden="true">
+            <span style="width: ${pct}%"></span>
+        </div>
+    `;
 }
 
 function renderTeacherTile(teacher, { selected = false, classCount = 0 } = {}) {
@@ -276,12 +316,14 @@ function renderTeacherTile(teacher, { selected = false, classCount = 0 } = {}) {
     return `
         <button type="button"
             class="class-desk-teacher-tile${selected ? ' is-selected' : ''}"
-            data-class-desk-teacher="${escapeHtml(teacher.uid)}">
+            data-class-desk-teacher="${escapeHtml(teacher.uid)}"
+            aria-pressed="${selected ? 'true' : 'false'}">
             <span class="class-desk-teacher-tile__avatar" aria-hidden="true">${escapeHtml(initials(teacher.name))}</span>
             <span class="class-desk-teacher-tile__copy">
                 <strong>${escapeHtml(teacher.name)}</strong>
-                <span>${escapeHtml(classCount ? countLabel : 'Ready for a new class')}</span>
+                <span class="class-desk-teacher-tile__meta">${escapeHtml(classCount ? countLabel : 'Ready for a new class')}</span>
             </span>
+            ${selected ? '<span class="class-desk-check" aria-hidden="true"><i class="fas fa-check"></i></span>' : ''}
         </button>
     `;
 }
@@ -389,13 +431,13 @@ function renderListBody() {
 function renderIdentityBody() {
     return `
         <div class="class-desk-identity">
-            <div class="class-desk-logo-field">
+            <label class="secretary-field class-desk-logo-field">
                 <span>Class logo</span>
                 <button type="button" id="class-desk-logo-btn" class="class-desk-logo-btn" data-class-desk-logo>
                     ${escapeHtml(wizardState.logo || '📚')}
                 </button>
                 <input type="hidden" id="class-desk-logo" value="${escapeHtml(wizardState.logo || '📚')}">
-            </div>
+            </label>
             <label class="secretary-field class-desk-name-field">
                 <span>Class name</span>
                 <div class="class-desk-name-row">
@@ -424,6 +466,7 @@ function renderLeagueBody() {
                 return `
                     <button type="button" class="class-desk-league-tile${selected ? ' is-selected' : ''}" data-class-desk-league="${escapeHtml(league)}">
                         ${renderLeagueChip(league)}
+                        ${selected ? '<span class="class-desk-check" aria-hidden="true"><i class="fas fa-check"></i></span>' : ''}
                     </button>
                 `;
             }).join('')}
@@ -445,11 +488,11 @@ function renderScheduleBody() {
         </div>
         <div class="class-desk-times">
             <label class="secretary-field">
-                <span>Starts</span>
+                <span><i class="far fa-clock" aria-hidden="true"></i> Starts</span>
                 <input type="time" id="class-desk-time-start" value="${escapeHtml(wizardState.timeStart)}">
             </label>
             <label class="secretary-field">
-                <span>Ends</span>
+                <span><i class="far fa-clock" aria-hidden="true"></i> Ends</span>
                 <input type="time" id="class-desk-time-end" value="${escapeHtml(wizardState.timeEnd)}">
             </label>
         </div>
@@ -590,6 +633,14 @@ function goForward() {
     const index = CREATE_FLOW.indexOf(wizardState.step);
     if (index < 0 || index >= CREATE_FLOW.length - 1 || !canAdvance()) return;
     wizardState.step = CREATE_FLOW[index + 1];
+    paintWizard();
+}
+
+function goToCreateStep(stepId) {
+    const target = CREATE_FLOW.indexOf(stepId);
+    const current = CREATE_FLOW.indexOf(wizardState.step);
+    if (target < 0 || current < 0 || target >= current) return;
+    wizardState.step = stepId;
     paintWizard();
 }
 
@@ -750,6 +801,12 @@ function handleWizardClick(event) {
         goForward();
         return;
     }
+    const gotoBtn = event.target.closest('[data-class-desk-goto]');
+    if (gotoBtn) {
+        captureFormFields();
+        goToCreateStep(gotoBtn.dataset.classDeskGoto);
+        return;
+    }
     const teacherBtn = event.target.closest('[data-class-desk-teacher]');
     if (teacherBtn) {
         const teacher = wizardState.teachers.find((item) => item.uid === teacherBtn.dataset.classDeskTeacher);
@@ -852,16 +909,16 @@ function ensureWizard() {
     modal.setAttribute('aria-labelledby', 'class-desk-title');
     modal.innerHTML = `
         <div class="placement-wizard__panel placement-wizard--sheet pop-in class-desk-panel">
-            <header class="placement-wizard__header">
+            <header class="placement-wizard__header class-desk-header">
                 <div class="placement-wizard__heading">
                     <p class="placement-wizard__eyebrow">This year's classes</p>
                     <h3 id="class-desk-title" class="placement-wizard__title">This year’s classes</h3>
                     <p id="class-desk-subtitle" class="placement-wizard__subtitle"></p>
                 </div>
-                <ol class="placement-wizard__steps" id="class-desk-steps"></ol>
                 <button type="button" class="placement-wizard__close" data-class-desk-close aria-label="Close class desk">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
+                <nav class="class-desk-stepper" id="class-desk-steps" aria-label="Class setup steps"></nav>
             </header>
             <div class="placement-wizard__body custom-scrollbar" id="class-desk-body"></div>
             <footer class="placement-wizard__footer" id="class-desk-footer"></footer>

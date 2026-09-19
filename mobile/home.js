@@ -10,6 +10,7 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
+import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 
 const SCHEDULE_GRADIENTS = [
     'from-red-100 to-red-200', 'from-orange-100 to-orange-200', 'from-amber-100 to-amber-200',
@@ -331,7 +332,7 @@ function renderGeneralView() {
     const greeting = getGreeting();
     const allScores = state.get('allStudentScores') || [];
     const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
-    const totalGold = allScores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
+    const totalGold = sumLiveYearGoldFromAppState(allScores, state);
     const reminders = getTodayReminders(null);
 
     return `

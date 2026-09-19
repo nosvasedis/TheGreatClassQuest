@@ -21,6 +21,7 @@ import * as ceremony from '../../features/ceremony.js';
 import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
@@ -1126,7 +1127,7 @@ export function setupUIListeners() {
             if (studentId) {
                 const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
                 // Default to totalStars if gold is undefined
-                const currentGold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+                const currentGold = getLiveYearGoldFromAppState(scoreData, state);
                 input.value = currentGold;
                 btn.disabled = false;
             } else {

@@ -9,6 +9,7 @@ import {
 } from './helpers.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { DEFAULT_SCHOOL_NAME } from '../../constants.js';
+import { sumLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 function getSecretaryHomeTheme() {
     const hour = new Date().getHours();
@@ -82,7 +83,7 @@ export function renderSecretaryHome() {
     const scores = state.get('allStudentScores') || [];
     const threads = state.get('currentCommunicationThreads') || [];
     const totalStars = scores.reduce((sum, item) => sum + Number(item.totalStars || 0), 0);
-    const totalGold = scores.reduce((sum, item) => sum + Number(item.gold || 0), 0);
+    const totalGold = sumLiveYearGoldFromAppState(scores, state);
     const unreadThreads = threads.filter((t) => !t.lastReadAt || t.lastReadAt < t.lastMessageAt).length;
     const latestThread = threads[0] || null;
     const latestScoreInfo = getLatestScoreSummary();

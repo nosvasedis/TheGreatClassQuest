@@ -380,6 +380,7 @@ test('admin readiness target enables storage, functions, and scheduler services'
   assert.ok(getRequiredFunctionNames('admin').includes('activateSecretaryAdmin'));
   assert.ok(getRequiredFunctionNames('admin').includes('closeSchoolYear'));
   assert.ok(getRequiredFunctionNames('admin').includes('openSchoolYear'));
+  assert.ok(getRequiredFunctionNames('admin').includes('archiveCarriedYearGold'));
   assert.ok(getRequiredFunctionNames('admin').includes('finalizeRollover'));
   assert.ok(getRequiredFunctionNames('admin').includes('previewYearRollover'));
   assert.ok(getRequiredFunctionNames('admin').includes('ensureOpenSchoolYears'));

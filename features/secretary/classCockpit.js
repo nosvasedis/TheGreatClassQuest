@@ -10,6 +10,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { escapeHtml, formatFlexibleDate, renderSubTabBar } from '../roles/shared.js';
 import { renderGradesBoard, renderStudentAvatar } from './gradesBoard.js';
 import { formatClassSchedule, getStudentScoreMap } from './helpers.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 const PULSE_TABS = [
     { key: 'overview', label: 'Overview', icon: 'fa-heart', tone: 'sky' },
@@ -81,7 +82,7 @@ function classStarTotals(students) {
         const score = scoreFor(student.id);
         acc.monthly += Number(score.monthlyStars || 0);
         acc.total += Number(score.totalStars || 0);
-        acc.gold += Number(score.gold || 0);
+        acc.gold += getLiveYearGoldFromAppState(score, state);
         return acc;
     }, { monthly: 0, total: 0, gold: 0 });
 }
@@ -256,7 +257,7 @@ function renderChallenge(students) {
 
 function renderMarket(students) {
     const ranked = students
-        .map((student) => ({ student, gold: Number(scoreFor(student.id).gold || 0) }))
+        .map((student) => ({ student, gold: getLiveYearGoldFromAppState(scoreFor(student.id), state) }))
         .sort((a, b) => b.gold - a.gold);
     const total = ranked.reduce((sum, row) => sum + row.gold, 0);
     return `
@@ -390,7 +391,6 @@ export function renderClassCockpit(classData) {
         ? view.classPulseSubTab
         : 'overview';
     const hasFullConsole = canUseFeature('secretaryAccess');
-    const latest = getLatestScoresByStudent();
 
     return `
         <button type="button" class="class-pulse-back" data-secretary-class-back>

@@ -14,6 +14,7 @@ import { getGuildHouseDisplay } from '../../features/guilds.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { handleAvatarClick } from '../core/avatar.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -235,7 +236,7 @@ export function openEditStudentModal(studentId, options = {}) {
 
     if (statTotal) statTotal.textContent = `${scoreData.totalStars ?? 0} ⭐`;
     if (statMonthly) statMonthly.textContent = `${scoreData.monthlyStars ?? 0} 🌟`;
-    if (statGold) statGold.textContent = `${scoreData.gold ?? 0} 🪙`;
+    if (statGold) statGold.textContent = `${getLiveYearGoldFromAppState(scoreData, state)} 🪙`;
     if (statHeroLevel) statHeroLevel.textContent = `Lvl ${scoreData.heroLevel ?? 1}`;
 
     // 6. Profile Tab Placement Information

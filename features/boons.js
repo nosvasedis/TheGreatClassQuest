@@ -8,6 +8,7 @@ import { reconcileFamiliarLifecycle } from './familiars.js';
 import { applyReasonAwardScoreTransaction, checkAndRecordQuestCompletion, showHeroLevelUpCelebration } from '../db/actions/stars.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
 import { updateGuildScores } from './guildScoring.js';
+import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 
 export const TEACHER_BOON_PRESETS = [
     { key: 'leadership', label: 'Leadership', icon: '👑', accent: 'from-fuchsia-500 via-rose-500 to-orange-400' },
@@ -68,7 +69,7 @@ export async function handleBestowBoon(senderId, receiverId) {
 
             const senderDoc = await transaction.get(senderScoreRef);
             const senderData = senderDoc.data() || {};
-            const currentGold = (senderData.gold !== undefined) ? senderData.gold : (senderData.totalStars || 0);
+            const currentGold = getLiveYearGold(senderData, getLiveYearGoldContextFromState(state));
             const freeBoonUses = Number(senderData.peerBoonFreeUses) || 0;
             const monthKey = utils.getLocalMonthKey();
             const isMonthFree = senderData.peerBoonFreeMonthKey === monthKey;
@@ -87,7 +88,7 @@ export async function handleBestowBoon(senderId, receiverId) {
                 }
             } else if (!isMonthFree) {
                 if (currentGold < 15) throw "Not enough Gold!";
-                senderUpdate.gold = increment(-15);
+                senderUpdate.gold = Math.max(0, currentGold - 15);
             }
             transaction.update(senderScoreRef, senderUpdate);
 
@@ -116,7 +117,7 @@ export async function handleBestowBoon(senderId, receiverId) {
         const senderIdx = allScores.findIndex(s => s.id === senderId);
         if (senderIdx !== -1) {
             allScores[senderIdx].lastPeerBoonRecipientId = receiverId;
-            const oldGold = allScores[senderIdx].gold !== undefined ? allScores[senderIdx].gold : (allScores[senderIdx].totalStars || 0);
+            const oldGold = getLiveYearGold(allScores[senderIdx], getLiveYearGoldContextFromState(state));
             const freeBoonUses = Number(allScores[senderIdx].peerBoonFreeUses) || 0;
             const monthKey = utils.getLocalMonthKey();
             const isMonthFree = allScores[senderIdx].peerBoonFreeMonthKey === monthKey;

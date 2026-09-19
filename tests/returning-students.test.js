@@ -193,6 +193,7 @@ test('secretary September placement wizard never dumps guild IDs or a class sele
     assert.doesNotMatch(year, /Name • League • Teacher|questLevel \|\| 'League'/);
     assert.match(year, /renderPlacementLauncher/);
     assert.match(year, /openPlacementWizard/);
+    assert.match(year, /school-year-setup-pair/);
 
     assert.match(wizard, /getGuildHouseDisplay/);
     assert.match(wizard, /getGuildBadgeHtml/);
@@ -202,6 +203,10 @@ test('secretary September placement wizard never dumps guild IDs or a class sele
     assert.doesNotMatch(wizard, /student\.guildId \|\|/);
     assert.match(wizard, /Gather the heroes/);
     assert.match(wizard, /Seat/);
+    assert.match(wizard, /Select all/);
+    assert.match(wizard, /Unselect all/);
+    assert.match(wizard, /data-placement-select-all/);
+    assert.match(wizard, /data-placement-select-none/);
 
     assert.match(css, /\.placement-wizard/);
     assert.match(css, /\.placement-league-chip/);

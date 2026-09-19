@@ -12,6 +12,7 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
 import { db, doc, writeBatch } from '../../firebase.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 let rankingsViewDate = new Date();
 
@@ -645,7 +646,7 @@ export function openBestowBoonModal(receiverId) {
         const placeholder = '<option value="" disabled selected>-- Select a Sponsor --</option>';
         const optionsHtml = classmates.map(s => {
             const scoreData = scores.find(sc => sc.id === s.id);
-            const gold = scoreData?.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+            const gold = getLiveYearGoldFromAppState(scoreData, state);
             const freeBoonUses = Number(scoreData?.peerBoonFreeUses) || 0;
             const isMonthFree = scoreData?.peerBoonFreeMonthKey === monthKey;
             const hasFreeBoon = isMonthFree || freeBoonUses > 0;

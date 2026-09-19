@@ -35,6 +35,8 @@ test('student placement launcher has no redundant fact badges and uses Student p
     assert.doesNotMatch(wizard, /returning heroes are waiting/);
     assert.match(wizard, /data-placement-open-class-desk/);
     assert.match(wizard, /quietlyFinalizePlacement/);
+    assert.match(wizard, /Select all/);
+    assert.match(wizard, /Unselect all/);
 });
 
 test('class desk wizard never dumps raw teacher ids or a native select', () => {
@@ -42,12 +44,18 @@ test('class desk wizard never dumps raw teacher ids or a native select', () => {
     const year = read('features/schoolYearConsole.js');
     assert.match(year, /renderClassLauncher/);
     assert.match(year, /openClassWizard/);
+    assert.match(year, /renderYearSetupLaunchers/);
+    assert.match(year, /school-year-setup-pair/);
     assert.match(wizard, /This year's classes/);
     assert.match(wizard, /Create and manage classes/);
     assert.doesNotMatch(wizard, /<select/);
     assert.doesNotMatch(wizard, /teacher\.uid \|\|/);
     assert.match(wizard, /questLeagues/);
     assert.match(wizard, /showLogoPicker\('secretary'\)/);
+    assert.match(wizard, /class-desk-step/);
+    assert.match(wizard, /fa-chalkboard-user/);
+    assert.match(wizard, /data-class-desk-goto/);
+    assert.doesNotMatch(wizard, /placement-wizard__step/);
 });
 
 test('School Classes is an overview cockpit without Edit class', () => {
@@ -56,6 +64,9 @@ test('School Classes is an overview cockpit without Edit class', () => {
     assert.doesNotMatch(school, /data-secretary-edit-class/);
     assert.doesNotMatch(school, /Edit class/);
     assert.match(school, /data-secretary-open-class/);
+    assert.match(school, /school-hero-card/);
+    assert.doesNotMatch(school, /class="role-list-row"/);
+    assert.doesNotMatch(cockpit, /getLatestScoresByStudent/);
     assert.match(cockpit, /Award Stars/);
     assert.match(cockpit, /Team Quest/);
     assert.match(cockpit, /Hero's Challenge/);
@@ -86,4 +97,40 @@ test('End of Year has no Repair data or Finish September setup for secretaries',
     assert.doesNotMatch(year, /school-year-finalize-btn/);
     assert.match(year, /Check readiness/);
     assert.match(year, /Finish school year/);
+});
+
+test('createStudent stamps the class teacher, not the signed-in secretary', () => {
+    const students = read('db/actions/students.js');
+    assert.match(students, /export async function createStudent/);
+    assert.match(students, /createdBy:\s*owner/);
+    assert.match(students, /withActiveStudentYear/);
+    assert.match(students, /withActiveScoreYear/);
+    assert.match(students, /SCORE_DEFAULTS/);
+    assert.match(students, /await createStudent\(\{/);
+    assert.match(students, /uid: state\.get\('currentUserId'\)/);
+});
+
+test('School Year student desk is the leftmost launcher and has no native select', () => {
+    const year = read('features/schoolYearConsole.js');
+    const wizard = read('features/studentWizard.js');
+    const css = read('styles/roles.css');
+    const start = year.indexOf('function renderYearSetupLaunchers');
+    const end = year.indexOf('function friendlyYearStatus');
+    const launchers = year.slice(start, end);
+    const studentIndex = launchers.indexOf('renderStudentLauncher');
+    const classIndex = launchers.indexOf('renderClassLauncher');
+    const placementIndex = launchers.indexOf('renderPlacementLauncher');
+    assert.ok(studentIndex >= 0 && classIndex > studentIndex && placementIndex > classIndex);
+    assert.match(year, /openStudentWizard/);
+    assert.match(year, /refreshStudentWizardIfOpen/);
+    assert.match(wizard, /New student/);
+    assert.match(wizard, /Add a new student/);
+    assert.match(wizard, /Open student desk/);
+    assert.match(wizard, /createdBy: owner/);
+    assert.match(wizard, /data-student-desk-open-class-desk/);
+    assert.match(wizard, /class-desk-step/);
+    assert.doesNotMatch(wizard, /<select/);
+    assert.doesNotMatch(wizard, /currentUserId/);
+    assert.match(css, /\.school-year-setup-pair \{[\s\S]*?grid-template-columns: 1fr 1fr 1fr/);
+    assert.match(css, /\.student-desk-launcher/);
 });

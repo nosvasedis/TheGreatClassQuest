@@ -713,7 +713,7 @@ export function openAppInfoModal() {
                 '📖 Story Weavers — class story, Word of the Day, PDF book',
                 '🐉 Familiars — one companion egg that hatches and evolves',
                 '🤖 AI Oracle, avatars, certificates, Restock, Adventure Log art',
-                '🏛️ School Office — holidays, school year, school grading defaults',
+                '🏛️ School Office — holidays, classes, new students, school year, school grading defaults',
               ]
             : [
                 '🏰 Guild Hall — houses, Guild Power, Fortune\'s Wheel',
@@ -746,7 +746,7 @@ export function openAppInfoModal() {
     const studentDailyFlow = [
         { emoji: '🌅', title: 'Arrive as the Hero you Are', body: 'Walk into class knowing your avatar is waiting. Check your missions, your familiar, and your stars from last time — then get ready to earn more!' },
         { emoji: '⭐', title: 'Earn Stars & Conquer Bounties', body: 'Answer questions, speak English, help classmates, complete bounties — every great moment earns stars. The teacher notices EVERYTHING in the Quest!' },
-        { emoji: '🛒', title: 'Build Your Legend', body: 'Spend Gold in the Mystic Market (your star rank never drops). On Elite, hatch a Familiar. On Pro, level your Hero Class and Skill Tree. Your character is uniquely yours.' },
+        { emoji: '🛒', title: 'Build Your Legend', body: 'Spend Gold in the Mystic Market (your star rank never drops). Gold is this year\'s purse — a new school year starts at 0. On Elite, hatch a Familiar. On Pro, level your Hero Class and Skill Tree. Your character is uniquely yours.' },
         { emoji: '🎉', title: 'Celebrate & Remember', body: 'Ceremony of the Month is automatic: Growth Festival for Nursery and Pre-Junior, Classic Arena (classes, then Prodigy) for everyone else. Hero of the Day is a different, daily spotlight from the Adventure Log.' },
     ];
 

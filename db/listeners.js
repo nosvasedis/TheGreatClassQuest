@@ -55,6 +55,7 @@ import {
     normalizeSchoolYearState,
     yearScopeClauses,
 } from "../utils/schoolYear.js";
+import { getLiveYearGoldFromAppState } from "../utils/yearGold.js";
 import { cancelScheduledRenders, scheduleRender } from "../utils/renderScheduler.js";
 import { getDeviceCacheChoice } from "../utils/deviceCache.js";
 
@@ -1071,10 +1072,10 @@ export async function setupDataListeners(
                         const totalEl = document.getElementById(
                             `total-stars-${studentId}`,
                         );
-                        const newGold =
-                            scoreData.gold !== undefined
-                                ? scoreData.gold
-                                : newTotal; // Fallback
+                        const newGold = getLiveYearGoldFromAppState(
+                            { ...scoreData, totalStars: newTotal },
+                            state,
+                        );
                         const goldEl = document.getElementById(
                             `student-gold-display-${studentId}`,
                         );

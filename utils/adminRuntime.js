@@ -74,6 +74,10 @@ export function openSchoolYear(payload = {}) {
     return callAdmin('openSchoolYear', payload);
 }
 
+export function archiveCarriedYearGold(payload = {}) {
+    return callAdmin('archiveCarriedYearGold', payload);
+}
+
 export function finalizeRollover(payload = {}) {
     return callAdmin('finalizeRollover', payload);
 }

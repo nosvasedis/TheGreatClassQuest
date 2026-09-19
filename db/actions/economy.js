@@ -29,6 +29,7 @@ import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { classUsesDictations, classUsesTests, createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
+import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -674,7 +675,7 @@ export async function handleBuyItem(studentId, itemId) {
             }
 
             const data = scoreDoc.data();
-            const currentDbGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
+            const currentDbGold = getLiveYearGold(data, getLiveYearGoldContextFromState(state));
             const currentInventory = data.inventory || [];
             purchasedItemIndex = currentInventory.length;
 
@@ -849,7 +850,7 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
                     transaction.set(historyRef, withSchoolYear({ stars: lastMonthScore, month: yearMonthKey }, scoreData.activeSchoolYearKey || state.getActiveSchoolYearKey()));
                 }
 
-                const currentGold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+                const currentGold = getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state));
 
                 transaction.update(scoreRef, {
                     monthlyStars: 0,
@@ -1029,7 +1030,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
 
             if (scoreData.familiar) throw new Error('This student already owns a Familiar!');
 
-            const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : (scoreData.totalStars || 0);
+            const currentGold = getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state));
             const aurumVoucherPercent = Number(scoreData.aurumVoucherPercent) || 0;
             const hasAurumVoucher = scoreData.aurumVoucherMonth === currentMonthKey && aurumVoucherPercent > 0;
             finalPrice = hasAurumVoucher

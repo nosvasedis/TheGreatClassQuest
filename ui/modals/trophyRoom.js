@@ -5,6 +5,7 @@ import { showToast } from '../effects.js';
 import { showAnimatedModal } from './base.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { showInventoryItemDetail } from '../core/avatar.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 const MODAL_ID = 'trophy-room-modal';
 const CONTENT_ID = 'trophy-room-content';
@@ -214,7 +215,7 @@ export function renderTrophyRoomContent(studentId, partial = false) {
     const studentClass = state.get('allSchoolClasses').find(c => c.id === student?.classId)
         || state.get('allTeachersClasses').find(c => c.id === student?.classId);
     
-    const gold = scoreData?.gold !== undefined ? scoreData.gold : (scoreData?.totalStars ?? 0);
+    const gold = getLiveYearGoldFromAppState(scoreData, state);
     const usableCount = inventory.filter(item => isItemUsable(item.name)).length;
     const collectibleCount = inventory.length - usableCount;
     const featuredItem = inventory.find(item => isItemUsable(item.name)) || inventory[0] || null;

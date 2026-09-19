@@ -130,7 +130,13 @@ export function renderSecretaryTab(tabKey) {
     const renderer = TAB_RENDERERS[resolved];
     const section = document.querySelector(`[data-secretary-section="${resolved}"]`);
     if (!renderer || !section) return;
-    section.innerHTML = renderer();
+    try {
+        section.innerHTML = renderer();
+    } catch (error) {
+        console.error('Could not render School Office tab:', error);
+        showToast('Could not open that view.', 'error');
+        return;
+    }
     wireAssessmentEditorsForTab(resolved);
     if (resolved === 'admin' && document.getElementById('secretary-school-name-form')) {
         initializeSchoolLocationOptionsUi();

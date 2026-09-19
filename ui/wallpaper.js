@@ -11,6 +11,7 @@ import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '..
 import { fetchDailySpice } from '../features/home.js';
 import { PATHFINDER_AWARD_REASON, PATHFINDER_CLASS_QUEST_BONUS_STARS, resolveWallpaperFloatStyle, getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 import { WALLPAPER_WEATHER_CLASSES, wallpaperClassesForCode } from '../features/weatherTheme.js';
+import { getLiveYearGoldFromAppState, sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -1141,7 +1142,7 @@ function getClassGoldTopTrioCard(classId) {
 
     const ranked = students.map(s => {
         const score = allStudentScores.find(sc => sc.id === s.id) || {};
-        return { ...s, gold: Number(score.gold) || 0 };
+        return { ...s, gold: getLiveYearGoldFromAppState(score, state) };
     }).filter(s => s.gold > 0).sort((a, b) => b.gold - a.gold).slice(0, 3);
 
     if (!ranked.length) return null;
@@ -1384,7 +1385,10 @@ function getClassGoldRankingCard(classId) {
     const scores = state.get('allStudentScores');
     const ranked = classes.map(c => {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
-        const gold = students.reduce((sum, s) => { const sc = scores.find(x => x.id === s.id); return sum + (sc?.gold || 0); }, 0);
+        const gold = students.reduce((sum, s) => {
+            const sc = scores.find(x => x.id === s.id);
+            return sum + getLiveYearGoldFromAppState(sc, state);
+        }, 0);
         return { id: c.id, name: c.name, logo: c.logo, gold };
     }).sort((a, b) => b.gold - a.gold);
     const myData = ranked.find(c => c.id === classId);
@@ -2261,10 +2265,16 @@ function getSchoolPulseCard() {
 }
 
 function getTreasuryCard(classId) {
-    let total = 0;
     const scores = state.get('allStudentScores');
-    if (classId) state.get('allStudents').filter(s => s.classId === classId).forEach(s => { const sc = scores.find(x => x.id === s.id); if (sc) total += (sc.gold !== undefined ? sc.gold : sc.totalStars); });
-    else total = scores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
+    let total = 0;
+    if (classId) {
+        state.get('allStudents').filter(s => s.classId === classId).forEach(s => {
+            const sc = scores.find(x => x.id === s.id);
+            if (sc) total += getLiveYearGoldFromAppState(sc, state);
+        });
+    } else {
+        total = sumLiveYearGoldFromAppState(scores, state);
+    }
     return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Treasury</div><div class="text-8xl mb-2 animate-bounce-slow">💰</div><h2 class="text-6xl font-title text-amber-900"><span class="js-count-up" data-target="${total}">0</span></h2><p class="text-amber-600 font-bold">Gold</p></div>`, css: 'float-card-gold' };
 }
 
@@ -2410,7 +2420,7 @@ function getSchoolGoldLeaderCard() {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
         const gold = students.reduce((sum, s) => {
             const sc = state.get('allStudentScores').find(score => score.id === s.id);
-            return sum + (sc?.gold || 0);
+            return sum + getLiveYearGoldFromAppState(sc, state);
         }, 0);
         if (gold > maxGold) { maxGold = gold; topClass = c; }
     });

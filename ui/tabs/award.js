@@ -7,6 +7,7 @@ import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import {
     getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
@@ -433,7 +434,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
                 const scoreData = scoreMap.get(s.id) || {};
                 const totalStars = scoreData.totalStars || 0;
-                const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+                const goldCount = getLiveYearGoldFromAppState(scoreData, state);
                 const monthlyStars = scoreData.monthlyStars || 0;
                 const todayEntry = todaysStarsMap[s.id];
                 const starsToday = todayEntry?.stars || 0;

@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 /**
  * Wraps avatar HTML with the level-up indicator (arrow + glow) when the student has leveled up
@@ -33,7 +34,7 @@ document.addEventListener('clarity-glimmer', (e) => {
 function buildInventoryInnerHtml(studentId) {
     const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
     const inventory = scoreData?.inventory || [];
-    const gold = scoreData?.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+    const gold = getLiveYearGoldFromAppState(scoreData, state);
     const student = state.get('allStudents').find(s => s.id === studentId);
 
     if (inventory.length === 0) {

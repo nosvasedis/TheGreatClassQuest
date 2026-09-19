@@ -5,6 +5,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
 import { getSeasonalShopPriceMeta } from '../../utils.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 // --- SHOP UI HELPERS ---
 
@@ -491,7 +492,7 @@ export async function updateShopStudentDisplay(studentId) {
     }
 
     const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
-    const gold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+    const gold = getLiveYearGoldFromAppState(scoreData, state);
     const inventory = scoreData?.inventory || [];
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;

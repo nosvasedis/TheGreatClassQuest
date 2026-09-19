@@ -20,6 +20,7 @@ import {
     shouldSkipPostCloseHeroReconcile,
     yearScopeClauses,
 } from "../../utils/schoolYear.js";
+import { getLiveYearGold, getLiveYearGoldContextFromState } from "../../utils/yearGold.js";
 import * as state from "../../state.js";
 import { showToast, showPraiseToast } from "../../ui/effects.js";
 import {
@@ -240,10 +241,10 @@ export async function setStudentStarsForToday(
                     }
                 }
 
-                const safeCurrentGold =
-                    typeof currentData.gold === "number"
-                        ? currentData.gold
-                        : currentData.totalStars || 0;
+                const safeCurrentGold = getLiveYearGold(
+                    currentData,
+                    getLiveYearGoldContextFromState(state),
+                );
 
                 // Calculate Gold + Skill Bonuses
                 const { goldChange, bonusStars } = heroProgressionEnabled
@@ -473,10 +474,10 @@ export function applyReasonAwardScoreTransaction(
     const heroProgressionEnabled = canUseFeature("heroProgression");
     const currentTotalStars = Number(scoreData?.totalStars) || 0;
     const currentMonthlyStars = Number(scoreData?.monthlyStars) || 0;
-    const safeCurrentGold =
-        typeof scoreData?.gold === "number"
-            ? scoreData.gold
-            : currentTotalStars;
+    const safeCurrentGold = getLiveYearGold(
+        scoreData,
+        getLiveYearGoldContextFromState(state),
+    );
     const currentStarsByReason = scoreData?.starsByReason || {};
     const currentHeroLevel = scoreData?.heroLevel || 0;
 
@@ -1303,12 +1304,11 @@ async function _applyOutwardSkillEffects(
                 studentId,
             );
             const data = snap.data();
-            if (typeof data.gold === "number") {
-                batch.update(targetRef, { gold: increment(delta) });
-            } else {
-                const baseGold = data.totalStars || 0;
-                batch.update(targetRef, { gold: baseGold + delta });
-            }
+            const baseGold = getLiveYearGold(
+                data,
+                getLiveYearGoldContextFromState(state),
+            );
+            batch.update(targetRef, { gold: Math.max(0, baseGold + delta) });
             hasBatchWrites = true;
         }
     }

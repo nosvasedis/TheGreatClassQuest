@@ -14,6 +14,7 @@ import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { generateLeagueMapHtml, QUEST_MAP_ZONES } from '../../features/worldMap.js';
+import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import {
     getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
@@ -249,7 +250,7 @@ export async function renderClassLeaderboardTab() {
 
         const totalGold = studentsInClass.reduce((sum, s) => {
             const scoreData = scoresByStudentId.get(s.id);
-            const gold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+            const gold = getLiveYearGoldFromAppState(scoreData, state);
             return sum + (Number(gold) || 0);
         }, 0);
 
@@ -800,7 +801,7 @@ export async function renderStudentLeaderboardTab() {
             const totalStars = scoreData.totalStars || 0;
 
             // NEW: Get Gold
-            const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+            const gold = getLiveYearGoldFromAppState(scoreData, state);
 
             const stats = getStudentStats(s.id);
 

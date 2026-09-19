@@ -26,9 +26,22 @@ export function getLatestScoresByStudent() {
     return latestMap;
 }
 
+export function liveSchoolClasses() {
+    const yearKey = state.getActiveSchoolYearKey();
+    return (state.get('allSchoolClasses') || []).filter((item) => {
+        if (item.status === 'archived' || item.status === 'closed') return false;
+        if (yearKey && item.schoolYearKey && item.schoolYearKey !== yearKey) return false;
+        return true;
+    });
+}
+
+export function liveStudents() {
+    return (state.get('allStudents') || []).filter((student) => student.enrollmentStatus !== 'inactive');
+}
+
 export function filteredClasses() {
     const query = String(state.get('secretaryView')?.classFilter || '').trim().toLowerCase();
-    const classes = state.get('allSchoolClasses') || [];
+    const classes = liveSchoolClasses();
     if (!query) return classes;
     return classes.filter((item) =>
         String(item.name || '').toLowerCase().includes(query) ||
@@ -39,12 +52,17 @@ export function filteredClasses() {
 
 export function filteredStudents() {
     const query = String(state.get('secretaryView')?.studentFilter || '').trim().toLowerCase();
-    const students = state.get('allStudents') || [];
+    const classMap = getClassMap();
+    const students = liveStudents();
     if (!query) return students;
-    return students.filter((item) =>
-        String(item.name || '').toLowerCase().includes(query) ||
-        String(item.heroClass || '').toLowerCase().includes(query)
-    );
+    return students.filter((item) => {
+        const classData = classMap.get(item.classId);
+        return String(item.name || '').toLowerCase().includes(query)
+            || String(item.heroClass || '').toLowerCase().includes(query)
+            || String(classData?.name || '').toLowerCase().includes(query)
+            || String(classData?.questLevel || '').toLowerCase().includes(query)
+            || String(classData?.createdBy?.name || '').toLowerCase().includes(query);
+    });
 }
 
 export function getActiveThread() {

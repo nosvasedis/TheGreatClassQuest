@@ -4,7 +4,8 @@ import { showToast } from '../ui/effects.js';
 import {
     previewYearRollover,
     closeSchoolYear,
-    openSchoolYear
+    openSchoolYear,
+    archiveCarriedYearGold
 } from '../utils/adminRuntime.js';
 import {
     openPlacementWizard,
@@ -16,6 +17,11 @@ import {
     renderClassLauncher,
     refreshClassWizardIfOpen
 } from './classWizard.js';
+import {
+    openStudentWizard,
+    renderStudentLauncher,
+    refreshStudentWizardIfOpen
+} from './studentWizard.js';
 import {
     buildRolloverConfirmationText,
     closeDateToPickerValue,
@@ -37,6 +43,16 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function renderYearSetupLaunchers({ pendingCount } = {}) {
+    return `
+        <div class="school-year-setup-pair">
+            ${renderStudentLauncher()}
+            ${renderClassLauncher()}
+            ${renderPlacementLauncher({ pendingCount })}
+        </div>
+    `;
 }
 
 function friendlyYearStatus(value) {
@@ -187,7 +203,8 @@ function renderPreparingMode({
     startsAtLabel,
     closeDatePickerValue,
     closeDateSavedLabel,
-    closeDateExample
+    closeDateExample,
+    pendingStudents
 }) {
     return `
         <div class="school-year-command school-year-command--preparing">
@@ -214,7 +231,7 @@ function renderPreparingMode({
                 </div>
             </section>
 
-            ${renderClassLauncher()}
+            ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
 
             ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
         </div>
@@ -263,7 +280,7 @@ function renderBetweenYearsMode({
                 </div>
             </section>
 
-            ${renderClassLauncher()}
+            ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
 
             <section class="secretary-card school-year-open-section">
                 <div class="secretary-card__header">
@@ -282,7 +299,6 @@ function renderBetweenYearsMode({
                 </button>
             </section>
 
-            ${renderPlacementLauncher({ pendingCount: pendingStudents.length })}
         </div>
     `;
 }
@@ -328,7 +344,7 @@ function renderUnderwayMode({
                 </div>
             </section>
 
-            ${renderClassLauncher()}
+            ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
 
             ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
 
@@ -341,7 +357,7 @@ function renderUnderwayMode({
                     <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
                 </div>
                 <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                    Check that everything is ready, then type the confirmation. This stores the finished year, keeps gold and guilds, resets live progress, and moves returning students into placement.
+                    Check that everything is ready, then type the confirmation. This stores the finished year, archives last year's Gold, keeps guild houses, resets live progress, and moves returning students into placement.
                 </p>
                 <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
                     <i class="fas fa-list-check mr-2"></i>Check readiness
@@ -354,8 +370,6 @@ function renderUnderwayMode({
                     <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : `Available on ${escapeHtml(closeDateSavedLabel)}`}
                 </button>
             </section>
-
-            ${renderPlacementLauncher({ pendingCount: pendingStudents.length })}
         </div>
     `;
 }
@@ -405,7 +419,8 @@ export function renderSchoolYearSection() {
             startsAtLabel,
             closeDatePickerValue,
             closeDateSavedLabel,
-            closeDateExample
+            closeDateExample,
+            pendingStudents
         });
     }
 
@@ -527,13 +542,27 @@ async function runSchoolYearOpen(button) {
 }
 
 let onSchoolYearConsoleRerender = null;
+let carriedGoldArchivePromise = null;
+
+function maybeArchiveCarriedYearGold() {
+    const schoolYearState = normalizeSchoolYearState(state.get('schoolYearState') || {});
+    if (!schoolYearState.lastClosedYearKey) return;
+    if (String(schoolYearState.rolloverStatus || '').toLowerCase() !== 'active') return;
+    if (carriedGoldArchivePromise) return;
+    carriedGoldArchivePromise = archiveCarriedYearGold().catch((error) => {
+        console.warn('Could not archive last year\'s Gold:', error);
+        carriedGoldArchivePromise = null;
+    });
+}
 
 export function wireSchoolYearConsoleHandlers({ onRerender }) {
     onSchoolYearConsoleRerender = () => {
         onRerender?.();
         refreshPlacementWizardIfOpen();
         refreshClassWizardIfOpen();
+        refreshStudentWizardIfOpen();
     };
+    maybeArchiveCarriedYearGold();
 }
 
 export function handleSchoolYearConsoleClick(event) {
@@ -558,6 +587,12 @@ export function handleSchoolYearConsoleClick(event) {
     const saveCloseDateBtn = event.target.closest('#school-year-save-close-date-btn');
     if (saveCloseDateBtn) {
         saveSchoolYearCloseDate(saveCloseDateBtn);
+        return true;
+    }
+
+    const studentDeskBtn = event.target.closest('#school-year-student-desk-open-btn');
+    if (studentDeskBtn) {
+        openStudentWizard({ onRerender: () => onSchoolYearConsoleRerender?.() });
         return true;
     }
 

@@ -22,6 +22,7 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
+import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import {
     HEADER_WEATHER_CLASSES,
     headerClassesForTheme,
@@ -390,7 +391,7 @@ function getGeneralDashboard(name, theme, spice) {
 
     const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
 
-    const totalGold = allScores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
+    const totalGold = sumLiveYearGoldFromAppState(allScores, state);
 
     const tools = [
         { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },

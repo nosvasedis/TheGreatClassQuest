@@ -24,6 +24,79 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { withActiveScoreYear, withActiveStudentYear } from '../../utils/schoolYear.js';
 import { allocateReturningStudents, purgeStudent, transferStudentToClass } from '../../utils/adminRuntime.js';
 
+const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
+
+const SCORE_DEFAULTS = {
+    totalStars: 0,
+    monthlyStars: 0,
+    gold: 0,
+    inventory: [],
+    starsByReason: {},
+    heroLevel: 0,
+    heroSkills: [],
+    pendingSkillChoice: false
+};
+
+function normalizeCreatedBy(createdBy) {
+    const uid = String(createdBy?.uid || '').trim();
+    const name = String(createdBy?.name || 'Teacher').trim() || 'Teacher';
+    if (!uid) {
+        throw new Error('A teacher is required to create a student.');
+    }
+    return { uid, name };
+}
+
+function occasionDate(value) {
+    const text = String(value || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+}
+
+/**
+ * Create a student + matching score stub. Ownership must be the class teacher
+ * (never the secretary), so the Teacher App can edit and award stars.
+ * @param {object} data - { name, classId, createdBy, birthday?, nameday? }
+ * @param {object} [options]
+ * @param {boolean} [options.silent]
+ * @returns {Promise<string|null>} new student id
+ */
+export async function createStudent(data = {}, options = {}) {
+    const name = String(data.name || '').trim();
+    const classId = String(data.classId || '').trim();
+    if (!name || !classId) {
+        showToast('Please enter a student name and choose a class.', 'error');
+        return null;
+    }
+    const owner = normalizeCreatedBy(data.createdBy);
+    const birthday = occasionDate(data.birthday);
+    const nameday = occasionDate(data.nameday);
+    const activeYearKey = state.getActiveSchoolYearKey();
+
+    const studentId = await runTransaction(db, async (transaction) => {
+        const newStudentRef = doc(collection(db, `${PUBLIC_DATA_PATH}/students`));
+        const studentData = withActiveStudentYear({
+            name,
+            classId,
+            createdBy: owner,
+            createdAt: serverTimestamp(),
+            ...(birthday ? { birthday } : {}),
+            ...(nameday ? { nameday } : {})
+        }, activeYearKey);
+        transaction.set(newStudentRef, studentData);
+        transaction.set(doc(db, `${PUBLIC_DATA_PATH}/student_scores`, newStudentRef.id), withActiveScoreYear({
+            ...SCORE_DEFAULTS,
+            inventory: [],
+            starsByReason: {},
+            heroSkills: [],
+            lastMonthlyResetDate: getStartOfMonthString(),
+            createdBy: { uid: owner.uid, name: owner.name }
+        }, activeYearKey));
+        return newStudentRef.id;
+    });
+
+    if (!options.silent) showToast('Student added to the roster!', 'success');
+    return studentId;
+}
+
 // --- STUDENT & USER ACTIONS ---
 
 export async function handleAddStudent() {
@@ -39,31 +112,11 @@ export async function handleAddStudent() {
         input.disabled = true;
         btn.disabled = true;
         btn.innerHTML = 'Adding...';
-        await runTransaction(db, async (transaction) => {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
-            const newStudentRef = doc(collection(db, `${publicDataPath}/students`));
-            const activeYearKey = state.getActiveSchoolYearKey();
-            const studentData = withActiveStudentYear({
-                name,
-                classId,
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-                createdAt: serverTimestamp()
-            }, activeYearKey);
-            transaction.set(newStudentRef, studentData);
-            const newScoreRef = doc(db, `${publicDataPath}/student_scores`, newStudentRef.id);
-            transaction.set(newScoreRef, withActiveScoreYear({
-                totalStars: 0,
-                monthlyStars: 0,
-                gold: 0,
-                inventory: [],
-                starsByReason: {},
-                heroLevel: 0,
-                heroSkills: [],
-                pendingSkillChoice: false,
-                lastMonthlyResetDate: getStartOfMonthString(),
-                createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
-            }, activeYearKey));
-        });
+        await createStudent({
+            name,
+            classId,
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        }, { silent: true });
         input.value = '';
     } catch (error) {
         console.error("Error adding student: ", error);

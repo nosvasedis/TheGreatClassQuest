@@ -2,6 +2,7 @@ import { db, doc, collection, getDoc, getDocs, query, where, updateDoc, runTrans
 import * as state from '../state.js';
 import { createQuestEventDocument, getDefaultProgress, normalizeLegacyQuestEvent, reduceQuestProgress, canCompleteRun, isSpecialQuestType } from './specialQuestEngine.js';
 import { withSchoolYear } from '../utils/schoolYear.js';
+import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { updateGuildScores } from './guildScoring.js';
 import { reconcileFamiliarLifecycle } from './familiars.js';
 
@@ -118,9 +119,16 @@ export async function reverseQuestCompletion(eventId, { reversedBy = state.get('
         const existing = await transaction.get(reverseRef); if (existing.exists()) return;
         const scoreSnapshots = []; for (const studentId of action.recipientIds || []) scoreSnapshots.push({ studentId, ref: doc(db, SCORES, studentId), snapshot: await transaction.get(doc(db, SCORES, studentId)) });
         for (const item of scoreSnapshots) {
-            const data = item.snapshot.data() || {}; const gold = Number(data.gold) || 0; if (gold < Number(action.starsPerRecipient)) throw new Error('Undo blocked: a recipient has already spent part of this reward.');
+            const data = item.snapshot.data() || {};
+            const amount = Number(action.starsPerRecipient);
+            const gold = getLiveYearGold(data, getLiveYearGoldContextFromState(state));
+            if (gold < amount) throw new Error('Undo blocked: a recipient has already spent part of this reward.');
+            transaction.update(item.ref, {
+                totalStars: increment(-amount),
+                monthlyStars: increment(-amount),
+                gold: Math.max(0, gold - amount)
+            });
         }
-        for (const item of scoreSnapshots) transaction.update(item.ref, { totalStars: increment(-Number(action.starsPerRecipient)), monthlyStars: increment(-Number(action.starsPerRecipient)), gold: increment(-Number(action.starsPerRecipient)) });
         transaction.set(reverseRef, withSchoolYear({ schemaVersion: 1, type: 'reversal', eventId, runId: runRef.id, runVersion: run.runVersion, classId: run.classId, recipientIds: action.recipientIds, starsPerRecipient: action.starsPerRecipient, totalStars: -action.totalStars, totalGold: -action.totalGold, coreStatus: 'applied', effects: { guild: 'pending', familiars: 'pending' }, reversesActionId: action.id || run.completionActionId, createdBy: reversedBy, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
         transaction.update(runRef, { status: 'reversed', updatedAt: serverTimestamp() });
     });

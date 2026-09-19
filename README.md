@@ -73,7 +73,7 @@ The same school year is shared. Each person only sees what they need. All three 
 | Interface | Who | What it is for |
 |-----------|-----|----------------|
 | **Teacher** | Classroom teacher | The full Quest: ten tabs, Award Stars, ceremonies, Market. **Starter**, **Pro**, and **Elite**. |
-| **School Office** (Secretary) | School-year admin | Classes for each teacher, student placement, holidays, year open/close, school grading defaults, family messages. **Elite.** |
+| **School Office** (Secretary) | School-year admin | Classes for each teacher, new students, student placement, holidays, year open/close, school grading defaults, family messages. **Elite.** |
 | **Family Portal** (Parent) | One login per child | Progress, homework, attendance snapshot, calm messages. **Pro and Elite.** |
 
 Students do not log in. They see the Quest on the classroom screen.
@@ -310,7 +310,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
   - **The Streak** – participation/attendance streaks
   - **Timekeeper** – countdown for active lesson
   - **League Race** – bar chart of classes in the league
-  - **The Treasury** – total Gold
+  - **The Treasury** – this year's Gold
   - **Superpower** – most-awarded skill this month
   - **Story Update** – last sentence of the class story
   - **Weather** – current conditions

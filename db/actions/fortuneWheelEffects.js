@@ -9,6 +9,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { LEGENDARY_ARTIFACTS } from '../../features/powerUps.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
+import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -110,7 +111,7 @@ export async function applyWheelStudentEffects({
 
             const currentTotalStars = Number(scoreData.totalStars) || 0;
             const currentMonthlyStars = Number(scoreData.monthlyStars) || 0;
-            const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : 0;
+            const currentGold = getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state));
             const currentInventory = Array.isArray(scoreData.inventory) ? [...scoreData.inventory] : [];
 
             const next = {};

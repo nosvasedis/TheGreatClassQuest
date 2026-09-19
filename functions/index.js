@@ -1779,7 +1779,7 @@ exports.closeSchoolYear = callable(async (request) => {
       payload: withActiveYear({
         totalStars: 0,
         monthlyStars: 0,
-        gold: score.gold || 0,
+        gold: 0,
         inventory: [],
         starsByReason: {},
         heroLevel: 0,
@@ -1883,6 +1883,54 @@ exports.closeSchoolYear = callable(async (request) => {
   return { ok: true, jobId };
 });
 
+function isCarriedPriorYearGold(score, lastClosedYearKey) {
+  if (!lastClosedYearKey) return false;
+  const gold = Number(score?.gold || 0);
+  if (!(gold > 0)) return false;
+  return Number(score?.totalStars || 0) === 0 && Number(score?.monthlyStars || 0) === 0;
+}
+
+async function archiveCarriedLiveGoldBalances(stateData = {}) {
+  const activeYearKey = String(stateData.activeYearKey || '').trim();
+  const lastClosedYearKey = String(stateData.lastClosedYearKey || '').trim();
+  if (!lastClosedYearKey) return { archivedCount: 0 };
+
+  const scoresSnap = await db.collection(`${PUBLIC_DATA_PATH}/student_scores`).get();
+  const scoreWrites = [];
+  const parentWrites = [];
+  scoresSnap.docs.forEach((docSnap) => {
+    const score = docSnap.data() || {};
+    if (score.activeSchoolYearKey && activeYearKey && score.activeSchoolYearKey !== activeYearKey) return;
+    if (!isCarriedPriorYearGold(score, lastClosedYearKey)) return;
+    scoreWrites.push({
+      ref: docSnap.ref,
+      payload: {
+        gold: 0,
+        updatedAt: FieldValue.serverTimestamp()
+      }
+    });
+    parentWrites.push({
+      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${docSnap.id}`),
+      payload: {
+        'progress.gold': 0,
+        updatedAt: FieldValue.serverTimestamp()
+      }
+    });
+  });
+
+  await commitBatchChunks(scoreWrites);
+  await commitBatchChunks(parentWrites);
+  return { archivedCount: scoreWrites.length };
+}
+
+exports.archiveCarriedYearGold = callable(async (request) => {
+  await requireYearOperator(request);
+  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const stateData = stateSnap.exists ? (stateSnap.data() || {}) : {};
+  const result = await archiveCarriedLiveGoldBalances(stateData);
+  return { ok: true, ...result };
+});
+
 exports.openSchoolYear = callable(async (request) => {
   const caller = await requireYearOperator(request);
   const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
@@ -1892,13 +1940,18 @@ exports.openSchoolYear = callable(async (request) => {
     throw new HttpsError('failed-precondition', 'The active school year is unavailable.');
   }
 
+  const archivedGold = await archiveCarriedLiveGoldBalances({
+    ...stateData,
+    activeYearKey
+  });
   const currentStatus = String(stateData.rolloverStatus || '').toLowerCase();
   if (currentStatus === 'active') {
     return {
       ok: true,
       alreadyOpen: true,
       activeYearKey,
-      rolloverStatus: 'active'
+      rolloverStatus: 'active',
+      archivedGoldBalances: archivedGold.archivedCount
     };
   }
 
@@ -1984,6 +2037,7 @@ exports.allocateReturningStudents = callable(async (request) => {
       payload: {
         createdBy: owner,
         activeSchoolYearKey: yearKey,
+        gold: 0,
         updatedAt: FieldValue.serverTimestamp()
       }
     });

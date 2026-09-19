@@ -153,7 +153,7 @@ function renderSuggestedClassChip(student) {
 
 export function renderPlacementLauncher({ pendingCount } = {}) {
     const waiting = Number(pendingCount || 0);
-    if (!waiting) return '';
+    const badge = waiting === 1 ? '1 waiting' : (waiting ? `${waiting} waiting` : 'All seated');
     return `
         <section class="secretary-card placement-launcher">
             <div class="placement-launcher__glow" aria-hidden="true"></div>
@@ -162,14 +162,15 @@ export function renderPlacementLauncher({ pendingCount } = {}) {
                     <p class="secretary-card__eyebrow">Student placement</p>
                     <h3 class="secretary-card__title">Place returning students</h3>
                 </div>
-                <div class="secretary-card__badge">${waiting} waiting</div>
+                <div class="secretary-card__badge">${escapeHtml(badge)}</div>
             </div>
             <p class="text-sm text-slate-600 leading-relaxed">
-                Seat last year’s heroes into this year’s classes. Group by previous class, league, or A–Z —
-                then follow the suggestions.
+                ${waiting
+                    ? 'Seat last year’s heroes into this year’s classes. Group by previous class, league, or A–Z — then follow the suggestions.'
+                    : 'Everyone has a class this year. Open placement if a returning hero still needs a seat.'}
             </p>
             <button type="button" id="school-year-placement-open-btn" class="secretary-shell__primary-btn placement-launcher__cta">
-                <i class="fas fa-hat-wizard mr-2" aria-hidden="true"></i>Start placement
+                <i class="fas fa-hat-wizard mr-2" aria-hidden="true"></i>${waiting ? 'Start placement' : 'Open placement'}
             </button>
         </section>
     `;
@@ -287,6 +288,48 @@ function renderSearch(placeholder) {
     `;
 }
 
+function visibleAlphaStudents() {
+    return groupPendingStudents(state.get('allStudents') || [], PLACEMENT_GROUP_MODES.ALPHA, wizardState.search)
+        .flatMap((group) => group.students);
+}
+
+function idsForSelectScope(scope) {
+    if (scope === 'review') return [...wizardState.reviewStudentIds];
+    return visibleAlphaStudents().map((student) => student.id);
+}
+
+function renderSelectToggleBar(scope) {
+    const visibleIds = idsForSelectScope(scope);
+    if (!visibleIds.length) return '';
+    const selectedVisible = visibleIds.filter((id) => wizardState.selectedStudentIds.includes(id)).length;
+    const allSelected = selectedVisible === visibleIds.length;
+    const noneSelected = selectedVisible === 0;
+    return `
+        <div class="placement-select-bar">
+            <span class="placement-select-bar__count">${selectedVisible} of ${visibleIds.length} selected</span>
+            <div class="placement-select-bar__actions">
+                <button type="button" class="secretary-chip-btn" data-placement-select-all="${escapeHtml(scope)}" ${allSelected ? 'disabled' : ''}>
+                    Select all
+                </button>
+                <button type="button" class="secretary-chip-btn" data-placement-select-none="${escapeHtml(scope)}" ${noneSelected ? 'disabled' : ''}>
+                    Unselect all
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function applySelectToggle(scope, select) {
+    const visibleIds = idsForSelectScope(scope);
+    const visible = new Set(visibleIds);
+    if (select) {
+        wizardState.selectedStudentIds = [...new Set([...wizardState.selectedStudentIds, ...visibleIds])];
+    } else {
+        wizardState.selectedStudentIds = wizardState.selectedStudentIds.filter((id) => !visible.has(id));
+    }
+    paintWizard();
+}
+
 function renderCohortCard(group) {
     const teacherName = group.previousTeacher?.name || '';
     const nextLabel = group.naturalNextLeague
@@ -348,7 +391,8 @@ function renderGatherBody() {
         return `
             ${renderModeToggle()}
             ${renderSearch('Search by name, old class, league, or teacher...')}
-            <p class="placement-hint">Select the heroes you want to seat, then continue.</p>
+            <p class="placement-hint">Select the heroes you want to seat, then continue. Use Select all for everyone on this list.</p>
+            ${renderSelectToggleBar('gather')}
             ${groups.map((group) => `
                 <section class="placement-alpha-section">
                     <h4 class="placement-alpha-section__title">${escapeHtml(group.title)}</h4>
@@ -489,6 +533,8 @@ function renderReviewBody() {
                 ${renderLeagueChip(destination.questLevel)}
             </div>
         ` : ''}
+        <p class="placement-hint">Uncheck anyone who should wait. Select all or Unselect all if you need a faster pass.</p>
+        ${renderSelectToggleBar('review')}
         <div class="placement-review-grid">
             ${students.map((student) => renderReviewStudentCard(student)).join('')}
         </div>
@@ -691,6 +737,18 @@ async function handleWizardClick(event) {
         const groups = groupPendingStudents(state.get('allStudents') || [], wizardState.groupMode, wizardState.search);
         const group = groups.find((entry) => entry.key === groupBtn.dataset.placementGroup);
         goToClassStep((group?.students || []).map((student) => student.id), group?.key || null);
+        return;
+    }
+
+    const selectAllBtn = event.target.closest('[data-placement-select-all]');
+    if (selectAllBtn) {
+        applySelectToggle(selectAllBtn.dataset.placementSelectAll, true);
+        return;
+    }
+
+    const selectNoneBtn = event.target.closest('[data-placement-select-none]');
+    if (selectNoneBtn) {
+        applySelectToggle(selectNoneBtn.dataset.placementSelectNone, false);
         return;
     }
 

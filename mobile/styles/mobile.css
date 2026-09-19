@@ -17,7 +17,8 @@
 #m-parent-dock,
 #m-secretary-header,
 #m-secretary-dock,
-#home-dashboard-mobile {
+#home-dashboard-mobile,
+#m-options-subtab-dropdown {
     display: none;
 }
 
@@ -33,7 +34,8 @@ body.gcq-mobile #m-secretary-dock {
     display: grid;
 }
 
-body.gcq-mobile #home-dashboard-mobile {
+body.gcq-mobile #home-dashboard-mobile,
+body.gcq-mobile #m-options-subtab-dropdown {
     display: block;
 }
 

@@ -2,6 +2,33 @@ import { getQuestLeagueDefinition } from '../constants.js';
 
 export const CEREMONY_MODES = Object.freeze({ CLASSIC: 'classic_arena', GROWTH: 'growth_festival' });
 
+/** 1-based calendar months with no school, so no Ceremony of the Month. August is always closed. */
+export const CEREMONY_CLOSED_MONTHS = Object.freeze([8]);
+
+function ceremonyMonthKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function isCeremonyMonth(monthKey) {
+    const month = Number(String(monthKey || '').split('-')[1]);
+    return Number.isInteger(month) && month >= 1 && month <= 12 && !CEREMONY_CLOSED_MONTHS.includes(month);
+}
+
+/**
+ * Ceremony of the Month always celebrates the previous local calendar month —
+ * except August, which never has a ceremony because schools are closed.
+ * In September this returns null (no August ritual). First ceremony of a year is October for September.
+ */
+export function resolvePendingCeremonyMonth(now = new Date()) {
+    const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthKey = ceremonyMonthKey(previous);
+    if (!isCeremonyMonth(monthKey)) return null;
+    return {
+        monthKey,
+        monthName: previous.toLocaleString('en-GB', { month: 'long' })
+    };
+}
+
 export function resolveCeremonyMode(league) {
     const definition = typeof league === 'object' ? league : getQuestLeagueDefinition(league);
     if (!definition) return { ok: false, mode: null, reason: 'This class has no valid Quest League. Ceremony preparation is blocked.' };

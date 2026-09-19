@@ -36,7 +36,7 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
-import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle } from './ceremonyDomain.js';
+import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId } from './ceremonySnapshots.js';
 
 const CEREMONY_REASON_INFO = {
@@ -333,17 +333,13 @@ export function updateCeremonyStatus() {
     const classData = state.get('allSchoolClasses').find(c => c.id === currentClassId);
     if (!classData) return;
 
-    const now = new Date();
-    const prevDate = new Date();
-    prevDate.setMonth(now.getMonth() - 1);
-    
-    const monthKey = prevDate.toISOString().substring(0, 7); 
+    const pending = resolvePendingCeremonyMonth(new Date());
+    if (!pending) return;
 
     const history = classData.ceremonyHistory || {};
-    const isComplete = history[monthKey] && history[monthKey].complete;
-    const currentMonthKey = now.toISOString().substring(0, 7);
+    const isComplete = history[pending.monthKey] && history[pending.monthKey].complete;
     
-    if (!isComplete && monthKey !== currentMonthKey && existedByMonthEnd(classData, monthKey)) {
+    if (!isComplete && existedByMonthEnd(classData, pending.monthKey)) {
         homeBtn.classList.add('ceremony-star-ring');
     }
 }
@@ -352,19 +348,15 @@ export async function checkAndInitCeremony(classId, { replay = false } = {}) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!classData) return null;
 
-    const now = new Date();
-    const prevDate = new Date();
-    prevDate.setMonth(now.getMonth() - 1);
-    
-    const monthKey = prevDate.toISOString().substring(0, 7); 
-    const monthName = prevDate.toLocaleString('en-GB', { month: 'long' });
+    const pending = resolvePendingCeremonyMonth(new Date());
+    if (!pending) return null;
+    const { monthKey, monthName } = pending;
 
     const history = classData.ceremonyHistory || {};
     const snapshotSnap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/ceremony_snapshots', ceremonySnapshotId(classId, monthKey))).catch(() => null);
     const snapshot = snapshotSnap?.exists?.() ? { id: snapshotSnap.id, ...snapshotSnap.data() } : null;
     if (history[monthKey] && history[monthKey].complete && !replay) return null;
 
-    if (monthKey === now.toISOString().substring(0, 7)) return null; 
     if (!existedByMonthEnd(classData, monthKey)) return null;
 
     const modeResult = resolveCeremonyMode(classData.questLevel);

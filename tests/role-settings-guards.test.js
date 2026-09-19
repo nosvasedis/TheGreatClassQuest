@@ -6,6 +6,17 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
+test('mobile Teacher Settings dropdown is hidden on desktop', () => {
+  const mobileCss = read('mobile/styles/mobile.css');
+  const tabsCss = read('mobile/styles/tabs.css');
+  const hideBlock = mobileCss.match(/#m-teacher-header,[\s\S]*?\{\s*display:\s*none;?\s*\}/);
+  assert.ok(hideBlock, 'expected desktop hide block for mobile shells');
+  assert.match(hideBlock[0], /#m-options-subtab-dropdown/);
+  assert.match(mobileCss, /body\.gcq-mobile #m-options-subtab-dropdown/);
+  assert.match(tabsCss, /\.m-subtab-dropdown\s*\{[\s\S]*?display:\s*none/);
+  assert.match(tabsCss, /body\.gcq-mobile \.m-subtab-dropdown\s*\{[\s\S]*?display:\s*block/);
+});
+
 test('Teacher Settings contains only teacher-owned controls and no school-wide editors', () => {
   const teacherSettings = read('templates/app/tabs/options.js');
   assert.doesNotMatch(teacherSettings, /id="options-school-name-input"/);
@@ -24,7 +35,7 @@ test('Teacher Settings contains only teacher-owned controls and no school-wide e
   assert.doesNotMatch(teacherSettings, /Role Access Center/);
   assert.match(read('features/accessManagement.js'), /Parent access is not included in this school's plan/);
   assert.doesNotMatch(read('features/accessManagement.js'), />Pro\+</);
-  assert.match(read('features/schoolYearConsole.js'), /Parent access is turned off now/);
+  assert.match(read('features/placementWizard.js'), /Parent access is turned off now/);
   assert.match(read('utils/adminRuntime.js'), /purgeStudent/);
   assert.match(read('functions/index.js'), /exports\.purgeLeftSchoolStudents/);
   assert.match(read('functions/index.js'), /exports\.purgeStudent/);

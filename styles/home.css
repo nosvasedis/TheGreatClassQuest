@@ -138,15 +138,223 @@
     opacity: 0;
 }
 
-/* Date Pill Styling */
+/* Date Pill Styling
+   Layout only — colour comes from Tailwind or a modifier (e.g. date-pill--ceremony).
+   A forced white background here used to wash out gradient pills (white-on-white ceremony badge). */
 .date-pill {
     padding: 0.5rem 1.5rem;
     border-radius: 9999px;
     font-family: 'Fredoka One', cursive;
     letter-spacing: 0.05em;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid rgba(255,255,255,0.8);
+}
+
+/* Ceremony of the Month — compact gold/indigo beacon (inner glow: greeting-panel clips overflow) */
+.date-pill.date-pill--ceremony {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 0.5rem 1.15rem 0.5rem 0.55rem;
+    border: 1px solid rgba(253, 230, 138, 0.72);
+    color: #fff7ed;
+    background:
+        radial-gradient(circle at 16% 18%, rgba(254, 240, 138, 0.55) 0%, transparent 42%),
+        linear-gradient(125deg, #1e1b4b 0%, #4338ca 36%, #7c3aed 64%, #b45309 100%);
+    background-size: 180% 180%;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        inset 0 -10px 18px rgba(15, 23, 42, 0.18),
+        0 8px 18px -8px rgba(67, 56, 202, 0.7),
+        0 0 18px rgba(251, 191, 36, 0.42);
+    animation: ceremony-pill-shift 8s ease-in-out infinite, ceremony-pill-glow 2.6s ease-in-out infinite;
+    cursor: pointer;
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(15, 23, 42, 0.45);
+}
+
+.date-pill.date-pill--ceremony:hover {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 12px 24px -10px rgba(67, 56, 202, 0.8),
+        0 0 26px rgba(251, 191, 36, 0.58);
+}
+
+.date-pill.date-pill--ceremony:active {
+    transform: scale(0.98);
+}
+
+.date-pill--ceremony__aurora,
+.date-pill--ceremony__sheen,
+.date-pill--ceremony__spark {
+    pointer-events: none;
+}
+
+.date-pill--ceremony__aurora {
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at 22% 20%, rgba(255, 255, 255, 0.38) 0%, transparent 48%);
+    z-index: 0;
+    animation: ceremony-pill-aurora 5.5s ease-in-out infinite;
+}
+
+.date-pill--ceremony__sheen {
+    position: absolute;
+    top: -60%;
+    left: -40%;
+    width: 45%;
+    height: 220%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+    transform: rotate(24deg);
+    z-index: 1;
+    animation: ceremony-pill-sheen 3.4s ease-in-out infinite;
+}
+
+.date-pill--ceremony__spark {
+    position: absolute;
+    z-index: 2;
+    font-size: 0.55rem;
+    color: #fde68a;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.9);
+    animation: sparkle 2.4s ease-in-out infinite;
+}
+
+.date-pill--ceremony__spark--a {
+    top: 0.2rem;
+    right: 0.85rem;
+}
+
+.date-pill--ceremony__spark--b {
+    bottom: 0.15rem;
+    right: 1.65rem;
+    animation-delay: -1.1s;
+    font-size: 0.48rem;
+}
+
+.date-pill--ceremony__icon {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    width: 2.15rem;
+    height: 2.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.8rem;
+    background: linear-gradient(160deg, rgba(254, 243, 199, 0.4), rgba(180, 83, 9, 0.28));
+    border: 1px solid rgba(254, 243, 199, 0.45);
+    color: #fde68a;
+    font-size: 1.05rem;
+    animation: pulse-glow 2.2s ease-in-out infinite;
+}
+
+.date-pill--ceremony__copy {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    min-width: 0;
+    text-align: left;
+}
+
+.date-pill--ceremony__kicker {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fef3c7;
+    opacity: 0.95;
+}
+
+.date-pill--ceremony__title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.02rem;
+    line-height: 1.05;
+    letter-spacing: 0.03em;
+    color: #fff;
+}
+
+.date-pill.date-pill--ceremony-growth {
+    border-color: rgba(167, 243, 208, 0.8);
+    background:
+        radial-gradient(circle at 16% 18%, rgba(252, 231, 243, 0.55) 0%, transparent 44%),
+        linear-gradient(125deg, #065f46 0%, #10b981 38%, #ec4899 70%, #f59e0b 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        0 8px 18px -8px rgba(16, 185, 129, 0.65),
+        0 0 18px rgba(244, 114, 182, 0.4);
+    animation: ceremony-pill-shift 8s ease-in-out infinite, ceremony-pill-glow-growth 2.6s ease-in-out infinite;
+}
+
+.date-pill.date-pill--ceremony-growth .date-pill--ceremony__icon {
+    color: #ecfccb;
+    background: linear-gradient(160deg, rgba(167, 243, 208, 0.45), rgba(236, 72, 153, 0.28));
+}
+
+.date-pill.date-pill--ceremony-growth .date-pill--ceremony__kicker {
+    color: #fce7f3;
+}
+
+@keyframes ceremony-pill-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes ceremony-pill-glow {
+    0%, 100% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.42),
+            inset 0 -10px 18px rgba(15, 23, 42, 0.18),
+            0 8px 18px -8px rgba(67, 56, 202, 0.7),
+            0 0 16px rgba(251, 191, 36, 0.38);
+    }
+    50% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.55),
+            inset 0 -8px 16px rgba(15, 23, 42, 0.12),
+            0 10px 22px -8px rgba(67, 56, 202, 0.85),
+            0 0 26px rgba(253, 224, 71, 0.62);
+    }
+}
+
+@keyframes ceremony-pill-glow-growth {
+    0%, 100% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.42),
+            0 8px 18px -8px rgba(16, 185, 129, 0.65),
+            0 0 16px rgba(244, 114, 182, 0.35);
+    }
+    50% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.55),
+            0 10px 22px -8px rgba(16, 185, 129, 0.8),
+            0 0 26px rgba(251, 191, 36, 0.5);
+    }
+}
+
+@keyframes ceremony-pill-aurora {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+    50% { transform: translate(8%, 4%) scale(1.08); opacity: 1; }
+}
+
+@keyframes ceremony-pill-sheen {
+    0% { transform: translateX(-140%) rotate(24deg); }
+    100% { transform: translateX(320%) rotate(24deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .date-pill.date-pill--ceremony,
+    .date-pill--ceremony__aurora,
+    .date-pill--ceremony__sheen,
+    .date-pill--ceremony__spark,
+    .date-pill--ceremony__icon {
+        animation: none;
+    }
 }
 
 .date-pill--quest {

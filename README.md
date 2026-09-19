@@ -213,7 +213,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 - **League Map:** SVG path from **Bronze Meadows** → **Silver Peaks** → **Golden Citadel** → **Crystal Realm**. Each class is a moving avatar; position is based on **monthly stars** vs. **monthly goal**. Overlap resolution keeps labels readable.
 - **Monthly goal:** Computed from schedule, **school holidays**, and **cancelled lessons** (fewer teaching days ⇒ lower goal). Display shows “goal adjusted by ±X stars” when relevant.
-- **Ceremony of the Month:** At the start of a new month, **Team Quest** and **Hero's Challenge** tabs **glow** until you run the dual ritual: league **class** ranks, then **Prodigy of the Month** for the selected class (Co-Prodigy allowed).
+- **Ceremony of the Month:** At the start of a new school month (never August — schools are closed), Home **glows** until you run the dual ritual: league **class** ranks, then **Prodigy of the Month** for the selected class (Co-Prodigy allowed).
 
 ---
 
@@ -381,7 +381,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Generate Certificate** → AI paragraph + PDF download (avatar, themed border/icon by age).
 
 ### Ceremony of the Month
-- **Team Quest** and **Hero's Challenge** tabs **pulse** when last month’s ceremony is pending. Nursery/Pre-Junior automatically use the inclusive **Growth Festival** (garden, Bloom Parade, Golden Bloom); every other league uses **Classic Arena**. Results are frozen in versioned snapshots; Growth’s public DOM never contains ranks or scores.
+- Home **glows** when last month’s ceremony is pending. **August never has a ceremony** (schools are closed), so September does not offer an August ritual. Nursery/Pre-Junior automatically use the inclusive **Growth Festival** (garden, Bloom Parade, Golden Bloom); every other league uses **Classic Arena**. Results are frozen in versioned snapshots; Growth’s public DOM never contains ranks or scores.
 
 ---
 

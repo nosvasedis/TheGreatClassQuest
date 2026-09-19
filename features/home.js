@@ -1,5 +1,6 @@
 import { db, doc, getDoc } from '../firebase.js';
 import * as ceremony from '../features/ceremony.js';
+import { resolvePendingCeremonyMonth } from './ceremonyDomain.js';
 import * as state from '../state.js';
 import { normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
 import { isSpecialQuestType } from './specialQuestEngine.js';
@@ -1111,34 +1112,30 @@ function getReminderPills(classId) {
         });
     }
 
-    // 2. CEREMONY REMINDER (Restored)
+    // 2. CEREMONY REMINDER — previous instructional month only (never August)
     if (classId) {
         const cls = state.get('allSchoolClasses').find(c => c.id === classId);
-        if (cls) {
-            let prevMonth = now.getMonth() - 1;
-            let prevYear = now.getFullYear();
-            if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
-            const monthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
-
-            const isDone = cls.ceremonyHistory && cls.ceremonyHistory[monthKey] && cls.ceremonyHistory[monthKey].complete;
+        const pending = resolvePendingCeremonyMonth(now);
+        if (cls && pending) {
+            const isDone = cls.ceremonyHistory && cls.ceremonyHistory[pending.monthKey] && cls.ceremonyHistory[pending.monthKey].complete;
 
             if (!isDone) {
-                const monthName = new Date(monthKey + "-02").toLocaleString('en-GB', { month: 'long' });
                 const isGrowth = cls.questLevel === 'Nursery' || cls.questLevel === 'Pre-Junior';
-                const pillTheme = isGrowth
-                    ? 'bg-gradient-to-r from-emerald-500 via-pink-500 to-amber-400 text-white border border-pink-300'
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400';
-                const pillIcon = isGrowth
-                    ? '<i class="fas fa-seedling text-emerald-100"></i>'
-                    : '<i class="fas fa-trophy text-yellow-300"></i>';
-                const pillLabel = isGrowth
-                    ? `${monthName} Growth Festival! 🌸`
-                    : `${monthName} Ceremony!`;
+                const ceremonyClass = isGrowth ? 'date-pill--ceremony-growth' : '';
+                const pillIcon = isGrowth ? 'fa-seedling' : 'fa-trophy';
+                const kicker = isGrowth ? 'Growth Festival' : 'Ceremony of the Month';
 
                 pills.push(`
-                    <button id="trigger-ceremony-btn" class="date-pill ${pillTheme} shadow-lg animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:scale-105 transition-transform" data-class-id="${classId}">
-                        ${pillIcon}
-                        <span class="font-bold">${pillLabel}</span>
+                    <button type="button" id="trigger-ceremony-btn" class="date-pill date-pill--ceremony ${ceremonyClass}" data-class-id="${classId}" aria-label="Start the ${pending.monthName} ${kicker}">
+                        <span class="date-pill--ceremony__aurora" aria-hidden="true"></span>
+                        <span class="date-pill--ceremony__sheen" aria-hidden="true"></span>
+                        <span class="date-pill--ceremony__spark date-pill--ceremony__spark--a" aria-hidden="true">✦</span>
+                        <span class="date-pill--ceremony__spark date-pill--ceremony__spark--b" aria-hidden="true">✧</span>
+                        <span class="date-pill--ceremony__icon" aria-hidden="true"><i class="fas ${pillIcon}"></i></span>
+                        <span class="date-pill--ceremony__copy">
+                            <span class="date-pill--ceremony__kicker">${kicker}</span>
+                            <span class="date-pill--ceremony__title">${pending.monthName}</span>
+                        </span>
                     </button>
                 `);
 

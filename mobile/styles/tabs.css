@@ -290,7 +290,12 @@ body.gcq-mobile .options-subtab-bar {
 }
 
 .m-subtab-dropdown {
+    display: none;
     margin-bottom: 1.1rem;
+}
+
+body.gcq-mobile .m-subtab-dropdown {
+    display: block;
 }
 
 .m-subtab-dropdown__trigger {

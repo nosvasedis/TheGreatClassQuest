@@ -7,10 +7,13 @@ import {
     backfillSchoolYearData,
     closeSchoolYear,
     openSchoolYear,
-    finalizeRollover,
-    allocateReturningStudents,
-    markStudentLeftSchool
+    finalizeRollover
 } from '../utils/adminRuntime.js';
+import {
+    openPlacementWizard,
+    renderPlacementLauncher,
+    refreshPlacementWizardIfOpen
+} from './placementWizard.js';
 import {
     buildRolloverConfirmationText,
     closeDateToPickerValue,
@@ -222,8 +225,7 @@ function renderBetweenYearsMode({
     activeYearKey,
     startsAtLabel,
     lastClosedYearKey,
-    pendingStudents,
-    activeClasses
+    pendingStudents
 }) {
     const previousLabel = lastClosedYearKey
         ? formatSchoolYearLabel(lastClosedYearKey)
@@ -277,57 +279,8 @@ function renderBetweenYearsMode({
                 </button>
             </section>
 
-            ${renderPlacementSection({ pendingStudents, activeClasses })}
+            ${renderPlacementLauncher({ pendingCount: pendingStudents.length })}
         </div>
-    `;
-}
-
-function renderPlacementSection({ pendingStudents, activeClasses }) {
-    if (!pendingStudents.length) return '';
-    return `
-        <section class="secretary-card">
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">September placement</p>
-                    <h3 class="secretary-card__title">Place returning students</h3>
-                </div>
-                <div class="secretary-card__badge">${pendingStudents.length} waiting</div>
-            </div>
-            <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                Choose a class, select students, then place them. Only appears when someone is waiting.
-            </p>
-            <div class="school-year-allocation-bar">
-                <label class="secretary-field">
-                    <span>September class</span>
-                    <select id="school-year-allocation-class">
-                        <option value="">Choose the class...</option>
-                        ${activeClasses.map((classData) => `
-                            <option value="${escapeHtml(classData.id)}">${escapeHtml(classData.name)} • ${escapeHtml(classData.questLevel || 'League')} • ${escapeHtml(classData.createdBy?.name || 'Teacher')}</option>
-                        `).join('')}
-                    </select>
-                </label>
-                <button type="button" id="school-year-allocate-btn" class="secretary-shell__primary-btn">
-                    <i class="fas fa-people-arrows mr-2"></i>Place selected
-                </button>
-            </div>
-            <div class="school-year-student-grid mt-5">
-                ${pendingStudents.map((student) => `
-                    <article class="school-year-student-card">
-                        <label class="school-year-student-check">
-                            <input type="checkbox" data-school-year-student-check value="${escapeHtml(student.id)}">
-                            <span>${escapeHtml(student.name)}</span>
-                        </label>
-                        <div class="school-year-student-meta">
-                            <span>Old class: ${escapeHtml(student.previousClassName || 'Not recorded')}</span>
-                            <span>League: ${escapeHtml(student.previousQuestLevel || '—')}</span>
-                            <span>Guild: ${escapeHtml(student.guildId || 'No guild yet')}</span>
-                        </div>
-                        <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-school-year-left="${escapeHtml(student.id)}">Mark left school</button>
-                        <p class="school-year-student-meta mt-2 text-xs text-slate-500">Turns off parent access now. Removes this student from the app after 30 days.</p>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
     `;
 }
 
@@ -340,8 +293,7 @@ function renderUnderwayMode({
     closeDateSavedLabel,
     closeDateExample,
     confirmationText,
-    pendingStudents,
-    activeClasses
+    pendingStudents
 }) {
     return `
         <div class="school-year-command school-year-command--underway">
@@ -415,7 +367,7 @@ function renderUnderwayMode({
                 </details>
             </section>
 
-            ${renderPlacementSection({ pendingStudents, activeClasses })}
+            ${renderPlacementLauncher({ pendingCount: pendingStudents.length })}
         </div>
     `;
 }
@@ -454,8 +406,7 @@ export function renderSchoolYearSection() {
             activeYearKey,
             startsAtLabel,
             lastClosedYearKey: schoolYearState.lastClosedYearKey || null,
-            pendingStudents,
-            activeClasses
+            pendingStudents
         });
     }
 
@@ -479,15 +430,8 @@ export function renderSchoolYearSection() {
         closeDateSavedLabel,
         closeDateExample,
         confirmationText,
-        pendingStudents,
-        activeClasses
+        pendingStudents
     });
-}
-
-function getSelectedSchoolYearStudentIds() {
-    return Array.from(document.querySelectorAll('[data-school-year-student-check]:checked'))
-        .map((input) => input.value)
-        .filter(Boolean);
 }
 
 async function saveSchoolYearCloseDate(button) {
@@ -652,45 +596,13 @@ async function runSchoolYearFinalize(button) {
     }
 }
 
-async function runSchoolYearAllocation(button) {
-    const classId = document.getElementById('school-year-allocation-class')?.value || '';
-    const studentIds = getSelectedSchoolYearStudentIds();
-    if (!classId || studentIds.length === 0) {
-        showToast('Choose a September class and at least one student.', 'info');
-        return;
-    }
-    try {
-        setBusyState(button, true, 'Placing students...');
-        const result = await allocateReturningStudents({ classId, studentIds });
-        showToast(`${result?.placedCount || studentIds.length} students placed for September.`, 'success');
-        onSchoolYearConsoleRerender?.();
-    } catch (error) {
-        console.error('Allocation failed:', error);
-        showToast(error?.message || 'Could not place those students.', 'error');
-    } finally {
-        setBusyState(button, false);
-    }
-}
-
-async function runMarkStudentLeft(button, studentId) {
-    if (!studentId) return;
-    try {
-        setBusyState(button, true, 'Marking left...');
-        await markStudentLeftSchool({ studentId });
-        showToast('Student marked as left school. Parent access is turned off now. Their data is removed from the app after 30 days.', 'success');
-        onSchoolYearConsoleRerender?.();
-    } catch (error) {
-        console.error('Could not mark student left:', error);
-        showToast(error?.message || 'Could not update that student.', 'error');
-    } finally {
-        setBusyState(button, false);
-    }
-}
-
 let onSchoolYearConsoleRerender = null;
 
 export function wireSchoolYearConsoleHandlers({ onRerender }) {
-    onSchoolYearConsoleRerender = onRerender;
+    onSchoolYearConsoleRerender = () => {
+        onRerender?.();
+        refreshPlacementWizardIfOpen();
+    };
 }
 
 export function handleSchoolYearConsoleClick(event) {
@@ -730,21 +642,15 @@ export function handleSchoolYearConsoleClick(event) {
         return true;
     }
 
-    const allocateBtn = event.target.closest('#school-year-allocate-btn');
-    if (allocateBtn) {
-        runSchoolYearAllocation(allocateBtn);
-        return true;
-    }
-
     const saveCloseDateBtn = event.target.closest('#school-year-save-close-date-btn');
     if (saveCloseDateBtn) {
         saveSchoolYearCloseDate(saveCloseDateBtn);
         return true;
     }
 
-    const leftBtn = event.target.closest('[data-school-year-left]');
-    if (leftBtn) {
-        runMarkStudentLeft(leftBtn, leftBtn.dataset.schoolYearLeft);
+    const placementOpenBtn = event.target.closest('#school-year-placement-open-btn');
+    if (placementOpenBtn) {
+        openPlacementWizard({ onRerender: () => onSchoolYearConsoleRerender?.() });
         return true;
     }
 

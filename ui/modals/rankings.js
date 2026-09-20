@@ -14,11 +14,24 @@ import {
 import { db, doc, writeBatch } from '../../firebase.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
+import { getYearLegendContextFromState, getYearScopedHeroOfDayWins } from '../../utils/yearLegend.js';
+import { getSchoolYearStartMonthDate, getViewableCompletedMonthStart, withActiveScoreYear } from '../../utils/schoolYear.js';
+
 let rankingsViewDate = new Date();
 
 function getArchiveStartMonth() {
-    const start = state.getActiveSchoolYearStartDate() || new Date();
-    return new Date(start.getFullYear(), start.getMonth(), 1);
+    return getSchoolYearStartMonthDate(
+        state.getActiveSchoolYearStartDate(),
+        state.getActiveSchoolYearKey()
+    ) || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+}
+
+function getLatestViewableArchiveMonth(ref = new Date()) {
+    return getViewableCompletedMonthStart({
+        startsAt: state.getActiveSchoolYearStartDate(),
+        yearKey: state.getActiveSchoolYearKey(),
+        now: ref
+    });
 }
 
 // --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
@@ -29,16 +42,26 @@ export async function openStudentRankingsModal(resetDate = true) {
     const controlsEl = document.getElementById('global-leaderboard-controls');
     const contentEl = document.getElementById('global-leaderboard-content');
 
-    // 1. Archives never include the in-progress month: default to the last completed calendar month.
+    // 1. Archives never include the in-progress month, and never last year's months.
     if (resetDate) {
-        rankingsViewDate = new Date(utils.getLatestCompletedMonthStart());
+        rankingsViewDate = getLatestViewableArchiveMonth();
+    }
+
+    titleEl.innerHTML = `Hero Logs`;
+    if (subtitleEl) subtitleEl.innerText = 'Monthly ranks (completed months only)';
+
+    if (!rankingsViewDate) {
+        if (controlsEl) controlsEl.innerHTML = '';
+        contentEl.innerHTML = `<div class="text-center py-10 px-6 max-w-md mx-auto">
+            <p class="font-title text-2xl text-indigo-900 mb-2">A new year</p>
+            <p class="text-slate-500 font-semibold">This year's monthly ranks open after the first school month closes. Last year's logs stay in last year's archive.</p>
+        </div>`;
+        if (resetDate) showAnimatedModal(modalId);
+        return;
     }
 
     const activeMonthKey = utils.getMonthKey(rankingsViewDate);
     const monthDisplay = rankingsViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-
-    titleEl.innerHTML = `Hero Logs`;
-    if (subtitleEl) subtitleEl.innerText = 'Monthly ranks (completed months only)';
     if (controlsEl) controlsEl.innerHTML = '';
     contentEl.innerHTML = `<div class="text-center py-10"><i class="fas fa-circle-notch fa-spin text-3xl text-indigo-500"></i><p class="mt-3 text-slate-500 font-semibold">Loading archives for ${monthDisplay}...</p></div>`;
 
@@ -112,13 +135,17 @@ export async function openStudentRankingsModal(resetDate = true) {
     const nextBtn = document.getElementById('rank-next-month');
     if (prevBtn) {
         prevBtn.onclick = () => {
-            rankingsViewDate.setMonth(rankingsViewDate.getMonth() - 1);
-            openStudentRankingsModal(false); // Refresh without re-animating modal
+            const archiveStart = getArchiveStartMonth();
+            const previous = new Date(rankingsViewDate.getFullYear(), rankingsViewDate.getMonth() - 1, 1);
+            if (previous < archiveStart) return;
+            rankingsViewDate = previous;
+            openStudentRankingsModal(false);
         };
     }
     if (nextBtn) {
         nextBtn.onclick = () => {
-            const ceiling = utils.getLatestCompletedMonthStart(new Date());
+            const ceiling = getLatestViewableArchiveMonth(new Date());
+            if (!ceiling) return;
             if (
                 rankingsViewDate.getFullYear() === ceiling.getFullYear()
                 && rankingsViewDate.getMonth() === ceiling.getMonth()
@@ -337,11 +364,18 @@ async function syncHeroLegendWins(classId, legendRows) {
     const updates = legendRows.filter((row) => row.wins !== row.storedWins);
     if (!updates.length) return;
 
+    const yearKey = state.getActiveSchoolYearKey();
     const batch = writeBatch(db);
     updates.forEach((row) => {
-        batch.set(doc(db, 'artifacts/great-class-quest/public/data/student_scores', row.student.id), {
-            heroOfDayWins: row.wins
-        }, { merge: true });
+        const payload = {
+            heroOfDayWins: row.wins,
+            ...(yearKey ? { heroOfDayWinsYearKey: yearKey } : {})
+        };
+        batch.set(
+            doc(db, 'artifacts/great-class-quest/public/data/student_scores', row.student.id),
+            yearKey ? withActiveScoreYear(payload, yearKey) : payload,
+            { merge: true }
+        );
     });
     await batch.commit();
 
@@ -350,13 +384,17 @@ async function syncHeroLegendWins(classId, legendRows) {
     const knownIds = new Set(allScores.map((score) => score.id));
     const mergedScores = allScores.map((score) => (
         scoreMap.has(score.id)
-            ? { ...score, heroOfDayWins: scoreMap.get(score.id) }
+            ? { ...score, heroOfDayWins: scoreMap.get(score.id), ...(yearKey ? { heroOfDayWinsYearKey: yearKey } : {}) }
             : score
     ));
 
     updates.forEach((row) => {
         if (!knownIds.has(row.student.id)) {
-            mergedScores.push({ id: row.student.id, heroOfDayWins: row.wins });
+            mergedScores.push({
+                id: row.student.id,
+                heroOfDayWins: row.wins,
+                ...(yearKey ? { heroOfDayWinsYearKey: yearKey } : {})
+            });
         }
     });
 
@@ -387,7 +425,10 @@ async function buildHallLegendRows(classId) {
 
     const legendRows = studentsInClass.map((student) => {
         const stats = statsByStudentId.get(student.id) || { wins: 0, latestDate: null };
-        const storedWins = Number(scoreByStudentId.get(student.id)?.heroOfDayWins) || 0;
+        const storedWins = getYearScopedHeroOfDayWins(
+            scoreByStudentId.get(student.id),
+            getYearLegendContextFromState(state)
+        );
         const tier = utils.getHeroLegendTierInfo(stats.wins);
         const nextThreshold = tier.nextThreshold;
         const progressCurrent = tier.key === 'none' ? stats.wins : Math.max(0, stats.wins - tier.minWins);
@@ -919,12 +960,12 @@ export function openZoneOverviewModal(zoneType) {
 const PRODIGY_COUNTS_CACHE_TAG = 'v4-award-log-credit-merge';
 const prodigyCountsCache = new Map();
 
-/** Latest completed month allowed in the hall — never the live calendar month. */
+/** Latest completed month in this school year — never the live month, never last year. */
 function getLatestViewableProdigyMonth(ref = new Date()) {
-    return utils.getLatestCompletedMonthStart(ref);
+    return getLatestViewableArchiveMonth(ref);
 }
 
-let prodigyViewDate = getLatestViewableProdigyMonth();
+let prodigyViewDate = null;
 
 function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudentId = {}) {
     const studentStats = students.map((student) => {
@@ -994,23 +1035,25 @@ function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, vi
 }
 
 async function getProdigyCountsForClass(classId) {
-    const cacheKey = `${classId}::${PRODIGY_COUNTS_CACHE_TAG}`;
+    const cacheKey = `${classId}::${state.getActiveSchoolYearKey() || 'legacy'}::${PRODIGY_COUNTS_CACHE_TAG}`;
     if (prodigyCountsCache.has(cacheKey)) return prodigyCountsCache.get(cacheKey);
 
     const students = state.get('allStudents').filter((student) => student.classId === classId);
     const allScores = state.get('allWrittenScores').filter((score) => score.classId === classId);
     const monthCursor = getArchiveStartMonth();
-    const newestMonthStart = utils.getLatestCompletedMonthStart(new Date());
+    const newestMonthStart = getLatestViewableArchiveMonth(new Date());
     const monthRequests = [];
 
-    while (monthCursor <= newestMonthStart) {
-        monthRequests.push({
-            year: monthCursor.getFullYear(),
-            monthIndex: monthCursor.getMonth(),
-            month: monthCursor.getMonth() + 1,
-            monthKey: utils.getMonthKey(monthCursor)
-        });
-        monthCursor.setMonth(monthCursor.getMonth() + 1);
+    if (newestMonthStart) {
+        while (monthCursor <= newestMonthStart) {
+            monthRequests.push({
+                year: monthCursor.getFullYear(),
+                monthIndex: monthCursor.getMonth(),
+                month: monthCursor.getMonth() + 1,
+                monthKey: utils.getMonthKey(monthCursor)
+            });
+            monthCursor.setMonth(monthCursor.getMonth() + 1);
+        }
     }
 
     const { fetchLogsForMonth } = await import('../../db/queries.js');
@@ -1101,11 +1144,35 @@ export async function renderProdigyHistory(classId) {
     await import('../../db/actions.js').then(a => a.ensureHistoryLoaded());
 
     const now = new Date();
+    const archiveStart = getArchiveStartMonth();
     const latestViewable = getLatestViewableProdigyMonth(now);
+
+    if (!latestViewable) {
+        navEl.innerHTML = '';
+        contentEl.innerHTML = `
+            <div class="prodigy-hall-empty h-full flex flex-col items-center justify-center py-12 px-6 max-w-lg mx-auto text-center group">
+                <div class="relative mb-6">
+                    <div class="absolute inset-0 bg-violet-200/50 blur-3xl rounded-full opacity-60"></div>
+                    <div class="prodigy-hall-empty-icon relative w-24 h-24 bg-white rounded-full flex items-center justify-center border-2 border-violet-100 shadow-lg">
+                        <i class="fas fa-dove text-4xl text-indigo-300 group-hover:text-violet-500 transition-colors" aria-hidden="true"></i>
+                    </div>
+                </div>
+                <h4 class="text-indigo-900 font-title text-2xl sm:text-3xl mb-2 tracking-tight flex items-center justify-center gap-2 flex-wrap">
+                    <i class="fas fa-seedling text-emerald-400" aria-hidden="true"></i> A new year
+                </h4>
+                <p class="text-indigo-600/90 prodigy-hall-tagline text-sm sm:text-base max-w-sm">This year's Hall of Prodigies is empty until the first school month closes. Last year's crowns stay in last year's archive.</p>
+            </div>`;
+        return;
+    }
+
+    if (!prodigyViewDate || prodigyViewDate < archiveStart) {
+        prodigyViewDate = new Date(latestViewable.getFullYear(), latestViewable.getMonth(), 1);
+    }
+
     let viewYear = prodigyViewDate.getFullYear();
     let viewMonthIndex = prodigyViewDate.getMonth();
     const viewStart = new Date(viewYear, viewMonthIndex, 1);
-    if (viewStart > latestViewable) {
+    if (viewStart > latestViewable || viewStart < archiveStart) {
         prodigyViewDate = new Date(latestViewable.getFullYear(), latestViewable.getMonth(), 1);
         viewYear = prodigyViewDate.getFullYear();
         viewMonthIndex = prodigyViewDate.getMonth();
@@ -1113,7 +1180,6 @@ export async function renderProdigyHistory(classId) {
 
     const monthName = prodigyViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
-    const archiveStart = getArchiveStartMonth();
     const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > archiveStart);
     const nextMonthStart = new Date(viewYear, viewMonthIndex + 1, 1);
     const canGoForward = nextMonthStart <= latestViewable;

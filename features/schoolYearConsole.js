@@ -357,7 +357,7 @@ function renderUnderwayMode({
                     <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
                 </div>
                 <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                    Check that everything is ready, then type the confirmation. This stores the finished year, archives last year's Gold, keeps guild houses, resets live progress, and moves returning students into placement.
+                    Check that everything is ready, then type the confirmation. This stores the finished year, archives last year's Gold, keeps guild houses, resets live progress (stars, Gold, Golden Legend, and this year's Prodigy counts), and moves returning students into placement.
                 </p>
                 <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
                     <i class="fas fa-list-check mr-2"></i>Check readiness

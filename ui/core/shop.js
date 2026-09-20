@@ -6,6 +6,7 @@ import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from
 import { getSeasonalShopPriceMeta } from '../../utils.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isVisibleSeasonalShopItem } from '../../utils/shopRestock.js';
 
 // --- SHOP UI HELPERS ---
@@ -521,7 +522,7 @@ export async function updateShopStudentDisplay(studentId) {
     const inventory = scoreData?.inventory || [];
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
-    const heroOfDayWins = scoreData?.heroOfDayWins || 0;
+    const heroOfDayWins = getYearScopedHeroOfDayWinsFromAppState(scoreData, state);
     const currentMonthKey = new Date().toISOString().substring(0, 7);
     const aurumVoucherPercent = Number(scoreData?.aurumVoucherPercent) || 0;
     const hasAurumVoucher = scoreData?.aurumVoucherMonth === currentMonthKey && aurumVoucherPercent > 0;

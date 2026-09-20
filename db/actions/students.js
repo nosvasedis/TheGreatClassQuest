@@ -34,7 +34,8 @@ const SCORE_DEFAULTS = {
     starsByReason: {},
     heroLevel: 0,
     heroSkills: [],
-    pendingSkillChoice: false
+    pendingSkillChoice: false,
+    heroOfDayWins: 0
 };
 
 function normalizeCreatedBy(createdBy) {

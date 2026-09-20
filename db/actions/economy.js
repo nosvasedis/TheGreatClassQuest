@@ -31,6 +31,7 @@ import { classUsesDictations, classUsesTests, createAssessmentScorePayload, getN
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
+import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -748,7 +749,7 @@ export async function handleBuyItem(studentId, itemId) {
     const reigningHero = state.get('reigningHero');
     const isHero = reigningHero && reigningHero.id === studentId;
     const scoreData = state.get('allStudentScores').find((score) => score.id === studentId);
-    const heroOfDayWins = scoreData?.heroOfDayWins || 0;
+    const heroOfDayWins = getYearScopedHeroOfDayWinsFromAppState(scoreData, state);
     const currentMonthKey = new Date().toISOString().substring(0, 7);
     let finalPrice = item.price;
     let voucherUsed = false;

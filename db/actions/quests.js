@@ -25,6 +25,7 @@ import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '
 import { getGuildLeaderboardData, getGuildLeaderboardForClass } from '../../features/guildScoring.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
+import { nextHeroOfDayWinWrite, getYearLegendContextFromState } from '../../utils/yearLegend.js';
 import { classUsesTests } from '../../features/assessmentConfig.js';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
@@ -603,10 +604,25 @@ async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
         transaction.set(logRef, withSchoolYear(logPayload, state.getActiveSchoolYearKey()));
 
         if (heroStudentId && scoreRef) {
+            const yearContext = getYearLegendContextFromState(state);
             if (scoreDoc?.exists()) {
-                transaction.update(scoreRef, { heroOfDayWins: increment(1) });
+                const winWrite = nextHeroOfDayWinWrite(scoreDoc.data() || {}, yearContext);
+                if (winWrite.increment) {
+                    transaction.update(scoreRef, {
+                        heroOfDayWins: increment(1),
+                        ...(winWrite.heroOfDayWinsYearKey ? { heroOfDayWinsYearKey: winWrite.heroOfDayWinsYearKey } : {})
+                    });
+                } else {
+                    transaction.update(scoreRef, {
+                        heroOfDayWins: winWrite.heroOfDayWins,
+                        ...(winWrite.heroOfDayWinsYearKey ? { heroOfDayWinsYearKey: winWrite.heroOfDayWinsYearKey } : {})
+                    });
+                }
             } else {
-                transaction.set(scoreRef, withActiveScoreYear({ heroOfDayWins: 1 }, state.getActiveSchoolYearKey()), { merge: true });
+                transaction.set(scoreRef, withActiveScoreYear({
+                    heroOfDayWins: 1,
+                    ...(yearContext.activeYearKey ? { heroOfDayWinsYearKey: yearContext.activeYearKey } : {})
+                }, state.getActiveSchoolYearKey()), { merge: true });
             }
         }
     });

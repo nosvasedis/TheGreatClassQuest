@@ -142,7 +142,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 ### 🎪 Mystic Market (own tab)
 - **Seasonal stock (Elite Restock):** AI generates **15** items for the month and league (5 common / 5 rare / 5 seasonal trophies). Junior art stays toy-like; senior items read as RPG relics. Buying a unique seasonal piece removes it from the shop. There is **no** coded two-seasonal-items-per-month cap.
 - **Legendary Artifacts:** Always available; **two legendary buys per student per month**, plus extra limits on Pathfinder (1/class/month) and Mask (1/student/month).
-- **Purchase:** Items appear in **Trophy Room** / enlarged avatar. Reigning **Hero of the Day** gets **25%** off seasonal prices (lifetime legend discounts can add more, combined cap **40%**).
+- **Purchase:** Items appear in **Trophy Room** / enlarged avatar. Reigning **Hero of the Day** gets **25%** off seasonal prices (this year's Rising / Golden / Mythic legend discounts can add more, combined cap **40%**). Last year's crowns stay in last year's archive.
 
 ### ⚔️ Legendary Artifacts (Power-Ups)
 

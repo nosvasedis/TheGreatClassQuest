@@ -15,6 +15,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { generateLeagueMapHtml, initializeLivingQuestMap, QUEST_MAP_ZONES } from '../../features/worldMap.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import { getSchoolYearStartMonthDate } from '../../utils/schoolYear.js';
 import {
     getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
@@ -30,9 +31,19 @@ let _prodigyCache = {}; // classId -> Set of winner studentIds
 async function getReigningProdigies() {
     const now = new Date();
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const cacheKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+    const cacheKey = `${state.getActiveSchoolYearKey() || 'legacy'}:${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+    const yearStart = getSchoolYearStartMonthDate(
+        state.getActiveSchoolYearStartDate(),
+        state.getActiveSchoolYearKey()
+    );
 
-    if (_prodigyCacheKey === cacheKey) return _prodigyCache; // Already fetched this month
+    if (_prodigyCacheKey === cacheKey) return _prodigyCache;
+
+    if (yearStart && prevMonth < yearStart) {
+        _prodigyCacheKey = cacheKey;
+        _prodigyCache = {};
+        return _prodigyCache;
+    }
 
     try {
         const { fetchLogsForMonth } = await import('../../db/queries.js');

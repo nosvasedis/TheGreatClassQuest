@@ -1751,6 +1751,7 @@ exports.closeSchoolYear = callable(async (request) => {
         totalStars: score.totalStars || 0,
         monthlyStars: score.monthlyStars || 0,
         goldAtClose: score.gold || 0,
+        heroOfDayWinsAtClose: score.heroOfDayWins || 0,
         heroClass: student.heroClass || '',
         heroLevel: score.heroLevel || 0,
         heroSkills: score.heroSkills || [],
@@ -1782,6 +1783,8 @@ exports.closeSchoolYear = callable(async (request) => {
         gold: 0,
         inventory: [],
         starsByReason: FieldValue.delete(),
+        heroOfDayWins: 0,
+        heroOfDayWinsYearKey: nextYearKey,
         heroLevel: 0,
         heroSkills: [],
         pendingSkillChoice: false,
@@ -1891,6 +1894,16 @@ function isCarriedPriorYearGold(score, lastClosedYearKey) {
   return Number(score?.totalStars || 0) === 0 && Number(score?.monthlyStars || 0) === 0;
 }
 
+function isCarriedPriorYearLegendWins(score, lastClosedYearKey, activeYearKey) {
+  if (!lastClosedYearKey) return false;
+  const wins = Number(score?.heroOfDayWins || 0);
+  if (!(wins > 0)) return false;
+  const stampedYear = String(score?.heroOfDayWinsYearKey || '').trim();
+  const active = String(activeYearKey || '').trim();
+  if (stampedYear && active && stampedYear === active) return false;
+  return true;
+}
+
 async function archiveCarriedLiveGoldBalances(stateData = {}) {
   const activeYearKey = String(stateData.activeYearKey || '').trim();
   const lastClosedYearKey = String(stateData.lastClosedYearKey || '').trim();
@@ -1902,20 +1915,28 @@ async function archiveCarriedLiveGoldBalances(stateData = {}) {
   scoresSnap.docs.forEach((docSnap) => {
     const score = docSnap.data() || {};
     if (score.activeSchoolYearKey && activeYearKey && score.activeSchoolYearKey !== activeYearKey) return;
-    if (!isCarriedPriorYearGold(score, lastClosedYearKey)) return;
+    const payload = { updatedAt: FieldValue.serverTimestamp() };
+    let changed = false;
+    if (isCarriedPriorYearGold(score, lastClosedYearKey)) {
+      payload.gold = 0;
+      changed = true;
+      parentWrites.push({
+        ref: db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${docSnap.id}`),
+        payload: {
+          'progress.gold': 0,
+          updatedAt: FieldValue.serverTimestamp()
+        }
+      });
+    }
+    if (isCarriedPriorYearLegendWins(score, lastClosedYearKey, activeYearKey)) {
+      payload.heroOfDayWins = 0;
+      payload.heroOfDayWinsYearKey = activeYearKey;
+      changed = true;
+    }
+    if (!changed) return;
     scoreWrites.push({
       ref: docSnap.ref,
-      payload: {
-        gold: 0,
-        updatedAt: FieldValue.serverTimestamp()
-      }
-    });
-    parentWrites.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${docSnap.id}`),
-      payload: {
-        'progress.gold': 0,
-        updatedAt: FieldValue.serverTimestamp()
-      }
+      payload
     });
   });
 
@@ -2044,6 +2065,8 @@ exports.allocateReturningStudents = callable(async (request) => {
         pendingSkillChoice: false,
         starsByReason: FieldValue.delete(),
         lastGuildBonusMonth: FieldValue.delete(),
+        heroOfDayWins: 0,
+        heroOfDayWinsYearKey: yearKey,
         updatedAt: FieldValue.serverTimestamp()
       }
     });

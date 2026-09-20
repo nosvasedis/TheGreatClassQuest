@@ -1,5 +1,5 @@
 import { where } from '../firebase.js';
-import { normalizeToDateString, parseFlexibleDate, toHtmlDateInputValue } from '../utils.js';
+import { getLatestCompletedMonthStart, normalizeToDateString, parseFlexibleDate, toHtmlDateInputValue } from '../utils.js';
 
 export const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 export const SCHOOL_YEAR_STATE_DOC_ID = 'current';
@@ -52,6 +52,32 @@ export function getSchoolYearForDate(dateLike = new Date()) {
     const month = date.getMonth() + 1;
     const startYear = month >= 9 ? year : year - 1;
     return `${startYear}-${startYear + 1}`;
+}
+
+/** First day of the active school year (September unless startsAt says otherwise). */
+export function getSchoolYearStartMonthDate(startsAt, yearKey) {
+    const parsed = parseFlexibleDate(startsAt);
+    if (parsed && !Number.isNaN(parsed.getTime())) {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+    }
+    const key = String(yearKey || '').trim();
+    if (/^\d{4}-\d{4}$/.test(key)) {
+        return new Date(Number(key.slice(0, 4)), 8, 1);
+    }
+    return null;
+}
+
+/**
+ * Latest completed calendar month that belongs to this school year.
+ * Returns null in September before any month of the new year has closed —
+ * last year's August must not become this year's Hall of Prodigies.
+ */
+export function getViewableCompletedMonthStart({ startsAt = null, yearKey = null, now = new Date() } = {}) {
+    const yearStart = getSchoolYearStartMonthDate(startsAt, yearKey);
+    const latestCompleted = getLatestCompletedMonthStart(now);
+    if (!yearStart) return latestCompleted;
+    if (latestCompleted < yearStart) return null;
+    return latestCompleted;
 }
 
 export function isCloseDateReached(closeDate, now = new Date()) {

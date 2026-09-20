@@ -262,13 +262,14 @@
 .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(12.3rem, 21.5vw, 17.5rem); }
 
 .tq-waypoint--bronze .tq-waypoint__scroll {
-    left: calc(50% + clamp(12rem, 22vw, 17rem));
+    left: calc(50% + clamp(4.5rem, 7vw, 6rem));
+    bottom: calc(100% + 2rem);
 }
 
 .tq-waypoint--silver .tq-waypoint__scroll {
-    top: calc(100% + 0.18rem);
+    top: calc(100% - 2rem);
     bottom: auto;
-    left: calc(50% + clamp(10rem, 17vw, 13rem));
+    left: calc(50% + clamp(7.5rem, 12vw, 10rem));
 }
 
 .tq-waypoint--gold .tq-waypoint__scroll {
@@ -277,7 +278,7 @@
 }
 
 .tq-waypoint--crystal .tq-waypoint__scroll {
-    left: calc(50% - clamp(9rem, 15vw, 11rem));
+    left: calc(50% - clamp(5rem, 8vw, 7rem));
 }
 
 .tq-waypoint--silver .tq-waypoint__badge { animation-delay: -1.05s; }

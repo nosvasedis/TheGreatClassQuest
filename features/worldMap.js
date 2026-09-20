@@ -124,7 +124,7 @@ const QUEST_ROUTE_SEGMENTS = [
     },
     {
         id: 'crystal', minProgress: 85, maxProgress: 100,
-        d: 'M 951 224 C 977 214 987 196 1001 184 C 1018 170 1018 153 1031 141 C 1045 128 1048 114 1058 103 C 1065 95 1071 87 1076 81'
+        d: 'M 951 224 C 972 224 989 217 1000 209 C 1021 194 1032 176 1048 164 C 1062 154 1072 146 1079 136 C 1084 131 1087 127 1088 125'
     }
 ];
 const MAP_LANE_GAP = 42;
@@ -132,6 +132,7 @@ const MAP_TOKEN_EDGE_MARGIN = 44;
 
 const LIVING_MAP_ASSETS = {
     background: new URL('../assets/team-quest-map/living-atlas/map-background-v2.webp', import.meta.url).href,
+    parchmentBacking: new URL('../assets/team-quest-map/living-atlas/map-parchment-backing.webp', import.meta.url).href,
     cloudMist: new URL('../assets/team-quest-map/living-atlas/cloud-mist.webp', import.meta.url).href,
     crystalAura: new URL('../assets/team-quest-map/living-atlas/crystal-aura.webp', import.meta.url).href,
     badgeBronze: new URL('../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
@@ -409,6 +410,7 @@ export function generateLeagueMapHtml(classes) {
 
     return `
     <div class="team-quest-map-parchment tq-living-map" role="region" aria-label="League quest map" data-living-quest-map>
+        <img class="tq-living-map__parchment-backing" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" aria-hidden="true">
         <div class="tq-living-map__frame">
             <img class="tq-living-map__background" src="${LIVING_MAP_ASSETS.background}" alt="" draggable="false">
             <img class="tq-living-map__crystal-aura" src="${LIVING_MAP_ASSETS.crystalAura}" alt="" draggable="false" aria-hidden="true">
@@ -473,7 +475,7 @@ export function generateLeagueMapHtml(classes) {
             </div>
 
             ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" data-offset-x="21" data-offset-y="-2" aria-label="Quest finish at 100 percent">
+            <span class="tq-route-finish" data-route-progress="100" data-offset-x="9" data-offset-y="-46" aria-label="Quest finish at 100 percent">
                 <span class="tq-route-finish__glow" aria-hidden="true"></span>
                 <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
                 <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">

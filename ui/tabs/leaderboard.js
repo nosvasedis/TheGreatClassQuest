@@ -22,6 +22,14 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
 
+const TEAM_QUEST_ANALYTICS_ASSETS = {
+    plaque: new URL('../../assets/team-quest-map/living-atlas/parchment-plaque.webp', import.meta.url).href,
+    bronze: new URL('../../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
+    silver: new URL('../../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
+    gold: new URL('../../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
+    crystal: new URL('../../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href
+};
+
 // --- REIGNING PRODIGY CACHE ---
 // Fetches previous month's award logs once per session (cached by monthKey).
 // Returns { [classId]: Set<studentId> } — a Set to support co-prodigies (ties).
@@ -417,21 +425,22 @@ export async function renderClassLeaderboardTab() {
 
         // Current zone derived from QUEST_MAP_ZONES thresholds
         const currentZone = QUEST_MAP_ZONES.reduce((cur, z) => (p >= z.minPercent ? z : cur), QUEST_MAP_ZONES[0]);
+        const currentZoneBadge = TEAM_QUEST_ANALYTICS_ASSETS[currentZone.id] || TEAM_QUEST_ANALYTICS_ASSETS.bronze;
 
         const multiStageBar = `
             <div class="relative w-full select-none" style="height: 3.25rem;">
                 <!-- Seamless multi-segment track -->
                 <div class="flex items-stretch w-full h-6 absolute rounded-full overflow-hidden shadow-inner border border-slate-200/60" style="top: 8px; background: #e9ecef;">
-                    <div class="quest-trail-segment--bronze h-full relative overflow-hidden" style="flex: 30;" title="🌿 Bronze Meadows (0–30%)">
+                    <div class="quest-trail-segment--bronze h-full relative overflow-hidden" style="flex: 30;" title="Bronze Meadows (0–30%)">
                         <div class="quest-trail-segment--bronze-fill h-full" style="width: ${fillBronze}%"></div>
                     </div>
-                    <div class="quest-trail-segment--silver h-full relative overflow-hidden" style="flex: 30;" title="🏔️ Silver Peaks (30–60%)">
+                    <div class="quest-trail-segment--silver h-full relative overflow-hidden" style="flex: 30;" title="Silver Peaks (30–60%)">
                         <div class="quest-trail-segment--silver-fill h-full" style="width: ${fillSilver}%"></div>
                     </div>
-                    <div class="quest-trail-segment--gold h-full relative overflow-hidden" style="flex: 25;" title="🏰 Golden Citadel (60–85%)">
+                    <div class="quest-trail-segment--gold h-full relative overflow-hidden" style="flex: 25;" title="Golden Citadel (60–85%)">
                         <div class="quest-trail-segment--gold-fill h-full" style="width: ${fillGold}%"></div>
                     </div>
-                    <div class="quest-trail-segment--crystal h-full relative overflow-hidden" style="flex: 15;" title="💎 Crystal Realm (85–100%)">
+                    <div class="quest-trail-segment--crystal h-full relative overflow-hidden" style="flex: 15;" title="Crystal Realm (85–100%)">
                         <div class="quest-trail-segment--crystal-fill h-full" style="width: ${fillCrystal}%"></div>
                     </div>
                 </div>
@@ -452,20 +461,20 @@ export async function renderClassLeaderboardTab() {
             </div>
             
             <!-- Stage labels aligned to segment proportional widths (30/30/25/15) -->
-            <div class="flex items-start mt-1.5 px-0.5" style="gap: 0;">
-                <div class="text-center" style="flex: 30;">
-                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #A0724A;">🌿 Bronze</span>
+                <div class="flex items-start mt-1.5 px-0.5" style="gap: 0;">
+                    <div class="text-center" style="flex: 30;">
+                    <span class="quest-stage-label quest-stage-label--bronze"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.bronze}" alt="" aria-hidden="true">Bronze</span>
+                    </div>
+                    <div class="text-center" style="flex: 30;">
+                    <span class="quest-stage-label quest-stage-label--silver"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.silver}" alt="" aria-hidden="true">Silver</span>
+                    </div>
+                    <div class="text-center" style="flex: 25;">
+                    <span class="quest-stage-label quest-stage-label--gold"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.gold}" alt="" aria-hidden="true">Gold</span>
+                    </div>
+                    <div class="text-center" style="flex: 15;">
+                    <span class="quest-stage-label quest-stage-label--crystal"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.crystal}" alt="" aria-hidden="true">Crystal</span>
+                    </div>
                 </div>
-                <div class="text-center" style="flex: 30;">
-                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #6B7A8A;">🏔️ Silver</span>
-                </div>
-                <div class="text-center" style="flex: 25;">
-                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #B45309;">🏰 Gold</span>
-                </div>
-                <div class="text-center" style="flex: 15;">
-                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #7C3AED;">💎 Crystal</span>
-                </div>
-            </div>
         `;
 
         const starsFormatted = Number(c.currentMonthlyStars) % 1 !== 0 ? c.currentMonthlyStars.toFixed(1) : c.currentMonthlyStars.toFixed(0);
@@ -482,14 +491,16 @@ export async function renderClassLeaderboardTab() {
 
         return `
         <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 55, 800)}ms">
-        <div class="team-quest-card-refreshed ${cardRankClass} group pop-in">
-            <div class="${headerColor} p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="team-quest-card-refreshed team-quest-card-refreshed--zone-${currentZone.id} ${cardRankClass} group pop-in">
+            <div class="${headerColor} team-quest-card__header p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <img class="team-quest-card__zone-watermark" src="${currentZoneBadge}" alt="" draggable="false" aria-hidden="true">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2.5 shrink-0">
                         ${rankBadge}
                         <div class="quest-logo-container text-4xl md:text-5xl filter drop-shadow-md transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
                     </div>
-                    <div>
+                    <div class="team-quest-card__identity">
+                        <div class="team-quest-card__eyebrow"><span>Mission report</span><span>Rank #${rank}</span></div>
                         <h4 class="font-title text-3xl text-indigo-900 leading-tight">${c.name}</h4>
                         <div class="flex flex-wrap gap-2 mt-2 items-center">
                             ${diffBadge}
@@ -515,7 +526,7 @@ export async function renderClassLeaderboardTab() {
                             <div class="flex justify-between items-center mb-2 px-1">
                                 <span class="text-xs font-black text-indigo-900 uppercase tracking-widest">League Progress</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full" style="background: rgba(99,102,241,0.07); color: #4338ca;">${currentZone.icon} ${currentZone.label}</span>
+                                    <span class="quest-current-zone"><img src="${currentZoneBadge}" alt="" aria-hidden="true">${currentZone.label}</span>
                                     <span class="font-title text-xl text-indigo-600">${c.progress.toFixed(0)}%</span>
                                 </div>
                             </div>
@@ -573,9 +584,18 @@ export async function renderClassLeaderboardTab() {
     list.innerHTML = `
         <div class="mb-8 animate-fade-in">${mapHtml}</div>
         <div id="league-standings-container" class="max-w-5xl mx-auto hidden transition-all duration-500 opacity-0 transform translate-y-4 relative">
-            <div class="flex items-center gap-4 mb-4">
-                <h3 class="font-title text-2xl text-indigo-900">Mission Analytics</h3>
-                <div class="h-1 flex-grow bg-indigo-50 rounded-full"></div>
+            <div class="team-quest-analytics-heading mb-5">
+                <div class="team-quest-analytics-heading__plaque">
+                    <img src="${TEAM_QUEST_ANALYTICS_ASSETS.plaque}" alt="" draggable="false" aria-hidden="true">
+                    <span class="team-quest-analytics-heading__copy">
+                        <small>Quest log</small>
+                        <strong>Mission Analytics</strong>
+                    </span>
+                </div>
+                <div class="team-quest-analytics-heading__summary">
+                    <span>${classScores.length} ${classScores.length === 1 ? 'class' : 'classes'} on the trail</span>
+                    <small>Live monthly progress, momentum and class spirit</small>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 gap-4">${cardsHtml}</div>

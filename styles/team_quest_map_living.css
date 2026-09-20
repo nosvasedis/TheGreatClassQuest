@@ -5,14 +5,31 @@
     position: relative;
     width: 100%;
     max-width: 80rem;
-    margin: 0 auto;
+    margin: clamp(1rem, 2vw, 1.65rem) auto clamp(1.35rem, 2.6vw, 2.15rem);
+    overflow: visible;
     filter: none;
     isolation: isolate;
-    contain: layout paint style;
+    contain: layout style;
+}
+
+.tq-living-map__parchment-backing {
+    position: absolute;
+    z-index: 0;
+    top: -7.4%;
+    left: -5.35%;
+    display: block;
+    width: 110.7%;
+    max-width: none;
+    height: 114.8%;
+    object-fit: fill;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 1.2rem 1.25rem rgba(74, 42, 13, 0.3));
 }
 
 .tq-living-map__frame {
     position: relative;
+    z-index: 1;
     width: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;

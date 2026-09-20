@@ -109,15 +109,36 @@ export function getClassQuestProgressData(classroom, students = null, allScores 
 
 const MAP_VIEWBOX_WIDTH = 1200;
 const MAP_VIEWBOX_HEIGHT = 675;
-const QUEST_ROUTE_PATH = 'M 96 585 C 180 566 244 520 296 448 C 354 368 394 286 486 246 C 568 210 637 260 704 334 C 765 402 824 370 884 308 C 955 234 1030 210 1121 104';
+const QUEST_ROUTE_SEGMENTS = [
+    {
+        id: 'bronze', minProgress: 0, maxProgress: 30,
+        d: 'M 60 612 C 82 580 108 544 157 522 C 210 496 253 543 302 534 C 337 527 306 478 262 445 C 219 412 214 373 252 346 C 306 307 346 272 360 221 C 371 181 397 151 421 136'
+    },
+    {
+        id: 'silver', minProgress: 30, maxProgress: 60,
+        d: 'M 421 136 C 445 177 414 224 442 256 C 469 286 442 326 471 345 C 504 366 519 343 548 356 C 592 377 649 381 691 396 C 734 412 762 420 790 398'
+    },
+    {
+        id: 'gold', minProgress: 60, maxProgress: 85,
+        d: 'M 790 398 C 824 362 851 340 876 330 C 901 316 896 282 920 268 C 944 253 937 238 951 224'
+    },
+    {
+        id: 'crystal', minProgress: 85, maxProgress: 100,
+        d: 'M 951 224 C 979 202 972 178 996 160 C 1018 143 1009 117 1035 102 C 1049 94 1055 85 1059 77'
+    }
+];
 const MAP_LANE_GAP = 42;
 const MAP_TOKEN_EDGE_MARGIN = 44;
 
 const LIVING_MAP_ASSETS = {
-    background: new URL('../assets/team-quest-map/living-atlas/map-background.webp', import.meta.url).href,
+    background: new URL('../assets/team-quest-map/living-atlas/map-background-v2.webp', import.meta.url).href,
     plaque: new URL('../assets/team-quest-map/living-atlas/parchment-plaque.webp', import.meta.url).href,
     cloudMist: new URL('../assets/team-quest-map/living-atlas/cloud-mist.webp', import.meta.url).href,
     crystalAura: new URL('../assets/team-quest-map/living-atlas/crystal-aura.webp', import.meta.url).href,
+    badgeBronze: new URL('../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
+    badgeSilver: new URL('../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
+    badgeGold: new URL('../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
+    badgeCrystal: new URL('../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href,
     tokenGold: new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
     tokenSilver: new URL('../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
     tokenBronze: new URL('../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
@@ -129,6 +150,14 @@ const TOKEN_FRAME_BY_TIER = {
     silver: LIVING_MAP_ASSETS.tokenSilver,
     bronze: LIVING_MAP_ASSETS.tokenBronze,
     slate: LIVING_MAP_ASSETS.tokenSlate
+};
+
+const ZONE_BADGE_BY_ID = {
+    bronze: LIVING_MAP_ASSETS.badgeBronze,
+    silver: LIVING_MAP_ASSETS.badgeSilver,
+    gold: LIVING_MAP_ASSETS.badgeGold,
+    crystal: LIVING_MAP_ASSETS.badgeCrystal,
+    diamond: LIVING_MAP_ASSETS.badgeCrystal
 };
 
 let activeLivingMapController = null;
@@ -184,6 +213,7 @@ function renderMapToken(item) {
     const safeName = escapeMapHtml(c.name || 'Class');
     const safeLogo = escapeMapHtml(c.logo || '📚');
     const safeZone = escapeMapHtml(zone.label);
+    const zoneBadge = ZONE_BADGE_BY_ID[zone.id];
     const tooltipPosition = [
         pct >= 78 ? 'tq-class-token--tooltip-below' : '',
         pct >= 90 ? 'tq-class-token--tooltip-left' : '',
@@ -193,7 +223,7 @@ function renderMapToken(item) {
 
     return `
         <button type="button"
-                class="tq-class-token league-map-avatar${isLeader ? ' is-leader' : ''}${tooltipPosition}"
+                class="tq-class-token tq-class-token--${zone.id} league-map-avatar${isLeader ? ' is-leader' : ''}${tooltipPosition}"
                 data-map-token
                 data-token-key="${tokenKey}"
                 data-progress="${pct}"
@@ -211,12 +241,15 @@ function renderMapToken(item) {
                 </span>
             </span>
 
-            <span class="tq-map-tooltip${isLeader ? ' tq-map-tooltip--leader' : ''}" role="tooltip">
+            <span class="tq-map-tooltip tq-map-tooltip--${zone.id}${isLeader ? ' tq-map-tooltip--leader' : ''}" role="tooltip">
                 <span class="tq-map-tooltip__header">
                     <span class="tq-map-tooltip__logo" aria-hidden="true">${safeLogo}</span>
                     <span class="tq-map-tooltip__identity">
                         <strong class="tq-map-tooltip__title">${safeName}</strong>
-                        <span class="tq-map-tooltip__zone">${safeZone}</span>
+                        <span class="tq-map-tooltip__zone">
+                            <img src="${zoneBadge}" alt="" draggable="false" aria-hidden="true">
+                            <span>${safeZone}</span>
+                        </span>
                     </span>
                     <span class="tq-map-tooltip__level">Lvl ${displayLevel}</span>
                 </span>
@@ -238,18 +271,20 @@ function renderMapToken(item) {
         </button>`;
 }
 
-function renderZoneLabel({ id, label, icon, progress, offsetX, offsetY, className }) {
+function renderWaypoint({ id, label, icon, progress, className }) {
     return `
         <button type="button"
-                class="tq-zone-label tq-zone-label--${className} zone-trigger"
+                class="tq-waypoint tq-waypoint--${className} zone-trigger"
                 data-zone="${id}"
                 data-route-progress="${progress}"
-                data-offset-x="${offsetX}"
-                data-offset-y="${offsetY}">
-            <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false" aria-hidden="true">
-            <span class="tq-zone-label__content">
-                <i class="fas ${icon}" aria-hidden="true"></i>
-                <span>${label}</span>
+                aria-label="Open ${label} region overview">
+            <img class="tq-waypoint__badge" src="${ZONE_BADGE_BY_ID[id]}" alt="" draggable="false" aria-hidden="true">
+            <span class="tq-zone-label tq-zone-label--${className}">
+                <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false" aria-hidden="true">
+                <span class="tq-zone-label__content">
+                    <i class="fas ${icon}" aria-hidden="true"></i>
+                    <span>${label}</span>
+                </span>
             </span>
         </button>`;
 }
@@ -289,25 +324,29 @@ export function generateLeagueMapHtml(classes) {
         `<line class="tq-route__connector" data-connector-key="${item.tokenKey}" x1="0" y1="0" x2="0" y2="0"></line>`
     )).join('');
 
-    const milestones = [
-        { progress: 0, icon: 'fa-flag', label: 'Quest begins' },
-        { progress: 30, icon: 'fa-mountain', label: 'Silver Peaks' },
-        { progress: 60, icon: 'fa-chess-rook', label: 'Golden Citadel' },
-        { progress: 85, icon: 'fa-gem', label: 'Crystal Realm' },
-        { progress: 100, icon: 'fa-flag-checkered', label: 'Finish' }
-    ].map((milestone) => `
-        <span class="tq-route-milestone tq-route-milestone--${milestone.progress === 100 ? 'finish' : milestone.progress === 0 ? 'start' : 'gate'}"
-              data-route-progress="${milestone.progress}"
-              aria-label="${milestone.progress}% — ${milestone.label}">
-            <i class="fas ${milestone.icon}" aria-hidden="true"></i>
-        </span>`).join('');
+    const waypoints = [
+        { id: 'bronze', label: 'Bronze Meadows', icon: 'fa-seedling', progress: 0, className: 'bronze' },
+        { id: 'silver', label: 'Silver Peaks', icon: 'fa-snowflake', progress: 30, className: 'silver' },
+        { id: 'gold', label: 'Golden Citadel', icon: 'fa-crown', progress: 60, className: 'gold' },
+        { id: 'diamond', label: 'Crystal Realm', icon: 'fa-wand-magic-sparkles', progress: 85, className: 'crystal' }
+    ].map(renderWaypoint).join('');
 
-    const zoneLabels = [
-        { id: 'bronze', label: 'Bronze Meadows', icon: 'fa-seedling', progress: 0, offsetX: 88, offsetY: 62, className: 'bronze' },
-        { id: 'silver', label: 'Silver Peaks', icon: 'fa-mountain', progress: 30, offsetX: -24, offsetY: -88, className: 'silver' },
-        { id: 'gold', label: 'Golden Citadel', icon: 'fa-chess-rook', progress: 60, offsetX: 44, offsetY: -88, className: 'gold' },
-        { id: 'diamond', label: 'Crystal Realm', icon: 'fa-gem', progress: 85, offsetX: 74, offsetY: -82, className: 'crystal' }
-    ].map(renderZoneLabel).join('');
+    const routeShadows = QUEST_ROUTE_SEGMENTS.map((segment) => (
+        `<path class="tq-route__shadow" d="${segment.d}"></path>`
+    )).join('');
+    const routeEdges = QUEST_ROUTE_SEGMENTS.map((segment) => (
+        `<path class="tq-route__edge" d="${segment.d}"></path>`
+    )).join('');
+    const routeRoads = QUEST_ROUTE_SEGMENTS.map((segment) => (
+        `<path class="tq-route__segment tq-route__segment--${segment.id}"
+               d="${segment.d}"
+               data-route-segment
+               data-progress-min="${segment.minProgress}"
+               data-progress-max="${segment.maxProgress}"></path>`
+    )).join('');
+    const routeGleams = QUEST_ROUTE_SEGMENTS.map((segment) => (
+        `<path class="tq-route__gleam" d="${segment.d}"></path>`
+    )).join('');
 
     return `
     <div class="team-quest-map-parchment tq-living-map" role="region" aria-label="League quest map" data-living-quest-map>
@@ -319,35 +358,58 @@ export function generateLeagueMapHtml(classes) {
 
             <svg class="tq-route" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                 <defs>
-                    <linearGradient id="tqLivingRoadGradient" x1="7%" y1="90%" x2="94%" y2="8%">
-                        <stop offset="0%" stop-color="#f5c34f"></stop>
-                        <stop offset="30%" stop-color="#fff5bf"></stop>
-                        <stop offset="58%" stop-color="#f6c34a"></stop>
-                        <stop offset="84%" stop-color="#f7d96d"></stop>
-                        <stop offset="100%" stop-color="#f5dcff"></stop>
+                    <linearGradient id="tqBronzeRoad" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#5fcf6a"></stop>
+                        <stop offset="52%" stop-color="#f4c852"></stop>
+                        <stop offset="100%" stop-color="#91d879"></stop>
+                    </linearGradient>
+                    <linearGradient id="tqSilverRoad" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#8ad7ff"></stop>
+                        <stop offset="50%" stop-color="#f4fbff"></stop>
+                        <stop offset="100%" stop-color="#779de0"></stop>
+                    </linearGradient>
+                    <linearGradient id="tqGoldRoad" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#ef9a2e"></stop>
+                        <stop offset="52%" stop-color="#ffe375"></stop>
+                        <stop offset="100%" stop-color="#e64f3c"></stop>
+                    </linearGradient>
+                    <linearGradient id="tqCrystalRoad" x1="0" y1="1" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#ab6cff"></stop>
+                        <stop offset="52%" stop-color="#65e8ff"></stop>
+                        <stop offset="100%" stop-color="#f193ff"></stop>
                     </linearGradient>
                 </defs>
-                <path class="tq-route__shadow" d="${QUEST_ROUTE_PATH}"></path>
-                <path class="tq-route__edge" d="${QUEST_ROUTE_PATH}"></path>
-                <path class="tq-route__road" d="${QUEST_ROUTE_PATH}" data-quest-route></path>
-                <path class="tq-route__gleam" d="${QUEST_ROUTE_PATH}"></path>
+                ${routeShadows}
+                ${routeEdges}
+                ${routeRoads}
+                ${routeGleams}
                 <g class="tq-route__connectors">${connectors}</g>
             </svg>
 
             <div class="tq-map-title" aria-hidden="true">
                 <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false">
-                <span><i class="fas fa-compass"></i> Team Quest</span>
+                <span><i class="fas fa-map-location-dot"></i> Map</span>
             </div>
 
-            ${milestones}
-            ${zoneLabels}
+            <div class="tq-map-ambient" aria-hidden="true">
+                <span class="tq-ambient tq-ambient--butterfly-one">🦋</span>
+                <span class="tq-ambient tq-ambient--butterfly-two">🦋</span>
+                <i class="fas fa-dove tq-ambient tq-ambient--bird-one"></i>
+                <i class="fas fa-dove tq-ambient tq-ambient--bird-two"></i>
+                <i class="fas fa-flag tq-ambient tq-ambient--silver-flag"></i>
+                <i class="fas fa-flag tq-ambient tq-ambient--gold-flag"></i>
+                <span class="tq-ambient tq-ambient--crystal-spark-one">✦</span>
+                <span class="tq-ambient tq-ambient--crystal-spark-two">✧</span>
+                <span class="tq-ambient tq-ambient--crystal-spark-three">✦</span>
+            </div>
+
+            ${waypoints}
+            <span class="tq-route-finish" data-route-progress="100" aria-label="Quest finish at 100 percent">
+                <i class="fas fa-flag-checkered" aria-hidden="true"></i>
+            </span>
             <div class="tq-class-token-layer">${mapItems.map(renderMapToken).join('')}</div>
 
             <div class="tq-map-controls">
-                <button id="toggle-map-motion-btn" class="tq-map-control tq-map-control--motion" type="button" aria-pressed="false" title="Pause map motion">
-                    <i class="fas fa-pause" aria-hidden="true"></i>
-                    <span class="sr-only">Pause map motion</span>
-                </button>
                 <button id="toggle-map-list-btn" class="map-toggle-roster-btn tq-map-control tq-map-control--analysis" type="button">
                     <i class="fas fa-list-ul" aria-hidden="true"></i>
                     <span>Analysis</span>
@@ -357,12 +419,18 @@ export function generateLeagueMapHtml(classes) {
     </div>`;
 }
 
-function getRoutePoint(path, totalLength, progress) {
+function getRoutePoint(routeSegments, progress) {
     const safeProgress = Math.min(100, Math.max(0, Number(progress) || 0));
-    const length = totalLength * (safeProgress / 100);
-    const point = path.getPointAtLength(length);
-    const before = path.getPointAtLength(Math.max(0, length - 1));
-    const after = path.getPointAtLength(Math.min(totalLength, length + 1));
+    const segment = routeSegments.find((candidate, index) => (
+        safeProgress >= candidate.minProgress
+        && (safeProgress < candidate.maxProgress || index === routeSegments.length - 1)
+    )) || routeSegments[routeSegments.length - 1];
+    const segmentRange = segment.maxProgress - segment.minProgress || 1;
+    const localProgress = Math.min(1, Math.max(0, (safeProgress - segment.minProgress) / segmentRange));
+    const length = segment.totalLength * localProgress;
+    const point = segment.path.getPointAtLength(length);
+    const before = segment.path.getPointAtLength(Math.max(0, length - 1));
+    const after = segment.path.getPointAtLength(Math.min(segment.totalLength, length + 1));
     const tangentX = after.x - before.x;
     const tangentY = after.y - before.y;
     const magnitude = Math.hypot(tangentX, tangentY) || 1;
@@ -386,13 +454,13 @@ function constrainMapPoint(point) {
     return point;
 }
 
-function sampleTokenJourney(path, totalLength, targetProgress, lane, rootRect) {
+function sampleTokenJourney(routeSegments, targetProgress, lane, rootRect) {
     const steps = Math.max(8, Math.ceil(targetProgress / 6));
     const frames = [];
     for (let index = 0; index <= steps; index++) {
         const ratio = index / steps;
         const easedProgress = targetProgress * ratio;
-        const point = getRoutePoint(path, totalLength, easedProgress);
+        const point = getRoutePoint(routeSegments, easedProgress);
         const laneStrength = lane * MAP_LANE_GAP * ratio;
         point.x += point.normalX * laneStrength;
         point.y += point.normalY * laneStrength;
@@ -411,22 +479,25 @@ export function initializeLivingQuestMap(scope) {
 
     const root = scope?.querySelector?.('[data-living-quest-map]');
     const frame = root?.querySelector('.tq-living-map__frame');
-    const path = root?.querySelector('[data-quest-route]');
-    if (!root || !frame || !path) return null;
+    const routeSegments = [...(root?.querySelectorAll?.('[data-route-segment]') || [])].map((path) => ({
+        path,
+        minProgress: Number(path.dataset.progressMin) || 0,
+        maxProgress: Number(path.dataset.progressMax) || 100,
+        totalLength: path.getTotalLength()
+    }));
+    if (!root || !frame || routeSegments.length === 0) return null;
 
-    const totalLength = path.getTotalLength();
     const tokens = [...root.querySelectorAll('[data-map-token]')];
     const routeAnchors = [...root.querySelectorAll('[data-route-progress]:not([data-map-token])')];
     const activeAnimations = [];
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let manuallyPaused = false;
     let offscreen = false;
     let pageHidden = document.hidden;
     let initialJourneyPlayed = false;
 
     const positionStaticElements = () => {
         routeAnchors.forEach((element) => {
-            const point = getRoutePoint(path, totalLength, element.dataset.routeProgress);
+            const point = getRoutePoint(routeSegments, element.dataset.routeProgress);
             point.x += Number(element.dataset.offsetX) || 0;
             point.y += Number(element.dataset.offsetY) || 0;
             element.style.left = `${(point.x / MAP_VIEWBOX_WIDTH) * 100}%`;
@@ -441,7 +512,7 @@ export function initializeLivingQuestMap(scope) {
         tokens.forEach((token, index) => {
             const progress = Math.min(100, Math.max(0, Number(token.dataset.progress) || 0));
             const lane = Number(token.dataset.lane) || 0;
-            const anchor = getRoutePoint(path, totalLength, progress);
+            const anchor = getRoutePoint(routeSegments, progress);
             const point = {
                 ...anchor,
                 x: anchor.x + anchor.normalX * lane * MAP_LANE_GAP,
@@ -462,9 +533,9 @@ export function initializeLivingQuestMap(scope) {
                 connector.classList.toggle('is-visible', lane !== 0);
             }
 
-            if (animate && !reducedMotionQuery.matches && !manuallyPaused) {
+            if (animate && !reducedMotionQuery.matches) {
                 const animation = token.animate(
-                    sampleTokenJourney(path, totalLength, progress, lane, rect),
+                    sampleTokenJourney(routeSegments, progress, lane, rect),
                     {
                         duration: 1050 + Math.round(progress * 10),
                         delay: index * 90,
@@ -483,10 +554,9 @@ export function initializeLivingQuestMap(scope) {
         });
     };
 
-    const motionButton = root.querySelector('#toggle-map-motion-btn');
     const updateMotionState = () => {
         const reduced = reducedMotionQuery.matches;
-        const suspended = reduced || manuallyPaused || offscreen || pageHidden;
+        const suspended = reduced || offscreen || pageHidden;
         root.classList.toggle('is-motion-paused', suspended);
         root.classList.toggle('is-reduced-motion', reduced);
         activeAnimations.forEach((animation) => {
@@ -494,17 +564,6 @@ export function initializeLivingQuestMap(scope) {
             else animation.play();
         });
 
-        if (motionButton) {
-            const icon = motionButton.querySelector('i');
-            const label = motionButton.querySelector('.sr-only');
-            motionButton.disabled = reduced;
-            motionButton.setAttribute('aria-pressed', String(manuallyPaused || reduced));
-            motionButton.title = reduced
-                ? 'Motion is reduced by your system settings'
-                : manuallyPaused ? 'Resume map motion' : 'Pause map motion';
-            if (label) label.textContent = motionButton.title;
-            if (icon) icon.className = `fas ${manuallyPaused || reduced ? 'fa-play' : 'fa-pause'}`;
-        }
     };
 
     const playInitialJourney = () => {
@@ -541,14 +600,6 @@ export function initializeLivingQuestMap(scope) {
     };
     frame.addEventListener('click', closeSelectedToken);
     frame.addEventListener('keydown', closeSelectedToken);
-
-    const toggleMotion = (event) => {
-        event.stopPropagation();
-        if (reducedMotionQuery.matches) return;
-        manuallyPaused = !manuallyPaused;
-        updateMotionState();
-    };
-    motionButton?.addEventListener('click', toggleMotion);
 
     const visibilityHandler = () => {
         pageHidden = document.hidden;
@@ -590,7 +641,6 @@ export function initializeLivingQuestMap(scope) {
             reducedMotionQuery.removeEventListener?.('change', reducedMotionHandler);
             frame.removeEventListener('click', closeSelectedToken);
             frame.removeEventListener('keydown', closeSelectedToken);
-            motionButton?.removeEventListener('click', toggleMotion);
             tokenClickHandlers.forEach((handler, token) => token.removeEventListener('click', handler));
             if (activeLivingMapController === controller) activeLivingMapController = null;
         }

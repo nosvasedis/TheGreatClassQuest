@@ -402,10 +402,24 @@ export function setHasLoadedShopItems(val) {
     state.hasLoadedShopItems = val;
 }
 
+function getSelectedClassLeague(classId = state.globalSelectedClassId) {
+    if (!classId) return null;
+
+    const selectedClass =
+        state.allSchoolClasses.find((candidate) => candidate.id === classId) ||
+        state.allTeachersClasses.find((candidate) => candidate.id === classId);
+
+    return selectedClass?.questLevel || null;
+}
+
 export function getLeaderboardEffectiveLeague() {
     const override = state.leaderboardLeagueOverride;
     if (override) return override;
-    return state.globalSelectedLeague;
+
+    // The header picker is populated from allTeachersClasses. During startup that
+    // collection can be ready before allSchoolClasses, so derive the league from
+    // the selected class itself instead of relying only on the mirrored value.
+    return getSelectedClassLeague() || state.globalSelectedLeague;
 }
 
 export function setLeaderboardLeagueOverride(league) {
@@ -454,12 +468,12 @@ export function setGlobalSelectedClass(classId, isManual = false) {
 
     updateReigningHero();
     if (classId) {
-        const selectedClass = state.allSchoolClasses.find(
-            (c) => c.id === classId,
-        );
-        if (selectedClass) {
-            state.globalSelectedLeague = selectedClass.questLevel;
-            localStorage.setItem("quest_last_league", selectedClass.questLevel);
+        const selectedLeague = getSelectedClassLeague(classId);
+        state.globalSelectedLeague = selectedLeague;
+        if (selectedLeague) {
+            localStorage.setItem("quest_last_league", selectedLeague);
+        } else {
+            localStorage.removeItem("quest_last_league");
         }
     } else {
         // General view: do not keep a stale league from localStorage (leaderboards + tools should not imply a class).

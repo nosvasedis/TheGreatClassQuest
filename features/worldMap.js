@@ -107,16 +107,155 @@ export function getClassQuestProgressData(classroom, students = null, allScores 
     };
 }
 
-export function generateLeagueMapHtml(classes) {
-    const W = 1000;
-    const H = 562;
-    
-    // Path: Bronze -> Silver -> Gold -> Diamond
-    const pathData = `M 50,520 C 100,510 120,480 180,450 C 240,420 280,250 350,150 C 400,80 480,80 550,200 C 620,320 680,450 780,420 C 860,390 880,150 950,50`;
+const MAP_VIEWBOX_WIDTH = 1200;
+const MAP_VIEWBOX_HEIGHT = 675;
+const QUEST_ROUTE_PATH = 'M 96 585 C 180 566 244 520 296 448 C 354 368 394 286 486 246 C 568 210 637 260 704 334 C 765 402 824 370 884 308 C 955 234 1030 210 1121 104';
+const MAP_LANE_GAP = 42;
+const MAP_TOKEN_EDGE_MARGIN = 44;
 
-    // 1. PRE-CALCULATE BASE POSITIONS & DATA
-    // We calculate everyone's ideal position first so we can fix overlaps before rendering
-    let mapItems = classes.map((c, leagueIndex) => {
+const LIVING_MAP_ASSETS = {
+    background: new URL('../assets/team-quest-map/living-atlas/map-background.webp', import.meta.url).href,
+    plaque: new URL('../assets/team-quest-map/living-atlas/parchment-plaque.webp', import.meta.url).href,
+    cloudMist: new URL('../assets/team-quest-map/living-atlas/cloud-mist.webp', import.meta.url).href,
+    crystalAura: new URL('../assets/team-quest-map/living-atlas/crystal-aura.webp', import.meta.url).href,
+    tokenGold: new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
+    tokenSilver: new URL('../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
+    tokenBronze: new URL('../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
+    tokenSlate: new URL('../assets/team-quest-map/living-atlas/token-slate.webp', import.meta.url).href
+};
+
+const TOKEN_FRAME_BY_TIER = {
+    gold: LIVING_MAP_ASSETS.tokenGold,
+    silver: LIVING_MAP_ASSETS.tokenSilver,
+    bronze: LIVING_MAP_ASSETS.tokenBronze,
+    slate: LIVING_MAP_ASSETS.tokenSlate
+};
+
+let activeLivingMapController = null;
+
+function escapeMapHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function assignStableMapLanes(items) {
+    const laneOrder = [0, -1, 1, -2, 2, -3, 3, -4, 4];
+    const ordered = [...items].sort((a, b) => (
+        a.pct - b.pct || a.tokenKey.localeCompare(b.tokenKey)
+    ));
+    let cluster = [];
+
+    const flushCluster = () => {
+        cluster
+            .sort((a, b) => a.tokenKey.localeCompare(b.tokenKey))
+            .forEach((item, index) => {
+                item.lane = laneOrder[index] ?? (index % 2 === 0 ? index / 2 : -Math.ceil(index / 2));
+            });
+        cluster = [];
+    };
+
+    ordered.forEach((item) => {
+        if (cluster.length && item.pct - cluster[0].pct > 2.5) flushCluster();
+        cluster.push(item);
+    });
+    flushCluster();
+    return items;
+}
+
+function renderMapToken(item) {
+    const {
+        c,
+        pct,
+        isLeader,
+        pinTier,
+        progressDisplay,
+        starsDisplay,
+        goal,
+        displayLevel,
+        classQuestBonus,
+        tokenKey,
+        lane
+    } = item;
+    const zone = getQuestMapZoneForProgressPercent(pct);
+    const safeName = escapeMapHtml(c.name || 'Class');
+    const safeLogo = escapeMapHtml(c.logo || '📚');
+    const safeZone = escapeMapHtml(zone.label);
+    const tooltipPosition = [
+        pct >= 78 ? 'tq-class-token--tooltip-below' : '',
+        pct >= 90 ? 'tq-class-token--tooltip-left' : '',
+        pct <= 8 ? 'tq-class-token--tooltip-right' : ''
+    ].filter(Boolean).map((className) => ` ${className}`).join('');
+    const ariaLabel = `${safeName}, ${progressDisplay}% complete, ${starsDisplay} of ${goal} stars, ${safeZone}, level ${displayLevel}`;
+
+    return `
+        <button type="button"
+                class="tq-class-token league-map-avatar${isLeader ? ' is-leader' : ''}${tooltipPosition}"
+                data-map-token
+                data-token-key="${tokenKey}"
+                data-progress="${pct}"
+                data-lane="${lane}"
+                aria-label="${ariaLabel}"
+                aria-expanded="false">
+            <span class="tq-class-token__visual" aria-hidden="true">
+                <span class="tq-class-token__shadow"></span>
+                <span class="tq-class-token__core">
+                    <span class="tq-class-token__logo">${safeLogo}</span>
+                    <img class="tq-class-token__frame"
+                         src="${TOKEN_FRAME_BY_TIER[pinTier]}"
+                         alt=""
+                         draggable="false">
+                </span>
+            </span>
+
+            <span class="tq-map-tooltip${isLeader ? ' tq-map-tooltip--leader' : ''}" role="tooltip">
+                <span class="tq-map-tooltip__header">
+                    <span class="tq-map-tooltip__logo" aria-hidden="true">${safeLogo}</span>
+                    <span class="tq-map-tooltip__identity">
+                        <strong class="tq-map-tooltip__title">${safeName}</strong>
+                        <span class="tq-map-tooltip__zone">${safeZone}</span>
+                    </span>
+                    <span class="tq-map-tooltip__level">Lvl ${displayLevel}</span>
+                </span>
+                <span class="tq-map-tooltip__meter" aria-hidden="true">
+                    <span class="tq-map-tooltip__meter-fill" style="width:${pct}%"></span>
+                </span>
+                <span class="tq-map-tooltip__stats">
+                    <span>
+                        <small>Progress</small>
+                        <strong>${progressDisplay}%</strong>
+                    </span>
+                    <span class="tq-map-tooltip__collected">
+                        <small>Collected</small>
+                        <strong>${starsDisplay} <span aria-hidden="true">/</span> ${goal} <i class="fas fa-star" aria-hidden="true"></i></strong>
+                    </span>
+                </span>
+                ${classQuestBonus > 0 ? `<span class="tq-map-tooltip__bonus"><i class="fas fa-compass" aria-hidden="true"></i> +${classQuestBonus} Pathfinder</span>` : ''}
+            </span>
+        </button>`;
+}
+
+function renderZoneLabel({ id, label, icon, progress, offsetX, offsetY, className }) {
+    return `
+        <button type="button"
+                class="tq-zone-label tq-zone-label--${className} zone-trigger"
+                data-zone="${id}"
+                data-route-progress="${progress}"
+                data-offset-x="${offsetX}"
+                data-offset-y="${offsetY}">
+            <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false" aria-hidden="true">
+            <span class="tq-zone-label__content">
+                <i class="fas ${icon}" aria-hidden="true"></i>
+                <span>${label}</span>
+            </span>
+        </button>`;
+}
+
+export function generateLeagueMapHtml(classes) {
+    const mapItems = assignStableMapLanes(classes.map((c, leagueIndex) => {
         const {
             liveMonthlyStars,
             classQuestBonus,
@@ -125,15 +264,11 @@ export function generateLeagueMapHtml(classes) {
             pct,
             progressDisplay
         } = resolveLeagueMapMetrics(c);
-
-        // Get ideal position on the curve
-        const pos = getComplexPathPoint(pct / 100);
-
         const pinTier = leagueIndex === 0 ? 'gold'
             : leagueIndex === 1 ? 'silver'
                 : leagueIndex === 2 ? 'bronze'
                     : 'slate';
-        
+
         return {
             c,
             pct,
@@ -142,221 +277,324 @@ export function generateLeagueMapHtml(classes) {
             starsDisplay,
             goal,
             progressDisplay,
-            x: pos.x,
-            y: pos.y,
             pinTier,
             isLeader: leagueIndex === 0,
-            displayLevel: (c.difficulty || 0) + 1
+            displayLevel: (c.difficulty || 0) + 1,
+            tokenKey: encodeURIComponent(String(c.id || c.name || leagueIndex)),
+            lane: 0
         };
-    });
+    }));
 
-    // 2. RESOLVE OVERLAPS (Smart "Sit Beside Each Other" Logic)
-    const iterations = 10;
-    const minDist = 45; // Minimum distance in pixels (based on 1000px width scale)
+    const connectors = mapItems.map((item) => (
+        `<line class="tq-route__connector" data-connector-key="${item.tokenKey}" x1="0" y1="0" x2="0" y2="0"></line>`
+    )).join('');
 
-    for (let k = 0; k < iterations; k++) {
-        for (let i = 0; i < mapItems.length; i++) {
-            for (let j = i + 1; j < mapItems.length; j++) {
-                const a = mapItems[i];
-                const b = mapItems[j];
-                
-                const dx = b.x - a.x;
-                const dy = b.y - a.y;
-                const distSq = dx*dx + dy*dy;
-                const dist = Math.sqrt(distSq);
+    const milestones = [
+        { progress: 0, icon: 'fa-flag', label: 'Quest begins' },
+        { progress: 30, icon: 'fa-mountain', label: 'Silver Peaks' },
+        { progress: 60, icon: 'fa-chess-rook', label: 'Golden Citadel' },
+        { progress: 85, icon: 'fa-gem', label: 'Crystal Realm' },
+        { progress: 100, icon: 'fa-flag-checkered', label: 'Finish' }
+    ].map((milestone) => `
+        <span class="tq-route-milestone tq-route-milestone--${milestone.progress === 100 ? 'finish' : milestone.progress === 0 ? 'start' : 'gate'}"
+              data-route-progress="${milestone.progress}"
+              aria-label="${milestone.progress}% — ${milestone.label}">
+            <i class="fas ${milestone.icon}" aria-hidden="true"></i>
+        </span>`).join('');
 
-                if (dist < minDist) {
-                    // They are too close! Push them apart.
-                    const overlap = minDist - dist;
-                    
-                    // If exactly on top of each other, pick a random angle to separate
-                    // Otherwise, push away along the angle connecting them
-                    let angle = (dist === 0) ? (Math.random() * Math.PI * 2) : Math.atan2(dy, dx);
-                    
-                    // Nudge amount (split overlap between both items)
-                    const moveX = Math.cos(angle) * overlap * 0.5;
-                    const moveY = Math.sin(angle) * overlap * 0.5;
-
-                    a.x -= moveX;
-                    a.y -= moveY;
-                    b.x += moveX;
-                    b.y += moveY;
-                }
-            }
-        }
-    }
-
-    // 3. RENDER AVATARS
-    const avatarsHtml = mapItems.map((item) => {
-        const { c, pct, x, y, isLeader, pinTier, progressDisplay, starsDisplay, goal, displayLevel, classQuestBonus } = item;
-
-        // Determine Zone Styles
-        const zone = getQuestMapZoneForProgressPercent(pct);
-
-        // Smart Tooltip Positioning based on map location
-        const topPct = (y / H) * 100;
-        const leftPct = (x / W) * 100;
-        let tooltipClass = "";
-        if (topPct < 30) tooltipClass += " tooltip-pos-bottom";
-        if (leftPct < 15) tooltipClass += " tooltip-pos-right";
-        else if (leftPct > 85) tooltipClass += " tooltip-pos-left";
-
-        return `
-        <div class="league-map-avatar ${isLeader ? 'is-leader' : ''} ${tooltipClass} group ease-out"
-             style="left: 5%; top: 92%; z-index: ${Math.floor(pct) + 10}; transition: left 2s ease-out, top 2s ease-out;"
-             data-final-left="${(x / W) * 100}%"
-             data-final-top="${(y / H) * 100}%">
-            
-            <div class="relative w-12 h-12 md:w-14 md:h-14 transition-all duration-500 group-hover:scale-125 group-hover:-translate-y-2">
-                
-                <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/20 rounded-full blur-sm transition-all group-hover:w-12 group-hover:opacity-40"></div>
-
-                <div class="league-map-pin-ring league-map-pin-ring--${pinTier} w-full h-full rounded-full p-[2.5px] md:p-[3px] box-border">
-                    <div class="pin-head pin-head--league-map w-full h-full rounded-full flex items-center justify-center text-2xl shadow-inner overflow-hidden relative">
-                        <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/45 to-transparent pointer-events-none"></div>
-                        <span class="filter drop-shadow-sm z-10 transform scale-110">${c.logo}</span>
-                        
-                        ${isLeader ? '<div class="absolute -top-1 -right-1 text-xs rotate-12 z-20">👑</div>' : ''}
-                    </div>
-                </div>
-            </div>
-
-            <div class="map-rich-tooltip${isLeader ? ' map-rich-tooltip--leader' : ''}">
-                <div class="map-rich-tooltip__edge map-rich-tooltip__edge--top" aria-hidden="true"></div>
-                <div class="map-rich-tooltip__body">
-                    <div class="map-rich-tooltip__header">
-                        <span class="map-rich-tooltip__logo">${c.logo}</span>
-                        <h4 class="map-rich-tooltip__title">${c.name}</h4>
-                    </div>
-                    <div class="map-rich-tooltip__meta">
-                        <span class="map-rich-tooltip__zone">${zone.label}</span>
-                        <span class="map-rich-tooltip__lvl">Lvl ${displayLevel}</span>
-                    </div>
-                    <div class="map-rich-tooltip__meter" role="presentation">
-                        <div class="map-rich-tooltip__meter-fill" style="width: ${pct}%"></div>
-                    </div>
-                    <div class="map-rich-tooltip__stats">
-                        <div class="map-rich-tooltip__stat">
-                            <span class="map-rich-tooltip__stat-label">Progress</span>
-                            <span class="map-rich-tooltip__stat-value map-rich-tooltip__stat-value--progress">${progressDisplay}%</span>
-                        </div>
-                        <div class="map-rich-tooltip__stat map-rich-tooltip__stat--right">
-                            <span class="map-rich-tooltip__stat-label">Collected</span>
-                            <span class="map-rich-tooltip__stat-stars">
-                                <span class="map-rich-tooltip__stars-num">${starsDisplay}</span>
-                                <span class="map-rich-tooltip__stars-sep">/</span>
-                                <span class="map-rich-tooltip__stars-goal">${goal}</span>
-                                <span class="map-rich-tooltip__stars-icon" aria-hidden="true">⭐</span>
-                            </span>
-                            ${classQuestBonus > 0 ? `<span class="map-rich-tooltip__bonus">+${classQuestBonus} Pathfinder</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div class="map-rich-tooltip__edge map-rich-tooltip__edge--bottom" aria-hidden="true"></div>
-            </div>
-        </div>
-        `;
-    }).join('');
+    const zoneLabels = [
+        { id: 'bronze', label: 'Bronze Meadows', icon: 'fa-seedling', progress: 0, offsetX: 88, offsetY: 62, className: 'bronze' },
+        { id: 'silver', label: 'Silver Peaks', icon: 'fa-mountain', progress: 30, offsetX: -24, offsetY: -88, className: 'silver' },
+        { id: 'gold', label: 'Golden Citadel', icon: 'fa-chess-rook', progress: 60, offsetX: 44, offsetY: -88, className: 'gold' },
+        { id: 'diamond', label: 'Crystal Realm', icon: 'fa-gem', progress: 85, offsetX: 74, offsetY: -82, className: 'crystal' }
+    ].map(renderZoneLabel).join('');
 
     return `
-    <div class="team-quest-map-parchment" role="region" aria-label="League quest map">
-        <div class="team-quest-map-parchment__roll team-quest-map-parchment__roll--top" aria-hidden="true"></div>
-        <div class="team-quest-map-parchment__sheet">
-            <div class="league-map-wrapper">
-                <div class="league-map-bg"></div>
-                <svg viewBox="0 0 ${W} ${H}" class="league-map-svg" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="roadGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
-                            <stop offset="35%" style="stop-color:#e0f2fe;stop-opacity:1" />
-                            <stop offset="65%" style="stop-color:#fbbf24;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#d8b4fe;stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-                    <path d="${pathData}" class="map-path-line" 
-                          style="stroke: url(#roadGradient); stroke-width: 8; stroke-dasharray: 15, 10; filter: url(#glow); opacity: 0.9; stroke-linecap: round; fill: none;" />
-                </svg>
+    <div class="team-quest-map-parchment tq-living-map" role="region" aria-label="League quest map" data-living-quest-map>
+        <div class="tq-living-map__frame">
+            <img class="tq-living-map__background" src="${LIVING_MAP_ASSETS.background}" alt="" draggable="false">
+            <img class="tq-living-map__crystal-aura" src="${LIVING_MAP_ASSETS.crystalAura}" alt="" draggable="false" aria-hidden="true">
+            <img class="tq-living-map__mist tq-living-map__mist--near" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" aria-hidden="true">
+            <img class="tq-living-map__mist tq-living-map__mist--far" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" aria-hidden="true">
 
-                <div class="map-zone-label zone-trigger map-zone-label--bronze" data-zone="bronze" style="left: 10%; top: 75%;">
-                    <span class="map-zone-label__icon" aria-hidden="true">🌿</span>
-                    <span class="map-zone-label__text">Bronze Meadows</span>
-                </div>
-                
-                <div class="map-zone-label zone-trigger map-zone-label--silver" data-zone="silver" style="left: 32%; top: 15%;">
-                    <span class="map-zone-label__icon" aria-hidden="true">🏔️</span>
-                    <span class="map-zone-label__text">Silver Peaks</span>
-                </div>
-                
-                <div class="map-zone-label zone-trigger map-zone-label--gold" data-zone="gold" style="left: 70%; top: 65%;">
-                    <span class="map-zone-label__icon" aria-hidden="true">🏰</span>
-                    <span class="map-zone-label__text">Golden Citadel</span>
-                </div>
-                
-                <div class="map-zone-label zone-trigger map-zone-label--crystal" data-zone="diamond" style="left: 88%; top: 8%;">
-                    <span class="map-zone-label__icon" aria-hidden="true">💎</span>
-                    <span class="map-zone-label__text">Crystal Realm</span>
-                </div>
+            <svg class="tq-route" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <defs>
+                    <linearGradient id="tqLivingRoadGradient" x1="7%" y1="90%" x2="94%" y2="8%">
+                        <stop offset="0%" stop-color="#f5c34f"></stop>
+                        <stop offset="30%" stop-color="#fff5bf"></stop>
+                        <stop offset="58%" stop-color="#f6c34a"></stop>
+                        <stop offset="84%" stop-color="#f7d96d"></stop>
+                        <stop offset="100%" stop-color="#f5dcff"></stop>
+                    </linearGradient>
+                </defs>
+                <path class="tq-route__shadow" d="${QUEST_ROUTE_PATH}"></path>
+                <path class="tq-route__edge" d="${QUEST_ROUTE_PATH}"></path>
+                <path class="tq-route__road" d="${QUEST_ROUTE_PATH}" data-quest-route></path>
+                <path class="tq-route__gleam" d="${QUEST_ROUTE_PATH}"></path>
+                <g class="tq-route__connectors">${connectors}</g>
+            </svg>
 
-                ${avatarsHtml}
+            <div class="tq-map-title" aria-hidden="true">
+                <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false">
+                <span><i class="fas fa-compass"></i> Team Quest</span>
+            </div>
 
-                <button id="toggle-map-list-btn" class="map-toggle-roster-btn">
-                    <i class="fas fa-list-ul mr-1"></i> Analysis
+            ${milestones}
+            ${zoneLabels}
+            <div class="tq-class-token-layer">${mapItems.map(renderMapToken).join('')}</div>
+
+            <div class="tq-map-controls">
+                <button id="toggle-map-motion-btn" class="tq-map-control tq-map-control--motion" type="button" aria-pressed="false" title="Pause map motion">
+                    <i class="fas fa-pause" aria-hidden="true"></i>
+                    <span class="sr-only">Pause map motion</span>
+                </button>
+                <button id="toggle-map-list-btn" class="map-toggle-roster-btn tq-map-control tq-map-control--analysis" type="button">
+                    <i class="fas fa-list-ul" aria-hidden="true"></i>
+                    <span>Analysis</span>
                 </button>
             </div>
         </div>
-        <div class="team-quest-map-parchment__roll team-quest-map-parchment__roll--bottom" aria-hidden="true"></div>
-    </div>
-    `;
+    </div>`;
 }
 
-// --- MATH HELPERS ---
+function getRoutePoint(path, totalLength, progress) {
+    const safeProgress = Math.min(100, Math.max(0, Number(progress) || 0));
+    const length = totalLength * (safeProgress / 100);
+    const point = path.getPointAtLength(length);
+    const before = path.getPointAtLength(Math.max(0, length - 1));
+    const after = path.getPointAtLength(Math.min(totalLength, length + 1));
+    const tangentX = after.x - before.x;
+    const tangentY = after.y - before.y;
+    const magnitude = Math.hypot(tangentX, tangentY) || 1;
+    return {
+        x: point.x,
+        y: point.y,
+        normalX: -tangentY / magnitude,
+        normalY: tangentX / magnitude
+    };
+}
 
-function stringHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+function mapTransform(point, rootRect) {
+    const x = (point.x / MAP_VIEWBOX_WIDTH) * rootRect.width;
+    const y = (point.y / MAP_VIEWBOX_HEIGHT) * rootRect.height;
+    return `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+}
+
+function constrainMapPoint(point) {
+    point.x = Math.min(MAP_VIEWBOX_WIDTH - MAP_TOKEN_EDGE_MARGIN, Math.max(MAP_TOKEN_EDGE_MARGIN, point.x));
+    point.y = Math.min(MAP_VIEWBOX_HEIGHT - MAP_TOKEN_EDGE_MARGIN, Math.max(MAP_TOKEN_EDGE_MARGIN, point.y));
+    return point;
+}
+
+function sampleTokenJourney(path, totalLength, targetProgress, lane, rootRect) {
+    const steps = Math.max(8, Math.ceil(targetProgress / 6));
+    const frames = [];
+    for (let index = 0; index <= steps; index++) {
+        const ratio = index / steps;
+        const easedProgress = targetProgress * ratio;
+        const point = getRoutePoint(path, totalLength, easedProgress);
+        const laneStrength = lane * MAP_LANE_GAP * ratio;
+        point.x += point.normalX * laneStrength;
+        point.y += point.normalY * laneStrength;
+        frames.push({
+            transform: mapTransform(constrainMapPoint(point), rootRect),
+            opacity: index === 0 ? 0 : 1,
+            offset: ratio
+        });
     }
-    return Math.abs(hash);
+    return frames;
 }
 
-function getComplexPathPoint(t) {
-    const segments = [
-        { w: 0.25, p: [50,520, 100,510, 120,480, 180,450] },
-        { w: 0.25, p: [180,450, 240,420, 280,250, 350,150] }, 
-        { w: 0.25, p: [350,150, 480,80, 550,200, 780,420] }, 
-        { w: 0.25, p: [780,420, 860,390, 880,150, 950,50] }
-    ];
+export function initializeLivingQuestMap(scope) {
+    activeLivingMapController?.destroy?.();
+    activeLivingMapController = null;
 
-    let accumulatedT = 0;
-    for (let i = 0; i < segments.length; i++) {
-        const seg = segments[i];
-        if (t <= accumulatedT + seg.w || i === segments.length - 1) {
-            const segmentT = (t - accumulatedT) / seg.w;
-            const safeT = Math.max(0, Math.min(1, segmentT));
-            return getCubicBezierXY(safeT, ...seg.p);
+    const root = scope?.querySelector?.('[data-living-quest-map]');
+    const frame = root?.querySelector('.tq-living-map__frame');
+    const path = root?.querySelector('[data-quest-route]');
+    if (!root || !frame || !path) return null;
+
+    const totalLength = path.getTotalLength();
+    const tokens = [...root.querySelectorAll('[data-map-token]')];
+    const routeAnchors = [...root.querySelectorAll('[data-route-progress]:not([data-map-token])')];
+    const activeAnimations = [];
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let manuallyPaused = false;
+    let offscreen = false;
+    let pageHidden = document.hidden;
+    let initialJourneyPlayed = false;
+
+    const positionStaticElements = () => {
+        routeAnchors.forEach((element) => {
+            const point = getRoutePoint(path, totalLength, element.dataset.routeProgress);
+            point.x += Number(element.dataset.offsetX) || 0;
+            point.y += Number(element.dataset.offsetY) || 0;
+            element.style.left = `${(point.x / MAP_VIEWBOX_WIDTH) * 100}%`;
+            element.style.top = `${(point.y / MAP_VIEWBOX_HEIGHT) * 100}%`;
+        });
+    };
+
+    const positionTokens = ({ animate = false } = {}) => {
+        const rect = frame.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        tokens.forEach((token, index) => {
+            const progress = Math.min(100, Math.max(0, Number(token.dataset.progress) || 0));
+            const lane = Number(token.dataset.lane) || 0;
+            const anchor = getRoutePoint(path, totalLength, progress);
+            const point = {
+                ...anchor,
+                x: anchor.x + anchor.normalX * lane * MAP_LANE_GAP,
+                y: anchor.y + anchor.normalY * lane * MAP_LANE_GAP
+            };
+            constrainMapPoint(point);
+            const finalTransform = mapTransform(point, rect);
+            token.style.transform = finalTransform;
+            token.style.zIndex = String(60 + Math.round(progress) + Math.abs(lane));
+            token.dataset.positioned = 'true';
+
+            const connector = root.querySelector(`[data-connector-key="${token.dataset.tokenKey}"]`);
+            if (connector) {
+                connector.setAttribute('x1', String(anchor.x));
+                connector.setAttribute('y1', String(anchor.y));
+                connector.setAttribute('x2', String(point.x));
+                connector.setAttribute('y2', String(point.y));
+                connector.classList.toggle('is-visible', lane !== 0);
+            }
+
+            if (animate && !reducedMotionQuery.matches && !manuallyPaused) {
+                const animation = token.animate(
+                    sampleTokenJourney(path, totalLength, progress, lane, rect),
+                    {
+                        duration: 1050 + Math.round(progress * 10),
+                        delay: index * 90,
+                        easing: 'cubic-bezier(0.22, 0.74, 0.22, 1)',
+                        fill: 'none'
+                    }
+                );
+                activeAnimations.push(animation);
+                const forgetAnimation = () => {
+                    const animationIndex = activeAnimations.indexOf(animation);
+                    if (animationIndex >= 0) activeAnimations.splice(animationIndex, 1);
+                };
+                animation.addEventListener('finish', forgetAnimation, { once: true });
+                animation.addEventListener('cancel', forgetAnimation, { once: true });
+            }
+        });
+    };
+
+    const motionButton = root.querySelector('#toggle-map-motion-btn');
+    const updateMotionState = () => {
+        const reduced = reducedMotionQuery.matches;
+        const suspended = reduced || manuallyPaused || offscreen || pageHidden;
+        root.classList.toggle('is-motion-paused', suspended);
+        root.classList.toggle('is-reduced-motion', reduced);
+        activeAnimations.forEach((animation) => {
+            if (suspended) animation.pause();
+            else animation.play();
+        });
+
+        if (motionButton) {
+            const icon = motionButton.querySelector('i');
+            const label = motionButton.querySelector('.sr-only');
+            motionButton.disabled = reduced;
+            motionButton.setAttribute('aria-pressed', String(manuallyPaused || reduced));
+            motionButton.title = reduced
+                ? 'Motion is reduced by your system settings'
+                : manuallyPaused ? 'Resume map motion' : 'Pause map motion';
+            if (label) label.textContent = motionButton.title;
+            if (icon) icon.className = `fas ${manuallyPaused || reduced ? 'fa-play' : 'fa-pause'}`;
         }
-        accumulatedT += seg.w;
-    }
-    return { x: 950, y: 50 };
-}
+    };
 
-function getCubicBezierXY(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
-    const cx = 3 * (p1x - p0x);
-    const bx = 3 * (p2x - p1x) - cx;
-    const ax = p3x - p0x - cx - bx;
-    const cy = 3 * (p1y - p0y);
-    const by = 3 * (p2y - p1y) - cy;
-    const ay = p3y - p0y - cy - by;
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const x = (ax * t3) + (bx * t2) + (cx * t) + p0x;
-    const y = (ay * t3) + (by * t2) + (cy * t) + p0y;
-    return { x, y };
+    const playInitialJourney = () => {
+        if (initialJourneyPlayed) return;
+        initialJourneyPlayed = true;
+        positionStaticElements();
+        positionTokens({ animate: true });
+        root.dataset.mapReady = 'true';
+        updateMotionState();
+    };
+
+    const tokenClickHandlers = new Map();
+    tokens.forEach((token) => {
+        const handler = (event) => {
+            event.stopPropagation();
+            const nextSelected = !token.classList.contains('is-selected');
+            tokens.forEach((item) => {
+                item.classList.remove('is-selected');
+                item.setAttribute('aria-expanded', 'false');
+            });
+            token.classList.toggle('is-selected', nextSelected);
+            token.setAttribute('aria-expanded', String(nextSelected));
+        };
+        token.addEventListener('click', handler);
+        tokenClickHandlers.set(token, handler);
+    });
+
+    const closeSelectedToken = (event) => {
+        if (event.type === 'keydown' && event.key !== 'Escape') return;
+        tokens.forEach((token) => {
+            token.classList.remove('is-selected');
+            token.setAttribute('aria-expanded', 'false');
+        });
+    };
+    frame.addEventListener('click', closeSelectedToken);
+    frame.addEventListener('keydown', closeSelectedToken);
+
+    const toggleMotion = (event) => {
+        event.stopPropagation();
+        if (reducedMotionQuery.matches) return;
+        manuallyPaused = !manuallyPaused;
+        updateMotionState();
+    };
+    motionButton?.addEventListener('click', toggleMotion);
+
+    const visibilityHandler = () => {
+        pageHidden = document.hidden;
+        updateMotionState();
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+
+    const reducedMotionHandler = () => updateMotionState();
+    reducedMotionQuery.addEventListener?.('change', reducedMotionHandler);
+
+    const intersectionObserver = new IntersectionObserver((entries) => {
+        offscreen = !entries[0]?.isIntersecting;
+        updateMotionState();
+        if (!offscreen) playInitialJourney();
+    }, { threshold: 0.08 });
+    intersectionObserver.observe(root);
+
+    const resizeObserver = new ResizeObserver(() => {
+        positionStaticElements();
+        positionTokens({ animate: false });
+    });
+    resizeObserver.observe(frame);
+
+    positionStaticElements();
+    positionTokens({ animate: false });
+    requestAnimationFrame(() => {
+        const bounds = root.getBoundingClientRect();
+        offscreen = bounds.bottom <= 0 || bounds.top >= window.innerHeight;
+        if (offscreen) updateMotionState();
+        else playInitialJourney();
+    });
+
+    const controller = {
+        destroy() {
+            [...activeAnimations].forEach((animation) => animation.cancel());
+            intersectionObserver.disconnect();
+            resizeObserver.disconnect();
+            document.removeEventListener('visibilitychange', visibilityHandler);
+            reducedMotionQuery.removeEventListener?.('change', reducedMotionHandler);
+            frame.removeEventListener('click', closeSelectedToken);
+            frame.removeEventListener('keydown', closeSelectedToken);
+            motionButton?.removeEventListener('click', toggleMotion);
+            tokenClickHandlers.forEach((handler, token) => token.removeEventListener('click', handler));
+            if (activeLivingMapController === controller) activeLivingMapController = null;
+        }
+    };
+    activeLivingMapController = controller;
+    return controller;
 }

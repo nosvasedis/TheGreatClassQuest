@@ -13,7 +13,7 @@ import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { generateLeagueMapHtml, QUEST_MAP_ZONES } from '../../features/worldMap.js';
+import { generateLeagueMapHtml, initializeLivingQuestMap, QUEST_MAP_ZONES } from '../../features/worldMap.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import {
     getAwardLogMonthlyStarCredit,
@@ -140,6 +140,7 @@ export async function renderClassLeaderboardTab() {
     const league = getLeaderboardEffectiveLeague();
     if (!league) {
         list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest map.</p></div>`;
+        initializeLivingQuestMap(list);
         return;
     }
 
@@ -147,6 +148,7 @@ export async function renderClassLeaderboardTab() {
 
     if (classesInLeague.length === 0) {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
+        initializeLivingQuestMap(list);
         return;
     }
 
@@ -575,14 +577,7 @@ export async function renderClassLeaderboardTab() {
         </button>
     `;
 
-    // --- ANIMATION TRIGGER ---
-    setTimeout(() => {
-        const avatars = list.querySelectorAll('.league-map-avatar');
-        avatars.forEach(av => {
-            av.style.left = av.dataset.finalLeft;
-            av.style.top = av.dataset.finalTop;
-        });
-    }, 100);
+    initializeLivingQuestMap(list);
 
     const toggleBtn = document.getElementById('toggle-map-list-btn');
     const container = document.getElementById('league-standings-container');

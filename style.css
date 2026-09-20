@@ -179,4 +179,7 @@
 /* 43. Refreshed Team Quest Analysis Cards */
 @import url('./styles/team_quest_cards.css');
 
+/* 44. Team Quest living storybook map */
+@import url('./styles/team_quest_map_living.css');
+
 

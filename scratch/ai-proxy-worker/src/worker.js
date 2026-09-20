@@ -17,7 +17,8 @@ const CLOUDFLARE_PAGES_HOST = 'great-class-quest-school.pages.dev';
 const VALID_ROLES = new Set(['teacher', 'secretary', 'parent']);
 const MAX_REQUEST_BYTES = 64 * 1024;
 const RATE_WINDOW_MS = 60_000;
-const RATE_LIMITS = { chat: 12, image: 4, speech: 8 };
+// image: shop Restock generates 15 items (plus the occasional black-image retry).
+const RATE_LIMITS = { chat: 12, image: 20, speech: 8 };
 const MAX_RATE_BUCKETS = 2_000;
 const PROFILE_CACHE_SECONDS = 300;
 const rateBuckets = new Map();

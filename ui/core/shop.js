@@ -6,6 +6,7 @@ import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from
 import { getSeasonalShopPriceMeta } from '../../utils.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import { isVisibleSeasonalShopItem } from '../../utils/shopRestock.js';
 
 // --- SHOP UI HELPERS ---
 
@@ -78,6 +79,23 @@ function showShopCurtain(copy) {
 }
 
 let shopStudentDropdownListenersBound = false;
+let shopRestockBusy = false;
+
+export function setShopRestockBusy(busy) {
+    shopRestockBusy = Boolean(busy);
+    syncShopRestockButton();
+}
+
+function syncShopRestockButton() {
+    const restockBtn = document.getElementById('generate-shop-btn');
+    if (!restockBtn) return;
+    restockBtn.disabled = shopRestockBusy;
+    restockBtn.setAttribute('aria-busy', shopRestockBusy ? 'true' : 'false');
+    restockBtn.classList.toggle('is-restocking', shopRestockBusy);
+    restockBtn.innerHTML = shopRestockBusy
+        ? '<i class="fas fa-spinner fa-spin"></i> Restocking…'
+        : '<i class="fas fa-sync-alt"></i> Restock';
+}
 
 function setShopStudentPanelOpen(open) {
     const trigger = document.getElementById('shop-shopper-trigger');
@@ -268,6 +286,7 @@ function initializeShopTabContent() {
     if (restockBtn) {
         const canRestock = canUseFeature('eliteAI');
         restockBtn.classList.toggle('hidden', !canRestock);
+        syncShopRestockButton();
     }
     
     document.getElementById('shop-student-gold').innerText = "0 🪙";
@@ -312,7 +331,7 @@ export function renderShopUI() {
 
     // 1. Get Seasonal Items
     const seasonalItems = state.get('currentShopItems')
-        .filter(i => i.monthKey === currentMonthKey && i.league === league)
+        .filter(i => i.monthKey === currentMonthKey && i.league === league && isVisibleSeasonalShopItem(i))
         .sort((a,b) => a.price - b.price);
 
     // 2. Get Legendary Artifacts (from our new file)
@@ -342,7 +361,12 @@ export function renderShopUI() {
                 </div>
             ` + artifacts.map(item => renderShopItemCard(item, true)).join('');
 
-            const noSeasonalHtml = canUseAI
+            const noSeasonalHtml = shopRestockBusy
+                ? `<div class="shop-callout shop-callout--amber col-span-full">
+                        <p class="shop-callout-title"><i class="fas fa-spinner fa-spin"></i> The merchant is traveling</p>
+                        <p class="shop-callout-text">Treasures appear on the stall as their pictures land. You can keep teaching — Restock is running in the background.</p>
+                    </div>`
+                : canUseAI
                 ? `<div class="shop-callout shop-callout--amber col-span-full">
                         <p class="shop-callout-title"><i class="fas fa-sparkles"></i> Awaiting this month's drop</p>
                         <p class="shop-callout-text">The caravan's shelves are empty — tap <strong>Restock</strong> to weave fresh, AI-crafted treasures for your class theme.</p>
@@ -395,6 +419,7 @@ export function renderShopUI() {
             }
 
             container.innerHTML = html;
+            syncShopRestockButton();
             
             const currentStudentId = document.getElementById('shop-student-select').value;
             try {

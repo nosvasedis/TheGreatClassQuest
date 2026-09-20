@@ -971,6 +971,11 @@ body.projector-mode .bounty-actions {
     white-space: nowrap;
 }
 
+.shop-restock-btn.is-restocking {
+    cursor: wait;
+    opacity: 0.88;
+}
+
 /* ── Redesigned selector pills ───────────────────────────────────────── */
 .shop-selector-pill {
     display: flex;

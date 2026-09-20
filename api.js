@@ -1,5 +1,7 @@
 import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
+import { createConcurrencyQueue } from './utils/asyncQueue.js';
+import { isRetryableHttpStatus, shouldCountAsCircuitFailure } from './utils/aiResilience.js';
 
 const GEMINI_REQUEST_SPACING_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 60000;
@@ -12,6 +14,7 @@ const GLOBAL_RATE_LIMIT_COOLDOWN_MS = 60000;
 let geminiQueue = Promise.resolve();
 let lastGeminiRequestStartedAt = 0;
 let _globalRateLimitUntil = 0;
+const runImageRequest = createConcurrencyQueue(2);
 
 async function getAuthenticatedProxyHeaders(forceRefresh = false) {
     const [{ auth }, { getAppCheckHeader }] = await Promise.all([
@@ -394,13 +397,23 @@ async function fetchWithBackoff(url, options, config = {}) {
 
             if (response.ok) return response;
 
-            const isRetryableStatus = response.status >= 500;
             const hasRetriesLeft = attempt < retries;
 
-            if (!isRetryableStatus || !hasRetriesLeft) {
-                if (response.status === 429) {
-                    throw createRateLimitError(parseRetryAfterMs(response));
+            if (response.status === 429) {
+                const retryAfterMs = parseRetryAfterMs(response);
+                recordGlobalRateLimit(retryAfterMs);
+                if (hasRetriesLeft) {
+                    const waitMs = Math.max(retryAfterMs || GLOBAL_RATE_LIMIT_COOLDOWN_MS, 0);
+                    console.warn(`⚠️ RATE LIMITED (429). Waiting ${waitMs}ms before retry...`, { attempt, maxRetries: retries });
+                    await new Promise((res) => setTimeout(res, waitMs));
+                    attempt += 1;
+                    continue;
                 }
+                throw createRateLimitError(retryAfterMs);
+            }
+
+            const isRetryableStatus = isRetryableHttpStatus(response.status);
+            if (!isRetryableStatus || !hasRetriesLeft) {
                 const error = new Error(`API failed with status ${response.status}`);
                 error.status = response.status;
                 error.errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
@@ -417,12 +430,7 @@ async function fetchWithBackoff(url, options, config = {}) {
             const jitterMs = Math.floor(Math.random() * 500);
             const waitMs = Math.max(retryAfterMs || 0, expDelayMs + jitterMs);
 
-            // For 429, log more aggressively
-            if (response.status === 429) {
-                console.warn(`⚠️ RATE LIMITED (429). Waiting ${waitMs}ms before retry...`, { attempt, maxRetries: retries });
-            } else {
-                console.warn(`API Error ${response.status}. Retrying in ${waitMs}ms...`);
-            }
+            console.warn(`API Error ${response.status}. Retrying in ${waitMs}ms...`);
             await new Promise((res) => setTimeout(res, waitMs));
             attempt += 1;
         } catch (error) {
@@ -529,33 +537,41 @@ export function extractJsonFromAiText(text) {
 }
 
 export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}, requestOptions = {}) {
-    if (isAiCircuitOpen()) throw createCircuitBreakerError();
-
-    const payload = {
-        prompt: prompt,
-        negative_prompt: negativePrompt || "text, watermark, blurry, low quality",
-        ...options
-    };
-    try {
-        const response = await fetchAuthenticatedProxy(cloudflareWorkerUrl, payload, {
-            retries: requestOptions.retries ?? 1,
-            baseDelay: requestOptions.baseDelay ?? 1500,
-            timeoutMs: requestOptions.timeoutMs ?? DEFAULT_TIMEOUT_MS
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Cloudflare AI API error! status: ${response.status}, message: ${errorText}`);
+    return runImageRequest(async () => {
+        if (!requestOptions.ignoreCircuit && isAiCircuitOpen()) throw createCircuitBreakerError();
+        const rateLimitWaitMs = getGlobalRateLimitRemainingMs();
+        if (rateLimitWaitMs > 0) {
+            await new Promise((res) => setTimeout(res, rateLimitWaitMs));
         }
 
-        const imageBlob = await response.blob();
-        const result = await blobToBase64(imageBlob);
-        recordAiSuccess();
-        return result;
+        const payload = {
+            prompt: prompt,
+            negative_prompt: negativePrompt || "text, watermark, blurry, low quality",
+            ...options
+        };
+        try {
+            const response = await fetchAuthenticatedProxy(cloudflareWorkerUrl, payload, {
+                retries: requestOptions.retries ?? 2,
+                baseDelay: requestOptions.baseDelay ?? 1500,
+                timeoutMs: requestOptions.timeoutMs ?? DEFAULT_TIMEOUT_MS
+            });
 
-    } catch (error) {
-        recordAiFailure();
-        console.error('Error in callCloudflareAiImageApi:', error);
-        throw error;
-    }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Cloudflare AI API error! status: ${response.status}, message: ${errorText}`);
+            }
+
+            const imageBlob = await response.blob();
+            const result = await blobToBase64(imageBlob);
+            recordAiSuccess();
+            return result;
+
+        } catch (error) {
+            if (shouldCountAsCircuitFailure(error)) {
+                recordAiFailure();
+            }
+            console.error('Error in callCloudflareAiImageApi:', error);
+            throw error;
+        }
+    });
 }

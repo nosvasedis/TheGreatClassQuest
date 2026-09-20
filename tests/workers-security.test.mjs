@@ -151,6 +151,13 @@ test('Storage Worker preserves its route while enforcing an active identity', as
   assert.doesNotMatch(source, /redirect:\s*'error'/);
 });
 
+test('AI Worker image rate limit covers a 15-item shop restock', async () => {
+  const { source } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
+  const match = source.match(/RATE_LIMITS = \{ chat: \d+, image: (\d+), speech: \d+ \}/);
+  assert.ok(match);
+  assert.ok(Number(match[1]) >= 15, `image=${match[1]} is below a shop restock batch`);
+});
+
 test('Wrangler configs preserve the existing AI and KV bindings and pin Firebase scope', async () => {
   const [aiConfig, storageConfig] = await Promise.all([
     readFile(new URL('scratch/ai-proxy-worker/wrangler.toml', root), 'utf8'),

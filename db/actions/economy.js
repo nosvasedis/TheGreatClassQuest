@@ -20,6 +20,7 @@ import {
 import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi, extractJsonFromAiText } from '../../api.js';
+import { SHOP_RESTOCK_ITEM_COUNT, shopRestockToast, planShopRestock, isCompleteShopItem, isVisibleSeasonalShopItem } from '../../utils/shopRestock.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, isLikelyBlackImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString, isYoungLearnerLeague } from '../../utils.js';
@@ -195,20 +196,73 @@ function assertGameplaySeasonLive(actionLabel = 'The market') {
     return false;
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function deleteShopItemIds(publicDataPath, ids) {
+    const unique = [...new Set((ids || []).filter(Boolean))];
+    for (let i = 0; i < unique.length; i += 400) {
+        const batch = writeBatch(db);
+        unique.slice(i, i + 400).forEach((id) => {
+            batch.delete(doc(db, `${publicDataPath}/shop_items`, id));
+        });
+        await batch.commit();
+    }
+}
+
+function normalizeShopCatalogItem(item) {
+    const name = String(item?.name || '').trim();
+    const desc = String(item?.desc || item?.description || '').trim();
+    const price = Number(item?.price);
+    if (!name || !desc || !Number.isFinite(price)) return null;
+    return { name, desc, price: Math.round(price), id: item.id || null };
+}
+
+async function generateShopItemImage(item, styleContext) {
+    const positivePrompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
+    const negativePrompt = "pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap";
+    const requestOptions = { retries: 4, ignoreCircuit: true, timeoutMs: 60000 };
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+            let base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt, {}, requestOptions);
+            let compressed = await compressImageBase64(base64, 256, 256);
+
+            if (await isLikelyBlackImageBase64(compressed)) {
+                console.warn('Detected mostly black shop image. Retrying with brighter fallback prompt...', item.name);
+                const fallbackPrompt = `(single isolated object) of ((${item.name})), bright studio lighting, high contrast, vivid colors, pure white background, centered, full shot, clean icon style`;
+                const fallbackNegative = `${negativePrompt}, black background, dark background, silhouette, underexposed, dim lighting, monochrome black`;
+                base64 = await callCloudflareAiImageApi(fallbackPrompt, fallbackNegative, {
+                    num_steps: 30,
+                    guidance: 8.5
+                }, requestOptions);
+                compressed = await compressImageBase64(base64, 256, 256, 0.82);
+                if (await isLikelyBlackImageBase64(compressed)) {
+                    throw new Error('Generated image remained mostly black after fallback retry.');
+                }
+            }
+            return compressed;
+        } catch (error) {
+            lastError = error;
+            const waitMs = Number.isFinite(error?.retryAfterMs) ? error.retryAfterMs : 2500 * (attempt + 1);
+            await sleep(Math.min(Math.max(waitMs, 1500), 60000));
+        }
+    }
+    throw lastError || new Error('Shop image generation failed.');
+}
+
 export async function handleGenerateShopStock() {
     if (isGeneratingShopStock) {
-        showToast('Shop restock is already running. Please wait.', 'info');
+        showToast('Shop restock is already running in the background.', 'info');
         return;
     }
 
     if (!requireEliteAI({ feature: 'Shop item generator' })) return;
     if (!assertGameplaySeasonLive('The market')) return;
 
-    isGeneratingShopStock = true;
-    // 1. Determine Context (League)
     let league = state.get('globalSelectedLeague');
-
-    // Fallback: If no league selected, try to infer from class ID
     if (!league) {
         const classId = state.get('globalSelectedClassId');
         if (classId) {
@@ -222,44 +276,63 @@ export async function handleGenerateShopStock() {
         return;
     }
 
-    const btn = document.getElementById('generate-shop-btn');
-    const loader = document.getElementById('shop-loader');
-    const container = document.getElementById('shop-items-container');
-    const emptyState = document.getElementById('shop-empty-state');
-    const monthKey = new Date().toISOString().substring(0, 7); // YYYY-MM
+    isGeneratingShopStock = true;
+    const { setShopRestockBusy } = await import('../../ui/core/shop.js');
+    setShopRestockBusy(true);
+    const monthKey = new Date().toISOString().substring(0, 7);
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const shopItemsCollection = collection(db, `${publicDataPath}/shop_items`);
+    const yearKey = state.getActiveSchoolYearKey();
 
-    btn.disabled = true;
-    loader.classList.remove('hidden');
-    container.innerHTML = '';
-    emptyState.classList.add('hidden');
-
-    try {
-        // --- STEP 0: CLEAR OLD STOCK ---
-        const publicDataPath = "artifacts/great-class-quest/public/data";
-
-        const q = query(
-            collection(db, `${publicDataPath}/shop_items`),
+    const loadCurrentStock = async () => {
+        const snapshot = await getDocs(query(
+            shopItemsCollection,
             where("league", "==", league),
             where("monthKey", "==", monthKey),
             where("teacherId", "==", state.get('currentUserId'))
-        );
+        ));
+        return snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }));
+    };
 
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            const batch = writeBatch(db);
-            snapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
+    try {
+        let currentItems = await loadCurrentStock();
+        let plan = planShopRestock(currentItems);
+        const idsToClear = plan.mode === 'swap'
+            ? plan.removeIds
+            : [...plan.retireIds, ...plan.removeIds];
+        await deleteShopItemIds(publicDataPath, idsToClear);
+        if (idsToClear.length) {
+            currentItems = await loadCurrentStock();
+            plan = planShopRestock(currentItems);
         }
 
-        // --- STEP 1: PREPARE PROMPT ---
+        if (plan.mode === 'swap') {
+            const batch = writeBatch(db);
+            plan.swapIncomingIds.forEach((id) => {
+                batch.update(doc(db, `${publicDataPath}/shop_items`, id), { incoming: false });
+            });
+            plan.retireIds.forEach((id) => {
+                batch.delete(doc(db, `${publicDataPath}/shop_items`, id));
+            });
+            await batch.commit();
+            const done = shopRestockToast({ mode: 'swap', savedThisRun: SHOP_RESTOCK_ITEM_COUNT, completeCount: SHOP_RESTOCK_ITEM_COUNT, league });
+            showToast(done.message, done.type);
+            return;
+        }
+
+        const started = shopRestockToast({
+            mode: plan.mode === 'replace' ? 'started-replace' : 'started-fill',
+            completeCount: currentItems.filter(isVisibleSeasonalShopItem).length,
+            missingCount: plan.needed + plan.retry.length,
+            league
+        });
+        showToast(started.message, started.type);
+
         const now = new Date();
         const currentMonth = now.getMonth();
         const ageCategory = getAgeGroupForLeague(league);
         const isJunior = isYoungLearnerLeague(league);
 
-        // Smart Season Context
         let seasonContext = "";
         if (currentMonth === 11) seasonContext = "Winter, Christmas, Festive, Snow, Holidays, Gifts";
         else if (isOrthodoxEasterSeason(now)) seasonContext = "Spring, Orthodox Easter, Red Eggs, Candles";
@@ -268,115 +341,145 @@ export async function handleGenerateShopStock() {
         else if (currentMonth >= 5 && currentMonth <= 7) seasonContext = "Summer, Beach, Sun";
         else if (currentMonth >= 8 && currentMonth <= 10) seasonContext = "Autumn, Halloween";
 
-        // Style Context - FORCING ICONS/STICKERS
-        let styleContext = "";
-        let itemContext = "";
-        let languageInstruction = "";
+        const styleContext = isJunior
+            ? "a die-cut vector sticker, thick white outline, flat color, simple shapes, cartoon style, white background"
+            : "a fantasy rpg inventory icon, 3d render, centered, neutral background, high detail";
+        const languageInstruction = isJunior
+            ? "Use simple English (7-9yo). Max 8 words."
+            : "Use exciting English (10-13yo). Max 10 words.";
 
-        if (isJunior) {
-            // Junior: Force "Sticker" style to ensure isolation
-            styleContext = "a die-cut vector sticker, thick white outline, flat color, simple shapes, cartoon style, white background";
-            itemContext = "magical toys, cute pets, colorful candies, fun hats";
-            languageInstruction = "Use simple English (7-9yo). Max 8 words.";
-        } else {
-            // Senior: Force "Game Icon" style to ensure single object
-            styleContext = "a fantasy rpg inventory icon, 3d render, centered, neutral background, high detail";
-            itemContext = "ancient artifacts, scrolls, potions, enchanted gear";
-            languageInstruction = "Use exciting English (10-13yo). Max 10 words.";
+        const { uploadImageToStorage } = await import('../../utils.js');
+        const takenNames = new Set(plan.existingNames.map((name) => name.toLowerCase()));
+        let savedThisRun = 0;
+
+        const persistShopItem = async (item, imageUrl) => {
+            const payload = withSchoolYear({
+                name: item.name,
+                description: item.desc,
+                price: item.price,
+                image: imageUrl || '',
+                incoming: Boolean(plan.incoming),
+                league,
+                monthKey,
+                teacherId: state.get('currentUserId'),
+                createdAt: serverTimestamp(),
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            }, yearKey);
+            if (item.id) {
+                await updateDoc(doc(db, `${publicDataPath}/shop_items`, item.id), {
+                    image: imageUrl || '',
+                    incoming: Boolean(plan.incoming),
+                    description: item.desc,
+                    price: item.price
+                });
+                return item.id;
+            }
+            const docRef = doc(shopItemsCollection);
+            await setDoc(docRef, payload);
+            return docRef.id;
+        };
+
+        const produceItem = async (item) => {
+            try {
+                const compressed = await generateShopItemImage(item, styleContext);
+                const path = `shop_items/${state.get('currentUserId')}/${yearKey}/${monthKey}_${simpleHashCode(item.name)}.jpg`;
+                const url = await uploadImageToStorage(compressed, path);
+                await persistShopItem(item, url);
+                savedThisRun += 1;
+            } catch (err) {
+                console.error("Item gen failed:", item.name, err);
+                if (!item.id) {
+                    try {
+                        item.id = await persistShopItem(item, '');
+                    } catch (persistErr) {
+                        console.error("Failed to keep unfinished shop item:", item.name, persistErr);
+                    }
+                }
+            }
+        };
+
+        const retryItems = plan.retry.map(normalizeShopCatalogItem).filter(Boolean);
+        const chunkSize = 2;
+        for (let i = 0; i < retryItems.length; i += chunkSize) {
+            await Promise.all(retryItems.slice(i, i + chunkSize).map(produceItem));
         }
 
-        const systemPrompt = `You are a JSON generator API for a school RPG app. You output ONLY raw valid JSON — no explanations, no reasoning, no markdown, no commentary before or after.
+        let itemsData = [];
+        if (plan.needed > 0) {
+            const avoidNames = plan.existingNames.length
+                ? `Do NOT reuse these names: ${plan.existingNames.join(', ')}.`
+                : '';
+            const systemPrompt = `You are a JSON generator API for a school RPG app. You output ONLY raw valid JSON — no explanations, no reasoning, no markdown, no commentary before or after.
         Target Audience: ${league} students (approx age ${ageCategory}).
         Theme: ${seasonContext}.
         
         Requirements:
-        1. Generate 15 UNIQUE handheld objects.
+        1. Generate ${plan.needed} UNIQUE handheld objects. ${avoidNames}
         2. PRICE TIERS (CRITICAL):
-           - 5 "Common" items: 10-18 Gold (Easy to get in 1 month).
-           - 5 "Rare" items: 35-50 Gold (Requires saving for 2-3 months).
-           - 5 "Legendary" items: 80-120 Gold (Long-term "End of Term" trophies).
+           - ${plan.tiers.common} "Common" items: 10-18 Gold (Easy to get in 1 month).
+           - ${plan.tiers.rare} "Rare" items: 35-50 Gold (Requires saving for 2-3 months).
+           - ${plan.tiers.legendary} "Legendary" items: 80-120 Gold (Long-term "End of Term" trophies).
         3. DESCRIPTIONS: ${languageInstruction}
         4. Output ONLY this JSON structure, nothing else: [{"name": "string", "desc": "string", "price": number}, ...]`;
 
-        const jsonString = await callGeminiApi(systemPrompt, "Output the JSON array now.");
-        let itemsData = [];
-        try {
-            itemsData = extractJsonFromAiText(jsonString);
-        } catch (e) {
-            console.error("JSON Parse failed, retrying...");
-            const fixedJson = await callGeminiApi(
-                "You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:",
-                jsonString
-            );
-            itemsData = extractJsonFromAiText(fixedJson);
+            const jsonString = await callGeminiApi(systemPrompt, "Output the JSON array now.");
+            try {
+                itemsData = extractJsonFromAiText(jsonString);
+            } catch (e) {
+                console.error("JSON Parse failed, retrying...");
+                const fixedJson = await callGeminiApi(
+                    "You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:",
+                    jsonString
+                );
+                itemsData = extractJsonFromAiText(fixedJson);
+            }
+            if (!Array.isArray(itemsData)) itemsData = [];
+            itemsData = itemsData
+                .map(normalizeShopCatalogItem)
+                .filter(Boolean)
+                .filter((item) => {
+                    const key = item.name.toLowerCase();
+                    if (takenNames.has(key)) return false;
+                    takenNames.add(key);
+                    return true;
+                })
+                .slice(0, plan.needed);
         }
 
-        // --- STEP 2: GENERATE IMAGES & SAVE ---
-        const { uploadImageToStorage } = await import('../../utils.js');
-
-        const chunkSize = 3;
         for (let i = 0; i < itemsData.length; i += chunkSize) {
-            const chunk = itemsData.slice(i, i + chunkSize);
-            await Promise.all(chunk.map(async (item) => {
-                try {
-                    // FIX: Prompt Engineering for Isolation
-                    // 1. Put the Name FIRST.
-                    // 2. Wrap Name in ((brackets)) to emphasize it.
-                    // 3. Explicitly state "single isolated object".
-                    const positivePrompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
-
-                    // FIX: Aggressive Anti-Texture Negative Prompt
-                    const negativePrompt = "pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap";
-
-                    let base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt);
-                    let compressed = await compressImageBase64(base64, 256, 256);
-
-                    if (await isLikelyBlackImageBase64(compressed)) {
-                        console.warn('Detected mostly black shop image. Retrying with brighter fallback prompt...', item.name);
-                        const fallbackPrompt = `(single isolated object) of ((${item.name})), bright studio lighting, high contrast, vivid colors, pure white background, centered, full shot, clean icon style`;
-                        const fallbackNegative = `${negativePrompt}, black background, dark background, silhouette, underexposed, dim lighting, monochrome black`;
-                        base64 = await callCloudflareAiImageApi(fallbackPrompt, fallbackNegative, {
-                            num_steps: 36,
-                            guidance: 8.5
-                        });
-                        compressed = await compressImageBase64(base64, 256, 256, 0.82);
-
-                        if (await isLikelyBlackImageBase64(compressed)) {
-                            throw new Error('Generated image remained mostly black after fallback retry.');
-                        }
-                    }
-
-                    const path = `shop_items/${state.get('currentUserId')}/${state.getActiveSchoolYearKey()}/${monthKey}_${simpleHashCode(item.name)}.jpg`;
-                    const url = await uploadImageToStorage(compressed, path);
-
-                    const docRef = doc(collection(db, `${publicDataPath}/shop_items`));
-                    await setDoc(docRef, withSchoolYear({
-                        name: item.name,
-                        description: item.desc,
-                        price: item.price,
-                        image: url,
-                        league: league,
-                        monthKey: monthKey,
-                        teacherId: state.get('currentUserId'),
-                        createdAt: serverTimestamp(),
-                        createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                    }, state.getActiveSchoolYearKey()));
-                } catch (err) {
-                    console.error("Item gen failed:", item.name, err);
-                }
-            }));
+            await Promise.all(itemsData.slice(i, i + chunkSize).map(produceItem));
         }
 
-        showToast(`${itemsData.length} new seasonal treasures arrived for ${league}!`, 'success');
-        import('../../ui/core.js').then(m => m.renderShopUI());
+        const latestItems = await loadCurrentStock();
+        const latestPlan = planShopRestock(latestItems);
+        if (latestPlan.mode === 'swap') {
+            const batch = writeBatch(db);
+            latestPlan.swapIncomingIds.forEach((id) => {
+                batch.update(doc(db, `${publicDataPath}/shop_items`, id), { incoming: false });
+            });
+            latestPlan.retireIds.forEach((id) => {
+                batch.delete(doc(db, `${publicDataPath}/shop_items`, id));
+            });
+            await batch.commit();
+        }
 
+        const visibleCount = latestPlan.mode === 'swap'
+            ? SHOP_RESTOCK_ITEM_COUNT
+            : latestItems.filter(isVisibleSeasonalShopItem).length;
+        const incomingCompleteCount = latestItems.filter((item) => item.incoming && isCompleteShopItem(item)).length;
+        const result = shopRestockToast({
+            mode: latestPlan.mode === 'swap' ? 'swap' : plan.mode,
+            savedThisRun,
+            completeCount: plan.mode === 'replace' && latestPlan.mode !== 'swap' ? incomingCompleteCount : visibleCount,
+            league
+        });
+        showToast(result.message, result.type);
     } catch (error) {
         console.error("Shop generation failed:", error);
         showToast('The Merchant got lost. Try again.', 'error');
     } finally {
         isGeneratingShopStock = false;
-        btn.disabled = false;
-        loader.classList.add('hidden');
+        setShopRestockBusy(false);
     }
 }
 

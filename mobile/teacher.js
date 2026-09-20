@@ -151,14 +151,12 @@ function closeClassPicker() {
     setSheetOpen(sheet, false);
 }
 
-// Desktop settings uses a horizontal-scroll pill bar for its 7 sub-sections —
-// fine with a mouse, but a thumb-unfriendly scroller on a phone. Mobile gets
-// a dropdown sheet instead; it drives the real desktop buttons under the hood
-// so all existing gating/rendering logic keeps working untouched.
+// Desktop Teacher Settings uses a dropdown for its sections. Mobile hides
+// that whole bar and drives the same hidden buttons from a sheet instead.
 function renderOptionsSubtabList() {
     const list = document.getElementById('m-options-subtab-list');
     if (!list) return;
-    const buttons = Array.from(document.querySelectorAll('.options-subtab-btn'));
+    const buttons = Array.from(document.querySelectorAll('#options-tab .options-subtab-btn'));
     list.innerHTML = buttons
         .filter((btn) => !btn.classList.contains('hidden'))
         .map((btn) => {
@@ -176,7 +174,7 @@ function renderOptionsSubtabList() {
 }
 
 function syncOptionsSubtabTrigger() {
-    const activeBtn = document.querySelector('.options-subtab-btn.options-subtab-active');
+    const activeBtn = document.querySelector('#options-tab .options-subtab-btn.options-subtab-active');
     const iconEl = document.getElementById('m-options-subtab-trigger-icon');
     const labelEl = document.getElementById('m-options-subtab-trigger-label');
     if (!activeBtn || !iconEl || !labelEl) return;
@@ -199,7 +197,7 @@ function closeOptionsSubtabSheet() {
 }
 
 function observeOptionsSubtabs() {
-    const bar = document.querySelector('.options-subtab-bar');
+    const bar = document.querySelector('#options-tab .options-subtab-bar');
     if (!bar) return;
     if (subtabObserver) subtabObserver.disconnect();
     subtabObserver = new MutationObserver(() => syncOptionsSubtabTrigger());
@@ -428,7 +426,7 @@ function wire() {
         const option = event.target.closest('.m-options-subtab-option[data-m-subtab-key]');
         if (option) {
             playSound('click');
-            document.querySelector(`.options-subtab-btn[data-options-tab="${option.dataset.mSubtabKey}"]`)?.click();
+            document.querySelector(`#options-tab .options-subtab-btn[data-options-tab="${option.dataset.mSubtabKey}"]`)?.click();
             syncOptionsSubtabTrigger();
             closeOptionsSubtabSheet();
         }

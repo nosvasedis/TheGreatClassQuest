@@ -29,6 +29,224 @@
     scrollbar-width: thin;
 }
 
+/* Teacher Settings: a dropdown instead of a sideways pill scroller.
+   Secretary/parent still use the shared pill bar above. */
+#options-tab .options-subtab-bar {
+    display: block;
+    overflow: visible;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+#options-tab .options-subtab-buttons {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.options-subtab-select {
+    position: relative;
+    max-width: 28rem;
+    margin: 0 auto;
+}
+
+.options-subtab-select__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.55rem 0.7rem 0.55rem 0.55rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(224,242,254,0.7) 100%);
+    border-radius: 1.25rem;
+    border: 3px solid rgba(56, 189, 248, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(0,0,0,0.08);
+    cursor: pointer;
+    font-family: 'Fredoka One', cursive;
+    color: #334155;
+    text-align: left;
+}
+
+.options-subtab-select__trigger:hover,
+.options-subtab-select.is-open .options-subtab-select__trigger {
+    border-color: rgba(14, 165, 233, 0.7);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 18px rgba(14, 165, 233, 0.18);
+}
+
+.options-subtab-select__icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+    flex-shrink: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.14);
+    background: linear-gradient(to top, #f59e0b, #fbbf24);
+}
+
+.options-subtab-select[data-active-tab="classes"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #059669, #34d399);
+}
+
+.options-subtab-select[data-active-tab="planning"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #a855f7, #c084fc);
+}
+
+.options-subtab-select[data-active-tab="profile"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+}
+
+.options-subtab-select[data-active-tab="assessments"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #0f766e, #2dd4bf);
+}
+
+.options-subtab-select[data-active-tab="quiz"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #b45309, #fbbf24);
+}
+
+.options-subtab-select[data-active-tab="access"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #4f46e5, #818cf8);
+}
+
+.options-subtab-select[data-active-tab="market"] .options-subtab-select__icon {
+    background: linear-gradient(to top, #c026d3, #e879f9);
+}
+
+.options-subtab-select__label {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.options-subtab-select__chev {
+    color: #64748b;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.options-subtab-select.is-open .options-subtab-select__chev {
+    transform: rotate(180deg);
+}
+
+.options-subtab-select__menu {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.5rem;
+    background: #fff;
+    border: 3px solid rgba(56, 189, 248, 0.35);
+    border-radius: 1.25rem;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+    max-height: min(22rem, 70vh);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.options-subtab-select__menu.hidden {
+    display: none;
+}
+
+.options-subtab-select__option {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: none;
+    border-radius: 0.9rem;
+    background: #f8fafc;
+    cursor: pointer;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    color: #334155;
+    text-align: left;
+}
+
+.options-subtab-select__option:hover {
+    background: #e0f2fe;
+}
+
+.options-subtab-select__option.is-active {
+    background: linear-gradient(135deg, #e0f2fe, #ede9fe);
+    box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.45);
+}
+
+.options-subtab-select__option-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    background: linear-gradient(to top, #64748b, #94a3b8);
+}
+
+.options-subtab-select__option[data-options-tab="manage"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #f59e0b, #fbbf24);
+}
+
+.options-subtab-select__option[data-options-tab="classes"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #059669, #34d399);
+}
+
+.options-subtab-select__option[data-options-tab="planning"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #a855f7, #c084fc);
+}
+
+.options-subtab-select__option[data-options-tab="profile"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+}
+
+.options-subtab-select__option[data-options-tab="assessments"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #0f766e, #2dd4bf);
+}
+
+.options-subtab-select__option[data-options-tab="quiz"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #b45309, #fbbf24);
+}
+
+.options-subtab-select__option[data-options-tab="access"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #4f46e5, #818cf8);
+}
+
+.options-subtab-select__option[data-options-tab="market"] .options-subtab-select__option-icon {
+    background: linear-gradient(to top, #c026d3, #e879f9);
+}
+
+.options-subtab-select__option-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.options-subtab-select__check {
+    color: #0284c7;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
 .options-subtab-btn {
     font-family: 'Fredoka One', cursive;
     font-size: 0.8rem;
@@ -103,6 +321,183 @@
     border-bottom-color: #3730a3;
 }
 
+.options-subtab-btn[data-options-tab="market"].options-subtab-active {
+    background: linear-gradient(to top, #c026d3, #e879f9);
+    border-bottom-color: #86198f;
+}
+
+.market-manager-group__title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.35rem;
+    color: #86198f;
+    margin-bottom: 0.75rem;
+}
+
+.market-manager-empty {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    background: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.market-manager-grid-cards {
+    display: grid;
+    gap: 1rem;
+}
+
+.market-manager-card {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0.9rem 1rem;
+    align-items: start;
+    background: linear-gradient(180deg, #fff7ff 0%, #ffffff 70%);
+    border: 2px solid #f5d0fe;
+    border-radius: 1.25rem;
+    padding: 0.9rem;
+}
+
+.market-manager-card.is-busy {
+    opacity: 0.72;
+}
+
+.market-manager-card__media {
+    position: relative;
+}
+
+.market-manager-card__art {
+    width: 7.5rem;
+    height: 7.5rem;
+    object-fit: contain;
+    background: #0f172a;
+    border-radius: 1rem;
+    border: 2px solid #e879f9;
+}
+
+.market-manager-card__art--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f5d0fe;
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.market-manager-pill {
+    position: absolute;
+    left: 0.35rem;
+    top: 0.35rem;
+    background: #4f46e5;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 999px;
+    padding: 0.15rem 0.45rem;
+}
+
+.market-manager-pill--warn {
+    background: #b45309;
+    top: auto;
+    bottom: 0.35rem;
+}
+
+.market-manager-card__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.market-manager-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b21a8;
+}
+
+.market-manager-input {
+    width: 100%;
+    border: 1px solid #e9d5ff;
+    border-radius: 0.75rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.9rem;
+    color: #1e293b;
+    background: white;
+}
+
+.market-manager-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(232, 121, 249, 0.25);
+    border-color: #d946ef;
+}
+
+.market-manager-input--area {
+    resize: vertical;
+    min-height: 3.2rem;
+}
+
+.market-manager-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+.market-manager-card__actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.market-manager-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 0.8rem;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    color: white;
+    border-bottom: 3px solid rgba(0,0,0,0.18);
+}
+
+.market-manager-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.market-manager-btn--save {
+    background: linear-gradient(to top, #7c3aed, #a78bfa);
+}
+
+.market-manager-btn--picture {
+    background: linear-gradient(to top, #c026d3, #e879f9);
+}
+
+.market-manager-btn--replace {
+    background: linear-gradient(to top, #b45309, #f59e0b);
+}
+
+.market-manager-btn--remove {
+    background: linear-gradient(to top, #be123c, #fb7185);
+}
+
+@media (max-width: 640px) {
+    .market-manager-card {
+        grid-template-columns: 1fr;
+    }
+
+    .market-manager-card__art,
+    .market-manager-card__art--empty {
+        width: 100%;
+        height: 9rem;
+    }
+}
+
 /* Section content: smooth appear when switching */
 [data-options-section].options-section-visible {
     animation: options-section-in 0.3s ease-out;
@@ -152,11 +547,171 @@
 }
 
 .options-meta-footer {
-    padding-top: 1rem;
-    border-top: 1px dashed rgba(148, 163, 184, 0.5);
-    max-width: 18rem;
-    margin-left: auto;
-    margin-right: auto;
+    display: none;
+}
+
+/* Class Grading: school/class tabs instead of a stacked spreadsheet */
+.class-grading-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    padding: 0.35rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(253, 242, 248, 0.8));
+    border: 2px solid #f5d0fe;
+    border-radius: 1.15rem;
+}
+
+.class-grading-switch__btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    padding: 0.7rem 0.8rem;
+    border: none;
+    border-radius: 0.9rem;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.class-grading-switch__btn.is-active {
+    background: linear-gradient(to top, #c026d3, #e879f9);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(192, 38, 211, 0.25);
+}
+
+.class-grading-panel__lead {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 0.85rem;
+}
+
+.class-grading-league-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.class-grading-league-card {
+    background: #fff;
+    border: 2px solid #f5d0fe;
+    border-radius: 1.1rem;
+    padding: 0.85rem 0.95rem;
+}
+
+.class-grading-league-card h4 {
+    font-family: 'Fredoka One', cursive;
+    color: #86198f;
+    font-size: 1.05rem;
+    margin-bottom: 0.55rem;
+}
+
+.class-grading-league-card__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.class-grading-league-card__row + .class-grading-league-card__row {
+    margin-top: 0.3rem;
+}
+
+.class-grading-league-card__row strong {
+    color: #334155;
+    font-weight: 800;
+    text-align: right;
+}
+
+.class-grading-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+}
+
+.class-grading-class-picker {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.class-grading-class-picker span {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.3rem;
+}
+
+.class-grading-class-picker select {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 2px solid #e9d5ff;
+    border-radius: 0.9rem;
+    background: #fff;
+    font-weight: 700;
+    color: #334155;
+}
+
+.class-grading-kind {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.3rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.95rem;
+}
+
+.class-grading-kind.is-muted {
+    display: none;
+}
+
+.class-grading-kind__btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.85rem;
+    border: none;
+    border-radius: 0.7rem;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.class-grading-kind__btn.is-active {
+    background: linear-gradient(to top, #4f46e5, #818cf8);
+    color: #fff;
+}
+
+#options-tab [data-options-section="assessments"][data-grading-kind="tests"] [data-scheme-kind="dictations"],
+#options-tab [data-options-section="assessments"][data-grading-kind="dictations"] [data-scheme-kind="tests"] {
+    display: none;
+}
+
+#options-tab [data-options-section="assessments"] .assessment-config-card {
+    background: #fff;
+    border: 2px solid #e9d5ff;
+}
+
+#options-tab [data-options-section="assessments"] .assessment-config-card__header > div:not(:has(*)) {
+    display: none;
+}
+
+#options-tab [data-options-section="assessments"] .assessment-config-card__header {
+    justify-content: flex-end;
+}
+
+#options-tab [data-options-section="assessments"] .assessment-scheme-editor__hint {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .class-grading-league-grid {
+        grid-template-columns: 1fr;
+    }
+    .class-grading-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 
 /* =============================================================================

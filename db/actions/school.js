@@ -3,8 +3,8 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { questLeagues } from '../../constants.js';
 import {
-    describeAssessmentScheme,
     getSchoolAssessmentDefaults,
     normalizeClassAssessmentConfig
 } from '../../features/assessmentConfig.js';
@@ -79,6 +79,87 @@ export function initializeSchoolLocationOptionsUi() {
     setOptionsLocationStatus(current);
 }
 
+let gradingTab = 'classes';
+let gradingClassId = '';
+let gradingKind = 'tests';
+
+function compactSchemeLabel(scheme) {
+    if (!scheme || scheme.mode === 'none') return 'Not used';
+    if (scheme.mode === 'qualitative') {
+        const count = (scheme.scale || []).length;
+        return `Word scale · ${count} label${count === 1 ? '' : 's'}`;
+    }
+    return `Numeric · ${scheme.maxScore || 100}`;
+}
+
+function syncClassGradingChrome() {
+    const root = document.querySelector('#options-tab [data-options-section="assessments"]');
+    if (!root) return;
+    root.dataset.gradingTab = gradingTab;
+    root.dataset.gradingKind = gradingKind;
+
+    root.querySelectorAll('[data-grading-tab]').forEach((btn) => {
+        if (!btn.classList.contains('class-grading-switch__btn')) return;
+        const on = btn.dataset.gradingTab === gradingTab;
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    root.querySelectorAll('[data-grading-panel]').forEach((panel) => {
+        panel.classList.toggle('hidden', panel.dataset.gradingPanel !== gradingTab);
+    });
+    root.querySelectorAll('[data-grading-kind]').forEach((btn) => {
+        if (!btn.classList.contains('class-grading-kind__btn')) return;
+        const on = btn.dataset.gradingKind === gradingKind;
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+
+    const classSelect = document.getElementById('class-grading-class-select');
+    if (classSelect && gradingClassId) classSelect.value = gradingClassId;
+
+    const cards = Array.from(document.querySelectorAll('#options-class-assessment-editor [data-assessment-card]'));
+    cards.forEach((card) => {
+        const classId = (card.dataset.cardKey || '').replace('options-class-', '');
+        card.classList.toggle('hidden', classId !== gradingClassId);
+    });
+    const visible = cards.find((card) => (card.dataset.cardKey || '').replace('options-class-', '') === gradingClassId);
+    const inheriting = !!visible?.querySelector('.assessment-inherit-toggle')?.checked;
+    root.querySelector('.class-grading-kind')?.classList.toggle('is-muted', inheriting);
+}
+
+function wireClassGradingChrome() {
+    const root = document.querySelector('#options-tab [data-options-section="assessments"]');
+    if (!root || root.dataset.gradingWired === 'true') {
+        syncClassGradingChrome();
+        return;
+    }
+    root.dataset.gradingWired = 'true';
+    root.addEventListener('click', (event) => {
+        const tabBtn = event.target.closest('[data-grading-tab].class-grading-switch__btn');
+        if (tabBtn) {
+            gradingTab = tabBtn.dataset.gradingTab || 'classes';
+            syncClassGradingChrome();
+            return;
+        }
+        const kindBtn = event.target.closest('[data-grading-kind].class-grading-kind__btn');
+        if (kindBtn) {
+            gradingKind = kindBtn.dataset.gradingKind || 'tests';
+            syncClassGradingChrome();
+        }
+    });
+    root.addEventListener('change', (event) => {
+        if (event.target.id === 'class-grading-class-select') {
+            gradingClassId = event.target.value || gradingClassId;
+            syncClassGradingChrome();
+            return;
+        }
+        if (event.target.classList.contains('assessment-inherit-toggle')) {
+            syncClassGradingChrome();
+        }
+    });
+    syncClassGradingChrome();
+}
+
 export function renderAssessmentOptionsUi() {
     if (!canUseFeature('scholarScroll')) return;
     const defaultsContainer = document.getElementById('options-assessment-defaults-editor');
@@ -87,30 +168,53 @@ export function renderAssessmentOptionsUi() {
 
     const schoolDefaults = getSchoolAssessmentDefaults();
     defaultsContainer.innerHTML = `
-        <div class="grid gap-3 md:grid-cols-2">
-            ${Object.entries(schoolDefaults).map(([league, config]) => `
-                <article class="rounded-2xl border border-fuchsia-100 bg-white px-4 py-3">
-                    <h4 class="font-title text-fuchsia-800">${league}</h4>
-                    <p class="mt-1 text-xs text-slate-600">Tests: ${describeAssessmentScheme(config.tests)}</p>
-                    <p class="mt-1 text-xs text-slate-600">Dictations: ${describeAssessmentScheme(config.dictations)}</p>
-                </article>
-            `).join('')}
-        </div>
-        <p class="mt-3 text-xs text-slate-500">These school defaults are read-only here. Ask the Secretary/admin to change them.</p>`;
+        <div class="class-grading-league-grid">
+            ${questLeagues.map((league) => {
+                const config = schoolDefaults[league] || {};
+                return `
+                <article class="class-grading-league-card">
+                    <h4>${league}</h4>
+                    <div class="class-grading-league-card__row">
+                        <span>Tests</span>
+                        <strong>${compactSchemeLabel(config.tests)}</strong>
+                    </div>
+                    <div class="class-grading-league-card__row">
+                        <span>Dictations</span>
+                        <strong>${compactSchemeLabel(config.dictations)}</strong>
+                    </div>
+                </article>`;
+            }).join('')}
+        </div>`;
 
     const allSchoolClasses = state.get('allSchoolClasses') || [];
     const classes = (state.get('allTeachersClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
     const hiddenClassCount = Math.max(0, allSchoolClasses.length - classes.length);
+    const headerClassId = state.get('globalSelectedClassId');
+    if (!gradingClassId || !classes.some((item) => item.id === gradingClassId)) {
+        gradingClassId = (headerClassId && classes.some((item) => item.id === headerClassId))
+            ? headerClassId
+            : (classes[0]?.id || '');
+    }
+    const classSelect = document.getElementById('class-grading-class-select');
+    if (classSelect) {
+        classSelect.innerHTML = classes.length
+            ? classes.map((classData) => `<option value="${classData.id}">${classData.logo || '📚'} ${classData.name}</option>`).join('')
+            : '<option value="">No classes yet</option>';
+        classSelect.disabled = classes.length === 0;
+        if (gradingClassId) classSelect.value = gradingClassId;
+    }
+
     if (classes.length === 0) {
         classesContainer.innerHTML = `<div class="rounded-2xl border border-dashed border-indigo-200 bg-white px-4 py-5 text-center text-sm text-slate-500">Create a class first to manage per-class overrides.</div>`;
     } else {
         classesContainer.innerHTML = `
-            ${hiddenClassCount > 0 ? `<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">School defaults apply to every class. Per-class overrides can only be edited for the ${classes.length === 1 ? 'class' : 'classes'} you own.</div>` : ''}
+            ${hiddenClassCount > 0 ? `<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 mb-3">School defaults apply to every class. You can only override the ${classes.length === 1 ? 'class' : 'classes'} you own.</div>` : ''}
             ${classes.map((classData) => getAssessmentConfigCardHtml(
             classData.assessmentConfig || normalizeClassAssessmentConfig(null, classData.questLevel),
             `options-class-${classData.id}`,
             {
                 allowInherit: true,
+                compactHeader: true,
                 questLevel: classData.questLevel,
                 title: `${classData.logo || '📚'} ${classData.name}`,
                 description: `${classData.questLevel || 'League'} class`
@@ -120,6 +224,7 @@ export function renderAssessmentOptionsUi() {
     }
 
     wireAssessmentEditor(classesContainer);
+    wireClassGradingChrome();
 }
 
 export async function handleSaveAssessmentSettingsFromOptions() {
@@ -163,7 +268,7 @@ export async function handleSaveAssessmentSettingsFromOptions() {
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Assessment Settings';
+            saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save My Class Grading';
         }
     }
 }

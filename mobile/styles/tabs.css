@@ -282,9 +282,8 @@ body.gcq-mobile .app-tab [class*="min-w-"] {
     min-width: 0 !important;
 }
 
-/* Settings: the desktop horizontal-scroll pill bar is thumb-hostile on a
-   phone — hide it and drive the same buttons from a dropdown sheet instead
-   (mobile/teacher.js wires #m-options-subtab-trigger to click these). */
+/* Settings: hide the desktop dropdown chrome; mobile/teacher.js drives the
+   same hidden buttons from a sheet (#m-options-subtab-trigger). */
 body.gcq-mobile .options-subtab-bar {
     display: none !important;
 }

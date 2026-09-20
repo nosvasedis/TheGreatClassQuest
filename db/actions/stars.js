@@ -1,4 +1,4 @@
-// /db/actions/stars.js — scores, stars, award log, purge
+// /db/actions/stars.js — scores, stars, award log
 import {
     db,
     doc,
@@ -26,7 +26,6 @@ import { showToast, showPraiseToast } from "../../ui/effects.js";
 import {
     showStarfallModal,
     showBatchStarfallModal,
-    showModal,
     hideModal,
 } from "../../ui/modals.js";
 import { playSound, playHeroFanfare } from "../../audio.js";
@@ -1068,112 +1067,6 @@ export async function handleSetStudentScores() {
     }
 }
 
-export function handlePurgeStudentStars(options = {}) {
-    const studentId = document.getElementById(
-        "star-manager-student-select",
-    ).value;
-    const student = state.get("allStudents").find((s) => s.id === studentId);
-    if (!student) return;
-    const purge = async () => {
-            const btn = document.getElementById("star-manager-purge-btn");
-            btn.disabled = true;
-            btn.innerHTML =
-                '<i class="fas fa-spinner fa-spin mr-2"></i> Purging...';
-            try {
-                const previousTotalStars =
-                    state.get("allStudentScores").find((s) => s.id === studentId)
-                        ?.totalStars || 0;
-                await runTransaction(db, async (transaction) => {
-                    const scoreRef = doc(
-                        db,
-                        `artifacts/great-class-quest/public/data/student_scores`,
-                        studentId,
-                    );
-                    const todayDocId =
-                        state.get("todaysStars")[studentId]?.docId;
-
-                    if ((await transaction.get(scoreRef)).exists()) {
-                        transaction.update(scoreRef, {
-                            monthlyStars: 0,
-                            totalStars: 0,
-                            lastMonthlyResetDate: getStartOfMonthString(),
-                        });
-                    }
-                    if (todayDocId) {
-                        transaction.delete(
-                            doc(
-                                db,
-                                `artifacts/great-class-quest/public/data/today_stars`,
-                                todayDocId,
-                            ),
-                        );
-                    }
-                });
-                if (student.guildId && previousTotalStars > 0) {
-                    recordGuildGloryEvent({
-                        guildId: student.guildId,
-                        studentId,
-                        classId: student.classId || null,
-                        source: 'purge_student_scores',
-                        starDelta: -previousTotalStars,
-                        note: 'Student score data was purged',
-                    }).catch((e) => console.warn("Purge Guild Glory adjustment failed:", e));
-                }
-                showToast("All star scores purged for student!", "success");
-            } catch (error) {
-                console.error("Error purging stars: ", error);
-                showToast(`Error: ${error.message}`, "error");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML =
-                    '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All Score Data for Student';
-            }
-        };
-    if (options.skipConfirmation === true) return purge();
-    showModal(
-        "Purge All Score Data?",
-        `This resets all star counters for ${student.name}. Award logs remain, but the score reset cannot be undone.`,
-        purge,
-    );
-}
-
-export async function handlePurgeAwardLogs() {
-    const btn = document.getElementById("purge-logs-btn");
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Purging...';
-    try {
-        const logsToPurge = state
-            .get("allAwardLogs")
-            .filter((log) => log.teacherId === state.get("currentUserId"));
-        if (logsToPurge.length === 0) {
-            showToast("You have no logs to purge!", "info");
-            return;
-        }
-        const batch = writeBatch(db);
-        logsToPurge.forEach((log) =>
-            batch.delete(
-                doc(
-                    db,
-                    `artifacts/great-class-quest/public/data/award_log`,
-                    log.id,
-                ),
-            ),
-        );
-        await batch.commit();
-        showToast(
-            "All your award logs have been purged! Student scores are not affected.",
-            "success",
-        );
-    } catch (error) {
-        console.error("Error purging award logs: ", error);
-        showToast(`Error: ${error.message}`, "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML =
-            '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All My Award Logs';
-    }
-}
-
 /**
  * Applies outward skill effects (guildmate gold, classmate gold, random classmate gold)
  * to other students after the main star transaction completes. Fire-and-forget.
@@ -1314,30 +1207,4 @@ async function _applyOutwardSkillEffects(
     }
 
     if (hasBatchWrites) await batch.commit();
-}
-
-export async function handleEraseTodaysStars() {
-    const btn = document.getElementById("erase-today-btn");
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Erasing...';
-    try {
-        const studentIdsToReset = Object.keys(state.get("todaysStars"));
-        if (studentIdsToReset.length === 0) {
-            showToast("You have not awarded any stars today!", "info");
-            return;
-        }
-        for (const id of studentIdsToReset) {
-            await setStudentStarsForToday(id, 0, null);
-        }
-        showToast(
-            "All stars awarded by you today have been erased!",
-            "success",
-        );
-    } catch (error) {
-        console.error("Error erasing today's stars: ", error);
-        showToast(`Error: ${error.message}`, "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-undo mr-2"></i> Erase Today\'s Stars';
-    }
 }

@@ -712,7 +712,7 @@ export function openAppInfoModal() {
                 '❓ Quiz of the Week — weekly review game-show on Home',
                 '📖 Story Weavers — class story, Word of the Day, PDF book',
                 '🐉 Familiars — one companion egg that hatches and evolves',
-                '🤖 AI Oracle, avatars, certificates, Restock, Festival Stall, Adventure Log art',
+                '🤖 AI Oracle, avatars, certificates, Restock, Festival Stall, Market Manager, Adventure Log art',
                 '🏛️ School Office — holidays, classes, new students, school year, school grading defaults',
               ]
             : [

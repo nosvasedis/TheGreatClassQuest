@@ -10,31 +10,41 @@ export const optionsTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Manage your profile, your classes, and the students you teach.</p>
                     </div>
 
-                    <div id="options-tier-summary" class="mb-6 flex items-center justify-between">
-                    </div>
-
                     <div class="options-subtab-bar">
-                        <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
-                            <i class="fas fa-tools mr-1.5"></i> Student Tools
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="classes">
-                            <i class="fas fa-chalkboard-teacher mr-1.5"></i> My Classes
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="planning">
-                            <i class="fas fa-calendar-alt mr-1.5"></i> My Planning
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="profile">
-                            <i class="fas fa-user mr-1.5"></i> Profile
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="assessments">
-                            <i class="fas fa-clipboard-check mr-1.5"></i> Class Grading
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="access">
-                            <i class="fas fa-user-shield mr-1.5"></i> Family Access
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="quiz">
-                            <i class="fas fa-circle-question mr-1.5"></i> Quiz
-                        </button>
+                        <div class="options-subtab-select" id="options-subtab-select" data-active-tab="manage">
+                            <button type="button" class="options-subtab-select__trigger" id="options-subtab-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="options-subtab-menu" aria-label="Choose settings section">
+                                <span class="options-subtab-select__icon" id="options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-tools"></i></span>
+                                <span class="options-subtab-select__label" id="options-subtab-trigger-label">Student Tools</span>
+                                <i class="fas fa-chevron-down options-subtab-select__chev" aria-hidden="true"></i>
+                            </button>
+                            <div class="options-subtab-select__menu hidden" id="options-subtab-menu" role="listbox" aria-label="Teacher Settings sections"></div>
+                        </div>
+                        <div class="options-subtab-buttons" aria-hidden="true">
+                            <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
+                                <i class="fas fa-tools mr-1.5"></i> Student Tools
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="classes">
+                                <i class="fas fa-chalkboard-teacher mr-1.5"></i> My Classes
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="planning">
+                                <i class="fas fa-calendar-alt mr-1.5"></i> My Planning
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="profile">
+                                <i class="fas fa-user mr-1.5"></i> Profile
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="assessments">
+                                <i class="fas fa-clipboard-check mr-1.5"></i> Class Grading
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="access">
+                                <i class="fas fa-user-shield mr-1.5"></i> Family Access
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="quiz">
+                                <i class="fas fa-circle-question mr-1.5"></i> Quiz
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="market">
+                                <i class="fas fa-store mr-1.5"></i> Market
+                            </button>
+                        </div>
                     </div>
 
                     <div class="space-y-8">
@@ -326,31 +336,44 @@ export const optionsTabHTML = `
                                 </button>
                             </div>
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="assessments">
+                            <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-5 hidden" data-options-section="assessments" data-grading-tab="classes" data-grading-kind="tests">
                                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-fuchsia-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-purple-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 
-                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-4">
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
                                     <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-fuchsia-500/30 floating-icon">
                                         <i class="fas fa-clipboard-check text-white text-4xl"></i>
                                     </div>
                                     <div class="text-center md:text-left flex-1">
-                                        <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Assessment Settings</h2>
-                                        <p class="text-sm text-slate-500">Review inherited school rules and configure overrides only for classes you own. Tests or dictations can be turned off for a class.</p>
+                                        <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Class Grading</h2>
+                                        <p class="text-sm text-slate-500">School picture is read-only. Override Tests or Dictations only for a class you teach.</p>
                                     </div>
                                 </div>
-                                <div class="relative z-10 rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
-                                    <h3 class="font-title text-2xl text-fuchsia-800 mb-3">Inherited school defaults (read-only)</h3>
-                                    <div id="options-assessment-defaults-editor" class="space-y-4"></div>
+                                <div class="relative z-10 class-grading-switch" role="tablist" aria-label="Class Grading sections">
+                                    <button type="button" class="class-grading-switch__btn is-active" data-grading-tab="classes" role="tab" aria-selected="true">My classes</button>
+                                    <button type="button" class="class-grading-switch__btn" data-grading-tab="school" role="tab" aria-selected="false">School picture</button>
                                 </div>
-                                <div class="rounded-[1.5rem] border border-indigo-100 bg-indigo-50/60 p-5">
-                                    <h3 class="font-title text-2xl text-indigo-800 mb-3">Per-class overrides</h3>
-                                    <div id="options-class-assessment-editor" class="space-y-4"></div>
+                                <div class="relative z-10 class-grading-panel hidden" data-grading-panel="school">
+                                    <p class="class-grading-panel__lead">What the Secretary set for each Quest League. Ask them to change it.</p>
+                                    <div id="options-assessment-defaults-editor"></div>
                                 </div>
-                                <button id="save-assessment-settings-btn"
-                                    class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
-                                    <i class="fas fa-save mr-2"></i> Save My Class Grading
-                                </button>
+                                <div class="relative z-10 class-grading-panel" data-grading-panel="classes">
+                                    <div class="class-grading-toolbar">
+                                        <label class="class-grading-class-picker">
+                                            <span>Class</span>
+                                            <select id="class-grading-class-select"></select>
+                                        </label>
+                                        <div class="class-grading-kind" role="tablist" aria-label="Tests or dictations">
+                                            <button type="button" class="class-grading-kind__btn is-active" data-grading-kind="tests" role="tab" aria-selected="true">Tests</button>
+                                            <button type="button" class="class-grading-kind__btn" data-grading-kind="dictations" role="tab" aria-selected="false">Dictations</button>
+                                        </div>
+                                    </div>
+                                    <div id="options-class-assessment-editor"></div>
+                                    <button id="save-assessment-settings-btn"
+                                        class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                        <i class="fas fa-save mr-2"></i> Save My Class Grading
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Quiz of the Week section -->
@@ -503,33 +526,33 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <details id="teacher-advanced-data-actions" class="group mt-8 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-600">
-                                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
-                                    <span><i class="fas fa-lock mr-2 text-slate-400"></i>Advanced data actions</span>
-                                    <i class="fas fa-chevron-down text-xs transition-transform group-open:rotate-180"></i>
-                                </summary>
-                                <p class="mt-3 text-xs leading-relaxed text-slate-500">These teacher-scoped recovery and deletion actions are intentionally tucked away. Every permanent action requires another explicit confirmation.</p>
-                                <div class="mt-4 space-y-3 border-t border-slate-200 pt-4">
-                                    <button id="star-manager-purge-btn"
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-rose-300 hover:text-rose-700"
-                                        disabled>
-                                        <i class="fas fa-user-minus mr-2"></i> Purge selected student score data
-                                    </button>
-                                    <button id="erase-today-btn"
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-amber-300 hover:text-amber-700">
-                                        <i class="fas fa-undo mr-2"></i> Undo all stars I awarded today
-                                    </button>
-                                    <button id="purge-logs-btn"
-                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-rose-300 hover:text-rose-700">
-                                        <i class="fas fa-file-circle-xmark mr-2"></i> Purge all my award logs
-                                    </button>
+                            <div class="space-y-6" data-options-section="market">
+                                <div id="options-market-locked" class="options-tier-locked hidden">
+                                    <div class="options-tier-locked-icon">🛒</div>
+                                    <div class="options-tier-locked-title">Market Manager</div>
+                                    <p class="options-tier-locked-text">Repair Seasonal Treasures and the Festival Stall — new pictures, copies, and text — on the Elite plan.</p>
+                                    <span class="options-tier-locked-badge">Elite</span>
                                 </div>
-                            </details>
-                            <div class="options-meta-footer mt-8 text-center text-xs text-gray-400">
-                                <span id="app-tier-label" class="font-semibold block"></span>
-                                <span id="app-version-label" class="block mt-1"></span>
+                                <div id="options-market-content" class="hidden relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
+                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-fuchsia-200 to-purple-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-amber-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
+                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-fuchsia-500/30 floating-icon">
+                                            <i class="fas fa-store text-white text-4xl"></i>
+                                        </div>
+                                        <div class="text-center md:text-left flex-1">
+                                            <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Market Manager</h2>
+                                            <p class="text-sm text-gray-500">Fix a black picture, rewrite a description, or change how many copies remain. This class’s stall follows the header.</p>
+                                        </div>
+                                    </div>
+                                    <div id="market-manager-class" class="relative z-10 rounded-xl border-2 border-fuchsia-100 bg-fuchsia-50/70 px-4 py-3 text-fuchsia-900 font-title font-semibold text-center">
+                                        Choose a class from the header…
+                                    </div>
+                                    <div id="market-manager-list" class="relative z-10 space-y-6"></div>
+                                </div>
                             </div>
                     </div>
+                    <div id="options-tier-summary" class="mt-8"></div>
                 </div>
             </div>
 

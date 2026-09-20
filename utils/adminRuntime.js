@@ -111,3 +111,9 @@ export async function ensureShopStock(payload = {}) {
     const result = await fn(payload);
     return result?.data || null;
 }
+
+export async function manageShopItem(payload = {}) {
+    const fn = httpsCallable(functions, 'manageShopItem', { timeout: 180000 });
+    const result = await fn(payload);
+    return result?.data || null;
+}

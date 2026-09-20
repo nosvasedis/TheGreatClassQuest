@@ -462,7 +462,7 @@ export function renderManageStudentsTab() {
     list.querySelectorAll('.parent-access-student-btn').forEach(btn => btn.addEventListener('click', async () => {
         openAccessCenterForStudent(btn.dataset.id);
         await showTab('options-tab');
-        document.querySelector('.options-subtab-btn[data-options-tab="access"]')?.click();
+        document.querySelector('#options-tab .options-subtab-btn[data-options-tab="access"]')?.click();
     }));
     list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => {
         if (!guildsEnabled) {

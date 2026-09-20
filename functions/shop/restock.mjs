@@ -50,6 +50,48 @@ export function stockMaxForTier(tier) {
     return SHOP_STOCK_BY_TIER[tier] || SHOP_STOCK_BY_TIER.common;
 }
 
+export const SHOP_PRICE_BANDS = {
+    common: { min: 10, max: 18 },
+    rare: { min: 35, max: 50 },
+    legendary: { min: 80, max: 120 }
+};
+
+export function clampShopItemPrice(price) {
+    const gold = Math.round(Number(price));
+    const min = SHOP_PRICE_BANDS.common.min;
+    const max = SHOP_PRICE_BANDS.legendary.max;
+    if (!Number.isFinite(gold)) return min;
+    return Math.min(max, Math.max(min, gold));
+}
+
+export function clampPriceToTier(price, tier) {
+    const band = SHOP_PRICE_BANDS[tier] || SHOP_PRICE_BANDS.common;
+    const gold = clampShopItemPrice(price);
+    return Math.min(band.max, Math.max(band.min, gold));
+}
+
+export function clampShopItemStock(stock, stockMax) {
+    const max = Math.max(0, Math.floor(Number(stockMax) || 0));
+    const count = Math.floor(Number(stock));
+    if (!Number.isFinite(count)) return 0;
+    return Math.min(max, Math.max(0, count));
+}
+
+export function isManagedShopShelf(item) {
+    const shelf = shopItemShelf(item);
+    return shelf === 'seasonal' || shelf === 'festival';
+}
+
+export function shopManagerFieldsFromInput(input = {}) {
+    const name = String(input.name || '').trim().slice(0, 48);
+    const description = String(input.description || input.desc || '').trim().slice(0, 160);
+    const price = clampShopItemPrice(input.price);
+    const tier = shopItemTier(price);
+    const stockMax = stockMaxForTier(tier);
+    const stock = clampShopItemStock(input.stock, stockMax);
+    return { name, description, price, tier, stock, stockMax };
+}
+
 export function remainingShopTiers(existingItems, neededTotal, tierTargets = MONTHLY_TIER_COUNTS) {
     const counts = { common: 0, rare: 0, legendary: 0 };
     for (const item of existingItems || []) {

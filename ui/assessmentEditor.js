@@ -38,7 +38,7 @@ function getScaleRowsHtml(prefix, scale = []) {
 
 function getSchemeEditorHtml(prefix, title, scheme) {
     return `
-        <div class="assessment-scheme-editor" data-scheme-editor data-prefix="${prefix}">
+        <div class="assessment-scheme-editor" data-scheme-editor data-scheme-kind="${title === 'Tests' ? 'tests' : 'dictations'}" data-prefix="${prefix}">
             <div class="assessment-scheme-editor__header">
                 <div class="assessment-scheme-editor__title-wrap">
                     <span class="assessment-scheme-editor__icon" aria-hidden="true"><i class="fas ${title === 'Tests' ? 'fa-file-pen' : 'fa-spell-check'}"></i></span>
@@ -110,9 +110,9 @@ export function getAssessmentConfigCardHtml(config, key, options = {}) {
             <div class="assessment-config-card__content">
             <div class="assessment-config-card__header">
                 <div>
-                    <p class="role-card__eyebrow">Assessment rules</p>
-                    <h4 class="assessment-config-card__title">${title}</h4>
-                    ${description ? `<p class="assessment-config-card__description">${description}</p>` : ''}
+                    ${options.compactHeader ? '' : `<p class="role-card__eyebrow">Assessment rules</p>`}
+                    ${options.compactHeader ? '' : `<h4 class="assessment-config-card__title">${title}</h4>`}
+                    ${description && !options.compactHeader ? `<p class="assessment-config-card__description">${description}</p>` : ''}
                 </div>
                 ${options.allowInherit ? `
                     <label class="assessment-inherit-control">

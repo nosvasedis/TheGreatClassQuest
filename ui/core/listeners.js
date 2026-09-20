@@ -32,10 +32,7 @@ import {
     handleSaveTeacherName,
     setStudentStarsForToday,
     handleAddStarsManually,
-    handlePurgeStudentStars,
     handleSetStudentScores,
-    handlePurgeAwardLogs,
-    handleEraseTodaysStars,
     handleDeleteAwardLog,
     saveAwardNote,
     saveAdventureLogNote,
@@ -1072,33 +1069,9 @@ export function setupUIListeners() {
     document.getElementById('save-teacher-name-btn').addEventListener('click', (e) => { e.preventDefault(); handleSaveTeacherName(); });
     document.getElementById('star-manager-student-select').addEventListener('change', handleStarManagerStudentSelect);
     document.getElementById('star-manager-add-btn').addEventListener('click', handleAddStarsManually);
-    document.getElementById('star-manager-purge-btn').addEventListener('click', () => {
-        const studentId = document.getElementById('star-manager-student-select')?.value;
-        const student = (state.get('allStudents') || []).find((item) => item.id === studentId);
-        if (!student) return;
-        modals.showTypedConfirmationModal({
-            title: 'Purge Student Score Data?',
-            message: 'This resets every star counter for the selected student. Classes, profile details, attendance, and award logs remain untouched. The score reset cannot be recovered.',
-            expectedText: student.name,
-            confirmText: 'Purge score data',
-            onConfirm: () => handlePurgeStudentStars({ skipConfirmation: true })
-        });
-    });
     document.getElementById('star-manager-override-btn').addEventListener('click', handleSetStudentScores);
     document.getElementById('familiar-maintenance-student-select').addEventListener('change', updateFamiliarOptionsState);
     document.getElementById('familiar-regenerate-btn').addEventListener('click', handleRegenerateFamiliarFromOptions);
-    document.getElementById('purge-logs-btn').addEventListener('click', () => {
-        modals.showTypedConfirmationModal({
-            title: 'Purge All My Award Logs?',
-            message: 'This permanently deletes only your historical award log entries. Student score totals remain unchanged. The deleted audit history cannot be recovered.',
-            expectedText: 'DELETE MY LOGS',
-            confirmText: 'Purge my logs',
-            onConfirm: () => handlePurgeAwardLogs()
-        });
-    });
-    document.getElementById('erase-today-btn').addEventListener('click', () => {
-        modals.showModal('Erase Today\'s Stars?', 'This removes only the stars you awarded today. Student profiles, classes, earlier scores, and award history remain untouched. This action can be recovered from the retained award log.', () => handleEraseTodaysStars());
-    });
 
     // Pricing Modal
     document.addEventListener('click', (e) => {

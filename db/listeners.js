@@ -326,6 +326,11 @@ export function ensureShopItemsListener() {
                     const { renderShopUI } = await import("../ui/core/shop.js");
                     renderShopUI();
                 }
+                const marketSection = document.querySelector('[data-options-section="market"]');
+                if (marketSection && !marketSection.classList.contains('hidden')) {
+                    const { renderMarketManagerUi } = await import("../ui/core/marketManager.js");
+                    renderMarketManagerUi();
+                }
             },
             (error) => console.error("Error listening to shop items:", error),
         ),

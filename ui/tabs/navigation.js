@@ -36,6 +36,7 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from '../../config/tiers/features.js';
 import { renderFamiliarOptionsUi } from '../../features/familiars.js';
 import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/accessManagement.js';
+import { renderMarketManagerUi, wireMarketManagerEvents } from '../core/marketManager.js';
 import { getBillingAuthHeaders } from '../../utils/billingCheckout.js';
 
 // --- TAB NAVIGATION ---
@@ -290,6 +291,9 @@ function patchOptionsTabForClassChange() {
     if (canUseFeature('quizOfTheWeek')) {
         renderQuizOptionsUi().catch(() => {});
     }
+    if (canUseFeature('eliteAI')) {
+        renderMarketManagerUi();
+    }
     const hasAccessCenter = canUseFeature('parentAccess');
     if (hasAccessCenter) {
         renderAccessCenterUi();
@@ -317,12 +321,94 @@ export async function refreshVisibleTabForGlobalClassChange() {
     syncAwardImmersiveSky(visibleAgain?.id || '', { continueSession: true });
 }
 
+function getOptionsSubtabButtons() {
+    return Array.from(document.querySelectorAll('#options-tab .options-subtab-btn'));
+}
+
+function optionsSubtabLabel(btn) {
+    return (btn?.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function setOptionsSubtabSelectOpen(open) {
+    const trigger = document.getElementById('options-subtab-trigger');
+    const menu = document.getElementById('options-subtab-menu');
+    const wrap = document.getElementById('options-subtab-select');
+    if (!trigger || !menu) return;
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    menu.classList.toggle('hidden', !open);
+    wrap?.classList.toggle('is-open', open);
+}
+
+function syncOptionsSubtabSelect() {
+    const trigger = document.getElementById('options-subtab-trigger');
+    const iconEl = document.getElementById('options-subtab-trigger-icon');
+    const labelEl = document.getElementById('options-subtab-trigger-label');
+    const menu = document.getElementById('options-subtab-menu');
+    const wrap = document.getElementById('options-subtab-select');
+    if (!trigger || !menu) return;
+
+    const visible = getOptionsSubtabButtons().filter((btn) => !btn.classList.contains('hidden'));
+    const active = visible.find((btn) => btn.classList.contains('options-subtab-active')) || visible[0];
+    const activeKey = active?.dataset.optionsTab || 'manage';
+
+    if (wrap) wrap.dataset.activeTab = activeKey;
+    if (iconEl) {
+        const icon = active?.querySelector('i')?.className || 'fas fa-tools';
+        iconEl.innerHTML = `<i class="${icon}"></i>`;
+    }
+    if (labelEl) labelEl.textContent = optionsSubtabLabel(active) || 'Student Tools';
+
+    menu.innerHTML = visible.map((btn) => {
+        const key = btn.dataset.optionsTab;
+        const icon = btn.querySelector('i')?.className || 'fas fa-circle';
+        const label = optionsSubtabLabel(btn);
+        const isActive = key === activeKey;
+        return `<button type="button" class="options-subtab-select__option${isActive ? ' is-active' : ''}" data-options-tab="${key}" role="option" aria-selected="${isActive}">
+            <span class="options-subtab-select__option-icon" aria-hidden="true"><i class="${icon}"></i></span>
+            <span class="options-subtab-select__option-label">${label}</span>
+            ${isActive ? '<i class="fas fa-check options-subtab-select__check" aria-hidden="true"></i>' : ''}
+        </button>`;
+    }).join('');
+}
+
+function wireOptionsSubtabSelect() {
+    const trigger = document.getElementById('options-subtab-trigger');
+    const menu = document.getElementById('options-subtab-menu');
+    const wrap = document.getElementById('options-subtab-select');
+    if (!trigger || !menu || trigger.dataset.wired) return;
+    trigger.dataset.wired = '1';
+
+    trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const open = trigger.getAttribute('aria-expanded') === 'true';
+        setOptionsSubtabSelectOpen(!open);
+        if (!open) syncOptionsSubtabSelect();
+    });
+
+    menu.addEventListener('click', (event) => {
+        const option = event.target.closest('[data-options-tab]');
+        if (!option) return;
+        const btn = document.querySelector(`#options-tab .options-subtab-btn[data-options-tab="${option.dataset.optionsTab}"]`);
+        btn?.click();
+        setOptionsSubtabSelectOpen(false);
+    });
+
+    document.addEventListener('click', (event) => {
+        if (wrap && !wrap.contains(event.target)) {
+            setOptionsSubtabSelectOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setOptionsSubtabSelectOpen(false);
+    });
+}
+
 export async function showOptionsSubtab(key) {
     await showTab('options-tab');
-    const button = document.querySelector(`.options-subtab-btn[data-options-tab="${key}"]`);
+    const button = document.querySelector(`#options-tab .options-subtab-btn[data-options-tab="${key}"]`);
     if (!button || button.classList.contains('hidden')) return;
     button.click();
-    button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 export async function showTab(tabName) {
@@ -395,18 +481,23 @@ export async function showTab(tabName) {
         const hasAssessmentAccess = canUseFeature('scholarScroll');
         const hasAccessCenter = canUseFeature('parentAccess');
         const hasQuizFeature = canUseFeature('quizOfTheWeek');
-        const assessmentsBtn = document.querySelector('.options-subtab-btn[data-options-tab="assessments"]');
-        const assessmentsSection = document.querySelector('[data-options-section="assessments"]');
-        const accessBtn = document.querySelector('.options-subtab-btn[data-options-tab="access"]');
-        const accessSection = document.querySelector('[data-options-section="access"]');
-        const quizBtn = document.querySelector('.options-subtab-btn[data-options-tab="quiz"]');
-        const quizSection = document.querySelector('[data-options-section="quiz"]');
+        const hasMarketManager = canUseFeature('eliteAI');
+        const assessmentsBtn = document.querySelector('#options-tab .options-subtab-btn[data-options-tab="assessments"]');
+        const assessmentsSection = document.querySelector('#options-tab [data-options-section="assessments"]');
+        const accessBtn = document.querySelector('#options-tab .options-subtab-btn[data-options-tab="access"]');
+        const accessSection = document.querySelector('#options-tab [data-options-section="access"]');
+        const quizBtn = document.querySelector('#options-tab .options-subtab-btn[data-options-tab="quiz"]');
+        const quizSection = document.querySelector('#options-tab [data-options-section="quiz"]');
+        const marketBtn = document.querySelector('#options-tab .options-subtab-btn[data-options-tab="market"]');
+        const marketSection = document.querySelector('#options-tab [data-options-section="market"]');
         assessmentsBtn?.classList.toggle('hidden', !hasAssessmentAccess);
         assessmentsSection?.classList.toggle('hidden', !hasAssessmentAccess);
         accessBtn?.classList.toggle('hidden', !hasAccessCenter);
         accessSection?.classList.toggle('hidden', !hasAccessCenter);
         quizBtn?.classList.toggle('hidden', !hasQuizFeature);
         quizSection?.classList.toggle('hidden', !hasQuizFeature);
+        marketBtn?.classList.toggle('hidden', !hasMarketManager);
+        marketSection?.classList.toggle('hidden', !hasMarketManager);
 
         // Load teacher-owned settings; isolate failures so one broken renderer doesn't block the others
         import('../core.js').then(m => {
@@ -437,12 +528,14 @@ export async function showTab(tabName) {
             renderAccessCenterUi();
         }
 
-        // Options subtabs: beautiful bar, active state, tier-aware Planning
+        // Options subtabs: dropdown selector, active state, tier-aware Planning
         if (!window.__optionsSubtabsWired) {
             window.__optionsSubtabsWired = true;
             wireAccessCenterEvents();
-            const buttons = document.querySelectorAll('.options-subtab-btn');
-            const sections = document.querySelectorAll('[data-options-section]');
+            wireMarketManagerEvents();
+            wireOptionsSubtabSelect();
+            const buttons = getOptionsSubtabButtons();
+            const sections = document.querySelectorAll('#options-tab [data-options-section]');
             const planningLocked = document.getElementById('options-planning-locked');
             const planningContent = document.getElementById('options-planning-content');
 
@@ -455,6 +548,7 @@ export async function showTab(tabName) {
                     sec.classList.toggle('hidden', !isVisible);
                     sec.classList.toggle('options-section-visible', isVisible);
                 });
+                syncOptionsSubtabSelect();
                 if (key === 'classes') {
                     renderManageClassesTab();
                 }
@@ -466,6 +560,9 @@ export async function showTab(tabName) {
                 }
                 if (key === 'quiz' && hasQuizFeature) {
                     renderQuizOptionsUi();
+                }
+                if (key === 'market' && hasMarketManager) {
+                    renderMarketManagerUi();
                 }
                 // Tier: Planning is Pro+. Show locked card or real content
                 const hasPlanning = canUseFeature('schoolYearPlanner');
@@ -498,23 +595,14 @@ export async function showTab(tabName) {
             }
             activate('manage');
         }
+        syncOptionsSubtabSelect();
 
-        const tierEl = document.getElementById('app-tier-label');
-        const versionEl = document.getElementById('app-version-label');
         const summaryEl = document.getElementById('options-tier-summary');
 
         const rawTier = getTier();
         const pretty =
             rawTier === 'elite' ? 'Elite' :
             rawTier === 'pro' ? 'Pro' : 'Starter';
-
-        if (tierEl) {
-            tierEl.textContent = `Plan: ${pretty}`;
-        }
-        if (versionEl) {
-            const version = (constants && constants.APP_VERSION) || '0.1.0';
-            versionEl.textContent = `Version ${version}`;
-        }
 
         if (summaryEl) {
             const summary = getTierSummary(rawTier);

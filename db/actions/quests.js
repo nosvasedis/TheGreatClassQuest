@@ -1158,8 +1158,7 @@ export function handleStarManagerStudentSelect() {
         document.getElementById('star-manager-date'),
         document.getElementById('star-manager-stars-to-add'),
         document.getElementById('star-manager-reason'),
-        document.getElementById('star-manager-add-btn'),
-        document.getElementById('star-manager-purge-btn')
+        document.getElementById('star-manager-add-btn')
     ];
     const overrideFormElements = [
         document.getElementById('override-today-stars'),

@@ -7,3 +7,4 @@ export * from './listeners.js';
 export * from './avatar.js';
 export * from './misc.js';
 export * from './shop.js';
+export * from './marketManager.js';

@@ -183,6 +183,9 @@ test('functions shop restock stays aligned with the app restock planner', async 
   assert.equal(fn.shopItemStock({}), 1);
   assert.equal(typeof app.shopStallNeedsWork, 'function');
   assert.equal(typeof fn.shopStallNeedsWork, 'function');
+  assert.equal(typeof app.shopManagerFieldsFromInput, 'function');
+  assert.equal(typeof fn.shopManagerFieldsFromInput, 'function');
+  assert.deepEqual(app.SHOP_PRICE_BANDS, fn.SHOP_PRICE_BANDS);
   assert.equal(app.shopStallNeedsWork({ mode: 'replace', needed: 15, targetCount: 15 }), false);
   assert.equal(fn.shopStallNeedsWork({ mode: 'replace', needed: 15, targetCount: 15 }, { forceReplace: true }), true);
 });
@@ -202,6 +205,22 @@ test('an empty monthly stall plans fifteen kinds and an empty festival stall pla
   assert.equal(soldOut.needed, SHOP_RESTOCK_ITEM_COUNT);
 });
 
+test('Market Manager clamps gold, copies, and names before save', async () => {
+  const { shopManagerFieldsFromInput, clampPriceToTier } = await loadShopRestock();
+  const fields = shopManagerFieldsFromInput({
+    name: '  Harvest Bell  ',
+    description: 'A bright classroom chime.',
+    price: 90,
+    stock: 4
+  });
+  assert.equal(fields.name, 'Harvest Bell');
+  assert.equal(fields.tier, 'legendary');
+  assert.equal(fields.stockMax, 1);
+  assert.equal(fields.stock, 1);
+  assert.equal(clampPriceToTier(12, 'rare'), 35);
+  assert.equal(clampPriceToTier(200, 'legendary'), 120);
+});
+
 test('shop restock does not wipe a live stall and runs in the background', async () => {
   const economy = fs.readFileSync(path.join(root, 'db/actions/economy.js'), 'utf8');
   const shop = fs.readFileSync(path.join(root, 'ui/core/shop.js'), 'utf8');
@@ -218,8 +237,13 @@ test('shop restock does not wipe a live stall and runs in the background', async
   assert.match(api, /requestOptions\.ignoreCircuit/);
   assert.match(functions, /exports\.ensureShopStock/);
   assert.match(functions, /exports\.maintainShopStock/);
+  assert.match(functions, /exports\.manageShopItem/);
   assert.match(functions, /0 21 \* \* \*/);
   assert.match(functions, /GCQ_AI_SERVICE_KEY/);
   assert.doesNotMatch(shop, /Restock weaves/);
   assert.doesNotMatch(shop, /Festival Stall weaves itself/);
+  const manager = fs.readFileSync(path.join(root, 'ui/core/marketManager.js'), 'utf8');
+  assert.match(manager, /New picture/);
+  assert.match(manager, /Replace this treasure/);
+  assert.match(fs.readFileSync(path.join(root, 'templates/app/tabs/options.js'), 'utf8'), /data-options-tab="market"/);
 });

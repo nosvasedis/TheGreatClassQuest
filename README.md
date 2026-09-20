@@ -49,7 +49,7 @@
 | [Story Weavers](#-story-weavers) | Collaborative story writing with AI illustrations |
 | [AI & Creative Tools](#-ai--creative-tools) | Avatar Forge, Nameday lookup, reports, Story Weavers |
 | [Tracking & Analytics](#-tracking--analytics) | Hero's Chronicle, Attendance, certificates |
-| [Teacher Settings](#-teacher-settings) | Student Tools, My Classes, planning, grading, Family Access, Quiz |
+| [Teacher Settings](#-teacher-settings) | Student Tools, My Classes, planning, grading, Family Access, Quiz, Market |
 
 ---
 
@@ -110,7 +110,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Quest Calendar** | Month grid, Day Planner, Quest Events. School-wide holidays are set in the **School Office**. **Pro.** |
 | **Story Weavers** | Collaborative story, Word of the Day, AI art, PDF print. **Elite.** |
 
-**Teacher Settings** (cog): Student Tools, My Classes, My Planning (class end dates), Profile, Class Grading, Family Access, Quiz.
+**Teacher Settings** (cog): pick a section from the dropdown — Student Tools, My Classes, My Planning (class end dates), Profile, Class Grading, Family Access, Quiz, Market.
 
 ---
 
@@ -388,17 +388,18 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## ⚙️ Teacher Settings
 
-Opened from the header **cog**.
+Opened from the header **cog**. Pick a section from the **dropdown** at the top.
 
 | Subtab | Features |
 |--------|----------|
-| **Student Tools** | Star Manager (historical award or direct override), Coin Purse, Familiar sprite forge (Elite). Folded **advanced data actions**: purge selected student scores, undo stars you awarded today, purge your award logs. |
+| **Student Tools** | Star Manager (historical award or direct override), Coin Purse, Familiar sprite forge (Elite). |
 | **My Classes** | Create/edit classes and **Manage Students**. |
 | **My Planning** | Per-class **final lesson day** (Pro). Holidays = School Office. |
 | **Profile** | Display name. |
-| **Class Grading** | Override school test/dictation defaults for this class (Pro). |
+| **Class Grading** | Pick a class, then Tests or Dictations; school picture is read-only (Pro). |
 | **Family Access** | Parent username/password per student (Pro). |
 | **Quiz** | Build Quiz of the Week; play on Home (Elite). |
+| **Market** | Repair Seasonal Treasures and Festival Stall: new picture, replace, copies, text (Elite). |
 
 ---
 

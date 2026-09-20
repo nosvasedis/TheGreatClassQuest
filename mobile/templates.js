@@ -249,7 +249,7 @@ export function injectMobileShells() {
         if (aboutTab) {
             aboutTab.insertAdjacentHTML('beforeend', mobileHomeShellHTML);
         }
-        const subtabBar = document.querySelector('.options-subtab-bar');
+        const subtabBar = document.querySelector('#options-tab .options-subtab-bar');
         if (subtabBar && !document.getElementById('m-options-subtab-dropdown')) {
             subtabBar.insertAdjacentHTML('beforebegin', optionsSubtabDropdownHTML);
         }

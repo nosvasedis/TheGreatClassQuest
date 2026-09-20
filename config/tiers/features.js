@@ -82,7 +82,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '🤖',
         description: 'AI stories, editing, Hero Chronicle Oracle, story images',
         tier: 'Elite',
-        teacherExplain: "Elite AI: Adventure Log chronicler + storybook image, Story Weavers illustrations, Avatar Forge, Nameday Lookup, class reports, certificates, Hero's Chronicle Oracle (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), Market Restock, and Festival Stall. You still decide every star. 🤖✨🎨",
+        teacherExplain: "Elite AI: Adventure Log chronicler + storybook image, Story Weavers illustrations, Avatar Forge, Nameday Lookup, class reports, certificates, Hero's Chronicle Oracle (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), Market Restock, Festival Stall, and Market Manager. You still decide every star. 🤖✨🎨",
         studentExplain: "Your teacher has an AI Oracle inside Hero's Chronicle! 🤖✨ It helps your teacher understand your progress and support you better — like a magical advisor on your hero's journey! 🌟"
     },
     familiars: {
@@ -219,7 +219,7 @@ export function getGuideSections(perspective) {
                     { emoji: '🎨', name: 'AI Story Images', tier: 'elite', key: 'eliteAI', teacherExplain: 'Story Weavers generates an illustration when you lock in a sentence. Adventure Log on Elite paints a storybook picture for the day. 🎨🖼️', why: 'Children take home proof that English made a picture-book, not only a worksheet.' },
                     { emoji: '🦸', name: 'AI Avatar Generator', tier: 'elite', key: 'eliteAI', teacherExplain: 'Students create unique AI-generated avatars! They choose a creature type, colour scheme, and accessory, and the AI creates a personalised chibi-style character just for them. Each avatar is completely unique — no two heroes look the same! 🦸✨', why: 'Students feel genuinely attached to their unique identity in the Quest world.' },
                     { emoji: '📄', name: 'AI Reports & Certificates', tier: 'elite', key: 'eliteAI', teacherExplain: 'Generate AI-powered weekly class reports with insights and suggestions, plus beautifully styled certificates with AI-generated personalised text for each student. Perfect for parent meetings and celebrating achievements! 📄🏅', why: 'Professional, personalised output that impresses parents and saves hours of writing.' },
-                    { emoji: '🌟', name: 'AI Seasonal Shop', tier: 'elite', key: 'eliteAI', teacherExplain: "The monthly stall follows this month's classroom story (September is harvest, not Halloween). Elite fills 15 kinds with copies (Common 5, Rare 2, Legendary 1). Restock brings a fresh monthly stall; today's treasures stay until the new pictures are ready. Festival Stall appears about 22 days before Halloween, Christmas, Orthodox Easter, and Carnival, then vanishes after the celebration. 🛒✨", why: 'Fresh monthly items keep students excited to check the shop and earn more gold every single lesson.' },
+                    { emoji: '🌟', name: 'AI Seasonal Shop', tier: 'elite', key: 'eliteAI', teacherExplain: "The monthly stall follows this month's classroom story (September is harvest, not Halloween). Elite fills 15 kinds with copies (Common 5, Rare 2, Legendary 1). Restock brings a fresh monthly stall; today's treasures stay until the new pictures are ready. Festival Stall appears about 22 days before Halloween, Christmas, Orthodox Easter, and Carnival, then vanishes after the celebration. Teacher Settings → Market repairs a black picture, copies, names, and descriptions. 🛒✨", why: 'Fresh monthly items keep students excited to check the shop and earn more gold every single lesson.' },
                 ]
             },
         ];
@@ -343,7 +343,8 @@ export const UPGRADE_MESSAGES = {
         adventureLog: 'The AI-powered diary and storybook image are on the Elite plan. Pro still has the full manual log and Hero of the Day.',
         storyWeavers: 'Story Weavers and Word of the Day are available on the Elite plan. Contact me to upgrade.',
         familiars: 'Familiars — one companion egg that hatches and evolves — are available on the Elite plan. Contact me to upgrade.',
-        quizOfTheWeek: 'Quiz of the Week is available on the Elite plan. Configure it in Teacher Settings → Quiz and play from Home.'
+        quizOfTheWeek: 'Quiz of the Week is available on the Elite plan. Configure it in Teacher Settings → Quiz and play from Home.',
+        eliteAI: 'Market Manager and Restock are Elite. Repair Seasonal Treasures and the Festival Stall from Teacher Settings → Market.'
     }
 };
 

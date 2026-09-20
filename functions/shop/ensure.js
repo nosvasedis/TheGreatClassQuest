@@ -366,7 +366,101 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     }, { waitMs: mode === 'replace-monthly' ? 20000 : 0 });
   }
 
-  return { ensureStall, loadStock };
-}
+    async function manageItem({ teacherId, teacherName, yearKey, itemId, action }) {
+      const calendar = await calendarP;
+      const restock = await restockP;
+      const ref = db.doc(`${publicDataPath}/shop_items/${itemId}`);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        const error = new Error('That treasure is no longer on the stall.');
+        error.code = 'not-found';
+        throw error;
+      }
+      const item = { id: snap.id, ...snap.data() };
+      if (item.teacherId !== teacherId) {
+        const error = new Error('You can only manage treasures on your own stall.');
+        error.code = 'permission-denied';
+        throw error;
+      }
+      if (!restock.isManagedShopShelf(item)) {
+        const error = new Error('Market Manager only edits Seasonal Treasures and the Festival Stall.');
+        error.code = 'failed-precondition';
+        throw error;
+      }
+      const league = String(item.league || '').trim();
+      const monthKey = String(item.monthKey || calendar.shopMonthKey()).trim();
+      const lockId = `${teacherId}_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
+      return withLock(lockId, async () => {
+        const latestSnap = await ref.get();
+        if (!latestSnap.exists) {
+          const error = new Error('That treasure is no longer on the stall.');
+          error.code = 'not-found';
+          throw error;
+        }
+        const latest = { id: latestSnap.id, ...latestSnap.data() };
+        const shelf = restock.shopItemShelf(latest);
+        if (action === 'new-picture') {
+          const bytes = await generateImage({
+            name: latest.name,
+            desc: latest.description || latest.desc,
+            price: latest.price
+          }, league);
+          const path = `shop_items/${teacherId}/${yearKey}/${monthKey}_${ai.simpleHashCode(latest.name)}_${Date.now()}.png`;
+          const imageUrl = await uploadPng(bytes, path);
+          await ref.update({ image: imageUrl });
+          return { ok: true, action, itemId, image: imageUrl };
+        }
+        if (action === 'replace') {
+          const stall = await loadStock(teacherId, league, monthKey);
+          const festival = calendar.getActiveFestival();
+          const avoidNames = stall
+            .filter((row) => row.id !== latest.id && restock.shopItemShelf(row) === shelf)
+            .map((row) => row.name)
+            .filter(Boolean);
+          avoidNames.push(latest.name);
+          const keepTier = restock.shopItemTier(latest.price);
+          const tiers = { common: 0, rare: 0, legendary: 0 };
+          tiers[keepTier] = 1;
+          const themePrompt = shelf === 'festival' && festival
+            ? calendar.festivalShelfPrompt(festival)
+            : calendar.monthlyShelfPrompt();
+          const catalog = await inventCatalog({
+            league,
+            needed: 1,
+            tiers,
+            themePrompt,
+            existingNames: avoidNames
+          });
+          const next = catalog[0];
+          if (!next) {
+            throw new Error('The merchant could not invent a replacement.');
+          }
+          next.price = restock.clampPriceToTier(next.price, keepTier);
+          const bytes = await generateImage(next, league);
+          const path = `shop_items/${teacherId}/${yearKey}/${monthKey}_${ai.simpleHashCode(next.name)}_${Date.now()}.png`;
+          const imageUrl = await uploadPng(bytes, path);
+          await persistItem({
+            item: next,
+            imageUrl,
+            incoming: Boolean(latest.incoming),
+            league,
+            monthKey,
+            teacherId,
+            teacherName,
+            yearKey,
+            shelf,
+            festivalId: latest.festivalId || (festival && shelf === 'festival' ? festival.festivalId : undefined)
+          });
+          await deleteIds([latest.id]);
+          return { ok: true, action, replacedId: latest.id, name: next.name };
+        }
+        const error = new Error('Unknown Market Manager action.');
+        error.code = 'invalid-argument';
+        throw error;
+      }, { waitMs: 8000 });
+    }
+
+    return { ensureStall, loadStock, manageItem };
+  }
 
 module.exports = { createShopEngine };

@@ -2486,3 +2486,35 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
     console.log(JSON.stringify({ event: 'maintainShopStock', stallCount: stalls.length, results }));
     return null;
   });
+
+exports.manageShopItem = callable(async (request) => {
+  const caller = await requireEliteShopCaller(request);
+  const itemId = String(request.data?.itemId || '').trim();
+  const action = String(request.data?.action || '').trim();
+  if (!itemId) throw new HttpsError('invalid-argument', 'Choose a treasure first.');
+  if (action !== 'new-picture' && action !== 'replace') {
+    throw new HttpsError('invalid-argument', 'Choose New picture or Replace this treasure.');
+  }
+  const yearKey = await getActiveSchoolYearKey();
+  try {
+    const result = await shopEngine.manageItem({
+      teacherId: caller.uid,
+      teacherName: caller.profile.displayName || 'Teacher',
+      yearKey,
+      itemId,
+      action
+    });
+    if (result?.skipped) {
+      return { ok: false, skipped: true, reason: result.reason || 'locked' };
+    }
+    return { ok: true, ...result };
+  } catch (error) {
+    const code = String(error?.code || '');
+    if (code === 'not-found') throw new HttpsError('not-found', error.message);
+    if (code === 'permission-denied') throw new HttpsError('permission-denied', error.message);
+    if (code === 'failed-precondition') throw new HttpsError('failed-precondition', error.message);
+    if (code === 'invalid-argument') throw new HttpsError('invalid-argument', error.message);
+    console.error('manageShopItem failed:', error);
+    throw new HttpsError('internal', 'The merchant could not finish that treasure.');
+  }
+}, { timeoutSeconds: 180, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });

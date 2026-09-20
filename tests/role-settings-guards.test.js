@@ -17,6 +17,19 @@ test('mobile Teacher Settings dropdown is hidden on desktop', () => {
   assert.match(tabsCss, /body\.gcq-mobile \.m-subtab-dropdown\s*\{[\s\S]*?display:\s*block/);
 });
 
+test('Teacher Settings uses a dropdown instead of a horizontal subtab scroller', () => {
+  const html = read('templates/app/tabs/options.js');
+  const css = read('styles/options.css');
+  const nav = read('ui/tabs/navigation.js');
+  assert.match(html, /id="options-subtab-trigger"/);
+  assert.match(html, /id="options-subtab-menu"/);
+  assert.match(html, /id="options-subtab-select"/);
+  assert.match(css, /#options-tab \.options-subtab-buttons/);
+  assert.match(css, /#options-tab \.options-subtab-bar[\s\S]*?overflow:\s*visible/);
+  assert.match(nav, /function syncOptionsSubtabSelect/);
+  assert.match(nav, /function wireOptionsSubtabSelect/);
+});
+
 test('Teacher Settings contains only teacher-owned controls and no school-wide editors', () => {
   const teacherSettings = read('templates/app/tabs/options.js');
   assert.doesNotMatch(teacherSettings, /id="options-school-name-input"/);
@@ -31,6 +44,8 @@ test('Teacher Settings contains only teacher-owned controls and no school-wide e
   assert.match(teacherSettings, /Class Grading/);
   assert.match(teacherSettings, /Family Access/);
   assert.match(teacherSettings, /Parent logins/);
+  assert.match(teacherSettings, /data-options-tab="market"/);
+  assert.match(teacherSettings, /Market Manager/);
   assert.doesNotMatch(teacherSettings, /Secretary\/admin credentials are managed only from the Secretary console/);
   assert.doesNotMatch(teacherSettings, /Role Access Center/);
   assert.match(read('features/accessManagement.js'), /Parent access is not included in this school's plan/);
@@ -39,8 +54,20 @@ test('Teacher Settings contains only teacher-owned controls and no school-wide e
   assert.match(read('utils/adminRuntime.js'), /purgeStudent/);
   assert.match(read('functions/index.js'), /exports\.purgeLeftSchoolStudents/);
   assert.match(read('functions/index.js'), /exports\.purgeStudent/);
-  assert.match(teacherSettings, /<details id="teacher-advanced-data-actions"/);
-  assert.match(read('ui/core/listeners.js'), /DELETE MY LOGS/);
+  assert.doesNotMatch(teacherSettings, /teacher-advanced-data-actions/);
+  assert.doesNotMatch(teacherSettings, /Advanced data actions/);
+  assert.doesNotMatch(teacherSettings, /star-manager-purge-btn/);
+  assert.doesNotMatch(teacherSettings, /erase-today-btn/);
+  assert.doesNotMatch(teacherSettings, /purge-logs-btn/);
+  assert.doesNotMatch(read('ui/core/listeners.js'), /DELETE MY LOGS/);
+  assert.doesNotMatch(teacherSettings, /id="app-tier-label"/);
+  assert.doesNotMatch(teacherSettings, /id="app-version-label"/);
+  assert.match(teacherSettings, /id="options-tier-summary"/);
+  assert.match(teacherSettings, /data-grading-tab="classes"/);
+  assert.match(teacherSettings, /id="class-grading-class-select"/);
+  const summaryAt = teacherSettings.indexOf('id="options-tier-summary"');
+  const marketAt = teacherSettings.indexOf('data-options-tab="market"');
+  assert.ok(summaryAt > marketAt, 'plan summary belongs at the bottom of Teacher Settings');
 });
 
 test('Secretary Admin owns school identity, holidays, credentials, billing, and grading defaults', () => {

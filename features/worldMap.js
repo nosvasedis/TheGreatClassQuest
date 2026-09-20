@@ -225,6 +225,7 @@ function renderMapToken(item) {
         goal,
         displayLevel,
         classQuestBonus,
+        rankPosition,
         tokenKey,
         lane
     } = item;
@@ -233,12 +234,25 @@ function renderMapToken(item) {
     const safeLogo = escapeMapHtml(c.logo || '📚');
     const safeZone = escapeMapHtml(zone.label);
     const zoneBadge = ZONE_BADGE_BY_ID[zone.id];
+    const nextMilestone = [
+        { progress: 30, label: 'Silver Peaks', icon: 'fa-mountain-sun' },
+        { progress: 60, label: 'Golden Citadel', icon: 'fa-chess-rook' },
+        { progress: 85, label: 'Crystal Realm', icon: 'fa-gem' },
+        { progress: 100, label: 'Quest Finish', icon: 'fa-trophy' }
+    ].find((milestone) => pct < milestone.progress) || null;
+    const starsToNext = nextMilestone
+        ? Math.max(0, Math.ceil((goal * nextMilestone.progress / 100) - liveMonthlyStars))
+        : 0;
+    const starsToGoal = Math.max(0, Math.ceil(goal - liveMonthlyStars));
+    const milestoneLabel = nextMilestone ? nextMilestone.label : 'Crystal Realm reached';
+    const milestoneDetail = nextMilestone ? `${starsToNext} star${starsToNext === 1 ? '' : 's'} to arrive` : 'Quest complete!';
+    const milestoneIcon = nextMilestone?.icon || 'fa-trophy';
     const tooltipPosition = [
         pct >= 78 ? 'tq-class-token--tooltip-below' : '',
         pct >= 90 ? 'tq-class-token--tooltip-left' : '',
         pct <= 8 ? 'tq-class-token--tooltip-right' : ''
     ].filter(Boolean).map((className) => ` ${className}`).join('');
-    const ariaLabel = `${safeName}, ${progressDisplay}% complete, ${starsDisplay} of ${goal} stars, ${safeZone}, level ${displayLevel}`;
+    const ariaLabel = `${safeName}, league rank ${rankPosition}, ${progressDisplay}% complete, ${starsDisplay} of ${goal} stars, ${safeZone}, level ${displayLevel}, ${milestoneDetail} ${milestoneLabel}`;
 
     return `
         <button type="button"
@@ -261,6 +275,12 @@ function renderMapToken(item) {
             </span>
 
             <span class="tq-map-tooltip tq-map-tooltip--${zone.id}${isLeader ? ' tq-map-tooltip--leader' : ''}" role="tooltip">
+                <span class="tq-map-tooltip__spark tq-map-tooltip__spark--one" aria-hidden="true">✦</span>
+                <span class="tq-map-tooltip__spark tq-map-tooltip__spark--two" aria-hidden="true">✧</span>
+                <span class="tq-map-tooltip__rank">
+                    <i class="fas ${isLeader ? 'fa-crown' : 'fa-ranking-star'}" aria-hidden="true"></i>
+                    <span>${isLeader ? 'Quest leader' : `League rank #${rankPosition}`}</span>
+                </span>
                 <span class="tq-map-tooltip__header">
                     <span class="tq-map-tooltip__logo" aria-hidden="true">${safeLogo}</span>
                     <span class="tq-map-tooltip__identity">
@@ -272,17 +292,37 @@ function renderMapToken(item) {
                     </span>
                     <span class="tq-map-tooltip__level">Lvl ${displayLevel}</span>
                 </span>
-                <span class="tq-map-tooltip__meter" aria-hidden="true">
-                    <span class="tq-map-tooltip__meter-fill" style="width:${pct}%"></span>
-                </span>
-                <span class="tq-map-tooltip__stats">
-                    <span>
-                        <small>Progress</small>
+                <span class="tq-map-tooltip__journey">
+                    <span class="tq-map-tooltip__journey-label">
+                        <span>Monthly journey</span>
                         <strong>${progressDisplay}%</strong>
                     </span>
-                    <span class="tq-map-tooltip__collected">
-                        <small>Collected</small>
-                        <strong>${starsDisplay} <span aria-hidden="true">/</span> ${goal} <i class="fas fa-star" aria-hidden="true"></i></strong>
+                    <span class="tq-map-tooltip__meter" aria-hidden="true">
+                        <span class="tq-map-tooltip__meter-fill" style="width:${pct}%"></span>
+                    </span>
+                </span>
+                <span class="tq-map-tooltip__stats">
+                    <span class="tq-map-tooltip__stat">
+                        <i class="fas fa-star" aria-hidden="true"></i>
+                        <span>
+                            <small>Collected</small>
+                            <strong>${starsDisplay} / ${goal}</strong>
+                        </span>
+                    </span>
+                    <span class="tq-map-tooltip__stat">
+                        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                        <span>
+                            <small>To monthly goal</small>
+                            <strong>${starsToGoal > 0 ? `${starsToGoal} stars` : 'Complete'}</strong>
+                        </span>
+                    </span>
+                </span>
+                <span class="tq-map-tooltip__milestone">
+                    <span class="tq-map-tooltip__milestone-icon"><i class="fas ${milestoneIcon}" aria-hidden="true"></i></span>
+                    <span>
+                        <small>${nextMilestone ? 'Next milestone' : 'Celebration unlocked'}</small>
+                        <strong>${milestoneLabel}</strong>
+                        <em>${milestoneDetail}</em>
                     </span>
                 </span>
                 ${classQuestBonus > 0 ? `<span class="tq-map-tooltip__bonus"><i class="fas fa-compass" aria-hidden="true"></i> +${classQuestBonus} Pathfinder</span>` : ''}
@@ -335,6 +375,7 @@ export function generateLeagueMapHtml(classes) {
             progressDisplay,
             pinTier,
             isLeader: leagueIndex === 0,
+            rankPosition: leagueIndex + 1,
             displayLevel: (c.difficulty || 0) + 1,
             tokenKey: encodeURIComponent(String(c.id || c.name || leagueIndex)),
             lane: 0
@@ -436,7 +477,7 @@ export function generateLeagueMapHtml(classes) {
             </div>
 
             ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" data-offset-x="10" aria-label="Quest finish at 100 percent">
+            <span class="tq-route-finish" data-route-progress="100" data-offset-x="46" data-offset-y="-18" aria-label="Quest finish at 100 percent">
                 <span class="tq-route-finish__glow" aria-hidden="true"></span>
                 <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
                 <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">

@@ -112,7 +112,7 @@ const MAP_VIEWBOX_HEIGHT = 675;
 const QUEST_ROUTE_SEGMENTS = [
     {
         id: 'bronze', minProgress: 0, maxProgress: 30,
-        d: 'M 60 612 C 82 580 108 544 157 522 C 208 498 252 543 302 534 C 324 527 297 489 247 458 C 205 432 177 398 194 360 C 211 329 235 310 252 293 C 289 258 326 224 349 190 C 374 154 399 141 421 136'
+        d: 'M 60 612 C 82 590 122 568 158 542 C 185 522 199 495 190 476 C 178 450 125 457 131 431 C 135 413 155 401 153 382 C 151 363 125 354 132 335 C 142 306 185 289 220 273 C 268 252 322 242 350 212 C 372 190 376 165 397 151 C 406 145 414 140 421 136'
     },
     {
         id: 'silver', minProgress: 30, maxProgress: 60,
@@ -132,7 +132,6 @@ const MAP_TOKEN_EDGE_MARGIN = 44;
 
 const LIVING_MAP_ASSETS = {
     background: new URL('../assets/team-quest-map/living-atlas/map-background-v2.webp', import.meta.url).href,
-    plaque: new URL('../assets/team-quest-map/living-atlas/parchment-plaque.webp', import.meta.url).href,
     cloudMist: new URL('../assets/team-quest-map/living-atlas/cloud-mist.webp', import.meta.url).href,
     crystalAura: new URL('../assets/team-quest-map/living-atlas/crystal-aura.webp', import.meta.url).href,
     badgeBronze: new URL('../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
@@ -143,7 +142,14 @@ const LIVING_MAP_ASSETS = {
     scrollSilver: new URL('../assets/team-quest-map/living-atlas/scroll-silver.webp', import.meta.url).href,
     scrollGold: new URL('../assets/team-quest-map/living-atlas/scroll-gold.webp', import.meta.url).href,
     scrollCrystal: new URL('../assets/team-quest-map/living-atlas/scroll-crystal.webp', import.meta.url).href,
+    scrollMap: new URL('../assets/team-quest-map/living-atlas/scroll-map.webp', import.meta.url).href,
+    greatClassQuestLogo: new URL('../assets/great-class-quest-logo.svg', import.meta.url).href,
     portalVortex: new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href,
+    ambientWaterRipple: new URL('../assets/team-quest-map/living-atlas/ambient-water-ripple.webp', import.meta.url).href,
+    ambientSnowFlurry: new URL('../assets/team-quest-map/living-atlas/ambient-snow-flurry.webp', import.meta.url).href,
+    ambientMountainWind: new URL('../assets/team-quest-map/living-atlas/ambient-mountain-wind.webp', import.meta.url).href,
+    ambientCitySparks: new URL('../assets/team-quest-map/living-atlas/ambient-city-sparks.webp', import.meta.url).href,
+    ambientCrystalStardust: new URL('../assets/team-quest-map/living-atlas/ambient-crystal-stardust.webp', import.meta.url).href,
     tokenGold: new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
     tokenSilver: new URL('../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
     tokenBronze: new URL('../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
@@ -236,7 +242,7 @@ function renderMapToken(item) {
 
     return `
         <button type="button"
-                class="tq-class-token tq-class-token--${zone.id} league-map-avatar${isLeader ? ' is-leader' : ''}${tooltipPosition}"
+                class="tq-class-token tq-class-token--${zone.id} tq-class-token--frame-${pinTier} league-map-avatar${isLeader ? ' is-leader' : ''}${tooltipPosition}"
                 data-map-token
                 data-token-key="${tokenKey}"
                 data-progress="${pct}"
@@ -402,8 +408,8 @@ export function generateLeagueMapHtml(classes) {
             </svg>
 
             <div class="tq-map-title" aria-hidden="true">
-                <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false">
-                <span><i class="fas fa-map-location-dot"></i> Map</span>
+                <img class="tq-map-title__scroll" src="${LIVING_MAP_ASSETS.scrollMap}" alt="" draggable="false">
+                <img class="tq-map-title__logo" src="${LIVING_MAP_ASSETS.greatClassQuestLogo}" alt="" draggable="false">
             </div>
 
             <div class="tq-map-ambient" aria-hidden="true">
@@ -416,25 +422,21 @@ export function generateLeagueMapHtml(classes) {
                 <span class="tq-ambient tq-ambient--crystal-spark-one">✦</span>
                 <span class="tq-ambient tq-ambient--crystal-spark-two">✧</span>
                 <span class="tq-ambient tq-ambient--crystal-spark-three">✦</span>
-                <span class="tq-ambient tq-water-ripple tq-water-ripple--meadow"></span>
-                <span class="tq-ambient tq-water-ripple tq-water-ripple--falls"></span>
-                <span class="tq-ambient tq-water-ripple tq-water-ripple--lagoon"></span>
-                <span class="tq-ambient tq-wind-wisp tq-wind-wisp--high"></span>
-                <span class="tq-ambient tq-wind-wisp tq-wind-wisp--low"></span>
-                <span class="tq-ambient tq-snow-particle tq-snow-particle--one">•</span>
-                <span class="tq-ambient tq-snow-particle tq-snow-particle--two">•</span>
-                <span class="tq-ambient tq-snow-particle tq-snow-particle--three">•</span>
-                <span class="tq-ambient tq-snow-particle tq-snow-particle--four">•</span>
-                <span class="tq-ambient tq-city-glow tq-city-glow--one"></span>
-                <span class="tq-ambient tq-city-glow tq-city-glow--two"></span>
-                <span class="tq-ambient tq-city-glow tq-city-glow--three"></span>
-                <span class="tq-ambient tq-crystal-mote tq-crystal-mote--one">✦</span>
-                <span class="tq-ambient tq-crystal-mote tq-crystal-mote--two">✧</span>
-                <span class="tq-ambient tq-crystal-mote tq-crystal-mote--three">✦</span>
+                <img class="tq-ambient tq-water-ripple tq-water-ripple--one" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false">
+                <img class="tq-ambient tq-water-ripple tq-water-ripple--two" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false">
+                <img class="tq-ambient tq-water-ripple tq-water-ripple--three" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false">
+                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--one" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false">
+                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--two" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false">
+                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--one" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false">
+                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--two" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false">
+                <img class="tq-ambient tq-city-sparks tq-city-sparks--one" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false">
+                <img class="tq-ambient tq-city-sparks tq-city-sparks--two" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false">
+                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--one" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false">
+                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--two" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false">
             </div>
 
             ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" aria-label="Quest finish at 100 percent">
+            <span class="tq-route-finish" data-route-progress="100" data-offset-x="10" aria-label="Quest finish at 100 percent">
                 <span class="tq-route-finish__glow" aria-hidden="true"></span>
                 <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
                 <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">

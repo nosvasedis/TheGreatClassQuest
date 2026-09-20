@@ -27,7 +27,11 @@ const TEAM_QUEST_ANALYTICS_ASSETS = {
     bronze: new URL('../../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
     silver: new URL('../../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
     gold: new URL('../../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
-    crystal: new URL('../../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href
+    crystal: new URL('../../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href,
+    rankGold: new URL('../../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
+    rankSilver: new URL('../../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
+    rankBronze: new URL('../../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
+    rankSlate: new URL('../../assets/team-quest-map/living-atlas/token-slate.webp', import.meta.url).href
 };
 
 // --- REIGNING PRODIGY CACHE ---
@@ -335,12 +339,12 @@ export async function renderClassLeaderboardTab() {
 
         // Define style based on level 1-6
         const lvlStyles = {
-            1: { color: "bg-teal-100 text-teal-800 border-teal-200", icon: "🌱" },
-            2: { color: "bg-cyan-100 text-cyan-800 border-cyan-200", icon: "💧" },
-            3: { color: "bg-blue-100 text-blue-800 border-blue-200", icon: "🛡️" },
-            4: { color: "bg-indigo-100 text-indigo-800 border-indigo-200", icon: "🔮" },
-            5: { color: "bg-orange-100 text-orange-800 border-orange-200", icon: "🔥" },
-            6: { color: "bg-rose-100 text-rose-800 border-rose-200", icon: "🐉" }
+            1: { icon: 'fa-seedling' },
+            2: { icon: 'fa-water' },
+            3: { icon: 'fa-shield-alt' },
+            4: { icon: 'fa-gem' },
+            5: { icon: 'fa-fire' },
+            6: { icon: 'fa-dragon' }
         };
         const style = lvlStyles[diff] || lvlStyles[1];
 
@@ -349,12 +353,13 @@ export async function renderClassLeaderboardTab() {
         <div class="relative inline-block" 
              onmouseenter="this.querySelector('.lvl-tooltip').classList.remove('opacity-0', 'pointer-events-none')"
              onmouseleave="this.querySelector('.lvl-tooltip').classList.add('opacity-0', 'pointer-events-none')">
-            <span class="${style.color} px-3 py-1 rounded-md text-xs font-bold border shadow-sm cursor-help">
-                ${style.icon} Level ${diff}
+            <span class="quest-level-badge quest-level-badge--${diff}">
+                <i class="fas ${style.icon}" aria-hidden="true"></i>
+                <span>Quest Level ${diff}</span>
             </span>
-            <div class="lvl-tooltip absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-32 bg-gray-900 text-white text-[10px] p-2 rounded shadow-lg opacity-0 pointer-events-none transition-opacity z-50 text-center">
-                Difficulty Factor: <strong>${factor.toFixed(1)}x</strong><br>
-                <span class="text-gray-400 italic">Stars needed per student increases.</span>
+            <div class="lvl-tooltip quest-micro-tooltip absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none transition-opacity z-50 text-center">
+                Quest intensity <strong>${factor.toFixed(1)}×</strong><br>
+                <span>The monthly destination scales with the class level.</span>
             </div>
         </div>`;
 
@@ -381,35 +386,34 @@ export async function renderClassLeaderboardTab() {
         const skillIcons = { teamwork: 'users', creativity: 'lightbulb', respect: 'hand-holding-heart', focus: 'brain', scholar_s_bonus: 'scroll', welcome_back: 'door-open', teacher_boon: 'wand-magic-sparkles' };
         const skillName = c.topSkill.replace(/_/g, ' ');
 
-        const avgStars = c.studentCount > 0 ? (c.currentMonthlyStars / c.studentCount).toFixed(1) : 0;
-        const weeklyGrowth = c.weeklyStars > 0 ? "Trending Up 🚀" : "Steady Path ⚓";
-        const spiritRank = c.adventureCount > 3 ? "Legendary ✨" : (c.adventureCount > 1 ? "Active 🌟" : "Quiet 🍃");
+        const weeklyGrowth = c.weeklyStars > 0 ? 'Trail rising' : 'Holding steady';
+        const spiritRank = c.adventureCount > 3 ? 'Legendary' : (c.adventureCount > 1 ? 'Adventurous' : 'Gathering');
 
         let cardRankClass = "team-quest-card-refreshed--rank-other";
         let rankEmblemClass = "rank-emblem-wrap--other";
-        let rankEmblemInner = `#${rank}`;
+        let rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankSlate;
         let headerColor = "bg-gray-50 border-b border-gray-200";
 
         if (rank === 1) { 
             headerColor = "bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-100"; 
             cardRankClass = "team-quest-card-refreshed--rank-1";
             rankEmblemClass = "rank-emblem-wrap--1";
-            rankEmblemInner = "🥇";
+            rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankGold;
         }
         else if (rank === 2) { 
             headerColor = "bg-gradient-to-r from-slate-50 to-gray-50/50 border-b border-slate-100"; 
             cardRankClass = "team-quest-card-refreshed--rank-2";
             rankEmblemClass = "rank-emblem-wrap--2";
-            rankEmblemInner = "🥈";
+            rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankSilver;
         }
         else if (rank === 3) { 
             headerColor = "bg-gradient-to-r from-orange-50 to-amber-50/50 border-b border-orange-100"; 
             cardRankClass = "team-quest-card-refreshed--rank-3";
             rankEmblemClass = "rank-emblem-wrap--3";
-            rankEmblemInner = "🥉";
+            rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankBronze;
         }
 
-        let rankBadge = `<span class="rank-emblem-wrap ${rankEmblemClass}">${rankEmblemInner}</span>`;
+        let rankBadge = `<span class="rank-emblem-wrap ${rankEmblemClass}" aria-label="League rank ${rank}"><img src="${rankFrameAsset}" alt="" draggable="false" aria-hidden="true"><strong>${rank}</strong></span>`;
 
         // Multi-Stage Progress Bar Styled as an Adventure Trail Path
         const p = c.progress;
@@ -461,24 +465,25 @@ export async function renderClassLeaderboardTab() {
             </div>
             
             <!-- Stage labels aligned to segment proportional widths (30/30/25/15) -->
-                <div class="flex items-start mt-1.5 px-0.5" style="gap: 0;">
-                    <div class="text-center" style="flex: 30;">
-                    <span class="quest-stage-label quest-stage-label--bronze"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.bronze}" alt="" aria-hidden="true">Bronze</span>
+                <div class="quest-stage-labels">
+                    <div>
+                    <span class="quest-stage-label quest-stage-label--bronze"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.bronze}" alt="" aria-hidden="true"><span>Bronze Meadows</span></span>
                     </div>
-                    <div class="text-center" style="flex: 30;">
-                    <span class="quest-stage-label quest-stage-label--silver"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.silver}" alt="" aria-hidden="true">Silver</span>
+                    <div>
+                    <span class="quest-stage-label quest-stage-label--silver"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.silver}" alt="" aria-hidden="true"><span>Silver Peaks</span></span>
                     </div>
-                    <div class="text-center" style="flex: 25;">
-                    <span class="quest-stage-label quest-stage-label--gold"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.gold}" alt="" aria-hidden="true">Gold</span>
+                    <div>
+                    <span class="quest-stage-label quest-stage-label--gold"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.gold}" alt="" aria-hidden="true"><span>Golden Citadel</span></span>
                     </div>
-                    <div class="text-center" style="flex: 15;">
-                    <span class="quest-stage-label quest-stage-label--crystal"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.crystal}" alt="" aria-hidden="true">Crystal</span>
+                    <div>
+                    <span class="quest-stage-label quest-stage-label--crystal"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.crystal}" alt="" aria-hidden="true"><span>Crystal Realm</span></span>
                     </div>
                 </div>
         `;
 
         const starsFormatted = Number(c.currentMonthlyStars) % 1 !== 0 ? c.currentMonthlyStars.toFixed(1) : c.currentMonthlyStars.toFixed(0);
         const weeklyFormatted = Number(c.weeklyStars) % 1 !== 0 ? c.weeklyStars.toFixed(1) : c.weeklyStars.toFixed(0);
+        const talentLabel = c.topSkill === 'None' ? 'Still emerging' : skillName;
 
         const topHeroesHtml = c.topHeroes.length > 0 ?
             c.topHeroes.map(h => `
@@ -493,29 +498,18 @@ export async function renderClassLeaderboardTab() {
         <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 55, 800)}ms">
         <div class="team-quest-card-refreshed team-quest-card-refreshed--zone-${currentZone.id} ${cardRankClass} group pop-in">
             <div class="${headerColor} team-quest-card__header p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <img class="team-quest-card__zone-watermark" src="${currentZoneBadge}" alt="" draggable="false" aria-hidden="true">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2.5 shrink-0">
                         ${rankBadge}
                         <div class="quest-logo-container text-4xl md:text-5xl filter drop-shadow-md transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
                     </div>
                     <div class="team-quest-card__identity">
-                        <div class="team-quest-card__eyebrow"><span>Mission report</span><span>Rank #${rank}</span></div>
+                        <div class="team-quest-card__eyebrow"><span>Quest party</span><span>League rank #${rank}</span></div>
                         <h4 class="font-title text-3xl text-indigo-900 leading-tight">${c.name}</h4>
                         <div class="flex flex-wrap gap-2 mt-2 items-center">
                             ${diffBadge}
-                            <span class="text-[10px] font-black bg-white text-indigo-600 px-3 py-1 rounded-full border border-indigo-100 uppercase tracking-widest shadow-sm"><i class="fas fa-users mr-1"></i>${c.studentCount} Heroes</span>
+                            <span class="quest-party-size"><i class="fas fa-users" aria-hidden="true"></i>${c.studentCount} Heroes</span>
                         </div>
-                    </div>
-                </div>
-                <div class="quest-status-crystal flex items-center gap-6">
-                    <div class="text-center px-2 border-r border-indigo-100">
-                        <div class="font-title text-4xl text-indigo-600 leading-none filter drop-shadow-sm">${starsFormatted}</div>
-                        <div class="text-[9px] font-black text-indigo-400 uppercase mt-1 tracking-wider">Stars Collected</div>
-                    </div>
-                    <div class="text-center px-2">
-                        <div class="font-title text-4xl text-amber-500 leading-none filter drop-shadow-sm">${avgStars}</div>
-                        <div class="text-[9px] font-black text-amber-500 uppercase mt-1 tracking-wider">Avg / Hero</div>
                     </div>
                 </div>
             </div>
@@ -523,55 +517,53 @@ export async function renderClassLeaderboardTab() {
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="space-y-4">
                         <div class="bg-white p-4 rounded-3xl border quest-progress-section" style="border-color: rgba(226,232,240,0.9); box-shadow: 0 2px 10px rgba(99,102,241,0.05), inset 0 1px 0 rgba(255,255,255,0.9);">
-                            <div class="flex justify-between items-center mb-2 px-1">
-                                <span class="text-xs font-black text-indigo-900 uppercase tracking-widest">League Progress</span>
+                            <div class="quest-progress-section__header">
+                                <span class="quest-progress-section__title"><small>Monthly journey</small><strong>Quest Route</strong></span>
                                 <div class="flex items-center gap-2">
                                     <span class="quest-current-zone"><img src="${currentZoneBadge}" alt="" aria-hidden="true">${currentZone.label}</span>
-                                    <span class="font-title text-xl text-indigo-600">${c.progress.toFixed(0)}%</span>
+                                    <span class="quest-progress-percent">${c.progress.toFixed(0)}%</span>
                                 </div>
                             </div>
                             
                             ${multiStageBar}
                             
-                            <div class="text-center mt-2 flex items-center justify-center gap-2">
-                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">Target: ${c.goals.diamond} Stars</p>
+                            <div class="quest-progress-section__footer">
+                                <span class="quest-star-goal"><i class="fas fa-star" aria-hidden="true"></i><strong>${starsFormatted}</strong><em>of ${c.goals.diamond} stars</em></span>
                                 ${goalIconHtml}
                             </div>
                         </div>
                         <div class="champions-vanguard-banner p-4 flex items-center justify-between">
-                            <span class="text-[11px] font-black text-indigo-100 uppercase tracking-widest ml-2 italic flex items-center gap-1.5">
-                                <i class="fas fa-crown text-amber-300 animate-pulse"></i> Leading the Charge
+                            <img class="champions-vanguard-banner__crest" src="${currentZoneBadge}" alt="" draggable="false" aria-hidden="true">
+                            <span class="champions-vanguard-banner__title">
+                                <i class="fas fa-crown" aria-hidden="true"></i>
+                                <span><small>Class vanguard</small><strong>Trailblazing Heroes</strong></span>
                             </span>
                             <div class="flex -space-x-2.5 pr-2 champions-vanguard-avatars">${topHeroesHtml}</div>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <!-- Weekly Growth / Fire Rune -->
                         <div class="stat-rune-card stat-rune-card--fire px-3 pt-3 pb-3">
-                            <div class="text-[9px] font-black text-orange-400 uppercase tracking-widest w-full text-center">${weeklyGrowth}</div>
-                            <i class="fas fa-fire stat-rune-card__icon text-orange-500"></i>
-                            <div class="font-title text-lg text-slate-800 leading-tight">+${weeklyFormatted}</div>
+                            <span class="stat-rune-card__heading"><small>Weekly Momentum</small><strong>${weeklyGrowth}</strong></span>
+                            <span class="stat-rune-card__medallion"><i class="fas fa-fire stat-rune-card__icon" aria-hidden="true"></i></span>
+                            <span class="stat-rune-card__value"><strong>+${weeklyFormatted}</strong><small>stars this week</small></span>
                         </div>
                         
-                        <!-- Top Talent / Magic Rune -->
                         <div class="stat-rune-card stat-rune-card--magic px-3 pt-3 pb-3">
-                            <div class="text-[9px] font-black text-blue-400 uppercase tracking-widest w-full text-center">Top Talent</div>
-                            <i class="fas fa-magic stat-rune-card__icon text-blue-500"></i>
-                            <div class="font-bold text-slate-800 text-sm truncate w-full capitalize leading-none text-center" title="${skillName}">${skillName}</div>
+                            <span class="stat-rune-card__heading"><small>Signature Strength</small><strong>Most celebrated</strong></span>
+                            <span class="stat-rune-card__medallion"><i class="fas fa-wand-magic-sparkles stat-rune-card__icon" aria-hidden="true"></i></span>
+                            <span class="stat-rune-card__value"><strong class="capitalize" title="${talentLabel}">${talentLabel}</strong><small>class talent</small></span>
                         </div>
                         
-                        <!-- Bank of Class / Gold Rune -->
                         <div class="stat-rune-card stat-rune-card--gold px-3 pt-3 pb-3">
-                            <div class="text-[9px] font-black text-yellow-600 uppercase tracking-widest w-full text-center truncate">Bank of ${c.name}</div>
-                            <i class="fas fa-coins stat-rune-card__icon text-yellow-500"></i>
-                            <div class="font-title text-lg text-slate-800 leading-tight">${c.totalGold}</div>
+                            <span class="stat-rune-card__heading"><small>Guild Treasury</small><strong>Class reserves</strong></span>
+                            <span class="stat-rune-card__medallion"><i class="fas fa-coins stat-rune-card__icon" aria-hidden="true"></i></span>
+                            <span class="stat-rune-card__value"><strong>${c.totalGold}</strong><small>gold saved</small></span>
                         </div>
                         
-                        <!-- Class Spirit / Heart Rune -->
                         <div class="stat-rune-card stat-rune-card--heart px-3 pt-3 pb-3">
-                            <div class="text-[9px] font-black text-green-500 uppercase tracking-widest w-full text-center">Class Spirit</div>
-                            <i class="fas fa-heart stat-rune-card__icon text-green-500"></i>
-                            <div class="font-bold text-slate-800 text-sm capitalize leading-none">${spiritRank}</div>
+                            <span class="stat-rune-card__heading"><small>Quest Spirit</small><strong>Monthly activity</strong></span>
+                            <span class="stat-rune-card__medallion"><i class="fas fa-heart stat-rune-card__icon" aria-hidden="true"></i></span>
+                            <span class="stat-rune-card__value"><strong>${spiritRank}</strong><small>${c.adventureCount} ${c.adventureCount === 1 ? 'adventure' : 'adventures'} this month</small></span>
                         </div>
                     </div>
                 </div>
@@ -591,10 +583,6 @@ export async function renderClassLeaderboardTab() {
                         <small>Quest log</small>
                         <strong>Mission Analytics</strong>
                     </span>
-                </div>
-                <div class="team-quest-analytics-heading__summary">
-                    <span>${classScores.length} ${classScores.length === 1 ? 'class' : 'classes'} on the trail</span>
-                    <small>Live monthly progress, momentum and class spirit</small>
                 </div>
             </div>
             

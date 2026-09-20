@@ -212,3 +212,19 @@ test('secretary September placement wizard never dumps guild IDs or a class sele
     assert.match(css, /\.placement-league-chip/);
     assert.match(css, /\.placement-wizard--sheet/);
 });
+
+test('teacher Student setup panel is collapsible and restores search caret', () => {
+    const classes = read('ui/tabs/classes.js');
+    const css = read('styles/cards.css');
+    assert.doesNotMatch(classes, /September Setup/);
+    assert.match(classes, /Student setup/);
+    assert.match(classes, /returningStudentsPanelExpanded/);
+    assert.match(classes, /data-returning-students-toggle/);
+    assert.match(classes, /aria-expanded/);
+    assert.match(classes, /searchCaret/);
+    assert.match(classes, /focusSearch/);
+    assert.match(classes, /setSelectionRange/);
+    assert.match(classes, /Everyone else waiting/);
+    assert.match(css, /returning-students-shell__toggle/);
+    assert.match(css, /returning-students-shell\.is-collapsed|returning-students-shell\.is-open/);
+});

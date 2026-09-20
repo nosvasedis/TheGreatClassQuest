@@ -42,22 +42,79 @@
     animation: pop-in 0.4s ease-out;
 }
 
-/* Returning students — September placement (teacher roster) */
+/* Returning students — Student setup (teacher roster) */
 .returning-students-shell {
     background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 45%, #fff 100%);
     border: 2px solid rgba(251, 191, 36, 0.45);
     border-radius: 1.25rem;
-    padding: 1.25rem 1.35rem;
+    padding: 0.85rem 1rem;
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+}
+
+.returning-students-shell.is-open {
+    padding: 1.1rem 1.2rem 1.2rem;
 }
 
 .returning-students-shell__header {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem;
+}
+
+.returning-students-shell__toggle {
+    flex: 1 1 16rem;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin: 0;
+    padding: 0.15rem 0.1rem;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.returning-students-shell__copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.returning-students-shell__eyebrow {
+    margin: 0;
+    font-size: 0.625rem;
+    font-weight: 800;
+    color: #d97706;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+.returning-students-shell__title {
+    margin: 0.15rem 0 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    color: #78350f;
+}
+
+.returning-students-shell__meta {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: rgba(146, 64, 14, 0.8);
+}
+
+.returning-students-shell__chevron {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    color: #b45309;
+    box-shadow: 0 1px 4px rgba(180, 83, 9, 0.12);
 }
 
 .returning-students-place-btn {
@@ -70,6 +127,10 @@
     border-radius: 9999px;
     border: none;
     box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+.returning-students-body {
+    margin-top: 0.95rem;
 }
 
 .returning-students-search {

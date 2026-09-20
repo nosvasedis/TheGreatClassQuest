@@ -1781,10 +1781,11 @@ exports.closeSchoolYear = callable(async (request) => {
         monthlyStars: 0,
         gold: 0,
         inventory: [],
-        starsByReason: {},
+        starsByReason: FieldValue.delete(),
         heroLevel: 0,
         heroSkills: [],
         pendingSkillChoice: false,
+        lastGuildBonusMonth: FieldValue.delete(),
         lastMonthlyResetDate: `${new Date().toISOString().slice(0, 7)}-01`,
         starfallCatalystActive: FieldValue.delete(),
         hasGildedEffect: FieldValue.delete(),
@@ -2038,6 +2039,11 @@ exports.allocateReturningStudents = callable(async (request) => {
         createdBy: owner,
         activeSchoolYearKey: yearKey,
         gold: 0,
+        heroLevel: 0,
+        heroSkills: [],
+        pendingSkillChoice: false,
+        starsByReason: FieldValue.delete(),
+        lastGuildBonusMonth: FieldValue.delete(),
         updatedAt: FieldValue.serverTimestamp()
       }
     });

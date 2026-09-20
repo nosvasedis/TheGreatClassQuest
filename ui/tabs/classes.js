@@ -14,6 +14,7 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { openAccessCenterForStudent } from '../../features/accessManagement.js';
 import { handlePlaceReturningStudents } from '../../db/actions/students.js';
+import { showToast } from '../effects.js';
 import {
     buildReturningStudentGroups,
     filterStudentsBySearch,
@@ -21,6 +22,8 @@ import {
 } from '../../utils/returningStudents.js';
 
 let returningStudentSearchQuery = '';
+let returningStudentsPanelExpanded = false;
+const returningStudentCheckedIds = new Set();
 
 function escapeHtml(value) {
     return String(value || '')
@@ -38,7 +41,7 @@ function renderReturningStudentCard(entry, options = {}) {
         : '';
     return `
         <label class="returning-student-card">
-            <input type="checkbox" class="returning-student-check" value="${escapeHtml(student.id)}">
+            <input type="checkbox" class="returning-student-check" value="${escapeHtml(student.id)}"${returningStudentCheckedIds.has(student.id) ? ' checked' : ''}>
             <div class="returning-student-card__body">
                 <div class="returning-student-card__title">
                     <strong>${escapeHtml(student.name)}</strong>
@@ -55,13 +58,71 @@ function renderReturningStudentCard(entry, options = {}) {
     `;
 }
 
-function renderReturningStudentsPanel(currentClassId) {
+function captureReturningStudentChecks(panel) {
+    panel?.querySelectorAll('.returning-student-check').forEach((el) => {
+        if (el.checked) returningStudentCheckedIds.add(el.value);
+        else returningStudentCheckedIds.delete(el.value);
+    });
+}
+
+function bindReturningStudentsPanel(panel, currentClassId) {
+    panel.querySelector('[data-returning-students-toggle]')?.addEventListener('click', () => {
+        captureReturningStudentChecks(panel);
+        returningStudentsPanelExpanded = !returningStudentsPanelExpanded;
+        renderReturningStudentsPanel(currentClassId);
+    });
+
+    const searchInput = panel.querySelector('#returning-students-search-input');
+    searchInput?.addEventListener('input', (event) => {
+        captureReturningStudentChecks(panel);
+        returningStudentSearchQuery = event.target.value;
+        renderReturningStudentsPanel(currentClassId, {
+            searchCaret: event.target.selectionStart,
+            focusSearch: true
+        });
+    });
+
+    panel.querySelectorAll('.returning-student-check').forEach((el) => {
+        el.addEventListener('change', () => captureReturningStudentChecks(panel));
+    });
+
+    panel.querySelector('#returning-students-place-btn')?.addEventListener('click', async () => {
+        captureReturningStudentChecks(panel);
+        const btn = panel.querySelector('#returning-students-place-btn');
+        const studentIds = [...returningStudentCheckedIds];
+        if (!studentIds.length) {
+            showToast('Tick at least one returning student.', 'info');
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Placing...';
+        try {
+            await handlePlaceReturningStudents(currentClassId, studentIds);
+            returningStudentSearchQuery = '';
+            returningStudentCheckedIds.clear();
+            renderManageStudentsTab();
+        } catch {
+            // toast already shown
+        } finally {
+            if (btn.isConnected) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-check mr-2"></i>Place Selected';
+            }
+        }
+    });
+}
+
+function renderReturningStudentsPanel(currentClassId, options = {}) {
     const panel = document.getElementById('returning-students-panel');
     if (!panel) return;
 
     const allStudents = state.get('allStudents') || [];
-    const unplacedCount = getUnplacedStudents(allStudents).length;
+    const unplaced = getUnplacedStudents(allStudents);
+    const unplacedCount = unplaced.length;
     if (!unplacedCount) {
+        returningStudentSearchQuery = '';
+        returningStudentsPanelExpanded = false;
+        returningStudentCheckedIds.clear();
         panel.classList.add('hidden');
         panel.innerHTML = '';
         return;
@@ -75,80 +136,104 @@ function renderReturningStudentsPanel(currentClassId) {
         return;
     }
 
+    const existingSearch = panel.querySelector('#returning-students-search-input');
+    const searchWasFocused = options.focusSearch || document.activeElement === existingSearch;
+    const searchCaret = Number.isInteger(options.searchCaret)
+        ? options.searchCaret
+        : (searchWasFocused && existingSearch ? existingSearch.selectionStart : null);
+    captureReturningStudentChecks(panel);
+
+    const liveIds = new Set(unplaced.map((student) => student.id));
+    for (const id of [...returningStudentCheckedIds]) {
+        if (!liveIds.has(id)) returningStudentCheckedIds.delete(id);
+    }
+
     const { suggested, others } = buildReturningStudentGroups(allStudents, currentClass);
     const filterEntries = (entries) => filterStudentsBySearch(entries, returningStudentSearchQuery);
     const filteredSuggested = filterEntries(suggested);
-    const filteredAllUnplaced = filterEntries([...suggested, ...others]);
+    const filteredOthers = filterEntries(others);
+    const waitingLabel = unplacedCount === 1 ? '1 student still needs a class' : `${unplacedCount} students still need a class`;
+    const leagueLabel = currentClass.questLevel || 'this class';
 
     panel.classList.remove('hidden');
     panel.innerHTML = `
-        <div class="returning-students-shell">
+        <div class="returning-students-shell${returningStudentsPanelExpanded ? ' is-open' : ' is-collapsed'}">
             <div class="returning-students-shell__header">
-                <div>
-                    <p class="text-[10px] font-bold text-amber-600 uppercase tracking-widest">September Setup</p>
-                    <h3 class="font-title text-xl text-amber-900">Returning adventurers for ${escapeHtml(currentClass.name)}</h3>
-                    <p class="text-sm text-amber-800/80 mt-1">
-                        ${unplacedCount} student(s) still need a class. Suggestions are based on last year’s league (${escapeHtml(currentClass.questLevel || 'this class')}).
-                    </p>
-                </div>
-                <button type="button" id="returning-students-place-btn"
-                    class="returning-students-place-btn bubbly-button">
-                    <i class="fas fa-user-check mr-2"></i>Place Selected
+                <button type="button"
+                    class="returning-students-shell__toggle"
+                    data-returning-students-toggle
+                    aria-expanded="${returningStudentsPanelExpanded ? 'true' : 'false'}"
+                    aria-controls="returning-students-body">
+                    <span class="returning-students-shell__copy">
+                        <p class="returning-students-shell__eyebrow">Student setup</p>
+                        <h3 class="returning-students-shell__title">Returning adventurers for ${escapeHtml(currentClass.name)}</h3>
+                        <p class="returning-students-shell__meta">
+                            ${escapeHtml(waitingLabel)}. Suggestions are based on last year’s league (${escapeHtml(leagueLabel)}).
+                            ${returningStudentsPanelExpanded ? '' : ' Open to seat them.'}
+                        </p>
+                    </span>
+                    <span class="returning-students-shell__chevron" aria-hidden="true">
+                        <i class="fas fa-chevron-${returningStudentsPanelExpanded ? 'up' : 'down'}"></i>
+                    </span>
                 </button>
+                ${returningStudentsPanelExpanded ? `
+                    <button type="button" id="returning-students-place-btn"
+                        class="returning-students-place-btn bubbly-button">
+                        <i class="fas fa-user-check mr-2"></i>Place Selected
+                    </button>
+                ` : ''}
             </div>
-            <div class="returning-students-search">
-                <i class="fas fa-search text-amber-600"></i>
-                <input type="search" id="returning-students-search-input"
-                    placeholder="Search by name, old class, or league..."
-                    value="${escapeHtml(returningStudentSearchQuery)}">
-            </div>
-            ${filteredSuggested.length ? `
-                <div class="returning-students-group">
-                    <h4 class="returning-students-group__title"><i class="fas fa-wand-magic-sparkles mr-2"></i>Suggested for this class</h4>
-                    <div class="returning-students-grid">
-                        ${filteredSuggested.map((entry) => renderReturningStudentCard(entry, { suggested: true, score: entry.score })).join('')}
+            ${returningStudentsPanelExpanded ? `
+                <div class="returning-students-body" id="returning-students-body">
+                    <div class="returning-students-search">
+                        <i class="fas fa-search text-amber-600"></i>
+                        <input type="search" id="returning-students-search-input"
+                            placeholder="Search by name, old class, or league..."
+                            value="${escapeHtml(returningStudentSearchQuery)}"
+                            autocomplete="off">
                     </div>
+                    ${filteredSuggested.length ? `
+                        <div class="returning-students-group">
+                            <h4 class="returning-students-group__title"><i class="fas fa-wand-magic-sparkles mr-2"></i>Suggested for this class</h4>
+                            <div class="returning-students-grid">
+                                ${filteredSuggested.map((entry) => renderReturningStudentCard(entry, { suggested: true, score: entry.score })).join('')}
+                            </div>
+                        </div>
+                    ` : (returningStudentSearchQuery && suggested.length
+                        ? '<p class="returning-students-empty">No suggested matches for that search.</p>'
+                        : '<p class="returning-students-empty">No strong league matches — check all unplaced students below.</p>'
+                    )}
+                    ${filteredOthers.length ? `
+                        <div class="returning-students-group">
+                            <h4 class="returning-students-group__title"><i class="fas fa-users mr-2"></i>${suggested.length ? 'Everyone else waiting' : 'All unplaced students'}</h4>
+                            <div class="returning-students-grid">
+                                ${filteredOthers.map((entry) =>
+                                    renderReturningStudentCard(entry, { suggested: false, score: entry.score })
+                                ).join('')}
+                            </div>
+                        </div>
+                    ` : (returningStudentSearchQuery
+                        ? '<p class="returning-students-empty">No other students match that search.</p>'
+                        : ''
+                    )}
                 </div>
-            ` : (returningStudentSearchQuery && suggested.length
-                ? '<p class="returning-students-empty">No suggested matches for that search.</p>'
-                : '<p class="returning-students-empty">No strong league matches — check all unplaced students below.</p>'
-            )}
-            <div class="returning-students-group">
-                <h4 class="returning-students-group__title"><i class="fas fa-users mr-2"></i>All unplaced students</h4>
-                <div class="returning-students-grid">
-                    ${filteredAllUnplaced.map((entry) =>
-                        renderReturningStudentCard(entry, { suggested: entry.score >= 40, score: entry.score })
-                    ).join('') || '<p class="returning-students-empty">No students match that search.</p>'}
-                </div>
-            </div>
+            ` : ''}
         </div>
     `;
 
-    panel.querySelector('#returning-students-search-input')?.addEventListener('input', (event) => {
-        returningStudentSearchQuery = event.target.value;
-        renderReturningStudentsPanel(currentClassId);
-    });
+    bindReturningStudentsPanel(panel, currentClassId);
 
-    panel.querySelector('#returning-students-place-btn')?.addEventListener('click', async () => {
-        const btn = panel.querySelector('#returning-students-place-btn');
-        const studentIds = Array.from(panel.querySelectorAll('.returning-student-check:checked')).map((el) => el.value);
-        if (!studentIds.length) {
-            showToast('Tick at least one returning student.', 'info');
-            return;
+    if (searchWasFocused) {
+        const input = panel.querySelector('#returning-students-search-input');
+        if (input) {
+            input.focus();
+            const caret = Math.min(
+                typeof searchCaret === 'number' ? searchCaret : input.value.length,
+                input.value.length
+            );
+            input.setSelectionRange(caret, caret);
         }
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Placing...';
-        try {
-            await handlePlaceReturningStudents(currentClassId, studentIds);
-            returningStudentSearchQuery = '';
-            renderManageStudentsTab();
-        } catch {
-            // toast already shown
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-user-check mr-2"></i>Place Selected';
-        }
-    });
+    }
 }
 
 export function renderManageClassesTab() {

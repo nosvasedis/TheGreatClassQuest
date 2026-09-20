@@ -246,7 +246,7 @@
     left: 50%;
     bottom: calc(100% + 0.08rem);
     display: block;
-    width: clamp(17rem, 35vw, 28.5rem);
+    width: clamp(12rem, 21vw, 17rem);
     max-width: none;
     height: auto;
     pointer-events: none;
@@ -258,9 +258,9 @@
         drop-shadow(0 0 0.82rem rgba(var(--waypoint-glow), 0.42));
 }
 
-.tq-waypoint--gold .tq-waypoint__scroll { width: clamp(17.5rem, 36vw, 30rem); }
-.tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(17.3rem, 35.5vw, 29.5rem); }
-.tq-waypoint--silver .tq-waypoint__scroll { bottom: 44%; }
+.tq-waypoint--gold .tq-waypoint__scroll { width: clamp(12.5rem, 22vw, 18rem); }
+.tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(12.3rem, 21.5vw, 17.5rem); }
+.tq-waypoint--silver .tq-waypoint__scroll { bottom: 75%; }
 
 .tq-waypoint--silver .tq-waypoint__badge { animation-delay: -1.05s; }
 .tq-waypoint--gold .tq-waypoint__badge { animation-delay: -2.1s; }
@@ -958,9 +958,9 @@
     .tq-living-map__frame { border-radius: 1.15rem; }
     .tq-map-title { left: 1.6%; top: 1.6%; }
     .tq-waypoint { width: clamp(5.4rem, 9vw, 6.9rem); }
-    .tq-waypoint__scroll { width: clamp(15.5rem, 32vw, 22rem); }
-    .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(16rem, 33vw, 22.8rem); }
-    .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(15.8rem, 32.5vw, 22.5rem); }
+    .tq-waypoint__scroll { width: clamp(11rem, 24vw, 15rem); }
+    .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(11.5rem, 25vw, 15.6rem); }
+    .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(11.3rem, 24.5vw, 15.3rem); }
     .tq-living-map .tq-class-token.league-map-avatar { width: clamp(2.8rem, 4.8vw, 3.45rem); height: clamp(2.8rem, 4.8vw, 3.45rem); }
     .tq-map-tooltip { width: 16.5rem; padding-right: 0.78rem; padding-left: 0.78rem; }
     .tq-map-controls { right: 0.8rem; bottom: 0.72rem; }

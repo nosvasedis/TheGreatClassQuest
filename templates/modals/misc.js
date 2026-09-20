@@ -729,7 +729,7 @@ export const miscModalsHTML = `
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎭 AI avatars</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📄 AI reports & certificates</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎨 AI story images</span></li>
-                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🛒 Market Restock (seasonal treasures)</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🛒 Market Restock & Festival Stall</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏛️ School Office (Secretary)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🌟 Priority support</span></li>
                             </ul>

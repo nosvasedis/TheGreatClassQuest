@@ -3,27 +3,20 @@ import {
     db,
     doc,
     setDoc,
-    addDoc,
     updateDoc,
-    getDoc,
     collection,
-    query,
-    where,
-    getDocs,
     runTransaction,
     writeBatch,
     serverTimestamp,
-    increment,
-    orderBy,
-    limit
+    increment
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
-import { callGeminiApi, callCloudflareAiImageApi, extractJsonFromAiText } from '../../api.js';
-import { SHOP_RESTOCK_ITEM_COUNT, shopRestockToast, planShopRestock, isCompleteShopItem, isVisibleSeasonalShopItem } from '../../utils/shopRestock.js';
+import { callGeminiApi, extractJsonFromAiText } from '../../api.js';
+import { shopRestockToast, shopItemStock } from '../../utils/shopRestock.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, isLikelyBlackImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString, isYoungLearnerLeague } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
 import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
@@ -36,26 +29,6 @@ import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.j
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
 let isGeneratingShopStock = false;
-
-function getOrthodoxEasterDate(year) {
-    const a = year % 4;
-    const b = year % 7;
-    const c = year % 19;
-    const d = (19 * c + 15) % 30;
-    const e = (2 * a + 4 * b - d + 34) % 7;
-    const julianMonth = Math.floor((d + e + 114) / 31);
-    const julianDay = ((d + e + 114) % 31) + 1;
-    const easter = new Date(Date.UTC(year, julianMonth - 1, julianDay));
-    easter.setUTCDate(easter.getUTCDate() + (year >= 2100 ? 14 : 13));
-    return easter;
-}
-
-function isOrthodoxEasterSeason(date) {
-    const day = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-    const easter = getOrthodoxEasterDate(date.getFullYear()).getTime();
-    const differenceInDays = (day - easter) / 86400000;
-    return differenceInDays >= -14 && differenceInDays <= 7;
-}
 
 function animateShopGoldChange(newGoldBalance, durationMs = 650) {
     const goldDisplay = document.getElementById('shop-student-gold');
@@ -197,72 +170,7 @@ function assertGameplaySeasonLive(actionLabel = 'The market') {
     return false;
 }
 
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function deleteShopItemIds(publicDataPath, ids) {
-    const unique = [...new Set((ids || []).filter(Boolean))];
-    for (let i = 0; i < unique.length; i += 400) {
-        const batch = writeBatch(db);
-        unique.slice(i, i + 400).forEach((id) => {
-            batch.delete(doc(db, `${publicDataPath}/shop_items`, id));
-        });
-        await batch.commit();
-    }
-}
-
-function normalizeShopCatalogItem(item) {
-    const name = String(item?.name || '').trim();
-    const desc = String(item?.desc || item?.description || '').trim();
-    const price = Number(item?.price);
-    if (!name || !desc || !Number.isFinite(price)) return null;
-    return { name, desc, price: Math.round(price), id: item.id || null };
-}
-
-async function generateShopItemImage(item, styleContext) {
-    const positivePrompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
-    const negativePrompt = "pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap";
-    const requestOptions = { retries: 4, ignoreCircuit: true, timeoutMs: 60000 };
-    let lastError = null;
-
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-        try {
-            let base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt, {}, requestOptions);
-            let compressed = await compressImageBase64(base64, 256, 256);
-
-            if (await isLikelyBlackImageBase64(compressed)) {
-                console.warn('Detected mostly black shop image. Retrying with brighter fallback prompt...', item.name);
-                const fallbackPrompt = `(single isolated object) of ((${item.name})), bright studio lighting, high contrast, vivid colors, pure white background, centered, full shot, clean icon style`;
-                const fallbackNegative = `${negativePrompt}, black background, dark background, silhouette, underexposed, dim lighting, monochrome black`;
-                base64 = await callCloudflareAiImageApi(fallbackPrompt, fallbackNegative, {
-                    num_steps: 30,
-                    guidance: 8.5
-                }, requestOptions);
-                compressed = await compressImageBase64(base64, 256, 256, 0.82);
-                if (await isLikelyBlackImageBase64(compressed)) {
-                    throw new Error('Generated image remained mostly black after fallback retry.');
-                }
-            }
-            return compressed;
-        } catch (error) {
-            lastError = error;
-            const waitMs = Number.isFinite(error?.retryAfterMs) ? error.retryAfterMs : 2500 * (attempt + 1);
-            await sleep(Math.min(Math.max(waitMs, 1500), 60000));
-        }
-    }
-    throw lastError || new Error('Shop image generation failed.');
-}
-
-export async function handleGenerateShopStock() {
-    if (isGeneratingShopStock) {
-        showToast('Shop restock is already running in the background.', 'info');
-        return;
-    }
-
-    if (!requireEliteAI({ feature: 'Shop item generator' })) return;
-    if (!assertGameplaySeasonLive('The market')) return;
-
+function resolveShopLeague() {
     let league = state.get('globalSelectedLeague');
     if (!league) {
         const classId = state.get('globalSelectedClassId');
@@ -271,217 +179,79 @@ export async function handleGenerateShopStock() {
             if (cls) league = cls.questLevel;
         }
     }
+    return league;
+}
 
+async function runShopStockJob(mode, { toast = false } = {}) {
+    if (isGeneratingShopStock) {
+        if (toast) showToast('Shop restock is already running in the background.', 'info');
+        return null;
+    }
+
+    if (!requireEliteAI({ feature: 'Shop item generator' })) return null;
+    if (!assertGameplaySeasonLive('The market')) return null;
+
+    const league = resolveShopLeague();
     if (!league) {
-        showToast("Please select a Class or League first!", "error");
-        return;
+        if (toast) showToast("Please select a Class or League first!", "error");
+        return null;
     }
 
     isGeneratingShopStock = true;
     const { setShopRestockBusy } = await import('../../ui/core/shop.js');
+    const { ensureShopStock } = await import('../../utils/adminRuntime.js');
     setShopRestockBusy(true);
-    const monthKey = new Date().toISOString().substring(0, 7);
-    const publicDataPath = "artifacts/great-class-quest/public/data";
-    const shopItemsCollection = collection(db, `${publicDataPath}/shop_items`);
-    const yearKey = state.getActiveSchoolYearKey();
-
-    const loadCurrentStock = async () => {
-        const snapshot = await getDocs(query(
-            shopItemsCollection,
-            where("league", "==", league),
-            where("monthKey", "==", monthKey),
-            where("teacherId", "==", state.get('currentUserId'))
-        ));
-        return snapshot.docs.map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }));
-    };
-
-    try {
-        let currentItems = await loadCurrentStock();
-        let plan = planShopRestock(currentItems);
-        const idsToClear = plan.mode === 'swap'
-            ? plan.removeIds
-            : [...plan.retireIds, ...plan.removeIds];
-        await deleteShopItemIds(publicDataPath, idsToClear);
-        if (idsToClear.length) {
-            currentItems = await loadCurrentStock();
-            plan = planShopRestock(currentItems);
-        }
-
-        if (plan.mode === 'swap') {
-            const batch = writeBatch(db);
-            plan.swapIncomingIds.forEach((id) => {
-                batch.update(doc(db, `${publicDataPath}/shop_items`, id), { incoming: false });
-            });
-            plan.retireIds.forEach((id) => {
-                batch.delete(doc(db, `${publicDataPath}/shop_items`, id));
-            });
-            await batch.commit();
-            const done = shopRestockToast({ mode: 'swap', savedThisRun: SHOP_RESTOCK_ITEM_COUNT, completeCount: SHOP_RESTOCK_ITEM_COUNT, league });
-            showToast(done.message, done.type);
-            return;
-        }
-
+    if (toast) {
         const started = shopRestockToast({
-            mode: plan.mode === 'replace' ? 'started-replace' : 'started-fill',
-            completeCount: currentItems.filter(isVisibleSeasonalShopItem).length,
-            missingCount: plan.needed + plan.retry.length,
+            mode: mode === 'replace-monthly' ? 'started-replace' : 'ensure-started',
             league
         });
         showToast(started.message, started.type);
+    }
 
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const ageCategory = getAgeGroupForLeague(league);
-        const isJunior = isYoungLearnerLeague(league);
-
-        let seasonContext = "";
-        if (currentMonth === 11) seasonContext = "Winter, Christmas, Festive, Snow, Holidays, Gifts";
-        else if (isOrthodoxEasterSeason(now)) seasonContext = "Spring, Orthodox Easter, Red Eggs, Candles";
-        else if (currentMonth === 0 || currentMonth === 1) seasonContext = "Winter, Ice, Frost";
-        else if (currentMonth >= 2 && currentMonth <= 4) seasonContext = "Spring, Flowers, Nature";
-        else if (currentMonth >= 5 && currentMonth <= 7) seasonContext = "Summer, Beach, Sun";
-        else if (currentMonth >= 8 && currentMonth <= 10) seasonContext = "Autumn, Halloween";
-
-        const styleContext = isJunior
-            ? "a die-cut vector sticker, thick white outline, flat color, simple shapes, cartoon style, white background"
-            : "a fantasy rpg inventory icon, 3d render, centered, neutral background, high detail";
-        const languageInstruction = isJunior
-            ? "Use simple English (7-9yo). Max 8 words."
-            : "Use exciting English (10-13yo). Max 10 words.";
-
-        const { uploadImageToStorage } = await import('../../utils.js');
-        const takenNames = new Set(plan.existingNames.map((name) => name.toLowerCase()));
-        let savedThisRun = 0;
-
-        const persistShopItem = async (item, imageUrl) => {
-            const payload = withSchoolYear({
-                name: item.name,
-                description: item.desc,
-                price: item.price,
-                image: imageUrl || '',
-                incoming: Boolean(plan.incoming),
-                league,
-                monthKey,
-                teacherId: state.get('currentUserId'),
-                createdAt: serverTimestamp(),
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            }, yearKey);
-            if (item.id) {
-                await updateDoc(doc(db, `${publicDataPath}/shop_items`, item.id), {
-                    image: imageUrl || '',
-                    incoming: Boolean(plan.incoming),
-                    description: item.desc,
-                    price: item.price
-                });
-                return item.id;
-            }
-            const docRef = doc(shopItemsCollection);
-            await setDoc(docRef, payload);
-            return docRef.id;
-        };
-
-        const produceItem = async (item) => {
-            try {
-                const compressed = await generateShopItemImage(item, styleContext);
-                const path = `shop_items/${state.get('currentUserId')}/${yearKey}/${monthKey}_${simpleHashCode(item.name)}.jpg`;
-                const url = await uploadImageToStorage(compressed, path);
-                await persistShopItem(item, url);
-                savedThisRun += 1;
-            } catch (err) {
-                console.error("Item gen failed:", item.name, err);
-                if (!item.id) {
-                    try {
-                        item.id = await persistShopItem(item, '');
-                    } catch (persistErr) {
-                        console.error("Failed to keep unfinished shop item:", item.name, persistErr);
-                    }
-                }
-            }
-        };
-
-        const retryItems = plan.retry.map(normalizeShopCatalogItem).filter(Boolean);
-        const chunkSize = 2;
-        for (let i = 0; i < retryItems.length; i += chunkSize) {
-            await Promise.all(retryItems.slice(i, i + chunkSize).map(produceItem));
-        }
-
-        let itemsData = [];
-        if (plan.needed > 0) {
-            const avoidNames = plan.existingNames.length
-                ? `Do NOT reuse these names: ${plan.existingNames.join(', ')}.`
-                : '';
-            const systemPrompt = `You are a JSON generator API for a school RPG app. You output ONLY raw valid JSON — no explanations, no reasoning, no markdown, no commentary before or after.
-        Target Audience: ${league} students (approx age ${ageCategory}).
-        Theme: ${seasonContext}.
-        
-        Requirements:
-        1. Generate ${plan.needed} UNIQUE handheld objects. ${avoidNames}
-        2. PRICE TIERS (CRITICAL):
-           - ${plan.tiers.common} "Common" items: 10-18 Gold (Easy to get in 1 month).
-           - ${plan.tiers.rare} "Rare" items: 35-50 Gold (Requires saving for 2-3 months).
-           - ${plan.tiers.legendary} "Legendary" items: 80-120 Gold (Long-term "End of Term" trophies).
-        3. DESCRIPTIONS: ${languageInstruction}
-        4. Output ONLY this JSON structure, nothing else: [{"name": "string", "desc": "string", "price": number}, ...]`;
-
-            const jsonString = await callGeminiApi(systemPrompt, "Output the JSON array now.");
-            try {
-                itemsData = extractJsonFromAiText(jsonString);
-            } catch (e) {
-                console.error("JSON Parse failed, retrying...");
-                const fixedJson = await callGeminiApi(
-                    "You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:",
-                    jsonString
+    try {
+        const result = await ensureShopStock({ league, mode });
+        if (toast) {
+            if (result?.skipped) {
+                showToast('The merchant is already restocking. New treasures will appear as they arrive.', 'info');
+            } else if (!result?.monthly) {
+                showToast(
+                    mode === 'replace-monthly'
+                        ? `The merchant could not start a new stall for ${league} just now. Try Restock again in a moment.`
+                        : `This month's stall for ${league} is already full.`,
+                    'info'
                 );
-                itemsData = extractJsonFromAiText(fixedJson);
+            } else {
+                const monthly = result.monthly;
+                const done = shopRestockToast({
+                    mode: monthly.mode || mode,
+                    savedThisRun: monthly.savedThisRun || 0,
+                    completeCount: monthly.completeCount || 0,
+                    league
+                });
+                showToast(done.message, done.type);
             }
-            if (!Array.isArray(itemsData)) itemsData = [];
-            itemsData = itemsData
-                .map(normalizeShopCatalogItem)
-                .filter(Boolean)
-                .filter((item) => {
-                    const key = item.name.toLowerCase();
-                    if (takenNames.has(key)) return false;
-                    takenNames.add(key);
-                    return true;
-                })
-                .slice(0, plan.needed);
         }
-
-        for (let i = 0; i < itemsData.length; i += chunkSize) {
-            await Promise.all(itemsData.slice(i, i + chunkSize).map(produceItem));
-        }
-
-        const latestItems = await loadCurrentStock();
-        const latestPlan = planShopRestock(latestItems);
-        if (latestPlan.mode === 'swap') {
-            const batch = writeBatch(db);
-            latestPlan.swapIncomingIds.forEach((id) => {
-                batch.update(doc(db, `${publicDataPath}/shop_items`, id), { incoming: false });
-            });
-            latestPlan.retireIds.forEach((id) => {
-                batch.delete(doc(db, `${publicDataPath}/shop_items`, id));
-            });
-            await batch.commit();
-        }
-
-        const visibleCount = latestPlan.mode === 'swap'
-            ? SHOP_RESTOCK_ITEM_COUNT
-            : latestItems.filter(isVisibleSeasonalShopItem).length;
-        const incomingCompleteCount = latestItems.filter((item) => item.incoming && isCompleteShopItem(item)).length;
-        const result = shopRestockToast({
-            mode: latestPlan.mode === 'swap' ? 'swap' : plan.mode,
-            savedThisRun,
-            completeCount: plan.mode === 'replace' && latestPlan.mode !== 'swap' ? incomingCompleteCount : visibleCount,
-            league
-        });
-        showToast(result.message, result.type);
+        return result;
     } catch (error) {
         console.error("Shop generation failed:", error);
-        showToast('The Merchant got lost. Try again.', 'error');
+        if (toast) showToast('The Merchant got lost. Try again.', 'error');
+        return null;
     } finally {
         isGeneratingShopStock = false;
         setShopRestockBusy(false);
     }
+}
+
+export async function handleGenerateShopStock() {
+    return runShopStockJob('replace-monthly', { toast: true });
+}
+
+export async function handleEnsureShopStock() {
+    if (!canUseFeature('eliteAI')) return null;
+    if (!isGameplaySeasonLiveFromAppState(state)) return null;
+    if (!resolveShopLeague()) return null;
+    return runShopStockJob('ensure', { toast: false });
 }
 
 export async function handleBulkSaveTrial() {
@@ -765,6 +535,7 @@ export async function handleBuyItem(studentId, itemId) {
         let newGoldBalance = 0;
         let appliedFinalPrice = item.price;
         let purchasedItemIndex = -1;
+        let remainingAfterBuy = 0;
 
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
@@ -775,7 +546,14 @@ export async function handleBuyItem(studentId, itemId) {
                 const itemRef = doc(db, `${publicDataPath}/shop_items`, itemId);
                 const itemDoc = await transaction.get(itemRef);
                 if (!itemDoc.exists()) throw "Item already sold!";
-                transaction.delete(itemRef);
+                const remaining = shopItemStock(itemDoc.data()) - 1;
+                if (remaining < 0) throw "Item already sold!";
+                remainingAfterBuy = remaining;
+                if (remaining <= 0) {
+                    transaction.delete(itemRef);
+                } else {
+                    transaction.update(itemRef, { stock: remaining });
+                }
             }
 
             const data = scoreDoc.data();
@@ -852,14 +630,27 @@ export async function handleBuyItem(studentId, itemId) {
         // 1. Update Gold Display with tweened subtraction animation
         animateShopGoldChange(newGoldBalance);
 
-        // 2. Remove item card if seasonal with animation
+        // 2. Update seasonal card copies, or remove it when the last one sells
         if (!isLegendary && buyBtn) {
             const card = buyBtn.closest('.shop-item-card');
-            if (card) {
+            if (remainingAfterBuy <= 0 && card) {
                 card.style.transition = 'all 0.5s';
                 card.style.transform = 'scale(0) rotate(10deg)';
                 card.style.opacity = '0';
                 setTimeout(() => card.remove(), 500);
+            } else if (card) {
+                const stockEl = card.querySelector('.shop-item-stock');
+                if (stockEl) stockEl.textContent = remainingAfterBuy <= 1 ? 'Only 1' : `${remainingAfterBuy} left`;
+            }
+            const shopItems = state.get('currentShopItems') || [];
+            const shopIndex = shopItems.findIndex((entry) => entry.id === itemId);
+            if (shopIndex !== -1) {
+                if (remainingAfterBuy <= 0) {
+                    shopItems.splice(shopIndex, 1);
+                } else {
+                    shopItems[shopIndex] = { ...shopItems[shopIndex], stock: remainingAfterBuy };
+                }
+                state.setCurrentShopItems([...shopItems]);
             }
         }
 

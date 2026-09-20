@@ -1,4 +1,4 @@
-import { app } from './firebaseApp.js';
+ithimport { app } from './firebaseApp.js';
 import {
     auth,
     createUserWithEmailAndPassword,

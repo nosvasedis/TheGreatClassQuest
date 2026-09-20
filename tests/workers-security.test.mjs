@@ -156,6 +156,26 @@ test('AI Worker image rate limit covers a 15-item shop restock', async () => {
   const match = source.match(/RATE_LIMITS = \{ chat: \d+, image: (\d+), speech: \d+ \}/);
   assert.ok(match);
   assert.ok(Number(match[1]) >= 15, `image=${match[1]} is below a shop restock batch`);
+  assert.match(source, /SERVICE_RATE_LIMITS = \{ chat: 30, image: 40/);
+  assert.match(source, /gcq-shop-service/);
+  assert.match(source, /GCQ_AI_SERVICE_KEY/);
+});
+
+test('AI Worker accepts a matching service key without a browser origin', async () => {
+  const { worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
+  const response = await worker.fetch(new Request('https://worker.example/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-GCQ-Service-Key': 'shop-secret',
+    },
+    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+  }), {
+    GCQ_AI_SERVICE_KEY: 'shop-secret',
+    FIREBASE_PROJECT_ID: 'the-great-class-quest',
+  }, { waitUntil() {} });
+  assert.notEqual(response.status, 401);
+  assert.notEqual(response.status, 403);
 });
 
 test('Wrangler configs preserve the existing AI and KV bindings and pin Firebase scope', async () => {

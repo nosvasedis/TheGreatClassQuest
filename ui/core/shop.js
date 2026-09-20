@@ -7,7 +7,9 @@ import { getSeasonalShopPriceMeta } from '../../utils.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
-import { isVisibleSeasonalShopItem } from '../../utils/shopRestock.js';
+import { isVisibleSeasonalShopItem, isVisibleFestivalShopItem, shopItemStock } from '../../utils/shopRestock.js';
+import { shopMonthKey, getMonthlyShopTheme, getActiveFestival } from '../../utils/shopCalendar.js';
+import { showToast } from '../effects.js';
 
 // --- SHOP UI HELPERS ---
 
@@ -303,6 +305,11 @@ function initializeShopTabContent() {
     populateShopStudentPicker(validStudents);
 
     renderShopUI();
+    if (canUseFeature('eliteAI')) {
+        import('../../db/actions.js').then((actions) => actions.handleEnsureShopStock?.()).catch((error) => {
+            console.warn('Shop auto-ensure failed', error);
+        });
+    }
 }
 
 export function renderShopUI() {
@@ -321,7 +328,9 @@ export function renderShopUI() {
 
     const container = document.getElementById('shop-items-container');
     const emptyState = document.getElementById('shop-empty-state');
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const currentMonthKey = shopMonthKey();
+    const monthTheme = getMonthlyShopTheme();
+    const activeFestival = getActiveFestival();
     
     let league = state.get('globalSelectedLeague');
     const classId = state.get('globalSelectedClassId');
@@ -330,16 +339,20 @@ export function renderShopUI() {
         if (cls) league = cls.questLevel;
     }
 
-    // 1. Get Seasonal Items
-    const seasonalItems = state.get('currentShopItems')
+    // 1. Get Seasonal + Festival Items
+    const shopItems = state.get('currentShopItems') || [];
+    const seasonalItems = shopItems
         .filter(i => i.monthKey === currentMonthKey && i.league === league && isVisibleSeasonalShopItem(i))
+        .sort((a,b) => a.price - b.price);
+    const festivalItems = shopItems
+        .filter(i => i.monthKey === currentMonthKey && i.league === league && isVisibleFestivalShopItem(i))
         .sort((a,b) => a.price - b.price);
 
     // 2. Get Legendary Artifacts (from our new file)
     import('../../features/powerUps.js').then(m => {
         const artifacts = [...m.LEGENDARY_ARTIFACTS].sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
         
-        if (seasonalItems.length === 0 && artifacts.length === 0) {
+        if (seasonalItems.length === 0 && festivalItems.length === 0 && artifacts.length === 0) {
             container.innerHTML = '';
             container.classList.add('hidden');
             emptyState.classList.remove('hidden');
@@ -348,7 +361,7 @@ export function renderShopUI() {
             container.classList.remove('hidden');
 
             const canUseAI = canUseFeature('eliteAI');
-            const monthLabel = new Date().toLocaleString('en-US', {month: 'long'});
+            const monthLabel = monthTheme.label;
 
             const legendarySection = `
                 <div class="shop-section col-span-full">
@@ -364,19 +377,40 @@ export function renderShopUI() {
 
             const noSeasonalHtml = shopRestockBusy
                 ? `<div class="shop-callout shop-callout--amber col-span-full">
-                        <p class="shop-callout-title"><i class="fas fa-spinner fa-spin"></i> The merchant is traveling</p>
-                        <p class="shop-callout-text">Treasures appear on the stall as their pictures land. You can keep teaching — Restock is running in the background.</p>
+                        <p class="shop-callout-title"><i class="fas fa-spinner fa-spin"></i> The merchant is restocking this month's treasures</p>
+                        <p class="shop-callout-text">Keep teaching — new treasures appear as their pictures arrive.</p>
                     </div>`
                 : canUseAI
                 ? `<div class="shop-callout shop-callout--amber col-span-full">
                         <p class="shop-callout-title"><i class="fas fa-sparkles"></i> Awaiting this month's drop</p>
-                        <p class="shop-callout-text">The caravan's shelves are empty — tap <strong>Restock</strong> to weave fresh, AI-crafted treasures for your class theme.</p>
+                        <p class="shop-callout-text">The merchant is bringing this month's treasures. They'll appear on the stall as they arrive.</p>
                     </div>`
                 : `<div class="shop-callout shop-callout--locked col-span-full">
                         <p class="shop-callout-title"><i class="fas fa-leaf"></i> Seasonal Treasures</p>
-                        <p class="shop-callout-text">Monthly rotating flair — Elite unlocks AI-generated loot that refreshes with the calendar.</p>
+                        <p class="shop-callout-text">A new stall of classroom treasures each month — Elite unlocks it.</p>
                         <button type="button" class="shop-upgrade-seasonal-btn shop-callout-action">Upgrade to Elite</button>
                     </div>`;
+
+            const festivalSection = festivalItems.length
+                ? `
+                <div class="shop-festival-banner col-span-full" role="status">
+                    <p class="shop-festival-banner-title"><i class="fas fa-hat-wizard"></i> Limited ${activeFestival?.name || 'festival'} treasures</p>
+                    <p class="shop-festival-banner-text">The Festival Stall is open for ${activeFestival?.name || 'this celebration'} — these pieces vanish when the celebration ends.</p>
+                </div>
+                <div class="shop-section col-span-full">
+                    <div class="shop-section-head shop-section-head--rose">
+                        <div class="shop-section-head-main">
+                            <h3 class="shop-section-title"><i class="fas fa-mask shop-section-title-icon"></i> Festival Stall</h3>
+                            <p class="shop-section-season-month">${activeFestival?.name || 'Festival'}</p>
+                            <p class="shop-section-desc shop-section-desc--after-month">Short-lived holiday treasures. Cheaper kinds have more copies; the rarest is truly one of a kind.</p>
+                        </div>
+                        <span class="shop-section-badge shop-section-badge--rose">Limited</span>
+                    </div>
+                </div>
+                ` + festivalItems.map(item => renderShopItemCard(item, false)).join('') + `<div class="col-span-full mt-8"></div>`
+                : '';
+
+            if (festivalItems.length) maybeToastFestivalArrival(activeFestival);
 
             const seasonalSection = `
                 <div class="shop-section col-span-full">
@@ -384,16 +418,16 @@ export function renderShopUI() {
                         <div class="shop-section-head-main">
                             <h3 class="shop-section-title"><i class="fas fa-leaf shop-section-title-icon"></i> Seasonal Treasures</h3>
                             <p class="shop-section-season-month">${monthLabel}</p>
-                            <p class="shop-section-desc shop-section-desc--after-month">Limited-time flair priced for the moment — heroes earn discounts as legends; Aurum vouchers stack on seasonal tags.</p>
+                            <p class="shop-section-desc shop-section-desc--after-month">This month's classroom treasures. Heroes of the Day earn discounts, and Aurum Satchels stack on the price.</p>
                         </div>
                     </div>
                 </div>
             ` + (seasonalItems.length === 0 ? noSeasonalHtml : seasonalItems.map(item => renderShopItemCard(item, false)).join(''));
 
-            // For AI-enabled tiers: Seasonal first, then Legendary. Otherwise keep original order.
+            // For AI-enabled tiers: Festival + Seasonal first, then Legendary. Otherwise keep original order.
             let html = canUseAI
-                ? seasonalSection + `<div class="col-span-full mt-8"></div>` + legendarySection
-                : legendarySection + `<div class="col-span-full mt-8"></div>` + seasonalSection;
+                ? festivalSection + seasonalSection + `<div class="col-span-full mt-8"></div>` + legendarySection
+                : legendarySection + `<div class="col-span-full mt-8"></div>` + festivalSection + seasonalSection;
 
             // ─── Familiar Eggs section (Elite only) ────────────────────────────
             if (canUseFeature('familiars')) {
@@ -432,6 +466,20 @@ export function renderShopUI() {
     });
 }
 
+function shopCopiesLabel(item) {
+    const stock = shopItemStock(item);
+    if (stock <= 1) return 'Only 1';
+    return `${stock} left`;
+}
+
+function maybeToastFestivalArrival(festival) {
+    if (!festival?.festivalId || typeof sessionStorage === 'undefined') return;
+    const key = `gcq-festival-toast:${festival.festivalId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    showToast(`Limited ${festival.name} treasures have arrived in the Festival Stall — they vanish after the celebration.`, 'info');
+}
+
 /**
  * Shared card renderer to keep things neat
  */
@@ -439,6 +487,9 @@ function renderShopItemCard(item, isLegendary) {
     const badge = isLegendary 
         ? `<div class="absolute top-2 right-2 z-10 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-indigo-400">ARTIFACT</div>`
         : '';
+    const copies = isLegendary
+        ? ''
+        : `<p class="shop-item-stock" data-item-id="${item.id}">${shopCopiesLabel(item)}</p>`;
 
     const imageHtml = item.image 
         ? `<img src="${item.image}" class="relative w-full h-full object-contain filter drop-shadow-md group-hover:scale-110 transition-transform duration-500">`
@@ -453,6 +504,7 @@ function renderShopItemCard(item, isLegendary) {
             <div class="shop-item-body flex-grow flex flex-col">
                 <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
                 <p class="text-indigo-300/95 text-xs mb-2 line-clamp-3 flex-grow">${item.description}</p>
+                ${copies}
                 <div class="shop-item-footer">
                     <div class="shop-price-display" data-item-id="${item.id}" data-base-price="${item.price}">
                         ${shopPriceMarkupPlain(item.price)}

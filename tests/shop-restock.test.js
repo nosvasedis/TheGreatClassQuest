@@ -84,12 +84,12 @@ test('shop restock toasts tell the truth about background fill and partial shelv
 
   const started = shopRestockToast({ mode: 'started-fill', completeCount: 4, missingCount: 11, league: 'Junior B' });
   assert.equal(started.type, 'info');
-  assert.match(started.message, /background/i);
+  assert.match(started.message, /pictures arrive/i);
 
   const partial = shopRestockToast({ mode: 'fill', savedThisRun: 3, completeCount: 7, league: 'Junior B' });
   assert.equal(partial.type, 'info');
   assert.match(partial.message, /7 of 15/);
-  assert.match(partial.message, /Tap Restock/);
+  assert.doesNotMatch(partial.message, /Tap Restock/);
 
   const full = shopRestockToast({ mode: 'fill', savedThisRun: 11, completeCount: 15, league: 'Junior B' });
   assert.equal(full.type, 'success');
@@ -97,18 +97,129 @@ test('shop restock toasts tell the truth about background fill and partial shelv
 
   const empty = shopRestockToast({ mode: 'fill', savedThisRun: 0, completeCount: 0, league: 'Junior B' });
   assert.equal(empty.type, 'error');
+
+  const replacing = shopRestockToast({ mode: 'replace', savedThisRun: 8, completeCount: 8, league: 'Junior B' });
+  assert.equal(replacing.type, 'info');
+  assert.match(replacing.message, /8 of 15 new treasures/);
+  assert.match(replacing.message, /Today's stall stays/);
+
+  const stillFullLooking = shopRestockToast({ mode: 'replace', savedThisRun: 3, completeCount: 15, league: 'Junior B' });
+  assert.equal(stillFullLooking.type, 'info');
+  assert.doesNotMatch(stillFullLooking.message, /are ready for Junior B!/);
+});
+
+test('Restock on a full stall starts replacement; auto-ensure does not', async () => {
+  const { planShopRestock, shopStallNeedsWork, SHOP_RESTOCK_ITEM_COUNT } = await loadShopRestock();
+  const fullStall = Array.from({ length: SHOP_RESTOCK_ITEM_COUNT }, (_, index) => complete({
+    id: `old-${index}`,
+    name: `Old ${index}`,
+    price: index < 5 ? 12 : index < 10 ? 40 : 90
+  }));
+  const fullPlan = planShopRestock(fullStall);
+  assert.equal(fullPlan.mode, 'replace');
+  assert.equal(shopStallNeedsWork(fullPlan, { forceReplace: false }), false);
+  assert.equal(shopStallNeedsWork(fullPlan, { forceReplace: true }), true);
+
+  const incoming = Array.from({ length: 8 }, (_, index) => complete({
+    id: `new-${index}`,
+    name: `New ${index}`,
+    price: 12,
+    incoming: true
+  }));
+  const inProgress = planShopRestock([...fullStall, ...incoming]);
+  assert.equal(inProgress.mode, 'replace');
+  assert.equal(shopStallNeedsWork(inProgress, { forceReplace: false }), true);
+});
+
+test('legacy items without stock count as one copy and sold-out items hide', async () => {
+  const {
+    shopItemStock,
+    isVisibleSeasonalShopItem,
+    isVisibleFestivalShopItem,
+    nextShopStockAfterPurchase
+  } = await loadShopRestock();
+  assert.equal(shopItemStock(complete()), 1);
+  assert.equal(shopItemStock(complete({ stock: 5 })), 5);
+  assert.equal(isVisibleSeasonalShopItem(complete({ stock: 0 })), false);
+  assert.equal(isVisibleSeasonalShopItem(complete({ stock: 2 })), true);
+  assert.equal(isVisibleFestivalShopItem(complete({ shelf: 'festival', stock: 2 })), true);
+  assert.equal(isVisibleSeasonalShopItem(complete({ shelf: 'festival', stock: 2 })), false);
+  assert.equal(nextShopStockAfterPurchase(complete({ stock: 5 })), 4);
+  assert.equal(nextShopStockAfterPurchase(complete()), 0);
+});
+
+test('festival items are ignored by monthly fill and replace', async () => {
+  const { planShopRestock, SHOP_RESTOCK_ITEM_COUNT, FESTIVAL_STALL_ITEM_COUNT } = await loadShopRestock();
+  const monthly = Array.from({ length: 4 }, (_, index) => complete({
+    id: `month-${index}`,
+    name: `Month ${index}`,
+    price: 12
+  }));
+  const festival = Array.from({ length: 5 }, (_, index) => complete({
+    id: `fest-${index}`,
+    name: `Fest ${index}`,
+    price: 12,
+    shelf: 'festival',
+    festivalId: 'halloween-2026'
+  }));
+  const monthlyPlan = planShopRestock([...monthly, ...festival]);
+  assert.equal(monthlyPlan.mode, 'fill');
+  assert.equal(monthlyPlan.needed, SHOP_RESTOCK_ITEM_COUNT - 4);
+  assert.equal(monthlyPlan.keepIds.length, 4);
+
+  const festivalPlan = planShopRestock([...monthly, ...festival], { shelf: 'festival' });
+  assert.equal(festivalPlan.mode, 'replace');
+  assert.equal(festivalPlan.targetCount, FESTIVAL_STALL_ITEM_COUNT);
+  assert.equal(festivalPlan.needed, FESTIVAL_STALL_ITEM_COUNT);
+});
+
+test('functions shop restock stays aligned with the app restock planner', async () => {
+  const app = await import('../utils/shopRestock.js');
+  const fn = await import('../functions/shop/restock.mjs');
+  assert.equal(app.SHOP_RESTOCK_ITEM_COUNT, fn.SHOP_RESTOCK_ITEM_COUNT);
+  assert.equal(app.FESTIVAL_STALL_ITEM_COUNT, fn.FESTIVAL_STALL_ITEM_COUNT);
+  assert.deepEqual(app.SHOP_STOCK_BY_TIER, fn.SHOP_STOCK_BY_TIER);
+  assert.equal(app.shopItemStock({}), 1);
+  assert.equal(fn.shopItemStock({}), 1);
+  assert.equal(typeof app.shopStallNeedsWork, 'function');
+  assert.equal(typeof fn.shopStallNeedsWork, 'function');
+  assert.equal(app.shopStallNeedsWork({ mode: 'replace', needed: 15, targetCount: 15 }), false);
+  assert.equal(fn.shopStallNeedsWork({ mode: 'replace', needed: 15, targetCount: 15 }, { forceReplace: true }), true);
+});
+
+test('an empty monthly stall plans fifteen kinds and an empty festival stall plans five', async () => {
+  const { planShopRestock, SHOP_RESTOCK_ITEM_COUNT, FESTIVAL_STALL_ITEM_COUNT } = await loadShopRestock();
+  const emptyMonthly = planShopRestock([]);
+  assert.equal(emptyMonthly.mode, 'fill');
+  assert.equal(emptyMonthly.needed, SHOP_RESTOCK_ITEM_COUNT);
+  assert.deepEqual(emptyMonthly.tiers, { common: 5, rare: 5, legendary: 5 });
+
+  const emptyFestival = planShopRestock([], { shelf: 'festival' });
+  assert.equal(emptyFestival.needed, FESTIVAL_STALL_ITEM_COUNT);
+  assert.deepEqual(emptyFestival.tiers, { common: 2, rare: 2, legendary: 1 });
+
+  const soldOut = planShopRestock([complete({ id: 'gone', stock: 0 })]);
+  assert.equal(soldOut.needed, SHOP_RESTOCK_ITEM_COUNT);
 });
 
 test('shop restock does not wipe a live stall and runs in the background', async () => {
   const economy = fs.readFileSync(path.join(root, 'db/actions/economy.js'), 'utf8');
   const shop = fs.readFileSync(path.join(root, 'ui/core/shop.js'), 'utf8');
   const api = fs.readFileSync(path.join(root, 'api.js'), 'utf8');
+  const functions = fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8');
 
-  assert.match(economy, /planShopRestock\(/);
+  assert.match(economy, /ensureShopStock\(/);
   assert.match(economy, /setShopRestockBusy\(/);
+  assert.match(economy, /handleEnsureShopStock/);
   assert.doesNotMatch(economy, /container\.innerHTML = ''/);
-  assert.match(economy, /ignoreCircuit:\s*true/);
   assert.match(shop, /isVisibleSeasonalShopItem\(/);
+  assert.match(shop, /Festival Stall/);
   assert.match(shop, /setShopRestockBusy/);
   assert.match(api, /requestOptions\.ignoreCircuit/);
+  assert.match(functions, /exports\.ensureShopStock/);
+  assert.match(functions, /exports\.maintainShopStock/);
+  assert.match(functions, /0 21 \* \* \*/);
+  assert.match(functions, /GCQ_AI_SERVICE_KEY/);
+  assert.doesNotMatch(shop, /Restock weaves/);
+  assert.doesNotMatch(shop, /Festival Stall weaves itself/);
 });

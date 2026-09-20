@@ -105,3 +105,9 @@ export function transferStudentToClass(payload = {}) {
 export function assignClassTeacher(payload = {}) {
     return callAdmin('assignClassTeacher', payload);
 }
+
+export async function ensureShopStock(payload = {}) {
+    const fn = httpsCallable(functions, 'ensureShopStock', { timeout: 540000 });
+    const result = await fn(payload);
+    return result?.data || null;
+}

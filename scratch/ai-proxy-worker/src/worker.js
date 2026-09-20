@@ -19,6 +19,7 @@ const MAX_REQUEST_BYTES = 64 * 1024;
 const RATE_WINDOW_MS = 60_000;
 // image: shop Restock generates 15 items (plus the occasional black-image retry).
 const RATE_LIMITS = { chat: 12, image: 20, speech: 8 };
+const SERVICE_RATE_LIMITS = { chat: 30, image: 40, speech: 8 };
 const MAX_RATE_BUCKETS = 2_000;
 const PROFILE_CACHE_SECONDS = 300;
 const rateBuckets = new Map();
@@ -60,7 +61,7 @@ function corsFor(request, env) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Firebase-AppCheck,X-GCQ-Request-ID',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Firebase-AppCheck,X-GCQ-Request-ID,X-GCQ-Service-Key',
     'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider,X-GCQ-Auth-Reason',
     Vary: 'Origin',
   };
@@ -240,6 +241,7 @@ function enforceRateLimit(request, uid, route) {
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const key = `${uid}:${ip}:${route}`;
   const now = Date.now();
+  const limits = uid === 'gcq-shop-service' ? SERVICE_RATE_LIMITS : RATE_LIMITS;
   if (rateBuckets.size > MAX_RATE_BUCKETS) {
     for (const [bucketKey, bucket] of rateBuckets) {
       if (bucket.resetAt <= now) rateBuckets.delete(bucketKey);
@@ -252,7 +254,7 @@ function enforceRateLimit(request, uid, route) {
     return { allowed: true };
   }
   current.count += 1;
-  return { allowed: current.count <= RATE_LIMITS[route], retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1000)) };
+  return { allowed: current.count <= limits[route], retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1000)) };
 }
 
 function boundedNumber(value, fallback, min, max) {
@@ -456,9 +458,31 @@ async function processRequest(request, env, ctx, corsHeaders, identity, payload,
   return json({ error: 'Invalid payload.' }, 400, corsHeaders, { 'X-GCQ-Request-ID': requestId });
 }
 
+async function digestSha256(value) {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value || '')));
+}
+
+function xorEqual(left, right) {
+  const a = new Uint8Array(left);
+  const b = new Uint8Array(right);
+  if (a.byteLength !== b.byteLength) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+async function isShopServiceRequest(request, env) {
+  const expected = String(env.GCQ_AI_SERVICE_KEY || '').trim();
+  const provided = (request.headers.get('X-GCQ-Service-Key') || '').trim();
+  if (!expected || !provided) return false;
+  const [left, right] = await Promise.all([digestSha256(expected), digestSha256(provided)]);
+  return xorEqual(left, right);
+}
+
 export default {
   async fetch(request, env, ctx) {
-    const corsHeaders = corsFor(request, env);
+    const isService = await isShopServiceRequest(request, env);
+    const corsHeaders = corsFor(request, env) || (isService ? {} : null);
     if (!corsHeaders) return json({ error: 'Origin is not allowed.' }, 403);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
     if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, corsHeaders);
@@ -466,49 +490,53 @@ export default {
     if (declaredLength > MAX_REQUEST_BYTES) return json({ error: 'Request is too large.' }, 413, corsHeaders);
 
     let identity;
-    try {
-      identity = await verifyFirebaseIdToken(request, env);
-    } catch (error) {
-      const reason = String(error?.message || 'verification-failed').slice(0, 120);
-      console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'token', reason }));
-      return json(
-        { error: 'A valid Firebase login is required.', detail: reason },
-        401,
-        corsHeaders,
-        {
-          'X-GCQ-Error-Source': 'firebase-token',
-          'X-GCQ-Auth-Reason': reason,
-        },
-      );
-    }
-    try {
-      await verifyAppCheckIfRequired(request, env);
-    } catch (error) {
-      console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'app-check', reason: error?.message || 'verification-failed' }));
-      return json(
-        { error: 'A valid App Check token is required.' },
-        401,
-        corsHeaders,
-        { 'X-GCQ-Error-Source': 'app-check' },
-      );
-    }
+    if (isService) {
+      identity = { uid: 'gcq-shop-service', token: '', projectId: String(env.FIREBASE_PROJECT_ID || '') };
+    } else {
+      try {
+        identity = await verifyFirebaseIdToken(request, env);
+      } catch (error) {
+        const reason = String(error?.message || 'verification-failed').slice(0, 120);
+        console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'token', reason }));
+        return json(
+          { error: 'A valid Firebase login is required.', detail: reason },
+          401,
+          corsHeaders,
+          {
+            'X-GCQ-Error-Source': 'firebase-token',
+            'X-GCQ-Auth-Reason': reason,
+          },
+        );
+      }
+      try {
+        await verifyAppCheckIfRequired(request, env);
+      } catch (error) {
+        console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'app-check', reason: error?.message || 'verification-failed' }));
+        return json(
+          { error: 'A valid App Check token is required.' },
+          401,
+          corsHeaders,
+          { 'X-GCQ-Error-Source': 'app-check' },
+        );
+      }
 
-    try {
-      await requireActiveProfile(identity);
-    } catch (error) {
-      const isAccessFailure = error?.code === 'profile-missing' || error?.code === 'profile-inactive';
-      console.warn(JSON.stringify({
-        event: 'gcq_auth_rejected',
-        stage: 'profile',
-        reason: error?.code || 'profile-service',
-        upstreamStatus: Number(error?.upstreamStatus || 0) || undefined,
-      }));
-      return json(
-        { error: isAccessFailure ? 'An active GCQ profile is required.' : 'Profile verification is temporarily unavailable.' },
-        isAccessFailure ? 403 : 503,
-        corsHeaders,
-        { 'X-GCQ-Error-Source': isAccessFailure ? 'firebase-profile' : 'firebase-profile-service' },
-      );
+      try {
+        await requireActiveProfile(identity);
+      } catch (error) {
+        const isAccessFailure = error?.code === 'profile-missing' || error?.code === 'profile-inactive';
+        console.warn(JSON.stringify({
+          event: 'gcq_auth_rejected',
+          stage: 'profile',
+          reason: error?.code || 'profile-service',
+          upstreamStatus: Number(error?.upstreamStatus || 0) || undefined,
+        }));
+        return json(
+          { error: isAccessFailure ? 'An active GCQ profile is required.' : 'Profile verification is temporarily unavailable.' },
+          isAccessFailure ? 403 : 503,
+          corsHeaders,
+          { 'X-GCQ-Error-Source': isAccessFailure ? 'firebase-profile' : 'firebase-profile-service' },
+        );
+      }
     }
 
     let rawBody;

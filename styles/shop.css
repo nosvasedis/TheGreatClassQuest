@@ -418,6 +418,11 @@ body.projector-mode .bounty-actions {
     background: linear-gradient(135deg, rgba(147, 51, 234, 0.16) 0%, rgba(30, 27, 75, 0.38) 100%);
 }
 
+.shop-section-head--rose {
+    border-color: rgba(251, 113, 133, 0.35);
+    background: linear-gradient(135deg, rgba(225, 29, 72, 0.2) 0%, rgba(30, 27, 75, 0.4) 100%);
+}
+
 .shop-section-head-main {
     min-width: min(100%, 280px);
     flex: 1;
@@ -501,6 +506,46 @@ body.projector-mode .bounty-actions {
 .shop-section-badge--violet {
     color: #e9d5ff;
     background: rgba(126, 34, 206, 0.38);
+}
+
+.shop-section-badge--rose {
+    color: #fecdd3;
+    background: rgba(190, 18, 60, 0.4);
+}
+
+.shop-festival-banner {
+    padding: 0.9rem 1.1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(251, 113, 133, 0.4);
+    background: linear-gradient(180deg, rgba(225, 29, 72, 0.18) 0%, rgba(30, 27, 75, 0.5) 100%);
+    text-align: center;
+}
+
+.shop-festival-banner-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    margin: 0 0 0.3rem 0;
+    color: #fecdd3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.shop-festival-banner-text {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: rgba(255, 228, 230, 0.86);
+}
+
+.shop-item-stock {
+    margin: 0 0 0.55rem 0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fde68a;
 }
 
 .shop-callout {

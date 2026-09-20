@@ -169,17 +169,19 @@ async function requireFeatureEnabled(featureKey) {
 
   if (featureKey === 'parentAccess' && (tier === 'pro' || tier === 'elite')) return subscription;
   if (featureKey === 'secretaryAccess' && tier === 'elite') return subscription;
+  if (featureKey === 'eliteAI' && tier === 'elite') return subscription;
 
   throw new HttpsError('failed-precondition', 'This school plan does not include that access feature yet.');
 }
 
 function callable(handler, options = {}) {
   let builder = functionsV1.region(FUNCTIONS_REGION);
-  if (options.timeoutSeconds || options.memory) {
-    builder = builder.runWith({
-      timeoutSeconds: options.timeoutSeconds || 60,
-      memory: options.memory || '256MB'
-    });
+  const runWith = {};
+  if (options.timeoutSeconds) runWith.timeoutSeconds = options.timeoutSeconds;
+  if (options.memory) runWith.memory = options.memory;
+  if (options.secrets) runWith.secrets = options.secrets;
+  if (Object.keys(runWith).length) {
+    builder = builder.runWith(runWith);
   }
   return builder.https.onCall(async (data, context) => {
     return handler({
@@ -2386,3 +2388,101 @@ exports.finalizeRollover = callable(async (request) => {
 
   return { ok: true, jobId, activeStudents: studentsSnap.size, guildsSynced: writes.length };
 });
+
+const { createShopEngine } = require('./shop/ensure');
+const shopEngine = createShopEngine({
+  db,
+  storage,
+  FieldValue,
+  publicDataPath: PUBLIC_DATA_PATH
+});
+
+async function requireEliteShopCaller(request) {
+  const caller = await requireAuthedCaller(request);
+  if (caller.profile.role !== 'teacher') {
+    throw new HttpsError('permission-denied', 'Only teachers can restock the Mystic Market.');
+  }
+  await requireFeatureEnabled('eliteAI');
+  const yearSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const rolloverStatus = String(yearSnap.data()?.rolloverStatus || '').toLowerCase();
+  if (rolloverStatus !== 'active') {
+    throw new HttpsError('failed-precondition', 'The market stays sealed until the school year opens.');
+  }
+  return caller;
+}
+
+async function listShopStalls(yearKey) {
+  const classesSnap = await db.collection(`${PUBLIC_DATA_PATH}/classes`).get();
+  const stalls = new Map();
+  classesSnap.docs.forEach((classDoc) => {
+    const data = classDoc.data() || {};
+    if (String(data.status || '').toLowerCase() === 'archived') return;
+    if (data.schoolYearKey && data.schoolYearKey !== yearKey) return;
+    const teacherId = data.createdBy?.uid;
+    const league = String(data.questLevel || '').trim();
+    if (!teacherId || !league) return;
+    stalls.set(`${teacherId}::${league}`, {
+      teacherId,
+      teacherName: data.createdBy?.name || 'Teacher',
+      league
+    });
+  });
+  return [...stalls.values()];
+}
+
+exports.ensureShopStock = callable(async (request) => {
+  const caller = await requireEliteShopCaller(request);
+  const league = String(request.data?.league || '').trim();
+  const mode = String(request.data?.mode || 'ensure') === 'replace-monthly' ? 'replace-monthly' : 'ensure';
+  if (!league) throw new HttpsError('invalid-argument', 'Choose a class or league first.');
+  const yearKey = await getActiveSchoolYearKey();
+  const result = await shopEngine.ensureStall({
+    teacherId: caller.uid,
+    teacherName: caller.profile.displayName || 'Teacher',
+    league,
+    yearKey,
+    mode
+  });
+  return { ok: true, ...result };
+}, { timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });
+
+exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
+  .runWith({ timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] })
+  .pubsub.schedule('0 21 * * *')
+  .timeZone('Europe/Athens')
+  .onRun(async () => {
+    const yearSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+    const yearData = yearSnap.data() || {};
+    if (String(yearData.rolloverStatus || '').toLowerCase() !== 'active') {
+      console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'season-sealed' }));
+      return null;
+    }
+    try {
+      await requireFeatureEnabled('eliteAI');
+    } catch (_) {
+      console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'not-elite' }));
+      return null;
+    }
+    const yearKey = String(yearData.activeYearKey || '').trim();
+    if (!/^\d{4}-\d{4}$/.test(yearKey)) {
+      console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'no-year' }));
+      return null;
+    }
+    const stalls = await listShopStalls(yearKey);
+    const results = [];
+    for (const stall of stalls) {
+      try {
+        const result = await shopEngine.ensureStall({
+          ...stall,
+          yearKey,
+          mode: 'ensure'
+        });
+        results.push({ teacherId: stall.teacherId, league: stall.league, ok: true, result });
+      } catch (error) {
+        console.error(`maintainShopStock failed for ${stall.teacherId} ${stall.league}:`, error);
+        results.push({ teacherId: stall.teacherId, league: stall.league, ok: false, message: error?.message || String(error) });
+      }
+    }
+    console.log(JSON.stringify({ event: 'maintainShopStock', stallCount: stalls.length, results }));
+    return null;
+  });

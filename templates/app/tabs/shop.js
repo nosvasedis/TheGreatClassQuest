@@ -8,7 +8,7 @@ export const shopTabHTML = `
                         <h2 id="shop-title" class="font-title text-5xl text-fuchsia-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Mystic Market</h2>
                         <p id="shop-tagline" class="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">
-                            Legends, seasonal treasures, and companion eggs — pick a shopper, check their purse, then browse.
+                            Legends, seasonal treasures, Festival Stall, and companion eggs — pick a shopper, check their purse, then browse.
                         </p>
                     </div>
 
@@ -108,8 +108,8 @@ export const shopTabHTML = `
                                 class="hidden flex flex-col items-center justify-center flex-1 min-h-[320px] text-center relative z-10 py-8">
                                 <div class="text-7xl mb-5 opacity-35 grayscale filter drop-shadow-lg">📦</div>
                                 <h3 class="font-title text-3xl text-indigo-200 mb-2">The Shelves Are Bare</h3>
-                                <p class="text-indigo-400/90 mb-2 text-base max-w-md leading-relaxed">Nothing on display yet — summon fresh stock so heroes have something to save coins for.</p>
-                                <p class="text-indigo-500/80 text-sm max-w-sm">Elite teachers can use <strong class="text-fuchsia-300 font-title">Restock</strong> for AI-crafted seasonal treasures.</p>
+                                <p class="text-indigo-400/90 mb-2 text-base max-w-md leading-relaxed">Nothing on display yet — the merchant will fill the stalls so heroes have something to save coins for.</p>
+                                <p class="text-indigo-500/80 text-sm max-w-sm">New seasonal treasures arrive each month. Holiday treasures appear on the Festival Stall when a celebration is near.</p>
                             </div>
 
                             <!-- Items Grid -->

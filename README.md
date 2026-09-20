@@ -102,7 +102,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Home** | Weather, greeting, school or class stats, reminders, shortcuts, **Quiz of the Week** play (Elite). |
 | **Team Quest** | Class vs class **League Map** (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), monthly goal (holidays/cancellations), start of **Ceremony of the Month**. |
 | **Hero's Challenge** | Student ranks (**By Class / Global**, Monthly / Total). **Trophy Room**, Hero Stats, **Hall of Prodigies**, certificates. Guild *badges* appear on rows; guild *ranking* is Guild Hall. |
-| **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Familiar** eggs. |
+| **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Festival Stall**, Elite **Familiar** eggs. |
 | **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
 | **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day**. FABs: **Quest Assignment**, **Attendance Chronicle**. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
@@ -140,7 +140,8 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 - **Spending** Gold does **not** lower Leaderboard rank (Total Stars are separate).
 
 ### 🎪 Mystic Market (own tab)
-- **Seasonal stock (Elite Restock):** AI generates **15** items for the month and league (5 common / 5 rare / 5 seasonal trophies). Junior art stays toy-like; senior items read as RPG relics. Buying a unique seasonal piece removes it from the shop. There is **no** coded two-seasonal-items-per-month cap.
+- **Seasonal stock (Elite):** AI fills **15** kinds for the month and league (5 common / 5 rare / 5 seasonal trophies) with copies (Common 5, Rare 2, Legendary 1). September is harvest/back-to-school, not Halloween. Restock brings a fresh monthly stall; today’s treasures stay until the new pictures are ready. Buying spends one copy. If the stall sells out, it restocks itself.
+- **Festival Stall (Elite):** Halloween, Christmas, Orthodox Easter, and Carnival appear about 22 days before the feast and vanish the day after. A sold-out Festival Stall gets a new batch at end of day.
 - **Legendary Artifacts:** Always available; **two legendary buys per student per month**, plus extra limits on Pathfinder (1/class/month) and Mask (1/student/month).
 - **Purchase:** Items appear in **Trophy Room** / enlarged avatar. Reigning **Hero of the Day** gets **25%** off seasonal prices (this year's Rising / Golden / Mythic legend discounts can add more, combined cap **40%**). Last year's crowns stay in last year's archive.
 

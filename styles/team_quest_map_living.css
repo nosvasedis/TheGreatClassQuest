@@ -262,7 +262,7 @@
 .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(12.3rem, 21.5vw, 17.5rem); }
 
 .tq-waypoint--bronze .tq-waypoint__scroll {
-    left: calc(50% + clamp(6.5rem, 9vw, 8rem));
+    left: calc(50% + clamp(7.25rem, 10vw, 9rem));
     bottom: calc(100% + 2rem);
 }
 

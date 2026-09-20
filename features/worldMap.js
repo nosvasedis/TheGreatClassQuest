@@ -124,7 +124,7 @@ const QUEST_ROUTE_SEGMENTS = [
     },
     {
         id: 'crystal', minProgress: 85, maxProgress: 100,
-        d: 'M 951 224 C 979 202 972 178 996 160 C 1018 143 1009 117 1035 102 C 1049 94 1055 85 1059 77'
+        d: 'M 951 224 C 977 214 987 196 1001 184 C 1018 170 1018 153 1031 141 C 1045 128 1048 114 1058 103 C 1065 95 1071 87 1076 81'
     }
 ];
 const MAP_LANE_GAP = 42;
@@ -142,8 +142,7 @@ const LIVING_MAP_ASSETS = {
     scrollSilver: new URL('../assets/team-quest-map/living-atlas/scroll-silver.webp', import.meta.url).href,
     scrollGold: new URL('../assets/team-quest-map/living-atlas/scroll-gold.webp', import.meta.url).href,
     scrollCrystal: new URL('../assets/team-quest-map/living-atlas/scroll-crystal.webp', import.meta.url).href,
-    scrollMap: new URL('../assets/team-quest-map/living-atlas/scroll-map.webp', import.meta.url).href,
-    greatClassQuestLogo: new URL('../assets/great-class-quest-logo.svg', import.meta.url).href,
+    scrollMap: new URL('../assets/team-quest-map/living-atlas/scroll-map-integrated.webp', import.meta.url).href,
     portalVortex: new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href,
     ambientWaterRipple: new URL('../assets/team-quest-map/living-atlas/ambient-water-ripple.webp', import.meta.url).href,
     ambientSnowFlurry: new URL('../assets/team-quest-map/living-atlas/ambient-snow-flurry.webp', import.meta.url).href,
@@ -222,6 +221,7 @@ function renderMapToken(item) {
         pinTier,
         progressDisplay,
         starsDisplay,
+        liveMonthlyStars,
         goal,
         displayLevel,
         classQuestBonus,
@@ -235,10 +235,10 @@ function renderMapToken(item) {
     const safeZone = escapeMapHtml(zone.label);
     const zoneBadge = ZONE_BADGE_BY_ID[zone.id];
     const nextMilestone = [
-        { progress: 30, label: 'Silver Peaks', icon: 'fa-mountain-sun' },
-        { progress: 60, label: 'Golden Citadel', icon: 'fa-chess-rook' },
-        { progress: 85, label: 'Crystal Realm', icon: 'fa-gem' },
-        { progress: 100, label: 'Quest Finish', icon: 'fa-trophy' }
+        { progress: 30, label: 'Silver Peaks', badgeId: 'silver' },
+        { progress: 60, label: 'Golden Citadel', badgeId: 'gold' },
+        { progress: 85, label: 'Crystal Realm', badgeId: 'crystal' },
+        { progress: 100, label: 'Quest Finish', badgeId: 'crystal' }
     ].find((milestone) => pct < milestone.progress) || null;
     const starsToNext = nextMilestone
         ? Math.max(0, Math.ceil((goal * nextMilestone.progress / 100) - liveMonthlyStars))
@@ -246,7 +246,7 @@ function renderMapToken(item) {
     const starsToGoal = Math.max(0, Math.ceil(goal - liveMonthlyStars));
     const milestoneLabel = nextMilestone ? nextMilestone.label : 'Crystal Realm reached';
     const milestoneDetail = nextMilestone ? `${starsToNext} star${starsToNext === 1 ? '' : 's'} to arrive` : 'Quest complete!';
-    const milestoneIcon = nextMilestone?.icon || 'fa-trophy';
+    const milestoneBadge = ZONE_BADGE_BY_ID[nextMilestone?.badgeId || 'crystal'];
     const tooltipPosition = [
         pct >= 78 ? 'tq-class-token--tooltip-below' : '',
         pct >= 90 ? 'tq-class-token--tooltip-left' : '',
@@ -278,7 +278,6 @@ function renderMapToken(item) {
                 <span class="tq-map-tooltip__spark tq-map-tooltip__spark--one" aria-hidden="true">✦</span>
                 <span class="tq-map-tooltip__spark tq-map-tooltip__spark--two" aria-hidden="true">✧</span>
                 <span class="tq-map-tooltip__rank">
-                    <i class="fas ${isLeader ? 'fa-crown' : 'fa-ranking-star'}" aria-hidden="true"></i>
                     <span>${isLeader ? 'Quest leader' : `League rank #${rankPosition}`}</span>
                 </span>
                 <span class="tq-map-tooltip__header">
@@ -303,14 +302,12 @@ function renderMapToken(item) {
                 </span>
                 <span class="tq-map-tooltip__stats">
                     <span class="tq-map-tooltip__stat">
-                        <i class="fas fa-star" aria-hidden="true"></i>
                         <span>
                             <small>Collected</small>
                             <strong>${starsDisplay} / ${goal}</strong>
                         </span>
                     </span>
                     <span class="tq-map-tooltip__stat">
-                        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
                         <span>
                             <small>To monthly goal</small>
                             <strong>${starsToGoal > 0 ? `${starsToGoal} stars` : 'Complete'}</strong>
@@ -318,14 +315,14 @@ function renderMapToken(item) {
                     </span>
                 </span>
                 <span class="tq-map-tooltip__milestone">
-                    <span class="tq-map-tooltip__milestone-icon"><i class="fas ${milestoneIcon}" aria-hidden="true"></i></span>
+                    <img class="tq-map-tooltip__milestone-badge" src="${milestoneBadge}" alt="" draggable="false" aria-hidden="true">
                     <span>
                         <small>${nextMilestone ? 'Next milestone' : 'Celebration unlocked'}</small>
                         <strong>${milestoneLabel}</strong>
                         <em>${milestoneDetail}</em>
                     </span>
                 </span>
-                ${classQuestBonus > 0 ? `<span class="tq-map-tooltip__bonus"><i class="fas fa-compass" aria-hidden="true"></i> +${classQuestBonus} Pathfinder</span>` : ''}
+                ${classQuestBonus > 0 ? `<span class="tq-map-tooltip__bonus">+${classQuestBonus} Pathfinder</span>` : ''}
             </span>
         </button>`;
 }
@@ -450,7 +447,6 @@ export function generateLeagueMapHtml(classes) {
 
             <div class="tq-map-title" aria-hidden="true">
                 <img class="tq-map-title__scroll" src="${LIVING_MAP_ASSETS.scrollMap}" alt="" draggable="false">
-                <img class="tq-map-title__logo" src="${LIVING_MAP_ASSETS.greatClassQuestLogo}" alt="" draggable="false">
             </div>
 
             <div class="tq-map-ambient" aria-hidden="true">
@@ -477,7 +473,7 @@ export function generateLeagueMapHtml(classes) {
             </div>
 
             ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" data-offset-x="46" data-offset-y="-18" aria-label="Quest finish at 100 percent">
+            <span class="tq-route-finish" data-route-progress="100" data-offset-x="21" data-offset-y="-2" aria-label="Quest finish at 100 percent">
                 <span class="tq-route-finish__glow" aria-hidden="true"></span>
                 <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
                 <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">

@@ -171,18 +171,6 @@
     object-fit: contain;
 }
 
-.tq-map-title__logo {
-    position: absolute;
-    z-index: 2;
-    top: 20%;
-    left: 9%;
-    width: 21%;
-    height: 63%;
-    object-fit: contain;
-    border-radius: 50%;
-    filter: drop-shadow(0 0.1rem 0.16rem rgba(49, 90, 119, 0.28));
-}
-
 /* Generated region crests sit on the route checkpoints. Their scroll artwork is
    deliberately separate, fixed-size and noninteractive. */
 .tq-waypoint {
@@ -256,19 +244,23 @@
     position: absolute;
     z-index: 1;
     left: 50%;
-    bottom: calc(100% + 0.28rem);
+    bottom: calc(100% + 0.08rem);
     display: block;
-    width: clamp(13rem, 25vw, 20.5rem);
+    width: clamp(17rem, 35vw, 28.5rem);
+    max-width: none;
     height: auto;
     pointer-events: none;
     user-select: none;
     transform: translateX(-50%);
     transition: none;
-    filter: drop-shadow(0 0.18rem 0.2rem rgba(66, 41, 19, 0.25));
+    filter:
+        drop-shadow(0 0.42rem 0.34rem rgba(45, 29, 17, 0.48))
+        drop-shadow(0 0 0.82rem rgba(var(--waypoint-glow), 0.42));
 }
 
-.tq-waypoint--gold .tq-waypoint__scroll { width: clamp(13.6rem, 26vw, 21.5rem); }
-.tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(13.4rem, 25.5vw, 21rem); }
+.tq-waypoint--gold .tq-waypoint__scroll { width: clamp(17.5rem, 36vw, 30rem); }
+.tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(17.3rem, 35.5vw, 29.5rem); }
+.tq-waypoint--silver .tq-waypoint__scroll { bottom: 44%; }
 
 .tq-waypoint--silver .tq-waypoint__badge { animation-delay: -1.05s; }
 .tq-waypoint--gold .tq-waypoint__badge { animation-delay: -2.1s; }
@@ -301,7 +293,7 @@
     position: absolute;
     z-index: 19;
     display: block;
-    width: clamp(4rem, 7vw, 6rem);
+    width: clamp(3.2rem, 5.5vw, 4.75rem);
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
     animation: tq-finish-pulse 2.8s ease-in-out infinite;
@@ -407,7 +399,7 @@
 .tq-ambient--crystal-spark-three { left: 80%; top: 29%; font-size: 0.68rem; animation-delay: -1.8s; }
 
 .tq-water-ripple {
-    width: clamp(4.8rem, 9vw, 8rem);
+    width: clamp(2.7rem, 5vw, 4.6rem);
     height: auto;
     object-fit: contain;
     animation: tq-water-ripple 4.6s ease-out infinite;
@@ -538,11 +530,11 @@
 .tq-class-token__logo {
     position: absolute;
     z-index: 2;
-    top: 50%;
+    top: 51.5%;
     left: 50%;
     display: grid;
-    width: 57%;
-    height: 57%;
+    width: 62%;
+    height: 62%;
     place-items: center;
     overflow: hidden;
     border-radius: 50%;
@@ -554,9 +546,9 @@
 }
 
 .tq-class-token--frame-gold .tq-class-token__logo {
-    top: 52.5%;
-    width: 47%;
-    height: 47%;
+    top: 58.5%;
+    width: 56%;
+    height: 56%;
 }
 
 .tq-class-token:focus-visible .tq-class-token__core { box-shadow: 0 0 0 3px white, 0 0 0 6px rgba(71, 112, 191, 0.9); }
@@ -783,25 +775,12 @@
 
 .tq-map-tooltip__stat {
     display: grid;
-    grid-template-columns: 1.65rem minmax(0, 1fr);
-    gap: 0.42rem;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     padding: 0.5rem 0.55rem;
     border: 1px solid color-mix(in srgb, var(--tooltip-accent) 18%, white);
     border-radius: 0.82rem;
     background: rgba(255, 255, 255, 0.68);
-}
-
-.tq-map-tooltip__stat > i {
-    display: grid;
-    width: 1.65rem;
-    aspect-ratio: 1;
-    place-items: center;
-    color: white;
-    border-radius: 50%;
-    background: linear-gradient(145deg, var(--tooltip-accent), var(--tooltip-deep));
-    font-size: 0.72rem;
-    box-shadow: 0 0.18rem 0.35rem color-mix(in srgb, var(--tooltip-accent) 34%, transparent);
 }
 
 .tq-map-tooltip__stat span,
@@ -825,15 +804,12 @@
     background: color-mix(in srgb, var(--tooltip-accent) 11%, white);
 }
 
-.tq-map-tooltip__milestone-icon {
-    display: grid;
+.tq-map-tooltip__milestone-badge {
+    display: block;
     width: 2rem;
-    aspect-ratio: 1;
-    place-items: center;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #fff7bb, #efb52c);
-    color: #8d5a10;
-    box-shadow: 0 0.2rem 0.4rem rgba(116, 74, 13, 0.2);
+    height: 2rem;
+    object-fit: contain;
+    filter: drop-shadow(0 0.2rem 0.26rem rgba(75, 48, 22, 0.18));
 }
 
 .tq-map-tooltip__milestone small,
@@ -982,9 +958,9 @@
     .tq-living-map__frame { border-radius: 1.15rem; }
     .tq-map-title { left: 1.6%; top: 1.6%; }
     .tq-waypoint { width: clamp(5.4rem, 9vw, 6.9rem); }
-    .tq-waypoint__scroll { width: clamp(12rem, 24vw, 16rem); }
-    .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(12.5rem, 25vw, 16.6rem); }
-    .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(12.3rem, 24.5vw, 16.3rem); }
+    .tq-waypoint__scroll { width: clamp(15.5rem, 32vw, 22rem); }
+    .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(16rem, 33vw, 22.8rem); }
+    .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(15.8rem, 32.5vw, 22.5rem); }
     .tq-living-map .tq-class-token.league-map-avatar { width: clamp(2.8rem, 4.8vw, 3.45rem); height: clamp(2.8rem, 4.8vw, 3.45rem); }
     .tq-map-tooltip { width: 16.5rem; padding-right: 0.78rem; padding-left: 0.78rem; }
     .tq-map-controls { right: 0.8rem; bottom: 0.72rem; }

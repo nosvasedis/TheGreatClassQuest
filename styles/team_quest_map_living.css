@@ -260,7 +260,25 @@
 
 .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(12.5rem, 22vw, 18rem); }
 .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(12.3rem, 21.5vw, 17.5rem); }
-.tq-waypoint--silver .tq-waypoint__scroll { bottom: 75%; }
+
+.tq-waypoint--bronze .tq-waypoint__scroll {
+    left: calc(50% + clamp(12rem, 22vw, 17rem));
+}
+
+.tq-waypoint--silver .tq-waypoint__scroll {
+    top: calc(100% + 0.18rem);
+    bottom: auto;
+    left: calc(50% + clamp(10rem, 17vw, 13rem));
+}
+
+.tq-waypoint--gold .tq-waypoint__scroll {
+    top: calc(100% + 0.18rem);
+    bottom: auto;
+}
+
+.tq-waypoint--crystal .tq-waypoint__scroll {
+    left: calc(50% - clamp(9rem, 15vw, 11rem));
+}
 
 .tq-waypoint--silver .tq-waypoint__badge { animation-delay: -1.05s; }
 .tq-waypoint--gold .tq-waypoint__badge { animation-delay: -2.1s; }

@@ -163,8 +163,7 @@
     pointer-events: none;
 }
 
-.tq-map-title > img,
-.tq-zone-label > img {
+.tq-map-title > img {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -188,20 +187,59 @@
     text-shadow: 0 1px 0 rgba(255, 252, 220, 0.96);
 }
 
-/* Generated region crests sit exactly on the route checkpoints. */
+/* Generated region crests sit on the route checkpoints. Their scroll artwork is
+   deliberately separate, fixed-size and noninteractive. */
 .tq-waypoint {
+    --waypoint-glow: 255, 226, 118;
+    --waypoint-halo-opacity: 0.16;
+    --waypoint-halo-scale: 0.84;
+    --waypoint-hover-opacity: 0.51;
+    --waypoint-hover-scale: 0.99;
     position: absolute;
-    z-index: 18;
+    z-index: 12;
     display: block;
     width: clamp(4.5rem, 7.2vw, 6rem);
     aspect-ratio: 1;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: transform 360ms cubic-bezier(0.22, 0.76, 0.25, 1), opacity 240ms ease;
+}
+
+.tq-waypoint--bronze { --waypoint-glow: 146, 232, 104; }
+.tq-waypoint--silver { --waypoint-glow: 149, 224, 255; }
+.tq-waypoint--gold { --waypoint-glow: 255, 211, 86; }
+.tq-waypoint--crystal { --waypoint-glow: 218, 139, 255; }
+
+.tq-waypoint.is-occupied.tq-waypoint--bronze { transform: translate(-50%, -50%) translate(4.8rem, -0.15rem); }
+.tq-waypoint.is-occupied.tq-waypoint--silver { transform: translate(-50%, -50%) translate(-3.1rem, 1.15rem); }
+.tq-waypoint.is-occupied.tq-waypoint--gold { transform: translate(-50%, -50%) translate(3.4rem, 1.25rem); }
+.tq-waypoint.is-occupied.tq-waypoint--crystal { transform: translate(-50%, -50%) translate(-3.2rem, 1.2rem); }
+
+.tq-waypoint__button {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: block;
+    width: 100%;
+    height: 100%;
     padding: 0;
     overflow: visible;
     border: 0;
     outline: 0;
     background: transparent;
     cursor: pointer;
-    transform: translate(-50%, -50%);
+    pointer-events: auto;
+}
+
+.tq-waypoint__halo {
+    position: absolute;
+    z-index: 0;
+    inset: -34%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--waypoint-glow), 0.88) 0%, rgba(var(--waypoint-glow), 0.34) 38%, rgba(var(--waypoint-glow), 0) 72%);
+    opacity: var(--waypoint-halo-opacity);
+    transform: scale(var(--waypoint-halo-scale));
+    transition: opacity 220ms ease, transform 260ms ease;
 }
 
 .tq-waypoint__badge {
@@ -218,113 +256,85 @@
     animation: tq-waypoint-breathe 4.2s ease-in-out infinite;
 }
 
+.tq-waypoint__scroll {
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    bottom: 78%;
+    display: block;
+    width: clamp(10rem, 19vw, 15.2rem);
+    height: auto;
+    pointer-events: none;
+    user-select: none;
+    transform: translateX(-50%);
+    transition: none;
+    filter: drop-shadow(0 0.18rem 0.2rem rgba(66, 41, 19, 0.25));
+}
+
+.tq-waypoint--gold .tq-waypoint__scroll { width: clamp(10.4rem, 20vw, 16rem); }
+.tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(10.2rem, 19.5vw, 15.6rem); }
+
 .tq-waypoint--silver .tq-waypoint__badge { animation-delay: -1.05s; }
 .tq-waypoint--gold .tq-waypoint__badge { animation-delay: -2.1s; }
 .tq-waypoint--crystal .tq-waypoint__badge { animation-delay: -3.15s; }
 
 .tq-waypoint:hover,
-.tq-waypoint:focus-visible { z-index: 110; }
+.tq-waypoint:focus-within { z-index: 22; }
 
-.tq-waypoint:hover .tq-waypoint__badge,
-.tq-waypoint:focus-visible .tq-waypoint__badge {
-    animation: none;
-    transform: translateY(-0.22rem) scale(1.1) rotate(-1deg);
+.tq-waypoint:hover .tq-waypoint__halo,
+.tq-waypoint:focus-within .tq-waypoint__halo {
+    opacity: var(--waypoint-hover-opacity);
+    transform: scale(var(--waypoint-hover-scale));
 }
 
-.tq-waypoint:focus-visible .tq-waypoint__badge {
+.tq-waypoint:hover .tq-waypoint__badge,
+.tq-waypoint:focus-within .tq-waypoint__badge {
+    animation: none;
+    transform: translateY(-0.16rem) scale(1.07) rotate(-1deg);
+}
+
+.tq-waypoint__button:focus-visible .tq-waypoint__badge {
     border-radius: 50%;
     outline: 3px solid rgba(255, 255, 255, 0.97);
     outline-offset: 3px;
 }
 
-.tq-zone-label {
-    position: absolute;
-    z-index: 1;
-    display: block;
-    width: clamp(9.4rem, 17.8vw, 14.2rem);
-    aspect-ratio: 720 / 243;
-    color: #663c1b;
-    pointer-events: auto;
-    transition: transform 180ms ease;
-}
-
-.tq-waypoint:hover .tq-zone-label,
-.tq-waypoint:focus-visible .tq-zone-label { transform: scale(1.035); }
-
-.tq-waypoint--bronze .tq-zone-label { left: 72%; top: -8%; }
-.tq-waypoint--silver .tq-zone-label { left: 64%; top: 56%; }
-.tq-waypoint--gold .tq-zone-label { right: 64%; top: 58%; }
-.tq-waypoint--crystal .tq-zone-label { left: 60%; bottom: 58%; }
-
-.tq-zone-label__content {
-    position: absolute;
-    inset: 20% 11% 23%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(0.24rem, 0.55vw, 0.5rem);
-    line-height: 1;
-    text-align: center;
-    text-shadow: 0 1px 0 rgba(255, 252, 222, 0.98);
-    white-space: nowrap;
-}
-
-.tq-zone-label__content i {
-    flex: 0 0 auto;
-    font-size: 0.86em;
-}
-
-.tq-zone-label--bronze .tq-zone-label__content {
-    color: #426b28;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: clamp(0.66rem, 1.25vw, 1rem);
-    letter-spacing: 0.01em;
-}
-
-.tq-zone-label--silver .tq-zone-label__content {
-    color: #3e6289;
-    font-family: 'Lora', Georgia, serif;
-    font-size: clamp(0.64rem, 1.18vw, 0.95rem);
-    font-style: italic;
-    font-weight: 700;
-    letter-spacing: 0.035em;
-}
-
-.tq-zone-label--gold .tq-zone-label__content {
-    color: #915615;
-    font-family: 'Cinzel Decorative', Georgia, serif;
-    font-size: clamp(0.54rem, 1vw, 0.82rem);
-    font-weight: 700;
-    letter-spacing: -0.015em;
-}
-
-.tq-zone-label--crystal .tq-zone-label__content {
-    color: #6c3a98;
-    font-family: 'Uncial Antiqua', 'Cinzel Decorative', Georgia, serif;
-    font-size: clamp(0.62rem, 1.12vw, 0.92rem);
-    letter-spacing: 0.015em;
-}
-
-.tq-zone-label--bronze .tq-zone-label__content i { color: #4d9b51; }
-.tq-zone-label--silver .tq-zone-label__content i { color: #5c99d2; }
-.tq-zone-label--gold .tq-zone-label__content i { color: #d18a16; }
-.tq-zone-label--crystal .tq-zone-label__content i { color: #a655cf; }
+.tq-waypoint.is-occupied .tq-waypoint__badge { opacity: 0.72; }
 
 .tq-route-finish {
     position: absolute;
-    z-index: 20;
-    display: grid;
-    width: clamp(2.5rem, 4.4vw, 3.5rem);
+    z-index: 19;
+    display: block;
+    width: clamp(4rem, 7vw, 6rem);
     aspect-ratio: 1;
-    place-items: center;
-    color: #642783;
-    border: 2px solid rgba(108, 48, 143, 0.88);
-    border-radius: 50%;
-    background: rgba(251, 228, 255, 0.94);
-    box-shadow: 0 0.2rem 0 rgba(86, 39, 111, 0.45), 0 0 1.15rem rgba(230, 147, 255, 0.95), inset 0 0 0 0.16rem rgba(255, 255, 255, 0.78);
-    font-size: clamp(0.9rem, 1.7vw, 1.3rem);
     transform: translate(-50%, -50%);
     animation: tq-finish-pulse 2.8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.tq-route-finish__glow {
+    position: absolute;
+    inset: -18%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(104, 228, 255, 0.34) 34%, rgba(193, 101, 255, 0.18) 56%, transparent 72%);
+    animation: tq-portal-glow 3.2s ease-in-out infinite;
+}
+
+.tq-portal-vortex {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+    will-change: transform, opacity;
+}
+
+.tq-portal-vortex--outer { animation: tq-portal-spin 13s linear infinite; }
+.tq-portal-vortex--inner {
+    opacity: 0.72;
+    animation: tq-portal-spin-reverse 8s linear infinite;
 }
 
 /* Ambient pieces use only transform and opacity. */
@@ -400,11 +410,70 @@
 .tq-ambient--crystal-spark-two { left: 88%; top: 25%; font-size: 0.8rem; animation-delay: -0.9s; }
 .tq-ambient--crystal-spark-three { left: 80%; top: 29%; font-size: 0.68rem; animation-delay: -1.8s; }
 
+.tq-water-ripple {
+    width: clamp(1.9rem, 4.5vw, 3.8rem);
+    aspect-ratio: 2.35 / 1;
+    border: 2px solid rgba(213, 251, 255, 0.74);
+    border-radius: 50%;
+    box-shadow: 0 0 0.28rem rgba(67, 190, 231, 0.55);
+    animation: tq-water-ripple 4.6s ease-out infinite;
+}
+
+.tq-water-ripple--meadow { left: 26%; top: 67%; }
+.tq-water-ripple--falls { left: 49%; top: 70%; animation-delay: -1.55s; }
+.tq-water-ripple--lagoon { left: 73%; top: 79%; animation-delay: -3.1s; }
+
+.tq-wind-wisp {
+    width: clamp(3rem, 7vw, 6rem);
+    height: clamp(0.7rem, 1.6vw, 1.2rem);
+    border-top: 2px solid rgba(240, 250, 255, 0.78);
+    border-radius: 50%;
+    animation: tq-wind-wisp 8s ease-in-out infinite;
+}
+
+.tq-wind-wisp--high { left: 22%; top: 18%; }
+.tq-wind-wisp--low { left: 31%; top: 31%; animation-delay: -4s; transform: scale(0.72); }
+
+.tq-snow-particle {
+    color: rgba(255, 255, 255, 0.94);
+    line-height: 1;
+    text-shadow: 0 0 0.3rem rgba(105, 190, 255, 0.88);
+    animation: tq-snow-drift 6.4s linear infinite;
+}
+
+.tq-snow-particle--one { left: 30%; top: 17%; font-size: 0.7rem; }
+.tq-snow-particle--two { left: 36%; top: 23%; font-size: 0.5rem; animation-delay: -1.6s; }
+.tq-snow-particle--three { left: 42%; top: 12%; font-size: 0.62rem; animation-delay: -3.2s; }
+.tq-snow-particle--four { left: 46%; top: 29%; font-size: 0.45rem; animation-delay: -4.8s; }
+
+.tq-city-glow {
+    width: clamp(0.28rem, 0.62vw, 0.52rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #fff4a8;
+    box-shadow: 0 0 0.45rem #ffbd3e, 0 0 0.9rem rgba(255, 121, 32, 0.76);
+    animation: tq-city-glow 2.8s ease-in-out infinite;
+}
+
+.tq-city-glow--one { left: 63.1%; top: 46.5%; }
+.tq-city-glow--two { left: 67.7%; top: 52.5%; animation-delay: -0.95s; }
+.tq-city-glow--three { left: 72.1%; top: 43.5%; animation-delay: -1.9s; }
+
+.tq-crystal-mote {
+    color: #fff;
+    text-shadow: 0 0 0.45rem #66efff, 0 0 0.85rem #cf72ff;
+    animation: tq-crystal-mote 5.2s ease-in-out infinite;
+}
+
+.tq-crystal-mote--one { left: 91%; top: 12%; font-size: 0.55rem; }
+.tq-crystal-mote--two { left: 86%; top: 36%; font-size: 0.72rem; animation-delay: -1.7s; }
+.tq-crystal-mote--three { left: 94%; top: 30%; font-size: 0.48rem; animation-delay: -3.4s; }
+
 /* Class tokens */
 .tq-class-token-layer {
     position: absolute;
     inset: 0;
-    z-index: 14;
+    z-index: 24;
     pointer-events: none;
 }
 
@@ -763,6 +832,8 @@
 .tq-living-map.is-motion-paused .tq-route__gleam,
 .tq-living-map.is-motion-paused .tq-waypoint__badge,
 .tq-living-map.is-motion-paused .tq-route-finish,
+.tq-living-map.is-motion-paused .tq-route-finish__glow,
+.tq-living-map.is-motion-paused .tq-portal-vortex,
 .tq-living-map.is-motion-paused .tq-ambient,
 .tq-living-map.is-motion-paused .tq-class-token.is-leader .tq-class-token__visual { animation-play-state: paused; }
 
@@ -772,19 +843,28 @@
 @keyframes tq-mist-far { 0% { opacity: 0.05; transform: translate3d(-3%, 0, 0) scale(0.78); } 100% { opacity: 0.12; transform: translate3d(6%, -1.5%, 0) scale(0.78); } }
 @keyframes tq-waypoint-breathe { 0%, 100% { transform: translateY(0) scale(0.98); } 50% { transform: translateY(-0.18rem) scale(1.025); } }
 @keyframes tq-finish-pulse { 0%, 100% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.88; } 50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; } }
+@keyframes tq-portal-glow { 0%, 100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.12); } }
+@keyframes tq-portal-spin { to { transform: rotate(360deg); } }
+@keyframes tq-portal-spin-reverse { from { transform: rotate(360deg) scale(0.72); } to { transform: rotate(0deg) scale(0.72); } }
 @keyframes tq-butterfly-one { 0%, 100% { transform: translate3d(0, 0, 0) rotate(-8deg) scale(0.88); opacity: 0.55; } 35% { transform: translate3d(2.3rem, -1.3rem, 0) rotate(8deg) scale(1); opacity: 1; } 70% { transform: translate3d(4.1rem, 0.2rem, 0) rotate(-4deg) scale(0.92); opacity: 0.75; } }
 @keyframes tq-butterfly-two { 0%, 100% { transform: translate3d(0, 0, 0) rotate(8deg) scale(0.8); opacity: 0.45; } 45% { transform: translate3d(-2rem, -1.5rem, 0) rotate(-10deg) scale(1); opacity: 0.92; } 75% { transform: translate3d(-3rem, 0.4rem, 0) rotate(5deg) scale(0.88); opacity: 0.68; } }
 @keyframes tq-bird-glide { 0%, 100% { transform: translate3d(-1rem, 0.3rem, 0) scaleX(1); opacity: 0; } 15% { opacity: 0.8; } 50% { transform: translate3d(4rem, -1rem, 0) scaleX(1); opacity: 0.9; } 85% { opacity: 0.68; } }
 @keyframes tq-ambient-flag { 0%, 100% { transform: rotate(-5deg) scaleX(0.92); } 50% { transform: rotate(6deg) scaleX(1.05); } }
 @keyframes tq-crystal-spark { 0%, 100% { transform: scale(0.58) rotate(0); opacity: 0.18; } 50% { transform: scale(1.12) rotate(14deg); opacity: 1; } }
+@keyframes tq-water-ripple { 0% { opacity: 0; transform: scale(0.42); } 24% { opacity: 0.78; } 100% { opacity: 0; transform: scale(1.28); } }
+@keyframes tq-wind-wisp { 0%, 100% { opacity: 0; transform: translate3d(-1.2rem, 0.15rem, 0) scaleX(0.72); } 22% { opacity: 0.72; } 68% { opacity: 0.5; } 88% { opacity: 0; transform: translate3d(4.2rem, -0.45rem, 0) scaleX(1.08); } }
+@keyframes tq-snow-drift { 0% { opacity: 0; transform: translate3d(-0.3rem, -0.7rem, 0) scale(0.72); } 18% { opacity: 0.9; } 82% { opacity: 0.72; } 100% { opacity: 0; transform: translate3d(1.2rem, 3.1rem, 0) scale(1); } }
+@keyframes tq-city-glow { 0%, 100% { opacity: 0.36; transform: scale(0.72); } 50% { opacity: 1; transform: scale(1.35); } }
+@keyframes tq-crystal-mote { 0%, 100% { opacity: 0; transform: translate3d(0, 0.7rem, 0) rotate(0) scale(0.55); } 34% { opacity: 1; } 72% { opacity: 0.72; } 100% { transform: translate3d(0.8rem, -2.2rem, 0) rotate(28deg) scale(1.1); } }
 @keyframes tq-leader-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.2rem); } }
 
 @media (max-width: 1180px) {
     .tq-living-map__frame { border-radius: 1.15rem; }
     .tq-map-title { left: 1.6%; top: 1.6%; }
     .tq-waypoint { width: clamp(3.9rem, 7vw, 4.8rem); }
-    .tq-zone-label { width: clamp(8rem, 17.2vw, 10.6rem); }
-    .tq-zone-label--gold .tq-zone-label__content { font-size: clamp(0.46rem, 0.92vw, 0.66rem); }
+    .tq-waypoint__scroll { width: clamp(8.5rem, 18.5vw, 11.4rem); }
+    .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(9rem, 19.5vw, 12rem); }
+    .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(8.8rem, 19vw, 11.7rem); }
     .tq-living-map .tq-class-token.league-map-avatar { width: clamp(2.8rem, 4.8vw, 3.45rem); height: clamp(2.8rem, 4.8vw, 3.45rem); }
     .tq-map-tooltip { width: 13rem; padding-right: 0.88rem; padding-left: 0.88rem; }
     .tq-map-controls { right: 0.8rem; bottom: 0.72rem; }
@@ -804,11 +884,13 @@
     .tq-route__gleam,
     .tq-waypoint__badge,
     .tq-route-finish,
+    .tq-route-finish__glow,
+    .tq-portal-vortex,
     .tq-ambient,
     .tq-class-token.is-leader .tq-class-token__visual,
     .zone-overview-hero__icon-ring { animation: none !important; }
 
-    .tq-zone-label,
+    .tq-waypoint,
     .tq-waypoint__badge,
     .tq-class-token__visual,
     .tq-map-tooltip,

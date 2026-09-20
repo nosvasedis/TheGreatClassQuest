@@ -112,7 +112,7 @@ const MAP_VIEWBOX_HEIGHT = 675;
 const QUEST_ROUTE_SEGMENTS = [
     {
         id: 'bronze', minProgress: 0, maxProgress: 30,
-        d: 'M 60 612 C 82 580 108 544 157 522 C 210 496 253 543 302 534 C 337 527 306 478 262 445 C 219 412 214 373 252 346 C 306 307 346 272 360 221 C 371 181 397 151 421 136'
+        d: 'M 60 612 C 82 580 108 544 157 522 C 208 498 252 543 302 534 C 324 527 297 489 247 458 C 205 432 177 398 194 360 C 211 329 235 310 252 293 C 289 258 326 224 349 190 C 374 154 399 141 421 136'
     },
     {
         id: 'silver', minProgress: 30, maxProgress: 60,
@@ -139,6 +139,11 @@ const LIVING_MAP_ASSETS = {
     badgeSilver: new URL('../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
     badgeGold: new URL('../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
     badgeCrystal: new URL('../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href,
+    scrollBronze: new URL('../assets/team-quest-map/living-atlas/scroll-bronze.webp', import.meta.url).href,
+    scrollSilver: new URL('../assets/team-quest-map/living-atlas/scroll-silver.webp', import.meta.url).href,
+    scrollGold: new URL('../assets/team-quest-map/living-atlas/scroll-gold.webp', import.meta.url).href,
+    scrollCrystal: new URL('../assets/team-quest-map/living-atlas/scroll-crystal.webp', import.meta.url).href,
+    portalVortex: new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href,
     tokenGold: new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
     tokenSilver: new URL('../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
     tokenBronze: new URL('../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
@@ -158,6 +163,14 @@ const ZONE_BADGE_BY_ID = {
     gold: LIVING_MAP_ASSETS.badgeGold,
     crystal: LIVING_MAP_ASSETS.badgeCrystal,
     diamond: LIVING_MAP_ASSETS.badgeCrystal
+};
+
+const ZONE_SCROLL_BY_ID = {
+    bronze: LIVING_MAP_ASSETS.scrollBronze,
+    silver: LIVING_MAP_ASSETS.scrollSilver,
+    gold: LIVING_MAP_ASSETS.scrollGold,
+    crystal: LIVING_MAP_ASSETS.scrollCrystal,
+    diamond: LIVING_MAP_ASSETS.scrollCrystal
 };
 
 let activeLivingMapController = null;
@@ -271,22 +284,24 @@ function renderMapToken(item) {
         </button>`;
 }
 
-function renderWaypoint({ id, label, icon, progress, className }) {
+function renderWaypoint({ id, label, progress, className }) {
     return `
-        <button type="button"
-                class="tq-waypoint tq-waypoint--${className} zone-trigger"
-                data-zone="${id}"
+        <span class="tq-waypoint tq-waypoint--${className}"
                 data-route-progress="${progress}"
-                aria-label="Open ${label} region overview">
-            <img class="tq-waypoint__badge" src="${ZONE_BADGE_BY_ID[id]}" alt="" draggable="false" aria-hidden="true">
-            <span class="tq-zone-label tq-zone-label--${className}">
-                <img src="${LIVING_MAP_ASSETS.plaque}" alt="" draggable="false" aria-hidden="true">
-                <span class="tq-zone-label__content">
-                    <i class="fas ${icon}" aria-hidden="true"></i>
-                    <span>${label}</span>
-                </span>
-            </span>
-        </button>`;
+                data-waypoint-progress="${progress}">
+            <img class="tq-waypoint__scroll"
+                 src="${ZONE_SCROLL_BY_ID[id]}"
+                 alt=""
+                 draggable="false"
+                 aria-hidden="true">
+            <button type="button"
+                    class="tq-waypoint__button zone-trigger"
+                    data-zone="${id}"
+                    aria-label="Open ${label} region overview">
+                <span class="tq-waypoint__halo" aria-hidden="true"></span>
+                <img class="tq-waypoint__badge" src="${ZONE_BADGE_BY_ID[id]}" alt="" draggable="false" aria-hidden="true">
+            </button>
+        </span>`;
 }
 
 export function generateLeagueMapHtml(classes) {
@@ -325,10 +340,10 @@ export function generateLeagueMapHtml(classes) {
     )).join('');
 
     const waypoints = [
-        { id: 'bronze', label: 'Bronze Meadows', icon: 'fa-seedling', progress: 0, className: 'bronze' },
-        { id: 'silver', label: 'Silver Peaks', icon: 'fa-snowflake', progress: 30, className: 'silver' },
-        { id: 'gold', label: 'Golden Citadel', icon: 'fa-crown', progress: 60, className: 'gold' },
-        { id: 'diamond', label: 'Crystal Realm', icon: 'fa-wand-magic-sparkles', progress: 85, className: 'crystal' }
+        { id: 'bronze', label: 'Bronze Meadows', progress: 0, className: 'bronze' },
+        { id: 'silver', label: 'Silver Peaks', progress: 30, className: 'silver' },
+        { id: 'gold', label: 'Golden Citadel', progress: 60, className: 'gold' },
+        { id: 'diamond', label: 'Crystal Realm', progress: 85, className: 'crystal' }
     ].map(renderWaypoint).join('');
 
     const routeShadows = QUEST_ROUTE_SEGMENTS.map((segment) => (
@@ -401,11 +416,28 @@ export function generateLeagueMapHtml(classes) {
                 <span class="tq-ambient tq-ambient--crystal-spark-one">✦</span>
                 <span class="tq-ambient tq-ambient--crystal-spark-two">✧</span>
                 <span class="tq-ambient tq-ambient--crystal-spark-three">✦</span>
+                <span class="tq-ambient tq-water-ripple tq-water-ripple--meadow"></span>
+                <span class="tq-ambient tq-water-ripple tq-water-ripple--falls"></span>
+                <span class="tq-ambient tq-water-ripple tq-water-ripple--lagoon"></span>
+                <span class="tq-ambient tq-wind-wisp tq-wind-wisp--high"></span>
+                <span class="tq-ambient tq-wind-wisp tq-wind-wisp--low"></span>
+                <span class="tq-ambient tq-snow-particle tq-snow-particle--one">•</span>
+                <span class="tq-ambient tq-snow-particle tq-snow-particle--two">•</span>
+                <span class="tq-ambient tq-snow-particle tq-snow-particle--three">•</span>
+                <span class="tq-ambient tq-snow-particle tq-snow-particle--four">•</span>
+                <span class="tq-ambient tq-city-glow tq-city-glow--one"></span>
+                <span class="tq-ambient tq-city-glow tq-city-glow--two"></span>
+                <span class="tq-ambient tq-city-glow tq-city-glow--three"></span>
+                <span class="tq-ambient tq-crystal-mote tq-crystal-mote--one">✦</span>
+                <span class="tq-ambient tq-crystal-mote tq-crystal-mote--two">✧</span>
+                <span class="tq-ambient tq-crystal-mote tq-crystal-mote--three">✦</span>
             </div>
 
             ${waypoints}
             <span class="tq-route-finish" data-route-progress="100" aria-label="Quest finish at 100 percent">
-                <i class="fas fa-flag-checkered" aria-hidden="true"></i>
+                <span class="tq-route-finish__glow" aria-hidden="true"></span>
+                <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
+                <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
             </span>
             <div class="tq-class-token-layer">${mapItems.map(renderMapToken).join('')}</div>
 
@@ -488,6 +520,7 @@ export function initializeLivingQuestMap(scope) {
     if (!root || !frame || routeSegments.length === 0) return null;
 
     const tokens = [...root.querySelectorAll('[data-map-token]')];
+    const waypoints = [...root.querySelectorAll('[data-waypoint-progress]')];
     const routeAnchors = [...root.querySelectorAll('[data-route-progress]:not([data-map-token])')];
     const activeAnimations = [];
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -502,6 +535,30 @@ export function initializeLivingQuestMap(scope) {
             point.y += Number(element.dataset.offsetY) || 0;
             element.style.left = `${(point.x / MAP_VIEWBOX_WIDTH) * 100}%`;
             element.style.top = `${(point.y / MAP_VIEWBOX_HEIGHT) * 100}%`;
+        });
+    };
+
+    const updateWaypointStates = () => {
+        const progressValues = tokens.map((token) => Math.min(100, Math.max(0, Number(token.dataset.progress) || 0)));
+        const leaderProgress = Math.max(0, ...progressValues);
+        const checkpointStarts = [0, 0, 30, 60];
+
+        waypoints.forEach((waypoint, index) => {
+            const targetProgress = Number(waypoint.dataset.waypointProgress) || 0;
+            const startProgress = checkpointStarts[index] ?? 0;
+            const checkpointRange = Math.max(1, targetProgress - startProgress);
+            const charge = targetProgress === 0
+                ? 1
+                : Math.min(1, Math.max(0, (leaderProgress - startProgress) / checkpointRange));
+            const occupied = progressValues.some((progress) => Math.abs(progress - targetProgress) <= 3.5);
+            const haloOpacity = 0.16 + charge * 0.42;
+            const haloScale = 0.84 + charge * 0.22;
+
+            waypoint.style.setProperty('--waypoint-halo-opacity', haloOpacity.toFixed(3));
+            waypoint.style.setProperty('--waypoint-halo-scale', haloScale.toFixed(3));
+            waypoint.style.setProperty('--waypoint-hover-opacity', Math.min(1, haloOpacity + 0.35).toFixed(3));
+            waypoint.style.setProperty('--waypoint-hover-scale', (haloScale + 0.15).toFixed(3));
+            waypoint.classList.toggle('is-occupied', occupied);
         });
     };
 
@@ -570,6 +627,7 @@ export function initializeLivingQuestMap(scope) {
         if (initialJourneyPlayed) return;
         initialJourneyPlayed = true;
         positionStaticElements();
+        updateWaypointStates();
         positionTokens({ animate: true });
         root.dataset.mapReady = 'true';
         updateMotionState();
@@ -619,11 +677,13 @@ export function initializeLivingQuestMap(scope) {
 
     const resizeObserver = new ResizeObserver(() => {
         positionStaticElements();
+        updateWaypointStates();
         positionTokens({ animate: false });
     });
     resizeObserver.observe(frame);
 
     positionStaticElements();
+    updateWaypointStates();
     positionTokens({ animate: false });
     requestAnimationFrame(() => {
         const bounds = root.getBoundingClientRect();

@@ -63,6 +63,8 @@ function corsFor(request, env) {
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Firebase-AppCheck,X-GCQ-Request-ID,X-GCQ-Service-Key',
     'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider,X-GCQ-Auth-Reason',
+    'Access-Control-Max-Age': '600',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
     Vary: 'Origin',
   };
 }

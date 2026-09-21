@@ -130,8 +130,8 @@ const classPickerSheetHTML = `
 const optionsSubtabDropdownHTML = `
     <div class="m-subtab-dropdown" id="m-options-subtab-dropdown">
         <button type="button" id="m-options-subtab-trigger" class="m-subtab-dropdown__trigger m-pressable bubbly-button" aria-haspopup="dialog" aria-expanded="false" aria-label="Choose settings section">
-            <span class="m-subtab-dropdown__icon" id="m-options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-tools"></i></span>
-            <span class="m-subtab-dropdown__label" id="m-options-subtab-trigger-label">Student Tools</span>
+            <span class="m-subtab-dropdown__icon" id="m-options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-chalkboard-teacher"></i></span>
+            <span class="m-subtab-dropdown__label" id="m-options-subtab-trigger-label">My Classes</span>
             <i class="fas fa-chevron-down m-subtab-dropdown__chev" aria-hidden="true"></i>
         </button>
     </div>`;

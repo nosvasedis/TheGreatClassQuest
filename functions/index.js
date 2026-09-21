@@ -2518,3 +2518,21 @@ exports.manageShopItem = callable(async (request) => {
     throw new HttpsError('internal', 'The merchant could not finish that treasure.');
   }
 }, { timeoutSeconds: 180, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });
+
+const { createAvatarForgeHandlers } = require('./avatarForge');
+const avatarForge = createAvatarForgeHandlers({
+  requireStudentManager,
+  requireFeatureEnabled,
+  publicDataPath: PUBLIC_DATA_PATH
+});
+// Browser calls to workers.dev and Firebase Storage uploads are what school networks
+// report as CORS failures. These callables keep portrait generation and storage on the server.
+exports.forgeStudentAvatar = callable(avatarForge.forgeStudentAvatar, {
+  timeoutSeconds: 180,
+  memory: '1GB',
+  secrets: ['GCQ_AI_SERVICE_KEY']
+});
+exports.saveStudentAvatar = callable(avatarForge.saveStudentAvatar, {
+  timeoutSeconds: 60,
+  memory: '512MB'
+});

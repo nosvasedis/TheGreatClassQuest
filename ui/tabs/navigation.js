@@ -349,14 +349,14 @@ function syncOptionsSubtabSelect() {
 
     const visible = getOptionsSubtabButtons().filter((btn) => !btn.classList.contains('hidden'));
     const active = visible.find((btn) => btn.classList.contains('options-subtab-active')) || visible[0];
-    const activeKey = active?.dataset.optionsTab || 'manage';
+    const activeKey = active?.dataset.optionsTab || 'classes';
 
     if (wrap) wrap.dataset.activeTab = activeKey;
     if (iconEl) {
         const icon = active?.querySelector('i')?.className || 'fas fa-tools';
         iconEl.innerHTML = `<i class="${icon}"></i>`;
     }
-    if (labelEl) labelEl.textContent = optionsSubtabLabel(active) || 'Student Tools';
+    if (labelEl) labelEl.textContent = optionsSubtabLabel(active) || 'My Classes';
 
     menu.innerHTML = visible.map((btn) => {
         const key = btn.dataset.optionsTab;
@@ -491,13 +491,13 @@ export async function showTab(tabName) {
         const marketBtn = document.querySelector('#options-tab .options-subtab-btn[data-options-tab="market"]');
         const marketSection = document.querySelector('#options-tab [data-options-section="market"]');
         assessmentsBtn?.classList.toggle('hidden', !hasAssessmentAccess);
-        assessmentsSection?.classList.toggle('hidden', !hasAssessmentAccess);
         accessBtn?.classList.toggle('hidden', !hasAccessCenter);
-        accessSection?.classList.toggle('hidden', !hasAccessCenter);
         quizBtn?.classList.toggle('hidden', !hasQuizFeature);
-        quizSection?.classList.toggle('hidden', !hasQuizFeature);
         marketBtn?.classList.toggle('hidden', !hasMarketManager);
-        marketSection?.classList.toggle('hidden', !hasMarketManager);
+        if (!hasAssessmentAccess) assessmentsSection?.classList.add('hidden');
+        if (!hasAccessCenter) accessSection?.classList.add('hidden');
+        if (!hasQuizFeature) quizSection?.classList.add('hidden');
+        if (!hasMarketManager) marketSection?.classList.add('hidden');
 
         // Load teacher-owned settings; isolate failures so one broken renderer doesn't block the others
         import('../core.js').then(m => {
@@ -576,7 +576,7 @@ export async function showTab(tabName) {
 
             buttons.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const key = btn.dataset.optionsTab || 'manage';
+                    const key = btn.dataset.optionsTab || 'classes';
                     activate(key);
                     if (typeof playSound === 'function') playSound('click');
                 });
@@ -593,7 +593,7 @@ export async function showTab(tabName) {
                     handleSaveAssessmentSettingsFromOptions();
                 });
             }
-            activate('manage');
+            activate('classes');
         }
         syncOptionsSubtabSelect();
 

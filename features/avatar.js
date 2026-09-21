@@ -161,6 +161,33 @@ export function handleAvatarOptionSelect(event, pool) {
 }
 
 
+function avatarCallableMissing(error) {
+    const code = String(error?.code || '');
+    return code === 'functions/not-found' || code === 'functions/unimplemented';
+}
+
+/**
+ * School networks often block workers.dev and then report that as a CORS error.
+ * The callable paints the portrait on the server, so the browser never calls that host.
+ */
+async function forgeAvatarOnServer(studentId, creature, color, accessory) {
+    const { functions, httpsCallable } = await import('../firebase.js');
+    const forge = httpsCallable(functions, 'forgeStudentAvatar', { timeout: 180000 });
+    const result = await forge({ studentId, creature, color, accessory });
+    const imageDataUrl = result?.data?.imageDataUrl;
+    if (!imageDataUrl) throw new Error('Avatar forge returned no portrait.');
+    return imageDataUrl;
+}
+
+async function saveAvatarOnServer(studentId, imageDataUrl) {
+    const { functions, httpsCallable } = await import('../firebase.js');
+    const save = httpsCallable(functions, 'saveStudentAvatar', { timeout: 60000 });
+    const result = await save({ studentId, imageDataUrl });
+    const avatar = result?.data?.avatar;
+    if (!avatar) throw new Error('Avatar save returned no portrait URL.');
+    return avatar;
+}
+
 // --- CORE ACTIONS ---
 
 export async function handleGenerateAvatar() {
@@ -189,9 +216,16 @@ export async function handleGenerateAvatar() {
     const userPrompt = `Generate a prompt for a cute chibi ${creature} with a main color scheme of ${color}, ${accessoryText}.`;
 
     try {
-        const finalPrompt = await callGeminiApi(systemPrompt, userPrompt);
-        const imageBase64 = await callCloudflareAiImageApi(finalPrompt);
-        
+        let imageBase64 = '';
+        try {
+            imageBase64 = await forgeAvatarOnServer(avatarMakerData.studentId, creature, color, accessory);
+        } catch (serverError) {
+            if (!avatarCallableMissing(serverError)) throw serverError;
+            console.warn('Avatar forge callable is not deployed; using the browser AI proxy.', serverError?.code || serverError);
+            const finalPrompt = await callGeminiApi(systemPrompt, userPrompt);
+            imageBase64 = await callCloudflareAiImageApi(finalPrompt);
+        }
+
         avatarMakerData.generatedImage = imageBase64;
         imgEl.src = imageBase64;
 
@@ -217,15 +251,24 @@ export async function handleSaveAvatar() {
 
     try {
         const compressedAvatar = await compressAvatarImageBase64(generatedImage);
-        
-        // NEW: Upload to Storage
-        const { uploadImageToStorage } = await import('../utils.js');
-        const imagePath = `avatars/${studentId}/avatar.webp`;
-        const imageUrl = await uploadImageToStorage(compressedAvatar, imagePath);
 
-        const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
-        await updateDoc(studentRef, { avatar: imageUrl }); // NEW: Save URL
-        
+        let imageUrl = '';
+        try {
+            imageUrl = await saveAvatarOnServer(studentId, compressedAvatar);
+        } catch (serverError) {
+            if (!avatarCallableMissing(serverError)) throw serverError;
+            console.warn('Avatar save callable is not deployed; uploading from the browser.', serverError?.code || serverError);
+            const { uploadImageToStorage } = await import('../utils.js');
+            imageUrl = await uploadImageToStorage(compressedAvatar, `avatars/${studentId}/avatar.webp`);
+            const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
+            await updateDoc(studentRef, { avatar: imageUrl });
+        }
+
+        const nextStudents = (state.get('allStudents') || []).map((student) => (
+            student.id === studentId ? { ...student, avatar: imageUrl } : student
+        ));
+        state.setAllStudents(nextStudents);
+
         showToast("Avatar saved successfully!", "success");
         modals.hideModal('avatar-maker-modal');
     } catch (error) {

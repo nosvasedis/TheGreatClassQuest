@@ -871,7 +871,7 @@ async function handleAction(action, data) {
         if (id) modals.openAttendanceChronicle(id); else tabs.showTab('adventure-log-tab');
     }
     else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
-    else if (action === 'open-settings') await activateOptionsSubtab('manage');
+    else if (action === 'open-settings') await activateOptionsSubtab('classes');
     else if (action === 'open-holidays') await activateOptionsSubtab('planning');
     else if (action === 'open-my-classes') await activateOptionsSubtab('classes');
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal();

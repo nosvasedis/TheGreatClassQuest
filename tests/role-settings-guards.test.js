@@ -39,7 +39,11 @@ test('Teacher Settings contains only teacher-owned controls and no school-wide e
   assert.doesNotMatch(teacherSettings, /id="options-manage-subscription-btn"/);
   assert.match(teacherSettings, /Student Tools/);
   assert.match(teacherSettings, /My Classes/);
-  assert.match(teacherSettings, /data-options-tab="classes"/);
+  assert.match(teacherSettings, /options-subtab-active" data-options-tab="classes"/);
+  assert.ok(
+    teacherSettings.indexOf('data-options-tab="classes"') < teacherSettings.indexOf('data-options-tab="manage"'),
+    'My Classes is the first Teacher Settings section'
+  );
   assert.match(teacherSettings, /My Planning/);
   assert.match(teacherSettings, /Class Grading/);
   assert.match(teacherSettings, /Family Access/);

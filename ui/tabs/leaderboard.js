@@ -34,6 +34,175 @@ const TEAM_QUEST_ANALYTICS_ASSETS = {
     rankSlate: new URL('../../assets/team-quest-map/living-atlas/token-slate.webp', import.meta.url).href
 };
 
+const TEACHER_QUEST_COMPACT_MEDIA = '(max-width: 1023px)';
+let teacherQuestCompactMediaListenerBound = false;
+
+function escapeLeaderboardHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function isCompactTeacherQuestViewport() {
+    return state.get('currentUserRole') === 'teacher'
+        && (
+            (typeof document !== 'undefined' && document.body?.classList.contains('gcq-mobile'))
+            || (
+                typeof window !== 'undefined'
+                && typeof window.matchMedia === 'function'
+                && window.matchMedia(TEACHER_QUEST_COMPACT_MEDIA).matches
+            )
+        );
+}
+
+function bindTeacherQuestCompactViewportListener() {
+    if (teacherQuestCompactMediaListenerBound || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const mediaQuery = window.matchMedia(TEACHER_QUEST_COMPACT_MEDIA);
+    let wasCompact = mediaQuery.matches;
+    const handleViewportChange = (event) => {
+        if (event.matches === wasCompact) return;
+        wasCompact = event.matches;
+
+        const tab = document.getElementById('class-leaderboard-tab');
+        if (!tab || tab.classList.contains('hidden') || state.get('currentUserRole') !== 'teacher') return;
+        renderClassLeaderboardTab();
+    };
+
+    if (typeof mediaQuery.addEventListener === 'function') mediaQuery.addEventListener('change', handleViewportChange);
+    else mediaQuery.addListener?.(handleViewportChange);
+    teacherQuestCompactMediaListenerBound = true;
+}
+
+function formatQuestNumber(value) {
+    const number = Number(value) || 0;
+    return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function getRaceRankFrame(rank) {
+    if (rank === 1) return { asset: TEAM_QUEST_ANALYTICS_ASSETS.rankGold, tier: 'gold' };
+    if (rank === 2) return { asset: TEAM_QUEST_ANALYTICS_ASSETS.rankSilver, tier: 'silver' };
+    if (rank === 3) return { asset: TEAM_QUEST_ANALYTICS_ASSETS.rankBronze, tier: 'bronze' };
+    return { asset: TEAM_QUEST_ANALYTICS_ASSETS.rankSlate, tier: 'slate' };
+}
+
+function getNextQuestMilestone(progress, stars, goal) {
+    const milestones = [
+        { percent: 30, label: 'Silver Peaks' },
+        { percent: 60, label: 'Golden Citadel' },
+        { percent: 85, label: 'Crystal Realm' },
+        { percent: 100, label: 'the finish' }
+    ];
+    const next = milestones.find((milestone) => progress < milestone.percent);
+    if (!next) return { complete: true, label: 'Quest complete', starsNeeded: 0 };
+
+    return {
+        complete: false,
+        label: next.label,
+        starsNeeded: Math.max(0, Math.ceil((goal * next.percent / 100) - stars))
+    };
+}
+
+function generateTeacherMobileRaceHtml(classScores) {
+    const realmKeyHtml = QUEST_MAP_ZONES.map((zone) => `
+        <div class="tq-mobile-race__realm tq-mobile-race__realm--${zone.id}">
+            <img src="${TEAM_QUEST_ANALYTICS_ASSETS[zone.id]}" alt="" draggable="false" aria-hidden="true">
+            <span>${zone.label}</span>
+        </div>
+    `).join('');
+
+    const raceCardsHtml = classScores.map((classroom, index) => {
+        const rank = classroom.rank || index + 1;
+        const rankFrame = getRaceRankFrame(rank);
+        const progress = Math.min(100, Math.max(0, Number(classroom.progress) || 0));
+        const goal = Number(classroom.goals?.diamond) || 0;
+        const stars = Number(classroom.currentMonthlyStars) || 0;
+        const weeklyStars = Number(classroom.weeklyStars) || 0;
+        const zone = QUEST_MAP_ZONES.reduce(
+            (current, candidate) => (progress >= candidate.minPercent ? candidate : current),
+            QUEST_MAP_ZONES[0]
+        );
+        const nextMilestone = getNextQuestMilestone(progress, stars, goal);
+        const nextStepText = nextMilestone.complete
+            ? 'The portal is open!'
+            : `${nextMilestone.starsNeeded} ${nextMilestone.starsNeeded === 1 ? 'star' : 'stars'} to ${nextMilestone.label}`;
+        const pathfinderText = classroom.classQuestBonus > 0
+            ? `<span class="tq-mobile-race-card__bonus"><i class="fas fa-compass" aria-hidden="true"></i> +${formatQuestNumber(classroom.classQuestBonus)} Pathfinder</span>`
+            : '';
+
+        return `
+            <article class="tq-mobile-race-card tq-mobile-race-card--${zone.id}" style="--race-progress: ${progress}%; --race-delay: ${Math.min(index * 70, 560)}ms;">
+                <header class="tq-mobile-race-card__header">
+                    <span class="tq-mobile-race-card__rank tq-mobile-race-card__rank--${rankFrame.tier}" aria-label="League rank ${rank}">
+                        <img src="${rankFrame.asset}" alt="" draggable="false" aria-hidden="true">
+                        <strong>${rank}</strong>
+                    </span>
+                    <span class="tq-mobile-race-card__logo" aria-hidden="true">${escapeLeaderboardHtml(classroom.logo || '📚')}</span>
+                    <span class="tq-mobile-race-card__identity">
+                        <strong>${escapeLeaderboardHtml(classroom.name)}</strong>
+                        <span class="tq-mobile-race-card__zone">
+                            <img src="${TEAM_QUEST_ANALYTICS_ASSETS[zone.id]}" alt="" draggable="false" aria-hidden="true">
+                            ${zone.label}
+                        </span>
+                    </span>
+                    <span class="tq-mobile-race-card__percent">${progress.toFixed(0)}<small>%</small></span>
+                </header>
+
+                <div class="tq-mobile-race-card__trail" role="progressbar" aria-label="${escapeLeaderboardHtml(classroom.name)} monthly quest progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.toFixed(1)}">
+                    <span class="tq-mobile-race-card__segments" aria-hidden="true">
+                        <i class="tq-mobile-race-card__segment tq-mobile-race-card__segment--bronze"></i>
+                        <i class="tq-mobile-race-card__segment tq-mobile-race-card__segment--silver"></i>
+                        <i class="tq-mobile-race-card__segment tq-mobile-race-card__segment--gold"></i>
+                        <i class="tq-mobile-race-card__segment tq-mobile-race-card__segment--crystal"></i>
+                    </span>
+                    <span class="tq-mobile-race-card__fill" aria-hidden="true"></span>
+                    <span class="tq-mobile-race-card__checkpoint tq-mobile-race-card__checkpoint--30" aria-hidden="true"></span>
+                    <span class="tq-mobile-race-card__checkpoint tq-mobile-race-card__checkpoint--60" aria-hidden="true"></span>
+                    <span class="tq-mobile-race-card__checkpoint tq-mobile-race-card__checkpoint--85" aria-hidden="true"></span>
+                    <span class="tq-mobile-race-card__finish" aria-hidden="true"><i class="fas fa-flag-checkered"></i></span>
+                    <span class="tq-mobile-race-card__marker" aria-hidden="true">${escapeLeaderboardHtml(classroom.logo || '📚')}</span>
+                </div>
+
+                <footer class="tq-mobile-race-card__footer">
+                    <span class="tq-mobile-race-card__stars"><i class="fas fa-star" aria-hidden="true"></i><strong>${formatQuestNumber(stars)}</strong><small>/ ${formatQuestNumber(goal)}</small></span>
+                    <span class="tq-mobile-race-card__next ${nextMilestone.complete ? 'is-complete' : ''}">${nextStepText}</span>
+                    <span class="tq-mobile-race-card__weekly"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i> +${formatQuestNumber(weeklyStars)} this week</span>
+                    ${pathfinderText}
+                </footer>
+            </article>
+        `;
+    }).join('');
+
+    return `
+        <section class="tq-mobile-race" aria-labelledby="tq-mobile-race-title">
+            <div class="tq-mobile-race__glow tq-mobile-race__glow--one" aria-hidden="true"></div>
+            <div class="tq-mobile-race__glow tq-mobile-race__glow--two" aria-hidden="true"></div>
+            <header class="tq-mobile-race__header">
+                <span class="tq-mobile-race__crest" aria-hidden="true"><i class="fas fa-route"></i></span>
+                <span class="tq-mobile-race__title">
+                    <h3 id="tq-mobile-race-title">Monthly Race</h3>
+                    <p>${classScores.length} ${classScores.length === 1 ? 'class is' : 'classes are'} on the trail</p>
+                </span>
+                <button type="button" id="toggle-map-list-btn" class="tq-mobile-race__analysis bubbly-button">
+                    <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                    <span>Mission Analytics</span>
+                </button>
+            </header>
+
+            <div class="tq-mobile-race__realms" aria-label="Quest route realms">
+                ${realmKeyHtml}
+            </div>
+
+            <div class="tq-mobile-race__cards">
+                ${raceCardsHtml}
+            </div>
+        </section>
+    `;
+}
+
 // --- REIGNING PRODIGY CACHE ---
 // Fetches previous month's award logs once per session (cached by monthKey).
 // Returns { [classId]: Set<studentId> } — a Set to support co-prodigies (ties).
@@ -152,6 +321,8 @@ function syncHeroChallengeFabs() {
 export async function renderClassLeaderboardTab() {
     const list = document.getElementById('class-leaderboard-list');
     if (!list) return;
+    bindTeacherQuestCompactViewportListener();
+    const useCompactTeacherRaceView = isCompactTeacherQuestViewport();
 
     // Update the month name in the title
     const monthNameEl = document.getElementById('quest-month-name');
@@ -162,7 +333,7 @@ export async function renderClassLeaderboardTab() {
 
     const league = getLeaderboardEffectiveLeague();
     if (!league) {
-        list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest map.</p></div>`;
+        list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest ${useCompactTeacherRaceView ? 'race' : 'map'}.</p></div>`;
         initializeLivingQuestMap(list);
         return;
     }
@@ -326,7 +497,9 @@ export async function renderClassLeaderboardTab() {
 
     // Removed: quest update button no longer exists
 
-    const mapHtml = generateLeagueMapHtml(classScores);
+    const raceOverviewHtml = useCompactTeacherRaceView
+        ? generateTeacherMobileRaceHtml(classScores)
+        : generateLeagueMapHtml(classScores);
 
     // --- RENDER ANALYTICS CARDS ---
     const cardsHtml = classScores.map((c, index) => {
@@ -574,7 +747,7 @@ export async function renderClassLeaderboardTab() {
 
     // --- RENDER CONTAINER + STICKY BUTTON ---
     list.innerHTML = `
-        <div class="mb-8 animate-fade-in">${mapHtml}</div>
+        <div class="mb-8 animate-fade-in ${useCompactTeacherRaceView ? 'teacher-quest-compact-view' : 'teacher-quest-map-view'}">${raceOverviewHtml}</div>
         <div id="league-standings-container" class="max-w-5xl mx-auto hidden transition-all duration-500 opacity-0 transform translate-y-4 relative">
             <div class="team-quest-analytics-heading mb-5">
                 <div class="team-quest-analytics-heading__plaque">
@@ -591,8 +764,8 @@ export async function renderClassLeaderboardTab() {
         
         <button id="sticky-show-map-btn" 
                 class="fixed bottom-24 right-6 bg-indigo-600 text-white shadow-2xl rounded-full w-14 h-14 flex items-center justify-center font-bold z-50 transform translate-y-32 opacity-0 transition-all duration-500 hover:scale-110 hover:bg-indigo-700 hover:shadow-indigo-500/50 bubbly-button" 
-                title="Back to Map">
-            <i class="fas fa-map text-xl"></i>
+                title="${useCompactTeacherRaceView ? 'Back to Race Overview' : 'Back to Map'}">
+            <i class="fas ${useCompactTeacherRaceView ? 'fa-flag-checkered' : 'fa-map'} text-xl"></i>
         </button>
     `;
 
@@ -626,8 +799,8 @@ export async function renderClassLeaderboardTab() {
         if (stickyBtn) {
             stickyBtn.onclick = () => hideAnalytics();
 
-            // Watch the map to automatically toggle buttons when scrolling
-            const mapArea = list.querySelector('.team-quest-map-parchment') || list.querySelector('.league-map-wrapper') || list.firstElementChild;
+            // Watch the active race overview to automatically toggle buttons when scrolling.
+            const mapArea = list.querySelector('.tq-mobile-race') || list.querySelector('.team-quest-map-parchment') || list.querySelector('.league-map-wrapper') || list.firstElementChild;
 
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -659,7 +832,7 @@ export async function renderClassLeaderboardTab() {
             // 2. Hide the sticky button
             if (stickyBtn) stickyBtn.classList.add('translate-y-32', 'opacity-0');
 
-            // Scroll back to Map smoothly
+            // Scroll back to the race overview smoothly.
             list.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }

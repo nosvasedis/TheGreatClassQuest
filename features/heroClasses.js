@@ -56,37 +56,78 @@ export function calculateHeroGold(studentData, reason, starDifference, scoreData
     return { goldChange, bonusStars };
 }
 
+/** How many times a student may switch Hero Class during one school year. The class they already wear is kept. */
+export const HERO_CLASS_CHANGES_PER_YEAR = 2;
+
+function changesUsedThisYear(studentData, activeYearKey = '') {
+    const count = Math.max(0, Number(studentData?.heroClassChangeCount) || 0);
+    const yearKey = String(activeYearKey || '').trim();
+    if (!yearKey) return count;
+    const stamp = String(studentData?.heroClassLockYearKey || '').trim();
+    return stamp === yearKey ? count : 0;
+}
+
+/**
+ * Locked only after both changes for this school year are used.
+ * A lock from another year does not apply. With no school year in context, an older
+ * boolean lock (no change count) still holds.
+ */
+export function heroClassLockApplies(studentData, activeYearKey = '') {
+    const yearKey = String(activeYearKey || '').trim();
+    const used = changesUsedThisYear(studentData, yearKey);
+    if (used >= HERO_CLASS_CHANGES_PER_YEAR) return true;
+    if (yearKey) return false;
+    return Boolean(studentData?.isHeroClassLocked) && used === 0;
+}
+
+export function heroClassChangesRemaining(studentData, activeYearKey = '') {
+    if (heroClassLockApplies(studentData, activeYearKey)) return 0;
+    const used = changesUsedThisYear(studentData, activeYearKey);
+    return Math.max(0, HERO_CLASS_CHANGES_PER_YEAR - used);
+}
+
 /**
  * Checks if a student is allowed to change their class.
- * Logic: If they have a class AND it is marked as locked, they cannot change.
+ * They keep the class they have. Two switches are allowed each school year.
  */
-export function canChangeHeroClass(studentData, newClassSelection) {
-    // If they don't have a class yet, they can always choose one
+export function canChangeHeroClass(studentData, newClassSelection, activeYearKey = '') {
     if (!studentData?.heroClass) return true;
-
-    // If they are not changing the value, it's fine
     if (studentData.heroClass === newClassSelection) return true;
-
-    // If they already have a class and it's locked, they cannot change it
-    if (studentData.isHeroClassLocked) return false;
-
+    if (heroClassLockApplies(studentData, activeYearKey)) return false;
     return true;
 }
 
 /**
  * Pure lock decision for a Hero Class write.
- * First pick is free. Saving a different non-empty class after having one locks.
- * Saving No Class (empty string) does not lock.
+ * The current class is never cleared here. The first assignment is not a change.
+ * Each different non-empty class after that uses one of two yearly changes.
+ * The second change locks the path until the next school year.
+ * Saving No Class (empty string) does not use a change and does not lock.
  */
-export function resolveHeroClassChange(studentData, newClassSelection) {
+export function resolveHeroClassChange(studentData, newClassSelection, activeYearKey = '') {
+    const yearKey = String(activeYearKey || '').trim();
     const nextClass = newClassSelection ?? '';
     const currentClass = studentData?.heroClass || '';
-    const alreadyLocked = Boolean(studentData?.isHeroClassLocked);
+    const alreadyLocked = heroClassLockApplies(studentData, yearKey);
+    const used = changesUsedThisYear(studentData, yearKey);
+    const stamp = yearKey || String(studentData?.heroClassLockYearKey || '');
 
-    if (!canChangeHeroClass(studentData || {}, nextClass)) {
-        return { allowed: false, isNowLocked: alreadyLocked };
+    if (!canChangeHeroClass(studentData || {}, nextClass, yearKey)) {
+        return {
+            allowed: false,
+            isNowLocked: true,
+            heroClassChangeCount: Math.max(used, HERO_CLASS_CHANGES_PER_YEAR),
+            heroClassLockYearKey: stamp
+        };
     }
 
-    const isNowLocked = alreadyLocked || Boolean(currentClass && nextClass !== '' && currentClass !== nextClass);
-    return { allowed: true, isNowLocked };
+    const isChange = Boolean(currentClass && nextClass !== '' && currentClass !== nextClass);
+    const heroClassChangeCount = isChange ? used + 1 : used;
+    const isNowLocked = heroClassChangeCount >= HERO_CLASS_CHANGES_PER_YEAR || (alreadyLocked && !isChange);
+    return {
+        allowed: true,
+        isNowLocked,
+        heroClassChangeCount,
+        heroClassLockYearKey: (isChange || isNowLocked || used > 0) ? stamp : String(studentData?.heroClassLockYearKey || '')
+    };
 }

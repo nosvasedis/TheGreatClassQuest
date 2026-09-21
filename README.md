@@ -49,7 +49,7 @@
 | [Story Weavers](#-story-weavers) | Collaborative story writing with AI illustrations |
 | [AI & Creative Tools](#-ai--creative-tools) | Avatar Forge, Nameday lookup, reports, Story Weavers |
 | [Tracking & Analytics](#-tracking--analytics) | Hero's Chronicle, Attendance, certificates |
-| [Teacher Settings](#-teacher-settings) | Student Tools, My Classes, planning, grading, Family Access, Quiz, Market |
+| [Teacher Settings](#-teacher-settings) | My Classes (opens first), Student Tools, planning, grading, Family Access, Quiz, Market |
 
 ---
 
@@ -110,7 +110,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Quest Calendar** | Month grid, Day Planner, Quest Events. School-wide holidays are set in the **School Office**. **Pro.** |
 | **Story Weavers** | Collaborative story, Word of the Day, AI art, PDF print. **Elite.** |
 
-**Teacher Settings** (cog): pick a section from the dropdown — Student Tools, My Classes, My Planning (class end dates), Profile, Class Grading, Family Access, Quiz, Market.
+**Teacher Settings** (cog): opens on **My Classes**. Other sections in the dropdown — Student Tools, My Planning (class end dates), Profile, Class Grading, Family Access, Quiz, Market.
 
 ---
 

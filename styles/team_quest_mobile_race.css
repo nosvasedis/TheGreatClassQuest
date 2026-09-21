@@ -1,0 +1,652 @@
+/* Teacher Team Quest compact race view
+ * Rendered in place of the illustrated map on phones and touch tablets.
+ */
+
+body.gcq-mobile #class-leaderboard-tab > .max-w-7xl > .px-4 {
+    padding-right: 0.2rem !important;
+    padding-left: 0.2rem !important;
+}
+
+body.gcq-mobile .tq-mobile-race__title h3 {
+    font-size: clamp(1.45rem, 5.7vw, 2rem) !important;
+    line-height: 1 !important;
+}
+
+.tq-mobile-race {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    width: 100%;
+    padding: clamp(0.9rem, 3vw, 1.5rem);
+    border: 2px solid rgba(116, 78, 35, 0.48);
+    border-radius: clamp(1.45rem, 5vw, 2.2rem);
+    background:
+        radial-gradient(circle at 8% 4%, rgba(255, 245, 184, 0.82), transparent 28%),
+        radial-gradient(circle at 93% 12%, rgba(209, 246, 255, 0.72), transparent 31%),
+        linear-gradient(150deg, rgba(255, 252, 234, 0.98), rgba(244, 248, 239, 0.98) 50%, rgba(239, 242, 255, 0.98));
+    box-shadow:
+        0 20px 42px -25px rgba(70, 43, 19, 0.48),
+        0 6px 14px rgba(90, 61, 28, 0.12),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+        inset 0 0 38px rgba(235, 194, 113, 0.13);
+}
+
+.tq-mobile-race::before,
+.tq-mobile-race::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.tq-mobile-race::before {
+    inset: 0.45rem;
+    border: 1px solid rgba(173, 124, 58, 0.22);
+    border-radius: inherit;
+}
+
+.tq-mobile-race::after {
+    width: 13rem;
+    height: 13rem;
+    right: -6rem;
+    bottom: -7rem;
+    border: 1.25rem double rgba(111, 76, 160, 0.055);
+    border-radius: 50%;
+}
+
+.tq-mobile-race__glow {
+    position: absolute;
+    z-index: -1;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    opacity: 0.34;
+    pointer-events: none;
+    animation: tq-mobile-ambient 5.5s ease-in-out infinite;
+}
+
+.tq-mobile-race__glow--one {
+    top: 12%;
+    left: -4rem;
+    background: radial-gradient(circle, rgba(255, 192, 71, 0.44), rgba(255, 192, 71, 0.12) 48%, transparent 72%);
+}
+
+.tq-mobile-race__glow--two {
+    right: -3rem;
+    top: 37%;
+    background: radial-gradient(circle, rgba(117, 106, 255, 0.34), rgba(117, 106, 255, 0.1) 48%, transparent 72%);
+    animation-delay: -2.8s;
+}
+
+.tq-mobile-race__header {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 0.25rem 1rem;
+}
+
+.tq-mobile-race__crest {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.15rem;
+    height: 3.15rem;
+    border: 2px solid rgba(217, 157, 51, 0.7);
+    border-radius: 50%;
+    color: #7c451c;
+    font-size: 1.2rem;
+    background: radial-gradient(circle at 35% 28%, #fffdf0, #ffe4a7 55%, #e6a83e);
+    box-shadow: 0 6px 13px rgba(117, 72, 20, 0.2), inset 0 0 0 4px rgba(255, 255, 255, 0.55);
+}
+
+.tq-mobile-race__title {
+    min-width: 0;
+}
+
+.tq-mobile-race__title h3 {
+    margin: 0;
+    color: #60391e;
+    font-family: 'Baloo 2', 'Nunito', sans-serif;
+    font-size: clamp(1.45rem, 5.7vw, 2rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.tq-mobile-race__title p {
+    margin: 0.25rem 0 0;
+    color: #755f4e;
+    font-size: clamp(0.72rem, 2.6vw, 0.88rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.tq-mobile-race__analysis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.65rem;
+    padding: 0.62rem 0.88rem;
+    border: 1px solid rgba(113, 72, 35, 0.32);
+    border-radius: 999px;
+    color: #66401f;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 900;
+    background: linear-gradient(180deg, #fffdf4, #ffedc0);
+    box-shadow: 0 5px 10px rgba(91, 57, 23, 0.13), inset 0 1px 0 #fff;
+}
+
+.tq-mobile-race__analysis i {
+    color: #93601f;
+}
+
+.tq-mobile-race__analysis:focus-visible {
+    outline: 3px solid rgba(99, 102, 241, 0.38);
+    outline-offset: 3px;
+}
+
+.tq-mobile-race__realms {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: start;
+    margin-bottom: 1rem;
+    padding: 0.72rem 0.35rem 0.6rem;
+    border: 1px solid rgba(120, 94, 65, 0.13);
+    border-radius: 1.1rem;
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.tq-mobile-race__realms::before {
+    content: '';
+    position: absolute;
+    top: 2rem;
+    left: 11%;
+    right: 11%;
+    height: 0.28rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #75a94d 0 30%, #98b5c9 30% 60%, #eca931 60% 85%, #aa6be0 85% 100%);
+    box-shadow: 0 1px 2px rgba(78, 60, 38, 0.2);
+}
+
+.tq-mobile-race__realm {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    text-align: center;
+}
+
+.tq-mobile-race__realm img {
+    width: clamp(2.3rem, 10vw, 3.25rem);
+    height: clamp(2.3rem, 10vw, 3.25rem);
+    object-fit: contain;
+    filter: drop-shadow(0 4px 4px rgba(55, 39, 24, 0.17));
+}
+
+.tq-mobile-race__realm span {
+    max-width: 5.5rem;
+    color: #604f43;
+    font-size: clamp(0.57rem, 2.2vw, 0.7rem);
+    font-weight: 900;
+    line-height: 1.05;
+}
+
+.tq-mobile-race__cards {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.78rem;
+}
+
+.tq-mobile-race-card {
+    --zone-accent: #5e9a4f;
+    --zone-deep: #316b45;
+    --zone-wash: rgba(226, 246, 216, 0.9);
+    --zone-border: rgba(79, 139, 72, 0.3);
+    position: relative;
+    min-width: 0;
+    contain: layout paint;
+    content-visibility: auto;
+    contain-intrinsic-size: 10.5rem;
+    padding: 0.82rem;
+    overflow: hidden;
+    border: 1.5px solid var(--zone-border);
+    border-radius: 1.25rem;
+    background:
+        radial-gradient(circle at 98% 0, var(--zone-wash), transparent 48%),
+        rgba(255, 255, 255, 0.91);
+    box-shadow: 0 8px 18px -13px rgba(40, 32, 26, 0.42), inset 0 1px 0 #fff;
+    animation: tq-mobile-card-arrive 0.55s cubic-bezier(0.21, 0.78, 0.28, 1) both;
+    animation-delay: var(--race-delay);
+}
+
+.tq-mobile-race-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0.33rem;
+    height: 100%;
+    background: linear-gradient(180deg, var(--zone-accent), var(--zone-deep));
+}
+
+.tq-mobile-race-card--silver {
+    --zone-accent: #87b7d0;
+    --zone-deep: #3e759a;
+    --zone-wash: rgba(218, 239, 250, 0.9);
+    --zone-border: rgba(93, 150, 184, 0.34);
+}
+
+.tq-mobile-race-card--gold {
+    --zone-accent: #f2b238;
+    --zone-deep: #b86219;
+    --zone-wash: rgba(255, 235, 177, 0.9);
+    --zone-border: rgba(213, 143, 31, 0.34);
+}
+
+.tq-mobile-race-card--crystal {
+    --zone-accent: #a676ef;
+    --zone-deep: #6540b5;
+    --zone-wash: rgba(234, 218, 255, 0.92);
+    --zone-border: rgba(137, 95, 210, 0.34);
+}
+
+.tq-mobile-race-card__header {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.58rem;
+}
+
+.tq-mobile-race-card__rank {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+}
+
+.tq-mobile-race-card__rank img {
+    position: absolute;
+    inset: -0.32rem;
+    width: calc(100% + 0.64rem);
+    height: calc(100% + 0.64rem);
+    object-fit: contain;
+    filter: drop-shadow(0 3px 4px rgba(50, 33, 19, 0.2));
+}
+
+.tq-mobile-race-card__rank strong {
+    position: relative;
+    z-index: 1;
+    color: #49331f;
+    font-size: 0.92rem;
+    font-weight: 1000;
+    line-height: 1;
+}
+
+.tq-mobile-race-card__rank--gold strong { color: #7b410b; }
+.tq-mobile-race-card__rank--silver strong { color: #34475b; }
+.tq-mobile-race-card__rank--bronze strong { color: #7a371d; }
+
+.tq-mobile-race-card__logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.65rem;
+    height: 2.65rem;
+    flex: none;
+    border: 2px solid color-mix(in srgb, var(--zone-accent) 48%, white);
+    border-radius: 50%;
+    font-size: 1.5rem;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 8px rgba(56, 39, 25, 0.12), inset 0 0 0 3px var(--zone-wash);
+}
+
+.tq-mobile-race-card__identity {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+}
+
+.tq-mobile-race-card__identity > strong {
+    max-width: 100%;
+    overflow: hidden;
+    color: #253044;
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(0.93rem, 3.6vw, 1.08rem);
+    font-weight: 1000;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tq-mobile-race-card__zone {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--zone-deep);
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.tq-mobile-race-card__zone img {
+    width: 1.15rem;
+    height: 1.15rem;
+    object-fit: contain;
+}
+
+.tq-mobile-race-card__percent {
+    display: inline-flex;
+    align-items: baseline;
+    color: var(--zone-deep);
+    font-family: 'Baloo 2', 'Nunito', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.tq-mobile-race-card__percent small {
+    font-size: 0.68rem;
+}
+
+.tq-mobile-race-card__trail {
+    position: relative;
+    height: 2.55rem;
+    margin: 0.85rem 0 0.42rem;
+}
+
+.tq-mobile-race-card__segments,
+.tq-mobile-race-card__fill {
+    position: absolute;
+    top: 1rem;
+    left: 0;
+    height: 0.7rem;
+    border-radius: 999px;
+}
+
+.tq-mobile-race-card__segments {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 30fr 30fr 25fr 15fr;
+    overflow: hidden;
+    border: 2px solid rgba(69, 55, 41, 0.13);
+    background: #e9e5dc;
+    box-shadow: inset 0 2px 3px rgba(61, 47, 33, 0.15), 0 1px 0 #fff;
+}
+
+.tq-mobile-race-card__segment { min-width: 0; }
+.tq-mobile-race-card__segment--bronze { background: #dcebc6; }
+.tq-mobile-race-card__segment--silver { background: #dce7ee; }
+.tq-mobile-race-card__segment--gold { background: #f9e4b2; }
+.tq-mobile-race-card__segment--crystal { background: #e5d8f7; }
+
+.tq-mobile-race-card__fill {
+    z-index: 1;
+    width: var(--race-progress);
+    max-width: 100%;
+    background: linear-gradient(90deg,
+        #639d46 0%, #96bf57 29%,
+        #6ba7c6 31%, #9dc8dd 59%,
+        #e29b24 61%, #ffc54c 84%,
+        #9161dc 86%, #c582f4 100%);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--zone-accent) 55%, transparent);
+    animation: tq-mobile-trail-fill 0.9s cubic-bezier(0.22, 0.75, 0.25, 1) both;
+    animation-delay: calc(var(--race-delay) + 0.12s);
+}
+
+.tq-mobile-race-card__fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.7) 48%, transparent 74%);
+    background-size: 250% 100%;
+    animation: tq-mobile-trail-shimmer 3.1s linear infinite;
+}
+
+.tq-mobile-race-card__checkpoint {
+    position: absolute;
+    z-index: 2;
+    top: 1.05rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    background: #857a6e;
+    box-shadow: 0 1px 3px rgba(44, 32, 21, 0.32);
+    transform: translateX(-50%);
+}
+
+.tq-mobile-race-card__checkpoint--30 { left: 30%; }
+.tq-mobile-race-card__checkpoint--60 { left: 60%; }
+.tq-mobile-race-card__checkpoint--85 { left: 85%; }
+
+.tq-mobile-race-card__finish {
+    position: absolute;
+    z-index: 3;
+    top: 0.1rem;
+    right: -0.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    border-radius: 50%;
+    color: #6d36a4;
+    font-size: 0.7rem;
+    background: #f0dcff;
+    box-shadow: 0 3px 7px rgba(82, 43, 126, 0.22);
+}
+
+.tq-mobile-race-card__marker {
+    position: absolute;
+    z-index: 4;
+    top: 0.08rem;
+    left: clamp(0.8rem, var(--race-progress), calc(100% - 0.8rem));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.78rem;
+    height: 1.78rem;
+    border: 2px solid var(--zone-accent);
+    border-radius: 50%;
+    font-size: 0.95rem;
+    line-height: 1;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(49, 36, 24, 0.2), 0 0 0 3px color-mix(in srgb, var(--zone-accent) 20%, transparent);
+    transform: translateX(-50%);
+    animation:
+        tq-mobile-marker-arrive 0.72s cubic-bezier(0.2, 0.8, 0.3, 1) both,
+        tq-mobile-marker-float 2.7s ease-in-out infinite;
+    animation-delay: calc(var(--race-delay) + 0.15s), calc(var(--race-delay) + 0.95s);
+}
+
+.tq-mobile-race-card__footer {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.38rem 0.65rem;
+    flex-wrap: wrap;
+}
+
+.tq-mobile-race-card__stars {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.22rem;
+    color: #7a571d;
+}
+
+.tq-mobile-race-card__stars i {
+    color: #efa91d;
+    font-size: 0.74rem;
+}
+
+.tq-mobile-race-card__stars strong {
+    font-size: 0.92rem;
+    font-weight: 1000;
+}
+
+.tq-mobile-race-card__stars small {
+    color: #8d7c6d;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.tq-mobile-race-card__next {
+    min-width: 0;
+    flex: 1 1 9rem;
+    color: #4b5563;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1.15;
+    text-align: right;
+}
+
+.tq-mobile-race-card__next.is-complete {
+    color: #7c3bb5;
+}
+
+.tq-mobile-race-card__weekly,
+.tq-mobile-race-card__bonus {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.25rem 0.48rem;
+    border-radius: 999px;
+    font-size: 0.63rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.tq-mobile-race-card__weekly {
+    color: #286553;
+    background: rgba(211, 244, 229, 0.82);
+}
+
+.tq-mobile-race-card__bonus {
+    color: #5a48a2;
+    background: rgba(230, 225, 255, 0.86);
+}
+
+@media (min-width: 720px) {
+    .tq-mobile-race__cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tq-mobile-race__realms {
+        padding-inline: 2rem;
+    }
+}
+
+@media (max-width: 479px) {
+    .tq-mobile-race__header {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .tq-mobile-race__analysis {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .tq-mobile-race-card {
+        padding: 0.72rem;
+    }
+
+    .tq-mobile-race-card__header {
+        gap: 0.42rem;
+    }
+
+    .tq-mobile-race-card__rank {
+        width: 2.45rem;
+        height: 2.45rem;
+    }
+
+    .tq-mobile-race-card__logo {
+        width: 2.35rem;
+        height: 2.35rem;
+        font-size: 1.3rem;
+    }
+
+    .tq-mobile-race-card__zone {
+        font-size: 0.62rem;
+    }
+
+    .tq-mobile-race-card__percent {
+        font-size: 1.25rem;
+    }
+}
+
+@media (hover: hover) {
+    .tq-mobile-race__analysis:hover {
+        color: #fff;
+        background: linear-gradient(135deg, #8b5a2b, #b8752d);
+        box-shadow: 0 8px 16px rgba(102, 64, 31, 0.25);
+    }
+
+    .tq-mobile-race-card:hover {
+        border-color: color-mix(in srgb, var(--zone-accent) 60%, white);
+        box-shadow: 0 12px 22px -13px rgba(40, 32, 26, 0.52), inset 0 1px 0 #fff;
+    }
+}
+
+@keyframes tq-mobile-card-arrive {
+    from { opacity: 0; transform: translateY(0.75rem) scale(0.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tq-mobile-trail-fill {
+    from { width: 0; }
+    to { width: var(--race-progress); }
+}
+
+@keyframes tq-mobile-trail-shimmer {
+    from { background-position: 190% 0; }
+    to { background-position: -80% 0; }
+}
+
+@keyframes tq-mobile-marker-arrive {
+    from { left: 0.8rem; opacity: 0; transform: translateX(-50%) scale(0.65); }
+    to { left: clamp(0.8rem, var(--race-progress), calc(100% - 0.8rem)); opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+@keyframes tq-mobile-marker-float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-0.22rem); }
+}
+
+@keyframes tq-mobile-ambient {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 0.42; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tq-mobile-race *,
+    .tq-mobile-race *::before,
+    .tq-mobile-race *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -68,14 +68,16 @@ async function shopAiChat(systemPrompt, userPrompt) {
   return String(content || '').trim();
 }
 
-async function shopAiImage(prompt, negativePrompt = '') {
+async function shopAiImage(prompt, negativePrompt = '', options = {}) {
+  const width = Number(options.width) || 1024;
+  const height = Number(options.height) || 1024;
   return shopAiFetch({
     prompt: String(prompt || '').slice(0, 5000),
     negative_prompt: String(negativePrompt || '').slice(0, 2000),
-    num_steps: 20,
-    guidance: 7.5,
-    width: 1024,
-    height: 1024
+    num_steps: Number(options.num_steps) || 20,
+    guidance: Number(options.guidance) || 7.5,
+    width,
+    height
   }, { expect: 'bytes' });
 }
 

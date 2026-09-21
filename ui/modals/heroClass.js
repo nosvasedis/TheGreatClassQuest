@@ -1,7 +1,7 @@
 // /ui/modals/heroClass.js — Hero Class selection ceremony
 
 import * as state from '../../state.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { HERO_CLASSES, heroClassChangesRemaining, heroClassLockApplies } from '../../features/heroClasses.js';
 import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
@@ -121,7 +121,7 @@ function fillResult(className, { shrine = false } = {}) {
     if (virtueEl) virtueEl.textContent = getReasonDisplayName(info.reason);
     if (perkEl) perkEl.textContent = info.desc;
     if (emblemEl) emblemEl.textContent = info.icon;
-    if (kickerEl) kickerEl.textContent = shrine ? 'Hero Path locked' : 'Hero Path';
+    if (kickerEl) kickerEl.textContent = shrine ? 'Locked this school year' : 'Hero Path';
     if (doneBtn) doneBtn.textContent = shrine ? 'Close' : "Let's Go!";
 }
 
@@ -274,7 +274,8 @@ export function openHeroClassSelectModal(studentId, options = {}) {
         }
     }
 
-    if (student.isHeroClassLocked && student.heroClass && HERO_CLASSES[student.heroClass]) {
+    const pathLocked = heroClassLockApplies(student, state.getActiveSchoolYearKey());
+    if (pathLocked && student.heroClass && HERO_CLASSES[student.heroClass]) {
         fillResult(student.heroClass, { shrine: true });
         setMode('shrine');
         if (banner) banner.classList.add('hidden');
@@ -282,10 +283,13 @@ export function openHeroClassSelectModal(studentId, options = {}) {
         applyShellTheme(null);
         if (subtitle) subtitle.textContent = 'Who will you become?';
         if (banner) {
-            const showWarn = Boolean(student.heroClass && !student.isHeroClassLocked);
+            const showWarn = Boolean(student.heroClass && !pathLocked);
             banner.classList.toggle('hidden', !showWarn);
             if (showWarn) {
-                banner.textContent = `You are a ${student.heroClass}. This is your one change — after this, the path locks.`;
+                const remaining = heroClassChangesRemaining(student, state.getActiveSchoolYearKey());
+                banner.textContent = remaining === 1
+                    ? `You are a ${student.heroClass}. You have one class change left this school year.`
+                    : `You are a ${student.heroClass}. You keep this class, and you can change it twice this school year.`;
             }
         }
         renderCards();

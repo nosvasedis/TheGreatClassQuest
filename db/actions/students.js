@@ -162,20 +162,33 @@ export async function saveStudentHeroClass(studentId, heroClass) {
         return { saved: false, reason: 'invalid' };
     }
 
-    const { allowed, isNowLocked } = resolveHeroClassChange(student, nextClass);
+    const activeYearKey = state.getActiveSchoolYearKey();
+    const { allowed, isNowLocked, heroClassLockYearKey, heroClassChangeCount } = resolveHeroClassChange(student, nextClass, activeYearKey);
     if (!allowed) {
-        showToast('This student has already chosen their Hero Class and is now locked.', 'error');
+        showToast('This Hero Class is locked until the next school year. They keep the class they have.', 'error');
         return { saved: false, reason: 'locked' };
     }
 
     const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
+    const lockYear = heroClassLockYearKey || activeYearKey || '';
+    const changeCount = Number(heroClassChangeCount) || 0;
     await updateDoc(studentRef, {
         heroClass: nextClass,
-        isHeroClassLocked: isNowLocked || false
+        isHeroClassLocked: isNowLocked || false,
+        heroClassLockYearKey: lockYear,
+        heroClassChangeCount: changeCount
     });
 
     const nextStudents = (state.get('allStudents') || []).map((s) => (
-        s.id === studentId ? { ...s, heroClass: nextClass, isHeroClassLocked: isNowLocked || false } : s
+        s.id === studentId
+            ? {
+                ...s,
+                heroClass: nextClass,
+                isHeroClassLocked: isNowLocked || false,
+                heroClassLockYearKey: lockYear,
+                heroClassChangeCount: changeCount
+            }
+            : s
     ));
     state.setAllStudents(nextStudents);
 

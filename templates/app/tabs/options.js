@@ -11,20 +11,20 @@ export const optionsTabHTML = `
                     </div>
 
                     <div class="options-subtab-bar">
-                        <div class="options-subtab-select" id="options-subtab-select" data-active-tab="manage">
+                        <div class="options-subtab-select" id="options-subtab-select" data-active-tab="classes">
                             <button type="button" class="options-subtab-select__trigger" id="options-subtab-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="options-subtab-menu" aria-label="Choose settings section">
-                                <span class="options-subtab-select__icon" id="options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-tools"></i></span>
-                                <span class="options-subtab-select__label" id="options-subtab-trigger-label">Student Tools</span>
+                                <span class="options-subtab-select__icon" id="options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-chalkboard-teacher"></i></span>
+                                <span class="options-subtab-select__label" id="options-subtab-trigger-label">My Classes</span>
                                 <i class="fas fa-chevron-down options-subtab-select__chev" aria-hidden="true"></i>
                             </button>
                             <div class="options-subtab-select__menu hidden" id="options-subtab-menu" role="listbox" aria-label="Teacher Settings sections"></div>
                         </div>
                         <div class="options-subtab-buttons" aria-hidden="true">
-                            <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
-                                <i class="fas fa-tools mr-1.5"></i> Student Tools
-                            </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="classes">
+                            <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="classes">
                                 <i class="fas fa-chalkboard-teacher mr-1.5"></i> My Classes
+                            </button>
+                            <button type="button" class="options-subtab-btn" data-options-tab="manage">
+                                <i class="fas fa-tools mr-1.5"></i> Student Tools
                             </button>
                             <button type="button" class="options-subtab-btn" data-options-tab="planning">
                                 <i class="fas fa-calendar-alt mr-1.5"></i> My Planning
@@ -49,7 +49,7 @@ export const optionsTabHTML = `
 
                     <div class="space-y-8">
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                            <div class="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="manage">
                                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 
@@ -147,7 +147,7 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
                             
-                            <div class="relative overflow-hidden rounded-[2rem] border border-yellow-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                            <div class="relative overflow-hidden rounded-[2rem] border border-yellow-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="manage">
                                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-yellow-200 to-amber-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 
                                 <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
@@ -190,7 +190,7 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-rose-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                            <div class="relative overflow-hidden rounded-[2rem] border border-rose-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="manage">
                                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-rose-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 
                                 <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
@@ -221,7 +221,7 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
                             
-                            <div class="space-y-6 hidden" data-options-section="classes">
+                            <div class="space-y-6" data-options-section="classes">
                                 <div class="relative overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
                                     <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                     <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-green-100 to-cyan-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
@@ -248,7 +248,7 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="space-y-6" data-options-section="planning">
+                            <div class="space-y-6 hidden" data-options-section="planning">
                                 <div id="options-planning-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">📅</div>
                                     <div class="options-tier-locked-title">Planning tools</div>
@@ -313,7 +313,7 @@ export const optionsTabHTML = `
                                 <div id="options-access-content" class="space-y-6"></div>
                             </div>
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-blue-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="profile">
+                            <div class="relative overflow-hidden rounded-[2rem] border border-blue-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="profile">
                                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-100 to-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                                 
@@ -377,7 +377,7 @@ export const optionsTabHTML = `
                             </div>
 
                             <!-- Quiz of the Week section -->
-                            <div class="space-y-6" data-options-section="quiz">
+                            <div class="space-y-6 hidden" data-options-section="quiz">
                                 <div id="options-quiz-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">❓</div>
                                     <div class="options-tier-locked-title">Quiz of the Week</div>
@@ -526,7 +526,7 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="space-y-6" data-options-section="market">
+                            <div class="space-y-6 hidden" data-options-section="market">
                                 <div id="options-market-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">🛒</div>
                                     <div class="options-tier-locked-title">Market Manager</div>

@@ -34,7 +34,7 @@ export const heroClassModalsHTML = `
                 </header>
 
                 <div id="hcs-lock-banner" class="hcs-lock-banner hidden" role="status">
-                    This is your one change — after this, the path locks.
+                    You keep this class, and you can change it twice this school year.
                 </div>
 
                 <div id="hcs-cards" class="hcs-cards" role="listbox" aria-label="Hero Classes"></div>

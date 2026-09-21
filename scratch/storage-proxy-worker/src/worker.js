@@ -48,6 +48,8 @@ function corsFor(request, env) {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,x-firebase-token,X-Firebase-AppCheck',
+    'Access-Control-Max-Age': '600',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
     'Vary': 'Origin',
   };
 }

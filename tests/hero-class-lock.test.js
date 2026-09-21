@@ -19,11 +19,23 @@ test('saving the same Hero Class stays allowed and keeps lock state', async () =
     assert.equal(locked.isNowLocked, true);
 });
 
-test('changing to a different Hero Class after having one locks the path', async () => {
+test('the first class change does not lock and the second change does', async () => {
     const { resolveHeroClassChange } = await import('../features/heroClasses.js');
-    const result = resolveHeroClassChange({ heroClass: 'Guardian', isHeroClassLocked: false }, 'Paladin');
-    assert.equal(result.allowed, true);
-    assert.equal(result.isNowLocked, true);
+    const first = resolveHeroClassChange({ heroClass: 'Guardian', isHeroClassLocked: false, heroClassChangeCount: 0 }, 'Paladin', '2026-2027');
+    assert.equal(first.allowed, true);
+    assert.equal(first.isNowLocked, false);
+    assert.equal(first.heroClassChangeCount, 1);
+    assert.equal(first.heroClassLockYearKey, '2026-2027');
+
+    const second = resolveHeroClassChange({
+        heroClass: 'Paladin',
+        isHeroClassLocked: false,
+        heroClassChangeCount: 1,
+        heroClassLockYearKey: '2026-2027'
+    }, 'Sage', '2026-2027');
+    assert.equal(second.allowed, true);
+    assert.equal(second.isNowLocked, true);
+    assert.equal(second.heroClassChangeCount, 2);
 });
 
 test('a locked Hero Class cannot change to another class', async () => {
@@ -38,6 +50,52 @@ test('saving No Class does not lock and is allowed while unlocked', async () => 
     const result = resolveHeroClassChange({ heroClass: 'Artificer', isHeroClassLocked: false }, '');
     assert.equal(result.allowed, true);
     assert.equal(result.isNowLocked, false);
+});
+
+test('a new school year keeps the Hero Class and restores two changes', async () => {
+    const { resolveHeroClassChange, heroClassLockApplies, heroClassChangesRemaining } = await import('../features/heroClasses.js');
+    const carried = {
+        heroClass: 'Guardian',
+        isHeroClassLocked: true,
+        heroClassChangeCount: 2,
+        heroClassLockYearKey: '2025-2026'
+    };
+    assert.equal(heroClassLockApplies(carried, '2026-2027'), false);
+    assert.equal(heroClassChangesRemaining(carried, '2026-2027'), 2);
+    assert.equal(carried.heroClass, 'Guardian');
+
+    const firstChange = resolveHeroClassChange(carried, 'Paladin', '2026-2027');
+    assert.equal(firstChange.allowed, true);
+    assert.equal(firstChange.isNowLocked, false);
+    assert.equal(firstChange.heroClassChangeCount, 1);
+
+    const secondChange = resolveHeroClassChange({
+        heroClass: 'Paladin',
+        isHeroClassLocked: false,
+        heroClassChangeCount: 1,
+        heroClassLockYearKey: '2026-2027'
+    }, 'Sage', '2026-2027');
+    assert.equal(secondChange.allowed, true);
+    assert.equal(secondChange.isNowLocked, true);
+    assert.equal(secondChange.heroClassChangeCount, 2);
+
+    const thirdChange = resolveHeroClassChange({
+        heroClass: 'Sage',
+        isHeroClassLocked: true,
+        heroClassChangeCount: 2,
+        heroClassLockYearKey: '2026-2027'
+    }, 'Nomad', '2026-2027');
+    assert.equal(thirdChange.allowed, false);
+});
+
+test('a lock with no school year does not carry into the active year', async () => {
+    const { resolveHeroClassChange } = await import('../features/heroClasses.js');
+    const legacy = { heroClass: 'Weaver', isHeroClassLocked: true };
+    const result = resolveHeroClassChange(legacy, 'Nomad', '2026-2027');
+    assert.equal(result.allowed, true);
+    assert.equal(result.isNowLocked, false);
+    assert.equal(result.heroClassChangeCount, 1);
+    assert.equal(result.heroClassLockYearKey, '2026-2027');
 });
 
 test('Hero Class themes use Skill Tree aura colors', async () => {

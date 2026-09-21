@@ -269,7 +269,7 @@ export function renderManageClassesTab() {
                     
                     <div class="flex flex-wrap md:flex-nowrap md:flex-col lg:flex-row justify-end gap-2.5 mt-2 md:mt-0">
                         <button data-id="${c.id}" class="report-class-btn bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 hover:from-emerald-200 hover:to-green-200 border border-green-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
-                            <i class="fas fa-magic"></i><span class="hidden sm:inline">Report</span>
+                            <i class="fas fa-file-lines"></i><span class="hidden sm:inline">Report</span>
                         </button>
                         <button data-id="${c.id}" class="edit-class-btn bg-gradient-to-r from-cyan-100 to-blue-100 text-blue-800 hover:from-cyan-200 hover:to-blue-200 border border-blue-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
                             <i class="fas fa-pencil-alt"></i><span class="hidden sm:inline">Edit</span>

@@ -11,7 +11,7 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus, classUsesTests } from '../../features/assessmentConfig.js';
 import { getGuildHouseDisplay } from '../../features/guilds.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { HERO_CLASSES, heroClassLockApplies } from '../../features/heroClasses.js';
 import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { handleAvatarClick } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
@@ -295,7 +295,7 @@ export function openEditStudentModal(studentId, options = {}) {
     // 8. Hero Path summary + ceremony
     const tierNote = document.getElementById('hero-class-tier-note');
     const heroProgressionEnabled = canUseFeature('heroProgression');
-    const isLocked = Boolean(student.isHeroClassLocked);
+    const isLocked = heroClassLockApplies(student, state.getActiveSchoolYearKey());
     const classInfo = student.heroClass ? HERO_CLASSES[student.heroClass] : null;
 
     const summaryIcon = document.getElementById('edit-student-hero-summary-icon');
@@ -346,7 +346,7 @@ export function openEditStudentModal(studentId, options = {}) {
     } else if (isLocked) {
         if (tierNote) {
             tierNote.className = 'text-xs text-indigo-700 leading-relaxed italic font-medium';
-            tierNote.textContent = '🔒 Hero Class Locked: This student has already finalized their one-time archetype selection.';
+            tierNote.textContent = '🔒 Hero Class locked for this school year. They keep this class. Next year they can change it twice again.';
         }
     } else {
         if (tierNote) {

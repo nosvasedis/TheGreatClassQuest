@@ -2,6 +2,7 @@ import { db, collection, query, where, getDocs, addDoc, writeBatch, serverTimest
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
+import { parseDailyWallpaperAiItems } from '../utils/aiJson.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as constants from '../constants.js';
 import { renderFamiliarSprite } from '../features/familiars.js';
@@ -382,22 +383,29 @@ async function initializeDailyAIContent() {
         return;
     }
 
-    const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
-    const q = query(contentCollection, where("date", "==", today));
-    const snapshot = await getDocs(q);
+    try {
+        const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+        const q = query(contentCollection, where("date", "==", today));
+        const snapshot = await getDocs(q);
 
-    // Determine the audience level from the currently viewed class
-    const cls = state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'));
-    const levelLabel = getLevelLabel(cls?.questLevel);
+        // Determine the audience level from the currently viewed class
+        const cls = state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'));
+        const levelLabel = getLevelLabel(cls?.questLevel);
 
-    if (snapshot.empty) {
+        if (!snapshot.empty) {
+            localStorage.setItem(storageKey, "loaded");
+            return;
+        }
+
+        // Keep this well under the AI proxy's 1200-token cap so the JSON can finish.
+        const itemCount = 12;
         const systemPrompt = `You are a creative content engine for an English language school in Greece.
         Target audience: ${levelLabel}.
-        Generate a JSON array of EXACTLY 30 objects. Use a diverse mix of these types:
+        Generate a JSON array of EXACTLY ${itemCount} objects, one of each type:
         - 'fact_science' (curious science facts)
-        - 'fact_history' (history facts about ancient Greece, UK, USA, world history – use 4-5 of each)
+        - 'fact_history' (a history fact about ancient Greece, the UK, the USA, or world history)
         - 'fact_nature' (animals, plants, environment)
-        - 'fact_geography' (UK, USA, Greece, world – cities, landmarks, records)
+        - 'fact_geography' (UK, USA, Greece, or world – cities, landmarks, records)
         - 'fact_math' (fun numbers, patterns, records)
         - 'did_you_know' (surprising general knowledge)
         - 'joke' (clean, funny, age-appropriate)
@@ -407,38 +415,37 @@ async function initializeDailyAIContent() {
         - 'idiom' (English idiom with its meaning as answer)
         - 'tongue_twister' (fun English tongue twister)
         Structure: { "type": "string", "content": "string", "answer": "string (only for riddles, brain_teasers, words, idioms)" }.
+        Keep each content under 140 characters. Compact JSON, no extra whitespace.
         IMPORTANT: Calibrate all language complexity and content to be appropriate for ${levelLabel}.
         Content must be kid-friendly, educational, and fun. No markdown. Return ONLY the JSON array.`;
 
-        try {
-            const jsonStr = await callGeminiApi(systemPrompt, "Generate 30 items now.");
-            const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
-            const items = JSON.parse(cleanJson);
-
-            const batch = writeBatch(db);
-            const teacherId = state.get('currentUserId');
-            const teacherName = state.get('currentTeacherName');
-
-            items.forEach(item => {
-                const docRef = doc(contentCollection);
-                batch.set(docRef, {
-                    ...item,
-                    date: today,
-                    levelLabel: levelLabel,
-                    createdBy: { uid: teacherId, name: teacherName },
-                    createdAt: serverTimestamp()
-                });
-            });
-
-            await batch.commit();
-            localStorage.setItem(storageKey, "loaded");
-            cleanupOldAIContent();
-
-        } catch (e) {
-            console.error("AI Content Gen Error:", e);
+        const jsonStr = await callGeminiApi(systemPrompt, `Generate ${itemCount} items now.`);
+        const items = parseDailyWallpaperAiItems(jsonStr);
+        if (!items.length) {
+            console.warn('AI Content Gen: no usable items in response');
+            return;
         }
-    } else {
+
+        const batch = writeBatch(db);
+        const teacherId = state.get('currentUserId');
+        const teacherName = state.get('currentTeacherName');
+
+        items.forEach(item => {
+            const docRef = doc(contentCollection);
+            batch.set(docRef, {
+                ...item,
+                date: today,
+                levelLabel: levelLabel,
+                createdBy: { uid: teacherId, name: teacherName },
+                createdAt: serverTimestamp()
+            });
+        });
+
+        await batch.commit();
         localStorage.setItem(storageKey, "loaded");
+        cleanupOldAIContent();
+    } catch (e) {
+        console.error("AI Content Gen Error:", e);
     }
 }
 

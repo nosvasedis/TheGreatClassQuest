@@ -102,7 +102,6 @@ docs/product/guidebook/capture/*
 docs/product/guidebook/media/*
 !docs/product/guidebook/media/ui/
 docs/product/guidebook/media/ui/*
-!docs/product/guidebook/media/ui/**
 scripts/README.md
 config/tiers/README.md
 

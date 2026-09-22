@@ -40,9 +40,9 @@ Help them pick how they **already shine**. Do not switch to chase Gold.
 | ✒️ **Weaver** | Story Weaver | Bard → Storyteller → Lorekeeper → Chronicler → Grand Weaver | 20 / 45 / 70 / 95 / 120 |
 | 📜 **Scholar** | Scholar’s Bonus | Scribe → Research Mentor → Grand Scholar | **10 / 20 / 30** (three tiers) |
 | 👟 **Nomad** | Welcome Back | Wanderer → Pathfinder → Legendary Nomad | **10 / 20 / 30** (three tiers) |
-| 💝 **Patron** | Hero's Boon (**giving**) | Giver → Benefactor → Grand Patron | **10 / 20 / 30** (three tiers; one path point per gift) |
+| 💝 **Patron** | Hero's Boon (**giving**) | Giver → Benefactor → Grand Patron | **10 / 20 / 30** (three tiers; one path point per calendar week you give) |
 
-Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift.
+Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift. Extra Hero's Boon gifts in the same week still help classmates; they do not buy another path point.
 
 Thresholds assume a long September–June year, not a sprint.
 
@@ -149,7 +149,7 @@ Levels from **Welcome Back**. Three tiers. Random gifts appear early.
 
 ## 💝 Patron (Hero's Boon) — the giver
 
-Levels from **giving** Hero's Boon, not from receiving it. Three tiers. One successful gift = one path point. The receiver still gets **+0.5** stars (and Overflowing Heart can enlarge that gift). The Patron's totals do not rise from the path.
+Levels from **giving** Hero's Boon, not from receiving it. Three tiers. The first successful gift each **calendar week** (Monday–Sunday, same clock as Fortune's Wheel) = one path point. Extra gifts that week still cost Gold (or use Compassion Token), still give the receiver **+0.5** stars (Overflowing Heart can enlarge that gift), and still pay the Patron's **+10 Gold** and skills. They do not buy another Giver / Benefactor / Grand Patron point. The Patron's totals do not rise from the path.
 
 | Level | Branch A | Branch B |
 |-------|----------|----------|
@@ -157,7 +157,7 @@ Levels from **giving** Hero's Boon, not from receiving it. Three tiers. One succ
 | 2 (20) | **Guild Alms** — +3 Gold to your guildmates when you give | **First Mercy** — first gift this month: guildmates +7 Gold |
 | 3 (30) | **Grand Patron's Purse** — +5 Gold to you (net cost **0** with the class +10) and +3 Gold to the receiver | **Overflowing Heart** — the gift is **+1 bonus star** to the receiver (1.5 instead of 0.5) |
 
-Self-gold on this tree never exceeds +5, so a paid gift never **profits**. Compassion Token free gifts still count for the path.
+Self-gold on this tree never exceeds +5, so a paid gift never **profits**. Compassion Token free gifts still count for the path when they are the first gift that calendar week.
 
 ## Locking and teaching advice
 

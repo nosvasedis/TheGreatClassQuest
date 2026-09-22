@@ -26,7 +26,8 @@ export const HERO_CLASSES = {
 };
 
 /**
- * Path points credited to a Patron per successful Hero's Boon gift.
+ * Path points credited to a Patron for the first successful Hero's Boon
+ * in a calendar week (Monday–Sunday, same ISO week as Fortune's Wheel).
  */
 export const PATRON_PATH_CREDIT_PER_GIFT = 1;
 export const PEER_BOON_COST = 15;
@@ -38,40 +39,92 @@ const EMPTY_PATRON_GIFT = {
     giverGoldBonus: 0,
     extraStarsForReceiver: 0,
     pathCredit: 0,
+    skillEventCredit: 0,
+    creditsPath: false,
+    pathWeekKey: '',
     newReasonStars: 0,
     newHeroLevel: 0,
     leveledUp: false
 };
 
 /**
+ * ISO week key YYYY-Www from a local calendar date. Matches getISOWeekKey
+ * in guildScoring.js without importing that Firebase-backed module.
+ */
+export function getPatronPathWeekKey(d = new Date()) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+    return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+export function getPatronPathWeekKeyFromDateString(dateStr) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr || '').trim());
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+    return getPatronPathWeekKey(new Date(year, month - 1, day));
+}
+
+/**
+ * Unique ISO weeks that already have a Patron gift. Live path credit is
+ * one point per week, not one point per log.
+ */
+export function summarizePatronPathFromLogDates(dateStrings, now = new Date()) {
+    const weeks = new Set();
+    for (const dateStr of dateStrings || []) {
+        const key = getPatronPathWeekKeyFromDateString(dateStr);
+        if (key) weeks.add(key);
+    }
+    const thisWeekKey = getPatronPathWeekKey(now);
+    return {
+        reasonStars: weeks.size,
+        thisWeekKey,
+        giftedThisWeek: weeks.has(thisWeekKey)
+    };
+}
+
+/**
  * Patron levels from GIVING a Hero's Boon. Rank stars stay on the receiver.
  * Returns giver gold (class +10 plus self_gold skills), receiver star bonus,
- * and path progress. Does not include the 15 Gold spend.
+ * and path progress. Extra gifts in the same week still pay gold and skills;
+ * they do not add another path point. Does not include the 15 Gold spend.
  */
-export function calculatePatronGiftEffects(studentData, scoreData = null) {
+export function calculatePatronGiftEffects(studentData, scoreData = null, options = {}) {
     const heroClass = studentData?.heroClass;
     if (!heroClass || !HERO_CLASSES[heroClass]) return { ...EMPTY_PATRON_GIFT };
     const classInfo = HERO_CLASSES[heroClass];
     if (classInfo.reason !== 'peer_boon') return { ...EMPTY_PATRON_GIFT };
 
+    const weekKey = options.weekKey || getPatronPathWeekKey(options.now);
+    const alreadyCreditedThisWeek = String(scoreData?.lastPatronPathCreditWeekKey || '') === weekKey;
+    const pathCredit = alreadyCreditedThisWeek ? 0 : PATRON_PATH_CREDIT_PER_GIFT;
+    const skillEventCredit = PATRON_PATH_CREDIT_PER_GIFT;
+
     const { extraGold, extraStars } = calculateSkillBonus(
         heroClass,
         scoreData?.heroSkills,
         'peer_boon',
-        PATRON_PATH_CREDIT_PER_GIFT
+        skillEventCredit
     );
     const currentReasonStars = Number(scoreData?.starsByReason?.peer_boon) || 0;
-    const newReasonStars = currentReasonStars + PATRON_PATH_CREDIT_PER_GIFT;
+    const newReasonStars = currentReasonStars + pathCredit;
     const currentHeroLevel = Number(scoreData?.heroLevel) || 0;
     const newHeroLevel = computeHeroLevel(heroClass, newReasonStars);
     return {
         applies: true,
         giverGoldBonus: classInfo.bonus + extraGold,
         extraStarsForReceiver: extraStars,
-        pathCredit: PATRON_PATH_CREDIT_PER_GIFT,
+        pathCredit,
+        skillEventCredit,
+        creditsPath: pathCredit > 0,
+        pathWeekKey: weekKey,
         newReasonStars,
         newHeroLevel,
-        leveledUp: newHeroLevel > currentHeroLevel
+        leveledUp: pathCredit > 0 && newHeroLevel > currentHeroLevel
     };
 }
 
@@ -90,7 +143,9 @@ export function computePeerBoonSettlement({
     lastPeerBoonRecipientId = null,
     senderStudent = null,
     senderScoreData = null,
-    heroProgressionEnabled = false
+    heroProgressionEnabled = false,
+    weekKey = null,
+    now = null
 } = {}) {
     if (senderId === receiverId) {
         return { ok: false, error: "An adventurer cannot bestow a boon on themselves!" };
@@ -114,7 +169,10 @@ export function computePeerBoonSettlement({
     }
 
     const patronGift = heroProgressionEnabled
-        ? calculatePatronGiftEffects(senderStudent, senderScoreData)
+        ? calculatePatronGiftEffects(senderStudent, senderScoreData, {
+            weekKey: weekKey || undefined,
+            now: now || undefined
+        })
         : { ...EMPTY_PATRON_GIFT };
 
     return {

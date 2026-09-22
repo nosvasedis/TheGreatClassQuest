@@ -13,7 +13,8 @@ import {
     PEER_BOON_BASE_STARS,
     PEER_BOON_COST,
     PEER_BOON_DAILY_CAP,
-    computePeerBoonSettlement
+    computePeerBoonSettlement,
+    getPatronPathWeekKeyFromDateString
 } from './heroClasses.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { withSchoolYear } from '../utils/schoolYear.js';
@@ -73,7 +74,8 @@ export async function handleBestowBoon(senderId, receiverId) {
     try {
         let receiverStarDelta = PEER_BOON_BASE_STARS;
         let patronLevelUpInfo = null;
-        let patronGiftResult = { applies: false, giverGoldBonus: 0, extraStarsForReceiver: 0, pathCredit: 0, newReasonStars: 0, newHeroLevel: 0, leveledUp: false };
+        let patronGiftResult = { applies: false, giverGoldBonus: 0, extraStarsForReceiver: 0, pathCredit: 0, skillEventCredit: 0, newReasonStars: 0, newHeroLevel: 0, leveledUp: false };
+        const giftWeekKey = getPatronPathWeekKeyFromDateString(todayStr);
 
         await runTransaction(db, async (transaction) => {
             const senderScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", senderId);
@@ -96,7 +98,8 @@ export async function handleBestowBoon(senderId, receiverId) {
                 lastPeerBoonRecipientId: senderData.lastPeerBoonRecipientId,
                 senderStudent: sender,
                 senderScoreData: senderData,
-                heroProgressionEnabled: canUseFeature('heroProgression')
+                heroProgressionEnabled: canUseFeature('heroProgression'),
+                weekKey: giftWeekKey || undefined
             });
             if (!settlement.ok) throw settlement.error;
 
@@ -117,16 +120,21 @@ export async function handleBestowBoon(senderId, receiverId) {
 
             if (patronGift.applies) {
                 senderUpdate.gold = settlement.giverGoldAfter;
-                senderUpdate['starsByReason.peer_boon'] = patronGift.newReasonStars;
-                senderUpdate.heroLevel = patronGift.newHeroLevel;
-                if (patronGift.leveledUp) {
-                    senderUpdate.pendingSkillChoice = true;
-                    patronLevelUpInfo = {
-                        studentId: senderId,
-                        studentName: sender.name,
-                        newHeroLevel: patronGift.newHeroLevel,
-                        heroClass: sender.heroClass
-                    };
+                if (patronGift.pathCredit > 0) {
+                    senderUpdate['starsByReason.peer_boon'] = patronGift.newReasonStars;
+                    senderUpdate.heroLevel = patronGift.newHeroLevel;
+                    if (patronGift.pathWeekKey) {
+                        senderUpdate.lastPatronPathCreditWeekKey = patronGift.pathWeekKey;
+                    }
+                    if (patronGift.leveledUp) {
+                        senderUpdate.pendingSkillChoice = true;
+                        patronLevelUpInfo = {
+                            studentId: senderId,
+                            studentName: sender.name,
+                            newHeroLevel: patronGift.newHeroLevel,
+                            heroClass: sender.heroClass
+                        };
+                    }
                 }
             }
 
@@ -147,7 +155,7 @@ export async function handleBestowBoon(senderId, receiverId) {
                 appliedStarCredit: receiverStarDelta,
                 reason: "peer_boon",
                 note: `Hero's Boon from ${sender.name}!`,
-                date: utils.getTodayDateString(),
+                date: todayStr,
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             }, state.getActiveSchoolYearKey()));
@@ -175,13 +183,18 @@ export async function handleBestowBoon(senderId, receiverId) {
             if (patronGiftResult.applies) {
                 const goldNow = getLiveYearGold(allScores[senderIdx], getLiveYearGoldContextFromState(state));
                 allScores[senderIdx].gold = Math.max(0, goldNow + patronGiftResult.giverGoldBonus);
-                allScores[senderIdx].starsByReason = {
-                    ...(allScores[senderIdx].starsByReason || {}),
-                    peer_boon: patronGiftResult.newReasonStars
-                };
-                allScores[senderIdx].heroLevel = patronGiftResult.newHeroLevel;
-                if (patronGiftResult.leveledUp) {
-                    allScores[senderIdx].pendingSkillChoice = true;
+                if (patronGiftResult.pathCredit > 0) {
+                    allScores[senderIdx].starsByReason = {
+                        ...(allScores[senderIdx].starsByReason || {}),
+                        peer_boon: patronGiftResult.newReasonStars
+                    };
+                    allScores[senderIdx].heroLevel = patronGiftResult.newHeroLevel;
+                    if (patronGiftResult.pathWeekKey) {
+                        allScores[senderIdx].lastPatronPathCreditWeekKey = patronGiftResult.pathWeekKey;
+                    }
+                    if (patronGiftResult.leveledUp) {
+                        allScores[senderIdx].pendingSkillChoice = true;
+                    }
                 }
             }
         }
@@ -195,7 +208,7 @@ export async function handleBestowBoon(senderId, receiverId) {
         reconcileFamiliarLifecycle(receiverId, { announce: true, source: 'peer-boon' }).catch((e) => console.warn('Peer boon familiar reconciliation failed:', e));
         updateGuildScores(receiverId, receiverStarDelta, 'peer_boon');
         if (patronGiftResult.applies) {
-            applyAwardOutwardSkillEffects(senderId, sender.classId, 'peer_boon', patronGiftResult.pathCredit, { giftReceiverId: receiverId }).catch((e) => console.warn('Patron outward skill effect failed:', e));
+            applyAwardOutwardSkillEffects(senderId, sender.classId, 'peer_boon', patronGiftResult.skillEventCredit, { giftReceiverId: receiverId }).catch((e) => console.warn('Patron outward skill effect failed:', e));
         }
         if (patronLevelUpInfo) {
             showHeroLevelUpCelebration(patronLevelUpInfo);

@@ -710,7 +710,7 @@ Teamwork, Creativity, Respect, Focus. Πάτα 1, 2 ή 3. Το Scholar’s Bonus
 
 ## Hero’s Boon (peer gift)
 
-Η καρδιά στο σύννεφο: ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό. Η σπασμένη γκρι καρδιά σημαίνει «δεν δικαιούται».
+Η καρδιά στο σύννεφο: ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό. Η σπασμένη γκρι καρδιά σημαίνει «δεν δικαιούται». Στο **Pro**, ένα **Patron** Hero Path παίρνει ένα path point από το **πρώτο** δώρο κάθε ημερολογιακής εβδομάδας· τα επιπλέον δώρα εκείνη την εβδομάδα συνεχίζουν να ισχύουν ως δώρα.
 
 ## Teacher Boon
 
@@ -918,7 +918,7 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 | ✒️ **Weaver** | Story Weaver | Bard → … → Grand Weaver |
 | 📜 **Scholar** | Scholar’s Bonus | τρεις βαθμίδες |
 | 👟 **Nomad** | Welcome Back | τρεις βαθμίδες |
-| 💝 **Patron** | Hero's Boon (όταν **δίνεις**) | Giver → Benefactor → Grand Patron |
+| 💝 **Patron** | Hero's Boon (όταν **δίνεις**· ένα path point ανά ημερολογιακή εβδομάδα) | Giver → Benefactor → Grand Patron |
 
 Δεν είναι Quest League και δεν είναι guild.
 `,

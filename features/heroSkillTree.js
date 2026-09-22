@@ -432,7 +432,8 @@ export const HERO_SKILL_TREE = {
 
     // ─── PATRON (Hero's Boon) — The Giver ────────────────────────────────────
     // Identity: Levels from GIVING a Hero's Boon, not receiving. Path credit
-    // is 1 per gift; rank stars stay on the receiver. Stronger capstones like
+    // is 1 per calendar week with a gift; extra gifts that week still fire
+    // gold/skills. Rank stars stay on the receiver. Stronger capstones like
     // Scholar/Nomad (3 levels). Self-gold max +5 so a paid gift never profits.
     Patron: {
         reason: 'peer_boon',

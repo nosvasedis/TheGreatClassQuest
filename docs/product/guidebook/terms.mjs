@@ -141,8 +141,8 @@ export const TERMS = [
     names: { en: "Hero's Boon", el: "Hero's Boon" },
     aliases: ["hero's boon", 'heros boon', 'hero boon', 'peer boon', 'heart button', 'bestow'],
     def: {
-      en: 'The heart on a student cloud. A classmate spends 15 Gold to give +0.5 stars (free with Compassion Token). Max 4 per class per day. Receiver must be in the bottom 3 monthly stars or a tie group. No self; not the same classmate twice in a row. Grey broken hearts mean not eligible. On Pro, Patron Hero Path levels from giving this gift.',
-      el: 'Η καρδιά στο σύννεφο. Ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό· όχι δύο φορές στον ίδιο στη σειρά. Στο Pro, το Patron Hero Path ανεβαίνει όταν δίνεις αυτό το δώρο.'
+      en: 'The heart on a student cloud. A classmate spends 15 Gold to give +0.5 stars (free with Compassion Token). Max 4 per class per day. Receiver must be in the bottom 3 monthly stars or a tie group. No self; not the same classmate twice in a row. Grey broken hearts mean not eligible. On Pro, a Patron earns one path point from the first gift each calendar week; extra gifts that week still help the receiver.',
+      el: 'Η καρδιά στο σύννεφο. Ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό· όχι δύο φορές στον ίδιο στη σειρά. Στο Pro, το Patron παίρνει ένα path point από το πρώτο δώρο κάθε ημερολογιακής εβδομάδας· τα επιπλέον δώρα εκείνη την εβδομάδα συνεχίζουν να βοηθούν τον δέκτη.'
     },
     confuse: { en: 'Teacher Boon; the automatic +1 on the reigning Hero of the Day’s first award; Patron (the Hero Path class)', el: 'Teacher Boon· το αυτόματο +1 στον reigning Hero of the Day· Patron (η κλάση)' }
   },
@@ -441,8 +441,8 @@ export const TERMS = [
     names: { en: 'Patron', el: 'Patron' },
     aliases: ['patron class', 'grand patron', 'giver hero class'],
     def: {
-      en: 'Hero Path class that levels by giving Hero\'s Boon (10 / 20 / 30 gifts). The giver gets +10 Gold and no rank stars; the receiver still gets +0.5.',
-      el: 'Hero Path που ανεβαίνει όταν δίνεις Hero\'s Boon (10 / 20 / 30 δώρα). Ο δωρητής παίρνει +10 Gold και όχι αστέρια κατάταξης· ο δέκτης παίρνει +0,5.'
+      en: 'Hero Path class that levels by giving Hero\'s Boon (10 / 20 / 30 weeks). First successful gift each calendar week = one path point; extra gifts still help classmates. The giver gets +10 Gold and no rank stars; the receiver still gets +0.5.',
+      el: 'Hero Path που ανεβαίνει όταν δίνεις Hero\'s Boon (10 / 20 / 30 εβδομάδες). Το πρώτο επιτυχές δώρο κάθε ημερολογιακής εβδομάδας = ένα path point· τα επιπλέον δώρα συνεχίζουν να βοηθούν συμμαθητές. Ο δωρητής παίρνει +10 Gold και όχι αστέρια κατάταξης· ο δέκτης παίρνει +0,5.'
     },
     confuse: { en: "The Herald's Banner (Market artifact); receiving a Hero's Boon; Teacher Boon", el: "The Herald's Banner (αρχαίο Market)· το να λαμβάνεις Hero's Boon· Teacher Boon" }
   },

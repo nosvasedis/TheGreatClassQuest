@@ -51,6 +51,9 @@ test('Patron path credits the giver without inventing rank stars', async () => {
   );
   assert.equal(basePatron.applies, true);
   assert.equal(basePatron.pathCredit, 1);
+  assert.equal(basePatron.skillEventCredit, 1);
+  assert.equal(basePatron.creditsPath, true);
+  assert.match(basePatron.pathWeekKey, /^\d{4}-W\d{2}$/);
   assert.equal(basePatron.giverGoldBonus, 10);
   assert.equal(basePatron.extraStarsForReceiver, 0);
   assert.equal(basePatron.newReasonStars, 1);
@@ -273,4 +276,96 @@ test('locked daily-cap consecutive and self gifts do not credit the Patron path'
   assert.equal(noHeroPath.ok, true);
   assert.equal(noHeroPath.patronGift.applies, false);
   assert.equal(noHeroPath.giverGoldAfter, 25);
+});
+
+test('Patron path credits the first gift each calendar week, not every gift', async () => {
+  const { computePeerBoonSettlement, calculatePatronGiftEffects, summarizePatronPathFromLogDates, getPatronPathWeekKeyFromDateString } = await import('../features/heroClasses.js');
+  const weekKey = '2026-W16';
+  const nextWeekKey = '2026-W17';
+
+  const firstGift = computePeerBoonSettlement({
+    senderId: 'giver',
+    receiverId: 'receiver-a',
+    currentGold: 40,
+    senderStudent: { heroClass: 'Patron' },
+    senderScoreData: { heroSkills: [], heroLevel: 0, starsByReason: { peer_boon: 4 } },
+    heroProgressionEnabled: true,
+    weekKey
+  });
+  assert.equal(firstGift.patronGift.pathCredit, 1);
+  assert.equal(firstGift.patronGift.skillEventCredit, 1);
+  assert.equal(firstGift.patronGift.newReasonStars, 5);
+  assert.equal(firstGift.patronGift.pathWeekKey, weekKey);
+  assert.equal(firstGift.giverGoldAfter, 35);
+
+  const extraSameWeek = computePeerBoonSettlement({
+    senderId: 'giver',
+    receiverId: 'receiver-b',
+    currentGold: 40,
+    senderStudent: { heroClass: 'Patron' },
+    senderScoreData: {
+      heroSkills: ['patron_1a', 'patron_3b'],
+      heroLevel: 3,
+      starsByReason: { peer_boon: 5 },
+      lastPatronPathCreditWeekKey: weekKey
+    },
+    heroProgressionEnabled: true,
+    weekKey
+  });
+  assert.equal(extraSameWeek.ok, true);
+  assert.equal(extraSameWeek.patronGift.pathCredit, 0);
+  assert.equal(extraSameWeek.patronGift.skillEventCredit, 1);
+  assert.equal(extraSameWeek.patronGift.creditsPath, false);
+  assert.equal(extraSameWeek.patronGift.newReasonStars, 5);
+  assert.equal(extraSameWeek.patronGift.leveledUp, false);
+  assert.equal(extraSameWeek.patronGift.extraStarsForReceiver, 1);
+  assert.equal(extraSameWeek.receiverStarDelta, 1.5);
+  assert.equal(extraSameWeek.patronGift.giverGoldBonus, 13);
+  assert.equal(extraSameWeek.giverGoldAfter, 38);
+
+  const nextWeek = computePeerBoonSettlement({
+    senderId: 'giver',
+    receiverId: 'receiver-c',
+    currentGold: 40,
+    senderStudent: { heroClass: 'Patron' },
+    senderScoreData: {
+      heroSkills: [],
+      heroLevel: 0,
+      starsByReason: { peer_boon: 5 },
+      lastPatronPathCreditWeekKey: weekKey
+    },
+    heroProgressionEnabled: true,
+    weekKey: nextWeekKey
+  });
+  assert.equal(nextWeek.patronGift.pathCredit, 1);
+  assert.equal(nextWeek.patronGift.newReasonStars, 6);
+  assert.equal(nextWeek.patronGift.leveledUp, false);
+
+  const capstoneHeld = calculatePatronGiftEffects(
+    { heroClass: 'Patron' },
+    { heroSkills: ['patron_3b'], heroLevel: 2, starsByReason: { peer_boon: 29 }, lastPatronPathCreditWeekKey: weekKey },
+    { weekKey }
+  );
+  assert.equal(capstoneHeld.pathCredit, 0);
+  assert.equal(capstoneHeld.newReasonStars, 29);
+  assert.equal(capstoneHeld.leveledUp, false);
+  assert.equal(capstoneHeld.extraStarsForReceiver, 1);
+
+  const monday = getPatronPathWeekKeyFromDateString('2026-04-13');
+  const thursday = getPatronPathWeekKeyFromDateString('2026-04-16');
+  const nextMonday = getPatronPathWeekKeyFromDateString('2026-04-20');
+  assert.equal(monday, thursday);
+  assert.notEqual(monday, nextMonday);
+
+  const sameWeekLogs = summarizePatronPathFromLogDates(['2026-04-13', '2026-04-16', '2026-04-13'], new Date(2026, 3, 16));
+  assert.equal(sameWeekLogs.reasonStars, 1);
+  assert.equal(sameWeekLogs.giftedThisWeek, true);
+
+  const twoWeeks = summarizePatronPathFromLogDates(['2026-04-13', '2026-04-20'], new Date(2026, 3, 20));
+  assert.equal(twoWeeks.reasonStars, 2);
+  assert.equal(twoWeeks.giftedThisWeek, true);
+
+  const laterWeek = summarizePatronPathFromLogDates(['2026-04-13'], new Date(2026, 3, 20));
+  assert.equal(laterWeek.reasonStars, 1);
+  assert.equal(laterWeek.giftedThisWeek, false);
 });

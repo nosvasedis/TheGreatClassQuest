@@ -25,6 +25,7 @@ test('year close deletes leftover hero reason stars instead of merging an empty 
     assert.match(closeFn, /heroSkills:\s*\[\]/);
     assert.match(closeFn, /pendingSkillChoice:\s*false/);
     assert.match(closeFn, /lastGuildBonusMonth:\s*FieldValue\.delete\(\)/);
+    assert.match(closeFn, /lastPatronPathCreditWeekKey:\s*FieldValue\.delete\(\)/);
     assert.match(closeFn, /heroOfDayWinsAtClose: score\.heroOfDayWins \|\| 0/);
     assert.match(closeFn, /heroOfDayWins:\s*0/);
     assert.match(closeFn, /heroOfDayWinsYearKey:\s*nextYearKey/);
@@ -37,6 +38,7 @@ test('September placement resets leftover hero progression from the closed year'
     assert.match(placeFn, /pendingSkillChoice:\s*false/);
     assert.match(placeFn, /starsByReason:\s*FieldValue\.delete\(\)/);
     assert.match(placeFn, /lastGuildBonusMonth:\s*FieldValue\.delete\(\)/);
+    assert.match(placeFn, /lastPatronPathCreditWeekKey:\s*FieldValue\.delete\(\)/);
     assert.match(placeFn, /heroOfDayWins:\s*0/);
     assert.match(placeFn, /heroOfDayWinsYearKey:\s*yearKey/);
 });

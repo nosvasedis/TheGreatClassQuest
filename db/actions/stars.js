@@ -13,6 +13,7 @@ import {
     writeBatch,
     serverTimestamp,
     increment,
+    deleteField,
     orderBy,
     limit,
 } from "../../firebase.js";
@@ -43,6 +44,7 @@ import { checkBountyProgress } from "./bounties.js";
 import {
     calculateHeroGold,
     canChangeHeroClass,
+    summarizePatronPathFromLogDates,
 } from "../../features/heroClasses.js";
 import { recordGuildGloryEvent, updateGuildScores } from "../../features/guildScoring.js";
 import {
@@ -606,19 +608,33 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
             ),
         );
 
-        const reasonStars = isPatronGiverPath
-            ? logsSnapshot.docs.length
-            : logsSnapshot.docs.reduce(
+        let reasonStars;
+        let patronWeekPatch = null;
+        if (isPatronGiverPath) {
+            const summary = summarizePatronPathFromLogDates(
+                logsSnapshot.docs.map((logDoc) => logDoc.data().date),
+            );
+            reasonStars = summary.reasonStars;
+            const currentStamp = String(scoreData.lastPatronPathCreditWeekKey || "");
+            if (summary.giftedThisWeek && currentStamp !== summary.thisWeekKey) {
+                patronWeekPatch = { lastPatronPathCreditWeekKey: summary.thisWeekKey };
+            } else if (!summary.giftedThisWeek && currentStamp === summary.thisWeekKey) {
+                patronWeekPatch = { lastPatronPathCreditWeekKey: deleteField() };
+            }
+        } else {
+            reasonStars = logsSnapshot.docs.reduce(
                 (total, logDoc) => total + (Number(logDoc.data().stars) || 0),
                 0,
             );
+        }
         const expectedLevel = computeHeroLevel(student.heroClass, reasonStars);
         const currentReasonStars = scoreData.starsByReason?.[reason] || 0;
         const currentLevel = scoreData.heroLevel || 0;
 
         if (
             Math.abs(currentReasonStars - reasonStars) < 0.0001 &&
-            currentLevel === expectedLevel
+            currentLevel === expectedLevel &&
+            !patronWeekPatch
         )
             continue;
 
@@ -630,6 +646,7 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
         const scorePatch = {
             [`starsByReason.${reason}`]: reasonStars,
             heroLevel: expectedLevel,
+            ...patronWeekPatch,
         };
 
         if (expectedLevel > currentLevel) {

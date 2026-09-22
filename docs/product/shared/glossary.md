@@ -17,10 +17,10 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Hall of Prodigies** | This year's archive of monthly Prodigies. Last year's plaques stay last year. | Hall of Heroes |
 | **Hero of the Day** | Automatic when you log today’s adventure | Prodigy |
 | **Hall of Heroes** | This year's archive of Hero of the Day wins. Legend discounts restart each year. | Hall of Prodigies |
-| **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars. Patron Hero Path levels from **giving** it. | Teacher Boon; Hero of the Day +1; Patron (the vocation, not the gift) |
+| **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars. Patron Hero Path: one path point per calendar week you give. | Teacher Boon; Hero of the Day +1; Patron (the vocation, not the gift) |
 | **Includes Hero’s Boon (+1)** | Automatic extra star on the reigning hero’s **first** award | Peer gift |
 | **Teacher Boon** | Your 2-star gift, last week of the month, once per class | Peer boon |
-| **Patron** | Hero Path class that levels by giving Hero's Boon | The Herald's Banner (Market artifact); receiving a boon |
+| **Patron** | Hero Path class that levels by giving Hero's Boon (one path point per calendar week) | The Herald's Banner (Market artifact); receiving a boon |
 | **Welcome Back** | Return bonus after absence | Nomad path (levels from it) |
 | **Scholar’s Bonus** | Usually Starfall after a high trial | Award Stars reason button (there isn’t one) |
 | **Story Weaver stars** | Class bonus from Story Weavers milestones | Five-Sentence Saga (calendar event) |

@@ -1791,6 +1791,7 @@ exports.closeSchoolYear = callable(async (request) => {
         heroSkills: [],
         pendingSkillChoice: false,
         lastGuildBonusMonth: FieldValue.delete(),
+        lastPatronPathCreditWeekKey: FieldValue.delete(),
         lastMonthlyResetDate: `${new Date().toISOString().slice(0, 7)}-01`,
         starfallCatalystActive: FieldValue.delete(),
         hasGildedEffect: FieldValue.delete(),
@@ -2062,6 +2063,7 @@ exports.allocateReturningStudents = callable(async (request) => {
         pendingSkillChoice: false,
         starsByReason: FieldValue.delete(),
         lastGuildBonusMonth: FieldValue.delete(),
+        lastPatronPathCreditWeekKey: FieldValue.delete(),
         heroOfDayWins: 0,
         heroOfDayWinsYearKey: yearKey,
         updatedAt: FieldValue.serverTimestamp()

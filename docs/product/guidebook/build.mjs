@@ -52,8 +52,7 @@ const CHAPTERS = [
 function copyMedia() {
   fs.mkdirSync(MEDIA, { recursive: true });
   const files = [
-    ['assets/great-class-quest-logo.svg', 'logo.svg'],
-    ['assets/favicon/favicon.svg', 'favicon.svg'],
+    ['assets/guidebook-logo.png', 'guidebook-logo.png'],
     ['assets/dragonflame.webp', 'dragonflame.webp'],
     ['assets/grizzlymight.webp', 'grizzlymight.webp'],
     ['assets/owlwisdom.webp', 'owlwisdom.webp'],
@@ -843,7 +842,7 @@ function printPage(chaptersHtml) {
 <head>
   <meta charset="UTF-8" />
   <title>The Quest Master's Guidebook · The Great Class Quest</title>
-  <link rel="icon" type="image/svg+xml" href="media/favicon.svg" />
+  <link rel="icon" type="image/png" href="media/guidebook-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital@0;1&display=swap" rel="stylesheet" />
@@ -856,7 +855,7 @@ function printPage(chaptersHtml) {
     <img class="cover-cloud c2" src="media/cloud-c.png" alt="" />
     <img class="cover-cloud c3" src="media/cloud-a.png" alt="" />
     <div class="print-cover-inner">
-      <img class="print-cover-logo" src="media/logo.svg" alt="" />
+      <img class="print-cover-logo" src="media/guidebook-logo.png" alt="" />
       <span class="eyebrow">The Great Class Quest</span>
       <h1>The Quest Master's Guidebook</h1>
         <p class="lede">Start with the classroom philosophy, then the map of every tab, ritual, economy rule, and ceremony — written for practising English-school teachers, with shorter chapters for the School Office and families.</p>
@@ -878,7 +877,7 @@ function page(chaptersHtml, payload) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Quest Master's Guidebook · The Great Class Quest</title>
-  <link rel="icon" type="image/svg+xml" href="media/favicon.svg" />
+  <link rel="icon" type="image/png" href="media/guidebook-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital@0;1&display=swap" rel="stylesheet" />
@@ -890,7 +889,7 @@ function page(chaptersHtml, payload) {
   <button class="menu-btn" type="button" id="menu-btn"><i class="fas fa-bars"></i> <span data-i18n="chapters">Chapters</span></button>
   <aside class="rail" id="rail">
     <div class="rail-brand">
-      <img src="media/logo.svg" alt="The Great Class Quest logo" />
+      <img src="media/guidebook-logo.png" alt="The Great Class Quest Guidebook logo" />
       <div>
         <h1>The Quest Master's Guidebook</h1>
         <p data-i18n="brandSub">Teacher-first handbook</p>
@@ -914,7 +913,7 @@ function page(chaptersHtml, payload) {
       <img class="cover-cloud c2" src="media/cloud-c.png" alt="" />
       <img class="cover-cloud c3" src="media/cloud-a.png" alt="" />
       <div class="cover-inner">
-        <img class="cover-logo" src="media/logo.svg" alt="" />
+        <img class="cover-logo" src="media/guidebook-logo.png" alt="" />
         <span class="eyebrow" data-i18n="coverEyebrow">The Great Class Quest</span>
         <h2 data-i18n="coverTitle">The Quest Master's Guidebook</h2>
         <p class="lede" data-i18n="coverLede">Start with the classroom philosophy, then the map of every tab, ritual, economy rule, and ceremony — written for practising English-school teachers, with shorter chapters for the School Office and families.</p>

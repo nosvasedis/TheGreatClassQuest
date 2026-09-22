@@ -39,6 +39,7 @@ reasonix/
 .claude/
 .windsurf/
 .wrangler/
+.guidebook-dist/
 
 # IDEs
 .vscode/
@@ -58,8 +59,42 @@ NGROK_SETUP.txt
 artifacts/screenshots/
 scratch/*.txt
 
-# All guides and docs (private; do not push to GitHub)
-docs/
+# Most guides and docs remain private. The selected guidebook source is public
+# by design because it is rebuilt and published to the public Cloudflare Pages
+# guidebook site.
+docs/*
+!docs/product/
+docs/product/*
+!docs/product/00-why-we-quest.md
+!docs/product/00-the-quest.md
+!docs/product/teacher/
+docs/product/teacher/*
+!docs/product/teacher/*.md
+!docs/product/parent/
+docs/product/parent/*
+!docs/product/parent/*.md
+!docs/product/secretary/
+docs/product/secretary/*
+!docs/product/secretary/*.md
+!docs/product/shared/
+docs/product/shared/*
+!docs/product/shared/*.md
+!docs/product/guidebook/
+docs/product/guidebook/*
+!docs/product/guidebook/build.mjs
+!docs/product/guidebook/chrome.mjs
+!docs/product/guidebook/el-chapters.mjs
+!docs/product/guidebook/guidebook.css
+!docs/product/guidebook/guidebook.js
+!docs/product/guidebook/i18n.mjs
+!docs/product/guidebook/stars.mjs
+!docs/product/guidebook/stage-site.mjs
+!docs/product/guidebook/terms.mjs
+!docs/product/guidebook/media/
+docs/product/guidebook/media/*
+!docs/product/guidebook/media/ui/
+docs/product/guidebook/media/ui/*
+!docs/product/guidebook/media/ui/**
 scripts/README.md
 config/tiers/README.md
 

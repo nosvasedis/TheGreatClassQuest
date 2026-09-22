@@ -340,6 +340,7 @@ export function renderManageStudentsTab() {
         'Scholar':   { icon: '📜', bg: '#fef3c7', text: '#92400e', ring: '#f59e0b' },
         'Weaver':    { icon: '✒️', bg: '#d1fae5', text: '#065f46', ring: '#10b981' },
         'Nomad':     { icon: '👟', bg: '#e0f2fe', text: '#075985', ring: '#0ea5e9' },
+        'Patron':    { icon: '💝', bg: '#ffe4e6', text: '#9f1239', ring: '#e11d48' },
     };
 
     list.innerHTML = studentsInClass.map(s => {

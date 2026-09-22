@@ -6,9 +6,9 @@ Hero Path is how a student **chooses a vocation** and grows by practising one vi
 
 ## Purpose
 
-Children invest in **who they are becoming**. A Guardian is invited to practise Respect; a Weaver is invited to feed the class story. Skill branches let them choose *self gold* or *gifts to others* — the same economy, two moral flavours.
+Children invest in **who they are becoming**. A Guardian is invited to practise Respect; a Weaver is invited to feed the class story; a Patron is invited to give Hero's Boon. Skill branches let them choose *self gold* or *gifts to others* — the same economy, two moral flavours.
 
-Base perk for every class: **+10 Gold** when the award reason matches their vocation (on top of 1 Gold per star).
+Base perk for every class: **+10 Gold** when the award reason matches their vocation (on top of 1 Gold per star). A Patron's +10 Gold lands on the **giver** of a Hero's Boon (so a paid gift costs 5 Gold unless Compassion Token has made boons free).
 
 A coloured **aura ring** appears on leaderboards from **level 3**.
 
@@ -21,7 +21,7 @@ Hero Path is **not** a tenth tab. You assign it on the roster, as a **ceremony**
 1. Open **Teacher Settings → My Classes → Manage Students** (or the roster shortcut).
 2. If they have **no Hero Class** yet, tap the indigo **shield** on their row (**Choose Hero Class**). Or tap **Edit** (the cyan pencil) → **Hero Path** → **Choose Hero Class** (or **Change Hero Class** if they already have one).
 3. The ceremony opens on the board. They tap a class to **preview** it (the hall morphs to that vocation’s colour). **Swear this Path** writes the class immediately. **Not yet** / close does not save.
-4. A short result beat follows: **You are a Guardian!** (or Sage, Paladin, Artificer, Scholar, Weaver, Nomad). **Let's Go!** closes it.
+4. A short result beat follows: **You are a Guardian!** (or Sage, Paladin, Artificer, Scholar, Weaver, Nomad, Patron). **Let's Go!** closes it.
 5. **No Class** is still a real choice: do **not** run the ceremony. A child may stay unassigned all year. The ceremony itself does not offer No Class.
 6. The **Skill Tree** button on the Hero Path tab (and the purple **sitemap** on the roster) opens their vocation tree, and pulses when a new branch is waiting.
 
@@ -29,7 +29,7 @@ Hero Path is **not** a tenth tab. You assign it on the roster, as a **ceremony**
 
 Help them pick how they **already shine**. Do not switch to chase Gold.
 
-## The seven classes
+## The eight classes
 
 | Class | Virtue (award reason) | Titles by level | Stars in that virtue to reach each level |
 |-------|----------------------|-----------------|------------------------------------------|
@@ -40,8 +40,9 @@ Help them pick how they **already shine**. Do not switch to chase Gold.
 | ✒️ **Weaver** | Story Weaver | Bard → Storyteller → Lorekeeper → Chronicler → Grand Weaver | 20 / 45 / 70 / 95 / 120 |
 | 📜 **Scholar** | Scholar’s Bonus | Scribe → Research Mentor → Grand Scholar | **10 / 20 / 30** (three tiers) |
 | 👟 **Nomad** | Welcome Back | Wanderer → Pathfinder → Legendary Nomad | **10 / 20 / 30** (three tiers) |
+| 💝 **Patron** | Hero's Boon (**giving**) | Giver → Benefactor → Grand Patron | **10 / 20 / 30** (three tiers; one path point per gift) |
 
-Scholar and Nomad are shorter because tests and returns are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete.
+Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift.
 
 Thresholds assume a long September–June year, not a sprint.
 
@@ -51,7 +52,7 @@ Open it from **Manage Students** (the purple **sitemap** button), from the enlar
 
 At each new level the Skill Tree button **pulses** on the roster until they pick **one of two** permanent branches (A or B). Help them read both cards aloud: extra Gold for themselves, bonus stars (these *do* move ranks), Gold to classmates who earned the same reason today, Gold to guildmates, a gift to a random classmate, or a **first time this calendar month** gift to the whole guild.
 
-Effects only fire when the **matching reason** is awarded (Respect for a Guardian, Story Weaver stars for a Weaver, Welcome Back for a Nomad, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
+Effects only fire when the **matching reason** is awarded (Respect for a Guardian, Story Weaver stars for a Weaver, Welcome Back for a Nomad, a Hero's Boon **gift** for a Patron, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
 
 A child may remain **No Class**. They keep the Hero Class they already have. Each school year they may change it twice; the second change locks the path until the next school year.
 
@@ -146,11 +147,23 @@ Levels from **Welcome Back**. Three tiers. Random gifts appear early.
 | 2 (20) | **Trail Blazer** — +6 Gold to a random classmate | **Wanderer’s Wisdom** — first this month: guildmates +7 Gold |
 | 3 (30) | **Legendary Nomad’s Path** — +12 Gold to you and +5 to guildmates | **Eternal Wanderer** — **+4 bonus stars** |
 
+## 💝 Patron (Hero's Boon) — the giver
+
+Levels from **giving** Hero's Boon, not from receiving it. Three tiers. One successful gift = one path point. The receiver still gets **+0.5** stars (and Overflowing Heart can enlarge that gift). The Patron's totals do not rise from the path.
+
+| Level | Branch A | Branch B |
+|-------|----------|----------|
+| 1 (10) | **Open Hand** — +3 Gold to you when you give | **Kind Purse** — +3 Gold to the classmate who received your boon |
+| 2 (20) | **Guild Alms** — +3 Gold to your guildmates when you give | **First Mercy** — first gift this month: guildmates +7 Gold |
+| 3 (30) | **Grand Patron's Purse** — +5 Gold to you (net cost **0** with the class +10) and +3 Gold to the receiver | **Overflowing Heart** — the gift is **+1 bonus star** to the receiver (1.5 instead of 0.5) |
+
+Self-gold on this tree never exceeds +5, so a paid gift never **profits**. Compassion Token free gifts still count for the path.
+
 ## Locking and teaching advice
 
 - Help the child choose a path that matches how they **already shine**, then invite growth in that virtue — not a costume they cannot wear.
 - Do not switch class to chase Gold. The lock exists so identity stays sacred.
-- Bonus **stars** from skills affect Prodigy races. Bonus **Gold** does not. Say that clearly if a parent asks why ranks moved after a Respect lesson.
+- Bonus **stars** from skills affect Prodigy races. Bonus **Gold** does not. Say that clearly if a parent asks why ranks moved after a Respect lesson. Patron's Overflowing Heart moves the **receiver's** ranks, never the giver's.
 
 ## How this feeds the rest of the Quest
 

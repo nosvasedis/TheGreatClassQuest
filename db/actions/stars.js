@@ -559,10 +559,11 @@ export function applyAwardOutwardSkillEffects(
     classId,
     reason,
     awardedStars,
+    options = {},
 ) {
     if (!studentId || !classId || !reason || awardedStars <= 0)
         return Promise.resolve();
-    return _applyOutwardSkillEffects(studentId, classId, reason, awardedStars);
+    return _applyOutwardSkillEffects(studentId, classId, reason, awardedStars, options);
 }
 
 export async function reconcileScholarAndNomadProgressFromLogs() {
@@ -571,7 +572,7 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
 
     const targetStudents = state
         .get("allStudents")
-        .filter((student) => ["Scholar", "Nomad"].includes(student.heroClass));
+        .filter((student) => ["Scholar", "Nomad", "Patron"].includes(student.heroClass));
     if (targetStudents.length === 0) return;
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
@@ -592,10 +593,11 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
         const reason = getHeroReason(student.heroClass);
         if (!reason) continue;
 
+        const isPatronGiverPath = student.heroClass === "Patron";
         const logsSnapshot = await getDocs(
             query(
                 collection(db, `${publicDataPath}/award_log`),
-                where("studentId", "==", student.id),
+                where(isPatronGiverPath ? "giverId" : "studentId", "==", student.id),
                 where("reason", "==", reason),
                 ...yearScopeClauses(
                     enforceActiveYearQueries,
@@ -604,10 +606,12 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
             ),
         );
 
-        const reasonStars = logsSnapshot.docs.reduce(
-            (total, logDoc) => total + (Number(logDoc.data().stars) || 0),
-            0,
-        );
+        const reasonStars = isPatronGiverPath
+            ? logsSnapshot.docs.length
+            : logsSnapshot.docs.reduce(
+                (total, logDoc) => total + (Number(logDoc.data().stars) || 0),
+                0,
+            );
         const expectedLevel = computeHeroLevel(student.heroClass, reasonStars);
         const currentReasonStars = scoreData.starsByReason?.[reason] || 0;
         const currentLevel = scoreData.heroLevel || 0;
@@ -1076,6 +1080,7 @@ async function _applyOutwardSkillEffects(
     classId,
     reason,
     difference,
+    options = {},
 ) {
     if (!canUseFeature("heroProgression")) return;
 
@@ -1099,6 +1104,7 @@ async function _applyOutwardSkillEffects(
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const allStudents = state.get("allStudents");
+    const giftReceiverId = String(options.giftReceiverId || "").trim();
 
     const batch = writeBatch(db);
     let hasBatchWrites = false;
@@ -1118,13 +1124,18 @@ async function _applyOutwardSkillEffects(
         let targets = [];
 
         if (eff.type === "classmate_gold_on_reason") {
-            const todaysStars = state.get("todaysStars");
-            targets = allStudents.filter(
-                (s) =>
-                    s.id !== awardedStudentId &&
-                    s.classId === classId &&
-                    todaysStars[s.id]?.reason === reason,
-            );
+            if (giftReceiverId) {
+                const receiver = allStudents.find((s) => s.id === giftReceiverId);
+                targets = receiver && receiver.id !== awardedStudentId ? [receiver] : [];
+            } else {
+                const todaysStars = state.get("todaysStars");
+                targets = allStudents.filter(
+                    (s) =>
+                        s.id !== awardedStudentId &&
+                        s.classId === classId &&
+                        todaysStars[s.id]?.reason === reason,
+                );
+            }
         } else if (eff.type === "guildmate_gold_on_reason") {
             targets = allStudents.filter(
                 (s) =>

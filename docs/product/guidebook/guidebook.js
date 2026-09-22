@@ -277,6 +277,7 @@
         <article class="hero-class-chip" style="--hc:#0d9488"><span>✒️</span><strong>Weaver</strong></article>
         <article class="hero-class-chip" style="--hc:#0891b2"><span>📜</span><strong>Scholar</strong></article>
         <article class="hero-class-chip" style="--hc:#7c3aed"><span>👟</span><strong>Nomad</strong></article>
+        <article class="hero-class-chip" style="--hc:#e11d48"><span>💝</span><strong>Patron</strong></article>
       </div>${termShot('hero-class.png', 'Hero Class ceremony: preview a vocation, then Swear this Path')}`;
     }
     if (w === 'bounty') {

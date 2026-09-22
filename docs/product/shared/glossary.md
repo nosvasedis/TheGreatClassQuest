@@ -17,9 +17,10 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Hall of Prodigies** | This year's archive of monthly Prodigies. Last year's plaques stay last year. | Hall of Heroes |
 | **Hero of the Day** | Automatic when you log today’s adventure | Prodigy |
 | **Hall of Heroes** | This year's archive of Hero of the Day wins. Legend discounts restart each year. | Hall of Prodigies |
-| **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars | Teacher Boon; Hero of the Day +1 |
+| **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars. Patron Hero Path levels from **giving** it. | Teacher Boon; Hero of the Day +1; Patron (the vocation, not the gift) |
 | **Includes Hero’s Boon (+1)** | Automatic extra star on the reigning hero’s **first** award | Peer gift |
 | **Teacher Boon** | Your 2-star gift, last week of the month, once per class | Peer boon |
+| **Patron** | Hero Path class that levels by giving Hero's Boon | The Herald's Banner (Market artifact); receiving a boon |
 | **Welcome Back** | Return bonus after absence | Nomad path (levels from it) |
 | **Scholar’s Bonus** | Usually Starfall after a high trial | Award Stars reason button (there isn’t one) |
 | **Story Weaver stars** | Class bonus from Story Weavers milestones | Five-Sentence Saga (calendar event) |
@@ -35,7 +36,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Fortune Ledger** | This school year’s Fortune’s Wheel outcomes on Guild Hall. Last year’s spins stay in last year. | Adventure Log |
 | **Grand Guild Ceremony** | End-of-year house crowning | Ceremony of the Month |
 | **Guild Champion** | Top earner **inside one guild** this month | Prodigy of the Month |
-| **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad | Quest League (Junior B, etc.) |
+| **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron | Quest League (Junior B, etc.) |
 | **Quest League** | Age/difficulty band that races together on Team Quest | Guild |
 | **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, remaining times, rotating story cards | Sky Theater (header emoji acts) |
 | **The Director** | Rotating Projector cards | The teacher |

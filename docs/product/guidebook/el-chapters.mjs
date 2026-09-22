@@ -895,7 +895,7 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 1. **Teacher Settings → My Classes → Manage Students**.
 2. **Edit** (μολύβι) στο παιδί.
 3. Καρτέλα **Hero Path** — δίπλα σε Profile, Special Dates, Quick Hub.
-4. Πάτα μία **κάρτα αρχέτυπου**. Guardian = Respect, Sage = Creativity, Paladin = Teamwork, Artificer = Focus, Weaver = Story Weaver, Scholar = Scholar’s Bonus, Nomad = Welcome Back. Κάθε ταιριαστό αστέρι δίνει και **+10 Gold**.
+4. Πάτα μία **κάρτα αρχέτυπου**. Guardian = Respect, Sage = Creativity, Paladin = Teamwork, Artificer = Focus, Weaver = Story Weaver, Scholar = Scholar’s Bonus, Nomad = Welcome Back, Patron = Hero's Boon (όταν **δίνεις** το δώρο). Κάθε ταιριαστό αστέρι δίνει και **+10 Gold**.
 5. **No Class Assigned** είναι κανονική επιλογή.
 6. Το κουμπί **Skill Tree** στο ίδιο πάνελ ανοίγει το δέντρο. Το μωβ **sitemap** στο roster κάνει το ίδιο και **πάλλεται** όταν περιμένει επιλογή.
 
@@ -907,7 +907,7 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 
 Τα μπόνους **αστέρια** κινούν κατατάξεις. Το μπόνους **Gold** όχι. Ισχύει μόνο με την **ταιριαστή αρετή**.
 
-## Οι επτά τάξεις
+## Οι οκτώ τάξεις
 
 | Τάξη | Αρετή | Τίτλοι |
 |------|--------|--------|
@@ -918,6 +918,7 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 | ✒️ **Weaver** | Story Weaver | Bard → … → Grand Weaver |
 | 📜 **Scholar** | Scholar’s Bonus | τρεις βαθμίδες |
 | 👟 **Nomad** | Welcome Back | τρεις βαθμίδες |
+| 💝 **Patron** | Hero's Boon (όταν **δίνεις**) | Giver → Benefactor → Grand Patron |
 
 Δεν είναι Quest League και δεν είναι guild.
 `,

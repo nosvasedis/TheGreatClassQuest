@@ -751,7 +751,7 @@ function headingWidgets(id) {
   if (id === 'hero-path') {
     return [
       { match: ['How you assign a class', 'Πώς ορίζεις τάξη'], html: uiShot('hero-class.png', 'Hero Class ceremony: Alex previews Guardian; the hall morphs to that vocation. Swear this Path writes the class. First choice is free.') },
-      { match: ['The seven classes', 'Οι επτά τάξεις'], html: heroClassesHtml() },
+      { match: ['The eight classes', 'Οι οκτώ τάξεις'], html: heroClassesHtml() },
       { match: ['Skill Tree on screen', 'Skill Tree στην οθόνη'], html: uiShot('skill-tree.png', 'Skill Tree for a Guardian: Iron Resolve is active; level 2 is pending. The purple sitemap on Manage Students pulses until they pick one permanent branch.') }
     ];
   }

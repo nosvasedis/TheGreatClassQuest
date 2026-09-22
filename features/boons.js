@@ -5,10 +5,18 @@ import { showToast, showPraiseToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
 import { reconcileFamiliarLifecycle } from './familiars.js';
-import { applyReasonAwardScoreTransaction, checkAndRecordQuestCompletion, showHeroLevelUpCelebration } from '../db/actions/stars.js';
+import { applyReasonAwardScoreTransaction, applyAwardOutwardSkillEffects, checkAndRecordQuestCompletion, showHeroLevelUpCelebration } from '../db/actions/stars.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
 import { updateGuildScores } from './guildScoring.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
+import {
+    PEER_BOON_BASE_STARS,
+    PEER_BOON_COST,
+    PEER_BOON_DAILY_CAP,
+    computePeerBoonSettlement
+} from './heroClasses.js';
+import { canUseFeature } from '../utils/subscription.js';
+import { withSchoolYear } from '../utils/schoolYear.js';
 
 export const TEACHER_BOON_PRESETS = [
     { key: 'leadership', label: 'Leadership', icon: '👑', accent: 'from-fuchsia-500 via-rose-500 to-orange-400' },
@@ -57,12 +65,16 @@ export async function handleBestowBoon(senderId, receiverId) {
         where('reason', '==', 'peer_boon')
     );
     const existingSnap = await getDocs(logsQuery);
-    if (existingSnap.size >= 4) {
+    if (existingSnap.size >= PEER_BOON_DAILY_CAP) {
         showToast('Daily boon limit reached — max 4 per class per day!', 'error');
         return;
     }
 
     try {
+        let receiverStarDelta = PEER_BOON_BASE_STARS;
+        let patronLevelUpInfo = null;
+        let patronGiftResult = { applies: false, giverGoldBonus: 0, extraStarsForReceiver: 0, pathCredit: 0, newReasonStars: 0, newHeroLevel: 0, leveledUp: false };
+
         await runTransaction(db, async (transaction) => {
             const senderScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", senderId);
             const receiverScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", receiverId);
@@ -74,42 +86,71 @@ export async function handleBestowBoon(senderId, receiverId) {
             const monthKey = utils.getLocalMonthKey();
             const isMonthFree = senderData.peerBoonFreeMonthKey === monthKey;
 
-            if (senderData.lastPeerBoonRecipientId === receiverId) {
-                throw "You cannot bestow a boon on the same companion twice consecutively!";
-            }
+            const settlement = computePeerBoonSettlement({
+                senderId,
+                receiverId,
+                dailyCount: existingSnap.size,
+                currentGold,
+                freeBoonUses,
+                isMonthFree,
+                lastPeerBoonRecipientId: senderData.lastPeerBoonRecipientId,
+                senderStudent: sender,
+                senderScoreData: senderData,
+                heroProgressionEnabled: canUseFeature('heroProgression')
+            });
+            if (!settlement.ok) throw settlement.error;
 
             const senderUpdate = { lastPeerBoonRecipientId: receiverId };
-
-            if (!isMonthFree && freeBoonUses > 0) {
+            if (settlement.usesFreeUse) {
                 if (freeBoonUses <= 1) {
                     senderUpdate.peerBoonFreeUses = deleteField();
                 } else {
                     senderUpdate.peerBoonFreeUses = freeBoonUses - 1;
                 }
-            } else if (!isMonthFree) {
-                if (currentGold < 15) throw "Not enough Gold!";
-                senderUpdate.gold = Math.max(0, currentGold - 15);
+            } else if (!settlement.isMonthFree) {
+                senderUpdate.gold = settlement.goldAfterSpend;
             }
+
+            const patronGift = settlement.patronGift;
+            receiverStarDelta = settlement.receiverStarDelta;
+            patronGiftResult = patronGift;
+
+            if (patronGift.applies) {
+                senderUpdate.gold = settlement.giverGoldAfter;
+                senderUpdate['starsByReason.peer_boon'] = patronGift.newReasonStars;
+                senderUpdate.heroLevel = patronGift.newHeroLevel;
+                if (patronGift.leveledUp) {
+                    senderUpdate.pendingSkillChoice = true;
+                    patronLevelUpInfo = {
+                        studentId: senderId,
+                        studentName: sender.name,
+                        newHeroLevel: patronGift.newHeroLevel,
+                        heroClass: sender.heroClass
+                    };
+                }
+            }
+
             transaction.update(senderScoreRef, senderUpdate);
 
             transaction.update(receiverScoreRef, {
-                totalStars: increment(0.5),
-                monthlyStars: increment(0.5)
+                totalStars: increment(receiverStarDelta),
+                monthlyStars: increment(receiverStarDelta)
             });
 
             const logRef = doc(collection(db, "artifacts/great-class-quest/public/data/award_log"));
-            transaction.set(logRef, {
+            transaction.set(logRef, withSchoolYear({
                 studentId: receiverId,
+                giverId: senderId,
                 classId: receiver.classId,
                 teacherId: state.get('currentUserId'),
-                stars: 0.5,
-                appliedStarCredit: 0.5,
+                stars: PEER_BOON_BASE_STARS,
+                appliedStarCredit: receiverStarDelta,
                 reason: "peer_boon",
                 note: `Hero's Boon from ${sender.name}!`,
                 date: utils.getTodayDateString(),
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
+            }, state.getActiveSchoolYearKey()));
         });
 
         // Update local state immediately on success
@@ -129,18 +170,36 @@ export async function handleBestowBoon(senderId, receiverId) {
                     allScores[senderIdx].peerBoonFreeUses = freeBoonUses - 1;
                 }
             } else if (!isMonthFree) {
-                allScores[senderIdx].gold = Math.max(0, oldGold - 15);
+                allScores[senderIdx].gold = Math.max(0, oldGold - PEER_BOON_COST);
+            }
+            if (patronGiftResult.applies) {
+                const goldNow = getLiveYearGold(allScores[senderIdx], getLiveYearGoldContextFromState(state));
+                allScores[senderIdx].gold = Math.max(0, goldNow + patronGiftResult.giverGoldBonus);
+                allScores[senderIdx].starsByReason = {
+                    ...(allScores[senderIdx].starsByReason || {}),
+                    peer_boon: patronGiftResult.newReasonStars
+                };
+                allScores[senderIdx].heroLevel = patronGiftResult.newHeroLevel;
+                if (patronGiftResult.leveledUp) {
+                    allScores[senderIdx].pendingSkillChoice = true;
+                }
             }
         }
         const receiverIdx = allScores.findIndex(s => s.id === receiverId);
         if (receiverIdx !== -1) {
-            allScores[receiverIdx].totalStars = (allScores[receiverIdx].totalStars || 0) + 0.5;
-            allScores[receiverIdx].monthlyStars = (allScores[receiverIdx].monthlyStars || 0) + 0.5;
+            allScores[receiverIdx].totalStars = (allScores[receiverIdx].totalStars || 0) + receiverStarDelta;
+            allScores[receiverIdx].monthlyStars = (allScores[receiverIdx].monthlyStars || 0) + receiverStarDelta;
         }
         state.setAllStudentScores(allScores);
 
         reconcileFamiliarLifecycle(receiverId, { announce: true, source: 'peer-boon' }).catch((e) => console.warn('Peer boon familiar reconciliation failed:', e));
-        updateGuildScores(receiverId, 0.5, 'peer_boon');
+        updateGuildScores(receiverId, receiverStarDelta, 'peer_boon');
+        if (patronGiftResult.applies) {
+            applyAwardOutwardSkillEffects(senderId, sender.classId, 'peer_boon', patronGiftResult.pathCredit, { giftReceiverId: receiverId }).catch((e) => console.warn('Patron outward skill effect failed:', e));
+        }
+        if (patronLevelUpInfo) {
+            showHeroLevelUpCelebration(patronLevelUpInfo);
+        }
         playSound('magic_chime');
         showToast(`${receiver.name} received a Hero's Boon!`, 'success');
     } catch (error) {

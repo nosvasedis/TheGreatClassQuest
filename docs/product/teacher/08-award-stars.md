@@ -69,6 +69,8 @@ This is **student → student generosity**, paid in Gold.
 
 Grey broken-heart buttons mean “not eligible.” Explain the rules once; children will police fairness better than a lecture.
 
+On **Pro**, a **Patron** Hero Path levels from **giving** this gift (10 / 20 / 30 gifts). The giver gets **+10 Gold** on the gift (net cost 5 unless Compassion Token made it free) and no extra rank stars. Overflowing Heart can enlarge the receiver's stars.
+
 Do not confuse this with:
 
 - **Teacher Boon** (your gift, below)

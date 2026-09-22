@@ -428,6 +428,52 @@ export const HERO_SKILL_TREE = {
                 ]
             }
         ]
+    },
+
+    // ─── PATRON (Hero's Boon) — The Giver ────────────────────────────────────
+    // Identity: Levels from GIVING a Hero's Boon, not receiving. Path credit
+    // is 1 per gift; rank stars stay on the receiver. Stronger capstones like
+    // Scholar/Nomad (3 levels). Self-gold max +5 so a paid gift never profits.
+    Patron: {
+        reason: 'peer_boon',
+        auraColor: '#e11d48',
+        auraGlow: '0 0 18px 6px #e11d4888',
+        titles: ['Giver', 'Benefactor', 'Grand Patron'],
+        levels: [
+            {
+                threshold: 10,
+                branches: [
+                    { id: 'patron_1a', name: 'Open Hand', icon: '🤲',
+                      desc: '+3 Gold to you whenever you give a Hero\'s Boon.',
+                      effect: { type: 'self_gold_on_reason', amount: 3 } },
+                    { id: 'patron_1b', name: 'Kind Purse', icon: '👛',
+                      desc: '+3 Gold to the classmate who received your Hero\'s Boon.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 3 } }
+                ]
+            },
+            {
+                threshold: 20,
+                branches: [
+                    { id: 'patron_2a', name: 'Guild Alms', icon: '🏠',
+                      desc: '+3 Gold to every guildmate whenever you give a Hero\'s Boon.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 3 } },
+                    { id: 'patron_2b', name: 'First Mercy', icon: '🕊️',
+                      desc: 'The first Hero\'s Boon you give each month, all your guildmates receive +7 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 7 } }
+                ]
+            },
+            {
+                threshold: 30,
+                branches: [
+                    { id: 'patron_3a', name: "Grand Patron's Purse", icon: '🌟',
+                      desc: '+5 Gold to you and +3 Gold to the classmate who received your Hero\'s Boon.',
+                      effect: { type: 'self_gold_on_reason', amount: 5 }, secondaryEffect: { type: 'classmate_gold_on_reason', amount: 3 } },
+                    { id: 'patron_3b', name: 'Overflowing Heart', icon: '💝',
+                      desc: 'Your Hero\'s Boon gives the receiver +1 bonus star (1.5 instead of 0.5). This moves their ranks, not yours.',
+                      effect: { type: 'star_bonus_on_reason', amount: 1 } }
+                ]
+            }
+        ]
     }
 };
 
@@ -441,6 +487,7 @@ export const REASON_DISPLAY_NAMES = {
     scholar_s_bonus: "Scholar's Bonus",
     story_weaver:    'Story Weaver',
     welcome_back:    'Welcome Back',
+    peer_boon:       "Hero's Boon",
     marked_present:  'Attendance',
     excellence:      'Excellence'
 };

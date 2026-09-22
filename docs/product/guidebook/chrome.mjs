@@ -35,7 +35,8 @@ export const HERO_CLASSES = [
   { name: 'Artificer', icon: '⚙️', virtue: 'Focus', color: '#d97706' },
   { name: 'Weaver', icon: '✒️', virtue: 'Story Weaver', color: '#0d9488' },
   { name: 'Scholar', icon: '📜', virtue: "Scholar's Bonus", color: '#0891b2' },
-  { name: 'Nomad', icon: '👟', virtue: 'Welcome Back', color: '#7c3aed' }
+  { name: 'Nomad', icon: '👟', virtue: 'Welcome Back', color: '#7c3aed' },
+  { name: 'Patron', icon: '💝', virtue: "Hero's Boon", color: '#e11d48' }
 ];
 
 export function headerToolsHtml() {

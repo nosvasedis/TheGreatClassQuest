@@ -168,10 +168,10 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 *Use from Trophy Room / enlarged avatar; consuming applies the effect and removes the item.*
 
 ### 🛡️ Hero Classes & Skill Trees (Pro)
-Students on **Pro** (and Elite) can choose a **Hero Path** class (Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad).
+Students on **Pro** (and Elite) can choose a **Hero Path** class (Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad, Patron).
 
-- **Class Reasons:** Each class is tied to a reason (e.g. Guardian → Respect, Sage → Creativity, Scholar → Scholar's Bonus, Nomad → Welcome Back).
-- **Leveling:** Guardian, Sage, Paladin, Artificer, and Weaver climb **five** levels (stars in that virtue: 20 / 45 / 70 / 95 / 120). **Scholar** and **Nomad** climb **three** (10 / 20 / 30) because Scholar's Bonus and Welcome Back are rarer. Thresholds assume a **full September–June year**.
+- **Class Reasons:** Each class is tied to a reason (e.g. Guardian → Respect, Sage → Creativity, Scholar → Scholar's Bonus, Nomad → Welcome Back, Patron → giving Hero's Boon).
+- **Leveling:** Guardian, Sage, Paladin, Artificer, and Weaver climb **five** levels (stars in that virtue: 20 / 45 / 70 / 95 / 120). **Scholar**, **Nomad**, and **Patron** climb **three** (10 / 20 / 30) because Scholar's Bonus, Welcome Back, and Hero's Boon gifts are rarer. Patron counts **gifts given** (one path point each), not rank stars on the giver. Thresholds assume a **full September–June year**.
 - **Branching Skill Tree:** At each level, the student chooses **one of two** permanent skills (e.g. “extra Gold when *you* earn Respect” vs. “small Gold bonus to guildmates when *they* earn Respect”). Skills can:
   - Grant **extra Gold** to the hero on matching reasons.
   - Add **bonus stars** (Total + Monthly) when they excel in their class’s reason.

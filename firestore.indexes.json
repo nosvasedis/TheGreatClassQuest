@@ -448,6 +448,15 @@
         { "fieldPath": "studentId", "order": "ASCENDING" },
         { "fieldPath": "reason", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "award_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "giverId", "order": "ASCENDING" },
+        { "fieldPath": "reason", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

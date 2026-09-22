@@ -1,5 +1,5 @@
 // /features/heroClasses.js
-import { calculateSkillBonus, HERO_SKILL_TREE } from './heroSkillTree.js';
+import { calculateSkillBonus, computeHeroLevel, HERO_SKILL_TREE } from './heroSkillTree.js';
 
 function hexToRgbChannels(hex) {
     const raw = String(hex || '').replace('#', '');
@@ -21,8 +21,115 @@ export const HERO_CLASSES = {
     'Artificer': { reason: 'focus', icon: '⚙️', bonus: 10, desc: '+10 Gold for Focus', theme: themeFromAura('Artificer') },
     'Scholar': { reason: 'scholar_s_bonus', icon: '📜', bonus: 10, desc: '+10 Gold for Trial Results', theme: themeFromAura('Scholar') },
     'Weaver': { reason: 'story_weaver', icon: '✒️', bonus: 10, desc: '+10 Gold for Story Weaver', theme: themeFromAura('Weaver') },
-    'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back', theme: themeFromAura('Nomad') }
+    'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back', theme: themeFromAura('Nomad') },
+    'Patron': { reason: 'peer_boon', icon: '💝', bonus: 10, desc: "+10 Gold when you give a Hero's Boon", theme: themeFromAura('Patron') }
 };
+
+/**
+ * Path points credited to a Patron per successful Hero's Boon gift.
+ */
+export const PATRON_PATH_CREDIT_PER_GIFT = 1;
+export const PEER_BOON_COST = 15;
+export const PEER_BOON_DAILY_CAP = 4;
+export const PEER_BOON_BASE_STARS = 0.5;
+
+const EMPTY_PATRON_GIFT = {
+    applies: false,
+    giverGoldBonus: 0,
+    extraStarsForReceiver: 0,
+    pathCredit: 0,
+    newReasonStars: 0,
+    newHeroLevel: 0,
+    leveledUp: false
+};
+
+/**
+ * Patron levels from GIVING a Hero's Boon. Rank stars stay on the receiver.
+ * Returns giver gold (class +10 plus self_gold skills), receiver star bonus,
+ * and path progress. Does not include the 15 Gold spend.
+ */
+export function calculatePatronGiftEffects(studentData, scoreData = null) {
+    const heroClass = studentData?.heroClass;
+    if (!heroClass || !HERO_CLASSES[heroClass]) return { ...EMPTY_PATRON_GIFT };
+    const classInfo = HERO_CLASSES[heroClass];
+    if (classInfo.reason !== 'peer_boon') return { ...EMPTY_PATRON_GIFT };
+
+    const { extraGold, extraStars } = calculateSkillBonus(
+        heroClass,
+        scoreData?.heroSkills,
+        'peer_boon',
+        PATRON_PATH_CREDIT_PER_GIFT
+    );
+    const currentReasonStars = Number(scoreData?.starsByReason?.peer_boon) || 0;
+    const newReasonStars = currentReasonStars + PATRON_PATH_CREDIT_PER_GIFT;
+    const currentHeroLevel = Number(scoreData?.heroLevel) || 0;
+    const newHeroLevel = computeHeroLevel(heroClass, newReasonStars);
+    return {
+        applies: true,
+        giverGoldBonus: classInfo.bonus + extraGold,
+        extraStarsForReceiver: extraStars,
+        pathCredit: PATRON_PATH_CREDIT_PER_GIFT,
+        newReasonStars,
+        newHeroLevel,
+        leveledUp: newHeroLevel > currentHeroLevel
+    };
+}
+
+/**
+ * Pure settlement for a Hero's Boon attempt: spend, Patron path credit, receiver stars.
+ * Failures (self, daily cap, consecutive recipient, not enough Gold) return ok: false
+ * and must not credit the path.
+ */
+export function computePeerBoonSettlement({
+    senderId,
+    receiverId,
+    dailyCount = 0,
+    currentGold = 0,
+    freeBoonUses = 0,
+    isMonthFree = false,
+    lastPeerBoonRecipientId = null,
+    senderStudent = null,
+    senderScoreData = null,
+    heroProgressionEnabled = false
+} = {}) {
+    if (senderId === receiverId) {
+        return { ok: false, error: "An adventurer cannot bestow a boon on themselves!" };
+    }
+    if (Number(dailyCount) >= PEER_BOON_DAILY_CAP) {
+        return { ok: false, error: 'Daily boon limit reached — max 4 per class per day!' };
+    }
+    if (lastPeerBoonRecipientId === receiverId) {
+        return { ok: false, error: "You cannot bestow a boon on the same companion twice consecutively!" };
+    }
+
+    const usesFreeUse = !isMonthFree && (Number(freeBoonUses) || 0) > 0;
+    let goldAfterSpend = Number(currentGold) || 0;
+    let goldSpend = 0;
+    if (!isMonthFree && !usesFreeUse) {
+        if (goldAfterSpend < PEER_BOON_COST) {
+            return { ok: false, error: "Not enough Gold!" };
+        }
+        goldSpend = PEER_BOON_COST;
+        goldAfterSpend = Math.max(0, goldAfterSpend - PEER_BOON_COST);
+    }
+
+    const patronGift = heroProgressionEnabled
+        ? calculatePatronGiftEffects(senderStudent, senderScoreData)
+        : { ...EMPTY_PATRON_GIFT };
+
+    return {
+        ok: true,
+        usesFreeUse,
+        isMonthFree: Boolean(isMonthFree),
+        goldSpend,
+        goldAfterSpend,
+        giverGoldAfter: patronGift.applies
+            ? Math.max(0, goldAfterSpend + patronGift.giverGoldBonus)
+            : goldAfterSpend,
+        patronGift,
+        receiverStarDelta: PEER_BOON_BASE_STARS + (patronGift.applies ? patronGift.extraStarsForReceiver : 0)
+    };
+}
 
 /**
  * Calculates total gold change for a star award.

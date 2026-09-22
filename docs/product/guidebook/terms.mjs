@@ -141,10 +141,10 @@ export const TERMS = [
     names: { en: "Hero's Boon", el: "Hero's Boon" },
     aliases: ["hero's boon", 'heros boon', 'hero boon', 'peer boon', 'heart button', 'bestow'],
     def: {
-      en: 'The heart on a student cloud. A classmate spends 15 Gold to give +0.5 stars (free with Compassion Token). Max 4 per class per day. Receiver must be in the bottom 3 monthly stars or a tie group. No self; not the same classmate twice in a row. Grey broken hearts mean not eligible.',
-      el: 'Η καρδιά στο σύννεφο. Ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό· όχι δύο φορές στον ίδιο στη σειρά.'
+      en: 'The heart on a student cloud. A classmate spends 15 Gold to give +0.5 stars (free with Compassion Token). Max 4 per class per day. Receiver must be in the bottom 3 monthly stars or a tie group. No self; not the same classmate twice in a row. Grey broken hearts mean not eligible. On Pro, Patron Hero Path levels from giving this gift.',
+      el: 'Η καρδιά στο σύννεφο. Ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό· όχι δύο φορές στον ίδιο στη σειρά. Στο Pro, το Patron Hero Path ανεβαίνει όταν δίνεις αυτό το δώρο.'
     },
-    confuse: { en: 'Teacher Boon; the automatic +1 on the reigning Hero of the Day’s first award', el: 'Teacher Boon· το αυτόματο +1 στον reigning Hero of the Day' }
+    confuse: { en: 'Teacher Boon; the automatic +1 on the reigning Hero of the Day’s first award; Patron (the Hero Path class)', el: 'Teacher Boon· το αυτόματο +1 στον reigning Hero of the Day· Patron (η κλάση)' }
   },
   {
     id: 'includes-heros-boon',
@@ -429,10 +429,22 @@ export const TERMS = [
     names: { en: 'Hero Path', el: 'Hero Path' },
     aliases: ['hero path', 'hero class', 'guardian sage paladin'],
     def: {
-      en: 'Pro. Seven classroom identities (Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad) and a Skill Tree. Not a Quest League and not a guild.',
-      el: 'Pro. Επτά ταυτότητες τάξης και Skill Tree. Δεν είναι Quest League ούτε guild.'
+      en: 'Pro. Eight classroom identities (Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron) and a Skill Tree. Not a Quest League and not a guild.',
+      el: 'Pro. Οκτώ ταυτότητες τάξης και Skill Tree. Δεν είναι Quest League ούτε guild.'
     },
     confuse: { en: 'Quest League (Junior B, Class C…)', el: 'Quest League (Junior B, C…)' }
+  },
+  {
+    id: 'patron',
+    chapter: 'hero-path',
+    widget: 'hero-classes',
+    names: { en: 'Patron', el: 'Patron' },
+    aliases: ['patron class', 'grand patron', 'giver hero class'],
+    def: {
+      en: 'Hero Path class that levels by giving Hero\'s Boon (10 / 20 / 30 gifts). The giver gets +10 Gold and no rank stars; the receiver still gets +0.5.',
+      el: 'Hero Path που ανεβαίνει όταν δίνεις Hero\'s Boon (10 / 20 / 30 δώρα). Ο δωρητής παίρνει +10 Gold και όχι αστέρια κατάταξης· ο δέκτης παίρνει +0,5.'
+    },
+    confuse: { en: "The Herald's Banner (Market artifact); receiving a Hero's Boon; Teacher Boon", el: "The Herald's Banner (αρχαίο Market)· το να λαμβάνεις Hero's Boon· Teacher Boon" }
   },
   {
     id: 'bounties',
@@ -733,6 +745,7 @@ export const TERM_ICONS = {
   'skill-tree': 'fa-sitemap',
   'heros-chronicle': 'fa-book-reader',
   'manage-students': 'fa-users',
+  patron: 'fa-gift',
   gold: 'fa-coins'
 };
 
@@ -817,7 +830,7 @@ export const CHAPTER_SEARCH = {
   'scholars-scroll': ['starfall', 'tests', 'dictation', 'make-up'],
   'story-weavers': ['writing', 'elite'],
   'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle'],
-  'hero-path': ['guardian', 'skill tree', 'nomad', 'paladin', 'sage', 'weaver', 'scholar', 'artificer'],
+  'hero-path': ['guardian', 'skill tree', 'nomad', 'paladin', 'sage', 'weaver', 'scholar', 'artificer', 'patron', "hero's boon"],
   'school-office': ['secretary', 'holidays', 'school details', 'new student', 'student placement'],
   'family-portal': ['parents', 'family access'],
   'glossary': ['names', 'confuse'],

@@ -117,6 +117,14 @@ function onSnapshot(target, onNext, onError) {
     });
 }
 
+function wheelLogTime(entry) {
+    if (typeof entry?.spunAt?.toMillis === "function") return entry.spunAt.toMillis();
+    const value = entry?.spunAt;
+    if (!value) return 0;
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function scheduleHomeRender() {
     const aboutTab = document.getElementById("about-tab");
     if (aboutTab?.classList.contains("hidden")) return;
@@ -1556,20 +1564,28 @@ export async function setupDataListeners(
         ),
     );
 
-    // Fortune's Wheel Log — recent spins for all classes (limit 20)
+    // Fortune's Wheel Log — this school year only. Sort client-side so the
+    // listener can use the automatic schoolYearKey index (no composite needed).
     const wheelLogQuery = query(
         collection(db, `${publicDataPath}/fortune_wheel_log`),
-        orderBy("spunAt", "desc"),
-        limit(20),
+        ...yearScopeClauses(enforceActiveYearQueries, activeYearKey),
     );
     state.setUnsubscribeFortuneWheelLog(
         onSnapshot(
             wheelLogQuery,
             (snapshot) => {
-                const log = snapshot.docs.map((d) => ({
-                    id: d.id,
-                    ...d.data(),
-                }));
+                const log = snapshot.docs
+                    .map((d) => ({
+                        id: d.id,
+                        ...d.data(),
+                    }))
+                    .filter((item) =>
+                        isActiveYearDoc(item, activeYearKey, {
+                            includeUntagged: false,
+                        }),
+                    )
+                    .sort((a, b) => wheelLogTime(b) - wheelLogTime(a))
+                    .slice(0, 20);
                 state.setFortuneWheelLog(log);
                 const guildsTab = document.getElementById("guilds-tab");
                 if (guildsTab && !guildsTab.classList.contains("hidden")) {

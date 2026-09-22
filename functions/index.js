@@ -1837,12 +1837,8 @@ exports.closeSchoolYear = callable(async (request) => {
     });
   });
 
-  const [todayStarsSnap, fortuneWheelLogSnap] = await Promise.all([
-    db.collection(`${PUBLIC_DATA_PATH}/today_stars`).get(),
-    db.collection(`${PUBLIC_DATA_PATH}/fortune_wheel_log`).get()
-  ]);
+  const todayStarsSnap = await db.collection(`${PUBLIC_DATA_PATH}/today_stars`).get();
   todayStarsSnap.docs.forEach((docSnap) => deleteWrites.push({ ref: docSnap.ref }));
-  fortuneWheelLogSnap.docs.forEach((docSnap) => deleteWrites.push({ ref: docSnap.ref }));
 
   await jobRef.set({ stage: 'writing_snapshots', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   await commitBatchChunks(snapshotWrites);
@@ -1880,8 +1876,7 @@ exports.closeSchoolYear = callable(async (request) => {
       studentSnapshots: studentsSnap.size,
       classSnapshots: classesSnap.size,
       guildSnapshots: guildScoresSnap.size,
-      clearedTodayStars: todayStarsSnap.size,
-      clearedFortuneWheelLogs: fortuneWheelLogSnap.size
+      clearedTodayStars: todayStarsSnap.size
     },
     completedAt: FieldValue.serverTimestamp()
   }, { merge: true });

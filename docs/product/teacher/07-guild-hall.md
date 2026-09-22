@@ -100,7 +100,7 @@ Spin **with the class watching**. Read the Ledger afterward so the story is reme
 
 ## Fortune Ledger
 
-History of what the Wheel actually did: who gained Glory, who found an artifact, which class got a Quest bonus. Use it in the Grand Guild Ceremony narrative and in parent conversations (“the house had a hard Wheel week, then recovered”).
+History of what the Wheel actually did **this school year**: who gained Glory, who found an artifact, which class got a Quest bonus. Use it in the Grand Guild Ceremony narrative and in parent conversations (“the house had a hard Wheel week, then recovered”). When the year is finished, those entries stay with that year — the new year’s Ledger starts empty.
 
 ## How this feeds the rest of the Quest
 

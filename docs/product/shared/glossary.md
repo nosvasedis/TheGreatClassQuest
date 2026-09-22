@@ -32,7 +32,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Guild Power** | Fair house score: 70% season Glory/member, 15% this week’s Glory/member, 10% activity, 5% momentum | Raw Total Stars |
 | **Guild Glory** | Ledger from stars (2 Glory per star) plus Wheel / Quiz / artifacts | Gold |
 | **Fortune’s Wheel** | Weekly spin, last lesson of the week | Quiz of the Week |
-| **Fortune Ledger** | History of Fortune’s Wheel outcomes on Guild Hall | Adventure Log |
+| **Fortune Ledger** | This school year’s Fortune’s Wheel outcomes on Guild Hall. Last year’s spins stay in last year. | Adventure Log |
 | **Grand Guild Ceremony** | End-of-year house crowning | Ceremony of the Month |
 | **Guild Champion** | Top earner **inside one guild** this month | Prodigy of the Month |
 | **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad | Quest League (Junior B, etc.) |

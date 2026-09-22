@@ -185,7 +185,7 @@
       return termShot('fortunes-wheel.png', "Fortune's Wheel relic");
     }
     if (w === 'fortune-ledger') {
-      return termShot('fortune-ledger.png', 'Fortune Ledger: Wheel history on Guild Hall');
+      return termShot('fortune-ledger.png', 'Fortune Ledger: this year’s Wheel history on Guild Hall');
     }
     if (w === 'guild-power') {
       return termShot('guild-power.png', 'Guild Power: 70 / 15 / 10 / 5 mix, scored per member');

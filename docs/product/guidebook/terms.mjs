@@ -225,8 +225,8 @@ export const TERMS = [
     names: { en: 'Fortune Ledger', el: 'Fortune Ledger' },
     aliases: ['fortune ledger', 'wheel ledger', 'wheel history'],
     def: {
-      en: 'Collapsible history on Guild Hall of what Fortune’s Wheel actually did: Glory swings, omens, and which house was hit.',
-      el: 'Το ιστορικό στο Guild Hall του τι έκανε πραγματικά ο Fortune’s Wheel: Glory, οιωνοί, ποιο σπίτι χτυπήθηκε.'
+      en: 'This school year’s collapsible Wheel history on Guild Hall: Glory swings, omens, and which house was hit. Last year’s spins stay in last year.',
+      el: 'Το ιστορικό του Fortune’s Wheel για αυτή τη σχολική χρονιά στο Guild Hall: Glory, οιωνοί, ποιο σπίτι χτυπήθηκε. Οι περιστροφές της προηγούμενης χρονιάς μένουν στην προηγούμενη χρονιά.'
     },
     confuse: { en: 'Adventure Log, Fortune’s Wheel relic', el: 'Adventure Log, το relic του Wheel' }
   },

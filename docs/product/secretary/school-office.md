@@ -60,7 +60,7 @@ The wizard stays open until everyone is seated or you tap **Done**. When the las
 
 ### Finish the school year
 
-Set the last school day. **Check readiness** opens a preview. Type the confirmation phrase, then **Finish school year**. This stores the finished year, archives last year's Gold, keeps guild houses, resets live progress (stars, Gold, Golden Legend, and this year's Prodigy counts), and moves returning students into placement. Treasury starts at 0 in the new year; last year's Gold and last year's crowns stay in the year snapshot and do not affect the next year's Market, Hall of Heroes, or Hall of Prodigies.
+Set the last school day. **Check readiness** opens a preview. Type the confirmation phrase, then **Finish school year**. This stores the finished year, archives last year's Gold, keeps guild houses, keeps that year's Fortune Ledger with the closed year, resets live progress (stars, Gold, Golden Legend, and this year's Prodigy counts), and moves returning students into placement. Treasury starts at 0 in the new year; last year's Gold, last year's crowns, and last year's Wheel history stay in the finished year and do not affect the next year's Market, Hall of Heroes, Hall of Prodigies, or Fortune Ledger.
 
 Closing a year **archives** it. Do not close until grades, reports, and certificates the school still needs are done. Emergency print tools exist outside this handbook for recovery; they are not day-to-day teaching.
 

@@ -716,7 +716,7 @@ export function openAppInfoModal() {
                 '🏛️ School Office — holidays, classes, new students, school year, school grading defaults',
               ]
             : [
-                '🏰 Guild Hall — houses, Guild Power, Fortune\'s Wheel',
+                '🏰 Guild Hall — houses, Guild Power, Fortune\'s Wheel, this year\'s Fortune Ledger',
                 '⚔️ Hero Path & Skill Tree — identity tied to classroom virtues',
                 '📅 Quest Calendar & My Planning — events and class end dates',
                 "📜 Scholar's Scroll — tests, dictations, Starfall, pending makeups",

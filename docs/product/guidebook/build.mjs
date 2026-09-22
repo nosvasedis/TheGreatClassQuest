@@ -705,7 +705,7 @@ function headingWidgets(id) {
       { match: ['Glory and Guild Power', 'Glory και Guild Power'], html: uiShot('guild-power.png', 'Guild Power explained: 70% season Glory per member, 15% this week’s Glory per member, 10% activity, 5% momentum. Each piece is 0–100 against the leading house.') },
       { match: ['What you see', 'Τι βλέπεις στην καρτέλα'], html: uiShot('guild-hall.png', 'Guild Hall crystal columns, ranked by Guild Power. Fill, rank, and emblems are the live hall — tap an emblem for lore and the anthem.') },
       { match: ["Fortune’s Wheel", "Fortune's Wheel"], html: uiShot('fortunes-wheel.png', "Fortune's Wheel: last lesson of a Monday–Friday week, once per class. The canvas relic is the live wheel.") },
-      { match: ['Fortune Ledger'], html: uiShot('fortune-ledger.png', 'Fortune Ledger: the collapsible Wheel history on Guild Hall. Each week lists Glory swings and omens per house.') }
+      { match: ['Fortune Ledger'], html: uiShot('fortune-ledger.png', 'Fortune Ledger: this school year’s collapsible Wheel history on Guild Hall. Last year’s spins stay in last year. Each week lists Glory swings and omens per house.') }
     ];
   }
   if (id === 'adventure-log') {

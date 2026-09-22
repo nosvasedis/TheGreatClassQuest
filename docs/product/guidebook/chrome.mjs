@@ -506,6 +506,6 @@ export function fortuneWheelHtml() {
       <span class="wheel-seg wheel-seg--curse">Caution</span>
       <span class="wheel-hub">🎡</span>
     </div>
-    <p class="shelf-note">Spin once per class per week, inside lesson time. Junior leagues soften harsh outcomes. Read the Fortune Ledger afterward.</p>
+    <p class="shelf-note">Spin once per class per week, inside lesson time. Junior leagues soften harsh outcomes. Read this year’s Fortune Ledger afterward.</p>
   </div>`;
 }

@@ -10,7 +10,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '🏰',
         description: 'Full Guild system and sorting quiz',
         tier: 'Pro',
-        teacherExplain: 'Split students into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — with a story-style sorting quiz. Stars, relics, Quiz of the Week, and Fortune\'s Wheel write Guild Glory. Houses rank by Guild Power: 70% season Glory per member, 15% this week\'s Glory per member, 10% activity (who earned Glory this week), 5% momentum (this week vs last). Fair per member, not raw Total Stars. Spin the Wheel on the class\'s last lesson of the week, once per class. June ends with the Grand Guild Ceremony. 🏆',
+        teacherExplain: 'Split students into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — with a story-style sorting quiz. Stars, relics, Quiz of the Week, and Fortune\'s Wheel write Guild Glory. Houses rank by Guild Power: 70% season Glory per member, 15% this week\'s Glory per member, 10% activity (who earned Glory this week), 5% momentum (this week vs last). Fair per member, not raw Total Stars. Spin the Wheel on the class\'s last lesson of the week, once per class. The Fortune Ledger on Guild Hall is this year\'s Wheel history — last year\'s spins stay in last year. June ends with the Grand Guild Ceremony. 🏆',
         studentExplain: 'You belong to a Guild — your House in the Quest world! 🏰 Your stars and special rewards build Guild Glory for your team. Guild Power compares teams fairly, so every hero matters no matter how big the guild is!'
     },
     calendar: {

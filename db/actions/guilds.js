@@ -12,7 +12,6 @@ import {
     collection,
     query,
     where,
-    orderBy,
     limit,
     getDocs,
 } from '../../firebase.js';
@@ -128,9 +127,12 @@ export async function saveFortuneWheelResult(classId, results) {
  */
 export async function hasSpunThisWeek(classId) {
     if (!classId) return true;
+    const schoolYearKey = state.getActiveSchoolYearKey();
+    if (!schoolYearKey) return true;
     const weekKey = getISOWeekKey();
     const q = query(
         collection(db, `${publicDataPath}/fortune_wheel_log`),
+        where('schoolYearKey', '==', schoolYearKey),
         where('classId', '==', classId),
         where('weekKey', '==', weekKey),
         limit(1)
@@ -147,14 +149,23 @@ export async function hasSpunThisWeek(classId) {
  */
 export async function getRecentWheelResults(classId, maxResults = 4) {
     if (!classId) return [];
+    const schoolYearKey = state.getActiveSchoolYearKey();
+    if (!schoolYearKey) return [];
     const q = query(
         collection(db, `${publicDataPath}/fortune_wheel_log`),
+        where('schoolYearKey', '==', schoolYearKey),
         where('classId', '==', classId),
-        orderBy('spunAt', 'desc'),
-        limit(maxResults)
+        limit(40)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => {
+            const aTime = typeof a.spunAt?.toMillis === 'function' ? a.spunAt.toMillis() : new Date(a.spunAt || 0).getTime();
+            const bTime = typeof b.spunAt?.toMillis === 'function' ? b.spunAt.toMillis() : new Date(b.spunAt || 0).getTime();
+            return bTime - aTime;
+        })
+        .slice(0, maxResults);
 }
 
 /**

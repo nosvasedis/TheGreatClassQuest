@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 
 const DEFAULT_WORKER_URL = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
-const CHAT_MODEL = 'deepseek/deepseek-v4-flash';
+const CHAT_MODEL = 'deepseek-flash';
 
 function workerUrl() {
   return String(process.env.GCQ_AI_PROXY_URL || DEFAULT_WORKER_URL).replace(/\/$/, '');

@@ -14,7 +14,7 @@
   <img alt="Focus Positive Reinforcement" src="https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen" />
   <img alt="Status Live" src="https://img.shields.io/badge/Status-Live-success" />
   <img alt="Economy Gold and Artifacts" src="https://img.shields.io/badge/Economy-Gold%20%26%20Artifacts-orange" />
-  <img alt="AI Gemini Powered" src="https://img.shields.io/badge/AI-Gemini%20Powered-4285F4" />
+  <img alt="AI powered by DeepSeek V4.1 Flash" src="https://img.shields.io/badge/AI-DeepSeek%20V4.1%20Flash-2864DC" />
   <img alt="Data Firebase Firestore" src="https://img.shields.io/badge/Data-Firebase%20Firestore-FFCA28" />
 </p>
 
@@ -59,7 +59,7 @@
 
 - **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and **Prodigy of the Month**, and **guild vs. guild** in a year-long race toward the **Grand Guild Ceremony**.
 - **Automated tracking:** Stars, gold, inventory, tests, attendance, and logs are stored in **Firestore** and stay in sync.
-- **AI-powered narrative (Elite):** **Gemini** writes daily chronicles, certificates, and story illustrations.
+- **AI-powered narrative (Elite):** **DeepSeek V4.1 Flash** writes daily chronicles, certificates, reports, and story text.
 - **Live display:** **Projector Mode** turns a classroom PC into a real-time quest dashboard with day/night, weather-aware sky, rotating Director cards, and celebrations.
 
 Teachers in the app can open **The Adventurer's Guide** (information button) for a short classroom explainer.
@@ -409,7 +409,7 @@ Opened from the header **cog**. Pick a section from the **dropdown** at the top.
 |-------|------------|
 | **Frontend** | Vanilla JS (ES modules), HTML, CSS (Tailwind-style utilities, custom themes) |
 | **Backend / DB** | **Firebase** (Firestore: classes, students, scores, award_log, bounties, schedule overrides, holidays, story data, etc.) |
-| **AI** | **Gemini** (diary, reports, certificates, nameday, Story Weaver text and image) |
+| **AI** | **DeepSeek V4.1 Flash** (diary, reports, certificates, nameday, Story Weaver text); Cloudflare Workers AI (image generation) |
 
 **Run locally:** From the project root, run `npx serve -l 3000` (or any static server). Configure Firebase in your project for full functionality.
 

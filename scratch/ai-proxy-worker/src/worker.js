@@ -1,6 +1,7 @@
 const FIREBASE_ID_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const APP_CHECK_JWKS_URL = 'https://firebaseappcheck.googleapis.com/v1/jwks';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
+const DEEPSEEK_MODEL = 'deepseek-flash';
 const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2';
 const IMAGE_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
@@ -266,9 +267,12 @@ function boundedNumber(value, fallback, min, max) {
 
 function validatedChatPayload(payload, env) {
   const models = configuredSet(env.ALLOWED_CLIENT_TEXT_MODELS || env.ALLOWED_OPENROUTER_MODELS, [
+    DEEPSEEK_MODEL,
     'deepseek/deepseek-v4-flash',
     'google/gemini-3.1-flash-lite-preview',
   ]);
+  // Accept the canonical model even while keep_vars preserves an older live allow-list.
+  models.add(DEEPSEEK_MODEL);
   const model = String(payload.model || '').trim();
   if (!models.has(model)) throw new Error('Model is not allowed.');
   if (!Array.isArray(payload.messages) || payload.messages.length < 1 || payload.messages.length > 20) {
@@ -348,7 +352,7 @@ async function handleChat(payload, env, ctx, corsHeaders) {
   const isQuote = isLikelyDailyQuoteRequest(safe);
   const outbound = {
     ...safe,
-    model: 'deepseek-v4-flash',
+    model: DEEPSEEK_MODEL,
     thinking: { type: 'disabled' },
     temperature: 0.7,
     top_p: 0.95,

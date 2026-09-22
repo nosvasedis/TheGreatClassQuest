@@ -1,5 +1,5 @@
 import { blobToBase64 } from './utils.js';
-import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
+import { AI_TEXT_PROVIDERS, DEEPSEEK_MODEL_ID, cloudflareWorkerUrl } from './constants.js';
 import { createConcurrencyQueue } from './utils/asyncQueue.js';
 import { isRetryableHttpStatus, shouldCountAsCircuitFailure } from './utils/aiResilience.js';
 
@@ -193,8 +193,8 @@ function classifyProviderFailure(error) {
     };
 }
 
-function resolveFreeModelId(providerModel) {
-    const model = String(providerModel || OPENROUTER_MODEL || '').trim();
+function resolveModelId(providerModel) {
+    const model = String(providerModel || DEEPSEEK_MODEL_ID || '').trim();
     if (!model) {
         throw new Error('No model configured for AI provider.');
     }
@@ -203,7 +203,7 @@ function resolveFreeModelId(providerModel) {
 
 function buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions = {}) {
     const payloadMode = provider?.payloadMode || 'openrouter';
-    const modelId = resolveFreeModelId(provider?.model);
+    const modelId = resolveModelId(provider?.model);
     const base = {
         model: modelId,
         messages: [

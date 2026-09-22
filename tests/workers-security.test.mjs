@@ -41,7 +41,7 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /documents\/user_profiles/);
   assert.match(source, /ALLOWED_CLIENT_TEXT_MODELS/);
   assert.match(source, /DEEPSEEK_URL = 'https:\/\/api\.deepseek\.com\/chat\/completions'/);
-  assert.match(source, /model: 'deepseek-v4-flash'/);
+  assert.match(source, /model: DEEPSEEK_MODEL/);
   assert.match(source, /DEEPSEEK_API_KEY/);
   assert.match(source, /TEXT_FALLBACK_MODEL = '@cf\/zai-org\/glm-4\.7-flash'/);
   assert.match(source, /TEXT_FALLBACK_DAILY_LIMIT = 12/);
@@ -72,7 +72,7 @@ test('AI Worker returns app-check source when App Check is required and missing'
       // Deliberately invalid Firebase token shape so token verification fails first.
       Authorization: 'Bearer not-a-jwt',
     },
-    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+    body: JSON.stringify({ model: 'deepseek-flash', messages: [{ role: 'user', content: 'hi' }] }),
   }), {
     FIREBASE_PROJECT_ID: 'the-great-class-quest',
     FIREBASE_PROJECT_NUMBER: '1021026433595',
@@ -85,7 +85,7 @@ test('AI Worker returns app-check source when App Check is required and missing'
   const missingBearer = await worker.fetch(new Request('https://worker.example/', {
     method: 'POST',
     headers: { Origin: allowedOrigin, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+    body: JSON.stringify({ model: 'deepseek-flash', messages: [{ role: 'user', content: 'hi' }] }),
   }), {
     FIREBASE_PROJECT_ID: 'the-great-class-quest',
     FIREBASE_PROJECT_NUMBER: '1021026433595',
@@ -169,7 +169,7 @@ test('AI Worker accepts a matching service key without a browser origin', async 
       'Content-Type': 'application/json',
       'X-GCQ-Service-Key': 'shop-secret',
     },
-    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+    body: JSON.stringify({ model: 'deepseek-flash', messages: [{ role: 'user', content: 'hi' }] }),
   }), {
     GCQ_AI_SERVICE_KEY: 'shop-secret',
     FIREBASE_PROJECT_ID: 'the-great-class-quest',

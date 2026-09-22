@@ -24,13 +24,13 @@ export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.wo
 export const certificateImageProxyUrl =
     (typeof window !== 'undefined' && window.__GCQ_CERTIFICATE_IMAGE_PROXY_URL__) ||
     'https://great-class-quest-storage-proxy.nvasedis-cc5.workers.dev';
-export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
+export const aiTextProxyUrl = workerBaseUrl;
+export const DEEPSEEK_MODEL_ID = 'deepseek-flash';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
-function toFreeModel(modelId) {
-    const m = String(modelId || OPENROUTER_MODEL || '').trim();
-    if (!m) return OPENROUTER_MODEL;
+function normalizeModelId(modelId) {
+    const m = String(modelId || DEEPSEEK_MODEL_ID || '').trim();
+    if (!m) return DEEPSEEK_MODEL_ID;
     return m;
 }
 
@@ -42,28 +42,18 @@ function normalizeAiProvider(definition, fallback = {}) {
         id: String(definition.id || fallback.id || 'ai-provider').trim() || 'ai-provider',
         label: String(definition.label || fallback.label || definition.id || 'AI Provider').trim() || 'AI Provider',
         url,
-        model: toFreeModel(definition.model || fallback.model || OPENROUTER_MODEL),
+        model: normalizeModelId(definition.model || fallback.model || DEEPSEEK_MODEL_ID),
         payloadMode: String(definition.payloadMode || fallback.payloadMode || 'openrouter').trim() || 'openrouter'
     };
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-deepseek-v4-flash',
-    label: 'GCQ - DeepSeek V4 Flash',
-    url: geminiApiUrl,
-    model: 'deepseek/deepseek-v4-flash',
-    payloadMode: 'openrouter'
+    id: 'gcq-primary-deepseek-v4-1-flash',
+    label: 'GCQ - DeepSeek V4.1 Flash',
+    url: aiTextProxyUrl,
+    model: DEEPSEEK_MODEL_ID,
+    payloadMode: 'deepseek'
 });
-
-const defaultAiBackupProviders = [
-    normalizeAiProvider({
-        id: 'gcq-backup-gemini-3-1-flash-lite',
-        label: 'GCQ - Gemini 3.1 Flash Lite',
-        url: geminiApiUrl,
-        model: 'google/gemini-3.1-flash-lite-preview',
-        payloadMode: 'openrouter'
-    })
-].filter(Boolean);
 
 const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
     ? runtimeAiTextConfig.providers
@@ -76,10 +66,9 @@ export const AI_TEXT_PROVIDERS = (() => {
     const providers = [];
     const seen = new Set();
 
-    // Primary provider first, then backup providers, then (optional) runtime config.
+    // DeepSeek is the default; separately configured providers may follow as backups.
     const allProviders = [
         defaultAiPrimaryProvider,
-        ...defaultAiBackupProviders,
         ...configuredAiProviders.map((provider, index) => normalizeAiProvider(provider, {
             id: index === 0 ? 'gcq-runtime-primary' : 'gcq-runtime-backup',
             label: index === 0 ? 'GCQ Runtime Primary' : 'GCQ Runtime Backup',

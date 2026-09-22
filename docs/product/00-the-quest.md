@@ -20,7 +20,7 @@ Students do not log in. They **see the Quest** on the classroom screen — cloud
 
 On a classroom PC:
 
-1. **Follow today’s schedule** (usual) so the app switches to the class that has a lesson *now*. You can always pick a class by hand; that pauses follow until you tap it again.
+1. **Follow today’s schedule** (already on when you open the app) so the app switches to the class that has a lesson *now*, or **General view** when none is. You can always pick a class by hand; that pauses follow until you tap it again.
 2. **Award Stars** — Teamwork, Creativity, Respect, or Focus, one to three stars. Welcome a returning student. Notice a birthday. Let a classmate gift a Hero’s Boon when the heart is offered.
 3. Near the end: **Quest Assignment** (homework for next time) and **Attendance** if you have not already marked absences.
 4. **Log Today’s Adventure** — the Quest **automatically** crowns **Hero of the Day** as part of saving the diary (AI on Elite, your own words on Pro). You do not pick the hero in a separate step.

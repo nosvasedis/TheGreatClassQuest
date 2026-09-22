@@ -36,8 +36,8 @@ export const trophyRoomModalsHTML = `
                     <div id="trophy-room-custom-select" class="custom-bubbly-dropdown min-w-[200px]">
                         <div class="dropdown-trigger flex items-center justify-between gap-2 bg-white border-2 border-indigo-100 rounded-xl px-4 py-2 cursor-pointer hover:border-indigo-300 transition-all shadow-sm group">
                             <div class="flex items-center gap-2 min-w-0">
-                                <div class="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 shrink-0">
-                                    <i class="fas fa-user-circle text-xs"></i>
+                                <div id="custom-select-portrait" class="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 shrink-0 overflow-hidden">
+                                    <i class="fas fa-user-circle text-xs" aria-hidden="true"></i>
                                 </div>
                                 <span id="custom-select-label" class="text-indigo-950 font-title text-sm font-normal truncate">Select a student</span>
                             </div>

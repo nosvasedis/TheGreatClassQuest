@@ -190,26 +190,6 @@
     will-change: transform;
 }
 
-/* Number badge — floating counter inside each button */
-.star-btn__badge {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 1.1rem;
-    height: 1.1rem;
-    border-radius: 50%;
-    font-family: 'Fredoka One', cursive;
-    font-size: 0.55rem;
-    line-height: 1.1rem;
-    text-align: center;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1.5px solid rgba(255, 255, 255, 0.45);
-    color: rgba(255, 255, 255, 0.9);
-    z-index: 3;
-    pointer-events: none;
-    text-shadow: none;
-}
-
 /* Inner sweep-shine on all star buttons */
 .star-btn__shine {
     position: absolute;
@@ -265,10 +245,6 @@
     font-size: 0.95em;
 }
 
-.star-btn-1 .star-btn__badge {
-    background: rgba(51, 65, 85, 0.65);
-}
-
 .star-btn-1:hover {
     transform: scale(1.06) translateY(-2px);
     box-shadow:
@@ -299,10 +275,6 @@
     text-shadow:
         0 0 6px rgba(233, 213, 255, 0.8),
         0 0 14px rgba(192, 132, 252, 0.4);
-}
-
-.star-btn-2 .star-btn__badge {
-    background: rgba(109, 40, 217, 0.6);
 }
 
 .star-btn-2:hover {
@@ -353,11 +325,6 @@
         0 0 6px rgba(255, 220, 50, 0.9),
         0 0 14px rgba(255, 180, 0, 0.5);
     animation: star3-icon-dance 3s ease-in-out infinite alternate;
-}
-
-.star-btn-3 .star-btn__badge {
-    background: rgba(180, 52, 3, 0.55);
-    border-color: rgba(254, 243, 199, 0.6);
 }
 
 .star-btn-3:hover {

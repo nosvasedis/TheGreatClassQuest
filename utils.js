@@ -322,6 +322,15 @@ export function findCurrentLessonClass(classes = [], now = new Date()) {
 }
 
 /**
+ * Follow today's schedule: the class in session, or General (null) when none is.
+ * When follow is off, keep the teacher's pinned class (including General).
+ */
+export function resolveFollowScheduleClassId(followEnabled, activeLesson, currentClassId = null) {
+    if (!followEnabled) return currentClassId ?? null;
+    return activeLesson?.id ?? null;
+}
+
+/**
  * Returns true when the current local clock is within [timeStart, timeEnd] (inclusive).
  * If either time is missing or cannot be parsed, returns false so callers that require
  * explicit class times (e.g. auto-switching the active class) behave correctly.

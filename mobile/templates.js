@@ -114,7 +114,7 @@ const classPickerSheetHTML = `
             <div class="m-sheet__list m-class-picker">
                 <button type="button" id="m-class-follow-schedule" class="m-class-option m-class-option--special m-pressable">
                     <span class="m-class-option__logo" aria-hidden="true">⏰</span>
-                    <span class="m-class-option__body"><strong>Follow today's schedule</strong><small>Auto-switch to the class in session</small></span>
+                    <span class="m-class-option__body"><strong>Follow today's schedule</strong><small>Auto-switch to the class in session, or General when none is</small></span>
                     <i class="fas fa-chevron-right m-class-option__chev" aria-hidden="true"></i>
                 </button>
                 <button type="button" class="m-class-option m-class-option--special m-pressable" data-m-class-id="">

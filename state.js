@@ -81,12 +81,8 @@ function getDefaultState() {
         // chosen (header) or set by schedule sync (setGlobalSelectedClass).
         globalSelectedLeague: null,
         isProgrammaticSelection: false,
-        /** When true, Home interval may switch class by schedule; manual class pick sets false (persisted). */
-        classFollowSchedule: (() => {
-            const v = localStorage.getItem("quest_class_follow_schedule");
-            if (v === null) return true;
-            return v === "1";
-        })(),
+        /** When true, Home may switch class by schedule. Always on at session start; a manual class pick turns it off until Follow today's schedule is tapped again. */
+        classFollowSchedule: true,
         /** Leaderboard tabs only: peek another league without changing global class. */
         leaderboardLeagueOverride: null,
 
@@ -435,13 +431,9 @@ export function setLeaderboardLeagueOverride(league) {
     });
 }
 
-/** Persisted. When enabled, Home may auto-switch class by time; manual picks disable until re-enabled from header. */
+/** When enabled, Home may auto-switch class by time; manual picks disable until re-enabled from header. Session-only (always on at open). */
 export function setClassFollowScheduleEnabled(enabled) {
     state.classFollowSchedule = !!enabled;
-    localStorage.setItem(
-        "quest_class_follow_schedule",
-        state.classFollowSchedule ? "1" : "0",
-    );
 }
 
 export function setGlobalSelectedClass(classId, isManual = false) {
@@ -455,7 +447,6 @@ export function setGlobalSelectedClass(classId, isManual = false) {
 
     if (isManual) {
         state.classFollowSchedule = false;
-        localStorage.setItem("quest_class_follow_schedule", "0");
     }
 
     state.globalSelectedClassId = classId;

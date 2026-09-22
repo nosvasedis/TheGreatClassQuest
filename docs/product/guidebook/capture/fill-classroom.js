@@ -108,19 +108,16 @@ function cloudCard({
             <div class="star-selector-container ${starsVisible ? 'visible' : ''} flex items-center justify-center" data-aura="${reason}">
               <button data-stars="1" class="star-award-btn star-btn-1" type="button" aria-label="Award 1 star">
                 <span class="star-btn__shine" aria-hidden="true"></span>
-                <span class="star-btn__badge">1</span>
                 <i class="fas fa-star"></i>
               </button>
               <span class="star-divider" aria-hidden="true"></span>
               <button data-stars="2" class="star-award-btn star-btn-2" type="button" aria-label="Award 2 stars">
                 <span class="star-btn__shine" aria-hidden="true"></span>
-                <span class="star-btn__badge">2</span>
                 <i class="fas fa-star"></i><i class="fas fa-star"></i>
               </button>
               <span class="star-divider" aria-hidden="true"></span>
               <button data-stars="3" class="star-award-btn star-btn-3" type="button" aria-label="Award 3 stars">
                 <span class="star-btn__shine" aria-hidden="true"></span>
-                <span class="star-btn__badge">3</span>
                 <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
               </button>
             </div>

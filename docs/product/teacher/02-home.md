@@ -34,7 +34,7 @@ You are looking at **this group**:
 
 ## What you can do
 
-- Switch class from the header; Home redraws immediately.
+- Switch class from the header; Home redraws immediately. Opening the app starts in **Follow today’s schedule** (the class in session, or General view when no lesson is on). Picking a class on Home’s today’s-schedule list pins that class until you tap Follow today’s schedule again.
 - Open a reminder pill’s destination (ceremony, bounty, test).
 - Use Global Tools or class actions instead of hunting through tabs.
 - Start **Quiz of the Week** when the play button is offered (below).

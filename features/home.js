@@ -880,26 +880,30 @@ async function handleAction(action, data) {
     else if (action === 'open-report') modals.handleGenerateReport(data.id);
 }
 
+function applyScheduleBasedClassSync() {
+    const todayStr = utils.getTodayDateString();
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
+    const myClasses = state.get('allTeachersClasses') || [];
+    const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
+    const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
+    const currentSelectedId = state.get('globalSelectedClassId');
+    const nextId = utils.resolveFollowScheduleClassId(
+        state.get('classFollowSchedule'),
+        currentActiveLesson,
+        currentSelectedId
+    );
+    if (currentSelectedId !== nextId) {
+        // setGlobalSelectedClass handles re-rendering the active tab internally
+        state.setGlobalSelectedClass(nextId, false);
+    }
+}
+
 function startHomeSmartLogic() {
     if (homeInterval) clearInterval(homeInterval);
 
     const checkLogic = () => {
-        const todayStr = utils.getTodayDateString();
-
-        const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
-        const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
-        const myClasses = state.get('allTeachersClasses');
-        const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
-
-        const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
-
-        if (currentActiveLesson && state.get('classFollowSchedule')) {
-            const currentSelectedId = state.get('globalSelectedClassId');
-            if (currentSelectedId !== currentActiveLesson.id) {
-                // setGlobalSelectedClass handles re-rendering the active tab internally
-                state.setGlobalSelectedClass(currentActiveLesson.id, false);
-            }
-        }
+        applyScheduleBasedClassSync();
 
         // Update Grand Guild Ceremony buttons
         grandGuildCeremony.updateCeremonyButtons();
@@ -910,20 +914,9 @@ function startHomeSmartLogic() {
     homeInterval = setInterval(checkLogic, 60000);
 }
 
-/** One-shot: apply schedule-based class if `classFollowSchedule` and a lesson is in session. */
+/** One-shot: apply schedule-based class (in-session class, or General when none). */
 export function runScheduleBasedClassSyncOnce() {
-    const todayStr = utils.getTodayDateString();
-    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
-    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
-    const myClasses = state.get('allTeachersClasses');
-    const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
-    const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
-    if (currentActiveLesson && state.get('classFollowSchedule')) {
-        const currentSelectedId = state.get('globalSelectedClassId');
-        if (currentSelectedId !== currentActiveLesson.id) {
-            state.setGlobalSelectedClass(currentActiveLesson.id, false);
-        }
-    }
+    applyScheduleBasedClassSync();
 }
 
 async function injectQuizButton() {

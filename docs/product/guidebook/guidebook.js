@@ -138,11 +138,11 @@
     if (w === 'virtues') {
       return `<div class="star-award-demo">
         <div class="star-selector-container visible">
-          <button type="button" class="star-award-btn star-btn-1" aria-label="Award 1 star"><span class="star-btn__badge">1</span><i class="fas fa-star"></i></button>
+          <button type="button" class="star-award-btn star-btn-1" aria-label="Award 1 star"><i class="fas fa-star"></i></button>
           <span class="star-divider" aria-hidden="true"></span>
-          <button type="button" class="star-award-btn star-btn-2" aria-label="Award 2 stars"><span class="star-btn__badge">2</span><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
+          <button type="button" class="star-award-btn star-btn-2" aria-label="Award 2 stars"><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
           <span class="star-divider" aria-hidden="true"></span>
-          <button type="button" class="star-award-btn star-btn-3" aria-label="Award 3 stars"><span class="star-btn__badge">3</span><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
+          <button type="button" class="star-award-btn star-btn-3" aria-label="Award 3 stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
         </div>
       </div>
       <div class="live-row live-row--virtues">

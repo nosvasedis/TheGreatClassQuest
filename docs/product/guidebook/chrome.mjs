@@ -59,7 +59,7 @@ export function headerToolsHtml() {
 
 export function classPickerHtml() {
   return `<div class="class-picker-demo">
-    <article class="class-opt is-on"><span>📅</span><div><strong>Follow today’s schedule</strong><em>Auto-switch to the class in session</em></div></article>
+    <article class="class-opt is-on"><span>📅</span><div><strong>Follow today’s schedule</strong><em>Auto-switch to the class in session, or General when none is</em></div></article>
     <article class="class-opt"><span>🏫</span><div><strong>General view</strong><em>The whole school</em></div></article>
   </div>`;
 }
@@ -397,19 +397,16 @@ export function starAwardBtnsHtml() {
     <div class="star-selector-container visible">
       <button type="button" class="star-award-btn star-btn-1" data-term="award-stars" aria-label="Award 1 star">
         <span class="star-btn__shine" aria-hidden="true"></span>
-        <span class="star-btn__badge">1</span>
         <i class="fas fa-star"></i>
       </button>
       <span class="star-divider" aria-hidden="true"></span>
       <button type="button" class="star-award-btn star-btn-2" data-term="award-stars" aria-label="Award 2 stars">
         <span class="star-btn__shine" aria-hidden="true"></span>
-        <span class="star-btn__badge">2</span>
         <i class="fas fa-star"></i><i class="fas fa-star"></i>
       </button>
       <span class="star-divider" aria-hidden="true"></span>
       <button type="button" class="star-award-btn star-btn-3" data-term="award-stars" aria-label="Award 3 stars">
         <span class="star-btn__shine" aria-hidden="true"></span>
-        <span class="star-btn__badge">3</span>
         <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
       </button>
     </div>

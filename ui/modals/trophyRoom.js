@@ -64,6 +64,36 @@ function buildTrophyRoomStudentsByClass(classId = '') {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function trophySelectorPortraitHtml(student) {
+    if (student?.avatar) {
+        return `<img src="${escAttr(student.avatar)}" alt="" class="w-full h-full object-cover">`;
+    }
+    if (student?.name) {
+        return escAttr(student.name.charAt(0));
+    }
+    return '<i class="fas fa-user-circle text-xs" aria-hidden="true"></i>';
+}
+
+/** Closed student picker: name plus that student's portrait (or the generic icon when nobody is chosen). */
+function syncTrophyRoomSelectTrigger(student) {
+    const label = document.getElementById('custom-select-label');
+    const portrait = document.getElementById('custom-select-portrait');
+    if (label) {
+        label.textContent = student?.name || 'Select a student';
+        label.classList.toggle('text-indigo-900', !!student);
+    }
+    if (portrait) {
+        portrait.innerHTML = trophySelectorPortraitHtml(student);
+        portrait.classList.toggle('text-indigo-400', !student?.avatar);
+        portrait.classList.toggle('text-indigo-600', !!(student && !student.avatar));
+        portrait.classList.toggle('font-bold', !!(student && !student.avatar));
+        portrait.classList.toggle('text-xs', !!(student && !student.avatar));
+    }
+    document.querySelectorAll(`#${CUSTOM_SELECT_ID} .dropdown-option`).forEach((opt) => {
+        opt.classList.toggle('bg-indigo-50/80', !!student && opt.dataset.value === student.id);
+    });
+}
+
 /**
  * Custom Dropdown Logic
  */
@@ -78,18 +108,17 @@ function setupCustomDropdown(classId, selectedStudentId) {
 
     const trigger = container.querySelector('.dropdown-trigger');
     const menu = container.querySelector('.dropdown-menu');
-    const label = container.querySelector('#custom-select-label');
     const arrow = container.querySelector('.dropdown-arrow');
 
     const students = buildTrophyRoomStudentsByClass(classId);
 
     // Populate options
     menu.innerHTML = students.map(s => `
-        <div class="dropdown-option px-4 py-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 transition-colors border-b border-indigo-50 last:border-0 shrink-0" data-value="${s.id}">
-            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-400 font-bold text-xs overflow-hidden shrink-0">
-                ${s.avatar ? `<img src="${s.avatar}" class="w-full h-full object-cover">` : s.name.charAt(0)}
+        <div class="dropdown-option px-4 py-3 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 transition-colors border-b border-indigo-50 last:border-0 shrink-0${s.id === selectedStudentId ? ' bg-indigo-50/80' : ''}" data-value="${s.id}">
+            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs overflow-hidden shrink-0">
+                ${trophySelectorPortraitHtml(s)}
             </div>
-            <span class="text-slate-700 font-title text-sm font-normal truncate min-w-0">${s.name}</span>
+            <span class="text-slate-700 font-title text-sm font-normal truncate min-w-0">${escAttr(s.name)}</span>
         </div>
     `).join('');
 
@@ -97,15 +126,8 @@ function setupCustomDropdown(classId, selectedStudentId) {
         menu.innerHTML = '<div class="px-4 py-3 text-slate-500 text-sm italic">No students in this class.</div>';
     }
 
-    // Set initial label
-    const selected = students.find(s => s.id === selectedStudentId);
-    if (selected) {
-        label.textContent = selected.name;
-        label.classList.add('text-indigo-600');
-    } else {
-        label.textContent = 'Select a student';
-        label.classList.remove('text-indigo-600');
-    }
+    const selected = students.find(s => s.id === selectedStudentId) || null;
+    syncTrophyRoomSelectTrigger(selected);
 
     // Explicitly hide on init to avoid "auto-open"
     menu.classList.add('hidden', 'scale-95', 'opacity-0');
@@ -186,14 +208,11 @@ export function renderTrophyRoomContent(studentId, partial = false) {
     const backpackRollAnim = partial ? trophyBackpackRollDirection : null;
     if (partial) trophyBackpackRollDirection = null;
 
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    
-    // Update custom select label
-    const label = document.getElementById('custom-select-label');
-    if (label && student) {
-        label.textContent = student.name;
-        label.classList.add('text-indigo-900');
-    }
+    const student = studentId
+        ? state.get('allStudents').find(s => s.id === studentId) || null
+        : null;
+
+    syncTrophyRoomSelectTrigger(student);
 
     if (!studentId) {
         contentEl.innerHTML = `

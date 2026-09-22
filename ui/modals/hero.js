@@ -752,7 +752,7 @@ export function openAppInfoModal() {
 
     // ─────────── TEACHER DAILY FLOW ───────────
     const teacherDailyFlow = [
-        { emoji: '🏫', title: 'Open the class (2 min)', body: 'Follow today’s schedule (or pick a class by hand). Glance at Home. Open Projector Mode whenever the room should see the wallpaper — sky, clocks, story cards. It is not a step you must do first.' },
+        { emoji: '🏫', title: 'Open the class (2 min)', body: 'Follow today’s schedule is already on when you open the app: the class in session, or General view when none is. You can still pick a class by hand. Glance at Home. Open Projector Mode whenever the room should see the wallpaper — sky, clocks, story cards. It is not a step you must do first.' },
         { emoji: '⭐', title: 'Award Stars in Real Time', body: 'Tap a cloud and award 1–3 stars for Teamwork, Creativity, Respect, or Focus. Welcome a returning student. Let classmates gift a Hero\'s Boon when the heart is offered. Launch a bounty for a shared timer race.' },
         { emoji: '📝', title: 'Record What Matters', body: 'Set tomorrow\'s Quest Assignment, mark attendance, and Log Today\'s Adventure (you write it on Pro; Elite can illustrate it). That log crowns Hero of the Day. Tests live on Scholar\'s Scroll when your plan includes it.' },
         { emoji: '🏆', title: 'Review & Celebrate', body: 'Glance at Team Quest and Hero\'s Challenge. When a new school month begins, run the Ceremony of the Month — Growth Festival for Nursery and Pre-Junior, Classic Arena (classes, then Prodigy) for the rest. August is closed, so there is no August ceremony. Students leave talking about the Quest — that is the goal!' },

@@ -89,7 +89,7 @@ export const headerHTML = `
                                         <span class="text-xl w-10 text-center bg-white rounded-lg py-1 shadow-sm">⏰</span>
                                         <div>
                                             <div class="font-title font-bold text-sky-900 text-sm">Follow today’s schedule</div>
-                                            <div class="text-[11px] text-sky-700/90">Auto-switch to the class in session</div>
+                                            <div class="text-[11px] text-sky-700/90">Auto-switch to the class in session, or General when none is</div>
                                         </div>
                                     </button>
                                     <div class="header-class-item flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-indigo-100"

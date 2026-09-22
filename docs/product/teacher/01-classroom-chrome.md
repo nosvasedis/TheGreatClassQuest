@@ -17,7 +17,7 @@ Left to right:
 | **Title** | “The Great Class Quest” |
 | **Daily quote** | A short inspirational line, refreshed for the day (desktop). On a phone it moves into a **Daily Wisdom** card on Home. |
 | **Date and live clock** | Always visible. Sunrise and sunset for the school’s weather location drive **day / night** colours. |
-| **Class selector** | **Follow today’s schedule** (auto-switch to the class in session), **General view** (whole school), or a named class. Almost every tab respects this choice. |
+| **Class selector** | **Follow today’s schedule** is the default when you open the app: it auto-switches to the class in session, and falls back to **General view** when no lesson is on. You can still pick **General view** or a named class by hand — that pauses follow until you tap Follow today’s schedule again. Almost every tab respects this choice. |
 | **Information** (i) | Opens **The Adventurer’s Guide** — a short in-app explainer for teachers (and a student-facing view). New teachers may see it automatically once. |
 | **Projector Mode** (TV icon) | Full-screen classroom display. Not available on the phone header. |
 | **School Office** (shield) | Only when this school has Secretary access (Elite). Opens the School Office. |
@@ -73,7 +73,7 @@ If you selected **Follow today’s schedule** or a named class, the wallpaper is
 
 ### How to run it in the room
 
-1. On the classroom PC, pick the class (or Follow today’s schedule).
+1. On the classroom PC, Follow today’s schedule is already on (or pick a class).
 2. Tap **TV**. Allow full screen if the browser asks.
 3. Cast / HDMI that window to the classroom display.
 4. Teach on your usual tabs. The TV keeps the sky, the clocks, and the cards.
@@ -118,7 +118,7 @@ The phone is the same Quest. Prefer the PC whenever the class should *see* the w
 
 ## How this feeds the rest of the Quest
 
-The **class in the header** is the context for Award Stars, Market shopper, Guild Wheel, Adventure Log, Scroll, Calendar, Story Weavers, and Home. Wrong class selected = wrong children on screen. **Follow today’s schedule** is the safest default during a teaching day.
+The **class in the header** is the context for Award Stars, Market shopper, Guild Wheel, Adventure Log, Scroll, Calendar, Story Weavers, and Home. Wrong class selected = wrong children on screen. **Follow today’s schedule** is the default when you open the app: the class in session, or General view between lessons.
 
 ## Plan notes
 

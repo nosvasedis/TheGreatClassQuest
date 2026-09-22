@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GCQ guidebook UI capture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital@0;1&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+    body {
+      background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%);
+    }
+    #app-screen {
+      display: flex !important;
+      min-height: 100vh;
+      overflow: visible !important;
+    }
+    #capture-cloud-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5.5rem 3rem 6rem;
+      overflow: visible;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.7), transparent 60%),
+        linear-gradient(180deg, #bae6fd 0%, #e0f2fe 42%, #f0f9ff 100%);
+    }
+    #capture-cloud-frame {
+      width: 48rem;
+      padding: 10rem 7.5rem 11rem;
+      overflow: visible;
+    }
+    #capture-cloud-frame .student-cloud-card,
+    #capture-cloud-frame .cloud-bg-svg {
+      animation: none !important;
+      contain: none !important;
+      overflow: visible !important;
+    }
+    #capture-cloud-frame .cloud-bg-svg.cloud-bg-asset {
+      transform: scale(1.12) !important;
+      inset: -2.4rem -1.4rem -2.8rem -1.4rem;
+    }
+    .capture-still .cloud,
+    .capture-still .cloud-bg-svg,
+    .capture-still .student-cloud-card,
+    .capture-still .header-night-stars::before,
+    .capture-still .header-night-stars::after,
+    .capture-hcd,
+    .capture-hcd * {
+      animation: none !important;
+    }
+    #hero-celebration-modal.capture-hcd {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 52rem;
+      z-index: 1;
+    }
+    #hero-celebration-modal.capture-hcd .hcd-card {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    #hero-celebration-avatar {
+      display: grid;
+      place-items: center;
+      font-family: Fredoka, sans-serif;
+      font-weight: 700;
+      font-size: 2.4rem;
+      color: #fff;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+    }
+    #app-screen.hidden {
+      display: none !important;
+    }
+    #ceremony-screen.capture-ceremony {
+      position: fixed !important;
+      inset: 0 !important;
+      display: block !important;
+      width: 1440px !important;
+      height: 980px !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 200 !important;
+    }
+    #ceremony-screen.capture-ceremony .ceremony-layout {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none;
+    }
+    #ceremony-screen.capture-ceremony,
+    #ceremony-screen.capture-ceremony *:not(.growth-petal) {
+      animation: none !important;
+    }
+    #attendance-chronicle-modal.capture-ac,
+    #trial-type-modal.capture-trial {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      background: rgba(15, 23, 42, 0.35) !important;
+      min-height: 0;
+      padding: 1.5rem;
+    }
+    #attendance-chronicle-modal.capture-ac .attendance-chronicle-modal-panel,
+    #trial-type-modal.capture-trial > div {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    #attendance-chronicle-modal.capture-ac .attendance-chronicle-modal-panel {
+      max-height: none;
+      width: min(1180px, 100%);
+      overflow: visible;
+    }
+    #attendance-chronicle-modal.capture-ac,
+    #attendance-chronicle-modal.capture-ac *,
+    #trial-type-modal.capture-trial,
+    #trial-type-modal.capture-trial * {
+      animation: none !important;
+    }
+    #shop-tab.capture-shop {
+      display: block !important;
+      position: relative;
+      padding: 1.25rem 0 2rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.55), transparent 60%),
+        linear-gradient(180deg, #e0e7ff 0%, #f5f3ff 40%, #faf5ff 100%);
+    }
+    #shop-tab.capture-shop,
+    #shop-tab.capture-shop * {
+      animation: none !important;
+    }
+    #shop-tab.capture-shop #shop-curtain,
+    #shop-tab.capture-shop #shop-loader {
+      display: none !important;
+    }
+    #shop-tab.capture-shop #shop-window,
+    #shop-tab.capture-shop #shop-catalog {
+      overflow: visible !important;
+    }
+    #fortunes-wheel-modal.capture-fw,
+    #skill-tree-modal.capture-skill,
+    #history-modal.capture-hoh {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 0;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.42) !important;
+    }
+    #fortunes-wheel-modal.capture-fw .fw-card,
+    #skill-tree-modal.capture-skill #skill-tree-modal-panel,
+    #history-modal.capture-hoh #history-modal-panel {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    #skill-tree-modal.capture-skill #skill-tree-content {
+      overflow: visible !important;
+      max-height: none !important;
+    }
+    #fortunes-wheel-modal.capture-fw,
+    #fortunes-wheel-modal.capture-fw *,
+    #skill-tree-modal.capture-skill,
+    #skill-tree-modal.capture-skill *,
+    #history-modal.capture-hoh,
+    #history-modal.capture-hoh * {
+      animation: none !important;
+    }
+    #adventure-log-tab.capture-log {
+      display: block !important;
+      position: relative;
+      min-height: 42rem;
+      padding: 2rem 1.5rem 5.5rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.7), transparent 60%),
+        linear-gradient(180deg, #ccfbf1 0%, #f0fdfa 45%, #f8fafc 100%);
+    }
+    #adventure-log-tab.capture-log .al-fab-cluster,
+    #adventure-log-tab.capture-log .tab-fab-cluster {
+      position: absolute !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: translateY(-50%) translateX(0) !important;
+    }
+    #capture-quiz-host.capture-quiz {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      min-height: 28rem;
+      background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 50%, #f8fafc 100%);
+    }
+    #capture-quiz-host .weather-card--capture {
+      position: relative;
+      width: min(28rem, 100%);
+      min-height: 16rem;
+      overflow: hidden;
+    }
+    #bulk-trial-modal.capture-bulk,
+    #starfall-modal.capture-starfall,
+    #sorting-quiz-modal.capture-sort,
+    #hero-chronicle-modal.capture-chronicle {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 0;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.42) !important;
+    }
+    #bulk-trial-modal.capture-bulk #bulk-trial-shell,
+    #starfall-modal.capture-starfall #starfall-modal-content,
+    #sorting-quiz-modal.capture-sort .sorting-quiz-card,
+    #hero-chronicle-modal.capture-chronicle > div {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      max-height: none !important;
+    }
+    #bulk-trial-modal.capture-bulk,
+    #bulk-trial-modal.capture-bulk *,
+    #starfall-modal.capture-starfall,
+    #starfall-modal.capture-starfall *,
+    #sorting-quiz-modal.capture-sort,
+    #sorting-quiz-modal.capture-sort *,
+    #hero-chronicle-modal.capture-chronicle,
+    #hero-chronicle-modal.capture-chronicle * {
+      animation: none !important;
+    }
+    #starfall-modal.capture-starfall #starfall-modal-content {
+      position: relative;
+      overflow: hidden;
+    }
+    #reward-ideas-tab.capture-story,
+    #options-tab.capture-settings,
+    #manage-students-tab.capture-roster,
+    #guilds-tab.capture-guilds {
+      display: block !important;
+      position: relative;
+      padding: 1.5rem 1.25rem 2rem;
+    }
+    #reward-ideas-tab.capture-story {
+      background: linear-gradient(180deg, #ecfeff 0%, #f0fdfa 45%, #f8fafc 100%);
+    }
+    #options-tab.capture-settings,
+    #manage-students-tab.capture-roster {
+      background: linear-gradient(180deg, #f1f5f9 0%, #f8fafc 55%, #fff 100%);
+    }
+    #guilds-tab.capture-guilds {
+      background: linear-gradient(180deg, #1e1b4b 0%, #312e81 40%, #1e293b 100%);
+      padding-bottom: 2.5rem;
+    }
+    #reward-ideas-tab.capture-story,
+    #reward-ideas-tab.capture-story *,
+    #options-tab.capture-settings,
+    #options-tab.capture-settings *,
+    #manage-students-tab.capture-roster,
+    #manage-students-tab.capture-roster *,
+    #guilds-tab.capture-guilds,
+    #guilds-tab.capture-guilds * {
+      animation: none !important;
+    }
+    #guilds-tab.capture-guilds .guild-hall-embers,
+    #guilds-tab.capture-guilds .guild-hall-glows,
+    #guilds-tab.capture-guilds .guild-hall-stars-field {
+      display: none !important;
+    }
+    #hero-chronicle-modal.capture-chronicle > div {
+      height: auto !important;
+      max-height: none !important;
+      min-height: 36rem;
+    }
+    #calendar-tab.capture-calendar {
+      display: block !important;
+      position: relative;
+      padding: 1.5rem 1.25rem 2rem;
+      background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 45%, #f8fafc 100%);
+    }
+    #calendar-tab.capture-calendar,
+    #calendar-tab.capture-calendar * {
+      animation: none !important;
+    }
+    #day-planner-modal.capture-planner,
+    #quiz-of-week-modal.capture-quiz-play {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 0;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.42) !important;
+    }
+    #day-planner-modal.capture-planner > div,
+    #quiz-of-week-modal.capture-quiz-play #quiz-modal-inner {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      max-height: none !important;
+      height: auto !important;
+    }
+    #day-planner-modal.capture-planner #day-planner-content {
+      overflow: visible !important;
+      max-height: none !important;
+    }
+    #day-planner-modal.capture-planner,
+    #day-planner-modal.capture-planner *,
+    #quiz-of-week-modal.capture-quiz-play,
+    #quiz-of-week-modal.capture-quiz-play * {
+      animation: none !important;
+    }
+    #quiz-of-week-modal.capture-quiz-play #quiz-modal-inner {
+      width: min(56rem, 100%);
+    }
+    #quiz-of-week-modal.capture-quiz-play .quiz-modal-stage {
+      height: auto !important;
+      overflow: visible !important;
+    }
+    #quiz-of-week-modal.capture-quiz-play .quiz-answer-btn {
+      opacity: 1 !important;
+    }
+    #award-stars-tab.capture-award,
+    #student-leaderboard-tab.capture-hc,
+    #class-leaderboard-tab.capture-tq,
+    #guilds-tab.capture-ledger {
+      display: block !important;
+      position: relative;
+      padding: 1.5rem 1.25rem 2.5rem;
+    }
+    #award-stars-tab.capture-award {
+      overflow: visible !important;
+      background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 40%, #f0f9ff 100%);
+      padding: 2.25rem 2.5rem 4.5rem;
+    }
+    #award-stars-tab.capture-award #award-stars-student-list {
+      overflow: visible !important;
+      padding: 4.5rem 2rem 5.5rem;
+      row-gap: 5.5rem;
+      column-gap: 3rem;
+    }
+    #award-stars-tab.capture-award .award-card-mount {
+      overflow: visible !important;
+      padding: 2.5rem 1.25rem 3.25rem;
+    }
+    #award-stars-tab.capture-award .student-cloud-card,
+    #award-stars-tab.capture-award .cloud-bg-svg,
+    #capture-cloud-frame .student-cloud-card,
+    #capture-cloud-frame .cloud-bg-svg {
+      animation: none !important;
+      contain: none !important;
+      overflow: visible !important;
+    }
+    #student-leaderboard-tab.capture-hc {
+      background: linear-gradient(180deg, #f3e8ff 0%, #faf5ff 45%, #f8fafc 100%);
+      padding-bottom: 5.5rem;
+    }
+    #class-leaderboard-tab.capture-tq {
+      background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 45%, #f8fafc 100%);
+    }
+    #guilds-tab.capture-ledger {
+      background: linear-gradient(180deg, #1e1b4b 0%, #312e81 40%, #1e293b 100%);
+    }
+    #guilds-tab.capture-ledger .guild-hall-scene {
+      display: none !important;
+    }
+    #student-leaderboard-tab.capture-hc .hc-fab-cluster,
+    #student-leaderboard-tab.capture-hc .tab-fab-cluster {
+      position: absolute !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: translateY(-50%) translateX(0) !important;
+      top: 52% !important;
+    }
+    #student-leaderboard-tab.capture-hc .hc-fab,
+    #student-leaderboard-tab.capture-hc .tab-fab {
+      opacity: 1 !important;
+    }
+    #student-leaderboard-tab.capture-hc .hc-view-switcher-wrapper {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      pointer-events: auto !important;
+    }
+    #trophy-room-modal.capture-trophy,
+    #prodigy-modal.capture-prodigy,
+    #guild-power-explainer-overlay.capture-gpex {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 0;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.42) !important;
+    }
+    #trophy-room-modal.capture-trophy > div,
+    #prodigy-modal.capture-prodigy .prodigy-hall-shell,
+    #guild-power-explainer-overlay.capture-gpex .guild-power-explainer-card {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      max-height: none !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    #award-stars-tab.capture-award,
+    #award-stars-tab.capture-award *,
+    #student-leaderboard-tab.capture-hc,
+    #student-leaderboard-tab.capture-hc *,
+    #class-leaderboard-tab.capture-tq,
+    #class-leaderboard-tab.capture-tq *,
+    #guilds-tab.capture-ledger,
+    #guilds-tab.capture-ledger *,
+    #trophy-room-modal.capture-trophy,
+    #trophy-room-modal.capture-trophy *,
+    #prodigy-modal.capture-prodigy,
+    #prodigy-modal.capture-prodigy *,
+    #guild-power-explainer-overlay.capture-gpex,
+    #guild-power-explainer-overlay.capture-gpex * {
+      animation: none !important;
+      transition: none !important;
+    }
+    #about-tab.capture-home {
+      display: block !important;
+      position: relative;
+      padding: 1.25rem 1.5rem 2rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.7), transparent 60%),
+        linear-gradient(180deg, #bae6fd 0%, #e0f2fe 42%, #f8fafc 100%);
+    }
+    #about-tab.capture-home,
+    #about-tab.capture-home * {
+      animation: none !important;
+      transition: none !important;
+    }
+    #dynamic-wallpaper-screen.capture-wall {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      width: 1440px !important;
+      height: 980px !important;
+      z-index: 1;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    #dynamic-wallpaper-screen.capture-wall,
+    #dynamic-wallpaper-screen.capture-wall * {
+      animation: none !important;
+    }
+    #dynamic-wallpaper-screen.capture-wall #wall-quote-container {
+      opacity: 1 !important;
+    }
+    #certificate-modal.capture-cert-forge,
+    #hero-class-select-modal.capture-hero-class {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 0;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.42) !important;
+      overflow: visible !important;
+    }
+    #certificate-modal.capture-cert-forge > div,
+    #hero-class-select-modal.capture-hero-class #hcs-shell {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      max-height: none !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    #certificate-modal.capture-cert-forge,
+    #certificate-modal.capture-cert-forge *,
+    #hero-class-select-modal.capture-hero-class,
+    #hero-class-select-modal.capture-hero-class * {
+      animation: none !important;
+    }
+    .capture-cert-wrap {
+      position: relative !important;
+      left: auto !important;
+      top: auto !important;
+      display: flex !important;
+      justify-content: center;
+      padding: 2rem;
+      background: #1e293b;
+    }
+    #certificate-template.capture-cert {
+      position: relative !important;
+    }
+    .guild-fortune-ledger-section__expandable.is-open,
+    #fortune-ledger-panel.is-open {
+      display: grid !important;
+      grid-template-rows: auto !important;
+      height: auto !important;
+      max-height: none !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      overflow: visible !important;
+      pointer-events: auto !important;
+      transition: none !important;
+    }
+    #guilds-tab.capture-ledger .guild-fortune-ledger-section__expandable-inner,
+    #guilds-tab.capture-ledger .guild-fortune-ledger-section__expandable-body {
+      min-height: max-content !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    #special-quest-runner-modal.capture-sq {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      min-height: 0;
+      padding: 1.5rem;
+      background: rgba(15, 23, 42, 0.42) !important;
+    }
+    #special-quest-runner-modal.capture-sq .special-quest-runner {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      max-height: none !important;
+      overflow: visible !important;
+      width: min(48rem, 100%);
+    }
+    #special-quest-runner-modal.capture-sq,
+    #special-quest-runner-modal.capture-sq * {
+      animation: none !important;
+    }
+    #capture-sq-projector.capture-sq-proj {
+      display: grid !important;
+      width: 1440px;
+      height: 980px;
+      position: relative;
+    }
+    #capture-sq-projector.capture-sq-proj .special-quest-projector {
+      min-height: 100%;
+      width: 100%;
+    }
+    #capture-sq-projector.capture-sq-proj,
+    #capture-sq-projector.capture-sq-proj * {
+      animation: none !important;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen">
+  <div id="app-root" class="contents"></div>
+  <script type="module" src="./stage.js"></script>
+</body>
+</html>

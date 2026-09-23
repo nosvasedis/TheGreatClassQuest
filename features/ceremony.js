@@ -1,6 +1,6 @@
 // /features/ceremony.js
 
-import { db, updateDoc, setDoc, doc, collection, getDocs, query, where } from '../firebase.js';
+import { db, updateDoc, setDoc, getDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
 import { 
     playSound, 

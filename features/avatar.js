@@ -241,6 +241,24 @@ export async function handleGenerateAvatar() {
     }
 }
 
+async function refreshVisibleStudentPortraits() {
+    const tabs = await import('../ui/tabs.js');
+    const activeRenderers = [
+        ['award-stars-tab', () => tabs.renderAwardStarsStudentList?.(state.get('globalSelectedClassId'), false)],
+        ['manage-students-tab', () => tabs.renderManageStudentsTab?.()],
+        ['student-leaderboard-tab', () => tabs.renderStudentLeaderboardTab?.()],
+        ['class-leaderboard-tab', () => tabs.renderClassLeaderboardTab?.()]
+    ];
+
+    activeRenderers.forEach(([tabId, render]) => {
+        const tab = document.getElementById(tabId);
+        if (tab && !tab.classList.contains('hidden')) render();
+    });
+
+    const { renderHomeTab } = await import('./home.js');
+    renderHomeTab();
+}
+
 export async function handleSaveAvatar() {
     const { studentId, generatedImage } = avatarMakerData;
     if (!studentId || !generatedImage) return;
@@ -268,6 +286,7 @@ export async function handleSaveAvatar() {
             student.id === studentId ? { ...student, avatar: imageUrl } : student
         ));
         state.setAllStudents(nextStudents);
+        await refreshVisibleStudentPortraits();
 
         showToast("Avatar saved successfully!", "success");
         modals.hideModal('avatar-maker-modal');
@@ -297,6 +316,11 @@ export async function handleDeleteAvatar() {
                 await updateDoc(studentRef, {
                     avatar: null 
                 });
+                const nextStudents = (state.get('allStudents') || []).map((student) => (
+                    student.id === studentId ? { ...student, avatar: null } : student
+                ));
+                state.setAllStudents(nextStudents);
+                await refreshVisibleStudentPortraits();
                 
                 showToast("Avatar removed successfully!", "success");
                 modals.hideModal('avatar-maker-modal');

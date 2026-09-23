@@ -214,13 +214,13 @@ function renderTeacherBoonLaunchState(selectedClassId) {
     const launchBtn = document.getElementById('open-teacher-boon-btn');
     if (!launchBtn) return;
 
+    const classData = selectedClassId ? getClassDataById(selectedClassId) : null;
     const inWindow = Boolean(selectedClassId) && utils.isTeacherBoonWindow();
     if (!inWindow) {
         launchBtn.classList.add('hidden');
         return;
     }
 
-    const classData = getClassDataById(selectedClassId);
     const existingBoon = classData ? getTeacherBoonForMonth(classData, utils.getLocalMonthKey()) : null;
 
     // Hide completely once the boon has been bestowed this month

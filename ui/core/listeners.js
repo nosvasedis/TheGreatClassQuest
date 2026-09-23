@@ -22,6 +22,7 @@ import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
@@ -909,22 +910,20 @@ export function setupUIListeners() {
                         });
                         levelUpInfo = txResult.levelUpInfo;
 
-                        // Create Log
-                        const logData = {
+                        transaction.set(newLogRef, withSchoolYear({
                             studentId, classId: student.classId, teacherId: state.get('currentUserId'),
                             stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
                             appliedStarCredit: txResult.totalStarsDelta,
                             createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                        };
-                        transaction.set(newLogRef, logData);
+                        }, state.getActiveSchoolYearKey()));
 
                         // Unlock card
                         const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
-                        transaction.set(todayStarsRef, {
+                        transaction.set(todayStarsRef, withSchoolYear({
                             studentId, stars: 0, date: utils.getTodayDateString(), reason: 'welcome_back',
                             teacherId: state.get('currentUserId'),
                             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                        });
+                        }, state.getActiveSchoolYearKey()));
                     });
 
                     applyAwardOutwardSkillEffects(studentId, student.classId, 'welcome_back', stars).catch((e) => console.warn('Welcome back outward skill effect failed:', e));

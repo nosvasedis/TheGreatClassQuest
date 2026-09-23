@@ -418,12 +418,11 @@ export function openTeacherBoonModal() {
         return;
     }
 
+    const classData = getClassDataById(classId);
     if (!utils.isTeacherBoonWindow()) {
         showToast('Teacher Boon appears during the last week of the month.', 'info');
         return;
     }
-
-    const classData = getClassDataById(classId);
     if (!classData) {
         showToast('Selected class not found.', 'error');
         return;

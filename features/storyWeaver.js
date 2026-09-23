@@ -160,7 +160,9 @@ export async function handleLockInSentence() {
     const classId = storyWeaverClassId();
     const wordOfTheDay = state.get('storyWeaverLockedWord');
     const newSentence = document.getElementById('story-input-textarea').value.trim();
-    const currentStory = state.get('currentStoryData')[classId] || {};
+    const storyRecord = state.get('currentStoryData')[classId];
+    const storyDocExists = Boolean(storyRecord);
+    const currentStory = storyRecord || {};
     const isNewStory = !currentStory.currentSentence;
     const historyQuery = query(collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`), orderBy("createdAt", "desc"), limit(3));
     const historySnapshot = await getDocs(historyQuery);
@@ -203,8 +205,7 @@ export async function handleLockInSentence() {
 
         const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
         const historyCollectionRef = collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`);
-
-        const batch = writeBatch(db);
+        const newHistoryDoc = doc(historyCollectionRef);
         const storyDataToSet = {
             currentSentence: newSentence,
             currentImageUrl: imageUrl, // Saved the URL instead of Base64
@@ -213,23 +214,28 @@ export async function handleLockInSentence() {
             updatedAt: serverTimestamp(),
             createdBy: currentStory.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         };
-
-        if (isNewStory) {
-            batch.set(storyDocRef, storyDataToSet);
-        } else {
-            batch.update(storyDocRef, storyDataToSet);
-        }
-
-        const newHistoryDoc = doc(historyCollectionRef);
-        batch.set(newHistoryDoc, {
+        const historyPayload = {
             sentence: newSentence,
             word: wordOfTheDay,
             imageUrl: imageUrl, // Saved the URL instead of Base64
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-        });
+        };
 
-        await batch.commit();
+        // Chapter writes are only allowed once the parent story_data doc exists.
+        if (!storyDocExists) {
+            await setDoc(storyDocRef, storyDataToSet);
+            await setDoc(newHistoryDoc, historyPayload);
+        } else {
+            const batch = writeBatch(db);
+            if (isNewStory) {
+                batch.set(storyDocRef, storyDataToSet);
+            } else {
+                batch.update(storyDocRef, storyDataToSet);
+            }
+            batch.set(newHistoryDoc, historyPayload);
+            await batch.commit();
+        }
 
         const newAdditionsCount = (currentStory.storyAdditionsCount || 0) + 1;
         if (newAdditionsCount > 0 && newAdditionsCount % 2 === 0) {

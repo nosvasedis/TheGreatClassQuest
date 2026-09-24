@@ -673,11 +673,11 @@ function getLayout(name, theme, selector, row2, row3) {
                 <div class="greeting-hero-asset">${heroEmoji}</div>
                 <div class="relative z-10 flex flex-col justify-between h-full">
                     
-                    <div class="flex justify-between items-start mb-4 gap-4">
-                        <div id="home-reminders-container" class="flex flex-wrap items-center gap-3 py-1">
+                    <div class="greeting-top-row">
+                        <div id="home-reminders-container" class="greeting-top-row__reminders flex flex-wrap items-center gap-3 py-1">
                             ${getReminderPills(state.get('globalSelectedClassId'))}
                         </div>
-                        <div class="flex-shrink-0 relative z-50">
+                        <div class="greeting-top-row__bounty">
                             ${selector}
                         </div>
                     </div>
@@ -718,11 +718,11 @@ function getLayout(name, theme, selector, row2, row3) {
 /** Compact bounty launcher in greeting panel (replaces former “active class” chip). */
 function getHomeBountyPillHtml() {
     return `
-        <button type="button" id="open-bounty-modal-btn" class="home-bounty-pill font-title group" title="Post a bounty for this class">
+        <button type="button" id="open-bounty-modal-btn" class="home-bounty-pill group" title="Post a bounty for this class">
             <span class="home-bounty-pill__glow" aria-hidden="true"></span>
             <span class="home-bounty-pill__icon" aria-hidden="true"><i class="fas fa-crosshairs"></i></span>
             <div class="home-bounty-pill__text">
-                <span class="home-bounty-pill__title">Bounty</span>
+                <span class="home-bounty-pill__title font-title">Bounty</span>
                 <span class="home-bounty-pill__sub">Post a quest</span>
             </div>
             <span class="home-bounty-pill__chev" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>

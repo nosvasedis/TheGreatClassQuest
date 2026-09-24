@@ -572,10 +572,14 @@
 
 .date-pill--quest-bounty {
     color: #7c2d12;
+    -webkit-text-fill-color: #7c2d12;
     border-color: rgba(245, 158, 11, 0.26);
-    background:
+    background-color: #fde68a;
+    background-image:
         radial-gradient(circle at top left, rgba(255, 255, 255, 0.76), transparent 42%),
         linear-gradient(135deg, rgba(255, 251, 235, 0.98) 0%, rgba(254, 243, 199, 0.98) 52%, rgba(253, 230, 138, 0.96) 100%);
+    background-clip: padding-box;
+    -webkit-background-clip: padding-box;
     box-shadow:
         0 18px 36px -22px rgba(217, 119, 6, 0.68),
         inset 0 1px 0 rgba(255, 255, 255, 0.82);
@@ -1126,6 +1130,29 @@
 .greeting-content {
     position: relative;
     z-index: 10;
+}
+
+.greeting-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+.greeting-top-row__reminders {
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+.greeting-top-row__bounty {
+    position: relative;
+    z-index: 50;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+.greeting-panel .date-pill--quest {
+    min-width: 0;
+    max-width: 100%;
 }
 
 /* 6. ROW 2: STAT CARDS - ENHANCED */
@@ -1692,8 +1719,15 @@
     padding: 0.65rem 1rem;
     border-radius: 1.25rem;
     border: 1px solid rgba(251, 191, 36, 0.45);
-    background: linear-gradient(135deg, #fbbf24 0%, #f97316 52%, #ea580c 100%);
+    isolation: isolate;
+    flex-shrink: 0;
+    width: max-content;
+    background-color: #ea580c;
+    background-image: linear-gradient(135deg, #fbbf24 0%, #f97316 52%, #ea580c 100%);
+    background-clip: padding-box;
+    -webkit-background-clip: padding-box;
     color: #fff;
+    -webkit-text-fill-color: #fff;
     box-shadow:
         0 4px 16px -4px rgba(234, 88, 12, 0.45),
         0 2px 8px -2px rgba(251, 191, 36, 0.35),
@@ -1750,8 +1784,8 @@
 .home-bounty-pill__text {
     position: relative;
     z-index: 1;
-    min-width: 0;
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: min-content;
     display: flex;
     flex-direction: column;
     gap: 1px;
@@ -1761,6 +1795,9 @@
     font-size: 1rem;
     font-weight: 800;
     letter-spacing: 0.02em;
+    color: #fff;
+    -webkit-text-fill-color: #fff;
+    white-space: nowrap;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
@@ -1769,7 +1806,16 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    color: #fff;
+    -webkit-text-fill-color: #fff;
+    white-space: nowrap;
     opacity: 0.92;
+}
+
+.home-bounty-pill__chev,
+.home-bounty-pill__icon {
+    color: #fff;
+    -webkit-text-fill-color: #fff;
 }
 
 .home-bounty-pill__chev {

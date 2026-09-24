@@ -37,6 +37,7 @@ reasonix/
 .cursor/
 .codex/
 .claude/
+.commandcode/
 .windsurf/
 .wrangler/
 .guidebook-dist/

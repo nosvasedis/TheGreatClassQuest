@@ -1,6 +1,6 @@
 /* --- BOUNTY BOARD STYLES --- */
 .bounty-card {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    background-color: #fffbeb;
     border: 3px solid #f59e0b;
     border-radius: 1rem;
     padding: 1rem 1.5rem;
@@ -71,6 +71,12 @@ body.projector-mode .bounty-actions {
 }
 
 .bounty-card--timer-live {
+    flex-direction: column;
+    align-items: stretch;
+    color: #fff;
+    -webkit-text-fill-color: #fff;
+    background-clip: padding-box;
+    -webkit-background-clip: padding-box;
     animation: slide-in-from-bottom 0.45s ease-out;
 }
 

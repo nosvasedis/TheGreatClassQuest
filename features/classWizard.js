@@ -885,7 +885,12 @@ function handleWizardInput(event) {
         paintWizard({ searchCaret: event.target.selectionStart });
         return;
     }
-    if (event.target.id === 'class-desk-name') wizardState.name = event.target.value;
+    if (event.target.id === 'class-desk-name') {
+        wizardState.name = event.target.value;
+        const footer = document.getElementById('class-desk-footer');
+        if (footer) footer.innerHTML = renderFooter();
+        return;
+    }
     if (event.target.id === 'class-desk-time-start') wizardState.timeStart = event.target.value;
     if (event.target.id === 'class-desk-time-end') wizardState.timeEnd = event.target.value;
 }

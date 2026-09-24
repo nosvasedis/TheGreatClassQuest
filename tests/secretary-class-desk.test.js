@@ -39,6 +39,18 @@ test('student placement launcher has no redundant fact badges and uses Student p
     assert.match(wizard, /Unselect all/);
 });
 
+test('class desk Continue enables as soon as the class name is typed', () => {
+    const wizard = read('features/classWizard.js');
+    const start = wizard.indexOf('function handleWizardInput');
+    const end = wizard.indexOf('function handleWizardKeydown');
+    assert.ok(start >= 0 && end > start);
+    const handler = wizard.slice(start, end);
+    assert.match(handler, /class-desk-name/);
+    assert.match(handler, /class-desk-footer/);
+    assert.match(handler, /renderFooter\(\)/);
+    assert.doesNotMatch(handler, /paintWizard\(\)/);
+});
+
 test('class desk wizard never dumps raw teacher ids or a native select', () => {
     const wizard = read('features/classWizard.js');
     const year = read('features/schoolYearConsole.js');

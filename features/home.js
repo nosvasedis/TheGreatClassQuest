@@ -47,16 +47,25 @@ const FALLBACK_QUOTES = {
 let dailySpiceState = {
     day: null,
     value: null,
+    fetchedAt: 0,
     promise: null
 };
+const DAILY_SPICE_FALLBACK_RETRY_MS = 5 * 60 * 1000;
 
 const dailyContentInFlight = new Map();
 
 // --- 1. DAILY SPICE (Cached AI) ---
 async function fetchDailySpice() {
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = utils.getLocalIsoDateString();
 
-    if (dailySpiceState.day === todayKey && dailySpiceState.value) {
+    // A static fallback (AI/cache unavailable, e.g. before sign-in) is only
+    // reused for a short cooldown so a later attempt can fetch the real quote.
+    const cachedIsFallback = isStaticFallbackQuote(dailySpiceState.value?.headerQuote, 'quote_header');
+    if (
+        dailySpiceState.day === todayKey &&
+        dailySpiceState.value &&
+        (!cachedIsFallback || Date.now() - (dailySpiceState.fetchedAt || 0) < DAILY_SPICE_FALLBACK_RETRY_MS)
+    ) {
         updateHeaderQuote(dailySpiceState.value.headerQuote);
         return dailySpiceState.value;
     }
@@ -72,6 +81,7 @@ async function fetchDailySpice() {
 
         dailySpiceState.day = todayKey;
         dailySpiceState.value = value;
+        dailySpiceState.fetchedAt = Date.now();
         updateHeaderQuote(headerQuote);
         return value;
     })().finally(() => {
@@ -1316,7 +1326,7 @@ function isStaticFallbackQuote(content, type) {
 }
 
 function buildDailyQuoteUserPrompt(type, todayKey) {
-    // Include the UTC day so each day's request is distinct for cache keys and model variety.
+    // Include the local day so each day's request is distinct for cache keys and model variety.
     if (type === 'quote_header') {
         return `For ${todayKey}, generate one fresh short quote about new beginnings or focus. Do not reuse yesterday's wording.`;
     }
@@ -1327,7 +1337,7 @@ function buildDailyQuoteUserPrompt(type, todayKey) {
 }
 
 async function getAICachedContent(type) {
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = utils.getLocalIsoDateString();
     const docId = `daily_content_${todayKey}_${type}`;
     const localKey = `gcq_daily_content_${docId}`;
     const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;

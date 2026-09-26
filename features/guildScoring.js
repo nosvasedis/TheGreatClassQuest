@@ -9,6 +9,7 @@ import {
     setDoc,
     updateDoc,
     writeBatch,
+    runTransaction,
     query,
     where,
     increment,
@@ -59,7 +60,10 @@ function getISOWeekMonday(d = new Date()) {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     date.setDate(diff);
-    return date.toISOString().substring(0, 10);
+    // Format the local calendar day: toISOString() converts to UTC, which in
+    // timezones ahead of UTC turns an early-Monday Monday into Sunday and makes
+    // the weekly reset fire twice.
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 // ─── Core scoring ────────────────────────────────────────────────────────────
@@ -170,8 +174,14 @@ export async function recordGuildGloryEvent({
     guildData = null,
     note = '',
     eventMeta = {},
+    idempotencyKey = null,
 } = {}) {
     if (!guildId || !GUILD_IDS.includes(guildId)) return;
+    if (idempotencyKey) {
+        return _recordIdempotentGuildGloryEvent({
+            guildId, studentId, classId, source, starDelta, directGlory, note, eventMeta, idempotencyKey,
+        });
+    }
     const now = Date.now();
     const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
     let guildSnap = null;
@@ -271,12 +281,121 @@ export async function recordGuildGloryEvent({
     return { ...delta, eventId: eventRef.id };
 }
 
+function _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId }) {
+    return {
+        guildId,
+        guildName: guildDef?.name || guildId,
+        activeSchoolYearKey: state.getActiveSchoolYearKey(),
+        totalStars: delta.starDelta,
+        totalGlory: delta.totalGloryDelta,
+        monthlyGlory: delta.totalGloryDelta,
+        weeklyGlory: delta.totalGloryDelta,
+        previousWeekGlory: 0,
+        weeklyActiveMembers: studentId ? 1 : 0,
+        weeklyActiveMemberIds: studentId ? [studentId] : [],
+        memberCount: 0,
+        memberIds: [],
+        gloryModifiers: delta.consumedGloryModifiers || [],
+        chaliceActive: false,
+        chaliceExpiresAt: 0,
+        lastWeeklyReset: getISOWeekMonday(),
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+    };
+}
+
+/**
+ * Exactly-once variant used by retryable callers (Special Quest effects).
+ * The Glory event id is derived from `idempotencyKey`; the event and the guild
+ * score change commit in one transaction, so a retry after success is a no-op.
+ * Unlike the fire-and-forget path, failures are thrown so callers can retry.
+ */
+async function _recordIdempotentGuildGloryEvent({
+    guildId, studentId, classId, source, starDelta, directGlory, note, eventMeta, idempotencyKey,
+}) {
+    const now = Date.now();
+    const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
+    const safeKey = String(idempotencyKey).replace(/\//g, '_').slice(0, 700);
+    const eventRef = doc(db, `${publicDataPath}/guild_glory_events`, `idem_${safeKey}`);
+    const liveScoreData = studentId ? _getStudentScore(studentId) : {};
+    const guildDef = GUILDS[guildId];
+    let result = null;
+
+    await runTransaction(db, async (transaction) => {
+        result = null;
+        const existing = await transaction.get(eventRef);
+        if (existing.exists()) {
+            result = { skipped: true, eventId: eventRef.id };
+            return;
+        }
+        const guildSnap = await transaction.get(guildRef);
+        const liveGuildData = guildSnap.exists()
+            ? guildSnap.data()
+            : ((state.get('allGuildScores') || {})[guildId] || {});
+        const delta = calculateGuildGloryDelta({
+            starDelta,
+            directGlory,
+            scoreData: liveScoreData,
+            guildData: liveGuildData,
+            gloryPerStar: GLORY_PER_STAR,
+            now,
+        });
+        // The marker event is written even for a zero delta so the key is
+        // recorded as processed.
+        transaction.set(eventRef, {
+            guildId,
+            studentId,
+            classId,
+            schoolYearKey: state.getActiveSchoolYearKey(),
+            source,
+            starDelta: delta.starDelta,
+            baseGlory: delta.baseGlory,
+            modifierGlory: delta.modifierGlory,
+            directGlory: delta.directGlory,
+            totalGloryDelta: delta.totalGloryDelta,
+            breakdown: delta.breakdown,
+            note: String(note || '').slice(0, 280),
+            eventMeta: { ...(eventMeta || {}), idempotencyKey: String(idempotencyKey) },
+            createdAt: serverTimestamp(),
+            createdBy: {
+                uid: state.get('currentUserId') || null,
+                name: state.get('currentTeacherName') || null,
+            },
+        });
+        if (delta.starDelta || delta.totalGloryDelta) {
+            if (guildSnap.exists()) {
+                transaction.update(guildRef, _buildGuildScorePatch({
+                    guildId,
+                    guildDef,
+                    starDelta: delta.starDelta,
+                    totalGloryDelta: delta.totalGloryDelta,
+                    guildData: liveGuildData,
+                    studentId,
+                    now,
+                    consumedGloryModifiers: delta.consumedGloryModifiers,
+                }));
+            } else {
+                transaction.set(guildRef, _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId }));
+            }
+        }
+        result = { ...delta, eventId: eventRef.id };
+    });
+
+    if (result && !result.skipped && studentId && starDelta > 0 && Number(liveScoreData?.gloryBannerCharges) > 0) {
+        try {
+            const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+            await updateDoc(scoreRef, { gloryBannerCharges: increment(-Math.min(starDelta, Number(liveScoreData.gloryBannerCharges) || 0)) });
+        } catch (_) { /* non-critical */ }
+    }
+    return result;
+}
+
 /**
  * Update guild scores when a student earns stars. Now also writes a Glory event.
  * @param {string} studentId
  * @param {number} starDelta - Positive number of stars to add
  */
-export async function updateGuildScores(studentId, starDelta, source = 'star_award') {
+export async function updateGuildScores(studentId, starDelta, source = 'star_award', { idempotencyKey = null } = {}) {
     if (!studentId || !Number.isFinite(Number(starDelta)) || Number(starDelta) === 0) return;
     const student = _getStudent(studentId);
     const guildId = student?.guildId;
@@ -287,6 +406,7 @@ export async function updateGuildScores(studentId, starDelta, source = 'star_awa
         classId: student.classId || null,
         source,
         starDelta,
+        idempotencyKey,
     });
 }
 

@@ -5,12 +5,23 @@ import { buildCeremonySnapshot } from './ceremonyDomain.js';
 const PATH = 'artifacts/great-class-quest/public/data/ceremony_snapshots';
 export const ceremonySnapshotId = (classId, monthKey) => `${classId}__${monthKey}`;
 
+/** Firestore rejects `undefined`; drop such keys from plain objects/arrays (e.g. a student with no avatar). */
+export function stripUndefinedDeep(value) {
+  if (Array.isArray(value)) return value.map((item) => (item === undefined ? null : stripUndefinedDeep(item)));
+  if (!value || typeof value !== 'object' || Object.getPrototypeOf(value) !== Object.prototype) return value;
+  const output = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (item !== undefined) output[key] = stripUndefinedDeep(item);
+  }
+  return output;
+}
+
 export async function prepareCeremonySnapshot(input) {
   const snapshot = buildCeremonySnapshot({ ...input, createdBy: input.createdBy || state.get('currentUserId') });
   const ref = doc(db, PATH, input.snapshotId || ceremonySnapshotId(input.classId, input.monthKey));
   const existing = await getDoc(ref);
   if (existing.exists() && ['locked', 'completed'].includes(existing.data().status)) return { id: ref.id, ...existing.data() };
-  await setDoc(ref, { ...snapshot, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+  await setDoc(ref, { ...stripUndefinedDeep(snapshot), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
   return { id: ref.id, ...snapshot };
 }
 

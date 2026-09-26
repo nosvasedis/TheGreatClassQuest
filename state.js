@@ -329,15 +329,34 @@ export function setSecretaryView(next) {
 export function setParentView(next) {
     state.parentView = { ...state.parentView, ...(next || {}) };
 }
+// Names are interpolated into HTML templates across the app. Neutralising the
+// characters that can open a tag or break out of a quoted attribute keeps a
+// crafted class/student name from injecting markup anywhere it is rendered.
+const UNSAFE_NAME_CHARS = /[<>"]/g;
+const SAFE_NAME_REPLACEMENTS = { "<": "\u2039", ">": "\u203A", '"': "\u201D" };
+export function toSafeDisplayName(value) {
+    if (typeof value !== "string" || !/[<>"]/.test(value)) return value;
+    return value.replace(UNSAFE_NAME_CHARS, (ch) => SAFE_NAME_REPLACEMENTS[ch]);
+}
+function withSafeNames(items) {
+    if (!Array.isArray(items)) return items;
+    let changed = false;
+    const next = items.map((item) => {
+        if (!item || typeof item.name !== "string" || !/[<>"]/.test(item.name)) return item;
+        changed = true;
+        return { ...item, name: toSafeDisplayName(item.name) };
+    });
+    return changed ? next : items;
+}
 export function setAllTeachersClasses(classes) {
-    state.allTeachersClasses = classes;
+    state.allTeachersClasses = withSafeNames(classes);
 }
 export function setAllSchoolClasses(classes) {
-    state.allSchoolClasses = classes;
+    state.allSchoolClasses = withSafeNames(classes);
     _notify("allSchoolClasses");
 }
 export function setAllStudents(students) {
-    state.allStudents = students;
+    state.allStudents = withSafeNames(students);
     updateReigningHero();
     _notify("allStudents");
 }

@@ -16,7 +16,7 @@ import { callGeminiApi, extractJsonFromAiText } from '../../api.js';
 import { shopRestockToast, shopItemStock } from '../../utils/shopRestock.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { getTodayDateString, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString, getLocalIsoDateString } from '../../utils.js';
 import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
@@ -520,7 +520,7 @@ export async function handleBuyItem(studentId, itemId) {
     const isHero = reigningHero && reigningHero.id === studentId;
     const scoreData = state.get('allStudentScores').find((score) => score.id === studentId);
     const heroOfDayWins = getYearScopedHeroOfDayWinsFromAppState(scoreData, state);
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const currentMonthKey = getLocalIsoDateString().substring(0, 7);
     let finalPrice = item.price;
     let voucherUsed = false;
 
@@ -840,6 +840,8 @@ export async function handleManualGoldUpdate() {
     }
 }
 
+const specialOccasionBonusInFlight = new Set();
+
 export async function handleSpecialOccasionBonus(studentId, type) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
@@ -848,17 +850,37 @@ export async function handleSpecialOccasionBonus(studentId, type) {
     const reason = type === 'birthday' ? 'Birthday Bonus' : 'Nameday Bonus';
     const icon = type === 'birthday' ? '🎂' : '🎈';
 
+    const inFlightKey = `${studentId}:${type}`;
+    if (specialOccasionBonusInFlight.has(inFlightKey)) return;
+    specialOccasionBonusInFlight.add(inFlightKey);
+
     try {
+        let alreadyGiven = false;
         await runTransaction(db, async (transaction) => {
+            alreadyGiven = false;
             const publicDataPath = "artifacts/great-class-quest/public/data";
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+            // One celebration per student, occasion and day: a double-click or a
+            // retried request lands on the same log document.
+            const newLogRef = doc(
+                db,
+                `${publicDataPath}/award_log`,
+                `occasion_${type === 'birthday' ? 'birthday' : 'nameday'}_${studentId}_${getTodayDateString()}`,
+            );
+            const existingLog = await transaction.get(newLogRef);
+            if (existingLog.exists()) {
+                alreadyGiven = true;
+                return;
+            }
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists()) throw new Error('Student score record not found.');
+            const currentGold = getLiveYearGold(scoreDoc.data(), getLiveYearGoldContextFromState(state));
 
             // Add to totals WITHOUT affecting daily cap (only total/monthly)
             transaction.update(scoreRef, {
                 totalStars: increment(bonus),
                 monthlyStars: increment(bonus),
-                gold: increment(bonus) // They get gold too!
+                gold: currentGold + bonus // They get gold too!
             });
 
             // Log it
@@ -877,6 +899,12 @@ export async function handleSpecialOccasionBonus(studentId, type) {
             transaction.set(newLogRef, logData);
         });
 
+        if (alreadyGiven) {
+            showToast(`${student.name} already received this celebration bonus today.`, 'info');
+            import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
+            return;
+        }
+
         reconcileFamiliarLifecycle(studentId, { announce: true, source: 'special-occasion' }).catch((e) => console.warn('Special occasion familiar reconciliation failed:', e));
         showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
         import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
@@ -885,8 +913,8 @@ export async function handleSpecialOccasionBonus(studentId, type) {
     } catch (error) {
         console.error("Bonus Error:", error);
         showToast("Error applying bonus.", "error");
-
-
+    } finally {
+        specialOccasionBonusInFlight.delete(inFlightKey);
     }
 }
 
@@ -917,7 +945,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
         let familiarData = null;
         let finalPrice = typeDef.price;
         let voucherUsed = false;
-        const currentMonthKey = new Date().toISOString().substring(0, 7);
+        const currentMonthKey = getLocalIsoDateString().substring(0, 7);
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw new Error('Score document not found.');

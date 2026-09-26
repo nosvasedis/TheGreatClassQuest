@@ -110,12 +110,14 @@ function resetAssistantUi() {
 function setErrorBanner(message = '') {
     const refs = getRefs();
     if (!refs.errorBanner) return;
+    // Write into the text span so the banner's retry button survives.
+    const textEl = document.getElementById('student-analytics-error-text') || refs.errorBanner;
     if (!message) {
         refs.errorBanner.classList.add('hidden');
-        refs.errorBanner.textContent = '';
+        textEl.textContent = '';
         return;
     }
-    refs.errorBanner.textContent = message;
+    textEl.textContent = message;
     refs.errorBanner.classList.remove('hidden');
 }
 
@@ -370,8 +372,6 @@ function applyAudienceChrome(audience) {
     }
     const toolbar = document.getElementById('student-analytics-toolbar');
     if (toolbar) toolbar.hidden = audience === 'student';
-    const loadWrap = document.getElementById('student-analytics-load-full-history-wrap');
-    if (loadWrap) loadWrap.hidden = audience === 'student';
     if (audience === 'student') {
         activateTab('overview');
     }

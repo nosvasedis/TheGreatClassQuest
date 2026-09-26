@@ -96,15 +96,15 @@ export async function completeQuestRun(event, { recipientIds, completedBy = stat
             else transaction.set(write.scoreRef, withSchoolYear({ totalStars: stars, monthlyStars: stars, gold: stars, inventory: [], createdBy: student.data().createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') } }, state.getActiveSchoolYearKey()));
             transaction.set(write.awardRef, withSchoolYear({ studentId: write.studentId, classId: freshData.classId, teacherId: state.get('currentUserId'), stars, appliedStarCredit: stars, reason: 'special_quest', questType: normalized.type, eventId: event.id, actionId, date: freshData.dateKey, createdAt: serverTimestamp(), createdBy: { uid: completedBy, name: state.get('currentTeacherName') } }, state.getActiveSchoolYearKey()));
         }
-        transaction.set(actionRef, withSchoolYear({ schemaVersion: 1, type: 'completion', eventId: event.id, runId: runRef.id, runVersion: freshData.runVersion, classId: freshData.classId, schoolYearKey: state.getActiveSchoolYearKey(), recipientIds: recipients, starsPerRecipient: stars, totalStars: stars * recipients.length, totalGold: stars * recipients.length, coreStatus: 'applied', effects: { guild: 'pending', familiars: 'pending' }, createdBy: completedBy, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
+        transaction.set(actionRef, withSchoolYear({ schemaVersion: 1, type: 'completion', eventId: event.id, runId: runRef.id, runVersion: freshData.runVersion, classId: freshData.classId, schoolYearKey: state.getActiveSchoolYearKey(), recipientIds: recipients, starsPerRecipient: stars, totalStars: stars * recipients.length, totalGold: stars * recipients.length, coreStatus: 'applied', effects: { guild: 'pending', familiars: 'pending' }, effectsVersion: IDEMPOTENT_EFFECTS_VERSION, createdBy: completedBy, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
         transaction.update(runRef, { status: 'completed', finalRecipientIds: recipients, completedBy, completedAt: serverTimestamp(), completionActionId: actionId, rewardSummary: { totalStars: stars * recipients.length, totalGold: stars * recipients.length }, updatedAt: serverTimestamp() });
     });
     const effectResults = await Promise.allSettled(recipients.map(async (studentId) => {
-        await updateGuildScores(studentId, stars, 'special_quest');
+        await updateGuildScores(studentId, stars, 'special_quest', { idempotencyKey: questEffectKey(actionId, studentId) });
         await reconcileFamiliarLifecycle(studentId, { announce: true, source: 'special-quest' });
     }));
     if (effectResults.every((result) => result.status === 'fulfilled')) {
-        await updateDoc(actionRef, { 'effects.guild': 'complete', 'effects.familiars': 'complete', updatedAt: serverTimestamp() }).catch(() => {});
+        await markQuestEffectsComplete(actionRef);
     }
     return { actionId, recipientIds: recipients, starsPerRecipient: stars, totalStars: stars * recipients.length };
 }
@@ -129,15 +129,15 @@ export async function reverseQuestCompletion(eventId, { reversedBy = state.get('
                 gold: Math.max(0, gold - amount)
             });
         }
-        transaction.set(reverseRef, withSchoolYear({ schemaVersion: 1, type: 'reversal', eventId, runId: runRef.id, runVersion: run.runVersion, classId: run.classId, recipientIds: action.recipientIds, starsPerRecipient: action.starsPerRecipient, totalStars: -action.totalStars, totalGold: -action.totalGold, coreStatus: 'applied', effects: { guild: 'pending', familiars: 'pending' }, reversesActionId: action.id || run.completionActionId, createdBy: reversedBy, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
+        transaction.set(reverseRef, withSchoolYear({ schemaVersion: 1, type: 'reversal', eventId, runId: runRef.id, runVersion: run.runVersion, classId: run.classId, recipientIds: action.recipientIds, starsPerRecipient: action.starsPerRecipient, totalStars: -action.totalStars, totalGold: -action.totalGold, coreStatus: 'applied', effects: { guild: 'pending', familiars: 'pending' }, effectsVersion: IDEMPOTENT_EFFECTS_VERSION, reversesActionId: action.id || run.completionActionId, createdBy: reversedBy, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
         transaction.update(runRef, { status: 'reversed', updatedAt: serverTimestamp() });
     });
     const effectResults = await Promise.allSettled((action.recipientIds || []).map(async (studentId) => {
-        await updateGuildScores(studentId, -Number(action.starsPerRecipient), 'special_quest_reversal');
+        await updateGuildScores(studentId, -Number(action.starsPerRecipient), 'special_quest_reversal', { idempotencyKey: questEffectKey(reverseId, studentId) });
         await reconcileFamiliarLifecycle(studentId, { announce: false, source: 'special-quest-reversal' });
     }));
     if (effectResults.every((result) => result.status === 'fulfilled')) {
-        await updateDoc(reverseRef, { 'effects.guild': 'complete', 'effects.familiars': 'complete', updatedAt: serverTimestamp() }).catch(() => {});
+        await markQuestEffectsComplete(reverseRef);
     }
     return { reversalActionId: reverseId };
 }
@@ -146,22 +146,78 @@ export function questEventForType(type, overrides = {}) {
     return createQuestEventDocument({ type, ...overrides });
 }
 
+const IDEMPOTENT_EFFECTS_VERSION = 2;
+
+/** Stable per-action, per-student key so Guild Glory is applied exactly once. */
+function questEffectKey(actionId, studentId) {
+    return `quest_${actionId}_${studentId}`;
+}
+
+async function markQuestEffectsComplete(actionRef) {
+    try {
+        await updateDoc(actionRef, { 'effects.guild': 'complete', 'effects.familiars': 'complete', updatedAt: serverTimestamp() });
+    } catch (error) {
+        // Safe to leave pending: the retry below is idempotent per student.
+        console.warn('Special Quest effects could not be marked complete:', error);
+    }
+}
+
+let reconcileInFlight = null;
+let reconcileWaitUnsubscribe = null;
+
+/** Run the effect retry once students and the school year are hydrated. */
+export function scheduleQuestEffectReconcile() {
+    const ready = () => Boolean(state.getActiveSchoolYearKey()) && (state.get('allStudents') || []).length > 0;
+    const run = () => reconcilePendingQuestEffects().catch((error) => console.warn('Special Quest effect retry failed:', error));
+    if (ready()) {
+        run();
+        return;
+    }
+    if (reconcileWaitUnsubscribe) return;
+    reconcileWaitUnsubscribe = state.subscribe(['allStudents', 'schoolYearState', 'allSchoolYears'], () => {
+        if (!ready()) return;
+        reconcileWaitUnsubscribe?.();
+        reconcileWaitUnsubscribe = null;
+        run();
+    });
+}
+
 /** Retry non-critical effects after startup/class selection without replaying core rewards. */
 export async function reconcilePendingQuestEffects() {
+    if (reconcileInFlight) return reconcileInFlight;
+    reconcileInFlight = runPendingQuestEffectReconcile().finally(() => { reconcileInFlight = null; });
+    return reconcileInFlight;
+}
+
+async function runPendingQuestEffectReconcile() {
     const year = state.getActiveSchoolYearKey();
     if (!year) return { processed: 0 };
+    // Guild adapters resolve students from local state; before it is hydrated
+    // they would silently no-op and the action would be marked complete.
+    const knownStudentIds = new Set((state.get('allStudents') || []).map((student) => student.id));
+    if (!knownStudentIds.size) return { processed: 0 };
+    // Only the class owner may mark an action complete, so leave other
+    // teachers' actions to them.
+    const ownClassIds = new Set((state.get('allTeachersClasses') || []).map((item) => item.id));
+    if (!ownClassIds.size) return { processed: 0 };
     const snapshot = await getDocs(query(collection(db, ACTIONS), where('schoolYearKey', '==', year)));
     let processed = 0;
     for (const actionDoc of snapshot.docs) {
         const action = actionDoc.data();
         if (action.effects?.guild === 'complete' && action.effects?.familiars === 'complete') continue;
-        const results = await Promise.allSettled((action.recipientIds || []).map(async (studentId) => {
-            const delta = Number(action.totalStars || 0) / Math.max(1, action.recipientIds.length);
-            await updateGuildScores(studentId, delta, action.type === 'reversal' ? 'special_quest_reversal' : 'special_quest');
+        // Actions written before per-student idempotency already applied their
+        // Glory in the completion flow; replaying them would double-count.
+        if (Number(action.effectsVersion || 1) < IDEMPOTENT_EFFECTS_VERSION) continue;
+        if (!ownClassIds.has(action.classId)) continue;
+        const recipientIds = action.recipientIds || [];
+        const results = await Promise.allSettled(recipientIds.map(async (studentId) => {
+            if (!knownStudentIds.has(studentId)) return; // Student removed: nothing left to credit.
+            const delta = Number(action.totalStars || 0) / Math.max(1, recipientIds.length);
+            await updateGuildScores(studentId, delta, action.type === 'reversal' ? 'special_quest_reversal' : 'special_quest', { idempotencyKey: questEffectKey(actionDoc.id, studentId) });
             await reconcileFamiliarLifecycle(studentId, { announce: false, source: 'special-quest-retry' });
         }));
         if (results.every((result) => result.status === 'fulfilled')) {
-            await updateDoc(doc(db, ACTIONS, actionDoc.id), { 'effects.guild': 'complete', 'effects.familiars': 'complete', updatedAt: serverTimestamp() }).catch(() => {});
+            await markQuestEffectsComplete(doc(db, ACTIONS, actionDoc.id));
             processed += 1;
         }
     }

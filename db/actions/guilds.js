@@ -20,6 +20,7 @@ import { GUILDS, GUILD_IDS } from '../../features/guilds.js';
 import { getISOWeekKey, recordGuildGloryEvent, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { GLORY_PER_STAR } from '../../constants.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { getLocalIsoDateString } from '../../utils.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -68,7 +69,7 @@ export async function assignStudentToGuild(studentId, guildId) {
             gloryModifiers: [],
             chaliceActive: false,
             chaliceExpiresAt: 0,
-            lastWeeklyReset: new Date().toISOString().substring(0, 10),
+            lastWeeklyReset: getLocalIsoDateString(),
             memberCount: 1,
             memberIds: [studentId],
             createdAt: serverTimestamp(),

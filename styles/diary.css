@@ -80,11 +80,6 @@
     }
 }
 
-#award-class-dropdown-panel {
-    transform-origin: top;
-    animation: pop-in 0.2s ease-out;
-}
-
 /* --- V5.0.0: QUEST MAP STYLES --- */
 .quest-track-path {
     background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40" width="40" height="20"><path fill="%23d1d5db" d="M 0 39 L 39 0 L 41 0 L 1 39 Z M 40 39 L 79 0 L 81 0 L 41 39 Z"></path></svg>');

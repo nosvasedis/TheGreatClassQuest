@@ -3,6 +3,7 @@ import { db, doc, collection, writeBatch, serverTimestamp } from '../firebase.js
 import { showToast } from '../ui/effects.js';
 import { isKnownClassLogo, questLeagues } from '../constants.js';
 import * as utils from '../utils.js';
+import { escapeHtml } from './roles/shared.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature, getLimit, getTier, getSubscriptionSnapshot } from '../utils/subscription.js';
 import { markTeacherOnboardingComplete } from './teacherJourney.js';
@@ -324,8 +325,8 @@ function renderSetupDraftClassesList() {
         <article class="rounded-3xl border border-white/10 bg-white/10 px-4 py-4 shadow-lg">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-300 mb-1">${draft.questLevel}</p>
-                    <h4 class="font-title text-2xl text-white">${draft.logo} ${draft.name}</h4>
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-300 mb-1">${escapeHtml(draft.questLevel)}</p>
+                    <h4 class="font-title text-2xl text-white">${escapeHtml(draft.logo)} ${escapeHtml(draft.name)}</h4>
                     <p class="text-sm text-slate-300 mt-2">${draft.students.length} ${draft.students.length === 1 ? 'student' : 'students'}</p>
                 </div>
                 <button type="button" class="setup-remove-draft-btn w-10 h-10 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-300/20 text-rose-100" data-index="${index}" title="Remove class">
@@ -334,7 +335,7 @@ function renderSetupDraftClassesList() {
             </div>
             <div class="mt-4 flex flex-wrap gap-2">
                 ${draft.students.length > 0
-                    ? draft.students.map((student) => `<span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-white">${student}</span>`).join('')
+                    ? draft.students.map((student) => `<span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-white">${escapeHtml(student)}</span>`).join('')
                     : '<span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-slate-300">No students yet</span>'
                 }
             </div>

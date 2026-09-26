@@ -202,15 +202,6 @@ async function loadAuthenticatedRuntime() {
     return authenticatedRuntimePromise;
 }
 
-function updateTierLabel() {
-    const tierEl = document.getElementById('app-tier-label');
-    if (!tierEl) return;
-    const config = getSubscriptionSnapshot();
-    const t = getTier();
-    const pretty = t === 'elite' ? 'Elite' : t === 'pro' ? 'Pro' : t === 'expired' ? 'Expired' : t === 'pending' ? 'Pending' : 'Starter';
-    tierEl.textContent = config?.isGracePeriod ? 'Plan: Starter (Grace Day)' : `Plan: ${pretty}`;
-}
-window.addEventListener('gcq-subscription-updated', updateTierLabel);
 
 let activeAuthRole = ROLE_TEACHER;
 let activeAuthMode = 'login';

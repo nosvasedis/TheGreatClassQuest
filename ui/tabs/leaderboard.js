@@ -660,9 +660,9 @@ export async function renderClassLeaderboardTab() {
 
         const topHeroesHtml = c.topHeroes.length > 0 ?
             c.topHeroes.map(h => `
-                <div class="flex flex-col items-center" title="${h.name}: ${h.stars} Stars">
+                <div class="flex flex-col items-center" title="${escapeLeaderboardHtml(h.name)}: ${h.stars} Stars">
                     <div class="w-8 h-8 rounded-full border border-gray-200 overflow-hidden shadow-sm">
-                        ${h.avatar ? `<img src="${h.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xs">${h.name[0]}</div>`}
+                        ${h.avatar ? `<img src="${h.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xs">${escapeLeaderboardHtml((h.name || '')[0])}</div>`}
                     </div>
                 </div>
             `).join('') : '<span class="text-xs text-gray-400 italic">No heroes yet</span>';
@@ -678,7 +678,7 @@ export async function renderClassLeaderboardTab() {
                     </div>
                     <div class="team-quest-card__identity">
                         <div class="team-quest-card__eyebrow"><span>Quest party</span><span>League rank #${rank}</span></div>
-                        <h4 class="font-title text-3xl text-indigo-900 leading-tight">${c.name}</h4>
+                        <h4 class="font-title text-3xl text-indigo-900 leading-tight">${escapeLeaderboardHtml(c.name)}</h4>
                         <div class="flex flex-wrap gap-2 mt-2 items-center">
                             ${diffBadge}
                             <span class="quest-party-size"><i class="fas fa-users" aria-hidden="true"></i>${c.studentCount} Heroes</span>
@@ -1031,9 +1031,9 @@ export async function renderStudentLeaderboardTab() {
         const auraStyle = auraColor ? `style="box-shadow: 0 0 0 3px ${auraColor}, 0 0 14px 4px ${auraColor}88; border-color: ${auraColor};"` : '';
         let inner;
         if (s.avatar) {
-            inner = `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>`;
+            inner = `<img src="${s.avatar}" alt="${escapeLeaderboardHtml(s.name)}" data-student-id="${s.id}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>`;
         } else {
-            inner = `<div data-student-id="${s.id}" class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>${s.name.charAt(0)}</div>`;
+            inner = `<div data-student-id="${s.id}" class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>${escapeLeaderboardHtml((s.name || '').charAt(0))}</div>`;
         }
         return wrapAvatarWithLevelUpIndicator(inner, s.pendingSkillChoice);
     };
@@ -1162,7 +1162,7 @@ export async function renderStudentLeaderboardTab() {
                     </div>
                     <div class="hc-lb-copy">
                         <h3 class="hc-lb-name font-title text-lg sm:text-xl leading-tight flex items-center flex-wrap gap-1.5">
-                            <span class="hc-lb-name__text truncate">${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
+                            <span class="hc-lb-name__text truncate">${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${escapeLeaderboardHtml(s.name)}</span>
                             ${getHeroTitleBadgeHtml(s)}
                             ${getGuildRoleBadgesHtml(s)}
                         </h3>
@@ -1241,7 +1241,7 @@ export async function renderStudentLeaderboardTab() {
                 <div class="hc-lb-section-head inline-flex items-center gap-3 sm:gap-4">
                     <div class="hc-lb-section-head__glow" aria-hidden="true"></div>
                     <span class="hc-lb-section-logo" aria-hidden="true">${classData.logo}</span>
-                    <h3 class="hc-lb-section-title font-title text-2xl sm:text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}">${classData.name}</h3>
+                    <h3 class="hc-lb-section-title font-title text-2xl sm:text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}">${escapeLeaderboardHtml(classData.name)}</h3>
                 </div>
             </div>
             <div class="hc-lb-list-stack flex flex-col gap-3 mb-12 max-w-5xl mx-auto">`;

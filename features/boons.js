@@ -76,6 +76,8 @@ export async function handleBestowBoon(senderId, receiverId) {
         let patronLevelUpInfo = null;
         let patronGiftResult = { applies: false, giverGoldBonus: 0, extraStarsForReceiver: 0, pathCredit: 0, skillEventCredit: 0, newReasonStars: 0, newHeroLevel: 0, leveledUp: false };
         const giftWeekKey = getPatronPathWeekKeyFromDateString(todayStr);
+        const slotPrefix = `peerboon_${receiver.classId}_${todayStr}_`;
+        let logRef = null;
 
         await runTransaction(db, async (transaction) => {
             const senderScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", senderId);
@@ -83,6 +85,21 @@ export async function handleBestowBoon(senderId, receiverId) {
 
             const senderDoc = await transaction.get(senderScoreRef);
             const senderData = senderDoc.data() || {};
+
+            // Enforce the daily cap atomically: each boon occupies one of the
+            // class's deterministic daily slots, so concurrent boons contend on
+            // the same documents and the loser is retried against the new count.
+            const legacyCount = existingSnap.docs.filter((item) => !item.id.startsWith(slotPrefix)).length;
+            const slotRefs = Array.from({ length: PEER_BOON_DAILY_CAP }, (_, index) => doc(db, 'artifacts/great-class-quest/public/data/award_log', `${slotPrefix}${index}`));
+            const slotSnaps = [];
+            for (const slotRef of slotRefs) slotSnaps.push(await transaction.get(slotRef));
+            const occupiedSlots = slotSnaps.filter((snap) => snap.exists()).length;
+            const freeSlotIndex = slotSnaps.findIndex((snap) => !snap.exists());
+            const dailyCount = legacyCount + occupiedSlots;
+            if (freeSlotIndex === -1 || dailyCount >= PEER_BOON_DAILY_CAP) {
+                throw 'Daily boon limit reached — max 4 per class per day!';
+            }
+            logRef = slotRefs[freeSlotIndex];
             const currentGold = getLiveYearGold(senderData, getLiveYearGoldContextFromState(state));
             const freeBoonUses = Number(senderData.peerBoonFreeUses) || 0;
             const monthKey = utils.getLocalMonthKey();
@@ -91,7 +108,7 @@ export async function handleBestowBoon(senderId, receiverId) {
             const settlement = computePeerBoonSettlement({
                 senderId,
                 receiverId,
-                dailyCount: existingSnap.size,
+                dailyCount,
                 currentGold,
                 freeBoonUses,
                 isMonthFree,
@@ -145,7 +162,6 @@ export async function handleBestowBoon(senderId, receiverId) {
                 monthlyStars: increment(receiverStarDelta)
             });
 
-            const logRef = doc(collection(db, "artifacts/great-class-quest/public/data/award_log"));
             transaction.set(logRef, withSchoolYear({
                 studentId: receiverId,
                 giverId: senderId,

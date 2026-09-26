@@ -38,10 +38,6 @@
     border-bottom-width: 2px;
 }
 
-.about-content {
-    animation: pop-in 0.4s ease-out;
-}
-
 /* Returning students — Student setup (teacher roster) */
 .returning-students-shell {
     background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 45%, #fff 100%);

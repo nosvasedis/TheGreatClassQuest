@@ -1170,7 +1170,7 @@ export function handleStarManagerStudentSelect() {
     if (studentId) {
         logFormElements.forEach(el => el.disabled = false);
         overrideFormElements.forEach(el => el.disabled = false);
-        document.getElementById('star-manager-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('star-manager-date').value = utils.getLocalIsoDateString();
 
         const scoreData = state.get('allStudentScores').find(s => s.id === studentId) || {};
         const todayData = state.get('todaysStars')[studentId] || {};

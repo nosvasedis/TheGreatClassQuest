@@ -52,27 +52,62 @@ export function seededShuffle(items = [], seed = '') {
     return output;
 }
 
+const STUDENT_TIE_FIELDS = ['score', 'count3', 'count2', 'uniqueReasons'];
+
+function hasUsableRanks(results = []) {
+    return results.length > 0 && results.every((result) => Number.isFinite(Number(result?.rank)) && Number(result.rank) > 0);
+}
+
+function studentMetric(result, field) {
+    return Number(result?.[field] ?? result?.stats?.[field]) || 0;
+}
+
+/** Worst-first (reveal order) with rank 1 = winner, matching the live ceremony queues. */
+function preserveRanks(results) {
+    return [...results]
+        .sort((a, b) => Number(b.rank) - Number(a.rank))
+        .map((result) => ({ ...result, rank: Number(result.rank) }));
+}
+
 export function rankClassResults(results = []) {
-    return [...results].sort((a, b) => (Number(a.score) || 0) - (Number(b.score) || 0)).map((result, index) => ({ ...result, rank: index + 1 }));
+    // Live Team Quest ranks (progress toward each class's own goal) are authoritative.
+    if (hasUsableRanks(results)) return preserveRanks(results);
+    const ranked = [...results]
+        .sort((a, b) =>
+            ((Number(b.progress) || 0) - (Number(a.progress) || 0))
+            || ((Number(b.score) || 0) - (Number(a.score) || 0))
+            || String(a.id || '').localeCompare(String(b.id || '')))
+        .map((result, index) => ({ ...result, rank: index + 1 }));
+    return ranked.reverse();
 }
 
 export function rankStudentResults(results = []) {
+    if (hasUsableRanks(results)) return preserveRanks(results);
     const sorted = [...results].sort((a, b) => {
-        const fields = ['score', 'count3', 'count2', 'uniqueReasons'];
-        for (const field of fields) { const delta = (Number(b[field]) || 0) - (Number(a[field]) || 0); if (delta) return delta; }
-        return (Number(b.academicAvg) || 0) - (Number(a.academicAvg) || 0);
+        for (const field of STUDENT_TIE_FIELDS) { const delta = studentMetric(b, field) - studentMetric(a, field); if (delta) return delta; }
+        return studentMetric(b, 'academicAvg') - studentMetric(a, 'academicAvg');
     });
-    return sorted.map((result, index) => ({ ...result, rank: index + 1 }));
+    // Same tie rule as the live reveal: podium ties ignore the academic average.
+    let rank = 1;
+    const ranked = sorted.map((result, index) => {
+        if (index > 0) {
+            const previous = sorted[index - 1];
+            let isTie = STUDENT_TIE_FIELDS.every((field) => studentMetric(result, field) === studentMetric(previous, field));
+            if (rank > 3) isTie = isTie && Math.abs(studentMetric(result, 'academicAvg') - studentMetric(previous, 'academicAvg')) < 0.1;
+            if (!isTie) rank = index + 1;
+        }
+        return { ...result, rank };
+    });
+    return ranked.reverse();
 }
 
 export function chooseCanonicalWinners({ classResults = [], studentResults = [] } = {}) {
     const rankedClasses = rankClassResults(classResults);
     const rankedStudents = rankStudentResults(studentResults);
-    const positiveStudents = rankedStudents.filter((student) => (Number(student.score) || 0) > 0);
-    const classWinner = rankedClasses.length ? rankedClasses[rankedClasses.length - 1] : null;
+    const positiveStudents = rankedStudents.filter((student) => studentMetric(student, 'score') > 0);
+    const classWinner = rankedClasses.find((result) => result.rank === 1) || null;
     if (!positiveStudents.length) return { classResults: rankedClasses, studentResults: rankedStudents, classWinner, prodigyWinners: [], collectiveClose: true };
-    const top = positiveStudents[0];
-    const prodigyWinners = positiveStudents.filter((student) => ['score', 'count3', 'count2', 'uniqueReasons', 'academicAvg'].every((field) => (Number(student[field]) || 0) === (Number(top[field]) || 0)));
+    const prodigyWinners = positiveStudents.filter((student) => student.rank === 1);
     return { classResults: rankedClasses, studentResults: rankedStudents, classWinner, prodigyWinners, collectiveClose: false };
 }
 

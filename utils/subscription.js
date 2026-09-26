@@ -279,7 +279,9 @@ export function getLimit(limitKey) {
  * @returns {string} 'pending' | 'starter' | 'pro' | 'elite'
  */
 export function getTier() {
-    return getRuntimeSubscriptionConfig()?.tier || 'starter';
+    // Fail closed until the subscription document has loaded, matching
+    // getStarterDefaults(): an unknown school is not treated as subscribed.
+    return getRuntimeSubscriptionConfig()?.tier || 'pending';
 }
 
 /**

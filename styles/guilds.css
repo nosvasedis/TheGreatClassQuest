@@ -3780,8 +3780,10 @@
     pointer-events: none;
 }
 
-/* pop-in (shared with result card) */
-.pop-in {
+/* pop-in for the sorting quiz cards only — the bare .pop-in class drives the
+   transition-based modal entrance app-wide (styles/base.css). */
+.sorting-quiz-card.pop-in,
+.sorting-quiz-result-card.pop-in {
     animation: quiz-pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
 }
 @keyframes quiz-pop-in {

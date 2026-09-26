@@ -39,6 +39,7 @@ import {
     datesMatch,
     getClassMonthlyQuestStars,
     calculateMonthlyClassGoal,
+    getMonthKey,
 } from "../../utils.js";
 import { checkBountyProgress } from "./bounties.js";
 import {
@@ -59,6 +60,16 @@ import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
+
+/** Deterministic id for a teacher's daily star row for one student. */
+export function getTodayStarsDocId(teacherId, studentId, date) {
+    return `${teacherId}_${studentId}_${date}`;
+}
+
+/** Deterministic id for a teacher's daily performance award_log row. */
+export function getDailyAwardLogDocId(teacherId, studentId, date) {
+    return `daily_${teacherId}_${studentId}_${date}`;
+}
 
 export async function setStudentStarsForToday(
     studentId,
@@ -141,9 +152,29 @@ export async function setStudentStarsForToday(
             }
         }
 
+        const currentTeacherId = state.get("currentUserId");
+        // Values below are mutated inside the transaction (Elixir of Luck etc.),
+        // so each retry must start again from the pre-transaction values.
+        const baseFinalStarValue = finalStarValue;
+        const todayStarsRef = doc(
+            db,
+            `${publicDataPath}/today_stars`,
+            getTodayStarsDocId(currentTeacherId, studentId, today),
+        );
+        const dailyAwardLogRef = doc(
+            db,
+            `${publicDataPath}/award_log`,
+            getDailyAwardLogDocId(currentTeacherId, studentId, today),
+        );
+
         await runTransaction(db, async (transaction) => {
             /** Actual star delta applied to totalStars/monthlyStars for the daily performance log row (includes skill bonuses). */
             let appliedCreditForDailyLog = null;
+            finalStarValue = baseFinalStarValue;
+            difference = 0;
+            guildStarCredit = 0;
+            studentClassId = null;
+            levelUpInfo = null;
 
             const studentRef = doc(db, `${publicDataPath}/students`, studentId);
             const scoreRef = doc(
@@ -152,21 +183,35 @@ export async function setStudentStarsForToday(
                 studentId,
             );
 
-            const todayStarsQuery = query(
-                collection(db, `${publicDataPath}/today_stars`),
-                where("studentId", "==", studentId),
-                where("teacherId", "==", state.get("currentUserId")),
-                where("date", "==", today),
-            );
-            const todayStarsSnapshot = await getDocs(todayStarsQuery);
-
+            // All reads happen before any write. The daily record uses a
+            // deterministic id so two concurrent awards contend on the same
+            // document and Firestore retries the loser instead of creating a
+            // duplicate row (and double-crediting stars/gold).
             let todayDocRef = null;
             let oldStars = 0;
-            if (!todayStarsSnapshot.empty) {
-                const todayDoc = todayStarsSnapshot.docs[0];
-                todayDocRef = todayDoc.ref;
-                oldStars = todayDoc.data().stars || 0;
+            const deterministicTodaySnap = await transaction.get(todayStarsRef);
+            if (deterministicTodaySnap.exists()) {
+                todayDocRef = todayStarsRef;
+                oldStars = deterministicTodaySnap.data().stars || 0;
+            } else {
+                // Legacy/random-id rows (e.g. Welcome Back unlock rows).
+                const todayStarsQuery = query(
+                    collection(db, `${publicDataPath}/today_stars`),
+                    where("studentId", "==", studentId),
+                    where("teacherId", "==", currentTeacherId),
+                    where("date", "==", today),
+                );
+                const todayStarsSnapshot = await getDocs(todayStarsQuery);
+                if (!todayStarsSnapshot.empty) {
+                    const legacyRef = todayStarsSnapshot.docs[0].ref;
+                    const legacySnap = await transaction.get(legacyRef);
+                    if (legacySnap.exists()) {
+                        todayDocRef = legacyRef;
+                        oldStars = legacySnap.data().stars || 0;
+                    }
+                }
             }
+            const dailyAwardLogSnap = await transaction.get(dailyAwardLogRef);
 
             difference = finalStarValue - oldStars;
 
@@ -316,10 +361,7 @@ export async function setStudentStarsForToday(
                 }
             } else {
                 if (finalStarValue > 0 || reason === "marked_present") {
-                    const newTodayDocRef = doc(
-                        collection(db, `${publicDataPath}/today_stars`),
-                    );
-                    transaction.set(newTodayDocRef, withSchoolYear({
+                    transaction.set(todayStarsRef, withSchoolYear({
                         studentId,
                         stars: finalStarValue,
                         date: today,
@@ -334,10 +376,16 @@ export async function setStudentStarsForToday(
             }
 
             // FIX: Find the SPECIFIC log for "standard" daily stars, ignore bonuses
+            // Only this teacher's own rows can be updated under the rules.
             const allTodaysLogs = state
                 .get("allAwardLogs")
-                .filter((l) => l.studentId === studentId && l.date === today);
-            const dailyPerformanceLog = allTodaysLogs.find(
+                .filter(
+                    (l) =>
+                        l.studentId === studentId &&
+                        l.date === today &&
+                        (l.createdBy?.uid || l.teacherId) === currentTeacherId,
+                );
+            const stateDailyPerformanceLog = allTodaysLogs.find(
                 (l) =>
                     ![
                         "welcome_back",
@@ -346,6 +394,11 @@ export async function setStudentStarsForToday(
                         "peer_boon",
                     ].includes(l.reason),
             );
+            // Prefer the transactionally-read deterministic row: local state can
+            // lag behind a concurrent award that already created it.
+            const dailyPerformanceLog = dailyAwardLogSnap.exists()
+                ? { id: dailyAwardLogRef.id, ...dailyAwardLogSnap.data() }
+                : stateDailyPerformanceLog;
 
             if (finalStarValue === 0) {
                 if (dailyPerformanceLog)
@@ -394,10 +447,7 @@ export async function setStudentStarsForToday(
                         },
                     );
                 } else {
-                    transaction.set(
-                        doc(collection(db, `${publicDataPath}/award_log`)),
-                        logData,
-                    );
+                    transaction.set(dailyAwardLogRef, logData);
                 }
             }
         });
@@ -734,7 +784,7 @@ export async function checkAndRecordQuestCompletion(classId) {
             goalTarget: diamondGoal,
             starsEarned: currentMonthlyStars,
             completedAt: serverTimestamp(),
-            monthKey: new Date().toISOString().slice(0, 7), // "2026-01"
+            monthKey: getMonthKey(), // "2026-01" (local month)
             createdBy: {
                 uid: state.get("currentUserId"),
                 name: state.get("currentTeacherName"),
@@ -1046,7 +1096,15 @@ export async function handleSetStudentScores() {
                     transaction.update(todayDocRef, { stars: todayStarsVal });
                 } else {
                     transaction.set(
-                        doc(collection(db, `${publicDataPath}/today_stars`)),
+                        doc(
+                            db,
+                            `${publicDataPath}/today_stars`,
+                            getTodayStarsDocId(
+                                state.get("currentUserId"),
+                                studentId,
+                                getTodayDateString(),
+                            ),
+                        ),
                         todayData,
                     );
                 }
@@ -1128,7 +1186,7 @@ async function _applyOutwardSkillEffects(
     /** @type {Map<string, number>} */
     const goldDeltasByStudentId = new Map();
 
-    const currentMonthKey = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+    const currentMonthKey = getMonthKey(); // "YYYY-MM" (local month)
 
     const addGoldDelta = (studentId, amount) => {
         goldDeltasByStudentId.set(

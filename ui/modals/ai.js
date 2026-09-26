@@ -123,35 +123,6 @@ export async function handleGetQuestUpdate() {
     }
 }
 
-export async function handleGenerateIdea() {
-    if (!requireEliteAI({ feature: 'Reward idea generator' })) return;
-    const classId = state.get('globalSelectedClassId');
-    if (!classId) { showToast('Choose a class from the header first.', 'error'); return; }
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
-    if (!classData) { showToast('Could not find selected class data.', 'error'); return; }
-    const ageGroup = utils.getAgeGroupForLeague(classData.questLevel);
-
-    const btn = document.getElementById('gemini-idea-btn'), output = document.getElementById('gemini-idea-output'), copyBtn = document.getElementById('copy-idea-btn');
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Thinking...';
-    output.value = ''; copyBtn.disabled = true; copyBtn.classList.add('opacity-50');
-
-    const systemPrompt = `You are the 'Quest Master,' a helpful AI assistant for a teacher's classroom competition. You are creative, fun, and concise. Do NOT use markdown or asterisks. You will be asked to generate a 'special lesson experience' reward idea. The teacher will provide an age group. Make the idea fun, educational, and achievable in a classroom setting, and ensure it is perfectly suited for the specified age group. Format the response with a title and a 2-3 sentence description.`;
-    const userPrompt = `Generate a 'special lesson experience' reward idea for students in the ${ageGroup} age group.`;
-    try {
-        const idea = await callGeminiApi(systemPrompt, userPrompt);
-        output.value = idea;
-        copyBtn.disabled = false; copyBtn.classList.remove('opacity-50');
-    } catch (error) { console.error('Gemini Idea Error:', error); output.value = 'Oops! The Quest Master is busy. Please try again in a moment.'; }
-    finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lightbulb mr-2"></i> Generate New Idea'; }
-}
-
-export function copyToClipboard(elementId) {
-    const textarea = document.getElementById(elementId);
-    textarea.select();
-    document.execCommand('copy');
-    showToast('Copied to clipboard!', 'success');
-}
-
 export function openAwardNoteModal(logId) {
     const log = state.get('allAwardLogs').find(l => l.id === logId);
     if (!log) return;

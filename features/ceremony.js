@@ -37,7 +37,7 @@ import {
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
 import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
-import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId } from './ceremonySnapshots.js';
+import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
 
 const CEREMONY_REASON_INFO = {
     teamwork: { icon: 'fa-users', chip: 'ceremony-chip--teamwork', name: 'Teamwork' },
@@ -682,7 +682,7 @@ async function persistPreparedCeremonySnapshot() {
             classResults: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthGardenClasses || []) : (ceremonyData.classQueue || []),
             studentResults: ceremonyData.mode === 'growth_festival'
                 ? (ceremonyData.growthCanonicalStudentResults || [])
-                : (ceremonyData.studentQueue || []).map((item) => ({ id: item.id, name: item.name, avatar: item.avatar, score: item.score, count3: item.stats?.count3, count2: item.stats?.count2, uniqueReasons: item.stats?.uniqueReasons, academicAvg: item.stats?.academicAvg })),
+                : (ceremonyData.studentQueue || []).map((item) => ({ ...item, count3: item.stats?.count3 ?? 0, count2: item.stats?.count2 ?? 0, uniqueReasons: item.stats?.uniqueReasons ?? 0, academicAvg: item.stats?.academicAvg ?? 0 })),
             students: ceremonyData.growthStudents || [],
             spotlightOptions: {},
             snapshotVersion: 1
@@ -2118,7 +2118,7 @@ async function saveCeremonyComplete() {
         if (existingSnapshot.exists() && ['locked', 'completed'].includes(existingSnapshot.data().status)) {
             await updateDoc(snapshotRef, { status: 'completed', playback: snapshotPayload.playback, completedAt: new Date(), completedBy: state.get('currentUserId') });
         } else {
-            await setDoc(snapshotRef, snapshotPayload, { merge: true });
+            await setDoc(snapshotRef, stripUndefinedDeep(snapshotPayload), { merge: true });
         }
         await updateDoc(classRef, {
             [`ceremonyHistory.${monthKey}.complete`]: true,

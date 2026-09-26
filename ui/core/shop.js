@@ -3,7 +3,7 @@ import * as state from '../../state.js';
 import * as modals from '../modals.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
-import { getSeasonalShopPriceMeta } from '../../utils.js';
+import { getSeasonalShopPriceMeta, getLocalIsoDateString } from '../../utils.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
@@ -575,7 +575,7 @@ export async function updateShopStudentDisplay(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
     const heroOfDayWins = getYearScopedHeroOfDayWinsFromAppState(scoreData, state);
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const currentMonthKey = getLocalIsoDateString().substring(0, 7);
     const aurumVoucherPercent = Number(scoreData?.aurumVoucherPercent) || 0;
     const hasAurumVoucher = scoreData?.aurumVoucherMonth === currentMonthKey && aurumVoucherPercent > 0;
 

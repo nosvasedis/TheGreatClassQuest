@@ -206,6 +206,55 @@ rulesTest('teachers can edit only owned classes, students, and per-class grading
   }));
 });
 
+rulesTest('Special Quest actions only allow the class owner to update retryable effect status', async () => {
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, `${DATA}/classes/owned-class`), {
+      name: 'Owned', schoolYearKey: '2026-2027', createdBy: { uid: 'teacher' },
+    });
+    await setDoc(doc(db, `${DATA}/classes/other-class`), {
+      name: 'Other', schoolYearKey: '2026-2027', createdBy: { uid: 'another-teacher' },
+    });
+    const action = {
+      type: 'completion', schoolYearKey: '2026-2027', coreStatus: 'applied',
+      recipientIds: ['student-1'], starsPerRecipient: 2, totalStars: 2,
+      effects: { guild: 'pending', familiars: 'pending' }, effectsVersion: 2,
+    };
+    await setDoc(doc(db, `${DATA}/quest_event_actions/owned-action`), { ...action, classId: 'owned-class' });
+    await setDoc(doc(db, `${DATA}/quest_event_actions/other-action`), { ...action, classId: 'other-class' });
+  });
+
+  const ownedAction = doc(teacherDb, `${DATA}/quest_event_actions/owned-action`);
+  await assertSucceeds(updateDoc(ownedAction, {
+    'effects.guild': 'complete', 'effects.familiars': 'complete', updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(ownedAction, { starsPerRecipient: 99 }));
+  await assertFails(updateDoc(ownedAction, { recipientIds: ['student-1', 'student-2'] }));
+  await assertFails(updateDoc(doc(teacherDb, `${DATA}/quest_event_actions/other-action`), {
+    'effects.guild': 'complete', updatedAt: serverTimestamp(),
+  }));
+  await assertFails(deleteDoc(ownedAction));
+});
+
+rulesTest('deterministic daily star and award rows are creatable by their owner', async () => {
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  const date = '26-09-2026';
+  await assertSucceeds(setDoc(doc(teacherDb, `${DATA}/today_stars/teacher_student-1_${date}`), {
+    studentId: 'student-1', stars: 2, date, reason: 'teamwork', teacherId: 'teacher',
+    createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027',
+  }));
+  await assertSucceeds(setDoc(doc(teacherDb, `${DATA}/award_log/daily_teacher_student-1_${date}`), {
+    studentId: 'student-1', stars: 2, date, reason: 'teamwork', teacherId: 'teacher',
+    createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027',
+  }));
+  await assertSucceeds(getDoc(doc(teacherDb, `${DATA}/award_log/peerboon_class_${date}_0`)));
+  await assertFails(setDoc(doc(teacherDb, `${DATA}/today_stars/another_student-1_${date}`), {
+    studentId: 'student-1', stars: 2, date, teacherId: 'another-teacher',
+    createdBy: { uid: 'another-teacher' }, schoolYearKey: '2026-2027',
+  }));
+});
+
 rulesTest('storage preserves legacy reads while enforcing profile, ownership, MIME, and size limits', async () => {
   const teacherStorage = env.authenticatedContext('teacher').storage();
   const parentStorage = env.authenticatedContext('parent').storage();

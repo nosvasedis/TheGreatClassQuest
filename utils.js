@@ -228,6 +228,12 @@ export function updateDateTime() {
     }
 }
 
+/** Local calendar day as YYYY-MM-DD (unlike toISOString, which uses UTC). */
+export function getLocalIsoDateString(date = new Date()) {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function getDDMMYYYY(date = new Date()) {
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');

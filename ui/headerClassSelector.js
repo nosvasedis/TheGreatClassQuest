@@ -3,6 +3,7 @@
 // main content (stacking contexts / transforms on #app-screen would otherwise hide it).
 import * as state from '../state.js';
 import { playSound } from '../audio.js';
+import { escapeHtml } from '../features/roles/shared.js';
 import { runScheduleBasedClassSyncOnce } from '../features/home.js';
 
 let headerListenersWired = false;
@@ -118,10 +119,10 @@ function renderHeaderClassListItems() {
         .sort((a, b) => a.name.localeCompare(b.name));
     mount.innerHTML = classes.map(c => `
         <div class="header-class-item flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-indigo-100" data-id="${c.id}" role="option">
-            <span class="text-2xl w-10 text-center bg-white border border-gray-100 rounded-lg py-1 shadow-sm">${c.logo}</span>
+            <span class="text-2xl w-10 text-center bg-white border border-gray-100 rounded-lg py-1 shadow-sm">${escapeHtml(c.logo)}</span>
             <div class="min-w-0 flex-1">
-                <div class="font-title font-bold text-gray-800 text-sm truncate">${c.name}</div>
-                <div class="text-[11px] text-indigo-500 -mt-0.5">${c.questLevel || ''}</div>
+                <div class="font-title font-bold text-gray-800 text-sm truncate">${escapeHtml(c.name)}</div>
+                <div class="text-[11px] text-indigo-500 -mt-0.5">${escapeHtml(c.questLevel)}</div>
             </div>
         </div>
     `).join('');

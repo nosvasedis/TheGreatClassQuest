@@ -5,6 +5,7 @@ module.exports = {
     './config/**/*.js',
     './db/**/*.js',
     './features/**/*.js',
+    './mobile/**/*.js',
     './templates/**/*.js',
     './ui/**/*.js',
     './utils/**/*.js',

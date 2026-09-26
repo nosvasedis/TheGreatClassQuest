@@ -1,7 +1,7 @@
 // /db/queries.js
 
 import { db, collection, query, where, getDocs, orderBy } from '../firebase.js';
-import { parseDDMMYYYY } from '../utils.js';
+import { parseDDMMYYYY, getLocalIsoDateString } from '../utils.js';
 import * as state from '../state.js';
 
 function resolveYearKey(options = {}) {
@@ -167,11 +167,12 @@ export async function fetchAttendanceForMonth(classId, year, month, options = {}
 // --- TRIAL HISTORY FUNCTIONS ---
 
 export async function fetchTrialsForMonth(classId, monthKey, options = {}) {
-    const startDate = new Date(monthKey + '-01');
+    const [monthYear, monthNumber] = String(monthKey).split('-').map(Number);
+    const startDate = new Date(monthYear, monthNumber - 1, 1);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
 
-    const startDateString = startDate.toISOString().split('T')[0]; 
-    const endDateString = endDate.toISOString().split('T')[0];     
+    const startDateString = getLocalIsoDateString(startDate); 
+    const endDateString = getLocalIsoDateString(endDate);     
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const trialsQuery = query(

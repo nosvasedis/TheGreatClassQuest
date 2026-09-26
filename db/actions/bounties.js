@@ -1,5 +1,5 @@
 // /db/actions/bounties.js — quest bounties
-import { db, doc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp } from '../../firebase.js';
+import { db, doc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp, increment } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
@@ -83,44 +83,52 @@ export async function handleDeleteBounty(bountyId) {
 }
 
 export async function handleClaimBounty(bountyId, classId, rewardText) {
-    playHeroFanfare(); 
-    
     try {
         await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", bountyId), {
             status: 'completed',
             claimedAt: serverTimestamp() // <--- This adds the "Time of Victory"
         });
-    } catch(e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+        showToast('Could not claim this bounty. Please try again.', 'error');
+        return false;
+    }
 
+    playHeroFanfare();
     import('../../ui/effects.js').then(m => m.showPraiseToast(`BOUNTY CLAIMED: ${rewardText}`, '🎁'));
+    return true;
 }
 
 // Helper to update progress when stars are awarded
 // We need to hook this into `setStudentStarsForToday`
 export async function checkBountyProgress(classId, starsAdded) {
-    const bounties = state.get('allQuestBounties').filter(b => b.classId === classId && b.status === 'active');
-    
+    const added = Number(starsAdded) || 0;
+    if (!added) return;
+    const bounties = (state.get('allQuestBounties') || []).filter(b => b.classId === classId && b.status === 'active');
+
     // Check local expiry
     const now = new Date();
-    
-    bounties.forEach(async (b) => {
+
+    await Promise.all(bounties.map(async (b) => {
         if (new Date(b.deadline) < now) return; // Expired
 
-        const newProgress = (b.currentProgress || 0) + starsAdded;
-        
-        // Update DB
+        const previousProgress = Number(b.currentProgress) || 0;
+        const newProgress = previousProgress + added;
         const bountyRef = doc(db, "artifacts/great-class-quest/public/data/quest_bounties", b.id);
-        
-        if (newProgress >= b.target) {
-            await updateDoc(bountyRef, { currentProgress: newProgress });
-            
-            // TASK 3 FIX: Only show toast for Standard bounties, not Timers
-            if (b.type !== 'timer') {
-                showToast(`Bounty "${b.title}" goal reached! Ready to claim!`, 'success');
-                playSound('magic_chime');
-            }
-        } else {
-            await updateDoc(bountyRef, { currentProgress: newProgress });
+
+        try {
+            // increment() keeps concurrent awards from overwriting each other's
+            // progress (the cached value may be stale).
+            await updateDoc(bountyRef, { currentProgress: increment(added) });
+        } catch (error) {
+            console.warn(`Bounty progress update failed for ${b.id}:`, error);
+            return;
         }
-    });
+
+        // TASK 3 FIX: Only show toast for Standard bounties, not Timers
+        if (b.type !== 'timer' && previousProgress < b.target && newProgress >= b.target) {
+            showToast(`Bounty "${b.title}" goal reached! Ready to claim!`, 'success');
+            playSound('magic_chime');
+        }
+    }));
 }

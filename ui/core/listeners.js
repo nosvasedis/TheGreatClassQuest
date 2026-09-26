@@ -646,12 +646,6 @@ export function setupUIListeners() {
     if (trophyRoomCloseBtn) {
         trophyRoomCloseBtn.addEventListener('click', () => modals.hideModal('trophy-room-modal'));
     }
-    const trophyRoomStudentSelect = document.getElementById('trophy-room-student-select');
-    if (trophyRoomStudentSelect) {
-        trophyRoomStudentSelect.addEventListener('change', (e) => {
-            modals.renderTrophyRoomContent(e.target.value);
-        });
-    }
 
     const genShopBtn = document.getElementById('generate-shop-btn');
     if (genShopBtn) {
@@ -795,8 +789,12 @@ export function setupUIListeners() {
         if (deleteBtn) {
             import('../../db/actions.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
         }
-        if (claimBtn) {
-            import('../../db/actions.js').then(a => a.handleClaimBounty(claimBtn.dataset.id, null, claimBtn.dataset.reward));
+        if (claimBtn && !claimBtn.disabled) {
+            claimBtn.disabled = true;
+            import('../../db/actions.js')
+                .then(a => a.handleClaimBounty(claimBtn.dataset.id, null, claimBtn.dataset.reward))
+                .catch((error) => console.error('Bounty claim failed:', error))
+                .finally(() => { if (claimBtn.isConnected) claimBtn.disabled = false; });
         }
     });
 
@@ -1337,7 +1335,7 @@ export function setupUIListeners() {
     });
 
     setupSpecialQuestRunnerListeners();
-    import('../../features/specialQuestService.js').then(({ reconcilePendingQuestEffects }) => reconcilePendingQuestEffects().catch(() => {}));
+    import('../../features/specialQuestService.js').then(({ scheduleQuestEffectReconcile }) => scheduleQuestEffectReconcile()).catch(() => {});
     // Initialize Home/Info Listeners
     setupHomeListeners();
     wireHeaderClassSelector();

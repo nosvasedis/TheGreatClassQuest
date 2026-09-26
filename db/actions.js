@@ -3,10 +3,9 @@ import {
     db,
     doc,
     collection,
-    writeBatch,
+    runTransaction,
     serverTimestamp,
     increment,
-    getDoc,
     deleteField
 } from '../firebase.js';
 import * as state from '../state.js';
@@ -27,6 +26,8 @@ import { updateGuildScores } from '../features/guildScoring.js';
 
 export * from './actions/index.js';
 
+const storyWeaverBonusInFlight = new Set();
+
 export async function awardStoryWeaverBonusStarToClass(classId) {
     playSound('star2');
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
@@ -35,43 +36,52 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
         return;
     }
 
+    if (storyWeaverBonusInFlight.has(classId)) return;
+    storyWeaverBonusInFlight.add(classId);
+
     try {
-        const batch = writeBatch(db);
         const publicDataPath = "artifacts/great-class-quest/public/data";
-        const guildAwards = [];
+        let guildAwards = [];
 
-        for (const student of studentsInClass) {
-            const scoreRef = doc(db, `${publicDataPath}/student_scores`, student.id);
-            const scoreSnap = await getDoc(scoreRef);
-            const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
-            const doubleNext = scoreData.storyWeaverDoubleNext === true;
-            const starAmount = doubleNext ? 1 : 0.5;
-            guildAwards.push({ studentId: student.id, starAmount });
+        // A transaction (not read-then-batch) so a concurrent award cannot make
+        // us consume storyWeaverDoubleNext twice or from a stale read.
+        await runTransaction(db, async (transaction) => {
+            guildAwards = [];
+            const scoreRefs = studentsInClass.map((student) => doc(db, `${publicDataPath}/student_scores`, student.id));
+            const scoreSnaps = [];
+            for (const scoreRef of scoreRefs) scoreSnaps.push(await transaction.get(scoreRef));
 
-            const scoreUpdate = {
-                monthlyStars: increment(starAmount),
-                totalStars: increment(starAmount)
-            };
-            if (doubleNext) {
-                scoreUpdate.storyWeaverDoubleNext = deleteField();
-            }
-            batch.update(scoreRef, scoreUpdate);
+            studentsInClass.forEach((student, index) => {
+                const scoreRef = scoreRefs[index];
+                const scoreData = scoreSnaps[index].exists() ? scoreSnaps[index].data() : {};
+                const doubleNext = scoreData.storyWeaverDoubleNext === true;
+                const starAmount = doubleNext ? 1 : 0.5;
+                guildAwards.push({ studentId: student.id, starAmount });
 
-            const logRef = doc(collection(db, `${publicDataPath}/award_log`));
-            batch.set(logRef, withSchoolYear({
-                studentId: student.id,
-                classId: classId,
-                teacherId: state.get('currentUserId'),
-                stars: starAmount,
-                appliedStarCredit: starAmount,
-                reason: "story_weaver",
-                date: getTodayDateString(),
-                createdAt: serverTimestamp(),
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            }, state.getActiveSchoolYearKey()));
-        }
+                const scoreUpdate = {
+                    monthlyStars: increment(starAmount),
+                    totalStars: increment(starAmount)
+                };
+                if (doubleNext) {
+                    scoreUpdate.storyWeaverDoubleNext = deleteField();
+                }
+                transaction.update(scoreRef, scoreUpdate);
 
-        await batch.commit();
+                const logRef = doc(collection(db, `${publicDataPath}/award_log`));
+                transaction.set(logRef, withSchoolYear({
+                    studentId: student.id,
+                    classId: classId,
+                    teacherId: state.get('currentUserId'),
+                    stars: starAmount,
+                    appliedStarCredit: starAmount,
+                    reason: "story_weaver",
+                    date: getTodayDateString(),
+                    createdAt: serverTimestamp(),
+                    createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                }, state.getActiveSchoolYearKey()));
+            });
+        });
+
         guildAwards.forEach(({ studentId, starAmount }) => {
             updateGuildScores(studentId, starAmount, 'story_weaver').catch((e) => console.warn('Story Weaver Guild Glory update failed:', e));
         });
@@ -92,6 +102,8 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
     } catch (error) {
         console.error("Error awarding bonus stars:", error);
         showToast("Failed to award bonus stars.", "error");
+    } finally {
+        storyWeaverBonusInFlight.delete(classId);
     }
 }
 

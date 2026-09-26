@@ -39,7 +39,7 @@ let cachedQuoteDay = null;
 const MOBILE_QUOTE_FALLBACK = 'Every great quest starts with one brave step.';
 
 function getDailyQuoteCardHtml(staggerIndex = 1) {
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = utils.getLocalIsoDateString();
     if (cachedQuoteDay && cachedQuoteDay !== todayKey) {
         cachedQuote = '';
         cachedQuoteDay = null;
@@ -61,7 +61,7 @@ function getDailyQuoteCardHtml(staggerIndex = 1) {
 }
 
 function ensureDailyQuoteFetched() {
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = utils.getLocalIsoDateString();
     if (cachedQuoteDay && cachedQuoteDay !== todayKey) {
         cachedQuote = '';
         cachedQuoteDay = null;
@@ -486,7 +486,12 @@ async function handleQuickAction(action) {
 }
 
 export function renderMobileHome() {
-    ensureDailyQuoteFetched();
+    // Only fetch once signed in and on the phone layout: before sign-in the
+    // cache read is denied and the import pulls the whole teacher UI into the
+    // login screen.
+    if (state.get('currentUserId') && document.body.classList.contains('gcq-mobile')) {
+        ensureDailyQuoteFetched();
+    }
     if (renderDebounce) clearTimeout(renderDebounce);
     renderDebounce = setTimeout(() => {
         try {

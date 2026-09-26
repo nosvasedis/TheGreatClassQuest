@@ -92,7 +92,7 @@ function applySecretaryTierUi() {
     const hasFullAccess = hasFullSecretaryConsole();
     document.querySelectorAll('[data-secretary-tab="grades"], [data-secretary-tab="messages"]')
         .forEach((button) => button.classList.toggle('hidden', !hasFullAccess));
-    document.querySelectorAll('[data-secretary-edit-class], [data-secretary-edit-student]')
+    document.querySelectorAll('[data-secretary-edit-student]')
         .forEach((button) => button.classList.toggle('hidden', !hasFullAccess));
 }
 

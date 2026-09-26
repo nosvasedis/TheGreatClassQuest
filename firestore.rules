@@ -315,7 +315,9 @@ service cloud.firestore {
     match /artifacts/great-class-quest/public/data/quest_event_actions/{actionId} {
       allow read: if isStaff();
       allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.coreStatus == 'applied';
-      allow update, delete: if false;
+      // Only the retryable effect status may change; core reward fields stay immutable.
+      allow update: if canRunClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['effects', 'updatedAt']);
+      allow delete: if false;
     }
 
     match /artifacts/great-class-quest/public/data/quest_effect_receipts/{receiptId} {

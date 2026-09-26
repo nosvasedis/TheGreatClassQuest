@@ -56,3 +56,44 @@ test('canonical winners do not crown zero-data students', () => {
   const result = chooseCanonicalWinners({ studentResults: [{ id: 'a', score: 0 }, { id: 'b', score: 0 }] });
   assert.equal(result.collectiveClose, true); assert.equal(result.prodigyWinners.length, 0);
 });
+
+test('persisted class ranks keep the live Team Quest ranks and reveal order', () => {
+  // Live queue: worst first, ranks from progress toward each class's own goal.
+  const liveQueue = [
+    { id: 'big', score: 500, progress: 60, rank: 2 },
+    { id: 'small', score: 200, progress: 200, rank: 1 },
+  ];
+  const result = chooseCanonicalWinners({ classResults: liveQueue });
+  assert.equal(result.classWinner.id, 'small');
+  assert.deepEqual(result.classResults.map((item) => [item.id, item.rank]), [['big', 2], ['small', 1]]);
+});
+
+test('unranked class results rank by progress, not raw stars, with rank 1 as winner', () => {
+  const result = chooseCanonicalWinners({ classResults: [
+    { id: 'big', score: 500, progress: 60 },
+    { id: 'small', score: 200, progress: 200 },
+  ] });
+  assert.equal(result.classWinner.id, 'small');
+  assert.equal(result.classResults.at(-1).rank, 1);
+});
+
+test('podium student ties ignore the academic average, matching the live reveal', () => {
+  const result = chooseCanonicalWinners({ studentResults: [
+    { id: 'a', score: 10, count3: 1, count2: 0, uniqueReasons: 2, academicAvg: 90 },
+    { id: 'b', score: 10, count3: 1, count2: 0, uniqueReasons: 2, academicAvg: 50 },
+    { id: 'c', score: 3 },
+  ] });
+  assert.deepEqual(result.prodigyWinners.map((item) => item.id).sort(), ['a', 'b']);
+  assert.equal(result.studentResults.at(-1).rank, 1);
+  assert.equal(result.studentResults[0].id, 'c');
+});
+
+test('live student queue ranks (with stats) are preserved in the snapshot', () => {
+  const result = chooseCanonicalWinners({ studentResults: [
+    { id: 'p', rank: 3, score: 1, stats: { count3: 0 } },
+    { id: 'q', rank: 1, score: 5, stats: { count3: 1 } },
+    { id: 'r', rank: 1, score: 5, stats: { count3: 1 } },
+  ] });
+  assert.deepEqual(result.prodigyWinners.map((item) => item.id), ['q', 'r']);
+  assert.deepEqual(result.studentResults[1].stats, { count3: 1 });
+});

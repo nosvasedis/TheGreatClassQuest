@@ -794,7 +794,7 @@ export async function setupDataListeners(
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfMonthString = startOfCurrentMonth.toISOString().split("T")[0];
+    const startOfMonthString = utils.getLocalIsoDateString(startOfCurrentMonth);
 
     // --- Define Queries ---
     const classesQuery = enforceActiveYearQueries
@@ -909,7 +909,7 @@ export async function setupDataListeners(
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const threeMonthsAgoString = threeMonthsAgo.toISOString().split("T")[0];
+    const threeMonthsAgoString = utils.getLocalIsoDateString(threeMonthsAgo);
 
     // orderBy("date","desc") is required so the secretary query uses the
     // schoolYearKey+date DESC composite index (range filters default to ASC).
@@ -1542,7 +1542,7 @@ export async function setupDataListeners(
     );
 
     // Guild Champions — current month
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const currentMonthKey = utils.getLocalIsoDateString().substring(0, 7);
     const guildChampionsQuery = query(
         collection(db, `${publicDataPath}/guild_champions`),
         where("monthKey", "==", currentMonthKey),

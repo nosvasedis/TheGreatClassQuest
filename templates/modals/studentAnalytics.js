@@ -93,7 +93,10 @@ export const studentAnalyticsModalHTML = `
                     </button>
                 </div>
 
-                <div id="student-analytics-error-banner" class="hidden student-analytics-error-banner shrink-0 bg-red-100 text-red-700 font-bold p-4 text-center border-b border-red-200" role="alert"></div>
+                <div id="student-analytics-error-banner" class="hidden student-analytics-error-banner shrink-0 bg-red-100 text-red-700 font-bold p-4 text-center border-b border-red-200" role="alert">
+                    <span id="student-analytics-error-text"></span>
+                    <button id="student-analytics-retry-btn" type="button" class="ml-3 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-red-700 border border-red-300 hover:bg-red-50"><i class="fas fa-rotate-right"></i> Try again</button>
+                </div>
 
                 <div class="flex-1 min-h-0 overflow-y-auto px-6 md:px-8 pb-12 pt-6 bg-slate-50 sa-scroll">
                     <div id="analytics-panel-overview" data-tab-content="overview" class="student-analytics-panel" role="tabpanel" aria-labelledby="analytics-tab-overview">

@@ -257,7 +257,7 @@ function renderCeremonyIntroSplash(params) {
             </div>
             <p class="ceremony-intro-splash__kicker">Ceremony of the Month</p>
             <h1 class="ceremony-intro-splash__title font-title">${params.monthName}</h1>
-            <p class="ceremony-intro-splash__brand">The Great Class Quest</p>
+            <p class="ceremony-intro-splash__brand font-brand">The Great Class Quest</p>
             <div class="ceremony-intro-splash__details">
                 <span class="ceremony-intro-chip ceremony-intro-chip--amber"><i class="fas fa-route"></i>${leagueLabel}</span>
                 <span class="ceremony-intro-chip ceremony-intro-chip--violet"><i class="fas fa-school"></i>${className}</span>

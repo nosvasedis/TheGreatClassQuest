@@ -6,6 +6,15 @@ body {
 .font-title {
     font-family: 'Fredoka One', cursive;
 }
+/* "The Great Class Quest" wordmark. Cinzel has no lowercase: keep the text mixed-case
+   (it renders as capitals + small capitals) and never apply text-transform. It sets
+   ~1.24x wider than Fredoka One at the same size, so each usage scales its size down. */
+.font-brand,
+.loading-title.font-brand {
+    font-family: 'Cinzel Decorative', 'Fredoka One', Georgia, serif !important;
+    font-weight: 900 !important;
+    text-transform: none !important;
+}
 
 /* --- NEW ANIMATED GAME-LIKE THEME --- */
 

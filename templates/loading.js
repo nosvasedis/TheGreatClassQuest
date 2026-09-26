@@ -124,7 +124,7 @@ export const loadingHTML = `
 
         <!-- Center content -->
         <div class="loading-stage">
-            <div class="loading-title" data-text="The Great Class Quest">The Great Class Quest</div>
+            <div class="loading-title font-brand" data-text="The Great Class Quest">The Great Class Quest</div>
 
             <div class="loading-title-flourish" aria-hidden="true">
                 <span class="loading-flourish-line"></span>

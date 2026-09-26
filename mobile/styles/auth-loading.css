@@ -57,10 +57,6 @@
     }
 
     /* Brand is the hero signal; keep title dominant but phone-sized */
-    #auth-screen .auth-hero-title.font-brand {
-        font-size: clamp(1.4rem, 6vw, 1.7rem);
-    }
-
     #auth-screen .auth-hero-title {
         font-size: clamp(1.65rem, 7.2vw, 2.05rem);
         line-height: 1.12;
@@ -243,10 +239,6 @@
             max-width: none;
         }
 
-        #auth-screen .auth-hero-title.font-brand {
-            font-size: 1.3rem;
-        }
-
         #auth-screen .auth-crest img {
             width: 2.75rem;
             height: 2.75rem;
@@ -287,11 +279,6 @@
         font-size: clamp(1.55rem, 6.5vw, 1.95rem);
         line-height: 1.12;
         margin-bottom: 0.25rem;
-    }
-
-    #loading-screen .loading-title.font-brand {
-        font-size: clamp(1.25rem, 5.3vw, 1.5rem) !important;
-        line-height: 1.2;
     }
 
     #loading-screen .loading-subtitle {

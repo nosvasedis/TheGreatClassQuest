@@ -52,7 +52,7 @@ export const headerHTML = `
 
             <div class="z-10 min-w-0 flex flex-1 flex-col justify-between">
                 <div>
-                    <h1 id="main-app-title" class="font-title font-brand text-2xl text-white sm:text-4xl"
+                    <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl"
                         data-text="The Great Class Quest">The Great Class Quest</h1>
                 </div>
                 <div id="header-quote-container"

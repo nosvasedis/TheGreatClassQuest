@@ -33,7 +33,7 @@ export const authHTML = `
 
         <div class="w-full max-w-md z-10 auth-content">
             <div class="auth-crest" aria-hidden="true"><img src="${AUTH_LOGO_URL}" alt=""></div>
-            <h1 class="font-title font-brand text-5xl text-center mb-6 auth-hero-title wobbly-title">
+            <h1 class="font-title text-5xl text-center mb-6 auth-hero-title wobbly-title">
                 The Great Class Quest
             </h1>
 

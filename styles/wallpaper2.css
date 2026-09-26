@@ -202,18 +202,6 @@
     user-select: none;
 }
 
-#main-app-title.font-brand {
-    font-size: 1.25rem;
-    line-height: 1.8rem;
-    letter-spacing: 0.01em;
-}
-@media (min-width: 640px) {
-    #main-app-title.font-brand {
-        font-size: 1.9rem;
-        line-height: 2.5rem;
-    }
-}
-
 /* --- MINDFULNESS ANIMATION --- */
 @keyframes breathing-circle {
     0%, 100% { transform: scale(0.8); opacity: 0.3; }

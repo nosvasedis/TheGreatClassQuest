@@ -4366,9 +4366,6 @@ header h1.font-title::after {
     color: #ddd6fe;
     text-shadow: 0 0 18px rgba(129, 140, 248, 0.4);
 }
-.ceremony-intro-splash__brand.font-brand {
-    letter-spacing: 0.06em;
-}
 
 .ceremony-intro-splash__details {
     position: relative;

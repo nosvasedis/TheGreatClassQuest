@@ -119,11 +119,6 @@
     overflow: visible;
 }
 
-.m-header--teacher .m-header__brand > .m-header__title.font-brand {
-    font-size: 1.1rem;
-    line-height: 1.25;
-}
-
 .m-header__subtitle {
     font-size: 0.68rem;
     font-weight: 600;

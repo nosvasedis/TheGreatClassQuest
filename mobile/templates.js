@@ -20,7 +20,7 @@ const teacherHeaderHTML = `
         <div class="m-header__row m-header__row--primary">
             <div class="m-header__brand m-header__brand--pressable" id="m-teacher-brand">
                 <img class="m-header__logo" src="${APP_LOGO_URL}" alt="" width="44" height="44" decoding="async" />
-                <h1 class="m-header__title font-title font-brand" data-text="The Great Class Quest">The Great Class Quest</h1>
+                <h1 class="m-header__title font-title" data-text="The Great Class Quest">The Great Class Quest</h1>
                 <div class="m-header__brand-sparkle" aria-hidden="true">
                     <span class="m-header__sparkle-star m-hss-1">✨</span>
                     <span class="m-header__sparkle-star m-hss-2">⭐</span>

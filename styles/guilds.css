@@ -495,7 +495,7 @@
 }
 
 .guild-fortune-ledger--raised .guild-fortune-ledger__title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.15rem;
     color: #fef3c7;
 }
@@ -1242,7 +1242,7 @@
     animation: guild-frost-spin 8s linear infinite;
 }
 .guild-frozen-badge__title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     letter-spacing: 0.01em;
     color: #e0f2fe;
@@ -1358,7 +1358,7 @@
     gap: 0.3rem;
     padding: 0.26rem 0.62rem;
     border-radius: 999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.6rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -1467,7 +1467,7 @@
 }
 .guild-crystal-rank__label {
     display: inline-block;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -1542,7 +1542,7 @@
     z-index: 2;
 }
 .guild-crystal-emblem-initial {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.35rem;
     font-weight: 700;
     line-height: 1;
@@ -1587,7 +1587,7 @@
 
 /* Guild name */
 .guild-crystal-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     font-weight: 700;
     text-align: center;
@@ -1737,7 +1737,7 @@
     gap: 0.05rem;
 }
 .guild-crystal-count-num {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.9rem;
     font-weight: 700;
     line-height: 1;
@@ -1965,7 +1965,7 @@
 .guild-analytics-info-btn {
     margin-left: 0;
     flex-shrink: 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: 'Lora', Georgia, serif;
     font-style: italic;
     font-size: 0.68rem;
     line-height: 1;
@@ -2279,7 +2279,7 @@
     font-size: 0.58rem;
 }
 .guild-crystal-roster-ribbon__figure {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.12rem;
     font-weight: 700;
     line-height: 1;
@@ -2327,7 +2327,7 @@
     font-size: 1rem;
     color: rgba(255,255,255,0.96);
     font-weight: 900;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     line-height: 1.15;
     min-width: 0;
     max-width: 100%;
@@ -2419,7 +2419,7 @@
 }
 .guild-crystal-effects-panel__title {
     margin: 0;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -2599,7 +2599,7 @@
 }
 .guild-crystal-champion-panel__title {
     margin: 0;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -2672,7 +2672,7 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-weight: 800;
     font-size: 1.05rem;
     color: rgba(255,255,255,0.96);
@@ -2706,7 +2706,7 @@
     gap: 0.2rem;
 }
 .guild-crystal-champion-panel__glory-num {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.06rem;
     font-weight: 700;
     line-height: 1;
@@ -2797,7 +2797,7 @@
 }
 .guild-crystal-heroes-panel__title {
     margin: 0;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -2878,7 +2878,7 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     font-weight: 700;
     line-height: 1;
@@ -2923,7 +2923,7 @@
     line-height: 1.2;
 }
 .guild-crystal-hero-tile__glory-num {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.92rem;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -3310,7 +3310,7 @@
     to   { transform: scale(1.12) rotate(5deg);  }
 }
 .guild-anthem-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.65rem;
     color: #fff;
     text-shadow: 0 2px 10px rgba(0,0,0,0.4);
@@ -3601,7 +3601,7 @@
     display: none;
 }
 .guild-lore-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2rem;
     color: #fff;
     text-shadow: 0 2px 10px rgba(0,0,0,0.4);
@@ -3671,7 +3671,7 @@
     color: rgba(255,255,255,0.72);
 }
 .guild-lore-metric-tile__value {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.65rem;
     line-height: 1.15;
     color: #fff;
@@ -3808,7 +3808,7 @@
 }
 
 .sorting-quiz-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.55rem;
     background: linear-gradient(135deg, #f0e6ff 0%, #c4b5fd 55%, #a78bfa 100%);
     -webkit-background-clip: text;
@@ -3961,7 +3961,7 @@
     color: #c4b5fd;
     border: 1.5px solid rgba(139,92,246,0.35);
     transition: background 0.2s, color 0.2s, transform 0.22s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, box-shadow 0.2s;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     letter-spacing: 0;
 }
 .sorting-quiz-option--selected .sorting-quiz-option-label {
@@ -3992,7 +3992,7 @@
     flex: 1;
     padding: 0.75rem 1rem;
     border-radius: 1.1rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
@@ -4098,7 +4098,7 @@
 }
 
 .sorting-quiz-result-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.65rem;
     color: rgba(255,255,255,0.96);
     margin-bottom: 1.25rem;
@@ -4125,7 +4125,7 @@
     50%      { box-shadow: 0 0 52px var(--guild-glow, rgba(255,255,255,0.55)), 0 0 16px rgba(255,255,255,0.3); transform: scale(1.05); }
 }
 .sorting-quiz-result-guild-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2rem;
     color: white;
     margin-bottom: 0.35rem;
@@ -4246,7 +4246,7 @@
     text-align: center;
 }
 .guild-heroes-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(1.35rem, 3.5vw, 1.85rem);
     background: linear-gradient(135deg, #fde68a 0%, #fbbf24 45%, #e9d5ff 100%);
     -webkit-background-clip: text;
@@ -4271,7 +4271,7 @@
     gap: 0.35rem;
     padding: 0.2rem 0.65rem;
     border-radius: 9999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     color: #fff;
     background: color-mix(in srgb, var(--gh-pill, #7c3aed) 35%, rgba(0,0,0,0.35));
@@ -4336,7 +4336,7 @@
     margin-bottom: 0.45rem;
 }
 .guild-heroes-rank {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     color: rgba(255,255,255,0.85);
     background: rgba(255,255,255,0.08);
@@ -4344,7 +4344,7 @@
     border-radius: 9999px;
 }
 .guild-heroes-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.78rem;
     color: rgba(255,255,255,0.92);
     display: flex;
@@ -4366,7 +4366,7 @@
 }
 .guild-heroes-overview-line strong {
     color: rgba(253,230,138,0.95);
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }
 
 /* ─── Main tabs ─── */
@@ -4378,7 +4378,7 @@
     justify-content: center;
 }
 .guild-heroes-view-tab {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     letter-spacing: 0.02em;
     border-radius: 9999px;
@@ -4427,7 +4427,7 @@
     height: 52px;
 }
 .gh-spotlight-hero__name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: rgba(255,255,255,0.95);
 }
@@ -4463,7 +4463,7 @@
 .gh-stat-tile__value {
     display: block;
     margin-top: 0.35rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: rgba(255,255,255,0.95);
     line-height: 1.15;
@@ -4489,7 +4489,7 @@
 .gh-heroes-section { display: flex; flex-direction: column; gap: 0.65rem; }
 .gh-section-title {
     margin: 0;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     color: rgba(253,230,138,0.95);
     text-shadow: 0 1px 8px rgba(0,0,0,0.4);
@@ -4528,7 +4528,7 @@
     background: linear-gradient(90deg, rgba(251,191,36,0.5), rgba(245,158,11,0.95));
 }
 .gh-top-stars {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     color: rgba(253,230,138,0.95);
     white-space: nowrap;
@@ -4593,7 +4593,7 @@
     background: linear-gradient(90deg, rgba(167,139,250,0.4), rgba(124,58,237,0.9));
 }
 .gh-class-pct {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.75rem;
     color: rgba(196,181,253,0.95);
     min-width: 2.5rem;
@@ -4636,7 +4636,7 @@
     min-height: 120px;
 }
 .gh-wheel-card .h {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.78rem;
     color: rgba(253,230,138,0.95);
     margin-bottom: 0.55rem;
@@ -4680,7 +4680,7 @@
     text-overflow: ellipsis;
 }
 .gh-wheel-omen .b {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     padding: 0.2rem 0.55rem;
     border-radius: 9999px;
@@ -4805,7 +4805,7 @@
     font-size: 1.4rem;
 }
 .guild-heroes-champion-card .label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.68rem;
     color: rgba(253,230,138,0.9);
     letter-spacing: 0.06em;
@@ -4819,7 +4819,7 @@
     justify-content: center;
 }
 .guild-heroes-champion-card .name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: rgba(255,255,255,0.95);
     display: inline-block;
@@ -4853,7 +4853,7 @@
     align-items: center;
     justify-content: center;
     color: white;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.1rem;
     background: #6366f1;
 }
@@ -4897,7 +4897,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.875rem;
     flex-shrink: 0;
 }
@@ -4922,7 +4922,7 @@
     min-width: 0;
 }
 .guild-heroes-hero-info .name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.92rem;
     margin-bottom: 0.15rem;
     color: rgba(255,255,255,0.94);
@@ -4966,7 +4966,7 @@
     padding: 0 0.75rem;
 }
 .guild-heroes-stat .value {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: rgba(253,230,138,0.95);
     font-size: 0.92rem;
 }
@@ -5004,7 +5004,7 @@
     padding: 1rem;
 }
 .guild-heroes-panel h4 {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1rem;
     margin-bottom: 0.75rem;
     color: #4f46e5;
@@ -5015,7 +5015,7 @@
 .guild-heroes-panel h5 {
     margin-top: 0.75rem;
     margin-bottom: 0.5rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.8rem;
     color: #6b7280;
     text-transform: uppercase;
@@ -5069,7 +5069,7 @@
     min-width: 180px;
 }
 .guild-heroes-cell-hero .name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.9rem;
     background: linear-gradient(135deg, #4f46e5, #7c3aed, #db2777);
     -webkit-background-clip: text;
@@ -5092,7 +5092,7 @@
     margin-bottom: 0.875rem;
 }
 .guild-heroes-health-card h4 {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #16a34a;
     font-size: 1rem;
     margin-bottom: 0.75rem;
@@ -5122,7 +5122,7 @@
     color: #6b7280;
 }
 .guild-heroes-health-metric .value {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #1f2937;
     font-size: 1rem;
 }

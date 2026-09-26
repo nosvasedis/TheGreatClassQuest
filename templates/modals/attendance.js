@@ -264,7 +264,7 @@ export const attendanceModalsHTML = `
                 <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:2px;">
                     <div id="cert-icon" style="font-size:44px; line-height:1;"></div>
                 </div>
-                <h1 id="cert-title" style="font-family:'Fredoka One',cursive; font-size:32px; margin:0; line-height:1.1;"></h1>
+                <h1 id="cert-title" style="font-family:'Fredoka One', 'Fredoka', sans-serif; font-size:32px; margin:0; line-height:1.1;"></h1>
                 <p style="font-size:10px; margin:1px 0 0; letter-spacing:0.15em; text-transform:uppercase; opacity:0.65;">
                     The Great Class Quest &nbsp;•&nbsp; Hero Certificate
                 </p>
@@ -281,7 +281,7 @@ export const attendanceModalsHTML = `
             <div style="flex-shrink:0; text-align:center; margin-bottom:4px; display:flex; flex-direction:column; align-items:center;">
                 <img id="cert-avatar" src="" loading="eager" decoding="sync" style="display:none; width:60px; height:60px; border-radius:9999px; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.12); object-fit:cover; margin-bottom:5px;">
                 <p style="font-size:9.5px; text-transform:uppercase; letter-spacing:0.2em; opacity:0.58; margin:0 0 1px;">Proudly Presented To</p>
-                <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:40px; margin:0 0 2px; line-height:1.05;"></p>
+                <p id="cert-student-name" style="font-family:'Fredoka One', 'Fredoka', sans-serif; font-size:40px; margin:0 0 2px; line-height:1.05;"></p>
             </div>
 
             <!-- Badges row -->
@@ -338,10 +338,10 @@ export const attendanceModalsHTML = `
             style="width: 800px; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; background-color: #F3E8FF; border: 10px solid #A855F7; box-sizing: border-box;">
             <div id="signature-class-logo" style="font-size: 100px; margin-bottom: 20px;"></div>
             <h2 id="signature-created-by"
-                style="font-family: 'Fredoka One', cursive; font-size: 40px; color: #5B21B6; text-align: center;">
+                style="font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 40px; color: #5B21B6; text-align: center;">
                 Created By The Adventurers Of</h2>
             <h1 id="signature-class-name"
-                style="font-family: 'Fredoka One', cursive; font-size: 50px; color: #3730A3; text-align: center; margin-bottom: 20px;">
+                style="font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 50px; color: #3730A3; text-align: center; margin-bottom: 20px;">
             </h1>
             <div id="signature-student-list"
                 style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 15px; font-family: 'Georgia', serif; font-size: 18px; color: #4C1D95;">

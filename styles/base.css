@@ -4,7 +4,7 @@ body {
     overflow-x: hidden; /* Prevent horizontal scroll from cloud shapes */
 }
 .font-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }
 
 /* --- NEW ANIMATED GAME-LIKE THEME --- */

@@ -32,7 +32,7 @@
     position: relative;
     display: inline-block;
     max-width: min(90vw, 760px);
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(1.1rem, 4vw, 1.5rem);
     color: #1E40AF;          /* blue-800 — warm contrast against gold */
     text-shadow: 0 0 14px rgba(59, 130, 246, 0.25);
@@ -60,7 +60,7 @@
 
 .loading-tip {
     margin-top: 0.4rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(0.84rem, 2.5vw, 0.98rem);
     font-style: italic;
     color: #0e7490;           /* cyan-700 — richer than plain slate */

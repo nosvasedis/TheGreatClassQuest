@@ -445,7 +445,9 @@ export async function showTab(tabName) {
         btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
 
-    const animationDuration = 350;
+    // Keep in sync with tab-fade-out / tab-fade-in in styles/transitions.css.
+    const exitDuration = 200;
+    const enterDuration = 400;
 
     if (currentTab) {
         currentTab.classList.add('tab-animate-out');
@@ -459,15 +461,15 @@ export async function showTab(tabName) {
 
             setTimeout(() => {
                 nextTab.classList.remove('tab-animate-in');
-            }, animationDuration);
+            }, enterDuration);
 
-        }, animationDuration);
+        }, exitDuration);
     } else {
         nextTab.classList.remove('hidden');
         nextTab.classList.add('tab-animate-in');
         setTimeout(() => {
             nextTab.classList.remove('tab-animate-in');
-        }, animationDuration);
+        }, enterDuration);
     }
 
     await applyTabPrimaryRefresh(tabId, { subtleScrollEnter: tabId === 'scholars-scroll-tab' });

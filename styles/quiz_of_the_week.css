@@ -208,7 +208,7 @@
 }
 
 .quiz-week-btn-label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -226,7 +226,7 @@
     height: 1.4rem;
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border-radius: 9999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.7rem;
     color: white;
     display: flex;
@@ -327,7 +327,7 @@
 }
 
 .quiz-modal-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.6rem;
     background: linear-gradient(to right, #fbbf24, #f59e0b, #d97706);
     -webkit-background-clip: text;
@@ -382,7 +382,7 @@
 }
 
 .quiz-progress-label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.75rem;
     color: rgba(0, 0, 0, 0.45);
     text-transform: uppercase;
@@ -439,7 +439,7 @@
 }
 
 .quiz-question-kicker {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
@@ -447,7 +447,7 @@
 }
 
 .quiz-question-text {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(1.3rem, 2vw, 1.75rem);
     line-height: 1.35;
     color: #1f2937;
@@ -515,7 +515,7 @@
     background: #ffffff;
     border: 2px solid rgba(0, 0, 0, 0.06);
     color: #1f2937;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     cursor: pointer;
     transition: transform 0.18s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -612,7 +612,7 @@
     background: rgba(255, 255, 255, 0.8);
     color: #1f2937;
     font-size: 1.15rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     outline: none;
     transition: border-color 0.2s;
 }
@@ -627,7 +627,7 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border: none;
     color: white;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1rem;
     cursor: pointer;
     transition: transform 0.15s;
@@ -682,7 +682,7 @@
 }
 
 .quiz-spotlight-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.15rem;
     color: #1f2937;
 }
@@ -692,7 +692,7 @@
     color: #b45309;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }
 
 .quiz-spotlight-star {
@@ -736,7 +736,7 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border: none;
     color: white;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.15rem;
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.2s;
@@ -802,7 +802,7 @@
 }
 
 .quiz-calculating-text {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.3rem;
     color: rgba(0,0,0,0.6);
     letter-spacing: 0.05em;
@@ -816,7 +816,7 @@
 }
 
 .quiz-result-tier {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.8rem;
     text-align: center;
     text-transform: uppercase;
@@ -852,7 +852,7 @@
 }
 
 .quiz-result-stat-value {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.1rem;
     color: #d97706;
     transition: color 0.3s;
@@ -903,7 +903,7 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border: none;
     color: white;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.25rem;
     cursor: pointer;
     box-shadow: 0 6px 24px rgba(251,191,36,0.4);
@@ -948,7 +948,7 @@
 }
 
 .quiz-intro-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.2rem;
     color: #1f2937;
     text-shadow: 0 2px 12px rgba(251,191,36,0.2);
@@ -962,7 +962,7 @@
 }
 
 .quiz-intro-curriculum {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.8rem;
     color: #92400e;
     text-transform: uppercase;
@@ -988,7 +988,7 @@
 }
 
 .quiz-intro-stat-num {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.6rem;
     color: #d97706;
     text-shadow: 0 0 16px rgba(251,191,36,0.3);
@@ -1009,7 +1009,7 @@
     background: linear-gradient(135deg, #fbbf24, #f59e0b);
     border: none;
     color: white;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.35rem;
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.2s;
@@ -1033,7 +1033,7 @@
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.08);
     color: #6b7280;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.8rem;
     cursor: pointer;
     transition: color 0.2s, background 0.2s;
@@ -1104,7 +1104,7 @@
     background: rgba(239,68,68,0.08);
     border: 1px solid rgba(239,68,68,0.2);
     border-radius: 9999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.78rem;
     color: rgba(0,0,0,0.55);
 }
@@ -1120,7 +1120,7 @@
 .quiz-section-heading {
     width: 100%;
     text-align: left;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     color: rgba(0,0,0,0.4);
     text-transform: uppercase;
@@ -1200,7 +1200,7 @@
 
 .quiz-hero-info { flex: 1; min-width: 0; }
 .quiz-hero-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1rem;
     color: #1f2937;
     white-space: nowrap;
@@ -1223,7 +1223,7 @@
 }
 .quiz-hero-reward-pill {
     font-size: 0.72rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     padding: 0.1rem 0.5rem;
     border-radius: 9999px;
 }
@@ -1291,7 +1291,7 @@
     flex: 1;
 }
 .quiz-guild-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     color: #1f2937;
 }
@@ -1304,7 +1304,7 @@
     text-overflow: ellipsis;
 }
 .quiz-guild-glory {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     color: var(--guild-primary, #b45309);
     background: rgba(0,0,0,0.04);
@@ -1343,7 +1343,7 @@
 .quiz-artifact-icon { font-size: 1.6rem; flex-shrink: 0; }
 .quiz-artifact-info { flex: 1; min-width: 0; }
 .quiz-artifact-name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.9rem;
     color: #b45309;
 }

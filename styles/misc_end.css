@@ -301,7 +301,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(0.72rem, 2.4vw, 1.05rem);
     text-align: left;
     line-height: 1.15;
@@ -642,7 +642,7 @@
 
 .map-rich-tooltip__title {
     margin: 0;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     font-weight: 400;
     color: #3d2914;
@@ -667,7 +667,7 @@
 }
 
 .map-rich-tooltip__lvl {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.62rem;
     padding: 0.15rem 0.45rem;
     border-radius: 9999px;
@@ -718,14 +718,14 @@
 }
 
 .map-rich-tooltip__stat-value--progress {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.88rem;
     color: #5b21b6;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .map-rich-tooltip__stat-stars {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     color: #3d2914;
 }
@@ -828,7 +828,7 @@
     background: linear-gradient(180deg, #fffef8 0%, #f5ecd8 100%);
     color: #4a3a1f;
     border: 1px solid rgba(92, 64, 36, 0.35);
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     padding: 0.5rem 1rem; border-radius: 99px;
     box-shadow: 0 3px 10px rgba(55, 42, 20, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.75);
     z-index: 50; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
@@ -877,5 +877,5 @@
 
 /* Avatar placeholder gradient override for student management list */
 #student-list .student-avatar.large-avatar {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }

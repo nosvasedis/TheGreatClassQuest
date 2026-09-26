@@ -132,7 +132,7 @@
 }
 
 .familiar-status-icon {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     color: #fff;
     letter-spacing: 0.06em;

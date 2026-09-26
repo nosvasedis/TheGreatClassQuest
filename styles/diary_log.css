@@ -34,7 +34,7 @@
     color: #8B4513; /* SaddleBrown */
 }
 .diary-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: #0f766e;
     margin-top: 0.2rem;
@@ -139,7 +139,7 @@
     color: white;
     padding: 6px 10px;
     border-radius: 8px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.9rem;
     text-align: center;
     width: max-content;
@@ -277,7 +277,7 @@ body.adventure-log-editor-open {
 }
 
 .adventure-log-editor-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(1.55rem, 2.8vw, 2.15rem);
     margin: 0.25rem 0 0;
     line-height: 1.15;
@@ -686,7 +686,7 @@ body.adventure-log-editor-open {
     position: relative;
     overflow: hidden;
     border: 2px solid;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }
 
 /* Gloss overlay */
@@ -726,7 +726,7 @@ body.adventure-log-editor-open {
 }
 
 .al-fab-label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     letter-spacing: 0.02em;
     line-height: 1.2;
@@ -861,7 +861,7 @@ body.adventure-log-editor-open {
     padding: 1rem 1.5rem;
     border: none;
     border-radius: 1.1rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1rem;
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -1020,7 +1020,7 @@ body.adventure-log-editor-open {
 }
 
 .diary-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.15rem;
     color: #0f766e;
     margin-top: 0.3rem;
@@ -1280,7 +1280,7 @@ body.adventure-log-editor-open {
 }
 
 .al-upsell-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.25rem;
     color: #0f766e;
     margin-bottom: 0.75rem;

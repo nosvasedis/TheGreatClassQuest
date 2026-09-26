@@ -34,7 +34,7 @@
 
 /* Font Handwriting */
 .font-handwriting {
-    font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+    font-family: 'Lora', Georgia, serif;
     font-style: italic;
 }
 
@@ -551,7 +551,7 @@
 
 .wall-timer-card__title {
     margin-top: 0.25rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.5rem;
     line-height: 1.05;
     color: #fff;
@@ -600,7 +600,7 @@
 
 .wall-timer-card__countdown {
     margin-top: 0.35rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(2rem, 3.4vw, 2.85rem);
     line-height: 0.95;
     color: #fff;

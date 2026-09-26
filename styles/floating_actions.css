@@ -47,7 +47,7 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }
 
 .tab-fab::before {
@@ -91,7 +91,7 @@
 }
 
 .tab-fab-label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     letter-spacing: 0.02em;
     line-height: 1.2;

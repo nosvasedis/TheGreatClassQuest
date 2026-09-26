@@ -125,3 +125,6 @@ billing/price-ids.local.json
 billing/NEXT_STEPS.txt
 tools/billing-config.local.json
 tools/year-end-recovery.html
+
+# Promo video workspace (Remotion renders, generated media, API keys)
+promo/

@@ -511,139 +511,61 @@ export const miscModalsHTML = `
     </div>
 
     <div id="teacher-boon-modal"
-        class="fixed inset-0 bg-slate-950/70 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-md">
-        <div id="teacher-boon-shell"
-            class="teacher-boon-shell pop-in">
-            <div class="teacher-boon-shell__backdrop"></div>
-            <div class="teacher-boon-shell__sparkles" aria-hidden="true">
-                <span class="teacher-boon-sparkle teacher-boon-sparkle--1"></span>
-                <span class="teacher-boon-sparkle teacher-boon-sparkle--2"></span>
-                <span class="teacher-boon-sparkle teacher-boon-sparkle--3"></span>
-                <span class="teacher-boon-sparkle teacher-boon-sparkle--4"></span>
-                <span class="teacher-boon-sparkle teacher-boon-sparkle--5"></span>
+        class="fixed inset-0 bg-slate-950/60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div id="teacher-boon-shell" class="tb-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="teacher-boon-title">
+            <header class="tb-header">
+                <div class="tb-crest" aria-hidden="true">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </div>
+                <div class="tb-header__text">
+                    <h2 id="teacher-boon-title" class="tb-title">Teacher Boon</h2>
+                    <p id="teacher-boon-class-name" class="tb-subtitle"></p>
+                </div>
+                <button id="teacher-boon-close-btn" class="tb-close" type="button" aria-label="Close">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </header>
+
+            <nav id="teacher-boon-stepper" class="tb-steps" aria-label="Teacher Boon steps"></nav>
+
+            <div class="tb-body">
+                <section class="tb-panel" data-teacher-boon-step-panel="1">
+                    <p class="tb-prompt">Who shone brightest this month?</p>
+                    <div id="teacher-boon-student-grid" class="tb-students"></div>
+                </section>
+
+                <section class="tb-panel" data-teacher-boon-step-panel="2">
+                    <p class="tb-prompt">What are you celebrating?</p>
+                    <div id="teacher-boon-presets" class="tb-reasons"></div>
+                    <div class="tb-divider"><span>or in your own words</span></div>
+                    <textarea id="teacher-boon-custom-reason" class="tb-note" rows="2" maxlength="160"
+                        aria-label="Your own reason" placeholder="For always lending a hand…"></textarea>
+                </section>
+
+                <section class="tb-panel" data-teacher-boon-step-panel="3">
+                    <div id="teacher-boon-selected-summary"></div>
+                </section>
             </div>
 
-            <div id="teacher-boon-success-overlay" class="teacher-boon-success-overlay hidden">
-                <div class="teacher-boon-success-overlay__burst"></div>
-                <div class="teacher-boon-success-confetti" aria-hidden="true">
-                    <span class="teacher-boon-confetti teacher-boon-confetti--1"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--2"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--3"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--4"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--5"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--6"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--7"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--8"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--9"></span>
-                    <span class="teacher-boon-confetti teacher-boon-confetti--10"></span>
+            <footer class="tb-footer">
+                <button id="teacher-boon-back-btn" class="tb-btn tb-btn--ghost hidden" type="button">
+                    <i class="fas fa-arrow-left"></i><span>Back</span>
+                </button>
+                <button id="teacher-boon-cancel-btn" class="tb-btn tb-btn--ghost" type="button">Cancel</button>
+                <button id="teacher-boon-next-btn" class="tb-btn tb-btn--primary" type="button"></button>
+                <button id="teacher-boon-confirm-btn" class="tb-btn tb-btn--bestow hidden" type="button"></button>
+            </footer>
+
+            <div id="teacher-boon-success-overlay" class="tb-success hidden" aria-live="polite">
+                <div class="tb-success__burst" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
                 </div>
-                <div class="teacher-boon-success-overlay__card">
-                    <div class="teacher-boon-success-overlay__icon">✨</div>
-                    <div class="teacher-boon-success-overlay__title">Teacher Boon</div>
-                    <div class="teacher-boon-success-overlay__copy">Two stars bestowed.</div>
+                <div class="tb-success__stars" aria-hidden="true">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
                 </div>
-            </div>
-
-            <button id="teacher-boon-close-btn" class="teacher-boon-close-btn" type="button">&times;</button>
-
-            <div class="teacher-boon-header teacher-boon-entrance teacher-boon-entrance--1">
-                <div class="teacher-boon-header__crest">
-                    <span class="teacher-boon-header__crest-icon">🌟</span>
-                    <span class="teacher-boon-header__crest-ring"></span>
-                </div>
-                <div class="teacher-boon-header__text">
-                    <p class="teacher-boon-header__eyebrow">Monthly blessing</p>
-                    <h2 class="teacher-boon-header__title">Teacher Boon</h2>
-                    <p id="teacher-boon-class-name" class="teacher-boon-header__class">Selected class</p>
-                    <p class="teacher-boon-header__copy">A guided three-step ceremony. Teacher Boon now always grants two stars.</p>
-                </div>
-            </div>
-
-            <div class="teacher-boon-content">
-                <div id="teacher-boon-status-banner" class="teacher-boon-entrance teacher-boon-entrance--2"></div>
-                <div id="teacher-boon-stepper" class="teacher-boon-stepper teacher-boon-entrance teacher-boon-entrance--3"></div>
-
-                <div class="teacher-boon-stage-layout teacher-boon-entrance teacher-boon-entrance--4">
-                    <div class="teacher-boon-stage-stack">
-                        <section class="teacher-boon-section teacher-boon-step-panel" data-teacher-boon-step-panel="1">
-                            <div class="teacher-boon-section__heading">
-                                <span class="teacher-boon-section__icon">🧒</span>
-                                <div>
-                                    <p class="teacher-boon-section__eyebrow">Step 1</p>
-                                    <h3 class="teacher-boon-section__title">Choose the student</h3>
-                                    <p class="teacher-boon-section__copy">Pick the hero who will receive this month’s two-star Teacher Boon.</p>
-                                </div>
-                            </div>
-                            <div class="teacher-boon-carousel-wrapper">
-                                <button id="teacher-boon-carousel-prev" class="teacher-boon-carousel-arrow teacher-boon-carousel-arrow--prev" type="button" aria-label="Previous student">
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                <div id="teacher-boon-student-grid" class="teacher-boon-carousel"></div>
-                                <button id="teacher-boon-carousel-next" class="teacher-boon-carousel-arrow teacher-boon-carousel-arrow--next" type="button" aria-label="Next student">
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </section>
-
-                        <section class="teacher-boon-section teacher-boon-step-panel" data-teacher-boon-step-panel="2">
-                            <div class="teacher-boon-section__heading">
-                                <span class="teacher-boon-section__icon">💌</span>
-                                <div>
-                                    <p class="teacher-boon-section__eyebrow">Step 2</p>
-                                    <h3 class="teacher-boon-section__title">Choose the reason</h3>
-                                    <p class="teacher-boon-section__copy">Select a preset reason or write a custom message. Either one completes the blessing.</p>
-                                </div>
-                            </div>
-
-                            <div class="teacher-boon-fixed-stars-pill">
-                                <span class="teacher-boon-fixed-stars-pill__stars">⭐⭐</span>
-                                <div>
-                                    <strong>Two-star boon</strong>
-                                    <p>Teacher Boon is now fixed at two stars for a clearer monthly reward.</p>
-                                </div>
-                            </div>
-
-                            <div id="teacher-boon-presets" class="teacher-boon-presets"></div>
-                            <label class="teacher-boon-custom-label" for="teacher-boon-custom-reason">Or write your own reason</label>
-                            <textarea id="teacher-boon-custom-reason" class="teacher-boon-custom-reason" rows="3" placeholder="Add a short note that feels personal…"></textarea>
-                        </section>
-
-                        <section class="teacher-boon-section teacher-boon-step-panel" data-teacher-boon-step-panel="3">
-                            <div class="teacher-boon-section__heading">
-                                <span class="teacher-boon-section__icon">🪄</span>
-                                <div>
-                                    <p class="teacher-boon-section__eyebrow">Step 3</p>
-                                    <h3 class="teacher-boon-section__title">Confirm the blessing</h3>
-                                    <p class="teacher-boon-section__copy">Take one last look before the two stars are awarded.</p>
-                                </div>
-                            </div>
-                            <div id="teacher-boon-selected-summary"></div>
-                        </section>
-                    </div>
-
-                    <aside class="teacher-boon-aside">
-                        <div class="teacher-boon-orbit-card">
-                            <div class="teacher-boon-orbit-card__eyebrow">Boon aura</div>
-                            <div class="teacher-boon-orbit-card__title">A small monthly ceremony</div>
-                            <div class="teacher-boon-orbit-card__copy">One student, one reason, two bright stars.</div>
-                            <div class="teacher-boon-fixed-stars">
-                                <div class="teacher-boon-fixed-stars__stars">⭐⭐</div>
-                                <div class="teacher-boon-fixed-stars__copy">Teacher Boon now always grants two stars.</div>
-                            </div>
-                            <div id="teacher-boon-stage-hint" class="teacher-boon-stage-hint"></div>
-                            <div id="teacher-boon-side-summary" class="teacher-boon-side-summary"></div>
-                        </div>
-                    </aside>
-                </div>
-            </div>
-
-            <div class="teacher-boon-footer teacher-boon-entrance teacher-boon-entrance--5">
-                <button id="teacher-boon-cancel-btn" class="teacher-boon-cancel-btn" type="button">Cancel</button>
-                <div class="teacher-boon-footer__actions">
-                    <button id="teacher-boon-back-btn" class="teacher-boon-secondary-btn hidden" type="button">Back</button>
-                    <button id="teacher-boon-next-btn" class="teacher-boon-secondary-btn" type="button">Continue</button>
-                    <button id="teacher-boon-confirm-btn" class="teacher-boon-confirm-btn hidden" type="button"></button>
-                </div>
+                <p class="tb-success__title">Boon bestowed!</p>
+                <p id="teacher-boon-success-copy" class="tb-success__copy"></p>
             </div>
         </div>
     </div>

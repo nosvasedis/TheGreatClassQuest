@@ -21,7 +21,9 @@ const ROLE_CONFIG = {
     }
 };
 
-const ANIMATION_MS = 350;
+// Keep in sync with tab-fade-out / tab-fade-in in styles/transitions.css.
+const EXIT_MS = 200;
+const ENTER_MS = 400;
 
 function getConfig(role) {
     return ROLE_CONFIG[role] || ROLE_CONFIG.secretary;
@@ -72,8 +74,8 @@ function applyRoleTab(role, tabKey, { animate = true, persist = true } = {}) {
         currentPanel.classList.remove('tab-animate-out');
         nextPanel.classList.remove('hidden');
         nextPanel.classList.add('tab-animate-in');
-        setTimeout(() => nextPanel.classList.remove('tab-animate-in'), ANIMATION_MS);
-    }, ANIMATION_MS);
+        setTimeout(() => nextPanel.classList.remove('tab-animate-in'), ENTER_MS);
+    }, EXIT_MS);
 }
 
 export function getStoredRoleTab(role) {

@@ -110,7 +110,7 @@
 }
 
 .quest-banner-center {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.4rem;
     font-weight: 400;          /* Fredoka One is inherently bold */
     letter-spacing: 0.06em;
@@ -252,7 +252,7 @@
     position: relative;
     overflow: hidden;
     border: 2px solid;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
 }
 /* Gloss overlay */
 .hc-fab::before {
@@ -285,7 +285,7 @@
     flex-shrink: 0;
 }
 .hc-fab-label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.82rem;
     letter-spacing: 0.02em;
     line-height: 1.2;
@@ -925,7 +925,7 @@
     gap: 0.35rem;
     padding: 0.2rem 0.6rem 0.2rem 0.45rem;
     border-radius: 9999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     color: #fffbeb;
     background: linear-gradient(135deg, #f59e0b 0%, #b45309 48%, #92400e 100%);
@@ -1126,7 +1126,7 @@
 }
 
 .hc-lb-score {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(1.65rem, 4.5vw, 2.15rem);
     line-height: 1;
     background: linear-gradient(180deg, #334155 0%, #475569 45%, #1e293b 100%);

@@ -1,0 +1,83 @@
+/*
+ * polish.css — desktop-wide finishing layer (loaded last).
+ *
+ * Small, low-specificity refinements that sit on top of the feature styles:
+ * shared tokens, text rendering, keyboard focus rings, modal backdrop fade-in
+ * and a reduced-motion safety net. Everything is scoped away from the mobile
+ * shell (body.gcq-mobile), which has its own layer in mobile/styles/.
+ */
+
+:root {
+    --gcq-font-title: 'Fredoka One', 'Fredoka', sans-serif;
+    --gcq-font-display: 'Fredoka', sans-serif;
+    --gcq-font-body: 'Open Sans', sans-serif;
+    --gcq-font-serif: 'Lora', Georgia, serif;
+
+    --gcq-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --gcq-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --gcq-dur-fast: 150ms;
+    --gcq-dur-med: 260ms;
+
+    --gcq-ring: #0ea5e9;
+    --gcq-ring-halo: rgba(14, 165, 233, 0.28);
+}
+
+/* ── Text rendering ─────────────────────────────────────────── */
+body:not(.gcq-mobile) {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body:not(.gcq-mobile) ::selection {
+    background: rgba(56, 189, 248, 0.32);
+    color: inherit;
+}
+
+/* ── Keyboard focus ring ────────────────────────────────────────
+ * :where() keeps specificity at zero, so any component that already
+ * styles its own focus state (or opts out) still wins. Only shows for
+ * keyboard focus (:focus-visible), never on mouse clicks. */
+:where(body:not(.gcq-mobile)) :where(button, a[href], [role="button"], [role="tab"], select, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 3px solid var(--gcq-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--gcq-ring-halo);
+}
+
+:where(body:not(.gcq-mobile)) :where(input:not([type="checkbox"]):not([type="radio"]), textarea):focus-visible {
+    outline: 2px solid var(--gcq-ring);
+    outline-offset: 1px;
+}
+
+/* ── Modal backdrop fade-in ─────────────────────────────────────
+ * Modals open by dropping `hidden`; a CSS animation restarts every time an
+ * element goes from display:none to visible, so the shell fades in while the
+ * card runs its own .pop-in entrance. Close already fades via hideModal().
+ * The Fortune's Wheel has its own backdrop choreography. */
+@keyframes gcq-modal-backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+body:not(.gcq-mobile) [id$="-modal"].fixed.inset-0:has(.pop-in):not(#fortunes-wheel-modal) {
+    animation: gcq-modal-backdrop-in 220ms ease-out;
+}
+
+/* Legacy shells used flat black at 50%; match the newer slate tint. */
+body:not(.gcq-mobile) [id$="-modal"].fixed.inset-0.bg-black.bg-opacity-50 {
+    background-color: rgba(15, 23, 42, 0.55);
+}
+
+/* ── Reduced-motion safety net ──────────────────────────────────
+ * Many feature files handle this individually; this catches the rest.
+ * Durations stay non-zero so animationend/transitionend still fire. */
+@media (prefers-reduced-motion: reduce) {
+    body:not(.gcq-mobile) *,
+    body:not(.gcq-mobile) *::before,
+    body:not(.gcq-mobile) *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

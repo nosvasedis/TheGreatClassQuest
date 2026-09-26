@@ -682,7 +682,7 @@ header h1.font-title::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.5rem;
     border-radius: 50%;
     margin-right: 1rem;
@@ -723,7 +723,7 @@ header h1.font-title::after {
 }
 
 .cli-stars {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #d97706;
     font-size: 1.5rem;
     background: #fef3c7;
@@ -744,7 +744,7 @@ header h1.font-title::after {
 
 .ceremony-leaderboard-title {
     display: block;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(1.8rem, 4.5vw, 2.8rem);
     background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 30%, #ffffff 50%, #d97706 70%, #fbbf24 100%);
     background-size: 250% auto;
@@ -1688,7 +1688,7 @@ header h1.font-title::after {
     gap: 0.35rem;
     padding: 0.35rem 1.1rem;
     border-radius: 9999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.1rem;
     font-weight: 900;
     border: 3px solid rgba(255,255,255,0.7);
@@ -1948,7 +1948,7 @@ header h1.font-title::after {
 .ceremony-countdown-ring__number {
     position: relative;
     z-index: 1;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(2.3rem, 5.4vw, 4.6rem);
     line-height: 1;
     color: currentColor;

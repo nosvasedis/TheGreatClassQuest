@@ -29,7 +29,7 @@
 }
 
 .reason-selector .reason-btn .reason-btn__label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.55rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;

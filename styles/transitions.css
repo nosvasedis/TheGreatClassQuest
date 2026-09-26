@@ -32,7 +32,7 @@ main {
     left: 1.5rem;
     right: 1.5rem;
     width: auto;
-    animation: tab-fade-out 350ms ease-in forwards;
+    animation: tab-fade-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @media (max-width: 767px) {

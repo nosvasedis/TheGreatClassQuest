@@ -110,7 +110,7 @@
 
 /* Info Modal Tab Switchers */
 .info-tab-switcher {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     padding: 0.6rem 1rem;
     border-radius: 9999px;
@@ -409,7 +409,7 @@
 }
 
 .kpi-number {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #0f766e;
     font-size: 1.25rem;
     line-height: 1.1;
@@ -969,7 +969,7 @@
     border-radius: 9999px;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: #fff;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     display: flex;
     align-items: center;
@@ -1104,7 +1104,7 @@
 }
 .guide-elite-title {
     margin: 0 0 0.7rem;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.5rem;
     color: #4c1d95;
     line-height: 1.2;

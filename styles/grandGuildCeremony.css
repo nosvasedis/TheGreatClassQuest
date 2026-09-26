@@ -2,7 +2,7 @@
 
 /* --- CEREMONY SCREEN BASE STYLES --- */
 #grand-guild-ceremony-screen {
-    font-family: 'Cinzel Decorative', cursive, serif;
+    font-family: 'Cinzel Decorative', Georgia, serif;
     background: radial-gradient(circle at center, #1e1b4b 0%, #312e81 40%, #0f172a 100%);
     overflow: hidden;
     position: relative;
@@ -259,7 +259,7 @@
 
 /* Victory Plaque Text */
 .victory-text {
-    font-family: 'Cinzel Decorative', cursive;
+    font-family: 'Cinzel Decorative', Georgia, serif;
     color: #ffd700;
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 140, 0, 0.4);
     letter-spacing: 0.2em;

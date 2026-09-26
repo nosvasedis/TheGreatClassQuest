@@ -1,3 +1,5 @@
+const defaultTheme = require('tailwindcss/defaultTheme');
+
 module.exports = {
   content: [
     './index.html',
@@ -15,7 +17,13 @@ module.exports = {
     { pattern: /^grid-cols-(1|2|3|4|5|6|7|8|9|10|11|12)$/ },
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        // Keep Tailwind's font-sans / font-serif utilities on the app's loaded fonts.
+        sans: ['"Open Sans"', ...defaultTheme.fontFamily.sans],
+        serif: ['Lora', 'Georgia', 'serif'],
+      },
+    },
   },
   plugins: [],
 };

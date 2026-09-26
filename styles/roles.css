@@ -179,7 +179,7 @@
 .school-year-status-card strong {
   display: block;
   color: #0f172a;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.35rem;
   margin: 0.25rem 0;
 }
@@ -272,7 +272,7 @@
   gap: 0.65rem;
   align-items: center;
   color: #0f172a;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   cursor: pointer;
 }
 
@@ -446,7 +446,7 @@
 
 .role-card__title,
 .secretary-card__title {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.25rem;
   color: #1e293b;
   line-height: 1.2;
@@ -454,7 +454,7 @@
 
 .role-card__metric,
 .secretary-card__metric {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 2rem;
   color: #0f172a;
   line-height: 1;
@@ -505,7 +505,7 @@
 }
 
 .role-stat-tile__value {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.65rem;
   color: #0f172a;
   margin-top: 0.2rem;
@@ -573,7 +573,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   color: white;
   flex-shrink: 0;
   font-size: 0.95rem;
@@ -595,7 +595,7 @@
 .role-list-row__body { flex: 1; min-width: 0; }
 
 .role-list-row__title {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   color: #1e293b;
   font-size: 1rem;
   white-space: nowrap;
@@ -653,7 +653,7 @@
   border-radius: 1rem;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 0.95rem;
   padding: 0.65rem 1.15rem;
   cursor: pointer;
@@ -677,7 +677,7 @@
   border-radius: 1rem;
   background: white;
   color: #475569;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 0.9rem;
   padding: 0.6rem 1rem;
   cursor: pointer;
@@ -810,7 +810,7 @@
 .role-inbox-item__icon--slate { background: linear-gradient(135deg, #94a3b8, #475569); }
 
 .role-inbox-item__title {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   color: #1e293b;
   font-size: 0.98rem;
 }
@@ -937,7 +937,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.75rem;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   box-shadow: 0 0 0 4px rgba(255,255,255,0.9), 0 8px 24px rgba(59, 130, 246, 0.25);
   flex-shrink: 0;
 }
@@ -968,7 +968,7 @@
   border-radius: 999px;
   background: linear-gradient(135deg, #dbeafe, #e0e7ff);
   color: #4338ca;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 0.9rem;
   padding: 0.3rem 0.75rem;
   white-space: nowrap;
@@ -1033,7 +1033,7 @@
 .role-op-tile span,
 .secretary-operation-tile span {
   display: block;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   color: #1e293b;
   margin-top: 0.35rem;
 }
@@ -1143,7 +1143,7 @@
 .secretary-admin-hero__title {
   margin: 0;
   color: #172554;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: clamp(1.65rem, 2.5vw, 2.35rem);
   line-height: 1.1;
 }
@@ -1181,7 +1181,7 @@
 .secretary-admin-hero__status strong {
   margin: 0.2rem 0;
   color: #312e81;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.55rem;
 }
 
@@ -1265,7 +1265,7 @@
 .secretary-admin-nav__copy strong {
   overflow: hidden;
   color: #1e293b;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1324,7 +1324,7 @@
 .secretary-admin-section-intro__title {
   margin: 0;
   color: #1e293b;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: clamp(1.35rem, 2vw, 1.8rem);
   line-height: 1.15;
 }
@@ -1669,7 +1669,7 @@
 .assessment-config-summary__main strong {
   overflow: hidden;
   color: #1e293b;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.05rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1736,7 +1736,7 @@
 .assessment-config-card__title {
   margin: 0.2rem 0 0;
   color: #1e293b;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.25rem;
   line-height: 1.2;
 }
@@ -2046,7 +2046,7 @@
 .secretary-class-editor-card__title {
   margin: 0.2rem 0 0;
   color: #1e293b;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.45rem;
   line-height: 1.15;
 }
@@ -2084,7 +2084,7 @@
 .secretary-class-editor-empty h4 {
   margin: 0.25rem 0 0;
   color: #334155;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.15rem;
 }
 
@@ -2449,7 +2449,7 @@
     border-radius: 9999px;
     border: 2px solid rgba(255, 255, 255, 0.72);
     color: #fff;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     letter-spacing: 0.04em;
     line-height: 1.1;
     box-shadow: 0 10px 22px rgba(79, 70, 229, 0.22);
@@ -2614,7 +2614,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 
 .placement-wizard__title {
   margin: 0.15rem 0 0;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.7rem;
   color: #0f172a;
 }
@@ -2843,7 +2843,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 .placement-student-card strong,
 .placement-class-tile strong,
 .placement-review-card strong {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.15rem;
   color: #0f172a;
 }
@@ -2981,7 +2981,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   color: #fff;
   flex-shrink: 0;
 }
@@ -3065,7 +3065,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 
 .placement-alpha-section__title {
   margin: 0 0 0.55rem;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.35rem;
   color: #0369a1;
 }
@@ -3127,7 +3127,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 .placement-empty h4,
 .placement-success h4 {
   margin: 0 0 0.4rem;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.5rem;
   color: #0f172a;
 }
@@ -3156,7 +3156,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 
 .placement-confirm__card h4 {
   margin: 0.25rem 0 0.55rem;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.4rem;
   color: #0f172a;
 }
@@ -4011,7 +4011,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 }
 
 .school-hero-group__header h4 {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.15rem;
   color: #0f172a;
   margin: 0;
@@ -4074,7 +4074,7 @@ body.placement-wizard-open #toast-container { z-index: 2300; }
 }
 
 .school-hero-card__title strong {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Fredoka One', 'Fredoka', sans-serif;
   font-size: 1.08rem;
   color: #0f172a;
 }

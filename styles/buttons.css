@@ -106,7 +106,7 @@
 }
 
 .counter-bubble__label {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.56rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -172,7 +172,7 @@
    ═══════════════════════════════════════════════ */
 
 .star-award-btn {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: white;
     transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
                 box-shadow 180ms ease-out;
@@ -649,7 +649,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2rem;
     color: #4b5563;
     transition: all 0.3s ease-out;
@@ -721,7 +721,7 @@
 }
 
 .reigning-prodigy-label .prodigy-text {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;

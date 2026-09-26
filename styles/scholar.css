@@ -133,7 +133,7 @@
 
 /* ── Typography ── */
 .starfall-title {
-    font-family: var(--font-title, serif);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2.4rem;
     color: white;
     margin-bottom: 0.75rem;
@@ -189,7 +189,7 @@
     background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%);
     background-size: 200% 100%;
     color: #78350f;
-    font-family: var(--font-title, serif);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.2rem;
     font-weight: 900;
     padding: 0.85rem 1.5rem;
@@ -507,7 +507,7 @@ optgroup {
 }
 
 .attendance-summary-value {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 2rem;
     line-height: 1.1;
     margin-top: 0.45rem;
@@ -855,7 +855,7 @@ optgroup {
 }
 
 .ac-chronicle-empty-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.15rem;
     color: #134e4a;
     margin: 0 0 0.5rem;
@@ -957,7 +957,7 @@ optgroup {
 }
 
 .attendance-date-chip-day {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.25rem;
     color: #0f172a;
 }
@@ -1161,7 +1161,7 @@ optgroup {
 }
 
 #trial-history-view-toggle .toggle-btn {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #a855f7; /* purple-500 */
     position: relative;
     overflow: hidden;

@@ -443,7 +443,7 @@
 .loading-title {
     position: relative;
     z-index: 3;
-    font-family: 'Fredoka One', cursive !important;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif !important;
     font-size: clamp(2.3rem, 6.4vw, 3.7rem) !important;
     letter-spacing: 0.02em !important;
     text-align: center !important;
@@ -509,7 +509,7 @@
 }
 
 .loading-subtitle {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: clamp(0.6rem, 1.45vw, 0.84rem);
     letter-spacing: 0.09em;
     color: #0891b2;

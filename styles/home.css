@@ -144,7 +144,7 @@
 .date-pill {
     padding: 0.5rem 1.5rem;
     border-radius: 9999px;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     letter-spacing: 0.05em;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
@@ -262,7 +262,7 @@
 }
 
 .date-pill--ceremony__kicker {
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Fredoka', sans-serif;
     font-size: 0.58rem;
     font-weight: 800;
     letter-spacing: 0.16em;
@@ -272,7 +272,7 @@
 }
 
 .date-pill--ceremony__title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.02rem;
     line-height: 1.05;
     letter-spacing: 0.03em;
@@ -488,7 +488,7 @@
 }
 
 .date-pill--quest .date-pill__title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1rem;
     line-height: 1.05;
     white-space: nowrap;
@@ -513,7 +513,7 @@
 }
 
 .date-pill--quest .date-pill__value {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.12rem;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -1173,7 +1173,7 @@
     transform: translateY(-4px) scale(1.03);
 }
 .stat-value-big {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 3rem;
     line-height: 1;
     margin-bottom: 0.5rem;
@@ -1276,7 +1276,7 @@
 }
 
 .schedule-card-square .name {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     line-height: 1.1;
     color: #1f2937;
@@ -1542,7 +1542,7 @@
         inset 0 -2px 0 rgba(99, 102, 241, 0.08);
 }
 .quest-pct-text {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 4.5rem;
     line-height: 1;
     background: linear-gradient(145deg, #2563eb 0%, #4f46e5 80%);

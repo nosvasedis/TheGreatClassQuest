@@ -69,7 +69,7 @@
     border: 3px solid rgba(56, 189, 248, 0.4);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(0,0,0,0.08);
     cursor: pointer;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #334155;
     text-align: left;
 }
@@ -176,7 +176,7 @@
     border-radius: 0.9rem;
     background: #f8fafc;
     cursor: pointer;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     color: #334155;
     text-align: left;
@@ -248,7 +248,7 @@
 }
 
 .options-subtab-btn {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.8rem;
     padding: 0.5rem 0.85rem;
     border-radius: 2rem;
@@ -327,7 +327,7 @@
 }
 
 .market-manager-group__title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.35rem;
     color: #86198f;
     margin-bottom: 0.75rem;
@@ -455,7 +455,7 @@
 }
 
 .market-manager-btn {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.8rem;
     border: none;
     border-radius: 0.8rem;
@@ -521,7 +521,7 @@
 }
 
 .options-tier-locked .options-tier-locked-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.35rem;
     color: #475569;
     margin-bottom: 0.5rem;
@@ -562,7 +562,7 @@
 }
 
 .class-grading-switch__btn {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.95rem;
     padding: 0.7rem 0.8rem;
     border: none;
@@ -598,7 +598,7 @@
 }
 
 .class-grading-league-card h4 {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     color: #86198f;
     font-size: 1.05rem;
     margin-bottom: 0.55rem;
@@ -667,7 +667,7 @@
 }
 
 .class-grading-kind__btn {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.85rem;
     padding: 0.55rem 0.85rem;
     border: none;
@@ -779,7 +779,7 @@
 }
 
 .qow-hero-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.65rem;
     color: #92400e;
     line-height: 1.15;
@@ -883,7 +883,7 @@
 }
 
 .qow-card-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: #78350f;
 }
@@ -924,7 +924,7 @@
 }
 
 .qow-level-badge {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.78rem;
     background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     color: white;
@@ -1074,7 +1074,7 @@
     border-bottom: 4px solid #92400e;
     border-radius: 1.2rem;
     color: white;
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.2rem;
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
@@ -1127,7 +1127,7 @@
 .qow-status-body { flex: 1; }
 
 .qow-status-title {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: #78350f;
     line-height: 1.2;
@@ -1158,7 +1158,7 @@
 
 /* Status pill badge */
 .qow-status-pill {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 0.72rem;
     padding: 0.2rem 0.6rem;
     border-radius: 0.5rem;
@@ -1254,7 +1254,7 @@
 }
 
 .qow-history-header {
-    font-family: 'Fredoka One', cursive;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1rem;
     color: #92400e;
     margin-bottom: 0.65rem;
@@ -1277,7 +1277,7 @@
 
 .qow-history-week  { font-weight: 700; font-size: 0.8rem; color: #78350f; }
 .qow-history-tier  { font-size: 0.75rem; color: #92400e; }
-.qow-history-pct   { font-family: 'Fredoka One', cursive; font-size: 0.9rem; color: #d97706; }
+.qow-history-pct   { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 0.9rem; color: #d97706; }
 .qow-history-q     { font-size: 0.72rem; color: #a16207; opacity: 0.7; }
 
 .qow-tier-badge {

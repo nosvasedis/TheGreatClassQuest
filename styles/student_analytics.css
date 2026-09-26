@@ -42,7 +42,7 @@
     font-weight: 700;
     font-size: 1.4rem;
     margin: 0 0 0.5rem 0;
-    font-family: var(--font-title, 'Fredoka', 'Quicksand', sans-serif);
+    font-family: 'Fredoka', sans-serif;
 }
 
 .sa-card p, .analytics-state-card p, .analytics-metric-card p {
@@ -338,7 +338,7 @@
 
 /* Prediction/Analysis */
 .analytics-prediction-score {
-    font-family: var(--font-title, 'Fredoka', 'Quicksand', sans-serif);
+    font-family: 'Fredoka', sans-serif;
     font-size: 4rem;
     font-weight: 800;
     line-height: 1;
@@ -384,7 +384,7 @@
     margin: 0 0 0.5rem;
     font-size: 1.15rem;
     font-weight: 800;
-    font-family: var(--font-title, 'Fredoka', 'Quicksand', sans-serif);
+    font-family: 'Fredoka', sans-serif;
 }
 
 .analytics-alert-medium { background: #fffbeb; border-color: #fde68a; }
@@ -409,7 +409,7 @@
     font-size: 1.2rem;
     font-weight: 800;
     color: #3730a3;
-    font-family: var(--font-title, 'Fredoka', 'Quicksand', sans-serif);
+    font-family: 'Fredoka', sans-serif;
 }
 
 /* Chat Assistant */

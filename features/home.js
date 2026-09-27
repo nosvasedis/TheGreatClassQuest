@@ -376,21 +376,26 @@ async function executeRenderHome() {
 
 }
 
-/** Keeps the weather card clock current; stops itself once the card leaves the DOM. */
+/** Moves the weather card clock hands each second; stops once the card leaves the DOM. */
 function startHomeClockTicker() {
     if (homeClockInterval) clearInterval(homeClockInterval);
     const tick = () => {
-        const el = document.querySelector('#home-dashboard-container [data-home-clock]');
-        if (!el) {
+        const clock = document.querySelector('#home-dashboard-container [data-home-clock]');
+        if (!clock) {
             clearInterval(homeClockInterval);
             homeClockInterval = null;
             return;
         }
-        const label = formatClockTime();
-        if (el.textContent !== label) el.textContent = label;
+        const now = new Date();
+        const angles = getClockHandAngles(now);
+        clock.querySelectorAll('[data-clock-hand]').forEach((hand) => {
+            hand.style.transform = `rotate(${angles[hand.dataset.clockHand]}deg)`;
+        });
+        const label = `Time ${formatClockTime(now)}`;
+        if (clock.getAttribute('aria-label') !== label) clock.setAttribute('aria-label', label);
     };
     tick();
-    homeClockInterval = setInterval(tick, 10000);
+    homeClockInterval = setInterval(tick, 1000);
 }
 
 // --- 3. TEMPLATES (VIBRANT HORIZONS) ---
@@ -715,15 +720,49 @@ function formatClockTime(date = new Date()) {
     return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-/** Chips under the greeting: school · date · today's context (class or school-wide). */
+/**
+ * Hand angles for the weather-card analogue clock. Angles grow through the day
+ * (not modulo 360) so the CSS tick transition never spins a hand backwards.
+ */
+function getClockHandAngles(date = new Date()) {
+    const secs = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+    return { h: secs / 120, m: secs / 10, s: secs * 6 };
+}
+
+/** Small glassy analogue clock that lives on the weather card. */
+function getWeatherClockHtml() {
+    const { h, m, s } = getClockHandAngles();
+    const ticks = Array.from({ length: 12 }, (_, i) => {
+        const major = i % 3 === 0;
+        return `<line class="weather-clock__tick${major ? ' is-major' : ''}" x1="32" y1="${major ? 6.5 : 7.5}" x2="32" y2="${major ? 12 : 10.5}" transform="rotate(${i * 30} 32 32)"/>`;
+    }).join('');
+    return `
+        <svg class="weather-clock" viewBox="0 0 64 64" role="img" aria-label="Time ${formatClockTime()}" data-home-clock>
+            <defs>
+                <radialGradient id="weather-clock-face" cx="34%" cy="28%" r="80%">
+                    <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
+                    <stop offset="0.6" stop-color="#fff" stop-opacity="0.18"/>
+                    <stop offset="1" stop-color="#fff" stop-opacity="0.08"/>
+                </radialGradient>
+            </defs>
+            <circle class="weather-clock__halo" cx="32" cy="32" r="31"/>
+            <circle class="weather-clock__face" cx="32" cy="32" r="28" fill="url(#weather-clock-face)"/>
+            <path class="weather-clock__gloss" d="M12 24 A22 22 0 0 1 40 10.5 A26 26 0 0 0 12 24 Z"/>
+            ${ticks}
+            <g class="weather-clock__hand weather-clock__hand--h" data-clock-hand="h" style="transform: rotate(${h}deg)"><line x1="32" y1="35" x2="32" y2="19"/></g>
+            <g class="weather-clock__hand weather-clock__hand--m" data-clock-hand="m" style="transform: rotate(${m}deg)"><line x1="32" y1="36" x2="32" y2="11.5"/></g>
+            <g class="weather-clock__hand weather-clock__hand--s" data-clock-hand="s" style="transform: rotate(${s}deg)"><line x1="32" y1="39" x2="32" y2="9"/><circle cx="32" cy="9" r="1.6"/></g>
+            <circle class="weather-clock__pin" cx="32" cy="32" r="2.7"/>
+            <circle class="weather-clock__pin-dot" cx="32" cy="32" r="1.1"/>
+        </svg>`;
+}
+
+/** Chips under the greeting: school · today's context (class or school-wide). The header already shows the date. */
 function getGreetingChipsHtml() {
-    const now = new Date();
     const selectedId = state.get('globalSelectedClassId');
     const selectedClass = selectedId ? (state.get('allSchoolClasses') || []).find(c => c.id === selectedId) : null;
-    const dateLabel = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
     const chips = [
-        `<span class="greeting-chip greeting-chip--school"><i class="fas fa-university"></i><span data-school-name>${escapeHtml(state.get('schoolName') || DEFAULT_SCHOOL_NAME)}</span></span>`,
-        `<span class="greeting-chip greeting-chip--date"><i class="fas fa-calendar-day"></i>${escapeHtml(dateLabel)}</span>`
+        `<span class="greeting-chip greeting-chip--school"><i class="fas fa-university"></i><span data-school-name>${escapeHtml(state.get('schoolName') || DEFAULT_SCHOOL_NAME)}</span></span>`
     ];
 
     if (selectedClass) {
@@ -749,14 +788,6 @@ function getWeatherMetaHtml(theme) {
     if (theme.hi != null && theme.lo != null) {
         chips.push(`<span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>${theme.hi}°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>${theme.lo}°</span>`);
     }
-    const sunrise = Number(utils.solarData?.sunrise);
-    const sunset = Number(utils.solarData?.sunset);
-    if (Number.isFinite(sunrise) && Number.isFinite(sunset)) {
-        const nowMs = Date.now();
-        const showSunset = nowMs >= sunrise && nowMs < sunset;
-        const at = new Date(showSunset ? sunset : sunrise);
-        chips.push(`<span class="weather-chip"><i class="fas ${showSunset ? 'fa-cloud-moon' : 'fa-cloud-sun'}"></i>${showSunset ? 'Sunset' : 'Sunrise'} ${formatClockTime(at)}</span>`);
-    }
     return chips.join('');
 }
 
@@ -768,7 +799,6 @@ function getLayout(name, theme, selector, row2, row3) {
     const celestialIcon = dayPart === 'night' || dayPart === 'evening' ? 'fa-moon' : 'fa-sun';
     const weatherIconMotion = theme.weatherIcon === 'fa-sun' ? 'weather-sun--spin'
         : theme.weatherIcon === 'fa-moon' ? 'weather-sun--sway' : 'weather-sun--float';
-    const shortDate = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
@@ -815,8 +845,8 @@ function getLayout(name, theme, selector, row2, row3) {
                 <i class="fas ${theme.weatherIcon} weather-sun ${weatherIconMotion}" aria-hidden="true"></i>
 
                 <div class="weather-top">
-                    <span class="weather-chip"><i class="fas fa-calendar-day"></i>${escapeHtml(shortDate)}</span>
-                    <span class="weather-chip weather-chip--clock"><i class="far fa-clock"></i><span data-home-clock>${formatClockTime()}</span></span>
+                    ${getWeatherClockHtml()}
+                    <div class="weather-meta">${getWeatherMetaHtml(theme)}</div>
                 </div>
 
                 <div class="weather-info">
@@ -825,7 +855,6 @@ function getLayout(name, theme, selector, row2, row3) {
                 </div>
 
                 <div class="weather-bottom">
-                    <div class="weather-meta">${getWeatherMetaHtml(theme)}</div>
                     <div id="weather-card-footer" class="weather-card-footer" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
                     </div>
                 </div>

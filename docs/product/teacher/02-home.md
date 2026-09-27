@@ -8,7 +8,7 @@ See the school (or this class) at a glance, catch reminders before the bell, jum
 
 ## What you see
 
-The greeting follows the clock: Good morning / afternoon / evening / night, with a matching sky wash (stars in the evening and at night) and a medallion showing the class logo (or 🏫 in General view) with an orbiting sun or moon. Chips under the greeting show the school, today's date, and either the selected class and league or how many classes meet today (and how many are yours). Reminder badges share one style: an icon bubble, a small label, the title, and a “when” tag. The weather card shows the date and a live clock, the temperature and conditions, today's high / low, and the next sunrise or sunset. Only a clear-sky sun icon spins, and nothing spills outside the card.
+The greeting follows the clock: Good morning / afternoon / evening / night, with a matching sky wash (stars in the evening and at night) and a medallion showing the class logo (or 🏫 in General view) with an orbiting sun or moon. Chips under the greeting show the school and either the selected class and league or how many classes meet today (and how many are yours). Reminder badges share one style: an icon bubble, a small label, the title, and a “when” tag. The weather card shows a small analogue clock (frosted face, ticking second hand tinted to the weather), the temperature and conditions, and today's high / low. The date and digital time stay in the header. Only a clear-sky sun icon spins, and nothing spills outside the card.
 
 ### General view (no class selected)
 

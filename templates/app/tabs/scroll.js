@@ -21,7 +21,7 @@ export const scrollTabHTML = `
                 </div>
 
                 <div class="max-w-6xl mx-auto">
-                    <!-- Tab sign: Scholar's Scroll -->
+                    <!-- Tab title: Scholar's Scroll -->
                     <header class="tab-sign tab-sign--scroll ss-hero">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__roll tab-sign__roll--l" aria-hidden="true"></span>

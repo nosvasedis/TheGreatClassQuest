@@ -3,7 +3,7 @@
 export const ideasTabHTML = `
             <div id="reward-ideas-tab" class="app-tab hidden">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-                    <!-- Tab sign: Story Weavers -->
+                    <!-- Tab title: Story Weavers -->
                     <header class="tab-sign tab-sign--weave">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__rod" aria-hidden="true"></span>

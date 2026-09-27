@@ -3,7 +3,7 @@
 export const calendarTabHTML = `
             <div id="calendar-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto">
-                    <!-- Tab sign: Quest Calendar -->
+                    <!-- Tab title: Quest Calendar -->
                     <header class="tab-sign tab-sign--calendar m-calendar-hero">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__ring tab-sign__ring--l" aria-hidden="true"></span>
@@ -14,7 +14,6 @@ export const calendarTabHTML = `
                                 <span class="tab-sign__kicker">Days · Events · Adventures</span>
                                 <h2 class="font-title tab-sign__title">Quest Calendar</h2>
                             </div>
-                            <span class="tab-sign__badge"><i class="fas fa-calendar-day" aria-hidden="true"></i> Plan the season</span>
                         </div>
                         <p class="tab-sign__tagline m-calendar-hero__sub">View your schedule and plan special Quest Events.</p>
                     </header>

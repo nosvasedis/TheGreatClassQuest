@@ -3,20 +3,19 @@
 export const optionsTabHTML = `
             <div id="options-tab" class="app-tab hidden">
                 <div class="max-w-4xl mx-auto">
-                    <!-- Tab sign: Teacher Settings -->
+                    <!-- Tab title: Teacher Settings (the teacher's chalkboard) -->
                     <header class="tab-sign tab-sign--settings">
                         <div class="tab-sign__piece">
                             <div class="tab-sign__board">
-                                <span class="tab-sign__rivet tab-sign__rivet--tl" aria-hidden="true"></span>
-                                <span class="tab-sign__rivet tab-sign__rivet--tr" aria-hidden="true"></span>
-                                <span class="tab-sign__rivet tab-sign__rivet--bl" aria-hidden="true"></span>
-                                <span class="tab-sign__rivet tab-sign__rivet--br" aria-hidden="true"></span>
-                                <span class="tab-sign__gear tab-sign__gear--l" aria-hidden="true"><i class="fas fa-cog"></i></span>
-                                <span class="tab-sign__gear tab-sign__gear--r" aria-hidden="true"><i class="fas fa-cog"></i></span>
+                                <span class="tab-sign__doodle tab-sign__doodle--l" aria-hidden="true"><i class="fas fa-cog"></i></span>
+                                <span class="tab-sign__doodle tab-sign__doodle--r" aria-hidden="true"><i class="fas fa-star"></i></span>
                                 <span class="tab-sign__kicker">Classes · Tools · Profile</span>
                                 <h2 class="font-title tab-sign__title">Teacher Settings</h2>
                             </div>
-                            <span class="tab-sign__badge"><i class="fas fa-key" aria-hidden="true"></i> Staff only</span>
+                            <span class="tab-sign__tray" aria-hidden="true"></span>
+                            <span class="tab-sign__chalk" aria-hidden="true"></span>
+                            <span class="tab-sign__apple" aria-hidden="true"><i class="fas fa-apple-whole"></i></span>
+                            <span class="tab-sign__eraser" aria-hidden="true"></span>
                         </div>
                         <p class="tab-sign__tagline">Manage your profile, your classes, and the students you teach.</p>
                     </header>

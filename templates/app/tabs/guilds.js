@@ -5,7 +5,7 @@ export const guildsTabHTML = `
 
                 <!-- Title above the framed scene (layout matches other app-tab headers) -->
                 <div class="max-w-7xl mx-auto">
-                    <!-- Tab sign: Guild Hall -->
+                    <!-- Tab title: Guild Hall -->
                     <header class="tab-sign tab-sign--guild">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__shield tab-sign__shield--l" aria-hidden="true"><span class="tab-sign__flame"></span><i class="fas fa-chess-rook"></i></span>
@@ -14,7 +14,6 @@ export const guildsTabHTML = `
                                 <span class="tab-sign__kicker">Banners · Glory · The Crown</span>
                                 <h2 class="font-title tab-sign__title guild-hall-title">Guild Hall</h2>
                             </div>
-                            <span class="tab-sign__badge">&#9884; Banners raised</span>
                         </div>
                         <p class="tab-sign__tagline">Every deed stokes the hearth. When June comes, one banner will be crowned.</p>
                     </header>

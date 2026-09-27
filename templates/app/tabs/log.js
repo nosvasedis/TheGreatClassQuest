@@ -31,7 +31,7 @@ export const logTabHTML = `
                     <!-- ═══════════════════════════════════════════════════════════════
                          HERO TITLE SECTION
                          ═══════════════════════════════════════════════════════════════ -->
-                    <!-- Tab sign: Adventure Log -->
+                    <!-- Tab title: Adventure Log -->
                     <header class="tab-sign tab-sign--log">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__spine" aria-hidden="true"></span>

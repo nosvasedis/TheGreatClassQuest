@@ -3,7 +3,7 @@
 export const awardTabHTML = `
             <div id="award-stars-tab" class="app-tab hidden">
                 <div class="max-w-4xl mx-auto">
-                    <!-- Tab sign: Award Stars -->
+                    <!-- Tab title: Award Stars -->
                     <header class="tab-sign tab-sign--award">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__crest" aria-hidden="true"><i class="fas fa-star"></i></span>
@@ -16,7 +16,6 @@ export const awardTabHTML = `
                                 <span class="tab-sign__kicker">Effort · Courage · Kindness</span>
                                 <h2 class="font-title tab-sign__title">Award Stars</h2>
                             </div>
-                            <span class="tab-sign__badge"><i class="fas fa-medal" aria-hidden="true"></i> Every effort shines</span>
                         </div>
                         <p class="tab-sign__tagline award-stars-hero-subtitle">Recognize your students' excellence and effort.</p>
                     </header>

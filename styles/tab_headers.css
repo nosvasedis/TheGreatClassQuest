@@ -1,18 +1,19 @@
 /* ==========================================================================
-   Tab signs — one crafted title piece per tab, in the family of the
-   Mystic Market's hanging shop sign (styles/mystic_market.css).
+   Tab title pieces — each tab's title sits on an object that IS that tab
+   (a map, a banner, a journal...), crafted to the Mystic Market's standard
+   (styles/mystic_market.css). Only the Market itself uses a shop sign.
    Shared anatomy: .tab-sign > .tab-sign__piece > .tab-sign__board
    (kicker + title) + themed props, then .tab-sign__tagline below.
 
-   quest    Team Quest        wooden trail signpost with a checkered pennant
+   quest    Team Quest        folded quest map tracing the race route
    hero     Hero's Challenge  royal velvet banner on a gilded rod, crowned
-   guild    Guild Hall        arched stone lintel between torch-lit shields
+   guild    Guild Hall        stone archway between torch-lit guild shields
    award    Award Stars       night-sky enamel medal with a golden star
    log      Adventure Log     stitched leather journal with a bookmark
    scroll   Scholar's Scroll  parchment on wooden rollers, wax-sealed
-   calendar Quest Calendar    ringed almanac plate with sun and moon
+   calendar Quest Calendar    ringed desk calendar with its page stack
    weave    Story Weavers     woven tapestry on a loom rod, fringed
-   settings Teacher Settings  riveted steel workshop plate with gears
+   settings Teacher Settings  the teacher's chalkboard, chalk tray and apple
    ========================================================================== */
 
 .tab-sign {
@@ -81,24 +82,6 @@
     filter: var(--ts-title-shadow);
 }
 
-.tab-sign__badge {
-    position: absolute;
-    z-index: 3;
-    bottom: -1.05rem;
-    left: 50%;
-    transform: translateX(-50%) rotate(-2deg);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.18rem 0.7rem;
-    border-radius: 0.4rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-}
-
 .app-tab .tab-sign__tagline {
     margin: 1.8rem auto 0;
     max-width: 40rem;
@@ -133,102 +116,128 @@
     to { transform: rotate(360deg); }
 }
 
-/* ── Team Quest: trail signpost ─────────────────────────────────────────── */
+/* ── Team Quest: folded quest map with the race route ───────────────────── */
 
 .tab-sign--quest {
-    --ts-title: linear-gradient(180deg, #fffdf5 0%, #fff1c7 38%, #fcd67a 66%, #e7a93a 100%);
-    --ts-title-shadow: drop-shadow(0 2px 0 #4a2a0e) drop-shadow(0 0 12px rgba(251, 191, 36, 0.3));
+    --ts-title: linear-gradient(180deg, #b45309 0%, #92400e 55%, #6b2e0a 100%);
+    --ts-title-shadow: drop-shadow(0 1px 0 rgba(255, 250, 235, 0.9)) drop-shadow(0 2px 6px rgba(120, 53, 15, 0.25));
 }
 
 .tab-sign--quest .tab-sign__piece {
-    padding-top: 1.9rem;
-    filter: drop-shadow(0 12px 16px rgba(74, 42, 14, 0.3)) drop-shadow(0 3px 5px rgba(74, 42, 14, 0.25));
-}
-
-.tab-sign--quest .tab-sign__post {
-    position: absolute;
-    top: 0.3rem;
-    bottom: -0.3rem;
-    left: 50%;
-    width: 14px;
-    margin-left: -7px;
-    border-radius: 3px 3px 0 0;
-    background:
-        var(--ts-grain),
-        linear-gradient(90deg, #4a2a0e 0%, #7a4a1e 35%, #93602c 55%, #4a2a0e 100%);
-}
-
-.tab-sign--quest .tab-sign__post::before { /* brass cap */
-    content: '';
-    position: absolute;
-    top: -7px;
-    left: 50%;
-    width: 16px;
-    height: 10px;
-    margin-left: -8px;
-    border-radius: 50% 50% 3px 3px;
-    background: linear-gradient(180deg, var(--ts-brass-light), var(--ts-brass-dark));
-}
-
-.tab-sign--quest .tab-sign__pennant {
-    position: absolute;
-    top: -2px;
-    left: 12px;
-    width: 38px;
-    height: 24px;
-    background: repeating-conic-gradient(#111827 0 25%, #f8fafc 0 50%) 0 0 / 12px 12px;
-    clip-path: polygon(0 0, 100% 12%, 88% 50%, 100% 88%, 0 100%);
-    transform-origin: 0 50%;
-    animation: tab-sign-pennant 2.8s ease-in-out infinite;
-}
-
-@keyframes tab-sign-pennant {
-    0%, 100% { transform: skewY(0deg) scaleX(1); }
-    50% { transform: skewY(-6deg) scaleX(0.92); }
+    padding-top: 0.5rem;
+    transform: rotate(-1.2deg);
+    filter: drop-shadow(0 12px 16px rgba(92, 64, 30, 0.28)) drop-shadow(0 3px 5px rgba(92, 64, 30, 0.22));
 }
 
 .tab-sign--quest .tab-sign__board {
-    --ts-tip: 1.7rem;
-    --ts-tail: 0.95rem;
-    padding: 0.75rem calc(clamp(1.6rem, 5vw, 3.4rem) + 0.6rem) 0.9rem;
-    border-radius: 0;
-    background: #f2c46d;
-    clip-path: polygon(0 0, calc(100% - var(--ts-tip)) 0, 100% 50%, calc(100% - var(--ts-tip)) 100%, 0 100%, var(--ts-tail) 50%);
-}
-
-.tab-sign--quest .tab-sign__board::before { /* wood inside a brass edge */
-    content: '';
-    position: absolute;
-    inset: 3px;
-    z-index: 0;
+    padding: 1rem clamp(2.6rem, 6vw, 4.4rem) 1.1rem;
+    border-radius: 0.25rem;
     background:
-        var(--ts-grain),
-        linear-gradient(180deg, #b7792f 0%, #93602a 55%, #6e4318 100%);
-    clip-path: polygon(0 0, calc(100% - var(--ts-tip) + 0.1rem) 0, 100% 50%, calc(100% - var(--ts-tip) + 0.1rem) 100%, 0 100%, calc(var(--ts-tail) - 0.1rem) 50%);
+        /* three folded panels catching the light differently */
+        linear-gradient(90deg,
+            rgba(0, 0, 0, 0.05) 0 32.8%, rgba(92, 64, 30, 0.22) 33.2%, rgba(255, 255, 255, 0.14) 33.6% 66.2%,
+            rgba(92, 64, 30, 0.2) 66.6%, rgba(0, 0, 0, 0.07) 67% 100%),
+        linear-gradient(180deg, transparent 49.6%, rgba(92, 64, 30, 0.14) 50%, transparent 50.6%),
+        /* faint latitude and longitude lines */
+        repeating-linear-gradient(0deg, rgba(37, 99, 135, 0.09) 0 1px, transparent 1px 18px),
+        repeating-linear-gradient(90deg, rgba(37, 99, 135, 0.09) 0 1px, transparent 1px 18px),
+        radial-gradient(ellipse 85% 90% at 50% 50%, transparent 55%, rgba(146, 98, 40, 0.28) 100%),
+        linear-gradient(180deg, #f6ecd0 0%, #eedfb6 60%, #e4cf9c 100%);
 }
 
-.tab-sign--quest .tab-sign__kicker { color: #fde7b8; }
+.tab-sign--quest .tab-sign__kicker {
+    color: #8a5a2b;
+    opacity: 1;
+}
 
-.tab-sign--quest .tab-sign__nail {
+.tab-sign--quest .tab-sign__route {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.tab-sign--quest .tab-sign__route path {
+    fill: none;
+    stroke: #dc2626;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-dasharray: 1 7;
+    opacity: 0.6;
+    vector-effect: non-scaling-stroke;
+    animation: tab-sign-march 1.6s linear infinite;
+}
+
+@keyframes tab-sign-march {
+    to { stroke-dashoffset: -16; }
+}
+
+.tab-sign--quest .tab-sign__start {
     position: absolute;
     z-index: 2;
-    top: 50%;
-    width: 9px;
-    height: 9px;
-    margin-top: -4.5px;
+    left: 1.1rem;
+    bottom: 0.75rem;
+    width: 0.7rem;
+    height: 0.7rem;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff5d6, var(--ts-brass) 45%, var(--ts-brass-dark));
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+    background: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
 }
 
-.tab-sign--quest .tab-sign__nail--l { left: 1.45rem; }
-.tab-sign--quest .tab-sign__nail--r { right: 2.2rem; }
-
-.tab-sign--quest .tab-sign__badge {
-    color: #f8fafc;
-    background: linear-gradient(180deg, #334155, #0f172a);
-    border: 2px solid #f2c46d;
+.tab-sign--quest .tab-sign__flag {
+    position: absolute;
+    z-index: 2;
+    right: 0.85rem;
+    top: 0.55rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #1f2937;
+    transform: rotate(8deg);
+    transform-origin: 20% 100%;
+    animation: tab-sign-flag 2.4s ease-in-out infinite;
 }
+
+@keyframes tab-sign-flag {
+    0%, 100% { transform: rotate(8deg); }
+    50% { transform: rotate(0deg); }
+}
+
+.tab-sign--quest .tab-sign__compass {
+    position: absolute;
+    z-index: 2;
+    left: 0.7rem;
+    top: 0.5rem;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #0f5e75;
+    opacity: 0.85;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+}
+
+.tab-sign--quest .tab-sign__compass > i {
+    display: block;
+    animation: tab-sign-needle 6s ease-in-out infinite;
+}
+
+@keyframes tab-sign-needle {
+    0%, 100% { transform: rotate(-10deg); }
+    50% { transform: rotate(12deg); }
+}
+
+.tab-sign--quest .tab-sign__wax {
+    position: absolute;
+    z-index: 3;
+    top: -0.55rem;
+    width: 2.2rem;
+    height: 0.85rem;
+    background: rgba(253, 246, 227, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.tab-sign--quest .tab-sign__wax--l { left: 12%; transform: rotate(-8deg); }
+.tab-sign--quest .tab-sign__wax--r { right: 12%; transform: rotate(7deg); }
 
 /* ── Hero's Challenge: royal banner ─────────────────────────────────────── */
 
@@ -321,7 +330,7 @@
 .tab-sign--hero .tab-sign__gem--l { left: 0.9rem; }
 .tab-sign--hero .tab-sign__gem--r { right: 0.9rem; }
 
-/* ── Guild Hall: stone lintel between shields ───────────────────────────── */
+/* ── Guild Hall: stone archway flanked by torch-lit guild shields ────────── */
 
 .tab-sign--guild {
     --ts-title: linear-gradient(180deg, #fff7d6 0%, #fcd34d 42%, #f59e0b 68%, #c084fc 100%);
@@ -334,17 +343,21 @@
 
 .tab-sign--guild .tab-sign__board {
     padding: 0.8rem clamp(2rem, 5.5vw, 3.8rem) 0.9rem;
-    border-radius: 2.6rem 2.6rem 0.7rem 0.7rem;
+    border: 11px solid transparent;
+    border-bottom-width: 7px;
+    border-radius: 3rem 3rem 0.6rem 0.6rem;
     background:
-        radial-gradient(ellipse 60% 70% at 50% 0%, rgba(251, 191, 36, 0.2), transparent 70%),
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0 2px, transparent 2px 24px),
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 7px),
-        linear-gradient(180deg, #4a3b5c 0%, #33284a 55%, #1f1730 100%);
-    border: 3px solid #b8894a;
+        radial-gradient(ellipse 60% 80% at 50% 0%, rgba(251, 191, 36, 0.24), transparent 70%) padding-box,
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 7px) padding-box,
+        linear-gradient(180deg, #33284a 0%, #261d38 55%, #1a1328 100%) padding-box,
+        /* the arch ring: stone voussoirs fanning from the doorway's heart */
+        linear-gradient(180deg, transparent 55%, #5d4f71 55%) border-box,
+        repeating-conic-gradient(from -90deg at 50% 150%, transparent 0 5.4deg, rgba(20, 13, 31, 0.75) 5.4deg 6deg) border-box,
+        linear-gradient(180deg, #8a7a9e 0%, #6b5b7e 50%, #4f4263 100%) border-box;
     box-shadow:
         0 0 0 2px #140d1f,
-        inset 0 0 0 2px rgba(0, 0, 0, 0.3),
-        inset 0 2px 0 rgba(255, 255, 255, 0.14),
+        inset 0 0 0 2px rgba(0, 0, 0, 0.45),
+        inset 0 10px 18px rgba(0, 0, 0, 0.35),
         0 14px 28px rgba(31, 23, 48, 0.38),
         0 4px 10px rgba(31, 23, 48, 0.3);
 }
@@ -352,12 +365,12 @@
 .tab-sign--guild .tab-sign__board::before { /* keystone */
     content: '';
     position: absolute;
-    top: -3px;
+    top: -13px;
     left: 50%;
-    width: 1.5rem;
-    height: 0.8rem;
-    margin-left: -0.75rem;
-    background: linear-gradient(180deg, #d9b074, #8a5a1c);
+    width: 1.7rem;
+    height: 1.25rem;
+    margin-left: -0.85rem;
+    background: linear-gradient(180deg, #e4c089, #a0763f 60%, #6f4d22);
     clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%);
 }
 
@@ -412,12 +425,6 @@
 }
 
 .tab-sign--guild .tab-sign__shield--r .tab-sign__flame { animation-delay: -0.7s; }
-
-.tab-sign--guild .tab-sign__badge {
-    color: #fff1f2;
-    background: linear-gradient(180deg, #be123c, #881337);
-    border: 2px solid #f2c46d;
-}
 
 /* ── Award Stars: night-sky star medal ──────────────────────────────────── */
 
@@ -505,12 +512,6 @@
 
 .tab-sign--award .tab-sign__ribbon--l { left: calc(50% - 2.9rem); transform: rotate(14deg); }
 .tab-sign--award .tab-sign__ribbon--r { right: calc(50% - 2.9rem); transform: rotate(-14deg); }
-
-.tab-sign--award .tab-sign__badge {
-    color: #4a2511;
-    background: linear-gradient(180deg, #fde68a, #f5b93a);
-    border: 2px solid #831843;
-}
 
 /* ── Adventure Log: stitched leather journal ────────────────────────────── */
 
@@ -678,41 +679,60 @@
     filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
 }
 
-/* ── Quest Calendar: ringed almanac plate ───────────────────────────────── */
+/* ── Quest Calendar: a ringed desk calendar with its stack of pages ─────── */
 
 .tab-sign--calendar {
-    --ts-title: linear-gradient(180deg, #ffffff 0%, #dbeafe 38%, #fde68a 72%, #f5b93a 100%);
-    --ts-title-shadow: drop-shadow(0 2px 0 #0b1a45) drop-shadow(0 0 14px rgba(147, 197, 253, 0.4));
+    --ts-title: linear-gradient(180deg, #2563eb 0%, #1d4ed8 50%, #1e3a8a 100%);
+    --ts-title-shadow: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9)) drop-shadow(0 2px 6px rgba(30, 58, 138, 0.2));
 }
 
 .tab-sign--calendar .tab-sign__piece {
-    padding-top: 0.95rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.5rem;
+    filter: drop-shadow(0 12px 16px rgba(23, 37, 84, 0.25)) drop-shadow(0 3px 5px rgba(23, 37, 84, 0.2));
 }
 
 .tab-sign--calendar .tab-sign__board {
-    padding-left: clamp(2.4rem, 6vw, 4.2rem);
-    padding-right: clamp(2.4rem, 6vw, 4.2rem);
+    padding: 1.75rem clamp(2.6rem, 6vw, 4.4rem) 0.9rem;
+    border-radius: 0.55rem 0.55rem 0.35rem 0.35rem;
     background:
-        repeating-radial-gradient(circle at 50% 135%, transparent 0 20px, rgba(147, 197, 253, 0.13) 20px 21px),
-        radial-gradient(ellipse 70% 60% at 50% 0%, rgba(96, 165, 250, 0.35), transparent 70%),
-        linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 55%, #172554 100%);
-    border: 3px solid #e2b85c;
+        /* the blue binding strip across the top */
+        linear-gradient(180deg, #1e40af 0, #1d4ed8 0.95rem, #172554 1.1rem, transparent 1.1rem),
+        /* a faint week grid printed on the page */
+        repeating-linear-gradient(90deg, transparent 0 calc(100% / 7 - 1px), rgba(37, 99, 235, 0.08) calc(100% / 7 - 1px) calc(100% / 7)),
+        repeating-linear-gradient(180deg, transparent 0 17px, rgba(37, 99, 235, 0.08) 17px 18px),
+        linear-gradient(180deg, #fffdf7 0%, #f8f3e6 100%);
     box-shadow:
-        0 0 0 2px #0b1a45,
-        inset 0 0 0 2px rgba(0, 0, 0, 0.25),
-        inset 0 2px 0 rgba(255, 255, 255, 0.2),
-        0 14px 28px rgba(23, 37, 84, 0.33),
-        0 4px 10px rgba(23, 37, 84, 0.28);
+        0 0 0 1px rgba(30, 58, 138, 0.35),
+        /* pages stacked beneath */
+        0 4px 0 -1px #efe7d3,
+        0 4px 0 0 rgba(30, 58, 138, 0.25),
+        0 8px 0 -2px #e6dcc4,
+        0 8px 0 -1px rgba(30, 58, 138, 0.2);
 }
 
-.tab-sign--calendar .tab-sign__kicker { color: #bfdbfe; }
+.tab-sign--calendar .tab-sign__board::after { /* dog-eared corner */
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 0 0 0.35rem 0;
+    background: linear-gradient(315deg, #eef2ff 0 50%, #d9cdb0 50% 58%, transparent 58%);
+}
+
+.tab-sign--calendar .tab-sign__kicker {
+    color: #b91c1c;
+    opacity: 0.85;
+}
 
 .tab-sign--calendar .tab-sign__ring {
     position: absolute;
     z-index: 2;
-    top: 0;
-    width: 0.95rem;
-    height: 1.9rem;
+    top: -0.75rem;
+    width: 0.8rem;
+    height: 1.55rem;
     border: 3px solid var(--ts-brass);
     border-radius: 9999px;
     box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 var(--ts-brass-light);
@@ -724,7 +744,7 @@
 .tab-sign--calendar .tab-sign__orb {
     position: absolute;
     z-index: 2;
-    top: 50%;
+    top: calc(50% + 0.45rem);
     margin-top: -0.55rem;
     font-size: 1.05rem;
     line-height: 1;
@@ -732,21 +752,15 @@
 
 .tab-sign--calendar .tab-sign__orb--sun {
     left: 0.9rem;
-    color: #fcd34d;
-    filter: drop-shadow(0 0 8px rgba(252, 211, 77, 0.85));
+    color: #f59e0b;
+    filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.55));
     animation: tab-sign-spin 24s linear infinite;
 }
 
 .tab-sign--calendar .tab-sign__orb--moon {
     right: 0.95rem;
-    color: #e0e7ff;
-    filter: drop-shadow(0 0 8px rgba(224, 231, 255, 0.85));
-}
-
-.tab-sign--calendar .tab-sign__badge {
-    color: #1e3a8a;
-    background: linear-gradient(180deg, #fffaf0, #f3e3bd);
-    border: 2px solid #1e3a8a;
+    color: #4338ca;
+    filter: drop-shadow(0 0 5px rgba(99, 102, 241, 0.45));
 }
 
 /* ── Story Weavers: tapestry on a loom rod ──────────────────────────────── */
@@ -838,71 +852,117 @@
 .tab-sign--weave .tab-sign__tassel--l { left: -0.2rem; }
 .tab-sign--weave .tab-sign__tassel--r { right: -0.2rem; }
 
-/* ── Teacher Settings: riveted workshop plate ───────────────────────────── */
+/* ── Teacher Settings: the teacher's chalkboard ─────────────────────────── */
 
 .tab-sign--settings {
-    --ts-title: linear-gradient(180deg, #ffffff 0%, #f1f5f9 38%, #cbd5e1 70%, #94a3b8 100%);
-    --ts-title-shadow: drop-shadow(0 2px 0 #0f172a) drop-shadow(0 0 12px rgba(217, 168, 78, 0.28));
+    --ts-title: linear-gradient(180deg, #ffffff 0%, #f8fafc 55%, #e2e8f0 100%);
+    --ts-title-shadow: drop-shadow(0 0 1px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.18));
+}
+
+.tab-sign--settings .tab-sign__piece {
+    padding-bottom: 0.7rem;
+    filter: drop-shadow(0 12px 16px rgba(40, 26, 12, 0.28)) drop-shadow(0 3px 5px rgba(40, 26, 12, 0.22));
 }
 
 .tab-sign--settings .tab-sign__board {
-    padding-left: clamp(2.6rem, 6vw, 4.2rem);
-    padding-right: clamp(2.6rem, 6vw, 4.2rem);
-    border-radius: 0.8rem;
+    padding: 0.85rem clamp(2.6rem, 6vw, 4.2rem) 1rem;
+    border-radius: 0.5rem;
+    border: 9px solid #9a6534;
     background:
-        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px),
-        radial-gradient(ellipse 70% 60% at 30% 0%, rgba(255, 255, 255, 0.18), transparent 70%),
-        linear-gradient(180deg, #64748b 0%, #475569 50%, #334155 100%);
-    border: 3px solid var(--ts-brass);
+        radial-gradient(ellipse 30% 40% at 22% 70%, rgba(255, 255, 255, 0.07), transparent 70%),
+        radial-gradient(ellipse 35% 30% at 78% 30%, rgba(255, 255, 255, 0.06), transparent 70%),
+        radial-gradient(ellipse 90% 90% at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.25) 100%),
+        linear-gradient(180deg, #2c4c3a 0%, #23412f 55%, #1a3325 100%);
     box-shadow:
-        0 0 0 2px #1e293b,
-        inset 0 0 0 2px rgba(0, 0, 0, 0.25),
-        inset 0 2px 0 rgba(255, 255, 255, 0.22),
-        0 14px 28px rgba(30, 41, 59, 0.32),
-        0 4px 10px rgba(30, 41, 59, 0.28);
+        0 0 0 2px #4a2a0e,
+        inset 0 0 0 2px rgba(0, 0, 0, 0.35),
+        inset 0 0 18px rgba(0, 0, 0, 0.35);
 }
 
-.tab-sign--settings .tab-sign__kicker { color: #e2e8f0; }
-
-.tab-sign--settings .tab-sign__rivet {
+.tab-sign--settings .tab-sign__board::before { /* wood grain on the frame */
+    content: '';
     position: absolute;
-    z-index: 2;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff5d6, var(--ts-brass) 50%, var(--ts-brass-dark));
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+    inset: -9px;
+    z-index: 0;
+    border-radius: 0.5rem;
+    padding: 9px;
+    background: var(--ts-grain), linear-gradient(180deg, #b7793f, #8a5427);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
 }
 
-.tab-sign--settings .tab-sign__rivet--tl { top: 9px; left: 9px; }
-.tab-sign--settings .tab-sign__rivet--tr { top: 9px; right: 9px; }
-.tab-sign--settings .tab-sign__rivet--bl { bottom: 9px; left: 9px; }
-.tab-sign--settings .tab-sign__rivet--br { bottom: 9px; right: 9px; }
+.tab-sign--settings .tab-sign__kicker {
+    color: #fde68a;
+    opacity: 0.8;
+}
 
-.tab-sign--settings .tab-sign__gear {
+.tab-sign--settings .tab-sign__doodle {
     position: absolute;
     z-index: 2;
     top: 50%;
-    margin-top: -0.7rem;
-    font-size: 1.4rem;
+    margin-top: -0.75rem;
+    font-size: 1.35rem;
     line-height: 1;
-    color: var(--ts-brass);
-    filter: drop-shadow(0 1px 0 #1e293b) drop-shadow(0 0 6px rgba(217, 168, 78, 0.45));
+    color: rgba(248, 250, 252, 0.42);
 }
 
-.tab-sign--settings .tab-sign__gear > i {
+.tab-sign--settings .tab-sign__doodle--l { left: 0.8rem; transform: rotate(-12deg); }
+.tab-sign--settings .tab-sign__doodle--r { right: 0.8rem; transform: rotate(10deg); color: rgba(253, 230, 138, 0.45); }
+
+.tab-sign--settings .tab-sign__doodle--l > i {
     display: block;
-    animation: tab-sign-spin 14s linear infinite;
+    animation: tab-sign-spin 16s linear infinite;
 }
 
-.tab-sign--settings .tab-sign__gear--l { left: 0.85rem; }
-.tab-sign--settings .tab-sign__gear--r { right: 0.85rem; }
-.tab-sign--settings .tab-sign__gear--r > i { animation-direction: reverse; }
+.tab-sign--settings .tab-sign__tray {
+    position: absolute;
+    z-index: 3;
+    bottom: 0.2rem;
+    left: 6%;
+    right: 6%;
+    height: 0.75rem;
+    border-radius: 0.2rem 0.2rem 0.35rem 0.35rem;
+    background: var(--ts-grain), linear-gradient(180deg, #c4864a 0%, #9a6534 55%, #6e4318 100%);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
 
-.tab-sign--settings .tab-sign__badge {
-    color: #3b2716;
-    background: linear-gradient(180deg, #fcd34d, #d9a84e);
-    border: 2px solid #1e293b;
+.tab-sign--settings .tab-sign__chalk {
+    position: absolute;
+    z-index: 4;
+    bottom: 0.55rem;
+    left: 22%;
+    width: 1.5rem;
+    height: 0.36rem;
+    border-radius: 0.15rem;
+    background: linear-gradient(180deg, #ffffff, #e2e8f0);
+    transform: rotate(-4deg);
+}
+
+.tab-sign--settings .tab-sign__eraser {
+    position: absolute;
+    z-index: 4;
+    bottom: 0.5rem;
+    right: 18%;
+    width: 2.3rem;
+    height: 0.7rem;
+    border-radius: 0.2rem;
+    background:
+        linear-gradient(180deg, #7c4a1e 0 55%, #e5e7eb 55% 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.tab-sign--settings .tab-sign__apple {
+    position: absolute;
+    z-index: 4;
+    bottom: 0.5rem;
+    left: 50%;
+    margin-left: 18%;
+    font-size: 0.95rem;
+    line-height: 1;
+    color: #dc2626;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
 
 /* ── Phones and small windows ───────────────────────────────────────────── */
@@ -913,10 +973,10 @@
     .tab-sign__board { padding-left: 1.7rem; padding-right: 1.7rem; }
     .app-tab .tab-sign__tagline { margin-top: 1.6rem; font-size: 0.9rem; }
 
-    .tab-sign--quest .tab-sign__board { padding-left: 1.9rem; padding-right: 2.4rem; --ts-tip: 1.3rem; --ts-tail: 0.75rem; }
-    .tab-sign--quest .tab-sign__nail { display: none; }
-    .tab-sign--calendar .tab-sign__board { padding-top: 0.95rem; }
-    .tab-sign--calendar .tab-sign__ring { height: 1.6rem; }
+    .tab-sign--quest .tab-sign__board { padding-left: 2.3rem; padding-right: 2.3rem; }
+    .tab-sign--quest .tab-sign__compass { font-size: 1rem; left: 0.5rem; }
+    .tab-sign--quest .tab-sign__flag { font-size: 1rem; right: 0.6rem; }
+    .tab-sign--calendar .tab-sign__ring { height: 1.35rem; }
     .tab-sign--calendar .tab-sign__ring--l { left: 12%; }
     .tab-sign--calendar .tab-sign__ring--r { right: 12%; }
     .tab-sign--hero .tab-sign__board { padding-left: 2.3rem; padding-right: 2.3rem; }
@@ -930,12 +990,13 @@
     .tab-sign--scroll .tab-sign__board { padding-left: 1.9rem; padding-right: 1.9rem; }
     .tab-sign--calendar .tab-sign__board,
     .tab-sign--settings .tab-sign__board { padding-left: 2.3rem; padding-right: 2.3rem; }
+    .tab-sign--calendar .tab-sign__board { padding-top: 1.55rem; }
     .tab-sign--calendar .tab-sign__orb { font-size: 0.85rem; }
     .tab-sign--calendar .tab-sign__orb--sun { left: 0.6rem; }
     .tab-sign--calendar .tab-sign__orb--moon { right: 0.65rem; }
-    .tab-sign--settings .tab-sign__gear { font-size: 1.05rem; margin-top: -0.55rem; }
-    .tab-sign--settings .tab-sign__gear--l { left: 0.6rem; }
-    .tab-sign--settings .tab-sign__gear--r { right: 0.6rem; }
+    .tab-sign--settings .tab-sign__doodle { font-size: 1rem; margin-top: -0.55rem; }
+    .tab-sign--settings .tab-sign__doodle--l { left: 0.45rem; }
+    .tab-sign--settings .tab-sign__doodle--r { right: 0.45rem; }
     .tab-sign--weave .tab-sign__board { padding-left: 1.9rem; padding-right: 1.9rem; }
 }
 

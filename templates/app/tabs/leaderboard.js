@@ -3,17 +3,19 @@
 export const leaderboardTabHTML = `
             <div id="class-leaderboard-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto">
-                    <!-- Tab sign: Team Quest -->
+                    <!-- Tab title: Team Quest (a folded quest map) -->
                     <header class="tab-sign tab-sign--quest">
                         <div class="tab-sign__piece">
-                            <span class="tab-sign__post" aria-hidden="true"><span class="tab-sign__pennant"></span></span>
+                            <span class="tab-sign__wax tab-sign__wax--l" aria-hidden="true"></span>
+                            <span class="tab-sign__wax tab-sign__wax--r" aria-hidden="true"></span>
                             <div class="tab-sign__board">
-                                <span class="tab-sign__nail tab-sign__nail--l" aria-hidden="true"></span>
-                                <span class="tab-sign__nail tab-sign__nail--r" aria-hidden="true"></span>
+                                <svg class="tab-sign__route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M4 86 C 18 96, 22 60, 36 72 S 58 98, 66 70 S 84 40, 94 22"/></svg>
+                                <span class="tab-sign__compass" aria-hidden="true"><i class="fas fa-compass"></i></span>
+                                <span class="tab-sign__start" aria-hidden="true"></span>
+                                <span class="tab-sign__flag" aria-hidden="true"><i class="fas fa-flag-checkered"></i></span>
                                 <span class="tab-sign__kicker">Leagues · Races · Glory</span>
                                 <h2 class="font-title tab-sign__title">Team Quest</h2>
                             </div>
-                            <span class="tab-sign__badge"><i class="fas fa-flag-checkered" aria-hidden="true"></i> The race is on</span>
                         </div>
                         <p class="tab-sign__tagline">Race against other classes in your league toward the finish line!</p>
                     </header>
@@ -95,7 +97,7 @@ export const leaderboardTabHTML = `
                 </div>
 
                 <div class="max-w-7xl mx-auto">
-                    <!-- Tab sign: Hero's Challenge -->
+                    <!-- Tab title: Hero's Challenge -->
                     <header class="tab-sign tab-sign--hero">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__rod" aria-hidden="true"></span>

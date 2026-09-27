@@ -51,6 +51,17 @@ export function isModifierType(type) {
     return Object.values(MODIFIER_TYPES).includes(normalizeQuestType(type));
 }
 
+// Standard modifiers are school-wide: they apply to every class on the day, so
+// they are stored once with no classId instead of once per class.
+export const SCHOOL_WIDE_MODIFIER_TYPES = Object.freeze([
+    MODIFIER_TYPES.DOUBLE_STAR_DAY,
+    MODIFIER_TYPES.REASON_BONUS_DAY,
+]);
+
+export function isSchoolWideModifierType(type) {
+    return SCHOOL_WIDE_MODIFIER_TYPES.includes(normalizeQuestType(type));
+}
+
 export function normalizeLegacyQuestEvent(event = {}) {
     const type = normalizeQuestType(event.type);
     if (!type) return { ...event, needsMigration: true };

@@ -23,12 +23,18 @@ Floating action buttons typically include **Hall of Prodigies** (monthly archive
 
 ### Open a student
 
-- Tap the avatar for an **enlarged hero** (Familiar, inventory glimpse, link to the full Trophy Room).
-- **Hero Stats** gathers identity, trials logged, test/dictation picture (numbers or qualitative, matching how the class is graded), a small performance chart, and links to **Hero’s Chronicle** and **Certificate**.
+- Tap the avatar for the **Hero Stage**: the portrait grows into a card with the hero's class, Hero Path title and guild, **Stars this month**, **Stars all year** and **Gold**, any relic effects **working now**, and a look inside the **satchel**. Relics can be used right there (**Use**); treasures open a closer look, and **+N** jumps to the rest. Buttons open the **Treasure Vault** (Trophy Room), **Hero stats** (the same hero page as the Home class roster: virtues this month, latest stars, Teacher Boon and Hero's Boon status, Scholar's Scroll summary, with **Back to roster**), and the **Skill Tree**. The Familiar (Elite) sits beside the portrait; tap it for its stats. A pending level-up shows a **Choose a new skill** call. Close with ✕, Esc, or a tap outside.
+- **Hero stats** (from the Hero Stage, or a hero in a Home schedule card's roster) is one page: identity, Hero Path and guild, stars and Gold, virtues this month, latest stars, Teacher Boon / Hero's Boon status, and — for your own classes — the Scholar's Scroll summary (trials in the last 3 months, test average, best test, dictation picture in numbers or qualitative words matching how the class is graded, a progress chart once there are two trials) with **Full analytics**. **Back to roster** shows the whole class. The old separate Hero Stats window is gone.
 
 ### Trophy Room
 
-The student’s collection: seasonal treasures, unused Legendary Artifacts, and a place to **use** a power-up. Using an item consumes it and applies the effect (see Mystic Market).
+Every hero’s satchel for the chosen class. The hero list on the left shows each student’s item count, with a ⚡ when a relic is ready; tap a name (or use the arrow keys) to open their satchel.
+
+- **Working now:** effects already switched on (Gilded Star, stored luck, Banner of Glory charges, Aurum Satchel discount, and so on).
+- **Relics:** unused Legendary Artifacts, with copies stacked (×2). **Use** asks to confirm, then consumes one copy and applies the effect (see Mystic Market).
+- **Treasures:** kept for good, newest first: seasonal and Festival pieces, quiz prizes and Star-Embers from kept Ember Oaths. Each tile shows where it came from and when; tap one to look closer.
+
+On a phone the hero list becomes a strip across the top.
 
 ### Hall of Prodigies
 
@@ -38,7 +44,7 @@ This is **not** the Hall of Heroes. Hall of Heroes (Adventure Log) counts **Hero
 
 ### Certificates
 
-From the roster or Hero Stats: generate a certificate. On Elite, AI writes a unique paragraph from the student’s strongest virtue and monthly stars. The PDF uses the avatar and a Junior / Mid / Senior tone. You can still celebrate on Pro with the rest of the identity tools.
+From the roster: generate a certificate. On Elite, AI writes a unique paragraph from the student’s strongest virtue and monthly stars. The PDF uses the avatar and a Junior / Mid / Senior tone. You can still celebrate on Pro with the rest of the identity tools.
 
 ## What you can do
 

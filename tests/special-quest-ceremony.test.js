@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { QUEST_DEFINITIONS, SPECIAL_QUEST_TYPES, createQuestEventDocument, getDefaultProgress, reduceQuestProgress, resolveDailyModifier, applyDailyModifier, validateQuestEvent } from '../features/specialQuestEngine.js';
+import { QUEST_DEFINITIONS, SPECIAL_QUEST_TYPES, createQuestEventDocument, getDefaultProgress, reduceQuestProgress, resolveDailyModifier, applyDailyModifier, isSchoolWideModifierType, validateQuestEvent } from '../features/specialQuestEngine.js';
 import { CEREMONY_MODES, resolveCeremonyMode, seededShuffle, buildGrowthSpotlight, buildGrowthPublicSequence, chooseCanonicalWinners } from '../features/ceremonyDomain.js';
 import { QUEST_LEAGUE_DEFINITIONS } from '../constants.js';
 
@@ -32,6 +32,17 @@ test('progress reducers implement counter, streak, checklist and five steps', ()
 test('modifier precedence is deterministic', () => {
   const modifier = resolveDailyModifier([{ type: 'Reason Bonus Day', details: { reason: 'teamwork' } }, { type: '2x Star Day' }]);
   assert.equal(modifier.type, 'double_star_day'); assert.equal(applyDailyModifier(1, 'teamwork', modifier), 2);
+});
+
+test('standard modifiers are school-wide and validate without a class', () => {
+  for (const type of ['2x Star Day', 'Reason Bonus Day', 'double_star_day', 'reason_bonus_day']) {
+    assert.equal(isSchoolWideModifierType(type), true);
+  }
+  assert.equal(isSchoolWideModifierType('Vocabulary Vault'), false);
+  assert.equal(isSchoolWideModifierType(''), false);
+  const schoolWide = createQuestEventDocument({ type: '2x Star Day', dateKey: '2026-09-01', schoolYearKey: '2026-27', createdBy: { uid: 'teacher' } });
+  assert.equal(schoolWide.classId, null);
+  assert.equal(validateQuestEvent(schoolWide).valid, true);
 });
 
 test('growth spotlight is dignity-first and seeded order is stable', () => {

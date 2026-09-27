@@ -1,0 +1,289 @@
+/* --- PHONE LOADING SCENE -------------------------------------------------
+   A calm, compact variant of the open-sky loading screen for phones and small
+   tablets. templates/loading.js#initLoadingAtmosphere adds .gcq-loading-mobile
+   (max-width: 1023px, the same breakpoint as the phone shell) before the first
+   paint, and this file ships with style.css. Unlike mobile/styles/*, which
+   arrives only after the loading screen is already on screen, there is no
+   desktop-then-phone layout jump.
+
+   Layout (a single grid column):
+     hero     — logo + ring while loading; the Welcome greeting blooms in this
+                same cell, so nothing moves when it appears
+     title    — "The Great / Class Quest" on two balanced lines
+     flourish
+     subtitle
+   The tip card is pinned near the bottom safe area with a fixed height.
+   Decoration is pared back: 6–8 slow clouds kept out of the middle band, and
+   no journey icons, particles, sun, fireworks, burst or stardust. */
+
+#loading-screen.gcq-loading-mobile {
+    padding:
+        max(1rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
+}
+
+#loading-screen.gcq-loading-mobile .loading-journey-icons,
+#loading-screen.gcq-loading-mobile .loading-particles,
+#loading-screen.gcq-loading-mobile .loading-sun,
+#loading-screen.gcq-loading-mobile .loading-fireworks,
+#loading-screen.gcq-loading-mobile .loading-burst,
+#loading-screen.gcq-loading-mobile .loading-stardust {
+    display: none !important;
+}
+
+/* Per-cloud drop-shadow filters are the costliest thing on a phone GPU. */
+#loading-screen.gcq-loading-mobile .loading-cloud-art {
+    filter: none;
+}
+
+#loading-screen.gcq-loading-mobile.loading-final-moment .loading-cloud-art-layer {
+    opacity: 0.35;
+    transform: none;
+}
+
+/* ── Stage ─────────────────────────────────────────────────── */
+
+#loading-screen.gcq-loading-mobile .loading-stage,
+#loading-screen.gcq-loading-mobile.loading-final-moment .loading-stage {
+    width: 100%;
+    max-width: 22rem;
+    min-height: 0;
+    margin-top: -7vh;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-areas:
+        "hero"
+        "title"
+        "flourish"
+        "subtitle";
+    justify-items: center;
+    align-content: center;
+    gap: 0;
+    text-align: center;
+    /* No transform, including in the final moment: the scene stays put, and
+       the fixed tip card keeps the screen (not the stage) as its box. */
+    transform: none;
+    filter: none;
+}
+
+#loading-screen.gcq-loading-mobile .loading-stage::before {
+    width: 92vw;
+    height: 44vh;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.16) 55%, rgba(255, 255, 255, 0) 74%);
+    filter: none;
+}
+
+/* ── Hero cell: logo + ring ───────────────────────────────── */
+
+#loading-screen.gcq-loading-mobile .loading-spinner-wrap {
+    grid-area: hero;
+    width: 7rem;
+    height: 7rem;
+    margin: 0 0 1.25rem;
+}
+
+@keyframes gcq-m-logo-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+#loading-screen.gcq-loading-mobile .loading-center-logo {
+    width: 4.6rem !important;
+    height: 4.6rem !important;
+    animation: gcq-m-logo-breathe 3.2s ease-in-out infinite !important;
+}
+
+#loading-screen.gcq-loading-mobile .loading-center-logo img {
+    /* Static glow (set once) instead of the desktop's animated drop-shadow. */
+    filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.32));
+}
+
+#loading-screen.gcq-loading-mobile .loading-simple-ring {
+    width: 7rem;
+    height: 7rem;
+    border-width: 2.5px;
+    border-color: rgba(14, 165, 233, 0.14);
+    border-top-color: #f59e0b;
+    filter: none;
+    animation-duration: 2.6s;
+}
+
+#loading-screen.gcq-loading-mobile .loading-simple-ring::after {
+    top: 9px;
+    right: 9px;
+    bottom: 9px;
+    left: 9px;
+    border-width: 2px;
+    border-color: rgba(103, 232, 249, 0.16);
+    border-bottom-color: #fcd34d;
+}
+
+#loading-screen.gcq-loading-mobile.loading-final-moment .loading-spinner-wrap {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 260ms ease, transform 320ms cubic-bezier(0.25, 0.88, 0.32, 1);
+}
+
+/* ── Title block ──────────────────────────────────────────── */
+
+#loading-screen.gcq-loading-mobile .loading-title {
+    grid-area: title;
+    max-width: 11ch;
+    margin: 0 !important;
+    font-size: clamp(1.75rem, 8vw, 2.3rem) !important;
+    line-height: 1.08;
+    text-wrap: balance;
+    -webkit-text-stroke-width: 0.5px;
+}
+
+#loading-screen.gcq-loading-mobile .loading-title::before {
+    filter: blur(10px);
+    opacity: 0.4;
+}
+
+#loading-screen.gcq-loading-mobile.loading-final-moment .loading-title {
+    transform: none;
+    -webkit-text-stroke-width: 0.8px;
+    -webkit-text-stroke-color: rgba(0, 0, 0, 0.35);
+}
+
+#loading-screen.gcq-loading-mobile .loading-title-flourish {
+    grid-area: flourish;
+    width: 7.5rem;
+    margin: 0.6rem auto 0.5rem;
+}
+
+#loading-screen.gcq-loading-mobile .loading-subtitle {
+    grid-area: subtitle;
+    max-width: 17rem;
+    margin: 0;
+    font-size: 0.64rem;
+    line-height: 1.5;
+    letter-spacing: 0.12em;
+    text-wrap: balance;
+}
+
+/* ── Welcome greeting: blooms in the hero cell ─────────────── */
+
+#loading-screen.gcq-loading-mobile .loading-greeting {
+    grid-area: hero;
+    align-self: center;
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    margin: 0 0 1.25rem;
+    opacity: 0;
+    transform: scale(0.72);
+    transition: opacity 0.5s ease, transform 0.7s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+#loading-screen.gcq-loading-mobile .loading-greeting.loading-greeting-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#loading-screen.gcq-loading-mobile #loading-greeting-text,
+#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text {
+    max-width: 100%;
+    padding: 0 0.25rem;
+    font-size: clamp(1.4rem, 6.6vw, 1.85rem);
+    line-height: 1.16;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+}
+
+#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text {
+    /* Still colourful, but a single paint: no per-frame shimmer on phones. */
+    animation: none;
+    background-position: 30% 50%;
+    -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 0 16px rgba(255, 255, 255, 0.8);
+}
+
+#loading-screen.gcq-loading-mobile #loading-greeting-text::before {
+    animation: none;
+    opacity: 0.5;
+    filter: blur(12px);
+}
+
+/* ── Tip card: pinned above the bottom safe area ──────────── */
+
+#loading-screen.gcq-loading-mobile .loading-tip-card {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 0.75rem);
+    width: auto;
+    max-width: 21rem;
+    min-height: 3.3rem;
+    margin: 0 auto;
+    padding: 0.55rem 0.95rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.64);
+    border: 1px solid rgba(255, 255, 255, 0.88);
+    box-shadow: 0 8px 22px rgba(15, 40, 90, 0.1);
+}
+
+#loading-screen.gcq-loading-mobile .loading-tip {
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+/* ── Short screens (landscape phones) ─────────────────────── */
+
+@media (max-height: 540px) {
+    #loading-screen.gcq-loading-mobile .loading-stage,
+    #loading-screen.gcq-loading-mobile.loading-final-moment .loading-stage {
+        margin-top: -3.5rem;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-spinner-wrap,
+    #loading-screen.gcq-loading-mobile .loading-simple-ring {
+        width: 5rem;
+        height: 5rem;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-spinner-wrap,
+    #loading-screen.gcq-loading-mobile .loading-greeting {
+        margin-bottom: 0.7rem;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-center-logo {
+        width: 3.3rem !important;
+        height: 3.3rem !important;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-title {
+        max-width: none;
+        font-size: 1.6rem !important;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-subtitle {
+        display: none;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-tip-card {
+        bottom: max(0.6rem, env(safe-area-inset-bottom));
+        min-height: 2.6rem;
+        max-width: 30rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #loading-screen.gcq-loading-mobile .loading-center-logo {
+        animation: none !important;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-cloud-art {
+        animation-play-state: paused;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-greeting {
+        transform: none;
+        transition: opacity 0.3s ease;
+    }
+}

@@ -1,147 +1,942 @@
-/* styles/familiar_modal.css — Familiar Stats Overlay (Beautiful Redesign) */
+/* styles/familiar_modal.css — Familiar's Den (stats overlay)
+   Each species lives in its own habitat: a themed sky, ground, drifting motes and a rune altar.
+   Theme tokens are set per [data-fam-type]; unknown types fall back to the egg colour. */
 
-/* ─── Backdrop fade in / out ─────────────────────────────────────────────────── */
-@keyframes fam-modal-bg-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+/* ─── Theme tokens ──────────────────────────────────────────────────────────── */
+.fam-den {
+    --den-sky-top: #0d0b22;
+    --den-sky-mid: #2a1f5c;
+    --den-sky-low: var(--fam-color, #8b5cf6);
+    --den-glow: var(--fam-accent, #c4b5fd);
+    --den-glow-2: var(--fam-color, #8b5cf6);
+    --den-ink: #f5f3ff;
+    --den-body: #120f26;
+    --den-ground: #0a0818;
+    --den-rays: 0.18;
+    --mote-color: var(--den-glow);
+    --mote-anim: fam-mote-rise;
+    --mote-shape: 50%;
 }
-@keyframes fam-modal-bg-out {
-    from { opacity: 1; }
-    to   { opacity: 0; }
+.fam-den[data-fam-type="emberfang"] {
+    --den-sky-top: #1a0306;
+    --den-sky-mid: #5c0d0a;
+    --den-sky-low: #ea580c;
+    --den-glow: #fb923c;
+    --den-glow-2: #ef4444;
+    --den-ink: #ffedd5;
+    --den-body: #1c0808;
+    --den-ground: #140404;
+    --den-rays: 0.14;
+    --mote-color: #fdba74;
+    --mote-anim: fam-mote-ember;
 }
+.fam-den[data-fam-type="frostpaw"] {
+    --den-sky-top: #030b1f;
+    --den-sky-mid: #0b2f5c;
+    --den-sky-low: #38bdf8;
+    --den-glow: #7dd3fc;
+    --den-glow-2: #a78bfa;
+    --den-ink: #e0f2fe;
+    --den-body: #07142a;
+    --den-ground: #dbeafe;
+    --den-rays: 0.08;
+    --mote-color: #ffffff;
+    --mote-anim: fam-mote-snow;
+}
+.fam-den[data-fam-type="thornback"] {
+    --den-sky-top: #031109;
+    --den-sky-mid: #0d3b20;
+    --den-sky-low: #84cc16;
+    --den-glow: #a3e635;
+    --den-glow-2: #22c55e;
+    --den-ink: #ecfccb;
+    --den-body: #06170d;
+    --den-ground: #052e16;
+    --den-rays: 0.2;
+    --mote-color: #86efac;
+    --mote-anim: fam-mote-leaf;
+    --mote-shape: 0 80% 0 80%;
+}
+.fam-den[data-fam-type="veilshade"] {
+    --den-sky-top: #05020f;
+    --den-sky-mid: #240b52;
+    --den-sky-low: #7c3aed;
+    --den-glow: #c084fc;
+    --den-glow-2: #6366f1;
+    --den-ink: #f3e8ff;
+    --den-body: #0d0620;
+    --den-ground: #07030f;
+    --den-rays: 0.06;
+    --mote-color: #e9d5ff;
+    --mote-anim: fam-mote-wisp;
+}
+.fam-den[data-fam-type="sparkling"] {
+    --den-sky-top: #3b1a5a;
+    --den-sky-mid: #c2410c;
+    --den-sky-low: #fcd34d;
+    --den-glow: #fcd34d;
+    --den-glow-2: #fb7185;
+    --den-ink: #fef3c7;
+    --den-body: #1f0f14;
+    --den-ground: #2a0f12;
+    --den-rays: 0.32;
+    --mote-color: #fef08a;
+    --mote-anim: fam-mote-rise;
+}
+
+/* ─── Backdrop ──────────────────────────────────────────────────────────────── */
+@keyframes fam-modal-bg-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fam-modal-bg-out { from { opacity: 1; } to { opacity: 0; } }
 
 .fam-overlay-backdrop {
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at 20% 15%, rgba(255, 214, 102, 0.20), transparent 28%),
-        radial-gradient(circle at 80% 10%, rgba(129, 140, 248, 0.18), transparent 30%),
-        radial-gradient(circle at 50% 100%, rgba(244, 114, 182, 0.14), transparent 34%),
-        rgba(10, 18, 34, 0.74);
-    backdrop-filter: blur(14px) saturate(1.5);
-    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+        radial-gradient(ellipse at 50% 45%, rgba(40, 30, 80, 0.35), transparent 60%),
+        rgba(4, 6, 14, 0.82);
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
     animation: fam-modal-bg-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .fam-overlay-backdrop--exit {
     animation: fam-modal-bg-out 0.35s ease forwards;
 }
 
-/* ─── Card enter / exit ──────────────────────────────────────────────────────── */
+/* ─── Card ──────────────────────────────────────────────────────────────────── */
 @keyframes fam-modal-card-enter {
-    0%   { opacity: 0; transform: scale(0.88) translateY(36px); filter: blur(8px); }
-    65%  { opacity: 1; filter: blur(0); }
-    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    0%   { opacity: 0; transform: scale(0.86) translateY(40px) rotateX(8deg); filter: blur(8px); }
+    60%  { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0) rotateX(0); filter: blur(0); }
 }
 @keyframes fam-modal-card-exit {
     0%   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
     100% { opacity: 0; transform: scale(0.94) translateY(20px); filter: blur(6px); }
 }
 
-.fam-modal-card {
-    animation: fam-modal-card-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+.fam-den {
+    width: min(400px, calc(100vw - 32px));
+    border-radius: 28px;
+    border: 2px solid transparent;
+    background:
+        linear-gradient(180deg, var(--den-body), #07070d) padding-box,
+        linear-gradient(150deg, var(--den-glow) 0%, transparent 28%, color-mix(in srgb, var(--den-glow-2) 70%, transparent) 52%, transparent 76%, var(--den-glow) 100%) border-box;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        0 0 70px color-mix(in srgb, var(--den-glow) 32%, transparent),
+        0 40px 80px rgba(0, 0, 0, 0.6);
+    color: var(--den-ink);
+    overflow: hidden;
+    isolation: isolate;
+    animation: fam-modal-card-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .fam-modal-card--exit {
     animation: fam-modal-card-exit 0.38s cubic-bezier(0.55, 0.06, 0.68, 0.19) both;
     pointer-events: none;
 }
 
-/* ─── Sprite stage — halo glow pulse ─────────────────────────────────────────── */
+/* ─── Scroll area ───────────────────────────────────────────────────────────── */
+.fam-modal-scroll {
+    position: relative;
+    max-height: min(92dvh, 780px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--den-glow) 35%, transparent) transparent;
+}
+.fam-modal-scroll::-webkit-scrollbar { width: 4px; }
+.fam-modal-scroll::-webkit-scrollbar-track { background: transparent; }
+.fam-modal-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--den-glow) 35%, transparent);
+    border-radius: 99px;
+}
+
+/* ─── Close ─────────────────────────────────────────────────────────────────── */
+.fam-overlay-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 20;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 40%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: transform 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.fam-overlay-close:hover {
+    color: #fff;
+    transform: rotate(90deg) scale(1.06);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--den-glow) 60%, transparent);
+}
+
+/* ─── Habitat stage ─────────────────────────────────────────────────────────── */
+.fam-den-stage {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+    border-bottom: 1px solid color-mix(in srgb, var(--den-glow) 35%, transparent);
+}
+.fam-den-sky {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 70% 55% at 50% 88%, color-mix(in srgb, var(--den-sky-low) 70%, transparent), transparent 70%),
+        linear-gradient(180deg, var(--den-sky-top) 0%, var(--den-sky-mid) 62%, color-mix(in srgb, var(--den-sky-low) 55%, var(--den-sky-mid)) 100%);
+}
+
+/* Emberfang — volcanic glow and lava light from below */
+.fam-den[data-fam-type="emberfang"] .fam-den-sky {
+    background:
+        radial-gradient(ellipse 90% 45% at 50% 100%, rgba(251, 146, 60, 0.75), transparent 70%),
+        radial-gradient(circle at 18% 24%, rgba(239, 68, 68, 0.25), transparent 30%),
+        linear-gradient(180deg, #120204 0%, #4a0a08 55%, #9a2a0a 100%);
+}
+/* Frostpaw — aurora ribbons over a night sky */
+.fam-den[data-fam-type="frostpaw"] .fam-den-sky {
+    background:
+        linear-gradient(170deg, transparent 18%, rgba(45, 212, 191, 0.38) 30%, transparent 42%),
+        linear-gradient(185deg, transparent 26%, rgba(167, 139, 250, 0.32) 38%, transparent 52%),
+        radial-gradient(1.2px 1.2px at 20% 18%, #fff, transparent),
+        radial-gradient(1px 1px at 72% 12%, #fff, transparent),
+        radial-gradient(1.4px 1.4px at 88% 30%, #e0f2fe, transparent),
+        radial-gradient(1px 1px at 40% 8%, #fff, transparent),
+        linear-gradient(180deg, #020617 0%, #0b2f5c 70%, #1e5a8a 100%);
+    background-size: 220% 100%, 240% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    animation: fam-aurora 14s ease-in-out infinite alternate;
+}
+/* Thornback — forest canopy with light shafts */
+.fam-den[data-fam-type="thornback"] .fam-den-sky {
+    background:
+        radial-gradient(ellipse 30% 22% at 12% 0%, #052e16 60%, transparent 62%),
+        radial-gradient(ellipse 34% 24% at 90% 0%, #052e16 60%, transparent 62%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(163, 230, 53, 0.4), transparent 70%),
+        linear-gradient(180deg, #03140a 0%, #0f3d22 60%, #2f6b1f 100%);
+}
+/* Veilshade — moonlit starfield */
+.fam-den[data-fam-type="veilshade"] .fam-den-sky {
+    background:
+        radial-gradient(circle at 80% 22%, #f5f3ff 0 15px, rgba(233, 213, 255, 0.4) 17px, transparent 46px),
+        radial-gradient(1.2px 1.2px at 12% 20%, #fff, transparent),
+        radial-gradient(1px 1px at 30% 40%, #e9d5ff, transparent),
+        radial-gradient(1.3px 1.3px at 55% 14%, #fff, transparent),
+        radial-gradient(1px 1px at 64% 46%, #c4b5fd, transparent),
+        radial-gradient(1px 1px at 22% 62%, #fff, transparent),
+        radial-gradient(1.2px 1.2px at 92% 58%, #fff, transparent),
+        radial-gradient(ellipse 70% 40% at 50% 100%, rgba(124, 58, 237, 0.5), transparent 70%),
+        linear-gradient(180deg, #030108 0%, #1a0840 65%, #3b1480 100%);
+}
+/* Sparkling — sunrise */
+.fam-den[data-fam-type="sparkling"] .fam-den-sky {
+    background:
+        radial-gradient(circle at 50% 78%, #fffbeb 0 26px, rgba(253, 224, 71, 0.8) 30px, rgba(251, 146, 60, 0.35) 70px, transparent 130px),
+        linear-gradient(180deg, #2e1065 0%, #9d174d 38%, #ea580c 72%, #fcd34d 100%);
+}
+
+@keyframes fam-aurora {
+    from { background-position: 0% 0, 100% 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+    to   { background-position: 100% 0, 0% 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+}
+
+/* Ground silhouette */
+.fam-den-stage::after {
+    content: '';
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    bottom: 0;
+    height: 56px;
+    z-index: 2;
+    background: var(--den-ground);
+    clip-path: polygon(0 55%, 12% 40%, 24% 52%, 38% 34%, 50% 44%, 62% 30%, 76% 48%, 88% 36%, 100% 50%, 100% 100%, 0 100%);
+    pointer-events: none;
+}
+.fam-den[data-fam-type="emberfang"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #f97316 0 3px, #2a0605 3px, #140404);
+    clip-path: polygon(0 50%, 8% 30%, 15% 48%, 26% 18%, 34% 44%, 46% 36%, 58% 50%, 70% 20%, 80% 42%, 90% 26%, 100% 46%, 100% 100%, 0 100%);
+    filter: drop-shadow(0 -4px 10px rgba(249, 115, 22, 0.7));
+}
+.fam-den[data-fam-type="frostpaw"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #ffffff, #bfdbfe 60%, #93c5fd);
+    clip-path: ellipse(70% 60% at 50% 100%);
+    opacity: 0.92;
+}
+.fam-den[data-fam-type="thornback"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #3f6212, #14532d 40%, #052e16);
+    clip-path: polygon(0 40%, 6% 22%, 10% 44%, 18% 30%, 30% 52%, 42% 42%, 50% 50%, 58% 42%, 70% 52%, 82% 28%, 90% 44%, 95% 20%, 100% 38%, 100% 100%, 0 100%);
+}
+.fam-den[data-fam-type="veilshade"] .fam-den-stage::after {
+    background: linear-gradient(180deg, rgba(76, 29, 149, 0.6), #07030f 60%);
+    clip-path: ellipse(75% 55% at 50% 100%);
+}
+.fam-den[data-fam-type="sparkling"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #7c2d12, #2a0f12);
+    clip-path: ellipse(80% 50% at 50% 100%);
+}
+
+/* Rotating light rays behind the altar */
+.fam-den-rays {
+    position: absolute;
+    left: 50%;
+    top: 56%;
+    width: 520px;
+    height: 520px;
+    margin: -260px 0 0 -260px;
+    background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--den-glow) 70%, transparent) 0deg 6deg, transparent 6deg 22deg);
+    mask-image: radial-gradient(circle, #000 0 18%, transparent 58%);
+    -webkit-mask-image: radial-gradient(circle, #000 0 18%, transparent 58%);
+    opacity: var(--den-rays);
+    animation: fam-spin 60s linear infinite;
+    pointer-events: none;
+}
+
+/* ─── Motes ─────────────────────────────────────────────────────────────────── */
+.fam-den-motes {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+.fam-den-mote {
+    position: absolute;
+    width: var(--mote-size, 4px);
+    height: var(--mote-size, 4px);
+    border-radius: var(--mote-shape);
+    background: var(--mote-color);
+    box-shadow: 0 0 8px var(--mote-color);
+    opacity: 0;
+    animation: var(--mote-anim) var(--mote-dur, 6s) linear var(--mote-delay, 0s) infinite;
+}
+.fam-den[data-fam-type="thornback"] .fam-den-mote {
+    width: calc(var(--mote-size, 4px) * 2);
+    box-shadow: none;
+    background: linear-gradient(135deg, #bef264, #16a34a);
+}
+.fam-den[data-fam-type="frostpaw"] .fam-den-mote {
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+}
+
+@keyframes fam-mote-rise {
+    0%   { transform: translate(0, 60px) scale(0.6); opacity: 0; }
+    20%  { opacity: 0.95; }
+    80%  { opacity: 0.7; }
+    100% { transform: translate(var(--mote-drift, 0), -120px) scale(1); opacity: 0; }
+}
+@keyframes fam-mote-ember {
+    0%   { transform: translate(0, 90px) scale(1); opacity: 0; }
+    12%  { opacity: 1; }
+    45%  { transform: translate(calc(var(--mote-drift, 0) * 0.5), 10px) scale(0.85); }
+    100% { transform: translate(var(--mote-drift, 0), -130px) scale(0.3); opacity: 0; }
+}
+@keyframes fam-mote-snow {
+    0%   { transform: translate(0, -90px); opacity: 0; }
+    15%  { opacity: 0.95; }
+    50%  { transform: translate(calc(var(--mote-drift, 0) * -0.6), 20px); }
+    100% { transform: translate(var(--mote-drift, 0), 150px); opacity: 0; }
+}
+@keyframes fam-mote-leaf {
+    0%   { transform: translate(0, -90px) rotate(0deg); opacity: 0; }
+    15%  { opacity: 0.9; }
+    50%  { transform: translate(var(--mote-drift, 0), 20px) rotate(200deg); }
+    100% { transform: translate(calc(var(--mote-drift, 0) * -0.5), 150px) rotate(420deg); opacity: 0; }
+}
+@keyframes fam-mote-wisp {
+    0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+    35%      { opacity: 0.95; }
+    50%      { transform: translate(var(--mote-drift, 0), -18px) scale(1.2); opacity: 1; }
+    70%      { opacity: 0.2; }
+}
+
+/* ─── Element sigil ─────────────────────────────────────────────────────────── */
+.fam-den-sigil {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 6px;
+    border-radius: 999px;
+    font-family: 'Cinzel Decorative', 'Lora', Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--den-ink);
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 45%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: fam-text-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+.fam-den-sigil-icon {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: radial-gradient(circle, color-mix(in srgb, var(--den-glow) 55%, transparent), transparent 72%);
+}
+
+/* ─── Altar: rune circle, halo, pedestal, creature ──────────────────────────── */
+.fam-den-altar {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 4;
+    width: 210px;
+    height: 210px;
+    margin-left: -105px;
+    display: grid;
+    place-items: center;
+}
+.fam-den-runes {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 0 4px var(--den-glow));
+    animation: fam-spin 48s linear infinite;
+}
+.fam-rune-ring {
+    fill: none;
+    stroke: var(--den-glow);
+    stroke-width: 1.2;
+    opacity: 0.55;
+}
+.fam-rune-ring--dash {
+    stroke-width: 2;
+    stroke-dasharray: 2 7;
+    opacity: 0.8;
+}
+.fam-rune-ring--faint { opacity: 0.25; }
+.fam-rune-gem { fill: var(--den-glow); }
+.fam-rune-dot { fill: var(--den-ink); opacity: 0.7; }
+
 @keyframes fam-halo-pulse {
-    0%, 100% { opacity: 0.28; transform: scale(1.1); }
-    50%       { opacity: 0.52; transform: scale(1.3); }
+    0%, 100% { opacity: 0.45; transform: scale(0.95); }
+    50%      { opacity: 0.8;  transform: scale(1.1); }
 }
 .fam-modal-sprite-halo {
-    animation: fam-halo-pulse 3s ease-in-out infinite;
-}
-
-/* ─── Sprite stage — ring glow pulse ─────────────────────────────────────────── */
-@keyframes fam-ring-glow {
-    0%, 100% { box-shadow: var(--fam-ring-glow-dim, 0 0 20px rgba(139,92,246,0.3)); }
-    50%       { box-shadow: var(--fam-ring-glow-bright, 0 0 40px rgba(139,92,246,0.55)); }
-}
-.fam-modal-sprite-ring {
-    animation: fam-ring-glow 3s ease-in-out infinite;
-}
-
-/* ─── Floating type-coloured particles ───────────────────────────────────────── */
-@keyframes fam-particle-rise {
-    0%   { transform: translateY(0) translateX(0); opacity: 0; }
-    12%  { opacity: 0.9; }
-    88%  { opacity: 0.6; }
-    100% { transform: translateY(-260px) translateX(var(--fam-drift, 0px)); opacity: 0; }
-}
-.fam-modal-particle {
     position: absolute;
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--den-glow) 75%, transparent), color-mix(in srgb, var(--den-glow-2) 30%, transparent) 45%, transparent 70%);
+    filter: blur(10px);
+    animation: fam-halo-pulse 3.2s ease-in-out infinite;
     pointer-events: none;
-    opacity: 0;
-    animation: fam-particle-rise var(--fam-dur, 7s) linear var(--fam-delay, 0s) infinite;
+}
+.fam-den-pedestal {
+    position: absolute;
+    bottom: 22px;
+    width: 150px;
+    height: 34px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, color-mix(in srgb, var(--den-glow) 60%, transparent), rgba(0, 0, 0, 0.55) 55%, transparent 72%);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--den-glow) 50%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--den-glow) 80%, transparent);
+    pointer-events: none;
+}
+.fam-den-creature {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 18px;
+}
+.fam-den .familiar-container {
+    filter:
+        drop-shadow(0 0 12px color-mix(in srgb, var(--den-glow) 80%, transparent))
+        drop-shadow(0 8px 6px rgba(0, 0, 0, 0.45));
 }
 
-/* ─── Progress bar animated fill ─────────────────────────────────────────────── */
-@keyframes fam-progress-fill {
-    from { width: 0%; }
-    to   { width: var(--fam-progress, 0%); }
+@keyframes fam-spin { to { transform: rotate(360deg); } }
+
+/* ─── Body ──────────────────────────────────────────────────────────────────── */
+.fam-den-body {
+    position: relative;
+    padding: 16px 18px 20px;
+    background:
+        radial-gradient(ellipse 90% 40% at 50% 0%, color-mix(in srgb, var(--den-glow) 14%, transparent), transparent 70%);
 }
-.fam-modal-progress-bar {
-    animation: fam-progress-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+.fam-den-heading {
+    text-align: center;
+}
+.fam-modal-species {
+    font-family: 'Cinzel Decorative', 'Lora', Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--den-glow);
+    animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+}
+.fam-modal-name {
+    margin: 2px 0 8px;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 2.1rem;
+    line-height: 1.05;
+    color: #fff;
+    background: linear-gradient(180deg, #ffffff 30%, var(--den-ink) 60%, var(--den-glow) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--den-glow) 55%, transparent)) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.5));
+    overflow-wrap: anywhere;
+    animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+.fam-modal-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 18px;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1a1026;
+    background: linear-gradient(135deg, var(--den-ink), var(--den-glow) 55%, var(--den-glow-2));
+    box-shadow: 0 0 20px color-mix(in srgb, var(--den-glow) 55%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+.fam-modal-badge::before,
+.fam-modal-badge::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: -4px;
+    transform: rotate(45deg);
+    background: var(--den-glow);
+    box-shadow: 0 0 8px var(--den-glow);
+}
+.fam-modal-badge::before { left: -16px; }
+.fam-modal-badge::after  { right: -16px; }
+
+.fam-modal-quote {
+    position: relative;
+    margin: 16px 8px 0;
+    padding: 0 18px;
+    text-align: center;
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: color-mix(in srgb, var(--den-ink) 88%, transparent);
+    animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+.fam-modal-quote::before,
+.fam-modal-quote::after {
+    position: absolute;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--den-glow);
+    opacity: 0.7;
+}
+.fam-modal-quote::before { content: '\201C'; left: -2px; top: -6px; }
+.fam-modal-quote::after  { content: '\201D'; right: -2px; bottom: -20px; }
+
+.fam-den-traits {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+    animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both;
+}
+.fam-den-trait {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--den-ink);
+    background: color-mix(in srgb, var(--den-glow) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 38%, transparent);
 }
 
-/* ─── Stat cards stagger in ──────────────────────────────────────────────────── */
+/* ─── Panels ────────────────────────────────────────────────────────────────── */
 @keyframes fam-stat-in {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+.fam-den-panel,
 .fam-modal-stat {
+    position: relative;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+    border: 1px solid color-mix(in srgb, var(--den-glow) 26%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 6px 18px rgba(0, 0, 0, 0.25);
     animation: fam-stat-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.fam-modal-stat:nth-child(1) { animation-delay: 0.28s; }
-.fam-modal-stat:nth-child(2) { animation-delay: 0.38s; }
+.fam-den-body > .fam-den-panel:nth-of-type(1) { animation-delay: 0.44s; }
+.fam-den-body > .fam-den-panel:nth-of-type(2) { animation-delay: 0.5s; }
+.fam-den-body > .fam-den-panel:nth-of-type(3) { animation-delay: 0.62s; }
+.fam-den-body > .fam-den-panel:nth-of-type(4) { animation-delay: 0.68s; }
 
-/* ─── Header text stagger in ─────────────────────────────────────────────────── */
+.fam-den-label {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--den-ink) 60%, transparent);
+}
+.fam-den-hint {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--den-ink) 62%, transparent);
+}
+
+/* Evolution path */
+.fam-evo-track {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.fam-evo-track::before,
+.fam-evo-track::after {
+    content: '';
+    position: absolute;
+    top: 17px;
+    left: 12.5%;
+    height: 3px;
+    border-radius: 3px;
+}
+.fam-evo-track::before {
+    right: 12.5%;
+    background: rgba(255, 255, 255, 0.1);
+}
+.fam-evo-track::after {
+    width: calc(var(--evo-fill, 0%) * 0.75);
+    background: linear-gradient(90deg, var(--den-glow-2), var(--den-glow));
+    box-shadow: 0 0 10px var(--den-glow);
+}
+.fam-evo-node {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+/* Diamond gem: the ::before is rotated, the glyph stays upright */
+.fam-evo-gem {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    font-family: 'Cinzel Decorative', Georgia, serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-style: normal;
+    line-height: 1;
+}
+.fam-evo-gem::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    z-index: -1;
+    border-radius: 7px;
+    transform: rotate(45deg);
+}
+.fam-evo-node--done .fam-evo-gem { color: #1a1026; }
+.fam-evo-node--done .fam-evo-gem::before {
+    background: linear-gradient(135deg, var(--den-ink), var(--den-glow));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--den-glow) 60%, transparent);
+}
+.fam-evo-node--current .fam-evo-gem { color: #1a1026; }
+.fam-evo-node--current .fam-evo-gem::before {
+    inset: 3px;
+    background: linear-gradient(135deg, #fff, var(--den-glow) 60%, var(--den-glow-2));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--den-glow) 35%, transparent), 0 0 22px var(--den-glow);
+    animation: fam-evo-pulse 2.2s ease-in-out infinite;
+}
+.fam-evo-node--locked .fam-evo-gem {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.62rem;
+}
+.fam-evo-node--locked .fam-evo-gem::before {
+    background: #0b0a14;
+    border: 1.5px dashed rgba(255, 255, 255, 0.22);
+}
+.fam-evo-name {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--den-ink);
+    padding: 0 2px;
+}
+.fam-evo-node--current .fam-evo-name { color: var(--den-glow); font-weight: 700; }
+.fam-evo-node--locked .fam-evo-name { opacity: 0.4; }
+
+@keyframes fam-evo-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--den-glow) 35%, transparent), 0 0 16px var(--den-glow); }
+    50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--den-glow) 15%, transparent), 0 0 28px var(--den-glow); }
+}
+
+/* Next evolution progress */
+.fam-den-progress-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.fam-den-next {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--den-glow) 60%, transparent);
+}
+.fam-den-count {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--den-ink) 70%, transparent);
+}
+.fam-den-count strong {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--den-glow);
+}
+.fam-den-bar {
+    position: relative;
+    height: 12px;
+    margin-bottom: 7px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+@keyframes fam-progress-fill {
+    from { width: 0%; }
+    to   { width: var(--fam-progress, 0%); }
+}
+@keyframes fam-bar-shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(250%); }
+}
+.fam-modal-progress-bar {
+    position: relative;
+    height: 100%;
+    min-width: 12px;
+    width: var(--fam-progress, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--den-glow-2), var(--den-glow) 70%, #fff);
+    box-shadow: 0 0 14px var(--den-glow);
+    overflow: hidden;
+    animation: fam-progress-fill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.65s both;
+}
+.fam-modal-progress-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    animation: fam-bar-shimmer 2.6s ease-in-out 1.6s infinite;
+}
+
+/* Legendary form */
+.fam-den-max {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-color: rgba(251, 191, 36, 0.55);
+    background: linear-gradient(120deg, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0.03) 60%);
+}
+.fam-den-max-crown {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+    animation: fam-halo-pulse 2.6s ease-in-out infinite;
+}
+.fam-den-max-title {
+    font-family: 'Cinzel Decorative', Georgia, serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fde68a;
+    text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+/* Stats */
+.fam-den-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.fam-modal-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+}
+.fam-den-stats .fam-modal-stat:nth-child(1) { animation-delay: 0.56s; }
+.fam-den-stats .fam-modal-stat:nth-child(2) { animation-delay: 0.6s; }
+.fam-stat-icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--den-glow) 40%, transparent), rgba(0, 0, 0, 0.4));
+    border: 1px solid color-mix(in srgb, var(--den-glow) 45%, transparent);
+}
+.fam-modal-stat > div { min-width: 0; }
+.fam-stat-value {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    color: #fff;
+}
+.fam-stat-value--sm {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Failed sprite */
+.fam-den-failed {
+    border-color: rgba(248, 113, 113, 0.45);
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.04));
+}
+.fam-den-failed .fam-den-label { color: #fca5a5; }
+.fam-den-failed p {
+    margin: 6px 0 10px;
+    font-size: 0.78rem;
+    color: rgba(254, 226, 226, 0.8);
+}
+.fam-retry-btn {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.4);
+    transition: filter 0.2s ease;
+}
+.fam-retry-btn:hover { filter: brightness(1.12); }
+
+/* Naming */
+.fam-den-name-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.fam-name-input {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.9rem;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.fam-name-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+.fam-name-input:focus {
+    outline: none;
+    border-color: var(--den-glow);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 3px color-mix(in srgb, var(--den-glow) 25%, transparent);
+}
+.fam-name-save {
+    padding: 0 16px;
+    border-radius: 12px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    color: #1a1026;
+    background: linear-gradient(135deg, var(--den-ink), var(--den-glow));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--den-glow) 45%, transparent);
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+.fam-name-save:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.fam-regenerate-btn {
+    flex-shrink: 0;
+    width: 38px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: color-mix(in srgb, var(--den-ink) 70%, transparent);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+.fam-regenerate-btn:hover {
+    color: #fff;
+    border-color: var(--den-glow);
+}
+.fam-den-egg-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ─── Shared text entrance ──────────────────────────────────────────────────── */
 @keyframes fam-text-in {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.fam-modal-name    { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both; }
-.fam-modal-species { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
-.fam-modal-badge   { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both; }
-.fam-modal-quote   { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.38s both; }
 
-/* ─── Scrollable inner area ──────────────────────────────────────────────────── */
-.fam-modal-scroll {
-    max-height: min(90dvh, 720px);
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-}
-.fam-modal-scroll::-webkit-scrollbar {
-    width: 4px;
-}
-.fam-modal-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-.fam-modal-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 99px;
+/* ─── Small screens ─────────────────────────────────────────────────────────── */
+@media (max-width: 420px) {
+    .fam-den-stage { height: 220px; }
+    .fam-den-altar { transform: scale(0.9); transform-origin: 50% 100%; }
+    .fam-modal-name { font-size: 1.75rem; }
+    .fam-den-body { padding: 14px 14px 18px; }
+    .fam-evo-name { font-size: 0.62rem; }
 }
 
-/* ─── Reduced motion overrides ───────────────────────────────────────────────── */
+/* ─── Reduced motion ────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     .fam-overlay-backdrop,
-    .fam-modal-card,
+    .fam-den:not(.fam-modal-card--exit),
+    .fam-den-sky,
+    .fam-den-rays,
+    .fam-den-runes,
+    .fam-den-sigil,
     .fam-modal-sprite-halo,
-    .fam-modal-sprite-ring,
-    .fam-modal-stat,
-    .fam-modal-name,
     .fam-modal-species,
+    .fam-modal-name,
     .fam-modal-badge,
-    .fam-modal-quote {
+    .fam-modal-quote,
+    .fam-den-traits,
+    .fam-den-panel,
+    .fam-modal-stat,
+    .fam-evo-node--current .fam-evo-gem::before,
+    .fam-den-max-crown,
+    .fam-modal-progress-bar::after {
         animation: none !important;
-        opacity: 1 !important;
+        opacity: 1;
     }
-    .fam-modal-particle { display: none; }
+    .fam-den-rays { opacity: var(--den-rays); }
+    .fam-den-motes { display: none; }
     .fam-modal-progress-bar {
         animation: none !important;
         width: var(--fam-progress, 0%) !important;

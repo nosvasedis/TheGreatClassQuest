@@ -72,3 +72,57 @@ test('sorts, filters (accent-insensitive), and builds initials', () => {
     assert.equal(initialsFor('Zoe Pappa'), 'ZP');
     assert.equal(initialsFor(''), '?');
 });
+
+test('summarises a hero month from award logs', async () => {
+    const { buildHeroMonthSummary } = await import('../features/classRosterCore.mjs');
+    const logs = [
+        { studentId: 'a', reason: 'teamwork', stars: 2, date: '03-09-2026' },
+        { studentId: 'a', reason: 'focus', stars: 1, date: '10-09-2026' },
+        { studentId: 'a', reason: 'teamwork', stars: 1, date: '12-09-2026' },
+        { studentId: 'a', reason: 'peer_boon', stars: 0.5, date: '12-09-2026' },
+        { studentId: 'a', reason: 'wheel_fortune', stars: 0, date: '14-09-2026', hidden: true },
+        { studentId: 'b', reason: 'respect', stars: 3, date: '12-09-2026' }
+    ];
+    const s = buildHeroMonthSummary({ logs, studentId: 'a', isVisible: (l) => !l.hidden, recentLimit: 2 });
+    assert.deepEqual(s.virtues, [
+        { key: 'teamwork', stars: 3 }, { key: 'creativity', stars: 0 }, { key: 'respect', stars: 0 }, { key: 'focus', stars: 1 }
+    ]);
+    assert.equal(s.virtueMax, 3);
+    assert.deepEqual(s.extras, [{ reason: 'peer_boon', stars: 0.5 }]);
+    assert.equal(s.peerBoons, 1);
+    assert.equal(s.count, 4);
+    assert.deepEqual(s.recent.map((r) => r.date), ['12-09-2026', '12-09-2026']);
+});
+
+test('resolves Teacher Boon status by the real rules', async () => {
+    const { resolveTeacherBoonStatus } = await import('../features/classRosterCore.mjs');
+    const early = new Date(2026, 8, 10);
+    const late = new Date(2026, 8, 25); // September has 30 days → window opens on the 24th
+    assert.equal(resolveTeacherBoonStatus({ today: early }).state, 'closed');
+    assert.equal(resolveTeacherBoonStatus({ today: early }).opensOn.getDate(), 24);
+    assert.equal(resolveTeacherBoonStatus({ today: late }).state, 'open');
+    assert.equal(resolveTeacherBoonStatus({ today: late, boon: { studentId: 'a' }, studentId: 'a' }).state, 'received');
+    assert.equal(resolveTeacherBoonStatus({ today: late, boon: { studentId: 'b' }, studentId: 'a' }).state, 'given_to_other');
+});
+
+test('buildTrialSeries sorts trials by date and splits tests from dictations', async () => {
+    const { buildTrialSeries } = await import('../features/classRosterCore.mjs');
+    const scores = [
+        { type: 'dictation', date: '2026-09-10', p: 70 },
+        { type: 'test', date: '2026-09-01', p: 88.46 },
+        { type: 'test', date: '2026-09-20', p: 'x' },
+    ];
+    const series = buildTrialSeries(scores, { percentFor: (s) => s.p, dateOf: (s) => new Date(s.date) });
+    assert.deepEqual(series.tests, [88.5, null, null]);
+    assert.deepEqual(series.dictations, [null, 70, null]);
+    assert.equal(series.points[0].date, '2026-09-01');
+});
+
+test('pickBestTest ignores dictations and unreadable scores', async () => {
+    const { pickBestTest } = await import('../features/classRosterCore.mjs');
+    const pf = (s) => s.p;
+    assert.equal(pickBestTest([{ type: 'dictation', p: 99 }], pf), null);
+    const best = pickBestTest([{ type: 'test', p: 60, t: 'a' }, { type: 'test', p: 91.6, t: 'b' }, { type: 'test', p: null }], pf);
+    assert.equal(best.score.t, 'b');
+    assert.equal(best.percent, 92);
+});

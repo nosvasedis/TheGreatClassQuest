@@ -11,7 +11,29 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { showAnimatedModal, hideModal } from './base.js';
-import { buildClassRosterView, filterRosterHeroes, sortRosterHeroes } from '../../features/classRosterCore.mjs';
+import {
+    buildClassRosterView,
+    buildHeroMonthSummary,
+    buildTrialSeries,
+    pickBestTest,
+    filterRosterHeroes,
+    resolveTeacherBoonStatus,
+    sortRosterHeroes
+} from '../../features/classRosterCore.mjs';
+import {
+    AWARD_LOG_REASON_ICONS,
+    getAwardLogMonthlyStarCredit,
+    shouldShowInStarAwardLog
+} from '../../features/awardLogReasonMeta.js';
+import { getTeacherBoonForMonth } from '../../features/boons.js';
+import {
+    getAssessmentAverage,
+    getAssessmentValueLabel,
+    getClassAssessmentUsage,
+    getNormalizedPercentForScore,
+    getQualitativeDistribution
+} from '../../features/assessmentConfig.js';
+import { loadChart } from '../../utils/lazyLibraries.js';
 
 const MODAL_ID = 'class-roster-modal';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -28,6 +50,22 @@ const CLASS_TONES = [
     ['#fae8ff', '#f5d0fe', '#c026d3'], ['#fce7f3', '#fbcfe8', '#db2777'],
     ['#ffe4e6', '#fecdd3', '#e11d48']
 ];
+
+const REASON_LABELS = {
+    teamwork: 'Teamwork', creativity: 'Creativity', respect: 'Respect', focus: 'Focus',
+    welcome_back: 'Welcome Back', story_weaver: 'Story Weavers', scholar_s_bonus: 'Scholar’s Bonus',
+    teacher_boon: 'Teacher Boon', peer_boon: 'Hero’s Boon', pathfinder_map: 'Pathfinder’s Map',
+    quiz_of_the_week: 'Quiz of the Week', wheel_fortune: 'Fortune’s Wheel', wheel_curse: 'Fortune’s Wheel',
+    marked_present: 'Present', excellence: 'Excellence', special_quest: 'Special Quest', correction: 'Correction'
+};
+const VIRTUE_STYLE = {
+    teamwork: { icon: 'fa-users', color: '#7c3aed' },
+    creativity: { icon: 'fa-lightbulb', color: '#db2777' },
+    respect: { icon: 'fa-handshake', color: '#059669' },
+    focus: { icon: 'fa-bullseye', color: '#d97706' }
+};
+const reasonLabel = (reason) => REASON_LABELS[reason]
+    || String(reason || 'Other').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 const AVATAR_TONES = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'];
 
@@ -262,12 +300,10 @@ function renderHeroCard(hero, ctx) {
         hero.isNameday ? '<span class="crm-badge" title="Name day today">🎈</span>' : ''
     ].join('');
     const rank = hero.rank && hero.rank <= 3 ? `<span class="crm-rank crm-rank--${hero.rank}">${hero.rank}</span>` : '';
-    const tag = ctx.isMine ? 'button type="button"' : 'div';
-    const close = ctx.isMine ? 'button' : 'div';
     return `
-        <${tag} class="crm-hero${ctx.isMine ? ' crm-hero--open' : ''}${hero.isHero ? ' crm-hero--crowned' : ''}" data-crm-student="${escapeHtml(hero.id)}"
+        <button type="button" class="crm-hero crm-hero--open${hero.isHero ? ' crm-hero--crowned' : ''}" data-crm-student="${escapeHtml(hero.id)}"
             style="${guild ? `--crm-guild:${guild.primary};` : ''}"
-            title="${escapeHtml(hero.name)}${ctx.isMine ? ' — open Hero stats' : ''}">
+            title="${escapeHtml(hero.name)} — view this hero">
             <span class="crm-hero__avatar">${avatarHtml(hero)}${rank}${badges ? `<span class="crm-hero__badges">${badges}</span>` : ''}</span>
             <span class="crm-hero__body">
                 <strong class="crm-hero__name">${escapeHtml(hero.name)}</strong>
@@ -282,7 +318,7 @@ function renderHeroCard(hero, ctx) {
                     <span title="Gold"><i class="fas fa-coins"></i>${num(hero.gold)}</span>
                 </span>
             </span>
-        </${close}>`;
+        </button>`;
 }
 
 function renderRosterList(ctx, ui) {
@@ -314,6 +350,227 @@ function renderRosterSection(ctx, ui) {
         </section>`;
 }
 
+function formatLogDate(dateKey) {
+    const d = dateKey ? utils.parseDDMMYYYY(dateKey) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+}
+
+function renderBoonPanel(ctx, hero) {
+    const boon = getTeacherBoonForMonth(ctx.classData, utils.getLocalMonthKey());
+    const status = resolveTeacherBoonStatus({ boon, studentId: hero.id });
+    const opens = status.opensOn.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const winner = boon?.studentId ? ctx.view.heroes.find((h) => h.id === boon.studentId) : null;
+    const boonReason = String(boon?.reasonText || boon?.presetLabel || '').trim();
+    let body = '';
+    let action = '';
+    if (status.state === 'received') {
+        body = `<strong>Received this month’s Teacher Boon</strong><span>+2 ⭐${boonReason ? ` · ${escapeHtml(boonReason)}` : ''}</span>`;
+    } else if (status.state === 'given_to_other') {
+        body = `<strong>This month’s Teacher Boon is given</strong><span>It went to ${escapeHtml(winner?.firstName || 'another hero')}${boonReason ? ` · ${escapeHtml(boonReason)}` : ''}. One per class each month.</span>`;
+    } else if (status.state === 'open') {
+        body = '<strong>Teacher Boon is open</strong><span>Last week of the month: the class’s one Teacher Boon (+2 ⭐) can still go to one hero.</span>';
+        if (ctx.isMine) action = '<button type="button" class="crm-btn crm-btn--boon" data-crm-action="boon"><i class="fas fa-gift"></i> Give Teacher Boon</button>';
+    } else {
+        body = `<strong>Teacher Boon opens ${escapeHtml(opens)}</strong><span>Only in the last 7 days of the month: +2 ⭐ for one hero per class.</span>`;
+    }
+    const peer = hero.peerBoons > 0
+        ? `<div class="crm-boon crm-boon--peer"><i class="fas fa-heart"></i><div><strong>${hero.peerBoons} Hero’s Boon${hero.peerBoons === 1 ? '' : 's'} this month</strong><span>Gifts from classmates (+0.5 ⭐ each).</span></div></div>`
+        : '';
+    return `
+        <section class="crm-section">
+            <h3 class="crm-section__title"><i class="fas fa-gift"></i> Boons</h3>
+            <div class="crm-boons">
+                <div class="crm-boon crm-boon--${status.state}"><i class="fas fa-gift"></i><div>${body}</div>${action}</div>
+                ${peer}
+            </div>
+        </section>`;
+}
+
+/** This hero's written scores of the kinds the class uses (the assessments listener keeps the last 3 months). */
+function heroTrials(ctx, heroId) {
+    const usage = getClassAssessmentUsage(ctx.classData);
+    const scores = (state.get('allWrittenScores') || []).filter((sc) => sc.studentId === heroId
+        && ((sc.type === 'test' && usage.tests) || (sc.type === 'dictation' && usage.dictations)));
+    return { usage, scores };
+}
+
+function renderTrialsPanel(ctx, hero) {
+    if (!ctx.isMine || !canUseFeature('scholarScroll')) return '';
+    const { usage, scores } = heroTrials(ctx, hero.id);
+    if (!usage.any) return '';
+    const head = `
+        <div class="crm-trials-head">
+            <h3 class="crm-section__title"><i class="fas fa-scroll"></i> Scholar’s Scroll · last 3 months</h3>
+            <button type="button" class="crm-btn crm-btn--ghost crm-btn--small" data-crm-analytics="${escapeHtml(hero.id)}"><i class="fas fa-chart-line"></i> Full analytics</button>
+        </div>`;
+    if (!scores.length) {
+        return `<section class="crm-section">${head}<p class="crm-trials-empty">No trials logged for ${escapeHtml(hero.firstName)} in the last 3 months.</p></section>`;
+    }
+    const percentFor = (sc) => getNormalizedPercentForScore(sc, ctx.classData);
+    const tests = scores.filter((sc) => sc.type === 'test');
+    const dictations = scores.filter((sc) => sc.type === 'dictation');
+    const testAvg = tests.length ? getAssessmentAverage(tests, ctx.classData) : null;
+    const best = pickBestTest(tests, percentFor);
+    let dictationStat = '';
+    if (dictations.length) {
+        const dist = getQualitativeDistribution(dictations, ctx.classData);
+        const labels = Object.keys(dist);
+        const avg = getAssessmentAverage(dictations, ctx.classData);
+        const summary = labels.length ? labels.map((l) => `${dist[l]}× ${l}`).join(', ') : (avg !== null ? `${Math.round(avg)}%` : '');
+        if (summary) dictationStat = `<div class="crm-mini-stats__wide"><strong class="crm-clamp">${escapeHtml(summary)}</strong><span>Dictations</span></div>`;
+    }
+    const latest = scores.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0];
+    const chart = scores.length >= 2
+        ? '<div class="crm-trials-chart" data-crm-trials-chart><canvas role="img" aria-label="Trial progress over time"></canvas></div>'
+        : '<p class="crm-trials-empty">One more trial and a progress chart appears here.</p>';
+    return `
+        <section class="crm-section">
+            ${head}
+            <div class="crm-mini-stats">
+                <div><strong>${scores.length}</strong><span>Trials</span></div>
+                ${testAvg !== null ? `<div><strong>${Math.round(testAvg)}%</strong><span>Test average</span></div>` : ''}
+                ${best ? `<div class="crm-mini-stats__wide"><strong class="crm-clamp">${best.percent}% · ${escapeHtml(best.score.title || 'Test')}</strong><span>Best test</span></div>` : ''}
+                ${dictationStat}
+                ${latest ? `<div class="crm-mini-stats__wide"><strong class="crm-clamp">${escapeHtml(latest.title || (latest.type === 'dictation' ? 'Dictation' : 'Test'))}</strong><span>Latest · ${escapeHtml(getAssessmentValueLabel(latest, ctx.classData) || '')}</span></div>` : ''}
+            </div>
+            ${chart}
+        </section>`;
+}
+
+let trialsChart = null;
+function destroyTrialsChart() {
+    trialsChart?.destroy();
+    trialsChart = null;
+}
+
+/** Draws the progress chart once the hero view is in the DOM (Chart.js loads lazily). */
+async function mountTrialsChart(host, ctx, heroId) {
+    destroyTrialsChart();
+    const canvas = host?.querySelector('[data-crm-trials-chart] canvas');
+    if (!canvas) return;
+    const { usage, scores } = heroTrials(ctx, heroId);
+    const series = buildTrialSeries(scores, {
+        percentFor: (sc) => getNormalizedPercentForScore(sc, ctx.classData),
+        dateOf: (sc) => utils.parseFlexibleDate(sc.date)
+    });
+    let Chart;
+    try {
+        Chart = await loadChart();
+    } catch (error) {
+        console.warn('Trial chart unavailable:', error);
+        canvas.parentElement?.remove();
+        return;
+    }
+    if (!canvas.isConnected) return;
+    const labels = series.dates.map((d) => (d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''));
+    const datasets = [];
+    if (usage.tests) datasets.push({ label: 'Tests', data: series.tests, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.3, spanGaps: true, pointRadius: 4 });
+    if (usage.dictations) datasets.push({ label: 'Dictations', data: series.dictations, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.3, spanGaps: true, pointRadius: 4 });
+    trialsChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: datasets.length > 1, labels: { color: '#475569', boxWidth: 10, usePointStyle: true } },
+                tooltip: {
+                    callbacks: {
+                        label: (item) => {
+                            const sc = series.points[item.dataIndex];
+                            const value = getAssessmentValueLabel(sc, ctx.classData) || `${item.parsed.y}%`;
+                            return `${item.dataset.label}: ${value}${sc?.title ? ` · ${sc.title}` : ''}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, max: 100, ticks: { color: '#94a3b8', callback: (v) => `${v}%` }, grid: { color: 'rgba(148, 163, 184, 0.18)' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderHeroDetail(ctx, heroId) {
+    const hero = ctx.view.heroes.find((h) => h.id === heroId);
+    if (!hero) return '<div class="crm-empty"><span>🔎</span><strong>This hero is no longer in the class</strong></div>';
+    const month = buildHeroMonthSummary({
+        logs: state.get('allAwardLogs') || [],
+        studentId: hero.id,
+        creditFor: getAwardLogMonthlyStarCredit,
+        isVisible: shouldShowInStarAwardLog
+    });
+    const guild = ctx.showGuilds && hero.guildId ? getGuildById(hero.guildId) : null;
+    const heroClass = ctx.showHeroPath && hero.heroClass && HERO_CLASSES[hero.heroClass] ? HERO_CLASSES[hero.heroClass] : null;
+    const title = heroClass ? (hero.heroLevel > 0 ? getHeroTitle(hero.heroClass, hero.heroLevel) : hero.heroClass) : '';
+    const badges = [
+        hero.isHero ? '<span class="crm-chip crm-chip--soft">👑 Latest Hero of the Day</span>' : '',
+        hero.isBirthday ? '<span class="crm-chip crm-chip--soft">🎂 Birthday today</span>' : '',
+        hero.isNameday ? '<span class="crm-chip crm-chip--soft">🎈 Name day today</span>' : ''
+    ].join('');
+    const rankLine = !ctx.gentle && hero.rank
+        ? `<span class="crm-chip crm-chip--soft"><i class="fas fa-trophy"></i>#${hero.rank} in class this month</span>` : '';
+
+    const virtues = month.virtues.map((v) => {
+        const style = VIRTUE_STYLE[v.key];
+        const pct = month.virtueMax > 0 ? Math.round((v.stars / month.virtueMax) * 100) : 0;
+        return `
+            <div class="crm-virtue" style="--crm-virtue:${style.color}">
+                <span class="crm-virtue__icon"><i class="fas ${style.icon}"></i></span>
+                <span class="crm-virtue__label">${reasonLabel(v.key)}</span>
+                <span class="crm-virtue__bar"><span style="width:${pct}%"></span></span>
+                <b>${num(v.stars)}</b>
+            </div>`;
+    }).join('');
+    const extras = month.extras.length
+        ? `<div class="crm-extras">${month.extras.map((e) => `<span class="crm-pill crm-pill--extra"><i class="fas ${AWARD_LOG_REASON_ICONS[e.reason] || 'fa-star'}"></i>${escapeHtml(reasonLabel(e.reason))} ${e.stars > 0 ? '+' : ''}${num(e.stars)}</span>`).join('')}</div>`
+        : '';
+    const recent = month.recent.length
+        ? month.recent.map((r) => `
+            <li><i class="fas ${AWARD_LOG_REASON_ICONS[r.reason] || 'fa-star'}"></i><span>${escapeHtml(reasonLabel(r.reason))}</span><small>${escapeHtml(formatLogDate(r.date))}</small><b>${r.stars > 0 ? '+' : ''}${num(r.stars)} ⭐</b></li>`).join('')
+        : '<li class="crm-recent__empty">No stars recorded yet this month.</li>';
+
+    return `
+        <section class="crm-profile">
+            ${avatarHtml(hero, 'xl')}
+            <div class="crm-profile__text">
+                <h3 class="font-title">${escapeHtml(hero.name)}</h3>
+                <div class="crm-chips">
+                    ${heroClass ? `<span class="crm-chip crm-chip--soft">${heroClass.icon} ${escapeHtml(title)}${hero.heroLevel > 0 ? ` · Lv ${hero.heroLevel}` : ''}</span>` : ''}
+                    ${guild ? `<span class="crm-chip crm-chip--soft" style="color:${guild.primary}">${escapeHtml(guild.emoji || '🛡️')} ${escapeHtml(guild.name)}</span>` : ''}
+                    ${rankLine}${badges}
+                </div>
+            </div>
+        </section>
+        <section class="crm-stats crm-stats--hero" aria-label="Hero at a glance">
+            <div class="crm-stat crm-stat--amber"><i class="fas fa-star"></i><strong>${num(hero.monthlyStars)}</strong><span>Stars this month</span></div>
+            <div class="crm-stat crm-stat--violet"><i class="fas fa-medal"></i><strong>${num(hero.totalStars)}</strong><span>Stars all year</span></div>
+            <div class="crm-stat crm-stat--gold"><i class="fas fa-coins"></i><strong>${num(hero.gold)}</strong><span>Gold</span></div>
+        </section>
+        <div class="crm-hero-grid">
+            <section class="crm-section">
+                <h3 class="crm-section__title"><i class="fas fa-seedling"></i> This month’s virtues</h3>
+                <div class="crm-virtues">${virtues}</div>
+                ${extras}
+            </section>
+            <section class="crm-section">
+                <h3 class="crm-section__title"><i class="fas fa-history"></i> Latest stars</h3>
+                <ul class="crm-recent">${recent}</ul>
+            </section>
+        </div>
+        ${renderBoonPanel(ctx, { ...hero, peerBoons: month.peerBoons })}
+        ${renderTrialsPanel(ctx, hero)}`;
+}
+
+function renderHeroFooter(ctx) {
+    return `
+        <footer class="crm-foot">
+            <button type="button" class="crm-btn crm-btn--ghost" data-crm-back><i class="fas fa-arrow-left"></i> Back to roster</button>
+            ${ctx.isMine ? '<button type="button" class="crm-btn crm-btn--star" data-crm-action="award"><i class="fas fa-star"></i> Award Stars</button>' : ''}
+        </footer>`;
+}
+
 function renderFooter(ctx) {
     if (!ctx.isMine) {
         return `<footer class="crm-foot crm-foot--readonly"><i class="fas fa-lock"></i><span>This class belongs to <b>${escapeHtml(ctx.classData.createdBy?.name || 'another teacher')}</b>. You can look, but only they can award or edit.</span><button type="button" class="crm-btn crm-btn--ghost" data-crm-close>Close</button></footer>`;
@@ -343,9 +600,10 @@ let session = null;
 /**
  * Open the roster peek for a class on the school schedule.
  * @param {string} classId
- * @param {{ onEnterClass?: (id:string)=>void, onAwardStars?: (id:string)=>void, onEditClass?: (id:string)=>void, onOpenStudent?: (id:string, el:Element)=>void }} [hooks]
+ * @param {{ onEnterClass?: (id:string)=>void, onAwardStars?: (id:string)=>void, onEditClass?: (id:string)=>void, onTeacherBoon?: (id:string)=>void }} [hooks]
+ * @param {{ heroId?: string }} [options] heroId opens straight on that hero (Back still leads to the roster).
  */
-export function openClassRosterModal(classId, hooks = {}) {
+export function openClassRosterModal(classId, hooks = {}, { heroId = '' } = {}) {
     const classData = (state.get('allSchoolClasses') || []).find((c) => c.id === classId);
     if (!classData) return;
     session?.dispose();
@@ -360,15 +618,33 @@ export function openClassRosterModal(classId, hooks = {}) {
     shell.style.setProperty('--crm-accent', accent);
     shell.classList.toggle('crm-shell--mine', ctx.isMine);
 
-    shell.innerHTML = `
-        ${renderHeader(ctx)}
-        <div class="crm-body">
+    const rosterBody = () => `
             ${renderStats(ctx)}
             ${renderHighlights(ctx)}
             ${renderPodium(ctx)}
-            ${renderRosterSection(ctx, ui)}
-        </div>
-        ${renderFooter(ctx)}`;
+            ${renderRosterSection(ctx, ui)}`;
+    shell.innerHTML = `
+        ${renderHeader(ctx)}
+        <div class="crm-body" data-crm-body>${rosterBody()}</div>
+        <div class="crm-foot-host" data-crm-foot>${renderFooter(ctx)}</div>`;
+
+    const body = shell.querySelector('[data-crm-body]');
+    const foot = shell.querySelector('[data-crm-foot]');
+    let rosterScroll = 0;
+    const showHero = (heroId) => {
+        rosterScroll = body.scrollTop;
+        body.innerHTML = `<div class="crm-view-enter">${renderHeroDetail(ctx, heroId)}</div>`;
+        foot.innerHTML = renderHeroFooter(ctx);
+        void mountTrialsChart(body, ctx, heroId);
+        body.scrollTop = 0;
+        foot.querySelector('[data-crm-back]')?.focus({ preventScroll: true });
+    };
+    const showRoster = () => {
+        destroyTrialsChart();
+        body.innerHTML = rosterBody();
+        foot.innerHTML = renderFooter(ctx);
+        body.scrollTop = rosterScroll;
+    };
 
     const refreshRoster = () => {
         const host = shell.querySelector('[data-crm-roster]');
@@ -381,10 +657,18 @@ export function openClassRosterModal(classId, hooks = {}) {
     const onClick = (event) => {
         if (event.target === modal) return close();
         if (event.target.closest('.enlargeable-avatar')) return; // portrait zoom handles itself
-        const el = event.target.closest('[data-crm-close], [data-crm-sort], [data-crm-action], [data-crm-student]');
+        const analytics = event.target.closest('[data-crm-analytics]');
+        if (analytics) {
+            // Student Analytics sits above this modal (z-200); closing it returns here.
+            import('./studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(analytics.dataset.crmAnalytics, analytics));
+            return;
+        }
+        const el = event.target.closest('[data-crm-close], [data-crm-back], [data-crm-sort], [data-crm-action], [data-crm-student]');
         if (!el) return;
         if (el.hasAttribute('data-crm-close')) return close();
+        if (el.hasAttribute('data-crm-back')) return showRoster();
         if (el.dataset.crmSort) { ui.sort = el.dataset.crmSort; refreshRoster(); return; }
+        if (el.dataset.crmStudent) return showHero(el.dataset.crmStudent);
         if (!ctx.isMine) return;
         const action = el.dataset.crmAction;
         if (action) {
@@ -392,9 +676,8 @@ export function openClassRosterModal(classId, hooks = {}) {
             if (action === 'enter') hooks.onEnterClass?.(classId);
             else if (action === 'award') hooks.onAwardStars?.(classId);
             else if (action === 'edit') hooks.onEditClass?.(classId);
-            return;
+            else if (action === 'boon') hooks.onTeacherBoon?.(classId);
         }
-        if (el.dataset.crmStudent) hooks.onOpenStudent?.(el.dataset.crmStudent, el);
     };
     const onInput = (event) => {
         if (!event.target.matches('[data-crm-search]')) return;
@@ -403,11 +686,10 @@ export function openClassRosterModal(classId, hooks = {}) {
     };
     const onKey = (event) => {
         if (event.key !== 'Escape' || modal.classList.contains('hidden')) return;
-        // Let a Hero stats modal opened on top close first.
-        if (!document.getElementById('hero-stats-modal')?.classList.contains('hidden')) return;
         if (document.querySelector('.enlarged-avatar-container')) return;
         event.stopPropagation();
-        close();
+        // Escape steps back from a hero to the roster before closing.
+        if (foot.querySelector('[data-crm-back]')) showRoster(); else close();
     };
 
     modal.addEventListener('click', onClick);
@@ -415,6 +697,7 @@ export function openClassRosterModal(classId, hooks = {}) {
     document.addEventListener('keydown', onKey, true);
     session = {
         dispose() {
+            destroyTrialsChart();
             modal.removeEventListener('click', onClick);
             modal.removeEventListener('input', onInput);
             document.removeEventListener('keydown', onKey, true);
@@ -422,6 +705,9 @@ export function openClassRosterModal(classId, hooks = {}) {
         }
     };
 
+    const startOnHero = heroId && ctx.view.heroes.some((h) => h.id === heroId);
+    if (startOnHero) showHero(heroId);
+
     showAnimatedModal(MODAL_ID);
-    requestAnimationFrame(() => shell.querySelector('.crm-close')?.focus({ preventScroll: true }));
+    if (!startOnHero) requestAnimationFrame(() => shell.querySelector('.crm-close')?.focus({ preventScroll: true }));
 }

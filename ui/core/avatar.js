@@ -1,9 +1,25 @@
 // /ui/core/avatar.js
+// Avatar enlargement: the portrait flies out of the list into the Hero Stage card
+// (markup: ui/core/heroStageView.mjs, satchel model: features/trophyRoomCore.mjs).
 import * as state from '../../state.js';
+import { getLocalMonthKey } from '../../utils.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
+import { getGuildById } from '../../features/guilds.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { getHeroTitle } from '../../features/heroSkillTree.js';
+import { buildTrophySatchel, buildActiveEffects, previewTrophySatchel } from '../../features/trophyRoomCore.mjs';
+import { canUseFeature } from '../../utils/subscription.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+
+const TREASURE_PREVIEW = 8;
+const loadStageView = () => import('./heroStageView.mjs');
+
+function escHtml(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+const FLIGHT_MS = 460;
 
 /**
  * Wraps avatar HTML with the level-up indicator (arrow + glow) when the student has leveled up
@@ -18,65 +34,58 @@ export function wrapAvatarWithLevelUpIndicator(avatarInnerHtml, pendingSkillChoi
     return `<div class="avatar-with-level-up-wrap">${badge}${avatarInnerHtml}</div>`;
 }
 
+// Crystal of Clarity is "used on your card": make the portrait on the open Hero Stage shine.
 document.addEventListener('clarity-glimmer', (e) => {
-    const { studentId, itemIndex } = e.detail || {};
-    const container = document.querySelector(`.inventory-container[data-student-id="${studentId}"]`);
-    if (!container) return;
-    const btn = container.querySelector(`.avatar-inventory-use-btn[data-item-index="${itemIndex}"]`);
-    const card = btn?.closest('.avatar-inventory-item');
-    if (card) {
-        card.classList.add('clarity-glimmer');
-        setTimeout(() => card.classList.remove('clarity-glimmer'), 1500);
-    }
+    const { studentId } = e.detail || {};
+    const slot = document.querySelector(`.hs-card[data-student-id="${CSS.escape(String(studentId || ''))}"] [data-hs-portrait]`);
+    if (!slot) return;
+    slot.classList.remove('clarity-glimmer');
+    void slot.offsetWidth;
+    slot.classList.add('clarity-glimmer');
+    setTimeout(() => slot.classList.remove('clarity-glimmer'), 1500);
 });
 
-/** Build the inner HTML for the inventory section (title, gold, items grid). Used for initial render and after Use. */
-function buildInventoryInnerHtml(studentId) {
-    const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
-    const inventory = scoreData?.inventory || [];
-    const gold = getLiveYearGoldFromAppState(scoreData, state);
-    const student = state.get('allStudents').find(s => s.id === studentId);
+function findClass(classId) {
+    if (!classId) return null;
+    return (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
+        || (state.get('allSchoolClasses') || []).find((c) => c.id === classId)
+        || null;
+}
 
-    if (inventory.length === 0) {
-        return `
-            <h3 class="inventory-title text-3xl mb-1">${student?.name || 'Unknown'}'s Collection</h3>
-            <div class="inventory-gold-pill mb-4"><i class="fas fa-coins text-amber-400"></i> ${gold} Gold</div>
-            <div class="avatar-inventory-items flex flex-wrap justify-center gap-6 mt-4">
-                <p class="text-white/40 text-sm italic font-medium">No artifacts collected yet.</p>
-            </div>
-            <p class="mt-8"><button type="button" class="open-trophy-room-link text-amber-400 hover:text-amber-300 font-bold transition-all text-sm uppercase tracking-wider" data-student-id="${studentId}">Open Full Vault <i class="fas fa-chevron-right ml-1"></i></button></p>`;
-    }
+/** Everything that changes when a relic is used (stats, effects, satchel). */
+function buildStageBody(studentId) {
+    const scoreData = (state.get('allStudentScores') || []).find((s) => s.id === studentId) || {};
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId) || {};
+    const satchel = buildTrophySatchel(scoreData.inventory, { isUsable: isItemUsable });
+    return {
+        firstName: String(student.name || 'Hero').trim().split(/\s+/)[0] || 'Hero',
+        stats: {
+            monthlyStars: scoreData.monthlyStars,
+            totalStars: scoreData.totalStars,
+            gold: getLiveYearGoldFromAppState(scoreData, state),
+        },
+        effects: buildActiveEffects(scoreData, getLocalMonthKey()),
+        preview: previewTrophySatchel(satchel, { treasureLimit: TREASURE_PREVIEW }),
+        total: satchel.total,
+    };
+}
 
-    const itemsHtml = inventory.map((item, index) => {
-        let visual = '';
-        if (item.image) {
-            visual = `<div class="avatar-inventory-item-visual"><img src="${item.image}" alt="${item.name}"></div>`;
-        } else {
-            const icon = item.icon || '📦';
-            visual = `<div class="avatar-inventory-item-visual"><div class="item-icon">${icon}</div></div>`;
-        }
-        const useBtn = isItemUsable(item.name)
-            ? `<button type="button" class="avatar-inventory-use-btn" data-item-index="${index}">Use</button>`
-            : '';
-        
-        return `
-            <div class="avatar-inventory-item group" 
-                 data-item-name="${item.name.replace(/"/g, '&quot;')}" 
-                 data-item-desc="${item.description.replace(/"/g, '&quot;')}" 
-                 data-item-icon="${item.icon || ''}" 
-                 data-item-image="${item.image || ''}">
-                ${visual}
-                ${useBtn}
-            </div>`;
-    }).join('');
-
-    return `
-        <h3 class="inventory-title text-3xl mb-1">${student?.name || 'Unknown'}'s Collection</h3>
-        <div class="inventory-gold-pill mb-4"><i class="fas fa-coins text-amber-400"></i> ${gold} Gold</div>
-        <div class="avatar-inventory-items flex flex-wrap justify-center gap-6 mt-4">
-            ${itemsHtml}
-        </div>
-        <p class="mt-8"><button type="button" class="open-trophy-room-link text-amber-400 hover:text-amber-300 font-bold transition-all text-sm uppercase tracking-wider" data-student-id="${studentId}">Open Full Vault <i class="fas fa-chevron-right ml-1"></i></button></p>`;
+function buildStageView(studentId) {
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId) || { id: studentId, name: 'Hero' };
+    const scoreData = (state.get('allStudentScores') || []).find((s) => s.id === studentId) || {};
+    const cls = findClass(student.classId);
+    const heroClass = canUseFeature('heroProgression') && student.heroClass ? HERO_CLASSES[student.heroClass] : null;
+    const level = Number(scoreData.heroLevel) || 0;
+    const guildDef = canUseFeature('guilds') && student.guildId ? getGuildById(student.guildId) : null;
+    return {
+        student: { id: studentId, name: student.name || 'Hero' },
+        classLabel: [cls?.logo, cls?.name].filter(Boolean).join(' '),
+        path: heroClass ? { icon: heroClass.icon, title: level > 0 ? getHeroTitle(student.heroClass, level) : student.heroClass, level } : null,
+        guild: guildDef ? { name: guildDef.name, emoji: guildDef.emoji, primary: guildDef.primary } : null,
+        pendingSkillChoice: !!scoreData.pendingSkillChoice,
+        hasFamiliar: !!scoreData.familiar,
+        ...buildStageBody(studentId),
+    };
 }
 
 /** Show a beautiful enlarged detail view of an item (also used from Treasure Vault). */
@@ -93,22 +102,22 @@ export function showInventoryItemDetail(itemData) {
 function showItemDetail(itemData) {
     const overlay = document.createElement('div');
     overlay.className = 'item-detail-overlay';
-    
-    const visual = itemData.image 
-        ? `<div class="item-detail-visual"><img src="${itemData.image}" alt="${itemData.name}"></div>`
-        : `<div class="item-detail-visual">${itemData.icon || '📦'}</div>`;
+
+    const visual = itemData.image
+        ? `<div class="item-detail-visual"><img src="${escHtml(itemData.image)}" alt=""></div>`
+        : `<div class="item-detail-visual">${escHtml(itemData.icon || '📦')}</div>`;
 
     overlay.innerHTML = `
         <div class="item-detail-card">
             ${visual}
-            <h2 class="item-detail-name">${itemData.name}</h2>
-            <p class="item-detail-description">${itemData.desc}</p>
+            <h2 class="item-detail-name">${escHtml(itemData.name)}</h2>
+            <p class="item-detail-description">${escHtml(itemData.desc)}</p>
             <p class="item-detail-close-hint">Tap anywhere to close</p>
         </div>
     `;
 
     document.body.appendChild(overlay);
-    
+
     // Animate in
     requestAnimationFrame(() => {
         overlay.classList.add('active');
@@ -116,8 +125,15 @@ function showItemDetail(itemData) {
 
     const closeDetail = () => {
         overlay.classList.remove('active');
+        window.removeEventListener('keydown', onKey, true);
         setTimeout(() => overlay.remove(), 300);
     };
+    const onKey = (e) => {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        closeDetail();
+    };
+    window.addEventListener('keydown', onKey, true);
 
     overlay.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -125,7 +141,23 @@ function showItemDetail(itemData) {
     });
 }
 
-// --- AVATAR ENLARGEMENT ---
+/** Hero stats = the class roster's hero view (virtues, latest stars, boons, Scholar's Scroll). */
+async function openHeroView(studentId) {
+    const { openRosterHeroView } = await import('../../features/home.js');
+    if (openRosterHeroView(studentId)) return;
+    const { showToast } = await import('../effects.js');
+    showToast("This hero's class could not be found.", 'error');
+}
+
+function placeFixed(el, rect) {
+    el.style.position = 'fixed';
+    el.style.top = `${rect.top}px`;
+    el.style.left = `${rect.left}px`;
+    el.style.width = `${rect.width}px`;
+    el.style.height = `${rect.height}px`;
+}
+
+// --- AVATAR ENLARGEMENT (Hero Stage) ---
 export function handleAvatarClick(e) {
     if (e.target.closest('.familiar-stats-overlay')) return;
     // Familiar tap — show stats overlay
@@ -137,223 +169,208 @@ export function handleAvatarClick(e) {
         return;
     }
 
-    // Don't re-trigger if we are clicking anything inside an already enlarged container
-    // This prevents the "flash" bug when clicking the enlarged avatar itself.
+    // Clicks inside an open stage are handled by the stage itself.
     if (e.target.closest('.enlarged-avatar-container')) return;
 
     const avatar = e.target.closest('.enlargeable-avatar');
-    // Prevent closing if clicking the inventory itself
-    if (e.target.closest('.inventory-container')) return; 
-    
+
     // Close existing if open
-    const existingEnlarged = document.querySelector('.enlarged-avatar-container');
-    if (existingEnlarged) {
-        existingEnlarged.click(); // Trigger close
+    const existingEnlarged = document.querySelector('.enlarged-avatar-container:not(.is-closing)');
+    if (existingEnlarged) existingEnlarged.click();
+
+    if (!avatar) return;
+    e.stopPropagation();
+
+    let studentId = null;
+    const card = avatar.closest('[data-studentid], [data-id], .student-leaderboard-card');
+    if (card) studentId = card.dataset.studentid || card.dataset.id;
+    if (!studentId && avatar.dataset.studentId) studentId = avatar.dataset.studentId;
+    if (studentId && !(state.get('allStudents') || []).some((s) => s.id === studentId)) studentId = null;
+
+    openHeroStage(avatar, studentId).catch((err) => console.error('Hero Stage failed to open:', err));
+}
+
+async function openHeroStage(avatar, studentId) {
+    const { renderHeroStageHtml, renderHeroStageBodyHtml } = await loadStageView();
+    // A quick double tap could land here twice while the markup module loads.
+    if (document.querySelector('.enlarged-avatar-container:not(.is-closing)') || !avatar.isConnected) return;
+    const rect = avatar.getBoundingClientRect();
+    const isImageAvatar = avatar.tagName === 'IMG';
+    const scoreData = studentId ? (state.get('allStudentScores') || []).find((sc) => sc.id === studentId) : null;
+    const pendingSkillChoice = !!scoreData?.pendingSkillChoice;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const returnFocusTo = document.activeElement;
+
+    const container = document.createElement('div');
+    container.className = `enlarged-avatar-container hero-stage${studentId ? '' : ' hero-stage--portrait-only'}`;
+    container.innerHTML = studentId
+        ? renderHeroStageHtml(buildStageView(studentId))
+        : '<div class="hs-card hs-card--bare" role="dialog" aria-modal="true" aria-label="Portrait"><div class="hs-portrait-slot" data-hs-portrait><span class="hs-aura" aria-hidden="true"></span></div></div>';
+
+    const stageCard = container.querySelector('.hs-card');
+    const slot = container.querySelector('[data-hs-portrait]');
+
+    // --- The flying portrait (clone of the tapped avatar) ---
+    const clone = avatar.cloneNode(true);
+    clone.classList.remove('enlargeable-avatar');
+    clone.classList.add('enlarged-avatar-image');
+    clone.removeAttribute('id');
+    clone.removeAttribute('tabindex');
+    clone.setAttribute('aria-hidden', 'true');
+    // List avatars carry layout utilities (margins, translate, max sizes) that must not follow them.
+    Object.assign(clone.style, { transform: 'none', margin: '0', maxWidth: 'none', maxHeight: 'none', animation: 'none' });
+    if (isImageAvatar) {
+        clone.style.objectFit = 'cover';
+    } else {
+        clone.style.display = 'flex';
+        clone.style.alignItems = 'center';
+        clone.style.justifyContent = 'center';
+        clone.style.lineHeight = '1';
+        clone.style.overflow = 'hidden';
+    }
+    const setGlyphSize = (width) => {
+        if (!isImageAvatar) clone.style.fontSize = `${Math.max(width * 0.42, 24)}px`;
+    };
+
+    let flyer = clone;
+    if (pendingSkillChoice) {
+        const wrap = document.createElement('div');
+        wrap.className = 'enlarged-avatar-level-up-wrap';
+        clone.style.position = 'absolute';
+        clone.style.inset = '0';
+        clone.style.width = '100%';
+        clone.style.height = '100%';
+        wrap.appendChild(clone);
+        const badge = document.createElement('button');
+        badge.type = 'button';
+        badge.className = 'level-up-badge level-up-badge--enlarged';
+        badge.dataset.hsAction = 'skills';
+        badge.title = 'Level up! Open the Skill Tree';
+        badge.setAttribute('aria-label', 'Level up! Open the Skill Tree');
+        badge.innerHTML = '<i class="fas fa-arrow-up" aria-hidden="true"></i>';
+        wrap.appendChild(badge);
+        flyer = wrap;
+    }
+    flyer.classList.add('hs-flyer');
+    placeFixed(flyer, rect);
+    setGlyphSize(rect.width);
+    container.appendChild(flyer);
+
+    // Familiar sprite (rendered by the familiar module) inside its companion bubble
+    const familiarBtn = container.querySelector('.hs-familiar');
+    if (familiarBtn && scoreData?.familiar) {
+        familiarBtn.innerHTML = renderFamiliarSprite(scoreData.familiar, 'small', studentId);
     }
 
-    if (avatar) {
-        e.stopPropagation(); 
-        
-        // Find student data
-        let studentId = null;
-        // Try to find ID from parent elements
-        const card = avatar.closest('[data-studentid], [data-id], .student-leaderboard-card');
-        if (card) {
-            studentId = card.dataset.studentid || card.dataset.id;
-            // For leaderboard cards, finding ID is tricky if not set explicitly. 
-            // Better to rely on the `img` dataset if we added it (we did in tabs.js: data-student-id)
-        }
-        if (!studentId && avatar.dataset.studentId) studentId = avatar.dataset.studentId;
+    document.body.appendChild(container);
 
-        const rect = avatar.getBoundingClientRect();
-        const isImageAvatar = avatar.tagName === 'IMG';
-        const scoreData = studentId ? state.get('allStudentScores').find(sc => sc.id === studentId) : null;
-        const pendingSkillChoice = !!scoreData?.pendingSkillChoice;
+    // Where the portrait lands. Offsets ignore the card's entrance transform, so this is its final pose.
+    const target = {
+        left: stageCard.offsetLeft + stageCard.clientLeft + slot.offsetLeft,
+        top: stageCard.offsetTop + stageCard.clientTop + slot.offsetTop,
+        width: slot.offsetWidth,
+        height: slot.offsetHeight,
+    };
 
-        const container = document.createElement('div');
-        container.className = 'enlarged-avatar-container';
-        
-        // Wrapper for Layout
-        const contentWrapper = document.createElement('div');
-        contentWrapper.className = 'flex flex-col items-center gap-6 transform transition-all duration-300';
-        contentWrapper.style.opacity = '0';
-        
-        const clone = avatar.cloneNode(true);
-        clone.classList.add('enlarged-avatar-image');
-        // Initial pos matches original
-        clone.style.position = 'fixed'; // Initially fixed for animation
-        clone.style.top = `${rect.top}px`;
-        clone.style.left = `${rect.left}px`;
-        clone.style.width = `${rect.width}px`;
-        clone.style.height = `${rect.height}px`;
-        clone.style.zIndex = '102';
-        if (!isImageAvatar) {
-            clone.style.display = 'flex';
-            clone.style.alignItems = 'center';
-            clone.style.justifyContent = 'center';
-            clone.style.fontSize = `${Math.max(rect.width * 0.42, 24)}px`;
-            clone.style.lineHeight = '1';
-            clone.style.overflow = 'hidden';
+    let docked = false;
+    let closed = false;
+    const dock = () => {
+        if (docked || closed) return;
+        docked = true;
+        flyer.classList.add('is-docked');
+        ['position', 'top', 'left', 'width', 'height'].forEach((p) => { flyer.style[p] = ''; });
+        setGlyphSize(slot.clientWidth || target.width);
+        slot.appendChild(flyer);
+    };
+
+    requestAnimationFrame(() => {
+        container.classList.add('active');
+        placeFixed(flyer, target);
+        setGlyphSize(target.width);
+        setTimeout(dock, reduceMotion ? 20 : FLIGHT_MS);
+        (container.querySelector('.hs-close') || stageCard)?.focus?.({ preventScroll: true });
+    });
+
+    const close = () => {
+        if (closed) return;
+        closed = true;
+        window.removeEventListener('keydown', onKey, true);
+        if (docked) {
+            // Lift the portrait out of the card so it can fly home.
+            // `is-docked` has no transition, so the jump back to fixed coordinates is instant.
+            const from = slot.getBoundingClientRect();
+            placeFixed(flyer, from);
+            container.appendChild(flyer);
+            void flyer.offsetWidth;
+            flyer.classList.remove('is-docked');
+            void flyer.offsetWidth;
         }
-        
-        let animatedEl = clone;
-        if (pendingSkillChoice) {
-            const avatarWrap = document.createElement('div');
-            avatarWrap.className = 'enlarged-avatar-level-up-wrap';
-            avatarWrap.style.position = 'fixed';
-            avatarWrap.style.top = `${rect.top}px`;
-            avatarWrap.style.left = `${rect.left}px`;
-            avatarWrap.style.width = `${rect.width}px`;
-            avatarWrap.style.height = `${rect.height}px`;
-            avatarWrap.style.zIndex = '102';
-            // Add clone first (as background), then badge on top
-            clone.style.position = 'absolute';
-            clone.style.top = '0';
-            clone.style.left = '0';
-            clone.style.width = '100%';
-            clone.style.height = '100%';
-            clone.style.borderRadius = '9999px';
-            if (isImageAvatar) {
-                clone.style.objectFit = 'cover';
-            }
-            avatarWrap.appendChild(clone);
-            const badge = document.createElement('span');
-            badge.className = 'level-up-badge level-up-badge--enlarged';
-            badge.setAttribute('aria-hidden', 'true');
-            badge.title = 'Level up! Click to open Skill Tree';
-            badge.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            // Click badge to open skill tree
-            badge.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (studentId) {
-                    closeHandler();
-                    openSkillTreeModal(studentId);
-                }
-            });
-            avatarWrap.appendChild(badge);
-            container.appendChild(avatarWrap);
-            animatedEl = avatarWrap;
+        const home = avatar.isConnected ? avatar.getBoundingClientRect() : null;
+        container.classList.remove('active');
+        container.classList.add('is-closing');
+        if (home && home.width > 0) {
+            placeFixed(flyer, home);
+            setGlyphSize(home.width);
         } else {
-            container.appendChild(clone);
+            flyer.style.opacity = '0';
         }
-        
-        // FAMILIAR companion display
-        let familiarHtml = '';
-        if (studentId && scoreData?.familiar) {
-            const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'small', studentId);
-            familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion absolute top-[126px] left-[calc(50%+62px)] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
+        setTimeout(() => container.remove(), reduceMotion ? 20 : 340);
+        if (returnFocusTo?.isConnected && typeof returnFocusTo.focus === 'function') {
+            returnFocusTo.focus({ preventScroll: true });
         }
+    };
+    const closeThen = (fn) => { close(); fn(); };
 
-        // INVENTORY UI
-        let inventoryHtml = '';
-        if (studentId) {
-            inventoryHtml = `
-                <div class="inventory-container max-w-2xl w-full mx-4 text-center mt-[320px] z-101 opacity-0" data-student-id="${studentId}">
-                    ${buildInventoryInnerHtml(studentId)}
-                </div>
-            `;
-        }
+    const onKey = (e) => {
+        if (e.key !== 'Escape' || document.querySelector('.item-detail-overlay')) return;
+        e.stopPropagation();
+        close();
+    };
+    window.addEventListener('keydown', onKey, true);
 
-        if (familiarHtml) container.insertAdjacentHTML('beforeend', familiarHtml);
-        container.insertAdjacentHTML('beforeend', inventoryHtml);
-        document.body.appendChild(container);
-
-        const invContainer = container.querySelector('.inventory-container');
-        if (invContainer && studentId) {
-            invContainer.addEventListener('click', async (e) => {
-                e.stopPropagation(); // Prevent closing the avatar view when clicking inside the inventory
-                
-                // Handle "Open Full Vault" link
-                const link = e.target.closest('.open-trophy-room-link');
-                if (link) {
-                    const sid = invContainer.dataset.studentId;
-                    if (sid) {
-                        closeHandler();
-                        import('../modals.js').then(m => m.openTrophyRoomModal(sid));
-                    }
-                    return;
-                }
-
-                // Handle "Use" button
-                const btn = e.target.closest('.avatar-inventory-use-btn');
-                if (btn && !btn.disabled) {
-                    e.stopPropagation(); // Don't enlarge if using
-                    const sid = invContainer.dataset.studentId;
-                    const itemIndex = parseInt(btn.dataset.itemIndex, 10);
-                    if (!sid || isNaN(itemIndex)) return;
-                    btn.disabled = true;
-                    btn.textContent = 'Using...';
-                    try {
-                        await handleUseItem(sid, itemIndex);
-                        invContainer.innerHTML = buildInventoryInnerHtml(sid);
-                    } catch (_) {
-                        btn.disabled = false;
-                        btn.textContent = 'Use';
-                    }
-                    return;
-                }
-
-                // Handle Item Enlarge
-                const itemEl = e.target.closest('.avatar-inventory-item');
-                if (itemEl) {
-                    e.stopPropagation();
-                    showItemDetail({
-                        name: itemEl.dataset.itemName,
-                        desc: itemEl.dataset.itemDesc,
-                        icon: itemEl.dataset.itemIcon,
-                        image: itemEl.dataset.itemImage
-                    });
-                    return;
-                }
-            });
+    container.addEventListener('click', async (e) => {
+        // Programmatic .click() on the container (another avatar opened) or a backdrop tap closes.
+        if (e.target === container || !e.target.closest('.hs-card, .hs-flyer')) {
+            close();
+            return;
         }
 
-        // Create and append the premium skill tree button if student has a valid ID
-        if (studentId) {
-            const skillTreeBtn = document.createElement('button');
-            skillTreeBtn.className = 'enlarged-avatar-skill-tree-btn';
-            skillTreeBtn.type = 'button';
-            skillTreeBtn.innerHTML = '<i class="fas fa-sitemap"></i>';
-            skillTreeBtn.title = 'Open Skill Tree';
-            skillTreeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeHandler();
-                openSkillTreeModal(studentId);
-            });
-            container.appendChild(skillTreeBtn);
+        const actionEl = e.target.closest('[data-hs-action]');
+        if (actionEl) {
+            const action = actionEl.dataset.hsAction;
+            if (action === 'close') close();
+            else if (!studentId) return;
+            else if (action === 'vault') closeThen(() => import('../modals.js').then((m) => m.openTrophyRoomModal(studentId)));
+            else if (action === 'stats') closeThen(() => openHeroView(studentId));
+            else if (action === 'skills') closeThen(() => openSkillTreeModal(studentId));
+            else if (action === 'familiar') closeThen(() => openFamiliarStatsOverlay(studentId));
+            return;
         }
 
-        // Animate
-        requestAnimationFrame(() => {
-            // Move image (or wrapper) to center
-            animatedEl.style.top = `20%`;
-            animatedEl.style.left = `50%`;
-            animatedEl.style.width = `200px`;
-            animatedEl.style.height = `200px`;
-            animatedEl.style.transform = 'translate(-50%, -50%)';
-            if (!isImageAvatar) {
-                clone.style.fontSize = '6rem';
+        const useBtn = e.target.closest('[data-hs-use]');
+        if (useBtn && !useBtn.disabled && studentId) {
+            const itemIndex = parseInt(useBtn.dataset.hsUse, 10);
+            if (Number.isNaN(itemIndex)) return;
+            useBtn.disabled = true;
+            useBtn.classList.add('is-busy');
+            useBtn.querySelector('span').textContent = 'Using…';
+            try {
+                await handleUseItem(studentId, itemIndex);
+                const body = container.querySelector('[data-hs-body]');
+                if (body && !closed) body.innerHTML = renderHeroStageBodyHtml(buildStageBody(studentId));
+            } catch (_) {
+                useBtn.disabled = false;
+                useBtn.classList.remove('is-busy');
+                useBtn.querySelector('span').textContent = 'Use';
             }
-            container.style.opacity = '1';
-            container.classList.add('active');
-            
-            const inv = container.querySelector('.inventory-container');
-        });
+            return;
+        }
 
-        const closeHandler = () => {
-            container.classList.remove('active');
-            animatedEl.style.top = `${rect.top}px`;
-            animatedEl.style.left = `${rect.left}px`;
-            animatedEl.style.width = `${rect.width}px`;
-            animatedEl.style.height = `${rect.height}px`;
-            animatedEl.style.transform = 'translate(0, 0)';
-            if (!isImageAvatar) {
-                clone.style.fontSize = `${Math.max(rect.width * 0.42, 24)}px`;
-            }
-            container.style.opacity = '0';
-            container.removeEventListener('click', closeHandler);
-            setTimeout(() => container.remove(), 300);
-        };
-        container.addEventListener('click', closeHandler);
-    }
+        const zoomEl = e.target.closest('[data-hs-zoom]');
+        if (zoomEl && studentId) {
+            const score = (state.get('allStudentScores') || []).find((s) => s.id === studentId);
+            const item = score?.inventory?.[parseInt(zoomEl.dataset.hsZoom, 10)];
+            if (item) showInventoryItemDetail(item);
+        }
+    });
 }

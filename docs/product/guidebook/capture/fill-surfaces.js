@@ -50,7 +50,6 @@ function bountyPillHtml() {
             <span class="home-bounty-pill__icon" aria-hidden="true"><i class="fas fa-crosshairs"></i></span>
             <div class="home-bounty-pill__text">
                 <span class="home-bounty-pill__title font-title">Bounty</span>
-                <span class="home-bounty-pill__sub">Post a quest</span>
             </div>
             <span class="home-bounty-pill__chev" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
         </button>`;

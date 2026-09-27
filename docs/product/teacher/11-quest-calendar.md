@@ -34,7 +34,7 @@ The Day Planner still has **Mark School Holiday** for a **single date**: it canc
 
 ### Quest Event
 
-Choose a card for that date, pick the classes, then **Summon Event**. Two families:
+Choose a card for that date, pick the classes (standard events cover every class), then **Summon Event**. Two families:
 
 **Standard events (the app applies them to Award Stars automatically)**
 
@@ -92,20 +92,23 @@ with the same amount of Gold. After Complete, **Undo** reverses the whole
 completion only when every recipient still has that Gold available. There is no
 partial Stars-only undo.
 
-Scheduling rules keep a day unambiguous: one standard modifier per class/day,
+Scheduling rules keep a day unambiguous: one standard event per day,
 one active Special Quest per class, no duplicate quest of the same kind on the
-same day, and no repeating events in this release. A school-wide selection makes
-one event for each class. Holiday, cancelled, or no-lesson conflicts are shown
-before save; overdue events become **Missed** and may be moved only to the next
-real lesson date. Older Special Quests without a class are shown as **Needs class
-assignment** and cannot start.
+same day, and no repeating events in this release. Standard events (**2× Star
+Day** and **Reason Bonus Day**) are **school-wide**: the Day Planner shows a
+single **All classes** chip, the app stores one event for the whole school, and
+it applies to every class that meets that day. Special Quests stay per class, so
+a multi-class selection makes one event for each class. Holiday, cancelled, or
+no-lesson conflicts are shown before save; overdue events become **Missed** and
+may be moved only to the next real lesson date. Older Special Quests without a
+class are shown as **Needs class assignment** and cannot start.
 
 These special quests are **not** the same as Story Weavers (a whole tab) or Quiz of the Week (Home). They are **one-day lesson shapes**.
 
 ## How this feeds the rest of the Quest
 
 - Holidays and cancellations **reshape monthly Team Quest goals**.
-- 2× / Reason Bonus days **reshape Gold and ranks** that day — announce them so the class understands the “weather.”
+- 2× / Reason Bonus days **reshape Gold and ranks** that day — announce them so every class expects the bonus.
 - Quest Board tests scheduled via assignments show as academic alerts, not as these event types.
 - Home and Projector can countdown holidays and tests.
 

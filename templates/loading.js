@@ -25,6 +25,13 @@ const LOADING_TIPS = [
 let _tipIntervalId = null;
 let _stagedPersonalization = null;
 let _isLowPowerDevice = null;
+const TIP_ROTATE_MS = 4600;
+const TIP_FADE_MS = 420;
+// Longest we hold the words back waiting for the storybook font. Past this the
+// fallback font shows rather than leaving a wordless screen on slow networks.
+const FONT_WAIT_MS = 1200;
+// Same breakpoint as the phone shell (mobile/index.js → body.gcq-mobile).
+const MOBILE_LOADING_QUERY = '(max-width: 1023px)';
 const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 function randomInt(max) {
@@ -43,6 +50,44 @@ function randomRange(min, max) {
 function detectLowPowerTier() {
     if (_isLowPowerDevice === null) _isLowPowerDevice = sharedLowPowerTier();
     return _isLowPowerDevice;
+}
+
+function isMobileLoadingViewport() {
+    try {
+        return Boolean(window.matchMedia?.(MOBILE_LOADING_QUERY).matches);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Keep the words hidden until Fredoka One is ready, then let them rise in once.
+ * Without this the title, subtitle and tip paint in a fallback font first and
+ * visibly "flash" when the web font swaps in.
+ */
+function revealLoadingTextWhenFontsReady(loadingScreen) {
+    if (!loadingScreen) return;
+    loadingScreen.classList.add('loading-fonts-pending');
+    let revealed = false;
+    const reveal = () => {
+        if (revealed) return;
+        revealed = true;
+        requestAnimationFrame(() => {
+            loadingScreen.classList.remove('loading-fonts-pending');
+            loadingScreen.classList.add('loading-text-ready');
+        });
+    };
+    setTimeout(reveal, FONT_WAIT_MS);
+    try {
+        const fonts = document.fonts;
+        if (!fonts?.load) { reveal(); return; }
+        Promise.all([
+            fonts.load('1em "Fredoka One"'),
+            fonts.load('600 1em "Fredoka"'),
+        ]).then(reveal, reveal);
+    } catch {
+        reveal();
+    }
 }
 
 export const loadingHTML = `
@@ -152,7 +197,10 @@ export const loadingHTML = `
                 <span class="loading-burst-star lb-10"><i class="fas fa-star"></i></span>
             </div>
 
-            <div id="loading-tip" class="loading-tip">Preparing your quest&hellip;</div>
+            <!-- Fixed-height card: tips of one or two lines never shift the stage -->
+            <div class="loading-tip-card">
+                <div id="loading-tip" class="loading-tip" aria-live="polite">Preparing your quest&hellip;</div>
+            </div>
         </div>
     </div>
 `;
@@ -178,8 +226,8 @@ export function initLoadingTips() {
         setTimeout(() => {
             tipEl.textContent = LOADING_TIPS[i];
             tipEl.classList.remove('loading-tip-fade');
-        }, 350);
-    }, 3200);
+        }, TIP_FADE_MS);
+    }, TIP_ROTATE_MS);
 }
 
 /**
@@ -188,8 +236,13 @@ export function initLoadingTips() {
 export function initLoadingAtmosphere() {
     const loadingScreen = document.getElementById('loading-screen');
     const lowPower = detectLowPowerTier();
+    // Phones get their own calm, compact loading scene (styles/loading-mobile.css).
+    // Decided here, before the first paint, so there is no desktop-then-phone jump.
+    const mobile = isMobileLoadingViewport();
     if (loadingScreen) {
         loadingScreen.classList.toggle('gcq-perf-low', lowPower);
+        loadingScreen.classList.toggle('gcq-loading-mobile', mobile);
+        revealLoadingTextWhenFontsReady(loadingScreen);
     }
 
     const cloudArt = Array.from(document.querySelectorAll('.loading-cloud-art'));
@@ -212,7 +265,7 @@ export function initLoadingAtmosphere() {
         // larger, more prominent ones lower down — not evenly spread top to bottom.
         // We build three loose groups and let randomness mix them naturally.
         // Weaker devices (auto-detected) get a lighter sky so motion stays smooth.
-        const cloudCount = lowPower ? 18 : 32;
+        const cloudCount = mobile ? (lowPower ? 6 : 8) : (lowPower ? 18 : 32);
 
         for (let index = 0; index < cloudCount; index += 1) {
             const cloud = document.createElement('span');
@@ -228,7 +281,11 @@ export function initLoadingAtmosphere() {
             //   ~12 % as foreground     (72 – 90 %)
             let topPercent;
             const roll = Math.random();
-            if (roll < 0.60) {
+            if (mobile) {
+                // Phones: keep the middle band clear for the logo and title —
+                // clouds sit in the upper sky or low along the horizon.
+                topPercent = roll < 0.62 ? randomRange(0, 26) : randomRange(70, 90);
+            } else if (roll < 0.60) {
                 topPercent = randomRange(1, 48);
             } else if (roll < 0.88) {
                 topPercent = randomRange(48, 72);
@@ -239,9 +296,15 @@ export function initLoadingAtmosphere() {
             // Depth impression: clouds higher up are farther away
             // (smaller, more transparent, slower drift).
             const depthT = topPercent / 90;   // 0 = top horizon, 1 = bottom
-            const sizePx = Math.round(140 + depthT * 440 + randomRange(-30, 30));
-            const opacity = Math.min(0.92, 0.22 + depthT * 0.66 + randomRange(-0.05, 0.05)).toFixed(2);
-            const durationS = (250 - depthT * 120 + randomRange(-18, 18)).toFixed(1);
+            const sizePx = mobile
+                ? Math.round(120 + depthT * 200 + randomRange(-20, 20))
+                : Math.round(140 + depthT * 440 + randomRange(-30, 30));
+            const opacity = (mobile
+                ? Math.min(0.7, 0.28 + depthT * 0.4 + randomRange(-0.05, 0.05))
+                : Math.min(0.92, 0.22 + depthT * 0.66 + randomRange(-0.05, 0.05))).toFixed(2);
+            const durationS = (mobile
+                ? 190 - depthT * 60 + randomRange(-14, 14)
+                : 250 - depthT * 120 + randomRange(-18, 18)).toFixed(1);
             const scaleV = (0.76 + depthT * 0.4 + randomRange(-0.04, 0.04)).toFixed(2);
 
             // Negative delay = cloud is already mid-flight when the page loads,
@@ -268,7 +331,8 @@ export function initLoadingAtmosphere() {
         }
     }
 
-    const journeyIcons = Array.from(document.querySelectorAll('.loading-journey-icon'));
+    // Journey icons are hidden on the phone scene; leave them untouched there.
+    const journeyIcons = mobile ? [] : Array.from(document.querySelectorAll('.loading-journey-icon'));
     journeyIcons.forEach((iconWrap) => {
         const base = parseFloat(getComputedStyle(iconWrap).animationDuration) || 82;
         const duration = base * randomRange(0.92, 1.14);
@@ -361,7 +425,7 @@ export function revealStagedLoadingPersonalization() {
         setTimeout(() => {
             tipEl.textContent = tipText;
             tipEl.classList.remove('loading-tip-fade');
-        }, 350);
+        }, TIP_FADE_MS);
     }
 
     _stagedPersonalization = null;

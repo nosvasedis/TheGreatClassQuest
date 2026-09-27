@@ -454,3 +454,79 @@
 #loading-screen.gcq-perf-low .loading-firework {
     display: none;
 }
+
+/* ── Stability: no flashing words, no jumping stack ─────────────
+   templates/loading.js#revealLoadingTextWhenFontsReady holds the words
+   (.loading-fonts-pending) until Fredoka One is ready, then lets them rise
+   in once (.loading-text-ready). Only `opacity` and the standalone
+   `translate` property animate, with `backwards` fill, so the final-moment
+   `transform` rules and the tip fade keep working after the entrance. */
+
+.loading-tip-card {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(32rem, 92%);
+    /* Room for two lines of tip text, always: a one-line tip no longer
+       makes the centred stack hop up and down on every rotation. */
+    min-height: 3.4rem;
+    margin-top: 0.55rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: 1.1rem;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow: 0 6px 18px rgba(14, 116, 144, 0.1);
+}
+
+.loading-tip {
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    line-height: 1.45;
+    text-wrap: balance;
+    transition: opacity 0.42s ease, translate 0.42s ease;
+}
+
+.loading-tip.loading-tip-fade {
+    translate: 0 4px;
+}
+
+@keyframes loading-word-rise {
+    from {
+        opacity: 0;
+        translate: 0 10px;
+    }
+}
+
+#loading-screen.loading-fonts-pending .loading-title,
+#loading-screen.loading-fonts-pending .loading-title-flourish,
+#loading-screen.loading-fonts-pending .loading-subtitle,
+#loading-screen.loading-fonts-pending .loading-tip-card {
+    opacity: 0;
+}
+
+#loading-screen.loading-text-ready .loading-title,
+#loading-screen.loading-text-ready .loading-title-flourish,
+#loading-screen.loading-text-ready .loading-subtitle,
+#loading-screen.loading-text-ready .loading-tip-card {
+    animation: loading-word-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+#loading-screen.loading-text-ready .loading-title-flourish { animation-delay: 0.12s; }
+#loading-screen.loading-text-ready .loading-subtitle { animation-delay: 0.2s; }
+#loading-screen.loading-text-ready .loading-tip-card { animation-delay: 0.32s; }
+
+@media (prefers-reduced-motion: reduce) {
+    #loading-screen.loading-text-ready .loading-title,
+    #loading-screen.loading-text-ready .loading-title-flourish,
+    #loading-screen.loading-text-ready .loading-subtitle,
+    #loading-screen.loading-text-ready .loading-tip-card {
+        animation: none;
+    }
+
+    .loading-tip.loading-tip-fade {
+        translate: none;
+    }
+}

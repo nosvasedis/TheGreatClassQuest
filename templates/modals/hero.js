@@ -120,37 +120,6 @@ export const heroModalsHTML = `
         </div>
     </div>
 
-    <div id="hero-stats-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div
-            class="bg-gradient-to-br from-gray-800 via-purple-900 to-gray-900 p-6 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-purple-400 flex flex-col md:flex-row gap-6 relative">
-            <button id="hero-stats-close-btn"
-                class="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600 text-white font-bold w-10 h-10 rounded-full bubbly-button z-10">&times;</button>
-
-            <div id="hero-stats-avatar-container"
-                class="md:w-1/3 flex flex-col items-center justify-center text-center text-white">
-                <div id="hero-stats-avatar" class="w-48 h-48 rounded-full border-4 border-purple-300 shadow-lg mb-4">
-                </div>
-                <h2 id="hero-stats-name" class="font-title text-3xl" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
-                </h2>
-            </div>
-
-            <div class="flex-grow flex flex-col">
-                <div id="hero-stats-content" class="space-y-3">
-                </div>
-
-                <div class="mt-4 px-2">
-                    <button id="open-boon-modal-btn"
-                        class="w-full bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white font-title text-lg py-3 rounded-2xl bubbly-button shadow-lg shadow-rose-200/50 flex items-center justify-center gap-2">
-                        <i class="fas fa-hand-holding-heart"></i> Bestow a Boon (Gift Stars)
-                    </button>
-                </div>
-                <div id="hero-stats-chart-container" class="mt-4 flex-grow">
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="hero-chronicle-modal"
         class="fixed inset-0 bg-black/60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md">
         <div

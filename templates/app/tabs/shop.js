@@ -3,93 +3,132 @@
 export const shopTabHTML = `
             <div id="shop-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto px-3 sm:px-4">
-                    <div class="text-center mb-6 shop-tab-intro">
-                        <i class="fas fa-store text-fuchsia-600 text-5xl floating-icon"></i>
-                        <h2 id="shop-title" class="font-title text-5xl text-fuchsia-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Mystic Market</h2>
-                        <p id="shop-tagline" class="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">
-                            Legends, seasonal treasures, Festival Stall, and companion eggs — pick a shopper, check their purse, then browse.
+                    <!-- Storefront: hanging shop sign -->
+                    <header class="shop-tab-intro mm-facade">
+                        <div class="mm-sign" aria-hidden="false">
+                            <span class="mm-sign__chain mm-sign__chain--l" aria-hidden="true"></span>
+                            <span class="mm-sign__chain mm-sign__chain--r" aria-hidden="true"></span>
+                            <div class="mm-sign__board">
+                                <span class="mm-sign__gem mm-sign__gem--l" aria-hidden="true"></span>
+                                <span class="mm-sign__gem mm-sign__gem--r" aria-hidden="true"></span>
+                                <span class="mm-sign__kicker">Relics · Treasures · Eggs</span>
+                                <h2 id="shop-title" class="font-title mm-sign__title">Mystic Market</h2>
+                                <span class="mm-sign__open" id="shop-open-sign"><i class="fas fa-door-open"></i> Open for trade</span>
+                            </div>
+                        </div>
+                        <p id="shop-tagline" class="mm-facade__tagline">
+                            Pick a shopper, check their purse, then browse the shelves.
                         </p>
-                    </div>
+                    </header>
 
-                    <!-- Unified shop shell: mystical shop-window frame -->
+                    <!-- Unified shop shell: the shop itself -->
                     <div id="shop-window"
-                        class="shop-window-shell relative flex flex-col overflow-visible min-h-[520px]">
+                        class="shop-window-shell mm-shop relative flex flex-col overflow-visible min-h-[520px]">
 
-                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-950 via-[#1e1b4b] to-[#0f172a] pointer-events-none z-[1] rounded-[inherit]"></div>
-                        <div class="absolute inset-0 opacity-[0.07] pointer-events-none shop-window-noise z-[1] rounded-[inherit]"></div>
-                        <div class="absolute -top-32 -right-32 w-[420px] h-[420px] bg-fuchsia-500/18 rounded-full blur-3xl pointer-events-none z-[1]"></div>
-                        <div class="absolute -bottom-40 -left-20 w-[380px] h-[380px] bg-amber-400/12 rounded-full blur-3xl pointer-events-none z-[1]"></div>
-                        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/35 to-transparent pointer-events-none z-[2]"></div>
-
-                        <div class="shop-window-lattice" aria-hidden="true">
-                            <span class="shop-window-lintel"></span>
-                            <span class="shop-window-corner shop-window-corner--tl"></span>
-                            <span class="shop-window-corner shop-window-corner--tr"></span>
-                            <span class="shop-window-corner shop-window-corner--bl"></span>
-                            <span class="shop-window-corner shop-window-corner--br"></span>
+                        <!-- Striped awning + lanterns -->
+                        <div class="mm-awning" aria-hidden="true">
+                            <div class="mm-awning__canvas"></div>
+                            <span class="mm-lantern mm-lantern--l"><span class="mm-lantern__glass"></span></span>
+                            <span class="mm-lantern mm-lantern--r"><span class="mm-lantern__glass"></span></span>
                         </div>
 
-                        <!-- Command deck (merged shopper · purse · restock) -->
-                        <div id="shop-command-deck" class="shop-command-deck relative z-30 shrink-0 border-b border-white/10">
-                            <div class="shop-command-deck__inner flex flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 p-4 sm:p-5">
-                                <div class="shop-command-deck__primary flex flex-col gap-1 min-w-0 flex-1">
-                                    <span class="shop-deck-label"><i class="fas fa-user-circle"></i> Shopper</span>
-                                    <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0">
-                                        <div class="shop-selector-pill shop-selector-pill--student shop-selector-pill--dark shop-selector-pill--shopper">
-                                            <i class="fas fa-hat-wizard shop-sel-icon shop-sel-icon--shopper text-fuchsia-400"></i>
-                                            <div class="shop-shopper" id="shop-shopper-root">
-                                                <button type="button" id="shop-shopper-trigger" class="shop-shopper__trigger"
-                                                    aria-haspopup="listbox" aria-expanded="false" aria-controls="shop-shopper-listbox">
-                                                    <span class="shop-shopper__trigger-text">
-                                                        <span class="shop-shopper__trigger-label">Shopper</span>
-                                                        <span class="shop-shopper__trigger-value" id="shop-shopper-display">Choose your adventurer…</span>
-                                                    </span>
-                                                    <span class="shop-shopper__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
-                                                </button>
-                                                <div id="shop-shopper-listbox" class="shop-shopper__panel" role="listbox" aria-hidden="true"></div>
-                                            </div>
-                                            <select id="shop-student-select" class="shop-shopper-native" tabindex="-1" aria-hidden="true">
-                                                <option value="">Choose your adventurer…</option>
-                                            </select>
-                                        </div>
+                        <div class="absolute inset-0 mm-shop__bg pointer-events-none z-[1] rounded-[inherit]"></div>
+                        <div class="absolute inset-0 opacity-[0.06] pointer-events-none shop-window-noise z-[1] rounded-[inherit]"></div>
+
+                        <!-- Counter: shopkeeper · shopper · purse · restock -->
+                        <div id="shop-command-deck" class="shop-command-deck mm-counter relative z-30 shrink-0">
+                            <div class="mm-counter__inner">
+                                <div class="mm-keeper" id="shop-keeper">
+                                    <div class="mm-keeper__art" role="img" aria-label="The Market Keeper"></div>
+                                    <div class="mm-keeper__bubble" id="shop-keeper-bubble" aria-live="polite">
+                                        <span class="mm-keeper__name">The Market Keeper</span>
+                                        <span class="mm-keeper__line" id="shop-keeper-line">Welcome, travellers! Choose a shopper and I'll open the till.</span>
                                     </div>
                                 </div>
-                                <div class="shop-command-deck__actions flex flex-wrap items-center gap-3 w-full sm:w-auto sm:ml-auto sm:justify-end">
-                                    <div class="flex flex-col gap-1 min-w-0">
-                                        <span class="shop-deck-label"><i class="fas fa-wallet"></i> Purse</span>
-                                        <div class="shop-purse-glass shrink-0" aria-live="polite">
-                                            <div class="shop-purse-glass__icon" aria-hidden="true">
-                                                <i class="fas fa-coins"></i>
-                                            </div>
-                                            <div class="shop-purse-glass__body">
-                                                <span class="shop-purse-glass__label">Gold</span>
-                                                <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
+
+                                <div class="mm-counter__controls">
+                                    <div class="shop-command-deck__primary flex flex-col gap-1 min-w-0 flex-1">
+                                        <span class="shop-deck-label"><i class="fas fa-user-circle"></i> Shopper</span>
+                                        <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0">
+                                            <div class="shop-selector-pill shop-selector-pill--student shop-selector-pill--dark shop-selector-pill--shopper">
+                                                <i class="fas fa-hat-wizard shop-sel-icon shop-sel-icon--shopper text-fuchsia-400"></i>
+                                                <div class="shop-shopper" id="shop-shopper-root">
+                                                    <button type="button" id="shop-shopper-trigger" class="shop-shopper__trigger"
+                                                        aria-haspopup="listbox" aria-expanded="false" aria-controls="shop-shopper-listbox">
+                                                        <span class="shop-shopper__trigger-text">
+                                                            <span class="shop-shopper__trigger-label">Shopper</span>
+                                                            <span class="shop-shopper__trigger-value" id="shop-shopper-display">Choose your adventurer…</span>
+                                                        </span>
+                                                        <span class="shop-shopper__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+                                                    </button>
+                                                    <div id="shop-shopper-listbox" class="shop-shopper__panel" role="listbox" aria-hidden="true"></div>
+                                                </div>
+                                                <select id="shop-student-select" class="shop-shopper-native" tabindex="-1" aria-hidden="true">
+                                                    <option value="">Choose your adventurer…</option>
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="flex flex-col gap-1 justify-end sm:pt-5">
-                                        <span class="shop-deck-label opacity-0 hidden sm:block pointer-events-none select-none" aria-hidden="true">.</span>
+                                    <div class="shop-command-deck__actions flex flex-wrap items-end gap-3">
+                                        <div class="flex flex-col gap-1 min-w-0">
+                                            <span class="shop-deck-label"><i class="fas fa-wallet"></i> Purse</span>
+                                            <div class="shop-purse-glass mm-purse shrink-0" aria-live="polite">
+                                                <div class="shop-purse-glass__icon mm-purse__pouch" aria-hidden="true">
+                                                    <i class="fas fa-coins"></i>
+                                                </div>
+                                                <div class="shop-purse-glass__body">
+                                                    <span class="shop-purse-glass__label">Gold</span>
+                                                    <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <button id="generate-shop-btn" type="button"
-                                            class="hidden shop-restock-btn font-title text-sm sm:text-base bg-gradient-to-r from-fuchsia-500 via-purple-600 to-indigo-600 text-white py-2.5 px-5 rounded-xl shadow-[0_8px_24px_rgba(147,51,234,0.35)] border border-fuchsia-400/50 bubbly-button inline-flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto">
+                                            class="hidden shop-restock-btn mm-restock-btn inline-flex items-center justify-center gap-2 shrink-0">
                                             <i class="fas fa-sync-alt"></i> Restock
                                         </button>
                                     </div>
                                 </div>
                             </div>
+                            <span class="mm-counter__edge" aria-hidden="true"></span>
                         </div>
 
-                        <!-- Catalog region (curtain / loader / grid — same frame, deck stays visible) -->
+                        <!-- Aisle signs: jump between departments, sort, filter by purse -->
+                        <nav id="shop-aisles" class="mm-aisles relative z-20 hidden" aria-label="Market aisles">
+                            <div class="mm-aisles__chips" id="shop-aisle-chips" role="toolbar" aria-label="Departments"></div>
+                            <div class="mm-aisles__tools">
+                                <label class="mm-aisles__sort">
+                                    <i class="fas fa-sort-amount-down" aria-hidden="true"></i>
+                                    <span class="sr-only">Sort wares</span>
+                                    <select id="shop-sort-select">
+                                        <option value="price-asc">Cheapest first</option>
+                                        <option value="price-desc">Priciest first</option>
+                                        <option value="name">A to Z</option>
+                                    </select>
+                                </label>
+                                <button type="button" id="shop-afford-toggle" class="mm-aisles__afford" aria-pressed="false" disabled
+                                    title="Choose a shopper first">
+                                    <i class="fas fa-coins" aria-hidden="true"></i> <span>Can afford</span>
+                                    <span class="mm-aisles__afford-count" id="shop-afford-count"></span>
+                                </button>
+                            </div>
+                        </nav>
+
+                        <!-- Catalog region (curtain / loader / shelves; the counter stays visible) -->
                         <div id="shop-catalog" class="shop-catalog relative flex-1 flex flex-col min-h-[380px] z-10 p-4 sm:p-6 md:p-8 pt-4 overflow-hidden">
 
-                            <div class="absolute inset-0 opacity-[0.11] pointer-events-none shop-catalog-pattern"></div>
+                            <div class="absolute inset-0 pointer-events-none mm-catalog-backdrop" aria-hidden="true"></div>
 
-                            <!-- Shop Curtain (shown when no class is selected) -->
+                            <!-- Shop Curtain (shown when no class is selected, or the year is sealed) -->
                             <div id="shop-curtain" class="absolute inset-0 z-40 flex flex-col items-center justify-center overflow-hidden shop-catalog-overlay">
                                 <div class="absolute inset-0 shop-curtain-bg"></div>
                                 <div class="absolute inset-0 pointer-events-none shop-curtain-glow"></div>
-                                <div class="relative z-10 text-center px-6 max-w-md">
-                                    <div id="shop-curtain-icon" class="text-7xl sm:text-8xl mb-5 floating-icon shop-curtain-icon">🔮</div>
+                                <div class="mm-drapes" aria-hidden="true"><span></span><span></span></div>
+                                <div class="relative z-10 text-center px-6 max-w-md mm-closed">
+                                    <div class="mm-closed__sign">
+                                        <span class="mm-closed__nail" aria-hidden="true"></span>
+                                        <span class="mm-closed__word">Closed</span>
+                                    </div>
+                                    <div id="shop-curtain-icon" class="text-6xl sm:text-7xl mb-4 floating-icon shop-curtain-icon">🔮</div>
                                     <h3 id="shop-curtain-title" class="font-title text-3xl sm:text-4xl text-indigo-100 mb-2 tracking-tight">The Market Sleeps</h3>
                                     <p id="shop-curtain-message" class="text-indigo-300/85 text-base leading-relaxed">Pick a class from the header to lift the veil — then choose a shopper and browse the stalls.</p>
                                 </div>
@@ -112,8 +151,8 @@ export const shopTabHTML = `
                                 <p class="text-indigo-500/80 text-sm max-w-sm">New seasonal treasures arrive each month. Holiday treasures appear on the Festival Stall when a celebration is near.</p>
                             </div>
 
-                            <!-- Items Grid -->
-                            <div id="shop-items-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 sm:gap-6 relative z-10">
+                            <!-- Shelves (one .mm-aisle per department) -->
+                            <div id="shop-items-container" class="mm-shelves relative z-10">
                             </div>
                         </div>
                     </div>

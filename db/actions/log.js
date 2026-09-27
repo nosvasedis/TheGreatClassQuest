@@ -23,14 +23,14 @@ import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
-import { getTodayDateString, parseFlexibleDate, normalizeToDateString, parseDDMMYYYY, doesClassMeetOnDate } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate, normalizeToDateString, parseDDMMYYYY, doesClassMeetOnDate, datesMatch } from '../../utils.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { retryAdventureLogGeneration } from './quests.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
-import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
+import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSchoolWideModifierType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
@@ -856,22 +856,35 @@ export async function handleAddQuestEvent() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-magic" aria-hidden="true"></i><span>Adding...</span>';
 
+        const normalizedType = normalizeQuestType(type);
+        const schoolWide = isSchoolWideModifierType(normalizedType);
         const scope = document.getElementById('quest-event-scope');
         const selectedClassIds = scope ? [...scope.selectedOptions].map((option) => option.value) : [state.get('globalSelectedClassId')];
-        const classPool = state.get('currentUserRole') === 'secretary'
-            ? (state.get('allSchoolClasses') || [])
-            : (state.get('allTeachersClasses') || []);
-        const classes = classPool.filter((item) => selectedClassIds.includes(item.id));
-        const normalizedType = normalizeQuestType(type);
-        if (!classes.length && (isSpecialQuestType(normalizedType) || normalizedType === 'double_star_day' || normalizedType === 'reason_bonus_day')) {
-            throw new Error('Select at least one class for this event.');
-        }
         const overrides = state.get('allScheduleOverrides') || [];
         const holidays = state.get('schoolHolidayRanges') || [];
         const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
-        const conflicts = classes.filter((classInfo) => !doesClassMeetOnDate(classInfo.id, date, state.get('allSchoolClasses') || [], overrides, holidays, classEndDates));
-        if (conflicts.length) {
-            throw new Error(`No lesson is scheduled for ${conflicts.map((item) => item.name).join(', ')} on this date. Resolve the calendar conflict first.`);
+        let classes;
+        if (schoolWide) {
+            // Standard events are school-wide: one event with no class applies to every class.
+            const alreadyScheduled = (state.get('allQuestEvents') || []).some((event) =>
+                isSchoolWideModifierType(event.type) &&
+                !event.classId &&
+                event.status !== 'cancelled' &&
+                datesMatch(event.dateKey || event.date, date));
+            if (alreadyScheduled) throw new Error('A standard event is already scheduled for this day.');
+            classes = [{ id: null }];
+        } else {
+            const classPool = state.get('currentUserRole') === 'secretary'
+                ? (state.get('allSchoolClasses') || [])
+                : (state.get('allTeachersClasses') || []);
+            classes = classPool.filter((item) => selectedClassIds.includes(item.id));
+            if (!classes.length && isSpecialQuestType(normalizedType)) {
+                throw new Error('Select at least one class for this event.');
+            }
+            const conflicts = classes.filter((classInfo) => !doesClassMeetOnDate(classInfo.id, date, state.get('allSchoolClasses') || [], overrides, holidays, classEndDates));
+            if (conflicts.length) {
+                throw new Error(`No lesson is scheduled for ${conflicts.map((item) => item.name).join(', ')} on this date. Resolve the calendar conflict first.`);
+            }
         }
         const target = Number(details.goalTarget || QUEST_DEFINITIONS[normalizedType]?.defaultTarget);
         const instructions = document.getElementById('quest-instructions')?.value || '';

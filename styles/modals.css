@@ -443,6 +443,27 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+/* Performance: ~400 colour emoji live in this card. The shared .pop-in scale-from-0
+   bounce forces every glyph to re-rasterise per frame, so this modal uses a short
+   fade + lift instead (same classes, so showAnimatedModal/hideModal still work). */
+#logo-picker-modal .logo-picker-shell.pop-in {
+    transition: transform 180ms ease-out, opacity 160ms ease-out;
+    will-change: auto;
+}
+
+#logo-picker-modal .logo-picker-shell.modal-origin-start {
+    transform: translateY(14px);
+    opacity: 0;
+}
+
+#logo-picker-modal .logo-picker-shell.pop-in.is-modal-exiting {
+    animation: logo-picker-out 140ms ease-in forwards !important;
+}
+
+@keyframes logo-picker-out {
+    to { opacity: 0; transform: translateY(10px); }
+}
+
 .logo-picker-header {
     position: relative;
     flex-shrink: 0;
@@ -596,7 +617,7 @@
 
 .logo-picker-group {
     content-visibility: auto;
-    contain-intrinsic-size: 1px 220px;
+    contain-intrinsic-size: auto 1px auto 220px;
     margin-bottom: 1.1rem;
 }
 
@@ -623,7 +644,7 @@
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #0f766e;
-    background: linear-gradient(180deg, rgba(247, 255, 251, 0.96) 40%, rgba(247, 255, 251, 0.78) 100%);
+    background: #f7fffb;
 }
 
 .logo-picker-grid {
@@ -641,31 +662,33 @@
     padding: 0;
     border: 1.5px solid #e2e8f0;
     border-radius: 1.05rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    background: #fff;
+    /* Name the emoji fonts directly so the browser skips per-glyph font fallback. */
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
     font-size: 1.7rem;
     line-height: 1;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
     contain: layout style;
-    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+    /* Colours only: animating transform/shadow re-rasterises the emoji glyph. */
+    transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 #logo-picker-modal .logo-select-btn:hover,
 #logo-picker-modal .logo-select-btn:focus-visible {
-    transform: translateY(-2px) scale(1.06);
     border-color: #6ee7b7;
     background: #ecfdf5;
-    box-shadow: 0 10px 18px rgba(16, 185, 129, 0.18);
     outline: none;
+}
+
+#logo-picker-modal .logo-select-btn:focus-visible {
+    border-color: #10b981;
+    box-shadow: inset 0 0 0 2px #a7f3d0;
 }
 
 #logo-picker-modal .logo-select-btn.is-selected {
     border-color: #059669;
-    background: linear-gradient(180deg, #d1fae5 0%, #a7f3d0 100%);
-    box-shadow:
-        0 0 0 3px rgba(16, 185, 129, 0.28),
-        0 10px 18px rgba(5, 150, 105, 0.2);
-    transform: scale(1.04);
+    background: #d1fae5;
+    box-shadow: inset 0 0 0 2px #34d399;
 }
 
 .logo-picker-empty {
@@ -729,9 +752,7 @@
     }
     .logo-picker-chip:hover,
     .logo-picker-chip:focus-visible,
-    #logo-picker-modal .logo-select-btn:hover,
-    #logo-picker-modal .logo-select-btn:focus-visible,
-    #logo-picker-modal .logo-select-btn.is-selected {
+    #logo-picker-modal .logo-picker-shell.modal-origin-start {
         transform: none;
     }
 }
@@ -1892,122 +1913,6 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 1);
-}
-
-/* Treasure Vault (v2): backpack columns follow the panel width — avoids 3 cramped viewport columns in a narrow column */
-#trophy-room-content .treasure-vault-backpack-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(10.75rem, 1fr));
-    gap: 1rem;
-    align-items: stretch;
-}
-
-@media (max-width: 380px) {
-    #trophy-room-content .treasure-vault-backpack-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-#trophy-room-content .treasure-vault-backpack-grid--compact {
-    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-    gap: 0.65rem;
-}
-
-/* Treasure Vault — backpack "roll" when paging inventory */
-@keyframes tv-backpack-roll-next {
-    0% {
-        opacity: 0.4;
-        transform: translateX(1.35rem) scale(0.97);
-        filter: blur(2px);
-    }
-    60% {
-        opacity: 1;
-        filter: blur(0);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-        filter: blur(0);
-    }
-}
-
-@keyframes tv-backpack-roll-prev {
-    0% {
-        opacity: 0.4;
-        transform: translateX(-1.35rem) scale(0.97);
-        filter: blur(2px);
-    }
-    60% {
-        opacity: 1;
-        filter: blur(0);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-        filter: blur(0);
-    }
-}
-
-#trophy-room-content .trophy-backpack-roll-viewport {
-    overflow: hidden;
-    border-radius: 0.875rem;
-    margin: 0 -0.125rem;
-    padding: 0.15rem 0.125rem;
-}
-
-#trophy-room-content .trophy-backpack-roll--next {
-    animation: tv-backpack-roll-next 0.48s cubic-bezier(0.33, 1.18, 0.48, 1) both;
-}
-
-#trophy-room-content .trophy-backpack-roll--prev {
-    animation: tv-backpack-roll-prev 0.48s cubic-bezier(0.33, 1.18, 0.48, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #trophy-room-content .trophy-backpack-roll--next,
-    #trophy-room-content .trophy-backpack-roll--prev {
-        animation: none;
-    }
-}
-
-/* Treasure Vault — smooth transition when switching students */
-#trophy-room-content .treasure-vault-shell.tv-vault-shell--exit {
-    transition:
-        opacity 0.24s ease,
-        transform 0.24s ease,
-        filter 0.24s ease;
-    opacity: 0;
-    transform: translateY(12px) scale(0.988);
-    filter: blur(4px);
-    pointer-events: none;
-}
-
-#trophy-room-content .treasure-vault-shell.tv-vault-shell--enter {
-    opacity: 0;
-    transform: translateY(14px) scale(0.985);
-    filter: blur(3px);
-}
-
-#trophy-room-content .treasure-vault-shell.tv-vault-shell--enter.tv-vault-shell--enter-active {
-    transition:
-        opacity 0.42s cubic-bezier(0.33, 1.12, 0.48, 1),
-        transform 0.42s cubic-bezier(0.33, 1.12, 0.48, 1),
-        filter 0.38s ease;
-    opacity: 1;
-    transform: none;
-    filter: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #trophy-room-content .treasure-vault-shell.tv-vault-shell--exit,
-    #trophy-room-content .treasure-vault-shell.tv-vault-shell--enter,
-    #trophy-room-content .treasure-vault-shell.tv-vault-shell--enter.tv-vault-shell--enter-active {
-        transition: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-        filter: none !important;
-        pointer-events: auto !important;
-    }
 }
 
 /* Logbook (calendar day): collapsible class groups — per-class palette (see classColorPalettes) */

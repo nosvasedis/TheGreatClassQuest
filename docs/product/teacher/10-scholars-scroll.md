@@ -57,7 +57,7 @@ Scholar’s Bonus is the reason **Scholar** Hero Path levels from (Pro). Birthda
 
 ## How this feeds the rest of the Quest
 
-- Chart and Hero Stats use these scores (including Prodigy tie-break academic average).
+- Chart and the Scholar's Scroll panel on the hero page (Hero stats) use these scores (including Prodigy tie-break academic average).
 - Starfall writes real stars (Team Quest, Glory, Gold).
 - Scheduled tests appear on Home pills, Calendar, Quest Assignment, and Projector countdown/luck cards.
 - Family Portal shows latest results **only** if this class records assessments.

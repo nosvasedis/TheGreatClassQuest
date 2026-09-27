@@ -3,6 +3,8 @@
 import { awardTabHTML } from '../../../../templates/app/tabs/award.js';
 import { leaderboardTabHTML } from '../../../../templates/app/tabs/leaderboard.js';
 import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js';
+import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/modals/trophyRoomView.js';
+import { buildTrophySatchel, buildActiveEffects } from '../../../../features/trophyRoomCore.mjs';
 import { getGuildBadgeHtml } from '../../../../features/guilds.js';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 
@@ -430,64 +432,36 @@ export function showTrophyRoom() {
   if (!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-trophy');
-  const label = document.getElementById('custom-select-label');
-  if (label) label.textContent = 'Alex';
+  const subtitle = document.getElementById('trophy-room-subtitle');
+  if (subtitle) subtitle.textContent = '🦊 Junior B Foxes · 6 heroes';
+  const roster = document.getElementById('trophy-room-roster');
+  if (roster) {
+    roster.innerHTML = renderTrophyRosterHtml([
+      { id: 'alex', name: 'Alex', total: 5, ready: 3 },
+      { id: 'chloe', name: 'Chloe', total: 2, ready: 0 },
+      { id: 'dimitris', name: 'Dimitris', total: 4, ready: 1 },
+      { id: 'eleni', name: 'Eleni', total: 0, ready: 0 },
+      { id: 'maria', name: 'Maria', total: 3, ready: 2 },
+      { id: 'nikos', name: 'Nikos', total: 1, ready: 0 },
+    ], 'alex');
+  }
+  const isUsable = (name) => ['Elixir of Luck', 'Scroll of the Gilded Star'].includes(name);
+  const inventory = [
+    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🍀', description: '50% chance for +1 star during your NEXT lesson.' },
+    { id: 'aug_tide', name: 'August Tide Charm', icon: '🐚', description: 'A shell that still hums with summer.', acquiredAt: '2026-08-28T10:00:00Z' },
+    { id: 'leg_gilded', name: 'Scroll of the Gilded Star', icon: '✨', description: '3x Gold for the next star you earn.' },
+    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🍀', description: '50% chance for +1 star during your NEXT lesson.' },
+    { id: 'ember_demo', name: 'Star-Ember', icon: '🌟', source: 'ember_oath', description: 'Kept a promise: read one page every evening.', acquiredAt: '2026-09-22T10:00:00Z' },
+  ];
   const content = document.getElementById('trophy-room-content');
   if (content) {
-    content.innerHTML = `
-        <div class="treasure-vault-shell w-full max-w-[min(1180px,100%)] mx-auto space-y-4" data-student-id="alex">
-            <section class="tv-hero-panel bg-gradient-to-br from-indigo-600 via-violet-700 to-fuchsia-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 relative overflow-hidden shadow-xl border-2 border-white/20">
-                <div class="flex justify-center sm:justify-start shrink-0 relative z-10">
-                    <div class="w-[4.5rem] h-[4.5rem] sm:w-24 sm:h-24 rounded-full border-4 border-white/35 shadow-xl bg-white overflow-hidden ring-4 ring-amber-200/25 flex items-center justify-center font-title text-3xl text-indigo-700">A</div>
-                </div>
-                <div class="flex-1 min-w-0 text-white relative z-10">
-                    <p class="text-[10px] uppercase tracking-widest text-amber-200 font-bold">Trophy Room</p>
-                    <h3 class="font-title text-3xl leading-tight">Alex</h3>
-                    <p class="text-sm text-white/80 mt-1">🛡️ Sentinel · Junior B</p>
-                    <div class="flex flex-wrap gap-3 mt-3">
-                        <div class="tv-hero-stat bg-white/15 rounded-xl py-2 px-3 text-center border border-white/20">
-                            <p class="text-[10px] uppercase tracking-wide text-amber-100">Stars</p>
-                            <p class="text-lg font-title leading-none">86</p>
-                        </div>
-                        <div class="tv-hero-stat bg-white/15 rounded-xl py-2 px-3 text-center border border-white/20">
-                            <p class="text-[10px] uppercase tracking-wide text-amber-100">Gold</p>
-                            <p class="text-lg font-title leading-none">42</p>
-                        </div>
-                        <div class="tv-hero-stat tv-hero-stat--inventory bg-gradient-to-br from-cyan-400/55 to-cyan-950/30 rounded-xl py-2 px-3 text-center border-2 border-cyan-200/60">
-                            <p class="text-[10px] uppercase tracking-wide text-cyan-50">Relics</p>
-                            <p class="text-lg font-title leading-none">2</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <div id="backpack-container" class="tv-backpack-shell min-w-0 rounded-2xl border-2 border-violet-200/45 shadow-lg p-4 flex flex-col gap-3 bg-gradient-to-br from-violet-50/75 via-white to-amber-50/45">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm"><i class="fas fa-scroll"></i></div>
-                    <div>
-                        <p class="font-title text-base text-indigo-950 leading-tight">Hero's backpack</p>
-                        <p class="text-[10px] text-indigo-500 font-semibold">Use a relic, or keep a collectible vaulted</p>
-                    </div>
-                </div>
-                <div class="treasure-vault-backpack-grid treasure-vault-backpack-grid--compact grid grid-cols-2 gap-3">
-                    <div class="trophy-vault-compartment bg-amber-50/80 rounded-2xl border-2 border-amber-200 shadow-md p-3 flex flex-col items-stretch gap-2">
-                        <div class="flex flex-col items-center gap-2">
-                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-4xl">🍀</div>
-                            <p class="font-title text-indigo-950 text-sm leading-tight">Elixir of Luck</p>
-                            <p class="text-[10px] font-semibold text-emerald-600">Ready to use</p>
-                        </div>
-                        <button type="button" class="trophy-room-use-btn mt-auto w-full bg-gradient-to-r from-amber-400 to-orange-400 text-white font-title text-sm py-2 rounded-xl"><i class="fas fa-wand-magic-sparkles mr-1.5 text-xs"></i>Use relic</button>
-                    </div>
-                    <div class="trophy-vault-compartment bg-violet-50/80 rounded-2xl border-2 border-violet-200 shadow-md p-3 flex flex-col items-stretch gap-2">
-                        <div class="flex flex-col items-center gap-2">
-                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 flex items-center justify-center text-4xl">🐚</div>
-                            <p class="font-title text-indigo-950 text-sm leading-tight">August Tide Charm</p>
-                            <p class="text-[10px] font-semibold text-violet-600">Vaulted</p>
-                        </div>
-                        <div class="mt-auto w-full bg-white/75 text-slate-600 font-title text-sm py-2 rounded-xl text-center border-2 border-slate-200/70"><i class="fas fa-award text-amber-500/90 mr-1.5 text-xs"></i>Collectible</div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
+    content.innerHTML = renderTrophySatchelHtml({
+      student: { id: 'alex', name: 'Alex' },
+      classLabel: '🦊 Junior B Foxes',
+      gold: 42,
+      satchel: buildTrophySatchel(inventory, { isUsable }),
+      effects: buildActiveEffects({ gloryBannerCharges: 2 }, '2026-09'),
+    });
   }
 }
 

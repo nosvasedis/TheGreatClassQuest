@@ -763,21 +763,26 @@ export function showDayPlanner(tabName = 'schedule', eventKind = 'standard') {
   const details = document.getElementById('quest-event-details-container');
   const scope = document.getElementById('quest-event-scope');
   const chips = document.getElementById('quest-event-class-chips');
+  const allClasses = document.getElementById('quest-event-all-classes');
+  const classFootnote = document.getElementById('quest-event-class-footnote');
   if (scope) {
     scope.innerHTML = '<option value="junior-b" data-logo="📚" selected>Junior B</option>';
-  }
-  if (chips) {
-    chips.innerHTML = `
-        <button type="button" class="quest-event-class-chip quest-event-class-chip--selected" data-quest-class="junior-b" aria-pressed="true">
-            <span class="quest-event-class-chip__logo" aria-hidden="true">📚</span>
-            <span>Junior B</span>
-        </button>`;
   }
   document.querySelectorAll('.quest-event-type-card').forEach((card) => {
     card.classList.remove('quest-event-type-card--selected');
     card.setAttribute('aria-pressed', 'false');
   });
   if (eventKind === 'vault') {
+    chips?.classList.remove('hidden');
+    allClasses?.classList.add('hidden');
+    if (classFootnote) classFootnote.textContent = 'Select one or more classes. Special Quests are stored separately per class.';
+    if (chips) {
+      chips.innerHTML = `
+        <button type="button" class="quest-event-class-chip quest-event-class-chip--selected" data-quest-class="junior-b" aria-pressed="true">
+            <span class="quest-event-class-chip__logo" aria-hidden="true">📚</span>
+            <span>Junior B</span>
+        </button>`;
+    }
     if (type) type.value = 'Vocabulary Vault';
     document.querySelector('.quest-event-type-card[data-quest-type="Vocabulary Vault"]')?.classList.add('quest-event-type-card--selected');
     document.querySelector('.quest-event-type-card[data-quest-type="Vocabulary Vault"]')?.setAttribute('aria-pressed', 'true');
@@ -812,6 +817,9 @@ export function showDayPlanner(tabName = 'schedule', eventKind = 'standard') {
         </div>`;
     }
   } else {
+    chips?.classList.add('hidden');
+    allClasses?.classList.remove('hidden');
+    if (classFootnote) classFootnote.textContent = 'A school-wide event. It applies to every class on this day, so there is nothing to pick.';
     if (type) type.value = '2x Star Day';
     document.querySelector('.quest-event-type-card[data-quest-type="2x Star Day"]')?.classList.add('quest-event-type-card--selected');
     document.querySelector('.quest-event-type-card[data-quest-type="2x Star Day"]')?.setAttribute('aria-pressed', 'true');

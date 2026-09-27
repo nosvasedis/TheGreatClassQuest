@@ -104,11 +104,11 @@ export const plannerModalHTML = `
 
                         <section class="quest-event-section">
                             <header class="quest-event-section__head">
-                                <p class="quest-event-kicker">Lesson weather</p>
+                                <p class="quest-event-kicker">Standard events</p>
                                 <h3>Applied on Award Stars</h3>
                                 <p>The app doubles stars, or adds +1 for one virtue, during that lesson.</p>
                             </header>
-                            <div class="quest-event-type-grid quest-event-type-grid--weather" role="listbox" aria-label="Standard events">
+                            <div class="quest-event-type-grid quest-event-type-grid--standard" role="listbox" aria-label="Standard events">
                                 <button type="button" class="quest-event-type-card quest-event-type-card--star" data-quest-type="2x Star Day" aria-pressed="false">
                                     <span class="quest-event-type-card__glyph" aria-hidden="true">⭐×2</span>
                                     <span class="quest-event-type-card__name">2x Star Day</span>
@@ -163,7 +163,13 @@ export const plannerModalHTML = `
                                 <h3>Classes</h3>
                             </header>
                             <div id="quest-event-class-chips" class="quest-event-class-chips"></div>
-                            <p class="quest-event-footnote">Select one or more classes. Special Quests are stored separately per class.</p>
+                            <div id="quest-event-all-classes" class="quest-event-class-chips hidden">
+                                <span class="quest-event-class-chip quest-event-class-chip--selected quest-event-class-chip--locked" role="note">
+                                    <span class="quest-event-class-chip__logo" aria-hidden="true">🏫</span>
+                                    <span>All classes</span>
+                                </span>
+                            </div>
+                            <p id="quest-event-class-footnote" class="quest-event-footnote">Select one or more classes. Special Quests are stored separately per class.</p>
                         </section>
 
                         <div id="quest-event-description" class="quest-event-insight hidden"></div>

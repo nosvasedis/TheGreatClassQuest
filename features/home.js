@@ -499,7 +499,7 @@ function getGeneralDashboard(name, theme, spice) {
         </div>
         <div class="vibrant-card h-span-8 card-glass-white">
             <div class="home-section-head">
-                <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--schedule"><i class="fas fa-calendar-day"></i></span>School Schedule${todaysClassCount ? `<span class="home-section-count">${todaysClassCount} today</span>` : ''}</h3>
+                <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--schedule"><i class="fas fa-calendar-day"></i></span>School Schedule</h3>
                 ${todaysClassCount ? `
                 <div class="home-schedule-legend" aria-hidden="true">
                     <span><i class="fas fa-crown home-schedule-legend__mine"></i>Yours</span>
@@ -877,7 +877,6 @@ function getHomeBountyPillHtml() {
             <span class="home-bounty-pill__icon" aria-hidden="true"><i class="fas fa-crosshairs"></i></span>
             <div class="home-bounty-pill__text">
                 <span class="home-bounty-pill__title font-title">Bounty</span>
-                <span class="home-bounty-pill__sub">Post a quest</span>
             </div>
             <span class="home-bounty-pill__chev" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
         </button>`;
@@ -1015,7 +1014,7 @@ function attachListeners(container) {
 }
 
 /** School Schedule card → roster peek (lazy). Own classes get shortcuts; colleagues' are view-only. */
-async function openScheduleClassRoster(classId) {
+async function openScheduleClassRoster(classId, options = {}) {
     try {
         const { openClassRosterModal } = await import('../ui/modals/classRoster.js');
         openClassRosterModal(classId, {
@@ -1028,11 +1027,27 @@ async function openScheduleClassRoster(classId) {
                 tabs.showTab('award-stars-tab');
             },
             onEditClass: (id) => modals.openEditClassModal(id),
-            onOpenStudent: (studentId, el) => modals.openHeroStatsModal(studentId, el)
-        });
+            onTeacherBoon: (id) => {
+                state.setGlobalSelectedClass(id, true);
+                renderHomeTab();
+                modals.openTeacherBoonModal();
+            }
+        }, options);
     } catch (error) {
         console.error('Class roster unavailable:', error);
     }
+}
+
+/**
+ * Hero view of the class roster for one student (Hero Stage → Hero stats).
+ * @returns {boolean} false when the student's class is not on the school schedule.
+ */
+export function openRosterHeroView(studentId) {
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+    const known = student && (state.get('allSchoolClasses') || []).some((c) => c.id === student.classId);
+    if (!known) return false;
+    openScheduleClassRoster(student.classId, { heroId: studentId });
+    return true;
 }
 
 async function activateOptionsSubtab(key) {

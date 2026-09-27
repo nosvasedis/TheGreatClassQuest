@@ -598,7 +598,7 @@ Teacher Settings → Quiz: when the class book is known, Generate uses this week
 
 ### Certificates
 
-Από το roster ή τα Hero Stats: δημιούργησε πιστοποιητικό. Στο Elite το AI γράφει παράγραφο από την ισχυρότερη αρετή και τα μηνιαία αστέρια. Το PDF χρησιμοποιεί avatar και τόνο Junior / Mid / Senior.
+Από το roster: δημιούργησε πιστοποιητικό. Στο Elite το AI γράφει παράγραφο από την ισχυρότερη αρετή και τα μηνιαία αστέρια. Το PDF χρησιμοποιεί avatar και τόνο Junior / Mid / Senior.
 `,
 
   'teacher/06-mystic-market-and-economy.md': `# Mystic Market

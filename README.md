@@ -221,11 +221,11 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 🏆 Hero's Challenge
 
-- **Student Leaderboard:** Ranks by Monthly or Total Stars; views **By Class** / **Global Rank**. Avatars with **Hero Path aura** (level ≥ 3), Gold, Familiar (Elite), guild badge, **Reigning Prodigy**, Guild Champion marks. Click student → **Hero Stats** or enlarged avatar (Familiar + inventory → Trophy Room).
-- **Mystic Market & Trophy Room:** Use **Mystic Market** (bottom nav) to browse and buy with Gold. **Trophy Room** shows a student's full **Inventory** (and access to the market); also openable from the enlarged avatar via "See full collection →".
-- **Hero Stats Modal:** Avatar, name, Hero Class, **Trials Logged**, **Average Test Score**, **Best Test**, dictation summary (Junior: qualitative; Senior: average %). **Performance chart** (test/dictation over time). Links to **Hero's Chronicle** and **Certificate**.
+- **Student Leaderboard:** Ranks by Monthly or Total Stars; views **By Class** / **Global Rank**. Avatars with **Hero Path aura** (level ≥ 3), Gold, Familiar (Elite), guild badge, **Reigning Prodigy**, Guild Champion marks. Click student → **Hero Stats** or the avatar → **Hero Stage** (stars, Gold, Familiar, satchel with usable relics, shortcuts to Trophy Room / Hero Stats / Skill Tree).
+- **Mystic Market & Trophy Room:** Use **Mystic Market** (bottom nav) to browse and buy with Gold. **Trophy Room** shows a student's full **Inventory** (and access to the market); also openable from the Hero Stage (enlarged avatar) via **Treasure Vault**.
+- **Hero stats:** one page everywhere (Hero Stage → **Hero stats**, or a hero in a Home schedule card's roster): identity, Hero Path and guild, stars and Gold, **virtues this month**, **latest stars**, Teacher Boon / Hero's Boon status, and for your own classes the **Scholar's Scroll** summary (trials, test average, best test, dictation summary, progress chart) with **Full analytics**. **Back to roster** shows the whole class.
 - **Prodigy of the Month / Hall of Prodigies:** Archive of past **Prodigy** (and Co-Prodigy) for **completed** months; open from Hero's Challenge, Home, or related shortcuts. This is **not** Hall of Heroes.
-- **Certificates:** **Generate Certificate** (from roster or Hero Stats) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
+- **Certificates:** **Generate Certificate** (from the roster) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
 - **Guild badges:** Rows can show a house emblem. The **guild vs guild** race lives on **Guild Hall** (Guild Power), not as a toggle on this tab.
 
 ---
@@ -360,7 +360,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 | **Avatar Forge** | Edit Student (or onboarding) | **Elite.** Student picks base (e.g. Wizard, Robot), color, accessory. AI generates a **Chibi-style** avatar. |
 | **AI Nameday Lookup** | Edit Student → Nameday | **Elite.** Magic wand sends name to AI (Greek Orthodox Εορτολόγιο); returns suggested nameday date. |
 | **Class Report** | My Classes → Report | AI **Weekly Summary** + **Suggested Mini-Quest** from behavior + academic data. |
-| **Certificate** | Roster / Hero Stats | AI writes a unique praise paragraph from top reason + monthly stars; PDF with avatar and age-themed style. |
+| **Certificate** | Roster | AI writes a unique praise paragraph from top reason + monthly stars; PDF with avatar and age-themed style. |
 | **Hero's Chronicle – Oracle** | Student modal → Chronicle | **Elite.** Four report types: **Parent Summary**, **Teacher Strategy**, **Strengths/Weaknesses**, **Goal Suggestion**. |
 | **Daily Log** | Adventure Log | **Elite:** AI diary + storybook image. **Pro:** teacher writes the diary. |
 | **Story Weavers** | Story Weavers tab | **Elite.** Word suggestions + illustration per sentence. |
@@ -370,7 +370,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 ## 📊 Tracking & Analytics
 
 ### Hero's Chronicle
-- **Private** log per student (from roster or Hero Stats). Teacher adds **categorized notes** (behavior, academics, social).
+- **Private** log per student (from the roster). Teacher adds **categorized notes** (behavior, academics, social).
 - **Oracle** inside Chronicle: **Parent Summary**, **Teacher Strategy**, **Strengths/Weaknesses**, **Goal Suggestion** (AI over full history).
 
 ### Scholar's Scroll (academic)

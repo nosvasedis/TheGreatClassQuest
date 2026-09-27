@@ -103,11 +103,12 @@ They sit beside the avatar on boards and large in the overlay. Tap for stats (�
 
 ## What you can do in the tab
 
-1. Select the class (header) and the **shopper**.
-2. Browse shelves; explain prices out loud — children should *choose*.
-3. **Buy**. Inventory appears in Trophy Room.
-4. Elite: **Restock** if you want a brand-new monthly stall. Festival Stall arrives and leaves on its own. **Teacher Settings → Market** repairs a black picture, remaining copies, names, Gold, or descriptions, or replaces one piece.
-5. If no class is selected, the shopfront stays curtained.
+1. Select the class (header) and the **shopper**. The **Market Keeper** (the shopkeeper at the counter) greets them, reads out their Gold, and says how many wares they can afford. Point at a ware and he names its price, or how much more Gold the child needs.
+2. Browse the shelves; explain prices out loud — children should *choose*. **Aisle signs** jump to one department (Festival Stall, Seasonal, Artifacts, Familiar Eggs), **Sort** orders every shelf by cheapest, priciest, or A to Z (remembered on this device), and **Can afford** hides whatever the shopper cannot buy right now.
+3. Each ware shows a paper price tag. With a shopper chosen, the button reads **Buy for N**, **Need N more**, **Owned**, or the limit that blocks it. Discounts (Hero of the Day, Hero-of-the-Day legend tiers, Aurum Satchel) put a sale burst with the percentage on the ware and strike through the old price.
+4. **Buy**. Coins hop out of the purse and the Keeper thanks the shopper; when the last copy of a seasonal or festival piece sells, the ware is stamped **Sold!** and leaves the shelf. Inventory appears in Trophy Room.
+5. Elite: **Restock** if you want a brand-new monthly stall. Festival Stall arrives and leaves on its own. **Teacher Settings → Market** repairs a black picture, remaining copies, names, Gold, or descriptions, or replaces one piece.
+6. If no class is selected, the shopfront stays curtained with a **Closed** sign (and the sign over the door says Closed too).
 
 ## How this feeds the rest of the Quest
 

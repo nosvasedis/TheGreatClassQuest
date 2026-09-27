@@ -56,6 +56,9 @@
 /* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
 @import url('./styles/guilds.css');
 
+/* 11b-ii. Guild Hall Standings polish: race track, rank plaques, alcoves, tubes */
+@import url('./styles/guild_standings.css');
+
 /* 11c. Fortune's Wheel modal */
 @import url('./styles/fortunes_wheel.css');
 
@@ -92,9 +95,6 @@
 /* 21. Performance chart bars (grow-bar), chart-row, chart-label */
 @import url('./styles/performance_chart.css');
 
-/* 22. Hero stats modal: hero-avatar-float, hero-stat-item */
-@import url('./styles/hero_stats.css');
-
 /* 22b. Student analytics modal: tabs, charts, heatmap, exports */
 @import url('./styles/student_analytics.css');
 
@@ -109,6 +109,7 @@
 
 /* 26. Bounty cards, shop item cards, inventory grid, coin-pill */
 @import url('./styles/shop.css');
+@import url('./styles/mystic_market.css');
 
 /* 27. Wallpaper enter/exit, celestial day/night, float-card color themes */
 @import url('./styles/wallpaper.css');
@@ -133,6 +134,9 @@
 
 /* 33. Loading status pill, personalized greeting banner + sparkle burst, tip styles */
 @import url('./styles/loading2.css');
+
+/* 33a. Phone loading scene (.gcq-loading-mobile): ships with style.css so it is ready before first paint */
+@import url('./styles/loading-mobile.css');
 
 /* 34. Weather effects: stormy/rainy/snowy/cloudy header/wallpaper overlays, night-mode body */
 @import url('./styles/weather_effects.css');
@@ -192,4 +196,6 @@
 @import url('./styles/campfire_entry.css');
 @import url('./styles/home_roster.css');
 @import url('./styles/history_archive.css');
+@import url('./styles/hero_stage.css');
+@import url('./styles/trophy_room.css');
 @import url('./styles/polish.css');

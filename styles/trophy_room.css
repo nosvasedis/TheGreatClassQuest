@@ -1,0 +1,867 @@
+/* Trophy Room — a class's satchels.
+   Warm one-row header (matches the Trophy Room button), hero list on the left,
+   the chosen hero's satchel on the right: Working now → Relics (use) → Treasures (kept). */
+
+#trophy-room-modal .trophy-room-shell {
+    position: relative;
+    width: 100%;
+    max-width: 68rem;
+    height: min(88vh, calc(100dvh - 1.5rem));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    background:
+        radial-gradient(90% 60% at 100% 100%, rgba(237, 233, 254, 0.55), transparent 60%),
+        #fffbf5;
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.95),
+        0 30px 90px rgba(30, 27, 75, 0.45);
+    color: #1e1b4b;
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    isolation: isolate;
+}
+
+#trophy-room-modal .font-title {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-weight: 400;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+#trophy-room-modal .trophy-room-head {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 0.9rem 0.8rem 1.1rem;
+    color: #fff;
+    background:
+        radial-gradient(120% 180% at 100% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
+        linear-gradient(100deg, #f59e0b 0%, #f97316 55%, #ea580c 100%);
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+    flex-shrink: 0;
+}
+
+#trophy-room-modal .trophy-room-emblem {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.85rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+#trophy-room-modal .trophy-room-heading {
+    min-width: 0;
+    flex: 1;
+    line-height: 1.1;
+}
+
+#trophy-room-modal .trophy-room-heading h2 {
+    margin: 0;
+    font-size: 1.45rem;
+    text-shadow: 0 1px 2px rgba(124, 45, 18, 0.35);
+}
+
+#trophy-room-modal .trophy-room-heading p {
+    margin: 0.15rem 0 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: rgba(255, 247, 237, 0.92);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#trophy-room-modal .trophy-room-close {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+    transition: background-color 0.2s ease, transform 0.25s ease;
+}
+
+#trophy-room-modal .trophy-room-close:hover {
+    background: rgba(255, 255, 255, 0.26);
+    transform: rotate(90deg);
+}
+
+#trophy-room-modal .trophy-room-close:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+/* ── Body: hero list + satchel ──────────────────────── */
+#trophy-room-modal .trophy-room-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+}
+
+#trophy-room-modal .trophy-room-roster {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fff4e3 0%, #fffaf2 100%);
+    border-right: 1px solid #f6e2c3;
+}
+
+#trophy-room-modal .trophy-room-roster-label {
+    margin: 0;
+    padding: 0.85rem 1.1rem 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+
+#trophy-room-modal .trophy-room-roster-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.1rem 0.6rem 0.9rem;
+}
+
+#trophy-room-modal .tr-roster-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.4rem 0.55rem 0.4rem 0.45rem;
+    border-radius: 0.95rem;
+    text-align: left;
+    background: transparent;
+    transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+#trophy-room-modal .tr-roster-item:hover {
+    background: rgba(255, 237, 213, 0.8);
+}
+
+#trophy-room-modal .tr-roster-item.is-selected {
+    background: #fff;
+    box-shadow:
+        0 0 0 2px #fbbf24,
+        0 6px 16px rgba(217, 119, 6, 0.18);
+}
+
+#trophy-room-modal .tr-roster-item:focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 1px;
+}
+
+#trophy-room-modal .tr-roster-portrait,
+#trophy-room-modal .tr-hero-portrait {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 999px;
+    background: linear-gradient(145deg, #ede9fe, #e0e7ff);
+    color: #6d28d9;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    flex-shrink: 0;
+}
+
+#trophy-room-modal .tr-roster-portrait {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.95rem;
+    box-shadow: 0 0 0 2px #fff, 0 2px 5px rgba(30, 27, 75, 0.12);
+}
+
+#trophy-room-modal .tr-roster-portrait img,
+#trophy-room-modal .tr-hero-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#trophy-room-modal .tr-roster-name {
+    min-width: 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #312e81;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#trophy-room-modal .tr-roster-item.is-empty .tr-roster-name {
+    color: #8b87a8;
+}
+
+#trophy-room-modal .tr-roster-ready {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.55rem;
+    color: #fff;
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    box-shadow: 0 0 0 2px #fff, 0 0 10px rgba(251, 146, 60, 0.55);
+}
+
+#trophy-room-modal .tr-roster-count {
+    grid-column: 4;
+    min-width: 1.6rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #64748b;
+    background: rgba(241, 245, 249, 0.9);
+}
+
+#trophy-room-modal .tr-roster-item.is-selected .tr-roster-count {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+#trophy-room-modal .tr-roster-empty {
+    margin: 0.5rem 0.5rem;
+    font-size: 0.82rem;
+    color: #94a3b8;
+}
+
+/* ── Satchel panel ──────────────────────────────────── */
+#trophy-room-modal .trophy-room-content {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.1rem 1.3rem 1.6rem;
+}
+
+#trophy-room-modal .tr-satchel {
+    max-width: 58rem;
+    margin: 0 auto;
+}
+
+#trophy-room-modal .tr-satchel--enter {
+    animation: tr-satchel-in 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes tr-satchel-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Hero strip */
+#trophy-room-modal .tr-hero {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+    padding: 0.85rem 1rem;
+    border-radius: 1.3rem;
+    background: #fff;
+    border: 1px solid #f3e3c9;
+    box-shadow: 0 6px 18px rgba(146, 64, 14, 0.07);
+}
+
+#trophy-room-modal .tr-hero-portrait {
+    width: 3.75rem;
+    height: 3.75rem;
+    font-size: 1.5rem;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px #fcd34d, 0 6px 14px rgba(217, 119, 6, 0.22);
+}
+
+#trophy-room-modal .tr-hero-id {
+    min-width: 0;
+    flex: 1;
+}
+
+#trophy-room-modal .tr-hero-id h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    color: #1e1b4b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#trophy-room-modal .tr-hero-id p {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #7c7497;
+}
+
+#trophy-room-modal .tr-hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
+#trophy-room-modal .tr-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #4338ca;
+    background: #eef2ff;
+}
+
+#trophy-room-modal .tr-pill i {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+#trophy-room-modal .tr-pill--gold {
+    color: #78350f;
+    background: linear-gradient(135deg, #fde68a, #fbbf24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 6px rgba(217, 119, 6, 0.2);
+}
+
+/* Working now */
+#trophy-room-modal .tr-effects {
+    margin-top: 0.9rem;
+}
+
+#trophy-room-modal .tr-effects-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.45rem 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #047857;
+}
+
+#trophy-room-modal .tr-effect-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+#trophy-room-modal .tr-effect {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    max-width: 100%;
+    padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+    border-radius: 1rem;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+}
+
+#trophy-room-modal .tr-effect-icon {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 0.7rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 1.05rem;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(4, 120, 87, 0.15);
+}
+
+#trophy-room-modal .tr-effect-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+#trophy-room-modal .tr-effect-text b {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #064e3b;
+}
+
+#trophy-room-modal .tr-effect-text span {
+    font-size: 0.74rem;
+    color: #047857;
+}
+
+/* Sections */
+#trophy-room-modal .tr-section {
+    margin-top: 1.35rem;
+}
+
+#trophy-room-modal .tr-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.7rem;
+}
+
+#trophy-room-modal .tr-section-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+#trophy-room-modal .tr-section--relics .tr-section-icon {
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    box-shadow: 0 4px 10px rgba(249, 115, 22, 0.28);
+}
+
+#trophy-room-modal .tr-section--treasures .tr-section-icon {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.28);
+}
+
+#trophy-room-modal .tr-section-head h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    font-size: 1.12rem;
+    color: #1e1b4b;
+}
+
+#trophy-room-modal .tr-section-count {
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+}
+
+#trophy-room-modal .tr-section-head p {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: #7c7497;
+}
+
+#trophy-room-modal .tr-section-empty {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1.5px dashed #eadcc6;
+    background: rgba(255, 255, 255, 0.6);
+    font-size: 0.82rem;
+    color: #8b87a8;
+}
+
+/* Relics: one horizontal card each, Use on the right */
+#trophy-room-modal .tr-relic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+    gap: 0.75rem;
+}
+
+#trophy-room-modal .tr-relic {
+    display: grid;
+    grid-template-columns: 3.75rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 0.85rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(135deg, #fffbeb 0%, #fff 65%);
+    border: 1px solid #fcdca6;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.08);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+#trophy-room-modal .tr-relic:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(217, 119, 6, 0.15);
+}
+
+#trophy-room-modal .tr-relic-art {
+    position: relative;
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: 1rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.9rem;
+    cursor: zoom-in;
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #fef3c7 45%, #fde68a 100%);
+    border: 2px solid #fff;
+    box-shadow:
+        inset 0 -3px 6px rgba(217, 119, 6, 0.18),
+        0 3px 8px rgba(217, 119, 6, 0.2);
+}
+
+#trophy-room-modal .tr-relic-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.85rem;
+}
+
+#trophy-room-modal .tr-stack {
+    position: absolute;
+    top: -0.4rem;
+    right: -0.45rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    background: #7c3aed;
+}
+
+#trophy-room-modal .tr-relic-text h5 {
+    margin: 0 0 0.15rem;
+    font-size: 1rem;
+    line-height: 1.2;
+    color: #1e1b4b;
+}
+
+#trophy-room-modal .tr-relic-text p {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: #6b6480;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+#trophy-room-modal .tr-use-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: 0.9rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.92rem;
+    color: #fff;
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+#trophy-room-modal .tr-use-btn i {
+    font-size: 0.78rem;
+}
+
+#trophy-room-modal .tr-use-btn:hover {
+    filter: brightness(1.06);
+}
+
+#trophy-room-modal .tr-use-btn:active {
+    transform: scale(0.96);
+}
+
+#trophy-room-modal .tr-use-btn:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+#trophy-room-modal .tr-use-btn:focus-visible,
+#trophy-room-modal .tr-zoom:focus-visible {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+}
+
+/* Treasures: a gallery of tiles */
+#trophy-room-modal .tr-treasure-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr));
+    gap: 0.8rem;
+}
+
+#trophy-room-modal .tr-treasure {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    padding: 0.5rem 0.5rem 0.65rem;
+    border-radius: 1.1rem;
+    text-align: center;
+    cursor: zoom-in;
+    background: #fff;
+    border: 1px solid #e9e4fb;
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.07);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#trophy-room-modal .tr-treasure:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(99, 102, 241, 0.16);
+}
+
+#trophy-room-modal .tr-treasure-art {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 0.8rem;
+    font-size: 2.6rem;
+    background: linear-gradient(145deg, #eef2ff 0%, #f5f3ff 55%, #fdf4ff 100%);
+}
+
+#trophy-room-modal .tr-treasure-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#trophy-room-modal .tr-treasure.is-keepsake .tr-treasure-art {
+    background: radial-gradient(circle at 50% 45%, #3d3660 0%, #221d38 100%);
+}
+
+#trophy-room-modal .tr-treasure.is-keepsake .tr-treasure-art img {
+    object-fit: contain;
+    padding: 0.35rem;
+}
+
+#trophy-room-modal .tr-treasure-name {
+    margin-top: 0.1rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #1e1b4b;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+#trophy-room-modal .tr-treasure-meta {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #9591b0;
+}
+
+#trophy-room-modal .tr-emoji {
+    line-height: 1;
+}
+
+/* Empty + idle states */
+#trophy-room-modal .tr-empty,
+#trophy-room-modal .tr-idle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+#trophy-room-modal .tr-empty {
+    margin-top: 1.25rem;
+    padding: 2rem 1.25rem;
+    border-radius: 1.3rem;
+    border: 1.5px dashed #eadcc6;
+    background: rgba(255, 255, 255, 0.65);
+}
+
+#trophy-room-modal .tr-idle {
+    justify-content: center;
+    min-height: 100%;
+    padding: 2rem 1rem;
+}
+
+#trophy-room-modal .tr-empty-art,
+#trophy-room-modal .tr-idle-art {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 2.4rem;
+    background: radial-gradient(circle at 40% 35%, #fff 0%, #fef3c7 60%, #fde68a 100%);
+    box-shadow: 0 8px 22px rgba(217, 119, 6, 0.2);
+}
+
+#trophy-room-modal .tr-empty h4,
+#trophy-room-modal .tr-idle h3 {
+    margin: 0.9rem 0 0.3rem;
+    color: #312e81;
+}
+
+#trophy-room-modal .tr-empty h4 { font-size: 1.15rem; }
+#trophy-room-modal .tr-idle h3 { font-size: 1.5rem; }
+
+#trophy-room-modal .tr-empty p,
+#trophy-room-modal .tr-idle p {
+    margin: 0;
+    max-width: 26rem;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: #7c7497;
+}
+
+#trophy-room-modal .tr-idle-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+}
+
+#trophy-room-modal .tr-idle-stats span {
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: #4338ca;
+    background: #eef2ff;
+}
+
+#trophy-room-modal .tr-idle-stats span.is-ready {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+/* ── Narrow screens: the hero list becomes a strip ──── */
+@media (max-width: 767px) {
+    #trophy-room-modal .trophy-room-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    #trophy-room-modal .trophy-room-roster {
+        border-right: 0;
+        border-bottom: 1px solid #f6e2c3;
+    }
+
+    #trophy-room-modal .trophy-room-roster-label {
+        display: none;
+    }
+
+    #trophy-room-modal .trophy-room-roster-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.25rem;
+        padding: 0.55rem 0.7rem;
+    }
+
+    #trophy-room-modal .tr-roster-item {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        gap: 0.25rem;
+        width: 4.6rem;
+        flex-shrink: 0;
+        padding: 0.45rem 0.25rem 0.35rem;
+        text-align: center;
+    }
+
+    #trophy-room-modal .tr-roster-portrait {
+        width: 2.6rem;
+        height: 2.6rem;
+    }
+
+    #trophy-room-modal .tr-roster-name {
+        max-width: 100%;
+        font-size: 0.72rem;
+    }
+
+    #trophy-room-modal .tr-roster-count {
+        grid-column: auto;
+        position: absolute;
+        top: 0.2rem;
+        right: 0.35rem;
+        min-width: 1.2rem;
+        padding: 0 0.3rem;
+        font-size: 0.62rem;
+    }
+
+    #trophy-room-modal .tr-roster-ready {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.45rem;
+        width: 1rem;
+        height: 1rem;
+        font-size: 0.5rem;
+    }
+
+    #trophy-room-modal .trophy-room-content {
+        padding: 0.9rem 0.85rem 1.4rem;
+    }
+
+    #trophy-room-modal .tr-hero {
+        flex-wrap: wrap;
+    }
+
+    #trophy-room-modal .tr-hero-pills {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    #trophy-room-modal .tr-relic-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #trophy-room-modal .tr-relic {
+        grid-template-columns: 3.25rem minmax(0, 1fr);
+    }
+
+    #trophy-room-modal .tr-relic-art {
+        width: 3.25rem;
+        height: 3.25rem;
+        font-size: 1.6rem;
+    }
+
+    #trophy-room-modal .tr-use-btn {
+        grid-column: 1 / -1;
+    }
+
+    #trophy-room-modal .tr-treasure-grid {
+        grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+        gap: 0.6rem;
+    }
+}
+
+/* Phone shell: the generic sheet rule makes every modal child scroll; this one scrolls its panels instead. */
+body.gcq-mobile #trophy-room-modal > .trophy-room-shell {
+    height: min(90vh, 100dvh);
+    overflow: hidden !important;
+    padding-bottom: 0;
+}
+
+body.gcq-mobile #trophy-room-modal .trophy-room-content {
+    padding-bottom: calc(1.4rem + env(safe-area-inset-bottom));
+}
+
+body.gcq-mobile #trophy-room-modal .trophy-room-head {
+    padding-right: 3.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #trophy-room-modal .tr-satchel--enter {
+        animation: none;
+    }
+
+    #trophy-room-modal .tr-relic,
+    #trophy-room-modal .tr-treasure,
+    #trophy-room-modal .trophy-room-close {
+        transition: none;
+    }
+
+    #trophy-room-modal .tr-relic:hover,
+    #trophy-room-modal .tr-treasure:hover,
+    #trophy-room-modal .trophy-room-close:hover {
+        transform: none;
+    }
+}

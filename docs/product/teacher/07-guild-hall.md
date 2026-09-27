@@ -49,7 +49,9 @@ The Hall stays **frozen** until the school year has begun and schedules exist. D
 
 ## What you see on the tab
 
-- Four **crystal columns**, ranked by Guild Power, with fill, rank-change arrows, member counts
+- A **balance-of-power bar** above the columns (each guild's share of the summed Guild Power, plus who leads and by how much). Live season only
+- Four **crystal columns**, ranked by Guild Power (gold / silver / bronze plaques, a crown for 1st), with fill, rank-change arrows, member counts
+- Under each Power number: a **chase line** ("N Power ahead of 2nd" for 1st, "N Power behind 2nd" and so on; "Tied with…" / "Tied for 1st" when the rounded Power is equal), a **Latest** line once something moves this session ("+3 Power", "Up to 2nd" / "Down to 3rd"), and four tiles for the Power ingredients (Glory per member this year, Glory per member this week, members active this week, Glory vs last week)
 - **This Month’s Champion** per guild (top earner; also badged on Hero’s Challenge)
 - Active **Wheel boon chips** on columns
 - **Magical Analytics** when you expand a column: champions, top heroes, class mix, contribution, activity

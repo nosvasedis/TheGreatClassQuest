@@ -3,7 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
 import { handleCancelLesson } from '../../db/actions.js';
-import { QUEST_DEFINITIONS, normalizeQuestType } from '../../features/specialQuestEngine.js';
+import { QUEST_DEFINITIONS, normalizeQuestType, isSchoolWideModifierType } from '../../features/specialQuestEngine.js';
 
 const QUEST_EVENT_INSIGHTS = {
     '2x Star Day': 'Every positive star award that day is doubled. The app applies this on Award Stars automatically.',
@@ -109,6 +109,23 @@ function renderQuestEventClassChips() {
             <span>${escapeHtml(option.textContent.trim())}</span>
         </button>`).join('');
     host.innerHTML = chips || '<p class="quest-event-footnote">No classes available.</p>';
+}
+
+// School-wide standard events apply to every class, so the picker collapses to a
+// single fixed "All classes" chip and the per-class chips are hidden.
+function applyQuestEventClassScope(type) {
+    const chips = document.getElementById('quest-event-class-chips');
+    const allClasses = document.getElementById('quest-event-all-classes');
+    const footnote = document.getElementById('quest-event-class-footnote');
+    if (!chips || !allClasses) return;
+    const schoolWide = isSchoolWideModifierType(type);
+    chips.classList.toggle('hidden', schoolWide);
+    allClasses.classList.toggle('hidden', !schoolWide);
+    if (footnote) {
+        footnote.textContent = schoolWide
+            ? 'A school-wide event. It applies to every class on this day, so there is nothing to pick.'
+            : 'Select one or more classes. Special Quests are stored separately per class.';
+    }
 }
 
 export function selectQuestEventType(type) {
@@ -274,6 +291,8 @@ export function renderQuestEventDetails() {
     const container = document.getElementById('quest-event-details-container');
     const insight = document.getElementById('quest-event-description');
     if (!container) return;
+
+    applyQuestEventClassScope(type);
 
     document.querySelectorAll('.quest-event-type-card').forEach((card) => {
         const on = card.dataset.questType === type;

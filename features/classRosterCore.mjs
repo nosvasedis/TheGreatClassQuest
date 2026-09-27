@@ -130,3 +130,99 @@ export function filterRosterHeroes(heroes = [], query = '') {
     if (!q) return heroes.slice();
     return heroes.filter((h) => fold(h.name).includes(q));
 }
+
+const VIRTUE_KEYS = ['teamwork', 'creativity', 'respect', 'focus'];
+
+function logDateValue(dateKey) {
+    const parts = String(dateKey || '').split(/[-/]/);
+    if (parts.length !== 3) return 0;
+    const [a, b, c] = parts.map(Number);
+    // DD-MM-YYYY or YYYY-MM-DD
+    return parts[0].length === 4 ? a * 10000 + b * 100 + c : c * 10000 + b * 100 + a;
+}
+
+/**
+ * One student's month from award_log rows (already scoped to the current month).
+ * @param {object} opts
+ * @param {Array} opts.logs
+ * @param {string} opts.studentId
+ * @param {(log:object)=>number} [opts.creditFor] star credit of one row
+ * @param {(log:object)=>boolean} [opts.isVisible] rows that belong in a star list
+ * @param {number} [opts.recentLimit]
+ */
+export function buildHeroMonthSummary({
+    logs = [],
+    studentId,
+    creditFor = (log) => Number(log?.stars) || 0,
+    isVisible = () => true,
+    recentLimit = 5
+} = {}) {
+    const mine = logs.filter((log) => log && log.studentId === studentId && isVisible(log));
+    const byReason = new Map();
+    let peerBoons = 0;
+    mine.forEach((log) => {
+        const reason = log.reason || 'other';
+        byReason.set(reason, (byReason.get(reason) || 0) + creditFor(log));
+        if (reason === 'peer_boon') peerBoons += 1;
+    });
+    const virtues = VIRTUE_KEYS.map((key) => ({ key, stars: round1(byReason.get(key) || 0) }));
+    const virtueMax = Math.max(0, ...virtues.map((v) => v.stars));
+    const extras = [...byReason.entries()]
+        .filter(([reason, stars]) => !VIRTUE_KEYS.includes(reason) && round1(stars) !== 0)
+        .map(([reason, stars]) => ({ reason, stars: round1(stars) }))
+        .sort((a, b) => b.stars - a.stars);
+    const recent = mine
+        .slice()
+        .sort((a, b) => logDateValue(b.date) - logDateValue(a.date)
+            || (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
+        .slice(0, recentLimit)
+        .map((log) => ({ date: log.date || '', reason: log.reason || 'other', stars: round1(creditFor(log)) }));
+    return { virtues, virtueMax, extras, peerBoons, recent, count: mine.length };
+}
+
+/**
+ * Teacher Boon status for one student: 2★, one student per class per month,
+ * only in the month's last 7 days (see features/boons.js#awardTeacherBoon).
+ * @returns {{ state: 'received'|'given_to_other'|'open'|'closed', opensOn: Date }}
+ */
+export function resolveTeacherBoonStatus({ boon = null, studentId = '', today = new Date() } = {}) {
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const opensOn = new Date(today.getFullYear(), today.getMonth(), lastDay - 6);
+    if (boon?.studentId) {
+        return { state: boon.studentId === studentId ? 'received' : 'given_to_other', opensOn };
+    }
+    return { state: today.getDate() >= lastDay - 6 ? 'open' : 'closed', opensOn };
+}
+
+/**
+ * Scholar's Scroll progress for the hero view: trials oldest → newest, one series per type
+ * (null where the other type sits, so the chart can span gaps).
+ * @param {Array<{type:string,date:string}>} scores
+ * @param {{ percentFor: (score:object)=>number|null, dateOf: (score:object)=>Date|null }} fns
+ */
+export function buildTrialSeries(scores = [], { percentFor, dateOf }) {
+    const time = (s) => dateOf(s)?.getTime?.() || 0;
+    const sorted = (Array.isArray(scores) ? scores : []).filter(Boolean).slice().sort((a, b) => time(a) - time(b));
+    const pct = (s) => {
+        const v = Number(percentFor(s));
+        return Number.isFinite(v) ? Math.round(v * 10) / 10 : null;
+    };
+    return {
+        points: sorted,
+        dates: sorted.map((s) => dateOf(s)),
+        tests: sorted.map((s) => (s.type === 'test' ? pct(s) : null)),
+        dictations: sorted.map((s) => (s.type === 'dictation' ? pct(s) : null)),
+    };
+}
+
+/** Best test by normalised percent (first one wins a tie); null when there are none. */
+export function pickBestTest(scores = [], percentFor) {
+    let best = null;
+    let bestPct = -Infinity;
+    for (const s of Array.isArray(scores) ? scores : []) {
+        if (s?.type !== 'test') continue;
+        const v = Number(percentFor(s));
+        if (Number.isFinite(v) && v > bestPct) { best = s; bestPct = v; }
+    }
+    return best ? { score: best, percent: Math.round(bestPct) } : null;
+}

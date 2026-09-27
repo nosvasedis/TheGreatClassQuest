@@ -323,6 +323,7 @@ export async function openHallOfHeroes() {
 
     document.getElementById('history-timeline-section')?.classList.add('hidden');
     document.getElementById('history-month-select-wrapper')?.classList.add('hidden');
+    document.getElementById('history-modal')?.classList.add('is-hoh');
 
     showAnimatedModal('history-modal');
     renderHallOfHeroesContent(classId);

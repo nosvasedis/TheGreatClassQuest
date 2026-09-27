@@ -61,7 +61,6 @@ export function populateDateDropdowns(monthSelectId, daySelectId, dateString) { 
 }
 
 // --- LOCAL STATE FOR MODALS ---
-let heroStatsChart = null;
 let currentlySelectedDayCell = null;
 export function setCurrentlySelectedDayCell(cell) {
     currentlySelectedDayCell = cell;
@@ -71,6 +70,9 @@ export function getCurrentlySelectedDayCell() {
 }
 
 // --- GENERIC MODAL FUNCTIONS ---
+
+// Exit keyframes hideModal waits for (logo-picker-out = lighter exit for the emoji-heavy logo picker).
+const MODAL_EXIT_ANIMATIONS = new Set(['modal-shell-pop-out', 'logo-picker-out']);
 
 export function showAnimatedModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -212,11 +214,6 @@ export function hideModal(modalId) {
         else state.set('currentStorybookAudio', null);
     }
 
-    if (modalId === 'hero-stats-modal' && heroStatsChart) {
-        heroStatsChart.destroy();
-        heroStatsChart = null;
-    }
-
     const modal = document.getElementById(modalId);
     if (!modal || modal.classList.contains('hidden')) return;
 
@@ -294,7 +291,7 @@ export function hideModal(modalId) {
             const fallbackMs = 380;
             const fallback = setTimeout(finishClose, fallbackMs);
             innerContent.addEventListener('animationend', (e) => {
-                if (e.target !== innerContent || e.animationName !== 'modal-shell-pop-out') return;
+                if (e.target !== innerContent || !MODAL_EXIT_ANIMATIONS.has(e.animationName)) return;
                 clearTimeout(fallback);
                 finishClose();
             }, { once: true });
@@ -394,10 +391,23 @@ export function showLogoPicker(target) {
     syncLogoPickerSelection();
     applyLogoPickerFilter();
     showAnimatedModal('logo-picker-modal');
-    requestAnimationFrame(() => {
-        search?.focus();
-        document.querySelector('#logo-picker-list .logo-select-btn.is-selected:not([hidden])')?.scrollIntoView({ block: 'nearest' });
-    });
+    requestAnimationFrame(() => search?.focus({ preventScroll: true }));
+    // Scrolling to the current emblem forces a full layout; wait until the entrance has finished.
+    clearTimeout(logoPickerRevealTimer);
+    logoPickerRevealTimer = setTimeout(() => {
+        const selected = logoPickerSelectedButton;
+        if (selected && !selected.hidden && selected.closest('[data-group]') !== logoPickerGroupEntries[0]?.group) {
+            selected.scrollIntoView({ block: 'center' });
+        }
+    }, 220);
+}
+
+/** Build the (hidden) emblem grid ahead of time so the first open only has to paint it. */
+export function prewarmLogoPicker() {
+    if (logoPickerCatalogMounted) return;
+    const run = () => ensureLogoPickerCatalog();
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 1500 });
+    else setTimeout(run, 0);
 }
 
 let logoPickerWired = false;
@@ -406,7 +416,11 @@ let logoPickerTarget = 'create';
 let logoPickerCategory = 'all';
 let logoPickerQuery = '';
 let logoPickerFilterRaf = 0;
+let logoPickerRevealTimer = 0;
 let logoPickerButtons = [];
+let logoPickerButtonByLogo = new Map();
+let logoPickerSelectedButton = null;
+let logoPickerAppliedFilterKey = null;
 let logoPickerGroupEntries = [];
 
 function wireLogoPickerControls() {
@@ -525,6 +539,12 @@ function ensureLogoPickerCatalog() {
     }).join('');
 
     logoPickerButtons = list.querySelectorAll('.logo-select-btn');
+    logoPickerButtonByLogo = new Map();
+    for (const button of logoPickerButtons) {
+        if (!logoPickerButtonByLogo.has(button.dataset.logo)) logoPickerButtonByLogo.set(button.dataset.logo, button);
+    }
+    logoPickerSelectedButton = null;
+    logoPickerAppliedFilterKey = null;
     logoPickerGroupEntries = [];
     for (const group of list.querySelectorAll('.logo-picker-group')) {
         logoPickerGroupEntries.push({
@@ -550,11 +570,18 @@ function syncLogoPickerSelection() {
     const preview = document.getElementById('logo-picker-preview');
     if (preview) preview.textContent = selectedLogo;
 
-    for (const button of logoPickerButtons) {
-        const isSelected = button.dataset.logo === selectedLogo;
-        button.classList.toggle('is-selected', isSelected);
-        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    // Only the previous and the new selection change; touching all ~400 tiles invalidates their style.
+    const next = logoPickerButtonByLogo.get(selectedLogo) || null;
+    if (next === logoPickerSelectedButton) return;
+    if (logoPickerSelectedButton) {
+        logoPickerSelectedButton.classList.remove('is-selected');
+        logoPickerSelectedButton.setAttribute('aria-pressed', 'false');
     }
+    if (next) {
+        next.classList.add('is-selected');
+        next.setAttribute('aria-pressed', 'true');
+    }
+    logoPickerSelectedButton = next;
 }
 
 function applyLogoPickerFilter() {
@@ -563,6 +590,14 @@ function applyLogoPickerFilter() {
     if (!list) return;
 
     const query = String(logoPickerQuery || '').trim().toLowerCase();
+    const filterKey = `${logoPickerCategory}\u0000${query}`;
+    if (filterKey === logoPickerAppliedFilterKey) {
+        // Nothing to re-filter (e.g. reopening on "All"): skip ~400 DOM writes.
+        list.scrollTop = 0;
+        syncLogoPickerChips();
+        return;
+    }
+    logoPickerAppliedFilterKey = filterKey;
     let visibleCount = 0;
 
     for (const { group, buttons } of logoPickerGroupEntries) {
@@ -570,10 +605,11 @@ function applyLogoPickerFilter() {
         let groupVisible = 0;
         for (const button of buttons) {
             const matches = categoryMatch && (!query || (button.dataset.search || '').includes(query));
-            button.hidden = !matches;
+            if (button.hidden === matches) button.hidden = !matches;
             if (matches) groupVisible += 1;
         }
-        group.hidden = groupVisible === 0;
+        const groupHidden = groupVisible === 0;
+        if (group.hidden !== groupHidden) group.hidden = groupHidden;
         visibleCount += groupVisible;
     }
 

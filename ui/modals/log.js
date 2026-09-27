@@ -260,6 +260,7 @@ export function openHistoryModal(type, options = {}) {
     const modal = document.getElementById('history-modal');
     modal.dataset.historyType = type;
     modal.dataset.historyLeague = options.league || '';
+    modal.classList.remove('is-hoh');
     
     // Title
     const title = type === 'team' ? 'Team Quest History' : 'Hero\'s Challenge History';

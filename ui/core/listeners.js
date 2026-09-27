@@ -239,13 +239,6 @@ function setupAdventureLogFabReveal() {
 
 export function setupUIListeners() {
     document.body.addEventListener('click', (e) => {
-        const heroStatsTrigger = e.target.closest('.hero-stats-avatar-trigger');
-        if (heroStatsTrigger) {
-            e.stopPropagation();
-            const studentId = heroStatsTrigger.dataset.studentId;
-            modals.openHeroStatsModal(studentId, heroStatsTrigger);
-            return;
-        }
         const analyticsTrigger = e.target.closest('.chart-label-button');
         if (analyticsTrigger) {
             e.stopPropagation();
@@ -304,6 +297,11 @@ export function setupUIListeners() {
     document.getElementById('league-picker-close-btn').addEventListener('click', () => modals.hideModal('league-picker-modal'));
     document.getElementById('logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('create'));
     document.getElementById('edit-logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('edit'));
+    ['logo-picker-btn', 'edit-logo-picker-btn'].forEach((id) => {
+        const trigger = document.getElementById(id);
+        trigger?.addEventListener('pointerenter', modals.prewarmLogoPicker, { once: true });
+        trigger?.addEventListener('focus', modals.prewarmLogoPicker, { once: true });
+    });
     document.getElementById('logo-picker-close-btn').addEventListener('click', () => modals.hideModal('logo-picker-modal'));
     document.getElementById('open-create-class-modal-btn').addEventListener('click', modals.openCreateClassModal);
     document.getElementById('create-class-close-btn').addEventListener('click', () => modals.hideModal('create-class-modal'));
@@ -311,7 +309,6 @@ export function setupUIListeners() {
     if (modals.wireSortingQuizResultDone) modals.wireSortingQuizResultDone();
     if (modals.wireHeroClassSelectModal) modals.wireHeroClassSelectModal();
     if (modals.wireTeacherBoonModal) modals.wireTeacherBoonModal();
-    document.getElementById('hero-stats-close-btn').addEventListener('click', () => modals.hideModal('hero-stats-modal'));
     document.getElementById('hall-of-heroes-btn').addEventListener('click', modals.openHallOfHeroes);
 
     // Class & Student Management
@@ -685,6 +682,7 @@ export function setupUIListeners() {
                     return;
                 }
                 buyBtn.disabled = true;
+                buyBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Paying…</span>';
                 const studentId = document.getElementById('shop-student-select').value;
                 const itemId = buyBtn.dataset.id;
                 const itemType = buyBtn.dataset.type;

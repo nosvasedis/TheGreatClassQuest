@@ -16,6 +16,14 @@ import { HERO_CLASSES } from '../../../../features/heroClasses.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { getHeroLegendTierInfo } from '../../../../utils.js';
 import { campfireChipMarkup, oathsButtonMarkup } from '../../../../features/campfireEntry.js';
+import {
+  renderShopItemCard,
+  renderFamiliarEggCard,
+  renderShelf,
+  renderMarketAisle,
+  shopBuyBtnClass,
+  shopBuyBtnInner
+} from '../../../../ui/core/marketView.mjs';
 
 /** Same catalog as features/powerUps.js LEGENDARY_ARTIFACTS (emoji icons — not PNG files). */
 const LEGENDARY_ARTIFACTS = [
@@ -77,106 +85,66 @@ function assetUrl(url) {
   return String(url || '').replace(/^\.\//, '/');
 }
 
-function shopPriceMarkupPlain(basePrice) {
-  return `
-        <span class="shop-price-label">Price</span>
-        <div class="shop-price-pill">
-            <span class="shop-price-value">${basePrice}</span>
-            <span class="shop-price-coin" aria-hidden="true">🪙</span>
-        </div>`;
-}
-
-function shopBuyBtnClass(isFamiliar, variant) {
-  const fam = isFamiliar ? ' shop-buy-btn--familiar' : '';
-  return `shop-buy-btn shop-buy-btn--premium${fam} shop-buy-btn--${variant}`;
-}
-
-function renderShopItemCard(item, isLegendary) {
-  const badge = isLegendary
-    ? `<div class="absolute top-2 right-2 z-10 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-indigo-400">ARTIFACT</div>`
-    : '';
-  const imageHtml = item.image
-    ? `<img src="${item.image}" alt="" class="relative w-full h-full object-contain filter drop-shadow-md">`
-    : `<div class="text-7xl">${item.icon || '📦'}</div>`;
-  return `
-        <div class="shop-item-card group flex flex-col relative overflow-hidden">
-            ${badge}
-            <div class="shop-item-stage relative flex items-center justify-center overflow-hidden">${imageHtml}</div>
-            <div class="shop-item-body flex-grow flex flex-col">
-                <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
-                <p class="text-indigo-300/95 text-xs mb-2 line-clamp-3 flex-grow">${item.description}</p>
-                <div class="shop-item-footer">
-                    <div class="shop-price-display" data-item-id="${item.id}" data-base-price="${item.price}">${shopPriceMarkupPlain(item.price)}</div>
-                    <button type="button" class="${shopBuyBtnClass(false, 'waiting')}" disabled>Pick shopper</button>
-                </div>
-            </div>
-        </div>`;
-}
-
-function renderFamiliarEggCard(fType) {
-  return `
-        <div class="shop-item-card shop-item-card--familiar group flex flex-col relative overflow-hidden">
-            <div class="absolute top-2 right-2 z-10 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-purple-400">EGG</div>
-            <div class="shop-item-stage relative overflow-hidden flex items-center justify-center" style="background:linear-gradient(135deg,${fType.eggColor}33,${fType.eggAccent}22);">
-                <div class="text-7xl" style="filter:drop-shadow(0 0 12px ${fType.eggColor});">🥚</div>
-                <div class="absolute bottom-2 text-[10px] font-bold px-2 py-1 rounded-full text-white/80" style="background:${fType.eggColor}88;">${fType.name}</div>
-            </div>
-            <div class="p-4 pb-0 flex-grow flex flex-col">
-                <h3 class="font-title text-xl text-purple-300 leading-tight mb-1">${fType.name}</h3>
-                <p class="text-indigo-300 text-xs mb-1 flex-grow">${fType.desc}</p>
-                <p class="text-purple-400/70 text-[10px] italic mb-3">${fType.flavorHint}</p>
-                <div class="flex flex-col gap-1 mb-3 text-[10px] text-indigo-400">
-                    <div>🥚 Hatches after <strong class="text-white">${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</strong> earned</div>
-                    <div>✨ Evolves: <strong class="text-white">+${FAMILIAR_LEVEL_THRESHOLDS.level2}</strong> stars after hatch → Level 2</div>
-                    <div>✨ Evolves: <strong class="text-white">+${FAMILIAR_LEVEL_THRESHOLDS.level3}</strong> stars after hatch → Level 3</div>
-                    <div>📛 Forms: ${fType.levelNames.map((n) => `<strong class="text-purple-300">${n}</strong>`).join(' → ')}</div>
-                </div>
-                <div class="shop-item-footer">
-                    <div class="shop-price-display" data-item-id="${fType.id}" data-base-price="${fType.price}">${shopPriceMarkupPlain(fType.price)}</div>
-                    <button type="button" class="${shopBuyBtnClass(true, 'waiting')}" disabled>Pick shopper</button>
-                </div>
-            </div>
-        </div>`;
-}
+/** Shelves built with the app's own markup (ui/core/marketView.mjs), priced for a 64-gold shopper. */
+const CAPTURE_SHOPPER_GOLD = 64;
 
 function catalogHtml(kind) {
   if (kind === 'legendaries') {
-    return `
-                <div class="shop-section col-span-full">
-                    <div class="shop-section-head shop-section-head--indigo">
-                        <div class="shop-section-head-main">
-                            <h3 class="shop-section-title"><i class="fas fa-scroll shop-section-title-icon"></i> Legendary Artifacts</h3>
-                            <p class="shop-section-desc">Evergreen relics with battle-shaping perks — stock is precious: two legendary buys per student each month.</p>
-                        </div>
-                        <span class="shop-section-badge shop-section-badge--indigo">Limit 2 / month</span>
-                    </div>
-                </div>
-            ${LEGENDARY_ARTIFACTS.map((item) => renderShopItemCard(item, true)).join('')}`;
+    return renderMarketAisle({
+      id: 'legendary', label: 'Artifacts', icon: 'fa-scroll', tone: 'indigo',
+      title: 'Legendary Artifacts',
+      desc: 'Evergreen relics with battle-shaping perks. Stock is precious: two legendary buys per student each month.',
+      badge: 'Limit 2 / month',
+      body: renderShelf([...LEGENDARY_ARTIFACTS].sort((x, y) => x.price - y.price).map((item) => renderShopItemCard(item, 'legendary')).join(''))
+    });
   }
   if (kind === 'seasonal') {
-    return `
-                <div class="shop-section col-span-full">
-                    <div class="shop-section-head shop-section-head--amber">
-                        <div class="shop-section-head-main">
-                            <h3 class="shop-section-title"><i class="fas fa-leaf shop-section-title-icon"></i> Seasonal Treasures</h3>
-                            <p class="shop-section-season-month">October</p>
-                            <p class="shop-section-desc shop-section-desc--after-month">This month's classroom treasures. Heroes of the Day earn discounts, and Aurum Satchels stack on the price.</p>
-                        </div>
-                    </div>
-                </div>
-            ${SAMPLE_SEASONAL.map((item) => renderShopItemCard(item, false)).join('')}`;
+    return renderMarketAisle({
+      id: 'seasonal', label: 'Seasonal', icon: 'fa-leaf', tone: 'amber',
+      title: 'Seasonal Treasures',
+      month: 'October',
+      desc: "This month's classroom treasures. Heroes of the Day earn discounts, and Aurum Satchels stack on the price.",
+      body: renderShelf(SAMPLE_SEASONAL.map((item) => renderShopItemCard(item, 'seasonal')).join(''))
+    });
   }
-  return `
-                <div class="shop-section col-span-full shop-section--spaced">
-                    <div class="shop-section-head shop-section-head--violet">
-                        <div class="shop-section-head-main">
-                            <h3 class="shop-section-title"><i class="fas fa-egg shop-section-title-icon"></i> Familiar Eggs</h3>
-                            <p class="shop-section-desc">One mystical companion per hero — buy an egg with coins, hatch it with stars, then evolve through tiers as they shine.</p>
-                        </div>
-                        <span class="shop-section-badge shop-section-badge--violet">Hatch ${FAMILIAR_LEVEL_THRESHOLDS.hatch}★</span>
-                    </div>
-                </div>
-            ${FAMILIAR_EGGS.map((fType) => renderFamiliarEggCard(fType)).join('')}`;
+  return renderMarketAisle({
+    id: 'eggs', label: 'Familiar Eggs', icon: 'fa-egg', tone: 'violet',
+    title: 'Familiar Eggs',
+    desc: 'One mystical companion per hero — buy an egg with coins, hatch it with stars, then evolve through tiers as they shine.',
+    badge: `Hatch ${FAMILIAR_LEVEL_THRESHOLDS.hatch}★`,
+    body: renderShelf(FAMILIAR_EGGS.map((fType) => renderFamiliarEggCard(fType)).join(''))
+  });
+}
+
+/** Mirror updateShopStudentDisplay's till states for the capture shopper (no Firestore). */
+function priceShelvesForCapture(container) {
+  container.dataset.shopperGold = String(CAPTURE_SHOPPER_GOLD);
+  container.querySelectorAll('.mm-ware').forEach((card) => {
+    const price = Number(card.dataset.price) || 0;
+    const btn = card.querySelector('.shop-buy-btn');
+    if (!btn) return;
+    const affordable = CAPTURE_SHOPPER_GOLD >= price;
+    card.dataset.state = affordable ? 'affordable' : 'short';
+    card.dataset.finalPrice = String(price);
+    btn.disabled = !affordable;
+    btn.className = shopBuyBtnClass(btn.dataset.type === 'familiar', affordable ? 'cta' : 'muted');
+    btn.innerHTML = shopBuyBtnInner(affordable ? 'cta' : 'muted', affordable ? `Buy for ${price}` : `Need ${price - CAPTURE_SHOPPER_GOLD} more`);
+  });
+  const chips = document.getElementById('shop-aisle-chips');
+  const aisle = container.querySelector('.mm-aisle');
+  if (chips && aisle) {
+    const count = container.querySelectorAll('.mm-ware').length;
+    chips.innerHTML = `
+      <button type="button" class="mm-aisle-chip is-active" aria-pressed="true"><i class="fas fa-store" aria-hidden="true"></i><span>All wares</span><span class="mm-aisle-chip__count">${count}</span></button>
+      <button type="button" class="mm-aisle-chip" aria-pressed="false"><i class="fas ${aisle.dataset.icon}" aria-hidden="true"></i><span>${aisle.dataset.label}</span><span class="mm-aisle-chip__count">${count}</span></button>`;
+  }
+  const afford = document.getElementById('shop-afford-toggle');
+  if (afford) afford.disabled = false;
+  const affordCount = document.getElementById('shop-afford-count');
+  if (affordCount) affordCount.textContent = String(container.querySelectorAll('.mm-ware[data-state="affordable"]').length);
+  document.getElementById('shop-aisles')?.classList.remove('hidden');
+  const line = document.getElementById('shop-keeper-line');
+  if (line) line.textContent = `Welcome back, Alex! With ${CAPTURE_SHOPPER_GOLD} gold, ${affordCount?.textContent || 'several'} wares are within your reach.`;
 }
 
 export function extrasShellHtml() {
@@ -275,7 +243,9 @@ export function showShop(kind) {
   tab.classList.remove('hidden');
   tab.classList.add('capture-shop');
   fillShopper();
+  container.classList.remove('hidden');
   container.innerHTML = catalogHtml(kind);
+  priceShelvesForCapture(container);
 }
 
 export function hideShop() {

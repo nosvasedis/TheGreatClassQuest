@@ -68,6 +68,13 @@ function animateShopGoldChange(newGoldBalance, durationMs = 650) {
     requestAnimationFrame(step);
 }
 
+/** Lets the Mystic Market storefront (shopkeeper, shelves) react to a purchase. */
+function emitShopPurchaseEvent(name, detail) {
+    try {
+        window.dispatchEvent(new CustomEvent(name, { detail }));
+    } catch (_) { /* non-browser context */ }
+}
+
 function showShopPurchasePopup({
     itemName,
     itemDescription,
@@ -644,10 +651,8 @@ export async function handleBuyItem(studentId, itemId) {
         if (!isLegendary && buyBtn) {
             const card = buyBtn.closest('.shop-item-card');
             if (remainingAfterBuy <= 0 && card) {
-                card.style.transition = 'all 0.5s';
-                card.style.transform = 'scale(0) rotate(10deg)';
-                card.style.opacity = '0';
-                setTimeout(() => card.remove(), 500);
+                card.classList.add('is-sold-out');
+                setTimeout(() => card.remove(), 1500);
             } else if (card) {
                 const stockEl = card.querySelector('.shop-item-stock');
                 if (stockEl) stockEl.textContent = remainingAfterBuy <= 1 ? 'Only 1' : `${remainingAfterBuy} left`;
@@ -663,6 +668,15 @@ export async function handleBuyItem(studentId, itemId) {
                 state.setCurrentShopItems([...shopItems]);
             }
         }
+
+        emitShopPurchaseEvent('gcq:shop-purchase', {
+            studentId,
+            studentName: student.name,
+            itemId,
+            itemName: item.name,
+            price: appliedFinalPrice,
+            soldOut: !isLegendary && remainingAfterBuy <= 0
+        });
 
         // 3. Show Nice Purchase Modal
         const popupShown = showShopPurchasePopup({
@@ -716,6 +730,7 @@ export async function handleBuyItem(studentId, itemId) {
     } catch (error) {
         console.error(error);
         showToast(typeof error === 'string' ? error : "Transaction failed.", "error");
+        emitShopPurchaseEvent('gcq:shop-purchase-failed', { itemId, message: typeof error === 'string' ? error : '' });
         import('../../ui/core.js').then(m => m.renderShopUI());
     }
 }
@@ -989,6 +1004,14 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
 
         playSound('cash');
         animateShopGoldChange(newGoldBalance);
+        emitShopPurchaseEvent('gcq:shop-purchase', {
+            studentId,
+            studentName: student.name,
+            itemId: typeId,
+            itemName: `${typeDef.name} Egg`,
+            price: finalPrice,
+            soldOut: false
+        });
         const popupShown = showShopPurchasePopup({
             itemName: `${typeDef.name} Egg`,
             itemDescription: `A new companion has joined ${student.name}. Earn ${20} stars to hatch it!`,
@@ -1018,7 +1041,10 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
         }
         import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
     } catch (error) {
-        showToast(typeof error === 'string' ? error : error.message || 'Purchase failed.', 'error');
+        const message = typeof error === 'string' ? error : error.message || 'Purchase failed.';
+        showToast(message, 'error');
+        emitShopPurchaseEvent('gcq:shop-purchase-failed', { itemId: typeId, message });
+        import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
     }
 }
 

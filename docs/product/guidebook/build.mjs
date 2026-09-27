@@ -686,7 +686,7 @@ function headingWidgets(id) {
       { match: ['What you see', 'Τι βλέπεις'], html: uiShot('heros-challenge.png', "Hero's Challenge: monthly ranks in this class, By Class / Monthly Stars, Hall of Prodigies and Trophy Room.") },
       { match: ['Trophy Room'], html: uiShot('trophy-room.png', 'Trophy Room: a student’s backpack. Use a relic such as Elixir of Luck, or keep a seasonal treasure vaulted.') },
       { match: ['Hall of Prodigies'], html: uiShot('hall-of-prodigies.png', 'Hall of Prodigies: completed months only. Maria is Eternal Prodigy for July — August is still live, so it is not archived yet.') },
-      { match: ['Certificates'], html: `${uiShot('certificate-forge.png', 'Forge Certificate: Monthly Quest or Legend’s Journey, then the Oracle weaves the paragraph. Open from the roster or Hero Stats.')}${uiShot('certificate.png', 'The printed certificate: Junior B tone, avatar identity, guild and Hero Class pills, and the praise paragraph.')}` }
+      { match: ['Certificates'], html: `${uiShot('certificate-forge.png', 'Forge Certificate: Monthly Quest or Legend’s Journey, then the Oracle weaves the paragraph. Open from the roster.')}${uiShot('certificate.png', 'The printed certificate: Junior B tone, avatar identity, guild and Hero Class pills, and the praise paragraph.')}` }
     ];
   }
   if (id === 'ceremony') {

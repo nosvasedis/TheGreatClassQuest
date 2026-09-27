@@ -100,10 +100,6 @@
     animation: clarity-glimmer-shine 1.2s ease-out;
 }
 
-.avatar-inventory-item.clarity-glimmer {
-    animation: clarity-glimmer-avatar 1.2s ease-out;
-}
-
 @keyframes clarity-glimmer-avatar {
     0% { filter: brightness(1); transform: scale(1); }
     15% { filter: brightness(1.8) drop-shadow(0 0 12px rgba(34, 211, 238, 0.8)); transform: scale(1.1); }

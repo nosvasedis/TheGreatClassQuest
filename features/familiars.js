@@ -760,6 +760,15 @@ function _renderEgg(typeDef, px, studentId) {
 
 // ─── FAMILIAR STATS OVERLAY ──────────────────────────────────────────────────
 
+// Element sigil per species; the matching habitat colours live in styles/familiar_modal.css.
+const FAMILIAR_DEN_THEMES = {
+    emberfang: { sigil: '🔥', element: 'Fire' },
+    frostpaw: { sigil: '❄️', element: 'Frost' },
+    thornback: { sigil: '🌿', element: 'Wildwood' },
+    veilshade: { sigil: '🌙', element: 'Shadow' },
+    sparkling: { sigil: '☀️', element: 'Sunlight' }
+};
+
 export function openFamiliarStatsOverlay(studentId) {
     const scoreData = state.get('allStudentScores').find((s) => s.id === studentId);
     const student = state.get('allStudents').find((s) => s.id === studentId);
@@ -799,146 +808,162 @@ export function openFamiliarStatsOverlay(studentId) {
     const safePersonality = escapeHtml(typeDef.personality);
     const safeVariantLabel = escapeHtml(familiar.variant?.label || 'Standard');
 
-    let progressTitle = 'Stars to hatch';
-    let progressSubtitle = `${progress.remaining} more stars needed`;
-    if (progress.phase === 'level1') {
-        progressTitle = 'Stars to Level 2';
-        progressSubtitle = `${progress.remaining} more stars needed`;
-    } else if (progress.phase === 'level2') {
-        progressTitle = 'Stars to Level 3';
-        progressSubtitle = `${progress.remaining} more stars needed`;
-    } else if (progress.phase === 'max') {
-        progressSubtitle = 'Maximum evolution reached';
-    }
-
     const isFailed = familiar.generationStatus === 'failed' && familiar.generationLevel === familiar.level;
+    const isEgg = familiar.state === 'egg';
+    const denTheme = FAMILIAR_DEN_THEMES[familiar.typeId] || { sigil: '✨', element: 'Arcane' };
 
     const overlay = document.createElement('div');
     overlay.dataset.studentId = studentId;
     overlay.className = 'familiar-stats-overlay fixed inset-0 z-[95] flex items-center justify-center';
 
-    const particlePositions = [6, 18, 33, 50, 67, 82, 93];
-    const particleDrifts    = [18, -14, 22, -18, 12, -22, 16];
-    const particles = particlePositions.map((left, i) => {
-        const dur   = (5.5 + i * 0.65).toFixed(1);
-        const delay = (i * 1.25).toFixed(1);
-        const drift = particleDrifts[i];
-        const size  = 4 + (i % 3) * 2;
-        return `<div class="fam-modal-particle" style="left:${left}%;bottom:8%;width:${size}px;height:${size}px;background:${typeDef.eggColor};box-shadow:0 0 8px ${typeDef.eggColor};--fam-dur:${dur}s;--fam-delay:${delay}s;--fam-drift:${drift}px;"></div>`;
+    // Habitat motes: the per-type CSS makes embers rise, snow fall, leaves drift, wisps flicker, sun motes shimmer.
+    const motes = Array.from({ length: 14 }, (_, i) => {
+        const left = 4 + ((i * 37) % 92);
+        const top = 6 + ((i * 53) % 80);
+        const dur = (4.8 + (i % 5) * 0.9).toFixed(1);
+        const delay = (-(i * 0.73)).toFixed(2);
+        const drift = (i % 2 ? -1 : 1) * (10 + (i % 4) * 7);
+        const size = 3 + (i % 4) * 1.5;
+        return `<span class="fam-den-mote" style="left:${left}%;top:${top}%;--mote-size:${size}px;--mote-dur:${dur}s;--mote-delay:${delay}s;--mote-drift:${drift}px;"></span>`;
     }).join('');
 
-    const ringGlowDim    = `0 0 22px ${typeDef.eggColor}44, inset 0 0 20px rgba(255,255,255,0.05)`;
-    const ringGlowBright = `0 0 44px ${typeDef.eggColor}77, inset 0 0 30px rgba(255,255,255,0.09)`;
+    const runeMarks = Array.from({ length: 12 }, (_, i) => {
+        const a = (i / 12) * Math.PI * 2;
+        const x = 100 + Math.cos(a) * 86;
+        const y = 100 + Math.sin(a) * 86;
+        return i % 3 === 0
+            ? `<path d="M${x.toFixed(1)} ${(y - 5).toFixed(1)}L${(x + 4).toFixed(1)} ${y.toFixed(1)}L${x.toFixed(1)} ${(y + 5).toFixed(1)}L${(x - 4).toFixed(1)} ${y.toFixed(1)}Z" class="fam-rune-gem"/>`
+            : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8" class="fam-rune-dot"/>`;
+    }).join('');
+
+    // Evolution path: Egg → the three named forms.
+    const currentStage = isEgg ? 0 : Math.min(3, level);
+    const stages = [{ name: 'Egg', icon: '🥚' }, ...typeDef.levelNames.map((name, i) => ({ name, icon: ['Ⅰ', 'Ⅱ', 'Ⅲ'][i] }))];
+    const evolutionTrack = stages.map((stage, i) => {
+        const status = i < currentStage ? 'done' : i === currentStage ? 'current' : 'locked';
+        return `
+            <li class="fam-evo-node fam-evo-node--${status}" style="--evo-i:${i};">
+                <span class="fam-evo-gem">${status === 'locked' ? '<i class="fas fa-lock"></i>' : stage.icon}</span>
+                <span class="fam-evo-name">${escapeHtml(stage.name)}</span>
+            </li>`;
+    }).join('');
+    const trackFill = Math.round((currentStage / 3) * 100);
+
+    const nextStageName = isMaxLevel ? '' : stages[Math.min(3, currentStage + 1)].name;
+    const progressSpan = Math.max(1, progress.max - progress.min);
+    const progressDone = Math.max(0, Math.min(progressSpan, progress.current - progress.min));
+    const progressVerb = progress.phase === 'egg' ? 'Hatches into' : 'Evolves into';
+
+    const traits = String(typeDef.flavorHint || '').split('•').map((t) => t.trim()).filter(Boolean)
+        .map((t) => `<span class="fam-den-trait">${escapeHtml(t)}</span>`).join('');
 
     overlay.innerHTML = `
         <div class="fam-overlay-backdrop"></div>
-        <div class="absolute inset-0 pointer-events-none overflow-hidden">
-            <div class="absolute inset-0" style="background:radial-gradient(ellipse at 50% 18%,${typeDef.eggColor}1c,transparent 55%);"></div>
-            ${particles}
-        </div>
-        <div class="fam-modal-card relative max-w-sm w-full mx-4 rounded-3xl overflow-hidden"
-             style="background:linear-gradient(170deg,rgba(255,255,255,0.16) 0%,rgba(186,184,255,0.20) 18%,rgba(104,97,190,0.34) 56%,rgba(63,120,179,0.30) 100%);
-                    border:1px solid ${typeDef.eggColor}66;
-                    backdrop-filter:blur(16px) saturate(1.3);
-                    -webkit-backdrop-filter:blur(16px) saturate(1.3);
-                    box-shadow:0 0 90px ${typeDef.eggColor}28,0 32px 64px rgba(9,16,32,0.42);
-                    --fam-ring-glow-dim:${ringGlowDim};
-                    --fam-ring-glow-bright:${ringGlowBright};">
-            <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 50% -10%,${typeDef.eggColor}14,transparent 48%);"></div>
-            <div class="absolute top-0 inset-x-0 h-px pointer-events-none" style="background:linear-gradient(90deg,transparent,${typeDef.eggColor}99,transparent);"></div>
-            <div class="absolute bottom-0 inset-x-0 h-px pointer-events-none" style="background:linear-gradient(90deg,transparent,${typeDef.eggColor}33,transparent);"></div>
+        <div class="fam-modal-card fam-den relative w-full" data-fam-type="${escapeHtml(familiar.typeId)}"
+             style="--fam-color:${typeDef.eggColor};--fam-accent:${typeDef.eggAccent || typeDef.eggColor};">
+            <div class="fam-modal-scroll">
+                <button type="button" class="fam-overlay-close" aria-label="Close">&times;</button>
 
-            <div class="fam-modal-scroll relative z-10 p-6 text-center">
-                <button class="fam-overlay-close absolute top-3 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white transition-all text-xl leading-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">&times;</button>
+                <div class="fam-den-stage">
+                    <div class="fam-den-sky" aria-hidden="true"></div>
+                    <div class="fam-den-rays" aria-hidden="true"></div>
+                    <div class="fam-den-motes" aria-hidden="true">${motes}</div>
+                    <div class="fam-den-sigil" title="${escapeHtml(denTheme.element)} familiar">
+                        <span class="fam-den-sigil-icon">${denTheme.sigil}</span>
+                        <span>${escapeHtml(denTheme.element)}</span>
+                    </div>
+                    <div class="fam-den-altar">
+                        <svg class="fam-den-runes" viewBox="0 0 200 200" aria-hidden="true">
+                            <circle cx="100" cy="100" r="94" class="fam-rune-ring"/>
+                            <circle cx="100" cy="100" r="78" class="fam-rune-ring fam-rune-ring--dash"/>
+                            <circle cx="100" cy="100" r="64" class="fam-rune-ring fam-rune-ring--faint"/>
+                            ${runeMarks}
+                        </svg>
+                        <div class="fam-modal-sprite-halo" aria-hidden="true"></div>
+                        <div class="fam-den-pedestal" aria-hidden="true"></div>
+                        <button type="button" class="fam-overlay-tap fam-den-creature" aria-label="Tap familiar">
+                            ${spriteHtml}
+                        </button>
+                    </div>
+                </div>
 
-                <div class="flex justify-center mb-5 mt-1">
-                    <div class="relative" style="width:104px;height:104px;">
-                        <div class="fam-modal-sprite-halo absolute inset-0 rounded-full pointer-events-none" style="background:${typeDef.eggColor};filter:blur(24px);"></div>
-                        <div class="fam-modal-sprite-ring absolute inset-0 rounded-full flex items-center justify-center"
-                             style="background:radial-gradient(circle at 38% 32%,rgba(255,255,255,0.13),rgba(10,13,24,0.97));
-                                    border:2px solid ${typeDef.eggColor}77;">
-                            <button type="button" class="fam-overlay-tap" aria-label="Tap familiar">
-                                ${spriteHtml}
-                            </button>
+                <div class="fam-den-body">
+                    <div class="fam-den-heading">
+                        <div class="fam-modal-species">${safeSpeciesLabel}</div>
+                        <h3 class="fam-modal-name">${safeDisplayName}</h3>
+                        <div class="fam-modal-badge">${isEgg ? '🥚' : '✨'} ${safeLevelName}</div>
+                    </div>
+
+                    <blockquote class="fam-modal-quote">${safePersonality}</blockquote>
+                    ${traits ? `<div class="fam-den-traits">${traits}</div>` : ''}
+
+                    <section class="fam-den-panel" aria-label="Evolution path">
+                        <div class="fam-den-label">Evolution Path</div>
+                        <ol class="fam-evo-track" style="--evo-fill:${trackFill}%;">${evolutionTrack}</ol>
+                    </section>
+
+                    ${!isMaxLevel ? `
+                    <section class="fam-den-panel fam-den-progress">
+                        <div class="fam-den-progress-head">
+                            <div>
+                                <div class="fam-den-label">${progressVerb}</div>
+                                <div class="fam-den-next">${escapeHtml(nextStageName)}</div>
+                            </div>
+                            <div class="fam-den-count"><strong>${progressDone}</strong> / ${progressSpan} ⭐</div>
+                        </div>
+                        <div class="fam-den-bar">
+                            <div class="fam-modal-progress-bar" style="--fam-progress:${progressPercent}%;"></div>
+                        </div>
+                        <div class="fam-den-hint">${progress.remaining} more ${progress.remaining === 1 ? 'star' : 'stars'} to go · ${progressPercent}%</div>
+                    </section>` : `
+                    <section class="fam-den-panel fam-den-max">
+                        <span class="fam-den-max-crown" aria-hidden="true">👑</span>
+                        <div>
+                            <div class="fam-den-max-title">Legendary Form</div>
+                            <div class="fam-den-hint">Maximum evolution reached</div>
+                        </div>
+                    </section>`}
+
+                    <div class="fam-den-stats">
+                        <div class="fam-modal-stat">
+                            <span class="fam-stat-icon" aria-hidden="true">⭐</span>
+                            <div>
+                                <div class="fam-stat-value">${starsTogether}</div>
+                                <div class="fam-den-label">Stars together</div>
+                            </div>
+                        </div>
+                        <div class="fam-modal-stat">
+                            <span class="fam-stat-icon" aria-hidden="true">${denTheme.sigil}</span>
+                            <div>
+                                <div class="fam-stat-value fam-stat-value--sm">${safeVariantLabel}</div>
+                                <div class="fam-den-label">${isEgg ? 'Destined variant' : 'Variant'}</div>
+                            </div>
                         </div>
                     </div>
+
+                    ${isFailed ? `
+                    <section class="fam-den-panel fam-den-failed">
+                        <div class="fam-den-label">Sprite generation failed</div>
+                        <p>${escapeHtml(familiar.generationError || 'The browser could not create this familiar sprite.')}</p>
+                        <button type="button" class="fam-retry-btn" data-student-id="${studentId}">Retry Sprite Generation</button>
+                    </section>` : ''}
+
+                    ${familiar.state === 'alive' ? `
+                    <section class="fam-den-panel">
+                        <div class="fam-den-label">True name</div>
+                        <div class="fam-den-name-row">
+                            <input type="text" class="fam-name-input" maxlength="24" value="${escapeHtml(familiar.name || '')}" placeholder="Give this familiar a name">
+                            <button type="button" class="fam-name-save" data-student-id="${studentId}">Save</button>
+                            <button type="button" class="fam-regenerate-btn" data-student-id="${studentId}" title="Regenerate Sprite" aria-label="Regenerate sprite">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </section>` : `
+                    <section class="fam-den-panel fam-den-egg-note">
+                        <span class="fam-stat-icon" aria-hidden="true">🥚</span>
+                        <div class="fam-den-hint">This egg can be named after it hatches.</div>
+                    </section>`}
                 </div>
-
-                <h3 class="fam-modal-name font-title text-[1.65rem] text-white mb-0.5 leading-tight">${safeDisplayName}</h3>
-                <div class="fam-modal-species text-[11px] text-white/40 uppercase tracking-[0.22em] mb-2.5">${safeSpeciesLabel}</div>
-                <div class="fam-modal-badge inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold mb-3"
-                     style="background:linear-gradient(135deg,${typeDef.eggColor}ee,${typeDef.eggColor}aa);
-                            color:rgba(0,0,0,0.82);
-                            box-shadow:0 0 18px ${typeDef.eggColor}66,inset 0 1px 0 rgba(255,255,255,0.3);">
-                    ${familiar.state === 'egg' ? '🥚' : '✨'} ${safeLevelName}
-                </div>
-                <p class="fam-modal-quote text-sm text-white/50 italic mb-5 leading-relaxed">"${safePersonality}"</p>
-
-                <div class="grid grid-cols-2 gap-3 text-left mb-3">
-                    <div class="fam-modal-stat rounded-2xl p-3.5" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
-                        <div class="text-[10px] text-white/35 uppercase tracking-wider mb-1.5">Stars Together</div>
-                        <div class="text-xl font-bold text-white leading-none">${starsTogether} <span class="text-base">⭐</span></div>
-                    </div>
-                    <div class="fam-modal-stat rounded-2xl p-3.5" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
-                        <div class="text-[10px] text-white/35 uppercase tracking-wider mb-1.5">Evolution</div>
-                        <div class="text-xl font-bold text-white leading-none">${familiar.state === 'egg' ? '🥚 Egg' : `Lv. ${level}`}</div>
-                    </div>
-                </div>
-
-                ${!isMaxLevel ? `
-                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="text-[10px] text-white/35 uppercase tracking-wider">${progressTitle}</div>
-                        <div class="text-xs font-bold" style="color:${typeDef.eggColor}">${progressPercent}%</div>
-                    </div>
-                    <div class="w-full rounded-full h-2 overflow-hidden" style="background:rgba(255,255,255,0.06);">
-                        <div class="fam-modal-progress-bar h-2 rounded-full"
-                             style="background:linear-gradient(90deg,${typeDef.eggColor}bb,${typeDef.eggColor});
-                                    box-shadow:0 0 12px ${typeDef.eggColor}88;
-                                    --fam-progress:${progressPercent}%;
-                                    width:0%;"></div>
-                    </div>
-                    <div class="text-[10px] text-white/35 mt-1.5">${progressSubtitle}</div>
-                </div>` : `
-                <div class="flex items-center justify-center gap-2 text-sm font-bold text-amber-400 mb-3 py-2">
-                    <span style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.7))">✨</span>
-                    MAX EVOLUTION REACHED
-                    <span style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.7))">✨</span>
-                </div>`}
-
-                ${isFailed ? `
-                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(239,68,68,0.07);border:1px solid rgba(248,113,113,0.22);">
-                    <div class="text-[10px] font-bold uppercase tracking-wider text-red-300 mb-1.5">Sprite generation failed</div>
-                    <p class="text-xs text-red-100/75 mb-3">${familiar.generationError || 'The browser could not create this familiar sprite.'}</p>
-                    <button type="button" class="fam-retry-btn w-full rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm py-2.5 transition-colors" data-student-id="${studentId}">
-                        Retry Sprite Generation
-                    </button>
-                </div>` : ''}
-
-                ${familiar.state === 'alive' ? `
-                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
-                    <div class="text-[10px] text-white/35 uppercase tracking-wider mb-2">Familiar Name</div>
-                    <div class="flex gap-2">
-                        <input type="text" class="fam-name-input flex-1 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none" maxlength="24" value="${escapeHtml(familiar.name || '')}" placeholder="Give this familiar a name" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.09);">
-                        <button type="button" class="fam-name-save rounded-xl font-bold text-sm px-4 py-2 transition-all hover:brightness-110" data-student-id="${studentId}"
-                                style="background:linear-gradient(135deg,${typeDef.eggColor},${typeDef.eggColor}cc);color:rgba(0,0,0,0.82);box-shadow:0 0 16px ${typeDef.eggColor}55;">
-                            Save
-                        </button>
-                    </div>
-                    <div class="text-[9px] text-white/25 mt-2 tracking-wide">Variant: ${safeVariantLabel}</div>
-                    <div class="mt-3 flex justify-end">
-                        <button type="button" class="fam-regenerate-btn rounded-full w-8 h-8 flex items-center justify-center text-white/55 hover:text-white transition-all" data-student-id="${studentId}" title="Regenerate Sprite" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);">
-                            <i class="fas fa-sync text-xs"></i>
-                        </button>
-                    </div>
-                </div>` : `
-                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
-                    <div class="text-[10px] text-white/35 uppercase tracking-wider mb-1">Naming</div>
-                    <div class="text-xs text-white/45">This egg can be named after it hatches.</div>
-                    <div class="text-[9px] text-white/25 mt-2 tracking-wide">Destined variant: ${safeVariantLabel}</div>
-                </div>`}
-
-                <p class="text-[10px] text-white/22 italic">${typeDef.flavorHint}</p>
             </div>
         </div>`;
 
@@ -954,7 +979,7 @@ export function openFamiliarStatsOverlay(studentId) {
         if (card) {
             card.classList.add('fam-modal-card--exit');
             if (backdrop) backdrop.classList.add('fam-overlay-backdrop--exit');
-            card.addEventListener('animationend', () => overlay.remove(), { once: true });
+            card.addEventListener('animationend', (e) => { if (e.target === card) overlay.remove(); });
         } else {
             overlay.remove();
         }

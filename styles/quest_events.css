@@ -90,7 +90,7 @@
     gap: 0.65rem;
 }
 
-.quest-event-type-grid--weather {
+.quest-event-type-grid--standard {
     grid-template-columns: 1fr 1fr;
 }
 
@@ -243,6 +243,10 @@
     gap: 0.5rem;
 }
 
+.quest-event-class-chips.hidden {
+    display: none;
+}
+
 .quest-event-class-chip {
     display: inline-flex;
     align-items: center;
@@ -273,6 +277,13 @@
 .quest-event-class-chip__logo {
     font-size: 1.05rem;
     line-height: 1;
+}
+
+.quest-event-class-chip--locked,
+.quest-event-class-chip--locked:hover {
+    cursor: default;
+    transform: none;
+    border-color: #6366f1;
 }
 
 .quest-event-footnote {
@@ -509,7 +520,7 @@
 }
 
 @media (max-width: 640px) {
-    .quest-event-type-grid--weather,
+    .quest-event-type-grid--standard,
     .quest-event-type-grid--quests {
         grid-template-columns: 1fr;
     }

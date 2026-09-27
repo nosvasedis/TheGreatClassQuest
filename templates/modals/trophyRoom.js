@@ -2,66 +2,26 @@
 // Trophy room, shop, avatar maker
 
 export const trophyRoomModalsHTML = `
+    <!-- Trophy Room: a class's satchels. Hero list on the left, the chosen hero's Relics + Treasures on the right. -->
     <div id="trophy-room-modal"
         class="fixed inset-0 bg-indigo-950/60 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-xl">
-        <div
-            class="bg-gradient-to-br from-indigo-50 via-white to-violet-50 rounded-3xl shadow-[0_40px_120px_rgba(0,0,0,0.4)] max-w-6xl w-full h-[min(90vh,calc(100dvh-1.5rem))] max-h-[min(90vh,calc(100dvh-1.5rem))] flex flex-col pop-in border-4 border-white overflow-hidden relative">
-            
-            <!-- Close Button - Moved to corner to avoid overlap -->
-            <button id="trophy-room-close-btn"
-                class="absolute top-4 right-4 text-slate-400 hover:text-indigo-600 text-3xl leading-none w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/80 transition-all duration-300 z-[60] hover:rotate-90 group">
-                <i class="fas fa-times-circle"></i>
-            </button>
-            
-            <!-- Animated Background Glows -->
-            <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-60">
-                <div class="absolute -top-32 -left-32 w-96 h-96 bg-amber-200/40 blur-[120px] rounded-full animate-pulse"></div>
-                <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-violet-300/40 blur-[120px] rounded-full animate-pulse" style="animation-delay: 2s;"></div>
-            </div>
-            
-            <!-- Compact Premium Header -->
-            <div class="px-5 py-3 flex flex-col md:flex-row justify-between items-center z-20 gap-3 bg-white/40 backdrop-blur-md border-b border-indigo-100/50 flex-shrink-0">
-                <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 rounded-xl flex items-center justify-center text-2xl shadow-[0_8px_20px_rgba(251,191,36,0.3)] border-2 border-white transform -rotate-3 transition-transform hover:rotate-0 duration-500">🏆</div>
-                    <div>
-                        <h2 class="font-title text-2xl text-indigo-950 tracking-tight leading-none flex items-center gap-2 flex-wrap justify-center md:justify-start">
-                            <span>Trophy Room</span>
-                            <i class="fas fa-gem text-amber-500 text-lg drop-shadow-sm opacity-90" aria-hidden="true"></i>
-                        </h2>
-                    </div>
+        <div class="trophy-room-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="trophy-room-title">
+            <header class="trophy-room-head">
+                <span class="trophy-room-emblem" aria-hidden="true">🏆</span>
+                <div class="trophy-room-heading">
+                    <h2 id="trophy-room-title" class="font-title">Trophy Room</h2>
+                    <p id="trophy-room-subtitle">Every hero's satchel</p>
                 </div>
-                
-                <!-- Custom Bubbly Dropdown - Carefully placed -->
-                <div class="relative z-50 mr-6 md:mr-10">
-                    <div id="trophy-room-custom-select" class="custom-bubbly-dropdown min-w-[200px]">
-                        <div class="dropdown-trigger flex items-center justify-between gap-2 bg-white border-2 border-indigo-100 rounded-xl px-4 py-2 cursor-pointer hover:border-indigo-300 transition-all shadow-sm group">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <div id="custom-select-portrait" class="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 shrink-0 overflow-hidden">
-                                    <i class="fas fa-user-circle text-xs" aria-hidden="true"></i>
-                                </div>
-                                <span id="custom-select-label" class="text-indigo-950 font-title text-sm font-normal truncate">Select a student</span>
-                            </div>
-                            <i class="fas fa-chevron-down text-[10px] text-indigo-300 transition-transform dropdown-arrow group-hover:text-indigo-500"></i>
-                        </div>
-                        <div id="dropdown-options" class="dropdown-menu absolute top-full right-0 z-[85] mt-3 w-full min-w-[220px] max-h-[min(70vh,calc(100dvh-12rem))] overflow-y-auto overflow-x-hidden custom-scrollbar bg-white/95 backdrop-blur-xl border-2 border-indigo-50 rounded-[1.5rem] shadow-[0_20px_50px_rgba(79,70,229,0.15)] hidden transform origin-top scale-95 opacity-0 transition-all duration-300">
-                            <!-- Options injected by JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="trophy-room-content" class="flex-1 flex flex-col overflow-y-auto p-4 md:p-5 min-h-0 custom-scrollbar relative z-10 bg-transparent">
-                <!-- Initial State: min-height so empty layout still fills the panel (dropdown list needs room) -->
-                <div class="flex-1 min-h-0 flex flex-col items-center justify-center text-center space-y-4 py-12 animate-in">
-                    <div class="relative">
-                        <div class="absolute inset-0 bg-indigo-200 blur-3xl rounded-full opacity-30 animate-pulse"></div>
-                        <div class="text-6xl relative z-10 animate-float">🛡️</div>
-                    </div>
-                    <div>
-                        <h3 class="font-title text-2xl text-indigo-900/70 tracking-tight">Pick a student</h3>
-                        <p class="text-indigo-500/75 font-title text-sm font-normal mt-1.5 opacity-90">Choose someone from the list above to open the vault.</p>
-                    </div>
-                </div>
+                <button id="trophy-room-close-btn" type="button" class="trophy-room-close" aria-label="Close the Trophy Room">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </header>
+            <div class="trophy-room-body">
+                <nav class="trophy-room-roster" aria-label="Heroes">
+                    <p class="trophy-room-roster-label">Heroes</p>
+                    <div id="trophy-room-roster" class="trophy-room-roster-list custom-scrollbar"></div>
+                </nav>
+                <section id="trophy-room-content" class="trophy-room-content custom-scrollbar" aria-live="polite"></section>
             </div>
         </div>
     </div>

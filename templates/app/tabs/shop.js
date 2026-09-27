@@ -45,51 +45,43 @@ export const shopTabHTML = `
                                         <span class="mm-keeper__line" id="shop-keeper-line">Welcome, travellers! Choose a shopper and I'll open the till.</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="mm-counter__controls">
-                                    <div class="shop-command-deck__primary flex flex-col gap-1 min-w-0 flex-1">
-                                        <span class="shop-deck-label"><i class="fas fa-user-circle"></i> Shopper</span>
-                                        <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0">
-                                            <div class="shop-selector-pill shop-selector-pill--student shop-selector-pill--dark shop-selector-pill--shopper">
-                                                <i class="fas fa-hat-wizard shop-sel-icon shop-sel-icon--shopper text-fuchsia-400"></i>
-                                                <div class="shop-shopper" id="shop-shopper-root">
-                                                    <button type="button" id="shop-shopper-trigger" class="shop-shopper__trigger"
-                                                        aria-haspopup="listbox" aria-expanded="false" aria-controls="shop-shopper-listbox">
-                                                        <span class="shop-shopper__trigger-text">
-                                                            <span class="shop-shopper__trigger-label">Shopper</span>
-                                                            <span class="shop-shopper__trigger-value" id="shop-shopper-display">Choose your adventurer…</span>
-                                                        </span>
-                                                        <span class="shop-shopper__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
-                                                    </button>
-                                                    <div id="shop-shopper-listbox" class="shop-shopper__panel" role="listbox" aria-hidden="true"></div>
-                                                </div>
-                                                <select id="shop-student-select" class="shop-shopper-native" tabindex="-1" aria-hidden="true">
-                                                    <option value="">Choose your adventurer…</option>
-                                                </select>
-                                            </div>
+                            <!-- The wooden counter-front: shopper, purse and restock sit on it -->
+                            <div class="mm-counter__bar">
+                                <div class="mm-counter__controls" role="group" aria-label="Shopper, purse and restock">
+                                    <div class="shop-selector-pill shop-selector-pill--student shop-selector-pill--dark shop-selector-pill--shopper mm-plaque mm-plaque--shopper">
+                                        <i class="fas fa-hat-wizard shop-sel-icon shop-sel-icon--shopper" aria-hidden="true"></i>
+                                        <div class="shop-shopper" id="shop-shopper-root">
+                                            <button type="button" id="shop-shopper-trigger" class="shop-shopper__trigger"
+                                                aria-haspopup="listbox" aria-expanded="false" aria-controls="shop-shopper-listbox">
+                                                <span class="shop-shopper__trigger-text">
+                                                    <span class="shop-shopper__trigger-label">Shopper</span>
+                                                    <span class="shop-shopper__trigger-value" id="shop-shopper-display">Choose your adventurer…</span>
+                                                </span>
+                                                <span class="shop-shopper__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+                                            </button>
+                                            <div id="shop-shopper-listbox" class="shop-shopper__panel" role="listbox" aria-hidden="true"></div>
+                                        </div>
+                                        <select id="shop-student-select" class="shop-shopper-native" tabindex="-1" aria-hidden="true">
+                                            <option value="">Choose your adventurer…</option>
+                                        </select>
+                                    </div>
+                                    <div class="shop-purse-glass mm-purse mm-plaque shrink-0" aria-live="polite">
+                                        <div class="shop-purse-glass__icon mm-purse__pouch" aria-hidden="true">
+                                            <i class="fas fa-coins"></i>
+                                        </div>
+                                        <div class="shop-purse-glass__body">
+                                            <span class="shop-purse-glass__label">Purse</span>
+                                            <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
                                         </div>
                                     </div>
-                                    <div class="shop-command-deck__actions flex flex-wrap items-end gap-3">
-                                        <div class="flex flex-col gap-1 min-w-0">
-                                            <span class="shop-deck-label"><i class="fas fa-wallet"></i> Purse</span>
-                                            <div class="shop-purse-glass mm-purse shrink-0" aria-live="polite">
-                                                <div class="shop-purse-glass__icon mm-purse__pouch" aria-hidden="true">
-                                                    <i class="fas fa-coins"></i>
-                                                </div>
-                                                <div class="shop-purse-glass__body">
-                                                    <span class="shop-purse-glass__label">Gold</span>
-                                                    <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button id="generate-shop-btn" type="button"
-                                            class="hidden shop-restock-btn mm-restock-btn inline-flex items-center justify-center gap-2 shrink-0">
-                                            <i class="fas fa-sync-alt"></i> Restock
-                                        </button>
-                                    </div>
+                                    <button id="generate-shop-btn" type="button"
+                                        class="hidden shop-restock-btn mm-restock-btn inline-flex items-center justify-center gap-2 shrink-0">
+                                        <i class="fas fa-sync-alt"></i> Restock
+                                    </button>
                                 </div>
                             </div>
-                            <span class="mm-counter__edge" aria-hidden="true"></span>
                         </div>
 
                         <!-- Aisle signs: jump between departments, sort, filter by purse -->

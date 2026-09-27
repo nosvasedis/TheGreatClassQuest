@@ -3,12 +3,21 @@
 export const calendarTabHTML = `
             <div id="calendar-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto">
-                    <div class="text-center mb-6 m-calendar-hero">
-                        <i class="fas fa-calendar-alt text-blue-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-blue-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Quest Calendar</h2>
-                        <p class="text-lg text-gray-600 mt-2 m-calendar-hero__sub">View your schedule and plan special Quest Events.</p>
-                    </div>
+                    <!-- Tab sign: Quest Calendar -->
+                    <header class="tab-sign tab-sign--calendar m-calendar-hero">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__ring tab-sign__ring--l" aria-hidden="true"></span>
+                            <span class="tab-sign__ring tab-sign__ring--r" aria-hidden="true"></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__orb tab-sign__orb--sun" aria-hidden="true"><i class="fas fa-sun"></i></span>
+                                <span class="tab-sign__orb tab-sign__orb--moon" aria-hidden="true"><i class="fas fa-moon"></i></span>
+                                <span class="tab-sign__kicker">Days · Events · Adventures</span>
+                                <h2 class="font-title tab-sign__title">Quest Calendar</h2>
+                            </div>
+                            <span class="tab-sign__badge"><i class="fas fa-calendar-day" aria-hidden="true"></i> Plan the season</span>
+                        </div>
+                        <p class="tab-sign__tagline m-calendar-hero__sub">View your schedule and plan special Quest Events.</p>
+                    </header>
                     <div>
                         <div
                             class="flex items-center justify-between mb-4 p-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm m-calendar-nav">

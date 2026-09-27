@@ -3,12 +3,23 @@
 export const awardTabHTML = `
             <div id="award-stars-tab" class="app-tab hidden">
                 <div class="max-w-4xl mx-auto">
-                    <div class="text-center mb-6">
-                        <i class="fas fa-star text-rose-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-rose-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Award Stars</h2>
-                        <p class="award-stars-hero-subtitle text-lg text-gray-600 mt-2">Recognize your students' excellence and effort.</p>
-                    </div>
+                    <!-- Tab sign: Award Stars -->
+                    <header class="tab-sign tab-sign--award">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__crest" aria-hidden="true"><i class="fas fa-star"></i></span>
+                            <span class="tab-sign__twinkle tab-sign__twinkle--a" aria-hidden="true">&#10022;</span>
+                            <span class="tab-sign__twinkle tab-sign__twinkle--b" aria-hidden="true">&#10023;</span>
+                            <span class="tab-sign__twinkle tab-sign__twinkle--c" aria-hidden="true">&#10022;</span>
+                            <span class="tab-sign__ribbon tab-sign__ribbon--l" aria-hidden="true"></span>
+                            <span class="tab-sign__ribbon tab-sign__ribbon--r" aria-hidden="true"></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__kicker">Effort · Courage · Kindness</span>
+                                <h2 class="font-title tab-sign__title">Award Stars</h2>
+                            </div>
+                            <span class="tab-sign__badge"><i class="fas fa-medal" aria-hidden="true"></i> Every effort shines</span>
+                        </div>
+                        <p class="tab-sign__tagline award-stars-hero-subtitle">Recognize your students' excellence and effort.</p>
+                    </header>
 
                     <div class="award-stars-toolbar mb-6 flex flex-wrap items-center justify-center gap-4">
                         <button id="open-teacher-boon-btn"

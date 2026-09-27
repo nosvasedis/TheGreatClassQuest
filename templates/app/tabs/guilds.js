@@ -5,15 +5,19 @@ export const guildsTabHTML = `
 
                 <!-- Title above the framed scene (layout matches other app-tab headers) -->
                 <div class="max-w-7xl mx-auto">
-                    <div class="text-center mb-6">
-                        <i class="fas fa-shield-alt text-amber-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl guild-hall-title mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Guild Hall</h2>
-                        <p class="text-lg text-gray-600 mt-2">
-                            Stars, boons, shop relics, quizzes, and the Wheel write ⚜️ Glory into a fair per-member Guild Power race.
-                            The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
-                        </p>
-                    </div>
+                    <!-- Tab sign: Guild Hall -->
+                    <header class="tab-sign tab-sign--guild">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__shield tab-sign__shield--l" aria-hidden="true"><span class="tab-sign__flame"></span><i class="fas fa-chess-rook"></i></span>
+                            <span class="tab-sign__shield tab-sign__shield--r" aria-hidden="true"><span class="tab-sign__flame"></span><i class="fas fa-chess-knight"></i></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__kicker">Banners · Glory · The Crown</span>
+                                <h2 class="font-title tab-sign__title guild-hall-title">Guild Hall</h2>
+                            </div>
+                            <span class="tab-sign__badge">&#9884; Banners raised</span>
+                        </div>
+                        <p class="tab-sign__tagline">Every deed stokes the hearth. When June comes, one banner will be crowned.</p>
+                    </header>
                 </div>
 
                 <!-- Framed hall scene (pure CSS, no image) -->

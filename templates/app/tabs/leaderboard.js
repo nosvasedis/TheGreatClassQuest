@@ -3,13 +3,20 @@
 export const leaderboardTabHTML = `
             <div id="class-leaderboard-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-route text-amber-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-amber-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Team Quest</h2>
-                        <p class="text-lg text-gray-600 mt-2">Race against other classes in your league toward the
-                            finish line!</p>
-                    </div>
+                    <!-- Tab sign: Team Quest -->
+                    <header class="tab-sign tab-sign--quest">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__post" aria-hidden="true"><span class="tab-sign__pennant"></span></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__nail tab-sign__nail--l" aria-hidden="true"></span>
+                                <span class="tab-sign__nail tab-sign__nail--r" aria-hidden="true"></span>
+                                <span class="tab-sign__kicker">Leagues · Races · Glory</span>
+                                <h2 class="font-title tab-sign__title">Team Quest</h2>
+                            </div>
+                            <span class="tab-sign__badge"><i class="fas fa-flag-checkered" aria-hidden="true"></i> The race is on</span>
+                        </div>
+                        <p class="tab-sign__tagline">Race against other classes in your league toward the finish line!</p>
+                    </header>
 
                     <!-- Quest Month Banner -->
                     <div id="current-month-quest-title" class="quest-month-banner mb-4">
@@ -88,12 +95,20 @@ export const leaderboardTabHTML = `
                 </div>
 
                 <div class="max-w-7xl mx-auto">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-user-shield text-purple-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-purple-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Hero's Challenge</h2>
-                        <p class="text-lg text-gray-600 mt-2">Rise through the ranks and become a legend!</p>
-                    </div>
+                    <!-- Tab sign: Hero's Challenge -->
+                    <header class="tab-sign tab-sign--hero">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__rod" aria-hidden="true"></span>
+                            <span class="tab-sign__crest" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__gem tab-sign__gem--l" aria-hidden="true"></span>
+                                <span class="tab-sign__gem tab-sign__gem--r" aria-hidden="true"></span>
+                                <span class="tab-sign__kicker">Ranks · Titles · Legends</span>
+                                <h2 class="font-title tab-sign__title">Hero's Challenge</h2>
+                            </div>
+                        </div>
+                        <p class="tab-sign__tagline">Rise through the ranks and become a legend!</p>
+                    </header>
 
                     <!-- Hero Month Banner -->
                     <div id="current-month-hero-title" class="hero-month-banner mb-4">

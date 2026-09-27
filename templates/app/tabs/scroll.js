@@ -21,14 +21,19 @@ export const scrollTabHTML = `
                 </div>
 
                 <div class="max-w-6xl mx-auto">
-                    <div class="ss-hero text-center mb-6">
-                        <i class="fas fa-scroll text-pink-700 text-5xl floating-icon"
-                            style="animation-delay: -1s;"></i>
-                        <h2 class="font-title text-5xl text-pink-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Scholar's Scroll</h2>
-                        <p class="ss-hero-subtitle text-lg text-gray-600 mt-2">Chronicle the Trials of Knowledge and celebrate academic
-                            triumphs!</p>
-                    </div>
+                    <!-- Tab sign: Scholar's Scroll -->
+                    <header class="tab-sign tab-sign--scroll ss-hero">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__roll tab-sign__roll--l" aria-hidden="true"></span>
+                            <span class="tab-sign__roll tab-sign__roll--r" aria-hidden="true"></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__kicker">Trials · Tests · Triumphs</span>
+                                <h2 class="font-title tab-sign__title">Scholar's Scroll</h2>
+                            </div>
+                            <span class="tab-sign__seal" aria-hidden="true"><i class="fas fa-feather-alt"></i></span>
+                        </div>
+                        <p class="tab-sign__tagline ss-hero-subtitle">Chronicle the Trials of Knowledge and celebrate academic triumphs!</p>
+                    </header>
 
                     <div class="scroll-main-panels relative w-full">
                         <div id="scroll-dashboard-content"

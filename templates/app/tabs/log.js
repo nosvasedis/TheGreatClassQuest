@@ -31,12 +31,20 @@ export const logTabHTML = `
                     <!-- ═══════════════════════════════════════════════════════════════
                          HERO TITLE SECTION
                          ═══════════════════════════════════════════════════════════════ -->
-                    <div class="text-center mb-8">
-                        <i class="fas fa-book-open text-teal-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-teal-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Adventure Log</h2>
-                        <p id="adventure-log-tagline" class="text-lg text-gray-600 mt-2">A visual diary of your class's epic journey!</p>
-                    </div>
+                    <!-- Tab sign: Adventure Log -->
+                    <header class="tab-sign tab-sign--log">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__spine" aria-hidden="true"></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__corner tab-sign__corner--t" aria-hidden="true"></span>
+                                <span class="tab-sign__corner tab-sign__corner--b" aria-hidden="true"></span>
+                                <span class="tab-sign__kicker">Days · Deeds · Memories</span>
+                                <h2 class="font-title tab-sign__title">Adventure Log</h2>
+                            </div>
+                            <span class="tab-sign__bookmark" aria-hidden="true"></span>
+                        </div>
+                        <p class="tab-sign__tagline" id="adventure-log-tagline">A visual diary of your class's epic journey!</p>
+                    </header>
 
                     <!-- ═══════════════════════════════════════════════════════════════
                          ENHANCED CONTROLS SECTION

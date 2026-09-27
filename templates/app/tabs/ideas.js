@@ -3,12 +3,20 @@
 export const ideasTabHTML = `
             <div id="reward-ideas-tab" class="app-tab hidden">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-                    <div class="text-center mb-6">
-                        <i class="fas fa-feather-alt text-cyan-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-cyan-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Story Weavers</h2>
-                        <p class="text-lg text-gray-600 mt-2">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
-                    </div>
+                    <!-- Tab sign: Story Weavers -->
+                    <header class="tab-sign tab-sign--weave">
+                        <div class="tab-sign__piece">
+                            <span class="tab-sign__rod" aria-hidden="true"></span>
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__kicker">Words · Worlds · Wonder</span>
+                                <h2 class="font-title tab-sign__title">Story Weavers</h2>
+                            </div>
+                            <span class="tab-sign__fringe" aria-hidden="true"></span>
+                            <span class="tab-sign__tassel tab-sign__tassel--l" aria-hidden="true"></span>
+                            <span class="tab-sign__tassel tab-sign__tassel--r" aria-hidden="true"></span>
+                        </div>
+                        <p class="tab-sign__tagline">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
+                    </header>
                     <div class="sw-layout">
                         <section class="sw-book-wrap" aria-labelledby="sw-book-heading">
                             <div class="sw-book-toolbar">

@@ -111,6 +111,9 @@
 @import url('./styles/shop.css');
 @import url('./styles/mystic_market.css');
 
+/* 26b. Tab signs: a crafted title piece for every tab, in the Mystic Market's family */
+@import url('./styles/tab_headers.css');
+
 /* 27. Wallpaper enter/exit, celestial day/night, float-card color themes */
 @import url('./styles/wallpaper.css');
 

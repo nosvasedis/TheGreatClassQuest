@@ -3,12 +3,23 @@
 export const optionsTabHTML = `
             <div id="options-tab" class="app-tab hidden">
                 <div class="max-w-4xl mx-auto">
-                    <div class="text-center mb-8">
-                        <i class="fas fa-cog text-gray-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-gray-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Teacher Settings</h2>
-                        <p class="text-lg text-gray-600 mt-2">Manage your profile, your classes, and the students you teach.</p>
-                    </div>
+                    <!-- Tab sign: Teacher Settings -->
+                    <header class="tab-sign tab-sign--settings">
+                        <div class="tab-sign__piece">
+                            <div class="tab-sign__board">
+                                <span class="tab-sign__rivet tab-sign__rivet--tl" aria-hidden="true"></span>
+                                <span class="tab-sign__rivet tab-sign__rivet--tr" aria-hidden="true"></span>
+                                <span class="tab-sign__rivet tab-sign__rivet--bl" aria-hidden="true"></span>
+                                <span class="tab-sign__rivet tab-sign__rivet--br" aria-hidden="true"></span>
+                                <span class="tab-sign__gear tab-sign__gear--l" aria-hidden="true"><i class="fas fa-cog"></i></span>
+                                <span class="tab-sign__gear tab-sign__gear--r" aria-hidden="true"><i class="fas fa-cog"></i></span>
+                                <span class="tab-sign__kicker">Classes · Tools · Profile</span>
+                                <h2 class="font-title tab-sign__title">Teacher Settings</h2>
+                            </div>
+                            <span class="tab-sign__badge"><i class="fas fa-key" aria-hidden="true"></i> Staff only</span>
+                        </div>
+                        <p class="tab-sign__tagline">Manage your profile, your classes, and the students you teach.</p>
+                    </header>
 
                     <div class="options-subtab-bar">
                         <div class="options-subtab-select" id="options-subtab-select" data-active-tab="classes">

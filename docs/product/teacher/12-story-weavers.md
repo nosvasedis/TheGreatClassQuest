@@ -8,7 +8,12 @@ Make writing **communal**. Shy children still belong to the book. Vocabulary sti
 
 ## What you see
 
-Select the class in the header. The tab shows the current sentence, the picture, Word of the Day controls, and GM buttons.
+Select the class in the header. The tab opens as a **storybook**: the latest illustration on the left page, the latest line on the right page (with page numbers and a ribbon for the Word of the Day on that page). Below the book sit **Game Master Controls** and **Writing Helpers**.
+
+**Writing Helpers** match the class's Quest League:
+
+- **Structure focus**: two or three sentence patterns for this league (for example past continuous with *when* in B, the 1st conditional in C, inversion in Proficiency), each with an example. Tap one to make it the focus for the next page; tap again to clear it. The focus is shown in the sentence box.
+- **Sentence starters**: tap one to open the next page with it already started (lock in the Word of the Day first). The sentence box also shows today's word and a short row of starters to tap.
 
 Placeholder until a class is chosen.
 
@@ -17,7 +22,7 @@ Placeholder until a class is chosen.
 1. **Word of the Day** — type and confirm, or **Suggest word** (Elite AI). Clear when you need a fresh hook.
 2. **Start Story…** / **Continue…** — add the next sentence. Elite generates an image and stores a chapter in history.
 3. Every **second** addition, the Quest asks whether to give the **whole class +0.5 Creativity / Story Weaver stars**. Say yes when the writing earned it. **Archivist’s Quill** makes that student’s next class bonus **1.0 instead of 0.5**.
-4. **Reveal Story to Class** — big text for the projector.
+4. **Reveal to class** — the latest page as a big storybook spread (picture and text), with **Let's talk about it**: three questions to ask aloud (remember, imagine or ask *why*, and connect to your own life or use the Word of the Day). **New questions** shuffles them. This is dialogic reading: children talk about the story, not only listen.
 5. **Current Chronicle** — the running book so far.
 6. **The End** — close this tale.
 7. **Story Archive** — past books.

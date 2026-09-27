@@ -67,6 +67,18 @@ Cards rotate. The Director avoids showing the same *kind* of card twice in a row
 
 **School-wide** (or mixed in): school pulse, school treasury, top heroes, active bounties, weather, next holiday, Greek nameday, Orthodox calendar, guild standings (Pro), and — on Elite — facts, jokes, riddles, idioms, tongue-twisters, and brain-teasers. Morning, afternoon, Monday, and Friday each lean the mix a little.
 
+**English-learning cards** join the mix and come from the class's own lesson:
+
+- **Today we are learning**: the topics and words from What we learned today
+- **Quiz rewind** (Elite): a question the class missed in the last Quiz of the Week, answer revealed slowly
+- **Word scramble**: one of the class's own words, letters mixed up
+- **Story recall** (Elite): the latest Story Weavers line with the Word of the Day missing
+- **Next quest**: the homework from Quest Assignment
+- **Growth Starfall** (Pro): a child who climbed well above their own average this week (name only, no scores)
+- On every plan, matched to the league: **Finish the sentence**, **Think · Pair · Share**, **Grammar nugget**, **Say it right** (minimal pairs such as *ship/sheep*, not for Nursery/Pre-Junior), and **Classroom English**
+
+Cards float in the free space around the clock. They never cover the clock, the league badge, the quote dock or the top buttons, and they shrink rather than slide off a smaller projector screen.
+
 The first ~20 minutes of a lesson favour a calmer “opening” mix; after about 70 minutes the mix winds down (mindfulness, study tips, a season snapshot).
 
 If you selected **Follow today’s schedule** or a named class, the wallpaper is *that* class’s story. **General view** leans school-wide.

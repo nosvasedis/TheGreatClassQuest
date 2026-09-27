@@ -14,9 +14,32 @@ import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 import { loadPdfTools } from '../utils/lazyLibraries.js';
-
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
+}
+
+function storyWeaverClassData(classId = storyWeaverClassId()) {
+    return (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
+        || (state.get('allSchoolClasses') || []).find((c) => c.id === classId)
+        || null;
+}
+
+// Writing helpers (scaffolds, starters, reveal prompts) load on demand so they stay out of the
+// shared actions chunk. See features/storyWeaverHelpers.js.
+let storyHelpersModule = null;
+function loadStoryHelpers() {
+    if (storyHelpersModule) return Promise.resolve(storyHelpersModule);
+    return import('./storyWeaverHelpers.js').then((module) => {
+        storyHelpersModule = module;
+        module.ensureStoryHelperListeners({ openStoryInputModal });
+        return module;
+    });
+}
+
+export function renderStoryWritingHelpers(classId = storyWeaverClassId()) {
+    return loadStoryHelpers()
+        .then((helpers) => helpers.renderStoryWritingHelpers(classId))
+        .catch((error) => console.warn('Story Weavers helpers failed to render:', error));
 }
 
 // --- MAIN UI & STATE MANAGEMENT ---
@@ -34,6 +57,7 @@ export function handleStoryWeaversClassSelect() {
     }
 
     resetStoryWeaverWordUI();
+    renderStoryWritingHelpers(classId);
 
     if (classId) {
         mainContent.classList.remove('hidden');
@@ -61,6 +85,7 @@ function renderStoryWeaversUI(classId) {
     const imageLoader = document.getElementById('story-weavers-image-loader');
     const lockInBtn = document.getElementById('story-weavers-lock-in-btn');
     const endBtn = document.getElementById('story-weavers-end-btn');
+    renderBookPageMeta(story);
 
     if (story && story.currentSentence) {
         lockInBtn.innerHTML = 'Continue...';
@@ -82,6 +107,25 @@ function renderStoryWeaversUI(classId) {
         imageEl.classList.add('hidden');
         imagePlaceholder.classList.remove('hidden');
         imageLoader.classList.add('hidden');
+    }
+}
+
+/** Page numbers, chapter label and the Word of the Day ribbon on the open book. */
+function renderBookPageMeta(story) {
+    const pageCount = Math.max(0, Number(story?.storyAdditionsCount) || 0);
+    const hasPage = Boolean(story?.currentSentence);
+    const chapterLabel = document.getElementById('story-weavers-chapter-label');
+    const leftNum = document.getElementById('story-weavers-page-left-num');
+    const rightNum = document.getElementById('story-weavers-page-right-num');
+    const ribbon = document.getElementById('story-weavers-word-ribbon');
+    const ribbonText = document.getElementById('story-weavers-word-ribbon-text');
+    if (chapterLabel) chapterLabel.textContent = hasPage ? (pageCount ? `Page ${pageCount}` : 'Latest page') : 'A blank page';
+    if (leftNum) leftNum.textContent = hasPage && pageCount ? String(pageCount * 2 - 1) : '';
+    if (rightNum) rightNum.textContent = hasPage && pageCount ? String(pageCount * 2) : '';
+    if (ribbon && ribbonText) {
+        const word = hasPage ? String(story?.currentWord || '').trim() : '';
+        ribbonText.textContent = word;
+        ribbon.classList.toggle('hidden', !word);
     }
 }
 
@@ -141,15 +185,21 @@ export async function handleSuggestWord() {
     }
 }
 
-export function openStoryInputModal() {
+export function openStoryInputModal(options = {}) {
     const classId = storyWeaverClassId();
     if (!classId) return;
+    // Called directly as a click handler too, so ignore Event objects.
+    const starter = typeof options?.starter === 'string' ? options.starter : '';
 
-    const story = state.get('currentStoryData')[classId];
-    const isNewStory = !story || !story.currentSentence;
-
-    document.getElementById('story-input-textarea').value = '';
+    const textarea = document.getElementById('story-input-textarea');
+    textarea.value = '';
     modals.showAnimatedModal('story-input-modal');
+    loadStoryHelpers()
+        .then((helpers) => {
+            helpers.renderStoryInputHelpers(classId);
+            if (starter) helpers.insertStarterIntoTextarea(starter);
+        })
+        .catch((error) => console.warn('Story input helpers failed to render:', error));
 }
 
 export async function handleLockInSentence() {
@@ -255,9 +305,28 @@ export async function handleLockInSentence() {
 
 export function handleRevealStory() {
     const classId = storyWeaverClassId();
-    const storyText = state.get('currentStoryData')[classId]?.currentSentence || "Select a class to see the story.";
+    const story = state.get('currentStoryData')[classId];
+    const storyText = story?.currentSentence || "Select a class to see the story.";
     document.getElementById('story-reveal-text').textContent = storyText;
+
+    const art = document.getElementById('story-reveal-art');
+    const image = document.getElementById('story-reveal-image');
+    const imageSrc = story?.currentSentence ? (story.currentImageUrl || story.currentImageBase64 || '') : '';
+    if (art && image) {
+        image.src = imageSrc;
+        art.classList.toggle('hidden', !imageSrc);
+    }
+    const wordEl = document.getElementById('story-reveal-word');
+    if (wordEl) {
+        const word = story?.currentSentence ? String(story.currentWord || '').trim() : '';
+        wordEl.innerHTML = word ? `<span>Word of the Day</span> ${escapeHtml(word)}` : '';
+        wordEl.classList.toggle('hidden', !word);
+    }
+
     modals.showAnimatedModal('story-reveal-modal');
+    loadStoryHelpers()
+        .then((helpers) => helpers.renderRevealPrompts(classId))
+        .catch((error) => console.warn('Story reveal prompts failed to render:', error));
 }
 
 export async function handleShowStoryHistory() {

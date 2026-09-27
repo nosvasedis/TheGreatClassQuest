@@ -129,7 +129,7 @@ Levels from **Story Weavers** class bonuses, not from Award Stars buttons.
 
 ## 📜 Scholar (Scholar’s Bonus) — the academic
 
-Levels from **Starfall** (and related Scholar’s Bonus logs). Three tiers.
+Levels from **Starfall**, including **Growth Starfall** (and related Scholar’s Bonus logs). Three tiers.
 
 | Level | Branch A | Branch B |
 |-------|----------|----------|

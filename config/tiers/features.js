@@ -26,7 +26,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '📜',
         description: 'Tests, dictations, performance charts',
         tier: 'Pro',
-        teacherExplain: "Log tests and dictations, watch the performance chart, and keep Pending Makeups for students who still need a grade. Outstanding tests (≥95%) can offer Starfall (+1 Scholar's Bonus); strong dictations can offer +0.5 with monthly caps. You confirm Starfall — nothing is forced. 📊",
+        teacherExplain: "Log tests and dictations, watch the performance chart, and keep Pending Makeups for students who still need a grade. Outstanding tests (≥95%) can offer Starfall (+1 Scholar's Bonus); strong dictations can offer +0.5 with monthly caps. Growth Starfall (+0.5) also celebrates a clear jump of 15+ points above a student's own recent average (at least 3 earlier trials, once a month). You confirm Starfall — nothing is forced. 📊",
         studentExplain: "Your Scholar's Scroll is your academic trophy wall! 📜 See your test scores, how you've improved over time, and challenge yourself to beat your own record. Every good grade is proof of your growing power! 💪"
     },
     storyWeavers: {
@@ -34,7 +34,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '📖',
         description: 'Collaborative story and Word of the Day',
         tier: 'Elite',
-        teacherExplain: "The class writes ONE story, sentence by sentence, with a Word of the Day and an illustration on each lock-in. Every second addition can award the whole class +0.5 Story Weaver stars. Print the finished tale as a PDF storybook. Separate from Five-Sentence Saga (a one-day calendar quest). ✍️🌟",
+        teacherExplain: "The class writes ONE story, sentence by sentence, with a Word of the Day and an illustration on each lock-in. Every second addition can award the whole class +0.5 Story Weaver stars. Writing Helpers offer sentence starters and a structure focus matched to the class's Quest League, and Reveal to class shows three talk-about-it questions (dialogic reading). Print the finished tale as a PDF storybook. Separate from Five-Sentence Saga (a one-day calendar quest). ✍️🌟",
         studentExplain: "The whole class writes ONE story — and you're part of it! 📖 Each lesson you can add a sentence, use the Word of the Day, and watch the story grow into a real book together! ✨"
     },
     heroProgression: {
@@ -50,7 +50,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '📓',
         description: 'Manual diary entries, Hero of the Day, Hall of Heroes, teacher notes',
         tier: 'Pro',
-        teacherExplain: "End the lesson with Log Today's Adventure (once per class per day, after stars). Pro: you write the diary. Elite: AI writes it and paints a storybook picture — you can still edit. Every log automatically crowns Hero of the Day. Hall of Heroes is the archive of those daily crowns — not the monthly Prodigy list. Quest Assignment and Attendance live here too. ✨",
+        teacherExplain: "End the lesson with Log Today's Adventure (once per class per day, after stars). Pro: you write the diary. Elite: AI writes it and paints a storybook picture — you can still edit. Every log automatically crowns Hero of the Day and records What we learned today, gathered automatically from the quiz, Story Weavers, Special Quests, trials and homework (you can untick or add a line, but never have to). Hall of Heroes is the archive of those daily crowns — not the monthly Prodigy list. Quest Assignment and Attendance live here too. ✨",
         studentExplain: "The Adventure Log is your class's story book! 📓 See what happened in today's lesson, discover who became Hero of the Day, and find your name in the Hall of Heroes when you have worn that crown. 🏆"
     },
     schoolYearPlanner: {
@@ -114,7 +114,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '❓',
         description: 'Weekly curriculum quiz game-show',
         tier: 'Elite',
-        teacherExplain: "Configure in Teacher Settings → Quiz (grammar, vocabulary, or mix). The app writes multiple-choice questions that scale with class size (about three-quarters of the roster, between 5 and 15). Play from Home on the class's first lesson day of the week during lesson time. Students are picked at random; rewards follow first-try accuracy. Not a Scholar's Scroll test. ❓🏆",
+        teacherExplain: "Configure in Teacher Settings → Quiz (grammar, vocabulary, or mix). The app writes multiple-choice questions that scale with class size (about three-quarters of the roster, between 5 and 15). Play from Home on the class's first lesson day of the week during lesson time. Students are picked at random; rewards follow first-try accuracy. Optional: review and edit the questions before they go live, and bring back the questions the class missed last week (you choose which). Not a Scholar's Scroll test. ❓🏆",
         studentExplain: "Quiz of the Week is your class's weekly challenge! ❓ Heroes get picked at random to answer — and if your class does well, you unlock rewards. It feels like a game show, but it makes your English stronger every week. 🏆"
     }
 };

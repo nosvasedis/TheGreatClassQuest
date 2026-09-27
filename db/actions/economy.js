@@ -25,6 +25,7 @@ import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
+import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -459,7 +460,7 @@ export async function handleBulkSaveTrial() {
                     if (highCount >= 3) {
                         const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => {
                             const d = parseFlexibleDate(log.date);
-                            return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation');
+                            return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation') && !isGrowthStarfallNote(log.note);
                         }).length;
 
                         if (bonusLogsThisMonth < 2) {
@@ -469,6 +470,15 @@ export async function handleBulkSaveTrial() {
                     }
                 });
             }
+
+            // Growth Starfall: a clear jump above the student's own recent average (see growthStarfallCore).
+            const { findGrowthStarfallStudents } = await import('../../features/growthStarfall.js');
+            finalEligibleStudents.push(...findGrowthStarfallStudents({
+                savedScoresData,
+                classData,
+                trialDate: date,
+                alreadyProposedIds: new Set(finalEligibleStudents.map((entry) => entry.studentId))
+            }));
 
             if (finalEligibleStudents.length > 0) {
                 setTimeout(() => {

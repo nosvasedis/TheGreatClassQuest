@@ -23,6 +23,8 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Patron** | Hero Path class that levels by giving Hero's Boon (one path point per calendar week) | The Herald's Banner (Market artifact); receiving a boon |
 | **Welcome Back** | Return bonus after absence | Nomad path (levels from it) |
 | **Scholar’s Bonus** | Usually Starfall after a high trial | Award Stars reason button (there isn’t one) |
+| **Growth Starfall** | Scholar’s Bonus (+0.5) for a jump of 15+ points above a student’s own recent average; once a month | Classic Starfall (≥ 95% tests) |
+| **What we learned today** | Adventure Log strip gathered automatically from the day’s quiz, story, quests, trials and homework | Quest Assignment (next lesson’s homework) |
 | **Story Weaver stars** | Class bonus from Story Weavers milestones | Five-Sentence Saga (calendar event) |
 | **Mystic Market** | Own tab: artifacts, Festival Stall, seasonal shelf, eggs | A panel inside Hero’s Challenge |
 | **Festival Stall** | Timed holiday shelf (Halloween, Christmas, Orthodox Easter, Carnival) | Seasonal Treasures (the monthly classroom stall) |

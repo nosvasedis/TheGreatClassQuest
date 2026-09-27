@@ -37,11 +37,27 @@ export const aiModalsHTML = `
 
     <div id="story-reveal-modal"
         class="fixed inset-0 bg-black bg-opacity-70 z-[71] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in relative">
+        <div class="sw-reveal pop-in relative">
             <button id="story-reveal-close-btn"
-                class="premium-close-btn absolute top-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
-            <p id="story-reveal-text" class="text-4xl md:text-5xl text-center leading-relaxed font-serif text-gray-800">
-            </p>
+                class="premium-close-btn absolute top-4 right-4 z-10 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+            <div class="sw-reveal-book">
+                <div id="story-reveal-art" class="sw-reveal-art hidden">
+                    <img id="story-reveal-image" src="" alt="Story illustration" decoding="async">
+                </div>
+                <div class="sw-reveal-page">
+                    <p id="story-reveal-text" class="sw-reveal-text"></p>
+                    <p id="story-reveal-word" class="sw-reveal-word hidden"></p>
+                </div>
+            </div>
+            <div id="story-reveal-prompts" class="sw-reveal-prompts hidden" aria-live="polite">
+                <div class="sw-reveal-prompts-head">
+                    <p class="sw-reveal-prompts-title"><i class="fas fa-comments" aria-hidden="true"></i> Let's talk about it</p>
+                    <button type="button" id="story-reveal-prompts-shuffle" class="sw-reveal-prompts-shuffle" title="Show different questions">
+                        <i class="fas fa-shuffle" aria-hidden="true"></i> New questions
+                    </button>
+                </div>
+                <div id="story-reveal-prompts-list" class="sw-reveal-prompts-list"></div>
+            </div>
         </div>
     </div>
 
@@ -134,6 +150,7 @@ export const aiModalsHTML = `
             </div>
 
             <div class="p-8">
+                <div id="story-input-helpers" class="sw-input-helpers"></div>
                 <div class="mb-6">
                     <label for="story-input-textarea" class="block text-sm font-black text-cyan-800 uppercase tracking-widest mb-2 ml-1">The Next Sentence</label>
                     <textarea id="story-input-textarea" rows="5"

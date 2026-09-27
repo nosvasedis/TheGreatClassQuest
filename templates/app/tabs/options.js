@@ -478,6 +478,38 @@ export const optionsTabHTML = `
                                         </div>
                                     </div>
 
+                                    <!-- ── STEP 3: OPTIONAL EXTRAS ── -->
+                                    <div class="qow-card qow-card-disabled" id="qow-card-options">
+                                        <div class="qow-card-header">
+                                            <span class="qow-card-badge">Step 3</span>
+                                            <span class="qow-card-title"><i class="fas fa-sliders mr-2 text-amber-500"></i>Optional extras</span>
+                                        </div>
+                                        <label class="qow-option-toggle" for="quiz-review-toggle">
+                                            <input type="checkbox" id="quiz-review-toggle" class="qow-option-check" />
+                                            <span class="qow-option-copy">
+                                                <span class="qow-option-title"><i class="fas fa-pen-to-square mr-1"></i>Review the questions before they go live</span>
+                                                <span class="qow-option-sub">You can read, edit, or delete any question first. Leave this off and the quiz is ready as soon as it is generated.</span>
+                                            </span>
+                                        </label>
+                                        <label class="qow-option-toggle" for="quiz-carry-toggle">
+                                            <input type="checkbox" id="quiz-carry-toggle" class="qow-option-check" />
+                                            <span class="qow-option-copy">
+                                                <span class="qow-option-title"><i class="fas fa-rotate mr-1"></i>Bring back questions the class missed last week</span>
+                                                <span class="qow-option-sub">Spaced review: you choose which missed questions return. Their answers are shuffled, and they take the first places in the quiz.</span>
+                                            </span>
+                                        </label>
+                                        <div id="quiz-carry-panel" class="qow-carry-panel hidden" aria-live="polite">
+                                            <div class="qow-carry-toolbar">
+                                                <span id="quiz-carry-summary" class="qow-carry-summary">Looking for last week's quiz…</span>
+                                                <span class="qow-carry-actions">
+                                                    <button type="button" id="quiz-carry-all-btn" class="qow-carry-link">Select all</button>
+                                                    <button type="button" id="quiz-carry-none-btn" class="qow-carry-link">Clear</button>
+                                                </span>
+                                            </div>
+                                            <div id="quiz-carry-list" class="qow-carry-list"></div>
+                                        </div>
+                                    </div>
+
                                     <!-- ── VALIDATION MSG ── -->
                                     <p id="quiz-validation-msg" class="qow-validation hidden"></p>
 
@@ -508,6 +540,10 @@ export const optionsTabHTML = `
                                                 <span id="qow-gstep-3" class="qow-gen-step">✅ Saving to class</span>
                                             </div>
                                         </div>
+                                        <button id="quiz-review-btn" type="button"
+                                            class="qow-review-btn hidden">
+                                            <i class="fas fa-pen-to-square mr-1"></i> <span id="quiz-review-btn-label">Review &amp; edit questions</span>
+                                        </button>
                                         <button id="quiz-reset-btn"
                                             class="qow-reset-btn hidden">
                                             <i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week's Quiz

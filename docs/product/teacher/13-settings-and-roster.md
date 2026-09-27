@@ -98,7 +98,7 @@ One parent login per student. Families see progress, homework (from Quest Assign
 
 ## Quiz (Elite)
 
-Curriculum chips, keywords, **Generate**, history, reset this week. Question count scales with class size. Play on Home, first lesson of the week, during lesson time. Full reward tables live in the Home chapter.
+Curriculum chips, keywords, optional extras (**Review the questions before they go live**, **Bring back questions the class missed last week**), **Generate**, **Review & edit questions**, history, reset this week. Question count scales with class size. Play on Home, first lesson of the week, during lesson time. Full reward tables live in the Home chapter.
 
 ## Market (Elite)
 

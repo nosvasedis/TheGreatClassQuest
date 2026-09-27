@@ -1,0 +1,1204 @@
+/* ==========================================================================
+   pedagogy_upgrades.css — Quiz review & carry-forward, Growth Starfall,
+   "What we learned today", Story Weavers book + scaffolds, Projector placement.
+   Loaded just before polish.css.
+   ========================================================================== */
+
+/* ── Quiz of the Week: optional extras (Settings → Quiz, Step 3) ─────────── */
+.qow-option-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.8rem 0.95rem;
+    border: 1.5px solid #fde68a;
+    border-radius: 1rem;
+    background: #fffbeb;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.qow-option-toggle:hover {
+    border-color: #f59e0b;
+    background: #fef3c7;
+}
+
+.qow-option-toggle:has(input:checked) {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #fef3c7, #fde68a55);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.18);
+}
+
+.qow-option-check {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+    accent-color: #d97706;
+    flex-shrink: 0;
+}
+
+.qow-option-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.qow-option-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #78350f;
+}
+
+.qow-option-sub {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #92400e;
+    opacity: 0.85;
+}
+
+.qow-carry-panel {
+    border: 1.5px dashed #fcd34d;
+    border-radius: 1rem;
+    padding: 0.8rem;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    animation: qow-pop 0.25s ease-out;
+}
+
+.qow-carry-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.qow-carry-summary {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #92400e;
+}
+
+.qow-carry-actions { display: inline-flex; gap: 0.35rem; }
+
+.qow-carry-link {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #b45309;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    cursor: pointer;
+}
+
+.qow-carry-link:hover { background: #fde68a; }
+
+.qow-carry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+.qow-carry-item {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.8rem;
+    border: 1px solid #fef3c7;
+    background: #fffdf5;
+    cursor: pointer;
+}
+
+.qow-carry-item:has(input:checked) {
+    border-color: #fcd34d;
+    background: #fef9e7;
+}
+
+.qow-carry-check {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.15rem;
+    accent-color: #d97706;
+    flex-shrink: 0;
+}
+
+.qow-carry-copy { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+
+.qow-carry-question {
+    font-size: 0.85rem;
+    color: #1c1917;
+    line-height: 1.35;
+}
+
+.qow-carry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+}
+
+.qow-carry-answer {
+    color: #166534;
+    background: #dcfce7;
+    border-radius: 9999px;
+    padding: 0.05rem 0.5rem;
+    font-weight: 600;
+}
+
+.qow-carry-wrong {
+    color: #9f1239;
+    background: #ffe4e6;
+    border-radius: 9999px;
+    padding: 0.05rem 0.5rem;
+}
+
+.qow-status.qow-status-review { border-color: #fcd34d; background: linear-gradient(135deg, #fffbeb, #fef3c7); }
+.qow-status.qow-status-review .qow-status-title { color: #78350f; }
+
+.qow-pill-review { background: #fde68a; color: #78350f; border: 1px solid #f59e0b; }
+
+.qow-review-btn {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1.5px solid #fcd34d;
+    background: white;
+    color: #92400e;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.qow-review-btn:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.qow-review-btn--attention {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-color: #b45309;
+    color: white;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+}
+
+.qow-review-btn--attention:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-1px);
+}
+
+/* ── Quiz review editor overlay ────────────────────────────────────────── */
+.qow-review-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1250;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(28, 25, 23, 0.55);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+}
+
+.qow-review-overlay.is-open { opacity: 1; }
+.qow-review-overlay.is-closing { opacity: 0; }
+
+.qow-review-panel {
+    width: min(56rem, 100%);
+    max-height: calc(100vh - 2.5rem);
+    display: flex;
+    flex-direction: column;
+    background: #fffdf7;
+    border: 3px solid #fde68a;
+    border-radius: 1.75rem;
+    box-shadow: 0 30px 80px -20px rgba(120, 53, 15, 0.45);
+    overflow: hidden;
+    transform: translateY(12px) scale(0.98);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.qow-review-overlay.is-open .qow-review-panel { transform: none; }
+
+.qow-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 1rem;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-bottom: 2px solid #fcd34d;
+}
+
+.qow-review-kicker {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+
+.qow-review-title {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.6rem;
+    color: #78350f;
+    line-height: 1.15;
+}
+
+.qow-review-sub {
+    font-size: 0.85rem;
+    color: #92400e;
+    margin-top: 0.25rem;
+    max-width: 40rem;
+}
+
+.qow-review-close {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.75);
+    color: #78350f;
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+    border: 1px solid #fcd34d;
+    cursor: pointer;
+}
+
+.qow-review-close:hover { background: white; }
+
+.qow-review-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+    display: grid;
+    gap: 0.9rem;
+}
+
+.qow-review-card {
+    background: white;
+    border: 1.5px solid #fde68a;
+    border-radius: 1.25rem;
+    padding: 0.9rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    box-shadow: 0 2px 10px rgba(120, 53, 15, 0.05);
+}
+
+.qow-review-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.qow-review-num {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.85rem;
+    color: white;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 0.55rem;
+    padding: 0.1rem 0.55rem;
+}
+
+.qow-review-carried {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6d28d9;
+    background: #ede9fe;
+    border: 1px solid #c4b5fd;
+    border-radius: 9999px;
+    padding: 0.1rem 0.55rem;
+}
+
+.qow-review-delete {
+    margin-left: auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    color: #be123c;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    cursor: pointer;
+}
+
+.qow-review-delete:hover { background: #ffe4e6; }
+
+.qow-review-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.qow-review-label--small { font-weight: 600; }
+
+.qow-review-question,
+.qow-review-explanation,
+.qow-review-option-input {
+    width: 100%;
+    border: 1.5px solid #fde68a;
+    border-radius: 0.75rem;
+    background: #fffdf5;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: #1c1917;
+    outline: none;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.qow-review-question:focus,
+.qow-review-explanation:focus,
+.qow-review-option-input:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+
+.qow-review-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .qow-review-options { grid-template-columns: 1fr; }
+}
+
+.qow-review-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.85rem;
+    padding: 0.2rem;
+    transition: background 0.15s;
+}
+
+.qow-review-option.is-correct { background: #dcfce7; }
+.qow-review-option.is-correct .qow-review-option-input { border-color: #4ade80; background: #f0fdf4; }
+
+.qow-review-correct {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.85rem;
+    color: #78350f;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.qow-review-correct input { accent-color: #16a34a; width: 1rem; height: 1rem; }
+
+.qow-review-error {
+    margin: 0 1.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.85rem;
+}
+
+.qow-review-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.9rem 1.5rem 1.1rem;
+    border-top: 1.5px solid #fde68a;
+    background: #fffbeb;
+}
+
+.qow-review-count {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.qow-review-footer-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.qow-review-btn-secondary,
+.qow-review-btn-primary {
+    padding: 0.6rem 1.1rem;
+    border-radius: 0.85rem;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.qow-review-btn-secondary {
+    background: white;
+    color: #92400e;
+    border: 1.5px solid #fcd34d;
+}
+
+.qow-review-btn-secondary:hover { background: #fef3c7; }
+
+.qow-review-btn-primary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: 1.5px solid #15803d;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+}
+
+.qow-review-btn-primary:hover { transform: translateY(-1px); }
+
+.qow-review-btn-secondary:disabled,
+.qow-review-btn-primary:disabled { opacity: 0.55; cursor: wait; transform: none; }
+
+/* ── Growth Starfall chip (Starfall batch modal) ───────────────────────── */
+.starfall-growth-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #064e3b;
+    background: linear-gradient(135deg, #bbf7d0, #86efac);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 1px 4px rgba(6, 78, 59, 0.25);
+    white-space: nowrap;
+}
+
+/* ── Adventure Log: "What we learned today" ───────────────────────────── */
+.learned-today {
+    margin-top: 0.85rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #f0fdfa, #ecfeff);
+    border: 1.5px solid #99f6e4;
+}
+
+.learned-today-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #0f766e;
+    margin-bottom: 0.45rem;
+}
+
+.learned-today-chips,
+.learned-today-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.learned-today-words { margin-top: 0.45rem; align-items: center; }
+
+.learned-today-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background: white;
+    border: 1px solid #99f6e4;
+    color: #134e4a;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.learned-today-words-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0f766e;
+    margin-right: 0.15rem;
+}
+
+.learned-today-word {
+    padding: 0.15rem 0.55rem;
+    border-radius: 0.5rem;
+    background: #ccfbf1;
+    color: #115e59;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'Lora', Georgia, serif;
+}
+
+/* Pick-list (manual log modal and entry editor) */
+.learned-today-picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.learned-today-pick,
+.adventure-log-editor-field label.learned-today-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    border: 1.5px solid #99f6e4;
+    background: #f0fdfa;
+    color: #134e4a;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.learned-today-pick--word,
+.adventure-log-editor-field label.learned-today-pick--word {
+    font-family: 'Lora', Georgia, serif;
+    background: #ccfbf1;
+}
+
+.learned-today-pick:not(:has(input:checked)) {
+    opacity: 0.5;
+    background: #f8fafc;
+    text-decoration: line-through;
+}
+
+.learned-today-pick input,
+.adventure-log-editor-field .learned-today-pick input {
+    width: 0.9rem;
+    height: 0.9rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.2rem;
+    accent-color: #0d9488;
+    box-shadow: none;
+}
+
+.adventure-log-editor-optional {
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: #64748b;
+}
+
+.adventure-log-editor-field .learned-today-picks { margin-bottom: 0.6rem; }
+
+/* ── Story Weavers: open-book layout ───────────────────────────────────── */
+.sw-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sw-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (min-width: 1024px) {
+    .sw-controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.sw-book-wrap {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(8px);
+    border: 1px solid #cffafe;
+    border-radius: 1.75rem;
+    padding: 1.25rem 1.25rem 1.5rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.sw-book-toolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sw-reveal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #0e7490;
+    background: #ecfeff;
+    border: 1.5px solid #a5f3fc;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.sw-reveal-btn:hover { background: #cffafe; transform: translateY(-1px); }
+
+.sw-book {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1.4rem minmax(0, 1fr);
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 0.9rem;
+    border-radius: 1.4rem;
+    background: linear-gradient(135deg, #0e7490, #155e75 55%, #164e63);
+    box-shadow:
+        0 24px 50px -18px rgba(8, 51, 68, 0.55),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.sw-page {
+    position: relative;
+    min-height: 19rem;
+    padding: 1.6rem 1.6rem 2.2rem;
+    background:
+        radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.85), transparent 70%),
+        linear-gradient(180deg, #fffdf6, #fdf6e3);
+    color: #3b2f1e;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.9rem;
+}
+
+.sw-page--left {
+    border-radius: 0.9rem 0.25rem 0.25rem 0.9rem;
+    box-shadow: inset -18px 0 26px -18px rgba(120, 83, 29, 0.35);
+    align-items: center;
+}
+
+.sw-page--right {
+    border-radius: 0.25rem 0.9rem 0.9rem 0.25rem;
+    box-shadow: inset 18px 0 26px -18px rgba(120, 83, 29, 0.35);
+}
+
+/* Soft page-curl on the outer corner */
+.sw-page--right::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0 0 0.9rem 0;
+    background: linear-gradient(135deg, transparent 50%, rgba(214, 193, 150, 0.9) 50%, #efe3c4 72%, #fdf6e3 100%);
+    box-shadow: -3px -3px 6px -3px rgba(120, 83, 29, 0.35);
+}
+
+.sw-spine {
+    background: linear-gradient(90deg, #d8c9a3, #f6eed8 45%, #f6eed8 55%, #d8c9a3);
+    box-shadow: inset 0 0 12px rgba(120, 83, 29, 0.45);
+}
+
+.sw-page .sw-illustration,
+.sw-page #story-weavers-image-container {
+    max-width: 100%;
+    max-height: none;
+    aspect-ratio: 4 / 3;
+    border-radius: 0.9rem;
+    border: 6px solid white;
+    box-shadow: 0 10px 22px -10px rgba(120, 83, 29, 0.45);
+    transform: rotate(-1.2deg);
+    background: linear-gradient(160deg, #f0fdff, #ecfeff);
+}
+
+.sw-chapter-label {
+    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #0e7490;
+}
+
+.sw-story-text,
+.sw-page .story-weavers-story-text {
+    font-family: "Lora", Georgia, serif;
+    font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+    line-height: 1.75;
+    color: #2d2416;
+    max-height: 14rem;
+}
+
+.sw-story-text::first-letter {
+    font-family: "Uncial Antiqua", "Lora", serif;
+    font-size: 2.6em;
+    float: left;
+    line-height: 0.9;
+    margin: 0.08em 0.1em 0 0;
+    color: #0e7490;
+}
+
+.sw-word-ribbon {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem 0.35rem 0.65rem;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: white;
+    border-radius: 0.4rem 9999px 9999px 0.4rem;
+    box-shadow: 0 6px 14px -6px rgba(225, 29, 72, 0.6);
+}
+
+.sw-word-ribbon-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.sw-word-ribbon-word {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.sw-page-number {
+    position: absolute;
+    bottom: 0.7rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: 0.8rem;
+    color: #a08a5d;
+}
+
+.sw-page--left .sw-page-number { left: 1.2rem; }
+.sw-page--right .sw-page-number { right: 2.8rem; }
+
+.sw-book-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem 1rem;
+}
+
+.sw-book-placeholder.hidden { display: none; }
+
+.sw-closed-book {
+    width: 5.5rem;
+    height: 7rem;
+    border-radius: 0.4rem 1rem 1rem 0.4rem;
+    background: linear-gradient(135deg, #0e7490, #164e63);
+    color: #a5f3fc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    box-shadow: inset 6px 0 0 rgba(255, 255, 255, 0.18), 0 14px 26px -12px rgba(8, 51, 68, 0.6);
+}
+
+@media (max-width: 767px) {
+    .sw-book {
+        grid-template-columns: 1fr;
+        padding: 0.6rem;
+    }
+    .sw-spine { height: 0.8rem; }
+    .sw-page { min-height: 0; padding: 1.2rem 1.1rem 2rem; }
+    .sw-page--left { border-radius: 0.9rem 0.9rem 0.25rem 0.25rem; box-shadow: inset 0 -18px 26px -18px rgba(120, 83, 29, 0.35); }
+    .sw-page--right { border-radius: 0.25rem 0.25rem 0.9rem 0.9rem; box-shadow: inset 0 18px 26px -18px rgba(120, 83, 29, 0.35); }
+    .sw-book-toolbar { flex-direction: column; }
+}
+
+/* Writing helpers card */
+.sw-helpers-card { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.sw-helper-label {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.sw-helper-label > i { color: #0891b2; }
+.sw-helper-hint { font-weight: 500; color: #64748b; font-size: 0.75rem; }
+
+.sw-structure-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.5rem;
+}
+
+.sw-structure-card {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 1rem;
+    border: 1.5px solid #cffafe;
+    background: #f8feff;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.sw-structure-card:hover { border-color: #67e8f9; transform: translateY(-1px); }
+
+.sw-structure-card.is-active {
+    border-color: #0891b2;
+    background: linear-gradient(135deg, #ecfeff, #cffafe);
+    box-shadow: 0 4px 12px -4px rgba(8, 145, 178, 0.45);
+}
+
+.sw-structure-name { font-weight: 800; font-size: 0.85rem; color: #155e75; }
+.sw-structure-pattern { font-size: 0.78rem; font-weight: 600; color: #0f172a; }
+.sw-structure-example { font-family: "Lora", Georgia, serif; font-style: italic; font-size: 0.8rem; color: #475569; }
+
+.sw-starter-chips,
+.sw-input-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.sw-starter-chip {
+    font-family: "Lora", Georgia, serif;
+    font-size: 0.9rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 9999px;
+    border: 1.5px solid #a5f3fc;
+    background: white;
+    color: #164e63;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.sw-starter-chip:hover { background: #ecfeff; border-color: #22d3ee; transform: translateY(-1px); }
+.sw-starter-chip--small { font-size: 0.8rem; padding: 0.25rem 0.65rem; }
+
+/* Story input modal helpers */
+.sw-input-helpers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.sw-input-helpers:empty { display: none; }
+
+.sw-input-word,
+.sw-input-focus {
+    font-size: 0.85rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.8rem;
+}
+
+.sw-input-word { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+.sw-input-focus { background: #ecfeff; color: #155e75; border: 1px solid #a5f3fc; }
+.sw-input-focus span { font-family: "Lora", Georgia, serif; font-style: italic; color: #475569; }
+
+/* Story reveal: book page + dialogic prompts */
+.sw-reveal {
+    width: min(64rem, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: 1.25rem;
+    border-radius: 1.75rem;
+    background: linear-gradient(135deg, #0e7490, #164e63);
+    box-shadow: 0 30px 80px -20px rgba(8, 51, 68, 0.7);
+}
+
+.sw-reveal-book {
+    display: flex;
+    border-radius: 1.2rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fffdf6, #fdf6e3);
+}
+
+.sw-reveal-art {
+    flex: 0 0 42%;
+    background: #fdf6e3;
+    padding: 1.25rem;
+    box-shadow: inset -18px 0 26px -18px rgba(120, 83, 29, 0.35);
+    display: flex;
+    align-items: center;
+}
+
+.sw-reveal-art.hidden { display: none; }
+
+.sw-reveal-art img {
+    width: 100%;
+    border-radius: 0.9rem;
+    border: 6px solid white;
+    box-shadow: 0 10px 22px -10px rgba(120, 83, 29, 0.45);
+    object-fit: cover;
+}
+
+.sw-reveal-page {
+    flex: 1;
+    padding: 2rem 2.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.sw-reveal-text {
+    font-family: "Lora", Georgia, serif;
+    font-size: clamp(1.6rem, 3.2vw, 2.8rem);
+    line-height: 1.5;
+    color: #2d2416;
+}
+
+.sw-reveal-word {
+    align-self: flex-start;
+    font-family: "Lora", Georgia, serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: white;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    border-radius: 0.4rem 9999px 9999px 0.4rem;
+    padding: 0.35rem 1rem 0.35rem 0.7rem;
+}
+
+.sw-reveal-word.hidden { display: none; }
+
+.sw-reveal-word span {
+    font-family: "Fredoka", sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-right: 0.4rem;
+}
+
+.sw-reveal-prompts { margin-top: 1rem; }
+.sw-reveal-prompts.hidden { display: none; }
+
+.sw-reveal-prompts-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+
+.sw-reveal-prompts-title {
+    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-size: 1.25rem;
+    color: #ecfeff;
+}
+
+.sw-reveal-prompts-shuffle {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #164e63;
+    background: #cffafe;
+    border-radius: 9999px;
+    padding: 0.35rem 0.85rem;
+    cursor: pointer;
+}
+
+.sw-reveal-prompts-shuffle:hover { background: white; }
+
+.sw-reveal-prompts-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.sw-reveal-prompt {
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 1.1rem;
+    padding: 0.85rem 1rem;
+    border-top: 5px solid #22d3ee;
+}
+
+.sw-reveal-prompt--recall { border-top-color: #a78bfa; }
+.sw-reveal-prompt--open,
+.sw-reveal-prompt--wh { border-top-color: #fbbf24; }
+.sw-reveal-prompt--distancing,
+.sw-reveal-prompt--completion { border-top-color: #34d399; }
+
+.sw-reveal-prompt-kind {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #475569;
+}
+
+.sw-reveal-prompt-text {
+    margin-top: 0.35rem;
+    font-size: clamp(1rem, 1.4vw, 1.25rem);
+    font-weight: 600;
+    line-height: 1.4;
+    color: #0f172a;
+}
+
+@media (max-width: 767px) {
+    .sw-reveal-book { flex-direction: column; }
+    .sw-reveal-art { box-shadow: none; }
+    .sw-reveal-page { padding: 1.25rem; }
+    .sw-reveal-prompts-list { grid-template-columns: 1fr; }
+}
+
+/* Component rules above set display; keep Tailwind .hidden authoritative. */
+.qow-carry-panel.hidden,
+.sw-word-ribbon.hidden,
+.sw-reveal-art.hidden,
+.sw-reveal-word.hidden,
+.sw-reveal-prompts.hidden,
+.sw-book-placeholder.hidden,
+.qow-review-btn.hidden,
+.qow-review-error.hidden { display: none !important; }
+
+/* ── Projector Mode: collision-aware card placement ───────────────────────
+   Cards are positioned in px by placeFloatingCard() (utils/wallpaperLayout.mjs).
+   The base card CSS centres with left:50% + translateX(-50%); placed cards drop that
+   so a corner card never slides off-screen or into the clock hub. */
+.wallpaper-float-card.is-placed {
+    transform-origin: top left;
+    right: auto;
+    bottom: auto;
+}
+
+.wallpaper-float-card.is-placed:not(.is-entering) {
+    transform: none;
+}
+
+/* ── Projector Mode: English-learning cards ─────────────────────────────── */
+.wall-lang-kicker {
+    font-weight: 700;
+    font-size: 1.05rem;
+    opacity: 0.85;
+    margin-top: 0.75rem;
+}
+
+.wall-lang-line {
+    font-family: "Fredoka", sans-serif;
+    font-weight: 600;
+    font-size: 1.35rem;
+    line-height: 1.35;
+    color: #134e4a;
+}
+
+.wall-lang-words {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-top: 1rem;
+}
+
+.wall-lang-words span {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 0.6rem;
+    background: #ccfbf1;
+    color: #115e59;
+    text-shadow: none;
+}
+
+.wall-lang-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    text-align: left;
+}
+
+.wall-lang-options span {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.45rem 0.7rem;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #fde68a;
+    color: #78350f;
+    text-shadow: none;
+}
+
+.wall-lang-options b {
+    display: inline-block;
+    width: 1.5rem;
+    color: #d97706;
+}
+
+.wall-lang-scramble {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 1.1rem 0 0.3rem;
+}
+
+.wall-lang-scramble span {
+    width: 3rem;
+    height: 3.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-size: 2rem;
+    color: #312e81;
+    background: white;
+    border-radius: 0.7rem;
+    border: 2px solid #c7d2fe;
+    box-shadow: 0 4px 0 #a5b4fc;
+    text-shadow: none;
+}
+
+.wall-lang-gap {
+    display: inline-block;
+    min-width: 4rem;
+    border-bottom: 3px dashed #06b6d4;
+    color: transparent;
+}
+
+.wall-lang-steps {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.wall-lang-steps span {
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    background: #f3e8ff;
+    color: #6b21a8;
+    text-shadow: none;
+}
+
+.wall-lang-pair {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    margin: 1.2rem 0 0.8rem;
+}
+
+.wall-lang-pair span {
+    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-size: 3.2rem;
+    color: #7c2d12;
+    background: white;
+    border-radius: 1rem;
+    padding: 0.2rem 1rem;
+    border: 3px solid #fdba74;
+    text-shadow: none;
+}
+
+.wall-lang-pair em {
+    font-style: normal;
+    font-weight: 800;
+    color: #ea580c;
+}

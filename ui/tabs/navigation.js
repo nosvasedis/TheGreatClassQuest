@@ -1052,6 +1052,30 @@ function getCategoriesForType(type, level) {
     return MIX_CATEGORIES[lvl] || MIX_CATEGORIES['A'];
 }
 
+// Listeners for the Quiz settings panel are bound once; the panel re-renders on every class change.
+let quizOptionsListenersBound = false;
+// Last week's missed questions for the class currently shown (carry-forward chooser).
+let quizCarryCandidates = [];
+let quizCarryClassId = null;
+
+const QOW_PREF_PREFIX = 'gcq_qow_pref_';
+
+function readQuizPref(classId, key) {
+    try {
+        return localStorage.getItem(`${QOW_PREF_PREFIX}${key}_${classId}`) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function writeQuizPref(classId, key, value) {
+    try {
+        localStorage.setItem(`${QOW_PREF_PREFIX}${key}_${classId}`, value ? '1' : '0');
+    } catch {
+        /* storage unavailable: the toggle still works for this session */
+    }
+}
+
 export async function renderQuizOptionsUi() {
     const quizContent = document.getElementById('options-quiz-content');
     const quizLocked = document.getElementById('options-quiz-locked');
@@ -1079,15 +1103,23 @@ export async function renderQuizOptionsUi() {
     const genStep2       = document.getElementById('qow-gstep-2');
     const genStep3       = document.getElementById('qow-gstep-3');
     const resetBtn       = document.getElementById('quiz-reset-btn');
+    const reviewBtn      = document.getElementById('quiz-review-btn');
+    const reviewBtnLabel = document.getElementById('quiz-review-btn-label');
     const historyArea    = document.getElementById('quiz-history-area');
     const historyList    = document.getElementById('quiz-history-list');
     const cardCurriculum = document.getElementById('qow-card-curriculum');
+    const cardOptions    = document.getElementById('qow-card-options');
+    const reviewToggle   = document.getElementById('quiz-review-toggle');
+    const carryToggle    = document.getElementById('quiz-carry-toggle');
+    const carryPanel     = document.getElementById('quiz-carry-panel');
+    const carryList      = document.getElementById('quiz-carry-list');
+    const carrySummary   = document.getElementById('quiz-carry-summary');
     const classMeta      = document.getElementById('qow-class-meta');
     const classLevelBadge = document.getElementById('qow-class-level-badge');
     const classMetaText  = document.getElementById('qow-class-meta-text');
 
-    // Class comes from header (global selection)
-    const classes = (state.get('allTeachersClasses') || []).sort((a, b) => a.name.localeCompare(b.name));
+    // Class comes from header (global selection). Read fresh each time so new classes are found.
+    const getClasses = () => (state.get('allTeachersClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
 
     // ── Type pills ──────────────────────────────────────────────────────────
     function setActivePill(type) {
@@ -1098,19 +1130,12 @@ export async function renderQuizOptionsUi() {
         if (typeSelect) typeSelect.value = type;
     }
 
-    typePillsWrap?.querySelectorAll('.qow-type-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            setActivePill(btn.dataset.type);
-            renderCategories();
-        });
-    });
-
     // ── Category chips ───────────────────────────────────────────────────────
     function renderCategories() {
         if (!categoriesChips) return;
         const type = typeSelect?.value || 'mix';
         const classId = state.get('globalSelectedClassId');
-        const classData = classes.find(c => c.id === classId);
+        const classData = getClasses().find(c => c.id === classId);
         const level = classData?.questLevel || 'A';
         const categories = getCategoriesForType(type, level);
         categoriesChips.innerHTML = categories.map(cat => `
@@ -1121,7 +1146,59 @@ export async function renderQuizOptionsUi() {
         `).join('');
     }
 
-    renderCategories();
+    // ── Carry-forward chooser (optional) ────────────────────────────────────
+    function renderCarryList(preselectedIds = null) {
+        if (!carryList || !carrySummary) return;
+        if (!quizCarryCandidates.length) {
+            carryList.innerHTML = '';
+            carrySummary.textContent = quizCarryClassId
+                ? 'No missed questions from the last quiz. Nothing to bring back.'
+                : 'No finished quiz yet for this class.';
+            return;
+        }
+        const preselected = preselectedIds ? new Set(preselectedIds) : null;
+        carrySummary.textContent = `${quizCarryCandidates.length} question${quizCarryCandidates.length === 1 ? '' : 's'} missed last time. Tick the ones to bring back.`;
+        carryList.innerHTML = quizCarryCandidates.map(({ stat, question }, index) => {
+            const checked = preselected ? preselected.has(stat.questionId) : true;
+            const wrong = stat.topWrongAnswer
+                ? `<span class="qow-carry-wrong">Most chose “${escapeQuizText(stat.topWrongAnswer)}”</span>`
+                : `<span class="qow-carry-wrong">${stat.asked ? 'Missed on the first try' : 'Skipped'}</span>`;
+            return `
+                <label class="qow-carry-item">
+                    <input type="checkbox" class="qow-carry-check" data-carry-index="${index}" ${checked ? 'checked' : ''} />
+                    <span class="qow-carry-copy">
+                        <span class="qow-carry-question">${escapeQuizText(question.question)}</span>
+                        <span class="qow-carry-meta"><span class="qow-carry-answer">✔ ${escapeQuizText(question.correctAnswer)}</span>${wrong}</span>
+                    </span>
+                </label>`;
+        }).join('');
+    }
+
+    async function loadCarryCandidates(classId, preselectedIds = null) {
+        if (!carryPanel) return;
+        carryPanel.classList.remove('hidden');
+        if (carrySummary) carrySummary.textContent = 'Looking for last week\'s quiz…';
+        if (carryList) carryList.innerHTML = '';
+        try {
+            const { getPreviousQuizReview } = await import('../../db/actions/quizOfTheWeek.js');
+            const review = await getPreviousQuizReview(classId);
+            if (state.get('globalSelectedClassId') !== classId) return;
+            quizCarryClassId = review ? classId : null;
+            quizCarryCandidates = review?.carryCandidates || [];
+        } catch (error) {
+            console.warn('Could not load last week\'s quiz review:', error);
+            quizCarryClassId = null;
+            quizCarryCandidates = [];
+        }
+        renderCarryList(preselectedIds);
+    }
+
+    function getSelectedCarryQuestions() {
+        if (!carryToggle?.checked || !carryList) return [];
+        return [...carryList.querySelectorAll('.qow-carry-check:checked')]
+            .map((input) => quizCarryCandidates[Number(input.dataset.carryIndex)]?.question)
+            .filter(Boolean);
+    }
 
     // ── Class selector ───────────────────────────────────────────────────────
     function showClassMeta(classData) {
@@ -1145,6 +1222,7 @@ export async function renderQuizOptionsUi() {
 
     async function syncQuizToHeaderClass() {
         const classId = state.get('globalSelectedClassId');
+        const classes = getClasses();
         if (classDisplay) {
             const cd = classes.find(c => c.id === classId);
             classDisplay.textContent = cd
@@ -1156,8 +1234,10 @@ export async function renderQuizOptionsUi() {
         if (!classId) {
             generateBtn.disabled = true;
             cardCurriculum?.classList.add('qow-card-disabled');
+            cardOptions?.classList.add('qow-card-disabled');
             statusArea?.classList.add('hidden');
             historyArea?.classList.add('hidden');
+            carryPanel?.classList.add('hidden');
             hideClassMeta();
             renderCategories();
             return;
@@ -1166,15 +1246,17 @@ export async function renderQuizOptionsUi() {
         const classData = classes.find(c => c.id === classId);
         showClassMeta(classData);
         cardCurriculum?.classList.remove('qow-card-disabled');
+        cardOptions?.classList.remove('qow-card-disabled');
         generateBtn.disabled = false;
 
         setActivePill('mix');
         if (keywordsInput) keywordsInput.value = '';
         renderCategories();
 
+        let existingQuiz = null;
         try {
             const { getQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
-            const existingQuiz = await getQuizForClass(classId);
+            existingQuiz = await getQuizForClass(classId);
             if (existingQuiz?.curriculum) {
                 const c = existingQuiz.curriculum;
                 if (c.type) { setActivePill(c.type); renderCategories(); }
@@ -1187,89 +1269,40 @@ export async function renderQuizOptionsUi() {
             }
         } catch (_) { /* non-fatal */ }
 
+        // Optional extras: this week's saved choice wins, otherwise the teacher's last choice for this class.
+        const savedCarry = Array.isArray(existingQuiz?.carryForward) ? existingQuiz.carryForward : null;
+        if (reviewToggle) {
+            reviewToggle.checked = typeof existingQuiz?.reviewBeforeLive === 'boolean'
+                ? existingQuiz.reviewBeforeLive
+                : readQuizPref(classId, 'review');
+        }
+        if (carryToggle) {
+            carryToggle.checked = savedCarry ? savedCarry.length > 0 : readQuizPref(classId, 'carry');
+        }
+        quizCarryCandidates = [];
+        quizCarryClassId = null;
+        if (carryToggle?.checked) {
+            const preselected = savedCarry?.length ? savedCarry.map((q) => q.carriedFrom?.questionId).filter(Boolean) : null;
+            loadCarryCandidates(classId, preselected);
+        } else {
+            carryPanel?.classList.add('hidden');
+        }
+
         await refreshQuizStatus(classId);
     }
 
     await syncQuizToHeaderClass();
 
-    // ── Generate button ──────────────────────────────────────────────────────
-    generateBtn?.addEventListener('click', async () => {
-        const classId = state.get('globalSelectedClassId');
-        if (!classId) return;
-
-        const selectedCategories = [...document.querySelectorAll('.quiz-category-checkbox:checked')].map(cb => cb.value);
-        const type = typeSelect?.value || 'mix';
-        const keywords = keywordsInput?.value?.trim() || '';
-
-        if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
-
-        if (selectedCategories.length === 0 && !keywords) {
-            if (validationMsg) {
-                validationMsg.textContent = 'Please tick at least one topic or write a custom focus before generating.';
-                validationMsg.classList.remove('hidden');
-            }
-            return;
-        }
-
-        const classData = classes.find(c => c.id === classId);
-        const questLevel = classData?.questLevel || 'A';
-
-        // ── Show generation UI ──
-        generateBtn.disabled = true;
-        if (generateLabel) generateLabel.textContent = 'Generating…';
-        generateBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
-
-        setStatusState('generating');
-        if (genProgress) genProgress.classList.remove('hidden');
-        // Restart progress bar animation
-        if (genProgress) {
-            const fill = genProgress.querySelector('.qow-gen-progress-fill');
-            if (fill) { fill.style.animation = 'none'; void fill.offsetHeight; fill.style.animation = ''; }
-        }
-        setGenStep(1);
-
-        try {
-            const { saveQuizCurriculum, generateQuizQuestions } = await import('../../db/actions/quizOfTheWeek.js');
-
-            await saveQuizCurriculum(classId, { type, categories: selectedCategories, keywords, questLevel });
-
-            setGenStep(2);
-            const result = await generateQuizQuestions(classId);
-            setGenStep(3);
-
-            // Small pause so the teacher sees "Saving" before we switch
-            await new Promise(r => setTimeout(r, 700));
-
-            if (genProgress) genProgress.classList.add('hidden');
-            setStatusState('ready', {
-                text: `Quiz ready! ${result.questionCount} questions${result.imageCount ? ` (${result.imageCount} with images)` : ''}.`,
-                sub: `The play button will appear on the class's first lesson day of the week. ✨`
-            });
-
-            await refreshQuizStatus(classId);
-
-        } catch (e) {
-            console.error('Quiz generation failed:', e);
-            if (genProgress) genProgress.classList.add('hidden');
-            setStatusState('error', {
-                text: 'Generation failed.',
-                sub: String(e.message || '').slice(0, 180)
-            });
-        }
-
-        generateBtn.disabled = false;
-        if (generateLabel) generateLabel.textContent = 'Re-generate Quiz';
-        generateBtn.querySelector('i').className = 'fas fa-rotate-right';
-    });
-
     // ── Helpers: set status state ────────────────────────────────────────────
     function setStatusState(type, opts = {}) {
         if (!statusArea) return;
-        statusArea.classList.remove('hidden', 'qow-status-ready', 'qow-status-active', 'qow-status-done', 'qow-status-error');
+        statusArea.classList.remove('hidden', 'qow-status-ready', 'qow-status-active', 'qow-status-done', 'qow-status-error', 'qow-status-review');
 
         const map = {
             generating: { emoji: '🤖', title: opts.text || 'AI is crafting questions…',
                           sub: opts.sub || 'This takes 30–60 seconds. Please wait.', cls: '' },
+            review:     { emoji: '📝', title: opts.text || 'Waiting for your review',
+                          sub: opts.sub || 'Approve the questions to make the play button appear.', cls: 'qow-status-review' },
             ready:      { emoji: '✅', title: opts.text || 'Quiz ready!',
                           sub: opts.sub || 'The play button appears on the first lesson day.', cls: 'qow-status-ready' },
             active:     { emoji: '🟢', title: opts.text || 'Quiz is live!',
@@ -1298,14 +1331,16 @@ export async function renderQuizOptionsUi() {
         });
     }
 
-
     async function refreshQuizStatus(classId) {
         try {
             const { getQuizForClass, getQuizHistory } = await import('../../db/actions/quizOfTheWeek.js');
             const quiz = await getQuizForClass(classId);
+            if (state.get('globalSelectedClassId') !== classId) return;
 
             if (quiz) {
                 const qCount = quiz.questions?.length || 0;
+                const carriedCount = (quiz.questions || []).filter((q) => q.carriedFrom).length;
+                const carriedNote = carriedCount ? ` · ${carriedCount} review question${carriedCount === 1 ? '' : 's'} from last time` : '';
                 const tierEmoji = { legendary: '👑', epic: '🌟', rare: '💎', common: '🎯', heroic: '🛡️' };
 
                 const statusMap = {
@@ -1321,11 +1356,17 @@ export async function renderQuizOptionsUi() {
                         sub: 'This may take 30–60 seconds.',
                         badge: null
                     },
+                    review: {
+                        type: 'review',
+                        text: `Waiting for your review — ${qCount} question${qCount !== 1 ? 's' : ''}`,
+                        sub: `Nothing is shown to the class until you approve.${carriedNote}`,
+                        badge: { label: '📝 In review', cls: 'qow-pill-review' }
+                    },
                     ready: {
                         type: 'ready',
                         text: `Quiz ready — ${qCount} question${qCount !== 1 ? 's' : ''}!`,
                         sub: quiz.curriculum
-                            ? `${quiz.curriculum.type?.toUpperCase()} · ${(quiz.curriculum.categories || []).join(', ') || quiz.curriculum.keywords || ''}`
+                            ? `${quiz.curriculum.type?.toUpperCase()} · ${(quiz.curriculum.categories || []).join(', ') || quiz.curriculum.keywords || ''}${carriedNote}`
                             : 'The play button will appear on the first lesson day. ✨',
                         badge: { label: '✅ Ready', cls: 'qow-pill-ready' }
                     },
@@ -1355,12 +1396,18 @@ export async function renderQuizOptionsUi() {
                     statusBadge.classList.add('hidden');
                 }
 
-                // Show reset button only for pending/ready states
-                const canReset = quiz.status === 'pending' || quiz.status === 'ready';
+                // Reset only before play; review/edit only while questions exist and have not been played.
+                const canReset = quiz.status === 'pending' || quiz.status === 'ready' || quiz.status === 'review';
                 if (resetBtn) resetBtn.classList.toggle('hidden', !canReset);
+                const canReview = (quiz.status === 'ready' || quiz.status === 'review') && qCount > 0;
+                if (reviewBtn) {
+                    reviewBtn.classList.toggle('hidden', !canReview);
+                    reviewBtn.classList.toggle('qow-review-btn--attention', quiz.status === 'review');
+                }
+                if (reviewBtnLabel) reviewBtnLabel.textContent = quiz.status === 'review' ? 'Review & approve questions' : 'Review & edit questions';
 
                 // Update generate button label
-                if (generateLabel && (quiz.status === 'ready' || quiz.status === 'pending')) {
+                if (generateLabel && (quiz.status === 'ready' || quiz.status === 'pending' || quiz.status === 'review')) {
                     generateLabel.textContent = 'Re-generate Quiz';
                     const icon = generateBtn?.querySelector('i');
                     if (icon) icon.className = 'fas fa-rotate-right';
@@ -1371,6 +1418,7 @@ export async function renderQuizOptionsUi() {
                     sub: 'Select your topics above and hit Generate!'
                 });
                 if (resetBtn) resetBtn.classList.add('hidden');
+                if (reviewBtn) reviewBtn.classList.add('hidden');
                 if (statusBadge) statusBadge.classList.add('hidden');
             }
 
@@ -1403,6 +1451,128 @@ export async function renderQuizOptionsUi() {
         }
     }
 
+    if (quizOptionsListenersBound) return;
+    quizOptionsListenersBound = true;
+
+    typePillsWrap?.querySelectorAll('.qow-type-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setActivePill(btn.dataset.type);
+            renderCategories();
+        });
+    });
+
+    reviewToggle?.addEventListener('change', () => {
+        const classId = state.get('globalSelectedClassId');
+        if (classId) writeQuizPref(classId, 'review', reviewToggle.checked);
+    });
+
+    carryToggle?.addEventListener('change', () => {
+        const classId = state.get('globalSelectedClassId');
+        if (!classId) return;
+        writeQuizPref(classId, 'carry', carryToggle.checked);
+        if (carryToggle.checked) loadCarryCandidates(classId);
+        else carryPanel?.classList.add('hidden');
+    });
+
+    document.getElementById('quiz-carry-all-btn')?.addEventListener('click', () => {
+        carryList?.querySelectorAll('.qow-carry-check').forEach((input) => { input.checked = true; });
+    });
+    document.getElementById('quiz-carry-none-btn')?.addEventListener('click', () => {
+        carryList?.querySelectorAll('.qow-carry-check').forEach((input) => { input.checked = false; });
+    });
+
+    reviewBtn?.addEventListener('click', async () => {
+        const classId = state.get('globalSelectedClassId');
+        if (!classId) return;
+        const { openQuizReviewEditor } = await import('../modals/quizReview.js');
+        openQuizReviewEditor(classId, { onSaved: () => refreshQuizStatus(classId) });
+    });
+
+    // ── Generate button ──────────────────────────────────────────────────────
+    generateBtn?.addEventListener('click', async () => {
+        const classId = state.get('globalSelectedClassId');
+        if (!classId || generateBtn.disabled) return;
+
+        const selectedCategories = [...document.querySelectorAll('.quiz-category-checkbox:checked')].map(cb => cb.value);
+        const type = typeSelect?.value || 'mix';
+        const keywords = keywordsInput?.value?.trim() || '';
+        const carryForward = getSelectedCarryQuestions();
+        const reviewBeforeLive = Boolean(reviewToggle?.checked);
+
+        if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
+
+        if (selectedCategories.length === 0 && !keywords && carryForward.length === 0) {
+            if (validationMsg) {
+                validationMsg.textContent = 'Please tick at least one topic or write a custom focus before generating.';
+                validationMsg.classList.remove('hidden');
+            }
+            return;
+        }
+
+        const classData = getClasses().find(c => c.id === classId);
+        const questLevel = classData?.questLevel || 'A';
+
+        // ── Show generation UI ──
+        generateBtn.disabled = true;
+        if (generateLabel) generateLabel.textContent = 'Generating…';
+        generateBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+        setStatusState('generating');
+        if (genProgress) genProgress.classList.remove('hidden');
+        // Restart progress bar animation
+        if (genProgress) {
+            const fill = genProgress.querySelector('.qow-gen-progress-fill');
+            if (fill) { fill.style.animation = 'none'; void fill.offsetHeight; fill.style.animation = ''; }
+        }
+        setGenStep(1);
+
+        try {
+            const { saveQuizCurriculum, generateQuizQuestions } = await import('../../db/actions/quizOfTheWeek.js');
+
+            await saveQuizCurriculum(classId, { type, categories: selectedCategories, keywords, questLevel, reviewBeforeLive, carryForward });
+
+            setGenStep(2);
+            const result = await generateQuizQuestions(classId);
+            setGenStep(3);
+
+            // Small pause so the teacher sees "Saving" before we switch
+            await new Promise(r => setTimeout(r, 700));
+
+            if (genProgress) genProgress.classList.add('hidden');
+            const carriedText = result.carriedCount ? ` (${result.carriedCount} review question${result.carriedCount === 1 ? '' : 's'} from last time)` : '';
+            if (result.status === 'review') {
+                setStatusState('review', {
+                    text: `Quiz generated — ${result.questionCount} questions${carriedText}.`,
+                    sub: 'Review and approve them to make the play button appear.'
+                });
+            } else {
+                setStatusState('ready', {
+                    text: `Quiz ready! ${result.questionCount} questions${carriedText}${result.imageCount ? ` (${result.imageCount} with images)` : ''}.`,
+                    sub: `The play button will appear on the class's first lesson day of the week. ✨`
+                });
+            }
+
+            await refreshQuizStatus(classId);
+
+            if (result.status === 'review' && state.get('globalSelectedClassId') === classId) {
+                const { openQuizReviewEditor } = await import('../modals/quizReview.js');
+                openQuizReviewEditor(classId, { onSaved: () => refreshQuizStatus(classId) });
+            }
+
+        } catch (e) {
+            console.error('Quiz generation failed:', e);
+            if (genProgress) genProgress.classList.add('hidden');
+            setStatusState('error', {
+                text: 'Generation failed.',
+                sub: String(e.message || '').slice(0, 180)
+            });
+        }
+
+        generateBtn.disabled = false;
+        if (generateLabel) generateLabel.textContent = 'Re-generate Quiz';
+        generateBtn.querySelector('i').className = 'fas fa-rotate-right';
+    });
+
     // ── Reset (delete) button ────────────────────────────────────────────────
     resetBtn?.addEventListener('click', async () => {
         const classId = state.get('globalSelectedClassId');
@@ -1421,6 +1591,7 @@ export async function renderQuizOptionsUi() {
             if (keywordsInput) keywordsInput.value = '';
             if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
             statusArea?.classList.add('hidden');
+            reviewBtn?.classList.add('hidden');
             if (generateLabel) generateLabel.textContent = 'Generate This Week\'s Quiz';
             const icon = generateBtn?.querySelector('i');
             if (icon) icon.className = 'fas fa-wand-magic-sparkles';
@@ -1431,4 +1602,12 @@ export async function renderQuizOptionsUi() {
         resetBtn.disabled = false;
         resetBtn.innerHTML = '<i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week\'s Quiz';
     });
+}
+
+function escapeQuizText(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
 }

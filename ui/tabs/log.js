@@ -7,6 +7,7 @@ import { getLogTabCopy } from '../../config/tiers/features.js';
 import { renderAwardStarsStudentList } from './award.js';
 import { syncHeaderClassSelector } from '../headerClassSelector.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';
+import { renderLearnedTodayHtml } from '../../features/learnedToday.js';
 
 function classHasAwardedStarsToday(classId) {
     if (!classId) return false;
@@ -265,6 +266,7 @@ export async function renderAdventureLog() {
                     <div class="diary-text-content">
                         <p class="diary-text">${log.text}</p>
                         ${highlightsHtml ? `<div class="diary-highlights">${highlightsHtml}</div>` : ''}
+                        ${renderLearnedTodayHtml(log.learnedToday)}
                         ${noteHtml}
                     </div>
                 </div>

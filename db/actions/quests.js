@@ -266,7 +266,8 @@ function buildAdventureLogAiPrompts({
     powerUpContext,
     guildContext,
     wheelContext,
-    boonContext
+    boonContext,
+    learnedContext = ''
 }) {
     const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
 
@@ -284,7 +285,8 @@ STRICT RULES:
 - Audience age group: ${ageGroup}.
 - Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
 - Mention the Hero of the Day naturally in the entry.
-- Weave in attendance, skills, and events from the context provided.`;
+- Weave in attendance, skills, and events from the context provided.
+- If "Today we learned" is given, recycle that English: use 2-3 of its target words or topics naturally in the entry (correct, age-appropriate usage) and put up to 2 of the target words in "keywords".`;
 
     const userPrompt = `Tier: ${ageTier}
 Class: ${classData.name}
@@ -297,7 +299,8 @@ Assignment/Test context: ${assignmentContext || 'none'}
 Power-up context: ${powerUpContext || 'none'}
 Guild standings: ${guildContext || 'none'}
 Fortune's Wheel: ${wheelContext || 'none'}
-Boon awarded: ${boonContext || 'none'}`;
+Boon awarded: ${boonContext || 'none'}
+Today we learned: ${learnedContext || 'none'}`;
 
     return { systemPrompt, userPrompt };
 }
@@ -327,7 +330,8 @@ STRICT RULES:
 - "keywords": 3-5 lowercase single-word strings.
 - Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
 - Mention the Hero of the Day naturally in the entry.
-- If prior text exists, rewrite it into a cleaner diary entry rather than inventing a totally new day.`;
+- If prior text exists, rewrite it into a cleaner diary entry rather than inventing a totally new day.
+- If "Today we learned" is given, use 2-3 of its target words or topics naturally in the entry.`;
 
     const userPrompt = `Retry request for an Adventure Log entry.
 Tier: ${ageTier}
@@ -339,6 +343,7 @@ Known keywords: ${keywords || 'none'}
 Known highlights: ${highlights || 'none'}
 Previous title: ${previousTitle || 'none'}
 Previous text: ${previousText || 'none'}
+Today we learned: ${String(log?.learnedToday?.summary || '').trim() || 'none'}
 Last error (if any): ${lastError || 'none'}`;
 
     return { systemPrompt, userPrompt, ageTier, heroOfTheDay, totalStars };
@@ -671,6 +676,10 @@ async function handleAILogAdventure(classId, classData) {
     // with all the synchronous state data collection below.
     const _heroClassRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
     const _heroClassDocPromise = getDoc(_heroClassRef);
+    // "What we learned today" is collected automatically from today's quiz, story, quests, trials and homework.
+    const _learnedTodayPromise = import('../../features/learnedToday.js')
+        .then(({ gatherLearnedToday }) => gatherLearnedToday(classId))
+        .catch(() => ({ items: [], words: [], summary: '' }));
 
     const nowObj = new Date();
     const league = classData.questLevel;
@@ -757,6 +766,8 @@ async function handleAILogAdventure(classId, classData) {
             : `${boonType} was bestowed today.`;
     }
 
+    const learnedToday = await _learnedTodayPromise;
+
     const aiPrompts = buildAdventureLogAiPrompts({
         ageGroup,
         ageTier,
@@ -770,7 +781,8 @@ async function handleAILogAdventure(classId, classData) {
         powerUpContext,
         guildContext,
         wheelContext,
-        boonContext
+        boonContext,
+        learnedContext: learnedToday.summary
     });
     const placeholderDiary = buildAdventureLogPlaceholder({
         className: classData.name,
@@ -795,6 +807,7 @@ async function handleAILogAdventure(classId, classData) {
             imageUrl: null,
             topReason: reasonLabels[0] || 'excellence',
             totalStars,
+            learnedToday,
             generationStatus: 'generating',
             generationProvider: '',
             generationAttempts: 0,
@@ -866,10 +879,27 @@ async function handleAILogAdventure(classId, classData) {
     }
 }
 
+/** Optional, pre-filled "What we learned today" block for the manual log modal. */
+function buildManualLearnedTodayHtml(learned, learnedModule) {
+    const picks = learnedModule.renderLearnedTodayPicksHtml(learned, 'learned');
+    const collected = picks
+        ? `<p class="text-xs text-teal-700 mb-2">Collected automatically from today's lesson. Untick anything that does not fit.</p>${picks}`
+        : '<p class="text-xs text-gray-500 mb-2">Nothing collected yet today (no quiz, story, quest or trial). You can leave this empty.</p>';
+    return `
+        <div class="mb-4 learned-today-box">
+            <p class="block text-sm font-medium text-gray-700 mb-2"><i class="fas fa-graduation-cap mr-1 text-teal-600"></i>What we learned today <span class="text-gray-400 font-normal">(optional)</span></p>
+            ${collected}
+            <input type="text" id="manual-log-learned-extra" maxlength="160" class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Add your own line (optional), e.g. Describing people with adjectives">
+        </div>`;
+}
+
 async function handleManualLogAdventure(classId, classData) {
     // Show manual entry modal
     const { showModal } = await import('../../ui/modals.js');
-    
+    // Loaded on demand to keep it out of the shared actions chunk.
+    const learnedModule = await import('../../features/learnedToday.js');
+    const learnedToday = await learnedModule.gatherLearnedToday(classId);
+
     const modalContent = `
         <div class="p-6">
             <h3 class="font-title text-2xl text-teal-700 mb-4 text-center">Write Today's Adventure</h3>
@@ -886,6 +916,7 @@ async function handleManualLogAdventure(classId, classData) {
                 <input type="text" id="manual-log-highlights" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., Great participation, Creative answers, Team work">
                 <p class="text-xs text-teal-700 mt-2">When you save, the app will crown today's Hero of the Day and add them to the chronicle automatically.</p>
             </div>
+            ${buildManualLearnedTodayHtml(learnedToday, learnedModule)}
             <div class="flex gap-3">
                 <button type="button" id="save-manual-log-btn" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-title py-2 rounded-lg bubbly-button">
                     <i class="fas fa-save mr-2"></i> Save Entry
@@ -900,13 +931,13 @@ async function handleManualLogAdventure(classId, classData) {
     showModal('Manual Adventure Log Entry', modalContent, () => {}, '', true);
     
     // Add event listeners
-    document.getElementById('save-manual-log-btn').addEventListener('click', async () => await saveManualLogEntry(classId, classData));
+    document.getElementById('save-manual-log-btn').addEventListener('click', async () => await saveManualLogEntry(classId, classData, learnedModule.readLearnedTodayPicks(document, learnedToday, 'learned', '#manual-log-learned-extra')));
     document.getElementById('cancel-manual-log-btn').addEventListener('click', () => {
         import('../../ui/modals.js').then(m => m.hideModal());
     });
 }
 
-async function saveManualLogEntry(classId, classData) {
+async function saveManualLogEntry(classId, classData, learnedToday = null) {
     const title = document.getElementById('manual-log-title').value.trim();
     const text = document.getElementById('manual-log-text').value.trim();
     const highlightsText = document.getElementById('manual-log-highlights').value.trim();
@@ -946,6 +977,7 @@ async function saveManualLogEntry(classId, classData) {
             imageUrl: null,
             topReason: highlights[0] || 'excellence',
             totalStars: todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0),
+            learnedToday: learnedToday || { items: [], words: [], summary: '' },
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         }, heroSelection.heroStudentId);

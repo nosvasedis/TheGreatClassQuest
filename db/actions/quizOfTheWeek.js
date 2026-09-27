@@ -8,6 +8,16 @@ import { adjustGuildGlory, applyGloryModifier } from './guilds.js';
 import { playSound } from '../../audio.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
+import {
+    QUIZ_MIN_QUESTIONS,
+    computeQuestionStats,
+    freshQuestionCount,
+    mergeCarriedQuestions,
+    sanitizeQuizQuestion,
+    selectMissedQuestions,
+    shuffleQuestionOptions,
+    statToCarriedQuestion
+} from '../../features/quizReviewCore.mjs';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -43,16 +53,22 @@ export async function getQuizForClass(classId) {
     return { id: snap.id, ...data };
 }
 
-export async function saveQuizCurriculum(classId, { type, categories, keywords, questLevel }) {
+export async function saveQuizCurriculum(classId, { type, categories, keywords, questLevel, reviewBeforeLive = false, carryForward = [] }) {
     const wk = weekKey();
     const docId = quizDocId(classId);
     const ref = doc(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week`, docId);
+    const carried = (Array.isArray(carryForward) ? carryForward : [])
+        .map((question, index) => sanitizeQuizQuestion(question, `r${index + 1}`))
+        .filter(Boolean);
 
     await setDoc(ref, withSchoolYear({
         classId,
         weekKey: wk,
         status: 'pending',
         curriculum: { type, categories, keywords },
+        // Optional teacher choices: review before the quiz goes live, and bring back missed questions.
+        reviewBeforeLive: Boolean(reviewBeforeLive),
+        carryForward: carried,
         questLevel,
         questions: [],
         results: null,
@@ -69,7 +85,7 @@ export async function updateQuizStatus(classId, status, questions = null) {
     const ref = quizDocRef(classId);
     const updates = { status, updatedAt: serverTimestamp() };
     if (questions) updates.questions = questions;
-    if (status === 'ready' || status === 'generating') updates.generatedAt = serverTimestamp();
+    if (status === 'ready' || status === 'review' || status === 'generating') updates.generatedAt = serverTimestamp();
     await setDoc(ref, updates, { merge: true });
 }
 
@@ -238,8 +254,24 @@ export async function generateQuizQuestions(classId) {
         const enrolledCount = allStudents.filter(s => s.classId === classId).length;
         const questionCount = calculateQuestionCount(enrolledCount);
 
+        // Optional review questions carried from last week take the first slots.
+        const carried = (Array.isArray(quiz.carryForward) ? quiz.carryForward : [])
+            .map((question, index) => sanitizeQuizQuestion(question, `r${index + 1}`))
+            .filter(Boolean)
+            .slice(0, questionCount)
+            .map((question) => shuffleQuestionOptions(question));
+        const freshCount = freshQuestionCount(questionCount, carried.length);
+        const finalStatus = quiz.reviewBeforeLive ? 'review' : 'ready';
+
+        if (freshCount === 0) {
+            const processedOnlyReview = mergeCarriedQuestions([], carried, questionCount);
+            await updateQuizStatus(classId, finalStatus, processedOnlyReview);
+            await setDoc(quizDocRef(classId), { expectedQuestionCount: questionCount, updatedAt: serverTimestamp() }, { merge: true });
+            return { success: true, questionCount: processedOnlyReview.length, expectedQuestionCount: questionCount, imageCount: 0, carriedCount: carried.length, status: finalStatus };
+        }
+
         const systemPrompt = buildGenerationPrompt();
-        const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel, questionCount);
+        const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel, freshCount);
 
         const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
         let parsed = null;
@@ -261,12 +293,13 @@ export async function generateQuizQuestions(classId) {
             questions = extractPartialQuestions(aiResult);
         }
 
-        if (questions.length < 3) {
+        const minimumFresh = Math.min(QUIZ_MIN_QUESTIONS, freshCount);
+        if (questions.length < minimumFresh || (questions.length + carried.length) < QUIZ_MIN_QUESTIONS) {
             console.error('Quiz: not enough questions recovered. Raw AI response:', aiResult, 'Parsed:', parsed, 'Recovered:', questions);
-            throw new Error(`Only ${questions.length} question(s) recovered from AI response (need at least 3). Raw response logged to console.`);
+            throw new Error(`Only ${questions.length} question(s) recovered from AI response (need at least ${minimumFresh}). Raw response logged to console.`);
         }
 
-        const processed = questions.slice(0, questionCount).map((q, i) => ({
+        const processed = questions.slice(0, freshCount).map((q, i) => ({
             id: `q${i + 1}`,
             type: q.type || 'mcq',
             question: q.question || '',
@@ -297,10 +330,18 @@ export async function generateQuizQuestions(classId) {
 
         await Promise.allSettled(imagePromises);
 
-        await updateQuizStatus(classId, 'ready', processed);
+        const finalQuestions = mergeCarriedQuestions(processed, carried, questionCount);
+        await updateQuizStatus(classId, finalStatus, finalQuestions);
         // Store expected question count for reference
         await setDoc(quizDocRef(classId), { expectedQuestionCount: questionCount, updatedAt: serverTimestamp() }, { merge: true });
-        return { success: true, questionCount: processed.length, expectedQuestionCount: questionCount, imageCount: processed.filter(q => q.imageUrl).length };
+        return {
+            success: true,
+            questionCount: finalQuestions.length,
+            expectedQuestionCount: questionCount,
+            imageCount: finalQuestions.filter(q => q.imageUrl).length,
+            carriedCount: carried.length,
+            status: finalStatus
+        };
 
     } catch (error) {
         console.error('Quiz generation failed:', error);
@@ -335,6 +376,68 @@ export async function getQuizAttempts(classId, week) {
     const collRef = collection(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week/${classId}_${wk}/attempts`);
     const snap = await getDocs(collRef);
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// =============================================================================
+// 3b. TEACHER REVIEW + CARRY-FORWARD (both optional)
+// =============================================================================
+
+/**
+ * Save the teacher's edited questions. `approve: true` makes a quiz that was waiting
+ * in review ready to play. A quiz that is already ready simply keeps its status.
+ */
+export async function saveReviewedQuestions(classId, questions = [], { approve = false } = {}) {
+    const quiz = await getQuizForClass(classId);
+    if (!quiz) throw new Error('No quiz found for this class this week.');
+    if (quiz.status === 'completed' || quiz.status === 'active') {
+        throw new Error('This quiz has already been played, so its questions can no longer change.');
+    }
+
+    const cleaned = questions
+        .map((question, index) => sanitizeQuizQuestion(question, `q${index + 1}`))
+        .filter(Boolean)
+        .map((question, index) => ({ ...question, id: `q${index + 1}` }));
+    if (cleaned.length < QUIZ_MIN_QUESTIONS) {
+        throw new Error(`Keep at least ${QUIZ_MIN_QUESTIONS} complete questions (a question and at least two answers).`);
+    }
+
+    const nextStatus = approve ? 'ready' : (quiz.status === 'review' ? 'review' : quiz.status);
+    await setDoc(quizDocRef(classId), {
+        questions: cleaned,
+        status: nextStatus,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+    return { status: nextStatus, questionCount: cleaned.length };
+}
+
+/**
+ * The most recent completed quiz before this week, with item analysis and the questions
+ * the class missed. Older quizzes without stored stats are analysed from their attempts.
+ */
+export async function getPreviousQuizReview(classId) {
+    const currentWeek = weekKey();
+    const history = await getQuizHistory(classId, 3);
+    const previous = history.find((quiz) => quiz.weekKey && quiz.weekKey !== currentWeek);
+    if (!previous) return null;
+
+    let stats = Array.isArray(previous.results?.questionStats) ? previous.results.questionStats : null;
+    if (!stats) {
+        const attempts = await getQuizAttempts(classId, previous.weekKey).catch(() => []);
+        stats = computeQuestionStats(previous.questions || [], attempts);
+    }
+    const missed = selectMissedQuestions(stats);
+    return {
+        weekKey: previous.weekKey,
+        tier: previous.results?.tier || null,
+        stats,
+        missed,
+        // Paired so the settings list can show each missed stat next to the question it would carry.
+        carryCandidates: missed
+            .map((stat, index) => ({ stat, question: statToCarriedQuestion(stat, previous.weekKey, index) }))
+            .filter((candidate) => candidate.question)
+    };
 }
 
 // =============================================================================

@@ -105,7 +105,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Festival Stall**, Elite **Familiar** eggs. |
 | **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
-| **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day**. FABs: **Quest Assignment**, **Attendance Chronicle**. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
+| **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day** and records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment**, **Attendance Chronicle**. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
 | **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |
 | **Quest Calendar** | Month grid, Day Planner, Quest Events. School-wide holidays are set in the **School Office**. **Pro.** |
 | **Story Weavers** | Collaborative story, Word of the Day, AI art, PDF print. **Elite.** |
@@ -274,7 +274,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 📔 Scholar's Scroll
 
-- **Tests & Dictations:** Log by class and date. **Tests:** score (e.g. 15/20) and optional note. **Dictations:** Junior = qualitative (e.g. Great!!!, Nice Try!); Senior = numeric score. **Starfall:** tests **≥ 95%** may propose **+1** Scholar’s Bonus; strong dictations (**> 85%**, with monthly caps) may propose **+0.5**. You confirm in a modal. **Starfall Catalyst** doubles that student’s next high-test bonus once.
+- **Tests & Dictations:** Log by class and date. **Tests:** score (e.g. 15/20) and optional note. **Dictations:** Junior = qualitative (e.g. Great!!!, Nice Try!); Senior = numeric score. **Starfall:** tests **≥ 95%** may propose **+1** Scholar’s Bonus; strong dictations (**> 85%**, with monthly caps) may propose **+0.5**. **Growth Starfall** may propose **+0.5** when a trial is 15+ points above the student’s own recent average (once a month). You confirm in a modal. **Starfall Catalyst** doubles that student’s next high-test bonus once.
 - **Makeup Work:** Students with **no grade** for a given test date are flagged for makeup.
 - **Performance Chart:** Per-class chart of student performance over recent trials.
 - **Upcoming Test:** If a **Quest Event** has test data for a future date, the Scroll shows an alert (e.g. “Test on [date]”).
@@ -283,7 +283,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## ❓ Quiz of the Week (Elite)
 
-**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. The teacher selects the focus (grammar/vocabulary/mix + topics/keywords). The app generates **multiple-choice** questions (count scales with class size, about three-quarters of the roster, between 5 and 15). The quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy.
+**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. The teacher selects the focus (grammar/vocabulary/mix + topics/keywords). The app generates **multiple-choice** questions (count scales with class size, about three-quarters of the roster, between 5 and 15). The quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy. Optionally, the teacher reviews and edits the questions before they go live, and brings back the questions the class missed last week.
 
 - **Configure & generate**: Teacher Settings → **Quiz**
 - **Play / view results**: Home dashboard (class selected) → **Quiz of the Week** button (only appears when eligible)
@@ -348,7 +348,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 | Tool | Description |
 |------|-------------|
-| **The Story Weavers** | **Elite.** Select class. Class builds a story **one sentence at a time**. **Word of the Day** (teacher or AI suggestion). **Lock in** → illustration. Every second addition can award **+0.5** Story Weaver stars to the class. **Reveal**, chronicle, archive, **Print** PDF. |
+| **The Story Weavers** | **Elite.** Select class. Class builds a story **one sentence at a time**. **Word of the Day** (teacher or AI suggestion). **Lock in** → illustration. Every second addition can award **+0.5** Story Weaver stars to the class. Open-book view, league-matched **sentence starters** and **structure focus**, and **Reveal** with discussion questions (dialogic reading). Chronicle, archive, **Print** PDF. |
 
 ---
 

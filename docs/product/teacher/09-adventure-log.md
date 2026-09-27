@@ -20,6 +20,18 @@ Entries show as a **timeline**, filterable by month. Badges distinguish Manual C
 
 **Mask of the Protagonist**, Pathfinder, tests, and bounties can colour the story the AI (or you) tells.
 
+### What we learned today
+
+Every entry records **What we learned today** automatically. You never have to type it. The app gathers it from what the class actually did that day:
+
+- **Quiz of the Week** played today: its topics and any vocabulary keywords
+- **Story Weavers** updated today: the Word of the Day
+- **Special Quests** held today: the quest and its prompt (Vocabulary Vault words become target words)
+- **Scholar's Scroll** trials logged today: the test or dictation titles, plus a scheduled test today
+- **Quest Assignment** saved today: the next quest
+
+On **Elite**, the AI Chronicler receives this list and weaves 2–3 of the target words or topics into the diary, so the class hears today's English again in their own story. On **Pro**, the manual modal shows the collected items as ticked chips: untick anything that does not fit, or add your own line. Both are optional. The entry card shows a **What we learned today** strip (topics and words), and **Edit Entry** lets you adjust it later.
+
 ## Hero of the Day
 
 You do not pick the hero by hand. When you **Log Today’s Adventure**, the Quest **automatically** crowns **Hero of the Day** as part of saving the diary — then the class sees the celebration. That is the ritual: log the hour, and a present student is named.

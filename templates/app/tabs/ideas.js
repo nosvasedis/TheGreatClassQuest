@@ -9,48 +9,60 @@ export const ideasTabHTML = `
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Story Weavers</h2>
                         <p class="text-lg text-gray-600 mt-2">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
                     </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                        <div class="bg-white/80 backdrop-blur rounded-3xl shadow-sm ring-1 ring-black/5 border border-cyan-100 p-5 sm:p-6">
-                            <div class="flex items-start justify-between gap-4">
+                    <div class="sw-layout">
+                        <section class="sw-book-wrap" aria-labelledby="sw-book-heading">
+                            <div class="sw-book-toolbar">
                                 <div class="min-w-0">
-                                    <h3 class="font-title text-2xl text-slate-800">Current Chronicle</h3>
-                                    <p class="text-sm text-slate-500 mt-1">Illustration and the latest line of the story.</p>
+                                    <h3 id="sw-book-heading" class="font-title text-2xl text-slate-800">Current Chronicle</h3>
+                                    <p class="text-sm text-slate-500 mt-1">The open book shows the latest page of your class story.</p>
                                 </div>
                                 <button id="story-weavers-reveal-btn"
-                                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-cyan-800 bg-cyan-50 hover:bg-cyan-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
+                                    class="sw-reveal-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
                                     aria-label="Reveal story to class">
                                     <i class="fas fa-eye" aria-hidden="true"></i>
-                                    <span class="hidden sm:inline">Reveal</span>
+                                    <span>Reveal to class</span>
                                 </button>
                             </div>
 
-                            <div id="story-weavers-main-content" class="hidden mt-5">
-                                <div id="story-weavers-image-container" class="story-weavers-image-frame">
-                                    <img id="story-weavers-image" src="" alt="Story illustration" class="hidden pop-in" decoding="async" width="520" height="347">
-                                    <div id="story-weavers-image-loader" class="text-slate-400 text-center hidden">
-                                        <i class="fas fa-paint-brush fa-spin text-3xl" aria-hidden="true"></i>
-                                        <p class="text-sm mt-2">The Chronicler is illustrating...</p>
+                            <div id="story-weavers-main-content" class="hidden">
+                                <div class="sw-book">
+                                    <div class="sw-page sw-page--left">
+                                        <div id="story-weavers-image-container" class="story-weavers-image-frame sw-illustration">
+                                            <img id="story-weavers-image" src="" alt="Story illustration" class="hidden pop-in" decoding="async" width="520" height="347">
+                                            <div id="story-weavers-image-loader" class="text-slate-400 text-center hidden">
+                                                <i class="fas fa-paint-brush fa-spin text-3xl" aria-hidden="true"></i>
+                                                <p class="text-sm mt-2">The Chronicler is illustrating...</p>
+                                            </div>
+                                            <div id="story-weavers-image-placeholder" class="text-slate-400 text-center">
+                                                <i class="fas fa-book-reader text-4xl" aria-hidden="true"></i>
+                                                <p class="text-sm mt-2">The story awaits its illustration!</p>
+                                            </div>
+                                        </div>
+                                        <span id="story-weavers-page-left-num" class="sw-page-number" aria-hidden="true"></span>
                                     </div>
-                                    <div id="story-weavers-image-placeholder" class="text-slate-400 text-center">
-                                        <i class="fas fa-book-reader text-4xl" aria-hidden="true"></i>
-                                        <p class="text-sm mt-2">The story awaits its illustration!</p>
+                                    <div class="sw-spine" aria-hidden="true"></div>
+                                    <div class="sw-page sw-page--right">
+                                        <p id="story-weavers-chapter-label" class="sw-chapter-label">Latest page</p>
+                                        <p id="story-weavers-text" class="story-weavers-story-text sw-story-text"></p>
+                                        <div id="story-weavers-word-ribbon" class="sw-word-ribbon hidden">
+                                            <span class="sw-word-ribbon-label">Word on this page</span>
+                                            <span id="story-weavers-word-ribbon-text" class="sw-word-ribbon-word"></span>
+                                        </div>
+                                        <span id="story-weavers-page-right-num" class="sw-page-number" aria-hidden="true"></span>
                                     </div>
-                                </div>
-
-                                <div class="mt-4">
-                                    <p class="text-xs font-semibold tracking-wide text-slate-500">LATEST LINE</p>
-                                    <p id="story-weavers-text" class="story-weavers-story-text mt-2"></p>
                                 </div>
                             </div>
 
-                            <div id="story-weavers-placeholder" class="flex items-center justify-center py-10">
+                            <div id="story-weavers-placeholder" class="sw-book-placeholder">
+                                <div class="sw-closed-book" aria-hidden="true"><i class="fas fa-book"></i></div>
                                 <div class="text-center max-w-sm">
-                                    <p class="text-slate-600 font-semibold">Choose a class from the header to begin your chronicle.</p>
+                                    <p class="text-slate-600 font-semibold">Choose a class from the header to open its storybook.</p>
                                     <p class="text-slate-500 text-sm mt-1">You can still browse the storybook archive below.</p>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
+                        <div class="sw-controls-grid">
                         <div class="bg-white/80 backdrop-blur rounded-3xl shadow-sm ring-1 ring-black/5 border border-cyan-100 p-5 sm:p-6">
                             <div>
                                 <h3 class="font-title text-2xl text-slate-800">Game Master Controls</h3>
@@ -120,6 +132,18 @@ export const ideasTabHTML = `
                                     Start New
                                 </button>
                             </div>
+                        </div>
+
+                        <div class="sw-helpers-card bg-white/80 backdrop-blur rounded-3xl shadow-sm ring-1 ring-black/5 border border-cyan-100 p-5 sm:p-6">
+                            <div>
+                                <h3 class="font-title text-2xl text-slate-800">Writing Helpers</h3>
+                                <p id="story-weavers-helpers-sub" class="text-sm text-slate-500 mt-1">Scaffolds matched to the class's Quest League.</p>
+                            </div>
+                            <p class="sw-helper-label"><i class="fas fa-shapes" aria-hidden="true"></i> Structure focus <span class="sw-helper-hint">(tap to set the pattern for the next page)</span></p>
+                            <div id="story-weavers-structure-hints" class="sw-structure-list" role="radiogroup" aria-label="Structure focus"></div>
+                            <p class="sw-helper-label"><i class="fas fa-quote-left" aria-hidden="true"></i> Sentence starters <span class="sw-helper-hint">(tap one to begin the next page)</span></p>
+                            <div id="story-weavers-starters" class="sw-starter-chips"></div>
+                        </div>
                         </div>
                     </div>
                 </div>

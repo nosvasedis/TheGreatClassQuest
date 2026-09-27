@@ -13,6 +13,8 @@ import { fetchDailySpice } from '../features/home.js';
 import { PATHFINDER_AWARD_REASON, PATHFINDER_CLASS_QUEST_BONUS_STARS, resolveWallpaperFloatStyle, getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 import { WALLPAPER_WEATHER_CLASSES, wallpaperClassesForCode } from '../features/weatherTheme.js';
 import { getLiveYearGoldFromAppState, sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
+import { chooseCardPlacement } from '../utils/wallpaperLayout.mjs';
+import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLanguageCardDeck } from './wallpaperLanguageCards.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -50,7 +52,8 @@ const CARD_FEATURE_REQUIREMENTS = {
     class_familiar_hatch_watch: 'familiars',
     school_adventure_count: 'adventureLog',
     reigning_hero_spotlight: 'adventureLog',
-    log: 'adventureLog'
+    log: 'adventureLog',
+    ...LANGUAGE_CARD_FEATURES
 };
 
 function getCardBaseType(cardType) {
@@ -65,7 +68,8 @@ function getWallpaperCapabilities() {
         storyWeavers: canUseFeature('storyWeavers'),
         familiars: canUseFeature('familiars'),
         adventureLog: canUseFeature('adventureLog'),
-        eliteAI: canUseFeature('eliteAI')
+        eliteAI: canUseFeature('eliteAI'),
+        quizOfTheWeek: canUseFeature('quizOfTheWeek')
     };
 }
 
@@ -164,6 +168,9 @@ export function toggleWallpaperMode() {
         if (escListener) document.removeEventListener('keydown', escListener);
         escListener = (e) => { if (e.key === 'Escape') toggleWallpaperMode(); };
         document.addEventListener('keydown', escListener);
+        // Entering full screen (or resizing the projector window) changes the free space around the clock.
+        window.removeEventListener('resize', handleWallpaperResize);
+        window.addEventListener('resize', handleWallpaperResize);
 
         utils.fetchSolarCycle();
         startWallpaperClock();
@@ -184,6 +191,8 @@ export function toggleWallpaperMode() {
             document.removeEventListener('keydown', escListener);
             escListener = null;
         }
+        window.removeEventListener('resize', handleWallpaperResize);
+        clearTimeout(wallpaperResizeTimeout);
 
         setTimeout(() => {
             wallpaperEl.classList.add('hidden');
@@ -557,7 +566,7 @@ async function directorGameLoop() {
                         <h2 class="font-title text-6xl text-white drop-shadow-xl mb-4">Time's Up!</h2>
                         <p class="text-3xl text-white font-serif italic">"Pencils down, heroes!"</p>
                     </div>`;
-                const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end' });
+                const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end', centered: true });
                 el.style.top = '50%'; el.style.left = '50%';
                 el.style.transform = 'translate(-50%, -50%) scale(1.2)';
 
@@ -740,13 +749,14 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
 
     if (!classId) {
         // Mode: School Overview
-        list = [...globalPool];
+        list = [...globalPool, ...getLanguageCardDeck(null)];
     } else {
         // Mode: Specific Class
         // Phase-aware mixing
         const globalSample = lessonPhase === 'opening' ? 6 :
             lessonPhase === 'winddown' ? 10 : 8;
-        list = [...classPool, ...globalPool.sort(() => 0.5 - Math.random()).slice(0, globalSample)];
+        // English-learning cards from this class's own lesson (see wallpaperLanguageCards.js).
+        list = [...classPool, ...getLanguageCardDeck(classId), ...globalPool.sort(() => 0.5 - Math.random()).slice(0, globalSample)];
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
         const scores = state.get('allStudentScores');
@@ -850,7 +860,8 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
     const cls = classId ? state.get('allSchoolClasses').find(c => c.id === classId) : null;
     const questLevel = cls?.questLevel || null;
 
-    if (baseType === 'bday') content = getBirthdayCard(dataId);
+    if (LANGUAGE_CARD_TYPES.includes(baseType)) content = await hydrateLanguageCard(baseType, classId);
+    else if (baseType === 'bday') content = getBirthdayCard(dataId);
     else if (baseType === 'name') content = getNamedayCard(dataId);
     else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId, questLevel);
     else if (baseType === 'stu_funfact') content = getStudentFunFactCard(dataId, classId, questLevel);
@@ -2850,29 +2861,89 @@ function animateCounter(el, target, duration = 1200) {
     requestAnimationFrame(tick);
 }
 
+/** Rect of `el` relative to the projector screen, or null when it is not visible. */
+function getRectInScreen(el, screenRect) {
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+        left: rect.left - screenRect.left,
+        top: rect.top - screenRect.top,
+        right: rect.right - screenRect.left,
+        bottom: rect.bottom - screenRect.top
+    };
+}
+
+/**
+ * Place a floating card in the free space around the clock hub, clear of the top controls and the
+ * quote dock, scaling it down (never clipping) on small projector screens.
+ */
+function placeFloatingCard(el) {
+    const screen = document.getElementById('dynamic-wallpaper-screen');
+    const hubEl = document.getElementById('wall-center-hub');
+    if (!screen || !hubEl || !el) return false;
+    const screenRect = screen.getBoundingClientRect();
+    const hub = getRectInScreen(hubEl, screenRect);
+    if (!hub || !screenRect.width || !screenRect.height) return false;
+
+    const topObstacles = [
+        getRectInScreen(document.getElementById('exit-wallpaper-btn'), screenRect),
+        getRectInScreen(document.querySelector('#wall-timer-overlay [data-wall-timer-card]'), screenRect)
+    ].filter(Boolean);
+    const topReserve = topObstacles.reduce((max, rect) => Math.max(max, rect.bottom), 0);
+    const quoteContainer = document.getElementById('wall-quote-container');
+    const quoteRect = quoteContainer && getComputedStyle(quoteContainer).opacity !== '0'
+        ? getRectInScreen(quoteContainer.firstElementChild || quoteContainer, screenRect)
+        : null;
+
+    const placement = chooseCardPlacement({
+        viewport: { width: screenRect.width, height: screenRect.height },
+        hub,
+        cardSize: { width: el.offsetWidth, height: el.offsetHeight },
+        topReserve,
+        bottomLimit: quoteRect ? quoteRect.top : screenRect.height,
+        avoidRegion: lastCardRegion
+    });
+    if (!placement) return false;
+
+    lastCardRegion = placement.region;
+    el.classList.add('is-placed');
+    el.dataset.region = placement.region;
+    el.style.left = `${placement.left}px`;
+    el.style.top = `${placement.top}px`;
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.scale = String(placement.scale);
+    return true;
+}
+
+let lastCardRegion = '';
+let wallpaperResizeTimeout = null;
+
+function handleWallpaperResize() {
+    clearTimeout(wallpaperResizeTimeout);
+    wallpaperResizeTimeout = setTimeout(() => {
+        const card = document.getElementById('wall-floating-area')?.firstElementChild;
+        if (card && card.dataset.cardId !== 'timer_end') placeFloatingCard(card);
+    }, 180);
+}
+
 function spawnCard(container, card) {
     const el = document.createElement('div');
     el.className = `wallpaper-float-card ${card.css} absolute`;
     el.innerHTML = card.html;
     el.dataset.cardId = card.id;
 
-    const zones = [
-        { top: '8%', left: '5%', bottom: 'auto', right: 'auto' },
-        { top: '8%', right: '5%', bottom: 'auto', left: 'auto' },
-        { bottom: '10%', left: '5%', top: 'auto', right: 'auto' },
-        { bottom: '10%', right: '5%', top: 'auto', left: 'auto' }
-    ];
-
-    const pos = zones[Math.floor(Math.random() * zones.length)];
-
-    el.style.top = pos.top;
-    el.style.bottom = pos.bottom;
-    el.style.left = pos.left;
-    el.style.right = pos.right;
-
     el.style.opacity = '0';
 
     container.appendChild(el);
+
+    if (!card.centered && !placeFloatingCard(el)) {
+        // Fallback when the hub cannot be measured (e.g. hidden screen): a safe corner.
+        el.classList.add('is-placed');
+        el.style.left = '3%';
+        el.style.top = '12%';
+    }
 
     void el.offsetWidth;
 

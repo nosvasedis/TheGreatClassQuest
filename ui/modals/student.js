@@ -15,6 +15,7 @@ import { HERO_CLASSES, heroClassLockApplies } from '../../features/heroClasses.j
 import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { handleAvatarClick } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import { escapeHtml } from '../../features/roles/shared.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -711,11 +712,24 @@ export function showBatchStarfallModal(eligibleStudents) {
     document.getElementById('starfall-single-view').classList.add('hidden');
     document.getElementById('starfall-batch-view').classList.remove('hidden');
 
+    const hasGrowth = eligibleStudents.some((s) => s.kind === 'growth');
+    const messageEl = document.querySelector('#starfall-batch-view .starfall-message');
+    if (messageEl) {
+        messageEl.textContent = hasGrowth
+            ? 'The stars are raining down! Some scholars shone, and some climbed far above their own recent best (🌱 Growth Starfall).'
+            : 'The stars are raining down! These scholars have triggered a Starfall Bonus!';
+    }
+
     const listEl = document.getElementById('starfall-batch-list');
     listEl.innerHTML = eligibleStudents.map(s => `
-        <div class="flex justify-between items-center p-2 border-b border-white/20 last:border-0">
-            <span class="font-semibold text-white">${s.name}</span>
-            <span class="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">+${s.bonusAmount} ⭐</span>
+        <div class="flex justify-between items-center gap-2 p-2 border-b border-white/20 last:border-0">
+            <span class="font-semibold text-white">${escapeHtml(s.name)}</span>
+            <span class="flex items-center gap-1.5">
+                ${s.kind === 'growth'
+                    ? `<span class="starfall-growth-chip" title="${escapeHtml(`About ${Math.round(Number(s.jump) || 0)} points above their recent average`)}">🌱 Growth</span>`
+                    : ''}
+                <span class="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">+${s.bonusAmount} ⭐</span>
+            </span>
         </div>
     `).join('');
 

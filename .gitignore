@@ -41,6 +41,9 @@ reasonix/
 .windsurf/
 .wrangler/
 .guidebook-dist/
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
 
 # IDEs
 .vscode/

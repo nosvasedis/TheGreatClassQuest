@@ -14,6 +14,7 @@ import {
     distributeQuizRewards,
     getQuizHistory
 } from '../db/actions/quizOfTheWeek.js';
+import { computeQuestionStats } from './quizReviewCore.mjs';
 
 // =============================================================================
 // 0. QUESTION COUNT SCALING — Proportional to class size
@@ -43,6 +44,11 @@ export async function shouldShowQuizButton(classId) {
     // Quiz already completed this week → show results (persists all week)
     if (quiz.status === 'completed') {
         return 'completed';
+    }
+
+    // Waiting for the teacher's optional review → keep the play button hidden
+    if (quiz.status === 'review') {
+        return 'in_review';
     }
 
     // Quiz not ready yet → don't show play button
@@ -490,7 +496,9 @@ export async function finalizeQuiz(classId) {
         allParticipating: [...allParticipating],
         studentGuilds,
         correctAnswerCounts,
-        studentPerformance
+        studentPerformance,
+        // Item analysis: lets the teacher bring missed questions back next week (optional).
+        questionStats: computeQuestionStats(qs.questions || [], qs.attempts || [])
     };
 
     try {

@@ -31,6 +31,7 @@ import { retryAdventureLogGeneration } from './quests.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
 import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
+import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -265,7 +266,7 @@ export async function handleBatchAwardBonus(students) {
     const levelUps = [];
 
     try {
-        for (const { studentId, bonusAmount, trialType } of students) {
+        for (const { studentId, bonusAmount, trialType, kind, jump } of students) {
             const student = state.get('allStudents').find(s => s.id === studentId);
             if (!student) continue;
 
@@ -294,7 +295,9 @@ export async function handleBatchAwardBonus(students) {
                     stars: bonusAmount,
                     appliedStarCredit: txResult.totalStarsDelta,
                     reason: "scholar_s_bonus",
-                    note: `Awarded for exceptional performance on a ${trialType}.`,
+                    note: kind === 'growth'
+                        ? buildGrowthStarfallNote({ trialType, jump })
+                        : `Awarded for exceptional performance on a ${trialType}.`,
                     date: today,
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
@@ -352,7 +355,8 @@ export async function editAdventureLogEntry(logId) {
         return;
     }
 
-    openAdventureLogEditor(logId, log);
+    const learnedModule = await import('../../features/learnedToday.js');
+    openAdventureLogEditor(logId, log, learnedModule);
 }
 
 function escapeHtml(value) {
@@ -403,7 +407,7 @@ function syncHeroLine(text, heroName) {
     return `${storyText}\n\n${heroLine}`;
 }
 
-function openAdventureLogEditor(logId, log) {
+function openAdventureLogEditor(logId, log, learnedModule) {
     const existing = document.getElementById('adventure-log-editor-modal');
     if (existing) existing.remove();
     const entryMode = inferAdventureLogEntryMode(log);
@@ -482,6 +486,15 @@ function openAdventureLogEditor(logId, log) {
                             <input type="text" id="edit-log-highlights" value="${escapeHtml((log.highlights || []).join(', '))}" placeholder="Teamwork, Creativity, Confidence">
                             <p class="adventure-log-editor-hint">Use commas to separate up to 4 highlights.</p>
                         </div>
+                    </div>
+                </div>
+
+                <div class="adventure-log-editor-card">
+                    <div class="adventure-log-editor-field">
+                        <label>What we learned today <span class="adventure-log-editor-optional">(optional)</span></label>
+                        ${learnedModule.renderLearnedTodayPicksHtml(log.learnedToday, 'edit-learned') || '<p class="adventure-log-editor-hint">Nothing was collected for this lesson.</p>'}
+                        <input type="text" id="edit-log-learned-extra" maxlength="160" placeholder="Add your own line (optional)">
+                        <p class="adventure-log-editor-hint">Collected automatically from the quiz, story, quests, trials and homework. Untick anything that does not fit.</p>
                     </div>
                 </div>
             </div>
@@ -617,6 +630,7 @@ async function saveEditedLogEntry(logId, rootEl = document) {
     }
     
     try {
+        const learnedModule = await import('../../features/learnedToday.js');
         const entryMode = inferAdventureLogEntryMode(log);
         const finalText = entryMode === 'manual' ? syncHeroLine(text, log.hero || 'The Class Team') : text;
         const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
@@ -628,6 +642,7 @@ async function saveEditedLogEntry(logId, rootEl = document) {
             highlights: highlights.slice(0, 4),
             keywords: keywords.slice(0, 6),
             entryMode,
+            learnedToday: learnedModule.readLearnedTodayPicks(rootEl, log.learnedToday, 'edit-learned', '#edit-log-learned-extra'),
             editedAt: serverTimestamp(),
             editedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         });

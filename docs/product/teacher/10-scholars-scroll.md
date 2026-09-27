@@ -47,8 +47,9 @@ After a bulk save, the Quest may offer bonus stars:
 |-------|-----|------|
 | **Test** | Normalised score **≥ 95%** | Propose **+1** Scholar’s Bonus |
 | **Dictation** | **> 85%**, and this student already has **at least 3** high dictations this month, and fewer than **2** dictation Scholar bonuses this month | Propose **+0.5** |
+| **🌱 Growth Starfall** (test or dictation) | At least **15 points above the student's own average** of their last (up to) **5** earlier trials of the same type, with **at least 3** earlier trials; not when the classic bar above already applies; **once per student per month** | Propose **+0.5** |
 
-You **confirm** in a batch modal. Nothing is forced.
+You **confirm** in a batch modal. Nothing is forced. Growth Starfall rows carry a 🌱 **Growth** chip, and the modal names no scores. Growth Starfall rewards climbing, not only being at the top: a child who moves from around 50% to 70% is exactly who should hear it. It is logged as Scholar's Bonus (so it counts for the Scholar Hero Path) and does not use up the monthly dictation Starfall allowance.
 
 **Starfall Catalyst** (Market) doubles that student’s next high-test bonus, then clears.
 

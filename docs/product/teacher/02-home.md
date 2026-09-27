@@ -18,7 +18,7 @@ You are looking at the **whole school**:
 - **Heroes** — how many students are on the roster
 - **Treasury** — this year's Gold held by students. Last year's Gold is archived when the school year is finished, so a new year starts at 0.
 - **Global Tools** — Hero Ranks, New class, Team History, My Classes, Plan (Pro calendar), Setup (Teacher Settings)
-- **Today’s school schedule** — tap a class to select it
+- **Today’s school schedule** — every class meeting today; a crown marks yours, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class (yours or a colleague’s) to open its **class roster**: league, teacher, time and days, heroes, stars this month and all year, Gold, Team Quest progress, next lesson, latest Hero of the Day, latest Quest Assignment and Adventure Log, today’s birthdays and name days, guild mix, a top-3 “Stars of the month” podium (never for Nursery / Pre-Junior), and every student with Hero Path title, guild, stars, and Gold (search + A–Z / Stars sort). Your own classes add **Enter class**, **Award Stars**, and **Edit class**, and tapping a student opens their Hero stats. A colleague’s class is view-only. On phones, your own class rows still open the class directly; a colleague’s row opens the view-only roster.
 - **Grand Guild Ceremony** — appears when it is time to crown the year’s winning guild (see Guild Hall)
 
 ### Class view (a class selected)
@@ -34,7 +34,7 @@ You are looking at **this group**:
 
 ## What you can do
 
-- Switch class from the header; Home redraws immediately. Opening the app starts in **Follow today’s schedule** (the class in session, or General view when no lesson is on). Picking a class on Home’s today’s-schedule list pins that class until you tap Follow today’s schedule again.
+- Switch class from the header; Home redraws immediately. Opening the app starts in **Follow today’s schedule** (the class in session, or General view when no lesson is on). Choosing **Enter class** in a schedule roster pins that class until you tap Follow today’s schedule again.
 - Open a reminder pill’s destination (ceremony, bounty, test).
 - Use Global Tools or class actions instead of hunting through tabs.
 - Start **Quiz of the Week** when the play button is offered (below).

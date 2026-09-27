@@ -1,6 +1,6 @@
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
-import { BOOK_ATLAS, resolveLessonTarget, buildLessonTargetSummary, parsePages, extractAssignmentVocabulary, lessonHistoryEntry, appendLessonHistory } from './bookAtlas.mjs';
+import { BOOK_ATLAS, resolveLessonTarget, buildLessonTargetSummary, parsePages, unitForPage, pageRangeForUnit, extractAssignmentVocabulary, lessonHistoryEntry, appendLessonHistory } from './bookAtlas.mjs';
 import { getLocalIsoDateString as getTodayDateString } from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { cleanCampfireText } from './heroCampfireCore.mjs';
@@ -106,20 +106,50 @@ export function attachBookRecognition(classId, { force = false } = {}) {
             '<div class="mt-4 flex flex-wrap items-center justify-end gap-2"><button type="button" data-cancel class="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100">Cancel</button>' +
             '<button type="button" data-apply class="bubbly-button rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md">✓ Save this lesson</button></div>';
         const bookSelect = chip.querySelector('[data-book]');
+        const unitInput = chip.querySelector('[data-unit]');
+        const pageInput = chip.querySelector('[data-page]');
         bookSelect.value = BOOK_ATLAS.some(b => b.id === target.bookId) ? target.bookId : (target.customTitle ? 'custom' : BOOK_ATLAS[0].id);
-        chip.querySelector('[data-unit]').value = target.unit || '';
-        chip.querySelector('[data-page]').value = target.pageFrom ? (target.pageTo && target.pageTo !== target.pageFrom ? target.pageFrom + '-' + target.pageTo : target.pageFrom) : target.page || '';
+        unitInput.value = target.unit || '';
+        pageInput.value = target.pageFrom ? (target.pageTo && target.pageTo !== target.pageFrom ? target.pageFrom + '-' + target.pageTo : target.pageFrom) : target.page || '';
         chip.querySelector('[data-title]').value = target.customTitle || '';
         chip.querySelector('[data-theme]').value = target.customTheme || '';
         const syncCustom = () => chip.querySelectorAll('[data-custom-row]').forEach(r => { r.hidden = bookSelect.value !== 'custom'; });
-        bookSelect.onchange = syncCustom; syncCustom();
+        // Unit and Pages stay in step: a page belongs to one unit, and a unit spans one page range. Only the
+        // Student's Book (and grammar units) publish a page map, so workbooks and page-less books stay untouched.
+        const mapComponent = () => {
+            const book = BOOK_ATLAS.find(b => b.id === bookSelect.value);
+            if (!book) return target.component || 'sb';
+            if (book.kind === 'grammar') return 'grammar';
+            return target.component === 'grammar' ? 'sb' : (target.component || 'sb');
+        };
+        // A page typed in the picker, or already parsed from the assignment text, anchors the unit.
+        const typedPage = () => parsePages('pp ' + pageInput.value).from || target.pageFrom || target.page || null;
+        const unitFromPage = () => {
+            if (bookSelect.value === 'custom') return;
+            const page = typedPage();
+            if (!page) return;
+            const unit = unitForPage(bookSelect.value, page, mapComponent());
+            if (unit) unitInput.value = unit;
+        };
+        const pagesFromUnit = () => {
+            if (bookSelect.value === 'custom') return;
+            const unit = Number(unitInput.value) || null;
+            const range = unit ? pageRangeForUnit(bookSelect.value, unit) : null;
+            // The range only fits when the same component can map its first page back to that unit.
+            if (!range || unitForPage(bookSelect.value, range[0], mapComponent()) !== unit) return;
+            pageInput.value = range[0] === range[1] ? String(range[0]) : range[0] + '-' + range[1];
+        };
+        bookSelect.onchange = () => { syncCustom(); unitFromPage(); };
+        unitInput.oninput = pagesFromUnit;
+        pageInput.oninput = unitFromPage;
+        syncCustom();
         chip.querySelector('[data-cancel]').onclick = () => { picking = false; render(); };
         chip.querySelector('[data-apply]').onclick = () => {
             const bookId = bookSelect.value, customTitle = chip.querySelector('[data-title]').value.trim();
             if (bookId === 'custom' && !customTitle) { chip.querySelector('[data-title]').focus(); return; }
-            const pages = parsePages('pp ' + chip.querySelector('[data-page]').value);
-            override = { bookId, customTitle, customTheme: cleanCampfireText(chip.querySelector('[data-theme]').value, 120), component: target.component || 'sb',
-                unit: Number(chip.querySelector('[data-unit]').value) || null, page: pages.from, pageFrom: pages.from, pageTo: pages.to, pages: pages.list, confidence: 'high', needsConfirm: false };
+            const pages = parsePages('pp ' + pageInput.value);
+            override = { bookId, customTitle, customTheme: cleanCampfireText(chip.querySelector('[data-theme]').value, 120), component: mapComponent(),
+                unit: Number(unitInput.value) || null, page: pages.from, pageFrom: pages.from, pageTo: pages.to, pages: pages.list, confidence: 'high', needsConfirm: false };
             picking = false; confirmed = true; confirmations.set(classId, { text: input.value.trim(), target: override }); render();
         };
     }

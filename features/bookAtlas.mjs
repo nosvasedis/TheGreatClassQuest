@@ -108,6 +108,11 @@ export function unitForPage(bookId, page, component = 'sb', atlas = BOOK_ATLAS) 
     }
     return best?.n || null;
 }
+/** The published page range [from, to] of a unit, or null when the book has no printed page map. */
+export function pageRangeForUnit(bookId, unit, atlas = BOOK_ATLAS) {
+    const range = describeUnit(atlas, bookId, unit)?.pageRange;
+    return Array.isArray(range) && range.length === 2 ? range : null;
+}
 function defaultBook(atlas, league, component) {
     const kind = component === 'grammar' ? 'grammar' : 'coursebook';
     return atlas.find(b => b.defaultLeagues.includes(league) && b.kind === kind)?.id || null;

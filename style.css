@@ -190,4 +190,5 @@
 /* 46. Desktop polish: tokens, focus rings, modal backdrop fade-in, reduced-motion net (keep last) */
 @import url('./styles/pedagogy_upgrades.css');
 @import url('./styles/campfire_entry.css');
+@import url('./styles/home_roster.css');
 @import url('./styles/polish.css');

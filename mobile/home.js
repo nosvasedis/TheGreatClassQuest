@@ -158,16 +158,15 @@ function getClassScheduleRows() {
         return `
             <button type="button"
                 class="m-home-schedule-row m-pressable ${isMine ? 'm-home-schedule-row--mine' : ''} ${isActive ? 'm-home-schedule-row--active' : ''}"
-                ${isMine ? `data-m-quick-class="${escapeHtml(c.id)}"` : ''}
-                ${isMine ? '' : 'disabled'}
-                aria-label="${isMine ? `Open ${escapeHtml(c.name)}` : `${escapeHtml(c.name)} — not your class`}">
+                ${isMine ? `data-m-quick-class="${escapeHtml(c.id)}"` : `data-m-peek-class="${escapeHtml(c.id)}"`}
+                aria-label="${isMine ? `Open ${escapeHtml(c.name)}` : `View roster for ${escapeHtml(c.name)} (view only)`}">
                 <span class="m-home-schedule-row__time">${escapeHtml(c.timeStart || 'TBD')}</span>
                 <span class="m-home-schedule-row__logo bg-gradient-to-br ${gradient}">${escapeHtml(c.logo || '📚')}</span>
                 <span class="m-home-schedule-row__body">
                     <strong>${escapeHtml(c.name)}</strong>
                     <small>${escapeHtml(c.questLevel || 'Quest')}${isMine ? '' : ` • ${escapeHtml(c.createdBy?.name || 'Teacher')}`}</small>
                 </span>
-                ${isMine ? '<i class="fas fa-chevron-right m-home-schedule-row__chev" aria-hidden="true"></i>' : '<i class="fas fa-lock m-home-schedule-row__lock" aria-hidden="true"></i>'}
+                ${isMine ? '<i class="fas fa-chevron-right m-home-schedule-row__chev" aria-hidden="true"></i>' : '<i class="fas fa-eye m-home-schedule-row__lock" aria-hidden="true"></i>'}
             </button>`;
     }).join('');
 }
@@ -429,6 +428,15 @@ function attachHomeListeners() {
         if (quickClass) {
             playSound('click');
             state.setGlobalSelectedClass(quickClass.dataset.mQuickClass, true);
+            return;
+        }
+
+        const peekClass = event.target.closest('[data-m-peek-class]');
+        if (peekClass) {
+            playSound('click');
+            import('../ui/modals/classRoster.js')
+                .then((m) => m.openClassRosterModal(peekClass.dataset.mPeekClass))
+                .catch((error) => console.error('Class roster unavailable:', error));
             return;
         }
 

@@ -1,10 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { BOOK_ATLAS, getUnitWords, describeUnit, unitForPage } from '../features/bookAtlas.mjs';
+import { BOOK_ATLAS, getUnitWords, describeUnit, unitForPage, pageRangeForUnit } from '../features/bookAtlas.mjs';
 test('all twelve books have unique, ordered, sourced units',()=>{
     assert.equal(BOOK_ATLAS.length,12);
     for(const b of BOOK_ATLAS){assert.ok(b.units.length);assert.equal(new Set(b.units.map(u=>u.n)).size,b.units.length);assert.ok(b.source);for(const u of b.units) if(u.pageRange)assert.ok(u.pageRange[0]<=u.pageRange[1]);}
+});
+test('page ranges map a unit to pages and back, and page-less books stay null',()=>{
+    assert.deepEqual(pageRangeForUnit('primary-path-2',2),[28,49]);
+    assert.equal(unitForPage('primary-path-2',28),2);
+    assert.deepEqual(pageRangeForUnit('grammalysis-b1',1),[4,9]);
+    assert.equal(unitForPage('grammalysis-b1',4,'grammar'),1);
+    assert.equal(pageRangeForUnit('bamboo',1),null);
+    assert.equal(pageRangeForUnit('primary-path-2',999),null);
 });
 test('published third-edition Close-Up page ranges do not inherit old-edition contents',async()=>{
     assert.equal(unitForPage('close-up-b1',17),2);

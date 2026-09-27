@@ -402,6 +402,14 @@ function getGeneralDashboard(name, theme, spice) {
     const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
 
     const totalGold = sumLiveYearGoldFromAppState(allScores, state);
+    const todaysClassCount = isSchoolYearAwaitingOpen(state.get('schoolYearState'))
+        ? 0
+        : utils.getClassesOnDay(
+            today,
+            state.get('allSchoolClasses') || [],
+            state.get('allScheduleOverrides') || [],
+            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+        ).length;
 
     const tools = [
         { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
@@ -415,18 +423,22 @@ function getGeneralDashboard(name, theme, spice) {
     return getLayout(
         name, theme, '',
         `
-        <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
-            <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
+        <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun home-stat home-stat--sun">
+            <i class="fas fa-star home-stat__watermark" aria-hidden="true"></i>
+            <span class="home-stat__sparkles" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="home-stat__label text-amber-600"><span class="home-stat__icon"><i class="fas fa-star"></i></span> School Stars</span>
             <div class="stat-value-big text-amber-500 animate-pulse">${schoolStars}</div>
             <div class="text-sm font-bold text-amber-700/60">Total Monthly</div>
         </div>
-        <div class="vibrant-card h-span-3 stat-card-pop card-gradient-sky">
-            <span class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2"><i class="fas fa-users mr-1"></i> Heroes</span>
+        <div class="vibrant-card h-span-3 stat-card-pop card-gradient-sky home-stat home-stat--sky">
+            <i class="fas fa-users home-stat__watermark" aria-hidden="true"></i>
+            <span class="home-stat__label text-blue-600"><span class="home-stat__icon"><i class="fas fa-users"></i></span> Heroes</span>
             <div class="stat-value-big text-blue-500">${totalStudents}</div>
             <div class="text-sm font-bold text-blue-700/60">Active Students</div>
         </div>
-        <div class="vibrant-card h-span-3 stat-card-pop card-gradient-royal">
-            <span class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2"><i class="fas fa-coins mr-1"></i> Treasury</span>
+        <div class="vibrant-card h-span-3 stat-card-pop card-gradient-royal home-stat home-stat--royal">
+            <i class="fas fa-coins home-stat__watermark" aria-hidden="true"></i>
+            <span class="home-stat__label text-purple-600"><span class="home-stat__icon"><i class="fas fa-coins"></i></span> Treasury</span>
             <div class="stat-value-big text-purple-500">${totalGold}</div>
             <div class="text-sm font-bold text-purple-700/60">Gold</div>
         </div>
@@ -442,8 +454,8 @@ function getGeneralDashboard(name, theme, spice) {
         `,
         `
         <div class="vibrant-card h-span-4 card-glass-white">
-            <div class="flex items-center justify-between gap-3 p-4 pb-0">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Tools</h3>
+            <div class="home-section-head">
+                <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-toolbox"></i></span>Global Tools</h3>
             </div>
             <div class="tools-grid-v2">
                 ${tools.map(t => `
@@ -459,7 +471,15 @@ function getGeneralDashboard(name, theme, spice) {
             </div>
         </div>
         <div class="vibrant-card h-span-8 card-glass-white">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">School Schedule</h3>
+            <div class="home-section-head">
+                <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--schedule"><i class="fas fa-calendar-day"></i></span>School Schedule${todaysClassCount ? `<span class="home-section-count">${todaysClassCount} today</span>` : ''}</h3>
+                ${todaysClassCount ? `
+                <div class="home-schedule-legend" aria-hidden="true">
+                    <span><i class="fas fa-crown home-schedule-legend__mine"></i>Yours</span>
+                    <span><i class="fas fa-eye home-schedule-legend__colleague"></i>Colleague</span>
+                    <span class="home-schedule-legend__hint"><i class="fas fa-hand-pointer"></i>Tap a class for its roster</span>
+                </div>` : ''}
+            </div>
             <div class="schedule-list-v2 mt-4">
                 ${getScheduleHtml(today, null)}
             </div>
@@ -624,7 +644,7 @@ function getActiveDashboard(classData, name, theme, spice) {
         `,
         `
         <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-history mr-2"></i> The Chronicle</h3>
+            <h3 class="home-section-title mb-4"><span class="home-section-title__icon home-section-title__icon--chronicle"><i class="fas fa-history"></i></span>The Chronicle</h3>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
                 <div class="chronicle-item chronicle-homework">
@@ -657,7 +677,9 @@ function getActiveDashboard(classData, name, theme, spice) {
         </div>
 
         <div class="vibrant-card h-span-4 card-glass-white">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Class Actions</h3>
+            <div class="home-section-head">
+                <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-magic"></i></span>Class Actions</h3>
+            </div>
             <div class="grid grid-cols-3 gap-3 p-4 pt-3">
                 ${tools.map(t => {
             const attr = t.target ? `data-target="${t.target}" class="tool-btn-pop shortcut-tab-btn"` : `data-action="${t.action}" data-id="${t.id || ''}" class="tool-btn-pop shortcut-action-btn"`;
@@ -773,6 +795,7 @@ function getScheduleHtml(dateString, activeClassId) {
 
     const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates);
     const schoolYearState = state.get('schoolYearState');
+    const allStudents = state.get('allStudents') || [];
 
     if (isSchoolYearAwaitingOpen(schoolYearState) || todaysClasses.length === 0) {
         const emptyState = resolveScheduleEmptyState({
@@ -813,26 +836,31 @@ function getScheduleHtml(dateString, activeClassId) {
         const colorIndex = utils.simpleHashCode(c.id) % gradients.length;
         const bgGradient = gradients[colorIndex];
 
-        let cardClass = `schedule-card-square ${bgGradient}`;
+        const isLive = utils.isNowInClassWindow(c.timeStart, c.timeEnd);
+        const heroCount = allStudents.filter(s => s.classId === c.id && s.enrollmentStatus !== 'inactive').length;
+
+        let cardClass = `schedule-card-square ${bgGradient} schedule-class-peek-btn`;
         if (isActive) cardClass += ' active-lesson';
-        if (!isMine) cardClass += ' locked';
+        if (isLive) cardClass += ' is-live';
+        cardClass += isMine ? ' is-mine' : ' is-colleague';
 
-        const interactionAttr = isMine
-            ? `class="${cardClass} quick-class-select-btn" data-id="${c.id}"`
-            : `class="${cardClass}"`;
-
-        const lockIcon = !isMine ? '<div class="absolute top-2 right-2 text-gray-400/30 text-xs"><i class="fas fa-lock"></i></div>' : '';
+        const ownerMark = isMine
+            ? '<div class="schedule-card-ribbon" title="Your class"><i class="fas fa-crown"></i></div>'
+            : '<div class="schedule-card-ribbon schedule-card-ribbon--colleague" title="Colleague’s class — view only"><i class="fas fa-eye"></i></div>';
 
         return `
-        <div ${interactionAttr} title="${c.name} • ${teacherName}">
-            ${lockIcon}
-            <div class="time-pill">${timeStr}</div>
-            <div class="logo">${c.logo}</div>
+        <div class="${cardClass}" data-id="${escapeHtml(c.id)}" role="button" tabindex="0"
+            title="${escapeHtml(c.name)} • ${escapeHtml(teacherName)} — view class roster"
+            aria-label="View roster for ${escapeHtml(c.name)} (${escapeHtml(teacherName)})">
+            ${ownerMark}
+            <div class="time-pill">${isLive ? '<span class="schedule-live-dot" aria-hidden="true"></span>' : ''}${escapeHtml(timeStr)}</div>
+            <div class="logo">${escapeHtml(c.logo || '📚')}</div>
             <div class="info-stack">
-                <div class="name">${c.name}</div>
-                <div class="league">${league}</div>
-                <div class="teacher">${teacherName}</div>
+                <div class="name">${escapeHtml(c.name)}</div>
+                <div class="league">${escapeHtml(league)}</div>
+                <div class="teacher">${escapeHtml(teacherName)}</div>
             </div>
+            <div class="schedule-card-peek" aria-hidden="true"><i class="fas fa-users"></i> ${heroCount} · Roster</div>
         </div>`;
     }).join('');
 }
@@ -847,18 +875,42 @@ function attachListeners(container) {
         });
     });
 
-    container.querySelectorAll('.quick-class-select-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    container.querySelectorAll('.schedule-class-peek-btn').forEach(btn => {
+        const open = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            state.setGlobalSelectedClass(btn.dataset.id, true);
-            renderHomeTab();
+            openScheduleClassRoster(btn.dataset.id);
+        };
+        btn.addEventListener('click', open);
+        btn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') open(e);
         });
     });
     container.querySelectorAll('.shortcut-tab-btn').forEach(btn => btn.addEventListener('click', () => tabs.showTab(btn.dataset.target)));
     container.querySelectorAll('.shortcut-action-btn').forEach(btn => btn.addEventListener('click', () => {
         handleAction(btn.dataset.action, btn.dataset);
     }));
+}
+
+/** School Schedule card → roster peek (lazy). Own classes get shortcuts; colleagues' are view-only. */
+async function openScheduleClassRoster(classId) {
+    try {
+        const { openClassRosterModal } = await import('../ui/modals/classRoster.js');
+        openClassRosterModal(classId, {
+            onEnterClass: (id) => {
+                state.setGlobalSelectedClass(id, true);
+                renderHomeTab();
+            },
+            onAwardStars: (id) => {
+                state.setGlobalSelectedClass(id, true);
+                tabs.showTab('award-stars-tab');
+            },
+            onEditClass: (id) => modals.openEditClassModal(id),
+            onOpenStudent: (studentId, el) => modals.openHeroStatsModal(studentId, el)
+        });
+    } catch (error) {
+        console.error('Class roster unavailable:', error);
+    }
 }
 
 async function activateOptionsSubtab(key) {

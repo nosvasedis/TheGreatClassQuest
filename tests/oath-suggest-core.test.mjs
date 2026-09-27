@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildOathSuggestions, pickDiverseOaths } from '../features/oathSuggestCore.mjs';
+import { buildOathSuggestions, pickDiverseOaths, oraclePrompt, acceptOracleIdea, profileDigest } from '../features/oathSuggestCore.mjs';
 import { suggestOaths } from '../features/emberOathCore.mjs';
 
 const star = (reason, n) => Array.from({ length: n }, () => ({ reason, stars: 1 }));
@@ -56,4 +56,70 @@ test('children in the same class get varied suggestions, and everything fits the
         }
     }
     assert.equal(pickDiverseOaths([], 3).length, 0);
+});
+
+// ── The richer bank, the new signals, rotation and the Oracle ────────────────
+const RICH = {
+    league: 'C', seed: 'maya', day: '2026-01-05', heroClass: 'Sage',
+    awards: [{ reason: 'teamwork', stars: 2 }, { reason: 'focus', stars: 1 }],
+    writtenScores: [{ type: 'dictation', percent: 60 }, { type: 'test', percent: 70 }],
+    quiz: { attemptedCount: 10, correctCount: 5 },
+    questionStats: [{ prompt: 'Choose the correct tense.', firstTryCorrect: false }],
+    absences: 2, studentStars: 6, classStarMedian: 12,
+    words: ['rainforest', 'waterfall', 'climate'], theme: 'nature',
+    bigQuestion: 'Why do we need to take care of nature?', grammar: 'present perfect',
+    bookTitle: 'Cambridge Primary Path 3', unit: 4, bookKind: 'coursebook',
+    storyWord: 'habitat', vaultWords: 7, guildName: 'Owl Wisdom'
+};
+
+test('the bank is deep: every promise kind offers many well-formed, real sentences', () => {
+    const all = buildOathSuggestions(RICH);
+    assert.ok(all.length >= 35, 'bank size ' + all.length);
+    for (const kind of RULE_CATEGORIES) assert.ok(all.filter(s => s.category === kind).length >= 5, kind + ' pool');
+    for (const s of all) {
+        assert.ok(s.text.length >= 12 && s.text.length <= 200, s.key + ' text length');
+        assert.match(s.text, /[a-z]{3}/i, s.key + ' must be a real sentence');
+        assert.ok(s.why && s.why.length >= 8, s.key + ' why');
+    }
+});
+
+test('real data shapes the promise: grammar pattern, story word, Vault, missed quiz, book and unit question', () => {
+    const all = buildOathSuggestions(RICH);
+    const find = key => all.find(s => s.key === key);
+    assert.match(find('write_pattern').text, /present perfect/);
+    assert.match(find('words_story').text, /habitat/);
+    assert.ok(find('words_vault'));
+    assert.match(find('words_missed_quiz').why, /missed/);
+    assert.match(find('read_book').text, /Cambridge Primary Path 3/);
+    assert.match(find('read_bigquestion').text, /Why do we need to take care of nature\?/);
+    const grammarOnly = buildOathSuggestions({ league: 'D', seed: 'x', bookKind: 'grammar', grammar: 'reported speech' });
+    assert.ok(grammarOnly.some(s => s.key === 'write_pattern'));
+    assert.match(grammarOnly.find(s => s.key === 'write_pattern').why, /grammar focus/i);
+});
+
+test('Other ideas keeps rotating: each page offers different promises and every kind stays reachable', () => {
+    const pages = [0, 3, 6, 9].map(offset => suggestOaths(RICH, { offset }).map(s => s.key));
+    pages.forEach(page => assert.equal(page.length, 3));
+    assert.equal(new Set(pages.map(p => p.join('|'))).size, 4, 'pages must differ');
+    const seen = new Set();
+    for (const page of pages) for (const key of page) seen.add(key);
+    assert.ok(seen.size >= 8, 'at least eight different promises across pages');
+});
+
+test('the Oracle sees the child and refuses to repeat what is already on screen', () => {
+    const shown = suggestOaths(RICH).map(s => s.text);
+    const prompt = oraclePrompt(RICH, shown);
+    assert.deepEqual(prompt.data.alreadySuggested, shown);
+    assert.match(prompt.data.mustDiffer, /different/i);
+    const digest = prompt.data.child.join('\n');
+    assert.match(digest, /present perfect/);
+    assert.match(digest, /Dictation average: 60%/);
+    assert.match(digest, /Quiz of the Week: 5\/10/);
+    assert.match(profileDigest(RICH).join('\n'), /Absent from 2 lessons/);
+    assert.equal(acceptOracleIdea({ text: shown[0], why: 'same' }, shown, 'mid'), null);
+    assert.equal(acceptOracleIdea({ text: shown[0].replace('sentence', 'line'), why: 'reworded' }, shown, 'mid'), null);
+    assert.equal(acceptOracleIdea({ text: 'I will try', why: 'short' }, shown, 'mid'), null);
+    assert.equal(acceptOracleIdea({ text: 'I will do a thing that goes on and on and on and on and on and on and on and on and on and on', why: 'long' }, shown, 'mid'), null);
+    const fresh = acceptOracleIdea({ text: 'I show my group one habitat fact I found.', why: 'Builds on our habitat word.' }, shown, 'mid');
+    assert.ok(fresh && fresh.text.startsWith('I') && fresh.why && fresh.target.count >= 1);
 });

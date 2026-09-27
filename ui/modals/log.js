@@ -19,7 +19,8 @@ import { fetchLogsForDate } from '../../db/queries.js';
 import { playSound } from '../../audio.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 
-let historyMonthPickerBound = false;
+let historyRenderToken = 0;
+
 
 function getQuestBonusFromLog(log) {
     return getClassQuestBonusStarsFromAwardLog(log);
@@ -308,7 +309,8 @@ export function openHistoryModal(type, options = {}) {
                 modal.dataset.historyLeague = btn.dataset.league;
                 if (selectWrapper) selectWrapper.classList.remove('hidden');
                 populateHistoryMonthSelector();
-                renderHistoricalLeaderboard("", type, btn.dataset.league);
+                const monthKeys = getHistoryMonthKeys();
+                renderHistoricalLeaderboard(monthKeys[monthKeys.length - 1] || "", type, btn.dataset.league);
             });
         });
 
@@ -326,7 +328,8 @@ export function openHistoryModal(type, options = {}) {
         const selectWrapper = document.getElementById('history-month-select-wrapper');
         if (selectWrapper) selectWrapper.classList.remove('hidden');
         populateHistoryMonthSelector();
-        renderHistoricalLeaderboard("", type, league || null);
+        const monthKeys = getHistoryMonthKeys();
+        renderHistoricalLeaderboard(monthKeys[monthKeys.length - 1] || "", type, league || null);
         showAnimatedModal('history-modal'); // Only show this for Team history
     }
 }
@@ -347,49 +350,68 @@ function populateHistoryMonthSelector() {
     }
 }
 
+function getHistoryMonthKeys() {
+    const selectEl = document.getElementById('history-month-select');
+    return selectEl ? Array.from(selectEl.options).map(o => o.value).filter(Boolean) : [];
+}
+
+function formatHistoryMonthLong(monthKey) {
+    const [year, month] = String(monthKey || '').split('-').map(Number);
+    if (!year || !month) return '';
+    return new Date(year, month - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+function escapeArchiveText(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 function syncHistoryMonthPicker(monthKey, leagueFilter) {
     const wrapper = document.getElementById('history-month-select-wrapper');
-    const selectEl = document.getElementById('history-month-select');
-    const btn = document.getElementById('history-month-picker-btn');
-    const label = document.getElementById('history-month-picker-label');
-    const menu = document.getElementById('history-month-picker-menu');
-    const optionsEl = document.getElementById('history-month-picker-options');
+    const trackEl = document.getElementById('history-month-picker-options');
+    if (!wrapper || !trackEl) return;
 
-    if (!wrapper || !selectEl || !btn || !label || !menu || !optionsEl) return;
+    const keys = getHistoryMonthKeys();
+    wrapper.classList.toggle('is-empty', keys.length === 0);
 
-    const selectedOption = Array.from(selectEl.options).find(o => o.value === (monthKey || ''));
-    label.innerText = selectedOption?.value ? selectedOption.text : 'Choose a month...';
+    trackEl.innerHTML = keys.map((key, index) => {
+        const [year, month] = key.split('-').map(Number);
+        const date = new Date(year, month - 1, 1);
+        const shortMonth = date.toLocaleString('en-GB', { month: 'short' });
+        const showYear = index === 0 || month === 1;
+        const isActive = key === monthKey;
+        return `
+            <button type="button" role="tab" class="history-month-chip${isActive ? ' is-active' : ''}" data-value="${key}"
+                aria-selected="${isActive}" title="${formatHistoryMonthLong(key)}">
+                ${shortMonth}${showYear ? `<small>’${String(year).slice(-2)}</small>` : ''}
+            </button>`;
+    }).join('');
 
-    optionsEl.innerHTML = Array.from(selectEl.options)
-        .filter(o => Boolean(o.value))
-        .map(o => `
-            <button type="button" class="history-month-option w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200 flex items-center justify-between gap-3" data-value="${o.value}">
-                <span class="font-bold text-slate-800">${o.text}</span>
-                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${o.value}</span>
-            </button>
-        `).join('');
+    const go = (value) => {
+        if (!value || value === monthKey) return;
+        playSound('click');
+        renderHistoricalLeaderboard(value, 'team', leagueFilter);
+    };
 
-    optionsEl.querySelectorAll('.history-month-option').forEach((item) => {
-        item.onclick = () => {
-            const value = item.dataset.value || '';
-            selectEl.value = value;
-            menu.classList.add('hidden');
-            renderHistoricalLeaderboard(value, 'team', leagueFilter);
-        };
+    trackEl.querySelectorAll('.history-month-chip').forEach((chip) => {
+        chip.onclick = () => go(chip.dataset.value);
     });
 
-    if (!historyMonthPickerBound) {
-        btn.onclick = () => {
-            menu.classList.toggle('hidden');
-        };
+    const currentIndex = keys.indexOf(monthKey);
+    wrapper.querySelectorAll('.history-month-nudge').forEach((btn) => {
+        const target = keys[currentIndex + Number(btn.dataset.dir)];
+        btn.disabled = currentIndex < 0 || !target;
+        btn.onclick = () => go(target);
+    });
 
-        document.addEventListener('click', (e) => {
-            if (!wrapper.contains(e.target)) {
-                menu.classList.add('hidden');
-            }
+    const activeChip = trackEl.querySelector('.history-month-chip.is-active');
+    if (activeChip) {
+        requestAnimationFrame(() => {
+            trackEl.scrollLeft = activeChip.offsetLeft - (trackEl.clientWidth - activeChip.offsetWidth) / 2;
         });
-
-        historyMonthPickerBound = true;
     }
 }
 
@@ -408,8 +430,8 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
     const headerSubtitleEl = document.getElementById('history-modal-subtitle');
     const archiveTitle = leagueFilter ? `${leagueFilter} League Archive` : 'Team Quest Archive';
     const archiveSubtitle = leagueFilter
-        ? `Historical standings for the active ${leagueFilter} tier`
-        : 'Review past victories and league standings';
+        ? 'Team Quest · past months'
+        : 'Team Quest · every league, past months';
 
     if (headerTitleEl) headerTitleEl.innerText = archiveTitle;
     if (headerSubtitleEl) headerSubtitleEl.innerText = archiveSubtitle;
@@ -420,16 +442,17 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
         selectEl.onchange = (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter);
     }
     syncHistoryMonthPicker(monthKey, leagueFilter);
+    const renderToken = ++historyRenderToken;
 
-    // 4. Handle Empty State
+    // 4. Handle Empty State (no finished month yet this school year)
     if (!monthKey) {
         contentEl.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-sm">
-                <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-200 shadow-inner">
-                    <i class="fas fa-history text-4xl text-slate-300"></i>
+            <div class="history-archive-empty">
+                <i class="fas fa-feather-alt" aria-hidden="true"></i>
+                <div>
+                    <p class="font-title">The first page is still being written</p>
+                    <p>Each month's final standings are filed here once the month ends.</p>
                 </div>
-                <p class="text-slate-700 font-title text-3xl">Time Machine Ready</p>
-                <p class="text-slate-500 text-sm mt-2">Pick a month in the header to travel back in time.</p>
             </div>
         `;
         return;
@@ -437,9 +460,8 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
 
     // 5. Loading State
     contentEl.innerHTML = `
-        <div class="flex flex-col items-center justify-center py-20">
-            <i class="fas fa-circle-notch fa-spin text-5xl text-amber-500 mb-4"></i>
-            <p class="text-slate-600 font-bold animate-pulse text-lg">Retrieving Quest Logs...</p>
+        <div class="history-archive-loading" aria-busy="true">
+            <div></div><div></div><div></div><div></div>
         </div>
     `;
 
@@ -537,88 +559,85 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
             }).sort(utils.sortTeamQuestEntries);
             if (leagueScores.every(c => c.totalStars === 0)) continue; 
 
+            const champion = leagueScores[0];
+            const monthLabel = formatHistoryMonthLong(monthKey);
             fullHtml += `
-                <div class="mb-8 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                        <h4 class="font-title text-xl text-indigo-900 flex items-center gap-2">
-                            <span class="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
-                            ${league} League
-                        </h4>
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest bg-white px-2 py-1 rounded border border-gray-200">Historical Data</span>
-                    </div>
-                    <div class="p-4 space-y-3">
+                <section class="ha-league">
+                    <header class="ha-league-head">
+                        <div class="ha-league-label">
+                            <span class="font-title">${escapeArchiveText(league)} League</span>
+                            <span class="ha-league-month">${monthLabel}</span>
+                        </div>
+                        <div class="ha-champion" title="Top of the ${escapeArchiveText(league)} League in ${monthLabel}">
+                            <i class="fas fa-crown" aria-hidden="true"></i>
+                            <span class="ha-champion-logo">${champion.logo || ''}</span>
+                            <span class="ha-champion-name">${escapeArchiveText(champion.name)}</span>
+                        </div>
+                    </header>
+                    <ol class="ha-rows">
             `;
 
+            const MEDALS = ['🥇', '🥈', '🥉'];
             leagueScores.forEach((c, index) => {
                 const rank = index + 1;
                 const isMine = myClassIds.includes(c.id);
-                
-                let rankBadge = `<div class="w-10 h-10 rounded-full bg-gray-100 text-gray-500 font-bold flex items-center justify-center text-lg shadow-inner border border-gray-200">${rank}</div>`;
-                let rowBg = "bg-white hover:bg-gray-50";
-                let borderClass = "border border-gray-200";
-                
-                if (rank === 1) { 
-                    rankBadge = `<div class="w-12 h-12 text-4xl filter drop-shadow-md transform hover:scale-110 transition-transform">🥇</div>`; 
-                    rowBg = "bg-gradient-to-r from-amber-50 to-white";
-                    borderClass = "border border-amber-200 shadow-amber-100/50 shadow-md";
-                }
-                else if (rank === 2) { rankBadge = `<div class="w-10 h-10 text-3xl filter drop-shadow-sm">🥈</div>`; }
-                else if (rank === 3) { rankBadge = `<div class="w-10 h-10 text-3xl filter drop-shadow-sm">🥉</div>`; }
-
-                if (isMine) {
-                    rowBg += " bg-indigo-50/30";
-                    borderClass = "border-2 border-indigo-200 shadow-md ring-2 ring-indigo-50";
-                }
-
-                const highlightBadge = isMine ? `<span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider border border-indigo-200 ml-2">My Class</span>` : '';
-                const lostBadge = c.daysLost > 0 ? `<span class="bg-red-50 text-red-500 text-[10px] px-2 py-0.5 rounded-full border border-red-100 font-bold ml-1" title="${c.daysLost} days lost (Holidays/Cancelled)">-${c.daysLost}d</span>` : '';
-                const levelBadge = c.historicalLevel > 0 ? `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full border border-orange-200 font-bold ml-1">Lvl ${c.historicalLevel + 1}</span>` : '';
-                const displayProgress = Math.min(100, c.progress);
-                const barColor = rank === 1 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : (isMine ? 'bg-indigo-500' : 'bg-gray-400');
+                const progress = Number.isFinite(c.progress) ? c.progress : 0;
+                const displayProgress = Math.max(0, Math.min(100, progress));
+                const reachedGoal = c.isQuestComplete || progress >= 100;
+                const rowClasses = ['ha-row', rank === 1 ? 'is-first' : '', isMine ? 'is-mine' : '', reachedGoal ? 'is-complete' : '']
+                    .filter(Boolean).join(' ');
+                const rankCell = rank <= 3
+                    ? `<span class="ha-medal" aria-label="Rank ${rank}">${MEDALS[rank - 1]}</span>`
+                    : `<span class="ha-rank-num">${rank}</span>`;
+                const tags = [
+                    isMine ? '<span class="ha-tag ha-tag-mine">My class</span>' : '',
+                    c.historicalLevel > 0 ? `<span class="ha-tag ha-tag-level" title="Quest difficulty level">Lvl ${c.historicalLevel + 1}</span>` : '',
+                    reachedGoal ? '<span class="ha-tag ha-tag-done"><i class="fas fa-gem" aria-hidden="true"></i> Goal reached</span>' : '',
+                    c.daysLost > 0 ? `<span class="ha-tag ha-tag-lost" title="${c.daysLost} lesson day${c.daysLost === 1 ? '' : 's'} lost to holidays or cancellations">−${c.daysLost}d</span>` : ''
+                ].join('');
 
                 fullHtml += `
-                    <div class="relative rounded-2xl p-4 transition-all ${rowBg} ${borderClass} flex items-center gap-4 group">
-                        <div class="flex-shrink-0 w-12 text-center">${rankBadge}</div>
-                        <div class="flex-grow min-w-0">
-                            <div class="flex items-center gap-2 mb-1.5">
-                                <span class="text-2xl filter drop-shadow-sm">${c.logo}</span>
-                                <h5 class="font-bold text-lg text-gray-800 truncate">${c.name}</h5>
-                                ${highlightBadge} ${levelBadge}
+                    <li class="${rowClasses}">
+                        <div class="ha-rank">${rankCell}</div>
+                        <div class="ha-logo" aria-hidden="true">${c.logo || ''}</div>
+                        <div class="ha-main">
+                            <div class="ha-name-line">
+                                <span class="ha-name">${escapeArchiveText(c.name)}</span>
+                                ${tags}
                             </div>
-                            <div class="w-full bg-gray-200/80 rounded-full h-3 overflow-hidden shadow-inner relative" title="${c.progress.toFixed(1)}%">
-                                <div class="${barColor} h-full rounded-full transition-all duration-1000 relative" style="width: ${displayProgress}%">
-                                    <div class="absolute inset-0 bg-white/20"></div>
-                                </div>
-                                <div class="absolute top-0 bottom-0 w-0.5 bg-white z-10 opacity-50" style="left: 100%"></div>
-                            </div>
-                            <div class="flex items-center gap-2 mt-2">
-                                <span class="text-xs text-gray-500 font-medium bg-white px-2 py-0.5 rounded-md border border-gray-200 shadow-sm flex items-center">
-                                    <i class="fas fa-bullseye text-gray-400 mr-1"></i> Goal: ${c.diamondGoal}
-                                </span>
-                                ${lostBadge}
+                            <div class="ha-bar" title="${progress.toFixed(1)}% of the monthly goal">
+                                <span style="width: ${displayProgress}%"></span>
                             </div>
                         </div>
-                        <div class="text-right flex-shrink-0 pl-4 border-l border-gray-100/50">
-                            <div class="font-title text-2xl text-amber-600 leading-none mb-1">${c.progress.toFixed(0)}%</div>
-                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wide bg-gray-100 px-2 py-0.5 rounded">${c.totalStars} ⭐</div>
+                        <div class="ha-score">
+                            <strong>${progress.toFixed(0)}%</strong>
+                            <small>${c.totalStars} / ${c.diamondGoal} ⭐</small>
                         </div>
-                    </div>`;
+                    </li>`;
             });
-            fullHtml += `</div></div>`;
+            fullHtml += `</ol></section>`;
         }
 
-        contentEl.innerHTML = fullHtml || `<div class="p-8 text-center text-gray-500 bg-white rounded-[2rem] border border-slate-200 shadow-sm">No data available for this month.</div>`;
+        if (renderToken !== historyRenderToken) return;
+        contentEl.innerHTML = fullHtml || `
+            <div class="history-archive-empty">
+                <i class="fas fa-wind" aria-hidden="true"></i>
+                <div>
+                    <p class="font-title">A quiet month</p>
+                    <p>No stars were recorded in ${formatHistoryMonthLong(monthKey)}.</p>
+                </div>
+            </div>`;
 
     } catch (error) {
         console.error("Render Error:", error);
+        if (renderToken !== historyRenderToken) return;
         contentEl.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
-                <div class="w-20 h-20 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mb-5">
-                    <i class="fas fa-exclamation-triangle text-3xl text-rose-400"></i>
+            <div class="history-archive-empty is-error">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <div>
+                    <p class="font-title">This page of the archive couldn't be opened</p>
+                    <p>${escapeArchiveText(error.message)} · Try another month.</p>
                 </div>
-                <p class="text-slate-800 font-title text-3xl">The Archives are dusty.</p>
-                <p class="text-slate-500 text-sm mt-2">Error: ${error.message}</p>
-                <p class="text-slate-400 text-xs mt-4">Try selecting a different month.</p>
             </div>
         `;
     }

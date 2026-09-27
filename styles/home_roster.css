@@ -63,12 +63,6 @@
 .home-schedule-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
 .home-schedule-legend__mine { color: #f59e0b; }
 .home-schedule-legend__colleague { color: #818cf8; }
-.home-schedule-legend__hint {
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    background: rgba(99, 102, 241, 0.08);
-    color: #6366f1;
-}
 
 /* ---------- 2. Stat tiles ---------- */
 .home-stat { isolation: isolate; }
@@ -825,4 +819,463 @@
     .home-stat::after { transition: none; }
     .schedule-card-square.schedule-class-peek-btn:hover,
     .schedule-card-square.schedule-class-peek-btn:hover .logo { transform: none; }
+}
+
+
+/* ---------- 6. Weather card ---------- */
+/* .vibrant-card forces overflow: visible !important (hover lift), which let the
+   big weather icon spill outside the card. The weather card must clip. */
+.vibrant-card.weather-card {
+    overflow: hidden !important;
+}
+
+.weather-card--v2 {
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 1.15rem 1.3rem 1.2rem;
+    min-height: 220px;
+}
+.weather-deco {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+}
+.weather-glow {
+    position: absolute;
+    top: 50%;
+    right: 2.9rem;
+    width: 11rem;
+    height: 11rem;
+    margin: -5.5rem -5.5rem 0 0;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.12) 40%, transparent 70%);
+    animation: weather-glow-breathe 6s ease-in-out infinite;
+}
+.weather-card.w-day:not(.weather-night) .weather-glow {
+    background: radial-gradient(circle, rgba(254, 240, 138, 0.7) 0%, rgba(253, 224, 71, 0.22) 38%, transparent 70%);
+}
+.weather-card.weather-night .weather-glow {
+    background: radial-gradient(circle, rgba(199, 210, 254, 0.45) 0%, rgba(165, 180, 252, 0.12) 40%, transparent 70%);
+}
+@keyframes weather-glow-breathe {
+    0%, 100% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.12); opacity: 1; }
+}
+.weather-card--v2 .weather-cloud {
+    top: auto;
+    bottom: 0.2rem;
+    left: -1.5rem;
+    font-size: 4.6rem;
+    color: rgba(255, 255, 255, 0.16);
+    filter: blur(0.5px);
+    animation: weather-cloud-drift 28s linear infinite;
+}
+.weather-card--v2 .weather-cloud--b {
+    bottom: auto;
+    top: 2.4rem;
+    font-size: 2.6rem;
+    color: rgba(255, 255, 255, 0.13);
+    animation-duration: 38s;
+    animation-delay: -14s;
+}
+@keyframes weather-cloud-drift {
+    from { transform: translateX(-30%); }
+    to { transform: translateX(460%); }
+}
+
+/* The condition icon: fully inside the card, coloured, only the sun spins */
+.weather-card--v2 .weather-sun {
+    top: calc(50% - 2.6rem);
+    right: 1.35rem;
+    font-size: 4.4rem;
+    line-height: 1;
+    color: #fff;
+    opacity: 0.95;
+    filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.22));
+    z-index: 1;
+    animation: none;
+}
+.weather-card--v2 .weather-sun.fa-sun {
+    color: #fde047;
+    filter: drop-shadow(0 0 18px rgba(253, 224, 71, 0.85)) drop-shadow(0 4px 10px rgba(180, 83, 9, 0.25));
+}
+.weather-card--v2 .weather-sun.fa-moon,
+.weather-card--v2 .weather-sun.fa-cloud-moon {
+    color: #eef2ff;
+    filter: drop-shadow(0 0 16px rgba(199, 210, 254, 0.8));
+}
+.weather-card--v2 .weather-sun.fa-cloud-sun {
+    color: #fef9c3;
+    filter: drop-shadow(0 0 14px rgba(253, 224, 71, 0.55));
+}
+.weather-card--v2 .weather-sun--spin { animation: spin-sun 40s linear infinite; }
+.weather-card--v2 .weather-sun--sway { animation: weather-icon-sway 7s ease-in-out infinite; transform-origin: 60% 60%; }
+.weather-card--v2 .weather-sun--float { animation: weather-icon-float 5s ease-in-out infinite; }
+@keyframes weather-icon-sway {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(6deg) translateY(-3px); }
+}
+@keyframes weather-icon-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.weather-top,
+.weather-bottom {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.weather-bottom { align-items: flex-end; min-height: 1.9rem; }
+.weather-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; min-width: 0; }
+.weather-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    text-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+}
+.weather-chip i { font-size: 0.7rem; opacity: 0.9; }
+.weather-chip__sep { opacity: 0.55; margin: 0 0.05rem; }
+.weather-chip--clock { font-variant-numeric: tabular-nums; }
+.weather-card-footer { position: relative; z-index: 3; flex-shrink: 0; }
+.weather-card-footer:empty { display: none; }
+
+.weather-card--v2 .weather-info {
+    align-items: flex-start;
+    text-align: left;
+    gap: 0.15rem;
+    padding: 0.25rem 6rem 0.25rem 0.1rem;
+}
+.weather-temp {
+    font-size: clamp(3.3rem, 4.6vw, 4.5rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-shadow: 0 6px 22px rgba(15, 23, 42, 0.25);
+}
+.weather-cond {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.95;
+}
+
+/* Light skins (snow by day) keep dark text, so chips need a solid wash */
+.weather-card.w-snowy:not(.weather-night) .weather-chip {
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(148, 163, 184, 0.35);
+    text-shadow: none;
+}
+.weather-card.w-snowy:not(.weather-night) .weather-sun { color: #94a3b8; }
+
+/* ---------- 7. Greeting card ---------- */
+.greeting-panel.greeting-panel--morning { background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 45%, #fdf2f8 100%); }
+.greeting-panel.greeting-panel--afternoon { background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f0fdfa 100%); }
+.greeting-panel.greeting-panel--evening { background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 50%, #fdf2f8 100%); }
+.greeting-panel.greeting-panel--night { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 55%, #ede9fe 100%); }
+.greeting-panel--morning { --gp-glow: rgba(251, 191, 36, 0.35); --gp-hill-a: rgba(251, 146, 60, 0.13); --gp-hill-b: rgba(244, 114, 182, 0.1); --gp-accent: #f59e0b; --gp-ring: rgba(245, 158, 11, 0.35); }
+.greeting-panel--afternoon { --gp-glow: rgba(56, 189, 248, 0.3); --gp-hill-a: rgba(45, 212, 191, 0.14); --gp-hill-b: rgba(56, 189, 248, 0.1); --gp-accent: #f59e0b; --gp-ring: rgba(14, 165, 233, 0.35); }
+.greeting-panel--evening { --gp-glow: rgba(236, 72, 153, 0.25); --gp-hill-a: rgba(139, 92, 246, 0.14); --gp-hill-b: rgba(236, 72, 153, 0.1); --gp-accent: #a78bfa; --gp-ring: rgba(139, 92, 246, 0.35); }
+.greeting-panel--night { --gp-glow: rgba(99, 102, 241, 0.3); --gp-hill-a: rgba(79, 70, 229, 0.14); --gp-hill-b: rgba(124, 58, 237, 0.11); --gp-accent: #818cf8; --gp-ring: rgba(99, 102, 241, 0.4); }
+
+.greeting-sky {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+}
+.greeting-sky__glow {
+    position: absolute;
+    top: -30%;
+    right: -8%;
+    width: 55%;
+    height: 120%;
+    background: radial-gradient(circle at 60% 40%, var(--gp-glow, rgba(99, 102, 241, 0.2)) 0%, transparent 62%);
+}
+.greeting-sky__hills {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 42%;
+    background:
+        radial-gradient(70% 95% at 18% 100%, var(--gp-hill-a, rgba(99, 102, 241, 0.1)) 0 58%, transparent 59%),
+        radial-gradient(60% 80% at 62% 100%, var(--gp-hill-b, rgba(236, 72, 153, 0.08)) 0 55%, transparent 56%),
+        radial-gradient(55% 110% at 100% 100%, var(--gp-hill-a, rgba(99, 102, 241, 0.1)) 0 50%, transparent 51%);
+}
+.greeting-sky__stars {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background-image:
+        radial-gradient(1.6px 1.6px at 52% 18%, #fff 50%, transparent 100%),
+        radial-gradient(1.2px 1.2px at 64% 34%, #fff 50%, transparent 100%),
+        radial-gradient(2px 2px at 71% 12%, #fff 50%, transparent 100%),
+        radial-gradient(1.3px 1.3px at 58% 52%, #fff 50%, transparent 100%),
+        radial-gradient(1.8px 1.8px at 90% 26%, #fff 50%, transparent 100%),
+        radial-gradient(1.2px 1.2px at 44% 40%, #fff 50%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 96% 58%, #fff 50%, transparent 100%);
+    filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0.9));
+}
+.greeting-panel--evening .greeting-sky__stars,
+.greeting-panel--night .greeting-sky__stars {
+    opacity: 0.9;
+    animation: greeting-stars-twinkle 4.5s ease-in-out infinite;
+}
+@keyframes greeting-stars-twinkle {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+}
+
+/* Class logo / school medallion with an orbiting sun or moon */
+.greeting-emblem {
+    position: absolute;
+    right: 2rem;
+    bottom: 1.6rem;
+    width: 6.4rem;
+    height: 6.4rem;
+    z-index: 1;
+    pointer-events: none;
+}
+.greeting-emblem__face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 3.3rem;
+    line-height: 1;
+    background: radial-gradient(circle at 32% 28%, #fff 0%, rgba(255, 255, 255, 0.72) 60%, rgba(255, 255, 255, 0.5) 100%);
+    border: 3px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 16px 30px -14px rgba(15, 23, 42, 0.35), 0 0 0 6px rgba(255, 255, 255, 0.35), inset 0 -6px 14px rgba(15, 23, 42, 0.06);
+    animation: greeting-emblem-float 6s ease-in-out infinite;
+}
+.greeting-emblem__orbit {
+    position: absolute;
+    inset: -0.95rem;
+    border-radius: 999px;
+    border: 2px dashed var(--gp-ring, rgba(99, 102, 241, 0.35));
+    animation: greeting-orbit 26s linear infinite;
+}
+.greeting-emblem__orbit i {
+    position: absolute;
+    top: -0.8rem;
+    left: 50%;
+    margin-left: -0.75rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    color: var(--gp-accent, #f59e0b);
+    filter: drop-shadow(0 0 8px var(--gp-accent, #f59e0b));
+}
+@keyframes greeting-orbit { to { transform: rotate(360deg); } }
+@keyframes greeting-emblem-float {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-6px) rotate(3deg); }
+}
+
+.greeting-main { position: relative; }
+@media (min-width: 640px) {
+    .greeting-main { padding-right: 8.5rem; }
+}
+@media (max-width: 639px) {
+    .greeting-emblem { display: none; }
+}
+.greeting-title { letter-spacing: -0.01em; }
+.greeting-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.greeting-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+    padding: 0.32rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 3px 10px -6px rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.greeting-chip > span[data-school-name] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.greeting-chip i { font-size: 0.78rem; }
+.greeting-chip small {
+    margin-left: 0.15rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    color: #4f46e5;
+    background: #eef2ff;
+}
+.greeting-chip--school i { color: #6366f1; }
+.greeting-chip--date i { color: #0ea5e9; }
+.greeting-chip--today i { color: #10b981; }
+.greeting-chip__emoji { font-size: 0.95rem; line-height: 1; }
+
+/* ---------- 8. Reminder badges (greeting card) ---------- */
+.date-pill.home-pill {
+    --pill-bg: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    --pill-fg: #5b21b6;
+    --pill-icon-bg: linear-gradient(135deg, #a78bfa, #7c3aed);
+    --pill-icon-fg: #fff;
+    --pill-border: rgba(167, 139, 250, 0.45);
+    --pill-shadow: rgba(124, 58, 237, 0.28);
+    --pill-tag-bg: rgba(255, 255, 255, 0.85);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    max-width: 100%;
+    padding: 0.32rem 0.85rem 0.32rem 0.32rem;
+    border-radius: 999px;
+    overflow: hidden;
+    isolation: isolate;
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: normal;
+    color: var(--pill-fg);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border);
+    box-shadow: 0 6px 16px -8px var(--pill-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    cursor: default;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    text-align: left;
+}
+.date-pill.home-pill:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 12px 22px -10px var(--pill-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.home-pill--action { cursor: pointer !important; }
+.home-pill--action:focus-visible { outline: 3px solid rgba(139, 92, 246, 0.5); outline-offset: 2px; }
+.home-pill__shine {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+    background-size: 250% 100%;
+    background-position: 140% 0;
+    transition: background-position 0.8s ease;
+    pointer-events: none;
+}
+.date-pill.home-pill:hover .home-pill__shine { background-position: -40% 0; }
+.home-pill__icon,
+.home-pill__avatar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.95rem;
+    height: 1.95rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--pill-icon-fg);
+    background: var(--pill-icon-bg);
+    box-shadow: 0 3px 8px -3px rgba(15, 23, 42, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.home-pill__icon { font-size: 1.05rem; }
+.home-pill__icon i { font-size: 0.82rem; }
+.home-pill__avatar { object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.9); }
+.home-pill__avatar--initial { font-weight: 800; font-size: 0.8rem; background: #818cf8; color: #fff; }
+.home-pill__body { display: flex; flex-direction: column; min-width: 0; line-height: 1.1; }
+.home-pill__eyebrow {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+.home-pill__title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.home-pill__tag {
+    flex-shrink: 0;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--pill-fg);
+    background: var(--pill-tag-bg);
+}
+.home-pill__perks { display: inline-flex; gap: 0.3rem; font-size: 0.7rem; opacity: 0.75; }
+
+/* Vivid tones: white text on a gradient */
+.home-pill--birthday, .home-pill--nameday, .home-pill--test-urgent, .home-pill--test-rose,
+.home-pill--test-amber, .home-pill--test-emerald, .home-pill--test-slate, .home-pill--star-day,
+.home-pill--special-quest, .home-pill--hero {
+    --pill-fg: #fff;
+    --pill-icon-bg: rgba(255, 255, 255, 0.24);
+    --pill-border: rgba(255, 255, 255, 0.55);
+    --pill-tag-bg: rgba(255, 255, 255, 0.22);
+    text-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+.home-pill--birthday { --pill-bg: linear-gradient(135deg, #ec4899, #f43f5e); --pill-shadow: rgba(244, 63, 94, 0.5); }
+.home-pill--nameday { --pill-bg: linear-gradient(135deg, #10b981, #14b8a6); --pill-shadow: rgba(16, 185, 129, 0.45); }
+.home-pill--test-urgent { --pill-bg: linear-gradient(135deg, #dc2626, #e11d48); --pill-shadow: rgba(220, 38, 38, 0.55); animation: home-pill-alert 2.2s ease-in-out infinite; }
+.home-pill--test-rose { --pill-bg: linear-gradient(135deg, #f43f5e, #ec4899); --pill-shadow: rgba(244, 63, 94, 0.45); }
+.home-pill--test-amber { --pill-bg: linear-gradient(135deg, #f59e0b, #f97316); --pill-shadow: rgba(245, 158, 11, 0.5); }
+.home-pill--test-emerald { --pill-bg: linear-gradient(135deg, #10b981, #0d9488); --pill-shadow: rgba(16, 185, 129, 0.45); }
+.home-pill--test-slate { --pill-bg: linear-gradient(135deg, #64748b, #475569); --pill-shadow: rgba(71, 85, 105, 0.45); }
+.home-pill--star-day { --pill-bg: linear-gradient(120deg, #fbbf24, #f97316 55%, #facc15); --pill-shadow: rgba(251, 191, 36, 0.7); }
+.home-pill--special-quest { --pill-bg: linear-gradient(135deg, #7c3aed, #c026d3); --pill-shadow: rgba(124, 58, 237, 0.55); }
+.home-pill--hero { --pill-bg: linear-gradient(135deg, #4f46e5, #1d4ed8); --pill-shadow: rgba(79, 70, 229, 0.5); }
+
+/* Soft tones: tinted glass with a coloured icon bubble */
+.home-pill--holiday { --pill-bg: linear-gradient(135deg, #fdf2f8, #fce7f3); --pill-fg: #9d174d; --pill-icon-bg: linear-gradient(135deg, #f472b6, #db2777); --pill-border: rgba(244, 114, 182, 0.4); --pill-shadow: rgba(219, 39, 119, 0.25); }
+.home-pill--holiday-winter { --pill-bg: linear-gradient(135deg, #fef2f2, #fee2e2); --pill-fg: #991b1b; --pill-icon-bg: linear-gradient(135deg, #f87171, #dc2626); --pill-border: rgba(248, 113, 113, 0.4); --pill-shadow: rgba(220, 38, 38, 0.25); }
+.home-pill--holiday-easter { --pill-bg: linear-gradient(135deg, #f0fdf4, #dcfce7); --pill-fg: #166534; --pill-icon-bg: linear-gradient(135deg, #4ade80, #16a34a); --pill-border: rgba(74, 222, 128, 0.4); --pill-shadow: rgba(22, 163, 74, 0.25); }
+
+.home-pill--party .home-pill__icon { animation: home-pill-wiggle 2.4s ease-in-out infinite; }
+@keyframes home-pill-wiggle {
+    0%, 70%, 100% { transform: rotate(0) scale(1); }
+    78% { transform: rotate(-14deg) scale(1.12); }
+    86% { transform: rotate(12deg) scale(1.12); }
+    94% { transform: rotate(-6deg) scale(1.05); }
+}
+@keyframes home-pill-alert {
+    0%, 100% { box-shadow: 0 6px 16px -8px var(--pill-shadow), 0 0 0 0 rgba(239, 68, 68, 0.45); }
+    50% { box-shadow: 0 6px 16px -8px var(--pill-shadow), 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .weather-glow,
+    .weather-card--v2 .weather-cloud,
+    .weather-card--v2 .weather-sun,
+    .greeting-sky__stars,
+    .greeting-emblem__face,
+    .greeting-emblem__orbit,
+    .home-pill--party .home-pill__icon,
+    .home-pill--test-urgent { animation: none !important; }
+    .home-pill__shine { transition: none; }
 }

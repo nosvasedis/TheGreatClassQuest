@@ -34,6 +34,7 @@ export { initializeHeaderQuote, fetchDailySpice };
 
 let homeInterval = null;
 let homeQuestTimerInterval = null;
+let homeClockInterval = null;
 let renderDebounce = null;
 let currentRenderedViewId = null;
 let hasPlayedInitialHomeEntrance = false;
@@ -222,6 +223,8 @@ async function executeRenderHome() {
     // --- STEP 1: CALCULATE WEATHER STATE ---
     if (weatherData) {
         theme.temp = `${weatherData.temp}°C`;
+        theme.hi = Number.isFinite(weatherData.hi) ? weatherData.hi : null;
+        theme.lo = Number.isFinite(weatherData.lo) ? weatherData.lo : null;
         Object.assign(theme, resolveWeatherTheme(weatherData.code));
 
         const nowTime = Date.now();
@@ -316,6 +319,7 @@ async function executeRenderHome() {
     }
 
     theme.greeting = timeGreeting;
+    theme.dayPart = timeGreeting.replace('Good ', '').toLowerCase(); // morning | afternoon | evening | night
     theme.greetingGradient = greetingGradient;
     theme.nameGradient = "from-slate-700 to-slate-500";
 
@@ -368,7 +372,25 @@ async function executeRenderHome() {
     attachListeners(container);
     startHomeSmartLogic();
     startHomeQuestTimerTicker();
+    startHomeClockTicker();
 
+}
+
+/** Keeps the weather card clock current; stops itself once the card leaves the DOM. */
+function startHomeClockTicker() {
+    if (homeClockInterval) clearInterval(homeClockInterval);
+    const tick = () => {
+        const el = document.querySelector('#home-dashboard-container [data-home-clock]');
+        if (!el) {
+            clearInterval(homeClockInterval);
+            homeClockInterval = null;
+            return;
+        }
+        const label = formatClockTime();
+        if (el.textContent !== label) el.textContent = label;
+    };
+    tick();
+    homeClockInterval = setInterval(tick, 10000);
 }
 
 // --- 3. TEMPLATES (VIBRANT HORIZONS) ---
@@ -476,9 +498,7 @@ function getGeneralDashboard(name, theme, spice) {
                 ${todaysClassCount ? `
                 <div class="home-schedule-legend" aria-hidden="true">
                     <span><i class="fas fa-crown home-schedule-legend__mine"></i>Yours</span>
-                    <span><i class="fas fa-eye home-schedule-legend__colleague"></i>Colleague</span>
-                    <span class="home-schedule-legend__hint"><i class="fas fa-hand-pointer"></i>Tap a class for its roster</span>
-                </div>` : ''}
+                    <span><i class="fas fa-eye home-schedule-legend__colleague"></i>Colleague</span>                </div>` : ''}
             </div>
             <div class="schedule-list-v2 mt-4">
                 ${getScheduleHtml(today, null)}
@@ -691,20 +711,82 @@ function getActiveDashboard(classData, name, theme, spice) {
     );
 }
 
+function formatClockTime(date = new Date()) {
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Chips under the greeting: school · date · today's context (class or school-wide). */
+function getGreetingChipsHtml() {
+    const now = new Date();
+    const selectedId = state.get('globalSelectedClassId');
+    const selectedClass = selectedId ? (state.get('allSchoolClasses') || []).find(c => c.id === selectedId) : null;
+    const dateLabel = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    const chips = [
+        `<span class="greeting-chip greeting-chip--school"><i class="fas fa-university"></i><span data-school-name>${escapeHtml(state.get('schoolName') || DEFAULT_SCHOOL_NAME)}</span></span>`,
+        `<span class="greeting-chip greeting-chip--date"><i class="fas fa-calendar-day"></i>${escapeHtml(dateLabel)}</span>`
+    ];
+
+    if (selectedClass) {
+        chips.push(`<span class="greeting-chip greeting-chip--class"><span class="greeting-chip__emoji">${escapeHtml(selectedClass.logo || '📚')}</span>${escapeHtml(selectedClass.name)}${selectedClass.questLevel ? `<small>${escapeHtml(selectedClass.questLevel)}</small>` : ''}</span>`);
+    } else if (!isSchoolYearAwaitingOpen(state.get('schoolYearState'))) {
+        const todays = utils.getClassesOnDay(
+            utils.getTodayDateString(),
+            state.get('allSchoolClasses') || [],
+            state.get('allScheduleOverrides') || [],
+            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+        );
+        if (todays.length) {
+            const myIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
+            const mine = todays.filter(c => myIds.has(c.id)).length;
+            chips.push(`<span class="greeting-chip greeting-chip--today"><i class="fas fa-school"></i>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`);
+        }
+    }
+    return chips.join('');
+}
+
+function getWeatherMetaHtml(theme) {
+    const chips = [];
+    if (theme.hi != null && theme.lo != null) {
+        chips.push(`<span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>${theme.hi}°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>${theme.lo}°</span>`);
+    }
+    const sunrise = Number(utils.solarData?.sunrise);
+    const sunset = Number(utils.solarData?.sunset);
+    if (Number.isFinite(sunrise) && Number.isFinite(sunset)) {
+        const nowMs = Date.now();
+        const showSunset = nowMs >= sunrise && nowMs < sunset;
+        const at = new Date(showSunset ? sunset : sunrise);
+        chips.push(`<span class="weather-chip"><i class="fas ${showSunset ? 'fa-cloud-moon' : 'fa-cloud-sun'}"></i>${showSunset ? 'Sunset' : 'Sunrise'} ${formatClockTime(at)}</span>`);
+    }
+    return chips.join('');
+}
+
 function getLayout(name, theme, selector, row2, row3) {
-    const heroEmoji = state.get('globalSelectedClassId') 
+    const heroEmoji = state.get('globalSelectedClassId')
         ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
         : '🏫';
+    const dayPart = theme.dayPart || 'afternoon';
+    const celestialIcon = dayPart === 'night' || dayPart === 'evening' ? 'fa-moon' : 'fa-sun';
+    const weatherIconMotion = theme.weatherIcon === 'fa-sun' ? 'weather-sun--spin'
+        : theme.weatherIcon === 'fa-moon' ? 'weather-sun--sway' : 'weather-sun--float';
+    const shortDate = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
-            
-            <div class="vibrant-card h-span-8 greeting-panel">
+
+            <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${dayPart}">
                 <div class="greeting-bg-mesh"></div>
-                <div class="greeting-hero-asset">${heroEmoji}</div>
+                <div class="greeting-sky" aria-hidden="true">
+                    <span class="greeting-sky__glow"></span>
+                    <span class="greeting-sky__stars"></span>
+                    <span class="greeting-sky__hills"></span>
+                </div>
+                <div class="greeting-emblem" aria-hidden="true">
+                    <span class="greeting-emblem__orbit"><i class="fas ${celestialIcon}"></i></span>
+                    <span class="greeting-emblem__face">${escapeHtml(heroEmoji)}</span>
+                </div>
                 <div class="relative z-10 flex flex-col justify-between h-full">
-                    
+
                     <div class="greeting-top-row">
                         <div id="home-reminders-container" class="greeting-top-row__reminders flex flex-wrap items-center gap-3 py-1">
                             ${getReminderPills(state.get('globalSelectedClassId'))}
@@ -714,27 +796,38 @@ function getLayout(name, theme, selector, row2, row3) {
                         </div>
                     </div>
 
-                    <div>
-                        <h1 class="font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-1">
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
+                    <div class="greeting-main">
+                        <h1 class="greeting-title font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-2">
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>,
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${escapeHtml(name)}</span>!
                         </h1>
-                        <p class="text-gray-500 font-bold text-base opacity-75" data-school-name>
-                            <i class="fas fa-university mr-2"></i>${state.get('schoolName') || DEFAULT_SCHOOL_NAME}
-                        </p>
+                        <div class="greeting-chips">${getGreetingChipsHtml()}</div>
                     </div>
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}${theme.intensity ? ` weather-${theme.intensity}` : ''}">
-                <i class="fas ${theme.weatherIcon} weather-sun"></i>
-                <i class="fas fa-cloud weather-cloud"></i>
-                
-                <div class="weather-info">
-                    <div class="text-7xl font-title">${theme.temp}</div>
-                    <div class="text-2xl font-bold uppercase tracking-widest opacity-95">${theme.weatherText}</div>
+            <div class="vibrant-card h-span-4 weather-card weather-card--v2 ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}${theme.intensity ? ` weather-${theme.intensity}` : ''}">
+                <div class="weather-deco" aria-hidden="true">
+                    <span class="weather-glow"></span>
+                    <i class="fas fa-cloud weather-cloud"></i>
+                    <i class="fas fa-cloud weather-cloud weather-cloud--b"></i>
                 </div>
-                <div id="weather-card-footer" class="absolute bottom-4 right-4 z-10" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
+                <i class="fas ${theme.weatherIcon} weather-sun ${weatherIconMotion}" aria-hidden="true"></i>
+
+                <div class="weather-top">
+                    <span class="weather-chip"><i class="fas fa-calendar-day"></i>${escapeHtml(shortDate)}</span>
+                    <span class="weather-chip weather-chip--clock"><i class="far fa-clock"></i><span data-home-clock>${formatClockTime()}</span></span>
+                </div>
+
+                <div class="weather-info">
+                    <div class="weather-temp font-title">${theme.temp}</div>
+                    <div class="weather-cond">${escapeHtml(theme.weatherText)}</div>
+                </div>
+
+                <div class="weather-bottom">
+                    <div class="weather-meta">${getWeatherMetaHtml(theme)}</div>
+                    <div id="weather-card-footer" class="weather-card-footer" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
+                    </div>
                 </div>
             </div>
 
@@ -1106,6 +1199,27 @@ export async function maybeAutoShowGuideForTeacher(user) {
     }
 }
 
+/**
+ * One consistent Home reminder badge: icon bubble · eyebrow + title · optional tag.
+ * Text is escaped here; `avatarHtml` / `trailingHtml` / `attrs` are trusted markup.
+ */
+function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', eyebrow = '', title = '', tag = '', trailingHtml = '', extraClass = '', tagName = 'div', attrs = '' }) {
+    const lead = avatarHtml
+        || `<span class="home-pill__icon" aria-hidden="true">${emoji ? escapeHtml(emoji) : `<i class="fas ${escapeHtml(icon)}"></i>`}</span>`;
+    const typeAttr = tagName === 'button' ? ' type="button"' : '';
+    return `
+        <${tagName}${typeAttr} class="date-pill home-pill home-pill--${tone} ${extraClass}" ${attrs}>
+            <span class="home-pill__shine" aria-hidden="true"></span>
+            ${lead}
+            <span class="home-pill__body">
+                ${eyebrow ? `<span class="home-pill__eyebrow">${escapeHtml(eyebrow)}</span>` : ''}
+                <span class="home-pill__title">${escapeHtml(title)}</span>
+            </span>
+            ${tag ? `<span class="home-pill__tag">${escapeHtml(tag)}</span>` : ''}
+            ${trailingHtml}
+        </${tagName}>`;
+}
+
 function getReminderPills(classId) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -1129,20 +1243,10 @@ function getReminderPills(classId) {
 
     relevantStudents.forEach(s => {
         if (s.birthday && s.birthday.endsWith(todaySuffix)) {
-            pills.push(`
-                <div class="date-pill bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-110 transition-all duration-300 animate-bounce cursor-default border-2 border-white/50">
-                    <span class="text-xl">🎂</span>
-                    <span class="font-bold text-shadow-sm">Happy Birthday, ${s.name.split(' ')[0]}!</span>
-                </div>
-            `);
+            pills.push(reminderPill({ tone: 'birthday', emoji: '🎂', eyebrow: 'Birthday', title: `Happy Birthday, ${s.name.split(' ')[0]}!`, extraClass: 'home-pill--party' }));
         }
         if (s.nameday && s.nameday.endsWith(todaySuffix)) {
-            pills.push(`
-                <div class="date-pill bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-110 transition-all duration-300 cursor-default border-2 border-white/50">
-                    <span class="text-xl">🎈</span>
-                    <span class="font-bold text-shadow-sm">${s.name.split(' ')[0]}'s Nameday!</span>
-                </div>
-            `);
+            pills.push(reminderPill({ tone: 'nameday', emoji: '🎈', eyebrow: 'Name day', title: `${s.name.split(' ')[0]}'s Nameday!` }));
         }
     });
 
@@ -1150,25 +1254,14 @@ function getReminderPills(classId) {
         const todaysTests = getNextAssessmentOccurrenceForToday(classId);
         todaysTests.forEach((assignment) => {
             const classLine = assignment.classData ? `${assignment.classData.logo || '📚'} ${assignment.classData.name}` : 'Today';
-            const pillPalettes = {
-                red: 'from-red-600 to-rose-600 border-white/40',
-                rose: 'from-rose-500 to-pink-500 border-white/40',
-                orange: 'from-amber-500 to-orange-500 border-white/40',
-                emerald: 'from-emerald-500 to-teal-500 border-white/40',
-                slate: 'from-slate-500 to-slate-600 border-white/40',
-                amber: 'from-rose-500 to-red-500 border-white/40'
-            };
-            const pillGradient = pillPalettes[assignment.tone] || pillPalettes.amber;
-            pills.push(`
-                <div class="date-pill bg-gradient-to-r ${pillGradient} text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default border-2">
-                    <i class="fas fa-${assignment.icon}"></i>
-                    <div class="flex flex-col leading-none">
-                        <span class="text-[10px] uppercase font-black tracking-wide opacity-80">${classId ? assignment.statusLabel : classLine}</span>
-                        <span class="font-bold">${assignment.testData?.title || 'Scheduled Test'}</span>
-                    </div>
-                    <span class="bg-white/20 px-2 py-1 rounded-full text-[10px] font-black uppercase">${assignment.chipLabel}</span>
-                </div>
-            `);
+            const testTones = { red: 'test-urgent', rose: 'test-rose', orange: 'test-amber', emerald: 'test-emerald', slate: 'test-slate', amber: 'test-rose' };
+            pills.push(reminderPill({
+                tone: testTones[assignment.tone] || 'test-rose',
+                icon: `fa-${assignment.icon}`,
+                eyebrow: classId ? assignment.statusLabel : classLine,
+                title: assignment.testData?.title || 'Scheduled Test',
+                tag: assignment.chipLabel
+            }));
         });
     }
 
@@ -1230,26 +1323,20 @@ function getReminderPills(classId) {
 
         let label = upcomingHoliday.name;
         let icon = 'fa-umbrella-beach';
-        let style = 'bg-pink-50 text-pink-700 border-pink-200 shadow-sm';
+        let tone = 'holiday';
         let timeText = diffDays === 0 ? "Starts Today!" : (diffDays === 1 ? "Starts Tomorrow!" : `in ${diffDays} days`);
 
         if (label.toLowerCase().includes('christmas') || label.toLowerCase().includes('winter')) {
             icon = 'fa-snowflake';
-            style = 'bg-red-50 text-red-800 border-red-200 shadow-sm';
+            tone = 'holiday-winter';
             label = `🎄 ${label}`;
         } else if (label.toLowerCase().includes('easter')) {
             icon = 'fa-egg';
-            style = 'bg-green-50 text-green-800 border-green-200 shadow-sm';
+            tone = 'holiday-easter';
             label = `🐰 ${label}`; // Added Bunny Emoji here!
         }
 
-        pills.push(`
-            <div class="date-pill ${style} border flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default">
-                <i class="fas ${icon}"></i> 
-                <span class="font-bold">${label}</span> 
-                <span class="bg-white/60 px-2 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wide ml-1">${timeText}</span>
-            </div>
-        `);
+        pills.push(reminderPill({ tone, icon, eyebrow: 'Holiday', title: label, tag: timeText }));
     }
 
     // 4. QUEST EVENTS (Test/Vocab/etc) — use smart date parser (any format)
@@ -1294,23 +1381,9 @@ function getReminderPills(classId) {
         const isDoubleStar = title.toLowerCase().includes('2x star');
 
         // Ορίζουμε το στυλ: Αν είναι 2x Star Day, βάζουμε χρυσό gradient και animation
-        let pillStyle = "bg-purple-50 text-purple-700 border-purple-200";
-        let icon = "fa-magic";
-        let specialClass = "";
-
-        if (isDoubleStar) {
-            pillStyle = "bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 text-white border-white shadow-[0_0_20px_rgba(251,191,36,0.6)]";
-            icon = "fa-bolt-lightning";
-            specialClass = "animate-bounce-slow star-day-glow";
-        }
-
-        pills.push(`
-            <div class="date-pill ${pillStyle} ${specialClass} border-2 flex items-center gap-2 px-4 py-2 rounded-full transition-all hover:scale-110 cursor-default">
-                <i class="fas ${icon} ${isDoubleStar ? 'animate-pulse' : ''}"></i>
-                <span class="font-bold tracking-tight">${title}</span>
-                <span class="bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-black uppercase ml-1">${timeText}</span>
-            </div>
-        `);
+        pills.push(reminderPill(isDoubleStar
+            ? { tone: 'star-day', icon: 'fa-bolt-lightning', eyebrow: 'Quest Event', title, tag: timeText, extraClass: 'star-day-glow' }
+            : { tone: 'event', icon: 'fa-magic', eyebrow: 'Quest Event', title, tag: timeText }));
     });
 
 
@@ -1318,7 +1391,12 @@ function getReminderPills(classId) {
         const eventDate = utils.parseFlexibleDate(event.dateKey || event.date);
         return eventDate && eventDate.toDateString() === now.toDateString() && isSpecialQuestType(normalizeQuestType(event.type)) && (!classId || !event.classId || event.classId === classId);
     });
-    if (todaysSpecial) pills.push(`<button type="button" class="date-pill date-pill--quest bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-2 border-white/60 shadow-lg flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:scale-105 transition-transform" data-special-quest-id="${todaysSpecial.id}"><i class="fas fa-play-circle"></i><span class="font-bold">Start today's Quest</span></button>`);
+    if (todaysSpecial) {
+        pills.push(reminderPill({
+            tone: 'special-quest', icon: 'fa-play-circle', eyebrow: 'Special Quest', title: "Start today's Quest",
+            tagName: 'button', extraClass: 'home-pill--action', attrs: `data-special-quest-id="${escapeHtml(todaysSpecial.id)}"`
+        }));
+    }
 
     // 5. ACTIVE BOUNTY (Timer removed — shown in wallpaper mode instead)
     if (classId) {
@@ -1352,23 +1430,13 @@ function getReminderPills(classId) {
     // Hero of the Day Pill
     const reigningHero = state.get('reigningHero');
     if (reigningHero && classId) {
-        const avatarHtml = reigningHero.avatar
-            ? `<img src="${reigningHero.avatar}" class="w-6 h-6 rounded-full border border-white shadow-sm">`
-            : `<span class="bg-indigo-400 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">${reigningHero.name.charAt(0)}</span>`;
-
-        pills.push(`
-        <div class="date-pill bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-105 transition-all border-2 border-indigo-400">
-            ${avatarHtml}
-            <div class="flex flex-col leading-none">
-                <span class="text-[10px] uppercase font-black tracking-tighter opacity-80">Reigning Hero</span>
-                <span class="font-bold text-shadow-sm">${reigningHero.name.split(' ')[0]}</span>
-            </div>
-            <div class="flex gap-1 ml-1">
-                <i class="fas fa-shield-alt text-xs text-indigo-300" title="Hero's Boon (+1 Star)"></i>
-                <i class="fas fa-tags text-xs text-indigo-300" title="Merchant's Favorite (-2 Gold)"></i>
-            </div>
-        </div>
-    `);
+        const heroAvatar = reigningHero.avatar
+            ? `<img src="${escapeHtml(reigningHero.avatar)}" alt="" class="home-pill__avatar">`
+            : `<span class="home-pill__avatar home-pill__avatar--initial">${escapeHtml(reigningHero.name.charAt(0))}</span>`;
+        pills.push(reminderPill({
+            tone: 'hero', avatarHtml: heroAvatar, eyebrow: 'Reigning Hero', title: reigningHero.name.split(' ')[0],
+            trailingHtml: '<span class="home-pill__perks"><i class="fas fa-shield-alt" title="Hero&#39;s Boon (+1 Star)"></i><i class="fas fa-tags" title="Merchant&#39;s Favorite (-2 Gold)"></i></span>'
+        }));
     }
 
     if (pills.length === 0) return '';
@@ -1509,15 +1577,19 @@ async function fetchWeatherData() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
     try {
-        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`, {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto`, {
             signal: controller.signal
         });
         if (!response.ok) throw new Error('Weather API failed');
         const data = await response.json();
 
+        const hi = Number(data.daily?.temperature_2m_max?.[0]);
+        const lo = Number(data.daily?.temperature_2m_min?.[0]);
         const weather = {
             temp: Math.round(data.current.temperature_2m),
-            code: data.current.weather_code
+            code: data.current.weather_code,
+            hi: Number.isFinite(hi) ? Math.round(hi) : null,
+            lo: Number.isFinite(lo) ? Math.round(lo) : null
         };
 
         try {

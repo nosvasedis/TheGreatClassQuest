@@ -459,6 +459,8 @@ export function namesDistinctHtml() {
     <article class="name-card name-card--peer"><i class="fas fa-heart"></i><h4>Hero's Boon</h4><p>A classmate spends <span class="gold-amt"><i class="fas fa-coins" aria-hidden="true"></i> Gold</span> for +0.5 <span class="star-amt" aria-hidden="true"><i class="fas fa-star"></i></span>. Not Teacher Boon.</p></article>
     <article class="name-card name-card--wand"><i class="fas fa-wand-magic-sparkles"></i><h4>Teacher Boon</h4><p>Your 2 <span class="star-amt" aria-hidden="true"><i class="fas fa-star"></i></span><span class="star-amt" aria-hidden="true"><i class="fas fa-star"></i></span> gift, last week of the month, once per class.</p></article>
     <article class="name-card name-card--champ"><i class="fas fa-medal"></i><h4>Guild Champion</h4><p>Top earner inside one house this month. Not Prodigy.</p></article>
+    <article class="name-card name-card--day"><i class="fas fa-fire"></i><h4>Hero Campfire</h4><p>Optional 2-minute closing on the projector after Hero of the Day. Not a monthly ceremony.</p></article>
+    <article class="name-card name-card--peer"><i class="fas fa-scroll"></i><h4>Ember Oath</h4><p>A small personal promise. Kept oaths become sky stars, never Stars or Gold.</p></article>
   </div>`;
 }
 

@@ -214,7 +214,7 @@ Avatar Forge, Hero Path και μότο σπιτιού είναι πώς ένα 
 1. **Follow today’s schedule** (ήδη ανοιχτό όταν ανοίγεις την εφαρμογή) ώστε η εφαρμογή να αλλάζει στο τμήμα που έχει μάθημα *τώρα*, ή **General view** όταν δεν υπάρχει μάθημα. Μπορείς πάντα να διαλέξεις τμήμα στο χέρι· τότε το follow σταματά μέχρι να το ξαναπατήσεις.
 2. **Award Stars** — Teamwork, Creativity, Respect ή Focus, ένα έως τρία αστέρια. Καλωσόρισε όποιον επιστρέφει. Πρόσεξε γενέθλια. Άσε συμμαθητή να χαρίσει Hero’s Boon όταν προσφέρεται η καρδιά.
 3. Προς το τέλος: **Quest Assignment** (εργασία για την επόμενη φορά) και **Attendance** αν δεν έχεις σημειώσει απουσίες.
-4. **Log Today’s Adventure** — το Quest στέφει **αυτόματα** τον **Hero of the Day** μαζί με την αποθήκευση του ημερολογίου (AI στο Elite, δικά σου λόγια στο Pro). Δεν διαλέγεις τον ήρωα σε ξεχωριστό βήμα.
+4. **Log Today’s Adventure** — το Quest στέφει **αυτόματα** τον **Hero of the Day** μαζί με την αποθήκευση του ημερολογίου (AI στο Elite, δικά σου λόγια στο Pro). Δεν διαλέγεις τον ήρωα σε ξεχωριστό βήμα. Μόλις κλείσεις το **Huzzah!**, το **Gather at the Campfire** (Pro, προαιρετικό) είναι δίλεπτος στοχασμός στον projector για τις λέξεις και τα Ember Oaths.
 5. Την κατάλληλη εβδομάδα: **Quiz of the Week** (Home, Elite), **Fortune’s Wheel** (Guild Hall, τελευταίο μάθημα της εβδομάδας), ή **Story Weavers**.
 
 **Όποτε θέλεις μέσα στο μάθημα** μπορείς να πατήσεις **TV** για **Projector Mode**. Είναι **ταπετσαρία** για την οθόνη της αίθουσας (ουρανός, ρολόγια, χρόνος που μένει, κάρτες ιστορίας) — άνοιξέ την όταν βοηθά, άφησέ την να τρέχει όσο διδάσκεις στις συνηθισμένες καρτέλες. Δεν είναι βήμα που πρέπει να γίνει πριν το Award Stars.
@@ -233,7 +233,7 @@ Avatar Forge, Hero Path και μότο σπιτιού είναι πώς ένα 
 | **Mystic Market** | Ξόδεμα Gold: power-ups, εποχιακά, αυγά Familiar |
 | **Guild Hall** | Σπίτια όλης της χρονιάς, Wheel, Ledger, Analytics |
 | **Award Stars** | Η καρδιά κάθε μαθήματος |
-| **Adventure Log** | Ημερολόγιο τέλους μαθήματος, Hero of the Day, απουσίες, εργασία |
+| **Adventure Log** | Ημερολόγιο τέλους μαθήματος, Hero of the Day, Hero Campfire, απουσίες, εργασία |
 | **Scholar’s Scroll** | Διαγωνίσματα και υπαγορεύσεις |
 | **Quest Calendar** | Μαθήματα, αργίες, Quest Events |
 | **Story Weavers** | Συνεργατική δημιουργική γραφή |
@@ -245,7 +245,7 @@ Avatar Forge, Hero Path και μότο σπιτιού είναι πώς ένα 
 | Πλάνο | Αίσθηση τάξης |
 |------|----------------|
 | **Starter** | Αστέρια, οι δύο μηνιαίοι αγώνες, Market power-ups, bounties, Projector, τελετές |
-| **Pro** | Σπίτια, ημερολόγιο, Scholar’s Scroll, Adventure Log (χειροκίνητο), Hero Path, Family Access, Attendance Chronicle |
+| **Pro** | Σπίτια, ημερολόγιο, Scholar’s Scroll, Adventure Log (χειροκίνητο), Hero Campfire και Ember Oaths, Hero Path, Family Access, Attendance Chronicle |
 | **Elite** | AI χρονικογράφος και εικόνες, Story Weavers, Familiars, Quiz of the Week, School Office |
 
 Πλήρης πίνακας: το κεφάλαιο Starter · Pro · Elite στο τέλος του βιβλίου. Κάθε κεφάλαιο τάξης κλείνει με τα ίδια τρία πλάνα, με τα λόγια εκείνου του κεφαλαίου.
@@ -563,7 +563,7 @@ Dock των **πέντε**: Home, Team Quest, Hero’s Challenge, Award Stars, *
 
 ### Πριν το μάθημα
 
-Teacher Settings → Quiz: τμήμα, grammar / vocabulary / mix, chips, Generate. 5–15 ερωτήσεις ανάλογα με το πλήθος.
+Teacher Settings → Quiz: when the class book is known, Generate uses this week’s units, grammar, and words. Otherwise grammar / vocabulary / mix, chips, Generate. 5–15 ερωτήσεις ανάλογα με το πλήθος.
 
 ### Όταν εμφανίζεται στο Home
 
@@ -733,6 +733,10 @@ Perks όσο βασιλεύει: σύννεφο **Reigning Hero**, **+1** στο
 
 Ποιος στέφεται: Mask of the Protagonist αν είναι pending· αλλιώς δίκαιη εναλλαγή μεταξύ παρόντων. Αν κανείς δεν είναι παρών, μπορεί να τιμηθεί «The Class Team». Οι νίκες μπαίνουν στο **Hall of Heroes** (όχι Hall of Prodigies).
 
+## Gather at the Campfire (Pro)
+
+Μόλις κλείσεις τον εορτασμό (**Huzzah!**), ανάβει το **Gather at the Campfire** κάτω από το Log Today’s Adventure. Ανοίγει το **Hero Campfire**: δίλεπτος στοχασμός στον projector. Προαιρετικό: το **Not today** το κρύβει για τη μέρα. Δες το κεφάλαιο Hero Campfire.
+
 ## Hall of Heroes
 
 Κουμπί σε αυτή την καρτέλα. Αρχείο ημερήσιων στεμμάτων και legend tiers.
@@ -745,7 +749,7 @@ Perks όσο βασιλεύει: σύννεφο **Reigning Hero**, **+1** στο
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Το Adventure Log δεν είναι σε αυτό το πλάνο. Παρουσίες στα σύννεφα Award Stars | Χειροκίνητο ημερολόγιο, αυτόματος Hero of the Day, Hall of Heroes, Attendance Chronicle, Quest Assignment | AI ιστορία και εικόνα βιβλίου — μπορείς ακόμα να διορθώσεις |
+| Το Adventure Log δεν είναι σε αυτό το πλάνο. Παρουσίες στα σύννεφα Award Stars | Χειροκίνητο ημερολόγιο, αυτόματος Hero of the Day, Hall of Heroes, Attendance Chronicle, Quest Assignment, Hero Campfire | AI ιστορία και εικόνα βιβλίου — μπορείς ακόμα να διορθώσεις |
 `,
 
   'teacher/10-scholars-scroll.md': `# Scholar’s Scroll
@@ -879,7 +883,7 @@ Star Manager, Coin Purse, Familiar Sprite Forge (Elite). Εργαλεία επι
 
 ## Quiz (Elite)
 
-Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη μέρα μαθήματος της εβδομάδας.
+Curriculum from this week’s lessons (or topic chips), Generate, ιστορικό. Παίξε στο Home, πρώτη μέρα μαθήματος της εβδομάδας.
 `,
 
   'teacher/14-hero-path.md': `# Hero Path (τάξεις και Skill Tree)
@@ -923,6 +927,40 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 Δεν είναι Quest League και δεν είναι guild.
 `,
 
+  'teacher/15-hero-campfire.md': `# Hero Campfire και Ember Oaths
+
+Το **Hero Campfire** είναι προαιρετικός, δίλεπτος κλείσιμο στον projector. Η τάξη μαζεύεται γύρω από τη φωτιά, θυμάται τις λέξεις που εξάσκησε, απαντά μία ερώτηση στοχασμού, δείχνει πόσο φωτεινά έμαθε, και κοιτά λίγα **Ember Oaths**: μικρές προσωπικές υποσχέσεις που διάλεξε κάθε παιδί. Δεν υπάρχουν κατατάξεις, βαθμοί ούτε Gold.
+
+## Σκοπός
+
+Τα αστέρια ονομάζουν πράξεις. Η φωτιά προσθέτει δύο συνήθειες που το υπόλοιπο Quest δεν καλύπτει: **να κοιτάξουμε τι μάθαμε** και **να δουλέψουμε προς έναν προσωπικό στόχο**. Το παιδί διαλέγει τον στόχο, ο δάσκαλος επιβεβαιώνει την πρόοδο, και το δώρο είναι κοινό φως, όχι αριθμός.
+
+## Όταν εμφανίζεται
+
+- Ετοιμάζεται **ήσυχα μέσα στο μάθημα**. Δεν περιμένει και δεν χρειάζεται AI.
+- Μόλις κλείσεις τον εορτασμό Hero of the Day (**Huzzah!**), ανάβει το **Gather at the Campfire** στο Adventure Log. Ένα μικρό χάπι εμφανίζεται και στο Home.
+- Δεν ανοίγει μόνο του. Το μικρό **×** σημαίνει «όχι σήμερα».
+- Μετά την τελετή το κουμπί ξεκουράζεται ως **Campfire held · Relight**.
+
+## Τι βλέπει η τάξη (εφτά στιγμές)
+
+Προχωράς με **Space, Enter ή →**, πίσω με **←**, κλείσιμο με **Esc**. Τίποτα δεν λέγεται δυνατά· όλα είναι οπτικά. Στη φωτιά δεν εμφανίζονται βιβλία, μονάδες, σελίδες ή χρονόμετρα.
+
+**Nursery και Pre-Junior:** χωρίς ονόματα και χωρίς ατομικές υποσχέσεις στον projector. Ο κύκλος γίνεται **Our Class Promise**.
+
+## Ember Oaths
+
+Άνοιξε το **Oath Board** από **🔥 Ember Oaths** στο Adventure Log (ακολουθεί το τμήμα στην κεφαλίδα· μένει γκρι μέχρι να διαλέξεις τμήμα), το 📜 Oaths στο αναμμένο κουμπί της φωτιάς, **🔥 Oaths** σε τμήμα στο My Classes, ή την καρτέλα 🔥 Oaths στο Hero’s Chronicle.
+
+Ένα παιδί διαλέγει μία μικρή υπόσχεση. Τα τρία κουμπιά 🔥 / 🕯️ / 🌙 είναι το **σημερινό check-in**, όχι η τήρηση. Η υπόσχεση είναι έτοιμη όταν υπάρχει αρκετή απόδειξη και τουλάχιστον ένα 🔥· τότε **Keep the promise** ή **Let it rise**. Γίνεται αστέρι στον ουρανό (κάθε είδος έχει το δικό του σχήμα) και **Star-Ember** στο Trophy Room — ποτέ αστέρια, ποτέ Gold. Το τηλεσκόπιο στην κεφαλίδα σηκώνει την κάμερα στον ουρανό.
+
+## Σημειώσεις πλάνου
+
+| Starter | Pro | Elite |
+|---|---|---|
+| Δεν περιλαμβάνεται | Hero Campfire, Ember Oaths, αναγνώριση βιβλίου, τράπεζα ερωτήσεων | Επιπλέον η ερώτηση και οι καταληκτικές γραμμές με AI, και ιδέες Oracle (η τράπεζα δουλεύει πάντα χωρίς AI) |
+`,
+
   'secretary/school-office.md': `# School Office
 
 Γραμματεία — το **πιλοτήριο της σχολικής χρονιάς**, όχι δεύτερη τάξη. Αργίες που μικραίνουν τον στόχο Team Quest, τμήματα για κάθε δάσκαλο, νέοι μαθητές, τοποθέτηση μαθητών, στοιχεία σχολείου, άνοιγμα και κλείσιμο χρονιάς, προεπιλογές βαθμών, μηνύματα οικογενειών.
@@ -949,7 +987,7 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 
   'shared/glossary.md': `# Γλωσσάρι
 
-Πάτα ένα όνομα με στιγμές στον οδηγό. **Ceremony of the Month** ≠ **Grand Guild Ceremony**. **Hero of the Day** ≠ **Prodigy**. **Hall of Heroes** ≠ **Hall of Prodigies**. **Hero’s Boon** ≠ **Teacher Boon**.
+Πάτα ένα όνομα με στιγμές στον οδηγό. **Ceremony of the Month** ≠ **Grand Guild Ceremony**. **Hero of the Day** ≠ **Prodigy**. **Hall of Heroes** ≠ **Hall of Prodigies**. **Hero’s Boon** ≠ **Teacher Boon**. **Hero Campfire** ≠ μηνιαία τελετή. **Ember Oath** ≠ Quest Assignment.
 `,
 
   'shared/plans-and-features.md': `# Πλάνα και δυνατότητες
@@ -958,7 +996,7 @@ Curriculum chips, Generate, ιστορικό. Παίξε στο Home, πρώτη
 
 **Starter** — 3 δάσκαλοι / 6 τμήματα. Award Stars, Team Quest, Hero’s Challenge, Ceremony of the Month, Quest Assignment και παρουσίες, bounties, artifacts στο Market, Hero’s Boon, Teacher Boon, Projector Mode.
 
-**Pro** — 6 / 10. Επιπλέον Guild Hall (Wheel, Ledger, sorting quiz), Hero Path, Quest Calendar, Scholar’s Scroll και Starfall, Adventure Log με Hero of the Day και Hall of Heroes, Attendance Chronicle, Family Access, My Planning, παράκαμψη βαθμών τμήματος.
+**Pro** — 6 / 10. Επιπλέον Guild Hall (Wheel, Ledger, sorting quiz), Hero Path, Quest Calendar, Scholar’s Scroll και Starfall, Adventure Log με Hero of the Day και Hall of Heroes, Hero Campfire και Ember Oaths, Attendance Chronicle, Family Access, My Planning, παράκαμψη βαθμών τμήματος.
 
 **Elite** — απεριόριστα. Επιπλέον Story Weavers, Familiars, Quiz of the Week, School Office, και AI (chronicler, εικόνες, Avatar Forge, Oracle, Restock, nameday, πιστοποιητικά).
 

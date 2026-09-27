@@ -981,6 +981,76 @@
     margin-bottom: 0.4rem;
 }
 
+/* ── Lesson focus (one-tap from book / Campfire data) ── */
+.qow-lesson-focus {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+    padding: 0.9rem 1rem;
+    background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+    border: 2px solid #fde68a;
+    border-radius: 1.1rem;
+}
+.qow-lesson-focus.hidden { display: none; }
+.qow-lesson-grammar.hidden,
+#qow-lesson-words-label.hidden { display: none; }
+.qow-lesson-summary {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #92400e;
+}
+.qow-lesson-units {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.qow-lesson-unit {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #78350f;
+}
+.qow-lesson-grammar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.qow-lesson-grammar-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.7rem;
+    border-radius: 9999px;
+    background: #fef3c7;
+    border: 1.5px solid #fcd34d;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #92400e;
+}
+.qow-different-focus {
+    border: 0;
+    margin: 0 0 0.5rem;
+}
+.qow-different-focus-summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #b45309;
+    list-style: none;
+    padding: 0.35rem 0;
+}
+.qow-different-focus-summary::-webkit-details-marker { display: none; }
+.qow-different-focus-summary::before {
+    content: '▸ ';
+}
+.qow-different-focus[open] .qow-different-focus-summary::before {
+    content: '▾ ';
+}
+.qow-different-focus.qow-focus-fallback .qow-different-focus-summary {
+    display: none;
+}
+.qow-different-focus-summary.hidden { display: none; }
+
 /* ── Category chips ── */
 .qow-chips {
     display: flex;

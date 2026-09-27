@@ -1,0 +1,355 @@
+/* Hero Campfire projector scene (lazy chunk). Motion uses transform/opacity; the fire lights the scene
+   through one CSS variable (--fire-light, ~10×/s). Before ignition the night is dark and cool. */
+.cf-scene{--cf-cream:#fff0cf;--cf-gold:#f2c178;--cf-scale:1;--fire-light:.12;position:fixed;inset:0;z-index:1050;isolation:isolate;overflow:hidden;overflow:clip;background:#070b1d;color:var(--cf-cream);font-family:"Fredoka","Open Sans",sans-serif;display:flex;flex-direction:column;min-height:400px}
+.cf-scene *{box-sizing:border-box}:where(.cf-scene) button{font:inherit;cursor:pointer}
+.cf-scene button:focus-visible{outline:3px solid #ffe6a8;outline-offset:4px}.cf-scene button:disabled{cursor:default}
+.cf-scene h1,.cf-scene h2,.cf-scene h3{margin:0}
+
+/* Sky and land */
+.cf-sky{position:absolute;inset:0;z-index:-5;background:linear-gradient(#070b1d 0%,#161a3a 38%,#28264a 62%,#33283f 100%);transform-origin:50% 100%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1)}
+.cf-aurora{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 22% 8%,#6f6cc026,transparent 70%),radial-gradient(ellipse 45% 30% at 78% 22%,#5aa3a61a,transparent 70%);animation:cf-aurora 26s ease-in-out infinite alternate}
+.cf-moon-wrap{position:absolute;right:9%;top:10%;width:clamp(60px,6vw,100px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#f3f0ff2e 0,#d8ddfa12 45%,transparent 70%);filter:drop-shadow(0 0 30px #e8e6ff33);transition:top 1.15s cubic-bezier(.22,.8,.28,1),right 1.15s,transform 1.15s}
+.cf-moon{display:block;width:100%;height:100%;object-fit:cover;clip-path:circle(46% at 50% 50%);opacity:.9;filter:sepia(.2) brightness(1.15)}
+.cf-landscape{position:absolute;inset:0;width:100%;height:100%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1);transform-origin:50% 100%}
+.cf-landscape .cf-twinkle{animation:cf-twinkle 4.5s ease-in-out infinite}.cf-landscape .cf-twinkle:nth-child(3n){animation-delay:-2s}
+.cf-layer-1{animation:cf-drift 60s ease-in-out infinite alternate}.cf-layer-2{animation:cf-drift 44s ease-in-out infinite alternate-reverse}
+/* The fire lights the forest floor, the nearest trees and the faces */
+.cf-warmth{position:absolute;left:50%;bottom:0;width:min(1600px,140vw);height:70vh;transform:translateX(-50%);z-index:-3;pointer-events:none;
+  background:radial-gradient(ellipse 50% 60% at 50% 100%,#ff9d4a5c 0%,#ff7a2a2e 38%,#ff6a2a0d 62%,transparent 76%);mix-blend-mode:screen;opacity:var(--fire-light);transition:opacity .15s linear}
+.cf-tint{position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.2s ease,background 1.2s ease}
+.cf-scene[data-glow=flame] .cf-tint{opacity:1;background:radial-gradient(ellipse 80% 70% at 50% 100%,#ff8a3d24,transparent 70%)}
+.cf-scene[data-glow=candle] .cf-tint{opacity:1;background:radial-gradient(ellipse 80% 70% at 50% 100%,#ffd98a18,transparent 70%)}
+.cf-scene[data-glow=moon] .cf-tint{opacity:1;background:radial-gradient(ellipse 90% 80% at 50% 20%,#7e9cff1f,transparent 70%)}
+.cf-vignette{position:absolute;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(ellipse 85% 75% at 50% 70%,transparent 50%,#03060dcc 100%)}
+.cf-sky-stars{--cf-zoom:1;--cf-pan-x:0px;--cf-pan-y:0px;--cf-look-y:0px;position:absolute;inset:2.5% 16% auto 8%;height:26%;z-index:0;pointer-events:none;
+  transform:translate3d(var(--cf-pan-x),calc(var(--cf-pan-y) + var(--cf-look-y)),0) scale(var(--cf-zoom));transform-origin:50% 50%;
+  transition:filter .8s,opacity 1s}
+.cf-sky-stars.is-gaze-animate{transition:filter .8s,opacity 1s,transform .9s cubic-bezier(.22,.8,.28,1)}
+.cf-constellation{width:100%;height:100%;overflow:visible}
+.cf-star-mark{opacity:.32;transform-origin:center;transform-box:fill-box;transform:scale(.62)}
+.cf-star-lines{opacity:0}
+.cf-star.is-waiting .cf-star-mark{opacity:0;animation:none;transform:scale(.12)}
+.cf-star.is-new .cf-star-halo{animation:cf-star-pop 2.4s ease-out 1}
+.cf-scene.is-sky-featured .cf-sky-stars,.cf-scene[data-stage=kept] .cf-sky-stars{z-index:1;filter:brightness(1.08)}
+.cf-scene.is-sky-featured .cf-star:not(.is-waiting) .cf-star-mark,
+.cf-scene[data-stage=kept] .cf-star:not(.is-waiting) .cf-star-mark{
+  opacity:1;transform:scale(1);
+  animation:cf-star-appear .85s cubic-bezier(.2,.85,.2,1) both;animation-delay:calc(var(--k, 0) * .16s + var(--i) * .04s)}
+.cf-scene.is-sky-featured .cf-star-lines,.cf-scene[data-stage=kept] .cf-star-lines{opacity:1}
+.cf-scene.is-sky-featured .cf-star-lines path,.cf-scene[data-stage=kept] .cf-star-lines path{
+  stroke-dasharray:1;stroke-dashoffset:0;animation:cf-line-draw .9s ease both;animation-delay:calc(var(--k, 0) * .16s + .42s)}
+.cf-scene.is-sky-featured .cf-star .cf-star-halo,.cf-scene[data-stage=kept] .cf-star .cf-star-halo,.cf-scene.is-sky-gaze .cf-star .cf-star-halo{animation:cf-star-breathe 3.4s ease-in-out infinite}
+.cf-scene.is-sky-gaze .cf-star:not(.is-waiting) .cf-star-mark{opacity:1;transform:scale(1);animation:none;transition:opacity .45s,transform .45s}
+.cf-scene.is-sky-gaze .cf-star-lines{opacity:1;transition:opacity .45s}
+.cf-scene.is-sky-gaze .cf-star-lines path{stroke-dashoffset:0;animation:none}
+.cf-scene[data-stage=kept] .cf-content{margin-top:clamp(28px,8vh,64px)}
+.cf-star--speak .cf-star-mark{filter:drop-shadow(0 0 2px #38bdf888)}
+.cf-star--words .cf-star-mark{filter:drop-shadow(0 0 2px #8b5cf688)}
+.cf-star--write .cf-star-mark{filter:drop-shadow(0 0 2px #fb718588)}
+.cf-star--read-listen .cf-star-mark{filter:drop-shadow(0 0 2px #14b8a688)}
+.cf-star--habit .cf-star-mark{filter:drop-shadow(0 0 2px #34d39988)}
+.cf-star--virtue .cf-star-mark{filter:drop-shadow(0 0 2px #f59e0b88)}
+.cf-sky-key{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem .9rem;margin:18px auto 0;padding:0;list-style:none;max-width:720px}
+.cf-sky-key li{display:flex;align-items:center;gap:.4rem;font-size:.8rem;letter-spacing:.06em;color:#f6ead0;font-weight:600}
+.cf-sky-key i{width:11px;height:11px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.cf-sky-key--speak i{background:#7dd3fc;color:#7dd3fc}
+.cf-sky-key--words i{background:#c4b5fd;color:#c4b5fd}
+.cf-sky-key--write i{background:#fda4af;color:#fda4af}
+.cf-sky-key--read-listen i{background:#5eead4;color:#5eead4}
+.cf-sky-key--habit i{background:#86efac;color:#86efac}
+.cf-sky-key--virtue i{background:#fcd34d;color:#fcd34d}
+
+/* Hearth */
+.cf-hearth{position:absolute;left:50%;bottom:calc(-58px * var(--cf-scale));width:480px;height:600px;transform:translateX(-50%) scale(var(--cf-scale));transform-origin:50% 100%;pointer-events:none;z-index:-2;transition:transform .9s cubic-bezier(.3,.7,.3,1),opacity .9s}
+.cf-ground-light{position:absolute;left:-150px;right:-150px;bottom:24px;height:190px;border-radius:50%;background:radial-gradient(ellipse,#f0a04a66 0%,#d9803a28 42%,transparent 72%);opacity:var(--fire-light)}
+.cf-stones{position:absolute;left:0;bottom:36px;width:480px;height:140px}
+.cf-stone-rock{filter:brightness(calc(.55 + var(--fire-light) * .5))}
+.cf-fire{position:absolute;left:0;top:0;width:480px;height:600px}
+.cf-logs{position:absolute;left:0;bottom:60px;width:480px;height:120px;filter:brightness(calc(.6 + var(--fire-light) * .45))}
+.cf-coals circle{opacity:calc(.45 + var(--fire-light) * .5)}
+.cf-scene[data-stage=question] .cf-hearth{opacity:.85}
+.cf-scene[data-stage=circle] .cf-hearth{transform:translateX(-50%) scale(calc(var(--cf-scale) * .86))}
+.cf-scene.has-moment .cf-hearth{opacity:.6}
+.cf-scene.is-sky-gaze .cf-sky{transform:none;filter:none}
+.cf-scene.is-sky-gaze .cf-landscape{transform:translateY(52%) scale(1.14)}
+.cf-scene.is-sky-gaze .cf-moon-wrap{top:16%;right:8%;transform:scale(1.28)}
+.cf-scene.is-sky-gaze .cf-hearth{transform:translateX(-50%) translateY(68%) scale(calc(var(--cf-scale) * .3));opacity:.12}
+.cf-scene.is-sky-gaze .cf-warmth{opacity:calc(var(--fire-light) * .18)}
+.cf-scene.is-sky-gaze .cf-vignette{background:radial-gradient(ellipse 100% 90% at 50% 48%,transparent 46%,#03060d88 100%)}
+.cf-scene.is-sky-gaze .cf-sky-stars{--cf-look-y:28vh;z-index:4;pointer-events:auto;filter:none;cursor:grab}
+.cf-scene.is-sky-gaze.is-panning .cf-sky-stars{cursor:grabbing}
+.cf-scene.is-sky-gaze .cf-content,
+.cf-scene.is-sky-gaze .cf-content.is-entering,
+.cf-scene.is-sky-gaze .cf-content.is-leaving,
+.cf-scene.is-sky-gaze .cf-footer,
+.cf-scene.is-sky-gaze .cf-seats{opacity:0;pointer-events:none;animation:none}
+.cf-scene.is-sky-gaze .cf-progress{opacity:.35}
+.cf-scene.is-sky-gaze .cf-top{z-index:7}
+.cf-scene.is-sky-gaze .cf-star{cursor:pointer}
+
+/* Top bar */
+.cf-top{position:relative;padding:clamp(14px,2.6vh,30px) clamp(20px,3.2vw,50px);display:flex;justify-content:space-between;align-items:center;gap:1rem;z-index:3}
+.cf-brand{display:flex;align-items:center;gap:.8rem}.cf-brand svg{width:26px;height:36px;filter:drop-shadow(0 0 12px #ffc76a55)}
+.cf-brand span{font-size:9px;letter-spacing:.24em;color:#c4bdca}.cf-brand h1{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:1.25rem;margin-top:2px}
+.cf-tools{display:flex;gap:8px}.cf-tools button{display:grid;place-items:center;padding:0;border:1px solid #f9dfb026;color:#e8ddce;border-radius:50%;height:42px;min-width:42px;background:#121a2a99;backdrop-filter:blur(4px);font-size:1rem}
+.cf-tools button:hover{background:#26304899}
+.cf-tools button[aria-pressed=true]{background:#3a2a18cc;border-color:#f2c17888;box-shadow:0 0 18px #ffb45c55}
+.cf-tools .cf-telescope{overflow:visible}
+.cf-telescope-icon{display:grid;place-items:center;width:24px;height:24px;font-size:19px;line-height:1;pointer-events:none}
+.cf-scene.is-sky-gaze .cf-tools .cf-telescope{background:#3a2a18ee;border-color:#f2c178aa;box-shadow:0 0 22px #ffb45c66}
+.cf-progress{display:flex;gap:9px;padding:8px 12px;border-radius:20px;background:#0d131f88}
+.cf-progress span{height:6px;width:6px;border-radius:50%;background:#a9a4bd44;transition:all .4s}.cf-progress .is-past{background:#c9a26a}.cf-progress .is-lit{width:20px;border-radius:4px;background:#f4ce88;box-shadow:0 0 10px #edb56d66}
+
+/* Content */
+.cf-content{position:relative;text-align:center;margin:clamp(0px,1.6vh,22px) auto 0;padding:0 2rem;width:min(1180px,95vw);z-index:2;transition:opacity .7s}
+.cf-content.is-leaving{animation:cf-stage-out .32s cubic-bezier(.4,0,.6,1) both;pointer-events:none}
+.cf-content.is-entering{animation:cf-stage-in .55s cubic-bezier(.2,.7,.3,1) both}
+.cf-eyebrow{font-size:11px;letter-spacing:.34em;color:var(--cf-gold);margin:0 0 14px;font-weight:600}
+.cf-content h2{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:clamp(30px,3.8vw,60px);line-height:1.1;margin:0 auto;max-width:980px;text-wrap:balance;text-shadow:0 2px 0 #0c0f2044,0 0 40px #ffb45c30}
+.cf-subtitle{max-width:760px;line-height:1.5;margin:16px auto 0;font-size:clamp(16px,1.4vw,21px);color:#eadfd8;text-wrap:balance}
+.cf-whisper{font-size:.95rem;color:#c3b7b2;margin:22px auto;display:block}
+
+/* 0 · Kindling */
+.cf-star-plaque{position:absolute;top:auto;left:50%;bottom:clamp(168px,28vh,250px);transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:.7rem;margin:0;padding:.7rem 1.45rem .7rem 1.1rem;border-radius:999px;pointer-events:none;
+  color:#fff6e0;font-size:clamp(16px,1.35vw,21px);letter-spacing:.01em;
+  background:
+    radial-gradient(circle at 12% 120%,rgba(255,176,80,calc(.25 + var(--cf-kindle, .12))) 0%,transparent 55%),
+    linear-gradient(180deg,#2a1c12ee,#140e18f2);
+  border:1px solid rgba(242,193,120,calc(.35 + var(--cf-kindle, .12) * .5));
+  box-shadow:0 0 calc(18px + 40px * var(--cf-kindle, .12)) rgba(255,160,70,calc(.15 + var(--cf-kindle, .12) * .55)),inset 0 1px 0 #ffe9c244;
+  transition:box-shadow .35s,border-color .35s,background .35s,opacity .45s,transform .7s cubic-bezier(.22,.8,.28,1),bottom .7s cubic-bezier(.22,.8,.28,1),top .7s cubic-bezier(.22,.8,.28,1),left .7s cubic-bezier(.22,.8,.28,1),right .7s cubic-bezier(.22,.8,.28,1),padding .45s,font-size .45s}
+.cf-star-plaque[hidden]{display:none}
+.cf-star-plaque__mark{font-size:1.35em;color:#ffd98a;text-shadow:0 0 12px #ffb45c,0 0 28px #ff8a3a88;animation:cf-plaque-spark 1.8s ease-in-out infinite}
+.cf-star-plaque__copy{font-weight:600}
+.cf-star-plaque b{font-family:"Fredoka One",sans-serif;font-weight:400;font-size:1.45em;color:#ffe7a8;min-width:1.15em;display:inline-block;text-shadow:0 0 18px #ffb45c99}
+.cf-star-plaque.is-counting{transform:translateX(-50%) scale(1.04)}
+.cf-star-plaque.is-lit{animation:cf-plaque-bloom .9s cubic-bezier(.34,1.56,.64,1) both;
+  background:radial-gradient(circle at 20% 120%,#ffb45ccc,transparent 58%),linear-gradient(180deg,#5a3218f0,#24120cf5);
+  border-color:#ffd27a;box-shadow:0 0 48px #ff9d4aaa,0 0 90px #ff7a2a55,inset 0 1px 0 #fff3}
+.cf-star-plaque.is-resting{
+  top:calc(clamp(14px,2.6vh,30px) + 4.2rem);left:calc(clamp(20px,3.2vw,50px) + 26px + .8rem);right:auto;bottom:auto;
+  transform:none;padding:.16rem .48rem .16rem .36rem;font-size:10px;gap:.28rem;letter-spacing:.02em;opacity:.9;z-index:4;
+  max-width:min(15.5rem,46vw);line-height:1.25;
+  background:radial-gradient(circle at 18% 120%,#ffb45c66,transparent 58%),linear-gradient(180deg,#3a2416e8,#160e12f0);
+  border-color:#f2c17888;box-shadow:0 0 16px #ff9d4a44,inset 0 1px 0 #ffe9c233}
+.cf-star-plaque.is-resting .cf-star-plaque__mark{font-size:1em}
+.cf-star-plaque.is-resting b{font-size:1.12em;min-width:0}
+.cf-scene.has-moment .cf-star-plaque,
+.cf-scene.is-sky-gaze .cf-star-plaque{opacity:0}
+.cf-star-plaque__burst{position:absolute;inset:-18px;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(circle,#ffe3a055,transparent 70%)}
+.cf-star-plaque.is-lit .cf-star-plaque__burst{animation:cf-plaque-burst 1.2s ease-out both}
+@keyframes cf-plaque-spark{50%{filter:brightness(1.35) drop-shadow(0 0 8px #ffd27a)}}
+@keyframes cf-plaque-bloom{from{transform:translateX(-50%) scale(.82);filter:brightness(1.8)}to{transform:translateX(-50%) scale(1)}}
+@keyframes cf-plaque-burst{from{opacity:.9;transform:scale(.6)}to{opacity:0;transform:scale(1.4)}}
+.cf-kindle-star{position:fixed;width:var(--size,26px);height:var(--size,26px);margin:calc(var(--size,26px) / -2) 0 0 calc(var(--size,26px) / -2);filter:drop-shadow(0 0 6px #ffe39a) drop-shadow(0 0 16px #ffb54a);will-change:transform,opacity}
+.cf-kindle-star svg{width:100%;height:100%;animation:cf-spin 1.4s linear infinite}
+.cf-kindle-star::after{content:"";position:absolute;left:50%;bottom:55%;width:3px;height:calc(var(--size,26px) * 2.2);transform:translateX(-50%);border-radius:3px;background:linear-gradient(to top,#ffe39acc,transparent);filter:blur(1px)}
+
+/* 1 · Word embers */
+.cf-fx{position:absolute;inset:0;pointer-events:none;z-index:6}
+.cf-fx>*{position:fixed;will-change:transform,opacity;pointer-events:none}
+.cf-word-arc{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:clamp(12px,1.6vw,26px);margin:clamp(22px,4vh,44px) auto 8px;max-width:1080px}
+.cf-ember-word{position:relative;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:1rem 1.6rem .8rem;border:0;border-radius:1.6rem;color:#fff4dc;transform:translateY(var(--lift));
+  background:radial-gradient(ellipse at 50% 120%,#ff9b45 0%,#d8612a 38%,#6b2a2a 78%);box-shadow:0 0 0 2px #ffcf8a55,0 0 28px #ff8a3d66,inset 0 2px 0 #ffe7b066,inset 0 -8px 16px #3b0f0f66;
+  animation:cf-ember-float 4.6s ease-in-out infinite;animation-delay:calc(var(--i) * -.7s);transition:transform .3s,box-shadow .3s,opacity .6s,border-radius .3s}
+.cf-ember-word.has-example,.cf-ember-word.has-art{border-radius:1.35rem;padding-bottom:1rem;max-width:16rem}
+.cf-ember-word.is-pattern{max-width:22rem;background:radial-gradient(ellipse at 50% 120%,#f0b45c 0%,#b45309 42%,#5b2418 78%)}
+.cf-ember-word__cameo{display:none;width:4.4rem;height:4.4rem;border-radius:50%;overflow:hidden;margin:.1rem 0 .35rem;border:2px solid #ffe3a8aa;box-shadow:0 0 18px #ffb45c88,inset 0 0 12px #3b0f0f55;background:radial-gradient(circle at 40% 30%,#ffe7b0,#c2410c)}
+.cf-ember-word.has-art .cf-ember-word__cameo{display:block}
+.cf-ember-word__cameo img{display:none;width:100%;height:100%;object-fit:cover}
+.cf-ember-word.has-art .cf-ember-word__cameo img[src]{display:block}
+.cf-ember-word__ex{font-style:normal;font-size:.78rem;line-height:1.35;color:#fff1d2ee;max-width:14rem;text-wrap:balance;opacity:.92}
+.cf-grammar-ex{margin:18px auto 0;max-width:720px;color:#f6e3bd;font-size:clamp(16px,1.3vw,20px);font-weight:600}
+.cf-ember-word:hover{box-shadow:0 0 0 3px #ffd98a,0 0 44px #ffae5a99,inset 0 2px 0 #ffe7b066,inset 0 -8px 16px #3b0f0f66}
+.cf-ember-word__text{font-family:"Fredoka One",sans-serif;font-size:clamp(20px,2vw,30px);text-shadow:0 2px 0 #5a1d1066,0 0 16px #ffd07a88;line-height:1.1}
+.cf-ember-word small{font-size:.72rem;letter-spacing:.06em;color:#ffe2b4cc}
+.cf-ember-word.is-burnt{opacity:.18;animation:none;transform:translateY(var(--lift)) scale(.86);box-shadow:none;filter:grayscale(.6)}
+.cf-word-count{min-height:1.4em;margin:18px 0 0;color:#f3d49e;font-size:1rem}
+.cf-flying-word{margin:-20px 0 0 -80px;width:160px;text-align:center;color:#ffe2a4;font-family:"Fredoka One",sans-serif;font-size:26px;text-shadow:0 0 16px #ffae52,0 0 30px #ff7a2a}
+.cf-rising-ember{margin:-11px 0 0 -11px;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#fffbe6 0,#ffd27a 35%,#ff8a3a88 60%,transparent 72%);box-shadow:0 0 30px 10px #ffb45c66}
+.cf-rising-ember.is-star{box-shadow:0 0 40px 16px #ffd89388}
+
+/* 2 · The question */
+.cf-starter-label{margin:28px 0 10px;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:#d8b98a}
+.cf-starters{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:0 auto}
+.cf-starters span{border-radius:18px 22px 18px 20px;padding:12px 22px;color:#3d2a1e;background:linear-gradient(170deg,#fff4dc,#f3dcb3);box-shadow:0 8px 20px #0006,inset 0 -3px 0 #d9b98388;font-size:clamp(17px,1.5vw,23px);font-weight:600;transform:rotate(calc((var(--i) - 1) * 1.2deg));animation:cf-rise .6s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(.25s + var(--i) * .12s)}
+
+/* 3 · Class glow */
+.cf-glow{display:flex;justify-content:center;gap:clamp(16px,2.4vw,36px);margin:clamp(24px,4vh,44px) auto 0}
+.cf-glow-orb{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;width:clamp(130px,12vw,180px);aspect-ratio:1;border-radius:50%;border:2px solid #f2d5a533;color:#eadfd6;
+  background:radial-gradient(circle at 50% 35%,#2a2e45,#171b2c);box-shadow:inset 0 2px 0 #ffffff14,0 12px 30px #0006;transition:transform .35s cubic-bezier(.34,1.56,.64,1),background .5s,box-shadow .5s,border-color .5s}
+.cf-glow-orb:hover{transform:translateY(-4px)}
+.cf-glow-icon{font-size:clamp(40px,3.6vw,56px);line-height:1;transition:transform .4s}
+.cf-glow-orb small{font-size:.95rem;font-weight:600}
+.cf-glow-orb[aria-pressed=true]{transform:translateY(-6px) scale(1.08)}
+.cf-glow-orb[aria-pressed=true] .cf-glow-icon{transform:scale(1.15)}
+.cf-glow-orb--flame[aria-pressed=true]{border-color:#ffb070;color:#fff3df;background:radial-gradient(circle at 50% 35%,#ff9d4a,#c2411c 60%,#6e1c16);box-shadow:0 0 0 6px #ff8a3d33,0 0 60px #ff7a2acc,inset 0 2px 0 #ffd9a0}
+.cf-glow-orb--candle[aria-pressed=true]{border-color:#ffe3a3;color:#3d2b10;background:radial-gradient(circle at 50% 35%,#fff3c9,#f0c666 60%,#a8752a);box-shadow:0 0 0 6px #ffe39a33,0 0 60px #ffd26a99,inset 0 2px 0 #fff}
+.cf-glow-orb--moon[aria-pressed=true]{border-color:#b9ccff;color:#f0f4ff;background:radial-gradient(circle at 50% 35%,#a9c1ff,#4a5fb5 60%,#1e2a66);box-shadow:0 0 0 6px #8fa9ff33,0 0 60px #7e9cffaa,inset 0 2px 0 #e3ebff}
+
+/* 4 · The oath circle */
+.cf-seats{position:absolute;left:0;right:0;bottom:calc(88px + 1vh);display:flex;align-items:flex-end;justify-content:center;padding:0 clamp(12px,2.5vw,40px);z-index:2;pointer-events:none;
+  opacity:0;transform:translateY(24px);transition:opacity .55s ease,transform .7s cubic-bezier(.2,.7,.3,1)}
+.cf-seats.is-open{opacity:1;transform:none}
+.cf-seats:not(.is-open) .cf-seat{pointer-events:none}
+.cf-seats[hidden]{display:none}
+.cf-seat-side{flex:1;display:flex;gap:clamp(14px,2vw,34px);align-items:flex-end;max-width:620px}
+.cf-seat-side.is-left{justify-content:flex-end}.cf-seat-side.is-right{justify-content:flex-start}
+.cf-seat-gap{width:calc(290px * var(--cf-scale));flex:none}
+.cf-seat{--guild:#e0a55e;--mood:#e0a55e;position:relative;width:clamp(170px,14.5vw,230px);display:flex;flex-direction:column;align-items:center;pointer-events:auto;transform:translateY(calc(var(--seat) * -44px));animation:cf-seat-in .9s cubic-bezier(.2,.8,.3,1.1) both;animation-delay:calc(var(--seat) * .15s)}
+.cf-seat.is-flame{--mood:#ff8a3d}.cf-seat.is-candle{--mood:#ffd98a}.cf-seat.is-moon{--mood:#8fa9ff}
+.cf-seat-bubble{position:relative;width:100%;padding:12px 14px;margin-bottom:14px;border-radius:18px;background:linear-gradient(170deg,#fff6e2,#f1dbb3);color:#3d2a1e;box-shadow:0 10px 26px #0007,inset 0 -3px 0 #d8b98266;transform:rotate(calc((var(--seat) - .5) * 1.5deg))}
+.cf-seat-bubble::after{content:"";position:absolute;left:50%;bottom:-9px;width:18px;height:18px;transform:translateX(-50%) rotate(45deg);background:#f1dbb3;border-radius:3px}
+.cf-seat-bubble p{margin:0;font-size:clamp(14px,1.05vw,17px);line-height:1.35;font-weight:600;text-align:center}
+.cf-seat.is-empty .cf-seat-bubble{background:#ffffff14;color:#e4d6cc;box-shadow:none;border:1px dashed #f2d5a544}.cf-seat.is-empty .cf-seat-bubble::after{display:none}
+.cf-seat-avatar{position:relative;width:clamp(80px,6.6vw,104px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#5b6480,#343c52);
+  border:3px solid var(--guild);box-shadow:0 0 0 4px #0b0f1acc,0 calc(8px * var(--fire-light)) calc(34px * var(--fire-light)) #ff9a4a88;transition:box-shadow .5s,border-color .5s}
+.cf-seat.is-flame .cf-seat-avatar,.cf-seat.is-candle .cf-seat-avatar,.cf-seat.is-moon .cf-seat-avatar{border-color:var(--mood);box-shadow:0 0 0 4px #0b0f1acc,0 0 0 8px color-mix(in srgb,var(--mood) 35%,transparent),0 0 44px var(--mood)}
+.cf-seat-avatar img,.cf-seat-avatar>span{width:100%;height:100%;border-radius:50%;object-fit:cover;display:grid;place-items:center;font-family:"Fredoka One",sans-serif;font-size:2.2rem;color:#fce9c8}
+.cf-seat-avatar::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(to top,#ff8a3a66,transparent 58%);opacity:var(--fire-light);pointer-events:none}
+.cf-crown{position:absolute;z-index:2;top:-16px;left:-10px;transform:rotate(-22deg);font-style:normal;font-size:30px;filter:drop-shadow(0 0 10px #ffc862)}
+.cf-seat-mood{position:absolute;right:-8px;bottom:-4px;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#15192a;border:2px solid var(--mood);font-size:1.1rem;animation:cf-pop-in .5s cubic-bezier(.34,1.56,.64,1)}
+.cf-seat-name{margin-top:10px!important;font-family:"Fredoka One",sans-serif;font-weight:400;font-size:clamp(18px,1.4vw,22px);color:#fff0d4;text-shadow:0 2px 8px #000c}
+.cf-seat-orbs{display:flex;gap:10px;margin-top:10px}
+.cf-orb{display:grid;place-items:center;width:clamp(42px,3.4vw,52px);aspect-ratio:1;border-radius:50%;border:2px solid #f2d5a533;background:#161b2cdd;font-size:clamp(18px,1.5vw,24px);transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .4s,box-shadow .4s,border-color .4s}
+.cf-orb:hover{transform:translateY(-3px)}
+.cf-orb--flame[aria-pressed=true]{background:radial-gradient(circle,#ff9d4a,#b8361a);border-color:#ffb070;box-shadow:0 0 24px #ff7a2acc;transform:scale(1.12)}
+.cf-orb--candle[aria-pressed=true]{background:radial-gradient(circle,#fff0bf,#d9a441);border-color:#ffe3a3;box-shadow:0 0 24px #ffd26a99;transform:scale(1.12)}
+.cf-orb--moon[aria-pressed=true]{background:radial-gradient(circle,#b3c8ff,#3f519f);border-color:#b9ccff;box-shadow:0 0 24px #7e9cffaa;transform:scale(1.12)}
+
+/* Early years: class promise */
+.cf-hands{margin-top:30px;border:2px solid #f2c178;background:radial-gradient(ellipse at 50% 120%,#ff9b45,#8a3a24 70%);color:#fff2d6;border-radius:999px;padding:18px 34px;font-family:"Fredoka One",sans-serif;font-size:1.3rem;box-shadow:0 0 44px #ff8a3d55}
+
+/* 5 · Kept: medallions and the moment */
+.cf-medallions{display:flex;justify-content:center;flex-wrap:wrap;gap:22px;margin:30px auto 0}
+.cf-medallion{width:250px;padding:22px 18px 18px;border-radius:28px;background:radial-gradient(ellipse at 50% 0,#4a3a2e,#1d1a26 70%);border:2px solid #f2c17866;box-shadow:0 0 50px #ffb45c26,0 16px 36px #0008;animation:cf-rise .7s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i) * .12s)}
+.cf-medallion-avatar{width:84px;height:84px;margin:0 auto 10px;border-radius:50%;overflow:hidden;display:grid;place-items:center;border:3px solid #ffd98a;box-shadow:0 0 0 6px #ffd98a22,0 0 36px #ffc26688;background:#3a3f55}
+.cf-medallion-avatar img,.cf-medallion-avatar span{width:100%;height:100%;object-fit:cover;display:grid;place-items:center;font-family:"Fredoka One",sans-serif;font-size:2rem;color:#fce9c8}
+.cf-medallion h3{font-family:"Fredoka One",sans-serif;font-weight:400;font-size:1.3rem;color:#ffe9c2}
+.cf-medallion p{margin:6px 0 14px;font-size:.95rem;line-height:1.4;color:#eadfd6}
+.cf-medallion button{border:0;border-radius:999px;padding:11px 20px;font-family:"Fredoka One",sans-serif;color:#3a1e0c;background:linear-gradient(135deg,#ffe39a,#f5a54a);box-shadow:0 0 24px #ffb45c88;animation:cf-glow-pulse 2.2s ease-in-out infinite}
+.cf-moment{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vh,24px);padding:2rem;background:radial-gradient(ellipse at 50% 40%,#1c1532f0,#05060efa 70%);animation:cf-fade .6s ease both}
+.cf-scene.has-moment .cf-footer,.cf-scene.has-moment .cf-content,.cf-scene.has-moment .cf-top{opacity:0;pointer-events:none;transition:opacity .5s}
+.cf-moment[hidden]{display:none}
+.cf-moment-glow{position:absolute;left:50%;top:50%;width:min(90vmin,900px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.3);border-radius:50%;background:radial-gradient(circle,#ffcf7a55,#ff8a3d1a 45%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 1.2s,transform 1.6s cubic-bezier(.2,.8,.2,1)}
+.cf-moment-rays{position:absolute;left:50%;top:50%;width:min(110vmin,1100px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.2);opacity:0;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,#ffe7a01c 0deg 5deg,transparent 5deg 16deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);transition:opacity 1.4s,transform 1.8s cubic-bezier(.2,.8,.2,1)}
+.cf-moment-stage{position:relative;width:clamp(200px,34vmin,380px);aspect-ratio:1;flex:none;margin-top:-2vh;overflow:visible}
+.cf-moment-star{
+  /* Painted core of star-ember.png is 2.6% below the file midpoint. max-width:none
+     beats Tailwind img{max-width:100%}, which was shifting the 136% asset left of the burst. */
+  --cf-star-core-y: 52.6%;
+  position:absolute;left:-18%;width:136%;height:136%;max-width:none;max-height:none;top:calc(-18% - 3.54%);
+  object-fit:contain;opacity:0;transform:scale(.2) rotate(-40deg);
+  transform-origin:50% var(--cf-star-core-y);transition:opacity .9s,transform 1.4s cubic-bezier(.2,1.4,.3,1)}
+.cf-moment-burst{position:absolute;left:50%;top:50%}
+.cf-moment-burst i{position:absolute;width:10px;height:10px;margin:-5px;border-radius:50%;background:hsl(calc(30 + var(--i) * 3) 100% 70%);box-shadow:0 0 12px #ffcf7a;opacity:0;--a:calc(var(--i) * 20deg)}
+.cf-moment-text{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;opacity:0;transform:translateY(20px);transition:opacity .8s .5s,transform .8s .5s}
+.cf-moment-avatar{width:92px;height:92px;margin-bottom:10px;border-radius:50%;overflow:hidden;display:grid;place-items:center;border:3px solid #ffd98a;box-shadow:0 0 0 8px #ffd98a22,0 0 50px #ffc26699;background:#3a3f55}
+.cf-moment-avatar img,.cf-moment-avatar span{width:100%;height:100%;object-fit:cover;display:grid;place-items:center;font-family:"Fredoka One",sans-serif;font-size:2.3rem;color:#fce9c8}
+.cf-moment-text h2{font-family:"Fredoka One",sans-serif;font-weight:400;font-size:clamp(34px,4.2vw,64px);line-height:1.05;background:linear-gradient(180deg,#fff6d8,#ffc766 60%,#f08a3a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 18px #ff9d4a55)}
+.cf-moment-quote{max-width:720px;margin:14px auto 22px;font-size:clamp(18px,1.6vw,24px);line-height:1.4;color:#f3e6d6;font-style:italic}
+.cf-moment.is-bloomed .cf-moment-glow{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.cf-moment.is-bloomed .cf-moment-rays{opacity:1;transform:translate(-50%,-50%) scale(1);animation:cf-rays 40s linear infinite}
+.cf-moment.is-bloomed .cf-moment-star{opacity:1;transform:scale(1) rotate(0);animation:cf-star-float 4s ease-in-out 1.4s infinite}
+.cf-moment.is-bloomed .cf-moment-burst i{animation:cf-burst 1.5s cubic-bezier(.1,.7,.3,1) forwards}
+.cf-moment.is-bloomed .cf-moment-text{opacity:1;transform:none}
+.cf-moment.is-leaving .cf-moment-star,.cf-moment.is-leaving .cf-moment-rays,.cf-moment.is-leaving .cf-moment-glow{opacity:0;transition:opacity .5s}
+.cf-moment.is-leaving .cf-moment-text{opacity:0;transition:opacity .4s;transform:none}
+
+.cf-sleep-mark{width:24px;margin:22px auto 0;opacity:.6}
+
+/* Footer */
+.cf-footer{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:auto;padding:14px clamp(20px,3.2vw,50px);min-height:74px;z-index:7;pointer-events:none}
+.cf-footer>*{pointer-events:auto}
+.cf-quiet{color:#d7ccc4;border:0;background:#0d131f99;border-radius:12px;padding:10px 14px;font-size:.85rem}
+.cf-next{border:1px solid #e1b475;background:linear-gradient(#f0c587,#cc9154);box-shadow:inset 0 1px #fff0bf88,0 6px 22px #0005,0 0 30px #ffb45c33;color:#2f241d;border-radius:16px;padding:13px 26px;font-weight:600;font-size:1rem}
+.cf-nav{display:flex;gap:12px;align-items:center}
+.cf-error{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);max-width:80vw;padding:12px 20px;border-radius:14px;background:#713c38;color:#fff2e6;z-index:8;font-size:.9rem}
+.cf-gaze-hint{position:absolute;left:50%;bottom:1.35rem;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:.55rem;padding:.45rem .55rem .45rem 1rem;border-radius:999px;
+  background:#12182ccc;border:1px solid #f2c17844;color:#f6ead0;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .6s;backdrop-filter:blur(8px)}
+.cf-scene.is-sky-gaze .cf-gaze-hint:not([hidden]){opacity:1;pointer-events:auto;visibility:visible}
+.cf-gaze-hint span{font-size:.82rem;letter-spacing:.04em;white-space:nowrap}
+.cf-gaze-hint button{border:1px solid #f9dfb044;color:#e8ddce;border-radius:50%;height:36px;min-width:36px;background:#1a2238cc;font-size:1rem}
+.cf-gaze-hint button:hover{background:#2a3450cc}
+.cf-gaze-hint button[data-action=telescope]{border-radius:999px;padding:0 14px;min-width:auto;letter-spacing:.03em;font-size:.82rem}
+.cf-star-peek{position:fixed;z-index:9;transform:translate(-50%,calc(-100% - 16px));padding:.75rem 1.15rem .8rem;border-radius:1.15rem;min-width:8.5rem;max-width:17rem;text-align:center;pointer-events:none;
+  background:linear-gradient(180deg,#24182ef5,#0e101cf7);border:1px solid #f2c17877;box-shadow:0 14px 40px #000a,0 0 32px #ffd98a44;color:#fff6e0;
+  animation:cf-peek-in .22s cubic-bezier(.2,.8,.3,1) both}
+.cf-star-peek[hidden]{display:none;animation:none}
+.cf-star-peek b{display:block;font-family:"Fredoka One",sans-serif;font-weight:400;font-size:1.15rem;color:#ffe9c2}
+.cf-star-peek p{margin:.25rem 0 0;font-size:.88rem;line-height:1.35;color:#eadfd6}
+.cf-star-peek b:empty{display:none}
+.cf-star-peek.is-below{transform:translate(-50%, 14px)}
+.cf-star-peek.is-below{animation:cf-peek-in-below .22s cubic-bezier(.2,.8,.3,1) both}
+@keyframes cf-peek-in{from{opacity:0;transform:translate(-50%,calc(-100% - 6px)) scale(.94)}to{opacity:1;transform:translate(-50%,calc(-100% - 16px)) scale(1)}}
+@keyframes cf-peek-in-below{from{opacity:0;transform:translate(-50%, 4px) scale(.94)}to{opacity:1;transform:translate(-50%, 14px) scale(1)}}
+
+@keyframes cf-rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes cf-stage-out{to{opacity:0;transform:translateY(-16px)}}
+@keyframes cf-stage-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes cf-fade{from{opacity:0}}
+@keyframes cf-pop-in{from{opacity:0;transform:scale(.6)}}
+@keyframes cf-seat-in{from{opacity:0;transform:translateY(calc(var(--seat) * -44px + 30px)) scale(.9)}}
+@keyframes cf-ember-float{50%{transform:translateY(calc(var(--lift) - 7px))}}
+@keyframes cf-twinkle{50%{opacity:.15}}
+@keyframes cf-drift{to{transform:translateX(-18px)}}
+@keyframes cf-aurora{to{opacity:.55;transform:translateX(2%)}}
+@keyframes cf-spin{to{transform:rotate(360deg)}}
+@keyframes cf-star-appear{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:scale(1)}}
+@keyframes cf-line-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes cf-star-pop{0%{r:4}30%{r:13;fill:#ffe3a766}100%{r:9}}
+@keyframes cf-star-breathe{50%{r:11;fill:#ffd89328}}
+@keyframes cf-glow-pulse{50%{box-shadow:0 0 40px #ffc26acc}}
+@keyframes cf-rays{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes cf-star-float{50%{transform:translateY(-8px) scale(1.03)}}
+@keyframes cf-burst{0%{opacity:1;transform:rotate(var(--a)) translateY(0) scale(1)}100%{opacity:0;transform:rotate(var(--a)) translateY(-190px) scale(.3)}}
+
+@media(max-height:760px){.cf-content h2{font-size:clamp(26px,3.2vw,44px)}.cf-subtitle{margin-top:10px}.cf-word-arc{margin-top:16px}.cf-glow{margin-top:18px}.cf-seats{bottom:80px}.cf-seat-bubble{padding:9px 11px}}
+@media(max-width:1100px){.cf-seat{width:clamp(150px,19vw,200px)}.cf-seat-gap{width:calc(230px * var(--cf-scale))}}
+.cf-scene.cf-still .cf-aurora,.cf-scene.cf-still .cf-layer-1,.cf-scene.cf-still .cf-layer-2{animation:none}
+.cf-scene.cf-still .cf-star-mark{animation:none;opacity:1}
+.cf-scene.cf-still .cf-star-lines{opacity:1}
+.cf-scene.cf-still .cf-star-lines path{animation:none;stroke-dashoffset:0}
+.cf-scene.cf-still .cf-sky,.cf-scene.cf-still .cf-landscape,.cf-scene.cf-still .cf-moon-wrap,.cf-scene.cf-still .cf-hearth,.cf-scene.cf-still .cf-sky-stars,.cf-scene.cf-still .cf-star-plaque{transition:none}
+.cf-scene.cf-still .cf-star-peek{animation:none}
+
+/* ── Words feed the fire ── */
+.cf-word-ghost{position:fixed;transform:translate(-50%,-50%);font-family:"Fredoka One",sans-serif;font-size:clamp(30px,3vw,46px);color:#fff3cf;white-space:nowrap;
+  text-shadow:0 0 12px #ffd27a,0 0 30px #ff9d4a,0 0 60px #ff7a2a;animation:cf-ghost 2.5s cubic-bezier(.2,.7,.3,1) forwards;pointer-events:none}
+.cf-feed-ring{position:fixed;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid #ffd27a;box-shadow:0 0 30px #ffb45c,inset 0 0 20px #ffb45c;animation:cf-ring 1.1s ease-out forwards;pointer-events:none}
+.cf-word-count.is-bumping{animation:cf-pop-in .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cf-ghost{0%{opacity:0;transform:translate(-50%,-30%) scale(.6);filter:blur(4px)}18%{opacity:1;transform:translate(-50%,-60%) scale(1.05);filter:blur(0)}100%{opacity:0;transform:translate(-50%,-420%) scale(1.25);filter:blur(6px)}}
+@keyframes cf-ring{from{opacity:1;transform:scale(.3)}to{opacity:0;transform:scale(7)}}
+
+/* ── Check-ins react in place ── */
+.cf-seat.is-reacting .cf-seat-avatar{animation:cf-avatar-react .8s cubic-bezier(.34,1.56,.64,1)}
+.cf-seat-mood.is-new{animation:cf-pop-in .5s cubic-bezier(.34,1.56,.64,1)}
+.cf-react{position:absolute;inset:0;pointer-events:none}
+.cf-react-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--mood);box-shadow:0 0 24px var(--mood);animation:cf-react-ring .9s ease-out forwards}
+.cf-react-dot{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--mood);box-shadow:0 0 10px var(--mood);font-style:normal;font-size:12px;line-height:8px;color:#fff;text-align:center;opacity:0;animation:cf-react-dot var(--t,.9s) cubic-bezier(.1,.7,.3,1) forwards}
+.cf-react--moon .cf-react-dot{background:transparent;box-shadow:none;color:#dbe5ff;text-shadow:0 0 8px #8fa9ff;font-size:14px}
+.cf-react--flame .cf-react-dot:nth-child(odd){background:#ffd27a}
+@keyframes cf-react-ring{from{opacity:1;transform:scale(.8)}to{opacity:0;transform:scale(1.9)}}
+@keyframes cf-react-dot{0%{opacity:1;transform:rotate(var(--a)) translateY(0) scale(1.2)}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(.4)}}
+@keyframes cf-avatar-react{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}
+
+/* ── The moment's backdrop fades so the star is seen flying into the real sky ── */
+.cf-moment{background:none}
+.cf-moment::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 40%,#1c1532f0,#05060efa 70%);transition:opacity .7s ease}
+.cf-moment.is-leaving::before{opacity:0}
+.cf-traveller{position:fixed;width:110px;height:110px;margin:-55px 0 0 -55px;pointer-events:none;border-radius:50%;background:radial-gradient(circle,#fff8dd 0,#ffd27a55 30%,transparent 62%);filter:drop-shadow(0 0 14px #ffd27a) drop-shadow(0 0 30px #ff9d4a)}
+.cf-traveller svg{width:100%;height:100%;animation:cf-spin 1.2s linear infinite}
+.cf-trail{position:fixed;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:radial-gradient(circle,#fff6d6,#ffc766 45%,transparent 70%);animation:cf-trail .9s ease-out forwards;pointer-events:none}
+@keyframes cf-trail{from{opacity:.95;transform:scale(1.4)}to{opacity:0;transform:scale(.2) translateY(6px)}}
+.cf-land{position:fixed;width:0;height:0;pointer-events:none}
+.cf-land i{position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;border:2px solid #ffe3a0;box-shadow:0 0 18px #ffd27a;animation:cf-land-ring 1.2s ease-out forwards}
+.cf-land i+i{animation-delay:.18s}
+.cf-land b{position:absolute;left:-1px;top:-1px;width:2px;height:26px;border-radius:2px;background:linear-gradient(#fff6d6,transparent);transform-origin:1px 1px;transform:rotate(var(--a));opacity:0;animation:cf-land-ray 1.1s ease-out forwards}
+@keyframes cf-land-ring{from{opacity:1;transform:scale(.2)}to{opacity:0;transform:scale(4)}}
+@keyframes cf-land-ray{0%{opacity:0;transform:rotate(var(--a)) scaleY(.2)}30%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) scaleY(1.8)}}
+.cf-star-name{position:fixed;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:#120f22cc;border:1px solid #ffd98a66;color:#ffe9c2;font-family:"Fredoka One",sans-serif;font-size:15px;white-space:nowrap;animation:cf-name 4.2s ease forwards;pointer-events:none}
+@keyframes cf-name{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0}}
+.cf-line-new{stroke:#ffe3a0;stroke-opacity:.9;stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1;animation:cf-draw 1.4s .3s ease-out forwards}
+@keyframes cf-draw{to{stroke-dashoffset:0}}
+.cf-star.is-landed .cf-star-halo{animation:cf-star-pop 2.4s ease-out 1}

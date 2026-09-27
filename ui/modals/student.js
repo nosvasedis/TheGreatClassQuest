@@ -482,6 +482,7 @@ export async function openQuestAssignmentModal() {
     }
 
     showAnimatedModal('quest-assignment-modal');
+    import('../../features/bookProgress.js').then(m => m.attachBookRecognition(classId)).catch(console.error);
 
     try {
         const q = query(

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hero Campfire · Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+body{background:linear-gradient(#ecfeff,#f8fafc);margin:0;font-family:'Open Sans',sans-serif;color:#334155}
+.studio{max-width:980px;margin:0 auto;padding:36px 20px 80px}
+.studio h1{font-family:'Fredoka One',sans-serif;color:#0f766e;font-size:2.4rem;margin:0}
+.studio section{margin-top:24px;background:#fff;border-radius:1.6rem;padding:22px;border:2px solid #e0f2f1;box-shadow:0 10px 30px #0f766e12}
+.studio h2{margin:0 0 12px;font-size:.8rem;letter-spacing:.18em;color:#0d9488}
+.studio .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.studio label{display:grid;gap:6px;font-weight:700;font-size:.85rem}
+.studio select{padding:10px;border-radius:12px;border:2px solid #ccfbf1}
+.studio .go{border:0;border-radius:14px;padding:12px 18px;font-family:'Fredoka One',sans-serif;color:#fff;background:linear-gradient(135deg,#0d9488,#06b6d4);cursor:pointer}
+</style></head>
+<body><div id="toast-container" class="fixed top-24 left-0 w-full z-[1300] px-4 pointer-events-none" role="status" aria-live="polite"></div>
+<main id="app-screen" class="studio">
+<small>THE GREAT CLASS QUEST · LOCAL STUDIO (no records are written)</small>
+<h1>Hero Campfire studio</h1>
+
+<section><h2>ADVENTURE LOG · ENTRY STATES</h2>
+<p style="margin:0 0 6px;font-size:.8rem;color:#64748b">No class in the header:</p>
+<div class="al-primary-actions" id="entry-oaths-off"><button class="al-primary-btn al-primary-btn--log" disabled><i class="fas fa-feather-alt"></i><span>Log Today's Adventure</span></button><button class="al-primary-btn al-primary-btn--heroes" disabled><i class="fas fa-crown"></i><span>Hall of Heroes</span></button></div>
+<p style="margin:18px 0 6px;font-size:.8rem;color:#64748b">Class selected:</p>
+<div class="al-primary-actions" id="entry-oaths"><button class="al-primary-btn al-primary-btn--log" disabled><i class="fas fa-feather-alt"></i><span>Log Today's Adventure</span></button><button class="al-primary-btn al-primary-btn--heroes"><i class="fas fa-crown"></i><span>Hall of Heroes</span></button></div>
+<p style="margin:18px 0 6px;font-size:.8rem;color:#64748b">After Hero of the Day:</p>
+<div class="al-primary-actions" id="entry-lit" style="margin-top:0;border:0;padding-top:0"></div>
+<p style="margin:18px 0 6px;font-size:.8rem;color:#64748b">After the ritual:</p>
+<div class="al-primary-actions" id="entry-held" style="margin-top:0;border:0;padding-top:0"></div>
+</section>
+
+<section><h2>QUEST ASSIGNMENT · BOOK RECOGNITION</h2>
+<div class="row" style="margin-bottom:10px"><button class="go" style="padding:8px 12px;font-size:.8rem" data-sample="PP2 un.4 pp.78-80">PP2 un.4 pp.78-80</button><button class="go" style="padding:8px 12px;font-size:.8rem" data-sample="SB p.42, GB unit 5, words: bakery, market">SB p.42, GB unit 5, words: bakery, market</button><button class="go" style="padding:8px 12px;font-size:.8rem" data-sample="p.110-112">p.110-112</button><button class="go" style="padding:8px 12px;font-size:.8rem" data-sample="CU B1+ u.2 p.17">CU B1+ u.2 p.17</button><button class="go" style="padding:8px 12px;font-size:.8rem" data-sample="Read the story and learn the words">Read the story and learn the words</button></div>
+<div style="max-width:520px"><div class="notebook-container"><textarea id="quest-assignment-textarea" rows="4" class="notebook-textarea"></textarea></div></div></section>
+
+<section><h2>EMBER OATHS BOARD</h2><div class="row">
+<label>Class band<select id="board-band"><option value="Junior B">Junior B</option><option value="A">A</option><option value="D">D</option><option value="Pre-Junior">Pre-Junior (class promise)</option></select></label>
+<button class="go" id="open-board">Open the Oath Board</button></div></section>
+
+<section><h2>PROJECTOR SCENE</h2><form id="preview-form" class="row">
+<label>Class band<select id="band"><option value="Nursery">Early years · shared promise</option><option value="Junior A">Junior</option><option value="A" selected>Middle</option><option value="D">Upper</option><option value="Lower">Exam</option></select></label>
+<label>Rendering<select id="tier"><option value="auto">Automatic</option><option value="low">Low · 50 particles / 30 fps</option><option value="mid">Mid · 90</option><option value="high">High · 140</option><option value="reduced">Reduced motion</option></select></label>
+<button class="go">Gather at the Campfire →</button></form></section>
+</main>
+<script type="module">
+import * as state from './state.js';
+import { openCampfireScene } from './features/campfire/campfireScene.js';
+import { buildCampfireScript } from './features/heroCampfireCore.mjs';
+import { getLeagueBand } from './features/languageScaffolds.mjs';
+import { campfireChipMarkup, oathsButtonMarkup } from './features/campfireEntry.js';
+import { createOathDraft, addOathCheckIn } from './features/emberOathCore.mjs';
+
+const face = (emoji, bg) => 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="' + bg + '"/><text x="32" y="44" font-size="36" text-anchor="middle">' + emoji + '</text></svg>');
+const students = [
+  { id: 'a', name: 'Alex', guildId: 'dragon_flame', avatar: face('🦊', '#fde68a') }, { id: 'b', name: 'Maya', guildId: 'owl_wisdom', avatar: face('🐼', '#bfdbfe') },
+  { id: 'c', name: 'Sam', guildId: 'grizzly_might' }, { id: 'd', name: 'Robin', guildId: 'phoenix_rising', avatar: face('🦁', '#fecdd3') },
+  { id: 'e', name: 'Eleni', avatar: face('🐯', '#fed7aa') }, { id: 'f', name: 'Nikos' }, { id: 'g', name: 'Sofia', guildId: 'owl_wisdom' }, { id: 'h', name: 'Yannis', avatar: face('🐸', '#bbf7d0') }
+];
+document.getElementById('entry-oaths-off').insertAdjacentHTML('beforeend', '<div class="campfire-entry">' + oathsButtonMarkup({ disabled: true }) + '</div>');
+document.getElementById('entry-oaths').insertAdjacentHTML('beforeend', '<div class="campfire-entry">' + oathsButtonMarkup({ ready: 2 }) + '</div>');
+document.getElementById('entry-lit').insertAdjacentHTML('beforeend', '<div class="campfire-entry">' + campfireChipMarkup({ igniting: true, ready: 2 }) + '</div>');
+document.getElementById('entry-held').insertAdjacentHTML('beforeend', '<div class="campfire-entry">' + campfireChipMarkup({ held: true }) + '</div>');
+
+// ─── Book recognition ───
+state.set('allTeachersClasses', [{ id: 'studio', name: 'B · Tuesday', questLevel: 'B', bookPlan: { currentBookId: 'primary-path-2', component: 'sb', unit: 3 } }]);
+import('./features/bookProgress.js').then(m => {
+  const ta = document.getElementById('quest-assignment-textarea');
+  m.attachBookRecognition('studio', { force: true });
+  document.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => { ta.value = b.dataset.sample; ta.oninput(); });
+});
+
+// ─── In-memory Oath Board ───
+document.getElementById('open-board').onclick = async () => {
+  const league = document.getElementById('board-band').value, classId = 'studio', today = new Date().toISOString().slice(0, 10);
+  const cls = { id: classId, name: league + ' · Tuesday', questLevel: league, campfireEnabled: true, classOath: null };
+  state.setAllTeachersClasses([cls]);
+  state.setAllStudents(students.map(s => ({ ...s, classId })));
+  state.setAllAwardLogs([{ studentId: 'a', reason: 'teamwork', stars: 1, date: today, classId }, { studentId: 'a', reason: 'focus', stars: 1, date: today, classId }]);
+  state.setAllWrittenScores([]);
+  const { oathTemplates } = await import('./features/emberOathCore.mjs');
+  const t = oathTemplates(league), base = { classId, teacherId: 'me', schoolYearKey: '2026-2027', date: '2026-09-15' };
+  let n = 0;
+  const make = (tpl, studentId, extra = {}) => ({ id: 'o' + (++n), ...createOathDraft(tpl, { ...base, studentId }), ...extra });
+  let oaths = [
+    make(t[0], 'a', { checkIns: [{ date: '2026-09-20', mood: 'candle' }, { date: today, mood: 'flame' }], evidence: [{ kind: 'manual', label: 'Spoke up in English', date: '2026-09-18', refId: 'x1' }, { kind: 'manual', label: 'Asked a question in English', date: '2026-09-22', refId: 'x2' }] }),
+    make(t[5], 'b', { private: true, projectorText: 'A secret oath', evidence: [{ kind: 'virtue', label: 'Teamwork observed', date: '2026-09-21', refId: 'x3' }] }),
+    make(t[1], 'd', { checkIns: [{ date: '2026-09-21', mood: 'moon' }] }),
+    make(t[4], 'e'),
+    make(t[2], 'a', { status: 'kept', legendLine: 'Kept a promise.', keptAt: { seconds: 1 } }),
+    make(t[3], 'h', { status: 'kept', legendLine: 'Kept a promise.', keptAt: { seconds: 2 } })
+  ];
+  const api = {
+    oathContext: () => ({ teacherId: 'me', schoolYearKey: '2026-2027' }),
+    loadEmberOaths: async () => oathes(),
+    ensureEmberOathsListener() {},
+    createEmberOath: async (tpl, o) => { const oath = make(tpl, o.studentId, { text: o.text, private: !!o.private, projectorText: o.private ? 'A secret oath' : o.text }); oaths.push(oath); return oath; },
+    checkInEmberOath: async (id, mood) => { const o = oaths.find(x => x.id === id); o.checkIns = addOathCheckIn(o, mood, today); return { ...o }; },
+    addEmberEvidence: async (id, label) => { const o = oaths.find(x => x.id === id); o.evidence = [...o.evidence, { kind: 'manual', label, date: today, refId: String(Math.random()) }]; },
+    getOathFacts: async () => ({ awards: [], writtenScores: [], quizzes: [], today }),
+    keepEmberOath: async id => { const o = oaths.find(x => x.id === id); Object.assign(o, { status: 'kept', legendLine: 'Kept a promise: ' + o.text, keptAt: { seconds: Date.now() / 1000 } }); return { ...o }; },
+    releaseEmberOath: async id => { oaths.find(x => x.id === id).status = 'released'; },
+    setClassCampfireEnabled: async (id, on) => { cls.campfireEnabled = on; }
+  };
+  function oathes() { return oaths.map(o => ({ ...o })); }
+  const { openOathBoard } = await import('./ui/modals/emberOaths.js');
+  await openOathBoard(classId, { preview: { api } });
+};
+
+// ─── Projector scene ───
+document.getElementById('preview-form').onsubmit = e => {
+  e.preventDefault(); const league = document.getElementById('band').value, tier = document.getElementById('tier').value, date = '2026-09-27';
+  const script = buildCampfireScript({ league, date, presentIds: students.slice(0, 4).map(s => s.id), recentQuestionKeys: [], random: () => 0,
+    words: ['family', 'home', 'friend', 'lion'],
+    atlasWords: [
+      { w: 'family', pos: 'n', example: 'We are five people in my family.' },
+      { w: 'home', pos: 'n', example: 'My home is near the school.' },
+      { w: 'friend', pos: 'n', example: 'My friend is kind.' },
+      { w: 'lion', pos: 'n', example: 'A lion lives in the wild.' }
+    ],
+    continuity: 'first',
+    lessonTarget: { bookId: 'primary-path-1', component: 'sb', unit: 1, page: 8, summary: 'Cambridge Primary Path 1 · Unit 1 · What is a family? · p. 8', theme: '', bigQuestion: 'What is a family?', grammar: 'be: affirmative, negative and questions' },
+    next: { nextBigQuestion: 'What is school like?' } });
+  const oaths = students.slice(0, 4).map((s, i) => ({ id: 'o' + i, studentId: s.id, category: ['speak', 'virtue', 'habit', 'words'][i], private: i === 1, text: ['I share an idea in English.', 'A personal promise', 'I help someone take a turn.', 'I practise a little between lessons.'][i], status: 'active', checkIns: [], evidence: i === 0 ? [{ kind: 'manual', date, label: 'Shared a sentence' }] : [] }));
+  oaths.push(
+    { id: 'old1', studentId: 'a', status: 'kept', category: 'speak', legendLine: 'A little courage, shared.', keptAt: { seconds: 1 } },
+    { id: 'old1b', studentId: 'e', status: 'kept', category: 'speak', legendLine: 'Another spoken promise.', keptAt: { seconds: 2 } },
+    { id: 'old4', studentId: 'd', status: 'kept', category: 'words', legendLine: 'New words, used with care.', keptAt: { seconds: 3 } },
+    { id: 'old4b', studentId: 'f', status: 'kept', category: 'words', legendLine: 'A new word, spoken.', keptAt: { seconds: 4 } },
+    { id: 'old5', studentId: 'h', status: 'kept', category: 'write', legendLine: 'A sentence, improved.', keptAt: { seconds: 5 } },
+    { id: 'old5b', studentId: 'g', status: 'kept', category: 'write', legendLine: 'A little extra, written.', keptAt: { seconds: 6 } },
+    { id: 'old6', studentId: 'c', status: 'kept', category: 'read/listen', legendLine: 'A story, retold.', keptAt: { seconds: 7 } },
+    { id: 'old6b', studentId: 'b', status: 'kept', category: 'read/listen', legendLine: 'A question, answered from the page.', keptAt: { seconds: 8 } },
+    { id: 'old3', studentId: 'b', status: 'kept', category: 'habit', legendLine: 'A small habit, kept.', keptAt: { seconds: 9 } },
+    { id: 'old3b', studentId: 'c', status: 'kept', category: 'habit', legendLine: 'Ready to learn, again.', keptAt: { seconds: 10 } },
+    { id: 'old2', studentId: 'a', status: 'kept', category: 'virtue', legendLine: 'A kind hand, offered.', keptAt: { seconds: 11 } },
+    { id: 'old2b', studentId: 'd', status: 'kept', category: 'virtue', legendLine: 'A friend, invited in.', keptAt: { seconds: 12 } }
+  );
+  script.readyOathIds = ['o0'];
+  const performance = tier === 'auto' ? {} : tier === 'reduced' ? { tier: 'low', particles: 50, fps: 30, dpr: 1, reducedMotion: true } : { tier, particles: { low: 50, mid: 90, high: 140 }[tier], fps: tier === 'low' ? 30 : 60, dpr: tier === 'low' ? 1 : 1.5 };
+  openCampfireScene({ session: { id: 'preview', classId: 'preview', date, stars: 22, starsToday: 22, league, band: getLeagueBand(league), status: 'lit', script, heroStudentId: 'a' }, students: students.slice(0, 4), oaths, preview: true, performance });
+};
+</script></body></html>

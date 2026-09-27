@@ -211,6 +211,9 @@ function buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions
             { role: 'user', content: userPrompt }
         ]
     };
+    if (Number.isFinite(requestOptions.maxTokens) && requestOptions.maxTokens > 0) {
+        base.max_tokens = Math.min(1200, Math.floor(requestOptions.maxTokens));
+    }
     return base;
 }
 

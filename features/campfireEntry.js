@@ -1,0 +1,120 @@
+// Hero Campfire entry points: the hearth button in the Adventure Log (under Log / Hall of Heroes),
+// a small Home pill, and the Oath Board shortcut. The heavy scene and service load only on click.
+import * as state from '../state.js';
+import { canUseFeature } from '../utils/subscription.js';
+import { getTodayDateString, getLocalIsoDateString } from '../utils.js';
+import { showToast } from '../ui/effects.js';
+
+const FLAME = '<svg class="campfire-flame" viewBox="0 0 48 64" aria-hidden="true">' +
+    '<path class="campfire-flame__outer" fill="#fa7844" d="M25 1C38 20 47 29 43 43 39 60 13 65 5 47-2 30 16 23 16 12c6 5 8 9 7 14C30 17 30 9 25 1Z"/>' +
+    '<path class="campfire-flame__mid" fill="#ffc969" d="M25 20c10 13 14 20 9 29-5 10-20 9-23-1-3-11 9-17 10-23l4 10c4-5 3-9 0-15Z"/>' +
+    '<path class="campfire-flame__core" fill="#fff5c8" d="M24 37c4 7 10 11 5 16-5 6-13 1-11-5 1-4 5-6 6-11Z"/></svg>';
+const completed = new Set();
+const igniting = new Set();
+const dismissKey = classId => 'gcq_campfire_dismissed_' + classId + '_' + getLocalIsoDateString();
+const isDismissed = classId => { try { return localStorage.getItem(dismissKey(classId)) === '1'; } catch { return false; } };
+
+/** Pure markup (also used by the preview harness). */
+export function campfireChipMarkup({ held = false, igniting: ignite = false, compact = false, oaths = true, ready = 0 } = {}) {
+    const sparks = ignite ? '<span class="campfire-chip__sparks" aria-hidden="true">' + Array.from({ length: 12 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' : '';
+    const badge = ready ? '<span class="campfire-oaths-badge">' + ready + ' ready</span>' : '';
+    return '<div class="campfire-hearth' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + (compact ? ' is-compact' : '') + '">' + sparks +
+        '<button type="button" class="campfire-chip" data-campfire-open>' +
+        '<span class="campfire-chip__hearth" aria-hidden="true">' + FLAME + '<span class="campfire-chip__logs"></span></span>' +
+        '<span class="campfire-chip__text"><strong>' + (held ? 'Campfire held · Relight' : 'Gather at the Campfire') + '</strong>' +
+        '<small>' + (held ? 'The embers are resting' : 'Ready · 2 minutes · words, a question, promises') + '</small></span>' +
+        (held ? '' : '<span class="campfire-chip__cta" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>') + '</button>' +
+        (oaths ? '<button type="button" class="campfire-hearth__oaths" data-campfire-oaths title="Ember Oaths"><i class="fas fa-fire-alt" aria-hidden="true"></i><span>Oaths</span>' + badge + '</button>' : '') +
+        (!held && !compact ? '<button type="button" class="campfire-hearth__later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times"></i></button>' : '') + '</div>';
+}
+
+/** The Oaths button when the Campfire is not lit: same family as Log / Hall of Heroes. */
+export function oathsButtonMarkup({ ready = 0, variant = 'log', disabled = false } = {}) {
+    const badge = ready ? '<span class="campfire-oaths-badge">' + ready + ' ready</span>' : '';
+    const off = disabled ? ' disabled aria-disabled="true" title="Select a class in the header first"' : '';
+    if (variant === 'class') return '<button type="button" data-campfire-oaths class="campfire-class-oaths bg-gradient-to-r from-amber-100 to-orange-100 text-orange-800 hover:from-amber-200 hover:to-orange-200 border border-orange-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2" title="Ember Oaths"' + off + '><i class="fas fa-fire-alt"></i><span class="hidden sm:inline">Oaths</span>' + badge + '</button>';
+    return '<button type="button" data-campfire-oaths class="al-primary-btn al-primary-btn--oaths bubbly-button"' + off + '><i class="fas fa-fire-alt"></i><span>Ember Oaths</span>' + badge + '</button>';
+}
+
+function todaysLog(classId) {
+    return (state.get('allAdventureLogs') || []).find(l => l.classId === classId && l.date === getTodayDateString());
+}
+function readyCount(classId) {
+    if (!state.get('hasLoadedEmberOaths')) return 0;
+    const today = getLocalIsoDateString();
+    return (state.get('allEmberOaths') || []).filter(o => o.classId === classId && o.status === 'active' && (o.checkIns || []).some(c => c.mood === 'flame') && (o.evidence || []).length >= (o.target?.count || 99) && o.startDate <= today).length;
+}
+
+export function mountCampfireEntry(host, classId, { oathsOnly = false, home = false } = {}) {
+    if (!host) return;
+    host.querySelector(':scope > .campfire-entry')?.remove();
+    if (!canUseFeature('heroCampfire')) return;
+    if (!classId) {
+        if (!home && !oathsOnly) mountDisabledOathsButton(host);
+        return;
+    }
+    const c = state.get('allTeachersClasses').find(item => item.id === classId); if (!c) return;
+    const log = todaysLog(classId);
+    const celebrationClosed = document.getElementById('hero-celebration-modal')?.classList.contains('hidden') !== false;
+    const key = classId + '_' + getTodayDateString();
+    const held = completed.has(key);
+    const ready = !oathsOnly && c.campfireEnabled !== false && log && celebrationClosed && !isDismissed(classId);
+    if (home && !ready) return;
+    const entry = document.createElement('div');
+    entry.className = 'campfire-entry' + (home ? ' campfire-entry--home' : '') + (oathsOnly ? ' campfire-entry--class' : '');
+    if (ready) {
+        entry.insertAdjacentHTML('beforeend', campfireChipMarkup({ held, igniting: igniting.has(key), compact: home, oaths: !home, ready: readyCount(classId) }));
+        igniting.delete(key);
+        const button = entry.querySelector('[data-campfire-open]');
+        button.onclick = async () => {
+            button.disabled = true;
+            try { const m = await import('./campfire/campfireService.js'); await m.openCampfire(classId); }
+            catch (e) { showToast(e.message || 'Could not open Campfire.', 'error'); }
+            finally { button.disabled = false; }
+        };
+        const later = entry.querySelector('[data-campfire-later]');
+        if (later) later.onclick = () => { try { localStorage.setItem(dismissKey(classId), '1'); } catch {} refreshEntries(); showToast('The Campfire will wait until the next lesson. 🌙', 'info'); };
+    } else if (!home) {
+        entry.insertAdjacentHTML('beforeend', oathsButtonMarkup({ ready: readyCount(classId), variant: oathsOnly ? 'class' : 'log' }));
+    }
+    const oaths = entry.querySelector('[data-campfire-oaths]');
+    if (oaths) oaths.onclick = () => import('../ui/modals/emberOaths.js').then(m => m.openOathBoard(classId)).catch(e => showToast(e.message, 'error'));
+    host.append(entry);
+}
+
+/** No header class selected: Ember Oaths stays visible but greyed out, like Log / Hall of Heroes. */
+function mountDisabledOathsButton(host) {
+    const entry = document.createElement('div');
+    entry.className = 'campfire-entry';
+    entry.insertAdjacentHTML('beforeend', oathsButtonMarkup({ disabled: true }));
+    host.append(entry);
+}
+
+function refreshEntries() {
+    const classId = state.get('globalSelectedClassId');
+    mountCampfireEntry(document.querySelector('.al-primary-actions'), classId);
+    const home = document.getElementById('home-campfire-entry');
+    if (home) mountCampfireEntry(home, classId, { home: true });
+}
+
+window.addEventListener('gcq:campfire-updated', async event => {
+    const m = await import('./campfire/campfireService.js');
+    const classId = event.detail?.classId;
+    if (classId && m.getCachedCampfire(classId)?.status === 'completed') completed.add(classId + '_' + getTodayDateString());
+    refreshEntries();
+});
+window.addEventListener('gcq:hero-crowned', event => {
+    if (!canUseFeature('heroCampfire') || !event.detail?.classId) return;
+    igniting.add(event.detail.classId + '_' + getTodayDateString());
+    refreshEntries();
+    import('./campfire/campfireService.js').then(m => m.igniteCampfire(event.detail)).catch(e => showToast('Campfire preparation: ' + e.message, 'error'));
+});
+window.addEventListener('gcq:campfire-reset', () => { completed.clear(); igniting.clear(); document.querySelectorAll('.campfire-entry').forEach(e => e.remove()); });
+window.addEventListener('gcq:campfire-error', e => showToast(e.detail, 'error'));
+document.addEventListener('home:rendered', () => {
+    const container = document.getElementById('home-dashboard-container');
+    if (!container || !canUseFeature('heroCampfire')) return;
+    let host = document.getElementById('home-campfire-entry');
+    if (!host) { host = document.createElement('div'); host.id = 'home-campfire-entry'; container.prepend(host); }
+    mountCampfireEntry(host, state.get('globalSelectedClassId'), { home: true });
+});

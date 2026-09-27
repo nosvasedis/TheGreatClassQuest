@@ -18,6 +18,7 @@ import {
     shuffleQuestionOptions,
     statToCarriedQuestion
 } from '../../features/quizReviewCore.mjs';
+import { buildQuizGenerationUserPrompt, sanitizeLessonFocus } from '../../features/quizCurriculumCore.mjs';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -53,19 +54,25 @@ export async function getQuizForClass(classId) {
     return { id: snap.id, ...data };
 }
 
-export async function saveQuizCurriculum(classId, { type, categories, keywords, questLevel, reviewBeforeLive = false, carryForward = [] }) {
+export async function saveQuizCurriculum(classId, { type, categories, keywords, lessonFocus = null, questLevel, reviewBeforeLive = false, carryForward = [] }) {
     const wk = weekKey();
     const docId = quizDocId(classId);
     const ref = doc(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week`, docId);
     const carried = (Array.isArray(carryForward) ? carryForward : [])
         .map((question, index) => sanitizeQuizQuestion(question, `r${index + 1}`))
         .filter(Boolean);
+    const curriculum = {
+        type,
+        categories,
+        keywords,
+        lessonFocus: lessonFocus ? sanitizeLessonFocus(lessonFocus) : null
+    };
 
     await setDoc(ref, withSchoolYear({
         classId,
         weekKey: wk,
         status: 'pending',
-        curriculum: { type, categories, keywords },
+        curriculum,
         // Optional teacher choices: review before the quiz goes live, and bring back missed questions.
         reviewBeforeLive: Boolean(reviewBeforeLive),
         carryForward: carried,
@@ -167,28 +174,11 @@ Do NOT wrap it in any other key. Do NOT add any text before or after the JSON.`;
 }
 
 function buildGenerationUserPrompt(curriculum, questLevel, questionCount = 7) {
-    const ageDesc = getLeagueAiAudience(questLevel);
-    const typeLabel = curriculum.type === 'grammar' ? 'English Grammar' :
-        curriculum.type === 'vocabulary' ? 'English Vocabulary' :
-        'English (Grammar and Vocabulary mix)';
-    const categoriesList = (curriculum.categories || []).join(', ');
-    const keywords = curriculum.keywords || '';
-
-    return `Create a weekly English quiz for ${ageDesc}.
-Subject: ${typeLabel}.
-${categoriesList ? `Topics: ${categoriesList}.` : ''}
-${keywords ? `Specific focus: "${keywords}".` : ''}
-
-Rules:
-- Generate exactly ${questionCount} questions (no more, no less).
-- Use only this question type: "mcq" (4-option multiple choice).
-- Make every question directly relevant to the topics/focus listed above.
-- Keep language appropriate for ${ageDesc}.
-- Keep explanations very short (max 10 words each).
-- Do NOT produce any text outside the JSON object.
-
-Output this exact JSON shape (nothing else):
-{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"mcq","question":"Which word means happy?","options":["Sad","Joyful","Angry","Tired"],"correctIndex":1,"correctAnswer":"Joyful","explanation":"synonym for happy"},{"type":"mcq","question":"Choose the correct sentence.","options":["He are reading.","He is reading.","He reading.","He am reading."],"correctIndex":1,"correctAnswer":"He is reading.","explanation":"subject and verb agree"}]}`;
+    return buildQuizGenerationUserPrompt({
+        curriculum,
+        ageDesc: getLeagueAiAudience(questLevel),
+        questionCount
+    });
 }
 
 // Recursively search a parsed object for the first array whose items look like questions.

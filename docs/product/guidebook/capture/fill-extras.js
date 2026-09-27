@@ -15,6 +15,7 @@ import {
 import { HERO_CLASSES } from '../../../../features/heroClasses.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { getHeroLegendTierInfo } from '../../../../utils.js';
+import { campfireChipMarkup, oathsButtonMarkup } from '../../../../features/campfireEntry.js';
 
 /** Same catalog as features/powerUps.js LEGENDARY_ARTIFACTS (emoji icons — not PNG files). */
 const LEGENDARY_ARTIFACTS = [
@@ -245,6 +246,11 @@ export function hideExtras() {
   hideAdventureLog();
   hideHallOfHeroes();
   hideQuiz();
+  window.dispatchEvent(new CustomEvent('gcq:campfire-close'));
+  document.getElementById('hero-campfire-scene')?.remove();
+  const oaths = document.getElementById('ember-oaths-modal');
+  oaths?.classList.add('hidden');
+  oaths?.classList.remove('capture-eo');
   hideExtrasHook?.();
 }
 
@@ -510,7 +516,7 @@ export function hideFortuneWheel() {
   modal?.classList.remove('capture-fw');
 }
 
-export function showAdventureLog() {
+export function showAdventureLog(entry = 'oaths') {
   hideExtras();
   hideAppScreen();
   const tab = document.getElementById('adventure-log-tab');
@@ -527,6 +533,16 @@ export function showAdventureLog() {
   tab.querySelectorAll('.al-fab-cluster, .tab-fab-cluster').forEach((el) => {
     el.classList.add('revealed');
   });
+  const actions = tab.querySelector('.al-primary-actions');
+  actions?.querySelector(':scope > .campfire-entry')?.remove();
+  if (actions) {
+    const wrap = document.createElement('div');
+    wrap.className = 'campfire-entry';
+    wrap.innerHTML = entry === 'gather'
+      ? campfireChipMarkup({ igniting: true })
+      : oathsButtonMarkup({ ready: 2 });
+    actions.append(wrap);
+  }
   const feed = document.getElementById('adventure-log-feed');
   if (feed) {
     feed.innerHTML = `
@@ -566,6 +582,7 @@ export function showAdventureLog() {
 
 export function hideAdventureLog() {
   const tab = document.getElementById('adventure-log-tab');
+  tab?.querySelector(':scope .campfire-entry')?.remove();
   tab?.classList.add('hidden');
   tab?.classList.remove('capture-log');
 }

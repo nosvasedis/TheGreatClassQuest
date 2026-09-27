@@ -18,5 +18,6 @@
   "earlyAccess": true,
   "prioritySupport": true,
   "customFeatures": true,
-  "quizOfTheWeek": true
+  "quizOfTheWeek": true,
+  "heroCampfire": true
 }

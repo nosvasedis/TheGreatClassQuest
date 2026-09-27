@@ -627,6 +627,30 @@ export const TERMS = [
     confuse: { en: 'Award Stars absence buttons', el: 'Κουμπιά απουσίας στο Award Stars' }
   },
   {
+    id: 'hero-campfire',
+    chapter: 'hero-campfire',
+    widget: 'none',
+    names: { en: 'Hero Campfire', el: 'Hero Campfire' },
+    aliases: ['hero campfire', 'campfire', 'gather at the campfire', 'word embers', 'look up', 'telescope'],
+    def: {
+      en: 'Pro 2-minute closing reflection on the projector after Hero of the Day. Words, one question, class glow, Ember Oaths. The telescope zooms the same stars already in the sky. No ranks, no Gold.',
+      el: 'Pro δίλεπτος κλείσιμο στον projector μετά τον Hero of the Day. Λέξεις, μία ερώτηση, λάμψη τάξης, Ember Oaths. Χωρίς κατάταξη, χωρίς Gold.'
+    },
+    confuse: { en: 'Ceremony of the Month; Grand Guild Ceremony; Projector Mode wallpaper', el: 'Ceremony of the Month· Grand Guild Ceremony· ταπετσαρία Projector Mode' }
+  },
+  {
+    id: 'ember-oath',
+    chapter: 'hero-campfire',
+    widget: 'none',
+    names: { en: 'Ember Oath', el: 'Ember Oath' },
+    aliases: ['ember oath', 'ember oaths', 'oath board', 'class promise'],
+    def: {
+      en: 'A small personal promise a child chooses. Check in with 🔥 / 🕯️ / 🌙 (that is today’s mood, not the keep). A promise is ready when there is enough evidence and at least one 🔥; then you Keep the promise or Let it rise. Kept oaths become a star in the class sky and a Star-Ember keepsake — never stars or Gold.',
+      el: 'Μικρή προσωπική υπόσχεση που διαλέγει το παιδί. Check-in με 🔥 / 🕯️ / 🌙. Οι τηρημένες γίνονται αστέρι στον ουρανό της τάξης και Star-Ember — ποτέ αστέρια ή Gold.'
+    },
+    confuse: { en: 'Quest Assignment (homework); Hero’s Goal (Oracle text)', el: 'Quest Assignment (εργασία)· Hero’s Goal (κείμενο Oracle)' }
+  },
+  {
     id: 'sky-theater',
     chapter: 'classroom-chrome',
     widget: 'none',
@@ -746,7 +770,9 @@ export const TERM_ICONS = {
   'heros-chronicle': 'fa-book-reader',
   'manage-students': 'fa-users',
   patron: 'fa-gift',
-  gold: 'fa-coins'
+  gold: 'fa-coins',
+  'hero-campfire': 'fa-fire',
+  'ember-oath': 'fa-scroll'
 };
 
 /** Icons on Starter / Pro / Elite plan chips (labels may be longer than a single term). */
@@ -774,6 +800,7 @@ export const PLAN_CHIP_ICONS = {
   'Quest Calendar / Day Planner': 'fa-calendar-alt',
   "Scholar's Scroll, Starfall, make-ups": 'fa-meteor',
   'Adventure Log, Hero of the Day, Hall of Heroes': 'fa-crown',
+  'Hero Campfire & Ember Oaths': 'fa-fire',
   'Attendance Chronicle': 'fa-user-check',
   'My Planning': 'fa-calendar-check',
   'Class grading override': 'fa-sliders-h',
@@ -799,7 +826,7 @@ export const PLAN_EXPLORER = {
     has: [
       'Everything in Starter', 'Guild Hall, Wheel, Ledger, sorting quiz',
       'Hero Path / Skill Tree', 'Quest Calendar / Day Planner', "Scholar's Scroll, Starfall, make-ups",
-      'Adventure Log, Hero of the Day, Hall of Heroes', 'Attendance Chronicle',
+      'Adventure Log, Hero of the Day, Hall of Heroes', 'Hero Campfire & Ember Oaths', 'Attendance Chronicle',
       'Family Access', 'My Planning', 'Class grading override'
     ],
     later: ['Story Weavers', 'Familiars', 'Quiz of the Week', 'School Office', 'AI chronicler & images']
@@ -826,7 +853,8 @@ export const CHAPTER_SEARCH = {
   'market': ['gold', 'artifacts', 'familiars', 'eggs', 'mask'],
   'guild-hall': ['guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'guild power', 'fortune ledger', 'momentum'],
   'award-stars': ['boon', 'teacher boon', 'hero boon', 'welcome back', 'virtues', 'heart'],
-  'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'attendance chronicle'],
+  'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'attendance chronicle', 'campfire', 'ember oaths'],
+  'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope'],
   'scholars-scroll': ['starfall', 'tests', 'dictation', 'make-up'],
   'story-weavers': ['writing', 'elite'],
   'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle'],

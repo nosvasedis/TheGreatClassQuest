@@ -55,6 +55,11 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Student setup** | Teacher roster: collapsible bar to seat returning heroes in this class | Student placement (School Office); Add a new student |
 | **Teacher Settings** | Cog: classes, tools, Family Access, Quiz setup | School Office Admin |
 | **Adventurer’s Guide** | Short in-app explainer | This product handbook |
+| **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
+| **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |
+| **Star-Ember** | Keepsake in the Trophy Room for a kept oath; worth no stars or Gold | Stars; Starfall; Growth Starfall |
+| **Class constellation** | The Campfire sky: one star per oath kept this year. The telescope zooms those same stars; each promise kind has its own figure | Team Quest map; Hall of Heroes |
+| **Book atlas** | The built-in list of the school’s books, units, pages and words the Campfire reads from Quest Assignment | Scholar’s Scroll tests; Quiz syllabus chips |
 
 ## Three races (keep on one slide)
 

@@ -98,7 +98,7 @@ One parent login per student. Families see progress, homework (from Quest Assign
 
 ## Quiz (Elite)
 
-Curriculum chips, keywords, optional extras (**Review the questions before they go live**, **Bring back questions the class missed last week**), **Generate**, **Review & edit questions**, history, reset this week. Question count scales with class size. Play on Home, first lesson of the week, during lesson time. Full reward tables live in the Home chapter.
+When Quest Assignments have been filling the class book, **Generate from this week's lessons** uses those units, grammar, and words (since the last finished quiz). Untick words or open **Different focus** for the old topic chips. Optional extras (**Review the questions before they go live**, **Bring back questions the class missed last week**), **Review & edit questions**, history, reset this week. Question count scales with class size. Play on Home, first lesson of the week, during lesson time. Full reward tables live in the Home chapter.
 
 ## Market (Elite)
 

@@ -293,6 +293,9 @@ export function renderManageClassesTab() {
     }));
     list.querySelectorAll('.delete-class-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Class?', 'Are you sure you want to delete this class and all its students? This cannot be undone.', () => deleteClass(btn.dataset.id))));
     list.querySelectorAll('.edit-class-btn').forEach(btn => btn.addEventListener('click', () => modals.openEditClassModal(btn.dataset.id)));
+    if (canUseFeature('heroCampfire')) import('../../features/campfireEntry.js').then(({ mountCampfireEntry }) => {
+        list.querySelectorAll('.edit-class-btn').forEach(btn => mountCampfireEntry(btn.parentElement, btn.dataset.id, { oathsOnly: true }));
+    });
     list.querySelectorAll('.report-class-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateReport(btn.dataset.id)));
 }
 

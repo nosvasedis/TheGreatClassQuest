@@ -8,6 +8,7 @@ import { renderAwardStarsStudentList } from './award.js';
 import { syncHeaderClassSelector } from '../headerClassSelector.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';
 import { renderLearnedTodayHtml } from '../../features/learnedToday.js';
+import { mountCampfireEntry } from '../../features/campfireEntry.js';
 
 function classHasAwardedStarsToday(classId) {
     if (!classId) return false;
@@ -92,6 +93,7 @@ export async function renderAdventureLogTab() {
     if (!monthFilter) return;
 
     const classVal = state.get('globalSelectedClassId');
+    mountCampfireEntry(document.querySelector('.al-primary-actions'), classVal);
     state.get('currentLogFilter').classId = classVal;
     const hasAdventureLog = canUseFeature('adventureLog');
     const logCopy = getLogTabCopy(hasAdventureLog);

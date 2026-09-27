@@ -90,6 +90,7 @@ export async function createClass(data, options = {}) {
         timeStart,
         timeEnd,
         assessmentConfig: normalizeClassAssessmentConfig({ inheritSchoolDefaults: true }, questLevel),
+        campfireEnabled: true,
         color: randomColor,
         status: 'active',
         createdBy: owner,

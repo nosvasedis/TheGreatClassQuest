@@ -59,6 +59,10 @@ Hero of the Day does **not** by itself dump free stars except that **+1 on first
 
 This is **not** Prodigy of the Month.
 
+## Gather at the Campfire (Pro)
+
+When you close the Hero of the Day celebration (**Huzzah!**), a **Gather at the Campfire** button lights up under Log Today’s Adventure. It opens the **Hero Campfire**, a 2-minute closing reflection on the projector. It is optional: **Not today** hides it for the day. See the Hero Campfire chapter.
+
 ## Hall of Heroes
 
 Button on this tab. Archive of **this school year's** **Hero of the Day** tallies and legend tiers — who has been the face of many lessons. Last year's plaques stay with last year.
@@ -72,6 +76,8 @@ Needs a class in the header.
 Record **what the class should do before the next lesson**, see the **previous** assignment, and optionally attach a **scheduled test** (Quest Board) when this class uses tests.
 
 Saving can sync a homework line into the **Family Portal** so parents see the same quest without seeing your private notes.
+
+**Book recognition (Pro).** As you type, a small chip under the text recognises the book, component, unit and pages, for example `PP2 un.4 pp.78-80`, `SB p.42, GB unit 5`, `CU B1+ u.2 p.17`, `σελ. 110-112` or `Yeti 2 unit 13`. Tap **Yes, that’s it** to confirm, or **Choose the book** to pick the book, the unit and the pages, or **Another book…** with a short theme. When the app is unsure it asks “Is this the right lesson?” in amber. A page-only or component-only line (`p.40`, `G.B. unit 5`) carries the class’s current book. Words written after `words:`, `φωτοτυπία:`, `worksheet:` or `elab:` are kept as the homework words, even when the book is unsure. Nothing here changes the homework families see; it only tells the **Hero Campfire** what the children practised.
 
 Use it every lesson if you can. Continuity is the hidden curriculum.
 

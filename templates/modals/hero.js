@@ -180,6 +180,7 @@ export const heroModalsHTML = `
                                 <i class="fas fa-book-open" aria-hidden="true"></i>
                                 <span>Notes</span>
                             </button>
+                            <button type="button" id="chronicle-tab-oaths" role="tab" aria-selected="false" aria-controls="hero-chronicle-content-oaths" class="hero-chronicle-tab-btn px-3 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider">🔥 Oaths</button>
                             <button type="button" id="chronicle-tab-oracle" role="tab" aria-selected="false" aria-controls="hero-chronicle-content-oracle"
                                 class="hero-chronicle-tab-btn px-5 py-2.5 rounded-[0.65rem] text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
                                 <i class="fas fa-wand-sparkles" aria-hidden="true"></i>
@@ -261,6 +262,7 @@ export const heroModalsHTML = `
                 </div>
 
                 <!-- Tab 2: The Oracle (AI) -->
+                <div id="hero-chronicle-content-oaths" role="tabpanel" aria-labelledby="chronicle-tab-oaths" class="hidden flex flex-col flex-1 min-h-0 overflow-y-auto p-6 gap-6"></div>
                 <div id="hero-chronicle-content-oracle" role="tabpanel" aria-labelledby="chronicle-tab-oracle" class="hidden flex flex-col flex-1 min-h-0 p-6 gap-6">
                     <div class="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
                         <!-- Left: Controls -->

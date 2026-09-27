@@ -4,6 +4,8 @@
  * from state and Firestore and passes plain data in. Covered by tests/learned-today-core.test.mjs.
  */
 
+import { splitKeywords, looksLikeVocabulary } from '../utils/vocabularyText.mjs';
+
 export const LEARNED_TODAY_SOURCES = Object.freeze({
     quiz: { icon: '❓', label: 'Quiz of the Week' },
     story: { icon: '🪶', label: 'Story Weavers' },
@@ -18,19 +20,6 @@ const MAX_WORDS = 8;
 
 function clean(value, max = 140) {
     return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
-}
-
-function splitKeywords(text) {
-    return clean(text, 400)
-        .split(/[,;\n]+/)
-        .map((part) => clean(part, 60))
-        .filter(Boolean);
-}
-
-/** Single words or short phrases that look like vocabulary (not whole sentences). */
-function looksLikeVocabulary(text) {
-    const value = clean(text, 60);
-    return value.length > 1 && value.split(' ').length <= 3 && !/[.!?]$/.test(value);
 }
 
 /**

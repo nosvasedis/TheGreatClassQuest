@@ -317,26 +317,42 @@ function fillQuizSetup() {
   const meta = document.getElementById('qow-class-meta-text');
   if (meta) meta.textContent = 'Mon, Wed · 17:00–18:30';
   document.getElementById('qow-card-curriculum')?.classList.remove('qow-card-disabled');
-  const chips = document.getElementById('quiz-categories-chips');
-  if (chips) {
-    const topics = [
-      ['Simple Present', true],
-      ['Daily Actions', true],
-      ['Animals', true],
-      ['Food & Drinks', false],
-      ['Can / Can\'t', false],
-      ['Family & Friends', false],
-      ['Clothes', false],
-      ['Have / Has', false]
-    ];
-    chips.innerHTML = topics.map(([cat, on]) => `
+  document.getElementById('qow-card-options')?.classList.remove('qow-card-disabled');
+  const lesson = document.getElementById('qow-lesson-focus');
+  if (lesson) {
+    lesson.classList.remove('hidden');
+    const summary = document.getElementById('qow-lesson-summary');
+    if (summary) summary.textContent = 'Since last quiz (Week 38): 3 lessons';
+    const units = document.getElementById('qow-lesson-units');
+    if (units) units.innerHTML = '<p class="qow-lesson-unit">Cambridge Primary Path 2 · Unit 4 · What is a friend?</p>';
+    const grammar = document.getElementById('qow-lesson-grammar');
+    if (grammar) {
+      grammar.classList.remove('hidden');
+      grammar.innerHTML = '<span class="qow-lesson-grammar-chip">present simple: affirmative, negative and questions</span>';
+    }
+    const words = document.getElementById('qow-lesson-words');
+    if (words) {
+      const list = [['friend', true], ['kind', true], ['share', true], ['trust', true], ['help', true], ['together', false]];
+      words.innerHTML = list.map(([word, on]) => `
             <label class="qow-chip-label">
-                <input type="checkbox" value="${cat}" class="qow-chip-check quiz-category-checkbox"${on ? ' checked' : ''} />
-                <span>${cat}</span>
+                <input type="checkbox" value="${word}" class="qow-chip-check qow-lesson-word"${on ? ' checked' : ''} />
+                <span>${word}</span>
             </label>`).join('');
+    }
+    document.getElementById('qow-lesson-words-label')?.classList.remove('hidden');
   }
+  const title = document.getElementById('qow-curriculum-title');
+  if (title) title.innerHTML = '<i class="fas fa-book-open mr-2 text-amber-500"></i>This week\'s lessons';
+  const details = document.getElementById('qow-different-focus');
+  if (details) {
+    details.classList.remove('qow-focus-fallback');
+    details.open = false;
+  }
+  document.getElementById('qow-different-focus-summary')?.classList.remove('hidden');
   const keywords = document.getElementById('quiz-keywords');
-  if (keywords) keywords.value = 'was / were in past sentences, daily routines';
+  if (keywords) keywords.value = '';
+  const keywordsLabel = document.getElementById('qow-keywords-label');
+  if (keywordsLabel) keywordsLabel.innerHTML = '<i class="fas fa-pen mr-1"></i> Add a note <span class="text-gray-400 font-normal">(optional)</span>';
   const generate = document.getElementById('quiz-generate-btn');
   if (generate) {
     generate.disabled = false;
@@ -352,8 +368,8 @@ function fillQuizSetup() {
   if (icon) icon.textContent = '✅';
   const text = document.getElementById('quiz-status-text');
   if (text) text.textContent = 'Quiz ready — 8 questions!';
-  const details = document.getElementById('quiz-status-details');
-  if (details) details.textContent = 'MIX · Simple Present, Daily Actions, Animals';
+  const statusDetails = document.getElementById('quiz-status-details');
+  if (statusDetails) statusDetails.textContent = 'MIX · What is a friend? · present simple';
   const badge = document.getElementById('qow-status-badge');
   if (badge) {
     badge.textContent = '✅ Ready';

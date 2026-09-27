@@ -217,7 +217,7 @@ try {
           }))));
         });
       }
-      await page.waitForTimeout(file === 'fortune-ledger.png' || file === 'award-stars-tab.png' || file === 'projector.png' || file === 'home-tab.png' || file === 'special-quest-projector.png' || file === 'special-quest-runner.png' ? 400 : 220);
+      await page.waitForTimeout(file === 'fortune-ledger.png' || file === 'award-stars-tab.png' || file === 'projector.png' || file === 'home-tab.png' || file === 'special-quest-projector.png' || file === 'special-quest-runner.png' || file === 'campfire-scene.png' || file === 'campfire-words.png' || file === 'ember-oaths.png' || file === 'campfire-entry.png' ? 400 : 220);
       await shot(el, file);
     } catch (err) {
       console.warn(`${label} capture skipped:`, err.message);
@@ -266,6 +266,10 @@ try {
   await captureExtra('Certificate forge', () => window.__gcqCapture.showCertificateForge(), '#certificate-modal.capture-cert-forge > div', 'certificate-forge.png');
   await captureExtra('Certificate print', () => window.__gcqCapture.showCertificatePrint(), '#certificate-template.capture-cert', 'certificate.png');
   await captureExtra('Hero class assignment', () => window.__gcqCapture.showHeroClass(), '#hero-class-select-modal.capture-hero-class #hcs-shell', 'hero-class.png');
+  await captureExtra('Adventure Log campfire', () => window.__gcqCapture.showAdventureLog('gather'), '#adventure-log-tab.capture-log', 'campfire-entry.png');
+  await captureExtra('Ember Oaths board', () => window.__gcqCapture.showOathBoard(), '#ember-oaths-modal.capture-eo .eo-shell', 'ember-oaths.png');
+  await captureExtra('Campfire word embers', () => window.__gcqCapture.showCampfireScene('words'), '#hero-campfire-scene.capture-cf', 'campfire-words.png');
+  await captureExtra('Campfire oath circle', () => window.__gcqCapture.showCampfireScene('circle'), '#hero-campfire-scene.capture-cf', 'campfire-scene.png');
 
   console.log('Captured UI chrome into', OUT);
 } finally {

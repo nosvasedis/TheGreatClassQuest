@@ -41,6 +41,9 @@ export function deleteParentAccess(payload) {
 export function publishParentSummary(payload) {
     return callAdmin('publishParentSummary', payload);
 }
+export function publishEmberOath(payload) {
+    return callAdmin('publishEmberOath', payload);
+}
 
 export function postCommunicationMessage(payload) {
     return callAdmin('postCommunicationMessage', payload);

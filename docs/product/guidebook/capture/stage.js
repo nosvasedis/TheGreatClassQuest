@@ -86,6 +86,11 @@ import {
   showHomeTab,
   showProjector
 } from './fill-surfaces.js';
+import {
+  hideCampfire,
+  showCampfireScene,
+  showOathBoard
+} from './fill-campfire.js';
 
 const AURA = '#16a34a';
 const DATE_TEXT = 'Sunday, 30 August 2026';
@@ -321,6 +326,9 @@ window.__gcqCapture = {
   showCertificatePrint,
   hideCertificatePrint,
   showHeroClass,
-  hideHeroClass
+  hideHeroClass,
+  hideCampfire,
+  showOathBoard,
+  showCampfireScene
 };
 document.documentElement.classList.add('capture-ready');

@@ -374,6 +374,11 @@ export async function refreshParentPortalData() {
 }
 
 export function clearDataListeners() {
+    window.dispatchEvent(new CustomEvent('gcq:campfire-reset'));
+    state.get("unsubscribeEmberOaths")();
+    state.set("unsubscribeEmberOaths", () => {});
+    state.set("hasLoadedEmberOaths", false);
+    state.set("allEmberOaths", []);
     listenerSessionId += 1;
     cancelScheduledRenders();
     if (window.genderCheckTimeout) {

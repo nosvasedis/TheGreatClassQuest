@@ -10,6 +10,11 @@ const {
   doc,
   deleteDoc,
   getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
+  runTransaction,
   setDoc,
   updateDoc,
   serverTimestamp,
@@ -82,6 +87,105 @@ if (process.env.FIRESTORE_EMULATOR_HOST) beforeEach(async () => {
 
 after(async () => {
   await env?.cleanup();
+});
+
+async function seedCampfire(tier = 'pro') {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'appConfig/subscription'), { tier, parentAccess: true });
+    await setDoc(doc(db, 'user_profiles/other-teacher'), { role: 'teacher', status: 'active' });
+    await setDoc(doc(db, DATA + '/classes/camp-class'), { createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027' });
+    await updateDoc(doc(db, DATA + '/students/student-1'), { classId: 'camp-class' });
+    await setDoc(doc(db, DATA + '/student_scores/student-1'), { createdBy: { uid: 'teacher' }, activeSchoolYearKey: '2026-2027', inventory: [], gold: 10, monthlyStars: 3 });
+  });
+}
+function validEmber() {
+  return { studentId: 'student-1', classId: 'camp-class', teacherId: 'teacher', createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027',
+    templateId: 'mid_virtue', text: 'I help someone take a turn.', projectorText: 'A secret oath', category: 'virtue', band: 'mid',
+    target: { kind: 'virtue', count: 1, reason: 'Teamwork' }, evidenceRule: 'virtue', startDate: '2026-09-20', dueDate: '2026-10-04',
+    status: 'active', private: true, checkIns: [], evidence: [], reflection: { helped: '', next: '', emoji: '' }, legendLine: '', keptAt: null,
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+}
+function validCampfire() {
+  return { classId: 'camp-class', date: '2026-09-27', league: 'A', band: 'mid', teacherId: 'teacher', createdBy: { uid: 'teacher' },
+    schoolYearKey: '2026-2027', status: 'kindled', source: 'bank', selfCheck: null, checkedInIds: [], keptOathIds: [], logId: null, heroStudentId: null,
+    script: { question: 'What helped you today?', followUp: 'What could you try next?', starters: ['I tried…'], words: ['practice'], circle: ['student-1'],
+      rotation: { selectedIds: ['student-1'], cycleIds: ['student-1'], lastIds: ['student-1'], cycleSize: 1 }, readyOathIds: [], lessonTarget: null,
+      fireTale: 'Every effort brings a little light.', closingLine: 'Our fire rests.', tomorrowSpark: 'Bring one question.', classPromise: 'We listen and help.' } };
+}
+rulesTest('Campfire sessions can be transactionally created from a missing document, then relit idempotently', async () => {
+  await seedCampfire();
+  const db = env.authenticatedContext('teacher').firestore(), ref = doc(db, DATA + '/campfire_sessions/camp-class_2026-09-27');
+  await assertSucceeds(runTransaction(db, async tx => { await tx.get(ref); tx.set(ref, validCampfire()); }));
+  await assertSucceeds(updateDoc(ref, { status: 'lit', checkedInIds: ['student-1'] }));
+  await assertSucceeds(updateDoc(ref, { status: 'completed' }));
+  await assertFails(updateDoc(ref, { status: 'lit' }));
+  await assertSucceeds(updateDoc(ref, { status: 'completed', selfCheck: 'flame' }));
+  await assertFails(updateDoc(ref, { classId: 'other' }));
+  await assertFails(updateDoc(ref, { date: '2026-09-28' }));
+});
+rulesTest('private oaths never inherit generic staff access; parents and other teachers cannot read or query them', async () => {
+  await seedCampfire('elite');
+  const db = env.authenticatedContext('teacher').firestore(), path = DATA + '/ember_oaths/private';
+  await assertSucceeds(setDoc(doc(db, path), validEmber()));
+  await assertSucceeds(getDocs(query(collection(db, DATA + '/ember_oaths'), where('teacherId', '==', 'teacher'), where('schoolYearKey', '==', '2026-2027'))));
+  for (const uid of ['parent','other-teacher','secretary','inactive']) {
+    const other = env.authenticatedContext(uid).firestore();
+    await assertFails(getDoc(doc(other, path)));
+    await assertFails(getDocs(collection(other, DATA + '/ember_oaths')));
+    await assertFails(updateDoc(doc(other, path), { text: 'Changed' }));
+    await assertFails(deleteDoc(doc(other, path)));
+  }
+});
+rulesTest('oath shape, plan, ownership, year and bounded histories are enforced', async () => {
+  await seedCampfire('starter');
+  const db = env.authenticatedContext('teacher').firestore(), ref = doc(db, DATA + '/ember_oaths/goal');
+  await assertFails(setDoc(ref, validEmber()));
+  await seedCampfire();
+  await assertSucceeds(setDoc(ref, validEmber()));
+  for(const change of [{ teacherId: 'other' },{ schoolYearKey: '2025-2026' },{ studentId: 'other' },{ status: 'closed' },{ evidence: Array(13).fill({}) },{checkIns:[{date:'2026-09-27',mood:'bad'}]},{ text: 'x'.repeat(241) },{ target: {kind:'manual',count:0} }])
+    await assertFails(updateDoc(ref, change));
+  await assertSucceeds(updateDoc(ref, { checkIns: [{ date:'2026-09-27', mood:'flame' }], evidence: [{ kind:'manual', label:'Helped a partner', date:'2026-09-27', refId:'observed' }] }));
+  await env.withSecurityRulesDisabled(context => updateDoc(doc(context.firestore(), DATA + '/school_year_state/current'), { activeYearKey:'2027-2028' }));
+  await assertFails(updateDoc(ref,{text:'Cannot edit closed year'}));
+});
+rulesTest('keeping an oath writes one chronicle receipt and keepsake without changing gold or stars', async () => {
+  await seedCampfire();
+  const db=env.authenticatedContext('teacher').firestore(), oath=doc(db,DATA+'/ember_oaths/kept'), score=doc(db,DATA+'/student_scores/student-1'), note=doc(db,DATA+'/hero_chronicle_notes/ember_kept');
+  await setDoc(oath,validEmber());
+  async function keep(){
+    return runTransaction(db,async tx=>{
+      const [o,s]=await Promise.all([tx.get(oath),tx.get(score)]);
+      if(o.data().status==='kept') return;
+      tx.update(oath,{status:'kept',keptAt:serverTimestamp(),legendLine:'A promise kept.'});
+      tx.update(score,{inventory:[...s.data().inventory,{id:'ember_kept',source:'ember_oath',name:'Star-Ember'}]});
+      tx.set(note,{studentId:'student-1',teacherId:'teacher',schoolYearKey:'2026-2027',category:'Goals',noteText:'A promise kept.',source:'ember_oath',oathId:'kept',createdAt:serverTimestamp()});
+    });
+  }
+  await assertSucceeds(keep()); await assertSucceeds(keep());
+  const assert=require('node:assert/strict'), data=(await getDoc(score)).data();
+  assert.equal(data.inventory.length,1);assert.equal(data.gold,10);assert.equal(data.monthlyStars,3);
+});
+
+rulesTest('the real keep transaction (auto evidence, flame check-in, reflection, dated note) and a book-aware session are accepted', async () => {
+  await seedCampfire();
+  const db = env.authenticatedContext('teacher').firestore();
+  const oath = doc(db, DATA + '/ember_oaths/real'), score = doc(db, DATA + '/student_scores/student-1'), note = doc(db, DATA + '/hero_chronicle_notes/ember_real');
+  await assertSucceeds(setDoc(oath, validEmber()));
+  await assertSucceeds(updateDoc(oath, { checkIns: [{ date: '2026-09-27', mood: 'flame' }], updatedAt: serverTimestamp() }));
+  await assertSucceeds(runTransaction(db, async tx => {
+    const s = await tx.get(score);
+    tx.update(oath, { status: 'kept', evidence: [{ kind: 'virtue', label: 'Teamwork observed', date: '2026-09-27', refId: 'daily_teacher_student-1_27-09-2026' }],
+      legendLine: 'Kept a personal promise with care.', reflection: { helped: 'My partner', next: 'Ask a question', emoji: '🌱' }, keptAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    tx.update(score, { inventory: [...s.data().inventory, { id: 'ember_real', name: 'Star-Ember', icon: '🌟', image: 'data:image/svg+xml,%3Csvg%3E', source: 'ember_oath', oathId: 'real', acquiredAt: '2026-09-27T10:00:00Z', description: 'x' }] });
+    tx.set(note, { studentId: 'student-1', teacherId: 'teacher', noteText: 'Kept a personal promise with care.', category: 'Goals', source: 'ember_oath', oathId: 'real',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), schoolYearKey: '2026-2027' });
+  }));
+  await assertFails(updateDoc(oath, { status: 'active' }));
+  const session = { ...validCampfire(), script: { ...validCampfire().script, lessonTarget: { bookId: 'primary-path-2', component: 'sb', unit: 4, page: 78,
+    summary: 'Cambridge Primary Path 2 · Unit 4 · pp. 78–80', theme: '', bigQuestion: 'Why do we celebrate?', grammar: 'past simple' } } };
+  await assertSucceeds(setDoc(doc(db, DATA + '/campfire_sessions/camp-class_2026-09-27'), session));
+  await assertFails(setDoc(doc(db, DATA + '/campfire_sessions/wrong-id'), session));
 });
 
 rulesTest('missing and inactive profiles cannot read protected school data', async () => {

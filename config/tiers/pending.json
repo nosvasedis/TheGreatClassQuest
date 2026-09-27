@@ -11,6 +11,7 @@
   "advancedAttendance": false,
   "storyWeavers": false,
   "heroProgression": false,
+  "heroCampfire": false,
   "familiars": false,
   "parentAccess": false,
   "secretaryAccess": false,

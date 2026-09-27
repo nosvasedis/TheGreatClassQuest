@@ -299,6 +299,11 @@ export function openHeroChronicleModal(studentId) {
 function openHeroChronicleModalContent(studentId, student) {
     const modal = document.getElementById('hero-chronicle-modal');
     modal.dataset.studentId = studentId;
+    const oathsButton = document.getElementById('chronicle-tab-oaths');
+    if (oathsButton) {
+        oathsButton.hidden = !canUseFeature('heroCampfire');
+        oathsButton.onclick = () => switchHeroChronicleTab('oaths');
+    }
 
     // Set student name
     document.getElementById('hero-chronicle-student-name').innerText = `Archived Deeds of ${student.name}`;
@@ -329,6 +334,21 @@ function openHeroChronicleModalContent(studentId, student) {
 }
 
 export function switchHeroChronicleTab(tabId) {
+    const oathsTab = document.getElementById('hero-chronicle-content-oaths');
+    const oathsBtn = document.getElementById('chronicle-tab-oaths');
+    oathsTab?.classList.toggle('hidden', tabId !== 'oaths');
+    oathsBtn?.classList.toggle('active', tabId === 'oaths');
+    oathsBtn?.setAttribute('aria-selected', String(tabId === 'oaths'));
+    if (tabId === 'oaths') {
+        for (const other of ['notes', 'oracle']) {
+            document.getElementById('hero-chronicle-content-' + other)?.classList.add('hidden');
+            document.getElementById('chronicle-tab-' + other)?.classList.remove('active');
+            document.getElementById('chronicle-tab-' + other)?.setAttribute('aria-selected', 'false');
+        }
+        const studentId = document.getElementById('hero-chronicle-modal')?.dataset.studentId;
+        import('./emberOaths.js').then(m => m.renderChronicleOaths(studentId));
+        return;
+    }
     const notesTab = document.getElementById('hero-chronicle-content-notes');
     const oracleTab = document.getElementById('hero-chronicle-content-oracle');
     const notesBtn = document.getElementById('chronicle-tab-notes');
@@ -485,6 +505,14 @@ function collectStudentInsightData(studentId) {
 }
 
 async function requestAIInsight(studentId, insightType) {
+    let emberContext = '';
+    if (canUseFeature('heroCampfire')) {
+        try {
+            const { loadEmberOaths } = await import('../../db/actions/emberOaths.js');
+            const oaths = (await loadEmberOaths()).filter(o => o.studentId === studentId && (insightType !== 'parent' || !o.private));
+            emberContext = JSON.stringify(oaths.map(o => ({ text: o.text, status: o.status, ...(insightType === 'parent' ? {} : { reflection: o.reflection }) })));
+        } catch { /* optional context; the original insight remains available */ }
+    }
     const insightData = collectStudentInsightData(studentId);
     if (!insightData) return '';
     const { student, notes, academicScores, behavioralAwards } = insightData;
@@ -504,7 +532,7 @@ async function requestAIInsight(studentId, insightType) {
 
     Please generate the requested summary.`;
 
-    return callGeminiApi(systemPrompt, userPrompt);
+    return callGeminiApi(systemPrompt, userPrompt + '\n--- EMBER OATHS (personal goals, not grades) ---\n' + emberContext);
 }
 
 export async function generateAIInsight(studentId, insightType) {

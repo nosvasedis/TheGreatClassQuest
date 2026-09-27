@@ -495,9 +495,10 @@ export const miscModalsHTML = `
             </div>
 
             <div class="bestow-boon-select-wrap bestow-boon-entrance bestow-boon-entrance--3">
-                <label class="bestow-boon-select-label">Select the Sponsor</label>
-                <select id="boon-sender-select" class="bestow-boon-select">
+                <label class="bestow-boon-select-label" id="boon-sender-label">Select the Sponsor</label>
+                <select id="boon-sender-select" class="bestow-boon-select" tabindex="-1" aria-hidden="true">
                 </select>
+                <div id="boon-sponsor-picker" class="boon-picker"></div>
             </div>
 
             <div class="bestow-boon-actions bestow-boon-entrance bestow-boon-entrance--4">
@@ -623,6 +624,7 @@ export const miscModalsHTML = `
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🗓️ My Planning (class end dates)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📜 Scholar's Scroll (tests/dictations)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📓 Adventure Log (manual entries)</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔥 Hero Campfire & Ember Oaths</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📋 Attendance Chronicle</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔄 Pending Makeups (missing test grades)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 Hall of Heroes (Hero of the Day)</span></li>

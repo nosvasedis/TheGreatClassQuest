@@ -113,6 +113,11 @@ export async function handleSaveQuestAssignment() {
             .filter((assignment) => !existingAssignmentIds.has(assignment.id))
             .concat(optimisticAssignment);
         state.setAllQuestAssignments(nextAssignments);
+        import('../../features/bookProgress.js').then(m => m.updateBookProgressFromAssignment({
+            classId, text, assignmentId: newDocRef.id,
+            previous: existingDocs[0] ? { id: existingDocs[0].id, text: existingDocs[0].text || '', date: existingDocs[0].createdAt?.seconds ? utils.getLocalIsoDateString(new Date(existingDocs[0].createdAt.seconds * 1000)) : null } : null
+        })).then(() => import('../../features/campfire/campfireService.js').then(m => m.prepareCampfireFromAssignment(classId)))
+            .catch(error => showToast('Assignment saved; book progress could not be saved: ' + error.message, 'error'));
 
         showToast("Quest assignment updated!", "success");
         import('../../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
@@ -140,6 +145,8 @@ export async function handleSaveQuestAssignment() {
 export async function handleLogAdventure() {
     const classId = state.get('currentLogFilter').classId;
     if (!classId) return;
+    // Local bank only: this must never queue an AI request in front of the Chronicler.
+    import('../../features/campfire/campfireService.js').then(m => m.kindleCampfire(classId)).catch(() => {});
 
     const { canUseFeature } = await import('../../utils/subscription.js');
     const hasEliteAI = canUseFeature('eliteAI');
@@ -641,11 +648,17 @@ function getPresentStudentsForClass(classId) {
     return state.get('allStudents').filter(s => s.classId === classId && !absentStudentIds.has(s.id));
 }
 
-async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!') {
-    if (!heroStudentId) return;
+async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!', campfireDetail = null) {
+    if (!heroStudentId) {
+        if (campfireDetail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail: campfireDetail }));
+        return;
+    }
 
     const heroStudent = state.get('allStudents').find(s => s.id === heroStudentId);
-    if (!heroStudent) return;
+    if (!heroStudent) {
+        if (campfireDetail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail: campfireDetail }));
+        return;
+    }
 
     state.setReigningHero(heroStudent);
     import('../../features/home.js').then(m => m.renderHomeTab()).catch(() => {});
@@ -662,6 +675,7 @@ async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Her
         import('../../audio.js')
     ]);
     showAnimatedModal('hero-celebration-modal');
+    document.getElementById('hero-celebration-modal')._campfireDetail = campfireDetail;
     audio.playHeroFanfare();
 }
 
@@ -824,7 +838,7 @@ async function handleAILogAdventure(classId, classData) {
         const _audio = await import('../../audio.js');
         _audio.stopWritingLoop();
 
-        await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
+        await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!', { classId, logId, studentId: heroStudentId, learnedToday });
 
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
@@ -963,7 +977,7 @@ async function saveManualLogEntry(classId, classData, learnedToday = null) {
         const storyText = syncHeroLine(text, heroSelection.heroName);
         const keywords = buildAdventureLogKeywords(storyText);
         
-        await saveAdventureLogWithHeroWin({
+        const logId = await saveAdventureLogWithHeroWin({
             classId,
             date: getTodayDateString(),
             title: title.slice(0, 90),
@@ -986,7 +1000,7 @@ async function saveManualLogEntry(classId, classData, learnedToday = null) {
         hideModal();
         showToast('Your adventure has been recorded!', 'success');
 
-        await showHeroOfTheDayReveal(heroSelection.heroStudentId, 'Crowned in today\'s chronicle!');
+        await showHeroOfTheDayReveal(heroSelection.heroStudentId, 'Crowned in today\'s chronicle!', { classId, logId, studentId: heroSelection.heroStudentId, learnedToday });
     } catch (error) {
         console.error("Error saving manual log:", error);
         showToast('Failed to save your entry. Please try again.', 'error');
@@ -1137,22 +1151,15 @@ async function _selectHeroOfTheDay(classId, presentStudents, classRef, classDocP
         : [];
     const lastHeroId = freshRotation.lastHeroId || null;
 
-    let chosenId;
+    const { pickFairRotation } = await import('../../utils/fairRotation.mjs');
+    const selection = pickFairRotation({ presentIds, cycleIds: cycleHeroIds, lastIds: lastHeroId ? [lastHeroId] : [], priorityIds: protagonist ? [protagonist.id] : [], count: 1 });
+    const chosenId = selection.selectedIds[0];
+    cycleHeroIds = selection.cycleIds;
     if (protagonist) {
-        chosenId = protagonist.id;
         // Fire-and-forget: clear the flag — does not need to block the AI call
         const protagonistScoreRef = doc(db, 'artifacts/great-class-quest/public/data/student_scores', protagonist.id);
         updateDoc(protagonistScoreRef, { pendingHeroStatus: false }).catch(e =>
             console.error('Failed to clear pendingHeroStatus:', e));
-    } else {
-        let unused = presentIds.filter(id => !cycleHeroIds.includes(id));
-        if (unused.length === 0) { cycleHeroIds = []; unused = [...presentIds]; }
-        let candidates = unused;
-        if (lastHeroId && candidates.length > 1) {
-            const filtered = candidates.filter(id => id !== lastHeroId);
-            candidates = filtered.length ? filtered : candidates;
-        }
-        chosenId = candidates[Math.floor(Math.random() * candidates.length)];
     }
 
     if (!cycleHeroIds.includes(chosenId)) cycleHeroIds.push(chosenId);

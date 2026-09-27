@@ -397,7 +397,7 @@ export const optionsTabHTML = `
                                         </div>
                                         <div class="text-center md:text-left flex-1">
                                             <h2 class="font-title text-3xl text-amber-800 mb-1">Quiz of the Week</h2>
-                                            <p class="text-sm text-gray-500">AI generates a tailored quiz for your class each week — multiple choice, fill-in-the-blank, and image questions.</p>
+                                            <p class="text-sm text-gray-500">AI generates a tailored multiple-choice quiz from this week's lessons — play it live on Home.</p>
                                         </div>
                                     </div>
 
@@ -406,7 +406,7 @@ export const optionsTabHTML = `
                                         <div class="qow-step">
                                             <div class="qow-step-num">1</div>
                                             <div class="qow-step-icon">🎓</div>
-                                            <div class="qow-step-label">Pick your class &amp; topic</div>
+                                            <div class="qow-step-label">Check this week's lessons</div>
                                         </div>
                                         <div class="qow-step-arrow">→</div>
                                         <div class="qow-step">
@@ -441,7 +441,15 @@ export const optionsTabHTML = `
                                     <div class="qow-card qow-card-disabled" id="qow-card-curriculum">
                                         <div class="qow-card-header">
                                             <span class="qow-card-badge">Step 2</span>
-                                            <span class="qow-card-title"><i class="fas fa-book-open mr-2 text-amber-500"></i>Set the Curriculum</span>
+                                            <span class="qow-card-title" id="qow-curriculum-title"><i class="fas fa-book-open mr-2 text-amber-500"></i>This week's lessons</span>
+                                        </div>
+
+                                        <div id="qow-lesson-focus" class="qow-lesson-focus hidden">
+                                            <p id="qow-lesson-summary" class="qow-lesson-summary"></p>
+                                            <div id="qow-lesson-units" class="qow-lesson-units"></div>
+                                            <div id="qow-lesson-grammar" class="qow-lesson-grammar"></div>
+                                            <p class="qow-section-label" id="qow-lesson-words-label"><i class="fas fa-font mr-1"></i> Words they practised <span class="text-gray-400 font-normal">(untick to drop)</span></p>
+                                            <div id="qow-lesson-words" class="qow-chips"></div>
                                         </div>
 
                                         <!-- Type pills -->
@@ -466,15 +474,18 @@ export const optionsTabHTML = `
                                             <option value="mix" selected>Mix</option>
                                         </select>
 
-                                        <div id="quiz-categories-wrap" class="qow-categories-wrap">
-                                            <p class="qow-section-label"><i class="fas fa-tags mr-1"></i> Suggested topics <span class="text-gray-400 font-normal">(tick what you're covering)</span></p>
-                                            <div id="quiz-categories-chips" class="qow-chips"></div>
-                                        </div>
+                                        <details id="qow-different-focus" class="qow-different-focus qow-focus-fallback" open>
+                                            <summary id="qow-different-focus-summary" class="qow-different-focus-summary hidden">Different focus</summary>
+                                            <div id="quiz-categories-wrap" class="qow-categories-wrap">
+                                                <p class="qow-section-label"><i class="fas fa-tags mr-1"></i> Suggested topics <span class="text-gray-400 font-normal">(tick what you're covering)</span></p>
+                                                <div id="quiz-categories-chips" class="qow-chips"></div>
+                                            </div>
+                                        </details>
 
                                         <div class="qow-keywords-wrap">
-                                            <p class="qow-section-label"><i class="fas fa-pen mr-1"></i> Custom focus <span class="text-gray-400 font-normal">(optional — override or supplement the chips)</span></p>
+                                            <p class="qow-section-label" id="qow-keywords-label"><i class="fas fa-pen mr-1"></i> Add a note <span class="text-gray-400 font-normal">(optional)</span></p>
                                             <textarea id="quiz-keywords" class="qow-textarea" rows="2"
-                                                placeholder="e.g. ordinal numbers 1st–10th, was/were in past sentences…"></textarea>
+                                                placeholder="e.g. keep sentences short, include was/were…"></textarea>
                                         </div>
                                     </div>
 
@@ -516,7 +527,7 @@ export const optionsTabHTML = `
                                     <!-- ── GENERATE BUTTON ── -->
                                     <button id="quiz-generate-btn" class="qow-generate-btn" disabled>
                                         <i class="fas fa-wand-magic-sparkles"></i>
-                                        <span id="quiz-generate-btn-label">Generate This Week's Quiz</span>
+                                        <span id="quiz-generate-btn-label">Generate from this week's lessons</span>
                                     </button>
 
                                     <!-- ── STATUS BANNER ── -->

@@ -45,6 +45,12 @@ export const FEATURE_DEFINITIONS = {
         teacherExplain: "Open the Hero Class ceremony from Manage Students (shield on an unsorted child) or Edit → Hero Path → Choose / Change Hero Class. The child previews a class, then Swear this Path. Leave them unassigned for No Class. They level by earning stars in that class's matching virtue (not generic XP). A Patron levels by giving Hero's Boon — one path point per calendar week (extra gifts that week still help classmates). The receiver still gets +0.5 stars; the Patron does not buy rank with Gold. Each level offers one of two Skill Tree branches (extra Gold, bonus stars, or help for classmates/guildmates). Matching awards also grant +10 Gold. They keep their Hero Class from year to year. Each school year they may change it twice; the second change locks the path until the next school year. ⚔️🧙",
         studentExplain: "Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad, or Patron — and level up by earning stars in your specialty. Each level unlocks a new skill on your Skill Tree. Your adventure is YOUR adventure! 🌟"
     },
+    heroCampfire: {
+        name: 'Hero Campfire', emoji: '🔥', tier: 'Pro',
+        description: 'A gentle closing ritual, lesson words and Ember Oaths',
+        teacherExplain: 'A 2-minute closing ritual. Writing the Quest Assignment starts tomorrow’s pack in the background; after Hero of the Day, Gather at the Campfire lights up in the Adventure Log. It uses the words and book unit from your last assignment (Primary Path Big Questions, Yeti’s smaller word-units, or a grammar-book pattern — never book codes on the projector), asks one reflection question, and checks in on Ember Oaths. The three 🔥 / 🕯️ / 🌙 orbs are today’s check-in, not the keep: a promise is ready when there is enough evidence and at least one 🔥, then you confirm with Let it rise. Kept oaths become stars in the class sky, clustered by the same six kinds as the Oath Board — never stars or Gold. The telescope zooms the same stars already in that sky so the class can hover one and read the promise. The Oath Board gives each child three ready-made promises (one tap). Elite may polish the question and closing lines, reorder the word list (never add a word), and prepare short examples and pictures of concrete things.',
+        studentExplain: 'Gather around our fire, share something we learned and choose a little promise to practise. Promises we keep shine in our sky — look up through the telescope to see them. We all bring a different light.'
+    },
     adventureLog: {
         name: 'Adventure Log',
         emoji: '📓',
@@ -114,7 +120,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '❓',
         description: 'Weekly curriculum quiz game-show',
         tier: 'Elite',
-        teacherExplain: "Configure in Teacher Settings → Quiz (grammar, vocabulary, or mix). The app writes multiple-choice questions that scale with class size (about three-quarters of the roster, between 5 and 15). Play from Home on the class's first lesson day of the week during lesson time. Students are picked at random; rewards follow first-try accuracy. Optional: review and edit the questions before they go live, and bring back the questions the class missed last week (you choose which). Not a Scholar's Scroll test. ❓🏆",
+        teacherExplain: "Configure in Teacher Settings → Quiz. When the class book is known from Quest Assignments, Generate uses this week's real units, grammar, and words (since the last finished quiz); you can untick words or open Different focus for the old topic chips. The app writes multiple-choice questions that scale with class size (about three-quarters of the roster, between 5 and 15). Play from Home on the class's first lesson day of the week during lesson time. Students are picked at random; rewards follow first-try accuracy. Optional: review and edit the questions before they go live, and bring back the questions the class missed last week (you choose which). Not a Scholar's Scroll test. ❓🏆",
         studentExplain: "Quiz of the Week is your class's weekly challenge! ❓ Heroes get picked at random to answer — and if your class does well, you unlock rewards. It feels like a game show, but it makes your English stronger every week. 🏆"
     }
 };
@@ -164,6 +170,7 @@ export function getGuideSections(perspective) {
                 features: [
                     { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', key: 'scholarScroll', teacherExplain: FEATURE_DEFINITIONS.scholarScroll.teacherExplain, why: "Replaces paper grade sheets with a visual, satisfying record system you'll actually want to open." },
                     { emoji: '❓', name: "Quiz of the Week", tier: 'elite', key: 'quizOfTheWeek', teacherExplain: FEATURE_DEFINITIONS.quizOfTheWeek.teacherExplain, why: 'A weekly review ritual that feels like a game show — not a test.' },
+                    { emoji: '🔥', name: 'Hero Campfire & Ember Oaths', tier: 'pro', key: 'heroCampfire', teacherExplain: FEATURE_DEFINITIONS.heroCampfire.teacherExplain, why: 'Reflection and small personal goals are among the highest-impact habits for learning. No ranks, no Gold: growth you can see.' },
                     { emoji: '📓', name: "Hero's Chronicle", tier: 'starter', teacherExplain: "Private notes per student from My Classes → Manage Students → the green book. Categories: General, Academic, Behavior, Social, Goals. Families never see this notebook unless you publish. On Elite, the Oracle can write Parent Summary, Teacher Strategy, Traits & Trends, and Hero's Goal from notes, trials, and stars. 📓✨", why: 'Keep detailed records without drowning in paperwork — and let AI help you spot patterns on Elite.' },
                     { emoji: '🔄', name: 'Pending Makeups', tier: 'pro', key: 'makeupTracking', teacherExplain: FEATURE_DEFINITIONS.makeupTracking.teacherExplain, why: 'Missing test grades stay visible until you log them or dismiss the row.' },
                     { emoji: '📋', name: 'Advanced Attendance', tier: 'pro', key: 'advancedAttendance', teacherExplain: FEATURE_DEFINITIONS.advancedAttendance.teacherExplain, why: 'Professional-grade records that protect you and inform parents with clarity.' },
@@ -263,6 +270,7 @@ export function getGuideSections(perspective) {
                 { emoji: '❓', name: 'Quiz of the Week', tier: 'elite', key: 'quizOfTheWeek', studentExplain: FEATURE_DEFINITIONS.quizOfTheWeek.studentExplain, why: 'A weekly challenge that helps you remember what you learned — and win rewards!' },
                 { emoji: '📖', name: 'Story Weavers', tier: 'elite', studentExplain: FEATURE_DEFINITIONS.storyWeavers.studentExplain, why: "Your sentences become part of a REAL story your whole class writes together! ✍️" },
                 { emoji: '💬', name: 'Word of the Day', tier: 'elite', studentExplain: "On Story Weavers there is a special Word of the Day! 💬📚 Learn it, then use it in the next sentence of the class story. Over the year your vocabulary becomes a superpower!", why: 'Small daily words = huge vocabulary by the end of the year. 🌟' },
+                { emoji: '🔥', name: 'Hero Campfire', tier: 'pro', key: 'heroCampfire', studentExplain: FEATURE_DEFINITIONS.heroCampfire.studentExplain, why: 'Every promise you keep becomes a star in our class sky. ✨' },
                 { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', studentExplain: FEATURE_DEFINITIONS.scholarScroll.studentExplain, why: 'Watching your own scores improve is incredibly motivating! 📈' },
                 { emoji: '🗺️', name: 'Team Quest Map', tier: 'starter', studentExplain: 'The Team Quest map shows your class\'s journey this month! 🗺️⚔️ Earn stars together to travel Bronze Meadows, Silver Peaks, Golden Citadel, and Crystal Realm. It is your class vs other classes — not the Guild race.', why: 'Progress feels REAL when you can see it on a map! 🌍' },
             ]
@@ -335,6 +343,7 @@ export const UPGRADE_MESSAGES = {
         schoolYearPlanner: 'My Planning (class end dates) unlocks with Pro. School-wide holidays live in the School Office.',
         advancedAttendance: 'The Attendance Chronicle (month view and history) is available on the Pro plan.',
         heroProgression: 'Hero Classes and Skill Tree progression are available on the Pro plan.',
+        heroCampfire: 'Hero Campfire (closing reflection) and Ember Oaths (personal promises) are available on the Pro plan.',
         maxClasses: 'You have reached your plan limit. Upgrade to add more classes.',
         maxTeachers: 'Your school has reached the teacher limit. Upgrade to add more teachers.'
     },

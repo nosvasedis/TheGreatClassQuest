@@ -33,6 +33,8 @@ const YEAR_COLLECTIONS = [
   'fortune_wheel_log',
   'quest_history',
   'hero_chronicle_notes',
+  'ember_oaths',
+  'campfire_sessions',
   'parent_homework',
   'communication_threads',
   'communication_messages',

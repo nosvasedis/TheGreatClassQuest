@@ -4,6 +4,7 @@ import * as utils from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { showAnimatedModal } from './base.js';
 import { showToast } from '../effects.js';
+import { renderBoonSponsorPicker } from '../boonSponsorPicker.js';
 import { playSound } from '../../audio.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import {
@@ -679,6 +680,7 @@ export function openBestowBoonModal(receiverId) {
     const classmates = studentsInClass.filter(s => s.id !== receiverId);
     const select = document.getElementById('boon-sender-select');
 
+    const pickerOptions = [];
     if (classmates.length === 0) {
         select.innerHTML = `<option value="">No other students in class</option>`;
         document.getElementById('boon-confirm-btn').disabled = true;
@@ -707,12 +709,22 @@ export function openBestowBoonModal(receiverId) {
                 labelSuffix = `(Free Boon Available!)`;
             }
 
+            pickerOptions.push({
+                id: s.id,
+                name: s.name,
+                avatar: s.avatar || '',
+                gold,
+                status: isDisabled ? 'locked' : (hasFreeBoon ? 'free' : 'ready'),
+                reason: isConsecutiveLimit ? 'Boosted them last time' : `Needs 15 Gold`
+            });
+
             return `<option value="${s.id}" ${isDisabled ? 'disabled style="color: #94a3b8; opacity: 0.5;"' : ''}>${s.name} ${labelSuffix}</option>`;
         }).join('');
 
         select.innerHTML = placeholder + optionsHtml;
         document.getElementById('boon-confirm-btn').disabled = true;
     }
+    renderBoonSponsorPicker(pickerOptions);
 
     showAnimatedModal('bestow-boon-modal');
 }

@@ -37,6 +37,18 @@ import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from
 import { renderFamiliarOptionsUi } from '../../features/familiars.js';
 import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/accessManagement.js';
 import { renderMarketManagerUi, wireMarketManagerEvents } from '../core/marketManager.js';
+import {
+    applyWordSelection,
+    buildQuizLessonFocus,
+    canGenerateQuiz,
+    completedQuizDate,
+    curriculumFromFocus,
+    hasUsableLessonFocus,
+    lessonFocusSummary,
+    quizReviewWindow,
+    targetWeekMonday,
+    unitDisplayLine
+} from '../../features/quizCurriculumCore.mjs';
 
 // --- TAB NAVIGATION ---
 
@@ -1057,6 +1069,147 @@ let quizOptionsListenersBound = false;
 // Last week's missed questions for the class currently shown (carry-forward chooser).
 let quizCarryCandidates = [];
 let quizCarryClassId = null;
+let quizLessonFocus = null;
+let quizFocusClassId = null;
+
+function getSelectedLessonWords() {
+    const boxes = document.querySelectorAll('#qow-lesson-words .qow-lesson-word');
+    if (!boxes.length) return applyWordSelection(quizLessonFocus, null);
+    return applyWordSelection(quizLessonFocus, [...boxes].filter((input) => input.checked).map((input) => input.value));
+}
+
+function isQuizManualOverride() {
+    const details = document.getElementById('qow-different-focus');
+    if (!quizLessonFocus || !hasUsableLessonFocus(quizLessonFocus)) return true;
+    if (!details || details.classList.contains('qow-focus-fallback')) return false;
+    return [...document.querySelectorAll('.quiz-category-checkbox:checked')].length > 0;
+}
+
+function setQuizCurriculumMode(hasFocus) {
+    const card = document.getElementById('qow-lesson-focus');
+    const details = document.getElementById('qow-different-focus');
+    const summary = document.getElementById('qow-different-focus-summary');
+    const title = document.getElementById('qow-curriculum-title');
+    const keywordsLabel = document.getElementById('qow-keywords-label');
+    const keywordsInput = document.getElementById('quiz-keywords');
+    card?.classList.toggle('hidden', !hasFocus);
+    details?.classList.toggle('qow-focus-fallback', !hasFocus);
+    if (details) details.open = !hasFocus;
+    summary?.classList.toggle('hidden', !hasFocus);
+    if (title) {
+        title.innerHTML = hasFocus
+            ? '<i class="fas fa-book-open mr-2 text-amber-500"></i>This week\'s lessons'
+            : '<i class="fas fa-book-open mr-2 text-amber-500"></i>Set the Curriculum';
+    }
+    if (keywordsLabel) {
+        keywordsLabel.innerHTML = hasFocus
+            ? '<i class="fas fa-pen mr-1"></i> Add a note <span class="text-gray-400 font-normal">(optional)</span>'
+            : '<i class="fas fa-pen mr-1"></i> Custom focus <span class="text-gray-400 font-normal">(optional — override or supplement the chips)</span>';
+    }
+    if (keywordsInput) {
+        keywordsInput.placeholder = hasFocus
+            ? 'e.g. keep sentences short, include was/were…'
+            : 'e.g. ordinal numbers 1st–10th, was/were in past sentences…';
+    }
+}
+
+function renderQuizLessonCard(focus, preselectedWords = null) {
+    const summary = document.getElementById('qow-lesson-summary');
+    const units = document.getElementById('qow-lesson-units');
+    const grammar = document.getElementById('qow-lesson-grammar');
+    const words = document.getElementById('qow-lesson-words');
+    const wordsLabel = document.getElementById('qow-lesson-words-label');
+    if (!focus) {
+        if (summary) summary.textContent = '';
+        if (units) units.innerHTML = '';
+        if (grammar) grammar.innerHTML = '';
+        if (words) words.innerHTML = '';
+        return;
+    }
+    if (summary) summary.textContent = lessonFocusSummary(focus);
+    if (units) {
+        units.innerHTML = (focus.units || []).map((unit) => (
+            `<p class="qow-lesson-unit">${escapeQuizText(unitDisplayLine(unit))}</p>`
+        )).join('');
+    }
+    if (grammar) {
+        grammar.innerHTML = (focus.grammarPoints || []).map((point) => (
+            `<span class="qow-lesson-grammar-chip">${escapeQuizText(point)}</span>`
+        )).join('');
+        grammar.classList.toggle('hidden', !(focus.grammarPoints || []).length);
+    }
+    const selected = new Set((preselectedWords || focus.words || []).map((word) => String(word).toLowerCase()));
+    if (words) {
+        words.innerHTML = (focus.words || []).map((word) => `
+            <label class="qow-chip-label">
+                <input type="checkbox" value="${escapeQuizText(word)}" class="qow-chip-check qow-lesson-word" ${selected.has(word.toLowerCase()) ? 'checked' : ''} />
+                <span>${escapeQuizText(word)}</span>
+            </label>
+        `).join('');
+    }
+    wordsLabel?.classList.toggle('hidden', !(focus.words || []).length);
+}
+
+async function loadQuizLessonFocus(classId) {
+    quizLessonFocus = null;
+    quizFocusClassId = classId || null;
+    if (!classId) return null;
+    try {
+        const { getClassBookPlan } = await import('../../features/bookProgress.js');
+        const { BOOK_ATLAS, describeUnit, getUnitWords } = await import('../../features/bookAtlas.mjs');
+        const { getQuizHistory } = await import('../../db/actions/quizOfTheWeek.js');
+        const today = utils.getLocalIsoDateString();
+        const monday = targetWeekMonday(today);
+        const completed = await getQuizHistory(classId, 5);
+        const previous = completed.find((quiz) => {
+            const date = completedQuizDate(quiz);
+            return date && date < monday;
+        });
+        const window = quizReviewWindow(getClassBookPlan(classId).history || [], {
+            lastCompletedDate: previous ? completedQuizDate(previous) : '',
+            targetWeekMonday: monday,
+            lastWeekKey: previous?.weekKey || ''
+        });
+        const units = [];
+        const atlasWords = [];
+        const seen = new Set();
+        for (const entry of window.entries) {
+            if (entry.unconfirmed || !entry.bookId || entry.unit == null) continue;
+            const loadKey = `${entry.bookId}:${Number(entry.unit)}:${entry.component || 'sb'}`;
+            const pages = Array.isArray(entry.pages) && entry.pages.length ? entry.pages : (entry.page ? [entry.page] : []);
+            if (!seen.has(loadKey)) {
+                seen.add(loadKey);
+                const loaded = await getUnitWords(entry.bookId, entry.unit, {
+                    component: entry.component || 'sb',
+                    pages,
+                    lessonCode: entry.lessonCode || null,
+                    limit: 24
+                }).catch(() => []);
+                atlasWords.push(...loaded);
+            }
+            if (seen.has(`unit:${entry.bookId}:${Number(entry.unit)}`)) continue;
+            seen.add(`unit:${entry.bookId}:${Number(entry.unit)}`);
+            const book = BOOK_ATLAS.find((item) => item.id === entry.bookId);
+            const unit = describeUnit(BOOK_ATLAS, entry.bookId, entry.unit);
+            units.push({
+                bookId: entry.bookId,
+                unit: Number(entry.unit),
+                title: unit?.title || '',
+                theme: unit?.theme || '',
+                grammar: unit?.grammar || '',
+                kind: book?.kind || 'coursebook',
+                bookTitle: book?.title || ''
+            });
+        }
+        const focus = buildQuizLessonFocus({ entries: window.entries, units, atlasWords, window });
+        if (!hasUsableLessonFocus(focus)) return null;
+        quizLessonFocus = focus;
+        return focus;
+    } catch (error) {
+        console.warn('Could not load quiz lesson focus:', error);
+        return null;
+    }
+}
 
 const QOW_PREF_PREFIX = 'gcq_qow_pref_';
 
@@ -1239,6 +1392,9 @@ export async function renderQuizOptionsUi() {
             historyArea?.classList.add('hidden');
             carryPanel?.classList.add('hidden');
             hideClassMeta();
+            quizLessonFocus = null;
+            setQuizCurriculumMode(false);
+            renderQuizLessonCard(null);
             renderCategories();
             return;
         }
@@ -1249,9 +1405,13 @@ export async function renderQuizOptionsUi() {
         cardOptions?.classList.remove('qow-card-disabled');
         generateBtn.disabled = false;
 
-        setActivePill('mix');
+        const lessonFocus = await loadQuizLessonFocus(classId);
+        const hasFocus = hasUsableLessonFocus(lessonFocus);
+        setQuizCurriculumMode(hasFocus);
+        setActivePill(hasFocus ? (lessonFocus.type || 'mix') : 'mix');
         if (keywordsInput) keywordsInput.value = '';
         renderCategories();
+        renderQuizLessonCard(hasFocus ? lessonFocus : null);
 
         let existingQuiz = null;
         try {
@@ -1264,8 +1424,19 @@ export async function renderQuizOptionsUi() {
                     document.querySelectorAll('.quiz-category-checkbox').forEach(cb => {
                         cb.checked = c.categories.includes(cb.value);
                     });
+                    if (hasFocus && c.lessonFocus?.source === 'manual') {
+                        const details = document.getElementById('qow-different-focus');
+                        if (details) details.open = true;
+                    }
                 }
-                if (keywordsInput && c.keywords != null) keywordsInput.value = c.keywords;
+                if (keywordsInput) {
+                    keywordsInput.value = hasFocus
+                        ? (c.lessonFocus?.note || '')
+                        : (c.keywords != null ? c.keywords : '');
+                }
+                if (hasFocus) {
+                    renderQuizLessonCard(lessonFocus, c.lessonFocus?.words || null);
+                }
             }
         } catch (_) { /* non-fatal */ }
 
@@ -1415,11 +1586,18 @@ export async function renderQuizOptionsUi() {
             } else {
                 setStatusState('pending', {
                     text: 'No quiz set for this week.',
-                    sub: 'Select your topics above and hit Generate!'
+                    sub: hasUsableLessonFocus(quizLessonFocus)
+                        ? 'Check this week\'s lessons above and hit Generate.'
+                        : 'Select your topics above and hit Generate!'
                 });
                 if (resetBtn) resetBtn.classList.add('hidden');
                 if (reviewBtn) reviewBtn.classList.add('hidden');
                 if (statusBadge) statusBadge.classList.add('hidden');
+                if (generateLabel) {
+                    generateLabel.textContent = hasUsableLessonFocus(quizLessonFocus)
+                        ? 'Generate from this week\'s lessons'
+                        : 'Generate This Week\'s Quiz';
+                }
             }
 
             // ── History ──────────────────────────────────────────────────────
@@ -1498,12 +1676,26 @@ export async function renderQuizOptionsUi() {
         const keywords = keywordsInput?.value?.trim() || '';
         const carryForward = getSelectedCarryQuestions();
         const reviewBeforeLive = Boolean(reviewToggle?.checked);
+        const manualOverride = isQuizManualOverride();
+        const selectedWords = getSelectedLessonWords();
+        const curriculum = hasUsableLessonFocus(quizLessonFocus)
+            ? curriculumFromFocus(quizLessonFocus, { type, note: keywords, selectedWords, categories: selectedCategories, manualOverride })
+            : { type, categories: selectedCategories, keywords, lessonFocus: null };
 
         if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
 
-        if (selectedCategories.length === 0 && !keywords && carryForward.length === 0) {
+        if (!canGenerateQuiz({
+            focus: quizLessonFocus,
+            selectedWords,
+            categories: selectedCategories,
+            keywords,
+            carryCount: carryForward.length,
+            manualOverride: manualOverride || !hasUsableLessonFocus(quizLessonFocus)
+        })) {
             if (validationMsg) {
-                validationMsg.textContent = 'Please tick at least one topic or write a custom focus before generating.';
+                validationMsg.textContent = hasUsableLessonFocus(quizLessonFocus)
+                    ? 'Tick at least one word, keep a grammar point, or write a note before generating.'
+                    : 'Please tick at least one topic or write a custom focus before generating.';
                 validationMsg.classList.remove('hidden');
             }
             return;
@@ -1529,7 +1721,15 @@ export async function renderQuizOptionsUi() {
         try {
             const { saveQuizCurriculum, generateQuizQuestions } = await import('../../db/actions/quizOfTheWeek.js');
 
-            await saveQuizCurriculum(classId, { type, categories: selectedCategories, keywords, questLevel, reviewBeforeLive, carryForward });
+            await saveQuizCurriculum(classId, {
+                type: curriculum.type,
+                categories: curriculum.categories,
+                keywords: curriculum.keywords,
+                lessonFocus: curriculum.lessonFocus,
+                questLevel,
+                reviewBeforeLive,
+                carryForward
+            });
 
             setGenStep(2);
             const result = await generateQuizQuestions(classId);
@@ -1584,15 +1784,10 @@ export async function renderQuizOptionsUi() {
         try {
             const { deleteQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
             await deleteQuizForClass(classId);
-
-            // Reset form
-            setActivePill('mix');
-            renderCategories();
-            if (keywordsInput) keywordsInput.value = '';
-            if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
-            statusArea?.classList.add('hidden');
-            reviewBtn?.classList.add('hidden');
-            if (generateLabel) generateLabel.textContent = 'Generate This Week\'s Quiz';
+            await syncQuizToHeaderClass();
+            if (generateLabel) generateLabel.textContent = hasUsableLessonFocus(quizLessonFocus)
+                ? 'Generate from this week\'s lessons'
+                : 'Generate This Week\'s Quiz';
             const icon = generateBtn?.querySelector('i');
             if (icon) icon.className = 'fas fa-wand-magic-sparkles';
         } catch (e) {

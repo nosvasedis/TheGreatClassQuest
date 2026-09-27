@@ -2,6 +2,7 @@ import * as state from '../state.js';
 
 export function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
 
     let iconHtml;
     if (type === 'success') { iconHtml = '<i class="fas fa-check-circle"></i>'; }
@@ -25,6 +26,7 @@ export function showToast(message, type = 'info', duration = 3000) {
 
 export function showPraiseToast(message, icon = '✨') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const wrapper = document.createElement('div');
     const isLeft = Math.random() > 0.5;
     wrapper.className = `w-full flex ${isLeft ? 'justify-start' : 'justify-end'} mb-3`;

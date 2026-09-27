@@ -914,6 +914,10 @@ function startHomeSmartLogic() {
 
     const checkLogic = () => {
         applyScheduleBasedClassSync();
+        if (!document.hidden && canUseFeature('heroCampfire')) {
+            const run = () => import('./campfire/campfireService.js').then(m => m.maybeKindleCampfire()).catch(e => console.warn('Campfire preparation unavailable:', e.code || e.message));
+            if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 5000 }); else setTimeout(run, 0);
+        }
 
         // Update Grand Guild Ceremony buttons
         grandGuildCeremony.updateCeremonyButtons();

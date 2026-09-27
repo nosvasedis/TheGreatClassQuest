@@ -1,3 +1,4 @@
+import { detectLowPowerTier as sharedLowPowerTier } from '../utils/devicePerformance.mjs';
 // templates/loading.js
 
 const LOADING_TIPS = [
@@ -40,23 +41,7 @@ function randomRange(min, max) {
  * while keeping full visual density on capable machines. Never throws.
  */
 function detectLowPowerTier() {
-    if (_isLowPowerDevice !== null) return _isLowPowerDevice;
-    try {
-        const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
-        const cores = navigator.hardwareConcurrency;
-        const memory = navigator.deviceMemory;
-        const lowCores = typeof cores === 'number' && cores > 0 && cores <= 4;
-        const lowMemory = typeof memory === 'number' && memory > 0 && memory <= 4;
-        // Phones (esp. Android Chrome) stutter hard on filter/clip-path/fireworks
-        // during the welcome finale — treat them as low-power for loading only.
-        const coarsePointer = Boolean(window.matchMedia?.('(pointer: coarse)').matches);
-        const narrowViewport = Boolean(window.matchMedia?.('(max-width: 1023px)').matches);
-        const androidUa = /Android/i.test(navigator.userAgent || '');
-        _isLowPowerDevice = reducedMotion || lowCores || lowMemory
-            || androidUa || (coarsePointer && narrowViewport);
-    } catch (err) {
-        _isLowPowerDevice = false;
-    }
+    if (_isLowPowerDevice === null) _isLowPowerDevice = sharedLowPowerTier();
     return _isLowPowerDevice;
 }
 

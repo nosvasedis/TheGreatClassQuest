@@ -3,6 +3,7 @@ const { getAuth } = require('firebase-admin/auth');
 const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const crypto = require('node:crypto');
+const { publicEmberNote, mergePublishedEmber } = require('./campfireCore.cjs');
 const functionsV1 = require('firebase-functions/v1');
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { HttpsError } = require('firebase-functions/v1/https');
@@ -170,6 +171,7 @@ async function requireFeatureEnabled(featureKey) {
   if (featureKey === 'parentAccess' && (tier === 'pro' || tier === 'elite')) return subscription;
   if (featureKey === 'secretaryAccess' && tier === 'elite') return subscription;
   if (featureKey === 'eliteAI' && tier === 'elite') return subscription;
+  if (featureKey === 'heroCampfire' && directFlag === undefined && ['pro', 'elite'].includes(tier)) return subscription;
 
   throw new HttpsError('failed-precondition', 'This school plan does not include that access feature yet.');
 }
@@ -360,6 +362,7 @@ async function purgeStudentData(studentId) {
     'attendance',
     'written_scores',
     'hero_chronicle_notes',
+    'ember_oaths',
     'today_stars',
     'student_year_enrollments',
     'student_year_snapshots',
@@ -1082,6 +1085,32 @@ exports.publishParentSummary = callable(async (request) => {
   return { ok: true };
 });
 
+exports.publishEmberOath = callable(async (request) => {
+  await requireFeatureEnabled('parentAccess');
+  await requireFeatureEnabled('heroCampfire');
+  if (request.data?.confirmed !== true) throw new HttpsError('invalid-argument', 'Review the family message before publishing.');
+  const caller = await requireAuthedCaller(request);
+  const schoolYearKey = await getActiveSchoolYearKey();
+  let note;
+  try { note = publicEmberNote({ oathId: request.data?.oathId, summary: request.data?.summary, date: new Date().toISOString(), schoolYearKey }); }
+  catch (error) { throw new HttpsError('invalid-argument', error.message); }
+  const oathRef = db.doc(PUBLIC_DATA_PATH + '/ember_oaths/' + note.oathId);
+  const oathSnap = await oathRef.get(), oath = oathSnap.data();
+  if (!oath || caller.profile.role !== 'teacher' || oath.teacherId !== caller.uid || oath.schoolYearKey !== schoolYearKey) throw new HttpsError('permission-denied', 'Only the current teacher can publish this oath.');
+  if (oath.status !== 'kept') throw new HttpsError('failed-precondition', 'Only a kept promise can be shared.');
+  const { student } = await requireStudentManager(request, oath.studentId);
+  if (student.activeSchoolYearKey !== schoolYearKey) throw new HttpsError('failed-precondition', 'This student belongs to another school year.');
+  await upsertParentSnapshot(oath.studentId);
+  const parentRef = db.doc(PUBLIC_DATA_PATH + '/parent_snapshots/' + oath.studentId);
+  await db.runTransaction(async tx => {
+    const [currentOath, currentStudent, snapshot] = await Promise.all([tx.get(oathRef), tx.get(db.doc(PUBLIC_DATA_PATH + '/students/' + oath.studentId)), tx.get(parentRef)]);
+    if (currentOath.data()?.teacherId !== caller.uid || currentOath.data()?.status !== 'kept' ||
+      currentStudent.data()?.createdBy?.uid !== caller.uid) throw new HttpsError('permission-denied', 'Ownership changed. Reopen the student record.');
+    tx.set(parentRef, { publishedNotes: mergePublishedEmber(snapshot.data()?.publishedNotes, note), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  });
+  return { ok: true };
+});
+
 exports.publishParentHomework = callable(async (request) => {
   await requireFeatureEnabled('parentAccess');
   const studentId = String(request.data?.studentId || '').trim();
@@ -1587,6 +1616,8 @@ exports.backfillSchoolYearData = callable(async (request) => {
   });
 
   const yearCollections = [
+    'ember_oaths',
+    'campfire_sessions',
     'award_log',
     'attendance',
     'written_scores',
@@ -2276,6 +2307,11 @@ exports.transferStudentToClass = callable(async (request) => {
       }, schoolYearKey)
     }
   ];
+  const transferredOaths = await db.collection(PUBLIC_DATA_PATH + '/ember_oaths')
+    .where('studentId', '==', studentId).where('schoolYearKey', '==', schoolYearKey).get();
+  transferredOaths.docs.forEach(o => transferWrites.push({
+    ref: o.ref, payload: { classId, teacherId: owner.uid, createdBy: owner, updatedAt: FieldValue.serverTimestamp() }
+  }));
   if (parentLink?.parentUid || parentLink?.username) {
     transferWrites.push({
       ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),

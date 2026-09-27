@@ -46,11 +46,13 @@ Quiz of the Week is a **live game-show review**, not a paper test. It does not r
 
 ### Before the lesson (Teacher Settings → Quiz)
 
-1. Select the class.
-2. Choose the focus: **grammar**, **vocabulary**, or a **mix**, plus topic chips and optional keywords.
-3. Generate the quiz. The app writes **multiple-choice** questions. The number scales with class size (about three-quarters of the roster, at least 5, at most 15).
-4. You can reset and generate again if the set is wrong for this week.
-5. **Optional extras** (Step 3, both off unless you tick them; the app remembers your choice per class):
+1. Select the class in the header.
+2. If Quest Assignments have been writing the class book, Step 2 already shows **this week’s lessons** — the units, grammar, and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the multiple-choice questions from that list: the AI must not invent extra vocabulary.
+3. If there is no book history yet, you still pick **grammar**, **vocabulary**, or a **mix**, plus topic chips and optional keywords, then Generate.
+4. The number of questions scales with class size (about three-quarters of the roster, at least 5, at most 15).
+5. You can reset and generate again if the set is wrong for this week.
+6. **Different focus** opens the old topic chips when you need a true override.
+7. **Optional extras** (Step 3, both off unless you tick them; the app remembers your choice per class):
    - **Review the questions before they go live.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
    - **Bring back questions the class missed last week.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. This is spaced review of real weak spots.
 

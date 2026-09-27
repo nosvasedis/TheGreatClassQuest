@@ -352,8 +352,102 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    function campfirePlan() {
+      return exists(subscriptionPath()) &&
+        get(subscriptionPath()).data.tier in ['pro', 'elite'] &&
+        (!('heroCampfire' in get(subscriptionPath()).data) || get(subscriptionPath()).data.heroCampfire == true);
+    }
+    function campfireOwner(data) {
+      return isTeacher() && data.teacherId == request.auth.uid &&
+        data.createdBy.uid == request.auth.uid && data.schoolYearKey == activeYearKey();
+    }
+    function ownsCampfireClass(classId) {
+      let c = get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data;
+      return classId is string && c.createdBy.uid == request.auth.uid && c.schoolYearKey == activeYearKey();
+    }
+    function shortText(value, max) { return value is string && value.size() <= max; }
+    function oathCheck(list, i) {
+      return list.size() <= i || (list[i] is map && list[i].keys().hasOnly(['date', 'mood']) &&
+        list[i].date is string && list[i].date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        list[i].mood in ['flame', 'candle', 'moon']);
+    }
+    function oathEvidence(list, i) {
+      let e = list.size() > i ? list[i] : null;
+      return list.size() <= i || (e is map && e.keys().hasOnly(['kind', 'label', 'date', 'refId']) &&
+        e.kind in ['manual', 'virtue', 'practice', 'quiz'] && shortText(e.label, 160) &&
+        shortText(e.refId, 300) && e.date is string && e.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));
+    }
+    function validOath(data) {
+      let student = get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(data.studentId)).data;
+      let checks = data.checkIns;
+      let evidence = data.evidence;
+      return data.keys().hasOnly(['studentId','classId','teacherId','createdBy','schoolYearKey','templateId','text','projectorText','category','band','target','evidenceRule','startDate','dueDate','status','private','checkIns','evidence','reflection','legendLine','keptAt','createdAt','updatedAt']) &&
+        data.studentId is string && student.createdBy.uid == request.auth.uid && student.classId == data.classId &&
+        student.activeSchoolYearKey == data.schoolYearKey && ownsCampfireClass(data.classId) &&
+        shortText(data.text, 240) && data.text.size() > 0 && shortText(data.projectorText, 240) &&
+        shortText(data.templateId, 80) && shortText(data.legendLine, 280) && data.private is bool &&
+        data.category in ['speak','words','write','read/listen','habit','virtue'] && data.band in ['early','junior','mid','upper','exam'] &&
+        data.status in ['active','kept','released'] && data.evidenceRule in ['manual','virtue','practice','quiz'] &&
+        data.target is map && data.target.keys().hasOnly(['kind','count','reason']) &&
+        data.target.kind in ['manual','virtue','practice','quiz'] && data.target.count is int && data.target.count >= 1 && data.target.count <= 12 &&
+        (!('reason' in data.target) || data.target.reason in ['Teamwork','Creativity','Respect','Focus']) &&
+        data.startDate is string && data.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        data.dueDate is string && data.dueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && data.dueDate >= data.startDate &&
+        data.reflection is map && data.reflection.keys().hasOnly(['helped','next','emoji']) &&
+        shortText(data.reflection.helped, 240) && shortText(data.reflection.next, 240) && shortText(data.reflection.emoji, 12) &&
+        checks is list && checks.size() == 0 && evidence is list && evidence.size() == 0 &&
+        data.keptAt == null;
+    }
+    function validOathProgress(data) {
+      let checks = data.checkIns.removeAll(resource.data.checkIns);
+      let evidence = data.evidence.removeAll(resource.data.evidence);
+      return data.diff(resource.data).affectedKeys().hasOnly(['status','checkIns','evidence','reflection','legendLine','keptAt','updatedAt']) &&
+        data.status in ['active','kept','released'] && data.checkIns is list && data.checkIns.size() <= 12 &&
+        data.evidence is list && data.evidence.size() <= 12 && checks.size() <= 1 && oathCheck(checks,0) &&
+        data.reflection is map && data.reflection.keys().hasOnly(['helped','next','emoji']) &&
+        shortText(data.reflection.helped,240) && shortText(data.reflection.next,240) && shortText(data.reflection.emoji,12) &&
+        shortText(data.legendLine,280) && (data.keptAt == null || data.keptAt is timestamp) &&
+        (evidence.size() == 0 || (
+          oathEvidence(evidence,0) && oathEvidence(evidence,1) && oathEvidence(evidence,2) && oathEvidence(evidence,3) &&
+          oathEvidence(evidence,4) && oathEvidence(evidence,5) && oathEvidence(evidence,6) && oathEvidence(evidence,7) &&
+          oathEvidence(evidence,8) && oathEvidence(evidence,9) && oathEvidence(evidence,10) && oathEvidence(evidence,11)));
+    }
+    function validCampfire(data) {
+      return data.keys().hasOnly(['classId','date','league','band','teacherId','createdBy','schoolYearKey','status','source','script','selfCheck','checkedInIds','keptOathIds','logId','heroStudentId','updatedAt']) &&
+        ownsCampfireClass(data.classId) && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        shortText(data.league,30) && data.band in ['early','junior','mid','upper','exam'] &&
+        data.status in ['kindled','lit','completed','skipped'] && data.source in ['bank','ai'] &&
+        data.selfCheck in [null,'flame','candle','moon'] && data.checkedInIds is list && data.checkedInIds.size() <= 100 &&
+        data.keptOathIds is list && data.keptOathIds.size() <= 100 && data.script is map &&
+        data.script.keys().hasOnly(['question','followUp','starters','words','circle','rotation','readyOathIds','lessonTarget','fireTale','closingLine','tomorrowSpark','classPromise']) &&
+        shortText(data.script.question,220) && shortText(data.script.followUp,220) &&
+        shortText(data.script.fireTale,220) && shortText(data.script.closingLine,220) && shortText(data.script.tomorrowSpark,220) &&
+        data.script.starters is list && data.script.starters.size() <= 3 && data.script.words is list && data.script.words.size() <= 8 &&
+        data.script.circle is list && data.script.circle.size() <= 4 && data.script.readyOathIds is list && data.script.readyOathIds.size() <= 100 &&
+        shortText(data.script.classPromise,240) && data.script.rotation is map &&
+        (data.script.lessonTarget == null || data.script.lessonTarget is map);
+    }
+    match /artifacts/great-class-quest/public/data/ember_oaths/{id} {
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey();
+      allow create: if campfirePlan() && campfireOwner(request.resource.data) && validOath(request.resource.data) && request.resource.data.status == 'active';
+      allow update: if campfirePlan() && campfireOwner(resource.data) &&
+        validOathProgress(request.resource.data) && resource.data.status == 'active';
+      allow delete: if false;
+    }
+    match /artifacts/great-class-quest/public/data/campfire_sessions/{id} {
+      allow get: if isTeacher() && (resource == null ||
+        (resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey()));
+      allow list: if isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey();
+      allow create: if campfirePlan() && campfireOwner(request.resource.data) && validCampfire(request.resource.data) &&
+        id == request.resource.data.classId + '_' + request.resource.data.date;
+      allow update: if campfirePlan() && campfireOwner(resource.data) &&
+        keepsOwnershipAndYearFields() && validCampfire(request.resource.data) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId','date']) &&
+        (resource.data.status != 'completed' || request.resource.data.status == 'completed');
+      allow delete: if false;
+    }
     match /artifacts/great-class-quest/public/data/{collection}/{docId} {
-      allow read: if hasActiveProfile() && (
+      allow read: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && (
         isStaff() ||
         (collection == 'school_settings') ||
         (collection == 'guild_scores' && isParent()) ||
@@ -361,7 +455,7 @@ service cloud.firestore {
         (collection == 'guild_champions' && isParent())
       );
 
-      allow create: if hasActiveProfile() && isActiveMutableData(request.resource.data) && (
+      allow create: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(request.resource.data) && (
         (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsCreate(collection))) ||
         (isTeacher() && (
         (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
@@ -394,7 +488,7 @@ service cloud.firestore {
         ))
       );
 
-      allow update: if hasActiveProfile() && isActiveMutableData(resource.data) &&
+      allow update: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) &&
         isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && (
         (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsUpdate(collection))) ||
         (isTeacher() && (
@@ -421,7 +515,7 @@ service cloud.firestore {
         ))
       );
 
-      allow delete: if hasActiveProfile() && isActiveMutableData(resource.data) && (
+      allow delete: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) && (
         hasFullSecretaryConsole() ||
         (isTeacher() && (
         resource.data.createdBy.uid == request.auth.uid ||

@@ -68,6 +68,9 @@ function getDefaultState() {
         allAttendanceRecords: [], // Keeps recent/real-time records
         allScheduleOverrides: [],
         allHeroChronicleNotes: [],
+        allEmberOaths: [],
+        unsubscribeEmberOaths: () => {},
+        hasLoadedEmberOaths: false,
         schoolHolidayRanges: [], // Stores global holiday periods
         hasLoadedCalendarHistory: false, // NEW: Track if we have history
         hasLoadedCompletedStories: false,

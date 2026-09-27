@@ -105,7 +105,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Festival Stall**, Elite **Familiar** eggs. |
 | **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
-| **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day** and records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment**, **Attendance Chronicle**. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
+| **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day** and records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment** (recognises the book, unit and pages), **Attendance Chronicle**. **Gather at the Campfire** (Pro) lights up after the crowning. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
 | **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |
 | **Quest Calendar** | Month grid, Day Planner, Quest Events. School-wide holidays are set in the **School Office**. **Pro.** |
 | **Story Weavers** | Collaborative story, Word of the Day, AI art, PDF print. **Elite.** |
@@ -130,6 +130,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 - **"Log Today's Adventure"** (once per class per day, after stars). Crowns **Hero of the Day**.
 - **Pro:** you write the diary. **Elite:** AI writes a whimsical entry and a **storybook-style** illustration.
 - Entry is stored and can be revisited; **Pathfinder's Map** and **Mask of the Protagonist** can be reflected in the narrative.
+- **Hero Campfire (Pro, optional):** after Hero of the Day, **Gather at the Campfire** opens a 2-minute projector reflection: the words the class practised (from the last Quest Assignment and its book unit), one reflection question, a class glow check, and check-ins on **Ember Oaths** (small personal promises). Kept oaths become stars in the class sky and a **Star-Ember** keepsake, never stars or Gold.
 
 ---
 
@@ -283,7 +284,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## ❓ Quiz of the Week (Elite)
 
-**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. The teacher selects the focus (grammar/vocabulary/mix + topics/keywords). The app generates **multiple-choice** questions (count scales with class size, about three-quarters of the roster, between 5 and 15). The quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy. Optionally, the teacher reviews and edits the questions before they go live, and brings back the questions the class missed last week.
+**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. When Quest Assignments have been filling the class book, Settings → Quiz offers **Generate from this week's lessons** (real units, grammar, and words since the last finished quiz). Otherwise the teacher selects grammar/vocabulary/mix plus topics. The app generates **multiple-choice** questions (count scales with class size, about three-quarters of the roster, between 5 and 15). The quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy. Optionally, the teacher reviews and edits the questions before they go live, and brings back the questions the class missed last week.
 
 - **Configure & generate**: Teacher Settings → **Quiz**
 - **Play / view results**: Home dashboard (class selected) → **Quiz of the Week** button (only appears when eligible)

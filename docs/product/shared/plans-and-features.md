@@ -8,7 +8,7 @@ Typical caps: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 classe
 
 **On every plan:** Award Stars, Team Quest, Hero’s Challenge, Ceremony of the Month, Quest Assignment and attendance tools, bounties, Mystic Market artifacts, Hero’s Boon, Teacher Boon, Projector Mode.
 
-**From Pro:** Guild Hall (Wheel, Ledger, sorting quiz), Hero Path, Quest Calendar / Day Planner (including all five Special Quests), Scholar’s Scroll and Starfall / make-ups, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes), Attendance Chronicle, Family Access, My Planning (class end dates), class grading override.
+**From Pro:** Guild Hall (Wheel, Ledger, sorting quiz), Hero Path, Quest Calendar / Day Planner (including all five Special Quests), Scholar’s Scroll and Starfall / make-ups, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes), Hero Campfire and Ember Oaths, Attendance Chronicle, Family Access, My Planning (class end dates), class grading override.
 
 **From Elite:** Story Weavers, Familiars, Quiz of the Week, School Office, and AI (chronicler, images, Avatar Forge, Oracle, Restock, nameday, certificates and reports).
 
@@ -17,7 +17,7 @@ Typical caps: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 classe
 ## What to tell a teacher in one sentence
 
 - **Starter:** You can run a beautiful star classroom, a monthly map race, a student race, a shop of power-ups, and Projector Mode.  
-- **Pro:** You also get houses, a calendar that respects holidays, academic scroll, a diary with Hero of the Day, parent logins, and Hero Path.  
+- **Pro:** You also get houses, a calendar that respects holidays, academic scroll, a diary with Hero of the Day, Hero Campfire and Ember Oaths, parent logins, and Hero Path.  
 - **Elite:** The Quest writes with you — stories, pictures, familiars, weekly quiz, and a School Office.
 
 ## Tabs locked on the bottom bar

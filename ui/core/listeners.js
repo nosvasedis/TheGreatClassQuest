@@ -1345,6 +1345,10 @@ export function setupUIListeners() {
     if (heroCelebrationCloseBtn) {
         heroCelebrationCloseBtn.addEventListener('click', () => {
             modals.hideModal('hero-celebration-modal');
+            const modal = document.getElementById('hero-celebration-modal');
+            const detail = modal?._campfireDetail;
+            if (modal) modal._campfireDetail = null;
+            if (detail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail }));
         });
     }
 

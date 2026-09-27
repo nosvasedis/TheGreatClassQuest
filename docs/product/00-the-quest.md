@@ -23,7 +23,7 @@ On a classroom PC:
 1. **Follow today’s schedule** (already on when you open the app) so the app switches to the class that has a lesson *now*, or **General view** when none is. You can always pick a class by hand; that pauses follow until you tap it again.
 2. **Award Stars** — Teamwork, Creativity, Respect, or Focus, one to three stars. Welcome a returning student. Notice a birthday. Let a classmate gift a Hero’s Boon when the heart is offered.
 3. Near the end: **Quest Assignment** (homework for next time) and **Attendance** if you have not already marked absences.
-4. **Log Today’s Adventure** — the Quest **automatically** crowns **Hero of the Day** as part of saving the diary (AI on Elite, your own words on Pro). You do not pick the hero in a separate step.
+4. **Log Today’s Adventure** — the Quest **automatically** crowns **Hero of the Day** as part of saving the diary (AI on Elite, your own words on Pro). You do not pick the hero in a separate step. After you close **Huzzah!**, **Gather at the Campfire** (Pro, optional) is a two-minute projector reflection on the words and Ember Oaths.
 5. When it is the right week: **Quiz of the Week** (Home, Elite), **Fortune’s Wheel** (Guild Hall, last lesson of the week), or **Story Weavers**.
 
 **Anytime during the lesson** you may tap **TV** for **Projector Mode**. It is a **wallpaper** for the classroom display (sky, clocks, remaining time, rotating story cards) — open it when it helps, leave it running while you keep teaching on your usual tabs. It is not a step you must do before Award Stars.
@@ -42,7 +42,7 @@ These are the gems on the teacher bottom bar (desktop). **Settings** is the cog 
 | **Mystic Market** | Spend Gold: power-ups, Festival Stall, seasonal items, Familiar eggs |
 | **Guild Hall** | Year-long houses, Wheel, Ledger, Analytics |
 | **Award Stars** | The heart of every lesson |
-| **Adventure Log** | End-of-lesson diary, Hero of the Day, attendance, homework |
+| **Adventure Log** | End-of-lesson diary, Hero of the Day, Hero Campfire, attendance, homework |
 | **Scholar’s Scroll** | Tests and dictations |
 | **Quest Calendar** | Lessons, holidays, Quest Events |
 | **Story Weavers** | Collaborative creative writing |
@@ -54,7 +54,7 @@ These are the gems on the teacher bottom bar (desktop). **Settings** is the cog 
 | Plan | Classroom feel |
 |------|----------------|
 | **Starter** | Stars, both monthly races, Market power-ups, bounties, Projector, ceremonies |
-| **Pro** | Guilds, calendar, Scholar’s Scroll, Adventure Log (manual), Hero Path, Family Access, Attendance Chronicle |
+| **Pro** | Guilds, calendar, Scholar’s Scroll, Adventure Log (manual), Hero Campfire and Ember Oaths, Hero Path, Family Access, Attendance Chronicle |
 | **Elite** | AI chronicler and images, Story Weavers, Familiars, Quiz of the Week, Secretary / School Office |
 
 Full lookup: the Starter · Pro · Elite chapter at the end of this book. Each classroom chapter ends with the same three plans, in that chapter’s own words.

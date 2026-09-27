@@ -38,6 +38,7 @@ const CHAPTERS = [
   { id: 'guild-hall', file: 'teacher/07-guild-hall.md', icon: 'fa-shield-alt', color: 'guild', group: 'The classroom', kicker: 'Tab · Guild Hall' },
   { id: 'award-stars', file: 'teacher/08-award-stars.md', icon: 'fa-star', color: 'rose', group: 'The classroom', kicker: 'Tab · Award Stars' },
   { id: 'adventure-log', file: 'teacher/09-adventure-log.md', icon: 'fa-book-open', color: 'teal', group: 'The classroom', kicker: 'Tab · Adventure Log' },
+  { id: 'hero-campfire', file: 'teacher/15-hero-campfire.md', icon: 'fa-fire', color: 'amber', group: 'The classroom', kicker: 'Hero Campfire' },
   { id: 'scholars-scroll', file: 'teacher/10-scholars-scroll.md', icon: 'fa-scroll', color: 'pink', group: 'The classroom', kicker: "Tab · Scholar's Scroll" },
   { id: 'quest-calendar', file: 'teacher/11-quest-calendar.md', icon: 'fa-calendar-alt', color: 'blue', group: 'The classroom', kicker: 'Tab · Quest Calendar' },
   { id: 'story-weavers', file: 'teacher/12-story-weavers.md', icon: 'fa-feather-alt', color: 'indigo', group: 'The classroom', kicker: 'Tab · Story Weavers' },
@@ -547,6 +548,9 @@ function widgets(id, print = false) {
   if (id === 'adventure-log') {
     return '';
   }
+  if (id === 'hero-campfire') {
+    return '';
+  }
   if (id === 'scholars-scroll') {
     return '';
   }
@@ -658,7 +662,7 @@ function headingWidgets(id) {
   if (id === 'home') {
     return [
       { match: ['What you see', 'Τι βλέπεις'], html: uiShot('home-tab.png', 'Class Home: Good Morning, weather with Quiz of the Week, reminder pills, Team Quest progress, Top Skill, Chronicle, and class actions.') },
-      { match: ['Before the lesson', 'Πριν το μάθημα'], html: uiShot('settings-quiz.png', 'Quiz setup in Teacher Settings: class from the header, Mix plus topic chips, then Generate. Ready this week — play it on Home.') },
+      { match: ['Before the lesson', 'Πριν το μάθημα'], html: uiShot('settings-quiz.png', 'Quiz setup in Teacher Settings: class from the header, this week’s unit and words, then Generate. Ready this week — play it on Home.') },
       { match: ['When it appears', 'Όταν εμφανίζεται'], html: uiShot('quiz-of-the-week.png', 'When the quiz is ready, the question-mark button appears on the Home weather card — first lesson of the week, during lesson time.') },
       { match: ['How play feels', 'Πώς παίζεται'], html: `${uiShot('quiz-play-intro.png', 'The live Quiz of the Week intro: Ready, Quest Heroes? — question count, present students, then Begin the Quiz.')}${uiShot('quiz-play-question.png', 'A question in play: a student is spotlighted, multiple-choice A–D, progress Q 3 / 8, and Skip.')}` }
     ];
@@ -710,8 +714,9 @@ function headingWidgets(id) {
   }
   if (id === 'adventure-log') {
     return [
-      { match: ["Log Today’s Adventure", "Log Today's Adventure"], html: uiShot('adventure-log.png', 'Adventure Log: Quest Assignment and Attendance FABs, then Log Today’s Adventure and Hall of Heroes. Saving the diary crowns Hero of the Day automatically.') },
+      { match: ["Log Today’s Adventure", "Log Today's Adventure"], html: uiShot('adventure-log.png', 'Adventure Log: Quest Assignment and Attendance FABs, then Log Today’s Adventure, Hall of Heroes, and Ember Oaths. Saving the diary crowns Hero of the Day automatically.') },
       { match: ['Hero of the Day'], html: uiShot('hero-of-the-day.png', 'The Hero of the Day celebration after you Log Today’s Adventure. The crown is automatic — you do not pick a name by hand.', 'ui-shot-portrait') },
+      { match: ['Gather at the Campfire'], html: uiShot('campfire-entry.png', 'After you close Huzzah!, Gather at the Campfire lights up under the diary buttons. Optional: Not today hides it until the next lesson.') },
       { match: ['Hall of Heroes'], html: uiShot('hall-of-heroes.png', 'Hall of Heroes: daily crowns, legend tiers, and seasonal shop discounts — not the Hall of Prodigies.') },
       { match: ['Attendance Chronicle'], html: uiShot('attendance-chronicle.png', 'Attendance Chronicle: month at a glance, summary cards, and a present / absent grid you can tap in the live month.') }
     ];
@@ -745,7 +750,7 @@ function headingWidgets(id) {
       { match: ['My Planning', 'Ο προγραμματισμός μου'], html: uiShot('settings-planning.png', 'My Planning: the last lesson day for the class in the header. Holidays belong to the Secretary.') },
       { match: ['Class Grading', 'Βαθμολόγηση τμήματος'], html: uiShot('settings-grading.png', 'Class Grading: My classes, Tests or Dictations, then the School picture.') },
       { match: ['Family Access'], html: uiShot('settings-family.png', 'Family Access: one parent username and password per child.') },
-      { match: ['Quiz (Elite)', 'Quiz Elite'], html: uiShot('settings-quiz.png', 'Quiz setup: Junior B from the header, Mix plus topic chips, Generate, and a Ready banner. Play it on Home.') }
+      { match: ['Quiz (Elite)', 'Quiz Elite'], html: uiShot('settings-quiz.png', 'Quiz setup: Junior B from the header, this week’s Primary Path unit and words, Generate, and a Ready banner. Play it on Home.') }
     ];
   }
   if (id === 'hero-path') {
@@ -753,6 +758,13 @@ function headingWidgets(id) {
       { match: ['How you assign a class', 'Πώς ορίζεις τάξη'], html: uiShot('hero-class.png', 'Hero Class ceremony: Alex previews Guardian; the hall morphs to that vocation. Swear this Path writes the class. First choice is free.') },
       { match: ['The eight classes', 'Οι οκτώ τάξεις'], html: heroClassesHtml() },
       { match: ['Skill Tree on screen', 'Skill Tree στην οθόνη'], html: uiShot('skill-tree.png', 'Skill Tree for a Guardian: Iron Resolve is active; level 2 is pending. The purple sitemap on Manage Students pulses until they pick one permanent branch.') }
+    ];
+  }
+  if (id === 'hero-campfire') {
+    return [
+      { match: ['When it appears', 'Όταν εμφανίζεται'], html: uiShot('campfire-entry.png', 'Gather at the Campfire on Adventure Log after Hero of the Day. The hearth spans the row; Oaths stays beside it. Not today hides it until tomorrow.') },
+      { match: ['What the class sees', 'Τι βλέπει η τάξη'], html: `${uiShot('campfire-words.png', 'Word Embers: the practised words sit around the fire. Tap one when the class has used it — it flies into the hearth. No book codes or page numbers appear on the projector.')}${uiShot('campfire-scene.png', 'The Oath Circle: three or four children sit with their promise. Tap 🔥 / 🕯️ / 🌙 under each child. The Hero of the Day wears the crown.')}` },
+      { match: ['Ember Oaths'], html: uiShot('ember-oaths.png', 'The Oath Board: one card per child, glowing embers for progress, today’s check-in, and Ready to keep. Choosing ceremony is one tap per child.') }
     ];
   }
   return [];

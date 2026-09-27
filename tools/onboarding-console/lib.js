@@ -2177,6 +2177,12 @@ const ACTIVE_YEAR_QUERY_INDEX_SPECS = [
       { fieldPath: 'createdBy.uid', order: 'ASCENDING' },
     ],
   },
+  {"collectionGroup":"ember_oaths","queryScope":"COLLECTION","fields":[{"fieldPath":"teacherId","order":"ASCENDING"},{"fieldPath":"schoolYearKey","order":"ASCENDING"}]},
+  {"collectionGroup":"campfire_sessions","queryScope":"COLLECTION","fields":[{"fieldPath":"teacherId","order":"ASCENDING"},{"fieldPath":"schoolYearKey","order":"ASCENDING"}]},
+  {"collectionGroup":"ember_oaths","queryScope":"COLLECTION","fields":[{"fieldPath":"studentId","order":"ASCENDING"},{"fieldPath":"schoolYearKey","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+  {"collectionGroup":"ember_oaths","queryScope":"COLLECTION","fields":[{"fieldPath":"studentId","order":"ASCENDING"},{"fieldPath":"schoolYearKey","order":"ASCENDING"}]},
+  {"collectionGroup":"award_log","queryScope":"COLLECTION","fields":[{"fieldPath":"studentId","order":"ASCENDING"},{"fieldPath":"schoolYearKey","order":"ASCENDING"}]},
+  {"collectionGroup":"written_scores","queryScope":"COLLECTION","fields":[{"fieldPath":"studentId","order":"ASCENDING"},{"fieldPath":"schoolYearKey","order":"ASCENDING"}]},
   {
     collectionGroup: 'hero_chronicle_notes',
     queryScope: 'COLLECTION',

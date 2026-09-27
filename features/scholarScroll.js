@@ -411,7 +411,7 @@ function renderScrollDashboard(classId) {
             const scoreData = scoreMetaByStudentId.get(student.id);
             const pendingSkill = !!scoreData?.pendingSkillChoice;
             const avatarInner = student.avatar
-                ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar" data-student-id="${student.id}">`
+                ? `<img src="${student.avatar}" alt="${student.name}" loading="lazy" decoding="async" class="student-avatar enlargeable-avatar" data-student-id="${student.id}">`
                 : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold" data-student-id="${student.id}">${student.name.charAt(0)}</div>`;
             const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
@@ -703,7 +703,7 @@ export function openBulkLogModal(classId, type, options = {}) {
 
 function renderStudentBulkRow(student, scheme, isAbsent) {
     const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60 student-avatar">`
+        ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60 student-avatar">`
         : `<div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60 student-avatar">${student.name.charAt(0)}</div>`;
 
     let inputHtml = '';
@@ -1025,7 +1025,7 @@ function renderTrialHistoryItem(score) {
 
     const isOwner = score.teacherId === state.get('currentUserId');
     const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0">`
+        ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0">`
         : `<div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center text-purple-700 font-bold shadow-sm border-2 border-white shrink-0">${student.name.charAt(0)}</div>`;
 
     return `
@@ -1368,7 +1368,7 @@ function renderMissingWorkDashboard(classId) {
     filteredWork.forEach(item => {
         const student = item.student;
         const avatar = student.avatar
-            ? `<img src="${student.avatar}" class="w-11 h-11 rounded-xl object-cover border border-white shadow-sm">`
+            ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-11 h-11 rounded-xl object-cover border border-white shadow-sm">`
             : `<div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-title flex items-center justify-center text-base border border-white shadow-sm">${student.name.charAt(0)}</div>`;
 
         html += `
@@ -1492,7 +1492,7 @@ function openMakeupModal(classId, studentId, type, title) {
 
     // Simplified Row Generation for Makeup
     const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60">`
+        ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60">`
         : `<div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60">${student.name.charAt(0)}</div>`;
 
     let inputHtml = '';

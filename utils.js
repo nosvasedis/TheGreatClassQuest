@@ -721,7 +721,7 @@ export function debounce(func, wait) {
     };
 }
 
-export async function uploadImageToStorage(base64String, path) {
+export async function uploadImageToStorage(base64String, path, options = {}) {
     const { storage, ref, uploadString, getDownloadURL } = await import('./firebase.js');
     try {
         const match = String(base64String || '').match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
@@ -734,7 +734,8 @@ export async function uploadImageToStorage(base64String, path) {
             console.warn(`Generated image is above the 500 KiB target (${Math.ceil(byteLength / 1024)} KiB).`);
         }
         const storageRef = ref(storage, path);
-        await uploadString(storageRef, base64String, 'data_url');
+        const metadata = options.cacheControl ? { cacheControl: options.cacheControl } : undefined;
+        await uploadString(storageRef, base64String, 'data_url', metadata);
         const downloadURL = await getDownloadURL(storageRef);
         return downloadURL;
     } catch (error) {

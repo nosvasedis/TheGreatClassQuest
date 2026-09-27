@@ -481,7 +481,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 }
 
                 const avatarInner = s.avatar
-                    ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">`
+                    ? `<img src="${s.avatar}" alt="${s.name}" loading="lazy" decoding="async" class="student-avatar-cloud enlargeable-avatar">`
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
                 const avatarHtml = avatarInner;
                 const levelUpArrowHtml = heroProgressionEnabled && !!scoreData.pendingSkillChoice

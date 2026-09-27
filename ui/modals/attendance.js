@@ -481,7 +481,7 @@ export async function renderAttendanceChronicle(classId) {
             const safeName = chronicleEscape(student.name);
             const initial = String(student.name || '?').trim().charAt(0).toUpperCase() || '?';
             const avatarHtml = student.avatar
-                ? `<img src="${chronicleEscape(student.avatar)}" alt="${safeName}" class="attendance-student-avatar">`
+                ? `<img src="${chronicleEscape(student.avatar)}" alt="${safeName}" loading="lazy" decoding="async" class="attendance-student-avatar">`
                 : `<div class="attendance-student-avatar attendance-student-avatar--placeholder">${initial}</div>`;
 
             html += `<tr class="attendance-row ${index % 2 === 0 ? 'attendance-row--even' : 'attendance-row--odd'}">

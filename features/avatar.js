@@ -9,6 +9,7 @@ import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { compressAvatarImageBase64 } from '../utils.js';
+import { AVATAR_IMAGE_CACHE_CONTROL, studentAvatarStoragePath } from '../constants.js';
 import { requireEliteAI } from '../utils/upgradePrompt.js';
 
 // --- LOCAL STATE ---
@@ -277,7 +278,7 @@ export async function handleSaveAvatar() {
             if (!avatarCallableMissing(serverError)) throw serverError;
             console.warn('Avatar save callable is not deployed; uploading from the browser.', serverError?.code || serverError);
             const { uploadImageToStorage } = await import('../utils.js');
-            imageUrl = await uploadImageToStorage(compressedAvatar, `avatars/${studentId}/avatar.webp`);
+            imageUrl = await uploadImageToStorage(compressedAvatar, studentAvatarStoragePath(studentId), { cacheControl: AVATAR_IMAGE_CACHE_CONTROL });
             const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
             await updateDoc(studentRef, { avatar: imageUrl });
         }

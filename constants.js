@@ -5,6 +5,14 @@ export const APP_VERSION = typeof __GCQ_BUILD_ID__ === 'string'
 /** Fallback when school_settings.schoolName is not set. Used everywhere school name is displayed. */
 export const DEFAULT_SCHOOL_NAME = 'Your School';
 
+// Student portraits are immutable per download token (every save mints a fresh token),
+// so they can be cached hard. Keep this identical to PORTRAIT_CACHE_CONTROL in
+// functions/avatarForge.js (the server-side save path).
+export const AVATAR_IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+/** Canonical Storage path for a student portrait. The server derives the same path. */
+export const studentAvatarStoragePath = (studentId) => `avatars/${studentId}/avatar.webp`;
+
 // Use optional config from bootstrap (config.json) when present; otherwise this default (e.g. your school).
 const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyCxpouLYfm8woS8ToK8kRzndRvbIwsPuFU",

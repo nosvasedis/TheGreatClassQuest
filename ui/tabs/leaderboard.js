@@ -1031,7 +1031,7 @@ export async function renderStudentLeaderboardTab() {
         const auraStyle = auraColor ? `style="box-shadow: 0 0 0 3px ${auraColor}, 0 0 14px 4px ${auraColor}88; border-color: ${auraColor};"` : '';
         let inner;
         if (s.avatar) {
-            inner = `<img src="${s.avatar}" alt="${escapeLeaderboardHtml(s.name)}" data-student-id="${s.id}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>`;
+            inner = `<img src="${s.avatar}" alt="${escapeLeaderboardHtml(s.name)}" data-student-id="${s.id}" loading="lazy" decoding="async" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>`;
         } else {
             inner = `<div data-student-id="${s.id}" class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>${escapeLeaderboardHtml((s.name || '').charAt(0))}</div>`;
         }

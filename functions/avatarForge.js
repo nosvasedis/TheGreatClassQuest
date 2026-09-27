@@ -21,6 +21,12 @@ const ACCESSORIES = new Set([
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
 
+// Portraits are immutable per download token: every save mints a fresh token, so a
+// URL never points at changed bytes. Cache them hard so the browser and CDN stop
+// re-fetching on every render. Keep this value identical to AVATAR_IMAGE_CACHE_CONTROL
+// in constants.js (client-side fallback).
+const PORTRAIT_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
 function choice(value, allowed, label) {
   const text = String(value || '').trim();
   if (!allowed.has(text)) {
@@ -53,7 +59,7 @@ async function uploadPortrait(studentId, bytes, contentType) {
     resumable: false,
     metadata: {
       contentType,
-      cacheControl: 'public, max-age=3600',
+      cacheControl: PORTRAIT_CACHE_CONTROL,
       metadata: { firebaseStorageDownloadTokens: token }
     }
   });

@@ -281,7 +281,7 @@ export async function openStudentRankingsModal(resetDate = true) {
                 <div class="flex items-center justify-between p-3 rounded-xl ${bgClass} hover:shadow-sm transition-all mb-2">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <div class="text-xl w-8 text-center shrink-0">${icon}</div>
-                        ${s.avatar ? `<img src="${s.avatar}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">${s.name.charAt(0)}</div>`}
+                        ${s.avatar ? `<img src="${s.avatar}" loading="lazy" decoding="async" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">${s.name.charAt(0)}</div>`}
                         <div class="min-w-0">
                             <div class="font-bold text-gray-800 truncate">${s.name}</div>
                             <div class="text-[10px] text-gray-500 truncate">${s.classLogo || ''} ${s.className || ''}</div>

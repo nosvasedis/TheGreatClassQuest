@@ -357,6 +357,7 @@ export function renderManageStudentsTab() {
 
         const avatarInner = s.avatar
             ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}"
+                loading="lazy" decoding="async"
                 class="student-avatar large-avatar enlargeable-avatar cursor-pointer"
                 style="${ringStyle}">`
             : `<div data-student-id="${s.id}"

@@ -541,7 +541,7 @@ function getActiveDashboard(classData, name, theme, spice) {
             const scoreData = scores.find(sc => sc.id === s.id);
             const stars = scoreData?.monthlyStars || 0;
             const avatarInner = s.avatar
-                ? `<img src="${s.avatar}" alt="${s.name}" class="roster-avatar enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">`
+                ? `<img src="${s.avatar}" alt="${s.name}" loading="lazy" decoding="async" class="roster-avatar enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">`
                 : `<div class="roster-avatar bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">${s.name.charAt(0)}</div>`;
             const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, !!scoreData?.pendingSkillChoice);
             return `<div class="relative group -ml-2 first:ml-0 transition-transform hover:z-50">${avatarHtml}</div>`;

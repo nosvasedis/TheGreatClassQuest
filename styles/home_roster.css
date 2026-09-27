@@ -261,6 +261,8 @@
 
 .crm-head {
     position: relative;
+    /* overflow:hidden drops its min-height, so a tall body (hero view) would squash it. */
+    flex-shrink: 0;
     overflow: hidden;
     display: flex;
     align-items: flex-start;

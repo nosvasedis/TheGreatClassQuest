@@ -569,14 +569,58 @@ button.term > .fas {
 .teacher-boon-launch-btn {
   display: inline-flex;
   align-items: center;
-  gap: 1.5mm;
-  border: 1.5pt solid #fda4af;
-  border-radius: 3mm;
-  padding: 2mm 3.5mm;
-  background: linear-gradient(165deg, #ffe4e6, #fb7185);
-  color: #881337;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.teacher-boon-launch-btn__glow,
+.teacher-boon-launch-btn__halo,
+.teacher-boon-launch-btn__shimmer,
+.teacher-boon-launch-btn__orbit,
+.teacher-boon-launch-btn__sparkle { display: none; }
+.teacher-boon-launch-btn__body {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5mm;
+  padding: 1.2mm 2mm 1.2mm 1.2mm;
+  border: 1pt solid #fbbf24;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e11d48, #881337);
+}
+.teacher-boon-launch-btn__seal {
+  display: grid;
+  place-items: center;
+  width: 9mm;
+  height: 9mm;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff7ed, #fbbf24 55%, #b45309);
+}
+.teacher-boon-launch-btn__seal-core {
+  display: grid;
+  place-items: center;
+  width: 6mm;
+  height: 6mm;
+  border-radius: 50%;
+  background: #e11d48;
+  color: #fff7ed;
+  font-size: 7pt;
+}
+.teacher-boon-launch-btn__text { display: flex; flex-direction: column; line-height: 1.1; }
+.teacher-boon-launch-btn__kicker {
+  font-size: 5.5pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fde68a;
+}
+.teacher-boon-launch-btn__label { font-family: var(--title); font-size: 10pt; color: #fff7ed; }
+.teacher-boon-launch-btn__gift {
+  padding: 1mm 2mm;
+  border-radius: 999px;
+  background: #fde68a;
+  color: #9f1239;
   font-family: var(--title);
-  font-size: 10pt;
+  font-size: 8pt;
 }
 .boon-btn {
   width: 8mm;

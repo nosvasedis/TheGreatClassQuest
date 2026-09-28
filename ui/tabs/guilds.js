@@ -17,6 +17,66 @@ function isGuildSeasonLive() {
 
 // ─── Guild Power explainer overlay ───────────────────────────────────────────
 let _powerExplainerWired = false;
+/** The Guild Power explainer card. Exported so the guidebook capture renders the real card. */
+export function guildPowerExplainerCardHtml() {
+    const parts = [
+        {
+            key: 'season', icon: '⚜️', weight: 70, name: 'Glory per member this year',
+            copy: 'All the Glory the guild has earned this school year, shared out per member.',
+        },
+        {
+            key: 'week', icon: '📅', weight: 15, name: 'Glory per member this week',
+            copy: 'Glory earned since Monday, shared out per member. Rewards guilds that are busy right now.',
+        },
+        {
+            key: 'active', icon: '🔥', weight: 10, name: 'Members taking part',
+            copy: 'How many members earned any Glory this week. Every child counts.',
+        },
+        {
+            key: 'momentum', icon: '📈', weight: 5, name: 'Momentum',
+            copy: 'This week compared with last week. A rise helps a little; a dip costs a little. A Momentum Lock from Fortune’s Wheel stops the dip.',
+        },
+    ];
+    return `
+        <div class="guild-power-explainer-card pop-in">
+            <button type="button" class="guild-power-explainer-close" data-gpex-close="true" aria-label="Close">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
+            <header class="guild-power-explainer-head">
+                <span class="guild-power-explainer-bolt" aria-hidden="true"><i class="fas fa-bolt"></i></span>
+                <h3 id="guild-power-explainer-title" class="guild-power-explainer-title font-title">How Guild Power works</h3>
+                <p class="guild-power-explainer-copy">
+                    A fair score out of <strong>100</strong>. Glory is always shared out <strong>per member</strong>,
+                    so a small guild where everyone joins in can beat a big guild where only a few do.
+                </p>
+            </header>
+
+            <div class="guild-power-explainer-mix" aria-hidden="true">
+                ${parts.map((p) => `<span class="guild-power-explainer-mix__seg guild-power-explainer-mix__seg--${p.key}" style="flex:${p.weight} 1 0;">${p.weight}%</span>`).join('')}
+            </div>
+
+            <ul class="guild-power-explainer-list">
+                ${parts.map((p) => `
+                <li class="guild-power-explainer-item guild-power-explainer-item--${p.key}">
+                    <span class="guild-power-explainer-item__icon" aria-hidden="true">${p.icon}</span>
+                    <span class="guild-power-explainer-item__body">
+                        <span class="guild-power-explainer-item__name">${p.name}</span>
+                        <span class="guild-power-explainer-item__copy">${p.copy}</span>
+                    </span>
+                    <span class="guild-power-explainer-item__weight">${p.weight}%</span>
+                </li>`).join('')}
+            </ul>
+
+            <p class="guild-power-explainer-note">
+                Each part is scored against the guild doing best in it, then the parts are blended by the weights above.
+                Glory comes from stars (${GLORY_EMOJI}2 each), boons, Mystic Market relics, Quiz of the Week and Fortune’s Wheel,
+                and every change is written in the Glory ledger — so the standings can always be checked.
+            </p>
+            <button type="button" class="guild-power-explainer-ok" data-gpex-close="true">Got it</button>
+        </div>
+    `;
+}
+
 function _ensurePowerExplainerOverlay() {
     if (_powerExplainerWired) return;
     _powerExplainerWired = true;
@@ -24,68 +84,13 @@ function _ensurePowerExplainerOverlay() {
     // Created once. Opens / closes through the shared modal shell (showAnimatedModal / hideModal),
     // so it pops in and out like every other modal: the overlay carries the backdrop colour, the card is the .pop-in.
     if (!document.getElementById('guild-power-explainer-overlay')) {
-        const parts = [
-            {
-                key: 'season', icon: '⚜️', weight: 70, name: 'Glory per member this year',
-                copy: 'All the Glory the guild has earned this school year, shared out per member.',
-            },
-            {
-                key: 'week', icon: '📅', weight: 15, name: 'Glory per member this week',
-                copy: 'Glory earned since Monday, shared out per member. Rewards guilds that are busy right now.',
-            },
-            {
-                key: 'active', icon: '🔥', weight: 10, name: 'Members taking part',
-                copy: 'How many members earned any Glory this week. Every child counts.',
-            },
-            {
-                key: 'momentum', icon: '📈', weight: 5, name: 'Momentum',
-                copy: 'This week compared with last week. A rise helps a little; a dip costs a little. A Momentum Lock from Fortune’s Wheel stops the dip.',
-            },
-        ];
         const el = document.createElement('div');
         el.id = 'guild-power-explainer-overlay';
         el.className = 'guild-power-explainer-overlay hidden';
         el.setAttribute('role', 'dialog');
         el.setAttribute('aria-modal', 'true');
         el.setAttribute('aria-labelledby', 'guild-power-explainer-title');
-        el.innerHTML = `
-            <div class="guild-power-explainer-card pop-in">
-                <button type="button" class="guild-power-explainer-close" data-gpex-close="true" aria-label="Close">
-                    <i class="fas fa-xmark" aria-hidden="true"></i>
-                </button>
-                <header class="guild-power-explainer-head">
-                    <span class="guild-power-explainer-bolt" aria-hidden="true"><i class="fas fa-bolt"></i></span>
-                    <h3 id="guild-power-explainer-title" class="guild-power-explainer-title font-title">How Guild Power works</h3>
-                    <p class="guild-power-explainer-copy">
-                        A fair score out of <strong>100</strong>. Glory is always shared out <strong>per member</strong>,
-                        so a small guild where everyone joins in can beat a big guild where only a few do.
-                    </p>
-                </header>
-
-                <div class="guild-power-explainer-mix" aria-hidden="true">
-                    ${parts.map((p) => `<span class="guild-power-explainer-mix__seg guild-power-explainer-mix__seg--${p.key}" style="flex:${p.weight} 1 0;">${p.weight}%</span>`).join('')}
-                </div>
-
-                <ul class="guild-power-explainer-list">
-                    ${parts.map((p) => `
-                    <li class="guild-power-explainer-item guild-power-explainer-item--${p.key}">
-                        <span class="guild-power-explainer-item__icon" aria-hidden="true">${p.icon}</span>
-                        <span class="guild-power-explainer-item__body">
-                            <span class="guild-power-explainer-item__name">${p.name}</span>
-                            <span class="guild-power-explainer-item__copy">${p.copy}</span>
-                        </span>
-                        <span class="guild-power-explainer-item__weight">${p.weight}%</span>
-                    </li>`).join('')}
-                </ul>
-
-                <p class="guild-power-explainer-note">
-                    Each part is scored against the guild doing best in it, then the parts are blended by the weights above.
-                    Glory comes from stars (${GLORY_EMOJI}2 each), boons, Mystic Market relics, Quiz of the Week and Fortune’s Wheel,
-                    and every change is written in the Glory ledger — so the standings can always be checked.
-                </p>
-                <button type="button" class="guild-power-explainer-ok" data-gpex-close="true">Got it</button>
-            </div>
-        `;
+        el.innerHTML = guildPowerExplainerCardHtml();
         document.body.appendChild(el);
     }
 

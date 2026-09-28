@@ -12,6 +12,8 @@ import { renderSkillTreeStage, skillTreeThemeStyle } from '../../../../ui/modals
 import { HERO_CLASSES } from '../../../../features/heroClasses.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { getHeroLegendTierInfo } from '../../../../utils.js';
+import { classModalsHTML } from '../../../../templates/modals/class.js';
+import { buildHallOfHeroesHtml } from '../../../../ui/modals/rankings.js';
 import { campfireChipMarkup, oathsButtonMarkup } from '../../../../features/campfireEntry.js';
 import {
   renderShopItemCard,
@@ -148,30 +150,12 @@ export function extrasShellHtml() {
   return `${shopTabHTML}${logTabHTML}${skillTreeModalHTML}${fortunesWheelModalHTML}${hallModalHtml()}${quizHostHtml()}`;
 }
 
+// The real Hall of Heroes shell, lifted from the app's class modals so the capture never drifts.
 function hallModalHtml() {
-  return `
-    <div id="history-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[71] flex items-center justify-center p-4 hidden">
-        <div class="bg-white/95 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-5xl w-full pop-in border border-white/20 flex flex-col max-h-[90vh] overflow-hidden" id="history-modal-panel">
-            <div class="relative bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-6 text-white flex-shrink-0 overflow-hidden">
-                <div class="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl pointer-events-none"></div>
-                <div class="relative flex items-start justify-between gap-4">
-                    <div class="flex items-start gap-4 min-w-0">
-                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-2xl shadow-inner border border-white/30 flex-shrink-0">
-                            <i class="fas fa-crown text-white drop-shadow-sm"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h2 id="history-modal-title" class="font-title text-3xl drop-shadow-md truncate">Junior B Legends</h2>
-                            <p id="history-modal-subtitle" class="text-amber-100 font-bold uppercase tracking-widest text-[10px] opacity-90">Hall of Heroes</p>
-                        </div>
-                    </div>
-                    <button type="button" class="bg-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" aria-label="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-            <div id="history-modal-content" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-50/30"></div>
-        </div>
-    </div>`;
+  const doc = new DOMParser().parseFromString(`<div>${classModalsHTML}</div>`, 'text/html');
+  const modal = doc.getElementById('history-modal');
+  modal?.querySelector('.history-archive-shell')?.setAttribute('id', 'history-modal-panel');
+  return modal ? modal.outerHTML : '';
 }
 
 function quizHostHtml() {
@@ -480,68 +464,6 @@ export function hideAdventureLog() {
   tab?.classList.remove('capture-log');
 }
 
-function hallCard({ name, initial, heroIcon, wins, latest, accent, label, extraDiscount, nextText, progressPercent, medal, delay }) {
-  return `
-                <article class="hoh-card rounded-[1.75rem] overflow-hidden shadow-md border border-white/60 bg-white" style="animation:none;animation-delay:${delay}ms">
-                    <div class="relative p-5 text-white bg-gradient-to-br ${accent} overflow-hidden">
-                        <div class="relative flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="relative flex-shrink-0">
-                                    <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm text-white text-2xl font-title flex items-center justify-center border-4 border-white/50 shadow-xl">${initial}</div>
-                                    <div class="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-xl bg-white shadow-lg border border-white/60 flex items-center justify-center text-base leading-none">${heroIcon}</div>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5 mb-0.5">
-                                        <span class="text-[9px] uppercase tracking-[0.2em] font-black opacity-70">#${medal ? '1' : '2'}</span>
-                                        ${medal ? `<span class="text-base leading-none">${medal}</span>` : '<span class="text-base leading-none">🥈</span>'}
-                                    </div>
-                                    <h3 class="font-title text-2xl leading-tight truncate">${name}</h3>
-                                    <div class="inline-flex items-center gap-1.5 mt-1 bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide">
-                                        <i class="fas fa-shield-halved text-[8px]"></i>
-                                        ${label}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex-shrink-0 text-right">
-                                <div class="text-[9px] uppercase tracking-[0.18em] font-black opacity-70 mb-0.5">Crowns</div>
-                                <div class="font-title text-5xl leading-none" style="text-shadow:0 2px 12px rgba(0,0,0,0.3)">${wins}</div>
-                                <div class="text-[9px] opacity-60 mt-0.5"><i class="fas fa-crown"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="px-4 py-3 space-y-2.5">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
-                                <i class="fas fa-calendar-check text-indigo-400 text-sm flex-shrink-0"></i>
-                                <div>
-                                    <div class="text-[9px] uppercase tracking-[0.14em] font-black text-slate-400">Latest Crown</div>
-                                    <div class="font-bold text-slate-700 text-sm mt-0.5">${latest}</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
-                                <i class="fas fa-tag text-amber-400 text-sm flex-shrink-0"></i>
-                                <div>
-                                    <div class="text-[9px] uppercase tracking-[0.14em] font-black text-amber-600">Shop Perk</div>
-                                    <div class="font-bold text-amber-900 text-sm mt-0.5">+${extraDiscount}% off</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-xl bg-slate-900 px-4 py-3">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[9px] uppercase tracking-[0.16em] font-black text-slate-400 flex items-center gap-1.5">
-                                    <i class="fas fa-bolt text-amber-400"></i> Next milestone
-                                </span>
-                                <span class="text-[10px] font-black text-amber-400">${progressPercent}%</span>
-                            </div>
-                            <div class="h-2 rounded-full bg-white/10 overflow-hidden">
-                                <div class="h-full rounded-full hoh-bar-fill" style="width:${progressPercent}%;animation:none"></div>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-2">${nextText}</p>
-                        </div>
-                    </div>
-                </article>`;
-}
-
 export function showHallOfHeroes() {
   hideExtras();
   hideAppScreen();
@@ -549,44 +471,41 @@ export function showHallOfHeroes() {
   const content = document.getElementById('history-modal-content');
   if (!modal || !content) return;
   modal.classList.remove('hidden');
-  modal.classList.add('capture-hoh');
-  const alex = getHeroLegendTierInfo(3);
-  const maria = getHeroLegendTierInfo(5);
-  content.innerHTML = `
-        <div class="grid grid-cols-3 gap-3 mb-7">
-            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-600 to-sky-500 text-white shadow-lg text-center">
-                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Total Crowns</div>
-                <div class="font-title text-4xl">18</div>
-            </div>
-            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg text-center">
-                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Crowned Heroes</div>
-                <div class="font-title text-4xl">9</div>
-            </div>
-            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg text-center">
-                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Top Legend</div>
-                <div class="font-title text-2xl leading-tight truncate">Alex</div>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-4">
-            ${hallCard({
-              name: 'Alex', initial: 'A', heroIcon: '🛡️', wins: 3, latest: '30 Aug 2026',
-              accent: alex.accent, label: alex.label, extraDiscount: alex.extraDiscount,
-              nextText: '2 more crowns to reach <strong>Golden Legend</strong>', progressPercent: 60,
-              medal: '🥇', delay: 0
-            })}
-            ${hallCard({
-              name: 'Maria', initial: 'M', heroIcon: '⚔️', wins: 5, latest: '23 Aug 2026',
-              accent: maria.accent, label: maria.label, extraDiscount: maria.extraDiscount,
-              nextText: '5 more crowns to reach <strong>Mythic Legend</strong>', progressPercent: 50,
-              medal: '', delay: 0
-            })}
-        </div>`;
+  modal.classList.add('capture-hoh', 'is-hoh');
+  document.getElementById('history-month-select-wrapper')?.classList.add('hidden');
+  const title = document.getElementById('history-modal-title');
+  const subtitle = document.getElementById('history-modal-subtitle');
+  if (title) title.textContent = 'Hall of Heroes';
+  if (subtitle) subtitle.textContent = 'Junior B · Heroes of the Day';
+  const row = (name, heroClass, wins, day) => {
+    const tier = getHeroLegendTierInfo(wins);
+    const nextThreshold = tier.nextThreshold ?? (wins < 3 ? 3 : null);
+    const floor = tier.minWins || 0;
+    const progressPercent = nextThreshold ? Math.round(((wins - floor) / (nextThreshold - floor)) * 100) : 100;
+    return {
+      student: { name, heroClass },
+      wins,
+      tier,
+      nextThreshold,
+      progressPercent,
+      latestDate: day ? new Date(2026, 7, day) : null
+    };
+  };
+  content.innerHTML = buildHallOfHeroesHtml([
+    row('Maria', 'Guardian', 5, 27),
+    row('Alex', 'Sage', 3, 21),
+    row('Nikos', 'Artificer', 2, 17),
+    row('Eleni', 'Weaver', 1, 12),
+    row('Sofia', 'Nomad', 1, 6),
+    row('Yannis', null, 0),
+    row('Sam', null, 0)
+  ], 12);
 }
 
 export function hideHallOfHeroes() {
   const modal = document.getElementById('history-modal');
   modal?.classList.add('hidden');
-  modal?.classList.remove('capture-hoh');
+  modal?.classList.remove('capture-hoh', 'is-hoh');
 }
 
 export function showQuiz() {

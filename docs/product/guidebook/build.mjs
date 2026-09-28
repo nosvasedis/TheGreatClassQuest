@@ -191,12 +191,26 @@ function liveHeroBoon() {
 
 function liveTeacherBoon() {
   return `<div class="live-demo">
-    <p class="live-demo__label"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> Teacher Boon</p>
+    <p class="live-demo__label"><i class="fas fa-gift" aria-hidden="true"></i> Teacher Boon</p>
     <button type="button" class="teacher-boon-launch-btn" data-term="teacher-boon" title="Teacher Boon">
-      <span class="teacher-boon-launch-btn__glow"></span>
-      <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--a">✦</span>
-      <i class="fas fa-wand-magic-sparkles teacher-boon-launch-btn__icon"></i>
-      <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
+      <span class="teacher-boon-launch-btn__glow" aria-hidden="true"></span>
+      <span class="teacher-boon-launch-btn__halo" aria-hidden="true"></span>
+      <span class="teacher-boon-launch-btn__body">
+        <span class="teacher-boon-launch-btn__shimmer" aria-hidden="true"></span>
+        <span class="teacher-boon-launch-btn__seal" aria-hidden="true">
+          <span class="teacher-boon-launch-btn__orbit"><i>✦</i><i>✦</i></span>
+          <span class="teacher-boon-launch-btn__seal-core"><i class="fas fa-gift teacher-boon-launch-btn__icon"></i></span>
+        </span>
+        <span class="teacher-boon-launch-btn__text">
+          <span class="teacher-boon-launch-btn__kicker">Month's end gift</span>
+          <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
+        </span>
+        <span class="teacher-boon-launch-btn__gift">+2 <i class="fas fa-star"></i></span>
+      </span>
+      <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--a" aria-hidden="true">✦</span>
+      <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--b" aria-hidden="true">✧</span>
+      <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--c" aria-hidden="true">✦</span>
+      <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--d" aria-hidden="true">✧</span>
     </button>
   </div>`;
 }

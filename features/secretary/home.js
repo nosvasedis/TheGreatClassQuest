@@ -177,7 +177,7 @@ export function renderSecretaryHome() {
     const yearState = normalizeSchoolYearState(state.get('schoolYearState') || {});
     const waitingCount = allStudents.filter((student) => student.enrollmentStatus === 'pendingPlacement' || !student.classId).length;
     const seatedCount = allStudents.length - waitingCount;
-    const formerCount = getFormerStudents()?.length;
+    const formerCount = getFormerStudents()?.items?.length;
     const tasks = deskTasks({ waitingCount, unreadThreads, hasFullConsole, yearState });
 
     const tools = [

@@ -520,28 +520,15 @@ function hallFrameHtml(row, rank, { featured = false } = {}) {
         </article>`;
 }
 
-async function renderHallOfHeroesContent(classId) {
-    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const contentEl = document.getElementById('history-modal-content');
-    const titleEl = document.getElementById('history-modal-title');
-    const subtitleEl = document.getElementById('history-modal-subtitle');
-    if (titleEl) titleEl.innerText = 'Hall of Heroes';
-    if (subtitleEl) subtitleEl.innerText = `${classData?.name || 'Class'} · Heroes of the Day`;
-
-    contentEl.innerHTML = `
-        <div class="hoh-loading">
-            <i class="fas fa-crown" aria-hidden="true"></i>
-            <p>Hanging the portraits…</p>
-        </div>`;
-
-    const { legendRows, allLogs } = await buildHallLegendRows(classId);
+/** Pure markup for the Hall of Heroes; exported so the guidebook capture renders the real layout. */
+export function buildHallOfHeroesHtml(legendRows, crownCount) {
     const crownedHeroes = legendRows.filter((row) => row.wins > 0);
     const waiting = legendRows.filter((row) => row.wins === 0);
 
     let html = `
         <div class="hoh-hall">
             <div class="hoh-plaques">
-                <div class="hoh-plaque"><span class="hoh-plaque__value">${allLogs.length}</span><span class="hoh-plaque__label">crowns awarded</span></div>
+                <div class="hoh-plaque"><span class="hoh-plaque__value">${crownCount}</span><span class="hoh-plaque__label">crowns awarded</span></div>
                 <div class="hoh-plaque"><span class="hoh-plaque__value">${crownedHeroes.length}</span><span class="hoh-plaque__label">heroes crowned</span></div>
                 <div class="hoh-plaque"><span class="hoh-plaque__value">${waiting.length}</span><span class="hoh-plaque__label">still waiting</span></div>
             </div>
@@ -581,8 +568,27 @@ async function renderHallOfHeroesContent(classId) {
             </footer>
         </div>`;
 
-    contentEl.innerHTML = html;
+    return html;
 }
+
+async function renderHallOfHeroesContent(classId) {
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    const contentEl = document.getElementById('history-modal-content');
+    const titleEl = document.getElementById('history-modal-title');
+    const subtitleEl = document.getElementById('history-modal-subtitle');
+    if (titleEl) titleEl.innerText = 'Hall of Heroes';
+    if (subtitleEl) subtitleEl.innerText = `${classData?.name || 'Class'} · Heroes of the Day`;
+
+    contentEl.innerHTML = `
+        <div class="hoh-loading">
+            <i class="fas fa-crown" aria-hidden="true"></i>
+            <p>Hanging the portraits…</p>
+        </div>`;
+
+    const { legendRows, allLogs } = await buildHallLegendRows(classId);
+    contentEl.innerHTML = buildHallOfHeroesHtml(legendRows, allLogs.length);
+}
+
 
 export function openBestowBoonModal(receiverId) {
     const receiver = state.get('allStudents').find(s => s.id === receiverId);

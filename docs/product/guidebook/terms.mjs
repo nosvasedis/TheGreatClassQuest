@@ -729,7 +729,7 @@ export const TERM_ICONS = {
   'hall-of-heroes': 'fa-crown',
   'heros-boon': 'fa-heart',
   'includes-heros-boon': 'fa-star',
-  'teacher-boon': 'fa-wand-magic-sparkles',
+  'teacher-boon': 'fa-gift',
   'welcome-back': 'fa-hand-sparkles',
   'guild-power': 'fa-bolt',
   'guild-glory': 'fa-sun',

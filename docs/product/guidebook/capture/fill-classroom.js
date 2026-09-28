@@ -1,6 +1,7 @@
 /** Hero's Challenge, Award Stars tab, Team Quest, Fortune Ledger, Trophy Room, Hall of Prodigies. */
 
 import { awardTabHTML } from '../../../../templates/app/tabs/award.js';
+import { guildPowerExplainerCardHtml } from '../../../../ui/tabs/guilds.js';
 import { leaderboardTabHTML } from '../../../../templates/app/tabs/leaderboard.js';
 import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js';
 import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/modals/trophyRoomView.js';
@@ -540,40 +541,7 @@ export function showGuildPowerExplainer() {
     overlay = document.createElement('div');
     overlay.id = 'guild-power-explainer-overlay';
     overlay.className = 'guild-power-explainer-overlay hidden';
-    overlay.innerHTML = `
-            <div class="guild-power-explainer-bg"></div>
-            <div class="guild-power-explainer-card" role="dialog" aria-modal="true" aria-label="Guild Power explained">
-                <button class="guild-power-explainer-close" aria-label="Close">✕</button>
-                <div class="guild-power-explainer-title font-title">⚡ Guild Power</div>
-                <p class="guild-power-explainer-copy">
-                    Guild Power is a season-fair score. Each piece is scored 0–100 against the leading house, then mixed. Glory is counted <em>per member</em> first, so a small busy house can beat a large sleepy one.
-                </p>
-                <div class="guild-power-explainer-grid">
-                    <div class="guild-power-explainer-item">
-                        <div class="k">⚜️ Season Glory / member</div>
-                        <div class="v">70% of Power</div>
-                        <p class="guild-power-explainer-hint">Year-to-date Glory ÷ members, compared with the house richest per member.</p>
-                    </div>
-                    <div class="guild-power-explainer-item">
-                        <div class="k">📅 This week's Glory / member</div>
-                        <div class="v">15% of Power</div>
-                        <p class="guild-power-explainer-hint">Monday–Friday Glory ÷ members. Rewards houses that are earning now.</p>
-                    </div>
-                    <div class="guild-power-explainer-item">
-                        <div class="k">🔥 Activity</div>
-                        <div class="v">10% of Power</div>
-                        <p class="guild-power-explainer-hint">Share of members who earned Glory this week. Showing up matters.</p>
-                    </div>
-                    <div class="guild-power-explainer-item">
-                        <div class="k">📈 Momentum</div>
-                        <div class="v">5% of Power</div>
-                        <p class="guild-power-explainer-hint">This week versus last week. A rise lifts a little; a drop hurts a little. Momentum Lock can stop a fall.</p>
-                    </div>
-                </div>
-                <div class="guild-power-explainer-note">
-                    Stars, boons, shop relics, quiz rewards, and Fortune's Wheel write Glory first. Guild Power is calculated from that ledger.
-                </div>
-            </div>`;
+    overlay.innerHTML = guildPowerExplainerCardHtml();
     document.body.appendChild(overlay);
   }
   overlay.classList.remove('hidden');

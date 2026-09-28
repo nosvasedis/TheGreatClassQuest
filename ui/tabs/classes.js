@@ -277,7 +277,7 @@ export function renderManageClassesTab() {
                         <button data-id="${c.id}" data-name="${c.name.replace(/'/g, "\\'")}" class="manage-students-btn bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-white border border-teal-400 font-bold py-2.5 px-6 rounded-2xl shadow-md bubbly-button transition-all flex items-center justify-center gap-2">
                             <i class="fas fa-users"></i><span class="hidden sm:inline">Students</span>
                         </button>
-                        <button data-id="${c.id}" class="delete-class-btn bg-white text-red-500 hover:bg-red-50 hover:text-red-600 border border-red-200 font-bold w-12 h-12 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center flex-shrink-0">
+                        <button data-id="${c.id}" class="delete-class-btn ml-auto bg-white text-red-500 hover:bg-red-50 hover:text-red-600 border border-red-200 font-bold w-12 h-12 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center flex-shrink-0">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
@@ -375,77 +375,87 @@ export function renderManageStudentsTab() {
         const heroClassBadge = hc
             ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`
             : (heroProgressionEnabled ? `<span class="text-[11px] text-gray-400 italic">No class</span>` : '');
-        const heroMetaRow = (heroClassBadge || heroTitlePill)
-            ? `<div class="flex items-center gap-1.5 mt-0.5 flex-wrap">${heroClassBadge}${heroTitlePill}</div>`
+        const guildChip = s.guildId && getGuildById(s.guildId)
+            ? `<span class="roster-guild-chip" style="--chip-color:${getGuildById(s.guildId).primary};">${escapeHtml(getGuildById(s.guildId).name)}</span>`
+            : '';
+        const heroMetaRow = (heroClassBadge || heroTitlePill || guildChip)
+            ? `<div class="roster-hero__meta">${heroTitlePill || heroClassBadge}${guildChip}</div>`
             : '';
 
-        const guildAction = s.guildId
-            ? `<span class="guild-badge-wrap flex-shrink-0">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`
-            : guildsEnabled
-                ? `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`
-                : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors" title="Pro plan: Guild Sorting Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`;
+        // Every row carries the same tools in the same slots, so the columns line up down the roster.
+        const tool = ({ cls, tone, icon, label, title, locked = false, extra = '', tag = 'button' }) => {
+            const lock = locked ? '<i class="fas fa-lock roster-tool__lock" aria-hidden="true"></i>' : '';
+            const attrs = tag === 'button' ? `type="button" data-id="${s.id}" ` : '';
+            return `<${tag} ${attrs}class="roster-tool roster-tool--${tone}${locked ? ' is-locked' : ''}${cls ? ' ' + cls : ''}" title="${title}"${extra}>
+                <span class="roster-tool__icon">${icon}${lock}</span>
+                <span class="roster-tool__label">${label}</span>
+            </${tag}>`;
+        };
+        const fa = (name) => `<i class="fas ${name}" aria-hidden="true"></i>`;
 
-        const heroClassAction = s.heroClass
-            ? ''
-            : heroProgressionEnabled
-                ? `<button data-id="${s.id}" class="hero-class-select-btn w-7 h-7 flex items-center justify-center bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full bubbly-button transition-colors" title="Choose Hero Class"><i class="fas fa-shield-halved" style="font-size:10px;"></i></button>`
-                : `<button data-id="${s.id}" class="hero-class-select-btn w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors" title="Pro plan: Hero Classes & Skill Tree"><i class="fas fa-shield-halved" style="font-size:10px;"></i></button>`;
+        const guild = s.guildId ? getGuildById(s.guildId) : null;
+        const guildTool = s.guildId
+            ? tool({ tag: 'span', tone: 'guild', cls: 'is-set', icon: `<span class="guild-badge-wrap">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`, label: 'Guild', title: guild ? `Guild: ${guild.name}` : 'Guild' })
+            : tool({ cls: 'guild-quiz-btn', tone: 'guild', icon: fa('fa-hat-wizard'), label: 'Sort', locked: !guildsEnabled, title: guildsEnabled ? 'Take Guild Quiz' : 'Pro plan: Guild Sorting Quiz' });
 
-        const skillTreeBtnCls = !heroProgressionEnabled
-            ? 'skill-tree-btn skill-tree-btn-locked w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors'
-            : pendingSkill
-                ? 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-full bubbly-button animate-pulse ring-2 ring-purple-300 transition-colors'
-                : 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full bubbly-button transition-colors';
-        const avatarMakerBtnCls = eliteAiEnabled
-            ? 'avatar-maker-btn w-7 h-7 flex items-center justify-center bg-fuchsia-100 hover:bg-fuchsia-200 text-fuchsia-700 rounded-full bubbly-button transition-colors'
-            : 'avatar-maker-btn avatar-maker-btn-locked w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors';
+        const heroClassTool = s.heroClass
+            ? tool({ tag: 'span', tone: 'class', cls: 'is-set', icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass, title: `Hero class: ${s.heroClass}` })
+            : tool({ cls: 'hero-class-select-btn', tone: 'class', icon: fa('fa-shield-halved'), label: 'Class', locked: !heroProgressionEnabled, title: heroProgressionEnabled ? 'Choose Hero Class' : 'Pro plan: Hero Classes & Skill Tree' });
 
-        const guildBorderStyle = s.guildId && getGuildById(s.guildId)
-            ? `border-left: 3px solid ${getGuildById(s.guildId).primary};`
-            : '';
+        const skillTool = tool({
+            cls: `skill-tree-btn${!heroProgressionEnabled ? ' skill-tree-btn-locked' : ''}${pendingSkill ? ' is-ready' : ''}`,
+            tone: 'skills',
+            icon: fa('fa-sitemap') + (pendingSkill ? '<span class="roster-tool__ping" aria-hidden="true"></span>' : ''),
+            label: 'Skills',
+            locked: !heroProgressionEnabled,
+            title: !heroProgressionEnabled ? 'Pro plan: Hero Classes & Skill Tree' : (pendingSkill ? '✨ New Skill Available!' : 'Skill Tree')
+        });
+
+        const avatarTool = tool({
+            cls: `avatar-maker-btn${eliteAiEnabled ? '' : ' avatar-maker-btn-locked'}`,
+            tone: 'avatar', icon: fa('fa-user-astronaut'), label: 'Avatar',
+            locked: !eliteAiEnabled, title: eliteAiEnabled ? 'Create/Edit Avatar' : 'Elite plan: Avatar Forge'
+        });
+
+        const accent = guild?.primary || (hc ? hc.ring : '');
 
         return `
-        <div class="flex items-center gap-3 px-4 py-3 hover:bg-teal-50/50 transition-colors" style="${guildBorderStyle}">
-            <div class="flex-shrink-0">${avatarHtml}</div>
-            <div class="flex-1 min-w-0">
-                <p class="font-semibold text-gray-800 text-sm leading-snug truncate">${s.name}</p>
-                ${heroMetaRow}
-            </div>
-            <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
-                <div class="flex items-center gap-1">
-                    ${guildAction}
-                    ${heroClassAction}
-                    <button data-id="${s.id}" class="${skillTreeBtnCls}" title="${!heroProgressionEnabled ? 'Pro plan: Hero Classes & Skill Tree' : (pendingSkill ? '✨ New Skill Available!' : 'Skill Tree')}">
-                        <i class="fas fa-sitemap" style="font-size:10px;"></i>
-                    </button>
-                    <button data-id="${s.id}" class="hero-chronicle-btn w-7 h-7 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-full bubbly-button transition-colors" title="Hero's Chronicle">
-                        <i class="fas fa-book-reader" style="font-size:10px;"></i>
-                    </button>
-                    <button data-id="${s.id}" class="parent-access-student-btn w-7 h-7 flex items-center justify-center bg-sky-100 hover:bg-sky-200 text-sky-700 rounded-full bubbly-button transition-colors" title="Parent Access">
-                        <i class="fas fa-user-shield" style="font-size:10px;"></i>
-                    </button>
-                    <button data-id="${s.id}" class="${avatarMakerBtnCls}" title="${eliteAiEnabled ? 'Create/Edit Avatar' : 'Elite plan: Avatar Forge'}">
-                        <i class="fas fa-user-astronaut" style="font-size:10px;"></i>
-                    </button>
-                    <button data-id="${s.id}" class="certificate-student-btn w-7 h-7 flex items-center justify-center bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full bubbly-button transition-colors" title="Generate Certificate">
-                        <i class="fas fa-award" style="font-size:10px;"></i>
-                    </button>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <button data-id="${s.id}" class="move-student-btn flex items-center gap-1 border border-yellow-200 text-xs font-bold py-1 px-2.5 rounded-full bubbly-button transition-colors" title="Move to Another Class">
-                        <i class="fas fa-people-arrows" style="font-size:10px;"></i>
-                        <span>Move</span>
-                    </button>
-                    <button data-id="${s.id}" class="edit-student-btn flex items-center gap-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-bold py-1 px-2.5 rounded-full bubbly-button transition-colors" title="Edit Student Details">
-                        <i class="fas fa-pencil-alt" style="font-size:10px;"></i>
-                        <span>Edit</span>
-                    </button>
-                    <button data-id="${s.id}" class="delete-student-btn w-7 h-7 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-full bubbly-button transition-colors" title="Delete Student">
-                        <i class="fas fa-trash-alt" style="font-size:10px;"></i>
-                    </button>
+        <article class="roster-row"${accent ? ` style="--roster-accent:${accent};"` : ''}>
+            <div class="roster-hero">
+                <div class="roster-hero__avatar">${avatarHtml}</div>
+                <div class="roster-hero__text">
+                    <p class="roster-hero__name">${escapeHtml(s.name)}</p>
+                    ${heroMetaRow}
                 </div>
             </div>
-        </div>`;
+            <div class="roster-tools">
+                <div class="roster-group roster-group--hero" role="group" aria-label="Hero path">
+                    <span class="roster-group__caption">Hero path</span>
+                    <div class="roster-group__tools">
+                        ${guildTool}
+                        ${heroClassTool}
+                        ${skillTool}
+                    </div>
+                </div>
+                <div class="roster-group roster-group--records" role="group" aria-label="Records">
+                    <span class="roster-group__caption">Records</span>
+                    <div class="roster-group__tools">
+                        ${tool({ cls: 'hero-chronicle-btn', tone: 'chronicle', icon: fa('fa-book-reader'), label: 'Chronicle', title: "Hero's Chronicle" })}
+                        ${tool({ cls: 'parent-access-student-btn', tone: 'parents', icon: fa('fa-user-shield'), label: 'Parents', title: 'Parent Access' })}
+                        ${avatarTool}
+                        ${tool({ cls: 'certificate-student-btn', tone: 'certificate', icon: fa('fa-award'), label: 'Certificate', title: 'Generate Certificate' })}
+                    </div>
+                </div>
+                <div class="roster-group roster-group--admin" role="group" aria-label="Manage">
+                    <span class="roster-group__caption">Manage</span>
+                    <div class="roster-group__tools">
+                        ${tool({ cls: 'move-student-btn', tone: 'move', icon: fa('fa-people-arrows'), label: 'Move', title: 'Move to Another Class' })}
+                        ${tool({ cls: 'edit-student-btn', tone: 'edit', icon: fa('fa-pencil-alt'), label: 'Edit', title: 'Edit Student Details' })}
+                        ${tool({ cls: 'delete-student-btn', tone: 'delete', icon: fa('fa-trash-alt'), label: 'Delete', title: 'Delete Student' })}
+                    </div>
+                </div>
+            </div>
+        </article>`;
     }).join('');
 
     list.querySelectorAll('.delete-student-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Student?', 'Are you sure you want to delete this student?', () => deleteStudent(btn.dataset.id))));

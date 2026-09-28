@@ -25,7 +25,7 @@ export const studentsTabHTML = `
                     </button>
                     <div id="student-count-badge"
                         class="hidden flex-shrink-0 bg-teal-100 text-teal-700 font-bold text-sm px-3 py-1.5 rounded-full border border-teal-200">
-                        <i class="fas fa-users mr-1 text-teal-500 text-xs"></i><span id="student-count-number">0</span> students
+                        <i class="fas fa-users mr-1 text-teal-500 text-xs"></i><span id="student-count-number">0</span><span class="roster-count-word"> students</span>
                     </div>
                 </div>
 
@@ -49,13 +49,23 @@ export const studentsTabHTML = `
             <div id="returning-students-panel" class="hidden mb-5"></div>
 
             <!-- Student Roster — full width -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-                <div class="bg-gradient-to-r from-teal-500 to-cyan-500 px-5 py-3 flex items-center gap-2">
-                    <i class="fas fa-scroll text-white/80 text-sm"></i>
-                    <h3 class="font-title text-xl text-white">Student Roster</h3>
-                </div>
-                <div id="student-list" class="divide-y divide-gray-100"></div>
-            </div>
+            <section class="roster-panel">
+                <header class="roster-panel__head">
+                    <div class="roster-panel__title">
+                        <span class="roster-panel__crest" aria-hidden="true"><i class="fas fa-scroll"></i></span>
+                        <div>
+                            <h3 class="font-title roster-panel__heading">Student Roster</h3>
+                            <p class="roster-panel__hint">Tap a tool under any hero to open it.</p>
+                        </div>
+                    </div>
+                    <div class="roster-panel__columns" aria-hidden="true">
+                        <span class="roster-column roster-column--hero"><i class="fas fa-shield-halved"></i> Hero path</span>
+                        <span class="roster-column roster-column--records"><i class="fas fa-book-open"></i> Records</span>
+                        <span class="roster-column roster-column--admin"><i class="fas fa-sliders-h"></i> Manage</span>
+                    </div>
+                </header>
+                <div id="student-list" class="roster-register"></div>
+            </section>
 
         </div>
     </div>

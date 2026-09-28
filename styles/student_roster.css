@@ -1,0 +1,381 @@
+/* ==========================================================================
+   Manage Students: the class register (ui/tabs/classes.js → renderManageStudentsTab)
+   Every row holds the same tools in the same slots, grouped as
+   Hero path · Records · Manage, so the columns line up down the roster.
+   ========================================================================== */
+
+#manage-students-tab {
+    --roster-tile: 3.5rem;
+    --roster-tile-gap: 0.3rem;
+    --roster-group-pad: 0.3rem;
+    --roster-group-gap: 0.65rem;
+    --roster-ink: #134e4a;
+}
+
+/* ---------- Panel ---------- */
+.roster-panel {
+    background: #fff;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(20, 184, 166, 0.18);
+    box-shadow: 0 18px 40px -22px rgba(15, 118, 110, 0.45), 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.roster-panel__head {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.1rem 0.8rem 1.25rem;
+    color: #fff;
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, 0.22), transparent 55%),
+        linear-gradient(120deg, #0d9488 0%, #14b8a6 45%, #06b6d4 100%);
+}
+/* a faint ruled-ledger texture: this is the class register */
+.roster-panel__head::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 9px);
+    pointer-events: none;
+}
+.roster-panel__title {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+.roster-panel__crest {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    font-size: 1.05rem;
+}
+.roster-panel__heading {
+    margin: 0;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(15, 80, 75, 0.35);
+}
+.roster-panel__hint {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* column labels sit exactly over the tool groups below them */
+.roster-panel__columns {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: var(--roster-group-gap);
+    flex-shrink: 0;
+}
+.roster-column {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.roster-column i { font-size: 0.7rem; opacity: 0.9; }
+.roster-column--hero,
+.roster-group--hero .roster-group__tools { width: calc(3 * var(--roster-tile) + 2 * var(--roster-tile-gap) + 2 * var(--roster-group-pad)); }
+.roster-column--records,
+.roster-group--records .roster-group__tools { width: calc(4 * var(--roster-tile) + 3 * var(--roster-tile-gap) + 2 * var(--roster-group-pad)); }
+.roster-column--admin,
+.roster-group--admin .roster-group__tools { width: calc(3 * var(--roster-tile) + 2 * var(--roster-tile-gap) + 2 * var(--roster-group-pad)); }
+
+/* ---------- Rows ---------- */
+.roster-register > .roster-row + .roster-row { border-top: 1px solid #eef2f4; }
+
+.roster-row {
+    --roster-accent: #cbd5e1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.8rem 1.1rem 0.8rem 1.4rem;
+    transition: background-color 0.15s ease;
+}
+.roster-row:hover { background: linear-gradient(90deg, rgba(240, 253, 250, 0.9), rgba(240, 253, 250, 0.35)); }
+/* guild (or hero class) colour as a slim bookmark ribbon */
+.roster-row::before {
+    content: '';
+    position: absolute;
+    left: 0.45rem;
+    top: 0.85rem;
+    bottom: 0.85rem;
+    width: 4px;
+    border-radius: 999px;
+    background: var(--roster-accent);
+    opacity: 0.85;
+}
+
+.roster-hero {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.roster-hero__avatar { flex-shrink: 0; }
+.roster-hero__text { min-width: 0; }
+.roster-hero__name {
+    margin: 0;
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    font-weight: 600;
+    font-size: 1.02rem;
+    line-height: 1.2;
+    color: #1f2937;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.roster-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+.roster-guild-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.5rem 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--chip-color) 10%, #fff);
+    border: 1px solid color-mix(in srgb, var(--chip-color) 25%, #fff);
+    color: color-mix(in srgb, var(--chip-color) 80%, #1f2937);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.roster-guild-chip::before {
+    content: '';
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--chip-color);
+}
+
+/* ---------- Tool groups ---------- */
+.roster-tools {
+    display: flex;
+    align-items: stretch;
+    gap: var(--roster-group-gap);
+    flex-shrink: 0;
+}
+.roster-group { display: flex; flex-direction: column; }
+.roster-group__caption { display: none; }
+.roster-group__tools {
+    display: flex;
+    gap: var(--roster-tile-gap);
+    padding: var(--roster-group-pad);
+    border-radius: 1.1rem;
+    box-sizing: border-box;
+}
+.roster-group--hero .roster-group__tools { background: #f7f3ff; box-shadow: inset 0 0 0 1px #ede4ff; }
+.roster-group--records .roster-group__tools { background: #f0f9ff; box-shadow: inset 0 0 0 1px #e0f0fb; }
+.roster-group--admin .roster-group__tools { background: #f8fafc; box-shadow: inset 0 0 0 1px #edf1f5; }
+
+/* ---------- Tool tiles ---------- */
+.roster-tool {
+    --tool-ink: #475569;
+    --tool-bg: #fff;
+    --tool-ring: #e2e8f0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    width: var(--roster-tile);
+    min-width: 0;
+    height: 3.35rem;
+    padding: 0.3rem 0.15rem 0.25rem;
+    border-radius: 0.85rem;
+    background: var(--tool-bg);
+    color: var(--tool-ink);
+    box-shadow: inset 0 0 0 1px var(--tool-ring), 0 1px 2px rgba(15, 23, 42, 0.06);
+    font: inherit;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+button.roster-tool:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1.5px var(--tool-ink), 0 6px 12px -6px color-mix(in srgb, var(--tool-ink) 55%, transparent);
+}
+button.roster-tool:active { transform: translateY(0) scale(0.96); }
+button.roster-tool:focus-visible { outline: 3px solid color-mix(in srgb, var(--tool-ink) 45%, transparent); outline-offset: 2px; }
+
+.roster-tool__icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--tool-ink) 13%, #fff);
+    font-size: 0.8rem;
+    line-height: 1;
+}
+.roster-tool__emoji { font-size: 1rem; }
+.roster-tool__label {
+    max-width: 100%;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.roster-tool--guild       { --tool-ink: #b45309; }
+.roster-tool--class       { --tool-ink: #4338ca; }
+.roster-tool--skills      { --tool-ink: #7e22ce; }
+.roster-tool--chronicle   { --tool-ink: #15803d; }
+.roster-tool--parents     { --tool-ink: #0369a1; }
+.roster-tool--avatar      { --tool-ink: #a21caf; }
+.roster-tool--certificate { --tool-ink: #be123c; }
+.roster-tool--move        { --tool-ink: #a16207; }
+.roster-tool--edit        { --tool-ink: #0e7490; }
+.roster-tool--delete      { --tool-ink: #dc2626; }
+.roster-tool--delete .roster-tool__icon { background: #fee2e2; }
+
+/* already chosen: shows the result, not a button */
+.roster-tool.is-set {
+    cursor: default;
+    background: color-mix(in srgb, var(--tool-ink) 7%, #fff);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tool-ink) 22%, #fff);
+}
+.roster-tool.is-set .roster-tool__icon { background: transparent; }
+.roster-tool.is-set .guild-badge-wrap img,
+.roster-tool.is-set .guild-badge-wrap > * { width: 1.7rem !important; height: 1.7rem !important; }
+
+/* a skill choice is waiting */
+.roster-tool.is-ready {
+    background: linear-gradient(160deg, #a855f7, #7e22ce);
+    color: #fff;
+    box-shadow: 0 0 0 2px #e9d5ff, 0 6px 14px -6px rgba(126, 34, 206, 0.7);
+}
+.roster-tool.is-ready .roster-tool__icon { background: rgba(255, 255, 255, 0.22); }
+button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6px rgba(126, 34, 206, 0.8); }
+.roster-tool__ping {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.2rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #facc15;
+    box-shadow: 0 0 0 2px #fff;
+    animation: roster-ping 1.6s ease-in-out infinite;
+}
+@keyframes roster-ping {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.35); }
+}
+
+/* not on this plan: greyed, with a small lock */
+.roster-tool.is-locked {
+    --tool-ink: #94a3b8;
+    background: #f8fafc;
+}
+.roster-tool__lock {
+    position: absolute;
+    right: -0.3rem;
+    bottom: -0.25rem;
+    padding: 0.14rem;
+    border-radius: 50%;
+    background: #fff;
+    color: #64748b;
+    font-size: 0.5rem;
+    box-shadow: 0 0 0 1px #e2e8f0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .roster-tool, .roster-row { transition: none; }
+    .roster-tool__ping { animation: none; }
+    button.roster-tool:hover { transform: none; }
+}
+
+/* ---------- Narrower screens: tools drop under the name ---------- */
+@media (max-width: 1023px) {
+    .roster-panel__columns { display: none; }
+    .roster-row {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.9rem 0.9rem 0.95rem 1.3rem;
+    }
+    .roster-tools { justify-content: flex-start; flex-wrap: wrap; }
+    .roster-group__caption {
+        display: block;
+        margin: 0 0 0.25rem 0.35rem;
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+}
+
+/* ---------- Phones: tiles share the width evenly ---------- */
+@media (max-width: 639px) {
+    #manage-students-tab { --roster-tile-gap: 0.25rem; --roster-group-pad: 0.25rem; --roster-group-gap: 0.4rem; }
+    .roster-count-word { display: none; }
+    .roster-panel { border-radius: 1.25rem; }
+    .roster-panel__head { padding: 0.85rem 0.95rem 0.75rem; }
+    .roster-panel__heading { font-size: 1.2rem; }
+    .roster-row { padding: 0.8rem 0.7rem 0.85rem 1.05rem; gap: 0.65rem; }
+    .roster-row::before { left: 0.35rem; }
+    .roster-hero { gap: 0.7rem; }
+    /* Hero path and Manage share the first line; Records gets the full second line */
+    .roster-tools {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.45rem var(--roster-group-gap);
+    }
+    .roster-group--hero { grid-column: 1; grid-row: 1; }
+    .roster-group--admin { grid-column: 2; grid-row: 1; }
+    .roster-group--records { grid-column: 1 / -1; grid-row: 2; }
+    .roster-group__tools,
+    .roster-group--hero .roster-group__tools,
+    .roster-group--records .roster-group__tools,
+    .roster-group--admin .roster-group__tools {
+        display: grid;
+        width: auto;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+    }
+    .roster-tool { width: auto; height: 3.2rem; padding: 0.3rem 0.05rem 0.25rem; }
+    .roster-tool__label { font-size: 0.58rem; letter-spacing: -0.01em; }
+    .roster-group--records .roster-tool__label { font-size: 0.62rem; }
+}

@@ -79,7 +79,9 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     }
     const oaths = entry.querySelector('[data-campfire-oaths]');
     if (oaths) oaths.onclick = () => import('../ui/modals/emberOaths.js').then(m => m.openOathBoard(classId)).catch(e => showToast(e.message, 'error'));
-    host.append(entry);
+    // On a My Classes card the trash can stays the last button, so Oaths sits just left of it.
+    const trash = oathsOnly ? host.querySelector(':scope > .delete-class-btn') : null;
+    if (trash) host.insertBefore(entry, trash); else host.append(entry);
 }
 
 /** No header class selected: Ember Oaths stays visible but greyed out, like Log / Hall of Heroes. */

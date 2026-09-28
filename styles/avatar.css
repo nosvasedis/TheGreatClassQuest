@@ -15,18 +15,7 @@
     height: 48px;
 }
 
-/* Avatar-maker button in the student management list */
-.avatar-maker-btn {
-    background-color: #dbeafe;
-    color: #1e40af;
-}
-.avatar-maker-btn:hover {
-    background-color: #bfdbfe;
-}
-
-/* Move-student pill button (base colors) */
-.move-student-btn { background-color: #fef9c3; color: #713f12; }
-.move-student-btn:hover { background-color: #fef08a; }
+/* Avatar-maker and move-student buttons: see styles/student_roster.css */
 
 
 /* ═══════════════════════════════════════

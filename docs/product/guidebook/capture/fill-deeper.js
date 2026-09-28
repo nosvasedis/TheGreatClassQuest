@@ -426,43 +426,39 @@ export function hideSettings() {
 function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }) {
   const guild = GUILDS[guildId];
   const badge = getGuildBadgeHtml(guildId, 'w-7 h-7').replace('./assets/', '/assets/');
-  const skillCls = pending
-    ? 'w-7 h-7 flex items-center justify-center bg-purple-500 text-white rounded-full ring-2 ring-purple-300'
-    : 'w-7 h-7 flex items-center justify-center bg-purple-100 text-purple-700 rounded-full';
-  const border = guild ? `border-left: 3px solid ${guild.primary};` : '';
+  const tool = (tone, icon, label, extra = '') =>
+    `<button type="button" class="roster-tool roster-tool--${tone}${extra}"><span class="roster-tool__icon">${icon}</span><span class="roster-tool__label">${label}</span></button>`;
+  const fa = (n) => `<i class="fas ${n}"></i>`;
   const heroMeta = unsorted
     ? `<span class="text-[11px] text-gray-400 italic">No class</span>`
-    : `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800">${hero}</span>
-                    <span class="hero-title-pill inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style="background:linear-gradient(135deg,#16a34a,#16a34add)">${title}</span>`;
-  const chooseHero = unsorted
-    ? `<button type="button" class="w-7 h-7 flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full" title="Choose Hero Class"><i class="fas fa-shield-halved" style="font-size:10px;"></i></button>`
-    : '';
+    : `<span class="hero-title-pill inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style="background:linear-gradient(135deg,#16a34a,#16a34add)">${title}</span>`;
+  const guildChip = guild ? `<span class="roster-guild-chip" style="--chip-color:${guild.primary};">${guild.name}</span>` : '';
+  const heroTool = unsorted
+    ? tool('class', fa('fa-shield-halved'), 'Class')
+    : `<span class="roster-tool roster-tool--class is-set"><span class="roster-tool__icon"><span class="roster-tool__emoji">${hero.split(' ')[0]}</span></span><span class="roster-tool__label">${hero.split(' ').slice(1).join(' ')}</span></span>`;
   return `
-        <div class="flex items-center gap-3 px-4 py-3" style="${border}">
-            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-title flex items-center justify-center">${initial}</div>
-            <div class="flex-1 min-w-0">
-                <p class="font-semibold text-gray-800 text-sm">${name}</p>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                    ${heroMeta}
+        <article class="roster-row"${guild ? ` style="--roster-accent:${guild.primary};"` : ''}>
+            <div class="roster-hero">
+                <div class="roster-hero__avatar"><div class="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-title flex items-center justify-center">${initial}</div></div>
+                <div class="roster-hero__text">
+                    <p class="roster-hero__name">${name}</p>
+                    <div class="roster-hero__meta">${heroMeta}${guildChip}</div>
                 </div>
             </div>
-            <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
-                <div class="flex items-center gap-1">
-                    <span class="guild-badge-wrap">${badge}</span>
-                    ${chooseHero}
-                    <button type="button" class="${skillCls}" title="Skill Tree"><i class="fas fa-sitemap" style="font-size:10px;"></i></button>
-                    <button type="button" class="w-7 h-7 flex items-center justify-center bg-green-100 text-green-700 rounded-full" title="Hero's Chronicle"><i class="fas fa-book-reader" style="font-size:10px;"></i></button>
-                    <button type="button" class="w-7 h-7 flex items-center justify-center bg-sky-100 text-sky-700 rounded-full" title="Parent Access"><i class="fas fa-user-shield" style="font-size:10px;"></i></button>
-                    <button type="button" class="w-7 h-7 flex items-center justify-center bg-fuchsia-100 text-fuchsia-700 rounded-full" title="Avatar Forge"><i class="fas fa-user-astronaut" style="font-size:10px;"></i></button>
-                    <button type="button" class="w-7 h-7 flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full" title="Certificate"><i class="fas fa-award" style="font-size:10px;"></i></button>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <button type="button" class="flex items-center gap-1 border border-yellow-200 text-xs font-bold py-1 px-2.5 rounded-full"><i class="fas fa-people-arrows" style="font-size:10px;"></i> Move</button>
-                    <button type="button" class="flex items-center gap-1 bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-bold py-1 px-2.5 rounded-full"><i class="fas fa-pencil-alt" style="font-size:10px;"></i> Edit</button>
-                    <button type="button" class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-600 rounded-full"><i class="fas fa-trash-alt" style="font-size:10px;"></i></button>
-                </div>
+            <div class="roster-tools">
+                <div class="roster-group roster-group--hero"><span class="roster-group__caption">Hero path</span><div class="roster-group__tools">
+                    <span class="roster-tool roster-tool--guild is-set"><span class="roster-tool__icon"><span class="guild-badge-wrap">${badge}</span></span><span class="roster-tool__label">Guild</span></span>
+                    ${heroTool}
+                    ${tool('skills', fa('fa-sitemap') + (pending ? '<span class="roster-tool__ping"></span>' : ''), 'Skills', pending ? ' is-ready' : '')}
+                </div></div>
+                <div class="roster-group roster-group--records"><span class="roster-group__caption">Records</span><div class="roster-group__tools">
+                    ${tool('chronicle', fa('fa-book-reader'), 'Chronicle')}${tool('parents', fa('fa-user-shield'), 'Parents')}${tool('avatar', fa('fa-user-astronaut'), 'Avatar')}${tool('certificate', fa('fa-award'), 'Certificate')}
+                </div></div>
+                <div class="roster-group roster-group--admin"><span class="roster-group__caption">Manage</span><div class="roster-group__tools">
+                    ${tool('move', fa('fa-people-arrows'), 'Move')}${tool('edit', fa('fa-pencil-alt'), 'Edit')}${tool('delete', fa('fa-trash-alt'), 'Delete')}
+                </div></div>
             </div>
-        </div>`;
+        </article>`;
 }
 
 export function showRoster() {

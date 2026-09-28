@@ -192,3 +192,48 @@ test('Wrangler configs preserve the existing AI and KV bindings and pin Firebase
   assert.match(storageConfig, /REQUIRE_APP_CHECK = "false"/);
   assert.match(storageConfig, /keep_vars = true/);
 });
+
+async function serviceImageRequest(worker, ai) {
+  return worker.fetch(new Request('https://worker.example/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-GCQ-Service-Key': 'shop-secret' },
+    body: JSON.stringify({ prompt: 'a cute chibi wizard', negative_prompt: 'text', width: 1024, height: 1024 }),
+  }), { GCQ_AI_SERVICE_KEY: 'shop-secret', FIREBASE_PROJECT_ID: 'the-great-class-quest', AI: ai }, { waitUntil() {} });
+}
+
+test('AI Worker paints images with FLUX.2 klein and returns decoded bytes', async () => {
+  const { worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 7)]);
+  const calls = [];
+  const response = await serviceImageRequest(worker, {
+    async run(model, inputs) {
+      calls.push(model);
+      const form = await new Response(inputs.multipart.body, { headers: { 'content-type': inputs.multipart.contentType } }).formData();
+      assert.equal(form.get('prompt'), 'a cute chibi wizard');
+      assert.equal(form.get('width'), '1024');
+      return { image: jpeg.toString('base64') };
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b']);
+  assert.equal(response.headers.get('Content-Type'), 'image/jpeg');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
+});
+
+test('AI Worker falls back to SDXL when FLUX fails', async () => {
+  const { worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 1)]);
+  const calls = [];
+  const response = await serviceImageRequest(worker, {
+    async run(model, inputs) {
+      calls.push(model);
+      if (model.includes('flux')) throw new Error('4006: daily free allocation exceeded');
+      assert.equal(inputs.negative_prompt, 'text');
+      return png;
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b', '@cf/stabilityai/stable-diffusion-xl-base-1.0']);
+  assert.equal(response.headers.get('Content-Type'), 'image/png');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+});

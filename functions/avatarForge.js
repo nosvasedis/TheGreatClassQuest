@@ -93,7 +93,9 @@ function createAvatarForgeHandlers({ requireStudentManager, requireFeatureEnable
     if (!Buffer.isBuffer(bytes) || bytes.length < 32 || bytes.length > 4 * MAX_IMAGE_BYTES) {
       throw new HttpsError('unavailable', 'The Avatar Forge returned an unusable portrait. Try again.');
     }
-    return { imageDataUrl: `data:image/png;base64,${bytes.toString('base64')}`, forgeVersion: FORGE_VERSION, recipe };
+    // FLUX answers with JPEG, SDXL with PNG.
+    const imageType = bytes[0] === 0xff && bytes[1] === 0xd8 ? 'image/jpeg' : 'image/png';
+    return { imageDataUrl: `data:${imageType};base64,${bytes.toString('base64')}`, forgeVersion: FORGE_VERSION, recipe };
   }
 
   async function saveStudentAvatar(request) {

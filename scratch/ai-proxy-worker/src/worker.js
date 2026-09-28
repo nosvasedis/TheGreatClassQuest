@@ -3,7 +3,10 @@ const APP_CHECK_JWKS_URL = 'https://firebaseappcheck.googleapis.com/v1/jwks';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-flash';
 const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2';
-const IMAGE_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
+// FLUX.2 [klein] 4B paints every image; SDXL (free, unmetered beta) takes over when
+// FLUX fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
+const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
+const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
 const TEXT_FALLBACK_DAILY_LIMIT = 12;
 const DEFAULT_ORIGINS = [
@@ -408,6 +411,32 @@ async function handleChat(payload, env, ctx, corsHeaders) {
   return new Response(responseText, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Worker-Cache': 'MISS' } });
 }
 
+function sniffImageType(bytes) {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return 'image/png';
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image/jpeg';
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57 && bytes[9] === 0x45) return 'image/webp';
+  return 'image/png';
+}
+
+// FLUX takes multipart input, has no negative prompt and a fixed 4 steps; sizes must be
+// multiples of 16.
+async function runFluxImage(env, { prompt, width, height, seed }) {
+  const form = new FormData();
+  form.append('prompt', prompt);
+  form.append('width', String(Math.round(width / 16) * 16));
+  form.append('height', String(Math.round(height / 16) * 16));
+  if (Number.isFinite(seed)) form.append('seed', String(seed));
+  const encoded = new Response(form);
+  const result = await env.AI.run(IMAGE_MODEL, {
+    multipart: { body: encoded.body, contentType: encoded.headers.get('content-type') },
+  });
+  const base64 = typeof result?.image === 'string' ? result.image : '';
+  if (!base64) throw new Error('FLUX returned no image.');
+  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  if (bytes.length < 32) throw new Error('FLUX returned an empty image.');
+  return { body: bytes, contentType: sniffImageType(bytes), model: IMAGE_MODEL };
+}
+
 async function handleImage(payload, env, corsHeaders) {
   if (!env.AI) return json({ error: 'Image generation is unavailable.' }, 503, corsHeaders);
   const prompt = String(payload.prompt || '').trim();
@@ -426,8 +455,18 @@ async function handleImage(payload, env, corsHeaders) {
   };
   if (Number.isFinite(payload.seed)) inputs.seed = Math.trunc(payload.seed);
   if (Number.isFinite(payload.strength)) inputs.strength = boundedNumber(payload.strength, undefined, 0, 1);
-  const result = await env.AI.run(IMAGE_MODEL, inputs);
-  return new Response(result, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'image/png', 'Cache-Control': 'no-store' } });
+
+  let image;
+  try {
+    image = await runFluxImage(env, inputs);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: 'gcq_image_fallback', reason: String(error?.message || error).slice(0, 200) }));
+    image = { body: await env.AI.run(IMAGE_FALLBACK_MODEL, inputs), contentType: 'image/png', model: IMAGE_FALLBACK_MODEL };
+  }
+  return new Response(image.body, {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': image.contentType, 'Cache-Control': 'no-store', 'X-GCQ-AI-Provider': image.model },
+  });
 }
 
 async function handleSpeech(payload, env, corsHeaders) {

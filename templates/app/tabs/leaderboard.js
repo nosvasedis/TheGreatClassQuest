@@ -36,7 +36,8 @@ export const leaderboardTabHTML = `
                             <i class="fas fa-route" style="font-size:1rem;"></i>
                         </div>
                         <div class="quest-banner-center">
-                            <span id="quest-month-name">February</span>
+                            <span class="quest-banner-kicker" aria-hidden="true">This month's race</span>
+                            <span class="quest-banner-month"><span id="quest-month-name">February</span></span>
                         </div>
                         <div class="quest-banner-side">
                             <i class="fas fa-flag-checkered" style="font-size:1rem;"></i>
@@ -128,7 +129,8 @@ export const leaderboardTabHTML = `
                             <i class="fas fa-user-shield" style="font-size:1rem;"></i>
                         </div>
                         <div class="quest-banner-center">
-                            <span id="hero-month-name">February</span>
+                            <span class="quest-banner-kicker" aria-hidden="true">This month's challenge</span>
+                            <span class="quest-banner-month"><span id="hero-month-name">February</span></span>
                         </div>
                         <div class="quest-banner-side">
                             <i class="fas fa-medal" style="font-size:1rem;"></i>

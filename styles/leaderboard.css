@@ -131,6 +131,154 @@
     }
 }
 
+/* ─── Month banner finish: gilded ribbon edge, light sweep, framed month ─── */
+.quest-month-banner,
+.hero-month-banner {
+    --mb-gold: rgba(254, 240, 138, 0.85);
+    --mb-deep: rgba(124, 45, 18, 0.45);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background-image:
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 12px),
+        linear-gradient(115deg, #f8b31b 0%, #fb8b24 42%, #f97316 65%, #e85d04 100%);
+    box-shadow:
+        0 12px 28px rgba(234, 88, 12, 0.32),
+        0 3px 8px rgba(154, 52, 18, 0.2),
+        inset 0 0 0 4px rgba(255, 255, 255, 0.08),
+        inset 0 0 0 5px var(--mb-gold),
+        inset 0 0 0 7px var(--mb-deep),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.hero-month-banner {
+    --mb-deep: rgba(59, 7, 100, 0.5);
+    background-image:
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 12px),
+        linear-gradient(115deg, #c084fc 0%, #a855f7 42%, #9333ea 65%, #7e22ce 100%);
+    box-shadow:
+        0 12px 28px rgba(147, 51, 234, 0.32),
+        0 3px 8px rgba(88, 28, 135, 0.2),
+        inset 0 0 0 4px rgba(255, 255, 255, 0.08),
+        inset 0 0 0 5px var(--mb-gold),
+        inset 0 0 0 7px var(--mb-deep),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* a slow band of light travelling across the ribbon */
+.quest-month-banner::after,
+.hero-month-banner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -40%;
+    width: 30%;
+    background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+    transform: skewX(-18deg);
+    animation: month-banner-sweep 7s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes month-banner-sweep {
+    0%, 55% { left: -40%; }
+    100% { left: 120%; }
+}
+
+.quest-banner-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    line-height: 1;
+}
+
+.quest-banner-kicker {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255, 251, 235, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    -webkit-text-stroke: 0;
+}
+
+/* the month sits between two gilt rules, each ending in a small diamond */
+.quest-banner-month {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.quest-banner-month::before,
+.quest-banner-month::after {
+    content: '';
+    width: clamp(1.4rem, 6vw, 4.5rem);
+    height: 10px;
+    background:
+        radial-gradient(circle, var(--mb-gold, #fef08a) 0 3px, transparent 3.5px) center / 10px 10px no-repeat,
+        linear-gradient(var(--mb-gold, #fef08a), var(--mb-gold, #fef08a)) center / 100% 2px no-repeat;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+    opacity: 0.9;
+}
+
+.quest-banner-month::before {
+    background:
+        radial-gradient(circle, var(--mb-gold, #fef08a) 0 3px, transparent 3.5px) right center / 10px 10px no-repeat,
+        linear-gradient(90deg, transparent, var(--mb-gold, #fef08a)) left center / calc(100% - 6px) 2px no-repeat;
+}
+
+.quest-banner-month::after {
+    background:
+        radial-gradient(circle, var(--mb-gold, #fef08a) 0 3px, transparent 3.5px) left center / 10px 10px no-repeat,
+        linear-gradient(270deg, transparent, var(--mb-gold, #fef08a)) right center / calc(100% - 6px) 2px no-repeat;
+}
+
+.quest-banner-month > span {
+    color: #ffffff;
+    text-shadow:
+        0 2px 0 var(--mb-deep, rgba(0, 0, 0, 0.3)),
+        0 0 14px rgba(255, 255, 255, 0.35),
+        0 3px 12px rgba(0, 0, 0, 0.18);
+}
+
+/* flanking emblems become little enamel medallions */
+.quest-banner-side > i {
+    display: grid;
+    place-items: center;
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08) 70%);
+    box-shadow: inset 0 0 0 1.5px var(--mb-gold, #fef08a), 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.quest-banner-side > i + i {
+    width: 1.8rem;
+    height: 1.8rem;
+}
+
+.quest-banner-side { opacity: 0.95; }
+
+body.gcq-mobile .quest-banner-kicker {
+    font-size: 0.5rem !important;
+    letter-spacing: 0.2em !important;
+}
+
+body.gcq-mobile .quest-banner-month { gap: 0.45rem; }
+body.gcq-mobile .quest-banner-month::before,
+body.gcq-mobile .quest-banner-month::after { width: 0.9rem; }
+body.gcq-mobile .quest-banner-side > i { width: 1.7rem; height: 1.7rem; font-size: 0.8rem !important; }
+body.gcq-mobile .quest-banner-side > i + i { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .quest-month-banner::after,
+    .hero-month-banner::after {
+        animation: none;
+        display: none;
+    }
+}
+
 /* ─── HERO'S CHALLENGE FLOATING ACTION BUTTONS ────────────────────────────── */
 @keyframes hc-fab-slide-in-left {
     0% {

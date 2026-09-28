@@ -18,6 +18,6 @@ test('callables start quickly: more CPU, on-demand storage, parallel permission 
     assert.match(index, /const CALLABLE_MEMORY = '1GB'/);
     assert.doesNotMatch(index, /^const \{ getStorage \} = require/m);
     assert.doesNotMatch(index, /^const \{ createAvatarForgeHandlers \} = require/m);
-    assert.match(index, /db\.doc\(SECRETARY_ROLE_DOC\)\.get\(\)\n  \]\);/);
+    assert.match(index, /db\.doc\(SECRETARY_ROLE_DOC\)\.get\(\)\r?\n  \]\);/);
     assert.match(index, /caller\.secretaryRoleSnap \|\|/);
 });

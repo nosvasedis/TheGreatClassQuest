@@ -33,19 +33,20 @@ test('Secretary heading uses the teacher title face treatment', () => {
     assert.match(ceremony, /content:\s*attr\(data-text\)/);
 });
 
-test('Secretary Home uses the teacher Horizons dashboard', () => {
+test('Secretary Home is the office front desk', () => {
     const home = read('features/secretary/home.js');
     const roles = read('templates/roles.js');
+    const office = read('styles/secretary_office.css');
 
-    assert.match(home, /horizons-grid/);
-    assert.match(home, /greeting-panel/);
-    assert.match(home, /weather-card/);
-    assert.match(home, /stat-card-pop/);
-    assert.match(home, /tools-grid-v2/);
-    assert.match(home, /tool-btn-pop/);
+    assert.match(home, /office-home-desk/);
+    assert.match(home, /On your desk today/);
+    assert.match(home, /office-home-stat/);
+    assert.match(home, /office-home-drawer/);
+    assert.match(home, /data-secretary-registry-seat/);
     assert.match(home, /Good Morning/);
+    assert.match(office, /\.office-home-desk\s*\{/);
     assert.match(roles, /class="role-tab max-w-7xl mx-auto" data-secretary-section="home"/);
-    assert.doesNotMatch(home, /secretary-home-hero|Your school day|secretary-home-shortcuts/);
+    assert.doesNotMatch(home, /horizons-grid|weather-card|tools-grid-v2/);
     assert.doesNotMatch(home, /renderTabHero/);
 });
 

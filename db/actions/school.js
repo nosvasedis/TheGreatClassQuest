@@ -40,16 +40,16 @@ function setOptionsLocationStatus(location, message = null) {
     if (!status) return;
     if (message) {
         status.textContent = message;
-        status.className = 'text-xs text-gray-500';
+        status.className = 'office-weather__status';
         return;
     }
     if (!location) {
-        status.textContent = 'No weather location selected. Default Athens area is used.';
-        status.className = 'text-xs text-gray-500';
+        status.textContent = 'Using the Athens area until you choose a city.';
+        status.className = 'office-weather__status';
         return;
     }
-    status.textContent = `Selected: ${formatLocationLabel(location)} (${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)})`;
-    status.className = 'text-xs text-emerald-700';
+    status.textContent = formatLocationLabel(location);
+    status.className = 'office-weather__status is-set';
 }
 
 function getSelectedOptionsLocation() {

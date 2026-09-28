@@ -4,8 +4,8 @@
 import * as state from '../../state.js';
 import { getQuestLeagueDefinition } from '../../constants.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { escapeHtml, initials } from '../roles/shared.js';
-import { formatClassSchedule, getClassMap, liveSchoolClasses } from './helpers.js';
+import { escapeHtml } from '../roles/shared.js';
+import { formatClassSchedule, getClassMap, liveSchoolClasses, renderOfficeAvatar } from './helpers.js';
 import {
     LEAVE_REASONS,
     formatLeftDate,
@@ -123,7 +123,7 @@ function renderStudentRow(student, classData) {
     const waiting = student.enrollmentStatus === 'pendingPlacement' || !student.classId;
     return `
         <li class="office-row">
-            <span class="office-avatar office-avatar--${(student.name || '').length % 6}" aria-hidden="true">${escapeHtml(initials(student.name))}</span>
+            ${renderOfficeAvatar(student)}
             <span class="office-row__copy">
                 <strong>${escapeHtml(student.name)}</strong>
                 <small>${waiting
@@ -265,7 +265,7 @@ function renderFormerCard(former) {
     const teacher = former.formerTeacher?.name || former.createdBy?.name || '';
     return `
         <li class="office-card-file">
-            <span class="office-avatar office-avatar--muted" aria-hidden="true">${escapeHtml(initials(former.name))}</span>
+            ${renderOfficeAvatar(former, { muted: true })}
             <div class="office-card-file__copy">
                 <div class="office-card-file__name">
                     <strong>${escapeHtml(former.name)}</strong>

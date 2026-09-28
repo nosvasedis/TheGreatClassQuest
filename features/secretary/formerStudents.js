@@ -6,8 +6,8 @@ import { db, collection, query, where, getDocs } from '../../firebase.js';
 import { showToast } from '../../ui/effects.js';
 import { showTypedConfirmationModal } from '../../ui/modals/base.js';
 import { markStudentLeftSchool, restoreFormerStudent, purgeStudent } from '../../utils/adminRuntime.js';
-import { escapeHtml, initials, setBusyState } from '../roles/shared.js';
-import { liveSchoolClasses } from './helpers.js';
+import { escapeHtml, setBusyState } from '../roles/shared.js';
+import { liveSchoolClasses, renderOfficeAvatar } from './helpers.js';
 import { openOfficeModal, closeOfficeModal, releaseOfficeScrollLock } from './officeModal.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -240,7 +240,7 @@ function closeDialog() {
 function studentSummary(record, { classData, teacherName } = {}) {
     return `
         <div class="office-summary">
-            <span class="office-avatar office-avatar--lg" aria-hidden="true">${escapeHtml(initials(record.name))}</span>
+            ${renderOfficeAvatar(record, { size: 'lg' })}
             <div class="office-summary__copy">
                 <strong>${escapeHtml(record.name || 'Student')}</strong>
                 <span>${classData

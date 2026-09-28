@@ -23,7 +23,7 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
                 <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
             </div>
             <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3 overflow-visible">
-                <span class="role-header-brand__mark" aria-hidden="true"><i class="fas ${role === 'secretary' ? 'fa-wand-magic-sparkles' : 'fa-heart'}"></i></span>
+                ${role === 'secretary' ? '' : '<span class="role-header-brand__mark" aria-hidden="true"><i class="fas fa-heart"></i></span>'}
                 <div class="min-w-0 overflow-visible">
                     <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">${role === 'secretary' ? 'School Office' : 'Family Portal'}</p>
                     <h1 class="font-title text-2xl text-white sm:text-4xl whitespace-nowrap" ${titleAttr} data-text="Loading...">Loading...</h1>

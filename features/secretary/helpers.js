@@ -106,6 +106,19 @@ export function formatClassSchedule(classData) {
     return days || time || 'Schedule not set';
 }
 
+// Office avatar: the student's own avatar when they have one, coloured initials otherwise.
+export function renderOfficeAvatar(student, { muted = false, size = '' } = {}) {
+    const name = student?.name || '';
+    const tone = muted ? 'muted' : String(name.length % 6);
+    const sizeClass = size ? ` office-avatar--${size}` : '';
+    const letters = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('') || '?';
+    const safe = (value) => String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    if (student?.avatar) {
+        return `<span class="office-avatar office-avatar--photo${muted ? ' office-avatar--faded' : ''}${sizeClass}" aria-hidden="true"><img src="${safe(student.avatar)}" alt="" loading="lazy" decoding="async"></span>`;
+    }
+    return `<span class="office-avatar office-avatar--${tone}${sizeClass}" aria-hidden="true">${safe(letters)}</span>`;
+}
+
 export function avatarVariant(name = '') {
     const colors = ['sky', 'violet', 'emerald', 'rose', 'amber', 'indigo'];
     return colors[(name.charCodeAt(0) || 0) % colors.length];

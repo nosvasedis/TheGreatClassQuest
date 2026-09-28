@@ -12,7 +12,7 @@ import {
 } from '../assessmentConfig.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { renderOfficeSign } from './signs.js';
-import { renderRegistry } from './registry.js';
+import { renderRegistry, renderLeagueTag } from './registry.js';
 
 const ADMIN_AREAS = [
     {
@@ -98,6 +98,47 @@ function renderAdminSectionIntro(eyebrow, title, description, icon, accent) {
     `;
 }
 
+// A friendly one-line reading of a grading scheme, for the league cards.
+function schemeChip(scheme, kind) {
+    const icon = kind === 'tests' ? 'fa-file-pen' : 'fa-spell-check';
+    const label = kind === 'tests' ? 'Tests' : 'Dictations';
+    const full = describeAssessmentScheme(scheme);
+    let tone = 'off';
+    let value = 'Turned off';
+    if (scheme && scheme.mode === 'qualitative') {
+        const count = (scheme.scale || []).length;
+        tone = 'words';
+        value = `${count} word label${count === 1 ? '' : 's'}`;
+    } else if (scheme && scheme.mode !== 'none') {
+        tone = 'marks';
+        value = `Marks out of ${scheme.maxScore || 100}`;
+    }
+    return `
+        <span class="office-grade-rule office-grade-rule--${tone}" title="${escapeHtml(`${label}: ${full}`)}">
+            <span class="office-grade-rule__kind"><i class="fas ${icon}" aria-hidden="true"></i>${label}</span>
+            <strong>${escapeHtml(value)}</strong>
+        </span>
+    `;
+}
+
+function renderLeagueGradingCards(schoolDefaults) {
+    return `
+        <div class="office-grade-leagues">
+            ${Object.entries(schoolDefaults).map(([league, config]) => `
+                <div class="office-grade-league">
+                    <div class="office-grade-league__head">${renderLeagueTag(league)}</div>
+                    ${schemeChip(config.tests, 'tests')}
+                    ${schemeChip(config.dictations, 'dictations')}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function initialsOf(name) {
+    return String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('') || 'S';
+}
+
 function renderSchoolSettings() {
     const profile = state.get('currentUserProfile');
     const schoolName = state.get('schoolName') || 'Your School';
@@ -151,14 +192,21 @@ function renderSchoolSettings() {
                         </div>
                     </div>
                     <p class="secretary-admin-card__description">Choose the Greek city used by the school-wide weather display.</p>
+                    <div class="office-weather">
+                        <span class="office-weather__sky" aria-hidden="true"><i class="fas fa-sun"></i><i class="fas fa-cloud"></i></span>
+                        <p id="options-school-location-status" class="office-weather__status">Using the Athens area until you choose a city.</p>
+                    </div>
                     <div class="secretary-settings-form">
-                        <label class="role-field secretary-settings-form__field"><span>City or area</span>
-                            <input type="text" id="options-school-location-search" autocomplete="off" placeholder="e.g. Thessaloniki, Heraklion">
+                        <label class="role-field secretary-settings-form__field"><span>Find a city or area</span>
+                            <span class="office-inline-field">
+                                <input type="text" id="options-school-location-search" autocomplete="off" placeholder="e.g. Thessaloniki, Heraklion">
+                                <button type="button" id="search-school-location-btn" class="role-btn-secondary"><i class="fas fa-search"></i> Search</button>
+                            </span>
                         </label>
-                        <button type="button" id="search-school-location-btn" class="role-btn-secondary"><i class="fas fa-search"></i> Search</button>
-                        <select id="options-school-location-results" class="hidden role-field"></select>
-                        <p id="options-school-location-status" class="text-xs text-gray-500">No weather location selected. Default Athens area is used.</p>
-                        <button type="button" id="save-school-location-btn" class="role-btn-primary"><i class="fas fa-map-marker-alt"></i> Save weather location</button>
+                        <select id="options-school-location-results" class="hidden role-field" aria-label="Search results"></select>
+                        <div class="secretary-button-row">
+                            <button type="button" id="save-school-location-btn" class="role-btn-primary"><i class="fas fa-map-marker-alt"></i> Save weather location</button>
+                        </div>
                     </div>
                 </article>
 
@@ -173,15 +221,13 @@ function renderSchoolSettings() {
                         </div>
                         <span class="secretary-admin-card__badge secretary-admin-card__badge--sky">Active</span>
                     </div>
-                    <div class="secretary-settings-facts">
-                        <div class="secretary-settings-fact">
-                            <span class="secretary-settings-fact__label">Signed in as</span>
+                    <div class="office-id-badge">
+                        <span class="office-id-badge__photo" aria-hidden="true">${escapeHtml(initialsOf(profile?.displayName || 'Secretary'))}</span>
+                        <span class="office-id-badge__copy">
+                            <small>Signed in as</small>
                             <strong>${escapeHtml(profile?.displayName || 'Secretary')}</strong>
-                        </div>
-                        <div class="secretary-settings-fact">
-                            <span class="secretary-settings-fact__label">You can look after</span>
-                            <strong>The whole school</strong>
-                        </div>
+                            <span class="office-id-badge__role"><i class="fas fa-school" aria-hidden="true"></i> Looks after the whole school</span>
+                        </span>
                     </div>
                     <details class="secretary-disclosure">
                         <summary><span><i class="fas fa-circle-info" aria-hidden="true"></i> What can I do here?</span><i class="fas fa-chevron-down secretary-disclosure__chevron" aria-hidden="true"></i></summary>
@@ -198,14 +244,14 @@ function renderSchoolSettings() {
                     </div>
                 </div>
                 <p class="secretary-admin-card__description">These periods apply to every teacher, class calendar, and lesson count.</p>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="role-field col-span-2"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. Christmas Break"></label>
+                <div class="office-holiday-form">
+                    <label class="role-field office-holiday-form__name"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. Christmas Break"></label>
                     <label class="role-field"><span>Start date</span><input type="date" id="holiday-start"></label>
                     <label class="role-field"><span>End date</span><input type="date" id="holiday-end"></label>
-                    <label class="role-field col-span-2"><span>Theme</span><select id="holiday-type"><option value="christmas">Christmas / Winter</option><option value="easter">Easter / Spring</option><option value="generic">Generic / Other</option></select></label>
-                    <button type="button" id="add-holiday-btn" class="role-btn-primary col-span-2"><i class="fas fa-plus-circle"></i> Add school break</button>
+                    <label class="role-field"><span>Theme</span><select id="holiday-type"><option value="christmas">Christmas / Winter</option><option value="easter">Easter / Spring</option><option value="generic">Generic / Other</option></select></label>
+                    <button type="button" id="add-holiday-btn" class="role-btn-primary office-holiday-form__add"><i class="fas fa-plus-circle"></i> Add school break</button>
                 </div>
-                <div id="holiday-list" class="space-y-2 mt-4"></div>
+                <div id="holiday-list" class="office-holiday-list"></div>
             </article>
 
             <div class="secretary-settings-grid">
@@ -312,18 +358,7 @@ function renderGradingSetup() {
                     </div>
                 </div>
                 <p class="secretary-admin-card__description">Every class follows its league's style automatically, unless you choose a different style for that class below.</p>
-                <div class="secretary-assessment-preview">
-                    ${Object.entries(schoolDefaults).map(([league, config]) => `
-                        <div class="secretary-assessment-preview__item">
-                            <div class="secretary-assessment-preview__heading">
-                                <strong>${escapeHtml(league)}</strong>
-                                <span>Default</span>
-                            </div>
-                            <div class="secretary-assessment-preview__rule"><span>Tests</span><strong>${escapeHtml(describeAssessmentScheme(config.tests))}</strong></div>
-                            <div class="secretary-assessment-preview__rule"><span>Dictations</span><strong>${escapeHtml(describeAssessmentScheme(config.dictations))}</strong></div>
-                        </div>
-                    `).join('')}
-                </div>
+                ${renderLeagueGradingCards(schoolDefaults)}
                 <div id="secretary-assessment-defaults-editor" class="secretary-assessment-defaults-editor">
                     ${getAssessmentDefaultsEditorHtml(schoolDefaults)}
                 </div>

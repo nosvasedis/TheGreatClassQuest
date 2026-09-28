@@ -10,6 +10,9 @@ import {
 import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { DEFAULT_SCHOOL_NAME } from '../../constants.js';
 import { sumLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import { normalizeSchoolYearState, formatSchoolYearLabel } from '../../utils/schoolYear.js';
+import { getFormerStudents } from './formerStudents.js';
+import { renderOfficeAvatar } from './helpers.js';
 
 function getSecretaryHomeTheme() {
     const hour = new Date().getHours();
@@ -49,26 +52,6 @@ function getSecretaryHomeTheme() {
     };
 }
 
-function reminderPillsHtml({ unreadThreads, hasFullConsole, tier }) {
-    const pills = [];
-    const plan = planBadgeMeta(tier);
-    if (hasFullConsole && unreadThreads > 0) {
-        pills.push(`
-            <button type="button" class="secretary-home-pill secretary-home-pill--messages" data-secretary-tab-link="messages">
-                <span class="secretary-home-pill__icon" aria-hidden="true">💬</span>
-                <span class="secretary-home-pill__label">${unreadThreads} message${unreadThreads === 1 ? '' : 's'} waiting</span>
-            </button>
-        `);
-    }
-    pills.push(`
-        <div class="secretary-plan-pill secretary-plan-pill--${plan.key}">
-            <span class="secretary-plan-pill__icon" aria-hidden="true"><i class="fas ${plan.icon}"></i></span>
-            <span class="secretary-plan-pill__label">${escapeHtml(plan.label)} plan</span>
-        </div>
-    `);
-    return pills.join('');
-}
-
 function planBadgeMeta(tier) {
     const key = String(tier || 'starter').toLowerCase();
     if (key === 'elite') return { key, label: 'Elite', icon: 'fa-gem' };
@@ -77,9 +60,105 @@ function planBadgeMeta(tier) {
     return { key: 'starter', label: 'Starter', icon: 'fa-seedling' };
 }
 
+function planPillHtml(tier) {
+    const plan = planBadgeMeta(tier);
+    return `
+        <span class="secretary-plan-pill secretary-plan-pill--${plan.key}">
+            <span class="secretary-plan-pill__icon" aria-hidden="true"><i class="fas ${plan.icon}"></i></span>
+            <span class="secretary-plan-pill__label">${escapeHtml(plan.label)} plan</span>
+        </span>
+    `;
+}
+
+function todayLabel() {
+    try {
+        return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    } catch {
+        return new Date().toDateString();
+    }
+}
+
+// Things on the secretary's desk right now, most urgent first. Each one opens where it gets done.
+function deskTasks({ waitingCount, unreadThreads, hasFullConsole, yearState }) {
+    const tasks = [];
+    if (waitingCount > 0) {
+        tasks.push({
+            tone: 'amber',
+            icon: 'fa-chair',
+            title: `Seat ${waitingCount} returning student${waitingCount === 1 ? '' : 's'}`,
+            detail: 'They are waiting for a class this year.',
+            action: 'Seat them',
+            attrs: 'data-secretary-registry-seat="1"'
+        });
+    }
+    if (hasFullConsole && unreadThreads > 0) {
+        tasks.push({
+            tone: 'violet',
+            icon: 'fa-envelope-open-text',
+            title: `${unreadThreads} family message${unreadThreads === 1 ? '' : 's'} waiting`,
+            detail: 'Parents are waiting for an answer.',
+            action: 'Open messages',
+            attrs: 'data-secretary-tab-link="messages"'
+        });
+    }
+    if (!yearState.closeDate) {
+        tasks.push({
+            tone: 'sky',
+            icon: 'fa-calendar-day',
+            title: 'Set the last school day',
+            detail: `${formatSchoolYearLabel(yearState.activeYearKey) || 'This year'} has no end date yet.`,
+            action: 'Open School Year',
+            attrs: 'data-secretary-tab-link="admin" data-secretary-admin-subtab="year"'
+        });
+    }
+    return tasks;
+}
+
+function renderDeskTasks(tasks) {
+    if (!tasks.length) {
+        return `
+            <div class="office-home-clear">
+                <span class="office-home-clear__icon" aria-hidden="true"><i class="fas fa-mug-hot"></i></span>
+                <div>
+                    <strong>All clear</strong>
+                    <p>Nothing is waiting on you right now.</p>
+                </div>
+            </div>
+        `;
+    }
+    return `
+        <ul class="office-home-tasks">
+            ${tasks.map((task) => `
+                <li>
+                    <button type="button" class="office-home-task office-home-task--${task.tone}" ${task.attrs}>
+                        <span class="office-home-task__icon" aria-hidden="true"><i class="fas ${task.icon}"></i></span>
+                        <span class="office-home-task__copy">
+                            <strong>${escapeHtml(task.title)}</strong>
+                            <small>${escapeHtml(task.detail)}</small>
+                        </span>
+                        <span class="office-home-task__go">${escapeHtml(task.action)}<i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                    </button>
+                </li>
+            `).join('')}
+        </ul>
+    `;
+}
+
+function renderStatCard({ tone, icon, label, value, note, attrs = '' }) {
+    const tag = attrs ? 'button type="button"' : 'div';
+    const close = attrs ? 'button' : 'div';
+    return `
+        <${tag} class="office-home-stat office-home-stat--${tone}" ${attrs}>
+            <span class="office-home-stat__label"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>
+            <span class="office-home-stat__value font-title">${escapeHtml(value)}</span>
+            <span class="office-home-stat__note">${escapeHtml(note)}</span>
+        </${close}>
+    `;
+}
+
 export function renderSecretaryHome() {
     const classes = state.get('allSchoolClasses') || [];
-    const students = state.get('allStudents') || [];
+    const allStudents = (state.get('allStudents') || []).filter((student) => student.enrollmentStatus !== 'inactive');
     const scores = state.get('allStudentScores') || [];
     const threads = state.get('currentCommunicationThreads') || [];
     const totalStars = scores.reduce((sum, item) => sum + Number(item.totalStars || 0), 0);
@@ -95,137 +174,135 @@ export function renderSecretaryHome() {
     const tier = String(getTier() || 'starter');
     const secretaryName = profile.displayName || 'Secretary';
     const theme = getSecretaryHomeTheme();
+    const yearState = normalizeSchoolYearState(state.get('schoolYearState') || {});
+    const waitingCount = allStudents.filter((student) => student.enrollmentStatus === 'pendingPlacement' || !student.classId).length;
+    const seatedCount = allStudents.length - waitingCount;
+    const formerCount = getFormerStudents()?.length;
+    const tasks = deskTasks({ waitingCount, unreadThreads, hasFullConsole, yearState });
 
     const tools = [
-        { icon: 'fa-chalkboard', label: 'Classes', tab: 'school', schoolSub: 'classes' },
-        { icon: 'fa-user-graduate', label: 'Students', tab: 'school', schoolSub: 'students' },
+        { icon: 'fa-chalkboard', label: 'Classes', note: 'Timetable and rosters', tone: 'sky', tab: 'school', schoolSub: 'classes' },
+        { icon: 'fa-user-graduate', label: 'Students', note: 'Every hero at school', tone: 'emerald', tab: 'school', schoolSub: 'students' },
         ...(hasFullConsole ? [
-            { icon: 'fa-chart-simple', label: 'Grades', tab: 'grades' },
-            { icon: 'fa-comments', label: 'Messages', tab: 'messages' }
+            { icon: 'fa-chart-simple', label: 'Grades', note: 'Tests and report cards', tone: 'indigo', tab: 'grades' },
+            { icon: 'fa-comments', label: 'Messages', note: 'Talk with families', tone: 'violet', tab: 'messages' }
         ] : []),
-        { icon: 'fa-folder-open', label: 'Registry', tab: 'admin', adminSub: 'registry' },
-        { icon: 'fa-cog', label: 'Settings', tab: 'admin', adminSub: 'settings' }
+        { icon: 'fa-folder-open', label: 'Students & Classes', note: 'Enrol, seat, former', tone: 'amber', tab: 'admin', adminSub: 'registry' },
+        { icon: 'fa-cog', label: 'Settings', note: 'School and plan', tone: 'slate', tab: 'admin', adminSub: 'settings' }
     ];
 
     const latestGradeHtml = latestScoreInfo
-        ? `<button type="button" class="chronicle-item chronicle-homework w-full text-left"${hasFullConsole ? ' data-secretary-tab-link="grades"' : ''}>
-                <div class="chronicle-card-accent chronicle-accent-homework"></div>
-                <div class="flex items-center gap-2.5 mb-3">
-                    <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-star text-sm"></i></div>
-                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Latest grade</span>
-                </div>
-                <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3 flex-1">${escapeHtml(latestScoreInfo.score.title || latestScoreInfo.score.type || 'Assessment')}</p>
-                <p class="text-[11px] text-indigo-700/70 mt-2 font-semibold">${escapeHtml(latestScoreInfo.student?.name || 'Student')} • ${escapeHtml(latestScoreInfo.classData?.name || 'Class')} • ${escapeHtml(formatFlexibleDate(latestScoreInfo.score.date))}</p>
-                <span class="role-score-pill mt-3 self-start">${escapeHtml(latestScoreInfo.label)}</span>
+        ? `<button type="button" class="office-home-note office-home-note--grade"${hasFullConsole ? ' data-secretary-tab-link="grades"' : ''}>
+                <span class="office-home-note__kicker"><i class="fas fa-star" aria-hidden="true"></i>Latest grade</span>
+                <span class="office-home-note__who">
+                    ${renderOfficeAvatar(latestScoreInfo.student || {})}
+                    <span>
+                        <strong>${escapeHtml(latestScoreInfo.student?.name || 'Student')}</strong>
+                        <small>${escapeHtml(latestScoreInfo.classData?.name || 'Class')} · ${escapeHtml(formatFlexibleDate(latestScoreInfo.score.date))}</small>
+                    </span>
+                </span>
+                <span class="office-home-note__line">
+                    <span>${escapeHtml(latestScoreInfo.score.title || latestScoreInfo.score.type || 'Assessment')}</span>
+                    <span class="office-home-note__mark">${escapeHtml(latestScoreInfo.label)}</span>
+                </span>
            </button>`
-        : `<div class="chronicle-item chronicle-homework">
-                <div class="chronicle-card-accent chronicle-accent-homework"></div>
-                <div class="flex items-center gap-2.5 mb-3">
-                    <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-star text-sm"></i></div>
-                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Latest grade</span>
-                </div>
-                <p class="text-sm text-indigo-900/70 font-medium leading-snug">New grades will appear here when teachers add them.</p>
+        : `<div class="office-home-note office-home-note--grade is-empty">
+                <span class="office-home-note__kicker"><i class="fas fa-star" aria-hidden="true"></i>Latest grade</span>
+                <p>New grades will appear here when teachers add them.</p>
            </div>`;
 
     const latestMessageHtml = latestThread && hasFullConsole
         ? (() => {
             const meta = getThreadTypeMeta(latestThread.threadType);
             const labels = getThreadStudentLabel(latestThread, studentMap, classMap);
-            return `<button type="button" class="chronicle-item chronicle-story w-full text-left" data-secretary-thread="${latestThread.id}" data-secretary-open-messages="1">
-                <div class="chronicle-card-accent chronicle-accent-story"></div>
-                <div class="flex items-center gap-2.5 mb-3">
-                    <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas ${meta.icon} text-sm"></i></div>
-                    <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider">${escapeHtml(meta.label)}</span>
-                </div>
-                <p class="text-sm text-cyan-900 font-medium leading-snug line-clamp-3 flex-1">${escapeHtml(labels.studentName)}</p>
-                <p class="text-[11px] text-cyan-700/70 mt-2 font-semibold">${escapeHtml(labels.className)}</p>
+            const student = studentMap.get(latestThread.studentId) || { name: labels.studentName };
+            return `<button type="button" class="office-home-note office-home-note--message" data-secretary-thread="${escapeHtml(latestThread.id)}" data-secretary-open-messages="1">
+                <span class="office-home-note__kicker"><i class="fas ${meta.icon}" aria-hidden="true"></i>${escapeHtml(meta.label)}</span>
+                <span class="office-home-note__who">
+                    ${renderOfficeAvatar(student)}
+                    <span>
+                        <strong>${escapeHtml(labels.studentName)}</strong>
+                        <small>${escapeHtml(labels.className)}</small>
+                    </span>
+                </span>
+                <span class="office-home-note__line"><span>Open the conversation</span><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
             </button>`;
         })()
-        : `<div class="chronicle-item chronicle-story">
-                <div class="chronicle-card-accent chronicle-accent-story"></div>
-                <div class="flex items-center gap-2.5 mb-3">
-                    <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas fa-comments text-sm"></i></div>
-                    <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider">Latest conversation</span>
-                </div>
-                <p class="text-sm text-cyan-900/70 font-medium leading-snug">${hasFullConsole ? 'Family conversations will appear here when they begin.' : 'Family messaging is available with the Elite plan.'}</p>
+        : `<div class="office-home-note office-home-note--message is-empty">
+                <span class="office-home-note__kicker"><i class="fas fa-comments" aria-hidden="true"></i>Latest conversation</span>
+                <p>${hasFullConsole ? 'Family conversations will appear here when they begin.' : 'Family messaging is available with the Elite plan.'}</p>
            </div>`;
 
     return `
-    <div class="w-full max-w-7xl mx-auto">
-        <div class="horizons-grid">
-            <div class="vibrant-card h-span-8 greeting-panel">
-                <div class="greeting-bg-mesh"></div>
-                <div class="greeting-hero-asset">🏫</div>
-                <div class="relative z-10 flex flex-col justify-between h-full">
-                    <div class="flex justify-between items-start mb-4 gap-4">
-                        <div class="flex flex-wrap items-center gap-3 py-1">
-                            ${reminderPillsHtml({ unreadThreads, hasFullConsole, tier })}
-                        </div>
-                    </div>
-                    <div>
-                        <h2 class="font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-1">
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>,
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500 whitespace-nowrap">${escapeHtml(secretaryName)}</span>!
-                        </h2>
-                        <p class="text-gray-500 font-bold text-base opacity-75" data-school-name>
-                            <i class="fas fa-university mr-2"></i>${escapeHtml(schoolName)}
-                        </p>
-                    </div>
-                </div>
+    <div class="office-home${theme.isNight ? ' is-night' : ''}">
+        <section class="office-home-desk">
+            <div class="office-home-desk__window" aria-hidden="true">
+                <i class="fas ${theme.weatherIcon}"></i>
+                <span class="office-home-desk__cloud office-home-desk__cloud--a"></span>
+                <span class="office-home-desk__cloud office-home-desk__cloud--b"></span>
             </div>
+            <div class="office-home-desk__copy">
+                <p class="office-home-desk__date">${escapeHtml(todayLabel())}</p>
+                <h2 class="font-title office-home-desk__greeting">
+                    <span class="office-home-desk__hello bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting},</span>
+                    <span class="office-home-desk__name">${escapeHtml(secretaryName)}!</span>
+                </h2>
+                <p class="office-home-desk__school" data-school-name><i class="fas fa-university" aria-hidden="true"></i>${escapeHtml(schoolName)}</p>
+                <div class="office-home-desk__pills">${planPillHtml(tier)}</div>
+            </div>
+            <div class="office-home-desk__plate" aria-hidden="true">
+                <span class="office-home-desk__bell"><i class="fas fa-bell-concierge"></i></span>
+                <span class="office-home-desk__plate-text">Front desk</span>
+            </div>
+        </section>
 
-            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}">
-                <i class="fas ${theme.weatherIcon} weather-sun"></i>
-                <i class="fas fa-cloud weather-cloud"></i>
-                <div class="weather-info">
-                    <div class="text-7xl font-title">${students.length.toLocaleString()}</div>
-                    <div class="text-2xl font-bold uppercase tracking-widest opacity-95">Students</div>
-                </div>
-                <div class="absolute bottom-4 right-4 z-10 text-white/90 text-xs font-bold uppercase tracking-widest">
-                    ${classes.length.toLocaleString()} classes
-                </div>
-            </div>
+        <div class="office-home-grid">
+            <section class="office-home-board">
+                <header class="office-home-board__head">
+                    <span class="office-home-board__pin" aria-hidden="true"></span>
+                    <h3>On your desk today</h3>
+                    ${tasks.length ? `<span class="office-home-board__count">${tasks.length}</span>` : ''}
+                </header>
+                ${renderDeskTasks(tasks)}
+            </section>
 
-            <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
-                <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
-                <div class="stat-value-big text-amber-500">${totalStars.toLocaleString()}</div>
-                <div class="text-sm font-bold text-amber-700/60">Earned so far</div>
-            </div>
-            <div class="vibrant-card h-span-3 stat-card-pop card-gradient-sky">
-                <span class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2"><i class="fas fa-chalkboard mr-1"></i> Classes</span>
-                <div class="stat-value-big text-blue-500">${classes.length.toLocaleString()}</div>
-                <div class="text-sm font-bold text-blue-700/60">Across the school</div>
-            </div>
-            <div class="vibrant-card h-span-3 stat-card-pop card-gradient-royal">
-                <span class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2"><i class="fas fa-coins mr-1"></i> Treasury</span>
-                <div class="stat-value-big text-purple-500">${totalGold.toLocaleString()}</div>
-                <div class="text-sm font-bold text-purple-700/60">Gold</div>
-            </div>
+            <section class="office-home-stats" aria-label="School at a glance">
+                ${renderStatCard({ tone: 'sky', icon: 'fa-user-graduate', label: 'Students', value: allStudents.length.toLocaleString(), note: waitingCount ? `${seatedCount} seated · ${waitingCount} waiting` : 'All seated in a class', attrs: 'data-secretary-tab-link="school" data-secretary-school-subtab="students"' })}
+                ${renderStatCard({ tone: 'emerald', icon: 'fa-chalkboard', label: 'Classes', value: classes.length.toLocaleString(), note: 'Across the school', attrs: 'data-secretary-tab-link="school" data-secretary-school-subtab="classes"' })}
+                ${renderStatCard({ tone: 'amber', icon: 'fa-star', label: 'School stars', value: totalStars.toLocaleString(), note: 'Earned so far' })}
+                ${renderStatCard({ tone: 'violet', icon: 'fa-coins', label: 'Treasury', value: totalGold.toLocaleString(), note: 'Gold this year' })}
+            </section>
+        </div>
 
-            <div class="vibrant-card h-span-4 card-glass-white">
-                <div class="flex items-center justify-between gap-3 p-4 pb-0">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">School tools</h3>
-                </div>
-                <div class="tools-grid-v2">
+        <div class="office-home-grid office-home-grid--lower">
+            <section class="office-home-cabinet">
+                <h3 class="office-home-heading"><i class="fas fa-box-archive" aria-hidden="true"></i>Office drawers</h3>
+                <div class="office-home-drawers">
                     ${tools.map((tool) => `
-                        <button type="button" class="tool-btn-pop"
+                        <button type="button" class="office-home-drawer office-home-drawer--${tool.tone}"
                             data-secretary-tab-link="${tool.tab}"
                             ${tool.schoolSub ? `data-secretary-school-subtab="${tool.schoolSub}"` : ''}
                             ${tool.adminSub ? `data-secretary-admin-subtab="${tool.adminSub}"` : ''}
                             title="${escapeHtml(tool.label)}">
-                            <i class="fas ${tool.icon}"></i>
-                            <span>${escapeHtml(tool.label)}</span>
+                            <span class="office-home-drawer__icon" aria-hidden="true"><i class="fas ${tool.icon}"></i></span>
+                            <span class="office-home-drawer__label">
+                                <strong>${escapeHtml(tool.label)}</strong>
+                                <small>${escapeHtml(tool.note)}</small>
+                            </span>
+                            <span class="office-home-drawer__handle" aria-hidden="true"></span>
                         </button>
                     `).join('')}
                 </div>
-            </div>
-            <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-history mr-2"></i> Latest at school</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${formerCount ? `<p class="office-home-former"><i class="fas fa-box-archive" aria-hidden="true"></i>${formerCount} former student${formerCount === 1 ? '' : 's'} on file. <button type="button" data-secretary-registry-link="former">View them</button></p>` : ''}
+            </section>
+
+            <section class="office-home-latest">
+                <h3 class="office-home-heading"><i class="fas fa-thumbtack" aria-hidden="true"></i>Latest at school</h3>
+                <div class="office-home-notes">
                     ${latestGradeHtml}
                     ${latestMessageHtml}
                 </div>
-            </div>
+            </section>
         </div>
     </div>`;
 }

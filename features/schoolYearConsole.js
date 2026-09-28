@@ -169,53 +169,109 @@ function showPreviewModal(contentHtml) {
     if (modal.classList.contains('hidden')) openOfficeModal(modal);
 }
 
-function renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample }) {
+// A tear-off calendar leaf: the saved day and month, or a blank page when nothing is set.
+function renderCalendarLeaf(pickerValue, isSaved, tone) {
+    const match = isSaved ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(pickerValue || '')) : null;
+    const date = match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+    const month = date ? date.toLocaleDateString('en-GB', { month: 'short' }) : 'Date';
+    const day = date ? String(date.getDate()) : '?';
     return `
-        <section class="secretary-card school-year-opening-day-card">
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">School calendar</p>
-                    <h3 class="secretary-card__title">Opening day — first day of lessons</h3>
+        <span class="office-leaf office-leaf--${tone}${date ? '' : ' is-blank'}" aria-hidden="true">
+            <span class="office-leaf__rings"><i></i><i></i></span>
+            <span class="office-leaf__month">${escapeHtml(month)}</span>
+            <span class="office-leaf__day font-title">${escapeHtml(day)}</span>
+        </span>
+    `;
+}
+
+function renderDateCard({ tone, kicker, title, lead, savedLabel, pickerValue, fieldLabel, controls }) {
+    const isSaved = savedLabel && savedLabel !== 'Not set yet';
+    return `
+        <section class="secretary-card office-date-card office-date-card--${tone}">
+            <div class="office-date-card__top">
+                ${renderCalendarLeaf(pickerValue, isSaved, tone)}
+                <div class="office-date-card__copy">
+                    <p class="secretary-card__eyebrow">${escapeHtml(kicker)}</p>
+                    <h3 class="secretary-card__title">${escapeHtml(title)}</h3>
+                    <p class="office-date-card__saved${isSaved ? ' is-set' : ''}">
+                        <i class="fas ${isSaved ? 'fa-circle-check' : 'fa-circle-question'}" aria-hidden="true"></i>
+                        ${isSaved ? `Saved: ${escapeHtml(savedLabel)}` : 'Not set yet'}
+                    </p>
                 </div>
             </div>
-            <p class="text-sm text-slate-600 leading-relaxed">
-                Days before this date are never counted as class days on the attendance register or the Quest Calendar (for example ${escapeHtml(openingDayExample)}).
-            </p>
-            <p class="text-xs text-sky-700 mt-2"><span class="font-semibold">Saved:</span> ${escapeHtml(openingDaySavedLabel)}</p>
-            <div class="school-year-allocation-bar mt-4">
-                <label class="secretary-field flex-1">
-                    <span>Opening day</span>
-                    <input type="date" id="school-year-opening-day-input" value="${escapeHtml(openingDayPickerValue)}">
-                </label>
-                <button type="button" id="school-year-save-opening-day-btn" class="secretary-shell__primary-btn">
-                    <i class="fas fa-calendar-plus mr-2"></i>Save
-                </button>
-            </div>
+            <p class="office-date-card__lead">${lead}</p>
+            <label class="secretary-field office-date-card__field">
+                <span>${escapeHtml(fieldLabel)}</span>
+                <span class="office-inline-field">${controls}</span>
+            </label>
         </section>
     `;
 }
 
+function renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample }) {
+    return renderDateCard({
+        tone: 'sky',
+        kicker: 'School calendar',
+        title: 'Opening day',
+        lead: `The first day of lessons. Days before it never count as class days on the attendance register or the Quest Calendar (for example ${escapeHtml(openingDayExample)}).`,
+        savedLabel: openingDaySavedLabel,
+        pickerValue: openingDayPickerValue,
+        fieldLabel: 'First day of lessons',
+        controls: `
+            <input type="date" id="school-year-opening-day-input" value="${escapeHtml(openingDayPickerValue)}">
+            <button type="button" id="school-year-save-opening-day-btn" class="secretary-shell__primary-btn">
+                <i class="fas fa-calendar-plus mr-2"></i>Save
+            </button>`
+    });
+}
+
 function renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample }) {
+    return renderDateCard({
+        tone: 'amber',
+        kicker: 'School calendar',
+        title: 'Last day of the school year',
+        lead: `Optional for now. When you are ready, this date unlocks finishing the year (for example ${escapeHtml(closeDateExample)}).`,
+        savedLabel: closeDateSavedLabel,
+        pickerValue: closeDatePickerValue,
+        fieldLabel: 'Last school day',
+        controls: `
+            <input type="date" id="school-year-close-date-input" value="${escapeHtml(closeDatePickerValue)}">
+            <button type="button" id="school-year-save-close-date-btn" class="secretary-shell__primary-btn">
+                <i class="fas fa-calendar-check mr-2"></i>Save
+            </button>`
+    });
+}
+
+function renderDateCards(cards) {
+    return `<div class="office-year-dates">${cards.join('')}</div>`;
+}
+
+// The year's cover: its name on a wall calendar, a status stamp and a few facts.
+function renderYearHero({ mood, statusLabel, activeYearKey, lead, facts }) {
     return `
-        <section class="secretary-card school-year-close-date-card">
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">School calendar</p>
-                    <h3 class="secretary-card__title">Last day of the school year</h3>
-                </div>
+        <section class="school-year-hero secretary-card office-year-hero office-year-hero--${mood}">
+            <div class="office-year-hero__calendar" aria-hidden="true">
+                <span class="office-year-hero__rings"><i></i><i></i><i></i></span>
+                <span class="office-year-hero__label">School year</span>
+                <span class="office-year-hero__years font-title">${escapeHtml(formatSchoolYearLabel(activeYearKey)).replace(' / ', '<small>/</small>')}</span>
             </div>
-            <p class="text-sm text-slate-600 leading-relaxed">
-                Optional for now. When you are ready later, this date unlocks finishing the year (for example ${escapeHtml(closeDateExample)}).
-            </p>
-            <p class="text-xs text-sky-700 mt-2"><span class="font-semibold">Saved:</span> ${escapeHtml(closeDateSavedLabel)}</p>
-            <div class="school-year-allocation-bar mt-4">
-                <label class="secretary-field flex-1">
-                    <span>Last school day</span>
-                    <input type="date" id="school-year-close-date-input" value="${escapeHtml(closeDatePickerValue)}">
-                </label>
-                <button type="button" id="school-year-save-close-date-btn" class="secretary-shell__primary-btn">
-                    <i class="fas fa-calendar-check mr-2"></i>Save
-                </button>
+            <div class="office-year-hero__copy">
+                <p class="secretary-card__eyebrow">Your school year</p>
+                <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
+                <p class="school-year-status-pill office-year-hero__stamp office-year-hero__stamp--${mood}" role="status">${escapeHtml(statusLabel)}</p>
+                <p class="office-year-hero__lead">${lead}</p>
+                <ul class="office-year-hero__facts">
+                    ${facts.map((fact) => `
+                        <li class="office-year-fact office-year-fact--${fact.tone}">
+                            <span class="office-year-fact__icon" aria-hidden="true"><i class="fas ${fact.icon}"></i></span>
+                            <span class="office-year-fact__copy">
+                                <small>${escapeHtml(fact.label)}</small>
+                                <strong>${escapeHtml(fact.value)}</strong>
+                                ${fact.note ? `<em>${escapeHtml(fact.note)}</em>` : ''}
+                            </span>
+                        </li>
+                    `).join('')}
+                </ul>
             </div>
         </section>
     `;
@@ -235,34 +291,23 @@ function renderPreparingMode({
 }) {
     return `
         <div class="school-year-command school-year-command--preparing">
-            <section class="school-year-hero secretary-card secretary-card--featured school-year-hero--calm">
-                <div class="school-year-hero__copy">
-                    <p class="secretary-card__eyebrow">Your school year</p>
-                    <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
-                    <p class="school-year-status-pill school-year-status-pill--calm" role="status">Not started yet</p>
-                    <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
-                        Create this year’s classes for each teacher here. End-of-year tools stay hidden until a class has lesson days — or until ${escapeHtml(startsAtLabel)}.
-                    </p>
-                </div>
-                <div class="school-year-status-grid">
-                    <div class="school-year-status-card school-year-status-card--sky">
-                        <span>Active year</span>
-                        <strong>${escapeHtml(activeYearKey || '—')}</strong>
-                        <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
-                    </div>
-                    <div class="school-year-status-card school-year-status-card--amber">
-                        <span>Starts</span>
-                        <strong>${escapeHtml(startsAtLabel)}</strong>
-                        <small>Or when schedules appear</small>
-                    </div>
-                </div>
-            </section>
+            ${renderYearHero({
+                mood: 'calm',
+                statusLabel: 'Not started yet',
+                activeYearKey,
+                lead: `Create this year’s classes for each teacher. End-of-year tools stay hidden until a class has lesson days, or until ${escapeHtml(startsAtLabel)}.`,
+                facts: [
+                    { tone: 'sky', icon: 'fa-calendar', label: 'Year', value: activeYearKey || '—', note: friendlyYearStatus(schoolYearState.rolloverStatus) },
+                    { tone: 'amber', icon: 'fa-flag', label: 'Starts', value: startsAtLabel, note: 'Or when schedules appear' }
+                ]
+            })}
 
             ${renderYearSetupLaunchers()}
 
-            ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
-
-            ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
+            ${renderDateCards([
+                renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample }),
+                renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })
+            ])}
         </div>
     `;
 }
@@ -282,39 +327,21 @@ function renderBetweenYearsMode({
         : 'the previous year';
     return `
         <div class="school-year-command school-year-command--between">
-            <section class="school-year-hero secretary-card secretary-card--featured school-year-hero--summer">
-                <div class="school-year-hero__copy">
-                    <p class="secretary-card__eyebrow">Your school year</p>
-                    <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
-                    <p class="school-year-status-pill school-year-status-pill--summer" role="status">Between years</p>
-                    <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
-                        ${escapeHtml(previousLabel)} is sealed. Teachers see the summer break on the school schedule
-                        until you officially open ${escapeHtml(formatSchoolYearLabel(activeYearKey))}.
-                        You can still place returning students anytime.
-                    </p>
-                </div>
-                <div class="school-year-status-grid">
-                    <div class="school-year-status-card school-year-status-card--sky">
-                        <span>Next year</span>
-                        <strong>${escapeHtml(activeYearKey || '—')}</strong>
-                        <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
-                    </div>
-                    <div class="school-year-status-card school-year-status-card--amber">
-                        <span>Opens</span>
-                        <strong>${escapeHtml(startsAtLabel)}</strong>
-                        <small>Or open now below</small>
-                    </div>
-                    <div class="school-year-status-card school-year-status-card--emerald">
-                        <span>Waiting placement</span>
-                        <strong>${pendingStudents.length}</strong>
-                        <small>Returning students</small>
-                    </div>
-                </div>
-            </section>
+            ${renderYearHero({
+                mood: 'summer',
+                statusLabel: 'Between years',
+                activeYearKey,
+                lead: `${escapeHtml(previousLabel)} is sealed. Teachers see the summer break until you open ${escapeHtml(formatSchoolYearLabel(activeYearKey))}. You can still seat returning students anytime.`,
+                facts: [
+                    { tone: 'sky', icon: 'fa-calendar', label: 'Next year', value: activeYearKey || '—', note: friendlyYearStatus(schoolYearState.rolloverStatus) },
+                    { tone: 'amber', icon: 'fa-sun', label: 'Opens', value: startsAtLabel, note: 'Or open it now below' },
+                    { tone: 'emerald', icon: 'fa-chair', label: 'Waiting for a class', value: String(pendingStudents.length), note: 'Returning students' }
+                ]
+            })}
 
             ${renderYearSetupLaunchers()}
 
-            ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
+            ${renderDateCards([renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })])}
 
             <section class="secretary-card school-year-open-section">
                 <div class="secretary-card__header">
@@ -353,61 +380,68 @@ function renderUnderwayMode({
 }) {
     return `
         <div class="school-year-command school-year-command--underway">
-            <section class="school-year-hero secretary-card secretary-card--featured">
-                <div class="school-year-hero__copy">
-                    <p class="secretary-card__eyebrow">Your school year</p>
-                    <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
-                    <p class="school-year-status-pill school-year-status-pill--live" role="status">In progress</p>
-                    <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
-                        Classes are under way. Set the last school day, check readiness when you need to, then finish the year when that day arrives.
-                    </p>
-                </div>
-                <div class="school-year-status-grid">
-                    <div class="school-year-status-card school-year-status-card--sky">
-                        <span>Active year</span>
-                        <strong>${escapeHtml(activeYearKey || '—')}</strong>
-                        <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
-                    </div>
-                    <div class="school-year-status-card school-year-status-card--emerald">
-                        <span>Scheduled classes</span>
-                        <strong>${scheduledCount}</strong>
-                        <small>With lesson days</small>
-                    </div>
-                    <div class="school-year-status-card ${closeReady ? 'school-year-status-card--emerald' : 'school-year-status-card--amber'}">
-                        <span>Finish year</span>
-                        <strong>${closeReady ? 'Available' : 'Not yet'}</strong>
-                        <small>${escapeHtml(closeDateSavedLabel)}</small>
-                    </div>
-                </div>
-            </section>
+            ${renderYearHero({
+                mood: 'live',
+                statusLabel: 'In progress',
+                activeYearKey,
+                lead: 'Classes are under way. Set the last school day, check readiness when you need to, then finish the year when that day arrives.',
+                facts: [
+                    { tone: 'sky', icon: 'fa-calendar', label: 'Year', value: activeYearKey || '—', note: friendlyYearStatus(schoolYearState.rolloverStatus) },
+                    { tone: 'emerald', icon: 'fa-chalkboard', label: 'Classes with lesson days', value: String(scheduledCount) },
+                    { tone: closeReady ? 'emerald' : 'amber', icon: closeReady ? 'fa-lock-open' : 'fa-lock', label: 'Finish year', value: closeReady ? 'Available' : 'Not yet', note: closeDateSavedLabel === 'Not set yet' ? 'Last day not set' : `From ${closeDateSavedLabel}` }
+                ]
+            })}
 
             ${renderYearSetupLaunchers()}
 
-            ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
+            ${renderDateCards([
+                renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample }),
+                renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })
+            ])}
 
-            ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
-
-            <section class="secretary-card school-year-end-section">
+            <section class="secretary-card school-year-end-section office-finish${closeReady ? ' is-ready' : ''}">
                 <div class="secretary-card__header">
                     <div>
                         <p class="secretary-card__eyebrow">End of year</p>
                         <h3 class="secretary-card__title">Finish the school year</h3>
                     </div>
-                    <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
+                    <div class="secretary-card__badge office-finish__badge"><i class="fas ${closeReady ? 'fa-lock-open' : 'fa-lock'}" aria-hidden="true"></i> ${closeReady ? 'Available' : 'Locked'}</div>
                 </div>
-                <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                    Check that everything is ready, then type the confirmation. This stores the finished year, archives last year's Gold, keeps guild houses, keeps that year's Fortune Ledger with the closed year, resets live progress (stars, Gold, Golden Legend, and this year's Prodigy counts), and moves returning students into placement.
+                <p class="office-finish__lead">
+                    This stores the finished year, archives last year's Gold, keeps guild houses, keeps that year's Fortune Ledger with the closed year, resets live progress (stars, Gold, Golden Legend, and this year's Prodigy counts), and moves returning students into placement.
                 </p>
-                <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
-                    <i class="fas fa-list-check mr-2"></i>Check readiness
-                </button>
-                <label class="secretary-field mt-4">
-                    <span>Type exactly: ${escapeHtml(confirmationText)}</span>
-                    <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}" ${closeReady ? '' : 'disabled'}>
-                </label>
-                <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn mt-4" ${closeReady ? '' : 'disabled'}>
-                    <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : (schoolYearState.closeDate ? `Available on ${escapeHtml(closeDateSavedLabel)}` : 'Set the last school day first')}
-                </button>
+                <ol class="office-finish__steps">
+                    <li class="office-finish__step${schoolYearState.closeDate ? ' is-done' : ''}">
+                        <span class="office-finish__num" aria-hidden="true">${schoolYearState.closeDate ? '<i class="fas fa-check"></i>' : '1'}</span>
+                        <div>
+                            <strong>Set the last school day</strong>
+                            <small>${schoolYearState.closeDate ? `Saved: ${escapeHtml(closeDateSavedLabel)}` : 'Use the calendar card above.'}</small>
+                        </div>
+                    </li>
+                    <li class="office-finish__step">
+                        <span class="office-finish__num" aria-hidden="true">2</span>
+                        <div>
+                            <strong>Check that everything is ready</strong>
+                            <small>See what finishing the year will do before you start.</small>
+                            <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
+                                <i class="fas fa-list-check mr-2"></i>Check readiness
+                            </button>
+                        </div>
+                    </li>
+                    <li class="office-finish__step">
+                        <span class="office-finish__num" aria-hidden="true">3</span>
+                        <div>
+                            <strong>Type the confirmation and finish</strong>
+                            <label class="secretary-field">
+                                <span>Type exactly: ${escapeHtml(confirmationText)}</span>
+                                <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}" ${closeReady ? '' : 'disabled'}>
+                            </label>
+                            <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn" ${closeReady ? '' : 'disabled'}>
+                                <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : (schoolYearState.closeDate ? `Available on ${escapeHtml(closeDateSavedLabel)}` : 'Set the last school day first')}
+                            </button>
+                        </div>
+                    </li>
+                </ol>
             </section>
         </div>
     `;

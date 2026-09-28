@@ -265,8 +265,9 @@
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    gap: clamp(0.2rem, 0.7vw, 0.6rem);
-    padding: 0.9rem clamp(0.5rem, 2vw, 1.5rem) 0;
+    /* No gaps: the clouds overlap into one continuous bank. */
+    gap: 0;
+    padding: 0.9rem 0.7rem 0;
     /* Tiny lift under the clouds; still clears the iOS home indicator. */
     padding-bottom: calc(0.32rem + env(safe-area-inset-bottom, 0px));
     background: transparent;
@@ -296,9 +297,10 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
     --cloud-breath: 6s;
     --cloud-halo: rgba(255, 255, 255, 0.95);
     --cloud-shadow: rgba(15, 40, 90, 0.28);
-    flex: 0 1 8.4rem;
+    flex: 1 1 0;
     min-width: 0;
-    height: 4.7rem;
+    height: 4.9rem;
+    margin-inline: -0.6rem;
     top: 0;
     padding: 0 0.2rem;
     pointer-events: auto;
@@ -315,6 +317,13 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
         top 700ms cubic-bezier(0.34, 1.4, 0.64, 1) var(--cloud-rise-delay),
         filter 300ms ease;
 }
+
+/* Every other cloud floats in front, so the bank reads as layered puffs rather than a row of tiles. */
+#bottom-nav-bar .nav-button:nth-child(odd) { z-index: 1; }
+#bottom-nav-bar .nav-button:nth-child(even) { z-index: 2; }
+#bottom-nav-bar .nav-button.active { z-index: 5; }
+#bottom-nav-bar .nav-button:hover,
+#bottom-nav-bar .nav-button:focus-visible { z-index: 10; }
 
 #bottom-nav-bar .nav-button.active {
     box-shadow: none;
@@ -355,8 +364,10 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
     pointer-events: none;
     background:
         linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.14) 16%, rgba(255, 255, 255, 0) 30%),
-        radial-gradient(ellipse 34% 26% at 20% 50%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 70%),
-        linear-gradient(to top, rgba(15, 23, 42, 0.24) 0%, rgba(15, 23, 42, 0) 30%),
+        radial-gradient(ellipse 22% 16% at 40% 16%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 75%),
+        radial-gradient(ellipse 24% 22% at 16% 60%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 70%),
+        radial-gradient(ellipse 24% 22% at 84% 60%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 70%),
+        linear-gradient(to top, rgba(15, 23, 42, 0.3) 0%, rgba(15, 23, 42, 0.08) 18%, rgba(15, 23, 42, 0) 34%),
         linear-gradient(to top, var(--tw-gradient-from, #7dd3fc), var(--tw-gradient-to, #bae6fd));
     -webkit-mask: var(--cloud-shape) center / 100% 100% no-repeat;
     mask: var(--cloud-shape) center / 100% 100% no-repeat;
@@ -446,17 +457,18 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
 #bottom-nav-bar .nav-button:nth-child(10) { --cloud-rise-delay: 180ms; --cloud-sink-delay: 270ms; --cloud-breath: 6.1s; }
 
 /* A different cloud for every tab (viewBox 120×70, stretched to the button). Each keeps a central
-   dome under the icon; the side puffs, top-knots and tails are what tell them apart. */
-#bottom-nav-bar .nav-button[data-tab="about-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='8' y='38' width='104' height='30' rx='15'/%3E%3Ccircle cx='30' cy='41' r='16'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='90' cy='41' r='16'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="class-leaderboard-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='5' y='42' width='110' height='26' rx='13'/%3E%3Ccircle cx='20' cy='46' r='12'/%3E%3Ccircle cx='39' cy='37' r='16'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='84' cy='35' r='18'/%3E%3Ccircle cx='103' cy='46' r='12'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="student-leaderboard-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='9' y='38' width='102' height='30' rx='15'/%3E%3Ccircle cx='31' cy='42' r='15'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='87' cy='39' r='17'/%3E%3Ccircle cx='76' cy='14' r='11'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="shop-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='7' y='38' width='106' height='30' rx='15'/%3E%3Ccircle cx='29' cy='36' r='20'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='93' cy='44' r='14'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="guilds-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='7' y='38' width='106' height='30' rx='15'/%3E%3Ccircle cx='27' cy='44' r='14'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='91' cy='36' r='20'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="award-stars-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='38' width='108' height='30' rx='15'/%3E%3Ccircle cx='33' cy='33' r='19'/%3E%3Ccircle cx='60' cy='30' r='22'/%3E%3Ccircle cx='87' cy='33' r='19'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="adventure-log-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='3' y='44' width='114' height='24' rx='12'/%3E%3Ccircle cx='15' cy='49' r='10'/%3E%3Ccircle cx='33' cy='39' r='15'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='87' cy='39' r='15'/%3E%3Ccircle cx='105' cy='49' r='10'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="scholars-scroll-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='8' y='38' width='104' height='30' rx='15'/%3E%3Ccircle cx='31' cy='41' r='17'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='88' cy='41' r='16'/%3E%3Ccircle cx='43' cy='17' r='10'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="calendar-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='38' width='108' height='30' rx='15'/%3E%3Ccircle cx='25' cy='42' r='15'/%3E%3Ccircle cx='42' cy='32' r='14'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='78' cy='32' r='14'/%3E%3Ccircle cx='95' cy='42' r='15'/%3E%3C/g%3E%3C/svg%3E"); }
-#bottom-nav-bar .nav-button[data-tab="reward-ideas-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='8' y='42' width='104' height='26' rx='13'/%3E%3Ccircle cx='25' cy='47' r='13'/%3E%3Ccircle cx='44' cy='36' r='16'/%3E%3Ccircle cx='60' cy='29' r='23'/%3E%3Ccircle cx='88' cy='40' r='17'/%3E%3Ccircle cx='106' cy='51' r='9'/%3E%3C/g%3E%3C/svg%3E"); }
+   dome under the icon and round side lobes that meet its neighbours; the mid puffs, top-knots and
+   lobe heights are what tell them apart. */
+#bottom-nav-bar .nav-button[data-tab="about-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='28' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='33' cy='40' r='17'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='87' cy='40' r='17'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="class-leaderboard-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='42' width='92' height='26' rx='13'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='30' cy='42' r='16'/%3E%3Ccircle cx='48' cy='34' r='16'/%3E%3Ccircle cx='62' cy='30' r='22'/%3E%3Ccircle cx='86' cy='36' r='18'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="student-leaderboard-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='28' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='34' cy='42' r='16'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='86' cy='39' r='18'/%3E%3Ccircle cx='76' cy='13' r='11'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="shop-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='30' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='32' cy='35' r='20'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='90' cy='43' r='15'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="guilds-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='30' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='30' cy='43' r='15'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='88' cy='35' r='20'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="award-stars-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='30' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='34' cy='33' r='19'/%3E%3Ccircle cx='60' cy='30' r='22'/%3E%3Ccircle cx='86' cy='33' r='19'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="adventure-log-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='44' width='92' height='24' rx='12'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='24' cy='45' r='13'/%3E%3Ccircle cx='40' cy='37' r='15'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='80' cy='37' r='15'/%3E%3Ccircle cx='96' cy='45' r='13'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="scholars-scroll-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='28' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='33' cy='41' r='17'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='87' cy='41' r='16'/%3E%3Ccircle cx='44' cy='17' r='10'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="calendar-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='30' rx='14'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='27' cy='41' r='15'/%3E%3Ccircle cx='43' cy='32' r='14'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='77' cy='32' r='14'/%3E%3Ccircle cx='93' cy='41' r='15'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="reward-ideas-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='42' width='92' height='26' rx='13'/%3E%3Ccircle cx='18' cy='51' r='17'/%3E%3Ccircle cx='30' cy='45' r='14'/%3E%3Ccircle cx='46' cy='35' r='16'/%3E%3Ccircle cx='61' cy='29' r='23'/%3E%3Ccircle cx='88' cy='40' r='17'/%3E%3Ccircle cx='102' cy='51' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
 
 /* Night: clouds dim to moonlit versions of their colours with a cool halo. */
 body.night-mode:not(.projector-mode) #bottom-nav-bar .nav-button {

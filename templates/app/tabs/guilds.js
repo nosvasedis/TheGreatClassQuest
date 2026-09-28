@@ -125,7 +125,7 @@ export const guildsTabHTML = `
                 <!-- Guild Lore Overlay (shown on emblem click): the guild's own hanging banner -->
                 <div id="guild-lore-overlay" class="guild-lore-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guild-lore-name">
                     <div class="guild-lore-overlay-bg" id="guild-lore-overlay-bg"></div>
-                    <div class="guild-lore-card pop-in" id="guild-lore-card">
+                    <div class="guild-lore-card" id="guild-lore-card">
                         <div class="guild-lore-cloth" aria-hidden="true"></div>
                         <div class="guild-lore-rod" aria-hidden="true">
                             <span class="guild-lore-tassel guild-lore-tassel--l"></span>
@@ -148,7 +148,7 @@ export const guildsTabHTML = `
                 <!-- Guild Anthem Modal (shown on note button click) -->
                 <div id="guild-anthem-overlay" class="guild-anthem-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guild-anthem-title">
                     <div class="guild-anthem-overlay-bg" id="guild-anthem-overlay-bg"></div>
-                    <div class="guild-anthem-card pop-in" id="guild-anthem-card">
+                    <div class="guild-anthem-card" id="guild-anthem-card">
                         <button class="guild-anthem-close" id="guild-anthem-close" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                         <div class="guild-anthem-header" id="guild-anthem-header">
                             <div class="guild-anthem-arch" aria-hidden="true">

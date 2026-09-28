@@ -226,6 +226,31 @@ function fadeOutAndStopAnthem(duration = 1400) {
     }, tick);
 }
 
+// ─── Banner & anthem open / close choreography ───────────────────────────────
+// `<prefix>--opening` / `<prefix>--closing` on the overlay drive the keyframes in styles/guilds.css;
+// the overlay is hidden only once the closing animation has played out.
+const _overlayCloseTimers = new WeakMap();
+const LORE_CLOSE_MS = 720;
+const ANTHEM_CLOSE_MS = 520;
+
+function _playOverlayOpen(overlay, prefix) {
+    clearTimeout(_overlayCloseTimers.get(overlay));
+    overlay.classList.remove('hidden', `${prefix}--closing`, `${prefix}--opening`);
+    void overlay.offsetWidth; // restart the opening keyframes
+    overlay.classList.add(`${prefix}--opening`);
+}
+
+function _playOverlayClose(overlay, prefix, duration) {
+    if (!overlay || overlay.classList.contains('hidden') || overlay.classList.contains(`${prefix}--closing`)) return;
+    overlay.classList.remove(`${prefix}--opening`);
+    overlay.classList.add(`${prefix}--closing`);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    _overlayCloseTimers.set(overlay, setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.classList.remove(`${prefix}--closing`);
+    }, reduceMotion ? 180 : duration));
+}
+
 // ─── Karaoke sync ─────────────────────────────────────────────────────────────
 let _karaokeCleanup = null;
 
@@ -313,11 +338,7 @@ function openAnthemModal(guildId) {
         }).join('');
     }
 
-    card.classList.remove('pop-in');
-    void card.offsetWidth;
-    card.classList.add('pop-in');
-
-    overlay.classList.remove('hidden');
+    _playOverlayOpen(overlay, 'guild-anthem-overlay');
     playGuildAnthem(guildId);
     startKaraokeSync(guildId);
 }
@@ -326,9 +347,7 @@ function closeAnthemModal() {
     stopKaraokeSync();
     _teardownEndFade();
     fadeOutAndStopAnthem();
-    setTimeout(() => {
-        document.getElementById('guild-anthem-overlay')?.classList.add('hidden');
-    }, 300);
+    _playOverlayClose(document.getElementById('guild-anthem-overlay'), 'guild-anthem-overlay', ANTHEM_CLOSE_MS);
 }
 
 function wireAnthemListeners() {
@@ -344,8 +363,17 @@ function wireAnthemListeners() {
 }
 
 // ─── Lore overlay ────────────────────────────────────────────────────────────
-function openGuildLore(guildId, gData) {
+// Lives on <body> (like the anthem overlay) so the banner hangs above the app header and nav
+// instead of inside the tab's stacking context, where they clipped its rod and crest.
+function ensureLoreOverlayRoot() {
     const overlay = document.getElementById('guild-lore-overlay');
+    if (!overlay || overlay.parentElement === document.body) return overlay;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function openGuildLore(guildId, gData) {
+    const overlay = ensureLoreOverlayRoot();
     const card = document.getElementById('guild-lore-card');
     if (!overlay || !card) return;
 
@@ -445,12 +473,8 @@ function openGuildLore(guildId, gData) {
         }
     }
 
-    // Reset animation
-    card.classList.remove('pop-in');
-    void card.offsetWidth;
-    card.classList.add('pop-in');
-
-    overlay.classList.remove('hidden');
+    // Unfurl the banner
+    _playOverlayOpen(overlay, 'guild-lore-overlay');
 
     // Glow the matching column emblem
     document.querySelectorAll('.guild-crystal-col').forEach(col => {
@@ -461,12 +485,12 @@ function openGuildLore(guildId, gData) {
 }
 
 function closeGuildLore() {
-    document.getElementById('guild-lore-overlay')?.classList.add('hidden');
+    _playOverlayClose(document.getElementById('guild-lore-overlay'), 'guild-lore-overlay', LORE_CLOSE_MS);
     document.querySelectorAll('.guild-crystal-col.guild-active').forEach(c => c.classList.remove('guild-active'));
 }
 
 function wireGuildLoreListeners() {
-    const overlay = document.getElementById('guild-lore-overlay');
+    const overlay = ensureLoreOverlayRoot();
     if (!overlay || overlay._guildLoreWired) return;
     overlay._guildLoreWired = true;
 

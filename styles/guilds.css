@@ -2949,7 +2949,7 @@
 .guild-power-explainer-overlay {
     position: fixed;
     inset: 0;
-    z-index: 230;
+    z-index: 1210; /* opens on top of the guild banner (1205) */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3757,7 +3757,7 @@
 .guild-lore-overlay {
     position: fixed;
     inset: 0;
-    z-index: 200;
+    z-index: 1205; /* above the app header and nav, same layer as the anthem overlay */
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -4224,6 +4224,150 @@
     }
 }
 
+/* ── Open / close choreography (classes set by _playOverlayOpen/_playOverlayClose) ──
+   Banner: the rod drops in, the cloth unfurls down from it and settles with a
+   small sway, then the crest and words appear. Closing rolls it back up.
+   Anthem: the alcove rises out of the dark, the torches catch, the verses
+   follow in turn. Closing snuffs the torches and lets the alcove sink. */
+
+.guild-lore-overlay--opening .guild-lore-overlay-bg,
+.guild-anthem-overlay--opening .guild-anthem-overlay-bg {
+    animation: guild-modal-veil-in 0.45s ease both;
+}
+.guild-lore-overlay--closing .guild-lore-overlay-bg,
+.guild-anthem-overlay--closing .guild-anthem-overlay-bg {
+    animation: guild-modal-veil-out 0.5s ease both;
+}
+@keyframes guild-modal-veil-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes guild-modal-veil-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* Banner — open */
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-rod {
+    animation: lore-rod-drop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+}
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-cloth {
+    transform-origin: 50% 0;
+    animation: lore-cloth-unfurl 0.8s 0.18s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.guild-lore-overlay--opening .guild-lore-card > :not(.guild-lore-rod):not(.guild-lore-cloth) {
+    animation: lore-content-in 0.5s 0.55s ease-out backwards;
+}
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-emblem-wrap {
+    animation: lore-crest-in 0.65s 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-kicker    { animation-delay: 0.62s; }
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-name      { animation-delay: 0.68s; }
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-motto     { animation: lore-ribbon-in 0.55s 0.76s cubic-bezier(0.34, 1.4, 0.64, 1) backwards; }
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-traits    { animation-delay: 0.84s; }
+.guild-lore-overlay--opening .guild-lore-card > .guild-lore-stats     { animation-delay: 0.92s; }
+
+@keyframes lore-rod-drop {
+    from { opacity: 0; transform: translateY(-2.5rem); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lore-cloth-unfurl {
+    0%   { transform: scaleY(0.02); opacity: 0.6; }
+    62%  { transform: scaleY(1.03) skewX(0deg); opacity: 1; }
+    78%  { transform: scaleY(0.99) skewX(1.2deg); }
+    90%  { transform: scaleY(1.005) skewX(-0.6deg); }
+    100% { transform: scaleY(1) skewX(0deg); opacity: 1; }
+}
+@keyframes lore-content-in {
+    from { opacity: 0; transform: translateY(0.6rem); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lore-crest-in {
+    from { opacity: 0; transform: scale(0.4) rotate(-25deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes lore-ribbon-in {
+    from { opacity: 0; transform: scaleX(0.2); }
+    to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* Banner — close: words fade, cloth rolls up into the rod, rod lifts away */
+.guild-lore-overlay--closing .guild-lore-card > :not(.guild-lore-rod):not(.guild-lore-cloth) {
+    animation: lore-content-out 0.2s ease-in both;
+}
+.guild-lore-overlay--closing .guild-lore-card > .guild-lore-cloth {
+    transform-origin: 50% 0;
+    animation: lore-cloth-roll-up 0.42s 0.12s cubic-bezier(0.55, 0, 0.75, 0.2) both;
+}
+.guild-lore-overlay--closing .guild-lore-card > .guild-lore-rod {
+    animation: lore-rod-lift 0.3s 0.42s ease-in both;
+}
+@keyframes lore-content-out {
+    to { opacity: 0; transform: translateY(-0.4rem); }
+}
+@keyframes lore-cloth-roll-up {
+    from { transform: scaleY(1); opacity: 1; }
+    to   { transform: scaleY(0.02); opacity: 0.7; }
+}
+@keyframes lore-rod-lift {
+    to { opacity: 0; transform: translateY(-2rem); }
+}
+
+/* Anthem — open */
+.guild-anthem-overlay--opening .guild-anthem-card {
+    animation: anthem-alcove-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.guild-anthem-overlay--opening .guild-anthem-crest {
+    animation: anthem-crest-in 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.guild-anthem-overlay--opening .guild-anthem-torch__flame {
+    animation:
+        anthem-torch-ignite 0.5s 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
+        anthem-torch-flicker 1.1s 0.9s ease-in-out infinite alternate;
+}
+.guild-anthem-overlay--opening .guild-anthem-torch--r .guild-anthem-torch__flame {
+    animation:
+        anthem-torch-ignite 0.5s 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
+        anthem-torch-flicker 1.1s 1.02s ease-in-out infinite alternate;
+}
+.guild-anthem-overlay--opening .guild-anthem-title,
+.guild-anthem-overlay--opening .guild-anthem-subtitle,
+.guild-anthem-overlay--opening .guild-anthem-player {
+    animation: lore-content-in 0.45s 0.35s ease-out backwards;
+}
+.guild-anthem-overlay--opening .guild-anthem-subtitle { animation-delay: 0.42s; }
+.guild-anthem-overlay--opening .guild-anthem-player   { animation-delay: 0.5s; }
+.guild-anthem-overlay--opening .guild-anthem-lyrics > * {
+    animation: lore-content-in 0.45s ease-out backwards;
+}
+.guild-anthem-overlay--opening .guild-anthem-lyrics > :nth-child(1) { animation-delay: 0.58s; }
+.guild-anthem-overlay--opening .guild-anthem-lyrics > :nth-child(2) { animation-delay: 0.68s; }
+.guild-anthem-overlay--opening .guild-anthem-lyrics > :nth-child(3) { animation-delay: 0.78s; }
+.guild-anthem-overlay--opening .guild-anthem-lyrics > :nth-child(n+4) { animation-delay: 0.88s; }
+
+@keyframes anthem-alcove-rise {
+    from { opacity: 0; transform: translateY(2.2rem) scale(0.94); filter: brightness(0.4); }
+    to   { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+@keyframes anthem-crest-in {
+    from { opacity: 0; transform: translateY(0.8rem) scale(0.7); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes anthem-torch-ignite {
+    0%   { opacity: 0; transform: scale(0.1, 0.1); }
+    60%  { opacity: 1; transform: scale(1.25, 1.3); }
+    100% { opacity: 0.92; transform: scale(1, 1) rotate(-3deg); }
+}
+
+/* Anthem — close: torches snuffed, the alcove sinks back into the dark */
+.guild-anthem-overlay--closing .guild-anthem-torch__flame {
+    animation: anthem-torch-snuff 0.25s ease-in both;
+}
+.guild-anthem-overlay--closing .guild-anthem-card {
+    animation: anthem-alcove-sink 0.4s 0.1s cubic-bezier(0.55, 0, 0.75, 0.2) both;
+}
+@keyframes anthem-torch-snuff {
+    to { opacity: 0; transform: scale(0.2, 0.05); }
+}
+@keyframes anthem-alcove-sink {
+    from { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+    to   { opacity: 0; transform: translateY(1.6rem) scale(0.95); filter: brightness(0.4); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .guild-lore-emblem-wrap::before,
     .guild-lore-emblem,
@@ -4234,6 +4378,23 @@
     .guild-anthem-note-icon,
     .guild-anthem-eq i {
         animation: none;
+    }
+
+    /* open / close become a plain fade */
+    .guild-lore-overlay--opening .guild-lore-card *,
+    .guild-lore-overlay--closing .guild-lore-card *,
+    .guild-anthem-overlay--opening .guild-anthem-card,
+    .guild-anthem-overlay--opening .guild-anthem-card *,
+    .guild-anthem-overlay--closing .guild-anthem-card * {
+        animation: none;
+    }
+    .guild-lore-overlay--opening .guild-lore-card,
+    .guild-anthem-overlay--opening .guild-anthem-card {
+        animation: guild-modal-veil-in 0.18s ease both;
+    }
+    .guild-lore-overlay--closing .guild-lore-card,
+    .guild-anthem-overlay--closing .guild-anthem-card {
+        animation: guild-modal-veil-out 0.18s ease both;
     }
 }
 

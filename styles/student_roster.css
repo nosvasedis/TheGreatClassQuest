@@ -506,6 +506,7 @@ button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6
     transition: background-color 0.15s ease;
 }
 .returning-students-shell__toggle:hover .returning-students-shell__chevron { background: rgba(255, 255, 255, 0.36); }
+.returning-students-shell.is-open .returning-students-shell__chevron { background: #fff; color: #b45309; }
 
 .returning-students-shell__actions {
     position: relative;

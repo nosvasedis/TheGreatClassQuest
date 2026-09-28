@@ -215,7 +215,7 @@ test('secretary September placement wizard never dumps guild IDs or a class sele
 
 test('teacher Student setup panel is collapsible and restores search caret', () => {
     const classes = read('ui/tabs/classes.js');
-    const css = read('styles/cards.css');
+    const css = read('styles/student_roster.css');
     assert.doesNotMatch(classes, /September Setup/);
     assert.match(classes, /Student setup/);
     assert.match(classes, /returningStudentsPanelExpanded/);

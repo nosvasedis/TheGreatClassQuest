@@ -230,9 +230,12 @@ function syncShopRestockButton() {
     restockBtn.disabled = shopRestockBusy;
     restockBtn.setAttribute('aria-busy', shopRestockBusy ? 'true' : 'false');
     restockBtn.classList.toggle('is-restocking', shopRestockBusy);
+    const label = shopRestockBusy ? 'Restocking…' : 'Restock the shelves';
+    restockBtn.setAttribute('aria-label', label);
+    restockBtn.dataset.tooltip = label;
     restockBtn.innerHTML = shopRestockBusy
-        ? '<i class="fas fa-spinner fa-spin"></i> Restocking…'
-        : '<i class="fas fa-sync-alt"></i> Restock';
+        ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>'
+        : '<i class="fas fa-sync-alt" aria-hidden="true"></i>';
 }
 
 function setShopStudentPanelOpen(open) {

@@ -47,9 +47,14 @@ export const shopTabHTML = `
                                 </div>
                             </div>
 
-                            <!-- The wooden counter-front: shopper, purse and restock sit on it -->
+                            <!-- The wooden counter-front: restock on the left, shopper and purse on the right -->
                             <div class="mm-counter__bar">
                                 <div class="mm-counter__controls" role="group" aria-label="Shopper, purse and restock">
+                                    <button id="generate-shop-btn" type="button"
+                                        class="hidden shop-restock-btn mm-restock-btn inline-flex items-center justify-center shrink-0"
+                                        aria-label="Restock the shelves" data-tooltip="Restock the shelves">
+                                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                    </button>
                                     <div class="shop-selector-pill shop-selector-pill--student shop-selector-pill--dark shop-selector-pill--shopper mm-plaque mm-plaque--shopper">
                                         <i class="fas fa-hat-wizard shop-sel-icon shop-sel-icon--shopper" aria-hidden="true"></i>
                                         <div class="shop-shopper" id="shop-shopper-root">
@@ -76,10 +81,6 @@ export const shopTabHTML = `
                                             <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
                                         </div>
                                     </div>
-                                    <button id="generate-shop-btn" type="button"
-                                        class="hidden shop-restock-btn mm-restock-btn inline-flex items-center justify-center gap-2 shrink-0">
-                                        <i class="fas fa-sync-alt"></i> Restock
-                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -1,0 +1,1271 @@
+/* styles/student_profile.css
+ * Student Profile (edit student) modal: the student's Adventurer's Passport.
+ * A teal leather cover with gold foil, opened on two security-paper pages:
+ * left = identity photo, name, class, guild, record and shortcuts;
+ * right = special-day postage stamps and the hero-path visa.
+ * Markup: templates/modals/student.js. Behaviour: ui/modals/student.js.
+ */
+
+#edit-student-modal {
+    --sp-cover-1: #0f5358;
+    --sp-cover-2: #0a3c46;
+    --sp-cover-3: #072b35;
+    --sp-foil: #e8c86f;
+    --sp-foil-deep: #b88a2c;
+    --sp-foil-text: #f7e9bd;
+    --sp-paper: #f4faf6;
+    --sp-paper-2: #eaf5ef;
+    --sp-ink: #12353a;
+    --sp-ink-soft: #4d6b6c;
+    --sp-teal: #0f766e;
+    --sp-rule: #cde3dc;
+    --sp-guilloche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='40' viewBox='0 0 160 40'%3E%3Cg fill='none' stroke='%230d9488' stroke-opacity='.10' stroke-width='.9'%3E%3Cpath d='M0 20C20 2 60 2 80 20s60 18 80 0'/%3E%3Cpath d='M0 20C20 38 60 38 80 20S140 2 160 20'/%3E%3Cpath d='M0 0C20 18 60 18 80 0s60-18 80 0'/%3E%3Cpath d='M0 40c20-18 60-18 80 0s60 18 80 0'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- Shell: the passport cover ---------- */
+.sp-passport {
+    position: relative;
+    width: 100%;
+    max-width: 920px;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+    border-radius: 26px;
+    overflow: hidden;
+    color: var(--sp-ink);
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    background:
+        radial-gradient(120% 70% at 15% 0%, rgba(255, 255, 255, 0.10), transparent 60%),
+        repeating-radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+        linear-gradient(160deg, var(--sp-cover-1), var(--sp-cover-2) 55%, var(--sp-cover-3));
+    box-shadow:
+        0 30px 70px -20px rgba(4, 30, 36, 0.65),
+        0 0 0 1px rgba(232, 200, 111, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Gold foil tooling around the cover edge */
+.sp-passport::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(232, 200, 111, 0.45);
+    border-radius: 21px;
+    pointer-events: none;
+}
+
+.sp-cover {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 12px 14px;
+    color: var(--sp-foil-text);
+    flex-shrink: 0;
+}
+
+.sp-cover__crest {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.4rem;
+    color: #fff4cf;
+    background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), transparent 55%),
+        conic-gradient(from 200deg, #f8e3a0, #c9962f, #f3d884, #a8781f, #f8e3a0);
+    box-shadow:
+        0 0 0 3px rgba(7, 43, 53, 0.9),
+        0 0 0 4px rgba(232, 200, 111, 0.6),
+        0 6px 14px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 1px 1px rgba(90, 60, 0, 0.6);
+}
+
+.sp-cover__crest i {
+    color: #5a3d06;
+    text-shadow: 0 1px 0 rgba(255, 244, 207, 0.6);
+}
+
+.sp-cover__text {
+    min-width: 0;
+}
+
+.sp-cover__eyebrow {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--sp-foil);
+}
+
+.sp-cover__title {
+    margin: 1px 0 6px;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.65rem;
+    line-height: 1.15;
+    color: #fff8e4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 0 18px rgba(232, 200, 111, 0.25);
+}
+
+.sp-cover__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 2px 11px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #fdf3d3;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(232, 200, 111, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-chip--guild {
+    --sp-guild: #92400e;
+    background: color-mix(in srgb, var(--sp-guild) 55%, transparent);
+    border-color: color-mix(in srgb, var(--sp-guild) 40%, var(--sp-foil));
+}
+
+.sp-cover__close {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.05rem;
+    color: var(--sp-foil);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(232, 200, 111, 0.6);
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.sp-cover__close:hover,
+.sp-cover__close:focus-visible {
+    background: var(--sp-foil);
+    color: var(--sp-cover-3);
+    transform: rotate(90deg);
+}
+
+/* ---------- The open spread ---------- */
+.sp-spread {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18), 0 10px 24px -8px rgba(0, 0, 0, 0.5);
+    background-color: var(--sp-paper);
+}
+
+.sp-page {
+    position: relative;
+    min-width: 0;
+    padding: 6px 4px 10px;
+    background:
+        var(--sp-guilloche) 0 0 / 160px 40px,
+        linear-gradient(180deg, var(--sp-paper), var(--sp-paper-2));
+}
+
+/* Spine: each page darkens toward the fold */
+.sp-page--left {
+    background:
+        linear-gradient(to left, rgba(10, 60, 70, 0.14), rgba(10, 60, 70, 0) 28px),
+        var(--sp-guilloche) 0 0 / 160px 40px,
+        linear-gradient(180deg, var(--sp-paper), var(--sp-paper-2));
+}
+
+.sp-page--right {
+    background:
+        linear-gradient(to right, rgba(10, 60, 70, 0.14), rgba(10, 60, 70, 0) 28px),
+        var(--sp-guilloche) 0 0 / 160px 40px,
+        linear-gradient(180deg, var(--sp-paper), var(--sp-paper-2));
+}
+
+.sp-section {
+    position: relative;
+    padding: 14px 18px 10px;
+    border-radius: 14px;
+}
+
+.sp-section--flash {
+    animation: sp-flash 1.4s ease-out;
+}
+
+@keyframes sp-flash {
+    0%, 30% { box-shadow: inset 0 0 0 2px rgba(15, 118, 110, 0.55); background-color: rgba(204, 251, 241, 0.55); }
+    100% { box-shadow: inset 0 0 0 2px rgba(15, 118, 110, 0); background-color: transparent; }
+}
+
+.sp-page__heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sp-teal);
+}
+
+.sp-page__heading i {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.7rem;
+    color: #fff;
+    background: linear-gradient(135deg, #14b8a6, #0f766e);
+    box-shadow: 0 2px 5px rgba(15, 118, 110, 0.35);
+}
+
+.sp-page__heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--sp-rule), transparent);
+}
+
+/* Rosette watermark on the identity page */
+.sp-section--id::before {
+    content: '';
+    position: absolute;
+    right: -30px;
+    top: 30px;
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    background:
+        repeating-radial-gradient(circle, rgba(13, 148, 136, 0.07) 0 1px, transparent 1px 9px),
+        repeating-conic-gradient(rgba(13, 148, 136, 0.06) 0 4deg, transparent 4deg 12deg);
+    pointer-events: none;
+}
+
+.sp-section--id > * {
+    position: relative;
+}
+
+/* ---------- Identity ---------- */
+.sp-id {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.sp-id__photo-col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.sp-photo {
+    position: relative;
+    width: 118px;
+    height: 142px;
+}
+
+/* Photo-album corner mounts */
+.sp-photo::before,
+.sp-photo::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.sp-photo::before {
+    top: -3px;
+    left: -3px;
+    background: linear-gradient(135deg, var(--sp-foil-deep) 0 50%, transparent 50%);
+    border-top-left-radius: 6px;
+}
+
+.sp-photo::after {
+    top: -3px;
+    right: -3px;
+    background: linear-gradient(225deg, var(--sp-foil-deep) 0 50%, transparent 50%);
+    border-top-right-radius: 6px;
+}
+
+.sp-photo__img {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    border: 4px solid #fff;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 3rem;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    background:
+        radial-gradient(circle at 50% 110%, rgba(255, 255, 255, 0.35), transparent 60%),
+        linear-gradient(160deg, #2dd4bf, #0e7490 60%, #4338ca);
+    box-shadow: 0 8px 18px -6px rgba(10, 60, 70, 0.55), 0 0 0 1px rgba(10, 60, 70, 0.15);
+    cursor: zoom-in;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sp-photo__img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sp-photo:hover .sp-photo__img,
+.sp-photo__img:focus-visible {
+    transform: translateY(-2px) rotate(-1deg);
+    box-shadow: 0 14px 24px -8px rgba(10, 60, 70, 0.6), 0 0 0 1px rgba(10, 60, 70, 0.15);
+    outline: none;
+}
+
+.sp-photo__img:focus-visible {
+    box-shadow: 0 0 0 3px #5eead4;
+}
+
+/* Holographic security foil over the photo */
+.sp-photo__holo {
+    position: absolute;
+    inset: 4px;
+    border-radius: 9px;
+    pointer-events: none;
+    background: linear-gradient(115deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.38) 44%,
+            rgba(167, 243, 208, 0.3) 50%,
+            rgba(196, 181, 253, 0.3) 56%,
+            transparent 70%);
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    mix-blend-mode: screen;
+    transition: background-position 0.9s ease;
+}
+
+.sp-photo:hover .sp-photo__holo {
+    background-position: 0 0;
+}
+
+.sp-photo__badge {
+    position: absolute;
+    right: -8px;
+    bottom: -8px;
+    z-index: 3;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1rem;
+    background: radial-gradient(circle at 35% 30%, #fff7d6, #f5cf62 70%);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1.5px var(--sp-foil-deep), 0 4px 10px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+
+.sp-forge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #6d28d9;
+    background: #f5f3ff;
+    border: 1.5px solid #ddd6fe;
+    box-shadow: 0 2px 0 #ddd6fe;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sp-forge:hover,
+.sp-forge:focus-visible {
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+    border-color: transparent;
+    outline: none;
+}
+
+/* The forge button keeps its preview box for the page code; the passport photo already shows the portrait. */
+.sp-forge .edit-student-forge-btn__portrait {
+    display: none;
+}
+
+.sp-id__fields {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sp-field {
+    display: block;
+    padding: 9px 0;
+    border-top: 1px dashed var(--sp-rule);
+}
+
+.sp-field:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.sp-field--row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sp-field__label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sp-teal);
+}
+
+.sp-field__input-wrap {
+    position: relative;
+    display: block;
+}
+
+.sp-field__input {
+    width: 100%;
+    padding: 9px 36px 9px 12px;
+    border-radius: 11px;
+    border: 1.5px solid var(--sp-rule);
+    background: rgba(255, 255, 255, 0.9);
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--sp-ink);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.sp-field__input:hover {
+    border-color: #99d5c9;
+}
+
+.sp-field__input:focus {
+    background: #fff;
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+}
+
+.sp-field__pen {
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: #7fb3ab;
+    pointer-events: none;
+}
+
+.sp-field__hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.72rem;
+    color: var(--sp-ink-soft);
+}
+
+.sp-field__value {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sp-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-field__sub {
+    margin: 0;
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: #0e7490;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-field__sub--ok { color: #047857; }
+.sp-field__sub--warn { color: #b45309; }
+
+.sp-mini-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #0f766e;
+    background: #fff;
+    border: 1.5px solid #99d5c9;
+    box-shadow: 0 2px 0 #b9e2da;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sp-mini-btn:hover,
+.sp-mini-btn:focus-visible {
+    background: #0f766e;
+    border-color: #0f766e;
+    color: #fff;
+    outline: none;
+}
+
+.sp-mini-btn--gold {
+    color: #92400e;
+    border-color: #f5cf7a;
+    box-shadow: 0 2px 0 #f7dca0;
+}
+
+.sp-mini-btn--gold:hover,
+.sp-mini-btn--gold:focus-visible {
+    background: #b45309;
+    border-color: #b45309;
+}
+
+/* Record strip */
+.sp-record {
+    margin: 14px 0 2px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--sp-rule);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.sp-record__cell {
+    padding: 7px 6px 6px;
+    text-align: center;
+}
+
+.sp-record__cell + .sp-record__cell {
+    border-left: 1px dashed var(--sp-rule);
+}
+
+.sp-record dt {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sp-ink-soft);
+    white-space: nowrap;
+}
+
+.sp-record dd {
+    margin: 1px 0 0;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    color: var(--sp-ink);
+    white-space: nowrap;
+}
+
+/* Shortcuts */
+.sp-tools {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.sp-tool {
+    --tool: #0f766e;
+    --tool-soft: #ccfbf1;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--sp-rule);
+    box-shadow: 0 2px 0 var(--sp-rule);
+    text-align: left;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sp-tool:hover,
+.sp-tool:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--tool);
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--tool) 35%, transparent);
+    outline: none;
+}
+
+.sp-tool__icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    font-size: 0.8rem;
+    color: var(--tool);
+    background: var(--tool-soft);
+}
+
+.sp-tool__label {
+    min-width: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--sp-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-tool--chronicle { --tool: #9f1239; --tool-soft: #ffe4e6; }
+.sp-tool--analytics { --tool: #0369a1; --tool-soft: #e0f2fe; }
+.sp-tool--certificate { --tool: #b45309; --tool-soft: #fef3c7; }
+.sp-tool--forge { --tool: #6d28d9; --tool-soft: #ede9fe; }
+.sp-tool--tree { --tool: #4338ca; --tool-soft: #e0e7ff; }
+.sp-tool--move { --tool: #0f766e; --tool-soft: #ccfbf1; }
+
+/* ---------- Special-day postage stamps ---------- */
+.sp-stamps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.sp-stamp {
+    --stamp: #94a3b8;
+    --stamp-soft: #e2e8f0;
+    position: relative;
+    padding: 6px;
+    /* Perforated edge: holes punched through a tinted band */
+    background:
+        radial-gradient(circle, transparent 2.4px, var(--stamp-soft) 2.9px) -5px -5px / 10px 10px;
+    filter: drop-shadow(0 3px 5px rgba(10, 60, 70, 0.14));
+    transition: filter 0.3s ease;
+}
+
+.sp-stamp--birthday.is-set { --stamp: #db2777; --stamp-soft: #fbcfe8; }
+.sp-stamp--nameday.is-set { --stamp: #6d28d9; --stamp-soft: #ddd6fe; }
+
+.sp-stamp__inner {
+    position: relative;
+    height: 100%;
+    padding: 10px 10px 10px;
+    background: #fff;
+    border: 1.5px dashed color-mix(in srgb, var(--stamp) 60%, white);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.sp-stamp.is-set .sp-stamp__inner {
+    border-style: solid;
+    background:
+        radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--stamp-soft) 55%, white), #fff 60%);
+}
+
+/* Postmark ring once a date is inked in */
+.sp-stamp.is-set .sp-stamp__inner::after {
+    content: '✓';
+    position: absolute;
+    right: -10px;
+    bottom: -12px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    padding: 0 8px 8px 0;
+    font-weight: 700;
+    font-size: 1rem;
+    color: color-mix(in srgb, var(--stamp) 45%, transparent);
+    border: 2.5px double color-mix(in srgb, var(--stamp) 40%, transparent);
+    transform: rotate(-14deg);
+    pointer-events: none;
+}
+
+.sp-stamp.is-stamping .sp-stamp__inner {
+    animation: sp-stamp-thunk 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes sp-stamp-thunk {
+    0% { transform: scale(1.08) rotate(-2deg); }
+    60% { transform: scale(0.97) rotate(0.5deg); }
+    100% { transform: none; }
+}
+
+.sp-stamp__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sp-stamp__icon {
+    font-size: 1.15rem;
+    line-height: 1;
+    filter: grayscale(0.7);
+    opacity: 0.75;
+}
+
+.sp-stamp.is-set .sp-stamp__icon {
+    filter: none;
+    opacity: 1;
+}
+
+.sp-stamp__title {
+    flex: 1;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.95rem;
+    color: color-mix(in srgb, var(--stamp) 80%, var(--sp-ink));
+}
+
+.sp-stamp__clear {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 2px 7px;
+    border-radius: 999px;
+    visibility: hidden;
+}
+
+.sp-stamp.is-set .sp-stamp__clear {
+    visibility: visible;
+}
+
+.sp-stamp__clear:hover,
+.sp-stamp__clear:focus-visible {
+    color: #e11d48;
+    background: #ffe4e6;
+    outline: none;
+}
+
+.sp-stamp__selects {
+    display: grid;
+    grid-template-columns: 4.6rem minmax(0, 1fr);
+    gap: 6px;
+}
+
+.sp-select {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 9px;
+    border: 1.5px solid var(--sp-rule);
+    background: #fff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--sp-ink);
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 22px;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%234d6b6c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 8px center;
+}
+
+.sp-select:focus {
+    border-color: var(--stamp, #14b8a6);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--stamp, #14b8a6) 20%, transparent);
+}
+
+.sp-stamp:not(.is-set) .sp-select {
+    color: #64748b;
+}
+
+.sp-stamp__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 26px;
+}
+
+.sp-stamp__date {
+    min-width: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-stamp.is-set .sp-stamp__date {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-weight: 400;
+    font-size: 0.95rem;
+    color: var(--stamp);
+}
+
+/* Nameday: the lookup button speaks for an empty stamp, and shrinks to its wand once a date is in */
+.sp-stamp--nameday:not(.is-set) .sp-stamp__date {
+    display: none;
+}
+
+.sp-stamp--nameday.is-set .sp-lookup span {
+    display: none;
+}
+
+.sp-lookup {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    box-shadow: 0 2px 0 #4338ca;
+    cursor: pointer;
+}
+
+.sp-lookup:hover,
+.sp-lookup:focus-visible {
+    filter: brightness(1.1);
+    outline: none;
+}
+
+.sp-lookup:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+.sp-lookup--locked {
+    color: #64748b;
+    background: #e2e8f0;
+    box-shadow: 0 2px 0 #cbd5e1;
+}
+
+.sp-lookup--locked::after {
+    content: '\f023';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.65rem;
+}
+
+.sp-note {
+    margin: 10px 2px 0;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--sp-ink-soft);
+}
+
+/* ---------- Hero-path visa ---------- */
+.sp-visa {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 14px;
+    align-items: center;
+    padding: 14px;
+    border-radius: 16px;
+    background:
+        radial-gradient(120% 120% at 0% 0%, #fef9e7, transparent 60%),
+        linear-gradient(135deg, #eef2ff, #f5f3ff);
+    border: 1.5px solid #c7d2fe;
+    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.7);
+    overflow: hidden;
+}
+
+.sp-visa.is-locked::after {
+    content: '\f023  SWORN';
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    font-family: 'Fredoka', 'Font Awesome 6 Free';
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.25em;
+    color: rgba(67, 56, 202, 0.5);
+}
+
+.sp-visa__emblem {
+    grid-row: span 2;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.9rem;
+    background: radial-gradient(circle at 35% 30%, #fff, #e0e7ff 70%);
+    box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 5px #a5b4fc,
+        0 6px 14px rgba(67, 56, 202, 0.25);
+}
+
+.sp-visa.is-empty .sp-visa__emblem {
+    filter: grayscale(0.4);
+    box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 5px #cbd5e1;
+}
+
+.sp-visa.is-empty {
+    border-style: dashed;
+}
+
+.sp-visa__body {
+    min-width: 0;
+}
+
+.sp-visa__name {
+    margin: 0;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.15rem;
+    color: #312e81;
+}
+
+.sp-visa__virtue {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #4f46e5;
+}
+
+.sp-visa__perk {
+    margin: 2px 0 0;
+    font-size: 0.74rem;
+    color: #64748b;
+}
+
+.sp-visa__actions {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.sp-visa__choose,
+.sp-visa__tree {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.sp-visa__choose {
+    color: #fff;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    box-shadow: 0 2px 0 #3730a3;
+}
+
+.sp-visa__tree {
+    color: #4338ca;
+    background: #fff;
+    border: 1.5px solid #c7d2fe;
+    box-shadow: 0 2px 0 #c7d2fe;
+}
+
+.sp-visa__choose:hover,
+.sp-visa__choose:focus-visible,
+.sp-visa__tree:hover,
+.sp-visa__tree:focus-visible {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.sp-note--hero {
+    color: #4338ca;
+    font-weight: 500;
+}
+
+.sp-note--locked {
+    font-style: italic;
+}
+
+.sp-note--pro {
+    color: #be123c;
+    font-weight: 700;
+}
+
+/* ---------- Footer on the cover ---------- */
+.sp-footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 12px 16px;
+}
+
+.sp-footer__status {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(247, 233, 189, 0.6);
+}
+
+.sp-footer__status::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(247, 233, 189, 0.35);
+}
+
+#edit-student-modal.is-dirty .sp-footer__status {
+    color: #fde68a;
+}
+
+#edit-student-modal.is-dirty .sp-footer__status::before {
+    background: #fbbf24;
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6);
+    animation: sp-dirty-pulse 1.6s ease-out infinite;
+}
+
+@keyframes sp-dirty-pulse {
+    to { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
+}
+
+.sp-footer__actions {
+    display: flex;
+    gap: 10px;
+}
+
+.sp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 13px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.sp-btn--ghost {
+    color: var(--sp-foil-text);
+    background: transparent;
+    border: 1.5px solid rgba(232, 200, 111, 0.5);
+}
+
+.sp-btn--ghost:hover,
+.sp-btn--ghost:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.sp-btn--save {
+    padding-inline: 24px;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-weight: 400;
+    font-size: 1.05rem;
+    color: #3b2805;
+    background: linear-gradient(180deg, #fbe7a6, #e8c86f 45%, #c99a3a);
+    box-shadow: 0 3px 0 #8a6420, 0 8px 18px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.sp-btn--save:hover,
+.sp-btn--save:focus-visible {
+    filter: brightness(1.06);
+    outline: none;
+}
+
+.sp-btn--save:disabled {
+    opacity: 0.75;
+    cursor: progress;
+}
+
+#edit-student-modal.is-dirty .sp-btn--save {
+    animation: sp-save-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes sp-save-glow {
+    0%, 100% { box-shadow: 0 3px 0 #8a6420, 0 8px 18px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 0 rgba(251, 211, 106, 0); }
+    50% { box-shadow: 0 3px 0 #8a6420, 0 8px 18px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 22px 2px rgba(251, 211, 106, 0.55); }
+}
+
+/* ---------- Narrow screens: one page, sections in editing order ---------- */
+@media (max-width: 760px) {
+    .sp-passport {
+        padding: 0 6px;
+        border-radius: 22px;
+    }
+
+    .sp-cover {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 16px 56px 12px 10px;
+    }
+
+    .sp-cover__crest {
+        width: 42px;
+        height: 42px;
+        font-size: 1.15rem;
+    }
+
+    .sp-cover__title {
+        font-size: 1.3rem;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .sp-cover__close {
+        position: absolute;
+        top: 14px;
+        right: 10px;
+    }
+
+    .sp-spread {
+        display: flex;
+        flex-direction: column;
+        background:
+            var(--sp-guilloche) 0 0 / 160px 40px,
+            linear-gradient(180deg, var(--sp-paper), var(--sp-paper-2));
+    }
+
+    .sp-page,
+    .sp-page--left,
+    .sp-page--right {
+        display: contents;
+    }
+
+    .sp-section {
+        padding: 14px 14px 8px;
+    }
+
+    #edit-student-panel-profile { order: 1; }
+    #edit-student-panel-dates { order: 2; }
+    #edit-student-panel-hero { order: 3; }
+    #edit-student-panel-actions { order: 4; padding-bottom: 16px; }
+
+    .sp-id {
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .sp-photo {
+        width: 96px;
+        height: 116px;
+    }
+
+    .sp-photo__img {
+        font-size: 2.4rem;
+    }
+
+    .sp-visa__emblem {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .sp-forge {
+        padding: 6px 4px;
+        font-size: 0.7rem;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .sp-record dt {
+        font-size: 0.55rem;
+        letter-spacing: 0.06em;
+    }
+
+    .sp-record dd {
+        font-size: 0.95rem;
+    }
+
+    .sp-footer {
+        padding: 10px 8px 12px;
+    }
+
+    .sp-btn {
+        padding: 10px 16px;
+    }
+}
+
+@media (max-width: 420px) {
+    .sp-stamps {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sp-tools {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sp-footer__status {
+        display: none;
+    }
+
+    .sp-footer {
+        justify-content: stretch;
+    }
+
+    .sp-footer__actions {
+        flex: 1;
+    }
+
+    .sp-btn--save {
+        flex: 1;
+    }
+}
+
+/* Phone shell: the sheet slides up from the bottom and its own scroller takes over */
+body.gcq-mobile #edit-student-modal > .sp-passport:not(.hidden) {
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 1.5rem 1.5rem 0 0 !important;
+    overflow: hidden !important;
+    display: flex;
+}
+
+body.gcq-mobile #edit-student-modal #edit-student-top-close-btn {
+    top: 14px !important;
+    right: 10px !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sp-photo__holo,
+    .sp-stamp.is-stamping .sp-stamp__inner,
+    .sp-section--flash,
+    #edit-student-modal.is-dirty .sp-btn--save,
+    #edit-student-modal.is-dirty .sp-footer__status::before {
+        animation: none;
+        transition: none;
+    }
+}

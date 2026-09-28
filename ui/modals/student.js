@@ -10,7 +10,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus, classUsesTests } from '../../features/assessmentConfig.js';
-import { getGuildHouseDisplay } from '../../features/guilds.js';
+import { getGuildHouseDisplay, getGuildColors } from '../../features/guilds.js';
 import { HERO_CLASSES, heroClassLockApplies } from '../../features/heroClasses.js';
 import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { handleAvatarClick } from '../core/avatar.js';
@@ -128,33 +128,73 @@ function fillStudentPortrait(el, { studentId, name, avatarUrl, enlargeable }) {
     el.textContent = name ? name.trim().charAt(0).toUpperCase() : '?';
 }
 
+// The passport shows every section at once; "switching tab" scrolls that section into view.
 export function switchEditStudentTab(tabName) {
-    const tabButtons = document.querySelectorAll('.edit-student-tab-btn');
-    const tabPanels = document.querySelectorAll('.edit-student-tab-panel');
-
-    tabButtons.forEach(btn => {
-        const isSelected = btn.dataset.tab === tabName;
-        btn.classList.toggle('active', isSelected);
-        btn.classList.toggle('text-cyan-700', isSelected);
-        btn.classList.toggle('bg-white', isSelected);
-        btn.classList.toggle('shadow-sm', isSelected);
-        btn.classList.toggle('border', isSelected);
-        btn.classList.toggle('border-cyan-200/60', isSelected);
-
-        btn.classList.toggle('text-slate-600', !isSelected);
-        btn.classList.toggle('hover:text-slate-900', !isSelected);
-        btn.classList.toggle('hover:bg-white/60', !isSelected);
-        btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-    });
-
-    tabPanels.forEach(panel => {
-        panel.classList.add('hidden');
-    });
-
-    const activePanel = document.getElementById(`edit-student-panel-${tabName}`);
-    if (activePanel) {
-        activePanel.classList.remove('hidden');
+    const modal = document.getElementById('edit-student-modal');
+    const section = document.getElementById(`edit-student-panel-${tabName}`);
+    if (!modal || !section) return;
+    modal.querySelectorAll('.edit-student-tab-panel').forEach(panel => panel.classList.remove('hidden', 'sp-section--flash'));
+    if (tabName === 'profile') {
+        modal.querySelector('.sp-spread')?.scrollTo({ top: 0 });
+        return;
     }
+    requestAnimationFrame(() => {
+        section.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        void section.offsetWidth;
+        section.classList.add('sp-section--flash');
+    });
+}
+
+const SP_TRACKED_FIELD_IDS = [
+    'edit-student-name-input-full',
+    'edit-student-birthday-month',
+    'edit-student-birthday-day',
+    'edit-student-nameday-month',
+    'edit-student-nameday-day',
+];
+
+function readPassportFields() {
+    return SP_TRACKED_FIELD_IDS.map(id => document.getElementById(id)?.value ?? '');
+}
+
+// Stamps look inked once both month and day are picked; the footer says when there is something to save.
+function refreshPassportState(modal) {
+    if (!modal) return;
+    ['birthday', 'nameday'].forEach(kind => {
+        const month = document.getElementById(`edit-student-${kind}-month`)?.value;
+        const day = document.getElementById(`edit-student-${kind}-day`)?.value;
+        const stamp = modal.querySelector(`[data-stamp="${kind}"]`);
+        const dateEl = modal.querySelector(`[data-stamp-date="${kind}"]`);
+        if (dateEl) {
+            const monthSelect = document.getElementById(`edit-student-${kind}-month`);
+            const monthName = monthSelect?.selectedOptions?.[0]?.textContent || '';
+            dateEl.textContent = month && day ? `${day} ${monthName}` : (month || day ? 'Pick day and month' : 'Not set yet');
+        }
+        if (stamp) {
+            const wasSet = stamp.classList.contains('is-set');
+            const isSet = Boolean(month && day);
+            stamp.classList.toggle('is-set', isSet);
+            if (isSet && !wasSet && modal.dataset.spReady === 'true') {
+                stamp.classList.remove('is-stamping');
+                void stamp.offsetWidth;
+                stamp.classList.add('is-stamping');
+            }
+        }
+    });
+
+    const baseline = modal.dataset.spBaseline || '';
+    const dirty = baseline !== '' && JSON.stringify(readPassportFields()) !== baseline;
+    modal.classList.toggle('is-dirty', dirty);
+    const note = document.getElementById('edit-student-dirty-note');
+    if (note) note.textContent = dirty ? 'Unsaved changes' : 'No changes yet';
+}
+
+function bindPassportTracking(modal) {
+    if (!modal || modal.dataset.spBound === 'true') return;
+    modal.dataset.spBound = 'true';
+    const onEdit = () => refreshPassportState(modal);
+    modal.addEventListener('input', onEdit);
+    modal.addEventListener('change', onEdit);
 }
 
 export function openEditStudentModal(studentId, options = {}) {
@@ -169,7 +209,7 @@ export function openEditStudentModal(studentId, options = {}) {
 
     if (idInput) idInput.value = studentId;
     if (nameInput) nameInput.value = student.name || '';
-    if (titleEl) titleEl.textContent = student.name ? `Edit ${student.name}` : 'Edit Student Details';
+    if (titleEl) titleEl.textContent = student.name || 'Edit Student Details';
     if (subtitleEl) subtitleEl.textContent = 'Customize profile, celebrations & hero path';
 
     // 2. Fetch Class, Guild & Score Data
@@ -223,6 +263,7 @@ export function openEditStudentModal(studentId, options = {}) {
     if (headerGuildBadge) {
         if (guildHouse.assigned) {
             headerGuildBadge.textContent = guildHouse.label;
+            headerGuildBadge.style.setProperty('--sp-guild', getGuildColors(student.guildId).primary);
             headerGuildBadge.classList.remove('hidden');
         } else {
             headerGuildBadge.classList.add('hidden');
@@ -251,13 +292,19 @@ export function openEditStudentModal(studentId, options = {}) {
     if (currentGuildDisplay) currentGuildDisplay.textContent = guildHouse.label;
     if (currentGuildDesc) {
         currentGuildDesc.textContent = guildHouse.description;
-        currentGuildDesc.classList.toggle('text-amber-600', !guildHouse.assigned);
-        currentGuildDesc.classList.toggle('text-emerald-700', guildHouse.assigned);
+        currentGuildDesc.classList.toggle('sp-field__sub--warn', !guildHouse.assigned);
+        currentGuildDesc.classList.toggle('sp-field__sub--ok', guildHouse.assigned);
     }
 
     // 7. Special Dates Dropdowns
     populateDateDropdowns('edit-student-birthday-month', 'edit-student-birthday-day', student.birthday);
     populateDateDropdowns('edit-student-nameday-month', 'edit-student-nameday-day', student.nameday);
+    ['birthday', 'nameday'].forEach(kind => {
+        const monthPlaceholder = document.getElementById(`edit-student-${kind}-month`)?.options[0];
+        const dayPlaceholder = document.getElementById(`edit-student-${kind}-day`)?.options[0];
+        if (monthPlaceholder) monthPlaceholder.textContent = 'Month';
+        if (dayPlaceholder) dayPlaceholder.textContent = 'Day';
+    });
 
     // Clear Date Buttons
     const clearBirthdayBtn = document.getElementById('edit-student-clear-birthday-btn');
@@ -267,6 +314,7 @@ export function openEditStudentModal(studentId, options = {}) {
             const bD = document.getElementById('edit-student-birthday-day');
             if (bM) bM.value = '';
             if (bD) bD.value = '';
+            bM?.dispatchEvent(new Event('change', { bubbles: true }));
             showToast('Birthday cleared.', 'info');
         };
     }
@@ -278,6 +326,7 @@ export function openEditStudentModal(studentId, options = {}) {
             const nD = document.getElementById('edit-student-nameday-day');
             if (nM) nM.value = '';
             if (nD) nD.value = '';
+            nM?.dispatchEvent(new Event('change', { bubbles: true }));
             showToast('Nameday cleared.', 'info');
         };
     }
@@ -286,9 +335,7 @@ export function openEditStudentModal(studentId, options = {}) {
     const eliteAiEnabled = canUseFeature('eliteAI');
     const namedayLookupBtn = document.getElementById('lookup-nameday-btn');
     if (namedayLookupBtn) {
-        namedayLookupBtn.className = eliteAiEnabled
-            ? 'bg-indigo-600 hover:bg-indigo-700 text-white h-[42px] px-3.5 rounded-xl bubbly-button flex items-center justify-center gap-1.5 shadow-sm transition-all text-xs font-bold shrink-0 cursor-pointer'
-            : 'bg-slate-200 text-slate-400 h-[42px] px-3.5 rounded-xl bubbly-button flex items-center justify-center gap-1.5 border border-slate-300 transition-all text-xs font-bold shrink-0 cursor-pointer';
+        namedayLookupBtn.classList.toggle('sp-lookup--locked', !eliteAiEnabled);
         namedayLookupBtn.title = eliteAiEnabled ? 'AI Nameday Lookup (Greek Orthodox calendar)' : 'Elite plan: AI Nameday Lookup';
         namedayLookupBtn.setAttribute('aria-label', namedayLookupBtn.title);
     }
@@ -339,33 +386,37 @@ export function openEditStudentModal(studentId, options = {}) {
         };
     }
 
+    const heroSummary = document.getElementById('edit-student-hero-summary');
+    if (heroSummary) {
+        heroSummary.classList.toggle('is-empty', !classInfo);
+        heroSummary.classList.toggle('is-locked', heroProgressionEnabled && isLocked);
+    }
     if (!heroProgressionEnabled) {
         if (tierNote) {
-            tierNote.className = 'text-xs text-rose-600 leading-relaxed font-bold';
+            tierNote.className = 'sp-note sp-note--hero sp-note--pro';
             tierNote.textContent = '🔒 Pro feature: Hero Archetypes and Skill Trees are unlocked on Pro and above.';
         }
     } else if (isLocked) {
         if (tierNote) {
-            tierNote.className = 'text-xs text-indigo-700 leading-relaxed italic font-medium';
+            tierNote.className = 'sp-note sp-note--hero sp-note--locked';
             tierNote.textContent = '🔒 Hero Class locked for this school year. They keep this class. Next year they can change it twice again.';
         }
     } else {
         if (tierNote) {
-            tierNote.className = 'text-xs text-indigo-700 leading-relaxed font-medium';
+            tierNote.className = 'sp-note sp-note--hero';
             tierNote.textContent = '⚡ Active Perk: Classes grant +10 extra Gold when earning stars for their specific trait.';
         }
     }
 
-    // 9. Attach Tab Navigation Listeners
-    document.querySelectorAll('.edit-student-tab-btn').forEach(btn => {
-        btn.onclick = () => {
-            switchEditStudentTab(btn.dataset.tab);
-            playSound('tap');
-        };
-    });
-
-    // Reset to first tab (Profile)
-    switchEditStudentTab(options.tab || 'profile');
+    // 9. Unsaved-changes tracking, then bring the requested section into view
+    const modalEl = document.getElementById('edit-student-modal');
+    bindPassportTracking(modalEl);
+    if (modalEl) {
+        modalEl.dataset.spReady = 'false';
+        modalEl.dataset.spBaseline = JSON.stringify(readPassportFields());
+        refreshPassportState(modalEl);
+        modalEl.dataset.spReady = 'true';
+    }
 
     // 10. Top Close Button
     const topCloseBtn = document.getElementById('edit-student-top-close-btn');
@@ -451,6 +502,7 @@ export function openEditStudentModal(studentId, options = {}) {
     }
 
     showAnimatedModal('edit-student-modal');
+    switchEditStudentTab(options.tab || 'profile');
 }
 
 export async function openQuestAssignmentModal() {

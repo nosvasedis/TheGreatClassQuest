@@ -58,3 +58,23 @@ test('avatar forge control sits left of the student name on Profile', () => {
     assert.doesNotMatch(template, /chibi/i);
     assert.doesNotMatch(modal, /Chibi/);
 });
+
+test('passport layout keeps every element the modal code and save path read', () => {
+    const template = read('templates/modals/student.js');
+    const modal = read('ui/modals/student.js');
+    const actions = read('db/actions/students.js');
+    const editBlock = template.split('id="edit-student-modal"')[1].split('id="award-note-modal"')[0];
+    const ids = new Set();
+    for (const source of [modal.split('export function openEditStudentModal')[1].split('export async function openQuestAssignmentModal')[0], actions]) {
+        for (const [, id] of source.matchAll(/getElementById\('((?:edit-student|lookup-nameday|hero-class-tier)[^']*)'\)/g)) ids.add(id);
+    }
+    assert.ok(ids.size > 30);
+    for (const id of ids) {
+        if (id === 'edit-student-modal') continue;
+        assert.match(editBlock, new RegExp(`id="${id}"`), `missing #${id}`);
+    }
+    // One page, no tab strip: every section is always visible.
+    assert.doesNotMatch(editBlock, /edit-student-tab-btn/);
+    assert.doesNotMatch(editBlock, /edit-student-tab-panel[^"]*\bhidden\b/);
+    assert.match(read('style.css'), /styles\/student_profile\.css/);
+});

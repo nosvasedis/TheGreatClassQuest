@@ -164,8 +164,6 @@
 
 .hub-breathe {
     animation: hub-breathe 6s ease-in-out infinite;
-    /* Ensure opacity stays full! */
-    opacity: 1 !important; 
 }
 
 /* --- FINAL TITLE FIX (High Specificity) --- */

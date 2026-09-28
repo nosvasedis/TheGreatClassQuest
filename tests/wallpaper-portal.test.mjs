@@ -17,14 +17,29 @@ test('toggle ignores presses while the portal is animating', () => {
     assert.match(wallpaper, /if \(portalBusy\) return;/);
 });
 
-test('every portal class the script pulses has CSS and a reduced-motion opt-out', () => {
-    for (const cls of ['is-portal-launch', 'is-portal-land']) {
-        assert.ok(portal.includes(cls), `${cls} used by the portal`);
-        assert.ok(css.includes(`.greeting-panel.${cls}`), `${cls} styled`);
-    }
-    assert.match(css, /prefers-reduced-motion[\s\S]*is-portal-launch[\s\S]*animation: none/);
+test('the journey copies the Home meadow and glides to the castle horizon', () => {
+    assert.match(portal, /getGreetingHillsHtml/);
+    assert.match(portal, /wall-horizon/);
+    assert.match(css, /\.wp-meadow\b/);
+    assert.match(css, /\.wp-meadow \.wp-meadow__palette/);
 });
 
-test('close leaves full screen before measuring the greeting card', () => {
-    assert.ok(portal.indexOf('await leaveFullscreen()') < portal.indexOf('findGreetingSource()', portal.indexOf('playPortalClose')));
+test('the projector is full screen before it travels and cards start only afterwards', () => {
+    assert.ok(portal.includes('const fullscreen = enterFullscreen()'));
+    assert.ok(portal.indexOf('await Promise.all([fullscreen') < portal.indexOf("travelAnimations(meadow, 'forward')"));
+    assert.doesNotMatch(wallpaper, /requestFullscreen\(\)\.catch\(\(\) => \{\}\);\n\s*\}\n\s*\}\);/);
+});
+
+test('close leaves full screen before the journey back', () => {
+    const close = portal.slice(portal.indexOf('export async function playPortalClose'));
+    assert.ok(close.indexOf('leaveFullscreen()') < close.indexOf("travelAnimations(meadow, 'back')"));
+});
+
+test('foreground only fades, so it never changes size or position', () => {
+    const arrive = portal.slice(portal.indexOf('const arrive'), portal.indexOf('await settle([...travel'));
+    assert.doesNotMatch(arrive, /transform|scale|translate/);
+});
+
+test('reduced motion skips the travel', () => {
+    assert.match(portal, /prefersReducedMotion\(\)/);
 });

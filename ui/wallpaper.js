@@ -209,13 +209,14 @@ export function toggleWallpaperMode() {
         wallpaperEl.classList.remove('wallpaper-exit');
         wallpaperEl.classList.add('wallpaper-enter');
 
-        // Full screen waits for the opening so the window grows out of the card where it
-        // really is; the button press still counts as the user's go-ahead.
+        // The opening enters full screen first (this press is the user's go-ahead), then the camera
+        // travels from the meadow to the castle. Cards start only once everything is at rest, so
+        // they are placed against the final layout and never shift afterwards.
         playPortalOpen(wallpaperEl).finally(() => {
             portalBusy = false;
-            if (isRunning && document.documentElement.requestFullscreen && !document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
-            }
+            if (!isRunning) return;
+            handleWallpaperResize();
+            directorGameLoop();
         });
 
         if (escListener) document.removeEventListener('keydown', escListener);
@@ -236,7 +237,6 @@ export function toggleWallpaperMode() {
         lastWeatherRefresh = Date.now();
         initSeasonalAtmosphere();
         initializeDailyAIContent();
-        directorGameLoop();
         initializeWallpaperQuote();
 
     } else {
@@ -260,9 +260,6 @@ export function toggleWallpaperMode() {
             portalBusy = false;
             wallpaperEl.classList.add('hidden');
             cleanupPortal();
-            if (document.exitFullscreen && document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
-            }
             clearTimeout(directorTimeout);
             clearTimeout(cardGapTimeout);
             if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);

@@ -8,7 +8,7 @@ See the school (or this class) at a glance, catch reminders before the bell, jum
 
 ## What you see
 
-The greeting follows the clock: Good morning / afternoon / evening / night, with a matching sky wash (stars in the evening and at night) and a medallion showing the class logo (or 🏫 in General view) with an orbiting sun or moon. Chips under the greeting show the school and either the selected class and league or how many classes meet today (and how many are yours). Reminder badges share one style: an icon bubble, a small label, the title, and a “when” tag. The weather card shows a small analogue clock (frosted face, ticking second hand tinted to the weather), the temperature and conditions, and today's high / low. The date and digital time stay in the header. Only a clear-sky sun icon spins, and nothing spills outside the card.
+The greeting follows the real sun, from the same sunrise and sunset as the weather card and the header: **Good Morning** until noon, **Good Afternoon** until 5 pm, **Good Evening** from 5 pm until sunset, and **Good Night** from sunset until sunrise. Each has a matching sky wash (stars in the evening and at night) and a medallion showing the class logo (or 🏫 in General view) with an orbiting sun by day and a moon once the sun has set. The greeting and the weather card never disagree about whether it is night. Chips under the greeting show the school and either the selected class and league or how many classes meet today (and how many are yours). Reminder badges share one style: an icon bubble, a small label, the title, and a “when” tag. The weather card shows a small analogue clock (frosted face, ticking second hand tinted to the weather), the temperature and conditions, and today's high / low. The date and digital time stay in the header. Only a clear-sky sun icon spins, and nothing spills outside the card.
 
 ### General view (no class selected)
 
@@ -17,7 +17,7 @@ You are looking at the **whole school**:
 - **School Stars** — monthly stars across students
 - **Heroes** — how many students are on the roster
 - **Treasury** — this year's Gold held by students. Last year's Gold is archived when the school year is finished, so a new year starts at 0.
-- **Global Tools** — Hero Ranks, New class, Team History, My Classes, Plan (Pro calendar), Setup (Teacher Settings)
+- **Global Tools** — Hero Ranks, New (class), Team History, My Classes, Plan (Pro calendar), Setup (Teacher Settings)
 - **Today’s school schedule** — every class meeting today; a crown marks yours, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class (yours or a colleague’s) to open its **class roster**: league, teacher, time and days, heroes, stars this month and all year, Gold, Team Quest progress, next lesson, latest Hero of the Day, latest Quest Assignment and Adventure Log, today’s birthdays and name days, guild mix, a top-3 “Stars of the month” podium (never for Nursery / Pre-Junior), and every student with Hero Path title, guild, stars, and Gold (search + A–Z / Stars sort). Tapping any student opens their hero view inside the roster: stars this month and all year, Gold, Hero Path title, guild, this month’s stars by virtue (Teamwork / Creativity / Respect / Focus) plus other sources, the latest five awards, and an accurate **Boons** card. The Teacher Boon is +2★ for one hero per class per month, and only in the last 7 days of the month, so the card shows when it opens, that it is open, who received it, or that this student received it. The card also counts any Hero’s Boons (classmate gifts, +0.5★) received this month. For your own classes it adds a Scholar’s Scroll summary when trial data is loaded, plus **Give Teacher Boon** while the window is open. Your own classes also add **Enter class**, **Award Stars**, and **Edit class**. A colleague’s class is view-only. Escape steps back from a hero to the roster. On phones, your own class rows still open the class directly; a colleague’s row opens the view-only roster.
 - **Grand Guild Ceremony** — appears when it is time to crown the year’s winning guild (see Guild Hall)
 
@@ -25,6 +25,7 @@ You are looking at the **whole school**:
 
 You are looking at **this group**:
 
+- **Bounty** button in the greeting panel: opens the **Post a Bounty** poster for this class (below)
 - **Reminder pills** along the top: birthdays, namedays, scheduled tests, a glowing pending **Ceremony of the Month** (never for August — school is closed), active bounty, Pathfinder bonus, and similar “do this today” notes
 - **Quest progress** — this class’s monthly stars versus the Team Quest goal (the goal already allows for holidays and cancelled lessons)
 - **Top skill** and a row of hero avatars (a small arrow appears when a student has a Hero Path skill waiting)
@@ -36,9 +37,21 @@ You are looking at **this group**:
 
 - Switch class from the header; Home redraws immediately. Opening the app starts in **Follow today’s schedule** (the class in session, or General view when no lesson is on). Choosing **Enter class** in a schedule roster pins that class until you tap Follow today’s schedule again.
 - Open a reminder pill’s destination (ceremony, bounty, test).
+- Post a **Quest Bounty** for this class with the **Bounty** button.
 - Use Global Tools or class actions instead of hunting through tabs.
 - Start **Quiz of the Week** when the play button is offered (below).
 - On ceremony day for guilds, start the **Grand Guild Ceremony** from Home.
+
+## Posting a Quest Bounty
+
+A bounty is a **whole-class** challenge, never “which student is first”. Tap **Bounty** in the class greeting panel and a torn-parchment **bounty poster** opens, posted for the selected class. Choose the kind of bounty at the top (the poster remembers your last choice):
+
+- **Star Hunt** — earn stars together to win a reward. Name the quest (or tap one of the quest ideas; titles and rewards you used before with this class come back first, marked with a small return arrow). For **Stars to earn**, tap **Quick win**, **Fair fight** (picked for you), or **Heroic**: the numbers come from how many stars this class usually earns in one lesson, and you can still nudge the number up or down. Then write or tap **The reward** (for example 5 min free time or a class game). Stars count from the moment the bounty is pinned, for two hours.
+- **Race the Clock** — finish a task before time runs out. Name the task, then pick **5, 10, 15, 20, or 30 min**, type your own minutes, or set an **Ends at** time. When the class has a scheduled end time today, an **Until the bell** chip sets the countdown to the end of the lesson.
+
+A one-line summary at the bottom reads the bounty back in plain words (for example “When 4A earns 12 stars for English Only, they win 5 min free time.”), and the poster tells you if a bounty is already on the board (a new one runs alongside it). Missing lines are highlighted instead of the poster refusing silently. Finish with **Pin it to the board** (Star Hunt) or **Start the clock** (Race the Clock), or **Not now** to close.
+
+Live bounties sit on the bounty board at the top of the screen and on the Projector wallpaper; **Time Warp Hourglass** adds five minutes to running countdowns.
 
 ## Quiz of the Week (Elite)
 
@@ -84,7 +97,7 @@ Rewards include, depending on tier: stars and Gold **per correct answer** for th
 
 Heroic tier still gives **participation Gold** so a hard week is not a public zero.
 
-Configure in Settings; **play on Home**. Do not hunt for a Quiz tab on the bottom bar — there is none.
+Configure in Settings; **play on Home**. Do not hunt for a Quiz tab in the cloud dock — there is none.
 
 ## How this feeds the rest of the Quest
 
@@ -94,4 +107,4 @@ Home does not award stars itself. It **points** you: Award Stars, Adventure Log,
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Home dashboard, weather, greetings, school and class stats | Day-planner shortcut from Home. Grand Guild Ceremony call when the year-end ritual is due | Quiz of the Week |
+| Home dashboard, weather, greetings, school and class stats, Quest Bounties | Day-planner shortcut from Home. Grand Guild Ceremony call when the year-end ritual is due | Quiz of the Week |

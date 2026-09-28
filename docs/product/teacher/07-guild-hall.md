@@ -20,7 +20,9 @@ Four houses. Four temperaments. The emblems, anthems, and colours are the same e
 
 **Phoenix Rising** — *Fall down seven, rise up eight.* Resilience, Renewal, Hope. The house of the second chance. Welcome Back belongs in their story. They come back to the work.
 
-Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem in Guild Hall for **lore** (motto, traits, Power, Glory, stars). Play the anthem when the room needs identity, not noise for its own sake.
+Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem on a column and the guild's **banner** unfurls over the whole screen: a heraldic banner in the house colours hanging from a gilded rod, with the crest, the name, the motto on a ribbon, the traits and the numbers (Guild Power, Total Glory, stars, stars per member, members). Close it and it rolls back up.
+
+The small **music-note** button on the emblem plays the anthem. It opens in a torch-lit alcove with the crest between two torches; the verses light up as they are sung. Play the anthem when the room needs identity, not noise for its own sake.
 
 ## Guild Placement Quiz
 
@@ -52,7 +54,7 @@ Every positive star writes **Guild Glory** at **2 Glory per star**, plus extras 
 | **10%** | Activity | Share of members who **earned Glory this week**. Twenty names on the roll with four active children scores lower than eight names who all showed up. |
 | **5%** | Momentum | This week’s Glory versus **last week’s**. A rise gives a small lift; a drop hurts a little (a flat week sits in the middle). **Momentum Lock** from Fortune’s Wheel can stop the score from falling. |
 
-Tap the Guild Power hint in the Hall to see this mix on screen. A busy small guild can beat a sleepy large one. That is the pedagogical point — say it aloud.
+Tap the **?** next to Guild Power (under each column's number, or on a guild's banner) to open **How Guild Power works**, which shows this mix on screen. A busy small guild can beat a sleepy large one. That is the pedagogical point — say it aloud.
 
 The Hall stays **frozen** until the school year has begun and schedules exist. Do not panic on setup week.
 
@@ -98,14 +100,16 @@ A weekly ritual, not a slot machine to mash every lesson. It lives on this tab b
 - You are **inside lesson time**
 - This class has **not** already spun this week
 
-The wheel draws **20** unique segments from a large catalogue. Categories:
+**How the ceremony runs.** Open **Fortune's Wheel** from its button in the Hall. It opens as a celestial **Wheel of Fate**: a night sky with a turning zodiac ring, the wheel framed by star lamps. The four guilds take their turn **one at a time, in a random order**. Each guild gets its own wheel, and an **On this wheel** panel counts how many wedges of each rarity it faces. Press **Spin This Guild**; the landed wedge is revealed on a fortune card. Then **Present Next Guild**, and after the fourth guild **Reveal Final Ledger** deals the week's outcome as four fortune cards. What the wheel gives or takes lands on that guild's members **in this class**. When the wheel cannot spin, it is shown chained and sealed (or recharging, if this class has already spun this week).
+
+Each wheel draws **20** unique segments from a large catalogue (at most one cursed, one legendary and one mythic wedge, and no more than four negative ones). Categories:
 
 - **Glory** — instant Glory, multipliers, shields, unity bonuses
 - **Perk** — stars, Gold, artifacts, Team Quest bonuses for the class
 - **Fun** — anthem, confetti, small Glory
 - **Negative** — Glory tax, slumber, heist, lost Gold/stars/artifacts, Trickster (nothing happens)
 
-Junior leagues **soften cursed** outcomes so young children are not crushed by Calamity. **Bulwark Crest** and Wheel **Glory Shield** can block negative Glory hits. **Shattered Mirror** halves the *next positive* Wheel effect.
+Every league draws from the same catalogue, so a Junior class can land on a cursed wedge too; spin with that in mind and frame a bad week as part of the story. **Bulwark Crest** and Wheel **Glory Shield** can block negative Glory hits. **Shattered Mirror** halves the *next positive* Wheel effect.
 
 Spin **with the class watching**. Read the Ledger afterward so the story is remembered.
 

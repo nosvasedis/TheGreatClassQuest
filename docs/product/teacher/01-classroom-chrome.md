@@ -1,6 +1,6 @@
 # The classroom screen: header, Projector Mode, weather, and phone
 
-This chapter is everything **around** the ten tabs: the top of the screen, the classroom TV, the sky, and how the same Quest feels on a phone.
+This chapter is everything **around** the ten tabs: the top of the screen, the cloud dock at the bottom, the classroom TV, the sky, and how the same Quest feels on a phone.
 
 The teacher interface is built for a **classroom PC**. Use the phone when you are walking the room or covering a lesson away from the desk. Projector Mode stays on the big screen.
 
@@ -30,6 +30,18 @@ Behind the header, **clouds** drift by day. At night the header darkens and star
 
 An **update pill** may appear when a new version of the app is ready.
 
+## The cloud dock (bottom navigation)
+
+The ten tabs live in a **cloud dock** along the bottom edge of the screen: one soft, coloured cloud per tab, overlapping into one continuous bank. Each cloud carries its tab’s icon — **Home** is the first cloud on the left, then Team Quest, Hero’s Challenge, Mystic Market, Guild Hall, Award Stars, Adventure Log, Scholar’s Scroll, Quest Calendar, and Story Weavers. The cloud you are on glows, lifts its icon, and shows the tab’s name; point at any other cloud to see its name. **Settings** is not a cloud: it stays the **cog** in the header.
+
+On a PC with a mouse, the clouds **sink out of sight** a few seconds after the pointer leaves the bottom of the screen, so the lesson has the whole display. Move the pointer to the **bottom edge** and they float back up. On a touch screen they never hide, and a touch near the bottom or keyboard focus on a cloud always brings them back. Projector Mode uses the same dock.
+
+Whichever tab you open, it always starts **at the top** — never halfway down where the last tab was scrolled.
+
+## Tab titles
+
+Each tab opens with a title drawn as **its own object** rather than a plain heading: a folded quest map for Team Quest, a royal banner for Hero’s Challenge, a stone archway for Guild Hall, a night-sky star medal for Award Stars, a stitched leather journal for Adventure Log, a parchment scroll for Scholar’s Scroll, a ringed desk calendar for Quest Calendar, a tapestry for Story Weavers, and a chalkboard for Teacher Settings. Only the **Mystic Market** keeps a shop sign. Team Quest and Hero’s Challenge also have a gilded month ribbon that names *this month’s race* or *this month’s challenge*. The titles are decoration; nothing to tap.
+
 ## Projector Mode (classroom wallpaper)
 
 Tap the **TV** in the header (classroom PC only — there is no Projector on the teacher phone). The Quest fills the display: a living **sky wallpaper** behind a huge clock.
@@ -55,7 +67,7 @@ The wallpaper is not a blank poster. It tells the room how long things last — 
 
 - **Lesson Timekeeper** card: minutes **until this class’s scheduled end** (the analogue ring empties as the lesson runs down). It appears when a class is selected, the class has an end time, and there are still **1–120 minutes** left. It will not show a leftover timer from yesterday.
 - **Next Adventure** card: the **next scheduled lesson day** and start time for this class.
-- **Bounty timer pill** (top-left): if a **timer bounty** is running for the selected class, a live countdown sits on the wallpaper. The icon calms, then warns (⏳), then burns (🔥) as the last seconds go. When the bounty finishes, the pill leaves. **Time Warp Hourglass** adds **+5 minutes** to that same countdown (and the Award Stars bar).
+- **Bounty timer pill** (top-left): if a **Race the Clock** bounty is running for the selected class, a live countdown sits on the wallpaper. The icon calms, then warns (⏳), then burns (🔥) as the last seconds go. When the bounty finishes, the pill leaves. **Time Warp Hourglass** adds **+5 minutes** to that same countdown (and to the bounty board at the top of your teacher screen).
 - **Holiday countdown** and **pre-holiday hype** when a school holiday is within a week.
 - **Upcoming test** countdown (Scholar’s Scroll, Pro) when a paper is scheduled in the next seven days — and extra “luck” cards if the test is **today**.
 
@@ -118,11 +130,11 @@ Other quiet treats you will meet elsewhere in this handbook:
 
 | Desktop | Phone |
 |---------|--------|
-| Ten-tab bottom bar | Dock of **five**: Home, Team Quest, Hero’s Challenge, Award Stars, **More** |
+| Ten-cloud dock (sinks away when idle) | Dock of **five** that always stays put: Home, Team Quest, Hero’s Challenge, Award Stars, **More** |
 | Quote in the header | **Daily Wisdom** on Home |
 | Projector TV button | **No Projector** |
 | Class dropdown | Bottom **class picker sheet** |
-| Settings **dropdown** | A **sheet** that still opens the same Settings tools |
+| Settings cog in the header; section **dropdown** inside Settings | Settings cog in the phone header too; sections chosen from a **sheet** |
 
 **More** reaches Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Story Weavers, Student Roster, School Office (if allowed), and Settings.
 

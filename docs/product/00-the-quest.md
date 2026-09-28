@@ -32,7 +32,7 @@ Stars from step 2 feed the map, ranks, Guild Glory, Gold, Familiar growth, Hero 
 
 ## The ten classroom tabs
 
-These are the gems on the teacher bottom bar (desktop). **Settings** is the cog in the header, not an eleventh tab.
+These are the ten clouds of the **cloud dock** along the bottom of the teacher screen (desktop), with **Home** first on the left. **Settings** is the cog in the header, not an eleventh cloud.
 
 | Tab | Role in the year |
 |-----|------------------|
@@ -80,4 +80,4 @@ The teacher phone is a dock of five. Details live at the end of **The classroom 
 
 ## Where to go next
 
-Open **The classroom screen** for the header and Projector wallpaper, then **Award Stars** for the lesson itself. Keep **Why we Quest** beside you whenever a name or ritual feels like “just another score.”
+Open **The classroom screen** for the header, the cloud dock and the Projector wallpaper, then **Award Stars** for the lesson itself. Keep **Why we Quest** beside you whenever a name or ritual feels like “just another score.”

@@ -2,7 +2,7 @@
 
 Award Stars is the **heart of the Quest**. In each lesson you place 1, 2, or 3 stars on one of four **life skills**. Those stars feed Team Quest, Hero’s Challenge, Guild Glory, Gold, Familiars, Hero Path, the Adventure Log, bounties, and the month’s ceremony.
 
-The tab is built as **floating clouds** — each student a card with Today / Month / Total, a Gold pill, guild badge, Hero Path title, and (when relevant) Reigning Hero or Reigning Prodigy.
+The tab opens under its title, a **night-sky star medal**, and is built as **floating clouds** — each student a card with Today / Month / Total, a Gold pill, guild badge, Hero Path title, and (when relevant) Reigning Hero or Reigning Prodigy.
 
 ## Purpose
 
@@ -78,11 +78,18 @@ Do not confuse this with:
 
 ## Teacher Boon
 
-Visible on Award Stars only in the **last 7 days of the month** (from six days before month-end through the last day).
+In the **last 7 days of the month** (from six days before month-end through the last day), a rose-gold **gift seal** appears above the clouds: **Month’s end gift · Teacher Boon**, with a **+2 ★** tag. The rest of the month it is not there, and once you have bestowed this month’s boon for the selected class it disappears until next month.
+
+Tap it and the Teacher Boon window walks you through three steps:
+
+1. **Hero** — “Who shone brightest this month?” Every student in the class, sorted by this month’s stars (the top three wear a small rank badge).
+2. **Reason** — “What are you celebrating?” Tap Leadership, Perseverance, Kindness, Bravery, Helping Others, or Remarkable Growth, or write your own words under **or in your own words**.
+3. **Bestow** — a card with the student, two stars, and your reason. Press **Bestow boon**; **Boon bestowed!** appears and the window closes by itself.
+
+Use **Continue** and **Back** to move between steps, or tap a step you have already completed.
 
 - **2 stars**, always
 - **Once per class per month**
-- Reasons: Leadership, Perseverance, Kindness, Bravery, Helping Others, Remarkable Growth, or your own sentence
 - Shows as a ribbon in the Ceremony of the Month
 
 Use it for character the four buttons cannot quite name. Do not use it to “fix” the Prodigy race in the last hour.
@@ -99,7 +106,7 @@ Full month history lives on Adventure Log → **Attendance Chronicle** (Pro).
 
 ## Quest Bounties
 
-Short group challenges (reach X stars in Y minutes for a stated reward, such as five minutes of free time). You **post** them mainly from **Home**. Progress shows here and on Projector Mode. **Time Warp Hourglass** adds five minutes to active timers. Hitting the target plays a fanfare.
+Short whole-class challenges, posted from the **Bounty** button on the class **Home** (a parchment bounty poster; see Home). There are two kinds: **Star Hunt** (earn a number of stars together, within two hours of pinning it, to win a stated reward such as five minutes of free time) and **Race the Clock** (finish a task before a countdown runs out). Every star you award here fills an active Star Hunt; live bounties sit on the bounty board at the top of the screen and on Projector Mode. **Time Warp Hourglass** adds five minutes to running countdowns. Hitting the target plays a fanfare.
 
 ## How this feeds the rest of the Quest
 

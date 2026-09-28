@@ -32,13 +32,12 @@ bloom card.
 
 ### Prepare, lock, resume
 
-The preparation screen quietly works out the month’s results. If the teacher
-opens it, they can see the winner and Co-Prodigy privately, but nothing has to
-be chosen or typed for the ceremony to work. Growth Festival creates the bloom
-cards automatically. **Lock & Begin** saves the prepared result. After a refresh,
-the teacher can **Resume** or **Restart from beginning** with the same result;
-a completed ceremony can simply be watched again. A genuine correction starts a
-fresh ceremony result with a short reason.
+When the ceremony opens, the app quietly works out the month’s results and saves
+them. Nothing has to be chosen or typed for the ceremony to work, and Growth
+Festival creates the bloom cards automatically. The saved result is locked: if
+the page is refreshed or you exit halfway, opening the ceremony again from Home
+continues where you stopped, with the same result. Once you press **Finish
+Ceremony**, the month is closed for this class and the reminder disappears.
 
 ### Growth Festival (Nursery and Pre-Junior)
 
@@ -105,12 +104,12 @@ This is a **full-screen** ritual (not a small modal). The classroom sky fills th
 ## What you do (teacher)
 
 1. Select the class in the header. The **class half** is the whole **Quest League**. The **student half** is only the class you selected.
-2. Open the ceremony from the glowing Team Quest / Hero’s Challenge tab or the Home reminder.
+2. Open the ceremony from the glowing reminder pill on Home (the Home button in the dock wears a star ring while a ceremony is waiting).
 3. Intro splash → **Start Ceremony** (Classic Arena) or **Enter the Garden 🌸** (Growth Festival).
 4. The first load quietly prepares and saves the month’s result; the ceremony then uses that same result from start to finish.
 5. In Classic Arena, pace **Team Quest** yourself: Next through the ranks, then the League Duel.
 6. In Growth Festival, pace with the garden buttons: **Explore Our Blooms 🌸**, then **Begin the Bloom Parade 🌺**, then **Next Bloom 🌸** (or **Reveal Our Golden Bloom ✨** on the last card). Chevrons beside **Bloom X of Y** step through cards; the last card’s next chevron stays off so **Reveal Our Golden Bloom ✨** opens the finale. In Classic Arena, continue with **Hero’s Challenge**.
-7. **Finish Ceremony**. A refresh can continue the saved ceremony; a completed ceremony can be watched again with the same results.
+7. **Finish Ceremony**. Before that, a refresh or an exit simply continues the saved ceremony next time you open it.
 
 You only control the pacing. Press **Start Ceremony** or **Enter the Garden 🌸**, then the labelled next button when the class is ready. You never choose the flowers, write a
 reason, or prepare the awards yourself. Commentary should sound like a stadium,

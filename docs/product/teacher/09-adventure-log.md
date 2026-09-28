@@ -1,6 +1,6 @@
 # Adventure Log
 
-Adventure Log is the **closing ritual** of the lesson. You write (or let Elite write) what happened, the class crowns **Hero of the Day**, and two flying buttons handle **tomorrow’s work** and **who was here**.
+Adventure Log is the **closing ritual** of the lesson. The tab is the class’s own **diary**: you write (or let Elite write) today’s page, the class crowns **Hero of the Day**, and two flying buttons handle **tomorrow’s work** and **who was here**.
 
 ## Purpose
 
@@ -8,15 +8,28 @@ Turn the hour into a **story the class owns**. Children remember narrative. A lo
 
 ## Log Today’s Adventure
 
-Needs a class selected and **stars awarded today**. One log per class per day.
+Needs a class selected and **stars awarded today**. One page per class per day. A short line under the buttons tells you where you stand: award some stars first, ready to write, or today’s page is written (with today’s hero).
+
+At the top of the tab sits the diary desk:
+
+- **Month tabs** along the edge, like divider tabs in a notebook, from the start of the school year to **now**. Tap one to turn back to that month.
+- **This month in the diary**: pages written, heroes crowned, new words and teacher notes for the month you are looking at.
+- **Log Today’s Adventure**, **Hall of Heroes** and, underneath, **Ember Oaths** (see the Hero Campfire chapter).
 
 | Plan | What happens |
 |------|----------------|
 | **Starter** | The Adventure Log is not in this plan. Quest Assignment and basic attendance ideas still exist elsewhere. |
-| **Pro** | **Manual** modal: title, story, highlights. You are the chronicler. |
-| **Elite** | **AI Chronicler** plus a storybook illustration (with generating / retry / pending states). You can edit AI entries. |
+| **Pro** | **Write today's page**: a diary page opens with a title, **Today's story**, up to four **Highlights** (split with commas) and a **Hero of the Day** seal that reads *Crowned when you save*. **Save page & crown the Hero** writes it. You are the chronicler. |
+| **Elite** | **AI Chronicler** writes the page and paints a storybook illustration (see the stamps below while it works). You can edit every page. |
 
-Entries show as a **timeline**, filterable by month. Badges distinguish Manual Chronicle and AI Chronicle.
+Each day becomes a **diary page**, newest first: a date stamp, the title, a **Hero of the Day** sticker with the hero's portrait, the picture taped on like a photo (Elite), the story on ruled lines, highlights as coloured tape and your sticky note if you added one. A small line says **Written by hand** or **Written by the Chronicler**; while Elite is still working a stamp shows **Being written**, **Rewriting**, **Waiting for the Chronicler** or **Needs a retry**.
+
+Buttons at the foot of each page:
+
+- **Retry**: only on an Elite page that did not finish; asks the Chronicler to try again.
+- **Edit**: opens **Edit this page** (title, story, highlights, what we learned) and **Save changes**. On Pro you can edit pages you wrote by hand; on Elite you can edit every page.
+- **Add note** / **Note**: **A note for this page**, a sticky note signed with your name. **Stick it on** saves it; leave it empty to remove it.
+- **Remove**: deletes the page.
 
 **Mask of the Protagonist**, Pathfinder, tests, and bounties can colour the story the AI (or you) tells.
 
@@ -30,7 +43,7 @@ Every entry records **What we learned today** automatically. You never have to t
 - **Scholar's Scroll** trials logged today: the test or dictation titles, plus a scheduled test today
 - **Quest Assignment** saved today: the next quest
 
-On **Elite**, the AI Chronicler receives this list and weaves 2–3 of the target words or topics into the diary, so the class hears today's English again in their own story. On **Pro**, the manual modal shows the collected items as ticked chips: untick anything that does not fit, or add your own line. Both are optional. The entry card shows a **What we learned today** strip (topics and words), and **Edit Entry** lets you adjust it later.
+On **Elite**, the AI Chronicler receives this list and weaves 2–3 of the target words or topics into the diary, so the class hears today's English again in their own story. On **Pro**, the page you write shows the collected items as ticked chips: untick anything that does not fit, or add your own line. Both are optional. The diary page shows a **What we learned today** strip (topics and words), and **Edit** lets you adjust it later.
 
 ## Hero of the Day
 
@@ -61,11 +74,16 @@ This is **not** Prodigy of the Month.
 
 ## Gather at the Campfire (Pro)
 
-When you close the Hero of the Day celebration (**Huzzah!**), a **Gather at the Campfire** button lights up under Log Today’s Adventure. It opens the **Hero Campfire**, a 2-minute closing reflection on the projector. It is optional: **Not today** hides it for the day. See the Hero Campfire chapter.
+When you close the Hero of the Day celebration (**Huzzah!**), a **Gather at the Campfire** button lights up under Log Today’s Adventure and Hall of Heroes, in place of the Ember Oaths button (it keeps an **Oaths** chip). It opens the **Hero Campfire**, a 2-minute closing reflection on the projector. It is optional: **Not today** hides it for the day. See the Hero Campfire chapter.
 
 ## Hall of Heroes
 
-Button on this tab. Archive of **this school year's** **Hero of the Day** tallies and legend tiers — who has been the face of many lessons. Last year's plaques stay with last year.
+Button on this tab. A portrait gallery of **this school year's** **Hero of the Day** crowns — who has been the face of many lessons. Last year's portraits stay with last year.
+
+- Three plaques at the top: **crowns awarded**, **heroes crowned**, **still waiting**.
+- The top three hang as large framed portraits (**First**, **Second**, **Third**), the rest in **The gallery**. Each frame shows the crown count, the legend rank (**Rising Legend**, **Golden Legend**, **Mythic Legend**) with its Market discount, a bar to the next rank and the date they were last crowned.
+- **Waiting for their first crown** lists everyone not yet crowned, so no child is invisible.
+- A key at the bottom: 3 crowns · Rising Legend · 5% off, 5 · Golden · 10%, 10 · Mythic · 15%.
 
 **Hall of Prodigies** (Hero’s Challenge) is the monthly student crown. Keep the names separate when you speak to the class.
 
@@ -73,7 +91,7 @@ Button on this tab. Archive of **this school year's** **Hero of the Day** tallie
 
 Needs a class in the header.
 
-Record **what the class should do before the next lesson**, see the **previous** assignment, and optionally attach a **scheduled test** (Quest Board) when this class uses tests.
+Opens the **Quest Board**, a cork noticeboard. **Pinned last time** shows the previous assignment (you can **Edit** it) and any test that was scheduled with it. **For next lesson** is the notepad where you write the new homework; numbered lines become a checklist. **Schedule Test** pins a test (date, title, topics) to the board when this class uses tests; it is shown to parents with the homework. **Save Quest Board** saves.
 
 Saving can sync a homework line into the **Family Portal** so parents see the same quest without seeing your private notes.
 
@@ -83,7 +101,7 @@ Use it every lesson if you can. Continuity is the hidden curriculum.
 
 ## Attendance Chronicle (right flying button)
 
-**Pro.** Opens **Attendance Chronicle** — a beautiful month ledger, not a grim register.
+**Pro.** Opens **Attendance Chronicle** — the class register, drawn as a friendly notebook, not a grim ledger. A tick marks present, a cross marks absent.
 
 You can take the register at the **start or end** of the lesson. Award Stars clouds also mark absent/present/Welcome Back for today.
 
@@ -91,10 +109,10 @@ In the Chronicle:
 
 - Move **previous / next month** (from school-year start through the current month)
 - Dates **before the school year's opening day** are marked **Before lessons** — they are never counted as lesson days (the Secretary sets the opening day in the School Office → School Year → *Opening day* card)
-- **Live month** is editable; older months are a read-only archive
+- **Live month** is editable (*This month · tap a mark to change it*); older months are a read-only archive (*Past month · read only*)
 - Holiday banners; **Month at a glance** day rail
 - Summary: **monthly attendance %**, lessons held, total absences, **Perfect Attendees**
-- Grid: tap a cell for present / absent
+- Grid: tap a mark to switch present / absent
 - Delete a column → **No Lesson** day, with a checkbox **Is this a School Holiday?** (school-wide vs this class)
 - Insights: school holiday, cancelled, before lessons began, after term end, lesson, no weekly class
 
@@ -108,6 +126,7 @@ Starter teachers still mark presence on Award Stars clouds; they do not get this
 - Homework reaches families (Pro Family Access).
 - Attendance patterns inform Welcome Back and parent Progress.
 - The diary sentence appears on Home’s Chronicle and can appear on Projector cards.
+- Each crown is hung in the Hall of Heroes and counts towards the child's legend rank.
 - Mask of the Protagonist is consumed by the next log.
 
 ## Dignity

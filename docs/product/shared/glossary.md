@@ -16,10 +16,10 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Co-Prodigy** | Shared monthly crown after tie-breakers | Two Heroes of the Day |
 | **Hall of Prodigies** | This year's archive of monthly Prodigies. Last year's plaques stay last year. | Hall of Heroes |
 | **Hero of the Day** | Automatic when you log today’s adventure | Prodigy |
-| **Hall of Heroes** | This year's archive of Hero of the Day wins. Legend discounts restart each year. | Hall of Prodigies |
+| **Hall of Heroes** | This year's portrait gallery of Hero of the Day crowns: top three framed, legend ranks at 3 / 5 / 10 crowns, who is still waiting. Legend discounts restart each year. | Hall of Prodigies |
 | **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars. Patron Hero Path: one path point per calendar week you give. | Teacher Boon; Hero of the Day +1; Patron (the vocation, not the gift) |
 | **Includes Hero’s Boon (+1)** | Automatic extra star on the reigning hero’s **first** award | Peer gift |
-| **Teacher Boon** | Your 2-star gift, last week of the month, once per class | Peer boon |
+| **Teacher Boon** | Your 2-star gift from the rose-gold gift seal on Award Stars, last week of the month, once per class | Peer boon |
 | **Patron** | Hero Path class that levels by giving Hero's Boon (one path point per calendar week) | The Herald's Banner (Market artifact); receiving a boon |
 | **Welcome Back** | Return bonus after absence | Nomad path (levels from it) |
 | **Scholar’s Bonus** | Usually Starfall after a high trial | Award Stars reason button (there isn’t one) |
@@ -34,7 +34,8 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Familiar** | One companion egg that hatches and evolves | Avatar |
 | **Guild Power** | Fair house score: 70% season Glory/member, 15% this week’s Glory/member, 10% activity, 5% momentum | Raw Total Stars |
 | **Guild Glory** | Ledger from stars (2 Glory per star) plus Wheel / Quiz / artifacts | Gold |
-| **Fortune’s Wheel** | Weekly spin, last lesson of the week | Quiz of the Week |
+| **Fortune’s Wheel** | Weekly ritual, last lesson of the week: each guild spins its own celestial wheel in turn | Quiz of the Week |
+| **Guild banner** | The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall; the anthem plays in a torch-lit alcove | Guild Power explainer |
 | **Fortune Ledger** | This school year’s Fortune’s Wheel outcomes on Guild Hall. Last year’s spins stay in last year. | Adventure Log |
 | **Grand Guild Ceremony** | End-of-year house crowning | Ceremony of the Month |
 | **Guild Champion** | Top earner **inside one guild** this month | Prodigy of the Month |
@@ -43,17 +44,25 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, remaining times, rotating story cards | Sky Theater (header emoji acts) |
 | **The Director** | Rotating Projector cards | The teacher |
 | **Sky Theater** | Decorative header flights | Projector |
-| **Quest Assignment** | Next-lesson homework (+ optional scheduled test) | Quest Event |
+| **Quest Assignment** | Next-lesson homework on the Quest Board (+ optional scheduled test) | Quest Event |
 | **Quest Event** | Calendar event: 2×/Reason modifier or one of five Special Quests (Vault, Guardians, Chain, Sketch, Saga) | Quiz of the Week |
 | **Special Quest** | A one-lesson class quest that remembers progress, awards Stars and Gold once, and can be undone while the Gold is still available | Quest Assignment |
 | **Quiz of the Week** | Elite game-show review on Home | Scholar’s Scroll test |
-| **Attendance Chronicle** | Pro month matrix | Award Stars absent buttons |
+| **Attendance Chronicle** | Pro class register for the month: tick or cross per lesson | Award Stars absent buttons |
 | **Family Portal** | Parent interface | Teacher app |
 | **School Office** | Secretary interface | Teacher Settings |
-| **Add a new student** | School Office: a brand-new hero in a class this year | Place returning students; Student setup |
-| **Place returning students** | School Office: seat last year’s heroes | Add a new student; Student setup |
-| **Student setup** | Teacher roster: collapsible bar to seat returning heroes in this class | Student placement (School Office); Add a new student |
-| **Teacher Settings** | Cog: classes, tools, Family Access, Quiz setup | School Office Admin |
+| **Students & Classes** | School Office Admin: one registry to enrol, seat returning students, manage classes and look after former students | Manage Students (teacher roster) |
+| **Former students** | Students who left the school. Records are kept, nothing is deleted automatically; Bring back, or Delete forever with the name typed in | Delete on the teacher roster |
+| **Office notes** | Notes the School Office keeps on a student’s file. Private to the Office; teachers never see them | Hero’s Chronicle notes |
+| **Enrol a new student** | School Office → Students & Classes: a brand-new hero in a class this year | Seat returning students; Student setup |
+| **Seat returning students** | School Office → Students & Classes: seat last year’s heroes | Enrol a new student; Student setup |
+| **Student setup** | Teacher roster: the collapsible Returning adventurers panel to seat last year’s heroes in this class | Seat returning students (School Office); Enrol a new student |
+| **Adventurer’s Passport** | The student’s profile, opened with Edit on the roster: identity, quest record, Birthday and Nameday stamps, Hero path visa | Hero’s Chronicle |
+| **Avatar Forge** | Elite: forge a student portrait from a creature, a colour and a relic | Familiar |
+| **Hero Certificate** | Illuminated A4 certificate: Monthly Quest or Legend’s Journey, with an Oracle citation (Elite) | Hall of Prodigies plaque |
+| **Teacher Settings** | Cog: sheets on the teacher’s desk for classes, tools, Family Access, Quiz setup | School Office Admin |
+| **Cloud dock** | The ten classroom tabs as clouds along the bottom; on a mouse PC they sink away when idle | Header tools (Settings is the cog) |
+| **Bounty** | Whole-class challenge from the Bounty poster on Home: **Star Hunt** (star target) or **Race the Clock** (countdown) | Hero’s Challenge ranks |
 | **Adventurer’s Guide** | Short in-app explainer | This product handbook |
 | **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |

@@ -2127,6 +2127,15 @@ html[data-lang="el"] .plan-notes::before { content: "Σημειώσεις πλά
   font-weight: 800;
 }
 .roster-btns { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.roster-group-label {
+  margin-left: 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.roster-group-label:first-child { margin-left: 0; }
 .roster-ico {
   width: 1.85rem;
   height: 1.85rem;

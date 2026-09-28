@@ -93,15 +93,15 @@ completion only when every recipient still has that Gold available. There is no
 partial Stars-only undo.
 
 Scheduling rules keep a day unambiguous: one standard event per day,
-one active Special Quest per class, no duplicate quest of the same kind on the
-same day, and no repeating events in this release. Standard events (**2× Star
+no duplicate quest of the same kind for the same class on the same day, and no
+repeating events in this release. Standard events (**2× Star
 Day** and **Reason Bonus Day**) are **school-wide**: the Day Planner shows a
 single **All classes** chip, the app stores one event for the whole school, and
 it applies to every class that meets that day. Special Quests stay per class, so
-a multi-class selection makes one event for each class. Holiday, cancelled, or
-no-lesson conflicts are shown before save; overdue events become **Missed** and
-may be moved only to the next real lesson date. Older Special Quests without a
-class are shown as **Needs class assignment** and cannot start.
+a multi-class selection makes one event for each class. If a chosen class has
+no lesson that day (holiday, cancelled, or not its day), the app names it and
+does not save until you resolve the calendar conflict. Older Special Quests
+saved without a class cannot start.
 
 These special quests are **not** the same as Story Weavers (a whole tab) or Quiz of the Week (Home). They are **one-day lesson shapes**.
 

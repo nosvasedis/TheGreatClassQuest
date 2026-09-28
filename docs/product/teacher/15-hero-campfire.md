@@ -9,7 +9,7 @@ Stars recognise actions. The Campfire adds the two habits the rest of the Quest 
 ## When it appears
 
 - The Campfire is prepared **quietly**: writing the Quest Assignment (for next time) starts the pack in the background, and the last 15 minutes of a lesson (or after half the lesson once stars have been awarded) finishes today’s script. It needs no waiting. On **Elite**, AI may polish the reflection question and closing lines, and may reorder or trim the word list — it never invents a word.
-- When you close the Hero of the Day celebration (**Huzzah!**), **Gather at the Campfire** lights up in the Adventure Log, under Log Today’s Adventure. A small pill also appears on Home. The hearth sits in the same bubbly family as **🔥 Ember Oaths**; the Oaths chip on it is that same rose-ember button, with a **ready** badge when promises can be kept.
+- When you close the Hero of the Day celebration (**Huzzah!**), **Gather at the Campfire** lights up in the Adventure Log, under Log Today’s Adventure and Hall of Heroes, where the Ember Oaths button usually sits. A small pill also appears on Home. The hearth sits in the same bubbly family as **🔥 Ember Oaths**; the Oaths chip on it is that same rose-ember button, with a **ready** badge when promises can be kept.
 - It never opens by itself. The small **×** on it means “not today”. It is on for every class; there is nothing to switch on.
 - After the ritual the button rests as **Campfire held · Relight**.
 
@@ -44,7 +44,7 @@ You write each Quest Assignment at the END of a lesson, for the next one. So at 
 
 ## Ember Oaths
 
-Open the **Oath Board** from **🔥 Ember Oaths** in the Adventure Log (it follows the class in the header, and stays greyed out until a class is selected), the 📜 Oaths part of the lit Campfire button, **🔥 Oaths** on a class in My Classes, or the 🔥 Oaths tab in a student’s Hero’s Chronicle.
+Open the **Oath Board** from **🔥 Ember Oaths** in the Adventure Log (it follows the class in the header, and stays greyed out until a class is selected), the 📜 Oaths part of the lit Campfire button, **🔥 Oaths** on a class card in My Classes (just left of the trash can), or the **Oaths** page tab in a student’s Hero’s Chronicle.
 
 - **The board.** One card per child with their photo/avatar, their promise, glowing embers for progress and today’s check-in (🔥 Tried it · 🕯️ Growing · 🌙 Quiet day). Filters: Everyone · Need a promise · Ready to keep.
 - **Choosing ceremony (one tap per child).** Press **✨ Choosing ceremony**. One child at a time appears (a row of small avatars at the top shows who already has a promise 🔥). Three coloured promise cards are chosen for THAT child from what the app knows: which virtue they earn least (or most, to share it), their Hero Class, their dictation and test trend, their Quiz of the Week accuracy, recent absences, how their stars compare with the class, the real words and topic of the current unit, and their earlier promises (never repeated). Each card says why in one line. **🔄 Other ideas** shows three more of different kinds, so all six Oath Board kinds can appear. Read them aloud, the child picks, you tap **🔥 Light this promise**, and the next child appears. **Their own words** lets you type exactly what the child says. **🔒 Secret promise** shows “a secret promise” at the Campfire instead of the words. The length is set for you (1 week for Nursery–Junior, 2 weeks after).

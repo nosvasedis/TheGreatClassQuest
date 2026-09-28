@@ -4,6 +4,8 @@ The Family Portal is a **calm window** onto one child. It is not the classroom P
 
 **Pro and Elite.** One login per student, created under Teacher Settings → **Family Access**.
 
+If the School Office records that the child has left the school, the login is paused (the records are kept). If the child comes back, the login works again — unless the teacher had already switched it off.
+
 Mobile uses the same four tabs.
 
 Header: **Family Portal**, the child’s name, **Refresh**, log out.
@@ -12,7 +14,7 @@ Header: **Family Portal**, the child’s name, **Refresh**, log out.
 
 | Tab | What families see |
 |-----|-------------------|
-| **Home** | Child card, total / monthly stars, attendance snapshot, homework count, shortcuts, latest results (if this class records tests or dictations), celebrations, **published** teacher notes |
+| **Home** | Child card, total / monthly stars, attendance snapshot, homework count, shortcuts, latest results (if this class records tests or dictations), celebrations, **published** teacher notes (such as an Oracle parent summary) |
 | **Homework** | List and detail: title, body, date, teacher — the same Quest Assignment the teacher saved |
 | **Progress** | Latest / average scores when assessments exist; attendance rate, lessons, absences; recent grades; full history modal |
 | **Messages** | Inbox with school. Parents may send **General**, **Meeting request**, or **Question** |

@@ -44,14 +44,21 @@ This is **not** the Hall of Heroes. Hall of Heroes (Adventure Log) counts **Hero
 
 ### Certificates
 
-From the roster: generate a certificate. On Elite, AI writes a unique paragraph from the student’s strongest virtue and monthly stars. The PDF uses the avatar and a Junior / Mid / Senior tone. You can still celebrate on Pro with the rest of the identity tools.
+Open a **Hero Certificate** from **Certificate** in a student's row on **Manage Students** (the **Records** group), or from the certificate button in the student's profile. The window shows a live preview of the page with two ribbons at the top:
+
+- **Monthly Quest**: this calendar month's deeds only.
+- **Legend's Journey**: the whole school year.
+
+Beside the preview, **Honours on the page** lists what the app found for that period: stars, the shining virtue, the Hero Path level, Prodigy of the Month crowns, kept Ember Oaths, the best trial, the Familiar and treasures won (the first six are printed). The certificate itself is an illuminated A4 landscape page in the child's guild colours (or their age group's colours before sorting), with a wax seal, the hero's portrait, the guild shield, the school year and wording that suits the child's age.
+
+On **Elite**, **Ask the Oracle** writes a short citation from the child's month or year. You can edit it freely (the page updates as you type) or **Write a new one**. **Seal & Download PDF** appears once there is a citation, and saves the A4 PDF. On Starter and Pro you can open the preview and the honours, but the PDF needs the Oracle's citation.
 
 ## What you can do
 
 - Project this tab so the class sees fair ranks.
 - Switch monthly vs total depending on the conversation (“this month” vs “your whole quest”).
 - Open Trophy Room when a child wants to use Elixir of Luck or Pathfinder’s Map.
-- Print certificates after the ceremony, not instead of it.
+- Print certificates as a celebration, not instead of the ceremony. **Monthly Quest** always counts the current calendar month, so print a month's certificate before that month ends.
 
 ## How this feeds the rest of the Quest
 
@@ -63,4 +70,4 @@ Familiar growth and Hero Path auras **display** here so identity is public and k
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Leaderboard, Trophy Room, Ceremony of the Month | Hero Path aura and titles on the row | Familiars on the row. AI certificate paragraph and Avatar Forge |
+| Leaderboard, Trophy Room, Ceremony of the Month | Hero Path aura and titles on the row | Familiars on the row. The Oracle's certificate citation and PDF, and Avatar Forge |

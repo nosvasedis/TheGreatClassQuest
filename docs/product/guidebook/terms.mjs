@@ -117,8 +117,8 @@ export const TERMS = [
     names: { en: 'Hero of the Day', el: 'Hero of the Day' },
     aliases: ['hero of the day', 'daily hero', 'reigning hero'],
     def: {
-      en: 'Crowned automatically when you Log Today’s Adventure. You do not pick the name by hand. Their first award the next day includes an automatic +1 (“Includes Hero’s Boon”). Shop discounts stack with Hall of Heroes wins.',
-      el: 'Στέφεται αυτόματα όταν καταγράφεις το Today’s Adventure. Δεν διαλέγεις το όνομα στο χέρι. Το πρώτο βραβείο την επόμενη μέρα περιλαμβάνει αυτόματο +1.'
+      en: 'Crowned automatically when you Log Today’s Adventure. You do not pick the name by hand. While they reign, their first star award includes an automatic +1 (“Includes Hero’s Boon”). Shop discounts stack with Hall of Heroes wins.',
+      el: 'Στέφεται αυτόματα όταν καταγράφεις το Today’s Adventure. Δεν διαλέγεις το όνομα στο χέρι. Όσο βασιλεύει, το πρώτο του βραβείο αστεριών περιλαμβάνει αυτόματο +1.'
     },
     confuse: { en: 'Prodigy of the Month', el: 'Prodigy of the Month' }
   },
@@ -129,8 +129,8 @@ export const TERMS = [
     names: { en: 'Hall of Heroes', el: 'Hall of Heroes' },
     aliases: ['hall of heroes', 'heroes hall', 'hero hall'],
     def: {
-      en: 'The archive of this school year’s Hero of the Day wins. Shop legend discounts unlock at 3 / 5 / 10 wins this year. Last year’s crowns stay in last year’s hall.',
-      el: 'Το αρχείο των νικών Hero of the Day αυτής της σχολικής χρονιάς. Εκπτώσεις στο μαγαζί στα 3 / 5 / 10 wins φέτος. Οι περσινοί στέφανοι μένουν στην περσινή αίθουσα.'
+      en: 'A portrait gallery of this school year’s Hero of the Day crowns: the top three framed, legend ranks at 3 / 5 / 10 crowns with Market discounts, and who is still waiting for a first crown. Last year’s crowns stay in last year’s hall.',
+      el: 'Μια πινακοθήκη με τα φετινά στέμματα Hero of the Day: οι τρεις πρώτοι σε μεγάλα κάδρα, βαθμίδες θρύλου στα 3 / 5 / 10 στέμματα με εκπτώσεις στο Market, και όσοι περιμένουν ακόμα το πρώτο τους στέμμα. Οι περσινοί μένουν στην περσινή αίθουσα.'
     },
     confuse: { en: 'Hall of Prodigies', el: 'Hall of Prodigies' }
   },
@@ -163,10 +163,10 @@ export const TERMS = [
     chapter: 'award-stars',
     widget: 'teacher-boon',
     names: { en: 'Teacher Boon', el: 'Teacher Boon' },
-    aliases: ['teacher boon', "teacher's boon", 'teachers boon', 'wand button'],
+    aliases: ['teacher boon', "teacher's boon", 'teachers boon', 'gift seal', "month's end gift"],
     def: {
-      en: 'Your gift: 2 stars, once per class per month, only in the last 7 days of the month (from six days before month-end). Named reasons (Leadership, Perseverance, Kindness, Bravery, Helping Others, Remarkable Growth, or your own words). Shows as a ribbon in the Ceremony of the Month. Honour, not a hidden extra rank.',
-      el: 'Το δικό σου δώρο: 2 αστέρια, μία φορά ανά τμήμα ανά μήνα, μόνο τις τελευταίες 7 μέρες του μήνα. Φαίνεται ως κορδέλα στην Ceremony of the Month — τιμή, όχι κρυφή θέση.'
+      en: 'Your gift: 2 stars, once per class per month, only in the last 7 days of the month. Opened from the rose-gold gift seal on Award Stars (“Month’s end gift”, +2 ★), which hides once this month’s boon is given. Three steps: Hero, Reason, Bestow. Named reasons (Leadership, Perseverance, Kindness, Bravery, Helping Others, Remarkable Growth, or your own words). Shows as a ribbon in the Ceremony of the Month.',
+      el: 'Το δικό σου δώρο: 2 αστέρια, μία φορά ανά τμήμα ανά μήνα, μόνο τις τελευταίες 7 μέρες του μήνα. Ανοίγει από τη ροζ-χρυσή σφραγίδα δώρου στο Award Stars, που κρύβεται μόλις δοθεί το boon του μήνα. Τρία βήματα: Hero, Reason, Bestow. Φαίνεται ως κορδέλα στην Ceremony of the Month.'
     },
     confuse: { en: "Hero's Boon (peer gift)", el: "Hero's Boon (δώρο συμμαθητή)" }
   },
@@ -213,8 +213,8 @@ export const TERMS = [
     names: { en: "Fortune's Wheel", el: "Fortune's Wheel" },
     aliases: ["fortune's wheel", 'fortunes wheel', 'fortune wheel', 'the wheel'],
     def: {
-      en: 'Weekly spin on the class’s last lesson of a Monday–Friday week, once per class per week. Guild Hall, Pro.',
-      el: 'Εβδομαδιαία περιστροφή στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα. Guild Hall, Pro.'
+      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. Pro.',
+      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Pro.'
     },
     confuse: { en: 'Quiz of the Week', el: 'Quiz of the Week' }
   },
@@ -307,10 +307,10 @@ export const TERMS = [
     chapter: 'school-office',
     widget: 'office',
     names: { en: 'School Office', el: 'School Office' },
-    aliases: ['school office', 'secretary', 'secretary admin'],
+    aliases: ['school office', 'secretary', 'secretary admin', 'students & classes', 'former students'],
     def: {
-      en: 'Secretary interface: this year’s classes, new students, student placement, holidays, school year, school grading defaults, family messages. Elite. School-wide holiday ranges that shrink Team Quest goals live here — not in teacher My Planning.',
-      el: 'Περιβάλλον γραμματείας: τμήματα της χρονιάς, νέοι μαθητές, τοποθέτηση, αργίες, σχολική χρονιά, προεπιλογές βαθμών. Elite. Οι σχολικές αργίες που μικραίνουν τον στόχο Team Quest μπαίνουν εδώ.'
+      en: 'Secretary interface: Students & Classes (enrol, seat returning students, classes, former students), office notes, holidays, school year, grading defaults, family messages. Elite. School-wide holiday ranges that shrink Team Quest goals live here — not in teacher My Planning.',
+      el: 'Περιβάλλον γραμματείας: Students & Classes (εγγραφές, επιστροφή μαθητών σε τμήμα, τμήματα, πρώην μαθητές), σημειώσεις γραμματείας, αργίες, σχολική χρονιά, προεπιλογές βαθμών, μηνύματα οικογενειών. Elite. Οι σχολικές αργίες που μικραίνουν τον στόχο Team Quest μπαίνουν εδώ.'
     },
     confuse: { en: 'Teacher Settings, My Planning (class end dates only)', el: 'Teacher Settings, My Planning (μόνο τελευταία μαθήματα)' }
   },
@@ -451,10 +451,10 @@ export const TERMS = [
     chapter: 'home',
     widget: 'bounty',
     names: { en: 'Bounties', el: 'Bounties' },
-    aliases: ['bounty', 'class bounty', 'star vs timer'],
+    aliases: ['bounty', 'class bounty', 'star hunt', 'race the clock', 'bounty poster', 'post a bounty'],
     def: {
-      en: 'Class challenges on Home: the whole class races a star goal against a timer. Not a first-student-to-finish contest.',
-      el: 'Προκλήσεις τάξης στο Home: όλο το τμήμα κυνηγά στόχο αστεριών απέναντι σε χρονόμετρο. Όχι αγώνας «ποιος πρώτος».'
+      en: 'Whole-class challenges pinned from the Bounty button on class Home as a bounty poster: Star Hunt (earn a star target together within two hours for a reward) or Race the Clock (finish a task before a countdown, or until the bell). Not a first-student-to-finish contest.',
+      el: 'Προκλήσεις όλου του τμήματος από το κουμπί Bounty στο Home, ως αφίσα bounty: Star Hunt (κοινός στόχος αστεριών μέσα σε δύο ώρες για έπαθλο) ή Race the Clock (μια εργασία πριν λήξει η αντίστροφη μέτρηση ή μέχρι το κουδούνι). Όχι αγώνας «ποιος πρώτος».'
     },
     confuse: { en: 'Hero’s Challenge ranks', el: 'Κατάταξη Hero’s Challenge' }
   },
@@ -463,10 +463,10 @@ export const TERMS = [
     chapter: 'adventure-log',
     widget: 'none',
     names: { en: 'Quest Assignment', el: 'Quest Assignment' },
-    aliases: ['quest assignment', 'homework quest'],
+    aliases: ['quest assignment', 'homework quest', 'quest board'],
     def: {
-      en: 'Next-lesson homework from the Adventure Log / close of class. Optional scheduled test is separate. Not a Quest Event on the calendar.',
-      el: 'Εργασία για το επόμενο μάθημα. Δεν είναι Quest Event του ημερολογίου.'
+      en: 'Next-lesson homework, written on the Quest Board (the Adventure Log corner button). An optional test can be pinned with it. Not a Quest Event on the calendar.',
+      el: 'Εργασία για το επόμενο μάθημα, γραμμένη στο Quest Board (το γωνιακό κουμπί του Adventure Log). Μπορεί να καρφιτσωθεί και διαγώνισμα. Δεν είναι Quest Event του ημερολογίου.'
     },
     confuse: { en: 'Quest Event (2× Star Day, Vault…)', el: 'Quest Event' }
   },
@@ -621,8 +621,8 @@ export const TERMS = [
     names: { en: 'Attendance Chronicle', el: 'Attendance Chronicle' },
     aliases: ['attendance chronicle', 'month matrix', 'attendance grid'],
     def: {
-      en: 'Pro month-grid of presence. The absent / Welcome Back buttons on Award Stars clouds are a different, live-lesson tool.',
-      el: 'Pro μηνιαίος πίνακας παρουσιών. Τα κουμπιά απουσίας στο Award Stars είναι άλλο εργαλείο, του ζωντανού μαθήματος.'
+      en: 'Pro class register for the month: tick or cross per lesson, month at a glance and a summary. The absent / Welcome Back buttons on Award Stars clouds are the live-lesson tool.',
+      el: 'Pro μητρώο παρουσιών του μήνα: τικ ή σταυρός ανά μάθημα, ο μήνας με μια ματιά και σύνοψη. Τα κουμπιά απουσίας / Welcome Back στο Award Stars είναι το εργαλείο του ζωντανού μαθήματος.'
     },
     confuse: { en: 'Award Stars absence buttons', el: 'Κουμπιά απουσίας στο Award Stars' }
   },
@@ -693,10 +693,94 @@ export const TERMS = [
     names: { en: "Hero's Chronicle", el: "Hero's Chronicle" },
     aliases: ["hero's chronicle", 'heros chronicle', 'chronicle notes', 'oracle'],
     def: {
-      en: 'The student hub card — “Adventure notes & Oracle AI” — and the green book on Manage Students. Private notes (General, Academic, Behavior, Social, Goals). Families do not see them unless you publish. Elite Oracle: Parent Summary, Teacher Strategy, Traits & Trends, Hero’s Goal.',
-      el: 'Η κάρτα στο student hub — «Adventure notes & Oracle AI» — και το πράσινο βιβλίο στο Manage Students. Ιδιωτικές σημειώσεις. Οι οικογένειες δεν τις βλέπουν εκτός αν δημοσιεύσεις. Oracle στο Elite.'
+      en: 'The hero’s bound book, opened from Chronicle on Manage Students or the Adventurer’s Passport: private Notes (General, Academic, Behavior, Social, Goals), Oaths, and The Oracle (Elite: Parent Summary, Teacher Strategy, Traits & Trends, Hero’s Goal). Families only see an Oracle summary you publish.',
+      el: 'Το δεμένο βιβλίο του ήρωα, από το Chronicle στο Manage Students ή από το Adventurer’s Passport: ιδιωτικές Notes (General, Academic, Behavior, Social, Goals), Oaths και The Oracle (Elite). Οι οικογένειες βλέπουν μόνο μια σύνοψη Oracle που δημοσιεύεις.'
     },
     confuse: { en: 'Adventure Log (the class story)', el: 'Adventure Log (η ιστορία της τάξης)' }
+  },
+  {
+    id: 'cloud-dock',
+    chapter: 'classroom-chrome',
+    widget: 'none',
+    names: { en: 'Cloud dock', el: 'Cloud dock' },
+    aliases: ['cloud dock', 'bottom navigation', 'bottom nav', 'dock'],
+    def: {
+      en: 'The ten classroom tabs as clouds along the bottom of the teacher screen. On a mouse PC they sink away when idle and float back when the pointer reaches the bottom edge. Settings is the header cog.',
+      el: 'Οι δέκα καρτέλες της τάξης ως σύννεφα στο κάτω μέρος της οθόνης. Σε υπολογιστή με ποντίκι βυθίζονται όταν δεν τις χρησιμοποιείς και ξαναβγαίνουν όταν ο δείκτης φτάσει στο κάτω άκρο. Οι ρυθμίσεις είναι το γρανάζι της κεφαλίδας.'
+    },
+    confuse: { en: 'Tab titles', el: 'Τίτλοι καρτελών' }
+  },
+  {
+    id: 'adventurers-passport',
+    chapter: 'settings',
+    widget: 'none',
+    names: { en: 'Adventurer’s Passport', el: 'Adventurer’s Passport' },
+    aliases: ["adventurer's passport", 'adventurers passport', 'passport', 'student profile', 'edit student'],
+    def: {
+      en: 'The student’s profile, opened with Edit on the roster: identity and quest record, shortcuts, Birthday and Nameday stamps, and the Hero path visa. In the School Office it opens as the office desk instead.',
+      el: 'Το προφίλ του μαθητή, από το Edit στο μαθητολόγιο: ταυτότητα και πορεία, συντομεύσεις, σφραγίδες Birthday και Nameday, και η «βίζα» του Hero path. Στη γραμματεία ανοίγει ως γραφείο της γραμματείας.'
+    },
+    confuse: { en: 'Hero’s Chronicle', el: 'Hero’s Chronicle' }
+  },
+  {
+    id: 'avatar-forge',
+    chapter: 'settings',
+    widget: 'none',
+    names: { en: 'Avatar Forge', el: 'Avatar Forge' },
+    aliases: ['avatar forge', 'avatar maker', 'portrait', 'forge'],
+    def: {
+      en: 'Elite. Forge a student portrait from a creature, a colour and a relic, with optional tempering; Strike the Anvil, then Keep this portrait.',
+      el: 'Elite. Σφυρηλατεί πορτρέτο μαθητή από ένα πλάσμα, ένα χρώμα και ένα κειμήλιο, με προαιρετικό «τέμπερινγκ»· Strike the Anvil και μετά Keep this portrait.'
+    },
+    confuse: { en: 'Familiars', el: 'Familiars' }
+  },
+  {
+    id: 'guild-banner',
+    chapter: 'guild-hall',
+    widget: 'none',
+    names: { en: 'Guild banner', el: 'Guild banner' },
+    aliases: ['guild banner', 'crest', 'guild lore'],
+    def: {
+      en: 'The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall: crest, motto, traits and Power. The music-note button sings the anthem in a torch-lit alcove.',
+      el: 'Το κρεμαστό λάβαρο του guild που ξετυλίγεται όταν πατάς το έμβλημά του στο Guild Hall: θυρεός, σύνθημα, χαρακτηριστικά και Power. Το κουμπί με τη νότα παίζει τον ύμνο σε μια κόγχη με πυρσούς.'
+    },
+    confuse: { en: 'Guild Power', el: 'Guild Power' }
+  },
+  {
+    id: 'former-students',
+    chapter: 'school-office',
+    widget: 'none',
+    names: { en: 'Former students', el: 'Former students' },
+    aliases: ['former students', 'left school', 'leaves school', 'bring back'],
+    def: {
+      en: 'Students who left the school. Every record is kept and nothing is deleted automatically. The School Office can Bring back a student, or Delete forever after typing their name.',
+      el: 'Μαθητές που έφυγαν από το σχολείο. Όλα τα στοιχεία κρατιούνται και τίποτα δεν σβήνεται αυτόματα. Η γραμματεία μπορεί να τους φέρει πίσω (Bring back) ή να τους διαγράψει οριστικά (Delete forever) γράφοντας το όνομα.'
+    },
+    confuse: { en: 'Delete on the roster', el: 'Delete στο μαθητολόγιο' }
+  },
+  {
+    id: 'office-notes',
+    chapter: 'school-office',
+    widget: 'none',
+    names: { en: 'Office notes', el: 'Office notes' },
+    aliases: ['office notes', 'office desk', 'student file'],
+    def: {
+      en: 'Notes the School Office keeps on a student’s file (Family, Health, Fees & forms, General). Private to the Office: teachers never see them.',
+      el: 'Σημειώσεις της γραμματείας στον φάκελο του μαθητή (Family, Health, Fees & forms, General). Μόνο για τη γραμματεία: οι δάσκαλοι δεν τις βλέπουν ποτέ.'
+    },
+    confuse: { en: 'Hero’s Chronicle notes', el: 'Σημειώσεις Hero’s Chronicle' }
+  },
+  {
+    id: 'hero-certificate',
+    chapter: 'heros-challenge',
+    widget: 'none',
+    names: { en: 'Hero Certificate', el: 'Hero Certificate' },
+    aliases: ['certificate', 'hero certificate', 'herald'],
+    def: {
+      en: 'An illuminated A4 certificate from Certificate on Manage Students: Monthly Quest (this calendar month) or Legend’s Journey (the school year). Elite’s Oracle writes the citation, and Seal & Download PDF appears once there is one.',
+      el: 'Φωτισμένο πιστοποιητικό A4 από το Certificate στο Manage Students: Monthly Quest (τρέχων μήνας) ή Legend’s Journey (σχολική χρονιά). Το Oracle (Elite) γράφει το κείμενο και μετά εμφανίζεται το Seal & Download PDF.'
+    },
+    confuse: { en: 'Hall of Prodigies', el: 'Hall of Prodigies' }
   },
   {
     id: 'manage-students',
@@ -705,8 +789,8 @@ export const TERMS = [
     names: { en: 'Manage Students', el: 'Manage Students' },
     aliases: ['manage students', 'student roster', 'roster buttons'],
     def: {
-      en: 'The class list from My Classes. Same buttons the classroom uses: Guild quiz, Skill Tree, Hero’s Chronicle, Parent Access, Avatar Forge, Certificate, Move, Edit, Delete.',
-      el: 'Η λίστα τμήματος από My Classes. Τα ίδια κουμπιά: Guild, Skill Tree, Hero’s Chronicle, Parent Access, Avatar Forge, Certificate, Move, Edit, Delete.'
+      en: 'The class roster from a class’s Students button. Every row has the same tools in three groups: Hero path (Sort, Class, Skills), Records (Chronicle, Parents, Avatar, Certificate), Manage (Move, Edit, Delete). Sort only appears before a student has a guild — guilds are for life.',
+      el: 'Το μαθητολόγιο από το κουμπί Students ενός τμήματος. Κάθε γραμμή έχει τα ίδια εργαλεία σε τρεις ομάδες: Hero path (Sort, Class, Skills), Records (Chronicle, Parents, Avatar, Certificate), Manage (Move, Edit, Delete). Το Sort εμφανίζεται μόνο πριν ο μαθητής πάρει guild — το guild είναι για πάντα.'
     },
     confuse: { en: 'Hero’s Challenge ranks (not a roster editor)', el: 'Κατάταξη Hero’s Challenge (δεν είναι μαθητολόγιο)' }
   }
@@ -769,6 +853,13 @@ export const TERM_ICONS = {
   'skill-tree': 'fa-sitemap',
   'heros-chronicle': 'fa-book-reader',
   'manage-students': 'fa-users',
+  'cloud-dock': 'fa-cloud',
+  'adventurers-passport': 'fa-passport',
+  'avatar-forge': 'fa-hammer',
+  'guild-banner': 'fa-flag',
+  'former-students': 'fa-box-archive',
+  'office-notes': 'fa-folder-open',
+  'hero-certificate': 'fa-award',
   patron: 'fa-gift',
   gold: 'fa-coins',
   'hero-campfire': 'fa-fire',
@@ -844,22 +935,22 @@ export const PLAN_EXPLORER = {
 export const CHAPTER_SEARCH = {
   'why-we-quest': ['philosophy', 'ethos', 'pedagogy', 'why', 'virtues', 'belonging', 'quest master'],
   'the-quest': ['orientation', 'daily loop', 'three interfaces', 'ten tabs'],
-  'classroom-chrome': ['header', 'projector', 'wallpaper', 'weather', 'sky theater', 'mobile', 'wisdom dock', 'the director', 'timekeeper'],
-  'home': ['quiz of the week', 'bounties', 'dashboard'],
+  'classroom-chrome': ['header', 'cloud dock', 'bottom navigation', 'tab titles', 'projector', 'wallpaper', 'weather', 'sky theater', 'mobile', 'wisdom dock', 'the director', 'timekeeper'],
+  'home': ['quiz of the week', 'bounties', 'dashboard', 'bounty poster', 'star hunt', 'race the clock'],
   'team-quest': ['map', 'league', 'difficulty', 'holidays', 'june', 'bronze', 'goal', 'pathfinder'],
-  'heros-challenge': ['prodigy', 'trophy', 'hall of prodigies'],
+  'heros-challenge': ['prodigy', 'trophy', 'hall of prodigies', 'certificate'],
   'ceremony': ['monthly ritual', 'dual', 'teacher boon ribbon', 'co-prodigy', 'league duel', 'hero duel', 'growth festival', 'classic arena', 'golden bloom'],
   'quest-calendar': ['holidays', 'day planner', 'quest event', 'special quest', 'vocabulary vault'],
   'market': ['gold', 'artifacts', 'familiars', 'eggs', 'mask'],
-  'guild-hall': ['guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'guild power', 'fortune ledger', 'momentum'],
+  'guild-hall': ['guild banner', 'anthem', 'guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'guild power', 'fortune ledger', 'momentum'],
   'award-stars': ['boon', 'teacher boon', 'hero boon', 'welcome back', 'virtues', 'heart'],
-  'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'attendance chronicle', 'campfire', 'ember oaths'],
+  'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'quest board', 'attendance chronicle', 'campfire', 'ember oaths'],
   'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope'],
   'scholars-scroll': ['starfall', 'tests', 'dictation', 'make-up'],
   'story-weavers': ['writing', 'elite'],
-  'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle'],
+  'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle', 'passport', 'avatar forge', 'class charter', 'emblem'],
   'hero-path': ['guardian', 'skill tree', 'nomad', 'paladin', 'sage', 'weaver', 'scholar', 'artificer', 'patron', "hero's boon"],
-  'school-office': ['secretary', 'holidays', 'school details', 'new student', 'student placement'],
+  'school-office': ['secretary', 'holidays', 'school details', 'new student', 'student placement', 'students & classes', 'former students', 'office notes'],
   'family-portal': ['parents', 'family access'],
   'glossary': ['names', 'confuse'],
   'plans': ['starter', 'pro', 'elite', 'at a glance', 'caps']

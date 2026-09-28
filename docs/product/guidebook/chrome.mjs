@@ -181,25 +181,23 @@ export function rosterToolsHtml() {
         </div>
       </div>
       <div class="roster-btns">
-        <button type="button" class="roster-ico ico-guild" title="Guild Sorting Quiz"><i class="fas fa-hat-wizard"></i></button>
-        <button type="button" class="roster-ico ico-tree is-pulse" data-term="skill-tree" title="Skill Tree — new skill waiting"><i class="fas fa-sitemap"></i></button>
-        <button type="button" class="roster-ico ico-book" data-term="heros-chronicle" title="Hero's Chronicle"><i class="fas fa-book-reader"></i></button>
-        <button type="button" class="roster-ico ico-parent" data-term="family-portal" title="Parent Access"><i class="fas fa-user-shield"></i></button>
-        <button type="button" class="roster-ico ico-forge" title="Avatar Forge"><i class="fas fa-user-astronaut"></i></button>
+        <span class="roster-group-label">Hero path</span>
+        <button type="button" class="roster-ico ico-tree is-pulse" data-term="skill-tree" title="Skills — new skill waiting"><i class="fas fa-sitemap"></i></button>
+        <span class="roster-group-label">Records</span>
+        <button type="button" class="roster-ico ico-book" data-term="heros-chronicle" title="Chronicle"><i class="fas fa-book-reader"></i></button>
+        <button type="button" class="roster-ico ico-parent" data-term="family-portal" title="Parents"><i class="fas fa-user-shield"></i></button>
+        <button type="button" class="roster-ico ico-forge" title="Avatar"><i class="fas fa-user-astronaut"></i></button>
         <button type="button" class="roster-ico ico-cert" title="Certificate"><i class="fas fa-award"></i></button>
+        <span class="roster-group-label">Manage</span>
         <button type="button" class="roster-pill ico-move"><i class="fas fa-people-arrows"></i> Move</button>
         <button type="button" class="roster-pill ico-edit"><i class="fas fa-pencil-alt"></i> Edit</button>
         <button type="button" class="roster-ico ico-del" title="Delete"><i class="fas fa-trash-alt"></i></button>
       </div>
     </div>
     <ul class="roster-legend">
-      <li><i class="fas fa-hat-wizard"></i> Guild quiz</li>
-      <li><i class="fas fa-sitemap"></i> Skill Tree (pulses when a branch waits)</li>
-      <li><i class="fas fa-book-reader"></i> Hero's Chronicle</li>
-      <li><i class="fas fa-user-shield"></i> Parent Access</li>
-      <li><i class="fas fa-user-astronaut"></i> Avatar Forge</li>
-      <li><i class="fas fa-award"></i> Certificate</li>
-      <li><i class="fas fa-people-arrows"></i> Move · Edit · Delete</li>
+      <li><i class="fas fa-shield-alt"></i> <strong>Hero path</strong>: Sort (only before a guild is chosen, guilds are for life), Class, Skills (pulses when a branch waits)</li>
+      <li><i class="fas fa-book-reader"></i> <strong>Records</strong>: Chronicle, Parents, Avatar (Avatar Forge), Certificate</li>
+      <li><i class="fas fa-people-arrows"></i> <strong>Manage</strong>: Move, Edit (the Adventurer’s Passport), Delete</li>
     </ul>
   </div>`;
 }
@@ -210,27 +208,29 @@ export function chronicleDemoHtml() {
       <span class="chronicle-hub__icon"><i class="fas fa-book-reader"></i></span>
       <span class="chronicle-hub__copy">
         <strong>Hero's Chronicle</strong>
-        <em>Adventure notes &amp; Oracle AI</em>
+        <em>The hero’s own bound book</em>
       </span>
       <i class="fas fa-chevron-right chronicle-hub__go" aria-hidden="true"></i>
     </div>
     <div class="chronicle-notebook">
       <div class="chronicle-tabs" aria-hidden="true">
-        <span class="is-on"><i class="fas fa-book-open"></i> Notes</span>
+        <span class="is-on"><i class="fas fa-feather-alt"></i> Notes</span>
+        <span><i class="fas fa-fire"></i> Oaths</span>
         <span><i class="fas fa-wand-magic-sparkles"></i> The Oracle</span>
       </div>
-      <p class="chronicle-kicker">Focus category</p>
+      <p class="chronicle-kicker">What is it about?</p>
       <div class="chronicle-cats">
         <span>📓 General</span><span>🎓 Academic</span><span>🎭 Behavior</span><span>💬 Social</span><span>🎯 Goals</span>
       </div>
-      <p class="shelf-note">Private notebook. Families never see a page unless you Publish to Portal. Oracle (Elite): Parent Summary, Teacher Strategy, Traits &amp; Trends, Hero’s Goal.</p>
+      <p class="shelf-note">Private pages. Families only see an Oracle summary you Publish to Parent Portal. Oracle (Elite): Parent Summary, Teacher Strategy, Traits &amp; Trends, Hero’s Goal.</p>
     </div>
   </div>`;
 }
 
 export function bountyChipHtml() {
   return `<div class="live-row">
-    <span class="quest-chip qc-bounty" data-term="bounties"><i class="fas fa-bullseye"></i> Bounty · 12 ${starIco()} · 5:00</span>
+    <span class="quest-chip qc-bounty" data-term="bounties"><i class="fas fa-bullseye"></i> Star Hunt · 12 ${starIco()}</span>
+    <span class="quest-chip qc-bounty" data-term="bounties"><i class="fas fa-hourglass-half"></i> Race the Clock · 10:00</span>
     <span class="quest-chip qc-quiz" data-term="quiz-of-the-week"><i class="fas fa-question"></i> Quiz of the Week</span>
     <span class="quest-chip qc-birth">🎂 Nameday today</span>
     <span class="quest-chip qc-cer" data-term="ceremony-of-the-month"><i class="fas fa-trophy"></i> Ceremony waiting</span>
@@ -315,15 +315,15 @@ export function hallOfHeroesHtml() {
   return `<div class="hoh-guide">
     <p class="live-demo__label"><i class="fas fa-crown" aria-hidden="true"></i> Hall of Heroes · daily crowns, not Prodigies</p>
     <div class="hoh-stats">
-      <article class="hoh-stat hoh-stat--crowns"><em>Total Crowns</em><strong>18</strong></article>
-      <article class="hoh-stat hoh-stat--heroes"><em>Crowned Heroes</em><strong>9</strong></article>
-      <article class="hoh-stat hoh-stat--legend"><em>Top Legend</em><strong>Alex</strong></article>
+      <article class="hoh-stat hoh-stat--crowns"><em>Crowns awarded</em><strong>12</strong></article>
+      <article class="hoh-stat hoh-stat--heroes"><em>Heroes crowned</em><strong>5</strong></article>
+      <article class="hoh-stat hoh-stat--legend"><em>Still waiting</em><strong>2</strong></article>
     </div>
     <div class="hoh-row">
       <span class="hoh-medal">🥇</span>
-      <span class="hoh-avatar">A</span>
-      <div><strong>Alex</strong><em>Rising Legend · 3 wins</em></div>
-      <b>3</b>
+      <span class="hoh-avatar">M</span>
+      <div><strong>Maria</strong><em>Golden Legend · 10% off in the Market</em></div>
+      <b>5</b>
     </div>
   </div>`;
 }
@@ -353,9 +353,10 @@ export function officeHtml() {
       <span>Home</span><span>School</span><span>Grades</span><span>Messages</span><span class="is-on">Admin</span>
     </div>
     <ul class="office-mini__jobs">
-      <li><i class="fas fa-calendar-alt" aria-hidden="true"></i> <strong>School Year</strong> — open, seat returning students in the placement wizard, finish the year</li>
-      <li><i class="fas fa-school" aria-hidden="true"></i> <strong>School Details</strong> — name, weather city, holiday ranges that shrink Team Quest goals</li>
-      <li><i class="fas fa-sliders-h" aria-hidden="true"></i> <strong>Grading</strong> — school-wide test and dictation defaults</li>
+      <li><i class="fas fa-users" aria-hidden="true"></i> <strong>Students &amp; Classes</strong> — enrol, seat returning students, classes, former students</li>
+      <li><i class="fas fa-calendar-alt" aria-hidden="true"></i> <strong>School Year</strong> — opening day, last day, finish the year</li>
+      <li><i class="fas fa-school" aria-hidden="true"></i> <strong>School Details</strong> — name, weather city, holidays that shrink Team Quest goals</li>
+      <li><i class="fas fa-sliders-h" aria-hidden="true"></i> <strong>Grading</strong> — league defaults for tests and dictations (Elite)</li>
     </ul>
     <p class="shelf-note">Teachers still teach. The office keeps the school year honest. Elite.</p>
   </div>`;
@@ -467,7 +468,7 @@ export function namesDistinctHtml() {
 export function mobileDockHtml() {
   return `<div class="panel">
     <h3><i class="fas fa-mobile-alt" aria-hidden="true"></i> On a phone</h3>
-    <p class="shelf-note" style="margin-top:0">Five gems. More holds the rest. Projector Mode is classroom-PC only.</p>
+    <p class="shelf-note" style="margin-top:0">Five buttons. More holds the rest. Projector Mode is classroom-PC only.</p>
     <nav class="dock dock--five" aria-label="Phone dock">
       <a class="nav-color-cyan is-active" href="#home"><i class="fas fa-home"></i>Home</a>
       <a class="nav-color-amber" href="#team-quest"><i class="fas fa-route"></i>Team Quest</a>

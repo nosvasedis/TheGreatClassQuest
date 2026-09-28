@@ -13,7 +13,7 @@ Build **social cohesion**. Nobody is left as a lonely high-scorer: every star a 
 - Each class as a moving token. Position is **progress toward this month’s goal**, not raw star count alone. Labels are nudged so overlapping classes stay readable.
 - A list of classes with stars, goal, **quest difficulty level**, and zone.
 - **History** of past months (the League Archive): opens on the latest finished month; switch months with the month chips in the header. Each league shows its month champion, then every class with % of goal, stars / goal, difficulty level, "Goal reached", and lesson days lost.
-- A glow / Home reminder when last month’s **Ceremony of the Month** has not been run yet.
+- A reminder on **Home** when last month’s **Ceremony of the Month** has not been run yet; the ceremony opens from there.
 
 Only classes that share the same **Quest League** race each other. Junior B does not race Class C.
 

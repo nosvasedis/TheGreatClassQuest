@@ -19,15 +19,15 @@ Placeholder until a class is chosen.
 
 ## What you can do
 
-1. **Word of the Day** — type and confirm, or **Suggest word** (Elite AI). Clear when you need a fresh hook.
+1. **Word of the Day** — type it and lock it in (the tick), or **Suggest** (Elite AI). Clear when you need a fresh hook.
 2. **Start Story…** / **Continue…** — add the next sentence. Elite generates an image and stores a chapter in history.
 3. Every **second** addition, the Quest asks whether to give the **whole class +0.5 Creativity / Story Weaver stars**. Say yes when the writing earned it. **Archivist’s Quill** makes that student’s next class bonus **1.0 instead of 0.5**.
 4. **Reveal to class** — the latest page as a big storybook spread (picture and text), with **Let's talk about it**: three questions to ask aloud (remember, imagine or ask *why*, and connect to your own life or use the Word of the Day). **New questions** shuffles them. This is dialogic reading: children talk about the story, not only listen.
-5. **Current Chronicle** — the running book so far.
+5. **Current Story** — the running book so far.
 6. **The End** — close this tale.
-7. **Story Archive** — past books.
+7. **View Archive** — past books.
 8. **Start New** — a fresh quest.
-9. On a completed storybook: **Narrate** (speech), **Print** PDF (themed pages), or delete.
+9. On a completed storybook: **Narrate Story** (speech), **Print Storybook** (PDF, themed pages), or delete.
 
 ## Pedagogy in the room
 

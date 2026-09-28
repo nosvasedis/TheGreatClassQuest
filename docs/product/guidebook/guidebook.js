@@ -124,9 +124,19 @@
     if (w === 'teacher-boon') {
       return `<button type="button" class="teacher-boon-launch-btn" title="Teacher Boon">
         <span class="teacher-boon-launch-btn__glow"></span>
-        <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--a">✦</span>
-        <i class="fas fa-wand-magic-sparkles teacher-boon-launch-btn__icon"></i>
-        <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
+        <span class="teacher-boon-launch-btn__halo"></span>
+        <span class="teacher-boon-launch-btn__body">
+          <span class="teacher-boon-launch-btn__shimmer"></span>
+          <span class="teacher-boon-launch-btn__seal">
+            <span class="teacher-boon-launch-btn__orbit"><i>✦</i><i>✦</i></span>
+            <span class="teacher-boon-launch-btn__seal-core"><i class="fas fa-gift teacher-boon-launch-btn__icon"></i></span>
+          </span>
+          <span class="teacher-boon-launch-btn__text">
+            <span class="teacher-boon-launch-btn__kicker">Month's end gift</span>
+            <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
+          </span>
+          <span class="teacher-boon-launch-btn__gift">+2 <i class="fas fa-star"></i></span>
+        </span>
       </button>`;
     }
     if (w === 'absence') {
@@ -257,10 +267,10 @@
       return termShot('starfall.png', 'Starfall: confirm Scholar’s Bonus stars after a high trial');
     }
     if (w === 'chronicle') {
-      return termShot('settings-chronicle.png', "Hero’s Chronicle: History of Deeds and New Entry");
+      return termShot('settings-chronicle.png', "Hero’s Chronicle: the hero’s bound book, History of Deeds and Write an entry");
     }
     if (w === 'roster') {
-      return termShot('settings-roster.png', 'Manage Students roster with Guild, Skill Tree, and Chronicle buttons');
+      return termShot('settings-roster.png', 'Manage Students roster: Hero path, Records and Manage tool groups');
     }
     if (w === 'artifacts') {
       return termShot('market-legendaries.png', 'Legendary Artifacts in Mystic Market');
@@ -281,7 +291,7 @@
       </div>${termShot('hero-class.png', 'Hero Class ceremony: preview a vocation, then Swear this Path')}`;
     }
     if (w === 'bounty') {
-      return `<span class="quest-chip qc-bounty"><i class="fas fa-bullseye"></i> Bounty · 12 stars · 5:00</span>`;
+      return `<span class="quest-chip qc-bounty"><i class="fas fa-bullseye"></i> Star Hunt · 12 stars</span> <span class="quest-chip qc-bounty"><i class="fas fa-hourglass-half"></i> Race the Clock · 10:00</span>`;
     }
     if (w === 'guide') {
       return `<button type="button" class="hdr-btn hdr-btn--solid" title="Adventurer's Guide"><i class="fas fa-info"></i></button>`;
@@ -296,14 +306,14 @@
         <div class="office-mini__tabs">
           <span>Home</span><span>School</span><span>Grades</span><span>Messages</span><span class="is-on">Admin</span>
         </div>
-        <p class="office-mini__note">School year, holiday ranges, weather city, grading defaults. Not a second classroom.</p>
+        <p class="office-mini__note">Students &amp; Classes, former students, school year, holidays, grading defaults. Not a second classroom.</p>
       </div>`;
     }
     if (w === 'hero-day') {
       return termShot('hero-of-the-day.png', 'Hero of the Day celebration');
     }
     if (w === 'hall-of-heroes') {
-      return termShot('hall-of-heroes.png', 'Hall of Heroes legend cards');
+      return termShot('hall-of-heroes.png', 'Hall of Heroes portrait gallery');
     }
     if (w === 'hall-of-prodigies') {
       return termShot('hall-of-prodigies.png', 'Hall of Prodigies: completed months only');

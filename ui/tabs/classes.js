@@ -37,22 +37,25 @@ function escapeHtml(value) {
 function renderReturningStudentCard(entry, options = {}) {
     const { student, reason, prevLeague, previousClassName, score } = entry;
     const badge = options.suggested
-        ? '<span class="returning-student-badge returning-student-badge--suggested">Suggested</span>'
+        ? '<span class="returning-student-badge returning-student-badge--suggested"><i class="fas fa-star" aria-hidden="true"></i>Suggested</span>'
         : '';
+    const oldClass = previousClassName || student.previousClassName || 'Previous class unknown';
     return `
-        <label class="returning-student-card">
+        <label class="returning-student-card${options.suggested ? ' is-suggested' : ''}">
             <input type="checkbox" class="returning-student-check" value="${escapeHtml(student.id)}"${returningStudentCheckedIds.has(student.id) ? ' checked' : ''}>
+            <span class="returning-student-card__tick" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <span class="returning-student-card__initial" aria-hidden="true">${escapeHtml(String(student.name || '?').trim().charAt(0).toUpperCase())}</span>
             <div class="returning-student-card__body">
                 <div class="returning-student-card__title">
                     <strong>${escapeHtml(student.name)}</strong>
                     ${badge}
                 </div>
                 <p class="returning-student-card__meta">
-                    ${escapeHtml(previousClassName || student.previousClassName || 'Previous class unknown')}
-                    ${prevLeague ? ` • ${escapeHtml(prevLeague)}` : ''}
+                    <span class="returning-student-chip"><i class="fas fa-door-open" aria-hidden="true"></i>${escapeHtml(oldClass)}</span>
+                    ${prevLeague ? `<span class="returning-student-chip returning-student-chip--league"><i class="fas fa-flag" aria-hidden="true"></i>${escapeHtml(prevLeague)}</span>` : ''}
                 </p>
                 ${reason ? `<p class="returning-student-card__reason">${escapeHtml(reason)}</p>` : ''}
-                ${options.suggested && score >= 100 ? '<p class="returning-student-card__hint">Likely match for this class league</p>' : ''}
+                ${options.suggested && score >= 100 ? '<p class="returning-student-card__hint"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>Likely match for this class league</p>' : ''}
             </div>
         </label>
     `;
@@ -82,9 +85,20 @@ function bindReturningStudentsPanel(panel, currentClassId) {
         });
     });
 
+    const updateSelectedCount = () => {
+        const counter = panel.querySelector('[data-returning-selected]');
+        if (!counter) return;
+        const n = returningStudentCheckedIds.size;
+        counter.textContent = n === 1 ? '1 ticked' : `${n} ticked`;
+        counter.classList.toggle('is-empty', n === 0);
+    };
     panel.querySelectorAll('.returning-student-check').forEach((el) => {
-        el.addEventListener('change', () => captureReturningStudentChecks(panel));
+        el.addEventListener('change', () => {
+            captureReturningStudentChecks(panel);
+            updateSelectedCount();
+        });
     });
+    updateSelectedCount();
 
     panel.querySelector('#returning-students-place-btn')?.addEventListener('click', async () => {
         captureReturningStudentChecks(panel);
@@ -164,6 +178,7 @@ function renderReturningStudentsPanel(currentClassId, options = {}) {
                     data-returning-students-toggle
                     aria-expanded="${returningStudentsPanelExpanded ? 'true' : 'false'}"
                     aria-controls="returning-students-body">
+                    <span class="returning-students-shell__crest" aria-hidden="true"><i class="fas fa-dungeon"></i></span>
                     <span class="returning-students-shell__copy">
                         <p class="returning-students-shell__eyebrow">Student setup</p>
                         <h3 class="returning-students-shell__title">Returning adventurers for ${escapeHtml(currentClass.name)}</h3>
@@ -172,15 +187,19 @@ function renderReturningStudentsPanel(currentClassId, options = {}) {
                             ${returningStudentsPanelExpanded ? '' : ' Open to seat them.'}
                         </p>
                     </span>
+                    <span class="returning-students-shell__count" aria-hidden="true">${unplacedCount}<small>waiting</small></span>
                     <span class="returning-students-shell__chevron" aria-hidden="true">
                         <i class="fas fa-chevron-${returningStudentsPanelExpanded ? 'up' : 'down'}"></i>
                     </span>
                 </button>
                 ${returningStudentsPanelExpanded ? `
-                    <button type="button" id="returning-students-place-btn"
-                        class="returning-students-place-btn bubbly-button">
-                        <i class="fas fa-user-check mr-2"></i>Place Selected
-                    </button>
+                    <div class="returning-students-shell__actions">
+                        <span class="returning-students-selected is-empty" data-returning-selected>0 ticked</span>
+                        <button type="button" id="returning-students-place-btn"
+                            class="returning-students-place-btn bubbly-button">
+                            <i class="fas fa-user-check mr-2"></i>Place Selected
+                        </button>
+                    </div>
                 ` : ''}
             </div>
             ${returningStudentsPanelExpanded ? `

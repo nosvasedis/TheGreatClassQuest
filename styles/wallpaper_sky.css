@@ -944,7 +944,7 @@
     #wall-quote-container { bottom: 1.1rem !important; }
 }
 
-/* ─── Journey: the meadow from the Home greeting card, then the road to the castle ───
+/* ─── Journey: into the Home greeting card's meadow, then along the hills to the castle ───
    Motion is driven from ui/wallpaperPortal.js with the Web Animations API, so the old
    keyframe entrance/exit stays off here. */
 #dynamic-wallpaper-screen.wallpaper-enter,
@@ -952,38 +952,45 @@
     animation: none;
 }
 
-.wp-meadow {
+/* The copies borrow the greeting card's palette classes, without the card's own frame. */
+#dynamic-wallpaper-screen .wp-cardsky,
+#dynamic-wallpaper-screen .wp-strip--meadow {
     position: absolute;
+    display: block;
+    padding: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+/* The card's pale sky, laid over the realm's sky while the camera is still near the cottage. */
+#dynamic-wallpaper-screen .wp-cardsky {
     left: 0;
     right: 0;
+    z-index: 3;
+    overflow: hidden !important;
+}
+.wp-cardsky .greeting-sky { border-radius: 0; }
+
+/* Travelling hill strips: meadow and realm copies, stacked by depth next to the real horizon. */
+#dynamic-wallpaper-screen .wp-strip {
+    position: absolute;
+    left: 0;
     bottom: 0;
-    height: 44vh;
-    z-index: 6;
+    z-index: 4;
     pointer-events: none;
     will-change: transform;
 }
-/* The copied greeting hills take their colours from the greeting card's palette classes,
-   without the card's own background, padding or shadow. */
-.wp-meadow .wp-meadow__palette {
-    position: absolute;
-    inset: 0;
-    padding: 0;
-    min-height: 0;
+#dynamic-wallpaper-screen .wp-strip--meadow {
     background: none;
-    border: 0;
-    box-shadow: none;
-    border-radius: 0;
-    overflow: visible !important;
+    overflow: hidden !important;
 }
-.wp-meadow .greeting-hills { height: 100%; }
-.wall-horizon { will-change: transform; }
+.wp-strip svg { overflow: visible; }
+.wp-strip .greeting-hills { right: auto; height: 100%; }
 
-/* While the camera travels, the seam where meadow meets horizon is feathered over 15vw. */
-.is-travelling .wp-meadow {
-    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 85%, transparent 100%);
-    mask-image: linear-gradient(90deg, #000 0, #000 85%, transparent 100%);
-}
-.is-travelling .wall-horizon {
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 15%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 15%);
-}
+/* While the copies travel, the real far and near hills wait; the real castle travels itself. */
+.wall-horizon.is-travelling > .wall-horizon__far,
+.wall-horizon.is-travelling > .wall-horizon__near { visibility: hidden; }
+.wall-horizon__castle { will-change: transform; }

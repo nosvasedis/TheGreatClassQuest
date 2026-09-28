@@ -42,8 +42,11 @@ function formatTime(time) {
 // Hills
 // ---------------------------------------------------------------------------
 
-/** A handful of trees along a ridge: cypresses (tall) and olive-like rounded crowns. */
-function treesHtml(trees) {
+/**
+ * A handful of trees along a ridge: cypresses (tall) and olive-like rounded crowns.
+ * Each tree is [x, y, size, kind] with kind 'c' (cypress) or 'o' (olive).
+ */
+export function treesHtml(trees) {
     return trees.map(([x, y, s, kind]) => {
         if (kind === 'c') {
             return `<path class="gs-tree" d="M ${x} ${y} c ${-3.2 * s} ${-6 * s} ${-3.4 * s} ${-18 * s} 0 ${-30 * s} c ${3.4 * s} ${12 * s} ${3.2 * s} ${24 * s} 0 ${30 * s} z"/>`;

@@ -389,24 +389,58 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
     transform-origin: 50% 88%;
 }
 
-/* Icon and label sit inside the cloud: embossed white with a shadow in the cloud's own depth. */
+/*
+ * Icon and label sit inside the cloud like a painted sticker: the icon is a pearly white-to-tint glyph
+ * with a raised edge in the cloud's own deep colour, the label is rounded Fredoka with a soft outline
+ * in that same colour. `--cloud-ink` is the cloud colour pushed towards night blue.
+ */
+#bottom-nav-bar .nav-button {
+    --cloud-ink: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 58%, #0f172a);
+    --cloud-ink-soft: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
+    --cloud-pearl: color-mix(in srgb, var(--tw-gradient-to, #bae6fd) 22%, #ffffff);
+}
+
 #bottom-nav-bar .nav-button .icon {
-    margin-top: 0.35rem;
+    margin-top: 0.3rem;
+    font-size: 1.85rem;
+    color: #fff;
+    background: linear-gradient(to bottom, #ffffff 30%, var(--cloud-pearl) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
     filter:
-        drop-shadow(0 1.5px 0 rgba(15, 23, 42, 0.22))
-        drop-shadow(0 0 6px rgba(15, 23, 42, 0.12));
+        drop-shadow(0 2px 0 var(--cloud-ink))
+        drop-shadow(0 3px 5px rgba(15, 23, 42, 0.22));
+}
+
+#bottom-nav-bar .nav-button:hover .icon,
+#bottom-nav-bar .nav-button.active .icon,
+#bottom-nav-bar .nav-button:focus-visible .icon {
+    text-shadow: none;
+    filter:
+        drop-shadow(0 1.5px 0 var(--cloud-ink))
+        drop-shadow(0 0 0.5px var(--cloud-ink))
+        drop-shadow(0 2px 4px rgba(15, 23, 42, 0.28));
 }
 
 #bottom-nav-bar .nav-button .text {
-    bottom: 0.55rem;
+    bottom: 0.5rem;
     max-width: 94%;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: clamp(0.6rem, 0.62vw, 0.74rem);
-    letter-spacing: 0.02em;
+    font-family: 'Fredoka', 'Fredoka One', 'Trebuchet MS', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: clamp(0.68rem, 0.72vw, 0.86rem);
+    line-height: 1.15;
+    letter-spacing: 0.015em;
+    color: #fff;
     text-shadow:
-        0 1px 0 rgba(15, 23, 42, 0.28),
-        0 1px 4px rgba(15, 23, 42, 0.3);
+        0 1.5px 0 var(--cloud-ink),
+        1px 0.5px 0 var(--cloud-ink-soft),
+        -1px 0.5px 0 var(--cloud-ink-soft),
+        0 -0.5px 0 var(--cloud-ink-soft),
+        0 2px 6px rgba(15, 23, 42, 0.35);
 }
 
 @keyframes cloud-breathe {

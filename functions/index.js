@@ -1,7 +1,6 @@
 const { getApp, initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 const crypto = require('node:crypto');
 const { publicEmberNote, mergePublishedEmber } = require('./campfireCore.cjs');
 const functionsV1 = require('firebase-functions/v1');
@@ -12,7 +11,17 @@ initializeApp();
 
 const db = getFirestore();
 const auth = getAuth();
-const storage = getStorage();
+// Cloud Storage is only needed by a few functions (portraits, market pictures, purges), so its
+// client loads on first use instead of slowing every function's cold start.
+let storageClient = null;
+function getStorageClient() {
+  if (!storageClient) {
+    const { getStorage } = require('firebase-admin/storage');
+    storageClient = getStorage();
+  }
+  return storageClient;
+}
+const storage = { bucket: (...args) => getStorageClient().bucket(...args) };
 const FUNCTIONS_REGION = process.env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1';
 const LEFT_SCHOOL_PURGE_DAYS = 30;
 // Former students keep every record until the Secretary deletes them by hand.
@@ -117,7 +126,13 @@ async function requireAuthedCaller(request) {
   if (!request.auth?.uid) {
     throw new HttpsError('unauthenticated', 'You must be signed in first.');
   }
-  const profileSnap = await db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get();
+  // Read the profile, the Secretary role and the school plan together: most calls need all
+  // three, and fetching them one after another made every call wait three round trips.
+  void getSubscriptionConfig().catch(() => {});
+  const [profileSnap, secretaryRoleSnap] = await Promise.all([
+    db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get(),
+    db.doc(SECRETARY_ROLE_DOC).get()
+  ]);
   if (!profileSnap.exists) {
     throw new HttpsError('permission-denied', 'This account is missing its required access profile.');
   }
@@ -125,12 +140,12 @@ async function requireAuthedCaller(request) {
   if (profile.status !== 'active' || !['teacher', 'secretary', 'parent'].includes(profile.role)) {
     throw new HttpsError('permission-denied', 'This account is inactive or has an invalid role.');
   }
-  return { uid: request.auth.uid, profile };
+  return { uid: request.auth.uid, profile, secretaryRoleSnap };
 }
 
 async function isCanonicalSecretaryCaller(caller) {
   if (!caller || caller.profile?.role !== 'secretary') return false;
-  const roleSnap = await db.doc(SECRETARY_ROLE_DOC).get();
+  const roleSnap = caller.secretaryRoleSnap || await db.doc(SECRETARY_ROLE_DOC).get();
   return roleSnap.exists &&
     roleSnap.data()?.uid === caller.uid &&
     roleSnap.data()?.status === 'active';
@@ -143,9 +158,19 @@ async function requireCanonicalSecretaryCaller(caller) {
   return caller;
 }
 
-async function getSubscriptionConfig() {
-  const snap = await db.doc(SUBSCRIPTION_DOC).get();
-  return snap.exists ? (snap.data() || {}) : {};
+// The school plan changes rarely; a warm instance reuses it for a short while instead of
+// reading it again on every call.
+const SUBSCRIPTION_CACHE_MS = 30 * 1000;
+let subscriptionCache = null;
+function getSubscriptionConfig() {
+  const now = Date.now();
+  if (subscriptionCache && now - subscriptionCache.at < SUBSCRIPTION_CACHE_MS) return subscriptionCache.promise;
+  const promise = db.doc(SUBSCRIPTION_DOC).get().then((snap) => (snap.exists ? (snap.data() || {}) : {}));
+  subscriptionCache = { at: now, promise };
+  promise.catch(() => {
+    if (subscriptionCache?.promise === promise) subscriptionCache = null;
+  });
+  return promise;
 }
 
 async function getActiveSchoolYearKey() {
@@ -180,9 +205,13 @@ async function requireFeatureEnabled(featureKey) {
   throw new HttpsError('failed-precondition', 'This school plan does not include that access feature yet.');
 }
 
+// People wait on every callable, so each one runs on a 1GB instance: 1st gen functions get
+// CPU in proportion to memory, and the 256MB default made cold starts and work several times slower.
+const CALLABLE_MEMORY = '1GB';
+
 function callable(handler, options = {}) {
   let builder = functionsV1.region(FUNCTIONS_REGION);
-  const runWith = {};
+  const runWith = { memory: CALLABLE_MEMORY };
   if (options.timeoutSeconds) runWith.timeoutSeconds = options.timeoutSeconds;
   if (options.memory) runWith.memory = options.memory;
   if (options.secrets) runWith.secrets = options.secrets;
@@ -2270,7 +2299,9 @@ exports.markStudentLeftSchool = callable(async (request) => {
     formerClassName = classSnap.exists ? String(classSnap.data()?.name || '') : '';
   }
   const purgeAfterAt = AUTO_PURGE_LEFT_STUDENTS ? buildPurgeAfterAt() : FieldValue.delete();
-  await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).set({
+  // Both records change in one commit, then parent access and the family snapshot update together.
+  const leaveBatch = db.batch();
+  leaveBatch.set(db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`), {
     activeSchoolYearKey: yearKey,
     enrollmentStatus: 'inactive',
     classId: null,
@@ -2284,15 +2315,18 @@ exports.markStudentLeftSchool = callable(async (request) => {
     purgeAfterAt,
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
-  await db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`).set(withYear({
+  leaveBatch.set(db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`), withYear({
     studentId,
     enrollmentStatus: 'inactive',
     leftReason: reason,
     leftSchoolAt: FieldValue.serverTimestamp(),
     purgeAfterAt
   }, yearKey), { merge: true });
-  await disableParentAccessForStudent(studentId, { reason: 'left-school' });
-  await upsertParentSnapshot(studentId, { activeSchoolYearKey: yearKey, enrollmentStatus: 'inactive' });
+  await leaveBatch.commit();
+  await Promise.all([
+    disableParentAccessForStudent(studentId, { reason: 'left-school' }),
+    upsertParentSnapshot(studentId, { activeSchoolYearKey: yearKey, enrollmentStatus: 'inactive' })
+  ]);
   return { ok: true, reason, purgeAfterAt: AUTO_PURGE_LEFT_STUDENTS ? purgeAfterAt.toDate().toISOString() : null };
 });
 
@@ -2428,12 +2462,15 @@ exports.transferStudentToClass = callable(async (request) => {
   if (!studentId || !classId) {
     throw new HttpsError('invalid-argument', 'Student and target class are required.');
   }
-  const student = await getStudent(studentId);
-  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get();
+  // Independent reads run together so a move waits for one round trip, not three.
+  const [student, classSnap, isSecretary] = await Promise.all([
+    getStudent(studentId),
+    db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get(),
+    isCanonicalSecretaryCaller(caller)
+  ]);
   if (!classSnap.exists) throw new HttpsError('not-found', 'Target class was not found.');
   const classData = classSnap.data() || {};
   if (classData.status === 'archived') throw new HttpsError('failed-precondition', 'Target class is archived.');
-  const isSecretary = await isCanonicalSecretaryCaller(caller);
   if (isSecretary) await requireFeatureEnabled('secretaryAccess');
   const canMove = isSecretary || student.createdBy?.uid === caller.uid;
   if (!canMove) {
@@ -2443,7 +2480,11 @@ exports.transferStudentToClass = callable(async (request) => {
   const previousOwnerUid = student.createdBy?.uid || null;
   const owner = classData.createdBy || null;
   const schoolYearKey = classData.schoolYearKey || student.activeSchoolYearKey || await getActiveSchoolYearKey();
-  const parentLink = await getParentLink(studentId);
+  const [parentLink, transferredOaths] = await Promise.all([
+    getParentLink(studentId),
+    db.collection(PUBLIC_DATA_PATH + '/ember_oaths')
+      .where('studentId', '==', studentId).where('schoolYearKey', '==', schoolYearKey).get()
+  ]);
   const transferWrites = [
     {
       ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
@@ -2475,8 +2516,6 @@ exports.transferStudentToClass = callable(async (request) => {
       }, schoolYearKey)
     }
   ];
-  const transferredOaths = await db.collection(PUBLIC_DATA_PATH + '/ember_oaths')
-    .where('studentId', '==', studentId).where('schoolYearKey', '==', schoolYearKey).get();
   transferredOaths.docs.forEach(o => transferWrites.push({
     ref: o.ref, payload: { classId, teacherId: owner.uid, createdBy: owner, updatedAt: FieldValue.serverTimestamp() }
   }));
@@ -2487,16 +2526,18 @@ exports.transferStudentToClass = callable(async (request) => {
     });
   }
   await commitBatchChunks(transferWrites);
-  await syncStudentThreadParticipants(studentId, {
-    addUid: owner?.uid || null,
-    removeUid: previousOwnerUid && previousOwnerUid !== owner?.uid ? previousOwnerUid : null,
-    keepUids: parentLink?.parentUid ? [parentLink.parentUid] : []
-  });
-  await upsertParentSnapshot(studentId, {
-    activeSchoolYearKey: schoolYearKey,
-    classId,
-    className: classData.name || ''
-  });
+  await Promise.all([
+    syncStudentThreadParticipants(studentId, {
+      addUid: owner?.uid || null,
+      removeUid: previousOwnerUid && previousOwnerUid !== owner?.uid ? previousOwnerUid : null,
+      keepUids: parentLink?.parentUid ? [parentLink.parentUid] : []
+    }),
+    upsertParentSnapshot(studentId, {
+      activeSchoolYearKey: schoolYearKey,
+      classId,
+      className: classData.name || ''
+    })
+  ]);
   return { ok: true };
 });
 
@@ -2735,20 +2776,26 @@ exports.manageShopItem = callable(async (request) => {
   }
 }, { timeoutSeconds: 180, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });
 
-const { createAvatarForgeHandlers } = require('./avatarForge');
-const avatarForge = createAvatarForgeHandlers({
-  requireStudentManager,
-  requireFeatureEnabled,
-  publicDataPath: PUBLIC_DATA_PATH
-});
+// The Avatar Forge (and its AI client) loads only when a portrait is forged or saved.
+let avatarForge = null;
+function getAvatarForge() {
+  if (!avatarForge) {
+    const { createAvatarForgeHandlers } = require('./avatarForge');
+    avatarForge = createAvatarForgeHandlers({
+      requireStudentManager,
+      requireFeatureEnabled,
+      publicDataPath: PUBLIC_DATA_PATH
+    });
+  }
+  return avatarForge;
+}
 // Browser calls to workers.dev and Firebase Storage uploads are what school networks
 // report as CORS failures. These callables keep portrait generation and storage on the server.
-exports.forgeStudentAvatar = callable(avatarForge.forgeStudentAvatar, {
+exports.forgeStudentAvatar = callable((request) => getAvatarForge().forgeStudentAvatar(request), {
   timeoutSeconds: 180,
   memory: '1GB',
   secrets: ['GCQ_AI_SERVICE_KEY']
 });
-exports.saveStudentAvatar = callable(avatarForge.saveStudentAvatar, {
-  timeoutSeconds: 60,
-  memory: '512MB'
+exports.saveStudentAvatar = callable((request) => getAvatarForge().saveStudentAvatar(request), {
+  timeoutSeconds: 60
 });

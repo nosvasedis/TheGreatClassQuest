@@ -181,9 +181,10 @@ test('auth screen gates login behind school activation without the old signup ba
   assert.match(authTemplate, /id="auth-availability-panel"/);
   assert.match(authTemplate, /id="auth-interactive"/);
   assert.match(authTemplate, /id="auth-availability-retry"/);
-  assert.match(app, /schoolAuthState = 'checking'/);
-  assert.match(app, /schoolAuthState = status\?\.state === 'active' \? 'active' : 'locked'/);
-  assert.match(app, /schoolAuthState = 'error'/);
+  // A device that has seen the school open shows the login form at once; others wait for the check.
+  assert.match(app, /schoolAuthState = knownOpen \? 'active' : 'checking'/);
+  assert.match(app, /nextState = status\?\.state === 'active' \? 'active' : 'locked'/);
+  assert.match(app, /nextState = knownOpen \? 'active' : 'error'/);
   assert.match(app, /Awaiting school activation/);
   assert.match(app, /Couldn't confirm school activation/);
   assert.match(authCss, /\.auth-availability-panel/);

@@ -2,7 +2,6 @@
 
 const crypto = require('node:crypto');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 const { HttpsError } = require('firebase-functions/v1/https');
 const { shopAiChat, shopAiImage } = require('./shop/ai');
 
@@ -43,6 +42,7 @@ function parseImageDataUrl(value) {
 async function uploadPortrait(studentId, bytes, contentType) {
   const extension = contentType === 'image/webp' ? 'webp' : (contentType === 'image/jpeg' ? 'jpg' : 'png');
   const path = `avatars/${studentId}/avatar.${extension}`;
+  const { getStorage } = require('firebase-admin/storage');
   const bucket = getStorage().bucket();
   const file = bucket.file(path);
   const token = crypto.randomUUID();

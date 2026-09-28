@@ -859,6 +859,25 @@ function syncAuthRoleUi() {
 
 let authAvailabilityPromise = null;
 
+// Once this device has seen the school open, the login form shows straight away and the
+// server check runs in the background, instead of every visit waiting on it.
+const SCHOOL_AUTH_OPEN_KEY = 'gcq.schoolAuthOpen';
+
+function readSchoolAuthOpenHint() {
+    try {
+        return localStorage.getItem(SCHOOL_AUTH_OPEN_KEY) === '1';
+    } catch (_) {
+        return false;
+    }
+}
+
+function writeSchoolAuthOpenHint(isOpen) {
+    try {
+        if (isOpen) localStorage.setItem(SCHOOL_AUTH_OPEN_KEY, '1');
+        else localStorage.removeItem(SCHOOL_AUTH_OPEN_KEY);
+    } catch (_) { /* storage unavailable: the server check still decides */ }
+}
+
 async function initializeAuthAvailability() {
     if (authAvailabilityPromise) return authAvailabilityPromise;
     authAvailabilityPromise = (async () => {
@@ -867,17 +886,23 @@ async function initializeAuthAvailability() {
         syncAuthRoleUi();
         return;
     }
-    schoolAuthState = 'checking';
+    const knownOpen = readSchoolAuthOpenHint();
+    schoolAuthState = knownOpen ? 'active' : 'checking';
     syncAuthRoleUi();
+    let nextState;
     try {
         const { getSecretaryBootstrapStatus } = await loadSecretaryAdminRuntime();
         const status = await getSecretaryBootstrapStatus();
-        schoolAuthState = status?.state === 'active' ? 'active' : 'locked';
+        nextState = status?.state === 'active' ? 'active' : 'locked';
+        writeSchoolAuthOpenHint(nextState === 'active');
     } catch (error) {
         console.warn('Could not verify Secretary activation status:', error?.message || error);
-        schoolAuthState = 'error';
+        nextState = knownOpen ? 'active' : 'error';
     }
-    syncAuthRoleUi();
+    if (nextState !== schoolAuthState) {
+        schoolAuthState = nextState;
+        syncAuthRoleUi();
+    }
     })().finally(() => { authAvailabilityPromise = null; });
     return authAvailabilityPromise;
 }

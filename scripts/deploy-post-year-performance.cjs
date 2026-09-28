@@ -2,17 +2,10 @@
 
 const { spawnSync } = require('child_process');
 const path = require('path');
+const { runFirebase: runFirebaseCli } = require('./lib/firebase-cli.cjs');
 
 const repoRoot = path.resolve(__dirname, '..');
 const projectId = process.env.FIREBASE_PROJECT || 'the-great-class-quest';
-const firebaseBin = path.join(
-  repoRoot,
-  'node_modules',
-  'firebase-tools',
-  'lib',
-  'bin',
-  'firebase.js',
-);
 
 function runNodeScript(relativePath, label) {
   console.log(`\n=== ${label} ===`);
@@ -26,13 +19,9 @@ function runNodeScript(relativePath, label) {
   }
 }
 
-function runFirebase(args, label) {
+async function runFirebase(args, label) {
   console.log(`\n=== ${label} ===`);
-  const result = spawnSync(process.execPath, [firebaseBin, ...args], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    env: process.env,
-  });
+  const result = await runFirebaseCli(args, { attempts: 3 });
   if (result.status !== 0) {
     throw new Error(`${label} failed with exit code ${result.status ?? 'unknown'}.`);
   }
@@ -52,12 +41,12 @@ function runNpmScript(scriptName, label) {
 }
 
 async function main() {
-  runFirebase(
+  await runFirebase(
     ['deploy', '--only', 'firestore:indexes', '--project', projectId, '--non-interactive'],
     'Deploy Firestore indexes from firestore.indexes.json',
   );
   runNodeScript('scripts/wait-for-firestore-indexes.cjs', 'Wait for Firestore indexes');
-  runFirebase(
+  await runFirebase(
     ['deploy', '--only', 'functions', '--project', projectId, '--non-interactive'],
     'Deploy Cloud Functions',
   );

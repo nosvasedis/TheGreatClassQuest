@@ -2,6 +2,7 @@
 
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { firebaseBin } = require('./lib/firebase-cli.cjs');
 const {
   compareRequiredIndexes,
   formatRequiredIndexLabel,
@@ -12,14 +13,6 @@ const repoRoot = path.resolve(__dirname, '..');
 const projectId = process.env.FIREBASE_PROJECT || 'the-great-class-quest';
 const maxAttempts = Number(process.env.INDEX_WAIT_ATTEMPTS || 40);
 const delayMs = Number(process.env.INDEX_WAIT_DELAY_MS || 15000);
-const firebaseBin = path.join(
-  repoRoot,
-  'node_modules',
-  'firebase-tools',
-  'lib',
-  'bin',
-  'firebase.js',
-);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -6,6 +6,7 @@ const { initializeApp, getApps, cert, applicationDefault } = require('firebase-a
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 const { getSecurityRules } = require('firebase-admin/security-rules');
 const { JWT, GoogleAuth } = require('google-auth-library');
+const { firebaseBin, firebaseEnv } = require('../../scripts/lib/firebase-cli.cjs');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const billingDir = path.join(repoRoot, 'billing');
@@ -246,10 +247,6 @@ function getRequiredFunctionNames(readinessTarget) {
     return Array.from(new Set([...CORE_RUNTIME_FUNCTION_NAMES, ...PARENT_RUNTIME_FUNCTION_NAMES]));
   }
   return [];
-}
-
-function getFirebaseToolsBin() {
-  return path.join(repoRoot, 'node_modules', 'firebase-tools', 'lib', 'bin', 'firebase.js');
 }
 
 function normalizeSiteUrl(siteDomainOrUrl, projectId) {
@@ -569,14 +566,13 @@ async function verifyRequiredCloudFunctions(projectId, serviceAccount, readiness
 }
 
 function deployCloudFunctionsForSchool(projectId, serviceAccountKeyPath) {
-  const firebaseBin = getFirebaseToolsBin();
   if (!fs.existsSync(firebaseBin)) {
     return {
       ok: false,
       status: 'needs_attention',
       deployed: false,
       message: 'firebase-tools is not installed in this repo, so Cloud Functions could not be deployed automatically.',
-      actionHint: 'From the repo root run `npm install`, then rerun this school check, or deploy manually with `node node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions --project ' + projectId + '`.',
+      actionHint: 'From the repo root run `npm install`, then rerun this school check, or deploy manually with `npm run deploy:functions -- --project ' + projectId + '`.',
       technicalDetails: `Missing ${firebaseBin}`,
     };
   }
@@ -586,10 +582,9 @@ function deployCloudFunctionsForSchool(projectId, serviceAccountKeyPath) {
     {
       cwd: repoRoot,
       encoding: 'utf8',
-      env: {
-        ...process.env,
+      env: firebaseEnv({
         GOOGLE_APPLICATION_CREDENTIALS: serviceAccountKeyPath || process.env.GOOGLE_APPLICATION_CREDENTIALS || '',
-      },
+      }),
       timeout: 15 * 60 * 1000,
       maxBuffer: 10 * 1024 * 1024,
     }

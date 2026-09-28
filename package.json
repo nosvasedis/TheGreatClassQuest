@@ -11,6 +11,7 @@
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test",
     "test:e2e": "playwright test",
     "test:rules": "node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore,storage --project demo-gcq \"node --test tests/rules/firestore.rules.test.cjs\"",
+    "deploy:functions": "node scripts/deploy-functions.cjs",
     "audit:prod": "node scripts/audit-production.cjs",
     "set-subscription": "node scripts/set-subscription.js",
     "onboard-school": "node billing/scripts/onboard-new-school.js",

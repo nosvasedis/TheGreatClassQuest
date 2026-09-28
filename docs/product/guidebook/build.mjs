@@ -679,7 +679,8 @@ function headingWidgets(id) {
       { match: ['What you see', 'Τι βλέπεις'], html: uiShot('home-tab.png', 'Class Home: the greeting for the time of day, the Bounty button, weather with Quiz of the Week, reminder pills, Team Quest progress, Top Skill, Chronicle, and class actions.') },
       { match: ['Before the lesson', 'Πριν το μάθημα'], html: uiShot('settings-quiz.png', 'Quiz setup in Teacher Settings: class from the header, this week’s unit and words, then Generate. Ready this week — play it on Home.') },
       { match: ['When it appears', 'Όταν εμφανίζεται'], html: uiShot('quiz-of-the-week.png', 'When the quiz is ready, the question-mark button appears on the Home weather card — first lesson of the week, during lesson time.') },
-      { match: ['How play feels', 'Πώς παίζεται'], html: `${uiShot('quiz-play-intro.png', 'The live Quiz of the Week intro: Ready, Quest Heroes? — question count, present students, then Begin the Quiz.')}${uiShot('quiz-play-question.png', 'A question in play: a student is spotlighted, multiple-choice A–D, progress Q 3 / 8, and Skip.')}` }
+      { match: ['How play feels', 'Πώς παίζεται'], html: `${uiShot('quiz-play-intro.png', 'The live Quiz of the Week intro: Ready, Quest Heroes? — question count, present students, then Begin the Quiz.')}${uiShot('quiz-play-question.png', 'A question in play: a student is spotlighted, multiple-choice A–D, progress Q 3 / 8, and Skip.')}` },
+      { match: ['Posting a Quest Bounty', 'Quest Bounty'], html: `${uiShot('bounty-poster.png', 'The bounty poster, Star Hunt: pick the quest, the star target (Quick win, Fair fight or Heroic) and the reward. The line at the bottom reads the whole bounty back before you pin it.')}${uiShot('bounty-poster-timer.png', 'Race the Clock: choose 5 to 30 minutes, your own minutes, or Until the bell, and see the time the sand runs out.')}` }
     ];
   }
   if (id === 'award-stars') {
@@ -688,7 +689,7 @@ function headingWidgets(id) {
       { match: ['The four reasons', 'Τέσσερις αρετές'], html: fourReasons },
       { match: ['Welcome Back'], html: welcomeBackHtml() },
       { match: ['Hero’s Boon', "Hero's Boon"], html: `<div class="live-strip">${liveHeroBoon()}</div>` },
-      { match: ['Teacher Boon'], html: `<div class="live-strip">${liveTeacherBoon()}</div>` }
+      { match: ['Teacher Boon'], html: `<div class="live-strip">${liveTeacherBoon()}</div>${uiShot('teacher-boon-modal.png', 'The Teacher Boon in three steps: Hero, Reason, Bestow. Two stars, once per class, in the last week of the month.')}` }
     ];
   }
   if (id === 'team-quest') {
@@ -719,7 +720,7 @@ function headingWidgets(id) {
   }
   if (id === 'guild-hall') {
     return [
-      { match: ['The four guilds', 'Τα τέσσερα σπίτια'], html: housesHtml() },
+      { match: ['The four guilds', 'Τα τέσσερα σπίτια'], html: `${housesHtml()}${uiShot('guild-banner.png', 'Tap a guild’s emblem and its banner unfurls: crest, motto, traits, Guild Power and Glory.')}${uiShot('guild-anthem.png', 'The music-note button sings the guild’s anthem in a torch-lit alcove, verse by verse.')}` },
       { match: ['Guild Placement', 'Guild Sorting', 'Τοποθέτηση'], html: uiShot('guild-sorting-quiz.png', 'Guild Sorting Ceremony: seven story-style questions, one tap each, while the orb takes on the colours the answers lean toward. The pool matches the league — Nursery language is not Proficiency language. Weighted answers assign a house for life.') },
       { match: ['Glory and Guild Power', 'Glory και Guild Power'], html: uiShot('guild-power.png', 'How Guild Power works: a fair score out of 100. 70% Glory per member this year, 15% Glory per member this week, 10% members taking part, 5% momentum. Each part is scored against the guild doing best in it.') },
       { match: ['What you see', 'Τι βλέπεις στην καρτέλα'], html: uiShot('guild-hall.png', 'Guild Hall crystal columns, ranked by Guild Power. Tap an emblem to unfurl the guild’s banner; the music-note button plays the anthem.') },
@@ -758,13 +759,15 @@ function headingWidgets(id) {
   if (id === 'settings') {
     return [
       { match: ['Student Tools', 'Εργαλεία μαθητών'], html: uiShot('settings-tools.png', 'Student Tools: Star Manager, Coin Purse, and (on Elite) Familiar Sprite Forge — repair tools, not today’s lesson.') },
-      { match: ['My Classes', 'Τα τμήματά μου'], html: uiShot('settings-classes.png', 'My Classes: each class card shows its emblem, Quest League, days and times, then Report, Edit, Students, Oaths, and the trash can last. Add New Class opens the class charter.') },
+      { match: ['My Classes', 'Τα τμήματά μου'], html: `${uiShot('settings-classes.png', 'My Classes: each class card shows its emblem, Quest League, days and times, then Report, Edit, Students, Oaths, and the trash can last. Add New Class opens the class charter.')}${uiShot('class-charter.png', 'Add New Class is a class charter: name, emblem, Quest League, meeting days and times, then Create Class.')}${uiShot('class-emblem-case.png', 'Tap the emblem to open the emblem case: search or browse hundreds of class logos by drawer.')}` },
       { match: ['Profile', 'Προφίλ'], html: uiShot('settings-profile.png', 'Profile: your display name, the Quest Master name on logs. The staff badge shows it as you type.') },
       { match: ['Manage Students', 'Manage Students'], html: uiShot('settings-roster.png', 'Manage Students: avatar, name, Hero Class and guild chip, then the same tools on every row in three groups: Hero path (Sort, Class, Skills), Records (Chronicle, Parents, Avatar, Certificate) and Manage (Move, Edit, Delete).') },
       { match: ["Hero’s Chronicle", "Hero's Chronicle"], html: uiShot('settings-chronicle.png', "Hero’s Chronicle: the hero’s bound book. Notes holds the History of Deeds and Write an entry; Oaths and The Oracle are the other page tabs. Only an Oracle summary you Publish to Parent Portal reaches families.") },
       { match: ['My Planning', 'Ο προγραμματισμός μου'], html: uiShot('settings-planning.png', 'My Planning: the last lesson day for the class in the header, shown on a tear-off calendar leaf. Holidays belong to the Secretary.') },
       { match: ['Class Grading', 'Βαθμολόγηση τμήματος'], html: uiShot('settings-grading.png', 'Class Grading: My classes, Tests or Dictations, then the School picture.') },
       { match: ['Family Access'], html: uiShot('settings-family.png', 'Family Access: pick a student; the key tag shows whether a parent login exists. One username and password per child.') },
+      { match: ['Adventurer’s Passport', "Adventurer's Passport"], html: uiShot('adventurers-passport.png', 'The Adventurer’s Passport from Edit on the roster: portrait and identity, quest record, Birthday and Nameday stamps, the Hero path visa, and shortcuts to Chronicle, Certificate, Avatar Forge and more.') },
+      { match: ['Avatar Forge'], html: uiShot('avatar-forge.png', 'The Avatar Forge (Elite): choose the creature, the colour and the relic, then Strike the Anvil and keep the portrait you like.') },
       { match: ['Quiz (Elite)', 'Quiz Elite'], html: uiShot('settings-quiz.png', 'Quiz setup: Junior B from the header, this week’s Primary Path unit and words, Generate, and a Ready banner. Play it on Home.') }
     ];
   }
@@ -773,6 +776,12 @@ function headingWidgets(id) {
       { match: ['How you assign a class', 'Πώς ορίζεις τάξη'], html: uiShot('hero-class.png', 'Hero Class ceremony: Alex previews Guardian; the hall morphs to that vocation. Swear this Path writes the class. First choice is free.') },
       { match: ['The eight classes', 'Οι οκτώ τάξεις'], html: heroClassesHtml() },
       { match: ['Skill Tree on screen', 'Skill Tree στην οθόνη'], html: uiShot('skill-tree.png', 'Skill Tree for a Guardian: Iron Resolve is active; level 2 is pending. The Skills button on Manage Students pulses until they pick one permanent branch.') }
+    ];
+  }
+  if (id === 'school-office') {
+    return [
+      { match: ['Home — the front desk', 'Home — η υποδοχή'], html: uiShot('office-home.png', 'The front desk: the school’s counts, what is waiting on you today, the latest grade and message, the office drawers, and the former students on file.') },
+      { match: ['Admin → Students & Classes'], html: uiShot('office-registry.png', 'Students & Classes: enrol a new student, seat returning students, and each class’s drawer. Students waiting for a class come first.') }
     ];
   }
   if (id === 'hero-campfire') {

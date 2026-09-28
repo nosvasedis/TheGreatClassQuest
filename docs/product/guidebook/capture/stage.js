@@ -21,7 +21,6 @@ import {
   hideQuiz,
   hideShop,
   hideSkillTree,
-  showAdventureLog,
   showFortuneWheel,
   showHallOfHeroes,
   showQuiz,
@@ -86,6 +85,20 @@ import {
   showHomeTab,
   showProjector
 } from './fill-surfaces.js';
+import {
+  hideRedesign,
+  redesignShellHtml,
+  showAdventureLogDiary as showAdventureLog,
+  showAvatarForge,
+  showBountyPoster,
+  showClassCharter,
+  showEmblemCase,
+  showGuildAnthem,
+  showGuildBanner,
+  showOffice,
+  showPassport,
+  showTeacherBoon
+} from './fill-redesign.js';
 import {
   hideCampfire,
   showCampfireScene,
@@ -242,6 +255,7 @@ document.body.insertAdjacentHTML('beforeend', ceremonyHTML);
 document.body.insertAdjacentHTML('beforeend', attendanceModalsHTML);
 document.body.insertAdjacentHTML('beforeend', extrasShellHtml());
 document.body.insertAdjacentHTML('beforeend', deeperShellHtml());
+document.body.insertAdjacentHTML('beforeend', redesignShellHtml());
 document.getElementById('about-tab')?.classList.add('hidden');
 {
   const modal = document.getElementById('hero-celebration-modal');
@@ -329,6 +343,16 @@ window.__gcqCapture = {
   hideHeroClass,
   hideCampfire,
   showOathBoard,
-  showCampfireScene
+  showCampfireScene,
+  hideRedesign,
+  showBountyPoster,
+  showPassport,
+  showAvatarForge,
+  showClassCharter,
+  showEmblemCase,
+  showGuildBanner,
+  showGuildAnthem,
+  showTeacherBoon,
+  showOffice
 };
 document.documentElement.classList.add('capture-ready');

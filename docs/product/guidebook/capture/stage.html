@@ -178,6 +178,8 @@
     }
     #adventure-log-tab.capture-log {
       display: block !important;
+      flex-shrink: 0;
+      height: auto !important;
       position: relative;
       min-height: 42rem;
       padding: 2rem 1.5rem 5.5rem;
@@ -578,6 +580,78 @@
     #hero-campfire-scene.capture-cf.cf-still,
     #hero-campfire-scene.capture-cf.cf-still *:not(canvas) {
       animation: none !important;
+    }
+    /* Redesigned modals (fill-redesign.js): the overlay itself is the frame, in page flow. */
+    .capture-modal {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+      min-height: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+      margin: 0 auto;
+      padding: 2.25rem 2rem !important;
+      overflow: visible !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 1 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .capture-modal,
+    .capture-modal *,
+    .capture-modal *::before,
+    .capture-modal *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    .capture-modal .pop-in,
+    .capture-modal .modal-origin-start {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .capture-modal .af-backdrop,
+    .capture-modal .guild-lore-overlay-bg,
+    .capture-modal .guild-anthem-overlay-bg {
+      position: absolute !important;
+      inset: 0 !important;
+    }
+    #create-bounty-modal.capture-bp { width: 52rem; }
+    #create-bounty-modal.capture-bp .bp-sheet { max-height: none !important; }
+    #create-bounty-modal.capture-bp .bp-paper { max-height: none !important; overflow: visible !important; }
+    #edit-student-modal.capture-sp { width: 64rem; }
+    #edit-student-modal.capture-sp .sp-passport,
+    #edit-student-modal.capture-sp .sp-spread { max-height: none !important; overflow: visible !important; }
+    #avatar-maker-modal.capture-af { width: 76rem; }
+    #create-class-modal.capture-cc { width: 50rem; }
+    #logo-picker-modal.capture-lp { width: 66rem; }
+    #logo-picker-modal.capture-lp .logo-picker-shell { max-height: 900px !important; }
+    #guild-lore-overlay.capture-lore { width: 44rem; padding-top: 3rem !important; }
+    #guild-anthem-overlay.capture-anthem { width: 46rem; }
+    #guild-anthem-overlay.capture-anthem .guild-anthem-card { max-height: none !important; }
+    #guild-anthem-overlay.capture-anthem .guild-anthem-lyrics { max-height: 22rem !important; overflow: hidden !important; }
+    #teacher-boon-modal.capture-tb { width: 50rem; background: rgba(2, 6, 23, 0.6) !important; }
+    #secretary-screen.capture-office {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      justify-content: flex-start !important;
+      flex-shrink: 0 !important;
+      width: 1440px;
+      height: auto !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+    #secretary-screen.capture-office .role-main { overflow: visible !important; flex: none; }
+    #secretary-screen.capture-office,
+    #secretary-screen.capture-office * {
+      animation: none !important;
+      transition: none !important;
     }
   </style>
 </head>

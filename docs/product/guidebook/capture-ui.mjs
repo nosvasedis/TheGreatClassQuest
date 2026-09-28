@@ -109,6 +109,8 @@ try {
   await page.evaluate(() => window.__gcqCapture.fillHeader(false));
   await page.waitForTimeout(150);
 
+  // The cloud dock sinks away when idle on a mouse PC; always shoot it awake.
+  await page.evaluate(() => document.getElementById('bottom-nav-bar')?.classList.remove('cloud-dock--asleep'));
   await shot(page.locator('#bottom-nav-bar'), 'nav-dock.png');
   await waitForCloudArt(page);
   await shot(page.locator('#capture-cloud-frame'), 'award-cloud.png');
@@ -198,6 +200,12 @@ try {
     window.__gcqCapture.hideAttendanceChronicle();
   });
 
+  const REDESIGN_SHOTS = new Set([
+    'adventure-log.png', 'campfire-entry.png', 'bounty-poster.png', 'bounty-poster-timer.png',
+    'adventurers-passport.png', 'avatar-forge.png', 'class-charter.png', 'class-emblem-case.png',
+    'guild-banner.png', 'guild-anthem.png', 'teacher-boon-modal.png', 'office-home.png', 'office-registry.png'
+  ]);
+
   async function captureExtra(label, run, locator, file) {
     try {
       if (await page.locator('vite-error-overlay').count()) {
@@ -210,13 +218,14 @@ try {
       if (file === 'award-stars-tab.png' || file === 'award-cloud.png') {
         await waitForCloudArt(page);
       }
-      if (file === 'special-quest-runner.png' || file === 'special-quest-projector.png') {
+      if (file === 'special-quest-runner.png' || file === 'special-quest-projector.png' || REDESIGN_SHOTS.has(file)) {
         await page.evaluate(async () => {
           await Promise.all([...document.images].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
             img.onload = img.onerror = resolve;
           }))));
         });
       }
+      if (REDESIGN_SHOTS.has(file)) await waitForBgImages(page, locator);
       await page.waitForTimeout(file === 'fortune-ledger.png' || file === 'award-stars-tab.png' || file === 'projector.png' || file === 'home-tab.png' || file === 'special-quest-projector.png' || file === 'special-quest-runner.png' || file === 'campfire-scene.png' || file === 'campfire-words.png' || file === 'ember-oaths.png' || file === 'campfire-entry.png' ? 400 : 220);
       await shot(el, file);
     } catch (err) {
@@ -229,7 +238,6 @@ try {
   await captureExtra('Market eggs', () => window.__gcqCapture.showShop('eggs'), '#shop-tab.capture-shop', 'market-eggs.png');
   await captureExtra("Fortune's Wheel", () => window.__gcqCapture.showFortuneWheel(), '#fortunes-wheel-modal.capture-fw .fw-card', 'fortunes-wheel.png');
   await captureExtra('Skill Tree', () => window.__gcqCapture.showSkillTree(), '#skill-tree-modal.capture-skill #skill-tree-modal-panel', 'skill-tree.png');
-  await captureExtra('Adventure Log', () => window.__gcqCapture.showAdventureLog(), '#adventure-log-tab.capture-log', 'adventure-log.png');
   await captureExtra('Hall of Heroes', () => window.__gcqCapture.showHallOfHeroes(), '#history-modal.capture-hoh #history-modal-panel', 'hall-of-heroes.png');
   await captureExtra('Quiz of the Week', () => window.__gcqCapture.showQuiz(), '#capture-quiz-host.capture-quiz .weather-card', 'quiz-of-the-week.png');
   await captureExtra('Bulk trial', () => window.__gcqCapture.showBulkTrial(), '#bulk-trial-modal.capture-bulk #bulk-trial-shell', 'scroll-bulk.png');
@@ -266,10 +274,26 @@ try {
   await captureExtra('Certificate forge', () => window.__gcqCapture.showCertificateForge(), '#certificate-modal.capture-cert-forge > div', 'certificate-forge.png');
   await captureExtra('Certificate print', () => window.__gcqCapture.showCertificatePrint(), '#certificate-template.capture-cert', 'certificate.png');
   await captureExtra('Hero class assignment', () => window.__gcqCapture.showHeroClass(), '#hero-class-select-modal.capture-hero-class #hcs-shell', 'hero-class.png');
-  await captureExtra('Adventure Log campfire', () => window.__gcqCapture.showAdventureLog('gather'), '#adventure-log-tab.capture-log', 'campfire-entry.png');
   await captureExtra('Ember Oaths board', () => window.__gcqCapture.showOathBoard(), '#ember-oaths-modal.capture-eo .eo-shell', 'ember-oaths.png');
   await captureExtra('Campfire word embers', () => window.__gcqCapture.showCampfireScene('words'), '#hero-campfire-scene.capture-cf', 'campfire-words.png');
   await captureExtra('Campfire oath circle', () => window.__gcqCapture.showCampfireScene('circle'), '#hero-campfire-scene.capture-cf', 'campfire-scene.png');
+
+  // From here on "today" is Monday 28 September 2026, 10:15: the diary, the Teacher Boon window
+  // (last 7 days of the month), the bounty bell and the office greeting all read the clock.
+  await page.clock.setFixedTime(new Date(2026, 8, 28, 10, 15));
+  await captureExtra('Adventure Log', () => window.__gcqCapture.showAdventureLog(), '#adventure-log-tab.capture-log', 'adventure-log.png');
+  await captureExtra('Adventure Log campfire', () => window.__gcqCapture.showAdventureLog('gather'), '#adventure-log-tab.capture-log', 'campfire-entry.png');
+  await captureExtra('Post a Bounty: Star Hunt', () => window.__gcqCapture.showBountyPoster('standard'), '#create-bounty-modal.capture-bp', 'bounty-poster.png');
+  await captureExtra('Post a Bounty: Race the Clock', () => window.__gcqCapture.showBountyPoster('timer'), '#create-bounty-modal.capture-bp', 'bounty-poster-timer.png');
+  await captureExtra("Adventurer's Passport", () => window.__gcqCapture.showPassport(), '#edit-student-modal.capture-sp', 'adventurers-passport.png');
+  await captureExtra('Avatar Forge', () => window.__gcqCapture.showAvatarForge(), '#avatar-maker-modal.capture-af', 'avatar-forge.png');
+  await captureExtra('Class charter', () => window.__gcqCapture.showClassCharter(), '#create-class-modal.capture-cc', 'class-charter.png');
+  await captureExtra('Class emblem case', () => window.__gcqCapture.showEmblemCase(), '#logo-picker-modal.capture-lp', 'class-emblem-case.png');
+  await captureExtra('Guild banner', () => window.__gcqCapture.showGuildBanner(), '#guild-lore-overlay.capture-lore', 'guild-banner.png');
+  await captureExtra('Guild anthem', () => window.__gcqCapture.showGuildAnthem(), '#guild-anthem-overlay.capture-anthem', 'guild-anthem.png');
+  await captureExtra('Teacher Boon', () => window.__gcqCapture.showTeacherBoon(), '#teacher-boon-modal.capture-tb', 'teacher-boon-modal.png');
+  await captureExtra('Office front desk', () => window.__gcqCapture.showOffice('home'), '#secretary-screen.capture-office', 'office-home.png');
+  await captureExtra('Office Students & Classes', () => window.__gcqCapture.showOffice('registry'), '#secretary-screen.capture-office', 'office-registry.png');
 
   console.log('Captured UI chrome into', OUT);
 } finally {

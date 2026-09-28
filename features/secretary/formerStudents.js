@@ -66,6 +66,11 @@ export function getFormerStudents() {
     return cache;
 }
 
+/** Guidebook capture and local previews only: fill the former-students file without Firestore. */
+export function previewFormerStudents(items = []) {
+    cache = { status: 'ready', items: sortFormer(items), error: '' };
+}
+
 export function loadFormerStudents({ force = false } = {}) {
     if (inflight) return inflight;
     if (!force && cache.status === 'ready') return Promise.resolve(cache);

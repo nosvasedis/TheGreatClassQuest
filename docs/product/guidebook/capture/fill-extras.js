@@ -14,7 +14,6 @@ import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from '../../../../features
 import { getHeroLegendTierInfo } from '../../../../utils.js';
 import { classModalsHTML } from '../../../../templates/modals/class.js';
 import { buildHallOfHeroesHtml } from '../../../../ui/modals/rankings.js';
-import { campfireChipMarkup, oathsButtonMarkup } from '../../../../features/campfireEntry.js';
 import {
   renderShopItemCard,
   renderFamiliarEggCard,
@@ -391,70 +390,6 @@ export function hideFortuneWheel() {
   const modal = document.getElementById('fortunes-wheel-modal');
   modal?.classList.add('hidden');
   modal?.classList.remove('capture-fw');
-}
-
-export function showAdventureLog(entry = 'oaths') {
-  hideExtras();
-  hideAppScreen();
-  const tab = document.getElementById('adventure-log-tab');
-  if (!tab) return;
-  tab.classList.remove('hidden');
-  tab.classList.add('capture-log');
-  const month = document.getElementById('adventure-log-month-filter');
-  if (month) {
-    month.innerHTML = '<option value="2026-08" selected>August 2026</option>';
-  }
-  ['log-adventure-btn', 'hall-of-heroes-btn'].forEach((id) => {
-    document.getElementById(id)?.removeAttribute('disabled');
-  });
-  tab.querySelectorAll('.al-fab-cluster, .tab-fab-cluster').forEach((el) => {
-    el.classList.add('revealed');
-  });
-  const actions = tab.querySelector('.al-primary-actions');
-  actions?.querySelector(':scope > .campfire-entry')?.remove();
-  if (actions) {
-    const wrap = document.createElement('div');
-    wrap.className = 'campfire-entry';
-    wrap.innerHTML = entry === 'gather'
-      ? campfireChipMarkup({ igniting: true })
-      : oathsButtonMarkup({ ready: 2 });
-    actions.append(wrap);
-  }
-  const feed = document.getElementById('adventure-log-feed');
-  if (feed) {
-    feed.innerHTML = `
-            <div class="diary-page">
-                <div class="diary-header">
-                    <div>
-                        <h3 class="diary-date">Sunday, 30 August 2026</h3>
-                        <p class="diary-title">The Meadows Remember</p>
-                    </div>
-                    <div class="flex flex-col items-end gap-2">
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold uppercase tracking-wider">Manual Chronicle</span>
-                        <div class="diary-hero bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
-                            <i class="fas fa-crown mr-1"></i>
-                            <span class="uppercase tracking-tighter text-[10px] opacity-90 mr-1">Hero:</span>
-                            Alex
-                        </div>
-                    </div>
-                </div>
-                <div class="diary-body">
-                    <div class="diary-text-content">
-                        <p class="diary-text">Junior B practised Teamwork in pairs, then Alex led a calm recap. Tomorrow we return to the Golden Citadel trail.</p>
-                        <div class="diary-highlights">
-                            <span class="diary-highlight-chip">Teamwork</span>
-                            <span class="diary-highlight-chip">Hero of the Day</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="diary-footer">
-                    <div class="diary-keywords">
-                        <span class="diary-keyword">#teamwork</span>
-                        <span class="diary-keyword">#hero</span>
-                    </div>
-                </div>
-            </div>`;
-  }
 }
 
 export function hideAdventureLog() {

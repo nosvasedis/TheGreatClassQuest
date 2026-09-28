@@ -75,10 +75,11 @@ function getSelectedStudent() {
     return students.find((student) => student.id === effectiveId) || students[0] || null;
 }
 
-function renderParentAccessCard() {
+/** The parent-login card. Exported (with the links passed in) so the guidebook capture renders the real card. */
+export function renderParentAccessCard(data = accessData) {
     const students = getManageableStudents().slice().sort((a, b) => a.name.localeCompare(b.name));
     const selectedStudent = getSelectedStudent();
-    const link = selectedStudent ? accessData.parentLinksByStudent[selectedStudent.id] : null;
+    const link = selectedStudent ? data.parentLinksByStudent[selectedStudent.id] : null;
 
     const status = link ? String(link.status || 'active') : '';
     const statusTone = !link ? 'none' : status === 'active' ? 'active' : 'off';

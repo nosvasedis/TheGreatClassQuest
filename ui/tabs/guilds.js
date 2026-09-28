@@ -311,8 +311,20 @@ function stopKaraokeSync() {
 // ─── Anthem modal ─────────────────────────────────────────────────────────────
 function openAnthemModal(guildId) {
     const overlay = ensureAnthemOverlayRoot();
+    if (!overlay || !fillGuildAnthemCard(guildId)) return;
+
+    _playOverlayOpen(overlay, 'guild-anthem-overlay');
+    playGuildAnthem(guildId);
+    startKaraokeSync(guildId);
+}
+
+/**
+ * Dress the anthem alcove for a guild: colours, crest, title and the lyric sheet.
+ * Exported so the guidebook capture renders the real alcove. Returns false when the card is missing.
+ */
+export function fillGuildAnthemCard(guildId) {
     const card = document.getElementById('guild-anthem-card');
-    if (!overlay || !card) return;
+    if (!card) return false;
 
     const guild = getGuildById(guildId);
     const primary = guild?.primary || '#7c3aed';
@@ -342,10 +354,7 @@ function openAnthemModal(guildId) {
                 </div>`;
         }).join('');
     }
-
-    _playOverlayOpen(overlay, 'guild-anthem-overlay');
-    playGuildAnthem(guildId);
-    startKaraokeSync(guildId);
+    return true;
 }
 
 function closeAnthemModal() {
@@ -379,8 +388,26 @@ function ensureLoreOverlayRoot() {
 
 function openGuildLore(guildId, gData) {
     const overlay = ensureLoreOverlayRoot();
+    if (!overlay || !fillGuildLoreCard(guildId, gData)) return;
+
+    // Unfurl the banner
+    _playOverlayOpen(overlay, 'guild-lore-overlay');
+
+    // Glow the matching column emblem
+    document.querySelectorAll('.guild-crystal-col').forEach(col => {
+        col.classList.toggle('guild-active', col.dataset.guild === guildId);
+    });
+
+    playGuildSound(guildId);
+}
+
+/**
+ * Dress the hanging banner for a guild: colours, crest, name, motto, traits and Power.
+ * Exported so the guidebook capture renders the real banner. Returns false when the card is missing.
+ */
+export function fillGuildLoreCard(guildId, gData, { seasonLive = isGuildSeasonLive() } = {}) {
     const card = document.getElementById('guild-lore-card');
-    if (!overlay || !card) return;
+    if (!card) return false;
 
     const guild = getGuildById(guildId);
     const emblemUrl = getGuildEmblemUrl(guildId);
@@ -426,7 +453,7 @@ function openGuildLore(guildId, gData) {
     }
     if (statsEl) {
         const members = gData?.memberCount || 0;
-        if (!isGuildSeasonLive()) {
+        if (!seasonLive) {
             statsEl.innerHTML = `
                 <div class="guild-lore-metrics-primary guild-lore-metrics-primary--frozen">
                     <div class="guild-lore-metric-tile guild-lore-metric-tile--power">
@@ -477,16 +504,7 @@ function openGuildLore(guildId, gData) {
                 </div>`;
         }
     }
-
-    // Unfurl the banner
-    _playOverlayOpen(overlay, 'guild-lore-overlay');
-
-    // Glow the matching column emblem
-    document.querySelectorAll('.guild-crystal-col').forEach(col => {
-        col.classList.toggle('guild-active', col.dataset.guild === guildId);
-    });
-
-    playGuildSound(guildId);
+    return true;
 }
 
 function closeGuildLore() {

@@ -320,6 +320,14 @@ export function setSchoolGraceConfig(grace) {
 }
 
 /**
+ * Guidebook capture and local previews only: use this subscription document without Firestore.
+ * The live app never calls it; loadSubscription() stays the only real source.
+ */
+export function applySubscriptionPreview(rawConfig) {
+    subscriptionConfig = resolveSubscriptionConfig(rawConfig);
+}
+
+/**
  * True if the school's subscription has ended (cancelled and period expired). They are locked out until they resubscribe.
  * @returns {boolean}
  */

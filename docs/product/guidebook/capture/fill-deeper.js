@@ -1,5 +1,6 @@
 /** Extra live chrome: Scroll bulk, Starfall, Story Weavers, Settings, Guild Quiz, Guild Hall, Calendar, Quiz play. */
 
+import * as state from '../../../../state.js';
 import { ideasTabHTML } from '../../../../templates/app/tabs/ideas.js';
 import { optionsTabHTML } from '../../../../templates/app/tabs/options.js';
 import { studentsTabHTML } from '../../../../templates/app/tabs/students.js';
@@ -13,6 +14,7 @@ import { GUILDS, getGuildBadgeHtml, getGuildEmblemUrl } from '../../../../featur
 import { hideAppScreen, hideExtras, onHideExtras } from './fill-extras.js';
 import { classroomShellHtml, hideClassroom } from './fill-classroom.js';
 import { hideSurfaces, surfacesShellHtml } from './fill-surfaces.js';
+import { hideRedesign, seedSchool } from './fill-redesign.js';
 
 function assetUrl(url) {
   return String(url || '').replace(/^\.\//, '/');
@@ -47,6 +49,7 @@ export function hideDeeper() {
   hideSpecialQuestProjector();
   hideClassroom();
   hideSurfaces();
+  hideRedesign();
 }
 
 onHideExtras(hideDeeper);
@@ -174,6 +177,8 @@ function activateOptionsSection(key) {
     iconEl.innerHTML = `<i class="${icon}"></i>`;
   }
   if (labelEl) labelEl.textContent = (active?.textContent || '').replace(/\s+/g, ' ').trim() || 'Student Tools';
+  const hintEl = document.getElementById('options-subtab-trigger-hint');
+  if (hintEl) hintEl.textContent = active?.dataset.hint || '';
 }
 
 function fillStudentTools() {
@@ -189,92 +194,45 @@ function fillStudentTools() {
   }
   const stars = document.getElementById('star-manager-stars-to-add');
   if (stars) stars.disabled = false;
+  const purse = document.getElementById('economy-student-select');
+  if (purse) purse.innerHTML = '<option value="alex" selected>Alex</option><option value="maria">Maria</option>';
+  const gold = document.getElementById('economy-gold-input');
+  if (gold) gold.value = '42';
+  const familiar = document.getElementById('familiar-maintenance-student-select');
+  if (familiar) familiar.innerHTML = '<option value="" selected>Choose a student with a Familiar</option><option value="maria">Maria · Frostpaw</option>';
 }
 
-function fillMyClasses() {
-  const list = document.getElementById('class-list');
-  if (!list) return;
-  list.innerHTML = `
-            <div class="relative bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] shadow-lg border border-teal-100 overflow-hidden">
-                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-4 mb-2">
-                            <span class="text-5xl">📚</span>
-                            <div>
-                                <h3 class="font-title text-3xl text-gray-800 tracking-wide">Junior B</h3>
-                                <p class="text-xs text-teal-600 font-bold uppercase tracking-widest mt-0.5">Junior</p>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-3 mt-4 text-sm font-semibold text-gray-600">
-                            <span class="bg-white/80 px-3.5 py-1.5 rounded-xl shadow-sm border border-gray-100"><i class="fas fa-calendar-day text-teal-500 mr-1"></i> Mon, Wed</span>
-                            <span class="bg-white/80 px-3.5 py-1.5 rounded-xl shadow-sm border border-gray-100"><i class="fas fa-clock text-teal-500 mr-1"></i> 17:00 - 18:30</span>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap justify-end gap-2.5">
-                        <button type="button" class="bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 border border-green-200 font-bold py-2.5 px-5 rounded-2xl"><i class="fas fa-magic mr-1"></i>Report</button>
-                        <button type="button" class="bg-gradient-to-r from-cyan-100 to-blue-100 text-blue-800 border border-blue-200 font-bold py-2.5 px-5 rounded-2xl"><i class="fas fa-pencil-alt mr-1"></i>Edit</button>
-                        <button type="button" class="bg-gradient-to-r from-teal-400 to-emerald-500 text-white border border-teal-400 font-bold py-2.5 px-6 rounded-2xl"><i class="fas fa-users mr-1"></i>Students</button>
-                    </div>
-                </div>
-            </div>`;
+/** My Classes, drawn by the app's own renderer (ui/tabs/classes.js) with the Oaths button mounted. */
+async function fillMyClasses() {
+  seedSchool();
+  const { renderManageClassesTab } = await import('../../../../ui/tabs/classes.js');
+  renderManageClassesTab();
+  const { mountCampfireEntry } = await import('../../../../features/campfireEntry.js');
+  document.querySelectorAll('#class-list .edit-class-btn').forEach((btn) => {
+    if (!btn.parentElement.querySelector('.campfire-entry')) mountCampfireEntry(btn.parentElement, btn.dataset.id, { oathsOnly: true });
+  });
 }
 
-function fillPlanning() {
-  const list = document.getElementById('class-end-dates-list');
-  if (!list) return;
-  list.innerHTML = `
-            <div class="rounded-2xl border border-violet-100 bg-white p-5 md:p-6 shadow-sm ring-1 ring-violet-100/80">
-                <div class="flex items-center gap-4 mb-6">
-                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 text-3xl border border-violet-200/80">📚</div>
-                    <div>
-                        <h3 class="font-title text-xl text-gray-900">Junior B</h3>
-                        <p class="text-xs text-gray-500"><span class="font-semibold text-gray-600">Schedule:</span> Mon, Wed</p>
-                        <p class="text-xs text-violet-700 mt-1.5"><span class="font-semibold">Saved end date:</span> Tue, 16 June 2026</p>
-                    </div>
-                </div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-violet-800/90 mb-2">Final lesson date</label>
-                <input type="date" class="w-full min-h-[48px] px-4 py-3 rounded-xl border-2 border-violet-200 bg-white font-semibold" value="2026-06-16">
-            </div>`;
-  const save = document.getElementById('save-class-end-dates-btn');
-  if (save) save.disabled = false;
+/** My Planning, drawn by the app's own renderer (ui/core/misc.js) for the header class. */
+async function fillPlanning() {
+  seedSchool();
+  state.set('teacherSettings', { schoolYearSettings: { classEndDates: { 'guide-jb': '16-06-2027' } } });
+  const { renderClassEndDatesList } = await import('../../../../ui/core/misc.js');
+  renderClassEndDatesList();
 }
 
-function fillFamilyAccess() {
+/** Family Access, drawn by the app's own card (features/accessManagement.js) with one parent login on file. */
+async function fillFamilyAccess() {
+  seedSchool();
+  state.set('currentUserRole', 'teacher');
+  state.set('currentUserId', 'guide-teacher');
+  state.set('allStudents', (state.get('allStudents') || []).map((s) => ({ ...s, createdBy: { uid: 'guide-teacher' } })));
   const box = document.getElementById('options-access-content');
   if (!box) return;
-  box.innerHTML = `
-        <article class="bg-white rounded-3xl border border-sky-100 p-6 shadow-lg">
-            <div class="mb-4">
-                <h3 class="font-title text-2xl text-sky-800">Parent Access</h3>
-                <p class="text-sm text-slate-500 mt-1">One login per student. Share the username and password with the family.</p>
-            </div>
-            <div class="grid gap-4 lg:grid-cols-[minmax(220px,280px)_1fr]">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Student</label>
-                    <select class="w-full px-4 py-3 border border-slate-200 rounded-2xl bg-white"><option selected>Alex</option></select>
-                    <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        <p><strong class="text-slate-800">Current username:</strong> alex.parent</p>
-                        <p class="mt-1"><strong class="text-slate-800">Status:</strong> active</p>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Parent username</label>
-                            <input type="text" class="w-full px-4 py-3 border border-slate-200 rounded-2xl" value="alex.parent">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Password</label>
-                            <input type="password" class="w-full px-4 py-3 border border-slate-200 rounded-2xl" placeholder="Enter a new password to reset">
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-3">
-                        <button type="button" class="px-5 py-3 rounded-2xl bg-sky-600 text-white font-bold">Save Parent Account</button>
-                        <button type="button" class="px-5 py-3 rounded-2xl bg-amber-100 text-amber-800 font-bold">Reset Password</button>
-                    </div>
-                </div>
-            </div>
-        </article>`;
+  const { renderParentAccessCard } = await import('../../../../features/accessManagement.js');
+  box.innerHTML = renderParentAccessCard({
+    parentLinksByStudent: { 'guide-alex': { studentId: 'guide-alex', username: 'alex.parent', status: 'active' } }
+  });
 }
 
 function fillGrading() {
@@ -406,14 +364,19 @@ export function showSettings(section) {
   tab.classList.add('capture-settings');
   activateOptionsSection(section);
   if (section === 'manage') fillStudentTools();
-  if (section === 'classes') fillMyClasses();
-  if (section === 'planning') fillPlanning();
+  if (section === 'classes') return fillMyClasses();
+  if (section === 'planning') return fillPlanning();
   if (section === 'profile') {
     const name = document.getElementById('teacher-name-input');
     if (name) name.value = 'Ms. Elena';
+    // The staff badge follows the name as it is typed (ui/tabs/navigation.js syncTeacherBadge).
+    const badgeName = document.getElementById('ts-badge-name');
+    const badgeInitials = document.getElementById('ts-badge-initials');
+    if (badgeName) badgeName.textContent = 'Ms. Elena';
+    if (badgeInitials) badgeInitials.textContent = 'EL';
   }
   if (section === 'assessments') fillGrading();
-  if (section === 'access') fillFamilyAccess();
+  if (section === 'access') return fillFamilyAccess();
   if (section === 'quiz') fillQuizSetup();
 }
 

@@ -131,16 +131,6 @@
     }
 }
 
-#hall-of-heroes-btn:not(:disabled) {
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-    border-bottom: 4px solid #1e3a8a; /* Deep navy edge */
-}
-
-#hall-of-heroes-btn:active:not(:disabled) {
-    border-bottom-width: 0;
-    transform: translateY(4px);
-}
-
 #wall-timer-overlay {
     position: fixed !important;
     top: max(20px, env(safe-area-inset-top, 0px) + 12px) !important;

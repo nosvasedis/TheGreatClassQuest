@@ -14,6 +14,15 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 let attendanceChronicleRefreshTimer = null;
 
+// Ink marks in the register: a tick for present, a circled cross for absent.
+const ATTENDANCE_PRESENT_MARK = '<i class="fas fa-check" aria-hidden="true"></i>';
+const ATTENDANCE_ABSENT_MARK = '<i class="fas fa-times" aria-hidden="true"></i>';
+
+function d_label(dateStr) {
+    const d = utils.parseDDMMYYYY(dateStr);
+    return d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : dateStr;
+}
+
 function getAttendanceChronicleModal() {
     return document.getElementById('attendance-chronicle-modal');
 }
@@ -360,10 +369,13 @@ export async function renderAttendanceChronicle(classId) {
 
     // 4. Build HTML
     let html = `
-        <div class="flex items-center justify-between gap-3 mb-1 rounded-2xl border border-sky-200/85 bg-gradient-to-r from-white/95 via-sky-50/55 to-emerald-50/35 px-3 py-2.5 shadow-md shadow-sky-900/[0.06] backdrop-blur-sm">
-            <button id="attendance-prev-btn" type="button" class="w-11 h-11 shrink-0 rounded-xl font-bold text-teal-900 bg-white/85 hover:bg-white border border-teal-200/90 shadow-sm hover:shadow transition-all disabled:opacity-30 disabled:cursor-not-allowed bubbly-button" ${!canGoBack ? 'disabled' : ''} aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
-            <span class="font-title text-lg sm:text-xl md:text-2xl text-slate-800 text-center flex items-center justify-center gap-2 min-w-0 px-2"><i class="fas fa-book-open text-teal-600 shrink-0" aria-hidden="true"></i><span class="truncate">${monthName}</span></span>
-            <button id="attendance-next-btn" type="button" class="w-11 h-11 shrink-0 rounded-xl font-bold text-teal-900 bg-white/85 hover:bg-white border border-teal-200/90 shadow-sm hover:shadow transition-all disabled:opacity-30 disabled:cursor-not-allowed bubbly-button" ${!canGoForward ? 'disabled' : ''} aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
+        <div class="ac-register-nav">
+            <button id="attendance-prev-btn" type="button" class="ac-register-nav__btn" ${!canGoBack ? 'disabled' : ''} aria-label="Previous month"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+            <div class="ac-register-nav__month">
+                <span class="ac-register-nav__kicker">${isEditableMonth ? 'This month · tap a mark to change it' : 'Past month · read only'}</span>
+                <span class="ac-register-nav__name">${monthName}</span>
+            </div>
+            <button id="attendance-next-btn" type="button" class="ac-register-nav__btn" ${!canGoForward ? 'disabled' : ''} aria-label="Next month"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
         </div>
     `;
 
@@ -500,12 +512,13 @@ export async function renderAttendanceChronicle(classId) {
                 const isToday = dateStr === todayKey;
 
                 html += `<td class="attendance-status-cell ${isToday ? 'attendance-status-cell--today' : ''}">
-                    <button class="attendance-status-btn ${isAbsent ? 'status-absent bg-red-500' : 'status-present bg-green-500'}" 
+                    <button type="button" class="attendance-status-btn ${isAbsent ? 'status-absent' : 'status-present'}" 
                             data-student-id="${student.id}" 
                             data-date="${dateStr}" 
                             ${!isEditableMonth ? 'disabled' : ''}
-                            title="${isAbsent ? 'Absent' : 'Present'}">
-                            ${isAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>'}
+                            title="${isAbsent ? 'Absent' : 'Present'}"
+                            aria-label="${safeName}, ${d_label(dateStr)}: ${isAbsent ? 'absent' : 'present'}">
+                            ${isAbsent ? ATTENDANCE_ABSENT_MARK : ATTENDANCE_PRESENT_MARK}
                     </button>
                 </td>`;
             });
@@ -588,20 +601,19 @@ async function toggleAttendanceRecord(button) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
-    button.classList.toggle('status-absent', !isCurrentlyAbsent);
-    button.classList.toggle('status-present', isCurrentlyAbsent);
-    button.classList.toggle('bg-red-500', !isCurrentlyAbsent);
-    button.classList.toggle('bg-green-500', isCurrentlyAbsent);
-    button.innerHTML = !isCurrentlyAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>';
+    const paint = (absent) => {
+        button.classList.toggle('status-absent', absent);
+        button.classList.toggle('status-present', !absent);
+        button.title = absent ? 'Absent' : 'Present';
+        button.setAttribute('aria-label', String(button.getAttribute('aria-label') || '').replace(/(absent|present)$/, absent ? 'absent' : 'present'));
+        button.innerHTML = absent ? ATTENDANCE_ABSENT_MARK : ATTENDANCE_PRESENT_MARK;
+    };
+    paint(!isCurrentlyAbsent);
 
     try {
         await handleMarkAbsent(studentId, student.classId, !isCurrentlyAbsent, date);
     } catch (error) {
-        button.classList.toggle('status-absent', isCurrentlyAbsent);
-        button.classList.toggle('status-present', !isCurrentlyAbsent);
-        button.classList.toggle('bg-red-500', isCurrentlyAbsent);
-        button.classList.toggle('bg-green-500', !isCurrentlyAbsent);
-        button.innerHTML = isCurrentlyAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>';
+        paint(isCurrentlyAbsent);
         showToast('Failed to update attendance.', 'error');
     }
 }

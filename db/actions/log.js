@@ -28,6 +28,7 @@ import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { retryAdventureLogGeneration } from './quests.js';
+import { bindDiaryHighlightPreview, diaryEditorHeroHtml, diaryPageEditorHtml, formatDiaryEditorDate } from '../../features/diaryPageEditor.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
 import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSchoolWideModifierType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
@@ -384,14 +385,7 @@ function formatAdventureLogEditorDateChip(log) {
         const fallback = String(log?.date || '').trim();
         return fallback ? escapeHtml(fallback) : '';
     }
-    return escapeHtml(
-        dateObj.toLocaleDateString('en-GB', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        })
-    );
+    return formatDiaryEditorDate(dateObj);
 }
 
 function syncHeroLine(text, heroName) {
@@ -411,105 +405,47 @@ function openAdventureLogEditor(logId, log, learnedModule) {
     const existing = document.getElementById('adventure-log-editor-modal');
     if (existing) existing.remove();
     const entryMode = inferAdventureLogEntryMode(log);
-    const heroLabel = escapeHtml(log.hero || 'The Class Team');
     const dateChipHtml = formatAdventureLogEditorDateChip(log);
     const subtitle = entryMode === 'manual'
-        ? 'Refine your manual chronicle. The crowned hero stays locked in.'
-        : 'Polish the AI-written story, keep the magic, and publish your final version.';
+        ? 'Tidy up your page. The crowned hero stays on it.'
+        : 'Polish what the Chronicler wrote, or ask it to write the day again.';
     const aiRewriteControl = entryMode === 'ai'
         ? `<button type="button" id="adventure-log-ai-rewrite-btn" class="adventure-log-editor-ai-btn" title="Rewrite this day with the Chronicler (AI)">
                 <i class="fas fa-wand-magic-sparkles adventure-log-editor-ai-icon" aria-hidden="true"></i>
-                <span class="adventure-log-editor-ai-label">AI</span>
+                <span class="adventure-log-editor-ai-label">Ask the Chronicler</span>
            </button>`
         : '';
+    const learnedPicks = learnedModule.renderLearnedTodayPicksHtml(log.learnedToday, 'edit-learned');
 
     const overlay = document.createElement('div');
     overlay.id = 'adventure-log-editor-modal';
     overlay.className = 'adventure-log-editor-overlay';
-    overlay.innerHTML = `
-        <section class="adventure-log-editor-sheet" role="dialog" aria-modal="true" aria-labelledby="adventure-log-editor-title">
-            <header class="adventure-log-editor-header">
-                <div class="adventure-log-editor-header-pattern" aria-hidden="true"></div>
-                <div class="adventure-log-editor-header-inner">
-                    <div class="adventure-log-editor-header-brand">
-                        <div class="adventure-log-editor-icon-box" aria-hidden="true">
-                            <i class="fas fa-book-open"></i>
-                        </div>
-                        <div class="adventure-log-editor-header-text">
-                            <p class="adventure-log-editor-kicker">Adventure Log</p>
-                            <h2 id="adventure-log-editor-title" class="adventure-log-editor-title">Edit Entry</h2>
-                            <p class="adventure-log-editor-subtitle">${subtitle}</p>
-                            ${dateChipHtml ? `<p class="adventure-log-editor-date-chip"><i class="fas fa-calendar-day" aria-hidden="true"></i><span>${dateChipHtml}</span></p>` : ''}
-                        </div>
-                    </div>
-                    <button type="button" id="adventure-log-editor-close-btn" class="adventure-log-editor-close" aria-label="Close editor">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </header>
-
-            <div class="adventure-log-editor-body">
-                <div class="adventure-log-editor-card">
-                    <div class="adventure-log-editor-field">
-                        <label for="edit-log-title">Title</label>
-                        <input type="text" id="edit-log-title" maxlength="90" value="${escapeHtml(log.title || '')}" placeholder="Enter a clear, memorable title">
-                        <p id="edit-log-title-counter" class="adventure-log-editor-hint">0 / 90</p>
-                    </div>
-                </div>
-
-                <div class="adventure-log-editor-card adventure-log-editor-card--story">
-                    <div class="adventure-log-editor-field">
-                        <div class="adventure-log-editor-label-row">
-                            <label for="edit-log-text">Story</label>
-                            ${aiRewriteControl}
-                        </div>
-                        <textarea id="edit-log-text" rows="10" placeholder="Write what happened in this lesson...">${escapeHtml(log.text || '')}</textarea>
-                        <p class="adventure-log-editor-hint">Tip: Use Cmd/Ctrl + Enter to save quickly.</p>
-                    </div>
-                </div>
-
-                <div class="adventure-log-editor-grid">
-                    <div class="adventure-log-editor-card">
-                        <div class="adventure-log-editor-field">
-                            <label>Hero of the Day</label>
-                            <div class="adventure-log-editor-hero-pill">
-                                <i class="fas fa-crown" aria-hidden="true"></i>
-                                <span>${heroLabel}</span>
-                            </div>
-                            <p class="adventure-log-editor-hint">This hero is locked after the lesson is crowned.</p>
-                        </div>
-                    </div>
-
-                    <div class="adventure-log-editor-card">
-                        <div class="adventure-log-editor-field">
-                            <label for="edit-log-highlights">Highlights</label>
-                            <input type="text" id="edit-log-highlights" value="${escapeHtml((log.highlights || []).join(', '))}" placeholder="Teamwork, Creativity, Confidence">
-                            <p class="adventure-log-editor-hint">Use commas to separate up to 4 highlights.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="adventure-log-editor-card">
-                    <div class="adventure-log-editor-field">
-                        <label>What we learned today <span class="adventure-log-editor-optional">(optional)</span></label>
-                        ${learnedModule.renderLearnedTodayPicksHtml(log.learnedToday, 'edit-learned') || '<p class="adventure-log-editor-hint">Nothing was collected for this lesson.</p>'}
-                        <input type="text" id="edit-log-learned-extra" maxlength="160" placeholder="Add your own line (optional)">
-                        <p class="adventure-log-editor-hint">Collected automatically from the quiz, story, quests, trials and homework. Untick anything that does not fit.</p>
-                    </div>
-                </div>
-            </div>
-
-            <footer class="adventure-log-editor-footer">
-                <div class="adventure-log-editor-footer-inner">
-                    <button type="button" id="cancel-edit-log-btn" class="adventure-log-editor-btn secondary">Cancel</button>
-                    <button type="button" id="save-edit-log-btn" class="adventure-log-editor-btn primary">
-                        <i class="fas fa-save"></i>
-                        Save Changes
-                    </button>
-                </div>
-            </footer>
-        </section>
-    `;
+    overlay.innerHTML = diaryPageEditorHtml({
+        ids: {
+            heading: 'adventure-log-editor-title',
+            close: 'adventure-log-editor-close-btn',
+            title: 'edit-log-title',
+            counter: 'edit-log-title-counter',
+            story: 'edit-log-text',
+            highlights: 'edit-log-highlights',
+            cancel: 'cancel-edit-log-btn',
+            save: 'save-edit-log-btn'
+        },
+        heading: 'Edit this page',
+        subtitle,
+        dateLabel: dateChipHtml,
+        titleValue: log.title || '',
+        storyValue: log.text || '',
+        highlightsValue: (log.highlights || []).join(', '),
+        storyTool: aiRewriteControl,
+        heroHtml: diaryEditorHeroHtml(log.hero || 'The Class Team'),
+        learnedHtml: `
+            ${learnedPicks || '<p class="adventure-log-editor-hint">Nothing was collected for this lesson.</p>'}
+            <input type="text" id="edit-log-learned-extra" maxlength="160" placeholder="Add your own line (optional)" autocomplete="off">
+            <p class="adventure-log-editor-hint">Collected from the quiz, story, quests, trials and homework. Untick anything that does not fit.</p>`,
+        saveLabel: 'Save changes',
+        saveIcon: 'fa-check'
+    });
 
     document.body.appendChild(overlay);
     document.body.classList.add('adventure-log-editor-open');
@@ -582,7 +518,10 @@ function openAdventureLogEditor(logId, log, learnedModule) {
                     if (st !== 'failed') {
                         titleInput.value = d.title || '';
                         storyInput.value = d.text || '';
-                        if (highlightsInput) highlightsInput.value = (d.highlights || []).join(', ');
+                        if (highlightsInput) {
+                            highlightsInput.value = (d.highlights || []).join(', ');
+                            highlightsInput.dispatchEvent(new Event('input'));
+                        }
                         updateCounter();
                         const { renderAdventureLog } = await import('../../ui/tabs/log.js');
                         await renderAdventureLog();
@@ -606,6 +545,7 @@ function openAdventureLogEditor(logId, log, learnedModule) {
 
     titleInput.addEventListener('input', updateCounter);
     document.addEventListener('keydown', onEscape);
+    bindDiaryHighlightPreview(highlightsInput, overlay);
 
     updateCounter();
     requestAnimationFrame(() => titleInput.focus());

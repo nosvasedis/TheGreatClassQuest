@@ -893,62 +893,94 @@ async function handleAILogAdventure(classId, classData) {
     }
 }
 
-/** Optional, pre-filled "What we learned today" block for the manual log modal. */
+/** Optional, pre-filled "What we learned today" block for the manual log page. */
 function buildManualLearnedTodayHtml(learned, learnedModule) {
     const picks = learnedModule.renderLearnedTodayPicksHtml(learned, 'learned');
     const collected = picks
-        ? `<p class="text-xs text-teal-700 mb-2">Collected automatically from today's lesson. Untick anything that does not fit.</p>${picks}`
-        : '<p class="text-xs text-gray-500 mb-2">Nothing collected yet today (no quiz, story, quest or trial). You can leave this empty.</p>';
+        ? `${picks}<p class="adventure-log-editor-hint">Collected from today's lesson. Untick anything that does not fit.</p>`
+        : '<p class="adventure-log-editor-hint">Nothing collected yet today (no quiz, story, quest or trial). You can leave this empty.</p>';
     return `
-        <div class="mb-4 learned-today-box">
-            <p class="block text-sm font-medium text-gray-700 mb-2"><i class="fas fa-graduation-cap mr-1 text-teal-600"></i>What we learned today <span class="text-gray-400 font-normal">(optional)</span></p>
+        <div class="learned-today-box">
             ${collected}
-            <input type="text" id="manual-log-learned-extra" maxlength="160" class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Add your own line (optional), e.g. Describing people with adjectives">
+            <input type="text" id="manual-log-learned-extra" maxlength="160" placeholder="Add your own line (optional), e.g. Describing people with adjectives" autocomplete="off">
         </div>`;
 }
 
+function closeManualLogEditor() {
+    const overlay = document.getElementById('adventure-log-new-modal');
+    if (!overlay) return;
+    overlay._cleanup?.();
+    overlay.remove();
+    if (!document.getElementById('adventure-log-editor-modal')) {
+        document.body.classList.remove('adventure-log-editor-open');
+    }
+}
+
 async function handleManualLogAdventure(classId, classData) {
-    // Show manual entry modal
-    const { showModal } = await import('../../ui/modals.js');
     // Loaded on demand to keep it out of the shared actions chunk.
-    const learnedModule = await import('../../features/learnedToday.js');
+    const [learnedModule, editor] = await Promise.all([
+        import('../../features/learnedToday.js'),
+        import('../../features/diaryPageEditor.js')
+    ]);
     const learnedToday = await learnedModule.gatherLearnedToday(classId);
 
-    const modalContent = `
-        <div class="p-6">
-            <h3 class="font-title text-2xl text-teal-700 mb-4 text-center">Write Today's Adventure</h3>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Title for today's entry:</label>
-                <input type="text" id="manual-log-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., A Day of Discovery">
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Today's adventure story:</label>
-                <textarea id="manual-log-text" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Write about today's lesson, achievements, and memorable moments..."></textarea>
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Highlights (optional, comma-separated):</label>
-                <input type="text" id="manual-log-highlights" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., Great participation, Creative answers, Team work">
-                <p class="text-xs text-teal-700 mt-2">When you save, the app will crown today's Hero of the Day and add them to the chronicle automatically.</p>
-            </div>
-            ${buildManualLearnedTodayHtml(learnedToday, learnedModule)}
-            <div class="flex gap-3">
-                <button type="button" id="save-manual-log-btn" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-title py-2 rounded-lg bubbly-button">
-                    <i class="fas fa-save mr-2"></i> Save Entry
-                </button>
-                <button type="button" id="cancel-manual-log-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-title py-2 rounded-lg bubbly-button">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    `;
-    
-    showModal('Manual Adventure Log Entry', modalContent, () => {}, '', true);
-    
-    // Add event listeners
-    document.getElementById('save-manual-log-btn').addEventListener('click', async () => await saveManualLogEntry(classId, classData, learnedModule.readLearnedTodayPicks(document, learnedToday, 'learned', '#manual-log-learned-extra')));
-    document.getElementById('cancel-manual-log-btn').addEventListener('click', () => {
-        import('../../ui/modals.js').then(m => m.hideModal());
+    closeManualLogEditor();
+    const overlay = document.createElement('div');
+    overlay.id = 'adventure-log-new-modal';
+    overlay.className = 'adventure-log-editor-overlay adventure-log-editor-overlay--new';
+    overlay.innerHTML = editor.diaryPageEditorHtml({
+        ids: {
+            heading: 'adventure-log-new-title',
+            close: 'close-manual-log-btn',
+            title: 'manual-log-title',
+            counter: 'manual-log-title-counter',
+            story: 'manual-log-text',
+            highlights: 'manual-log-highlights',
+            cancel: 'cancel-manual-log-btn',
+            save: 'save-manual-log-btn'
+        },
+        heading: "Write today's page",
+        subtitle: `${editor.escapeDiaryEditorHtml(classData.name || 'Your class')}'s diary`,
+        dateLabel: editor.formatDiaryEditorDate(new Date()),
+        heroHtml: editor.diaryEditorHeroHtml('', { pending: true }),
+        learnedHtml: buildManualLearnedTodayHtml(learnedToday, learnedModule),
+        saveLabel: 'Save page & crown the Hero',
+        saveIcon: 'fa-crown'
     });
+    document.body.appendChild(overlay);
+    document.body.classList.add('adventure-log-editor-open');
+
+    const titleInput = overlay.querySelector('#manual-log-title');
+    const counter = overlay.querySelector('#manual-log-title-counter');
+    const saveBtn = overlay.querySelector('#save-manual-log-btn');
+    const updateCounter = () => {
+        counter.textContent = `${titleInput.value.length} / 90`;
+        counter.classList.toggle('limit', titleInput.value.length > 80);
+    };
+    const onKey = (event) => {
+        if (saveBtn.disabled) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeManualLogEditor();
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+            event.preventDefault();
+            saveBtn.click();
+        }
+    };
+    overlay._cleanup = () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey);
+    titleInput.addEventListener('input', updateCounter);
+    updateCounter();
+    editor.bindDiaryHighlightPreview(overlay.querySelector('#manual-log-highlights'), overlay);
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay && !saveBtn.disabled) closeManualLogEditor();
+    });
+    overlay.querySelector('#close-manual-log-btn').addEventListener('click', closeManualLogEditor);
+    overlay.querySelector('#cancel-manual-log-btn').addEventListener('click', closeManualLogEditor);
+    saveBtn.addEventListener('click', async () => await saveManualLogEntry(classId, classData, learnedModule.readLearnedTodayPicks(overlay, learnedToday, 'learned', '#manual-log-learned-extra')));
+    requestAnimationFrame(() => titleInput.focus());
 }
 
 async function saveManualLogEntry(classId, classData, learnedToday = null) {
@@ -966,7 +998,7 @@ async function saveManualLogEntry(classId, classData, learnedToday = null) {
     logBtn.disabled = true;
     logBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
     saveBtn.disabled = true;
-    saveBtn.innerHTML = `<i class="fas fa-crown mr-2"></i> Crowning Hero...`;
+    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Crowning the Hero…</span>`;
 
     try {
         const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
@@ -996,8 +1028,7 @@ async function saveManualLogEntry(classId, classData, learnedToday = null) {
             createdAt: serverTimestamp()
         }, heroSelection.heroStudentId);
         
-        const { hideModal } = await import('../../ui/modals.js');
-        hideModal();
+        closeManualLogEditor();
         showToast('Your adventure has been recorded!', 'success');
 
         await showHeroOfTheDayReveal(heroSelection.heroStudentId, 'Crowned in today\'s chronicle!', { classId, logId, studentId: heroSelection.heroStudentId, learnedToday });
@@ -1007,9 +1038,9 @@ async function saveManualLogEntry(classId, classData, learnedToday = null) {
     } finally {
         logBtn.disabled = false;
         logBtn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
-        if (saveBtn) {
+        if (saveBtn && document.body.contains(saveBtn)) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = `<i class="fas fa-save mr-2"></i> Save Entry`;
+            saveBtn.innerHTML = `<i class="fas fa-crown" aria-hidden="true"></i><span>Save page &amp; crown the Hero</span>`;
         }
     }
 }

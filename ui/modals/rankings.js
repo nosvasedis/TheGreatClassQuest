@@ -460,162 +460,126 @@ async function buildHallLegendRows(classId) {
     return { legendRows, allLogs };
 }
 
+function escapeHallText(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function hallPortraitHtml(student, sizeClass = '') {
+    const name = escapeHallText(student.name);
+    return student.avatar
+        ? `<img src="${escapeHallText(student.avatar)}" alt="${name}" class="hoh-portrait__img ${sizeClass}" loading="lazy" decoding="async">`
+        : `<span class="hoh-portrait__initial ${sizeClass}" aria-hidden="true">${escapeHallText(String(student.name || '?').trim().charAt(0).toUpperCase())}</span>`;
+}
+
+function hallCrownTallyHtml(wins) {
+    const shown = Math.min(wins, 10);
+    const crowns = Array.from({ length: shown }, () => '<i class="fas fa-crown"></i>').join('');
+    return `<span class="hoh-tally" aria-label="${wins} crown${wins === 1 ? '' : 's'}">${crowns}${wins > 10 ? `<b>+${wins - 10}</b>` : ''}</span>`;
+}
+
+function hallFrameHtml(row, rank, { featured = false } = {}) {
+    const heroClass = row.student.heroClass;
+    const heroIcon = heroClass ? (HERO_CLASSES[heroClass]?.icon || '') : '';
+    const latestDate = row.latestDate
+        ? row.latestDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        : '';
+    const toNext = row.nextThreshold ? Math.max(0, row.nextThreshold - row.wins) : 0;
+    const nextLabel = row.nextThreshold ? utils.getHeroLegendTierInfo(row.nextThreshold).label : '';
+    const nextText = row.nextThreshold
+        ? `${toNext} more to <strong>${nextLabel}</strong>`
+        : 'Highest rank reached';
+    const rankLabel = ['First', 'Second', 'Third'][rank - 1] || `No. ${rank}`;
+    const delay = Math.min(rank * 60, 480);
+
+    return `
+        <article class="hoh-frame hoh-frame--${row.tier.key}${featured ? ' hoh-frame--featured hoh-frame--rank' + rank : ''}" style="animation-delay:${delay}ms">
+            <div class="hoh-frame__picture">
+                <span class="hoh-portrait">${hallPortraitHtml(row.student)}</span>
+                ${heroIcon ? `<span class="hoh-frame__class" title="${escapeHallText(heroClass)}">${heroIcon}</span>` : ''}
+                ${featured ? `<span class="hoh-frame__rank">${rankLabel}</span>` : ''}
+            </div>
+            <div class="hoh-plate">
+                <h3 class="hoh-plate__name">${escapeHallText(row.student.name)}</h3>
+                <p class="hoh-plate__tier">${escapeHallText(row.tier.label)}${row.tier.extraDiscount ? ` · ${row.tier.extraDiscount}% off in the Market` : ''}</p>
+            </div>
+            <div class="hoh-frame__facts">
+                <div class="hoh-frame__crowns">
+                    <span class="hoh-frame__count">${row.wins}</span>
+                    <span class="hoh-frame__count-label">crown${row.wins === 1 ? '' : 's'}</span>
+                </div>
+                ${hallCrownTallyHtml(row.wins)}
+                <div class="hoh-progress" role="img" aria-label="${row.progressPercent}% of the way to the next rank">
+                    <span class="hoh-progress__fill" style="width:${row.progressPercent}%"></span>
+                </div>
+                <p class="hoh-frame__next">${nextText}${latestDate ? `<span>Last crowned ${latestDate}</span>` : ''}</p>
+            </div>
+        </article>`;
+}
+
 async function renderHallOfHeroesContent(classId) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const contentEl = document.getElementById('history-modal-content');
     const titleEl = document.getElementById('history-modal-title');
     const subtitleEl = document.getElementById('history-modal-subtitle');
-    if (titleEl) titleEl.innerText = `${classData?.name || 'Class'} Legends`;
-    if (subtitleEl) subtitleEl.innerText = 'Hall of Heroes';
+    if (titleEl) titleEl.innerText = 'Hall of Heroes';
+    if (subtitleEl) subtitleEl.innerText = `${classData?.name || 'Class'} · Heroes of the Day`;
 
     contentEl.innerHTML = `
-        <div class="flex flex-col items-center justify-center py-24 gap-5">
-            <div class="relative">
-                <div class="absolute inset-0 rounded-full bg-amber-300/30 blur-2xl animate-pulse scale-150"></div>
-                <i class="fas fa-crown text-5xl text-amber-500 relative drop-shadow-lg" style="animation: hoh-float 2.4s ease-in-out infinite;"></i>
-            </div>
-            <p class="font-title text-2xl text-slate-600 tracking-tight">Assembling the legends…</p>
-        </div>
-        <style>
-            @keyframes hoh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-            @keyframes hoh-in { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
-            @keyframes hoh-shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
-            .hoh-card { animation: hoh-in 0.45s ease both; }
-            .hoh-bar-fill { background: linear-gradient(90deg,#f59e0b,#fcd34d,#f59e0b); background-size:200% auto; animation: hoh-shimmer 2.5s linear infinite; }
-        </style>`;
+        <div class="hoh-loading">
+            <i class="fas fa-crown" aria-hidden="true"></i>
+            <p>Hanging the portraits…</p>
+        </div>`;
 
     const { legendRows, allLogs } = await buildHallLegendRows(classId);
     const crownedHeroes = legendRows.filter((row) => row.wins > 0);
-    const topLegend = crownedHeroes[0] || null;
-
-    const MEDAL = ['🥇', '🥈', '🥉'];
+    const waiting = legendRows.filter((row) => row.wins === 0);
 
     let html = `
-        <style>
-            @keyframes hoh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-            @keyframes hoh-in { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
-            @keyframes hoh-shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
-            .hoh-card { animation: hoh-in 0.45s ease both; }
-            .hoh-bar-fill { background: linear-gradient(90deg,#f59e0b,#fcd34d,#f59e0b); background-size:200% auto; animation: hoh-shimmer 2.5s linear infinite; }
-            .hoh-crown { animation: hoh-float 3s ease-in-out infinite; display:inline-block; }
-        </style>
-
-        <div class="grid grid-cols-3 gap-3 mb-7">
-            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-600 to-sky-500 text-white shadow-lg text-center">
-                <div class="absolute -right-4 -bottom-4 text-white/10 text-7xl pointer-events-none"><i class="fas fa-crown"></i></div>
-                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Total Crowns</div>
-                <div class="font-title text-4xl">${allLogs.length}</div>
+        <div class="hoh-hall">
+            <div class="hoh-plaques">
+                <div class="hoh-plaque"><span class="hoh-plaque__value">${allLogs.length}</span><span class="hoh-plaque__label">crowns awarded</span></div>
+                <div class="hoh-plaque"><span class="hoh-plaque__value">${crownedHeroes.length}</span><span class="hoh-plaque__label">heroes crowned</span></div>
+                <div class="hoh-plaque"><span class="hoh-plaque__value">${waiting.length}</span><span class="hoh-plaque__label">still waiting</span></div>
             </div>
-            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg text-center">
-                <div class="absolute -right-4 -bottom-4 text-white/10 text-7xl pointer-events-none"><i class="fas fa-users"></i></div>
-                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Crowned Heroes</div>
-                <div class="font-title text-4xl">${crownedHeroes.length}</div>
-            </div>
-            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg text-center">
-                <div class="absolute -right-4 -bottom-4 text-white/10 text-7xl pointer-events-none"><i class="fas fa-star"></i></div>
-                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Top Legend</div>
-                <div class="font-title text-2xl leading-tight truncate">${topLegend ? topLegend.student.name.split(' ')[0] : '—'}</div>
-            </div>
-        </div>
     `;
 
     if (!crownedHeroes.length) {
         html += `
-            <div class="flex flex-col items-center justify-center py-20 gap-4 text-center">
-                <span class="text-7xl" style="animation:hoh-float 3s ease-in-out infinite;display:inline-block">🏛️</span>
-                <p class="font-title text-xl text-slate-500">The Hall awaits its first legend.</p>
-                <p class="text-sm text-slate-400">Save Adventure Logs to start building the Hall of Heroes.</p>
+            <div class="hoh-empty">
+                <span class="hoh-empty__frame" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                <p class="hoh-empty__title">The walls are waiting for their first portrait.</p>
+                <p class="hoh-empty__body">Each time you save a page in the Adventure Log, that lesson's Hero of the Day is hung here.</p>
             </div>`;
     } else {
-        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-10">`;
-
-        crownedHeroes.forEach((row, index) => {
-            const heroClass = row.student.heroClass;
-            const heroIcon = heroClass ? (HERO_CLASSES[heroClass]?.icon || '⭐') : '⭐';
-            const medal = MEDAL[index] ?? null;
-            const delay = Math.min(index * 60, 400);
-
-            const avatarHtml = row.student.avatar
-                ? `<img src="${row.student.avatar}" class="w-16 h-16 rounded-2xl object-cover border-4 border-white/80 shadow-xl" style="box-shadow:0 0 0 2px rgba(255,255,255,0.4),0 8px 24px rgba(0,0,0,0.25)">`
-                : `<div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm text-white text-2xl font-title flex items-center justify-center border-4 border-white/50 shadow-xl">${row.student.name.charAt(0)}</div>`;
-
-            const latestDate = row.latestDate
-                ? row.latestDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                : 'No crowns yet';
-
-            const nextTierText = row.nextThreshold
-                ? `${Math.max(0, row.nextThreshold - row.wins)} more crown${row.nextThreshold - row.wins === 1 ? '' : 's'} to reach <strong>${utils.getHeroLegendTierInfo(row.nextThreshold).label}</strong>`
-                : '<i class="fas fa-infinity mr-1"></i>Maximum legend rank achieved';
-
+        const podium = crownedHeroes.slice(0, 3);
+        const gallery = crownedHeroes.slice(3);
+        html += `<section class="hoh-podium" aria-label="Top heroes">${podium.map((row, i) => hallFrameHtml(row, i + 1, { featured: true })).join('')}</section>`;
+        if (gallery.length) {
             html += `
-                <article class="hoh-card rounded-[1.75rem] overflow-hidden shadow-md border border-white/60 bg-white hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300" style="animation-delay:${delay}ms">
-                    <div class="relative p-5 text-white bg-gradient-to-br ${row.tier.accent} overflow-hidden">
-                        <div class="absolute inset-0 pointer-events-none">
-                            <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
-                        </div>
-                        <div class="relative flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="relative flex-shrink-0">
-                                    ${avatarHtml}
-                                    <div class="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-xl bg-white shadow-lg border border-white/60 flex items-center justify-center text-base leading-none">${heroIcon}</div>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5 mb-0.5">
-                                        <span class="text-[9px] uppercase tracking-[0.2em] font-black opacity-70">#${index + 1}</span>
-                                        ${medal ? `<span class="text-base leading-none">${medal}</span>` : ''}
-                                    </div>
-                                    <h3 class="font-title text-2xl leading-tight truncate">${row.student.name}</h3>
-                                    <div class="inline-flex items-center gap-1.5 mt-1 bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide">
-                                        <i class="fas fa-shield-halved text-[8px]"></i>
-                                        ${row.tier.label}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex-shrink-0 text-right">
-                                <div class="text-[9px] uppercase tracking-[0.18em] font-black opacity-70 mb-0.5">Crowns</div>
-                                <div class="font-title text-5xl leading-none" style="text-shadow:0 2px 12px rgba(0,0,0,0.3)">${row.wins}</div>
-                                <div class="text-[9px] opacity-60 mt-0.5"><i class="fas fa-crown"></i></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="px-4 py-3 space-y-2.5">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
-                                <i class="fas fa-calendar-check text-indigo-400 text-sm flex-shrink-0"></i>
-                                <div>
-                                    <div class="text-[9px] uppercase tracking-[0.14em] font-black text-slate-400">Latest Crown</div>
-                                    <div class="font-bold text-slate-700 text-sm mt-0.5">${latestDate}</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
-                                <i class="fas fa-tag text-amber-400 text-sm flex-shrink-0"></i>
-                                <div>
-                                    <div class="text-[9px] uppercase tracking-[0.14em] font-black text-amber-600">Shop Perk</div>
-                                    <div class="font-bold text-amber-900 text-sm mt-0.5">+${row.tier.extraDiscount}% off</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="rounded-xl bg-slate-900 px-4 py-3">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[9px] uppercase tracking-[0.16em] font-black text-slate-400 flex items-center gap-1.5">
-                                    <i class="fas fa-bolt text-amber-400"></i> Next milestone
-                                </span>
-                                <span class="text-[10px] font-black text-amber-400">${row.progressPercent}%</span>
-                            </div>
-                            <div class="h-2 rounded-full bg-white/10 overflow-hidden">
-                                <div class="h-full rounded-full hoh-bar-fill" style="width:${row.progressPercent}%"></div>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-2">${nextTierText}</p>
-                        </div>
-                    </div>
-                </article>
-            `;
-        });
-
-        html += `</div>`;
+                <h3 class="hoh-section-title"><span>The gallery</span></h3>
+                <section class="hoh-gallery">${gallery.map((row, i) => hallFrameHtml(row, i + 4)).join('')}</section>`;
+        }
     }
+
+    if (waiting.length) {
+        html += `
+            <h3 class="hoh-section-title"><span>Waiting for their first crown</span></h3>
+            <div class="hoh-waiting">
+                ${waiting.map((row) => `<span class="hoh-waiting__chip"><span class="hoh-waiting__face">${hallPortraitHtml(row.student)}</span>${escapeHallText(row.student.name)}</span>`).join('')}
+            </div>`;
+    }
+
+    html += `
+            <footer class="hoh-legend" aria-label="Legend ranks">
+                <span class="hoh-legend__item hoh-legend__item--rising"><i class="fas fa-crown"></i> 3 crowns · Rising Legend · 5% off</span>
+                <span class="hoh-legend__item hoh-legend__item--golden"><i class="fas fa-crown"></i> 5 crowns · Golden Legend · 10% off</span>
+                <span class="hoh-legend__item hoh-legend__item--mythic"><i class="fas fa-crown"></i> 10 crowns · Mythic Legend · 15% off</span>
+            </footer>
+        </div>`;
 
     contentEl.innerHTML = html;
 }

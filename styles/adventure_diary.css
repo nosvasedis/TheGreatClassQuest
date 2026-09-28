@@ -1,0 +1,1597 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+   ║  ADVENTURE LOG: the class diary                                          ║
+   ║  A spiral-bound class diary: cream ruled pages, divider tabs per month,  ║
+   ║  taped-in pictures, washi-tape highlights, sticky teacher notes.         ║
+   ║  Teal cloth + gold matches the stitched journal sign above it.          ║
+   ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+#adventure-log-tab,
+.adventure-log-editor-overlay,
+#note-modal {
+    --dl-paper: #fffaf0;
+    --dl-paper-deep: #f8eed8;
+    --dl-rule: rgba(59, 111, 160, 0.16);
+    --dl-margin: rgba(220, 38, 38, 0.28);
+    --dl-ink: #1f2f46;
+    --dl-ink-soft: #56657a;
+    --dl-cloth: #0f5e57;
+    --dl-cloth-dark: #0b3f3b;
+    --dl-cloth-deep: #042f2e;
+    --dl-gold: #e2a93b;
+    --dl-gold-deep: #a86b12;
+    --dl-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+    --dl-serif: 'Lora', Georgia, serif;
+    --dl-round: 'Fredoka', 'Fredoka One', sans-serif;
+}
+
+/* ─── DESK: month divider tabs + this month's page ─────────────────────────── */
+.al-desk {
+    position: relative;
+    margin: 0 auto 2.25rem;
+    max-width: 56rem;
+}
+
+.al-desk.is-locked { display: none; }
+
+.al-selector--hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.al-month-tabs-wrap {
+    position: relative;
+    padding: 0 1.25rem 0 2.2rem;
+}
+
+.al-month-tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.3rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    padding-top: 0.6rem;
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 2;
+}
+
+.al-month-tabs::-webkit-scrollbar { display: none; }
+
+.al-month-tab {
+    --tab: #cdeee6;
+    --tab-ink: #115e59;
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    min-width: 4.4rem;
+    justify-content: center;
+    padding: 0.5rem 0.95rem 0.55rem;
+    border-radius: 0.8rem 0.8rem 0 0;
+    background: var(--tab);
+    color: var(--tab-ink);
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.92rem;
+    line-height: 1;
+    border: 2px solid rgba(15, 94, 87, 0.18);
+    border-bottom: none;
+    box-shadow: inset 0 -6px 8px -6px rgba(0, 0, 0, 0.18);
+    transform: translateY(0.35rem);
+    transition: transform 0.18s ease, background 0.18s ease;
+    cursor: pointer;
+}
+
+.al-month-tab--c1 { --tab: #fde2c4; --tab-ink: #9a3412; border-color: rgba(154, 52, 18, 0.18); }
+.al-month-tab--c2 { --tab: #e4dcfb; --tab-ink: #5b21b6; border-color: rgba(91, 33, 182, 0.16); }
+.al-month-tab--c3 { --tab: #fcef9f; --tab-ink: #854d0e; border-color: rgba(133, 77, 14, 0.18); }
+.al-month-tab--c4 { --tab: #fbd3dd; --tab-ink: #9f1239; border-color: rgba(159, 18, 57, 0.16); }
+
+.al-month-tab:hover { transform: translateY(0.1rem); }
+
+.al-month-tab:focus-visible {
+    outline: 3px solid var(--dl-gold);
+    outline-offset: 2px;
+}
+
+.al-month-tab.is-active {
+    background: var(--dl-paper);
+    color: var(--dl-ink);
+    transform: translateY(0);
+    padding-bottom: 0.85rem;
+    border-color: rgba(120, 90, 40, 0.2);
+    box-shadow: 0 -4px 10px rgba(80, 60, 20, 0.06);
+    z-index: 3;
+}
+
+.al-month-tab.is-active::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 18%;
+    right: 18%;
+    height: 4px;
+    border-radius: 0 0 4px 4px;
+    background: var(--tab-ink);
+    opacity: 0.55;
+}
+
+.al-month-tab__year {
+    font-family: var(--dl-hand);
+    font-size: 1rem;
+    font-weight: 700;
+    opacity: 0.75;
+}
+
+.al-month-tab__now {
+    position: absolute;
+    top: -0.55rem;
+    right: -0.25rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.4rem;
+    background: var(--dl-gold);
+    color: #3b2604;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transform: rotate(6deg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.al-desk-page {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 1.25rem 2rem;
+    align-items: center;
+    padding: 1.4rem 1.6rem 1.4rem 3.1rem;
+    border-radius: 0.5rem 1.25rem 1.25rem 1.25rem;
+    background:
+        radial-gradient(circle at 1px 1px, rgba(120, 90, 40, 0.13) 1px, transparent 1.4px) 0 0 / 18px 18px,
+        linear-gradient(180deg, var(--dl-paper) 0%, var(--dl-paper-deep) 100%);
+    border: 2px solid rgba(120, 90, 40, 0.2);
+    box-shadow:
+        0 1px 0 #fff inset,
+        0 16px 34px -18px rgba(60, 40, 10, 0.45),
+        0 3px 0 -1px #f1e4c6,
+        0 6px 0 -2px #e9d9b4;
+}
+
+/* stitched cloth spine on the left edge, same teal as the journal sign */
+.al-desk-page::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1.55rem;
+    border-radius: 0.45rem 0 0 1.15rem;
+    background:
+        repeating-linear-gradient(180deg, transparent 0 7px, rgba(253, 230, 138, 0.8) 7px 13px) 0.95rem 0.6rem / 2px calc(100% - 1.2rem) no-repeat,
+        linear-gradient(90deg, var(--dl-cloth-deep), var(--dl-cloth) 70%, var(--dl-cloth-dark));
+}
+
+.al-desk-kicker {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dl-ink-soft);
+}
+
+.al-desk-month-name {
+    margin: 0.1rem 0 0.55rem;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 2.35rem;
+    line-height: 1;
+    color: var(--dl-cloth-dark);
+}
+
+.al-desk-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+}
+
+.al-desk-stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--dl-ink-soft);
+    white-space: nowrap;
+}
+
+.al-desk-stat i {
+    font-size: 0.75rem;
+    color: var(--dl-gold-deep);
+    align-self: center;
+}
+
+.al-desk-stat strong {
+    font-family: var(--dl-round);
+    font-size: 1.05rem;
+    color: var(--dl-ink);
+}
+
+.al-desk-today {
+    min-width: 0;
+}
+
+.al-primary-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.al-desk .al-primary-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 3.1rem;
+    padding: 0.7rem 1rem;
+    border-radius: 0.9rem;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    border: 2px solid transparent;
+    border-bottom-width: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    cursor: pointer;
+}
+
+.al-desk .al-primary-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.al-desk .al-primary-btn:active:not(:disabled) {
+    transform: translateY(1px);
+    border-bottom-width: 2px;
+}
+
+.al-desk .al-primary-btn:focus-visible {
+    outline: 3px solid var(--dl-gold);
+    outline-offset: 2px;
+}
+
+.al-desk .al-primary-btn--log {
+    color: #fffbeb;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 55%),
+        linear-gradient(135deg, var(--dl-cloth) 0%, var(--dl-cloth-dark) 100%);
+    border-color: #0b4a45;
+    border-bottom-color: var(--dl-cloth-deep);
+    box-shadow: 0 8px 18px -8px rgba(4, 47, 46, 0.7);
+}
+
+.al-desk .al-primary-btn--log i { color: #fcd34d; }
+
+.al-desk .al-primary-btn--heroes {
+    color: #3b2604;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 60%),
+        linear-gradient(135deg, #fcd88a 0%, var(--dl-gold) 60%, #d18f1f 100%);
+    border-color: #c98a1b;
+    border-bottom-color: var(--dl-gold-deep);
+    box-shadow: 0 8px 18px -8px rgba(168, 107, 18, 0.7);
+}
+
+.al-desk .al-primary-btn--oaths {
+    border-radius: 0.9rem;
+    font-size: 1rem;
+    min-height: 3.1rem;
+}
+
+.al-desk .al-primary-btn:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.85);
+    opacity: 0.5;
+    box-shadow: none;
+    transform: none;
+}
+
+.al-today-hint {
+    margin: 0.6rem 0 0;
+    padding-left: 1.4rem;
+    position: relative;
+    font-family: var(--dl-hand);
+    font-size: 1.2rem;
+    line-height: 1.2;
+    color: var(--dl-ink-soft);
+}
+
+.al-today-hint::before {
+    content: '\f303';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 0;
+    top: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--dl-gold-deep);
+}
+
+.al-today-hint:empty { display: none; }
+
+/* ─── FEED ─────────────────────────────────────────────────────────────────── */
+.al-log-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+    max-width: 56rem;
+    margin: 0 auto;
+    padding-bottom: 2rem;
+}
+
+/* ─── A DIARY PAGE ─────────────────────────────────────────────────────────── */
+#adventure-log-tab .diary-page {
+    position: relative;
+    padding: 1.6rem 1.8rem 1.2rem 3.4rem;
+    border-radius: 0.35rem 1rem 1rem 0.35rem;
+    background:
+        linear-gradient(90deg, transparent 2.6rem, var(--dl-margin) 2.6rem, var(--dl-margin) calc(2.6rem + 1.5px), transparent calc(2.6rem + 1.5px)),
+        radial-gradient(120% 80% at 100% 0%, rgba(255, 255, 255, 0.7), transparent 60%),
+        linear-gradient(180deg, var(--dl-paper) 0%, #fdf5e4 100%);
+    border: 1px solid rgba(120, 90, 40, 0.18);
+    box-shadow:
+        0 1px 0 #fff inset,
+        0 18px 30px -20px rgba(60, 40, 10, 0.55),
+        3px 3px 0 -1px #f3e7cb,
+        6px 6px 0 -2px #eadbb8;
+    color: var(--dl-ink);
+    transition: box-shadow 0.25s ease;
+}
+
+#adventure-log-tab .diary-page:hover {
+    box-shadow:
+        0 1px 0 #fff inset,
+        0 24px 40px -22px rgba(60, 40, 10, 0.6),
+        3px 3px 0 -1px #f3e7cb,
+        6px 6px 0 -2px #eadbb8;
+}
+
+/* spiral binding down the left edge */
+#adventure-log-tab .diary-page__binding {
+    position: absolute;
+    left: 0.55rem;
+    top: 1rem;
+    bottom: 1rem;
+    width: 1.3rem;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 0.62rem 0.8rem, #3d3a36 0 0.24rem, transparent 0.26rem) 0 0 / 100% 1.6rem repeat-y,
+        radial-gradient(ellipse 0.62rem 0.26rem at 0.3rem 0.72rem, transparent 0 55%, #9aa3ad 58% 78%, transparent 82%) 0 0 / 100% 1.6rem repeat-y;
+    opacity: 0.85;
+}
+
+#adventure-log-tab .diary-page.is-today::after {
+    content: 'Today';
+    position: absolute;
+    top: -0.4rem;
+    right: 1.6rem;
+    padding: 0.8rem 0.55rem 1.1rem;
+    background: linear-gradient(180deg, #ea580c, #c2410c);
+    color: #fff7ed;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#adventure-log-tab .diary-page.is-today .diary-hero { margin-right: 3.2rem; }
+
+.diary-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    border-bottom: 2px dashed rgba(120, 90, 40, 0.2);
+}
+
+/* tear-off calendar leaf */
+.diary-datestamp {
+    flex: 0 0 auto;
+    width: 4.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 0.55rem;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.35);
+    transform: rotate(-3deg);
+}
+
+.diary-datestamp__wd {
+    width: 100%;
+    padding: 0.18rem 0;
+    text-align: center;
+    background: #dc2626;
+    color: #fff;
+    font-family: var(--dl-round);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.diary-datestamp__day {
+    font-family: var(--dl-round);
+    font-weight: 700;
+    font-size: 1.85rem;
+    line-height: 1.1;
+    color: var(--dl-ink);
+}
+
+.diary-datestamp__mon {
+    padding-bottom: 0.25rem;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--dl-ink-soft);
+}
+
+.diary-heading {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#adventure-log-tab .diary-date {
+    margin: 0;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    color: var(--dl-cloth);
+}
+
+#adventure-log-tab .diary-title {
+    margin: 0.1rem 0 0.4rem;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    color: var(--dl-ink);
+    overflow-wrap: anywhere;
+}
+
+.diary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.9rem;
+}
+
+.diary-meta__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--dl-ink-soft);
+}
+
+.diary-meta__item i { font-size: 0.72rem; color: var(--dl-gold-deep); }
+
+/* rubber stamp for AI status */
+.diary-stamp {
+    --stamp: #1e3a8a;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.12rem 0.5rem;
+    border: 2px solid var(--stamp);
+    border-radius: 0.3rem;
+    color: var(--stamp);
+    font-family: var(--dl-round);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transform: rotate(-2deg);
+    opacity: 0.85;
+}
+
+.diary-stamp--amber { --stamp: #b45309; }
+.diary-stamp--violet { --stamp: #6d28d9; }
+.diary-stamp--rose { --stamp: #be123c; }
+
+/* Hero of the Day sticker */
+#adventure-log-tab .diary-hero {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    max-width: 15rem;
+    padding: 0.4rem 0.95rem 0.4rem 0.45rem;
+    border-radius: 999px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 60%),
+        linear-gradient(135deg, #fef3c7 0%, #fde68a 55%, #fbbf24 100%);
+    border: 2px solid #f0b43a;
+    box-shadow: 0 6px 14px -8px rgba(168, 107, 18, 0.8), 0 0 0 3px rgba(255, 255, 255, 0.7);
+    color: #3b2604;
+    transform: rotate(1.5deg);
+}
+
+.diary-hero__portrait {
+    position: relative;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #d99a22;
+    display: grid;
+    place-items: center;
+}
+
+.diary-hero__img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.diary-hero__initial {
+    font-family: var(--dl-round);
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--dl-gold-deep);
+}
+
+.diary-hero__crown {
+    position: absolute;
+    top: -0.7rem;
+    left: 50%;
+    transform: translateX(-50%) rotate(-8deg);
+    font-size: 0.85rem;
+    color: #f59e0b;
+    filter: drop-shadow(0 1px 0 #7c4a03);
+}
+
+.diary-hero__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.1;
+}
+
+.diary-hero__label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #92400e;
+}
+
+.diary-hero__name {
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* body: picture on the left, handwriting on the right */
+#adventure-log-tab .diary-body {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: 1.75rem;
+    align-items: start;
+}
+
+#adventure-log-tab .diary-image-container {
+    position: relative;
+    margin: 0.4rem 0 0;
+    aspect-ratio: auto;
+    overflow: visible;
+    border: none;
+    box-shadow: none;
+    background: none;
+}
+
+.diary-polaroid {
+    padding: 0.6rem 0.6rem 0.3rem;
+    background: #fff !important;
+    border-radius: 0.2rem;
+    box-shadow: 0 12px 22px -12px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+    transform: rotate(-2.2deg);
+    transition: transform 0.25s ease;
+}
+
+.diary-page:nth-child(even) .diary-polaroid { transform: rotate(1.8deg); }
+.diary-polaroid:hover { transform: rotate(0deg) scale(1.02); }
+
+#adventure-log-tab .diary-polaroid .diary-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    object-fit: cover;
+    border-radius: 0.1rem;
+    background: #f1f5f9;
+}
+
+.diary-polaroid__caption {
+    padding: 0.45rem 0.2rem 0.25rem;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.1;
+    text-align: center;
+    color: var(--dl-ink);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.diary-tape {
+    position: absolute;
+    width: 4.6rem;
+    height: 1.35rem;
+    background: rgba(153, 246, 228, 0.72);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 48%);
+    z-index: 2;
+}
+
+.diary-tape--tl { top: -0.55rem; left: -1.2rem; transform: rotate(-32deg); }
+.diary-tape--br { bottom: -0.5rem; right: -1.1rem; transform: rotate(-28deg); background: rgba(254, 215, 170, 0.8); }
+
+/* no picture: a pencil doodle frame */
+.diary-doodle {
+    min-height: 11rem;
+    padding: 1.2rem 1rem;
+    border: 2px dashed rgba(86, 101, 122, 0.4) !important;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.45) !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    text-align: center;
+    transform: rotate(-1deg);
+}
+
+.diary-doodle__art {
+    width: 4.2rem;
+    height: 4.2rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.7rem;
+    color: var(--dl-cloth);
+    background: radial-gradient(circle, #fff 55%, rgba(15, 94, 87, 0.08) 56%);
+    border: 2px solid rgba(15, 94, 87, 0.25);
+}
+
+.diary-doodle__caption {
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.15;
+    color: var(--dl-ink-soft);
+}
+
+.diary-doodle__icon--writing {
+    animation: diary-quill-write 1.4s ease-in-out infinite;
+}
+
+@keyframes diary-quill-write {
+    0%, 100% { transform: translate(-3px, 0) rotate(-6deg); }
+    50% { transform: translate(4px, 2px) rotate(6deg); }
+}
+
+.diary-text-content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* the story, written on ruled lines */
+#adventure-log-tab .diary-text {
+    margin: 0;
+    font-family: var(--dl-serif);
+    font-size: 1.05rem;
+    line-height: 2rem;
+    color: var(--dl-ink);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    background: linear-gradient(180deg, transparent calc(2rem - 1px), var(--dl-rule) calc(2rem - 1px)) 0 0 / 100% 2rem;
+}
+
+/* highlights as strips of washi tape */
+.diary-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#adventure-log-tab .diary-highlight-chip {
+    --washi: rgba(153, 246, 228, 0.75);
+    position: relative;
+    padding: 0.2rem 0.95rem 0.25rem;
+    background:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 6px, transparent 6px 12px),
+        var(--washi);
+    border: none;
+    border-radius: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    clip-path: polygon(0 8%, 4% 0, 8% 10%, 12% 0, 88% 0, 92% 10%, 96% 0, 100% 8%, 100% 92%, 96% 100%, 92% 90%, 88% 100%, 12% 100%, 8% 90%, 4% 100%, 0 92%);
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1.25;
+    color: var(--dl-ink);
+    transform: rotate(-1deg);
+}
+
+#adventure-log-tab .diary-highlight-chip--1 { --washi: rgba(254, 215, 170, 0.85); transform: rotate(1deg); }
+#adventure-log-tab .diary-highlight-chip--2 { --washi: rgba(221, 214, 254, 0.9); transform: rotate(-0.5deg); }
+#adventure-log-tab .diary-highlight-chip--3 { --washi: rgba(254, 240, 138, 0.85); transform: rotate(1.4deg); }
+
+/* what we learned: an index card clipped into the diary */
+#adventure-log-tab .learned-today {
+    position: relative;
+    margin: 0;
+    padding: 0.9rem 1rem 0.85rem;
+    border-radius: 0.35rem;
+    border: 1px solid rgba(59, 111, 160, 0.2);
+    background:
+        linear-gradient(180deg, transparent 2.2rem, rgba(220, 38, 38, 0.35) 2.2rem, rgba(220, 38, 38, 0.35) calc(2.2rem + 1px), transparent calc(2.2rem + 1px)),
+        #ffffff;
+    box-shadow: 0 8px 16px -12px rgba(0, 0, 0, 0.45);
+}
+
+#adventure-log-tab .learned-today-title {
+    margin: 0 0 0.75rem;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #1d4ed8;
+}
+
+#adventure-log-tab .learned-today-chip {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e3a8a;
+}
+
+#adventure-log-tab .learned-today-word {
+    background: none;
+    border: none;
+    border-bottom: 2px solid #fcd34d;
+    border-radius: 0;
+    padding: 0 0.15rem;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--dl-ink);
+}
+
+/* teacher's note: a sticky note pinned to the page */
+#adventure-log-tab .diary-note {
+    position: relative;
+    align-self: flex-end;
+    width: min(100%, 22rem);
+    margin: 0.3rem 0.4rem 0 0;
+    padding: 1.1rem 1.1rem 0.8rem;
+    background: linear-gradient(180deg, #fff7ae 0%, #fdeb7a 100%);
+    border: none;
+    border-radius: 0.1rem 0.1rem 1.4rem 0.1rem;
+    box-shadow: 0 14px 18px -12px rgba(120, 90, 0, 0.55), inset 0 -10px 16px -14px rgba(120, 90, 0, 0.45);
+    transform: rotate(1.6deg);
+}
+
+.diary-note__pin {
+    position: absolute;
+    top: -0.45rem;
+    left: 50%;
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    background: radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 60%, #7f1d1d);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+
+#adventure-log-tab .diary-note p {
+    margin: 0;
+    font-family: var(--dl-hand);
+    font-weight: 600;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    font-style: normal;
+    color: #3f3104;
+    white-space: pre-line;
+}
+
+#adventure-log-tab .diary-note-author {
+    display: block;
+    margin-top: 0.4rem;
+    text-align: right;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.05rem;
+    font-style: normal;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #7c5e04;
+}
+
+#adventure-log-tab .diary-note-author::before { content: '— '; }
+
+/* footer: pencilled keywords + page tools */
+#adventure-log-tab .diary-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-top: 1.25rem;
+    padding-top: 0.8rem;
+    border-top: 2px dashed rgba(120, 90, 40, 0.2);
+}
+
+#adventure-log-tab .diary-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1rem 0.7rem;
+    min-width: 0;
+}
+
+#adventure-log-tab .diary-keyword {
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #7a8698;
+}
+
+.diary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+#adventure-log-tab .diary-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: auto;
+    height: auto;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.6rem;
+    border: 1.5px solid rgba(31, 47, 70, 0.14);
+    background: rgba(255, 255, 255, 0.75);
+    color: var(--dl-ink);
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.8rem;
+    line-height: 1;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+#adventure-log-tab .diary-action:hover { transform: translateY(-1px); background: #fff; }
+#adventure-log-tab .diary-action:focus-visible { outline: 3px solid var(--dl-gold); outline-offset: 2px; }
+#adventure-log-tab .diary-action i { font-size: 0.8rem; }
+#adventure-log-tab .log-edit-btn i { color: #4338ca; }
+#adventure-log-tab .log-note-btn i { color: #ca8a04; }
+#adventure-log-tab .log-retry-btn { border-color: rgba(180, 83, 9, 0.35); background: #fffbeb; }
+#adventure-log-tab .log-retry-btn i { color: #b45309; }
+#adventure-log-tab .log-delete-btn { color: #9f1239; }
+#adventure-log-tab .log-delete-btn i { color: #e11d48; }
+#adventure-log-tab .log-delete-btn:hover { border-color: rgba(225, 29, 72, 0.4); background: #fff1f2; }
+
+/* empty / loading page */
+#adventure-log-tab .diary-page.empty {
+    padding: 2.5rem 2rem 2.5rem 3.4rem;
+    text-align: center;
+}
+
+.diary-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.25rem 0;
+    background: linear-gradient(180deg, transparent calc(2rem - 1px), var(--dl-rule) calc(2rem - 1px)) 0 0 / 100% 2rem;
+}
+
+.diary-empty__icon {
+    width: 3.6rem;
+    height: 3.6rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.4rem;
+    color: var(--dl-cloth);
+    background: #fff;
+    border: 2px dashed rgba(15, 94, 87, 0.35);
+    margin-bottom: 0.4rem;
+}
+
+.diary-empty__title {
+    margin: 0;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.8rem;
+    line-height: 1.1;
+    color: var(--dl-ink);
+}
+
+.diary-empty__body {
+    margin: 0;
+    max-width: 26rem;
+    font-size: 0.95rem;
+    color: var(--dl-ink-soft);
+}
+
+/* upsell (free plans) sits on a torn-out page */
+#adventure-log-tab .al-upsell {
+    max-width: 30rem;
+    margin: 1rem auto 0;
+    padding: 1.8rem 1.6rem;
+    text-align: center;
+    border-radius: 0.4rem;
+    background:
+        linear-gradient(180deg, transparent calc(2rem - 1px), var(--dl-rule) calc(2rem - 1px)) 0 0 / 100% 2rem,
+        var(--dl-paper);
+    border: 1px solid rgba(120, 90, 40, 0.2);
+    box-shadow: 0 16px 30px -18px rgba(60, 40, 10, 0.5);
+    transform: rotate(-0.6deg);
+}
+
+.al-upsell-title {
+    margin-bottom: 0.6rem;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--dl-cloth-dark);
+}
+
+.al-upsell-body {
+    margin-bottom: 0.8rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--dl-ink-soft);
+}
+
+.al-upsell-footer {
+    font-size: 0.85rem;
+    color: var(--dl-ink-soft);
+}
+
+/* pages slide into the diary */
+@keyframes al-diary-pop-in {
+    0% { opacity: 0; transform: translateY(14px) rotate(-0.6deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+#adventure-log-tab .diary-page.pop-in-start {
+    animation: al-diary-pop-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ─── PHONE / NARROW ───────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+    .al-desk-page {
+        grid-template-columns: 1fr;
+        padding: 1.1rem 1rem 1.1rem 2.4rem;
+    }
+
+    .al-desk-page::before { width: 1.15rem; }
+    .al-desk-page::before { background-position: 0.65rem 0.6rem, 0 0; }
+    .al-month-tabs-wrap { padding: 0 0.5rem 0 1.6rem; }
+    .al-desk-month-name { font-size: 2rem; }
+
+    #adventure-log-tab .diary-body { grid-template-columns: 1fr; gap: 1.25rem; }
+    #adventure-log-tab .diary-image-container { width: min(100%, 15rem); margin: 0.4rem auto 0; }
+}
+
+@media (max-width: 560px) {
+    #adventure-log-tab .diary-page {
+        padding: 1.2rem 0.95rem 1rem 2.35rem;
+        background:
+            linear-gradient(90deg, transparent 1.85rem, var(--dl-margin) 1.85rem, var(--dl-margin) calc(1.85rem + 1.5px), transparent calc(1.85rem + 1.5px)),
+            linear-gradient(180deg, var(--dl-paper) 0%, #fdf5e4 100%);
+    }
+
+    #adventure-log-tab .diary-page__binding { left: 0.25rem; }
+
+    .diary-header { flex-wrap: wrap; gap: 0.75rem; }
+    .diary-datestamp { width: 3.5rem; }
+    .diary-datestamp__day { font-size: 1.5rem; }
+    .diary-heading { flex-basis: calc(100% - 4.4rem); }
+    #adventure-log-tab .diary-title { font-size: 1.25rem; }
+    #adventure-log-tab .diary-hero { max-width: 100%; margin-left: 0.2rem; }
+    #adventure-log-tab .diary-page.is-today .diary-hero { margin-right: 0; }
+    #adventure-log-tab .diary-page.is-today::after { right: 0.9rem; }
+    #adventure-log-tab .diary-page.is-today .diary-heading { padding-right: 2.4rem; }
+
+    .al-primary-actions { grid-template-columns: 1fr; }
+    #adventure-log-tab .diary-action span { display: none; }
+    #adventure-log-tab .diary-action { padding: 0.55rem 0.7rem; }
+    #adventure-log-tab .diary-note { width: 100%; margin-right: 0; }
+}
+
+/* The phone shell pads every .bg-white card in this tab; the diary has no such cards,
+   but keep its own paper edges if one ever appears inside a page. */
+body.gcq-mobile #adventure-log-tab .diary-page .bg-white { padding: 0 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    #adventure-log-tab .diary-page.pop-in-start,
+    .diary-doodle__icon--writing { animation: none; }
+    .diary-polaroid,
+    #adventure-log-tab .diary-highlight-chip { transition: none; }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+   ║  PAGE EDITORS: "Write today's page" and "Edit this page"                 ║
+   ║  An open diary page on the desk: cloth header with a date tab, ruled     ║
+   ║  story lines, a hero sticker and live washi-tape highlights.             ║
+   ╚══════════════════════════════════════════════════════════════════════════╝ */
+body.adventure-log-editor-open { overflow: hidden; }
+
+.adventure-log-editor-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(4, 30, 29, 0.62);
+    backdrop-filter: blur(4px);
+    animation: dl-editor-fade 0.2s ease both;
+}
+
+@keyframes dl-editor-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.adventure-log-editor-sheet {
+    position: relative;
+    width: min(100%, 50rem);
+    max-height: min(94vh, 58rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 0.6rem 1.2rem 1.2rem 0.6rem;
+    background: var(--dl-paper);
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.6), 4px 4px 0 -1px #f1e4c6, 8px 8px 0 -2px #e5d3a8;
+    animation: dl-editor-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dl-editor-in {
+    from { opacity: 0; transform: translateY(18px) rotate(-0.8deg); }
+    to { opacity: 1; transform: none; }
+}
+
+.adventure-log-editor-header {
+    position: relative;
+    flex-shrink: 0;
+    padding: 1.1rem 1.4rem 1.05rem 1.6rem;
+    color: #fffbeb;
+    background:
+        repeating-linear-gradient(90deg, transparent 0 8px, rgba(253, 230, 138, 0.75) 8px 15px) 1rem calc(100% - 0.45rem) / calc(100% - 2rem) 2px no-repeat,
+        radial-gradient(120% 160% at 100% 0%, rgba(255, 255, 255, 0.12), transparent 55%),
+        linear-gradient(135deg, var(--dl-cloth) 0%, var(--dl-cloth-dark) 70%, var(--dl-cloth-deep) 100%);
+}
+
+.adventure-log-editor-header-inner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.adventure-log-editor-header-text { flex: 1 1 auto; min-width: 0; }
+
+.adventure-log-editor-kicker {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(153, 246, 228, 0.9);
+}
+
+.adventure-log-editor-kicker i { color: #fcd34d; margin-right: 0.2rem; }
+
+.adventure-log-editor-title {
+    margin: 0.1rem 0 0;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 1.65rem;
+    line-height: 1.15;
+    color: #fde68a;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.adventure-log-editor-subtitle {
+    margin: 0.2rem 0 0;
+    font-size: 0.88rem;
+    color: rgba(236, 253, 245, 0.85);
+}
+
+/* the date written on a paper tab clipped over the cloth */
+.adventure-log-editor-date-chip {
+    position: relative;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.55rem 0.9rem 0.5rem 1.6rem;
+    background: var(--dl-paper);
+    color: var(--dl-ink);
+    border-radius: 0.3rem;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.5);
+    transform: rotate(2deg);
+}
+
+.adventure-log-editor-date-chip__ring {
+    position: absolute;
+    left: 0.55rem;
+    top: 50%;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    background: var(--dl-cloth-dark);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.adventure-log-editor-close {
+    flex: 0 0 auto;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fffbeb;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.adventure-log-editor-close:hover { background: rgba(255, 255, 255, 0.24); transform: rotate(90deg); }
+.adventure-log-editor-close:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.adventure-log-editor-body {
+    position: relative;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 1.4rem 1.6rem 1.2rem 3.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    background:
+        linear-gradient(90deg, transparent 2.4rem, var(--dl-margin) 2.4rem, var(--dl-margin) calc(2.4rem + 1.5px), transparent calc(2.4rem + 1.5px)),
+        linear-gradient(180deg, var(--dl-paper), #fdf5e4);
+    background-attachment: local;
+}
+
+.adventure-log-editor-binding {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.8rem;
+    bottom: 0.8rem;
+    width: 1.3rem;
+    pointer-events: none;
+    background: radial-gradient(circle at 0.62rem 0.8rem, #3d3a36 0 0.24rem, transparent 0.26rem) 0 0 / 100% 1.6rem repeat-y;
+    opacity: 0.7;
+}
+
+.adventure-log-editor-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+
+.adventure-log-editor-field > label,
+.adventure-log-editor-label,
+.adventure-log-editor-label-row > label {
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dl-cloth);
+}
+
+.adventure-log-editor-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.adventure-log-editor-optional {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--dl-ink-soft);
+}
+
+/* inputs written straight onto the page */
+.adventure-log-editor-field input[type="text"] {
+    width: 100%;
+    padding: 0.35rem 0.1rem 0.3rem;
+    border: none;
+    border-bottom: 2px solid rgba(59, 111, 160, 0.3);
+    border-radius: 0;
+    background: transparent;
+    color: var(--dl-ink);
+    font-family: var(--dl-serif);
+    font-size: 1.05rem;
+    box-shadow: none;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.adventure-log-editor-field--title input[type="text"] {
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+.adventure-log-editor-field input[type="text"]::placeholder,
+.adventure-log-editor-field textarea::placeholder {
+    font-family: var(--dl-hand);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #9aa6b6;
+}
+
+.adventure-log-editor-field input[type="text"]:focus {
+    border-bottom-color: var(--dl-cloth);
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.adventure-log-editor-field textarea {
+    width: 100%;
+    min-height: 16rem;
+    padding: 0 0.2rem;
+    border: none;
+    border-radius: 0;
+    resize: vertical;
+    color: var(--dl-ink);
+    font-family: var(--dl-serif);
+    font-size: 1.05rem;
+    line-height: 2rem;
+    background: linear-gradient(180deg, transparent calc(2rem - 1px), var(--dl-rule) calc(2rem - 1px)) 0 0 / 100% 2rem;
+    background-attachment: local;
+    box-shadow: none;
+    outline: none;
+}
+
+.adventure-log-editor-field textarea:focus {
+    background-color: rgba(255, 255, 255, 0.45);
+    box-shadow: inset 3px 0 0 var(--dl-gold);
+}
+
+.adventure-log-editor-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--dl-ink-soft);
+}
+
+.adventure-log-editor-counter { align-self: flex-end; font-variant-numeric: tabular-nums; }
+.adventure-log-editor-hint.limit { color: #c2410c; font-weight: 700; }
+
+.adventure-log-editor-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1.5px solid rgba(109, 40, 217, 0.35);
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    color: #5b21b6;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.adventure-log-editor-ai-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px -8px rgba(91, 33, 182, 0.7); }
+.adventure-log-editor-ai-btn:disabled { opacity: 0.6; cursor: progress; }
+.adventure-log-editor-ai-btn.is-loading { background: #ede9fe; }
+
+.adventure-log-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 1.2rem 1.6rem;
+}
+
+.adventure-log-editor-hero-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 60%, #fbbf24 100%);
+    border: 2px solid #f0b43a;
+    color: #3b2604;
+    box-shadow: 0 6px 14px -8px rgba(168, 107, 18, 0.8);
+}
+
+.adventure-log-editor-hero-pill > span:last-child { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.adventure-log-editor-hero-pill strong { font-family: var(--dl-round); font-weight: 600; font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adventure-log-editor-hero-pill small { font-size: 0.72rem; color: #7c4a03; }
+
+.adventure-log-editor-hero-seal {
+    flex: 0 0 auto;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    color: #d97706;
+    font-family: var(--dl-round);
+    font-weight: 700;
+    font-size: 1.2rem;
+    box-shadow: 0 0 0 2px #d99a22;
+}
+
+.adventure-log-editor-hero-pill.is-pending {
+    background: repeating-linear-gradient(135deg, #fffbeb 0 10px, #fef3c7 10px 20px);
+    border-style: dashed;
+}
+
+.adventure-log-editor-hero-pill.is-pending .adventure-log-editor-hero-seal { animation: dl-seal-wobble 2.6s ease-in-out infinite; }
+
+@keyframes dl-seal-wobble {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+}
+
+.adventure-log-editor-washi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.55rem;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    list-style: none;
+    min-height: 1.6rem;
+}
+
+.adventure-log-editor-washi__strip {
+    padding: 0.1rem 0.8rem 0.15rem;
+    background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 6px, transparent 6px 12px), rgba(153, 246, 228, 0.75);
+    clip-path: polygon(0 8%, 5% 0, 10% 10%, 90% 0, 95% 10%, 100% 8%, 100% 92%, 95% 100%, 90% 90%, 10% 100%, 5% 90%, 0 92%);
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--dl-ink);
+    transform: rotate(-1deg);
+}
+
+.adventure-log-editor-washi__strip--1 { background-color: rgba(254, 215, 170, 0.85); transform: rotate(1deg); }
+.adventure-log-editor-washi__strip--2 { background-color: rgba(221, 214, 254, 0.9); }
+.adventure-log-editor-washi__strip--3 { background-color: rgba(254, 240, 138, 0.85); transform: rotate(1.2deg); }
+.adventure-log-editor-washi__more { font-size: 0.75rem; font-weight: 700; color: #c2410c; align-self: center; }
+
+.adventure-log-editor-field--learned {
+    padding: 0.9rem 1rem 0.95rem;
+    border-radius: 0.35rem;
+    background:
+        linear-gradient(180deg, transparent 2.3rem, rgba(220, 38, 38, 0.3) 2.3rem, rgba(220, 38, 38, 0.3) calc(2.3rem + 1px), transparent calc(2.3rem + 1px)),
+        #fff;
+    border: 1px solid rgba(59, 111, 160, 0.2);
+    box-shadow: 0 8px 16px -12px rgba(0, 0, 0, 0.4);
+}
+
+.adventure-log-editor-field--learned .adventure-log-editor-label { color: #1d4ed8; margin-bottom: 0.55rem; }
+.adventure-log-editor-field--learned .learned-today-picks { margin-bottom: 0.6rem; }
+.adventure-log-editor-field--learned .learned-today-box { display: flex; flex-direction: column; gap: 0.45rem; }
+
+.adventure-log-editor-field .learned-today-pick {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+}
+
+.adventure-log-editor-field .learned-today-pick--word {
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 1.05rem;
+    background: #fefce8;
+    border-color: #fde68a;
+    color: var(--dl-ink);
+}
+
+.adventure-log-editor-footer {
+    flex-shrink: 0;
+    padding: 0.9rem 1.4rem;
+    background: var(--dl-paper-deep);
+    border-top: 2px dashed rgba(120, 90, 40, 0.22);
+}
+
+.adventure-log-editor-footer-inner {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.adventure-log-editor-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.3rem;
+    border-radius: 0.8rem;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 1rem;
+    border: 2px solid transparent;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.adventure-log-editor-btn.secondary {
+    background: transparent;
+    color: var(--dl-ink-soft);
+    border-color: rgba(31, 47, 70, 0.18);
+}
+
+.adventure-log-editor-btn.secondary:hover:not(:disabled) { background: rgba(255, 255, 255, 0.7); color: var(--dl-ink); }
+
+.adventure-log-editor-btn.primary {
+    color: #fffbeb;
+    background: linear-gradient(135deg, var(--dl-cloth) 0%, var(--dl-cloth-dark) 100%);
+    border-color: #0b4a45;
+    border-bottom-width: 4px;
+    border-bottom-color: var(--dl-cloth-deep);
+    box-shadow: 0 10px 20px -10px rgba(4, 47, 46, 0.8);
+}
+
+.adventure-log-editor-btn.primary i { color: #fcd34d; }
+.adventure-log-editor-btn.primary:hover:not(:disabled) { transform: translateY(-2px); }
+.adventure-log-editor-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+@media (max-width: 640px) {
+    .adventure-log-editor-overlay { padding: 0; align-items: flex-end; }
+    .adventure-log-editor-sheet { width: 100%; max-height: 94vh; border-radius: 1.2rem 1.2rem 0 0; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45); }
+    .adventure-log-editor-header { padding: 0.95rem 1rem 1rem 1.1rem; }
+    .adventure-log-editor-header-inner { flex-wrap: wrap; row-gap: 0.6rem; }
+    .adventure-log-editor-header-text { flex-basis: calc(100% - 3.4rem); }
+    .adventure-log-editor-title { font-size: 1.35rem; }
+    .adventure-log-editor-date-chip { order: 3; font-size: 1.15rem; }
+    .adventure-log-editor-body { padding: 1.1rem 1rem 1rem 2.3rem; background: linear-gradient(90deg, transparent 1.75rem, var(--dl-margin) 1.75rem, var(--dl-margin) calc(1.75rem + 1.5px), transparent calc(1.75rem + 1.5px)), linear-gradient(180deg, var(--dl-paper), #fdf5e4); }
+    .adventure-log-editor-binding { left: 0.2rem; }
+    .adventure-log-editor-grid { grid-template-columns: 1fr; }
+    .adventure-log-editor-field textarea { min-height: 12rem; }
+    .adventure-log-editor-footer { padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom, 0px)); }
+    .adventure-log-editor-btn { flex: 1 1 auto; }
+    .adventure-log-editor-btn.primary { flex-grow: 2; }
+}
+
+/* ─── STICKY NOTE (teacher's note for a page) ─────────────────────────────── */
+#note-modal .diary-sticky {
+    position: relative;
+    width: min(100%, 26rem);
+    padding: 1.9rem 1.6rem 1.3rem;
+    background: linear-gradient(180deg, #fff8b8 0%, #fdeb7a 100%);
+    border-radius: 0.15rem 0.15rem 2.2rem 0.15rem;
+    box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.55), inset 0 -14px 20px -16px rgba(120, 90, 0, 0.5);
+    transform: rotate(-1.2deg);
+    color: #3f3104;
+}
+
+.diary-sticky__tape {
+    position: absolute;
+    top: -0.8rem;
+    left: 50%;
+    width: 7rem;
+    height: 1.7rem;
+    transform: translateX(-50%) rotate(-3deg);
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 48%);
+}
+
+.diary-sticky__title {
+    margin: 0;
+    font-family: var(--dl-hand);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.diary-sticky__page {
+    margin: 0.3rem 0 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #7c5e04;
+}
+
+.diary-sticky__page:empty { display: none; }
+
+#note-modal .diary-sticky__text {
+    width: 100%;
+    padding: 0 0.1rem;
+    border: none;
+    resize: none;
+    background: linear-gradient(180deg, transparent calc(2.1rem - 1px), rgba(120, 90, 0, 0.22) calc(2.1rem - 1px)) 0 0 / 100% 2.1rem;
+    background-attachment: local;
+    color: #2b2103;
+    font-family: var(--dl-hand);
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 2.1rem;
+    outline: none;
+    box-shadow: none;
+}
+
+#note-modal .diary-sticky__text::placeholder { color: rgba(63, 49, 4, 0.45); }
+
+.diary-sticky__hint {
+    margin: 0.6rem 0 1rem;
+    font-size: 0.78rem;
+    color: #6b5307;
+}
+
+.diary-sticky__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+
+.diary-sticky__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 0.7rem;
+    font-family: var(--dl-round);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.diary-sticky__btn--ghost { color: #6b5307; background: rgba(255, 255, 255, 0.35); border: 1.5px solid rgba(120, 90, 0, 0.25); }
+.diary-sticky__btn--ghost:hover { background: rgba(255, 255, 255, 0.6); }
+.diary-sticky__btn--save { color: #fff; background: linear-gradient(180deg, #ef4444, #b91c1c); border: none; border-bottom: 3px solid #7f1d1d; box-shadow: 0 8px 16px -8px rgba(127, 29, 29, 0.8); }
+.diary-sticky__btn--save:hover { transform: translateY(-1px); }
+
+@media (prefers-reduced-motion: reduce) {
+    .adventure-log-editor-overlay,
+    .adventure-log-editor-sheet,
+    .adventure-log-editor-hero-pill.is-pending .adventure-log-editor-hero-seal { animation: none; }
+}

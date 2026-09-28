@@ -561,19 +561,12 @@ export async function openQuestAssignmentModal() {
                     testBadgeHtml = '';
                 } else if (scheduledStatus.isConcluded) {
                     testBadgeHtml = `
-                        <div class="mb-6 bg-gradient-to-r from-emerald-50/80 to-white border-l-4 border-emerald-500 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
-                            <div class="flex items-start gap-4">
-                                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl shadow-sm">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div>
-                                    <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1">
-                                        <i class="fas fa-medal text-[9px]"></i>
-                                        <span>Test Completed</span>
-                                    </div>
-                                    <h4 class="font-bold text-emerald-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
-                                    <p class="text-emerald-600/70 text-[10px] font-black mt-1 uppercase tracking-[0.1em]">${scheduledStatus.detailLabel} · ${scheduledStatus.chipLabel}</p>
-                                </div>
+                        <div class="qb-test-slip qb-test-slip--done pop-in">
+                            <span class="qb-test-slip__icon" aria-hidden="true"><i class="fas fa-check"></i></span>
+                            <div class="qb-test-slip__text">
+                                <span class="qb-test-slip__kicker">Test done</span>
+                                <strong>${escapeHtml(lastAssignment.testData.title)}</strong>
+                                <span>${scheduledStatus.detailLabel} · ${scheduledStatus.chipLabel}</span>
                             </div>
                         </div>`;
                 } else if (scheduledStatus.dayDiff >= 0) {
@@ -581,41 +574,26 @@ export async function openQuestAssignmentModal() {
                         ? scheduledStatus.scheduledDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
                         : 'Date TBD';
                     testBadgeHtml = `
-                        <div class="mb-6 bg-gradient-to-r from-amber-50/80 to-white border-l-4 border-amber-500 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
-                            <div class="flex items-start gap-4">
-                                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl shadow-sm animate-pulse">
-                                    <i class="fas fa-bolt"></i>
-                                </div>
-                                <div>
-                                    <div class="inline-flex items-center gap-1.5 rounded-full bg-amber-100/50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 mb-1">
-                                        <i class="fas fa-calendar-alt text-[9px]"></i>
-                                        <span>Test Scheduled</span>
-                                    </div>
-                                    <h4 class="font-bold text-amber-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
-                                    <p class="text-amber-600/70 text-sm font-bold mt-1 tracking-tight">${dateDisplay}</p>
-                                    <p class="text-amber-800/80 text-xs font-semibold mt-1">${scheduledStatus.statusLabel} · ${scheduledStatus.chipLabel}</p>
-                                    ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
-                                </div>
+                        <div class="qb-test-slip qb-test-slip--upcoming pop-in">
+                            <span class="qb-test-slip__icon" aria-hidden="true"><i class="fas fa-bolt"></i></span>
+                            <div class="qb-test-slip__text">
+                                <span class="qb-test-slip__kicker">Test scheduled · ${dateDisplay}</span>
+                                <strong>${escapeHtml(lastAssignment.testData.title)}</strong>
+                                <span>${scheduledStatus.statusLabel} · ${scheduledStatus.chipLabel}</span>
+                                ${lastAssignment.testData.curriculum ? `<span class="qb-test-slip__topics">Topics: ${escapeHtml(lastAssignment.testData.curriculum)}</span>` : ''}
                             </div>
                         </div>`;
                 } else {
                     const daysLate = Math.abs(scheduledStatus.dayDiff);
                     testBadgeHtml = `
-                        <div class="mb-6 bg-gradient-to-r from-orange-50/90 to-white border-l-4 border-orange-600 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
-                            <div class="flex items-start gap-4 min-w-0">
-                                <div class="w-12 h-12 bg-orange-100 text-orange-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="inline-flex items-center gap-1.5 rounded-full bg-orange-100/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-800 mb-1">
-                                        <i class="fas fa-pen-alt text-[9px]"></i>
-                                        <span>Test still needs results</span>
-                                    </div>
-                                    <h4 class="font-bold text-orange-950 text-lg leading-tight">${lastAssignment.testData.title}</h4>
-                                    <p class="text-orange-800/85 text-xs font-semibold mt-1">${scheduledStatus.dateLabel} was test day (${daysLate} day${daysLate === 1 ? '' : 's'} ago).</p>
-                                    <p class="text-orange-900/80 text-[11px] font-bold mt-1">${awaiting.length ? `${awaiting.length} student${awaiting.length === 1 ? '' : 's'} still need ${awaiting.length === 1 ? 'this result' : 'their results'} recorded.` : 'This test still has missing results.'} Open Scholar's Scroll and choose Log Test; the test name and date will already be filled in.</p>
-                                    ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
-                                </div>
+                        <div class="qb-test-slip qb-test-slip--late pop-in">
+                            <span class="qb-test-slip__icon" aria-hidden="true"><i class="fas fa-exclamation"></i></span>
+                            <div class="qb-test-slip__text">
+                                <span class="qb-test-slip__kicker">Results still missing</span>
+                                <strong>${escapeHtml(lastAssignment.testData.title)}</strong>
+                                <span>${scheduledStatus.dateLabel} was test day (${daysLate} day${daysLate === 1 ? '' : 's'} ago).</span>
+                                <span>${awaiting.length ? `${awaiting.length} student${awaiting.length === 1 ? '' : 's'} still need ${awaiting.length === 1 ? 'this result' : 'their results'} recorded.` : 'This test still has missing results.'} Open Scholar's Scroll and choose Log Test; the name and date are filled in for you.</span>
+                                ${lastAssignment.testData.curriculum ? `<span class="qb-test-slip__topics">Topics: ${escapeHtml(lastAssignment.testData.curriculum)}</span>` : ''}
                             </div>
                         </div>`;
                 }
@@ -624,61 +602,41 @@ export async function openQuestAssignmentModal() {
             // --- SMART FORMATTER START ---
             const formatAssignmentText = (text) => {
                 const lines = text.split('\n');
-                let html = '';
-                
-                // Check if any line starts with a number pattern to decide if we use List Mode
+                // Numbered lines ("1. " or "1) ") become a checklist; anything else keeps its line breaks.
                 const hasList = lines.some(l => l.trim().match(/^(\d+)[\.\)]\s+/));
-                
                 if (!hasList) {
-                    // Standard Text Mode (preserve line breaks)
-                    return `<p class="text-gray-800 italic whitespace-pre-wrap">${text}</p>`;
+                    return `<p class="qb-card__text">${escapeHtml(text)}</p>`;
                 }
-
-                // List Mode
+                let html = '';
                 lines.forEach(line => {
                     const trimmed = line.trim();
                     if (!trimmed) return;
-
-                    // Match "1. " or "1) "
                     const match = trimmed.match(/^(\d+)[\.\)]\s+(.*)/);
-                    
                     if (match) {
-                        const [_, num, content] = match;
-                        // Styled Card for List Item
-                        html += `
-                            <div class="flex items-start gap-3 mb-2 bg-white p-3 rounded-lg border border-gray-200 shadow-sm transition-transform hover:translate-x-1">
-                                <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-indigo-500 text-white text-xs font-bold rounded-full mt-0.5 shadow-sm">${num}</span>
-                                <span class="text-gray-800 text-sm leading-relaxed">${content}</span>
-                            </div>`;
+                        const [, num, content] = match;
+                        html += `<li class="qb-card__item"><span class="qb-card__num">${num}</span><span>${escapeHtml(content)}</span></li>`;
                     } else {
-                        // Regular text (headers, notes)
-                        html += `<p class="text-gray-600 text-xs font-bold uppercase tracking-wider mb-2 mt-3 ml-1">${trimmed}</p>`;
+                        html += `<li class="qb-card__heading">${escapeHtml(trimmed)}</li>`;
                     }
                 });
-                return `<div class="space-y-1 mt-2">${html}</div>`;
+                return `<ol class="qb-card__list">${html}</ol>`;
             };
             
             const formattedContent = formatAssignmentText(lastAssignment.text || '');
-            const dateStr = utils.getDDMMYYYY(lastAssignment.createdAt?.toDate ? lastAssignment.createdAt.toDate() : lastAssignment.createdAt);
+            const createdDate = lastAssignment.createdAt?.toDate ? lastAssignment.createdAt.toDate() : lastAssignment.createdAt;
+            const dateStr = utils.getDDMMYYYY(createdDate);
+            const createdObj = utils.parseFlexibleDate(dateStr);
+            const dateLabel = createdObj ? createdObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : dateStr;
 
             previousAssignmentTextEl.innerHTML = `
-                <div class="relative mb-6">
-                    <div class="flex items-center gap-2 mb-1">
-                         <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-400 flex items-center justify-center text-xs shadow-sm border border-indigo-100/50">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <span class="text-[11px] font-black text-indigo-300 uppercase tracking-[0.15em]">${dateStr}</span>
-                    </div>
-                    
-                    <button id="edit-last-assignment-btn" 
-                        class="absolute top-0 right-0 group/edit w-10 h-10 bg-white hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm border border-indigo-50 hover:border-indigo-600 active:scale-95 z-20"
-                        title="Edit Previous Assignment">
-                        <i class="fas fa-pen-nib text-sm transition-transform group-hover/edit:rotate-12"></i>
+                <div class="qb-card__head">
+                    <span class="qb-card__date">${dateLabel}</span>
+                    <button id="edit-last-assignment-btn" type="button" class="qb-card__edit" title="Edit this assignment">
+                        <i class="fas fa-pen-nib" aria-hidden="true"></i><span>Edit</span>
                     </button>
                 </div>
-
                 ${testBadgeHtml}
-                <div class="prose prose-indigo max-w-none text-gray-600 leading-relaxed selection:bg-indigo-100">${formattedContent}</div>
+                ${formattedContent}
             `;
             // --- SMART FORMATTER END ---
 
@@ -698,7 +656,7 @@ export async function openQuestAssignmentModal() {
                 currentAssignmentTextarea.focus();
             };
         } else {
-            previousAssignmentTextEl.textContent = "No previous assignment was set for this class.";
+            previousAssignmentTextEl.innerHTML = '<p class="qb-card__empty">Nothing pinned yet. Your first assignment for this class will appear here next time.</p>';
         }
 
     } catch (error) {

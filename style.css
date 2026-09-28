@@ -204,6 +204,12 @@
 
 @import url('./styles/student_roster.css');
 @import url('./styles/history_archive.css');
+
+/* Adventure Log: the class diary (tab, pages, page editors, sticky note) */
+@import url('./styles/adventure_diary.css');
+@import url('./styles/hall_of_heroes.css');
+@import url('./styles/attendance_register.css');
+@import url('./styles/quest_board.css');
 @import url('./styles/hero_stage.css');
 @import url('./styles/trophy_room.css');
 @import url('./styles/certificate.css');

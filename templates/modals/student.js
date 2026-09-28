@@ -267,22 +267,20 @@ export const studentModalsHTML = `
     </div>
 
     <div id="note-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-blue-300">
-            <h2 class="font-title text-2xl text-blue-700 mb-4 text-center">Teacher's Note for Adventure Log</h2>
+        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
+        <div class="diary-sticky pop-in">
+            <span class="diary-sticky__tape" aria-hidden="true"></span>
+            <h2 id="note-modal-title" class="diary-sticky__title">A note for this page</h2>
+            <p id="note-modal-page" class="diary-sticky__page"></p>
             <input type="hidden" id="note-log-id-input">
-            <div class="mb-4">
-                <label for="note-textarea" class="block text-sm font-medium text-gray-700">Your personal note for this
-                    day's log:</label>
-                <textarea id="note-textarea" rows="4"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
-            </div>
-            <div class="flex justify-around gap-4 mt-6">
-                <button id="note-cancel-btn"
-                    class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Cancel</button>
-                <button id="note-confirm-btn"
-                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-title text-lg py-2 px-8 rounded-xl bubbly-button">Save
-                    Note</button>
+            <label for="note-textarea" class="sr-only">Your note for this day's page</label>
+            <textarea id="note-textarea" rows="5" class="diary-sticky__text" maxlength="400"
+                placeholder="A few words for the class to remember about this day…"></textarea>
+            <p class="diary-sticky__hint">It appears on the page as a sticky note, signed with your name. Leave it empty to remove it.</p>
+            <div class="diary-sticky__actions">
+                <button id="note-cancel-btn" type="button" class="diary-sticky__btn diary-sticky__btn--ghost">Cancel</button>
+                <button id="note-confirm-btn" type="button" class="diary-sticky__btn diary-sticky__btn--save"><i class="fas fa-thumbtack" aria-hidden="true"></i> Stick it on</button>
             </div>
         </div>
     </div>

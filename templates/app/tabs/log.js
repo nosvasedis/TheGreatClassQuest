@@ -47,38 +47,43 @@ export const logTabHTML = `
                     </header>
 
                     <!-- ═══════════════════════════════════════════════════════════════
-                         ENHANCED CONTROLS SECTION
+                         DIARY DESK: month divider tabs, this month's summary, today's page
                          ═══════════════════════════════════════════════════════════════ -->
-                    <div class="al-controls-card">
-                        <!-- Row 1: Month selector -->
-                        <div class="al-controls-row">
-                            <div class="al-selector-group">
-                                <label for="adventure-log-month-filter" class="al-selector-label">
-                                    <i class="fas fa-calendar text-teal-600"></i> Month
-                                </label>
-                                <select id="adventure-log-month-filter" class="al-selector"></select>
+                    <section class="al-desk" aria-label="Diary controls">
+                        <div class="al-month-tabs-wrap">
+                            <div id="adventure-log-month-tabs" class="al-month-tabs" role="tablist" aria-label="Diary month"></div>
+                            <!-- The select stays the source of truth (listeners read its change event); the tabs drive it. -->
+                            <label for="adventure-log-month-filter" class="sr-only">Month</label>
+                            <select id="adventure-log-month-filter" class="al-selector al-selector--hidden" tabindex="-1" aria-hidden="true"></select>
+                        </div>
+                        <div class="al-desk-page">
+                            <div class="al-desk-month">
+                                <p class="al-desk-kicker">This month in the diary</p>
+                                <h3 id="adventure-log-month-name" class="al-desk-month-name">&nbsp;</h3>
+                                <div id="adventure-log-month-stats" class="al-desk-stats" aria-live="polite"></div>
+                            </div>
+                            <div class="al-desk-today">
+                                <div class="al-controls-row al-primary-actions">
+                                    <button id="log-adventure-btn"
+                                        class="al-primary-btn al-primary-btn--log bubbly-button"
+                                        disabled>
+                                        <i class="fas fa-feather-alt"></i>
+                                        <span>Log Today's Adventure</span>
+                                    </button>
+                                    <button id="hall-of-heroes-btn"
+                                        class="al-primary-btn al-primary-btn--heroes bubbly-button"
+                                        disabled>
+                                        <i class="fas fa-crown"></i>
+                                        <span>Hall of Heroes</span>
+                                    </button>
+                                </div>
+                                <p id="adventure-log-today-hint" class="al-today-hint" aria-live="polite"></p>
                             </div>
                         </div>
-
-                        <!-- Row 2: Primary Actions -->
-                        <div class="al-controls-row al-primary-actions">
-                            <button id="log-adventure-btn"
-                                class="al-primary-btn al-primary-btn--log bubbly-button"
-                                disabled>
-                                <i class="fas fa-feather-alt"></i>
-                                <span>Log Today's Adventure</span>
-                            </button>
-                            <button id="hall-of-heroes-btn"
-                                class="al-primary-btn al-primary-btn--heroes bubbly-button"
-                                disabled>
-                                <i class="fas fa-crown"></i>
-                                <span>Hall of Heroes</span>
-                            </button>
-                        </div>
-                    </div>
+                    </section>
 
                     <!-- ═══════════════════════════════════════════════════════════════
-                         LOG FEED (Unified Timeline)
+                         DIARY PAGES (newest first)
                          ═══════════════════════════════════════════════════════════════ -->
                     <div id="adventure-log-feed" class="al-log-feed"></div>
 

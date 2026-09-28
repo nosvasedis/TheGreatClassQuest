@@ -136,6 +136,14 @@ export function openNoteModal(logId) {
     if (!log) return;
     document.getElementById('note-log-id-input').value = logId;
     document.getElementById('note-textarea').value = log.note || '';
+    const pageEl = document.getElementById('note-modal-page');
+    if (pageEl) {
+        const dateObj = utils.parseFlexibleDate(log.date);
+        const dateLabel = dateObj && !isNaN(dateObj.getTime())
+            ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+            : (log.date || '');
+        pageEl.textContent = [dateLabel, log.title].filter(Boolean).join(' · ');
+    }
     showAnimatedModal('note-modal');
 }
 

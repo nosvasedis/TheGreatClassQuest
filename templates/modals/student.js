@@ -7,414 +7,241 @@ export const studentModalsHTML = `
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-student-title">
-        
-        <div class="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl max-w-2xl w-full pop-in border border-cyan-100 relative overflow-hidden flex flex-col max-h-[92vh] my-auto">
-            
-            <!-- Top Decorative Header Banner -->
-            <div class="relative px-6 pt-6 pb-5 bg-gradient-to-r from-cyan-600 via-teal-600 to-indigo-600 text-white overflow-hidden shrink-0">
-                <!-- Background decorative shapes -->
-                <div class="absolute -right-12 -top-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                <div class="absolute -left-10 -bottom-10 w-36 h-36 bg-cyan-400/20 rounded-full blur-xl pointer-events-none"></div>
-                
-                <div class="flex items-start justify-between gap-3 relative z-10">
-                    <div class="flex items-center gap-3.5 min-w-0">
-                        <!-- Student Avatar with glowing ring -->
-                        <div class="relative shrink-0" id="edit-student-header-avatar-wrap">
-                            <div id="edit-student-header-avatar"
-                                class="enlargeable-avatar w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-white/80 shadow-md bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white overflow-hidden bg-cover bg-center"
-                                title="View portrait"
-                                role="button"
-                                tabindex="0"
-                                aria-label="View portrait">
-                            </div>
-                            <div id="edit-student-hero-icon-badge"
-                                class="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 border-2 border-white text-amber-950 flex items-center justify-center text-[11px] shadow-sm font-bold"
-                                title="Hero Class">
-                                🛡️
-                            </div>
-                        </div>
 
-                        <!-- Title & Badges -->
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap mb-0.5">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-cyan-200 bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-xs">Student Profile</span>
-                                <span id="edit-student-header-class-badge" class="text-[11px] font-bold text-white/90 bg-white/15 px-2 py-0.5 rounded-full border border-white/20 truncate max-w-[140px] sm:max-w-none">
-                                    Class
-                                </span>
-                                <span id="edit-student-header-guild-badge" class="hidden text-[11px] font-bold text-amber-200 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-300/30 truncate">
-                                    Guild
-                                </span>
-                            </div>
-                            <h2 id="edit-student-title" class="font-title text-xl sm:text-2xl text-white font-bold tracking-tight truncate drop-shadow-sm">
-                                Edit Student Details
-                            </h2>
-                            <p id="edit-student-header-subtitle" class="text-xs text-cyan-100/90 truncate">
-                                Customize profile, celebrations & hero path
-                            </p>
-                        </div>
+        <!-- The student's Adventurer's Passport: a teal cover opened on two pages -->
+        <div class="sp-passport pop-in my-auto">
+
+            <!-- Cover strip: who this passport belongs to -->
+            <header class="sp-cover">
+                <div class="sp-cover__crest" aria-hidden="true"><i class="fas fa-compass"></i></div>
+                <div class="sp-cover__text">
+                    <p class="sp-cover__eyebrow">Adventurer's Passport</p>
+                    <h2 id="edit-student-title" class="sp-cover__title">Edit Student Details</h2>
+                    <div class="sp-cover__chips">
+                        <span id="edit-student-header-class-badge" class="sp-chip">Class</span>
+                        <span id="edit-student-header-guild-badge" class="sp-chip sp-chip--guild hidden">Guild</span>
                     </div>
-
-                    <!-- Top Close Button -->
-                    <button type="button" id="edit-student-top-close-btn"
-                        class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg bubbly-button transition-all duration-200 backdrop-blur-xs border border-white/30"
-                        title="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <p id="edit-student-header-subtitle" class="sr-only">Customize profile, celebrations & hero path</p>
                 </div>
+                <button type="button" id="edit-student-top-close-btn" class="sp-cover__close bubbly-button" title="Close" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
 
-                <!-- Stats summary chips row -->
-                <div class="mt-4 grid grid-cols-4 gap-2 text-center text-xs">
-                    <div class="bg-black/20 backdrop-blur-xs rounded-xl py-1.5 px-2 border border-white/10">
-                        <span class="text-[10px] uppercase font-bold text-cyan-200 block">Total</span>
-                        <span id="edit-student-stat-total-stars" class="font-title font-bold text-yellow-300 text-sm">0 ⭐</span>
-                    </div>
-                    <div class="bg-black/20 backdrop-blur-xs rounded-xl py-1.5 px-2 border border-white/10">
-                        <span class="text-[10px] uppercase font-bold text-cyan-200 block">Month</span>
-                        <span id="edit-student-stat-monthly-stars" class="font-title font-bold text-amber-300 text-sm">0 🌟</span>
-                    </div>
-                    <div class="bg-black/20 backdrop-blur-xs rounded-xl py-1.5 px-2 border border-white/10">
-                        <span class="text-[10px] uppercase font-bold text-cyan-200 block">Gold</span>
-                        <span id="edit-student-stat-gold" class="font-title font-bold text-amber-200 text-sm">0 🪙</span>
-                    </div>
-                    <div class="bg-black/20 backdrop-blur-xs rounded-xl py-1.5 px-2 border border-white/10">
-                        <span class="text-[10px] uppercase font-bold text-cyan-200 block">Hero Rank</span>
-                        <span id="edit-student-stat-hero-level" class="font-title font-bold text-cyan-100 text-sm">Lvl 0</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab Navigation Bar -->
-            <div class="flex items-center gap-1.5 px-4 sm:px-6 py-2.5 bg-slate-100/90 border-b border-slate-200/80 overflow-x-auto shrink-0 scrollbar-none" role="tablist" aria-label="Student edit sections">
-                <button type="button" id="edit-student-tab-profile-btn" data-tab="profile"
-                    class="edit-student-tab-btn active flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-cyan-700 bg-white shadow-sm border border-cyan-200/60"
-                    role="tab" aria-selected="true" aria-controls="edit-student-panel-profile">
-                    <i class="fas fa-id-card text-cyan-600"></i>
-                    <span>Profile</span>
-                </button>
-                <button type="button" id="edit-student-tab-dates-btn" data-tab="dates"
-                    class="edit-student-tab-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                    role="tab" aria-selected="false" aria-controls="edit-student-panel-dates">
-                    <i class="fas fa-cake-candles text-pink-500"></i>
-                    <span>Special Dates</span>
-                </button>
-                <button type="button" id="edit-student-tab-hero-btn" data-tab="hero"
-                    class="edit-student-tab-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                    role="tab" aria-selected="false" aria-controls="edit-student-panel-hero">
-                    <i class="fas fa-shield-halved text-indigo-500"></i>
-                    <span>Hero Path</span>
-                </button>
-                <button type="button" id="edit-student-tab-actions-btn" data-tab="actions"
-                    class="edit-student-tab-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                    role="tab" aria-selected="false" aria-controls="edit-student-panel-actions">
-                    <i class="fas fa-bolt text-amber-500"></i>
-                    <span>Quick Hub</span>
-                </button>
-            </div>
-
-            <!-- Tab Panels Content Container (Scrollable) -->
-            <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/70 space-y-4">
+            <!-- The open passport: identity page + stamps page -->
+            <div class="sp-spread">
                 <input type="hidden" id="edit-student-id-input-full">
 
-                <!-- TAB 1: Profile & Identity -->
-                <div id="edit-student-panel-profile" class="edit-student-tab-panel space-y-4" role="tabpanel" aria-labelledby="edit-student-tab-profile-btn">
-                    <!-- Student Name Input Card -->
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-                        <label for="edit-student-name-input-full" class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-700">
-                            <i class="fas fa-user-graduate text-cyan-600"></i>
-                            <span>Student Name</span>
-                        </label>
-                        <div class="flex items-center gap-3">
-                            <button type="button" id="edit-student-open-avatar-btn"
-                                class="edit-student-forge-btn bubbly-button shrink-0"
-                                title="Open Avatar Forge"
-                                aria-label="Open Avatar Forge">
-                                <span id="edit-student-avatar-preview-box" class="edit-student-forge-btn__portrait"></span>
-                                <span class="edit-student-forge-btn__spark" aria-hidden="true">
-                                    <i class="fas fa-wand-magic-sparkles"></i>
-                                </span>
-                            </button>
-                            <div class="relative min-w-0 flex-1">
-                                <input type="text" id="edit-student-name-input-full"
-                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 text-base focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
-                                    placeholder="Enter student's full name..."
-                                    autocomplete="off" required>
-                                <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                    <i class="fas fa-pencil-alt"></i>
+                <!-- LEFT PAGE: identity, record and shortcuts -->
+                <div class="sp-page sp-page--left">
+                    <section id="edit-student-panel-profile" class="edit-student-tab-panel sp-section sp-section--id" aria-labelledby="sp-id-heading">
+                        <h3 id="sp-id-heading" class="sp-page__heading"><i class="fas fa-id-card"></i><span>Identity</span></h3>
+
+                        <div class="sp-id">
+                            <div class="sp-id__photo-col">
+                                <div class="sp-photo" id="edit-student-header-avatar-wrap">
+                                    <div id="edit-student-header-avatar"
+                                        class="enlargeable-avatar sp-photo__img"
+                                        title="View portrait"
+                                        role="button"
+                                        tabindex="0"
+                                        aria-label="View portrait">
+                                    </div>
+                                    <span class="sp-photo__holo" aria-hidden="true"></span>
+                                    <div id="edit-student-hero-icon-badge" class="sp-photo__badge" title="Hero Class">🌟</div>
+                                </div>
+                                <button type="button" id="edit-student-open-avatar-btn"
+                                    class="edit-student-forge-btn sp-forge bubbly-button"
+                                    title="Open Avatar Forge"
+                                    aria-label="Open Avatar Forge">
+                                    <span id="edit-student-avatar-preview-box" class="edit-student-forge-btn__portrait" aria-hidden="true"></span>
+                                    <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                                    <span>New portrait</span>
+                                </button>
+                                <p id="edit-student-avatar-status" class="sr-only">Using initials</p>
+                            </div>
+
+                            <div class="sp-id__fields">
+                                <label for="edit-student-name-input-full" class="sp-field">
+                                    <span class="sp-field__label">Name</span>
+                                    <span class="sp-field__input-wrap">
+                                        <input type="text" id="edit-student-name-input-full"
+                                            class="sp-field__input"
+                                            placeholder="Student's full name"
+                                            autocomplete="off" required>
+                                        <i class="fas fa-pen sp-field__pen" aria-hidden="true"></i>
+                                    </span>
+                                    <span class="sp-field__hint">Shown on rosters, logs and the parent portal.</span>
+                                </label>
+
+                                <div class="sp-field sp-field--row">
+                                    <div class="min-w-0">
+                                        <span class="sp-field__label">Class</span>
+                                        <p id="edit-student-current-class-display" class="sp-field__value">--</p>
+                                        <p id="edit-student-current-league-display" class="sp-field__sub">--</p>
+                                    </div>
+                                    <button type="button" id="edit-student-quick-move-btn" class="sp-mini-btn bubbly-button" title="Transfer to another class">
+                                        <i class="fas fa-exchange-alt" aria-hidden="true"></i><span>Move</span>
+                                    </button>
+                                </div>
+
+                                <div class="sp-field sp-field--row">
+                                    <div class="min-w-0">
+                                        <span class="sp-field__label">Guild</span>
+                                        <p id="edit-student-current-guild-display" class="sp-field__value">Unassigned</p>
+                                        <p id="edit-student-current-guild-desc" class="sp-field__sub">No guild assigned</p>
+                                    </div>
+                                    <button type="button" id="edit-student-quick-guild-btn" class="sp-mini-btn sp-mini-btn--gold bubbly-button" title="Guild Sorting Quiz">
+                                        <i class="fas fa-hat-wizard" aria-hidden="true"></i><span>Sort</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <p id="edit-student-avatar-status" class="sr-only">Using initials</p>
-                        <p class="text-[11px] text-slate-500 flex items-center gap-1.5">
-                            <i class="fas fa-info-circle text-cyan-500"></i>
-                            <span>This name appears on class rosters, adventure logs, and parent portals.</span>
-                        </p>
-                    </div>
 
-                    <!-- Class & Guild Placement Info Cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Enrolled Class</span>
-                                <p id="edit-student-current-class-display" class="font-bold text-slate-800 text-sm truncate">--</p>
-                                <p id="edit-student-current-league-display" class="text-[11px] text-cyan-600 font-semibold truncate">--</p>
+                        <!-- Record strip -->
+                        <dl class="sp-record" aria-label="Quest record">
+                            <div class="sp-record__cell">
+                                <dt>Total stars</dt>
+                                <dd id="edit-student-stat-total-stars">0 ⭐</dd>
                             </div>
-                            <button type="button" id="edit-student-quick-move-btn"
-                                class="shrink-0 p-2 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-xl border border-cyan-200 text-xs font-bold bubbly-button flex items-center gap-1 transition-colors"
-                                title="Transfer to another class">
-                                <i class="fas fa-exchange-alt"></i>
-                                <span>Move</span>
+                            <div class="sp-record__cell">
+                                <dt>This month</dt>
+                                <dd id="edit-student-stat-monthly-stars">0 🌟</dd>
+                            </div>
+                            <div class="sp-record__cell">
+                                <dt>Gold</dt>
+                                <dd id="edit-student-stat-gold">0 🪙</dd>
+                            </div>
+                            <div class="sp-record__cell">
+                                <dt>Hero rank</dt>
+                                <dd id="edit-student-stat-hero-level">Lvl 1</dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    <!-- Tools -->
+                    <section id="edit-student-panel-actions" class="edit-student-tab-panel sp-section" aria-labelledby="sp-tools-heading">
+                        <h3 id="sp-tools-heading" class="sp-page__heading"><i class="fas fa-bolt"></i><span>Open for this student</span></h3>
+                        <div class="sp-tools">
+                            <button type="button" id="edit-student-hub-chronicle-btn" class="sp-tool sp-tool--chronicle bubbly-button" title="Adventure notes & Oracle AI">
+                                <span class="sp-tool__icon"><i class="fas fa-book-reader"></i></span>
+                                <span class="sp-tool__label">Chronicle</span>
+                            </button>
+                            <button type="button" id="edit-student-hub-analytics-btn" class="sp-tool sp-tool--analytics bubbly-button" title="Scores, grades & history">
+                                <span class="sp-tool__icon"><i class="fas fa-chart-line"></i></span>
+                                <span class="sp-tool__label">Analytics</span>
+                            </button>
+                            <button type="button" id="edit-student-hub-certificate-btn" class="sp-tool sp-tool--certificate bubbly-button" title="Generate award certificate">
+                                <span class="sp-tool__icon"><i class="fas fa-award"></i></span>
+                                <span class="sp-tool__label">Certificate</span>
+                            </button>
+                            <button type="button" id="edit-student-hub-avatar-btn" class="sp-tool sp-tool--forge bubbly-button" title="Create or update a hero portrait">
+                                <span class="sp-tool__icon"><i class="fas fa-wand-magic-sparkles"></i></span>
+                                <span class="sp-tool__label">Avatar Forge</span>
+                            </button>
+                            <button type="button" id="edit-student-hub-skilltree-btn" class="sp-tool sp-tool--tree bubbly-button" title="Talents & active abilities">
+                                <span class="sp-tool__icon"><i class="fas fa-sitemap"></i></span>
+                                <span class="sp-tool__label">Skill Tree</span>
+                            </button>
+                            <button type="button" id="edit-student-hub-move-btn" class="sp-tool sp-tool--move bubbly-button" title="Transfer to another class">
+                                <span class="sp-tool__icon"><i class="fas fa-people-arrows"></i></span>
+                                <span class="sp-tool__label">Move class</span>
                             </button>
                         </div>
-
-                        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Guild House</span>
-                                <p id="edit-student-current-guild-display" class="font-bold text-slate-800 text-sm truncate">Unassigned</p>
-                                <p id="edit-student-current-guild-desc" class="text-[11px] text-amber-600 font-semibold truncate">No guild assigned</p>
-                            </div>
-                            <button type="button" id="edit-student-quick-guild-btn"
-                                class="shrink-0 p-2 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 text-xs font-bold bubbly-button flex items-center gap-1 transition-colors"
-                                title="Guild Sorting Quiz">
-                                <i class="fas fa-hat-wizard"></i>
-                                <span>Sort</span>
-                            </button>
-                        </div>
-                    </div>
+                    </section>
                 </div>
 
-                <!-- TAB 2: Special Dates & Celebrations -->
-                <div id="edit-student-panel-dates" class="edit-student-tab-panel hidden space-y-4" role="tabpanel" aria-labelledby="edit-student-tab-dates-btn">
-                    <!-- Birthday Card -->
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-pink-100 shadow-sm space-y-3">
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center text-sm shadow-xs">
-                                    <i class="fas fa-cake-candles"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-slate-800 text-sm">Student Birthday</h4>
-                                    <p class="text-[11px] text-slate-500">Celebrated with extra stars & fanfare during attendance</p>
-                                </div>
-                            </div>
-                            <button type="button" id="edit-student-clear-birthday-btn"
-                                class="text-[11px] font-bold text-slate-400 hover:text-rose-500 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50"
-                                title="Clear Birthday">
-                                Clear
-                            </button>
-                        </div>
+                <!-- RIGHT PAGE: special-day stamps and the hero path -->
+                <div class="sp-page sp-page--right">
 
-                        <div class="grid grid-cols-2 gap-2.5">
-                            <div>
-                                <label for="edit-student-birthday-month" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Month</label>
-                                <select id="edit-student-birthday-month"
-                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:bg-white focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all">
-                                </select>
+                    <!-- Special days -->
+                    <section id="edit-student-panel-dates" class="edit-student-tab-panel sp-section" aria-labelledby="sp-dates-heading">
+                        <h3 id="sp-dates-heading" class="sp-page__heading"><i class="fas fa-cake-candles"></i><span>Special days</span></h3>
+                        <div class="sp-stamps">
+                            <div class="sp-stamp sp-stamp--birthday" data-stamp="birthday">
+                                <div class="sp-stamp__inner">
+                                    <div class="sp-stamp__head">
+                                        <span class="sp-stamp__icon" aria-hidden="true">🎂</span>
+                                        <span class="sp-stamp__title">Birthday</span>
+                                        <button type="button" id="edit-student-clear-birthday-btn" class="sp-stamp__clear" title="Clear Birthday">Clear</button>
+                                    </div>
+                                    <div class="sp-stamp__selects">
+                                        <label class="sr-only" for="edit-student-birthday-day">Birthday day</label>
+                                        <select id="edit-student-birthday-day" class="sp-select sp-select--day"></select>
+                                        <label class="sr-only" for="edit-student-birthday-month">Birthday month</label>
+                                        <select id="edit-student-birthday-month" class="sp-select"></select>
+                                    </div>
+                                    <div class="sp-stamp__foot">
+                                        <span class="sp-stamp__date" data-stamp-date="birthday">Not set yet</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label for="edit-student-birthday-day" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Day</label>
-                                <select id="edit-student-birthday-day"
-                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:bg-white focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all">
-                                </select>
+
+                            <div class="sp-stamp sp-stamp--nameday" data-stamp="nameday">
+                                <div class="sp-stamp__inner">
+                                    <div class="sp-stamp__head">
+                                        <span class="sp-stamp__icon" aria-hidden="true">📅</span>
+                                        <span class="sp-stamp__title">Nameday</span>
+                                        <button type="button" id="edit-student-clear-nameday-btn" class="sp-stamp__clear" title="Clear Nameday">Clear</button>
+                                    </div>
+                                    <div class="sp-stamp__selects">
+                                        <label class="sr-only" for="edit-student-nameday-day">Nameday day</label>
+                                        <select id="edit-student-nameday-day" class="sp-select sp-select--day"></select>
+                                        <label class="sr-only" for="edit-student-nameday-month">Nameday month</label>
+                                        <select id="edit-student-nameday-month" class="sp-select"></select>
+                                    </div>
+                                    <div class="sp-stamp__foot">
+                                        <span class="sp-stamp__date" data-stamp-date="nameday">Not set yet</span>
+                                        <button type="button" id="lookup-nameday-btn" class="sp-lookup bubbly-button" title="AI Nameday Lookup (Greek Orthodox calendar)">
+                                            <i class="fas fa-magic" aria-hidden="true"></i>
+                                            <span>Find from name</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        <p class="sp-note">On their day the class sees a celebration banner and they get bonus stars.</p>
+                    </section>
 
-                    <!-- Nameday Card with AI Lookup -->
-                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-indigo-100 shadow-sm space-y-3">
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm shadow-xs">
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-slate-800 text-sm">Nameday</h4>
-                                    <p class="text-[11px] text-slate-500">Greek Orthodox name day celebration</p>
-                                </div>
+                    <!-- Hero path -->
+                    <section id="edit-student-panel-hero" class="edit-student-tab-panel sp-section" aria-labelledby="sp-hero-heading">
+                        <h3 id="sp-hero-heading" class="sp-page__heading"><i class="fas fa-shield-halved"></i><span>Hero path</span></h3>
+                        <div id="edit-student-hero-summary" class="sp-visa">
+                            <div id="edit-student-hero-summary-icon" class="sp-visa__emblem">🌟</div>
+                            <div class="sp-visa__body">
+                                <p id="edit-student-hero-summary-name" class="sp-visa__name">No Class</p>
+                                <p id="edit-student-hero-summary-virtue" class="sp-visa__virtue">Unassigned</p>
+                                <p id="edit-student-hero-summary-perk" class="sp-visa__perk">Leave unassigned, or open the ceremony so they can choose.</p>
                             </div>
-                            <button type="button" id="edit-student-clear-nameday-btn"
-                                class="text-[11px] font-bold text-slate-400 hover:text-rose-500 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50"
-                                title="Clear Nameday">
-                                Clear
-                            </button>
-                        </div>
-
-                        <div class="flex items-end gap-2.5">
-                            <div class="flex-1 grid grid-cols-2 gap-2.5">
-                                <div>
-                                    <label for="edit-student-nameday-month" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Month</label>
-                                    <select id="edit-student-nameday-month"
-                                        class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="edit-student-nameday-day" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Day</label>
-                                    <select id="edit-student-nameday-day"
-                                        class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 text-sm focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 text-center">AI Lookup</label>
-                                <button type="button" id="lookup-nameday-btn"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white h-[42px] px-3.5 rounded-xl bubbly-button flex items-center justify-center gap-1.5 shadow-sm transition-all text-xs font-bold shrink-0"
-                                    title="AI Nameday Lookup (Greek Orthodox calendar)">
-                                    <i class="fas fa-magic"></i>
-                                    <span class="hidden sm:inline">Lookup</span>
+                            <div class="sp-visa__actions">
+                                <button type="button" id="edit-student-choose-hero-class-btn" class="sp-visa__choose bubbly-button">
+                                    <i class="fas fa-hat-wizard" aria-hidden="true"></i>
+                                    <span id="edit-student-choose-hero-class-label">Choose Hero Class</span>
+                                </button>
+                                <button type="button" id="edit-student-open-skilltree-btn" class="sp-visa__tree bubbly-button" title="Open Hero Skill Tree">
+                                    <i class="fas fa-sitemap" aria-hidden="true"></i>
+                                    <span>Skill tree</span>
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Celebration Highlight Info Banner -->
-                    <div class="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 flex items-center gap-3">
-                        <span class="text-2xl shrink-0">✨</span>
-                        <p class="text-xs text-amber-900 font-medium">
-                            <b class="font-bold">Special Day Celebrations:</b> When a student celebrates their Birthday or Nameday, a special banner and celebration modal are triggered to award bonus stars and fanfare!
-                        </p>
-                    </div>
-                </div>
-
-                <!-- TAB 3: Hero Path -->
-                <div id="edit-student-panel-hero" class="edit-student-tab-panel hidden space-y-4" role="tabpanel" aria-labelledby="edit-student-tab-hero-btn">
-                    <div class="flex items-center justify-between gap-2">
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
-                                <i class="fas fa-shield-halved text-indigo-600"></i>
-                                <span>Hero Path</span>
-                            </h4>
-                            <p class="text-xs text-slate-500">Each class earns +10 extra Gold for stars in their specialized virtue</p>
-                        </div>
-                        <button type="button" id="edit-student-open-skilltree-btn"
-                            class="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs font-bold rounded-xl bubbly-button flex items-center gap-1.5 transition-colors shrink-0"
-                            title="Open Hero Skill Tree">
-                            <i class="fas fa-sitemap"></i>
-                            <span class="hidden sm:inline">Skill Tree</span>
-                        </button>
-                    </div>
-
-                    <div id="edit-student-hero-summary"
-                        class="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm flex items-center gap-3 flex-wrap sm:flex-nowrap">
-                        <div id="edit-student-hero-summary-icon"
-                            class="w-14 h-14 rounded-2xl bg-indigo-50 text-2xl flex items-center justify-center shrink-0 border border-indigo-100">
-                            🌟
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p id="edit-student-hero-summary-name" class="font-bold text-slate-800 text-sm">No Class</p>
-                            <p id="edit-student-hero-summary-virtue" class="text-[11px] text-indigo-600 font-semibold truncate">Unassigned</p>
-                            <p id="edit-student-hero-summary-perk" class="text-[11px] text-slate-500">Leave unassigned, or open the ceremony so they can choose.</p>
-                        </div>
-                        <button type="button" id="edit-student-choose-hero-class-btn"
-                            class="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl bubbly-button flex items-center gap-1.5 transition-colors">
-                            <i class="fas fa-hat-wizard"></i>
-                            <span id="edit-student-choose-hero-class-label">Choose Hero Class</span>
-                        </button>
-                    </div>
-
-                    <div class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-100">
-                        <p id="hero-class-tier-note" class="text-xs text-indigo-700 leading-relaxed font-medium">
+                        <p id="hero-class-tier-note" class="sp-note sp-note--hero">
                             Classes grant +10 extra Gold when earning stars for their specific trait.
                         </p>
-                    </div>
-                </div>
+                    </section>
 
-                <!-- TAB 4: Quick Hub & Actions -->
-                <div id="edit-student-panel-actions" class="edit-student-tab-panel hidden space-y-3" role="tabpanel" aria-labelledby="edit-student-tab-actions-btn">
-                    <p class="text-xs text-slate-500 font-medium">Quickly jump to student tools, records, and celebrations:</p>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <!-- Avatar Forge -->
-                        <button type="button" id="edit-student-hub-avatar-btn"
-                            class="p-3.5 bg-white hover:bg-indigo-50/50 rounded-2xl border border-slate-200 hover:border-indigo-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-wand-magic-sparkles"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h5 class="font-bold text-slate-800 text-sm">Avatar Forge</h5>
-                                <p class="text-[11px] text-slate-500">Create or update a hero portrait</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                        </button>
-
-                        <!-- Skill Tree -->
-                        <button type="button" id="edit-student-hub-skilltree-btn"
-                            class="p-3.5 bg-white hover:bg-purple-50/50 rounded-2xl border border-slate-200 hover:border-purple-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
-                            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-sitemap"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h5 class="font-bold text-slate-800 text-sm">Hero Skill Tree</h5>
-                                <p class="text-[11px] text-slate-500">Talents & active abilities</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                        </button>
-
-                        <!-- Hero's Chronicle -->
-                        <button type="button" id="edit-student-hub-chronicle-btn"
-                            class="p-3.5 bg-white hover:bg-emerald-50/50 rounded-2xl border border-slate-200 hover:border-emerald-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-book-reader"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h5 class="font-bold text-slate-800 text-sm">Hero's Chronicle</h5>
-                                <p class="text-[11px] text-slate-500">Adventure notes & Oracle AI</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                        </button>
-
-                        <!-- Student Analytics -->
-                        <button type="button" id="edit-student-hub-analytics-btn"
-                            class="p-3.5 bg-white hover:bg-cyan-50/50 rounded-2xl border border-slate-200 hover:border-cyan-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
-                            <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h5 class="font-bold text-slate-800 text-sm">Student Analytics</h5>
-                                <p class="text-[11px] text-slate-500">Scores, grades & history</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                        </button>
-
-                        <!-- Certificate -->
-                        <button type="button" id="edit-student-hub-certificate-btn"
-                            class="p-3.5 bg-white hover:bg-amber-50/50 rounded-2xl border border-slate-200 hover:border-amber-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
-                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-award"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h5 class="font-bold text-slate-800 text-sm">Certificate</h5>
-                                <p class="text-[11px] text-slate-500">Generate award certificate</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                        </button>
-
-                        <!-- Move Student -->
-                        <button type="button" id="edit-student-hub-move-btn"
-                            class="p-3.5 bg-white hover:bg-yellow-50/50 rounded-2xl border border-slate-200 hover:border-yellow-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
-                            <div class="w-10 h-10 rounded-xl bg-yellow-100 text-yellow-700 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-people-arrows"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h5 class="font-bold text-slate-800 text-sm">Move Student</h5>
-                                <p class="text-[11px] text-slate-500">Transfer to another class</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
 
             <!-- Sticky Modal Footer -->
-            <div class="px-6 py-4 bg-white border-t border-slate-200/80 flex items-center justify-between gap-3 shrink-0">
-                <button type="button" id="edit-student-cancel-btn"
-                    class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl bubbly-button transition-colors">
-                    Cancel
-                </button>
-                <button type="button" id="edit-student-confirm-btn"
-                    class="px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-title text-base rounded-xl shadow-md bubbly-button flex items-center gap-2 transition-all">
-                    <i class="fas fa-check"></i>
-                    <span>Save Changes</span>
-                </button>
-            </div>
+            <footer class="sp-footer">
+                <p id="edit-student-dirty-note" class="sp-footer__status" aria-live="polite">No changes yet</p>
+                <div class="sp-footer__actions">
+                    <button type="button" id="edit-student-cancel-btn" class="sp-btn sp-btn--ghost bubbly-button">Cancel</button>
+                    <button type="button" id="edit-student-confirm-btn" class="sp-btn sp-btn--save bubbly-button">
+                        <i class="fas fa-check mr-1.5"></i> Save Changes
+                    </button>
+                </div>
+            </footer>
         </div>
     </div>
 

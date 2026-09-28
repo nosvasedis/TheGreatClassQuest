@@ -251,6 +251,7 @@ export async function handleLookupNameday() {
     }
 
     const btn = document.getElementById('lookup-nameday-btn');
+    const idleHtml = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
@@ -263,6 +264,7 @@ export async function handleLookupNameday() {
             const [_year, month, day] = result.split('-').map(Number);
             document.getElementById('edit-student-nameday-month').value = month;
             document.getElementById('edit-student-nameday-day').value = day;
+            document.getElementById('edit-student-nameday-month').dispatchEvent(new Event('change', { bubbles: true }));
             showToast(`Suggested nameday for ${studentName} found!`, 'success');
         } else {
             showToast(`Could not automatically find a nameday for "${studentName}".`, 'info');
@@ -272,7 +274,7 @@ export async function handleLookupNameday() {
         showToast("AI lookup failed. Please enter the date manually.", "error");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-magic"></i>';
+        btn.innerHTML = idleHtml;
     }
 }
 

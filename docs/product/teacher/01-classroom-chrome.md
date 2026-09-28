@@ -48,6 +48,8 @@ Tap the **TV** in the header (classroom PC only — there is no Projector on the
 
 Open it **whenever it helps the lesson** — English on the board, children looking up for a countdown, a quiet atmosphere during pair work. It is not a step you must do before Award Stars. Leave it running on the classroom TV / projector; keep Award Stars, the Market, and ceremonies on your teacher screen. The wallpaper is for **showing**, not for tapping every student.
 
+On the Home tab the sky **opens out of the greeting card**: the day ring glows, the window grows from the card and the big clock flies out of the ring. Leaving folds it back into the card, and the clock lands in the ring with a gold ripple. From any other tab it opens and closes as a circle around the **TV** button.
+
 Leave with **Esc** or the **power** button on the remote at the top-right of the wallpaper.
 
 ### What the room sees

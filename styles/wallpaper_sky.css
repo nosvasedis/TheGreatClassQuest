@@ -943,3 +943,59 @@
     .wall-ribbon { padding: 0.5rem 2.2rem; }
     #wall-quote-container { bottom: 1.1rem !important; }
 }
+
+/* ─── Portal: the Home greeting card opens into the Sky Window and takes it back ───
+   The motion itself is driven from ui/wallpaperPortal.js with the Web Animations API,
+   so the old keyframe entrance/exit stays off here. */
+#dynamic-wallpaper-screen.wallpaper-enter,
+#dynamic-wallpaper-screen.wallpaper-exit {
+    animation: none;
+}
+
+/* Launch: the day ring swells and floods the card with its light. */
+.greeting-panel.is-portal-launch .greeting-emblem {
+    animation: portal-ring-launch 900ms cubic-bezier(.3, 0, .2, 1) both;
+}
+.greeting-panel.is-portal-launch .day-ring__halo {
+    animation: portal-halo-flood 1100ms cubic-bezier(.3, 0, .2, 1) both;
+}
+@keyframes portal-ring-launch {
+    0% { transform: scale(1); filter: none; }
+    30% { transform: scale(1.12) rotate(-6deg); filter: brightness(1.25) drop-shadow(0 0 18px rgba(253, 224, 71, .85)); }
+    100% { transform: scale(1.04) rotate(0deg); filter: brightness(1.1) drop-shadow(0 0 10px rgba(253, 224, 71, .5)); }
+}
+@keyframes portal-halo-flood {
+    0% { opacity: .55; transform: scale(1); }
+    35% { opacity: 1; transform: scale(2.2); }
+    100% { opacity: 0; transform: scale(9); }
+}
+
+/* Landing: the clock settles back into the ring with a gold ripple. */
+.greeting-panel.is-portal-land .greeting-emblem {
+    animation: portal-ring-land 1000ms cubic-bezier(.2, .9, .25, 1.2) both;
+}
+.greeting-panel.is-portal-land .greeting-emblem::after {
+    content: "";
+    position: absolute;
+    inset: 4%;
+    border-radius: 999px;
+    border: 3px solid rgba(253, 224, 71, .9);
+    box-shadow: 0 0 22px rgba(253, 224, 71, .7), inset 0 0 14px rgba(253, 224, 71, .5);
+    animation: portal-ring-ripple 1000ms ease-out both;
+}
+@keyframes portal-ring-land {
+    0% { transform: scale(1.18); filter: brightness(1.35); }
+    55% { transform: scale(.96); filter: brightness(1.1); }
+    100% { transform: scale(1); filter: none; }
+}
+@keyframes portal-ring-ripple {
+    0% { opacity: 1; transform: scale(.9); }
+    100% { opacity: 0; transform: scale(1.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .greeting-panel.is-portal-launch .greeting-emblem,
+    .greeting-panel.is-portal-launch .day-ring__halo,
+    .greeting-panel.is-portal-land .greeting-emblem,
+    .greeting-panel.is-portal-land .greeting-emblem::after { animation: none; }
+}

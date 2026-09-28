@@ -30,6 +30,7 @@ import {
     getSunProgress,
     normalizeWallpaperPrefs
 } from './wallpaperDeck.mjs';
+import { playPortalOpen, playPortalClose } from './wallpaperPortal.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -140,6 +141,7 @@ function getBlurRevealMs() {
 
 // Director remote state: pinned card, the card shown before (for "previous"), pending gap timer.
 let isPaused = false;
+let portalBusy = false;
 let pausedRemainingMs = 0;
 let cardGapTimeout = null;
 let wallIdleTimeout = null;
@@ -194,19 +196,27 @@ function buildWallpaperTimerPill(activeTimer, tone) {
 
 export function toggleWallpaperMode() {
     const wallpaperEl = document.getElementById('dynamic-wallpaper-screen');
+    // A second press while the window is still opening or folding away waits its turn.
+    if (portalBusy) return;
     const isHidden = wallpaperEl.classList.contains('hidden') || wallpaperEl.classList.contains('wallpaper-exit');
 
     if (isHidden) {
         isRunning = true;
         isPaused = false;
+        portalBusy = true;
         document.body.classList.add('projector-mode');
         wallpaperEl.classList.remove('hidden');
         wallpaperEl.classList.remove('wallpaper-exit');
         wallpaperEl.classList.add('wallpaper-enter');
 
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(() => {});
-        }
+        // Full screen waits for the opening so the window grows out of the card where it
+        // really is; the button press still counts as the user's go-ahead.
+        playPortalOpen(wallpaperEl).finally(() => {
+            portalBusy = false;
+            if (isRunning && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        });
 
         if (escListener) document.removeEventListener('keydown', escListener);
         escListener = handleWallpaperKeydown;
@@ -245,10 +255,13 @@ export function toggleWallpaperMode() {
         clearTimeout(wallpaperResizeTimeout);
         clearTimeout(wallIdleTimeout);
 
-        setTimeout(() => {
+        portalBusy = true;
+        playPortalClose(wallpaperEl).then((cleanupPortal) => {
+            portalBusy = false;
             wallpaperEl.classList.add('hidden');
+            cleanupPortal();
             if (document.exitFullscreen && document.fullscreenElement) {
-                document.exitFullscreen();
+                document.exitFullscreen().catch(() => {});
             }
             clearTimeout(directorTimeout);
             clearTimeout(cardGapTimeout);
@@ -259,7 +272,10 @@ export function toggleWallpaperMode() {
             lastWeatherRefresh = 0;
             clearFloatingArea();
             document.getElementById('wall-quote-container').style.opacity = '0';
-        }, 600);
+        }).catch(() => {
+            portalBusy = false;
+            wallpaperEl.classList.add('hidden');
+        });
     }
 }
 

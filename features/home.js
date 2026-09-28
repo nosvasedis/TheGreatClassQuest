@@ -214,11 +214,13 @@ async function executeRenderHome() {
     const activeClassId = state.get('globalSelectedClassId');
     const teacherName = state.get('currentTeacherName') || "Quest Master";
     const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
-    const hour = new Date().getHours();
 
     // Dynamic Weather/Theme
     const weatherData = await fetchWeatherData();
-    let theme = { isNight: false };
+
+    // One shared day/night source, so the greeting and the weather card never disagree.
+    const dayPartInfo = utils.getCurrentDayPart();
+    let theme = { isNight: dayPartInfo.isNight };
 
     // --- STEP 1: CALCULATE WEATHER STATE ---
     if (weatherData) {
@@ -226,11 +228,6 @@ async function executeRenderHome() {
         theme.hi = Number.isFinite(weatherData.hi) ? weatherData.hi : null;
         theme.lo = Number.isFinite(weatherData.lo) ? weatherData.lo : null;
         Object.assign(theme, resolveWeatherTheme(weatherData.code));
-
-        const nowTime = Date.now();
-        const sunset = utils.solarData?.sunset ?? new Date().setHours(20, 0, 0, 0);
-        const sunrise = utils.solarData?.sunrise ?? new Date().setHours(6, 0, 0, 0);
-        theme.isNight = nowTime >= sunset || nowTime < sunrise;
 
         if (theme.isNight) {
             if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
@@ -243,8 +240,6 @@ async function executeRenderHome() {
         theme.weatherBg = 'w-day';
         theme.weatherIcon = 'fa-cloud-sun';
         theme.weatherText = 'Clear';
-        const h = new Date().getHours();
-        theme.isNight = h >= 20 || h < 6;
         if (theme.isNight) {
             theme.weatherIcon = 'fa-moon';
             theme.weatherText = 'Clear Night';
@@ -300,27 +295,10 @@ async function executeRenderHome() {
         utils.syncAwardSkyWeather();
     }
 
-    // --- STEP 3: CALCULATE TIME GRADIENTS ---
-    let timeGreeting = "Good Day";
-    let greetingGradient = "";
-
-    if (hour >= 5 && hour < 12) {
-        timeGreeting = "Good Morning";
-        greetingGradient = "from-amber-400 via-orange-400 to-rose-400";
-    } else if (hour >= 12 && hour < 17) {
-        timeGreeting = "Good Afternoon";
-        greetingGradient = "from-blue-400 via-cyan-400 to-teal-400";
-    } else if (hour >= 17 && hour < 21) {
-        timeGreeting = "Good Evening";
-        greetingGradient = "from-indigo-500 via-purple-500 to-pink-500";
-    } else {
-        timeGreeting = "Good Night";
-        greetingGradient = "from-indigo-900 via-purple-900 to-slate-800";
-    }
-
-    theme.greeting = timeGreeting;
-    theme.dayPart = timeGreeting.replace('Good ', '').toLowerCase(); // morning | afternoon | evening | night
-    theme.greetingGradient = greetingGradient;
+    // --- STEP 3: GREETING (same day/night source as the weather card) ---
+    theme.greeting = dayPartInfo.greeting;
+    theme.dayPart = dayPartInfo.part; // morning | afternoon | evening | night
+    theme.greetingGradient = dayPartInfo.gradient;
     theme.nameGradient = "from-slate-700 to-slate-500";
 
     // --- STEP 4: FETCH SPICE & RENDER (non-blocking) ---
@@ -796,7 +774,7 @@ function getLayout(name, theme, selector, row2, row3) {
         ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
         : '🏫';
     const dayPart = theme.dayPart || 'afternoon';
-    const celestialIcon = dayPart === 'night' || dayPart === 'evening' ? 'fa-moon' : 'fa-sun';
+    const celestialIcon = theme.isNight ? 'fa-moon' : 'fa-sun';
     const weatherIconMotion = theme.weatherIcon === 'fa-sun' ? 'weather-sun--spin'
         : theme.weatherIcon === 'fa-moon' ? 'weather-sun--sway' : 'weather-sun--float';
 

@@ -2,6 +2,13 @@ import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow
 import { getAwardLogMonthlyStarCredit } from './features/awardLogReasonMeta.js';
 import { getQuestLeagueDefinition } from './constants.js';
 import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
+import {
+    defaultSolarTimes,
+    isNightTime,
+    resolveDayPart,
+    greetingForDayPart,
+    gradientForDayPart
+} from './utils/dayPart.mjs';
 
 /**
  * Mirror header weather onto the Award expanding sky (and related chrome)
@@ -179,6 +186,26 @@ export async function fetchSolarCycle() {
     } catch (e) { console.warn("Using default solar times."); }
 }
 
+export function getSolarTimes() {
+    const fallback = defaultSolarTimes();
+    return {
+        sunrise: Number.isFinite(solarData?.sunrise) ? solarData.sunrise : fallback.sunrise,
+        sunset: Number.isFinite(solarData?.sunset) ? solarData.sunset : fallback.sunset
+    };
+}
+
+/** Shared day part + greeting so the home greeting always matches the weather card. */
+export function getCurrentDayPart(nowTime = Date.now()) {
+    const { sunrise, sunset } = getSolarTimes();
+    const part = resolveDayPart(nowTime, sunrise, sunset);
+    return {
+        isNight: part === 'night',
+        part,
+        greeting: greetingForDayPart(part),
+        gradient: gradientForDayPart(part)
+    };
+}
+
 export function updateDateTime() {
     const now = new Date();
     const dateEl = document.getElementById('current-date');
@@ -190,11 +217,10 @@ export function updateDateTime() {
     // 1. Real-Time Solar Check (Greece/Rentis)
     // We use the solarData fetched earlier, or defaults
     const nowTime = now.getTime();
-    const sunset = solarData.sunset || new Date().setHours(20, 30, 0, 0);
-    const sunrise = solarData.sunrise || new Date().setHours(6, 30, 0, 0);
+    const { sunrise, sunset } = getSolarTimes();
 
-    // Logic: It is night if it's AFTER sunset OR BEFORE sunrise
-    const isNight = nowTime >= sunset || nowTime < sunrise;
+    // One shared rule: it is night after sunset or before sunrise.
+    const isNight = isNightTime(nowTime, sunrise, sunset);
 
     // 2. Apply Global Classes IMMEDIATELY
     if (isNight) {

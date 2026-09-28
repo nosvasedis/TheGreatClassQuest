@@ -82,17 +82,8 @@ function ensureDailyQuoteFetched() {
 }
 
 function getGreeting() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-        return { label: 'Good Morning', gradient: 'from-amber-400 via-orange-400 to-rose-400' };
-    }
-    if (hour >= 12 && hour < 17) {
-        return { label: 'Good Afternoon', gradient: 'from-blue-400 via-cyan-400 to-teal-400' };
-    }
-    if (hour >= 17 && hour < 21) {
-        return { label: 'Good Evening', gradient: 'from-indigo-500 via-purple-500 to-pink-500' };
-    }
-    return { label: 'Good Night', gradient: 'from-indigo-900 via-purple-900 to-slate-800' };
+    const { greeting, gradient } = utils.getCurrentDayPart();
+    return { label: greeting, gradient };
 }
 
 function getTopSkill(classId) {

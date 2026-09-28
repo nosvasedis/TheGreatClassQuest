@@ -21,6 +21,7 @@ import {
     getScheduleEmptyStateMarkupClass,
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
+import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from './homeGreetingScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import {
@@ -351,6 +352,7 @@ async function executeRenderHome() {
     startHomeSmartLogic();
     startHomeQuestTimerTicker();
     startHomeClockTicker();
+    startDayRingClock(container);
 
 }
 
@@ -770,7 +772,6 @@ function getLayout(name, theme, selector, row2, row3) {
         ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
         : '🏫';
     const dayPart = theme.dayPart || 'afternoon';
-    const celestialIcon = theme.isNight ? 'fa-moon' : 'fa-sun';
     const weatherIconMotion = theme.weatherIcon === 'fa-sun' ? 'weather-sun--spin'
         : theme.weatherIcon === 'fa-moon' ? 'weather-sun--sway' : 'weather-sun--float';
 
@@ -783,12 +784,9 @@ function getLayout(name, theme, selector, row2, row3) {
                 <div class="greeting-sky" aria-hidden="true">
                     <span class="greeting-sky__glow"></span>
                     <span class="greeting-sky__stars"></span>
-                    <span class="greeting-sky__hills"></span>
+                    ${getGreetingHillsHtml()}
                 </div>
-                <div class="greeting-emblem" aria-hidden="true">
-                    <span class="greeting-emblem__orbit"><i class="fas ${celestialIcon}"></i></span>
-                    <span class="greeting-emblem__face">${escapeHtml(heroEmoji)}</span>
-                </div>
+                ${getDayRingEmblemHtml(escapeHtml(heroEmoji))}
                 <div class="relative z-10 flex flex-col justify-between h-full">
 
                     <div class="greeting-top-row">

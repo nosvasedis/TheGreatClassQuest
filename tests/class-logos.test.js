@@ -118,10 +118,22 @@ test('choose-a-class-logo modal is categorized, searchable, and previewed', () =
     assert.doesNotMatch(pickerFunction, /list\.innerHTML = groups/);
     assert.doesNotMatch(pickerFunction, /logo-picker-count/);
 
-    const css = read('styles/modals.css');
+    const css = read('styles/class_charter.css');
     assert.match(css, /\.logo-picker-shell/);
     assert.match(css, /\.logo-picker-chip/);
     assert.match(css, /\.logo-select-btn\.is-selected/);
+});
+
+test('logo picker pauses the looping app animations it covers, and sits above phone sheets', () => {
+    const picker = read('ui/modals/base.js');
+    const showFunction = picker.slice(picker.indexOf('export function showLogoPicker'), picker.indexOf('export function prewarmLogoPicker'));
+    assert.match(showFunction, /freezeLogoPickerBackdrop\(\)/);
+    assert.match(picker, /iterations !== Infinity/);
+    const hideFunction = picker.slice(picker.indexOf('export function hideModal'), picker.indexOf('// --- PICKER MODALS ---'));
+    assert.match(hideFunction, /resumeLogoPickerBackdrop\(\)/);
+
+    const css = read('styles/class_charter.css');
+    assert.match(css, /body\.gcq-mobile #logo-picker-modal \{\s*z-index: 2400 !important;/);
 });
 
 test('teacher setup opens the class logo picker instead of dumping a giant grid', () => {

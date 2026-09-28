@@ -43,21 +43,23 @@ export const baseModalsHTML = `
     </div>
 
     <div id="logo-picker-modal"
-        class="fixed inset-0 bg-slate-950/60 z-[2400] flex items-center justify-center p-3 sm:p-4 hidden"
+        class="logo-picker-backdrop fixed inset-0 z-[2400] flex items-center justify-center p-3 sm:p-4 hidden"
         role="dialog" aria-modal="true" aria-labelledby="logo-picker-title">
-        <div class="logo-picker-shell pop-in max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+        <div class="logo-picker-shell pop-in w-full flex flex-col overflow-hidden">
             <div class="logo-picker-header">
                 <div class="logo-picker-header__glow" aria-hidden="true"></div>
                 <button type="button" id="logo-picker-close-btn"
-                    class="logo-picker-close bubbly-button" aria-label="Close class logo picker">
-                    <i class="fas fa-times"></i>
+                    class="logo-picker-close" aria-label="Close class logo picker">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
-                <div class="flex items-start gap-4">
-                    <div id="logo-picker-preview" class="logo-picker-preview" aria-hidden="true">📚</div>
+                <div class="logo-picker-intro">
+                    <div class="logo-picker-medallion" aria-hidden="true">
+                        <div id="logo-picker-preview" class="logo-picker-preview">📚</div>
+                    </div>
                     <div class="min-w-0 flex-1">
                         <p class="logo-picker-kicker">Class emblem</p>
-                        <h2 id="logo-picker-title" class="font-title text-3xl sm:text-4xl text-emerald-900 leading-tight">Choose a Class Logo</h2>
-                        <p class="logo-picker-subtitle">Browse by theme, or search by name. One tap sets the emblem.</p>
+                        <h2 id="logo-picker-title" class="logo-picker-title">Choose a Class Logo</h2>
+                        <p class="logo-picker-subtitle">Every emblem rests in the case. Browse a drawer or search by name, then tap one to pin it on your class.</p>
                     </div>
                 </div>
                 <label class="logo-picker-search-wrap" for="logo-picker-search">
@@ -67,11 +69,13 @@ export const baseModalsHTML = `
                 </label>
                 <div id="logo-picker-categories" class="logo-picker-chips" role="group" aria-label="Logo categories"></div>
             </div>
-            <div id="logo-picker-list" class="logo-picker-list custom-scrollbar"></div>
-            <div id="logo-picker-empty" class="logo-picker-empty hidden">
-                <span aria-hidden="true">🔍</span>
-                <p>No emblems match that search.</p>
-                <p>Try another word, or pick a category above.</p>
+            <div class="logo-picker-tray">
+                <div id="logo-picker-list" class="logo-picker-list"></div>
+                <div id="logo-picker-empty" class="logo-picker-empty hidden">
+                    <span aria-hidden="true">🔍</span>
+                    <p>No emblems match that search.</p>
+                    <p>Try another word, or open a different drawer above.</p>
+                </div>
             </div>
         </div>
     </div>

@@ -201,9 +201,12 @@
 @import url('./styles/pedagogy_upgrades.css');
 @import url('./styles/campfire_entry.css');
 @import url('./styles/home_roster.css');
+
 @import url('./styles/student_roster.css');
 @import url('./styles/history_archive.css');
 @import url('./styles/hero_stage.css');
 @import url('./styles/trophy_room.css');
 @import url('./styles/certificate.css');
+/* Class emblem case (logo picker) + Add New Class charter */
+@import url('./styles/class_charter.css');
 @import url('./styles/polish.css');

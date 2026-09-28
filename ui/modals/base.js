@@ -265,10 +265,14 @@ export function hideModal(modalId) {
     }
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const releaseBackdrop = () => {
+        if (modalId === 'logo-picker-modal') resumeLogoPickerBackdrop();
+    };
 
     if (innerContent) {
         if (reducedMotion) {
             modal.classList.add('hidden');
+            releaseBackdrop();
             innerContent.classList.remove('is-modal-exiting', 'modal-origin-start');
         } else {
             innerContent.classList.add('is-modal-exiting');
@@ -282,6 +286,7 @@ export function hideModal(modalId) {
                 if (settled) return;
                 settled = true;
                 modal.classList.add('hidden');
+                releaseBackdrop();
                 modal.style.backgroundColor = '';
                 modal.style.transition = '';
                 modal.style.opacity = '';
@@ -390,6 +395,7 @@ export function showLogoPicker(target) {
 
     syncLogoPickerSelection();
     applyLogoPickerFilter();
+    freezeLogoPickerBackdrop();
     showAnimatedModal('logo-picker-modal');
     requestAnimationFrame(() => search?.focus({ preventScroll: true }));
     // Scrolling to the current emblem forces a full layout; wait until the entrance has finished.
@@ -408,6 +414,35 @@ export function prewarmLogoPicker() {
     const run = () => ensureLogoPickerCatalog();
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 1500 });
     else setTimeout(run, 0);
+}
+
+let logoPickerFrozenAnimations = [];
+
+/**
+ * Pause the app's looping animations (nav clouds, header stars, fairy flight...) while the
+ * emblem case covers them. Left running, they repaint and re-blur the whole screen under
+ * the case on every frame, which is what made opening and scrolling it stutter.
+ * Uses the Web Animations API so nothing else has to restyle.
+ */
+function freezeLogoPickerBackdrop() {
+    if (logoPickerFrozenAnimations.length || typeof document.getAnimations !== 'function') return;
+    const modal = document.getElementById('logo-picker-modal');
+    const toasts = document.getElementById('toast-container');
+    logoPickerFrozenAnimations = document.getAnimations().filter((animation) => {
+        if (animation.playState !== 'running') return false;
+        if (animation.effect?.getTiming?.().iterations !== Infinity) return false;
+        const target = animation.effect?.target;
+        return !!target && !modal?.contains(target) && !toasts?.contains(target);
+    });
+    for (const animation of logoPickerFrozenAnimations) animation.pause();
+}
+
+function resumeLogoPickerBackdrop() {
+    const frozen = logoPickerFrozenAnimations;
+    logoPickerFrozenAnimations = [];
+    for (const animation of frozen) {
+        if (animation.playState === 'paused') animation.play();
+    }
 }
 
 let logoPickerWired = false;

@@ -13,8 +13,10 @@ export function renderSecretaryGrades() {
         })}
         <article class="role-card grades-board">
             ${renderGradesBoard()}
-            <div class="mt-3 text-center">
-                <button type="button" class="role-inline-link" data-secretary-tab-link="admin" data-secretary-admin-subtab="grading">Edit grading setup</button>
+            <div class="grades-footer">
+                <button type="button" class="office-btn office-btn--quiet" data-secretary-tab-link="admin" data-secretary-admin-subtab="grading">
+                    <i class="fas fa-sliders" aria-hidden="true"></i> Change how grades work
+                </button>
             </div>
         </article>
     `;

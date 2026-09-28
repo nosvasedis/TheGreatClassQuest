@@ -256,6 +256,13 @@ export function renderSecretaryHome() {
             </div>
         </section>
 
+        <section class="office-home-stats" aria-label="School at a glance">
+            ${renderStatCard({ tone: 'sky', icon: 'fa-user-graduate', label: 'Students', value: allStudents.length.toLocaleString(), note: waitingCount ? `${seatedCount} seated · ${waitingCount} waiting` : 'All seated in a class', attrs: 'data-secretary-tab-link="school" data-secretary-school-subtab="students"' })}
+            ${renderStatCard({ tone: 'emerald', icon: 'fa-chalkboard', label: 'Classes', value: classes.length.toLocaleString(), note: 'Across the school', attrs: 'data-secretary-tab-link="school" data-secretary-school-subtab="classes"' })}
+            ${renderStatCard({ tone: 'amber', icon: 'fa-star', label: 'School stars', value: totalStars.toLocaleString(), note: 'Earned so far' })}
+            ${renderStatCard({ tone: 'violet', icon: 'fa-coins', label: 'Treasury', value: totalGold.toLocaleString(), note: 'Gold this year' })}
+        </section>
+
         <div class="office-home-grid">
             <section class="office-home-board">
                 <header class="office-home-board__head">
@@ -266,36 +273,6 @@ export function renderSecretaryHome() {
                 ${renderDeskTasks(tasks)}
             </section>
 
-            <section class="office-home-stats" aria-label="School at a glance">
-                ${renderStatCard({ tone: 'sky', icon: 'fa-user-graduate', label: 'Students', value: allStudents.length.toLocaleString(), note: waitingCount ? `${seatedCount} seated · ${waitingCount} waiting` : 'All seated in a class', attrs: 'data-secretary-tab-link="school" data-secretary-school-subtab="students"' })}
-                ${renderStatCard({ tone: 'emerald', icon: 'fa-chalkboard', label: 'Classes', value: classes.length.toLocaleString(), note: 'Across the school', attrs: 'data-secretary-tab-link="school" data-secretary-school-subtab="classes"' })}
-                ${renderStatCard({ tone: 'amber', icon: 'fa-star', label: 'School stars', value: totalStars.toLocaleString(), note: 'Earned so far' })}
-                ${renderStatCard({ tone: 'violet', icon: 'fa-coins', label: 'Treasury', value: totalGold.toLocaleString(), note: 'Gold this year' })}
-            </section>
-        </div>
-
-        <div class="office-home-grid office-home-grid--lower">
-            <section class="office-home-cabinet">
-                <h3 class="office-home-heading"><i class="fas fa-box-archive" aria-hidden="true"></i>Office drawers</h3>
-                <div class="office-home-drawers">
-                    ${tools.map((tool) => `
-                        <button type="button" class="office-home-drawer office-home-drawer--${tool.tone}"
-                            data-secretary-tab-link="${tool.tab}"
-                            ${tool.schoolSub ? `data-secretary-school-subtab="${tool.schoolSub}"` : ''}
-                            ${tool.adminSub ? `data-secretary-admin-subtab="${tool.adminSub}"` : ''}
-                            title="${escapeHtml(tool.label)}">
-                            <span class="office-home-drawer__icon" aria-hidden="true"><i class="fas ${tool.icon}"></i></span>
-                            <span class="office-home-drawer__label">
-                                <strong>${escapeHtml(tool.label)}</strong>
-                                <small>${escapeHtml(tool.note)}</small>
-                            </span>
-                            <span class="office-home-drawer__handle" aria-hidden="true"></span>
-                        </button>
-                    `).join('')}
-                </div>
-                ${formerCount ? `<p class="office-home-former"><i class="fas fa-box-archive" aria-hidden="true"></i>${formerCount} former student${formerCount === 1 ? '' : 's'} on file. <button type="button" data-secretary-registry-link="former">View them</button></p>` : ''}
-            </section>
-
             <section class="office-home-latest">
                 <h3 class="office-home-heading"><i class="fas fa-thumbtack" aria-hidden="true"></i>Latest at school</h3>
                 <div class="office-home-notes">
@@ -304,5 +281,26 @@ export function renderSecretaryHome() {
                 </div>
             </section>
         </div>
+
+        <section class="office-home-cabinet">
+            <h3 class="office-home-heading"><i class="fas fa-box-archive" aria-hidden="true"></i>Office drawers</h3>
+            <div class="office-home-drawers">
+                ${tools.map((tool) => `
+                    <button type="button" class="office-home-drawer office-home-drawer--${tool.tone}"
+                        data-secretary-tab-link="${tool.tab}"
+                        ${tool.schoolSub ? `data-secretary-school-subtab="${tool.schoolSub}"` : ''}
+                        ${tool.adminSub ? `data-secretary-admin-subtab="${tool.adminSub}"` : ''}
+                        title="${escapeHtml(tool.label)}">
+                        <span class="office-home-drawer__icon" aria-hidden="true"><i class="fas ${tool.icon}"></i></span>
+                        <span class="office-home-drawer__label">
+                            <strong>${escapeHtml(tool.label)}</strong>
+                            <small>${escapeHtml(tool.note)}</small>
+                        </span>
+                        <span class="office-home-drawer__handle" aria-hidden="true"></span>
+                    </button>
+                `).join('')}
+            </div>
+            ${formerCount ? `<p class="office-home-former"><i class="fas fa-box-archive" aria-hidden="true"></i>${formerCount} former student${formerCount === 1 ? '' : 's'} on file. <button type="button" data-secretary-registry-link="former">View them</button></p>` : ''}
+        </section>
     </div>`;
 }

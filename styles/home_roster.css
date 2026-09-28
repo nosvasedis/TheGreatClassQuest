@@ -1303,8 +1303,14 @@
 .greeting-panel--night .gh-cottage__chimney,
 .greeting-panel--night .gh-cottage__door { fill: #3b3f73; }
 
-/* Class logo inside a live 24-hour day/night ring.
-   Noon at the top, midnight at the bottom; the sun or tonight's moon sits at the real time. */
+/* Class logo inside a live 24-hour sky dial (a little astrolabe).
+   Noon at the top, midnight at the bottom; the sun or tonight's moon sits at the real time.
+   Intro timings are offset by --dr-t0 so a re-render mid-intro carries on instead of restarting. */
+@property --dr-reveal {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 360deg;
+}
 .greeting-emblem {
     position: absolute;
     right: 1.35rem;
@@ -1314,17 +1320,36 @@
     z-index: 11;
     pointer-events: none;
 }
-/* Only the ring and medallion catch the pointer (for the sunrise / sunset tooltip). */
-.day-ring__band,
+/* Only the dial and medallion catch the pointer (for the sunrise / sunset tooltip). */
+.day-ring__band-wrap,
 .greeting-emblem__face { pointer-events: auto; cursor: default; }
+
+.day-ring__halo {
+    position: absolute;
+    inset: 8%;
+    border-radius: 999px;
+    background: radial-gradient(circle, var(--dr-tint) 0%, transparent 70%);
+    filter: blur(6px);
+    animation: day-ring-breathe 7s ease-in-out infinite;
+}
+@keyframes day-ring-breathe {
+    0%, 100% { opacity: 0.55; transform: scale(0.96); }
+    50% { opacity: 0.95; transform: scale(1.04); }
+}
+.day-ring__band-wrap {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    -webkit-mask-image: conic-gradient(from 180deg, #000 var(--dr-reveal), transparent 0);
+    mask-image: conic-gradient(from 180deg, #000 var(--dr-reveal), transparent 0);
+}
 .day-ring__band {
     position: absolute;
     inset: 0;
     border-radius: 999px;
     background: var(--dr-band);
-    -webkit-mask-image: radial-gradient(closest-side, transparent 76.2%, #000 76.9%, #000 88.1%, transparent 88.8%);
-    mask-image: radial-gradient(closest-side, transparent 76.2%, #000 76.9%, #000 88.1%, transparent 88.8%);
-    filter: saturate(1.05) drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
+    -webkit-mask-image: radial-gradient(closest-side, transparent 69.6%, #000 70.1%, #000 88%, transparent 88.5%);
+    mask-image: radial-gradient(closest-side, transparent 69.6%, #000 70.1%, #000 88%, transparent 88.5%);
 }
 .day-ring__svg {
     position: absolute;
@@ -1332,28 +1357,62 @@
     width: 100%;
     height: 100%;
     overflow: visible;
+    filter: drop-shadow(0 5px 10px rgba(15, 23, 42, 0.16));
 }
-.day-ring__rim { fill: none; stroke: rgba(255, 255, 255, 0.75); stroke-width: 1.2; }
-.day-ring__tick { stroke: rgba(71, 85, 105, 0.4); stroke-width: 1.2; stroke-linecap: round; }
-.day-ring__tick.is-major { stroke: rgba(51, 65, 85, 0.65); stroke-width: 2; }
-.greeting-panel--night .day-ring__tick { stroke: rgba(55, 48, 163, 0.45); }
-.greeting-panel--night .day-ring__tick.is-major { stroke: rgba(55, 48, 163, 0.75); }
-.day-ring__star {
-    fill: #fff;
-    animation: day-ring-twinkle 3.2s ease-in-out infinite;
+.day-ring__depth { fill: none; stroke: rgba(15, 23, 42, 0.28); stroke-width: 2.4; }
+.day-ring__depth--rim { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1.4; }
+.day-ring__gloss {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.45);
+    stroke-width: 2.2;
+    stroke-linecap: round;
 }
-.day-ring__horizon { stroke: #fff; stroke-width: 1.4; }
-.day-ring__horizon--rise { fill: #fb923c; }
-.day-ring__horizon--set { fill: #e11d48; }
+
+/* Gold bezel */
+.day-ring__bezel { fill: none; stroke: url(#dr-gold); stroke-width: 7.6; opacity: 0.95; }
+.day-ring__bezel-line { fill: none; stroke: #92400e; stroke-width: 0.7; opacity: 0.55; }
+.day-ring__tick { stroke: #7c4a0a; stroke-width: 0.9; stroke-linecap: round; opacity: 0.6; }
+.day-ring__tick.is-long { stroke-width: 1.3; opacity: 0.85; }
+.day-ring__glyph--sun circle { fill: #b45309; }
+.day-ring__glyph--sun line { stroke: #b45309; stroke-width: 0.9; stroke-linecap: round; }
+.day-ring__glyph--moon { fill: #4338ca; }
+.day-ring__stud { fill: #fffbeb; stroke: #92400e; stroke-width: 0.5; }
+
+/* Sky contents */
+.day-ring__star { fill: #fff; }
+.day-ring__star.is-bright { fill: #fef9c3; filter: drop-shadow(0 0 1.5px rgba(254, 249, 195, 0.9)); }
+.day-ring__star.is-twinkle { animation: day-ring-twinkle 3.4s ease-in-out infinite; }
+@keyframes day-ring-twinkle {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+.day-ring__cloud { fill: rgba(255, 255, 255, 0.88); }
+.day-ring__horizon { stroke-width: 1.3; stroke-linecap: round; opacity: 0.75; }
+.day-ring__horizon--rise { stroke: #fff7ed; filter: drop-shadow(0 0 2px #fb923c); }
+.day-ring__horizon--set { stroke: #fff1f2; filter: drop-shadow(0 0 2px #f43f5e); }
+
+/* Time travelled since sunrise (or sunset), and the comet tail */
 .day-ring__trail {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.7);
-    stroke-width: 3.2;
+    stroke: rgba(255, 255, 255, 0.35);
+    stroke-width: 1.4;
     stroke-linecap: round;
     stroke-dasharray: 1 1;
     stroke-dashoffset: 0;
 }
-.day-ring--night .day-ring__trail { stroke: rgba(224, 231, 255, 0.45); }
+.day-ring__comet path { fill: none; stroke: #fff7d6; stroke-linecap: butt; }
+.day-ring--night .day-ring__comet path { stroke: #e0e7ff; }
+.day-ring__glint {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 0.07 0.93;
+    opacity: 0;
+    filter: drop-shadow(0 0 3px #fff);
+}
+
+/* The sun or moon */
 .day-ring__carrier {
     transform-box: view-box;
     transform-origin: 120px 120px;
@@ -1364,17 +1423,6 @@
     transform: rotate(calc(-1 * var(--dr-to)));
     transition: transform 1.2s ease-in-out;
 }
-.day-ring.is-intro .day-ring__carrier { animation: day-ring-sweep 2.4s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
-.day-ring.is-intro .day-ring__upright { animation: day-ring-upright 2.4s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
-.day-ring.is-intro .day-ring__trail { animation: day-ring-trail 2.4s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
-@keyframes day-ring-sweep { from { transform: rotate(var(--dr-from)); } }
-@keyframes day-ring-upright { from { transform: rotate(calc(-1 * var(--dr-from))); } }
-@keyframes day-ring-trail { from { stroke-dashoffset: 1; } }
-@keyframes day-ring-twinkle {
-    0%, 100% { opacity: 0.35; }
-    50% { opacity: 1; }
-}
-
 .day-ring .dr-sun-glow-mid { stop-color: #fbbf24; }
 .day-ring .dr-sun-core { stop-color: #fde047; }
 .day-ring .dr-sun-rim { stop-color: #f59e0b; }
@@ -1383,33 +1431,130 @@
 .day-ring.is-low-sun .dr-sun-rim { stop-color: #f97316; }
 .day-ring__rays {
     stroke: #f59e0b;
-    stroke-width: 2.2;
+    stroke-width: 2;
     stroke-linecap: round;
     animation: day-ring-rays 24s linear infinite;
 }
 .day-ring.is-low-sun .day-ring__rays { stroke: #f97316; }
 @keyframes day-ring-rays { to { transform: rotate(360deg); } }
+.day-ring__flare { opacity: 0; transform-box: fill-box; transform-origin: center; }
 .day-ring__moon-dark { fill: #3f4a63; fill-opacity: 0.85; }
 .day-ring__craters circle { fill: #94a3b8; opacity: 0.35; }
 .day-ring__moon { filter: drop-shadow(0 0 3px rgba(199, 210, 254, 0.9)); }
 
 .greeting-emblem__face {
     position: absolute;
-    inset: 17.5%;
+    inset: 16.8%;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    font-size: 2.8rem;
+    font-size: 2.7rem;
     line-height: 1;
-    background: radial-gradient(circle at 32% 28%, #fff 0%, rgba(255, 255, 255, 0.82) 60%, rgba(255, 255, 255, 0.62) 100%);
-    border: 3px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 16px 30px -14px rgba(15, 23, 42, 0.35), inset 0 -6px 14px rgba(15, 23, 42, 0.06);
+    background: radial-gradient(circle at 32% 28%, #fff 0%, rgba(255, 255, 255, 0.86) 60%, rgba(255, 255, 255, 0.68) 100%);
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 26px -14px rgba(15, 23, 42, 0.4), inset 0 -6px 14px rgba(15, 23, 42, 0.07);
     animation: greeting-emblem-float 6s ease-in-out infinite;
 }
 @keyframes greeting-emblem-float {
     0%, 100% { transform: translateY(0) rotate(-3deg); }
     50% { transform: translateY(-3px) rotate(3deg); }
+}
+
+/* ---- Opening show: the dial assembles, the sky unfolds, the sun or moon travels to now ---- */
+.day-ring.is-intro .greeting-emblem__face {
+    animation:
+        day-ring-face-in 900ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(120ms + var(--dr-t0, 0ms)) both,
+        greeting-emblem-float 6s ease-in-out calc(1100ms + var(--dr-t0, 0ms)) infinite;
+}
+@keyframes day-ring-face-in {
+    from { opacity: 0; transform: scale(0.35) rotate(-25deg); }
+    60% { opacity: 1; }
+    to { transform: scale(1) rotate(-3deg); }
+}
+.day-ring.is-intro .day-ring__halo {
+    animation:
+        day-ring-halo-in 1400ms ease-out calc(2900ms + var(--dr-t0, 0ms)) both,
+        day-ring-breathe 7s ease-in-out calc(4300ms + var(--dr-t0, 0ms)) infinite;
+}
+@keyframes day-ring-halo-in {
+    0% { opacity: 0.2; transform: scale(0.8); }
+    35% { opacity: 1; transform: scale(1.16); }
+    100% { opacity: 0.55; transform: scale(0.96); }
+}
+.day-ring.is-intro .day-ring__bezel,
+.day-ring.is-intro .day-ring__bezel-line {
+    stroke-dasharray: 1 1;
+    animation: day-ring-draw 1100ms cubic-bezier(0.65, 0, 0.35, 1) calc(80ms + var(--dr-t0, 0ms)) both;
+}
+@keyframes day-ring-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.day-ring.is-intro .day-ring__tick,
+.day-ring.is-intro .day-ring__stud,
+.day-ring.is-intro .day-ring__glyph {
+    animation: day-ring-fade-in 380ms ease-out calc(300ms + var(--i, 0) * 38ms + var(--dr-t0, 0ms)) both;
+}
+.day-ring.is-intro .day-ring__glyph { animation-delay: calc(1150ms + var(--dr-t0, 0ms)); }
+@keyframes day-ring-fade-in { from { opacity: 0; } }
+.day-ring.is-intro .day-ring__band-wrap {
+    animation: day-ring-reveal 1300ms cubic-bezier(0.45, 0, 0.25, 1) calc(260ms + var(--dr-t0, 0ms)) both;
+}
+@keyframes day-ring-reveal { from { --dr-reveal: 0deg; } to { --dr-reveal: 360deg; } }
+.day-ring.is-intro .day-ring__depth,
+.day-ring.is-intro .day-ring__gloss,
+.day-ring.is-intro .day-ring__horizon {
+    animation: day-ring-fade-in 600ms ease-out calc(1200ms + var(--dr-t0, 0ms)) both;
+}
+.day-ring.is-intro .day-ring__star {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: day-ring-star-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.day-ring.is-intro .day-ring__star.is-twinkle {
+    animation:
+        day-ring-star-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(1000ms + var(--i) * 35ms + var(--dr-t0, 0ms)) both,
+        day-ring-twinkle 3.4s ease-in-out calc(1600ms + var(--i) * 35ms + var(--dr-t0, 0ms)) infinite;
+}
+@keyframes day-ring-star-in { from { opacity: 0; transform: scale(0); } }
+.day-ring.is-intro .day-ring__cloud {
+    animation: day-ring-fade-in 700ms ease-out calc(1100ms + var(--i) * 150ms + var(--dr-t0, 0ms)) both;
+}
+.day-ring.is-intro .day-ring__body {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: day-ring-rise 600ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(1300ms + var(--dr-t0, 0ms)) both;
+}
+@keyframes day-ring-rise { from { opacity: 0; transform: scale(0.2); } }
+.day-ring.is-intro .day-ring__carrier {
+    animation: day-ring-sweep 1700ms cubic-bezier(0.5, 0, 0.2, 1) calc(1400ms + var(--dr-t0, 0ms)) both;
+}
+.day-ring.is-intro .day-ring__upright {
+    animation: day-ring-upright 1700ms cubic-bezier(0.5, 0, 0.2, 1) calc(1400ms + var(--dr-t0, 0ms)) both;
+}
+.day-ring.is-intro .day-ring__trail {
+    animation: day-ring-trail 1700ms cubic-bezier(0.5, 0, 0.2, 1) calc(1400ms + var(--dr-t0, 0ms)) both;
+}
+.day-ring.is-intro .day-ring__comet {
+    animation: day-ring-fade-in 700ms ease-out calc(2800ms + var(--dr-t0, 0ms)) both;
+}
+@keyframes day-ring-sweep { from { transform: rotate(var(--dr-from)); } }
+@keyframes day-ring-upright { from { transform: rotate(calc(-1 * var(--dr-from))); } }
+@keyframes day-ring-trail { from { stroke-dashoffset: 1; } }
+.day-ring.is-intro .day-ring__flare {
+    animation: day-ring-flare 1000ms ease-out calc(3050ms + var(--dr-t0, 0ms)) both;
+}
+@keyframes day-ring-flare {
+    0% { opacity: 0; transform: scale(0.6); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: scale(3.2); }
+}
+.day-ring.is-intro .day-ring__glint {
+    animation: day-ring-glint 1200ms cubic-bezier(0.45, 0, 0.25, 1) calc(3050ms + var(--dr-t0, 0ms)) both;
+}
+@keyframes day-ring-glint {
+    0% { opacity: 0; stroke-dashoffset: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; stroke-dashoffset: -1; }
 }
 
 .greeting-main { position: relative; }
@@ -1587,11 +1732,8 @@
     .weather-card--v2 .weather-sun,
     .greeting-sky__stars,
     .greeting-emblem__face,
-    .day-ring__carrier,
-    .day-ring__upright,
-    .day-ring__trail,
-    .day-ring__rays,
-    .day-ring__star,
+    .day-ring *,
+    .day-ring__halo,
     .home-pill--party .home-pill__icon,
     .home-pill--test-urgent,
     .weather-clock { animation: none !important; }

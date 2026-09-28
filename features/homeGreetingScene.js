@@ -18,12 +18,19 @@ import {
 } from '../utils/dayCycle.mjs';
 
 const C = 120; // SVG centre (viewBox 0 0 240 240)
-const BAND_R = 99; // centre line of the coloured band
-const MARKER_R = 99;
-const TICK_IN = 110;
-const TICK_OUT = 114;
+const BAND_IN = 84; // inner edge of the sky band
+const BAND_OUT = 106; // outer edge of the sky band
+const BAND_R = (BAND_IN + BAND_OUT) / 2;
+const MARKER_R = BAND_R;
+const TICK_IN = 109.6;
+const TICK_OUT = 113.2;
+const BEZEL_IN = 107.6;
+const BEZEL_OUT = 115.2;
+const INTRO_MS = 4200;
 
 let ringInterval = null;
+let introPending = true; // the first Home render of the session plays the intro
+let introStartedAt = null;
 
 const f = (n) => Math.round(n * 100) / 100;
 
@@ -122,106 +129,209 @@ export function getGreetingHillsHtml() {
 }
 
 // ---------------------------------------------------------------------------
-// Day / night ring
+// Day / night ring: a little celestial dial (astrolabe) around the class logo
 // ---------------------------------------------------------------------------
 
-/** Conic-gradient stops (degrees from midnight) painting night, dawn, day and dusk. */
+/**
+ * The intro plays when the Home tab opens. Home also re-renders quietly when
+ * data changes; a re-render during the intro carries on from where it was
+ * (negative animation delay) instead of restarting or cutting it off.
+ */
+export function requestDayRingIntro() {
+    introPending = true;
+}
+
+function takeIntroOffset() {
+    const now = performance.now();
+    if (introPending) {
+        introPending = false;
+        introStartedAt = now;
+        return 0;
+    }
+    if (introStartedAt != null && now - introStartedAt < INTRO_MS) return now - introStartedAt;
+    return null;
+}
+
+/** Conic-gradient stops (degrees from midnight): deep night, violet and rose dawn, gold sunrise, open sky, and a fiery dusk. */
 function bandGradient(sunrise, sunset) {
     const r = dialAngleFromMidnight(sunrise);
     const s = dialAngleFromMidnight(sunset);
     const noon = (r + s) / 2;
     const stops = [
-        ['#1e1b4b', 0],
-        ['#27235e', r - 26],
-        ['#6d28d9', r - 11],
-        ['#f472b6', r - 4],
-        ['#fb923c', r + 1],
-        ['#fcd34d', r + 8],
-        ['#7dd3fc', r + 22],
-        ['#38bdf8', noon],
-        ['#7dd3fc', s - 22],
+        ['#0b1030', 0],
+        ['#151a45', r - 34],
+        ['#3b2f86', r - 18],
+        ['#a855f7', r - 9],
+        ['#f472b6', r - 3.5],
+        ['#fb923c', r + 1.5],
+        ['#fde68a', r + 8],
+        ['#93d7fb', r + 22],
+        ['#4cb8f5', noon - 25],
+        ['#38a8f0', noon],
+        ['#4cb8f5', noon + 25],
+        ['#93d7fb', s - 22],
         ['#fcd34d', s - 8],
-        ['#f97316', s - 1],
-        ['#e11d48', s + 4],
-        ['#7c3aed', s + 11],
-        ['#27235e', s + 26],
-        ['#1e1b4b', 360]
+        ['#f97316', s - 1.5],
+        ['#e11d48', s + 3.5],
+        ['#9333ea', s + 9],
+        ['#3b2f86', s + 18],
+        ['#151a45', s + 34],
+        ['#0b1030', 360]
     ];
     return `conic-gradient(from 180deg, ${stops.map(([c, a]) => `${c} ${f(Math.min(360, Math.max(0, a)))}deg`).join(', ')})`;
 }
 
-function sunMarkerHtml(span) {
-    // Low sun (near sunrise or sunset) glows orange; high sun is golden white.
-    const rays = Array.from({ length: 12 }, (_, i) => {
-        const a = i * 30;
-        const p0 = pointOnDial(a, 15.5, 0, 0);
-        const p1 = pointOnDial(a, i % 2 ? 19.5 : 22, 0, 0);
-        return `<line x1="${f(p0.x)}" y1="${f(p0.y)}" x2="${f(p1.x)}" y2="${f(p1.y)}"/>`;
-    }).join('');
-    return `
-        <g class="day-ring__sun">
-            <circle r="30" fill="url(#dr-sun-glow)"/>
-            <g class="day-ring__rays">${rays}</g>
-            <circle r="12.5" fill="url(#dr-sun-disc)"/>
-            <circle r="12.5" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1"/>
-        </g>`;
+/** Soft colour of the sky right now, for the glow behind the logo. */
+function skyTint(span) {
+    if (!span.isDay) return 'rgba(129, 140, 248, 0.55)';
+    if (span.progress < 0.12) return 'rgba(251, 191, 36, 0.55)';
+    if (span.progress > 0.88) return 'rgba(251, 113, 133, 0.55)';
+    return 'rgba(125, 211, 252, 0.55)';
 }
 
-function moonMarkerHtml(phase) {
-    const lit = moonLitPath(phase, 12);
-    return `
-        <g class="day-ring__moon">
-            <circle r="28" fill="url(#dr-moon-glow)"/>
-            <circle r="12" class="day-ring__moon-dark"/>
-            ${lit ? `<path d="${lit}" fill="url(#dr-moon-lit)"/>` : ''}
-            <g clip-path="url(#dr-moon-clip)" class="day-ring__craters">
-                <circle cx="-3.5" cy="-4" r="2.4"/>
-                <circle cx="4.2" cy="2.6" r="1.8"/>
-                <circle cx="-1.2" cy="5.2" r="1.3"/>
-                <circle cx="5" cy="-5" r="1"/>
-            </g>
-            <circle r="12" fill="none" stroke="rgba(226,232,240,0.55)" stroke-width="0.8"/>
-        </g>`;
+/** Deterministic scatter, so stars don't jump about between renders. */
+function seeded(seed) {
+    let s = seed;
+    return () => {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+    };
 }
 
-/** Twinkling stars scattered over the night stretch of the band. */
 function nightStarsHtml(sunrise, sunset) {
     const setA = dialAngle(sunset);
     let riseA = dialAngle(sunrise);
     if (riseA <= setA) riseA += 360;
-    const span = riseA - setA - 40;
+    const from = setA + 14;
+    const span = riseA - 14 - from;
     if (span <= 10) return '';
-    const radii = [95, 103, 98, 94, 102, 97, 100];
-    return radii.map((r, i) => {
-        const a = setA + 20 + (span * (i + 0.5)) / radii.length;
+    const rand = seeded(42);
+    const count = 30;
+    return Array.from({ length: count }, (_, i) => {
+        const a = from + span * ((i + rand() * 0.9) / count);
+        const r = BAND_IN + 3 + rand() * (BAND_OUT - BAND_IN - 6);
         const p = pointOnDial(a, r, C, C);
-        return `<circle class="day-ring__star" style="animation-delay:${f(i * 0.55)}s" cx="${f(p.x)}" cy="${f(p.y)}" r="${i % 3 === 0 ? 1.4 : 0.95}"/>`;
+        const big = rand() > 0.82;
+        const size = big ? 1.5 : 0.55 + rand() * 0.6;
+        const twinkle = rand() > 0.55 ? ' is-twinkle' : '';
+        const style = `--i:${i}; animation-delay:calc(${1000 + i * 35}ms + var(--dr-t0, 0ms))${twinkle ? `, ${f(rand() * 3)}s` : ''}`;
+        if (big) {
+            // A four-point sparkle for the brightest stars.
+            const s = 2.6;
+            return `<path class="day-ring__star is-bright${twinkle}" style="${style}" transform="translate(${f(p.x)} ${f(p.y)})" d="M0 ${-s} Q0.35 -0.35 ${s} 0 Q0.35 0.35 0 ${s} Q-0.35 0.35 ${-s} 0 Q-0.35 -0.35 0 ${-s} Z"/>`;
+        }
+        return `<circle class="day-ring__star${twinkle}" style="${style}" cx="${f(p.x)}" cy="${f(p.y)}" r="${f(size)}"/>`;
     }).join('');
 }
 
-function ticksHtml() {
-    return Array.from({ length: 24 }, (_, h) => {
+/** A few small clouds drifting across the daylight stretch. */
+function dayCloudsHtml(sunrise, sunset) {
+    const riseA = dialAngle(sunrise);
+    let setA = dialAngle(sunset);
+    if (setA <= riseA) setA += 360;
+    const span = setA - riseA;
+    return [[0.24, 1.5, 0.9], [0.52, -2.5, 1.1], [0.8, 2, 0.85]].map(([t, dr, s], i) => {
+        const a = riseA + span * t;
+        const p = pointOnDial(a, BAND_R + dr, C, C);
+        return `<g class="day-ring__cloud" style="--i:${i}" transform="translate(${f(p.x)} ${f(p.y)}) rotate(${f(a)}) scale(${s})">`
+            + '<ellipse cx="0" cy="1" rx="6.5" ry="2.6"/><circle cx="-2.2" cy="-0.4" r="2.8"/><circle cx="1.8" cy="-1.2" r="3.4"/></g>';
+    }).join('');
+}
+
+/** Gold bezel: engraved hour ticks, a tiny sun at noon and a crescent at midnight. */
+function bezelHtml() {
+    const ticks = Array.from({ length: 24 }, (_, h) => {
+        if (h % 6 === 0) return '';
         const a = ((h / 24) * 360 + 180) % 360;
-        const major = h % 6 === 0;
-        const p0 = pointOnDial(a, major ? TICK_IN - 1.5 : TICK_IN, C, C);
-        const p1 = pointOnDial(a, TICK_OUT + (major ? 1.5 : 0), C, C);
-        return `<line class="day-ring__tick${major ? ' is-major' : ''}" x1="${f(p0.x)}" y1="${f(p0.y)}" x2="${f(p1.x)}" y2="${f(p1.y)}"/>`;
+        const long = h % 3 === 0;
+        const p0 = pointOnDial(a, long ? TICK_IN - 0.6 : TICK_IN + 0.6, C, C);
+        const p1 = pointOnDial(a, long ? TICK_OUT + 0.6 : TICK_OUT - 0.4, C, C);
+        return `<line class="day-ring__tick${long ? ' is-long' : ''}" style="--i:${h}" x1="${f(p0.x)}" y1="${f(p0.y)}" x2="${f(p1.x)}" y2="${f(p1.y)}"/>`;
     }).join('');
+    const mid = (BEZEL_IN + BEZEL_OUT) / 2;
+    const noon = pointOnDial(0, mid, C, C);
+    const midnight = pointOnDial(180, mid, C, C);
+    const dawn = pointOnDial(270, mid, C, C);
+    const dusk = pointOnDial(90, mid, C, C);
+    const sunRays = Array.from({ length: 8 }, (_, i) => {
+        const a = i * 45;
+        const q0 = pointOnDial(a, 2.4, 0, 0);
+        const q1 = pointOnDial(a, 3.6, 0, 0);
+        return `<line x1="${f(q0.x)}" y1="${f(q0.y)}" x2="${f(q1.x)}" y2="${f(q1.y)}"/>`;
+    }).join('');
+    const stud = (p, i) => `<path class="day-ring__stud" style="--i:${i}" transform="translate(${f(p.x)} ${f(p.y)})" d="M0 -2.2 L1.6 0 L0 2.2 L-1.6 0 Z"/>`;
+    return `
+        <circle class="day-ring__bezel" cx="${C}" cy="${C}" r="${mid}" pathLength="1" transform="rotate(90 ${C} ${C})"/>
+        <circle class="day-ring__bezel-line" cx="${C}" cy="${C}" r="${BEZEL_OUT}" pathLength="1" transform="rotate(90 ${C} ${C})"/>
+        <circle class="day-ring__bezel-line" cx="${C}" cy="${C}" r="${BEZEL_IN}" pathLength="1" transform="rotate(90 ${C} ${C})"/>
+        ${ticks}
+        <g class="day-ring__glyph day-ring__glyph--sun" transform="translate(${f(noon.x)} ${f(noon.y)})"><circle r="1.7"/>${sunRays}</g>
+        <path class="day-ring__glyph day-ring__glyph--moon" transform="translate(${f(midnight.x)} ${f(midnight.y)})" d="M0.6 -2.9 A 2.9 2.9 0 1 0 0.6 2.9 A 2.3 2.3 0 1 1 0.6 -2.9 Z"/>
+        ${stud(dawn, 6)}${stud(dusk, 18)}`;
 }
 
-/** Small sunrise / sunset notches just outside the band. */
+/** Glowing notches where the sky band meets the horizon: today's sunrise and sunset. */
 function horizonMarksHtml(sunrise, sunset) {
     return [[sunrise, 'rise'], [sunset, 'set']].map(([t, kind]) => {
         const a = dialAngle(t);
-        const p = pointOnDial(a, BAND_R, C, C);
-        return `<circle class="day-ring__horizon day-ring__horizon--${kind}" cx="${f(p.x)}" cy="${f(p.y)}" r="2.6"/>`;
+        const p0 = pointOnDial(a, BAND_IN + 1, C, C);
+        const p1 = pointOnDial(a, BAND_OUT - 1, C, C);
+        return `<line class="day-ring__horizon day-ring__horizon--${kind}" x1="${f(p0.x)}" y1="${f(p0.y)}" x2="${f(p1.x)}" y2="${f(p1.y)}"/>`;
     }).join('');
+}
+
+/** Comet tail fading out behind the sun or moon. */
+function cometHtml(st) {
+    const length = Math.min(70, st.toA - st.startA);
+    if (length < 3) return '';
+    const n = 16;
+    return Array.from({ length: n }, (_, k) => {
+        const a0 = st.toA - length + (length * k) / n;
+        const a1 = st.toA - length + (length * (k + 1)) / n;
+        const t = (k + 1) / n;
+        return `<path d="${dialArcPath(a0, a1 + 0.4, BAND_R, C, C)}" style="opacity:${f(t * t * 0.85)}; stroke-width:${f(2 + t * 5)}"/>`;
+    }).join('');
+}
+
+function sunMarkerHtml() {
+    const rays = Array.from({ length: 12 }, (_, i) => {
+        const a = i * 30;
+        const p0 = pointOnDial(a, 13.5, 0, 0);
+        const p1 = pointOnDial(a, i % 2 ? 17.5 : 20.5, 0, 0);
+        return `<line x1="${f(p0.x)}" y1="${f(p0.y)}" x2="${f(p1.x)}" y2="${f(p1.y)}"/>`;
+    }).join('');
+    return `
+        <g class="day-ring__sun">
+            <circle class="day-ring__flare" r="16" fill="url(#dr-sun-glow)"/>
+            <circle r="28" fill="url(#dr-sun-glow)"/>
+            <g class="day-ring__rays">${rays}</g>
+            <circle r="10.5" fill="url(#dr-sun-disc)"/>
+            <circle r="10.5" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="0.9"/>
+        </g>`;
+}
+
+function moonMarkerHtml(phase) {
+    const lit = moonLitPath(phase, 10.5);
+    return `
+        <g class="day-ring__moon">
+            <circle class="day-ring__flare" r="16" fill="url(#dr-moon-glow)"/>
+            <circle r="25" fill="url(#dr-moon-glow)"/>
+            <circle r="10.5" class="day-ring__moon-dark"/>
+            ${lit ? `<path d="${lit}" fill="url(#dr-moon-lit)"/>` : ''}
+            <g clip-path="url(#dr-moon-clip)" class="day-ring__craters">
+                <circle cx="-3" cy="-3.5" r="2.1"/>
+                <circle cx="3.7" cy="2.3" r="1.6"/>
+                <circle cx="-1" cy="4.6" r="1.1"/>
+                <circle cx="4.4" cy="-4.4" r="0.9"/>
+            </g>
+            <circle r="10.5" fill="none" stroke="rgba(226,232,240,0.6)" stroke-width="0.7"/>
+        </g>`;
 }
 
 function ringState(now, sunrise, sunset) {
     const span = currentLightSpan(now, sunrise, sunset);
     const nowA = dialAngle(now);
-    let startA = dialAngle(span.start);
+    const startA = dialAngle(span.start);
     // Unwrap so the sweep always runs clockwise from the start of this stretch.
     let toA = nowA;
     while (toA < startA) toA += 360;
@@ -241,26 +351,34 @@ function trailPath(st) {
     return dialArcPath(st.startA, st.toA, BAND_R, C, C);
 }
 
-/** The whole emblem: 24-hour ring with the sun or moon, around the class logo. */
-export function getDayRingEmblemHtml(logo, { now = Date.now(), sunrise, sunset, intro = true } = {}) {
+/** The whole emblem: a 24-hour sky dial with the sun or moon, around the class logo. */
+export function getDayRingEmblemHtml(logo, { now = Date.now(), sunrise, sunset, intro } = {}) {
     if (sunrise == null || sunset == null) ({ sunrise, sunset } = getSolarTimes());
     const st = ringState(now, sunrise, sunset);
     const markerTop = pointOnDial(0, MARKER_R, C, C);
-    const trail = trailPath(st);
     const label = ringLabel(now, sunrise, sunset, st);
     const kind = st.span.isDay ? 'day' : 'night';
     // Low sun (near sunrise or sunset) glows orange; high sun is golden white.
     const lowSun = st.span.isDay && Math.sin(st.span.progress * Math.PI) < 0.35;
+    const introOffset = intro === false ? null : intro === true ? 0 : takeIntroOffset();
+    const introVars = introOffset == null ? '' : ` --dr-t0:${Math.round(-introOffset)}ms;`;
     return `
-    <div class="greeting-emblem day-ring day-ring--${kind}${lowSun ? ' is-low-sun' : ''}${intro ? ' is-intro' : ''}" data-day-ring
+    <div class="greeting-emblem day-ring day-ring--${kind}${lowSun ? ' is-low-sun' : ''}${introOffset == null ? '' : ' is-intro'}" data-day-ring
         data-sunrise="${sunrise}" data-sunset="${sunset}" data-kind="${kind}"
         role="img" aria-label="${label}" title="${label}"
-        style="--dr-from:${f(st.startA)}deg; --dr-to:${f(st.toA)}deg; --dr-band:${bandGradient(sunrise, sunset)};">
-        <span class="day-ring__band"></span>
+        style="--dr-from:${f(st.startA)}deg; --dr-to:${f(st.toA)}deg; --dr-tint:${skyTint(st.span)}; --dr-band:${bandGradient(sunrise, sunset)};${introVars}">
+        <span class="day-ring__halo" aria-hidden="true"></span>
+        <span class="day-ring__band-wrap" aria-hidden="true"><span class="day-ring__band"></span></span>
         <svg class="day-ring__svg" viewBox="0 0 240 240" aria-hidden="true" focusable="false">
             <defs>
+                <linearGradient id="dr-gold" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fde68a"/>
+                    <stop offset="0.35" stop-color="#d4a017"/>
+                    <stop offset="0.6" stop-color="#fef3c7"/>
+                    <stop offset="1" stop-color="#b7791f"/>
+                </linearGradient>
                 <radialGradient id="dr-sun-glow">
-                    <stop offset="0" stop-color="#fde68a" stop-opacity="0.95"/>
+                    <stop offset="0" stop-color="#fef3c7" stop-opacity="0.95"/>
                     <stop offset="0.45" class="dr-sun-glow-mid" stop-opacity="0.45"/>
                     <stop offset="1" class="dr-sun-glow-mid" stop-opacity="0"/>
                 </radialGradient>
@@ -270,7 +388,7 @@ export function getDayRingEmblemHtml(logo, { now = Date.now(), sunrise, sunset, 
                     <stop offset="1" class="dr-sun-rim"/>
                 </radialGradient>
                 <radialGradient id="dr-moon-glow">
-                    <stop offset="0" stop-color="#e0e7ff" stop-opacity="0.75"/>
+                    <stop offset="0" stop-color="#e0e7ff" stop-opacity="0.8"/>
                     <stop offset="0.5" stop-color="#a5b4fc" stop-opacity="0.3"/>
                     <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
                 </radialGradient>
@@ -278,18 +396,24 @@ export function getDayRingEmblemHtml(logo, { now = Date.now(), sunrise, sunset, 
                     <stop offset="0" stop-color="#ffffff"/>
                     <stop offset="1" stop-color="#cbd5e1"/>
                 </radialGradient>
-                <clipPath id="dr-moon-clip"><path d="${moonLitPath(st.phase, 12) || 'M0 0'}"/></clipPath>
+                <clipPath id="dr-moon-clip"><path d="${moonLitPath(st.phase, 10.5) || 'M0 0'}"/></clipPath>
             </defs>
-            <circle class="day-ring__rim" cx="${C}" cy="${C}" r="${BAND_R + 7.5}"/>
-            <circle class="day-ring__rim" cx="${C}" cy="${C}" r="${BAND_R - 7.5}"/>
-            ${ticksHtml()}
+            <circle class="day-ring__depth" cx="${C}" cy="${C}" r="${BAND_IN + 1.2}"/>
+            <circle class="day-ring__depth day-ring__depth--rim" cx="${C}" cy="${C}" r="${BAND_OUT - 0.9}"/>
+            <path class="day-ring__gloss" d="${dialArcPath(292, 352, BAND_OUT - 3.5, C, C)}"/>
+            ${dayCloudsHtml(sunrise, sunset)}
             ${nightStarsHtml(sunrise, sunset)}
             ${horizonMarksHtml(sunrise, sunset)}
-            <path class="day-ring__trail" data-day-ring-trail d="${trail}" pathLength="1"/>
+            ${bezelHtml()}
+            <path class="day-ring__trail" data-day-ring-trail d="${trailPath(st)}" pathLength="1"/>
+            <g class="day-ring__comet" data-day-ring-comet>${cometHtml(st)}</g>
+            <circle class="day-ring__glint" cx="${C}" cy="${C}" r="${(BEZEL_IN + BEZEL_OUT) / 2}" pathLength="1" transform="rotate(${f(st.toA - 90)} ${C} ${C})"/>
             <g class="day-ring__carrier" data-day-ring-carrier>
                 <g transform="translate(${f(markerTop.x)} ${f(markerTop.y)})">
-                    <g class="day-ring__upright" data-day-ring-upright>
-                        ${st.span.isDay ? sunMarkerHtml(st.span) : moonMarkerHtml(st.phase)}
+                    <g class="day-ring__upright">
+                        <g class="day-ring__body">
+                            ${st.span.isDay ? sunMarkerHtml() : moonMarkerHtml(st.phase)}
+                        </g>
                     </g>
                 </g>
             </g>
@@ -308,13 +432,17 @@ export function startDayRingClock(root = document) {
             ringInterval = null;
             return;
         }
+        if (ring.classList.contains('is-intro')) {
+            if (introStartedAt != null && performance.now() - introStartedAt < INTRO_MS + 400) return;
+            ring.classList.remove('is-intro');
+        }
         const { sunrise, sunset } = getSolarTimes();
         const now = Date.now();
         const st = ringState(now, sunrise, sunset);
         const kind = st.span.isDay ? 'day' : 'night';
         const solarChanged = String(sunrise) !== ring.dataset.sunrise || String(sunset) !== ring.dataset.sunset;
         if (solarChanged || kind !== ring.dataset.kind) {
-            // Sunrise, sunset, or fresh solar times: rebuild quietly (no intro sweep).
+            // Sunrise, sunset, or fresh solar times: rebuild quietly (no intro).
             const logo = ring.querySelector('.greeting-emblem__face')?.innerHTML || '';
             const holder = document.createElement('div');
             holder.innerHTML = getDayRingEmblemHtml(logo, { now, sunrise, sunset, intro: false });
@@ -322,15 +450,16 @@ export function startDayRingClock(root = document) {
             if (fresh) ring.replaceWith(fresh);
             return;
         }
-        ring.classList.remove('is-intro');
         ring.style.setProperty('--dr-from', `${f(st.startA)}deg`);
         ring.style.setProperty('--dr-to', `${f(st.toA)}deg`);
         ring.querySelector('[data-day-ring-trail]')?.setAttribute('d', trailPath(st));
+        const comet = ring.querySelector('[data-day-ring-comet]');
+        if (comet) comet.innerHTML = cometHtml(st);
         const label = ringLabel(now, sunrise, sunset, st);
         ring.setAttribute('aria-label', label);
         ring.setAttribute('title', label);
     };
     ringInterval = setInterval(tick, 30000);
-    // Solar times usually land a moment after first paint.
-    setTimeout(tick, 4000);
+    // Solar times usually land a moment after first paint; wait for the intro to finish.
+    setTimeout(tick, INTRO_MS + 600);
 }

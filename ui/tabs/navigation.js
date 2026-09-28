@@ -17,6 +17,7 @@ import { renderActiveBounties } from '../core.js';
 import { renderClassEndDatesList } from '../core/misc.js';
 import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
+import { requestDayRingIntro } from '../../features/homeGreetingScene.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { generateLeagueMapHtml } from '../../features/worldMap.js';
 import { refreshFortunesWheelModalFromGlobalClass } from '../../features/fortunesWheel.js';
@@ -282,6 +283,8 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     }
 
     if (tabId === 'about-tab') {
+        // Opening Home plays the day/night ring's intro; background refreshes don't.
+        requestDayRingIntro();
         renderHomeTab();
     }
 

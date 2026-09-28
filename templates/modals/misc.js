@@ -149,7 +149,7 @@ export const miscModalsHTML = `
                             <label for="quest-assignment-textarea" class="sr-only">Assignment for next lesson</label>
                             <textarea id="quest-assignment-textarea" rows="8"
                                 class="notebook-textarea"
-                                placeholder="1. Workbook p. 24, exercises 1-3&#10;2. Learn the new words&#10;3. ..."></textarea>
+                                placeholder="1.&#10;2.&#10;3."></textarea>
                         </div>
                     </section>
                 </div>

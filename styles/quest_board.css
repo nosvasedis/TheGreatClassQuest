@@ -427,7 +427,7 @@
     box-shadow: none;
 }
 
-#quest-assignment-modal .notebook-textarea::placeholder { font-family: var(--qb-hand); font-size: 1.35rem; color: #a3acba; }
+#quest-assignment-modal .notebook-textarea::placeholder { font-family: var(--qb-hand); font-size: 1.35rem; color: #d4d9e2; }
 #quest-assignment-modal .notebook-textarea:focus { box-shadow: none; outline: none; }
 
 /* test notice */

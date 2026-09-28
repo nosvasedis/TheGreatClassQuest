@@ -165,7 +165,13 @@ body.sq-open { overflow: hidden; }
     flex: none;
     width: var(--sq-sigil);
     height: var(--sq-sigil);
-    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1), height 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    transition:
+        width 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+        scale 1.15s 0.18s cubic-bezier(0.34, 1.45, 0.64, 1),
+        rotate 1.3s 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.6s 0.18s ease,
+        filter 1.2s 0.18s ease;
 }
 .sq-sigil__runes {
     position: absolute;
@@ -250,6 +256,7 @@ body.sq-open { overflow: hidden; }
     position: absolute;
     inset: 0;
     animation: sq-spin 60s linear infinite;
+    transition: scale 1.25s 0.4s cubic-bezier(0.34, 1.5, 0.64, 1);
 }
 .sq-seat {
     --angle: calc(var(--seat) * 90deg - 135deg);
@@ -820,6 +827,72 @@ body.sq-open { overflow: hidden; }
     .sq[data-stage="question"] .sq-question__text { margin-bottom: 0.7rem; }
 }
 
+/* ── Opening: a golden portal blooms from the tapped hat ───────────────────
+   ui/modals/sortingCeremony.js adds .sq-pre (folded) for one frame, then
+   .is-entering for ~1.9 s; --sq-ox / --sq-oy hold the portal point. */
+.sq.is-entering { animation: sq-iris-open 0.85s cubic-bezier(0.65, 0, 0.35, 1) both; }
+
+/* Folded start: sigil small, turned back, dim and over-bright; houses gathered in the orb. */
+.sq.sq-pre .sq-sigil { scale: 0.2; rotate: -140deg; opacity: 0; filter: brightness(2.2); }
+.sq.sq-pre .sq-ring { scale: 0.12; }
+
+.sq-sigil::after {
+    content: '';
+    position: absolute;
+    inset: 28%;
+    border-radius: 50%;
+    border: 2px solid rgba(253, 230, 138, 0.9);
+    box-shadow: 0 0 30px rgba(252, 211, 77, 0.7), inset 0 0 24px rgba(252, 211, 77, 0.5);
+    opacity: 0;
+    pointer-events: none;
+}
+.sq.is-entering .sq-sigil::after { animation: sq-shockwave 1.2s 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.sq.is-entering .sq-seat__emblem { animation: sq-seat-pop 0.7s calc(0.7s + var(--seat) * 0.11s) cubic-bezier(0.34, 1.7, 0.64, 1) both; }
+.sq.is-entering .sq-seat__name { animation: sq-fade-in 0.5s calc(1.05s + var(--seat) * 0.11s) ease both; }
+.sq.is-entering .sq-orb__glyph { animation: sq-glyph-in 0.8s 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both, sq-float 3.4s 1.55s ease-in-out infinite; }
+.sq.is-entering .sq-panel--intro { animation-delay: 0.95s; }
+.sq.is-entering .sq-panel--intro .sq-hero { animation: sq-pop 0.6s 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.sq.is-entering .sq-close { animation: sq-fade-in 0.4s 1.2s ease both; }
+
+/* The portal's glowing rim, riding the edge of the iris. Id-scoped so the
+   phone bottom-sheet rule (mobile/styles/tabs.css) cannot restyle it. */
+#sorting-quiz-modal > .sq-portal {
+    position: fixed;
+    left: var(--sq-ox, 50%);
+    top: var(--sq-oy, 50%);
+    z-index: 5;
+    width: 300vmax;
+    height: 300vmax;
+    max-width: none;
+    max-height: none;
+    margin: -150vmax 0 0 -150vmax !important;
+    padding: 0;
+    border-radius: 50% !important;
+    overflow: visible !important;
+    border: 3px solid rgba(253, 230, 138, 0.95);
+    box-shadow: inset 0 0 60px 12px rgba(252, 211, 77, 0.55), inset 0 0 160px 30px rgba(168, 85, 247, 0.35);
+    pointer-events: none;
+    opacity: 0;
+    scale: 0;
+    animation: none;
+}
+#sorting-quiz-modal.is-entering > .sq-portal { animation: sq-portal-open 0.85s cubic-bezier(0.65, 0, 0.35, 1) both; }
+#sorting-quiz-modal.is-leaving > .sq-portal { animation: sq-portal-close 0.62s 0.2s cubic-bezier(0.55, 0, 0.8, 0.25) both; }
+
+/* ── Closing: everything folds back into the orb, then the portal shuts ── */
+.sq.is-leaving { animation: sq-iris-close 0.62s 0.2s cubic-bezier(0.55, 0, 0.8, 0.25) both; pointer-events: none; }
+.sq.is-leaving .sq-panel { animation: sq-panel-out 0.32s cubic-bezier(0.55, 0, 1, 0.45) both; }
+.sq.is-leaving .sq-sigil {
+    scale: 0.15;
+    rotate: 160deg;
+    opacity: 0;
+    filter: brightness(2);
+    transition: scale 0.6s cubic-bezier(0.55, 0, 0.8, 0.25), rotate 0.6s ease-in, opacity 0.5s 0.12s ease-in, filter 0.5s ease-in;
+}
+.sq.is-leaving .sq-ring { scale: 0.1; transition: scale 0.45s cubic-bezier(0.55, 0, 0.8, 0.25); }
+.sq.is-leaving .sq-close { opacity: 0; transition: opacity 0.2s; }
+.sq.is-leaving .sq-sparks { opacity: 0; }
+
 /* Phones: mobile/styles/tabs.css turns every [id$="-modal"] child into a
    bottom sheet. The ceremony stays a full-screen stage. */
 body.gcq-mobile #sorting-quiz-modal { align-items: stretch; }
@@ -851,6 +924,35 @@ body.gcq-mobile #sorting-quiz-modal > .sq-close {
 }
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
+@keyframes sq-iris-open {
+    from { clip-path: circle(0px at var(--sq-ox, 50%) var(--sq-oy, 50%)); }
+    to   { clip-path: circle(150vmax at var(--sq-ox, 50%) var(--sq-oy, 50%)); }
+}
+@keyframes sq-iris-close {
+    from { clip-path: circle(150vmax at var(--sq-ox, 50%) var(--sq-oy, 50%)); }
+    to   { clip-path: circle(0px at var(--sq-ox, 50%) var(--sq-oy, 50%)); }
+}
+@keyframes sq-portal-open {
+    0%   { scale: 0; opacity: 1; }
+    75%  { opacity: 0.9; }
+    100% { scale: 1; opacity: 0; }
+}
+@keyframes sq-portal-close {
+    0%   { scale: 1; opacity: 0; }
+    30%  { opacity: 1; }
+    100% { scale: 0; opacity: 1; }
+}
+@keyframes sq-shockwave {
+    0%   { scale: 0.4; opacity: 1; }
+    100% { scale: 3.2; opacity: 0; }
+}
+@keyframes sq-seat-pop {
+    from { scale: 0; rotate: -60deg; opacity: 0; }
+    to   { scale: 1; rotate: 0deg; opacity: 1; }
+}
+@keyframes sq-panel-out {
+    to { opacity: 0; transform: translateY(16px) scale(0.97); filter: blur(4px); }
+}
 @keyframes sq-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sq-spin { to { rotate: 360deg; } }
 @keyframes sq-counter-spin {
@@ -954,6 +1056,8 @@ body.gcq-mobile #sorting-quiz-modal > .sq-close {
 
 /* ── Reduced motion: keep the colour and the story, drop the movement ── */
 @media (prefers-reduced-motion: reduce) {
+    .sq.is-entering,
+    .sq.is-leaving { animation: none; }
     .sq *,
     .sq *::before,
     .sq *::after {

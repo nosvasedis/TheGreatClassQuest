@@ -7,6 +7,17 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 let _ceremony = null;
+
+// The ceremony's portal opens from wherever the teacher just tapped (the hat).
+let _lastTap = null;
+if (typeof document !== 'undefined') {
+    document.addEventListener('pointerdown', (e) => {
+        _lastTap = { x: e.clientX, y: e.clientY, at: Date.now() };
+    }, { capture: true, passive: true });
+}
+function recentTap() {
+    return _lastTap && Date.now() - _lastTap.at < 2000 ? { x: _lastTap.x, y: _lastTap.y } : null;
+}
 function loadCeremony() {
     if (!_ceremony) _ceremony = import('./sortingCeremony.js');
     return _ceremony;
@@ -25,8 +36,9 @@ export function openSortingQuizModal(studentId) {
         });
         return;
     }
+    const origin = recentTap();
     loadCeremony()
-        .then((m) => m.openSortingCeremony(studentId))
+        .then((m) => m.openSortingCeremony(studentId, { origin }))
         .catch((err) => console.error('Sorting Ceremony failed to load', err));
 }
 

@@ -26,7 +26,7 @@ Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem in Guild H
 
 From **Teacher Settings → My Classes → Manage Students**, any student without a guild can take a **7-question**, story-style quiz. The hat on the roster opens it.
 
-It runs as a full-screen **Sorting Ceremony** built for the projector:
+It runs as a full-screen **Sorting Ceremony** built for the projector. It opens as a golden portal from the hat you tapped and, when closed, folds back into the orb (or the crest, after the reveal).
 
 1. **Intro** — the student's portrait and name, the four house emblems circling a glowing orb. **Begin the Sorting**.
 2. **Questions** — one tap per answer (or keys **1–4** / **A–D**). A spark flies into the orb and the next question appears. The orb and the sky slowly take on the colours the answers lean toward: a hint, never the answer. **Back** changes an earlier answer.

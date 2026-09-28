@@ -331,7 +331,8 @@ async function startReveal() {
         ctx.saved = !!r;
         if (!r) throw new Error('Sorting was not saved');
         // Closed mid-reveal: the roster still needs the new house.
-        if (modalEl()?.classList.contains('hidden')) {
+        const m = modalEl();
+        if (m?.classList.contains('hidden') || m?.classList.contains('is-leaving')) {
             import('../../ui/tabs.js').then((t) => t.renderManageStudentsTab?.());
         }
         return r;
@@ -588,11 +589,34 @@ function wireQuizListeners() {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
+// ─── Opening and closing: a golden portal ───────────────────────────────────
+
+const OPEN_SETTLE_MS = 1900;
+const CLOSE_MS = 820;
+let _leaveTimer = 0;
+
+/** Where the portal opens / closes, in viewport px. */
+function setPortalPoint(modal, point) {
+    const x = Number.isFinite(point?.x) ? point.x : window.innerWidth / 2;
+    const y = Number.isFinite(point?.y) ? point.y : window.innerHeight / 2;
+    modal.style.setProperty('--sq-ox', `${Math.round(x)}px`);
+    modal.style.setProperty('--sq-oy', `${Math.round(y)}px`);
+}
+
+/** The ceremony folds back into whatever is glowing at its heart: orb or crest. */
+function closingPoint(modal) {
+    const heart = modal.dataset.stage === 'result' ? $('sorting-quiz-result-emblem') : $('sq-orb');
+    const r = heart?.getBoundingClientRect();
+    if (!r || !r.width) return null;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
 /**
  * Open the Sorting Ceremony for a student (plan gate lives in ui/modals/sortingQuiz.js).
  * @param {string} studentId
+ * @param {{ origin?: {x:number, y:number} }} [opts] - where the portal opens (the tapped hat)
  */
-export function openSortingCeremony(studentId) {
+export function openSortingCeremony(studentId, opts = {}) {
     const modal = modalEl();
     if (!modal) return;
 
@@ -602,6 +626,7 @@ export function openSortingCeremony(studentId) {
 
     clearTimers();
     stopSparks();
+    clearTimeout(_leaveTimer);
     ctx = freshContext();
     ctx.studentId = studentId;
     ctx.student = student;
@@ -616,26 +641,40 @@ export function openSortingCeremony(studentId) {
 
     ['--sq-g1', '--sq-g2', '--sq-glow'].forEach((p) => modal.style.removeProperty(p));
     delete modal.dataset.guild;
-    modal.classList.remove('is-flashing');
+    modal.classList.remove('is-flashing', 'is-leaving', 'is-entering');
     applyOrbColors();
 
+    // Start folded (sq-pre), then let the portal open and the sigil unfurl.
+    setPortalPoint(modal, opts.origin);
+    modal.classList.add('sq-pre');
     modal.classList.remove('hidden');
     document.body.classList.add('sq-open');
     setStage('intro');
+    void modal.offsetWidth;
+    modal.classList.add('is-entering');
+    requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.remove('sq-pre')));
+    later(() => modal.classList.remove('is-entering'), reducedMotion() ? 0 : OPEN_SETTLE_MS);
     sound('magic_chime');
 }
 
 /** Close the ceremony (any stage). Refreshes the roster if a house was saved. */
 export function closeSortingCeremony() {
     const modal = modalEl();
-    if (!modal || modal.classList.contains('hidden')) return;
+    if (!modal || modal.classList.contains('hidden') || modal.classList.contains('is-leaving')) return;
     clearTimers();
     stopSparks();
     import('../../audio.js').then((a) => a.stopDrumRoll?.()).catch(() => {});
-    modal.classList.add('hidden');
-    modal.classList.remove('is-flashing');
-    document.body.classList.remove('sq-open');
     const saved = ctx.saved;
     ctx.busy = false;
-    if (saved) import('../../ui/tabs.js').then((t) => t.renderManageStudentsTab?.());
+
+    setPortalPoint(modal, closingPoint(modal));
+    modal.classList.remove('is-entering', 'is-flashing', 'sq-pre');
+    modal.classList.add('is-leaving');
+    clearTimeout(_leaveTimer);
+    _leaveTimer = setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('is-leaving');
+        document.body.classList.remove('sq-open');
+        if (saved) import('../../ui/tabs.js').then((t) => t.renderManageStudentsTab?.());
+    }, reducedMotion() ? 0 : CLOSE_MS);
 }

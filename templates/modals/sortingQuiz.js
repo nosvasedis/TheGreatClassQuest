@@ -19,6 +19,7 @@ export const sortingQuizModalsHTML = `
             <div class="sq-sky__motes"></div>
             <div class="sq-sky__flood"></div>
         </div>
+        <div class="sq-portal" aria-hidden="true"></div>
         <canvas id="sq-sparks" class="sq-sparks" aria-hidden="true"></canvas>
         <div class="sq-flash" aria-hidden="true"></div>
 

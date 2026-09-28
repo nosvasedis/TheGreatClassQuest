@@ -24,9 +24,13 @@ There is **no** separate “invite teachers” screen here. Teacher accounts are
 
 This is how the **school year** is opened, run, and closed. Modes you will meet:
 
-- **Preparing** — year not begun; **Add a new student**; **Create and manage classes**; last-day date
-- **Between years** — **Add a new student**; **Create and manage classes**; open the year; **Place returning students** (wizard); **Left school**
-- **Underway** — **Add a new student**; **Create and manage classes**; last school day; readiness preview; **Finish school year** (typed confirm); **Place returning students** while anyone is still waiting
+- **Preparing** — year not begun; **Add a new student**; **Create and manage classes**; opening day; last-day date
+- **Between years** — **Add a new student**; **Create and manage classes**; opening day; open the year; **Place returning students** (wizard); **Left school**
+- **Underway** — **Add a new student**; **Create and manage classes**; opening day; last school day; readiness preview; **Finish school year** (typed confirm); **Place returning students** while anyone is still waiting
+
+### School calendar — opening day and last day
+
+Two **School calendar** cards carry the year's dates. **Opening day — first day of lessons** is the day lessons actually begin: **no date before it counts as a class day**, so a school that starts on 18 September shows no lessons on 1–17 September in the attendance register, the Quest Calendar, or anywhere else that counts class days. It is the same value teachers see as the year's start date. Leave it at 1 September if lessons really do begin with the month. **Last day of the school year** is the close date (see *Finish the school year*).
 
 ### Add a new student
 

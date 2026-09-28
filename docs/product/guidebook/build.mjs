@@ -705,7 +705,7 @@ function headingWidgets(id) {
   if (id === 'guild-hall') {
     return [
       { match: ['The four guilds', 'Τα τέσσερα σπίτια'], html: housesHtml() },
-      { match: ['Guild Placement', 'Guild Sorting', 'Τοποθέτηση'], html: uiShot('guild-sorting-quiz.png', 'Guild Placement Quiz: seven story-style questions. The pool matches the league — Nursery language is not Proficiency language. Weighted answers assign a house for the year.') },
+      { match: ['Guild Placement', 'Guild Sorting', 'Τοποθέτηση'], html: uiShot('guild-sorting-quiz.png', 'Guild Sorting Ceremony: seven story-style questions, one tap each, while the orb takes on the colours the answers lean toward. The pool matches the league — Nursery language is not Proficiency language. Weighted answers assign a house for the year.') },
       { match: ['Glory and Guild Power', 'Glory και Guild Power'], html: uiShot('guild-power.png', 'Guild Power explained: 70% season Glory per member, 15% this week’s Glory per member, 10% activity, 5% momentum. Each piece is 0–100 against the leading house.') },
       { match: ['What you see', 'Τι βλέπεις στην καρτέλα'], html: uiShot('guild-hall.png', 'Guild Hall crystal columns, ranked by Guild Power. Fill, rank, and emblems are the live hall — tap an emblem for lore and the anthem.') },
       { match: ["Fortune’s Wheel", "Fortune's Wheel"], html: uiShot('fortunes-wheel.png', "Fortune's Wheel: last lesson of a Monday–Friday week, once per class. The canvas relic is the live wheel.") },

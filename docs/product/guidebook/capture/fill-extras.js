@@ -6,12 +6,9 @@ import { skillTreeModalHTML } from '../../../../templates/modals/skillTree.js';
 import { fortunesWheelModalHTML } from '../../../../templates/modals/fortunesWheel.js';
 import { PATHFINDER_CLASS_QUEST_BONUS_STARS } from '../../../../features/awardLogReasonMeta.js';
 import { FAMILIAR_LEVEL_THRESHOLDS } from '../../../../features/familiarProgression.mjs';
-import {
-  HERO_SKILL_TREE,
-  getHeroTitle,
-  getReasonDisplayName,
-  starsToNextLevel
-} from '../../../../features/heroSkillTree.js';
+import { HERO_SKILL_TREE, getReasonDisplayName } from '../../../../features/heroSkillTree.js';
+import { buildSkillTreeModel } from '../../../../features/skillTreeCore.mjs';
+import { renderSkillTreeStage, skillTreeThemeStyle } from '../../../../ui/modals/skillTreeView.mjs';
 import { HERO_CLASSES } from '../../../../features/heroClasses.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { getHeroLegendTierInfo } from '../../../../utils.js';
@@ -254,109 +251,35 @@ export function hideShop() {
   tab?.classList.remove('capture-shop');
 }
 
-function skillTreeContentHtml(heroClass, tree, heroSkills, starsInReason, pendingChoice) {
-  return tree.levels.map((lvl, idx) => {
-    const levelNumber = idx + 1;
-    const isUnlocked = starsInReason >= lvl.threshold;
-    const chosenSkillId = heroSkills[idx] || null;
-    const needsChoice = isUnlocked && !chosenSkillId;
-    const isCurrentPending = pendingChoice && levelNumber === (heroSkills.length + 1) && needsChoice;
-    const connectorHtml = idx < tree.levels.length - 1
-      ? `<div class="flex justify-center my-2"><div class="w-1 h-12 rounded-full ${isUnlocked ? 'bg-gradient-to-b from-white/30 to-white/10' : 'bg-white/5 shadow-inner'}"></div></div>`
-      : '';
-    const titleLabel = getHeroTitle(heroClass, levelNumber);
-    const thresholdLabel = `${lvl.threshold} ${getReasonDisplayName(tree.reason)} stars`;
-    return `
-            <div class="skill-tree-level-node group ${isUnlocked ? 'is-unlocked' : 'is-locked opacity-60'}" data-level="${levelNumber}">
-                <div class="flex items-center gap-4 mb-5">
-                    <div class="relative w-12 h-12 flex-shrink-0">
-                        <div class="absolute inset-0 rounded-xl rotate-45 ${isUnlocked ? 'bg-white/10 border border-white/20' : 'bg-black/40 border border-white/5'}"></div>
-                        <div class="relative flex items-center justify-center h-full text-lg font-title ${isUnlocked ? 'text-white' : 'text-white/30'}">${levelNumber}</div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-title text-xl text-white flex items-center gap-3">
-                            ${titleLabel}
-                            ${isUnlocked ? '<i class="fas fa-check-circle text-[10px] text-green-400 opacity-60"></i>' : '<i class="fas fa-lock text-[10px] opacity-30"></i>'}
-                        </h3>
-                        <div class="flex items-center gap-2 mt-1">
-                            ${isUnlocked
-                              ? `<span class="text-[9px] px-2 py-0.5 rounded-md bg-white/10 text-white/60 font-bold uppercase tracking-wider">Unlocked</span>`
-                              : `<span class="text-[9px] px-2 py-0.5 rounded-md bg-black/40 text-white/30 font-bold uppercase tracking-wider border border-white/5">Requires ${thresholdLabel}</span>`}
-                            ${isCurrentPending ? `<span class="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider" style="background:${tree.auraColor};color:white">Level Up! Choice Pending</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    ${lvl.branches.map((branch) => {
-                      const isChosen = chosenSkillId === branch.id;
-                      const canChoose = isUnlocked && !chosenSkillId && (idx === 0 || !!heroSkills[idx - 1]);
-                      return `
-                            <div class="skill-branch-card relative rounded-[1.5rem] p-4 border
-                                ${isChosen ? 'is-active border-2' : canChoose ? 'is-available border-white/10 bg-white/5' : 'is-unavailable border-white/5 bg-black/20 grayscale-[0.8] opacity-50'}"
-                                style="${isChosen ? `border-color:${tree.auraColor};background:linear-gradient(135deg, ${tree.auraColor}22, ${tree.auraColor}11)` : ''}">
-                                <div class="relative w-12 h-12 flex items-center justify-center rounded-2xl bg-black/40 border border-white/10 mb-3">
-                                    <div class="text-3xl">${branch.icon}</div>
-                                    ${isChosen ? `<div class="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px]" style="background:${tree.auraColor}"><i class="fas fa-check"></i></div>` : ''}
-                                </div>
-                                <div class="font-title text-sm text-white leading-tight mb-1.5">${branch.name}</div>
-                                <div class="text-[11px] text-white/50 leading-relaxed">${branch.desc}</div>
-                                ${isChosen ? `<div class="mt-3 flex items-center gap-2"><div class="h-1 flex-1 rounded-full overflow-hidden bg-white/10"><div class="h-full w-full" style="background:${tree.auraColor}"></div></div><span class="text-[8px] font-bold uppercase tracking-widest text-white/40">Active</span></div>` : ''}
-                                ${canChoose ? `<div class="mt-4 py-2 rounded-xl text-center text-[10px] font-bold uppercase tracking-widest border border-dashed border-white/20">Select Skill</div>` : ''}
-                            </div>`;
-                    }).join('')}
-                </div>
-            </div>
-            ${connectorHtml}`;
-  }).join('');
-}
-
 export function showSkillTree() {
   hideExtras();
   hideAppScreen();
   const modal = document.getElementById('skill-tree-modal');
   const panel = document.getElementById('skill-tree-modal-panel');
+  const stage = document.getElementById('skill-tree-stage');
   const heroClass = 'Guardian';
   const tree = HERO_SKILL_TREE[heroClass];
-  const classInfo = HERO_CLASSES[heroClass];
-  const heroSkills = ['guardian_1a'];
-  const starsInReason = 52;
-  const currentLevel = 1;
-  if (!modal || !panel || !tree) return;
+  if (!modal || !panel || !stage || !tree) return;
+  // Level 2 unlocked with a choice pending, level 1 awakened.
+  const model = buildSkillTreeModel({
+    heroClass,
+    tree,
+    classIcon: HERO_CLASSES[heroClass].icon,
+    studentName: 'Alex',
+    heroSkills: ['guardian_1a'],
+    starsInReason: 52,
+    reasonLabel: getReasonDisplayName(tree.reason),
+    titles: tree.titles
+  });
   modal.classList.remove('hidden');
   modal.classList.add('capture-skill');
-  panel.style.background = `linear-gradient(165deg, ${tree.auraColor}33 0%, #0f172a 60%, #020617 100%)`;
-  panel.style.borderColor = `${tree.auraColor}44`;
-  const glow = document.getElementById('skill-tree-class-icon-glow');
-  if (glow) glow.style.background = tree.auraColor;
-  const bgIcon = document.getElementById('skill-tree-class-bg-icon');
-  if (bgIcon) {
-    bgIcon.textContent = classInfo.icon;
-    bgIcon.style.color = tree.auraColor;
-  }
-  const bar = document.getElementById('skill-tree-progress-bar');
-  if (bar) {
-    const nextThreshold = tree.levels[currentLevel]?.threshold || 200;
-    const prevThreshold = currentLevel > 0 ? tree.levels[currentLevel - 1].threshold : 0;
-    const pct = Math.min(100, Math.max(0, Math.round(((starsInReason - prevThreshold) / (nextThreshold - prevThreshold)) * 100)));
-    bar.style.background = `linear-gradient(90deg, ${tree.auraColor}aa, ${tree.auraColor})`;
-    bar.style.boxShadow = `0 0 15px ${tree.auraColor}66`;
-    bar.style.width = `${pct}%`;
-  }
-  const icon = document.getElementById('skill-tree-class-icon');
-  if (icon) icon.textContent = classInfo.icon;
-  const title = document.getElementById('skill-tree-modal-title');
-  if (title) title.textContent = heroClass;
-  const name = document.querySelector('#skill-tree-student-name .student-name-text');
-  if (name) name.textContent = 'Alex';
-  const levelLabel = document.getElementById('skill-tree-level-label');
-  if (levelLabel) levelLabel.textContent = getHeroTitle(heroClass, currentLevel);
-  const progressText = document.getElementById('skill-tree-progress-text');
-  if (progressText) {
-    const needed = starsToNextLevel(heroClass, currentLevel, starsInReason);
-    progressText.textContent = `Lvl ${currentLevel} · ${starsInReason} ${getReasonDisplayName(tree.reason)} · ${needed} to next level`;
-  }
-  const content = document.getElementById('skill-tree-content');
-  if (content) content.innerHTML = skillTreeContentHtml(heroClass, tree, heroSkills, starsInReason, true);
+  panel.setAttribute('style', skillTreeThemeStyle(model));
+  const sigil = document.getElementById('skill-tree-class-bg-icon');
+  if (sigil) sigil.textContent = model.icon;
+  stage.innerHTML = renderSkillTreeStage(model);
+  const scroller = document.getElementById('skill-tree-content');
+  const focus = scroller?.querySelector('.st-tier.is-focus');
+  if (scroller && focus) scroller.scrollTop = Math.max(0, focus.offsetTop - (scroller.clientHeight - focus.offsetHeight) / 2);
 }
 
 export function hideSkillTree() {

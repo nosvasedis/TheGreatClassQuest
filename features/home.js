@@ -396,6 +396,25 @@ function patchHomeChronicleStory(classId, story) {
     }
 }
 
+/** One Chronicle page (Home, class view). Tap unfolds it over the deck; the footer opens its tab. */
+function getChroniclePageHtml({ kind, index, icon, kicker, kickerAttr = '', body, bodyAttr = '', openTarget, openLabel }) {
+    return `
+                <article class="ch-page ch-page--${kind}" style="--ch-i:${index}" role="button" tabindex="0" aria-expanded="false">
+                    <span class="ch-page__ribbon" aria-hidden="true"></span>
+                    <i class="fas ${icon} ch-page__watermark" aria-hidden="true"></i>
+                    <span class="ch-page__ink" aria-hidden="true"></span>
+                    <header class="ch-page__head">
+                        <span class="ch-page__badge"><i class="fas ${icon}"></i></span>
+                        <span class="ch-page__kicker" ${kickerAttr}>${kicker}</span>
+                    </header>
+                    <div class="ch-page__body" ${bodyAttr}>${body}</div>
+                    <footer class="ch-page__foot">
+                        <span class="ch-page__hint"><span class="ch-page__hint-more">Read</span><span class="ch-page__hint-less">Fold away</span><i class="fas fa-chevron-down"></i></span>
+                        <button type="button" class="ch-page__open" data-ch-open="${openTarget}" tabindex="-1">${openLabel} <i class="fas fa-arrow-right"></i></button>
+                    </footer>
+                </article>`;
+}
+
 function getGeneralDashboard(name, theme, spice) {
     const today = utils.getTodayDateString();
     const activeLeague = resolveActiveHomeLeague();
@@ -649,33 +668,10 @@ function getActiveDashboard(classData, name, theme, spice) {
         <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
             <h3 class="home-section-title mb-4"><span class="home-section-title__icon home-section-title__icon--chronicle"><i class="fas fa-history"></i></span>The Chronicle</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-                <div class="chronicle-item chronicle-homework">
-                    <div class="chronicle-card-accent chronicle-accent-homework"></div>
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-book text-sm"></i></div>
-                        <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Homework</span>
-                    </div>
-                    <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3 flex-1">${assignmentText}</p>
-                </div>
-
-                <div class="chronicle-item chronicle-story">
-                    <div class="chronicle-card-accent chronicle-accent-story"></div>
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas fa-feather-alt text-sm"></i></div>
-                        <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider" data-home-story-word>Story: ${storyWord}</span>
-                    </div>
-                    <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3 flex-1" data-home-story-text>${storyText}</p>
-                </div>
-
-                <div class="chronicle-item chronicle-log">
-                    <div class="chronicle-card-accent chronicle-accent-log"></div>
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <div class="chronicle-icon-badge bg-emerald-500/15 text-emerald-600"><i class="fas fa-compass text-sm"></i></div>
-                        <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">${lastLogDate || 'Adventure Log'}</span>
-                    </div>
-                    <p class="text-sm text-green-900 font-medium leading-snug line-clamp-3 flex-1">${lastLogText}</p>
-                </div>
+            <div class="ch-deck" data-chronicle-deck>
+                ${getChroniclePageHtml({ kind: 'homework', index: 0, icon: 'fa-book', kicker: 'Homework', body: assignmentText, openTarget: 'adventure-log-tab', openLabel: 'Adventure Log' })}
+                ${getChroniclePageHtml({ kind: 'story', index: 1, icon: 'fa-feather-alt', kicker: `Story: ${storyWord}`, kickerAttr: 'data-home-story-word', body: storyText, bodyAttr: 'data-home-story-text', openTarget: 'reward-ideas-tab', openLabel: 'Story Weavers' })}
+                ${getChroniclePageHtml({ kind: 'log', index: 2, icon: 'fa-compass', kicker: lastLogDate || 'Adventure Log', body: lastLogText, openTarget: 'adventure-log-tab', openLabel: 'Adventure Log' })}
             </div>
         </div>
 
@@ -964,15 +960,101 @@ function getScheduleHtml(dateString, activeClassId) {
     }).join('');
 }
 
-function attachListeners(container) {
-    container.querySelectorAll('.chronicle-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            container.querySelectorAll('.chronicle-item.expanded').forEach(expandedItem => {
-                if (expandedItem !== item) expandedItem.classList.remove('expanded');
-            });
-            item.classList.toggle('expanded');
+// --- Chronicle deck: press ink, FLIP unfold/fold, Esc / outside click to close ---
+
+const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** Toggle a page between its grid slot and the unfolded sheet, animating from the old box to the new one. */
+function setChroniclePageOpen(deck, page, open) {
+    if (!page || page.classList.contains('is-open') === open) return;
+    const before = page.getBoundingClientRect();
+    page.classList.toggle('is-open', open);
+    page.setAttribute('aria-expanded', String(open));
+    deck.classList.toggle('has-open', open);
+    page.querySelector('.ch-page__open')?.setAttribute('tabindex', open ? '0' : '-1');
+    if (!open) page.scrollTop = 0;
+    if (prefersReducedMotion() || typeof page.animate !== 'function') return;
+    const after = page.getBoundingClientRect();
+    if (!after.width || !after.height) return;
+    const dx = before.left - after.left;
+    const dy = before.top - after.top;
+    const sx = before.width / after.width;
+    const sy = before.height / after.height;
+    page.animate([
+        { transformOrigin: 'top left', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+        { transformOrigin: 'top left', transform: 'none' }
+    ], { duration: open ? 420 : 320, easing: open ? 'cubic-bezier(0.2, 0.9, 0.25, 1.08)' : 'cubic-bezier(0.4, 0, 0.2, 1)' });
+    // Hide the words while the sheet stretches, then let them settle in.
+    page.querySelectorAll('.ch-page__head, .ch-page__body, .ch-page__foot').forEach(child => {
+        child.animate([
+            { opacity: 0, transform: 'translateY(6px)' },
+            { opacity: 0, transform: 'translateY(6px)', offset: 0.45 },
+            { opacity: 1, transform: 'none' }
+        ], { duration: open ? 520 : 380, easing: 'ease-out' });
+    });
+}
+
+function closeOpenChroniclePages(except = null) {
+    document.querySelectorAll('[data-chronicle-deck] .ch-page.is-open').forEach(page => {
+        if (page !== except) setChroniclePageOpen(page.closest('[data-chronicle-deck]'), page, false);
+    });
+}
+
+let chronicleDocumentListenersBound = false;
+
+function wireChronicleDeck(deck) {
+    if (!chronicleDocumentListenersBound) {
+        chronicleDocumentListenersBound = true;
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            const open = document.querySelector('[data-chronicle-deck] .ch-page.is-open');
+            if (!open) return;
+            closeOpenChroniclePages();
+            open.focus({ preventScroll: true });
+        });
+        document.addEventListener('pointerdown', (e) => {
+            if (e.target.closest?.('[data-chronicle-deck] .ch-page.is-open')) return;
+            closeOpenChroniclePages();
+        });
+    }
+
+    deck.querySelectorAll('.ch-page').forEach(page => {
+        page.addEventListener('pointerdown', (e) => {
+            const rect = page.getBoundingClientRect();
+            page.style.setProperty('--ch-ink-x', `${e.clientX - rect.left}px`);
+            page.style.setProperty('--ch-ink-y', `${e.clientY - rect.top}px`);
+            page.classList.remove('is-inking');
+            void page.offsetWidth; // restart the ink bloom
+            page.classList.add('is-inking');
+        });
+        page.addEventListener('animationend', (e) => {
+            if (e.animationName === 'ch-ink-bloom') page.classList.remove('is-inking');
+        });
+        const toggle = () => {
+            const willOpen = !page.classList.contains('is-open');
+            closeOpenChroniclePages(page);
+            setChroniclePageOpen(deck, page, willOpen);
+        };
+        page.addEventListener('click', (e) => {
+            const openBtn = e.target.closest('.ch-page__open');
+            if (openBtn) {
+                e.stopPropagation();
+                closeOpenChroniclePages();
+                tabs.showTab(openBtn.dataset.chOpen);
+                return;
+            }
+            toggle();
+        });
+        page.addEventListener('keydown', (e) => {
+            if (e.target !== page || (e.key !== 'Enter' && e.key !== ' ')) return;
+            e.preventDefault();
+            toggle();
         });
     });
+}
+
+function attachListeners(container) {
+    container.querySelectorAll('[data-chronicle-deck]').forEach(wireChronicleDeck);
 
     container.querySelectorAll('.schedule-class-peek-btn').forEach(btn => {
         const open = (e) => {

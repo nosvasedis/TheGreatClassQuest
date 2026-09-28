@@ -2,8 +2,10 @@ import { getTodayDateString, getClassesOnDay } from "./utils.js";
 import {
     getDefaultSchoolYearState,
     getDefaultSchoolYears,
+    isSchoolYearAwaitingOpen,
     normalizeSchoolYearState
 } from "./utils/schoolYear.js";
+import { setSchoolYearOpeningDay } from "./utils/schoolYearOpening.mjs";
 
 // --- Internal State Store ---
 let state = {};
@@ -260,12 +262,14 @@ export function setSchoolBillingGrace(grace) {
 export function setSchoolYearState(nextState) {
     state.schoolYearState = normalizeSchoolYearState(nextState);
     _notify("schoolYearState");
+    _syncSchoolYearOpeningDay();
 }
 export function setAllSchoolYears(years) {
     state.allSchoolYears = Array.isArray(years) && years.length
         ? years
         : getDefaultSchoolYears();
     _notify("allSchoolYears");
+    _syncSchoolYearOpeningDay();
 }
 export function setCurrentRolloverJob(job) {
     state.currentRolloverJob = job || null;
@@ -285,6 +289,19 @@ export function getActiveSchoolYearStartDate() {
     const value = getActiveSchoolYearDefinition()?.startsAt;
     const date = value ? new Date(`${value}T00:00:00`) : null;
     return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+
+// The active school year's opening day bounds every class-day calculation
+// (attendance register, Quest Calendar, ceremonies). See utils/schoolYearOpening.mjs.
+// While the year is sealed/between years the active year key already points at NEXT
+// year, whose start date lies in the future — applying it then would blank out the
+// just-finished year, so the bound only applies once the year is open.
+function _syncSchoolYearOpeningDay() {
+    if (isSchoolYearAwaitingOpen(state.schoolYearState)) {
+        setSchoolYearOpeningDay(null);
+        return;
+    }
+    setSchoolYearOpeningDay(getActiveSchoolYearStartDate());
 }
 export function getActiveSchoolYearEndDate() {
     const definition = getActiveSchoolYearDefinition();

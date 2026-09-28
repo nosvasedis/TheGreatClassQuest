@@ -89,6 +89,15 @@ export function goNext() {
 }
 
 /**
+ * Step back to the previous question (answers are kept).
+ * @returns {number} the new step
+ */
+export function goBack() {
+    if (sortingQuizState.step > 1) sortingQuizState.step -= 1;
+    return sortingQuizState.step;
+}
+
+/**
  * Submit the quiz: compute guild, persist assignment, return result for celebration.
  * @returns {Promise<{ guildId: string, guildName: string }|null>}
  */

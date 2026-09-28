@@ -864,8 +864,8 @@ export function setupUIListeners() {
                     checkDate.setDate(checkDate.getDate() - i);
                     const checkDateString = utils.getDDMMYYYY(checkDate);
 
-                    // If it was a scheduled day
-                    if (scheduleDays.includes(checkDate.getDay().toString())) {
+                    // If it was a scheduled day (never before the school year's opening day)
+                    if (!utils.isBeforeSchoolYearOpening(checkDate) && scheduleDays.includes(checkDate.getDay().toString())) {
                         const wasAbsent = attendanceRecords.some(r => r.studentId === studentId && r.date === checkDateString);
                         if (wasAbsent) {
                             missedLessons++;

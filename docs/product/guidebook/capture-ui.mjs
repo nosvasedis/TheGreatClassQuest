@@ -244,7 +244,7 @@ try {
   await captureExtra('Settings Quiz', () => window.__gcqCapture.showSettings('quiz'), '#options-tab.capture-settings', 'settings-quiz.png');
   await captureExtra('Manage Students', () => window.__gcqCapture.showRoster(), '#manage-students-tab.capture-roster', 'settings-roster.png');
   await captureExtra("Hero's Chronicle", () => window.__gcqCapture.showChronicle(), '#hero-chronicle-modal.capture-chronicle > div', 'settings-chronicle.png');
-  await captureExtra('Guild Sorting Quiz', () => window.__gcqCapture.showSortingQuiz(), '#sorting-quiz-modal.capture-sort .sorting-quiz-card', 'guild-sorting-quiz.png');
+  await captureExtra('Guild Sorting Quiz', () => window.__gcqCapture.showSortingQuiz(), '#sorting-quiz-modal.capture-sort', 'guild-sorting-quiz.png');
   await captureExtra('Guild Hall crystals', () => window.__gcqCapture.showGuildHall(), '#guilds-tab.capture-guilds', 'guild-hall.png');
   await captureExtra('Quest Calendar month', () => window.__gcqCapture.showCalendar(), '#calendar-tab.capture-calendar', 'calendar-month.png');
   await captureExtra('Day Planner schedule', () => window.__gcqCapture.showDayPlanner('schedule'), '#day-planner-modal.capture-planner > div', 'calendar-planner.png');

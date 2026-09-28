@@ -26,6 +26,15 @@ Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem in Guild H
 
 From **Teacher Settings → My Classes → Manage Students**, any student without a guild can take a **7-question**, story-style quiz. The hat on the roster opens it.
 
+It runs as a full-screen **Sorting Ceremony** built for the projector:
+
+1. **Intro** — the student's portrait and name, the four house emblems circling a glowing orb. **Begin the Sorting**.
+2. **Questions** — one tap per answer (or keys **1–4** / **A–D**). A spark flies into the orb and the next question appears. The orb and the sky slowly take on the colours the answers lean toward: a hint, never the answer. **Back** changes an earlier answer.
+3. **Seal** — "The orb is ready…". Wait until the whole class is watching, then press **Reveal my Guild**.
+4. **Reveal** — a drum roll while a spotlight circles the four houses and slows down; a flash, then the house crest, name, motto, traits, why the stars chose it, and a small "Your answers echoed" bar. The house sound plays.
+
+The house is saved during the reveal. If the save fails, the ceremony says so and **Try again** keeps the answers. **Esc** or ✕ leaves at any point (nothing is saved before the reveal). Reduced motion skips the spin and the sparks.
+
 The question pool **matches the league** — Nursery language is not Proficiency language. Weighted answers assign a house. Treat it as identity, not a test. Once placed, the house is for the year (and the design is lifelong belonging).
 
 Starter schools see a locked hat. **Pro** and **Elite** run the quiz.

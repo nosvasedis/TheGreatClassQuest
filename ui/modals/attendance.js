@@ -101,6 +101,7 @@ function buildHolidayBreakBannerMarkup(monthRows) {
 function buildChronicleStatsPills(monthRows, lessonGridCount, todayMidnightMs) {
     let nHoliday = 0;
     let nCancelled = 0;
+    let nBeforeTerm = 0;
     let nAfterTerm = 0;
     let nLesson = 0;
     let nLessonUpcoming = 0;
@@ -112,6 +113,9 @@ function buildChronicleStatsPills(monthRows, lessonGridCount, todayMidnightMs) {
                 break;
             case 'class_cancelled':
                 nCancelled++;
+                break;
+            case 'before_term':
+                nBeforeTerm++;
                 break;
             case 'after_term':
                 nAfterTerm++;
@@ -138,6 +142,9 @@ function buildChronicleStatsPills(monthRows, lessonGridCount, todayMidnightMs) {
     if (nCancelled) {
         pills.push(`<span class="ac-stat-pill ac-stat-pill--rose"><i class="fas fa-ban" aria-hidden="true"></i> ${nCancelled} cancelled class day${nCancelled === 1 ? '' : 's'}</span>`);
     }
+    if (nBeforeTerm) {
+        pills.push(`<span class="ac-stat-pill ac-stat-pill--amber"><i class="fas fa-hourglass-start" aria-hidden="true"></i> ${nBeforeTerm} day${nBeforeTerm === 1 ? '' : 's'} before lessons began</span>`);
+    }
     if (nAfterTerm) {
         pills.push(`<span class="ac-stat-pill ac-stat-pill--slate"><i class="fas fa-calendar-times" aria-hidden="true"></i> ${nAfterTerm} day${nAfterTerm === 1 ? '' : 's'} past class end date</span>`);
     }
@@ -152,6 +159,8 @@ function chronicleChipIcon(insight) {
             return '<i class="fas fa-umbrella-beach"></i>';
         case 'class_cancelled':
             return '<i class="fas fa-ban"></i>';
+        case 'before_term':
+            return '<i class="fas fa-hourglass-start"></i>';
         case 'after_term':
             return '<i class="fas fa-door-open"></i>';
         case 'lesson':
@@ -173,6 +182,8 @@ function chronicleChipTitle(row, todayMidnightMs) {
             return `${wd} — School break: ${insight.label || 'Holiday'}`;
         case 'class_cancelled':
             return `${wd} — Class cancelled (no lesson this day)`;
+        case 'before_term':
+            return `${wd} — Before the school year opening day (no lesson)`;
         case 'after_term':
             return `${wd} — Past the class end date from your settings (no lesson)`;
         case 'lesson':
@@ -225,6 +236,7 @@ function chronicleToolbarLegend(isEditableMonth) {
                     <span class="attendance-legend-pill attendance-legend-pill--map-lesson"><i class="fas fa-school" aria-hidden="true"></i> Scheduled lesson</span>
                     <span class="attendance-legend-pill attendance-legend-pill--map-break"><i class="fas fa-umbrella-beach" aria-hidden="true"></i> Break</span>
                     <span class="attendance-legend-pill attendance-legend-pill--map-cancel"><i class="fas fa-calendar-times" aria-hidden="true"></i> Cancelled</span>
+                    <span class="attendance-legend-pill attendance-legend-pill--map-before"><i class="fas fa-hourglass-start" aria-hidden="true"></i> Before lessons</span>
                     <span class="attendance-legend-pill attendance-legend-pill--map-after"><i class="fas fa-door-open" aria-hidden="true"></i> Past class end</span>
                     <span class="attendance-legend-pill attendance-legend-pill--map-off"><i class="fas fa-minus" aria-hidden="true"></i> No weekly class</span>
                 </div>

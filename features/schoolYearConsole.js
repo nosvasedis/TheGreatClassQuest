@@ -27,6 +27,7 @@ import {
     closeDateToPickerValue,
     formatCloseDateLabel,
     formatSchoolYearLabel,
+    getSchoolYearStartMonthDate,
     getScheduledActiveClasses,
     hasSchoolYearBegun,
     isCloseDateReached,
@@ -43,6 +44,14 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function toIsoDateInputValue(date) {
+    if (!date || Number.isNaN(date.getTime())) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 }
 
 function renderYearSetupLaunchers({ pendingCount } = {}) {
@@ -171,6 +180,32 @@ function showPreviewModal(contentHtml) {
     modal.classList.add('flex');
 }
 
+function renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample }) {
+    return `
+        <section class="secretary-card school-year-opening-day-card">
+            <div class="secretary-card__header">
+                <div>
+                    <p class="secretary-card__eyebrow">School calendar</p>
+                    <h3 class="secretary-card__title">Opening day — first day of lessons</h3>
+                </div>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Days before this date are never counted as class days on the attendance register or the Quest Calendar (for example ${escapeHtml(openingDayExample)}).
+            </p>
+            <p class="text-xs text-sky-700 mt-2"><span class="font-semibold">Saved:</span> ${escapeHtml(openingDaySavedLabel)}</p>
+            <div class="school-year-allocation-bar mt-4">
+                <label class="secretary-field flex-1">
+                    <span>Opening day</span>
+                    <input type="date" id="school-year-opening-day-input" value="${escapeHtml(openingDayPickerValue)}">
+                </label>
+                <button type="button" id="school-year-save-opening-day-btn" class="secretary-shell__primary-btn">
+                    <i class="fas fa-calendar-plus mr-2"></i>Save
+                </button>
+            </div>
+        </section>
+    `;
+}
+
 function renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample }) {
     return `
         <section class="secretary-card school-year-close-date-card">
@@ -201,6 +236,9 @@ function renderPreparingMode({
     schoolYearState,
     activeYearKey,
     startsAtLabel,
+    openingDayPickerValue,
+    openingDaySavedLabel,
+    openingDayExample,
     closeDatePickerValue,
     closeDateSavedLabel,
     closeDateExample,
@@ -233,6 +271,8 @@ function renderPreparingMode({
 
             ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
 
+            ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
+
             ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
         </div>
     `;
@@ -242,6 +282,9 @@ function renderBetweenYearsMode({
     schoolYearState,
     activeYearKey,
     startsAtLabel,
+    openingDayPickerValue,
+    openingDaySavedLabel,
+    openingDayExample,
     lastClosedYearKey,
     pendingStudents
 }) {
@@ -282,6 +325,8 @@ function renderBetweenYearsMode({
 
             ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
 
+            ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
+
             <section class="secretary-card school-year-open-section">
                 <div class="secretary-card__header">
                     <div>
@@ -308,6 +353,9 @@ function renderUnderwayMode({
     activeYearKey,
     scheduledCount,
     closeReady,
+    openingDayPickerValue,
+    openingDaySavedLabel,
+    openingDayExample,
     closeDatePickerValue,
     closeDateSavedLabel,
     closeDateExample,
@@ -345,6 +393,8 @@ function renderUnderwayMode({
             </section>
 
             ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
+
+            ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
 
             ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
 
@@ -401,12 +451,20 @@ export function renderSchoolYearSection() {
     const startsAtLabel = formatCloseDateLabel(startsAt) === 'Not set yet'
         ? 'the official start date'
         : formatCloseDateLabel(startsAt);
+    const openingDayPickerValue = startsAt
+        ? closeDateToPickerValue(startsAt)
+        : toIsoDateInputValue(getSchoolYearStartMonthDate(startsAt, activeYearKey));
+    const openingDaySavedLabel = startsAt ? formatCloseDateLabel(startsAt) : 'Not set yet';
+    const openingDayExample = `18/09/${String(activeYearKey || '').slice(0, 4) || 'YYYY'}`;
 
     if (isSchoolYearAwaitingOpen(schoolYearState)) {
         return renderBetweenYearsMode({
             schoolYearState,
             activeYearKey,
             startsAtLabel,
+            openingDayPickerValue,
+            openingDaySavedLabel,
+            openingDayExample,
             lastClosedYearKey: schoolYearState.lastClosedYearKey || null,
             pendingStudents
         });
@@ -417,6 +475,9 @@ export function renderSchoolYearSection() {
             schoolYearState,
             activeYearKey,
             startsAtLabel,
+            openingDayPickerValue,
+            openingDaySavedLabel,
+            openingDayExample,
             closeDatePickerValue,
             closeDateSavedLabel,
             closeDateExample,
@@ -429,6 +490,9 @@ export function renderSchoolYearSection() {
         activeYearKey,
         scheduledCount: scheduledClasses.length,
         closeReady,
+        openingDayPickerValue,
+        openingDaySavedLabel,
+        openingDayExample,
         closeDatePickerValue,
         closeDateSavedLabel,
         closeDateExample,
@@ -462,6 +526,38 @@ async function saveSchoolYearCloseDate(button) {
     } catch (error) {
         console.error('Could not save close date:', error);
         showToast(error?.message || 'Could not save the last school day.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
+}
+
+async function saveSchoolYearOpeningDay(button) {
+    const { schoolYearState } = getSchoolYearSummary();
+    const activeYearKey = schoolYearState.activeYearKey;
+    if (!activeYearKey) {
+        showToast('The active school year is unavailable right now.', 'error');
+        return;
+    }
+    const startsAt = closeDateToPickerValue(document.getElementById('school-year-opening-day-input')?.value);
+    if (!startsAt) {
+        showToast('Enter a valid opening day (the first day of lessons).', 'error');
+        return;
+    }
+    try {
+        setBusyState(button, true, 'Saving...');
+        await setDoc(doc(db, `${PUBLIC_DATA_PATH}/school_years/${activeYearKey}`), {
+            startsAt,
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+        const years = state.get('allSchoolYears') || [];
+        state.setAllSchoolYears(years.map((year) =>
+            year.id === activeYearKey ? { ...year, startsAt } : year
+        ));
+        showToast('Opening day saved.', 'success');
+        onSchoolYearConsoleRerender?.();
+    } catch (error) {
+        console.error('Could not save opening day:', error);
+        showToast(error?.message || 'Could not save the opening day.', 'error');
     } finally {
         setBusyState(button, false);
     }
@@ -581,6 +677,12 @@ export function handleSchoolYearConsoleClick(event) {
     const openBtn = event.target.closest('#school-year-open-btn');
     if (openBtn) {
         runSchoolYearOpen(openBtn);
+        return true;
+    }
+
+    const saveOpeningDayBtn = event.target.closest('#school-year-save-opening-day-btn');
+    if (saveOpeningDayBtn) {
+        saveSchoolYearOpeningDay(saveOpeningDayBtn);
         return true;
     }
 

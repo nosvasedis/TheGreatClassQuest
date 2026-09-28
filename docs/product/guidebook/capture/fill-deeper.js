@@ -529,19 +529,27 @@ export function showSortingQuiz() {
   if (!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-sort');
-  const emoji = document.getElementById('sorting-quiz-question-emoji');
+  modal.dataset.stage = 'question';
+  modal.style.setProperty('--sq-orb-a', '#b45cf0');
+  modal.style.setProperty('--sq-orb-b', '#f472b6');
+  const ring = document.getElementById('sq-ring');
+  if (ring) {
+    ring.innerHTML = ['dragon_flame', 'grizzly_might', 'owl_wisdom', 'phoenix_rising'].map((id, i) => {
+      const g = GUILDS[id];
+      return `<div class="sq-seat" data-guild="${id}" style="--seat:${i}; --seat-glow:${g.glow}; --seat-a:${g.primary}; --seat-b:${g.secondary};"><div class="sq-seat__body"><span class="sq-seat__halo"></span><img src="${getGuildEmblemUrl(id)}" alt="" class="sq-seat__emblem"><span class="sq-seat__name">${g.name}</span></div></div>`;
+    }).join('');
+  }
+  const glyph = document.getElementById('sorting-quiz-question-emoji');
   const progress = document.getElementById('sorting-quiz-progress');
   const q = document.getElementById('sorting-quiz-question-text');
   const opts = document.getElementById('sorting-quiz-options');
-  const dots = document.getElementById('sorting-quiz-dots');
-  const fill = document.getElementById('sorting-quiz-progress-fill');
-  if (emoji) emoji.textContent = '🎨';
-  if (progress) progress.textContent = 'Question 1 of 7';
+  const runes = document.getElementById('sorting-quiz-dots');
+  if (glyph) glyph.textContent = '🎨';
+  if (progress) progress.textContent = 'Question 3 of 7';
   if (q) q.textContent = 'I like to…';
-  if (fill) fill.style.width = '14%';
-    if (dots) {
-    dots.innerHTML = Array.from({ length: 7 }, (_, i) =>
-      `<span class="sorting-quiz-dot${i === 0 ? ' sorting-quiz-dot--active' : ''}"></span>`
+  if (runes) {
+    runes.innerHTML = Array.from({ length: 7 }, (_, i) =>
+      `<span class="sq-rune${i < 2 ? ' is-lit' : ''}${i === 2 ? ' is-current' : ''}"><i></i></span>`
     ).join('');
   }
   if (opts) {
@@ -551,7 +559,7 @@ export function showSortingQuiz() {
       ['🧩', 'Do a puzzle'],
       ['🌈', 'Make something new']
     ].map(([ico, text], i) =>
-      `<button type="button" class="sorting-quiz-option${i === 0 ? ' sorting-quiz-option--selected' : ''}"><span class="sorting-quiz-option-label">${ico}</span><span class="sorting-quiz-option-text">${text}</span></button>`
+      `<button type="button" class="sq-option${i === 0 ? ' is-chosen' : ''}" style="--i:${i}"><span class="sq-option__key">${'ABCD'[i]}</span><span class="sq-option__glyph">${ico}</span><span class="sq-option__text">${text}</span></button>`
     ).join('');
   }
 }

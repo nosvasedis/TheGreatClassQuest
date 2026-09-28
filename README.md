@@ -239,7 +239,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
   - **Grizzly Might** – strength, teamwork, steady effort.
   - **Owl Wisdom** – curiosity, thoughtful learning, calm focus.
   - **Phoenix Rising** – resilience, bouncing back, never giving up.
-- **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. Their choices are mapped to traits and used to assign a guild in a fun, narrative way.
+- **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. It runs as a full-screen **Sorting Ceremony**: one tap per answer while a glowing orb drinks in each choice, then a projector-ready reveal where a spotlight circles the four houses before the crest, motto and traits of the new guild appear.
 - **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Houses rank by **Guild Power** — 70% season Glory per member, 15% this week’s Glory per member, 10% activity, 5% momentum — not raw Total Stars. Totals **do not reset monthly**; June’s **Grand Guild Ceremony** crowns the winning guild.
 - **Fortune's Wheel:** Spin on the class’s **last lesson day of the week**, during lesson time, **once per week per class**. **Fortune Ledger** stores that school year’s outcomes. Magical Analytics expands each crystal column.
 - **Guild Champions:** At the end of each month, the top earner in every guild is **Guild Champion**.

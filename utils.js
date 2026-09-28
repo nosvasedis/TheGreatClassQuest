@@ -9,6 +9,9 @@ import {
     greetingForDayPart,
     gradientForDayPart
 } from './utils/dayPart.mjs';
+import { isBeforeSchoolYearOpening } from './utils/schoolYearOpening.mjs';
+
+export { isBeforeSchoolYearOpening };
 
 /**
  * Mirror header weather onto the Award expanding sky (and related chrome)
@@ -566,6 +569,10 @@ export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], a
         return true;
     }
 
+    if (isBeforeSchoolYearOpening(targetDate)) {
+        return false;
+    }
+
     if (isPastClassEndDate(classId, targetDate, classEndDates)) {
         return false;
     }
@@ -575,7 +582,7 @@ export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], a
 }
 
 /**
- * Per-calendar-day status for Attendance Chronicle (holidays, cancellations, term end, schedule).
+ * Per-calendar-day status for Attendance Chronicle (holidays, cancellations, term start/end, schedule).
  * Mirrors doesClassMeetOnDate branch order so labels stay consistent with scheduling.
  */
 export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}) {
@@ -615,6 +622,10 @@ export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses
 
     if (overridesForDay.some((override) => override.type === 'one-time')) {
         return { kind: 'lesson' };
+    }
+
+    if (isBeforeSchoolYearOpening(targetDate)) {
+        return { kind: 'before_term' };
     }
 
     if (isPastClassEndDate(classId, targetDate, classEndDates)) {

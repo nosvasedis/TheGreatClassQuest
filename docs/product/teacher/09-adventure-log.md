@@ -90,12 +90,13 @@ You can take the register at the **start or end** of the lesson. Award Stars clo
 In the Chronicle:
 
 - Move **previous / next month** (from school-year start through the current month)
+- Dates **before the school year's opening day** are marked **Before lessons** — they are never counted as lesson days (the Secretary sets the opening day in the School Office → School Year → *Opening day* card)
 - **Live month** is editable; older months are a read-only archive
 - Holiday banners; **Month at a glance** day rail
 - Summary: **monthly attendance %**, lessons held, total absences, **Perfect Attendees**
 - Grid: tap a cell for present / absent
 - Delete a column → **No Lesson** day, with a checkbox **Is this a School Holiday?** (school-wide vs this class)
-- Insights: school holiday, cancelled, after term end, lesson, no weekly class
+- Insights: school holiday, cancelled, before lessons began, after term end, lesson, no weekly class
 
 School-wide holiday *ranges* are owned by the **Secretary**. This modal is for a single day and this class’s truth.
 

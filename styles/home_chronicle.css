@@ -1,0 +1,373 @@
+/* ===================================================================
+   The Chronicle (Home, class view): three pages of the class diary.
+   Markup: features/home.js#getChroniclePageHtml; behaviour: wireChronicleDeck.
+   (The School Office home still uses the older .chronicle-item cards in home.css.)
+   =================================================================== */
+
+.ch-deck {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    min-height: 9.5rem;
+}
+/* Fixed slots so an unfolded page never lets its neighbours slide into its place. */
+.ch-deck > .ch-page:nth-child(1) { grid-row: 1; }
+.ch-deck > .ch-page:nth-child(2) { grid-row: 2; }
+.ch-deck > .ch-page:nth-child(3) { grid-row: 3; }
+@media (min-width: 768px) {
+    .ch-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ch-deck > .ch-page:nth-child(n) { grid-row: 1; }
+    .ch-deck > .ch-page:nth-child(1) { grid-column: 1; }
+    .ch-deck > .ch-page:nth-child(2) { grid-column: 2; }
+    .ch-deck > .ch-page:nth-child(3) { grid-column: 3; }
+}
+
+/* ---------- Palettes ---------- */
+.ch-page--homework {
+    --ch-paper-a: #f5f6ff; --ch-paper-b: #e3e8ff;
+    --ch-accent: #6366f1; --ch-accent-2: #a5b4fc;
+    --ch-ink: #312e81; --ch-kicker: #4338ca;
+    --ch-glow: rgba(99, 102, 241, 0.28);
+}
+.ch-page--story {
+    --ch-paper-a: #f2fdff; --ch-paper-b: #d5f6fb;
+    --ch-accent: #0891b2; --ch-accent-2: #67e8f9;
+    --ch-ink: #164e63; --ch-kicker: #0e7490;
+    --ch-glow: rgba(8, 145, 178, 0.26);
+}
+.ch-page--log {
+    --ch-paper-a: #f4fef7; --ch-paper-b: #d9f8e3;
+    --ch-accent: #059669; --ch-accent-2: #6ee7b7;
+    --ch-ink: #064e3b; --ch-kicker: #047857;
+    --ch-glow: rgba(5, 150, 105, 0.26);
+}
+
+/* ---------- The page ---------- */
+.ch-page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 9.5rem;
+    padding: 1.05rem 1.15rem 0.8rem;
+    border-radius: 1.35rem;
+    cursor: pointer;
+    overflow: hidden;
+    isolation: isolate;
+    color: var(--ch-ink);
+    background:
+        radial-gradient(120% 90% at 100% 100%, var(--ch-paper-b) 0%, transparent 62%),
+        linear-gradient(160deg, #ffffff 0%, var(--ch-paper-a) 55%, var(--ch-paper-b) 130%);
+    border: 1px solid color-mix(in srgb, var(--ch-accent) 16%, white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 8px 20px -10px var(--ch-glow);
+    transition:
+        transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1),
+        box-shadow 0.35s ease,
+        border-color 0.35s ease,
+        opacity 0.3s ease,
+        filter 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+/* Faint ruled lines, fading out toward the top so the header stays clean. */
+.ch-page::before {
+    content: '';
+    position: absolute;
+    inset: 3.1rem 0 0;
+    z-index: -1;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 1.3rem,
+        color-mix(in srgb, var(--ch-accent) 10%, transparent) 1.3rem,
+        color-mix(in srgb, var(--ch-accent) 10%, transparent) calc(1.3rem + 1px)
+    );
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 80%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 80%, transparent);
+    pointer-events: none;
+}
+/* One-off sheen that sweeps across on hover (no idle animation). */
+.ch-page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.65) 50%, transparent 65%);
+    transform: translateX(-120%);
+    pointer-events: none;
+}
+
+.ch-page:hover {
+    transform: translateY(-4px) rotate(-0.4deg);
+    border-color: color-mix(in srgb, var(--ch-accent) 32%, white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 2px 4px rgba(15, 23, 42, 0.05),
+        0 18px 32px -14px var(--ch-glow);
+}
+.ch-page:nth-child(2):hover { transform: translateY(-4px) rotate(0.3deg); }
+.ch-page:hover::after { transform: translateX(120%); transition: transform 0.85s ease; }
+
+/* Press: the page sinks into the desk, then springs back. */
+.ch-page:active:not(.is-open) {
+    transform: translateY(0) scale(0.965);
+    box-shadow:
+        inset 0 2px 6px rgba(15, 23, 42, 0.06),
+        0 3px 8px -6px var(--ch-glow);
+    transition-duration: 0.12s;
+}
+.ch-page:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 5.5px var(--ch-accent),
+        0 12px 26px -12px var(--ch-glow);
+}
+
+/* Ink bloom from the press point. */
+.ch-page__ink {
+    position: absolute;
+    left: var(--ch-ink-x, 50%);
+    top: var(--ch-ink-y, 50%);
+    width: 18rem;
+    height: 18rem;
+    margin: -9rem 0 0 -9rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--ch-accent) 26%, transparent) 0%, transparent 62%);
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+.ch-page.is-inking .ch-page__ink { animation: ch-ink-bloom 0.6s ease-out; }
+
+/* Bookmark ribbon: dips down on hover, fully drops when the page is open. */
+.ch-page__ribbon {
+    position: absolute;
+    top: -2px;
+    right: 1.15rem;
+    width: 0.8rem;
+    height: 1.9rem;
+    background: linear-gradient(180deg, var(--ch-accent-2), var(--ch-accent));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+    box-shadow: 0 2px 4px var(--ch-glow);
+    transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 2;
+}
+.ch-page:hover .ch-page__ribbon { height: 2.35rem; }
+.ch-page.is-open .ch-page__ribbon { height: 2.9rem; }
+
+/* Big faded glyph in the corner. */
+.ch-page__watermark {
+    position: absolute;
+    right: -0.6rem;
+    bottom: -0.9rem;
+    font-size: 5.2rem;
+    color: var(--ch-accent);
+    opacity: 0.07;
+    transform: rotate(-14deg);
+    transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+.ch-page:hover .ch-page__watermark { transform: rotate(-4deg) scale(1.08); opacity: 0.11; }
+
+/* ---------- Content ---------- */
+.ch-page__head,
+.ch-page__body,
+.ch-page__foot { position: relative; z-index: 1; }
+
+.ch-page__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.7rem;
+    padding-right: 1.6rem;
+    min-width: 0;
+}
+.ch-page__badge {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.7rem;
+    font-size: 0.85rem;
+    color: #fff;
+    background: linear-gradient(140deg, var(--ch-accent-2), var(--ch-accent));
+    box-shadow: 0 4px 10px -3px var(--ch-glow), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    transform: rotate(-6deg);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ch-page:hover .ch-page__badge { transform: rotate(4deg) scale(1.08); }
+.ch-page.is-open .ch-page__badge { transform: rotate(0) scale(1.05); }
+
+.ch-page__kicker {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ch-kicker);
+}
+
+.ch-page__body {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+.ch-page--story .ch-page__body {
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+.ch-page__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+    min-height: 1.6rem;
+}
+.ch-page__hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--ch-kicker) 70%, transparent);
+    opacity: 0;
+    transform: translateY(3px);
+    transition: opacity 0.25s ease, transform 0.3s ease;
+}
+.ch-page__hint i { font-size: 0.6rem; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.ch-page__hint-less { display: none; }
+.ch-page:hover .ch-page__hint,
+.ch-page:focus-visible .ch-page__hint,
+.ch-page.is-open .ch-page__hint { opacity: 1; transform: none; }
+
+.ch-page__open {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--ch-accent-2), var(--ch-accent));
+    box-shadow: 0 6px 14px -6px var(--ch-glow);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+.ch-page__open i { font-size: 0.65rem; transition: transform 0.25s ease; }
+.ch-page__open:hover { transform: translateY(-1px); box-shadow: 0 10px 18px -8px var(--ch-glow); }
+.ch-page__open:hover i { transform: translateX(3px); }
+.ch-page__open:active { transform: scale(0.95); }
+.ch-page__open:focus-visible { outline: 2px solid var(--ch-accent); outline-offset: 2px; }
+
+/* ---------- Unfolded ---------- */
+.vibrant-card:has(.ch-deck.has-open) { z-index: 30; }
+
+.ch-deck.has-open > .ch-page:not(.is-open) {
+    opacity: 0.4;
+    filter: saturate(0.6) blur(1px);
+    transform: scale(0.97);
+    pointer-events: none;
+}
+
+.ch-page.is-open {
+    position: absolute;
+    inset: -0.4rem -0.4rem auto;
+    min-height: calc(100% + 0.8rem);
+    max-height: 24rem;
+    z-index: 20;
+    cursor: default;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.35rem 1.5rem 1rem;
+    border-color: color-mix(in srgb, var(--ch-accent) 35%, white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 2px 6px rgba(15, 23, 42, 0.06),
+        0 28px 56px -22px rgba(15, 23, 42, 0.35),
+        0 0 0 6px color-mix(in srgb, var(--ch-accent) 8%, transparent);
+    animation: none;
+}
+.ch-page.is-open:hover { transform: none; }
+.ch-page.is-open::after { display: none; }
+.ch-page.is-open .ch-page__head { margin-bottom: 0.9rem; }
+.ch-page.is-open .ch-page__kicker { font-size: 0.78rem; white-space: normal; }
+.ch-page.is-open .ch-page__body {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+.ch-page--story.is-open .ch-page__body { font-size: 1.08rem; }
+.ch-page.is-open .ch-page__watermark { font-size: 8rem; opacity: 0.08; transform: rotate(-8deg); }
+.ch-page.is-open .ch-page__foot {
+    position: sticky;
+    bottom: -1rem;
+    margin: 1rem -1.5rem -1rem;
+    padding: 0.6rem 1.5rem 0.8rem;
+    background: linear-gradient(to bottom, transparent, var(--ch-paper-a) 40%);
+}
+.ch-page.is-open .ch-page__hint-more { display: none; }
+.ch-page.is-open .ch-page__hint-less { display: inline; }
+.ch-page.is-open .ch-page__hint i { transform: rotate(180deg); }
+.ch-page.is-open .ch-page__hint { cursor: pointer; }
+.ch-page.is-open .ch-page__open { display: inline-flex; animation: ch-open-pop 0.45s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ---------- Keyframes ---------- */
+@keyframes ch-page-in {
+    from { opacity: 0; transform: translateY(14px) rotate(-1.2deg) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes ch-ink-bloom {
+    0%   { transform: scale(0); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes ch-open-pop {
+    from { opacity: 0; transform: translateX(-6px) scale(0.9); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Deal the pages in only when the Home view changes (.home-fade), not on every live refresh. */
+.home-fade .ch-page:not(.is-open) {
+    animation: ch-page-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards;
+    animation-delay: calc(var(--ch-i, 0) * 90ms + 80ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ch-page,
+    .ch-page__ribbon,
+    .ch-page__watermark,
+    .ch-page__badge,
+    .ch-page__hint,
+    .ch-page__hint i,
+    .ch-page__open { animation: none !important; transition: none !important; }
+    .ch-page:hover,
+    .ch-page:nth-child(2):hover,
+    .ch-page:active:not(.is-open) { transform: none; }
+    .ch-page::after,
+    .ch-page__ink { display: none; }
+    .ch-deck.has-open > .ch-page:not(.is-open) { transform: none; filter: none; }
+}

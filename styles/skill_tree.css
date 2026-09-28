@@ -1,116 +1,1408 @@
-/* Skill Tree Modal Styles */
-
-#skill-tree-modal-panel {
-    /* Merge with base modal animations from .pop-in */
-    transition: 
-        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), 
-        opacity 0.2s ease-out,
-        background 0.8s ease, 
-        border-color 0.8s ease;
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   Ascension Path — Skill Tree modal
+   Markup: ui/modals/skillTreeView.mjs · Shell: templates/modals/skillTree.js
+   Theme: --st-aura / --st-aura-rgb are set on the panel from the Hero Class aura.
+   The path climbs bottom → top: origin, seal 1 … capstone.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 #skill-tree-modal {
+    background: radial-gradient(ellipse at 50% 40%, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.94));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transition: background-color 0.35s ease, backdrop-filter 0.35s ease;
 }
 
+#skill-tree-modal-panel {
+    --st-aura: #6366f1;
+    --st-aura-rgb: 99, 102, 241;
+    --st-ink: #f8fafc;
+    --st-dim: rgba(226, 232, 240, 0.62);
+    --st-faint: rgba(226, 232, 240, 0.38);
+    --st-gold: #fde68a;
+    position: relative;
+    width: min(880px, 100%);
+    height: min(900px, 92vh);
+    height: min(900px, 92dvh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 2rem;
+    color: var(--st-ink);
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    color-scheme: dark;
+    background:
+        radial-gradient(120% 70% at 50% -10%, rgba(var(--st-aura-rgb), 0.38), transparent 60%),
+        radial-gradient(90% 60% at 50% 115%, rgba(var(--st-aura-rgb), 0.22), transparent 65%),
+        linear-gradient(180deg, #0b1023 0%, #070b1a 55%, #03050d 100%);
+    border: 1px solid rgba(var(--st-aura-rgb), 0.35);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 0 80px -10px rgba(var(--st-aura-rgb), 0.45),
+        0 40px 90px -20px rgba(0, 0, 0, 0.8);
+    transition:
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.2s ease-out,
+        border-color 0.8s ease,
+        box-shadow 0.8s ease;
+}
 
-/* Ornaments */
-.ornament-circle {
+/* ─── Sky ─────────────────────────────────────────────────────────────────── */
+
+.st-sky {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.st-stars {
+    position: absolute;
+    inset: 0;
+    background-repeat: repeat;
+}
+
+.st-stars--far {
+    background-image:
+        radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.7), transparent 60%),
+        radial-gradient(1px 1px at 90px 120px, rgba(255, 255, 255, 0.5), transparent 60%),
+        radial-gradient(1px 1px at 150px 60px, rgba(255, 255, 255, 0.6), transparent 60%),
+        radial-gradient(1px 1px at 60px 170px, rgba(255, 255, 255, 0.4), transparent 60%),
+        radial-gradient(1px 1px at 180px 190px, rgba(255, 255, 255, 0.55), transparent 60%);
+    background-size: 210px 210px;
+    opacity: 0.7;
+    animation: st-drift-far 140s linear infinite, st-twinkle 5s ease-in-out infinite alternate;
+}
+
+.st-stars--near {
+    background-image:
+        radial-gradient(1.6px 1.6px at 40px 60px, rgba(255, 255, 255, 0.95), transparent 60%),
+        radial-gradient(1.4px 1.4px at 230px 150px, rgba(var(--st-aura-rgb), 1), transparent 60%),
+        radial-gradient(1.8px 1.8px at 300px 40px, rgba(255, 244, 214, 0.9), transparent 60%),
+        radial-gradient(1.2px 1.2px at 140px 260px, rgba(255, 255, 255, 0.8), transparent 60%);
+    background-size: 340px 340px;
+    animation: st-drift-near 90s linear infinite, st-twinkle 3.4s ease-in-out -1.7s infinite alternate;
+}
+
+.st-nebula {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
-    z-index: 0;
+    filter: blur(60px);
+    opacity: 0.55;
 }
 
-.ornament-1 {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
-    top: -100px;
-    left: -100px;
+.st-nebula--a {
+    width: 55%;
+    aspect-ratio: 1;
+    top: 18%;
+    left: -18%;
+    background: radial-gradient(circle, rgba(var(--st-aura-rgb), 0.45), transparent 70%);
+    animation: st-nebula 22s ease-in-out infinite alternate;
 }
 
-.ornament-2 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
-    bottom: -150px;
-    right: -100px;
+.st-nebula--b {
+    width: 45%;
+    aspect-ratio: 1;
+    bottom: -8%;
+    right: -12%;
+    background: radial-gradient(circle, rgba(129, 140, 248, 0.3), transparent 70%);
+    animation: st-nebula 28s ease-in-out -9s infinite alternate-reverse;
 }
 
-/* Animations */
+.st-motes {
+    position: absolute;
+    inset: 0;
+}
+
+.st-mote {
+    position: absolute;
+    bottom: -12px;
+    width: var(--s, 3px);
+    height: var(--s, 3px);
+    border-radius: 50%;
+    background: rgba(var(--st-aura-rgb), 0.95);
+    box-shadow: 0 0 8px 2px rgba(var(--st-aura-rgb), 0.6);
+    opacity: 0;
+    animation: st-mote var(--dur, 12s) linear var(--delay, 0s) infinite;
+}
+
+.st-sky-sigil {
+    position: absolute;
+    right: -4rem;
+    bottom: -5rem;
+    font-size: 22rem;
+    line-height: 1;
+    opacity: 0.05;
+    filter: grayscale(0.4) blur(1px);
+    transform: rotate(-12deg);
+    user-select: none;
+}
+
+/* ─── Close ───────────────────────────────────────────────────────────────── */
+
+.st-close {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.1rem;
+    z-index: 6;
+    width: 2.6rem;
+    height: 2.6rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--st-dim);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.st-close:hover,
+.st-close:focus-visible {
+    color: #fff;
+    background: rgba(var(--st-aura-rgb), 0.35);
+    box-shadow: 0 0 18px rgba(var(--st-aura-rgb), 0.55);
+    transform: rotate(90deg);
+    outline: none;
+}
+
+/* ─── Stage ───────────────────────────────────────────────────────────────── */
+
+.st-stage {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header + crest */
+.st-head {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.4rem 4.5rem 0.4rem 1.75rem;
+}
+
+.st-crest {
+    position: relative;
+    width: 6.25rem;
+    height: 6.25rem;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+}
+
+.st-crest-glow {
+    position: absolute;
+    inset: 12%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--st-aura-rgb), 0.85), rgba(var(--st-aura-rgb), 0) 70%);
+    filter: blur(10px);
+    animation: st-breathe 4s ease-in-out infinite;
+}
+
+.st-crest-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    animation: st-spin 40s linear infinite;
+}
+
+.st-crest-line {
+    fill: none;
+    stroke: rgba(var(--st-aura-rgb), 0.7);
+    stroke-width: 1.2;
+    stroke-dasharray: 2 5;
+}
+
+.st-crest-line--inner {
+    stroke: rgba(255, 255, 255, 0.28);
+    stroke-dasharray: none;
+}
+
+.st-crest-runes {
+    fill: rgba(255, 255, 255, 0.55);
+    font-size: 9.5px;
+    letter-spacing: 3.2px;
+}
+
+.st-crest-core {
+    position: relative;
+    font-size: 2.8rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 14px rgba(var(--st-aura-rgb), 0.9)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+    animation: st-float 5s ease-in-out infinite;
+}
+
+.st-head-text {
+    min-width: 0;
+}
+
+.st-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0 0 0.15rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(var(--st-aura-rgb), 1);
+    filter: brightness(1.6) saturate(0.8);
+}
+
+.st-eyebrow span {
+    height: 1px;
+    width: 1.4rem;
+    background: linear-gradient(90deg, transparent, currentColor);
+}
+
+.st-eyebrow span:last-child {
+    background: linear-gradient(90deg, currentColor, transparent);
+}
+
+.st-title {
+    margin: 0;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+    line-height: 1.1;
+    background: linear-gradient(180deg, #fff 30%, rgba(var(--st-aura-rgb), 1) 140%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 12px rgba(var(--st-aura-rgb), 0.45));
+}
+
+.st-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--st-dim);
+}
+
+.st-rank {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--st-gold);
+    background: rgba(253, 230, 138, 0.1);
+    border: 1px solid rgba(253, 230, 138, 0.3);
+}
+
+/* Meter */
+.st-meter {
+    flex-shrink: 0;
+    padding: 0.7rem 1.75rem 0.3rem;
+}
+
+.st-meter-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.55rem;
+    font-size: 0.8rem;
+    color: var(--st-dim);
+}
+
+.st-meter-level b,
+.st-meter-stars {
+    color: var(--st-ink);
+    font-weight: 700;
+}
+
+.st-meter-level b {
+    font-size: 1.1rem;
+    margin: 0 0.1rem;
+}
+
+.st-meter-level small,
+.st-meter-stars small {
+    color: var(--st-faint);
+    font-weight: 600;
+    margin-left: 0.2rem;
+}
+
+.st-meter-stars i {
+    color: var(--st-gold);
+    filter: drop-shadow(0 0 6px rgba(253, 230, 138, 0.7));
+}
+
+.st-meter-track {
+    position: relative;
+    height: 0.6rem;
+    margin: 0 0.5rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.st-meter-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--st-pct, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(var(--st-aura-rgb), 0.55), rgba(var(--st-aura-rgb), 1) 70%, #fff);
+    box-shadow: 0 0 14px rgba(var(--st-aura-rgb), 0.75);
+    overflow: hidden;
+}
+
+.st-meter-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    transform: translateX(-100%);
+    animation: st-shimmer 3.2s ease-in-out infinite;
+}
+
+.st-meter-spark {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-top: -0.4rem;
+    border-radius: 50%;
+    background: #fff;
+    filter: blur(3px);
+}
+
+.st-meter-seal {
+    position: absolute;
+    top: 50%;
+    width: 0;
+    height: 0;
+}
+
+.st-meter-seal-gem {
+    position: absolute;
+    left: -0.5rem;
+    top: -0.5rem;
+    width: 1rem;
+    height: 1rem;
+    transform: rotate(45deg);
+    border-radius: 0.2rem;
+    background: #1e293b;
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    transition: all 0.5s ease;
+}
+
+.st-meter-seal.is-lit .st-meter-seal-gem {
+    background: linear-gradient(135deg, #fff, rgba(var(--st-aura-rgb), 1));
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(var(--st-aura-rgb), 0.95);
+}
+
+.st-meter-seal-num {
+    position: absolute;
+    top: 0.65rem;
+    left: -1rem;
+    width: 2rem;
+    text-align: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--st-faint);
+}
+
+.st-meter-seal.is-lit .st-meter-seal-num {
+    color: var(--st-ink);
+}
+
+.st-meter-caption {
+    margin: 1.15rem 0 0;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--st-dim);
+}
+
+.st-meter-caption b {
+    color: var(--st-ink);
+}
+
+.st-meter-caption .fa-crown {
+    color: var(--st-gold);
+}
+
+/* ─── The path ────────────────────────────────────────────────────────────── */
+
+.st-scroll {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem 1.5rem 1.5rem;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent 100%);
+}
+
+.st-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.st-scroll::-webkit-scrollbar-thumb {
+    background: rgba(var(--st-aura-rgb), 0.35);
+    border-radius: 10px;
+}
+
+.st-path {
+    list-style: none;
+    margin: 0 auto;
+    padding: 0.75rem 0 0;
+    max-width: 780px;
+}
+
+.st-tier {
+    position: relative;
+}
+
+.st-tier-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 9.5rem minmax(0, 1fr);
+    align-items: start;
+}
+
+/* Seal (centre gem) */
+.st-seal {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: calc(1rem + 4px);
+    text-align: center;
+}
+
+.st-seal-gem {
+    position: relative;
+    width: 4rem;
+    height: 4rem;
+    display: grid;
+    place-items: center;
+}
+
+.st-seal-gem::before {
+    content: '';
+    position: absolute;
+    inset: 0.55rem;
+    transform: rotate(45deg);
+    border-radius: 0.9rem;
+    background: linear-gradient(145deg, #334155, #0f172a);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.08), 0 6px 16px rgba(0, 0, 0, 0.55);
+    transition: all 0.6s ease;
+}
+
+.st-seal-rays {
+    position: absolute;
+    inset: -0.9rem;
+    border-radius: 50%;
+    opacity: 0;
+    background: repeating-conic-gradient(from 0deg, rgba(var(--st-aura-rgb), 0.55) 0 6deg, transparent 6deg 30deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 38%, #000 42%, transparent 72%);
+    mask-image: radial-gradient(circle, transparent 38%, #000 42%, transparent 72%);
+    transition: opacity 0.6s ease;
+}
+
+.st-seal-num {
+    position: relative;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--st-faint);
+}
+
+.st-seal-num .fa-lock {
+    font-size: 0.85rem;
+}
+
+.st-seal-title {
+    margin: 0.55rem 0 0;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.15;
+    color: var(--st-dim);
+}
+
+.st-seal-note {
+    margin: 0.3rem 0 0;
+    padding: 0.14rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--st-faint);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    white-space: nowrap;
+}
+
+/* Climb (spine segment below each tier, filled by stars) */
+.st-climb {
+    position: relative;
+    width: 6px;
+    height: 3.6rem;
+    margin: 0.5rem auto;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+}
+
+.st-climb-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    transform-origin: 50% 100%;
+    transform: scaleY(var(--st-fill, 0));
+    background: linear-gradient(0deg, rgba(var(--st-aura-rgb), 0.6), #fff);
+    box-shadow: 0 0 12px rgba(var(--st-aura-rgb), 0.9);
+}
+
+.st-climb-fill::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(0deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+    animation: st-climb-flow 2.4s ease-in infinite;
+}
+
+/* Skill nodes */
+.st-skill {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 1rem 0.9rem 0.95rem;
+    border-radius: 1.4rem;
+    text-align: center;
+    color: inherit;
+    font: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease, border-color 0.35s ease,
+        box-shadow 0.35s ease, opacity 0.5s ease, filter 0.5s ease;
+}
+
+.st-skill-link {
+    position: absolute;
+    top: calc(1rem + 2.25rem - 1.5px);
+    width: 2.7rem;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.st-skill--left .st-skill-link {
+    right: -2.7rem;
+}
+
+.st-skill--right .st-skill-link {
+    left: -2.7rem;
+}
+
+.st-skill-link span {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.st-skill-orb {
+    position: relative;
+    width: 4.5rem;
+    height: 4.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.14), rgba(15, 23, 42, 0.9) 70%);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 -6px 14px rgba(0, 0, 0, 0.5), 0 8px 18px rgba(0, 0, 0, 0.45);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+.st-skill-halo {
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+    opacity: 0;
+    background: conic-gradient(from 0deg, transparent, rgba(var(--st-aura-rgb), 1), transparent 35%, transparent 50%, rgba(255, 255, 255, 0.9), transparent 85%);
+    -webkit-mask-image: radial-gradient(circle, transparent 62%, #000 64%);
+    mask-image: radial-gradient(circle, transparent 62%, #000 64%);
+    transition: opacity 0.5s ease;
+}
+
+.st-skill-icon {
+    position: relative;
+    font-size: 2.1rem;
+    line-height: 1;
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
+}
+
+.st-skill-check {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 1.4rem;
+    height: 1.4rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.62rem;
+    color: #fff;
+    background: var(--st-aura);
+    border: 2px solid #0b1023;
+    box-shadow: 0 0 10px rgba(var(--st-aura-rgb), 0.9);
+}
+
+.st-skill-name {
+    margin-top: 0.35rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.02rem;
+    line-height: 1.15;
+    color: var(--st-ink);
+}
+
+.st-skill-desc {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--st-dim);
+}
+
+.st-skill-tag {
+    margin-top: 0.3rem;
+    padding: 0.18rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--st-faint);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* — States: sealed — */
+.st-tier.is-sealed .st-skill {
+    opacity: 0.5;
+    filter: grayscale(0.85);
+    background: rgba(0, 0, 0, 0.18);
+    border-style: dashed;
+}
+
+.st-tier.is-sealed .st-skill-orb {
+    border-style: dashed;
+}
+
+.st-tier.is-sealed .st-skill-icon {
+    opacity: 0.55;
+}
+
+/* — States: waiting (unlocked, an earlier choice comes first) — */
+.st-tier.is-waiting .st-seal-gem::before {
+    border-color: rgba(var(--st-aura-rgb), 0.6);
+    background: linear-gradient(145deg, rgba(var(--st-aura-rgb), 0.35), #0f172a);
+}
+
+.st-tier.is-waiting .st-seal-num {
+    color: var(--st-ink);
+}
+
+.st-tier.is-waiting .st-skill {
+    opacity: 0.72;
+}
+
+/* — States: awakened — */
+.st-tier.is-awakened .st-seal-gem::before,
+.st-tier.is-choosing .st-seal-gem::before {
+    background: linear-gradient(145deg, #fff 0%, rgba(var(--st-aura-rgb), 1) 45%, rgba(var(--st-aura-rgb), 0.55) 100%);
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 22px rgba(var(--st-aura-rgb), 0.85), inset 0 2px 8px rgba(255, 255, 255, 0.6);
+}
+
+.st-tier.is-awakened .st-seal-num,
+.st-tier.is-choosing .st-seal-num {
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.st-tier.is-awakened .st-seal-title,
+.st-tier.is-choosing .st-seal-title {
+    color: var(--st-ink);
+}
+
+.st-tier.is-awakened .st-seal-note {
+    color: var(--st-gold);
+    border-color: rgba(253, 230, 138, 0.3);
+}
+
+.st-tier.is-awakened .st-seal-rays {
+    opacity: 0.55;
+    animation: st-spin 24s linear infinite;
+}
+
+.st-skill.is-chosen {
+    background: linear-gradient(180deg, rgba(var(--st-aura-rgb), 0.3), rgba(var(--st-aura-rgb), 0.08));
+    border-color: rgba(var(--st-aura-rgb), 0.75);
+    box-shadow: 0 0 30px -6px rgba(var(--st-aura-rgb), 0.7), inset 0 0 24px rgba(var(--st-aura-rgb), 0.18);
+}
+
+.st-skill.is-chosen .st-skill-orb {
+    border-color: rgba(255, 255, 255, 0.9);
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.5), rgba(var(--st-aura-rgb), 0.8) 55%, rgba(var(--st-aura-rgb), 0.35) 100%);
+    box-shadow: 0 0 26px rgba(var(--st-aura-rgb), 0.95), inset 0 -6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.st-skill.is-chosen .st-skill-halo {
+    opacity: 1;
+    animation: st-spin 6s linear infinite;
+}
+
+.st-skill.is-chosen .st-skill-desc {
+    color: rgba(241, 245, 249, 0.86);
+}
+
+.st-skill.is-chosen .st-skill-tag {
+    color: var(--st-gold);
+    border-color: rgba(253, 230, 138, 0.4);
+    background: rgba(253, 230, 138, 0.1);
+}
+
+.st-skill.is-chosen .st-skill-link span {
+    opacity: 1;
+    background: linear-gradient(90deg, rgba(var(--st-aura-rgb), 0.4), #fff, rgba(var(--st-aura-rgb), 0.4));
+    background-size: 200% 100%;
+    box-shadow: 0 0 10px rgba(var(--st-aura-rgb), 1);
+    animation: st-link-flow 2s linear infinite;
+}
+
+.st-skill--left.is-chosen .st-skill-link span {
+    animation-direction: reverse;
+}
+
+.st-skill.is-forsaken {
+    opacity: 0.4;
+    filter: grayscale(0.7);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.st-skill.is-forsaken .st-skill-tag {
+    font-style: italic;
+    letter-spacing: 0.06em;
+    border-color: transparent;
+}
+
+/* — States: choosing (level up!) — */
+.st-tier.is-choosing .st-seal-rays {
+    opacity: 1;
+    animation: st-spin 9s linear infinite, st-pulse-rays 1.8s ease-in-out infinite;
+}
+
+.st-tier.is-choosing .st-seal-gem {
+    animation: st-float 2.6s ease-in-out infinite;
+}
+
+.st-tier.is-choosing .st-seal-note {
+    color: #fff;
+    background: var(--st-aura);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 16px rgba(var(--st-aura-rgb), 0.8);
+    animation: st-glow-note 1.6s ease-in-out infinite;
+}
+
+.st-skill.is-choosable {
+    cursor: pointer;
+    background: linear-gradient(180deg, rgba(var(--st-aura-rgb), 0.16), rgba(255, 255, 255, 0.03));
+    border-color: rgba(var(--st-aura-rgb), 0.45);
+    animation: st-invite 3s ease-in-out infinite;
+}
+
+.st-skill--right.is-choosable {
+    animation-delay: -1.5s;
+}
+
+.st-skill.is-choosable .st-skill-halo {
+    opacity: 0.8;
+    animation: st-spin 3.5s linear infinite;
+}
+
+.st-skill.is-choosable .st-skill-orb {
+    border-color: rgba(var(--st-aura-rgb), 0.9);
+    box-shadow: 0 0 18px rgba(var(--st-aura-rgb), 0.6), inset 0 -6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.st-skill.is-choosable .st-skill-link span {
+    opacity: 1;
+    background: repeating-linear-gradient(90deg, rgba(var(--st-aura-rgb), 1) 0 6px, transparent 6px 12px);
+    background-size: 24px 100%;
+    animation: st-dash 0.8s linear infinite;
+}
+
+.st-skill--left.is-choosable .st-skill-link span {
+    animation-direction: reverse;
+}
+
+.st-skill.is-choosable .st-skill-tag {
+    color: #fff;
+    border-color: rgba(var(--st-aura-rgb), 0.8);
+    background: rgba(var(--st-aura-rgb), 0.3);
+}
+
+.st-skill.is-choosable:hover,
+.st-skill.is-choosable:focus-visible,
+.st-skill.is-considered {
+    animation: none;
+    transform: translateY(-6px) scale(1.035);
+    background: linear-gradient(180deg, rgba(var(--st-aura-rgb), 0.32), rgba(var(--st-aura-rgb), 0.08));
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 18px 40px -12px rgba(var(--st-aura-rgb), 0.85), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    outline: none;
+}
+
+.st-skill.is-choosable:hover .st-skill-orb,
+.st-skill.is-choosable:focus-visible .st-skill-orb {
+    transform: scale(1.12) rotate(-4deg);
+    box-shadow: 0 0 32px rgba(var(--st-aura-rgb), 1);
+}
+
+.st-skill.is-choosable:hover .st-skill-tag,
+.st-skill.is-choosable:focus-visible .st-skill-tag {
+    color: #0b1023;
+    background: #fff;
+    border-color: #fff;
+}
+
+.st-skill.is-choosable:active {
+    transform: translateY(-2px) scale(0.99);
+}
+
+/* Origin */
+.st-origin {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 0.5rem;
+}
+
+.st-origin-orb {
+    width: 3.6rem;
+    height: 3.6rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.8rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--st-aura-rgb), 0.55), rgba(15, 23, 42, 0.95) 70%);
+    border: 2px solid rgba(var(--st-aura-rgb), 0.7);
+    box-shadow: 0 0 26px rgba(var(--st-aura-rgb), 0.55);
+}
+
+.st-origin-title {
+    margin: 0.5rem 0 0;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--st-ink);
+}
+
+.st-origin-note {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--st-faint);
+}
+
+/* Empty (no Hero Class) */
+.st-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+}
+
+.st-empty-compass {
+    font-size: 5rem;
+    filter: drop-shadow(0 0 20px rgba(var(--st-aura-rgb), 0.7));
+    animation: st-compass 6s ease-in-out infinite;
+}
+
+.st-empty-title {
+    margin: 1rem 0 0;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.st-empty-note {
+    max-width: 22rem;
+    margin: 0.6rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--st-dim);
+}
+
+/* Footer */
+.st-foot {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--st-faint);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(2, 6, 23, 0.45);
+}
+
+.st-foot-pips {
+    display: inline-flex;
+    gap: 0.3rem;
+}
+
+.st-pip {
+    width: 0.55rem;
+    height: 0.55rem;
+    transform: rotate(45deg);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.st-pip.is-on {
+    background: var(--st-aura);
+    box-shadow: 0 0 8px rgba(var(--st-aura-rgb), 0.9);
+}
+
+.st-foot-dot {
+    color: rgba(var(--st-aura-rgb), 0.9);
+}
+
+/* ─── Entrance ────────────────────────────────────────────────────────────── */
+
+.is-entering .st-head {
+    animation: st-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.is-entering .st-meter {
+    animation: st-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.08s both;
+}
+
+.is-entering .st-meter-fill {
+    animation: st-meter-grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
+}
+
+.is-entering .st-tier,
+.is-entering .st-origin {
+    animation: st-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--st-i, 0) * 110ms + 150ms);
+}
+
+.is-entering .st-climb-fill {
+    animation: st-climb-grow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--st-i, 0) * 110ms + 350ms);
+}
+
+/* ─── Awakening moment ────────────────────────────────────────────────────── */
+
+.st-tier.is-just-awakened .st-seal-gem {
+    animation: st-seal-break 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.st-skill.is-just-awakened {
+    z-index: 3;
+    animation: st-awaken-card 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.st-skill.is-just-awakened .st-skill-orb {
+    animation: st-awaken-orb 1.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.st-tier.is-just-awakened .st-skill.is-forsaken {
+    animation: st-forsake 1s ease both;
+}
+
+.st-burst {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.st-burst-ring {
+    position: absolute;
+    left: -2.5rem;
+    top: -2.5rem;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 20px rgba(var(--st-aura-rgb), 1), inset 0 0 20px rgba(var(--st-aura-rgb), 0.8);
+    animation: st-shockwave 1s ease-out both;
+}
+
+.st-burst-ring--2 {
+    border-color: rgba(var(--st-aura-rgb), 1);
+    animation-delay: 0.18s;
+}
+
+.st-burst-spark {
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px 3px rgba(var(--st-aura-rgb), 1);
+    animation: st-spark 1.1s cubic-bezier(0.1, 0.8, 0.3, 1) var(--delay, 0ms) both;
+}
+
+.st-burst-spark:nth-child(3n) {
+    background: var(--st-gold);
+}
+
+/* ─── Rite (confirm) ──────────────────────────────────────────────────────── */
+
+.st-rite {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem;
+    background: rgba(2, 6, 23, 0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+    transition: background 0.26s ease, backdrop-filter 0.26s ease;
+}
+
+.st-rite.is-open {
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.st-rite-card {
+    position: relative;
+    width: min(24rem, 100%);
+    padding: 1.75rem 1.5rem 1.35rem;
+    border-radius: 1.8rem;
+    text-align: center;
+    background:
+        radial-gradient(90% 60% at 50% 0%, rgba(var(--st-aura-rgb), 0.4), transparent 70%),
+        linear-gradient(180deg, #111834, #070b1a);
+    border: 1px solid rgba(var(--st-aura-rgb), 0.55);
+    box-shadow: 0 0 60px -10px rgba(var(--st-aura-rgb), 0.7), 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    transform: translateY(18px) scale(0.92);
+    transition: opacity 0.26s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.st-rite.is-open .st-rite-card {
+    opacity: 1;
+    transform: none;
+}
+
+.st-rite-circle {
+    position: relative;
+    width: 8.5rem;
+    height: 8.5rem;
+    margin: 0 auto 0.9rem;
+    display: grid;
+    place-items: center;
+}
+
+.st-rite-circle svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    animation: st-spin 18s linear infinite;
+}
+
+.st-rite-circle circle {
+    fill: none;
+    stroke: rgba(var(--st-aura-rgb), 0.8);
+    stroke-width: 1.2;
+    stroke-dasharray: 3 4;
+}
+
+.st-rite-circle text {
+    fill: rgba(255, 255, 255, 0.6);
+    font-size: 9px;
+    letter-spacing: 2.6px;
+}
+
+.st-rite-orb {
+    width: 5rem;
+    height: 5rem;
+    display: grid;
+    place-items: center;
+    font-size: 2.6rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.45), rgba(var(--st-aura-rgb), 0.75) 55%, rgba(var(--st-aura-rgb), 0.25));
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 34px rgba(var(--st-aura-rgb), 0.95);
+    animation: st-float 3s ease-in-out infinite;
+}
+
+.st-rite-eyebrow {
+    margin: 0;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--st-faint);
+}
+
+.st-rite-title {
+    margin: 0.3rem 0 0;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.55rem;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 0 18px rgba(var(--st-aura-rgb), 0.8);
+}
+
+.st-rite-desc {
+    margin: 0.55rem 0 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: rgba(241, 245, 249, 0.85);
+}
+
+.st-rite-warn {
+    margin: 0.9rem 0 1.1rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.9rem;
+    font-size: 0.74rem;
+    font-style: italic;
+    color: var(--st-faint);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.st-rite-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.st-rite-ok {
+    position: relative;
+    overflow: hidden;
+    padding: 0.9rem 1rem;
+    border-radius: 1rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1rem;
+    color: #fff;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 60%), var(--st-aura);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 10px 26px -8px rgba(var(--st-aura-rgb), 0.95);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+
+.st-rite-ok::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.5), transparent 70%);
+    transform: translateX(-120%);
+    animation: st-shimmer 2.6s ease-in-out infinite;
+}
+
+.st-rite-ok:hover,
+.st-rite-ok:focus-visible {
+    transform: scale(1.03);
+    box-shadow: 0 14px 34px -8px rgba(var(--st-aura-rgb), 1), 0 0 0 3px rgba(255, 255, 255, 0.25);
+    outline: none;
+}
+
+.st-rite-cancel {
+    padding: 0.6rem;
+    border-radius: 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--st-faint);
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.st-rite-cancel:hover,
+.st-rite-cancel:focus-visible {
+    color: var(--st-ink);
+    background: rgba(255, 255, 255, 0.06);
+    outline: none;
+}
+
+/* ─── Keyframes ───────────────────────────────────────────────────────────── */
+
+/* Legacy global: this file loads after home/shop/dashboard, so this `shimmer` is the one
+   their bounty stripe, skeletons and Grand Guild button actually run. Keep it. */
 @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
 }
 
-.animate-shimmer {
-    animation: shimmer 3s infinite linear;
+@keyframes st-spin { to { transform: rotate(360deg); } }
+@keyframes st-drift-far { to { background-position: 0 420px; } }
+@keyframes st-drift-near { to { background-position: 0 680px; } }
+@keyframes st-twinkle { from { opacity: 0.45; } to { opacity: 1; } }
+@keyframes st-breathe { 0%, 100% { transform: scale(0.9); opacity: 0.7; } 50% { transform: scale(1.12); opacity: 1; } }
+@keyframes st-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes st-shimmer { 0% { transform: translateX(-120%); } 60%, 100% { transform: translateX(120%); } }
+@keyframes st-nebula { from { transform: translate(0, 0) scale(1); } to { transform: translate(12%, -8%) scale(1.15); } }
+@keyframes st-mote {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.9; }
+    50% { transform: translateY(-45vh) translateX(14px); }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-95vh) translateX(-8px); opacity: 0; }
+}
+@keyframes st-climb-flow { from { bottom: -40%; } to { bottom: 100%; } }
+@keyframes st-link-flow { from { background-position: 0 0; } to { background-position: 200% 0; } }
+@keyframes st-dash { from { background-position: 0 0; } to { background-position: 24px 0; } }
+@keyframes st-pulse-rays { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.8); } }
+@keyframes st-glow-note { 0%, 100% { box-shadow: 0 0 10px rgba(var(--st-aura-rgb), 0.6); } 50% { box-shadow: 0 0 22px rgba(var(--st-aura-rgb), 1); } }
+@keyframes st-invite { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes st-compass { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(14deg); } }
+@keyframes st-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes st-meter-grow { from { width: 0; } }
+@keyframes st-climb-grow { from { transform: scaleY(0); } }
+@keyframes st-seal-break {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.35) rotate(8deg); filter: brightness(2); }
+    100% { transform: scale(1); }
+}
+@keyframes st-awaken-card {
+    0% { transform: scale(0.96); box-shadow: 0 0 0 rgba(var(--st-aura-rgb), 0); }
+    35% { transform: scale(1.06); box-shadow: 0 0 60px 6px rgba(var(--st-aura-rgb), 0.9); }
+    100% { transform: scale(1); }
+}
+@keyframes st-awaken-orb {
+    0% { transform: scale(0.7); filter: brightness(3); }
+    40% { transform: scale(1.25); }
+    100% { transform: scale(1); filter: none; }
+}
+@keyframes st-forsake { from { opacity: 0.9; filter: none; } to { opacity: 0.4; filter: grayscale(0.7); } }
+@keyframes st-shockwave { from { transform: scale(0.4); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+@keyframes st-spark {
+    0% { transform: rotate(var(--a)) translateX(0) scale(1.2); opacity: 1; }
+    100% { transform: rotate(var(--a)) translateX(var(--d)) scale(0); opacity: 0; }
 }
 
-/* Level Node Styling */
-.skill-tree-level-node {
-    position: relative;
-    z-index: 10;
-}
+/* ─── Small screens: seal on top, the two skills side by side ─────────────── */
 
-/* Branch Card Hover Effects */
-.skill-branch-card.is-available:hover {
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
-}
-
-.skill-branch-card.is-active {
-    animation: pulse-border 3s infinite ease-in-out;
-}
-
-@keyframes pulse-border {
-    0%, 100% { border-color: inherit; }
-    50% { border-color: rgba(255, 255, 255, 0.8); }
-}
-
-/* Custom Scrollbar for Skill Tree */
-#skill-tree-content::-webkit-scrollbar {
-    width: 6px;
-}
-
-#skill-tree-content::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-#skill-tree-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-#skill-tree-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-/* Locking States */
-.skill-tree-level-node.is-locked .skill-branch-card {
-    pointer-events: none;
-}
-
-/* Glow effects */
-#skill-tree-class-icon-glow {
-    filter: blur(24px);
-    z-index: -1;
-    transition: background 0.8s ease;
-}
-
-/* Text Polish */
-#skill-tree-modal-title {
-    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-
-/* Responsive adjustments */
 @media (max-width: 640px) {
-    .skill-tree-modal-panel {
+    #skill-tree-modal-panel {
         border-radius: 1.5rem;
+        height: 94dvh;
     }
-    
-    .skill-branch-card {
-        padding: 1rem;
+
+    .st-head {
+        gap: 0.85rem;
+        padding: 1.1rem 3.75rem 0.3rem 1.1rem;
+    }
+
+    .st-crest {
+        width: 4.5rem;
+        height: 4.5rem;
+    }
+
+    .st-crest-core {
+        font-size: 2rem;
+    }
+
+    .st-meter {
+        padding: 0.6rem 1.1rem 0.2rem;
+    }
+
+    .st-scroll {
+        padding: 0.75rem 0.85rem 1.25rem;
+    }
+
+    .st-tier-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .st-seal {
+        grid-column: 1 / -1;
+        order: -1;
+        padding-top: 0;
+        margin-bottom: 0.3rem;
+    }
+
+    .st-skill-link {
+        display: none;
+    }
+
+    .st-skill {
+        padding: 0.8rem 0.6rem;
+    }
+
+    .st-skill-orb {
+        width: 3.6rem;
+        height: 3.6rem;
+    }
+
+    .st-skill-icon {
+        font-size: 1.7rem;
+    }
+
+    .st-skill-name {
+        font-size: 0.92rem;
+    }
+
+    .st-skill-desc {
+        font-size: 0.72rem;
+    }
+
+    .st-foot > span:nth-child(n + 3) {
+        display: none;
+    }
+}
+
+/* ─── Reduced motion: show the final state, no movement ───────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    #skill-tree-modal-panel *,
+    #skill-tree-modal-panel *::before,
+    #skill-tree-modal-panel *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .st-mote {
+        display: none;
     }
 }

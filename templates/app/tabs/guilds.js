@@ -122,16 +122,22 @@ export const guildsTabHTML = `
                     </div>
                 </section>
 
-                <!-- Guild Lore Overlay (shown on emblem click) -->
-                <div id="guild-lore-overlay" class="guild-lore-overlay hidden" role="dialog" aria-modal="true">
+                <!-- Guild Lore Overlay (shown on emblem click): the guild's own hanging banner -->
+                <div id="guild-lore-overlay" class="guild-lore-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guild-lore-name">
                     <div class="guild-lore-overlay-bg" id="guild-lore-overlay-bg"></div>
                     <div class="guild-lore-card pop-in" id="guild-lore-card">
-                        <button class="guild-lore-close" id="guild-lore-close" aria-label="Close">✕</button>
+                        <div class="guild-lore-cloth" aria-hidden="true"></div>
+                        <div class="guild-lore-rod" aria-hidden="true">
+                            <span class="guild-lore-tassel guild-lore-tassel--l"></span>
+                            <span class="guild-lore-tassel guild-lore-tassel--r"></span>
+                        </div>
+                        <button class="guild-lore-close" id="guild-lore-close" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                         <div class="guild-lore-sparkles" aria-hidden="true">
                             <span>✦</span><span>✧</span><span>✦</span><span>✧</span><span>✦</span>
                         </div>
                         <div class="guild-lore-emblem-wrap" id="guild-lore-emblem-wrap"></div>
                         <div class="guild-lore-emoji" id="guild-lore-emoji"></div>
+                        <span class="guild-lore-kicker" aria-hidden="true">Banner of the Guild</span>
                         <h3 class="guild-lore-name font-title" id="guild-lore-name"></h3>
                         <p class="guild-lore-motto" id="guild-lore-motto"></p>
                         <div class="guild-lore-traits" id="guild-lore-traits"></div>
@@ -140,11 +146,16 @@ export const guildsTabHTML = `
                 </div>
 
                 <!-- Guild Anthem Modal (shown on note button click) -->
-                <div id="guild-anthem-overlay" class="guild-anthem-overlay hidden" role="dialog" aria-modal="true">
+                <div id="guild-anthem-overlay" class="guild-anthem-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guild-anthem-title">
                     <div class="guild-anthem-overlay-bg" id="guild-anthem-overlay-bg"></div>
                     <div class="guild-anthem-card pop-in" id="guild-anthem-card">
-                        <button class="guild-anthem-close" id="guild-anthem-close" aria-label="Close">✕</button>
+                        <button class="guild-anthem-close" id="guild-anthem-close" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                         <div class="guild-anthem-header" id="guild-anthem-header">
+                            <div class="guild-anthem-arch" aria-hidden="true">
+                                <span class="guild-anthem-torch guild-anthem-torch--l"><span class="guild-anthem-torch__flame"></span></span>
+                                <span class="guild-anthem-crest"></span>
+                                <span class="guild-anthem-torch guild-anthem-torch--r"><span class="guild-anthem-torch__flame"></span></span>
+                            </div>
                             <div class="guild-anthem-note-icon" aria-hidden="true">🎵</div>
                             <h3 class="guild-anthem-title font-title" id="guild-anthem-title"></h3>
                             <p class="guild-anthem-subtitle">Sing along with your guild!</p>
@@ -152,6 +163,7 @@ export const guildsTabHTML = `
                         <div class="guild-anthem-player" id="guild-anthem-player">
                             <div class="guild-anthem-now-playing" id="guild-anthem-now-playing">
                                 <span class="guild-anthem-note-anim">♪</span>
+                                <span class="guild-anthem-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
                                 <span class="guild-anthem-now-playing-text">Now Playing…</span>
                                 <span class="guild-anthem-note-anim" style="animation-delay:0.4s">♫</span>
                             </div>

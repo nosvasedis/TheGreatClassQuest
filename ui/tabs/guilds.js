@@ -292,8 +292,8 @@ function openAnthemModal(guildId) {
     card.style.setProperty('--anthem-primary', primary);
     card.style.setProperty('--anthem-secondary', secondary);
     card.style.setProperty('--anthem-glow', glow);
-    card.style.background = `linear-gradient(160deg, ${primary} 0%, ${secondary} 65%, ${primary}cc 100%)`;
-    card.style.boxShadow = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
+    const emblemUrl = getGuildEmblemUrl(guildId);
+    card.style.setProperty('--anthem-emblem', emblemUrl ? `url("${emblemUrl}")` : 'none');
 
     const titleEl = document.getElementById('guild-anthem-title');
     if (titleEl) titleEl.textContent = `${guild?.name || guildId} Anthem`;
@@ -357,26 +357,19 @@ function openGuildLore(guildId, gData) {
     const motto = guild?.motto || '';
     const traits = guild?.traits || [];
 
-    // Style card with guild gradient
-    card.style.background = `linear-gradient(145deg, ${primary} 0%, ${secondary} 70%, ${primary}cc 100%)`;
+    // The banner cloth, trim and glow are drawn in CSS from the guild's colours
+    card.style.setProperty('--lore-primary', primary);
+    card.style.setProperty('--lore-secondary', secondary);
     card.style.setProperty('--lore-glow', glow);
-    card.style.boxShadow = `
-        inset 0 1px 0 rgba(255,255,255,0.22),
-        0 0 0 1px rgba(0,0,0,0.12),
-        0 36px 92px rgba(0,0,0,0.68),
-        0 0 84px ${glow}52
-    `.trim().replace(/\s+/g, ' ');
 
     // Emblem
     const emblemWrap = document.getElementById('guild-lore-emblem-wrap');
     if (emblemWrap) {
         const loreInitial = String(guild?.name || guildId || '?').trim().charAt(0).toUpperCase() || '?';
         emblemWrap.innerHTML = emblemUrl
-            ? `<img src="${emblemUrl}" alt="${guild?.name}" class="guild-lore-emblem"
-                    style="border-color: rgba(255,255,255,0.5); box-shadow: 0 0 40px ${glow}cc, 0 0 80px ${glow}55;">`
-            : `<div class="guild-lore-emblem guild-lore-emblem-fallback"
-                    style="background: rgba(255,255,255,0.15);">
-                    <span class="guild-lore-emblem-initial" style="font-size:2.5rem;font-weight:800;color:${primary}">${loreInitial}</span>
+            ? `<img src="${emblemUrl}" alt="${guild?.name}" class="guild-lore-emblem">`
+            : `<div class="guild-lore-emblem guild-lore-emblem-fallback">
+                    <span class="guild-lore-emblem-initial">${loreInitial}</span>
                </div>`;
     }
 
@@ -395,7 +388,7 @@ function openGuildLore(guildId, gData) {
     if (mottoEl) mottoEl.textContent = `"${motto}"`;
     if (traitsEl) {
         traitsEl.innerHTML = traits.map(t =>
-            `<span class="guild-lore-trait" style="background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.35);">${t}</span>`
+            `<span class="guild-lore-trait">${t}</span>`
         ).join('');
     }
     if (statsEl) {

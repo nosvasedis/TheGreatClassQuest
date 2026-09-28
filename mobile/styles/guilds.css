@@ -504,12 +504,23 @@ body.gcq-mobile .guild-fortune-ledger-section__lede {
     line-height: 1.35 !important;
 }
 
+/* The banner hangs free (rod, tassels and tail sit outside the card box);
+   the overlay scrolls instead of the card when a phone is short. */
 body.gcq-mobile .guild-lore-card {
     width: min(100%, 22.5rem) !important;
-    max-height: min(88dvh, 88vh) !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 1.5rem !important;
+}
+
+/* The phone shell gives every tab button a 2.5rem touch height; the "?" chip is a
+   small inline stud and the close stud is already sized. */
+body.gcq-mobile .guild-lore-power-hint,
+body.gcq-mobile .guild-lore-close,
+body.gcq-mobile .guild-anthem-close {
+    min-height: 0 !important;
+}
+
+body.gcq-mobile .guild-lore-overlay {
+    padding-left: 1.7rem;
+    padding-right: 1.7rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

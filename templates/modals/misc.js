@@ -278,116 +278,116 @@ export const miscModalsHTML = `
 
 
     <div id="create-bounty-modal"
-        class="fixed inset-0 bg-slate-950/60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md">
-        <div class="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full pop-in border-4 border-amber-400 overflow-hidden flex flex-col max-h-[90vh]">
+        class="bp-overlay fixed inset-0 z-[72] flex items-center justify-center p-3 sm:p-6 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="bp-title">
+        <div class="bp-sheet pop-in" data-mode="standard">
+            <span class="bp-tack bp-tack--left" aria-hidden="true"></span>
+            <span class="bp-tack bp-tack--right" aria-hidden="true"></span>
 
-            <!-- Premium Header -->
-            <div class="relative bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-white flex-shrink-0">
-                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')]"></div>
-                <div class="relative flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-2xl shadow-inner border border-white/30">
-                            <i class="fas fa-crosshairs text-white drop-shadow-sm"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-title text-3xl drop-shadow-md">Post a Bounty</h2>
-                            <p class="text-amber-100 font-bold uppercase tracking-widest text-[10px] opacity-80">Set a Challenge for the Class</p>
-                        </div>
-                    </div>
-                    <button id="bounty-cancel-x-btn"
-                        class="bg-white/10 hover:bg-white/20 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors">
-                        <i class="fas fa-times"></i>
+            <form id="create-bounty-form" class="bp-paper" novalidate>
+                <input type="hidden" id="bounty-class-id">
+                <input type="hidden" id="bounty-type" value="standard">
+
+                <header class="bp-head">
+                    <button type="button" id="bounty-cancel-x-btn" class="bp-close" aria-label="Close">
+                        <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
+                    <p class="bp-posted-for">
+                        <span>Posted for</span>
+                        <span class="bp-class-chip"><span id="bp-class-logo" class="bp-class-chip__logo">📚</span><span id="bp-class-name">your class</span></span>
+                    </p>
+                    <h2 id="bp-title" class="bp-title">
+                        <span class="bp-title__rule" aria-hidden="true"></span>
+                        <span class="bp-title__word">Bounty</span>
+                        <span class="bp-title__rule" aria-hidden="true"></span>
+                    </h2>
+                    <p id="bp-tagline" class="bp-tagline">The whole class takes it on together</p>
+                </header>
+
+                <div class="bp-body">
+                    <fieldset class="bp-modes">
+                        <legend class="sr-only">Kind of bounty</legend>
+                        <button type="button" id="bounty-mode-stars" class="bp-mode is-active" aria-pressed="true">
+                            <span class="bp-mode__icon" aria-hidden="true"><i class="fas fa-star"></i></span>
+                            <span class="bp-mode__text">
+                                <span class="bp-mode__name">Star Hunt</span>
+                                <span class="bp-mode__hint">Earn stars together to win a reward</span>
+                            </span>
+                        </button>
+                        <button type="button" id="bounty-mode-timer" class="bp-mode" aria-pressed="false">
+                            <span class="bp-mode__icon" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span>
+                            <span class="bp-mode__text">
+                                <span class="bp-mode__name">Race the Clock</span>
+                                <span class="bp-mode__hint">Finish a task before time runs out</span>
+                            </span>
+                        </button>
+                    </fieldset>
+
+                    <div id="bp-on-board" class="bp-on-board hidden" role="note"></div>
+
+                    <section class="bp-field" data-bp-field="title">
+                        <label for="bounty-title" class="bp-label"><span class="bp-label__num">I</span><span id="bp-title-label">What's the quest?</span></label>
+                        <input type="text" id="bounty-title" class="bp-ink-input" maxlength="48"
+                            placeholder="Name the challenge" required autocomplete="off" enterkeyhint="next">
+                        <div id="bp-title-ideas" class="bp-chips" aria-label="Quest ideas"></div>
+                    </section>
+
+                    <div id="bounty-inputs-stars" class="bp-group">
+                        <section class="bp-field" data-bp-field="target">
+                            <label for="bounty-target" class="bp-label"><span class="bp-label__num">II</span>Stars to earn</label>
+                            <div class="bp-stepper">
+                                <button type="button" class="bp-stepper__btn" data-bp-step="-1" aria-label="Fewer stars"><i class="fas fa-minus" aria-hidden="true"></i></button>
+                                <div class="bp-stepper__value">
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                    <input type="number" id="bounty-target" value="20" min="1" max="500" inputmode="numeric" aria-describedby="bp-target-hint">
+                                </div>
+                                <button type="button" class="bp-stepper__btn" data-bp-step="1" aria-label="More stars"><i class="fas fa-plus" aria-hidden="true"></i></button>
+                            </div>
+                            <div id="bp-target-picks" class="bp-chips bp-chips--tiers" aria-label="Suggested targets"></div>
+                            <p id="bp-target-hint" class="bp-hint"></p>
+                        </section>
+
+                        <section class="bp-field" data-bp-field="reward">
+                            <label for="bounty-reward" class="bp-label"><span class="bp-label__num">III</span>The reward</label>
+                            <input type="text" id="bounty-reward" class="bp-ink-input" maxlength="40"
+                                placeholder="What will they win?" autocomplete="off" enterkeyhint="done">
+                            <div id="bp-reward-ideas" class="bp-chips" aria-label="Reward ideas"></div>
+                        </section>
+                    </div>
+
+                    <div id="bounty-inputs-timer" class="bp-group hidden">
+                        <section class="bp-field" data-bp-field="time">
+                            <span class="bp-label" id="bp-time-label"><span class="bp-label__num">II</span>How long?</span>
+                            <div id="bounty-smart-options" class="bp-chips bp-chips--time" role="group" aria-labelledby="bp-time-label"></div>
+                            <div class="bp-time-custom">
+                                <label class="bp-mini">
+                                    <span>Minutes</span>
+                                    <span class="bp-mini__box">
+                                        <input type="number" id="bounty-timer-minutes" min="1" max="600" placeholder="20" inputmode="numeric">
+                                        <small>min</small>
+                                    </span>
+                                </label>
+                                <span class="bp-or" aria-hidden="true">or</span>
+                                <label class="bp-mini">
+                                    <span>Ends at</span>
+                                    <span class="bp-mini__box"><input type="time" id="bounty-timer-end"></span>
+                                </label>
+                            </div>
+                            <p id="bp-time-readout" class="bp-hourglass-readout">Pick a time and the hourglass is set.</p>
+                        </section>
+                    </div>
+
                 </div>
-            </div>
 
-            <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
-                <form id="create-bounty-form" class="space-y-6">
-                    <input type="hidden" id="bounty-class-id">
-                    <input type="hidden" id="bounty-type" value="standard">
-
-                    <!-- Mode Switcher -->
-                    <div class="flex p-1.5 bg-slate-200/50 rounded-2xl border border-slate-200">
-                        <button type="button" id="bounty-mode-stars"
-                            class="flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all bg-white text-amber-600 shadow-sm">
-                            <i class="fas fa-star mr-2"></i>Star Target
-                        </button>
-                        <button type="button" id="bounty-mode-timer"
-                            class="flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-700">
-                            <i class="fas fa-hourglass-half mr-2"></i>Countdown
-                        </button>
-                    </div>
-
-                    <!-- Title Input -->
-                    <div class="space-y-1.5">
-                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Bounty Name</label>
-                        <div class="relative group">
-                            <i class="fas fa-tag absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors"></i>
-                            <input type="text" id="bounty-title" placeholder="e.g. Rapid Clean Up / Unit 5 Test"
-                                class="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 outline-none font-bold text-slate-700 transition-all"
-                                required autocomplete="off">
-                        </div>
-                    </div>
-
-                    <!-- Dynamic Inputs: Stars -->
-                    <div id="bounty-inputs-stars" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
-                            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Target Stars</label>
-                            <div class="relative group">
-                                <i class="fas fa-star absolute left-4 top-1/2 -translate-y-1/2 text-amber-300 group-focus-within:text-amber-500 transition-colors"></i>
-                                <input type="number" id="bounty-target" value="20" min="1"
-                                    class="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 outline-none font-bold text-slate-700 transition-all">
-                            </div>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Reward</label>
-                            <div class="relative group">
-                                <i class="fas fa-gift absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 group-focus-within:text-rose-500 transition-colors"></i>
-                                <input type="text" id="bounty-reward" placeholder="e.g. 5m Free Time"
-                                    class="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-slate-100 rounded-2xl focus:border-rose-400 focus:ring-4 focus:ring-rose-400/10 outline-none font-bold text-slate-700 transition-all">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Dynamic Inputs: Timer -->
-                    <div id="bounty-inputs-timer" class="hidden space-y-4">
-                        <div class="bg-indigo-50/50 p-5 rounded-3xl border-2 border-indigo-100/50 space-y-4">
-                            <label class="block text-xs font-black text-indigo-400 uppercase tracking-widest">Set Duration</label>
-
-                            <div id="bounty-smart-options" class="flex flex-wrap gap-2"></div>
-
-                            <div class="grid grid-cols-2 gap-4 pt-2">
-                                <div class="space-y-1">
-                                    <p class="text-[10px] font-bold text-indigo-300 uppercase ml-1">Minutes</p>
-                                    <div class="relative">
-                                        <input type="number" id="bounty-timer-minutes" placeholder="20"
-                                            class="w-full px-4 py-3 bg-white border-2 border-indigo-50 rounded-xl focus:border-indigo-400 outline-none font-bold text-indigo-900">
-                                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-300 text-xs font-bold">MIN</span>
-                                    </div>
-                                </div>
-                                <div class="space-y-1">
-                                    <p class="text-[10px] font-bold text-indigo-300 uppercase ml-1">End Time</p>
-                                    <input type="time" id="bounty-timer-end"
-                                        class="w-full px-4 py-3 bg-white border-2 border-indigo-50 rounded-xl focus:border-indigo-400 outline-none font-bold text-indigo-900">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex gap-4 pt-2">
-                        <button type="button" id="bounty-cancel-btn"
-                            class="flex-1 bg-white hover:bg-slate-50 text-slate-400 font-bold py-4 rounded-2xl border-2 border-slate-100 transition-all active:scale-95">
-                            Cancel
-                        </button>
-                        <button type="submit" id="bounty-submit-btn"
-                            class="flex-[2] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-title text-xl py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all active:scale-95">
-                            <i class="fas fa-paper-plane mr-2"></i>Start Quest
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <footer class="bp-foot">
+                    <p id="bp-proclamation" class="bp-proclamation" aria-live="polite"></p>
+                    <button type="button" id="bounty-cancel-btn" class="bp-cancel">Not now</button>
+                    <button type="submit" id="bounty-submit-btn" class="bp-submit">
+                        <span class="bp-submit__seal" aria-hidden="true"><i class="fas fa-thumbtack"></i></span>
+                        <span class="bp-submit__label">Pin it to the board</span>
+                    </button>
+                </footer>
+            </form>
         </div>
     </div>
 

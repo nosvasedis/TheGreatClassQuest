@@ -226,3 +226,6 @@
 
 /* 48. Secretary Office: the school's front office (signs, registry, dialogs, modal motion) */
 @import url('./styles/secretary_office.css');
+
+/* 49. Post a Bounty: a bounty notice pinned up for the class */
+@import url('./styles/bounty_poster.css');

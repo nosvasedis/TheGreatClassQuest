@@ -9,7 +9,7 @@ import { withSchoolYear } from '../../utils/schoolYear.js';
 
 export async function handleCreateBounty() {
     const classId = document.getElementById('bounty-class-id').value;
-    const title = document.getElementById('bounty-title').value;
+    const title = document.getElementById('bounty-title').value.trim();
     const type = document.getElementById('bounty-type').value; // 'standard' or 'timer'
 
     let target = 0;
@@ -18,7 +18,7 @@ export async function handleCreateBounty() {
 
     if (type === 'standard') {
         target = parseInt(document.getElementById('bounty-target').value);
-        reward = document.getElementById('bounty-reward').value;
+        reward = document.getElementById('bounty-reward').value.trim();
         if (!target || !reward) { showToast('Please set stars and reward.', 'error'); return; }
         // Default expiry for star bounty (2 hours) just to keep DB clean
         deadline = new Date();
@@ -46,7 +46,9 @@ export async function handleCreateBounty() {
     if (!title) { showToast('Please enter a title.', 'error'); return; }
 
     const btn = document.getElementById('bounty-submit-btn');
-    btn.disabled = true; btn.innerHTML = 'Starting...';
+    const idleLabel = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="bp-submit__seal" aria-hidden="true"><i class="fas fa-circle-notch fa-spin"></i></span><span class="bp-submit__label">${type === 'timer' ? 'Turning the hourglass…' : 'Pinning…'}</span>`;
 
     try {
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_bounties"), withSchoolYear({
@@ -69,7 +71,7 @@ export async function handleCreateBounty() {
         showToast('Error starting quest', 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = type === 'timer' ? 'Start Timer' : 'Start Quest';
+        btn.innerHTML = idleLabel;
     }
 }
 

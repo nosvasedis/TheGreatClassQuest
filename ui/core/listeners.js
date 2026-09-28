@@ -8,6 +8,7 @@ import { wireHeaderClassSelector } from '../headerClassSelector.js';
 
 import * as modals from '../modals.js';
 import { setupSpecialQuestRunnerListeners } from '../modals/specialQuest.js';
+import { prepareBountyPoster, focusBountyPoster, setupBountyPoster, validateBountyPoster } from '../modals/bountyPoster.js';
 import {
     handleGetQuestUpdate,
     downloadCertificateAsPdf,
@@ -705,81 +706,27 @@ export function setupUIListeners() {
         const classId = state.get('globalSelectedClassId');
         if (!classId) { showToast('Select a class first', 'error'); return; }
 
-        document.getElementById('bounty-class-id').value = classId;
-
-        const smartContainer = document.getElementById('bounty-smart-options');
-        if (smartContainer) {
-            smartContainer.innerHTML = '';
-
-            const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-            const now = new Date();
-
-            [5, 10, 20, 45].forEach(min => {
-                smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-white border border-indigo-200 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors" data-mins="${min}">${min}m</button>`;
-            });
-
-            if (classData && classData.timeEnd) {
-                const [endH, endM] = classData.timeEnd.split(':').map(Number);
-                const endDate = new Date();
-                endDate.setHours(endH, endM, 0);
-
-                if (endDate > now) {
-                    const diffMins = Math.floor((endDate - now) / 60000);
-                    if (diffMins > 0 && diffMins < 180) {
-                        smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-indigo-100 border border-indigo-300 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-200 transition-colors" data-mins="${diffMins}">End of Lesson (${diffMins}m)</button>`;
-                    }
-                }
-            }
-
-            smartContainer.querySelectorAll('.smart-time-btn').forEach(btn => {
-                btn.onclick = () => {
-                    document.getElementById('bounty-timer-minutes').value = btn.dataset.mins;
-                    document.getElementById('bounty-timer-end').value = '';
-                };
-            });
-        }
-
+        prepareBountyPoster(classId);
         modals.showAnimatedModal('create-bounty-modal');
+        focusBountyPoster();
     });
 
-    // --- TOGGLE LOGIC ---
-    const bStars = document.getElementById('bounty-mode-stars');
-    const bTimer = document.getElementById('bounty-mode-timer');
-    const inputStars = document.getElementById('bounty-inputs-stars');
-    const inputTimer = document.getElementById('bounty-inputs-timer');
-    const bType = document.getElementById('bounty-type');
-    const bSubmit = document.getElementById('bounty-submit-btn');
+    setupBountyPoster();
 
-    if (bStars && bTimer) {
-        bStars.addEventListener('click', () => {
-            bStars.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all bg-white text-amber-600 shadow-sm";
-            bTimer.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-700";
-            inputStars.classList.remove('hidden');
-            inputTimer.classList.add('hidden');
-            bType.value = 'standard';
-            bSubmit.className = "flex-[2] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-title text-xl py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all active:scale-95";
-            bSubmit.innerHTML = `<i class="fas fa-paper-plane mr-2"></i>Start Quest`;
-        });
-
-        bTimer.addEventListener('click', () => {
-            bTimer.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all bg-white text-rose-600 shadow-sm";
-            bStars.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-700";
-            inputStars.classList.add('hidden');
-            inputTimer.classList.remove('hidden');
-            bType.value = 'timer';
-            bSubmit.className = "flex-[2] bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-title text-xl py-4 rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95";
-            bSubmit.innerHTML = `<i class="fas fa-hourglass-start mr-2"></i>Start Timer`;
-        });
-    }
-
-    // --- FORM SUBMIT HANDLER (Crucial to prevent reload) ---
     document.getElementById('create-bounty-form')?.addEventListener('submit', (e) => {
-        e.preventDefault(); // <--- THIS STOPS THE RELOAD
+        e.preventDefault(); // keep the page from reloading
+        if (!validateBountyPoster()) return;
         import('../../db/actions.js').then(a => a.handleCreateBounty());
     });
 
     document.getElementById('bounty-cancel-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
     document.getElementById('bounty-cancel-x-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
+    document.getElementById('create-bounty-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'create-bounty-modal') modals.hideModal('create-bounty-modal');
+    });
+    document.getElementById('create-bounty-modal')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') modals.hideModal('create-bounty-modal');
+    });
 
     // Global listener for dynamic bounty buttons (Claim/Delete)
     document.getElementById('bounty-board-container').addEventListener('click', (e) => {

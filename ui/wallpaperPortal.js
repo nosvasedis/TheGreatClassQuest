@@ -26,7 +26,6 @@ const BACK_TRAVEL_MS = 2600;
 const EXIT_MS = 1400;
 const EXIT_START = 1900;
 
-const EASE_CAMERA = 'cubic-bezier(.62, 0, .24, 1)';
 const EASE_TRAVEL = 'cubic-bezier(.45, 0, .25, 1)';
 const EASE_SOFT = 'cubic-bezier(.3, .7, .3, 1)';
 
@@ -80,19 +79,35 @@ function setMask(el, gradient) {
     el.style.webkitMaskImage = gradient;
 }
 
-async function enterFullscreen() {
+/**
+ * While the projector is full screen, Esc belongs to the projector: one press plays the closing
+ * journey instead of the browser dropping out of full screen under it (holding Esc still leaves
+ * full screen). Browsers without the Keyboard Lock API keep their own Esc.
+ */
+function lockEscape() {
+    navigator.keyboard?.lock?.(['Escape']).catch(() => {});
+}
+
+function unlockEscape() {
+    try { navigator.keyboard?.unlock?.(); } catch { /* nothing locked */ }
+}
+
+/** Enters full screen and resolves once the new size is in place (or it was refused). */
+export async function enterFullscreen() {
     const root = document.documentElement;
     if (!root.requestFullscreen || document.fullscreenElement) return;
     const changed = new Promise((resolve) => {
         document.addEventListener('fullscreenchange', resolve, { once: true });
         setTimeout(resolve, FULLSCREEN_WAIT_MS);
     });
-    root.requestFullscreen().catch(() => {});
+    root.requestFullscreen().then(lockEscape, () => {});
     await changed;
     await nextFrames();
 }
 
-async function leaveFullscreen() {
+/** Leaves full screen and resolves once the page is back at its normal size. */
+export async function leaveFullscreen() {
+    unlockEscape();
     if (!document.fullscreenElement || !document.exitFullscreen) return;
     const changed = new Promise((resolve) => {
         document.addEventListener('fullscreenchange', resolve, { once: true });
@@ -145,7 +160,7 @@ function measureCard(vw, vh) {
 
 /**
  * The wallpaper is scaled down (uniformly) so its bottom strip sits exactly inside the card, and
- * clipped to the card's rounded window. Animating both back to rest is the camera walking in.
+ * clipped to the card's rounded window. Easing both back to rest is the camera walking in.
  */
 function cameraFrames(card, vw, vh) {
     const s = Math.min(1, Math.max(card.width / vw, card.height / vh));
@@ -153,21 +168,100 @@ function cameraFrames(card, vw, vh) {
     const lh = card.height / s;
     const lx = (vw - lw) / 2;
     const ly = vh - lh;
-    const tx = card.left - lx * s;
-    const ty = card.top - ly * s;
-    const r = card.radius / s;
     return {
+        vh,
         scale: s,
-        window: { top: ly, height: lh },
-        atCard: {
-            transform: `translate(${px(tx)}, ${px(ty)}) scale(${s})`,
-            clipPath: `inset(${px(ly)} ${px(vw - lx - lw)} 0px ${px(lx)} round ${px(r)})`
-        },
-        atRest: {
-            transform: 'translate(0px, 0px) scale(1)',
-            clipPath: 'inset(0px 0px 0px 0px round 0px)'
-        }
+        tx: card.left - lx * s,
+        ty: card.top - ly * s,
+        inset: { top: ly, right: vw - lx - lw, left: lx },
+        radius: card.radius / s,
+        window: { top: ly, height: lh }
     };
+}
+
+/** Standard CSS cubic-bezier timing function, solved for x with a few Newton steps. */
+function cubicBezier(x1, y1, x2, y2) {
+    const curve = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+    const slope = (a, b, t) => 3 * a * (1 - t) ** 2 + 6 * (b - a) * t * (1 - t) + 3 * (1 - b) * t * t;
+    return (x) => {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        let t = x;
+        for (let i = 0; i < 8; i++) {
+            const d = slope(x1, x2, t);
+            if (Math.abs(d) < 1e-6) break;
+            t -= (curve(x1, x2, t) - x) / d;
+            t = Math.min(1, Math.max(0, t));
+        }
+        return curve(y1, y2, t);
+    };
+}
+
+const easeCamera = cubicBezier(0.62, 0, 0.24, 1);
+const easeOut = cubicBezier(0, 0, 0.58, 1);
+const easeIn = cubicBezier(0.42, 0, 1, 1);
+
+/**
+ * Places the camera between the card (`at` 0) and full screen (`at` 1). Transform, clip and the
+ * card's sky are written together, in one frame, as plain styles: no animated clip-path, which
+ * browsers may hand to the GPU and which flickers there next to the realm's glass panels.
+ */
+function placeCamera(wallEl, cardSky, frame, at, opacity) {
+    const k = 1 - at;
+    const s = frame.scale + (1 - frame.scale) * at;
+    const { top, right, left } = frame.inset;
+    wallEl.style.transform = `translate(${px(frame.tx * k)}, ${px(frame.ty * k)}) scale(${Math.round(s * 1e5) / 1e5})`;
+    wallEl.style.clipPath = at >= 1 ? 'none'
+        : `inset(${px(top * k)} ${px(right * k)} 0px ${px(left * k)} round ${px(frame.radius * k)})`;
+    wallEl.style.opacity = String(Math.round(opacity * 1000) / 1000);
+    cardSky.style.top = px(frame.window.top * k);
+    cardSky.style.height = px(frame.window.height + (frame.vh - frame.window.height) * at);
+}
+
+function releaseCamera(wallEl) {
+    ['transform', 'clipPath', 'opacity', 'transformOrigin'].forEach((prop) => { wallEl.style[prop] = ''; });
+    wallEl.classList.remove('is-zooming');
+}
+
+/**
+ * Runs the camera over `duration` ms after `delay`, from the card into full screen (`in`) or back
+ * out into the card (`out`). The wallpaper fades in over the first `fadeMs` (in) or out over the
+ * last `fadeMs` (out), so the card's words dissolve in or out underneath. While it runs the glass
+ * panels are taken out of rendering (they are invisible at that moment anyway).
+ */
+function runCamera(wallEl, cardSky, frame, { direction, duration, delay = 0, fadeMs }) {
+    const opening = direction === 'in';
+    const pose = (elapsed) => {
+        const t = Math.min(1, Math.max(0, elapsed / duration));
+        const eased = easeCamera(t);
+        const at = opening ? eased : 1 - eased;
+        const fromEnd = duration - elapsed;
+        const opacity = opening
+            ? easeOut(Math.min(1, Math.max(0, elapsed / fadeMs)))
+            : 1 - easeIn(Math.min(1, Math.max(0, 1 - fromEnd / fadeMs)));
+        placeCamera(wallEl, cardSky, frame, at, opacity);
+    };
+    const begin = () => {
+        wallEl.style.transformOrigin = '0 0';
+        wallEl.classList.add('is-zooming');
+    };
+    if (opening && delay <= 0) {
+        begin();
+        pose(0);
+    }
+    return new Promise((resolve) => {
+        const start = performance.now() + delay;
+        const tick = (now) => {
+            const elapsed = now - start;
+            if (elapsed >= 0) {
+                if (!wallEl.classList.contains('is-zooming')) begin();
+                pose(elapsed);
+            }
+            if (elapsed < duration) requestAnimationFrame(tick);
+            else resolve();
+        };
+        requestAnimationFrame(tick);
+    });
 }
 
 // ─── The scene: the card's sky, the meadow strips and the realm strips ─────
@@ -415,7 +509,8 @@ const FOREGROUND = [
     ['wall-center-hub', (el) => el],
     ['wall-quote-container', (el) => el.firstElementChild],
     ['wall-remote', (el) => el],
-    ['wall-floating-area', (el) => el]
+    ['wall-floating-area', (el) => el],
+    ['wall-timer-overlay', (el) => el]
 ];
 
 function foreground() {
@@ -437,9 +532,9 @@ function holdHidden(elements) {
  */
 export async function playPortalOpen(wallEl) {
     const reduced = prefersReducedMotion();
-    const [hub, ribbon, remote, floating] = foreground();
+    const [hub, ribbon, remote, floating, timer] = foreground();
     // Nothing shows until the camera is placed on the card.
-    const holds = holdHidden([wallEl, hub, ribbon, remote, floating]);
+    const holds = holdHidden([wallEl, hub, ribbon, remote, floating, timer]);
 
     await enterFullscreen();
 
@@ -459,13 +554,8 @@ export async function playPortalOpen(wallEl) {
     const animations = [];
 
     // 1. Into the card: the picture grows to fill the screen while the card's words dissolve.
-    wallEl.style.transformOrigin = '0 0';
-    animations.push(animate(wallEl, [frame.atCard, frame.atRest], { duration: ENTER_MS, easing: EASE_CAMERA }));
-    animations.push(animate(wallEl, [{ opacity: 0 }, { opacity: 1 }], { duration: card.live ? 320 : 600, easing: 'ease-out' }));
-    animations.push(animate(journey.cardSky, [
-        { top: px(frame.window.top), height: px(frame.window.height) },
-        { top: '0px', height: px(vh) }
-    ], { duration: ENTER_MS, easing: EASE_CAMERA }));
+    cancelAll(holds.slice(0, 1));
+    const camera = runCamera(wallEl, journey.cardSky, frame, { direction: 'in', duration: ENTER_MS, fadeMs: card.live ? 320 : 600 });
 
     // 2. Along the hills to the castle, starting before the camera has fully stepped in.
     const travelTiming = { duration: TRAVEL_MS, delay: TRAVEL_START, easing: EASE_TRAVEL };
@@ -473,12 +563,14 @@ export async function playPortalOpen(wallEl) {
     // The card's pale sky gives way to the realm's sky as the camera leaves the cottage.
     const skyTiming = { duration: TRAVEL_MS * 0.7, delay: ENTER_MS * 0.4, easing: 'ease-in-out' };
     animations.push(animate(journey.cardSky, [{ opacity: 1 }, { opacity: 0 }], skyTiming));
-    SKY_VEILED.forEach((sel) => animations.push(animate(wallEl.querySelector(sel), [{ opacity: 0 }, { opacity: 1 }], skyTiming)));
+    // The realm's weather and big clouds join once the camera is through the card.
+    const veilTiming = { duration: TRAVEL_MS * 0.6, delay: ENTER_MS, easing: 'ease-in-out' };
+    SKY_VEILED.forEach((sel) => animations.push(animate(wallEl.querySelector(sel), [{ opacity: 0 }, { opacity: 1 }], veilTiming)));
     animations.push(...duskAnimations(wallEl, journey, 'forward', skyTiming));
 
     // 3. The realm's foreground comes into focus in place as the camera settles.
     const arrivedAt = TRAVEL_START + TRAVEL_MS;
-    [[hub, -700, 1100], [ribbon, -350, 900], [remote, -100, 700]].forEach(([el, offset, ms]) => {
+    [[hub, -700, 1100], [ribbon, -350, 900], [timer, -350, 900], [remote, -100, 700]].forEach(([el, offset, ms]) => {
         animations.push(animate(el, [
             { opacity: 0, filter: 'blur(10px)' },
             { opacity: 1, filter: 'blur(0px)' }
@@ -487,11 +579,12 @@ export async function playPortalOpen(wallEl) {
     animations.push(animate(floating, [{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: arrivedAt }));
     cancelAll(holds);
 
+    await camera;
+    releaseCamera(wallEl);
     await settle(animations);
     // The travelling copies match the real horizon at rest, so they hand over in a single frame.
     cancelAll(animations);
     journey.remove();
-    wallEl.style.transformOrigin = '';
 }
 
 /**
@@ -523,29 +616,28 @@ export async function playPortalClose(wallEl) {
     const card = measureCard(vw, vh);
     const frame = cameraFrames(card, vw, vh);
     const journey = buildJourney(wallEl, card, frame, vw);
-    const window0 = { top: '0px', height: px(vh) };
-    const windowAtCard = { top: px(frame.window.top), height: px(frame.window.height) };
+    journey.cardSky.style.top = '0px';
+    journey.cardSky.style.height = px(vh);
 
-    // 1. Back along the hills to the cottage, the realm's sky softening into the card's.
+    // 1. Back along the hills to the cottage, the realm's sky softening into the card's. The
+    // realm's weather and big clouds are gone before the camera starts pulling out.
     animations.push(...travelAnimations(journey, vw, 'back', { duration: BACK_TRAVEL_MS, easing: EASE_TRAVEL }));
     const skyTiming = { duration: BACK_TRAVEL_MS * 0.6, delay: BACK_TRAVEL_MS * 0.4, easing: 'ease-in-out' };
     animations.push(animate(journey.cardSky, [{ opacity: 0 }, { opacity: 1 }], skyTiming));
-    SKY_VEILED.forEach((sel) => animations.push(animate(wallEl.querySelector(sel), [{ opacity: 1 }, { opacity: 0 }], skyTiming)));
+    const veilTiming = { duration: EXIT_START - BACK_TRAVEL_MS * 0.3, delay: BACK_TRAVEL_MS * 0.3, easing: 'ease-in-out' };
+    SKY_VEILED.forEach((sel) => animations.push(animate(wallEl.querySelector(sel), [{ opacity: 1 }, { opacity: 0 }], veilTiming)));
     animations.push(...duskAnimations(wallEl, journey, 'back', skyTiming));
 
     // 2. The camera pulls out of the card, which settles back among the Home cards.
-    wallEl.style.transformOrigin = '0 0';
-    animations.push(animate(wallEl, [frame.atRest, frame.atCard], { duration: EXIT_MS, delay: EXIT_START, easing: EASE_CAMERA }));
-    animations.push(animate(journey.cardSky, [window0, windowAtCard], { duration: EXIT_MS, delay: EXIT_START, easing: EASE_CAMERA }));
-    const fadeMs = card.live ? 360 : 600;
-    animations.push(animate(wallEl, [{ opacity: 1 }, { opacity: 0 }], {
-        duration: fadeMs, delay: EXIT_START + EXIT_MS - fadeMs, easing: 'ease-in'
-    }));
+    const camera = runCamera(wallEl, journey.cardSky, frame, {
+        direction: 'out', duration: EXIT_MS, delay: EXIT_START, fadeMs: card.live ? 360 : 600
+    });
 
+    await camera;
     await settle(animations);
     return () => {
         cancelAll(animations);
         journey.remove();
-        wallEl.style.transformOrigin = '';
+        releaseCamera(wallEl);
     };
 }

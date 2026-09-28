@@ -23,7 +23,7 @@ test('toggle ignores presses while the portal is animating', () => {
 test('the camera starts on the Home greeting card and its meadow', () => {
     assert.match(portal, /\.greeting-panel/);
     assert.match(portal, /getGreetingHillsHtml/);
-    assert.match(portal, /atCard/);
+    assert.match(portal, /function cameraFrames\(card/);
     assert.match(css, /\.wp-cardsky\b/);
     assert.match(css, /\.wp-strip--meadow\b/);
 });
@@ -44,8 +44,28 @@ test('foreground only fades and comes into focus, it never moves or resizes', ()
     assert.doesNotMatch(arrive, /transform|scale|translate/);
 });
 
-test('holds never overwrite inline opacity (the quote sets its own)', () => {
-    assert.doesNotMatch(portal, /style\.opacity/);
+test("holds never overwrite the foreground's inline opacity (the quote sets its own)", () => {
+    const writes = portal.match(/[\w.]+\.style\.opacity/g) || [];
+    assert.ok(writes.every((w) => w === 'wallEl.style.opacity'), writes.join(', '));
+});
+
+test('the zoom is driven frame by frame, never as an animated clip-path', () => {
+    assert.match(portal, /function runCamera/);
+    assert.match(portal, /requestAnimationFrame\(tick\)/);
+    // Web Animations keyframes never carry a clip-path (browsers may run those on the GPU, where they flicker).
+    assert.doesNotMatch(portal, /animate\([^;]*clipPath/s);
+    assert.match(css, /\.is-zooming :is\(#wall-center-hub/);
+});
+
+test('Esc from full screen closes the projector smoothly instead of half-closing it', () => {
+    assert.match(portal, /navigator\.keyboard\?\.lock\?\.\(\['Escape'\]\)/);
+    assert.match(wallpaper, /addEventListener\('fullscreenchange', handleWallFullscreenChange\)/);
+    assert.match(wallpaper, /function handleWallFullscreenChange\(\) \{\n\s+if \(document\.fullscreenElement \|\| !isRunning \|\| portalBusy \|\| fullscreenSwitching\) return;\n\s+toggleWallpaperMode\(\);/);
+});
+
+test('a resize keeps the showing card in its region and glides it there', () => {
+    assert.match(wallpaper, /keepRegion: refit \? el\.dataset\.region : ''/);
+    assert.match(wallpaper, /refitFloatingCard\(\{ glide: true \}\)/);
 });
 
 test('reduced motion skips the journey', () => {

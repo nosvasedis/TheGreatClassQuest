@@ -994,3 +994,10 @@
 .wall-horizon.is-travelling > .wall-horizon__far,
 .wall-horizon.is-travelling > .wall-horizon__near { visibility: hidden; }
 .wall-horizon__castle { will-change: transform; }
+
+/* While the camera zooms into or out of the greeting card, the glass panels (all invisible at
+   that moment) are taken out of rendering: backdrop blur under a moving clip flickers. */
+#dynamic-wallpaper-screen.is-zooming :is(#wall-center-hub, #wall-remote, #wall-quote-container,
+    #wall-floating-area, #wall-timer-overlay, #wall-deck-panel, #wall-weather-fx) {
+    visibility: hidden;
+}

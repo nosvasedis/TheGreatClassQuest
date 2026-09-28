@@ -30,7 +30,7 @@ import {
     getSunProgress,
     normalizeWallpaperPrefs
 } from './wallpaperDeck.mjs';
-import { playPortalOpen, playPortalClose } from './wallpaperPortal.js';
+import { playPortalOpen, playPortalClose, enterFullscreen, leaveFullscreen } from './wallpaperPortal.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -225,6 +225,8 @@ export function toggleWallpaperMode() {
         // Entering full screen (or resizing the projector window) changes the free space around the clock.
         window.removeEventListener('resize', handleWallpaperResize);
         window.addEventListener('resize', handleWallpaperResize);
+        document.removeEventListener('fullscreenchange', handleWallFullscreenChange);
+        document.addEventListener('fullscreenchange', handleWallFullscreenChange);
 
         bindWallControls();
         applyQuotePref();
@@ -252,6 +254,7 @@ export function toggleWallpaperMode() {
             escListener = null;
         }
         window.removeEventListener('resize', handleWallpaperResize);
+        document.removeEventListener('fullscreenchange', handleWallFullscreenChange);
         clearTimeout(wallpaperResizeTimeout);
         clearTimeout(wallIdleTimeout);
 
@@ -372,9 +375,46 @@ function wakeWallControls(ms = 3500) {
     }, ms);
 }
 
-function toggleWallFullscreen() {
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-    else document.documentElement.requestFullscreen?.().catch(() => {});
+// The remote's full-screen switch (and F) is in progress: the size change is ours, not a way out.
+let fullscreenSwitching = false;
+
+/**
+ * Switches full screen from the remote or F. The clock, cards and ribbon step out for the moment
+ * the screen changes size and come back already in their new places, so nothing visibly jumps.
+ */
+async function toggleWallFullscreen() {
+    if (fullscreenSwitching || portalBusy || !isRunning) return;
+    fullscreenSwitching = true;
+    const parts = ['wall-center-hub', 'wall-floating-area', 'wall-quote-container', 'wall-timer-overlay']
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+    const fades = [];
+    const fade = (from, to, ms) => Promise.all(parts.map((el) => {
+        const anim = el.animate([{ opacity: from }, { opacity: to }], { duration: ms, easing: 'ease-in-out', fill: 'forwards' });
+        fades.push(anim);
+        return anim.finished.catch(() => {});
+    }));
+    try {
+        await fade(1, 0, 220);
+        if (document.fullscreenElement) await leaveFullscreen();
+        else await enterFullscreen();
+        clearTimeout(wallpaperResizeTimeout);
+        refitFloatingCard({ glide: false });
+        await fade(0, 1, 380);
+    } finally {
+        fades.forEach((anim) => anim.cancel());
+        fullscreenSwitching = false;
+    }
+}
+
+/**
+ * Full screen ended without the projector asking (the browser's own Esc, or its exit button):
+ * the teacher is on the way out, so play the closing journey rather than leave a half-open,
+ * suddenly resized projector behind.
+ */
+function handleWallFullscreenChange() {
+    if (document.fullscreenElement || !isRunning || portalBusy || fullscreenSwitching) return;
+    toggleWallpaperMode();
 }
 
 function applyQuotePref() {
@@ -3302,9 +3342,11 @@ function getRectInScreen(el, screenRect) {
 
 /**
  * Place a floating card in the free space around the clock hub, clear of the top controls and the
- * quote dock, scaling it down (never clipping) on small projector screens.
+ * quote dock, scaling it down (never clipping) on small projector screens. A card already on
+ * screen (`refit`, after a resize) keeps its region and its spot there; with `glide` it moves over
+ * smoothly instead of jumping.
  */
-function placeFloatingCard(el) {
+function placeFloatingCard(el, { refit = false, glide = false } = {}) {
     const screen = document.getElementById('dynamic-wallpaper-screen');
     const hubEl = document.getElementById('wall-center-hub');
     if (!screen || !hubEl || !el) return false;
@@ -3328,30 +3370,48 @@ function placeFloatingCard(el) {
         cardSize: { width: el.offsetWidth, height: el.offsetHeight },
         topReserve,
         bottomLimit: quoteRect ? quoteRect.top : screenRect.height,
-        avoidRegion: lastCardRegion
+        avoidRegion: refit ? '' : lastCardRegion,
+        keepRegion: refit ? el.dataset.region : '',
+        spot: refit ? { x: Number(el.dataset.spotX), y: Number(el.dataset.spotY) } : null
     });
     if (!placement) return false;
 
+    const before = glide && el.classList.contains('is-placed')
+        ? { left: el.style.left, top: el.style.top, scale: el.style.scale || '1' }
+        : null;
     lastCardRegion = placement.region;
     el.classList.add('is-placed');
     el.dataset.region = placement.region;
+    el.dataset.spotX = String(placement.spot.x);
+    el.dataset.spotY = String(placement.spot.y);
     el.style.left = `${placement.left}px`;
     el.style.top = `${placement.top}px`;
     el.style.right = 'auto';
     el.style.bottom = 'auto';
     el.style.scale = String(placement.scale);
+    if (before && el.animate) {
+        el.animate(
+            [before, { left: el.style.left, top: el.style.top, scale: el.style.scale }],
+            { duration: 700, easing: 'cubic-bezier(.3, .7, .3, 1)' }
+        );
+    }
     return true;
 }
 
 let lastCardRegion = '';
 let wallpaperResizeTimeout = null;
 
+function refitFloatingCard({ glide }) {
+    const card = document.getElementById('wall-floating-area')?.firstElementChild;
+    if (card && card.dataset.cardId !== 'timer_end' && !card.classList.contains('is-centered')) {
+        placeFloatingCard(card, { refit: true, glide });
+    }
+}
+
 function handleWallpaperResize() {
     clearTimeout(wallpaperResizeTimeout);
-    wallpaperResizeTimeout = setTimeout(() => {
-        const card = document.getElementById('wall-floating-area')?.firstElementChild;
-        if (card && card.dataset.cardId !== 'timer_end') placeFloatingCard(card);
-    }, 180);
+    if (fullscreenSwitching) return;
+    wallpaperResizeTimeout = setTimeout(() => refitFloatingCard({ glide: true }), 180);
 }
 
 const SEGMENTER = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'grapheme' }) : null;

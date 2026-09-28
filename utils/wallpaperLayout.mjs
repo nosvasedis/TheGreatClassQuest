@@ -50,7 +50,10 @@ export function computeFreeRegions(viewport, hub, { topReserve = 0, bottomLimit 
  * Prefers regions where it fits at full size (random among them, avoiding `avoidRegion`),
  * otherwise the region that allows the largest scale.
  *
- * @returns {{ left: number, top: number, scale: number, region: string } | null}
+ * A card already on screen that only needs refitting (the screen changed size) passes
+ * `keepRegion` and its previous `spot`, so it stays where it was as far as the new screen allows.
+ *
+ * @returns {{ left: number, top: number, scale: number, region: string, spot: { x: number, y: number } } | null}
  */
 export function chooseCardPlacement({
     viewport,
@@ -59,6 +62,8 @@ export function chooseCardPlacement({
     topReserve = 0,
     bottomLimit = viewport?.height,
     avoidRegion = '',
+    keepRegion = '',
+    spot = null,
     random = Math.random,
     options = {}
 } = {}) {
@@ -73,8 +78,11 @@ export function chooseCardPlacement({
     });
 
     const fullSize = scored.filter((entry) => entry.scale >= maxScale - 1e-6);
+    const kept = keepRegion ? scored.find((entry) => entry.region.name === keepRegion) : null;
     let choice;
-    if (fullSize.length) {
+    if (kept && (kept.scale >= maxScale - 1e-6 || !fullSize.length)) {
+        choice = kept;
+    } else if (fullSize.length) {
         const preferred = fullSize.filter((entry) => entry.region.name !== avoidRegion);
         const pool = preferred.length ? preferred : fullSize;
         choice = pool[Math.floor(random() * pool.length) % pool.length];
@@ -90,14 +98,18 @@ export function chooseCardPlacement({
     // Float somewhere inside the region (not always dead centre) so cards feel alive.
     const slackX = Math.max(0, rectWidth(region) - width);
     const slackY = Math.max(0, rectHeight(region) - height);
+    const keepSpot = choice === kept && spot && Number.isFinite(spot.x) && Number.isFinite(spot.y);
+    const x = keepSpot ? spot.x : 0.2 + 0.6 * random();
+    const y = keepSpot ? spot.y : 0.2 + 0.6 * random();
     // Clamp to the screen in case the card had to stay larger than the region (minScale).
-    const left = Math.min(region.left + slackX * (0.2 + 0.6 * random()), viewport.width - margin - width);
-    const top = Math.min(region.top + slackY * (0.2 + 0.6 * random()), viewport.height - margin - height);
+    const left = Math.min(region.left + slackX * x, viewport.width - margin - width);
+    const top = Math.min(region.top + slackY * y, viewport.height - margin - height);
 
     return {
         left: Math.round(left),
         top: Math.round(top),
         scale: Math.round(scale * 1000) / 1000,
-        region: region.name
+        region: region.name,
+        spot: { x, y }
     };
 }

@@ -55,3 +55,14 @@ test('the previous region is avoided when another full-size spot exists', () => 
 test('returns null without a measurable card', () => {
     assert.equal(chooseCardPlacement({ viewport, hub, cardSize: { width: 0, height: 0 } }), null);
 });
+
+test('a card refitted after a resize keeps its region and its spot inside it', () => {
+    const card = { width: 300, height: 300 };
+    const first = chooseCardPlacement({ viewport, hub, cardSize: card, random: () => 0.9 });
+    for (let i = 0; i < 20; i++) {
+        const again = chooseCardPlacement({ viewport, hub, cardSize: card, avoidRegion: first.region, keepRegion: first.region, spot: first.spot });
+        assert.equal(again.region, first.region);
+        assert.equal(again.left, first.left);
+        assert.equal(again.top, first.top);
+    }
+});

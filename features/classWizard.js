@@ -1,4 +1,5 @@
 import * as state from '../state.js';
+import { openOfficeModal, closeOfficeModal, releaseOfficeScrollLock } from './secretary/officeModal.js';
 import { db, collection, getDocs, query, where } from '../firebase.js';
 import { getQuestLeagueDefinition, questLeagues } from '../constants.js';
 import { showToast } from '../ui/effects.js';
@@ -147,31 +148,6 @@ function renderLeagueChip(leagueName) {
             <span class="placement-league-chip__name">${escapeHtml(definition.name)}</span>
             <span class="placement-league-chip__age">Ages ${escapeHtml(ageLabel)}</span>
         </span>
-    `;
-}
-
-export function renderClassLauncher({ classCount } = {}) {
-    const count = Number.isFinite(classCount) ? classCount : activeClasses().length;
-    const badge = count === 1 ? '1 class' : `${count} classes`;
-    return `
-        <section class="secretary-card class-desk-launcher">
-            <div class="class-desk-launcher__glow" aria-hidden="true"></div>
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">This year's classes</p>
-                    <h3 class="secretary-card__title">Create and manage classes</h3>
-                </div>
-                <div class="secretary-card__badge">${escapeHtml(badge)}</div>
-            </div>
-            <p class="text-sm text-slate-600 leading-relaxed">
-                ${count
-                    ? 'Give each teacher their classes for this year — name, logo, league, schedule, and who teaches them.'
-                    : 'Start here. Create this year’s classes for each teacher, then seat returning students.'}
-            </p>
-            <button type="button" id="school-year-class-desk-open-btn" class="secretary-shell__primary-btn class-desk-launcher__cta">
-                <i class="fas fa-chalkboard-user mr-2" aria-hidden="true"></i>Open class desk
-            </button>
-        </section>
     `;
 }
 
@@ -946,7 +922,7 @@ function ensureWizard() {
     return modal;
 }
 
-export async function openClassWizard({ onRerender, classId } = {}) {
+export async function openClassWizard({ onRerender, classId, create = false } = {}) {
     if (typeof onRerender === 'function') onClassDeskRerender = onRerender;
     if (!hasFullConsole()) {
         showToast('Creating and editing classes needs the Elite School Office.', 'info');
@@ -962,16 +938,17 @@ export async function openClassWizard({ onRerender, classId } = {}) {
             loadEditDraft(classData);
             wizardState.step = STEPS.EDIT;
         }
+    } else if (create) {
+        wizardState.step = STEPS.TEACHER;
     }
     paintWizard();
-    modal.classList.remove('hidden');
     document.body.classList.add('placement-wizard-open');
+    openOfficeModal(modal);
 }
 
 export function closeClassWizard() {
     const modal = document.getElementById(WIZARD_ID);
-    if (modal) modal.classList.add('hidden');
-    document.body.classList.remove('placement-wizard-open');
+    closeOfficeModal(modal, { onClosed: releaseOfficeScrollLock });
     wizardState.confirmDeleteId = '';
 }
 

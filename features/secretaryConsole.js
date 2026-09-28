@@ -39,6 +39,13 @@ import { renderSecretaryGrades, GRADES_PAGE_SIZE } from './secretary/grades.js';
 import { renderSecretaryMessages } from './secretary/messages.js';
 import { renderSecretaryAdmin } from './secretary/admin.js';
 import { getActiveThread } from './secretary/helpers.js';
+import {
+    confirmDeleteFormer,
+    loadFormerStudents,
+    openLeaveDialog,
+    openReturnDialog,
+    setFormerStudentsListener
+} from './secretary/formerStudents.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -130,6 +137,10 @@ export function renderSecretaryTab(tabKey) {
     const renderer = TAB_RENDERERS[resolved];
     const section = document.querySelector(`[data-secretary-section="${resolved}"]`);
     if (!renderer || !section) return;
+    // Search boxes re-render the tab on every keystroke; keep the caret where it was.
+    const active = document.activeElement;
+    const focusId = active?.id && section.contains(active) ? active.id : '';
+    const caret = focusId && typeof active.selectionStart === 'number' ? [active.selectionStart, active.selectionEnd] : null;
     try {
         section.innerHTML = renderer();
     } catch (error) {
@@ -143,6 +154,18 @@ export function renderSecretaryTab(tabKey) {
         renderHolidayList();
     }
     applySecretaryTierUi();
+    if (focusId) {
+        const target = document.getElementById(focusId);
+        target?.focus({ preventScroll: true });
+        if (caret && typeof target?.setSelectionRange === 'function') target.setSelectionRange(caret[0], caret[1]);
+    }
+}
+
+function openRegistry(lane = 'students') {
+    state.setSecretaryView({ activeTab: 'admin', adminSubTab: 'registry', registryLane: lane, registrySearch: '' });
+    if (lane === 'former') void loadFormerStudents();
+    if (getActiveTabKey() === 'admin') renderSecretaryTab('admin');
+    else activateSecretaryTab('admin');
 }
 
 export function renderSecretaryConsole(tabKey) {
@@ -276,6 +299,11 @@ async function saveSecretaryAssessmentSettings(button) {
 export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onSelectThread }) {
     secretaryCallbacks = { onLogout, onOpenTeacherView, onSelectThread };
     wireSchoolYearConsoleHandlers({ onRerender: () => renderSecretaryTab('admin') });
+    setFormerStudentsListener(() => {
+        const tab = getActiveTabKey();
+        if (tab === 'admin' || tab === 'school' || tab === 'home') renderSecretaryTab(tab);
+        import('./placementWizard.js').then(({ refreshPlacementWizardIfOpen }) => refreshPlacementWizardIfOpen());
+    });
     if (listenersWired) return;
     listenersWired = true;
 
@@ -354,14 +382,88 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
                 return;
             }
             const classId = openDeskBtn.dataset.secretaryOpenClassDesk;
-            state.setSecretaryView({ activeTab: 'admin', adminSubTab: 'year' });
-            activateSecretaryTab('admin');
+            if (getActiveTabKey() !== 'admin') openRegistry('classes');
             import('./classWizard.js').then(({ openClassWizard }) => {
                 openClassWizard({
                     classId,
                     onRerender: () => renderSecretaryTab('admin')
                 });
             });
+            return;
+        }
+
+        const registryLinkBtn = event.target.closest('[data-secretary-registry-link]');
+        if (registryLinkBtn) {
+            openRegistry(registryLinkBtn.dataset.secretaryRegistryLink);
+            return;
+        }
+
+        const laneBtn = event.target.closest('[data-secretary-registry-lane]');
+        if (laneBtn) {
+            const lane = laneBtn.dataset.secretaryRegistryLane;
+            state.setSecretaryView({ registryLane: lane, registrySearch: '' });
+            if (lane === 'former') void loadFormerStudents();
+            renderSecretaryTab('admin');
+            return;
+        }
+
+        if (event.target.closest('[data-secretary-registry-seat]')) {
+            import('./placementWizard.js').then(({ openPlacementWizard }) => {
+                openPlacementWizard({ onRerender: () => renderSecretaryTab(getActiveTabKey()) });
+            });
+            return;
+        }
+
+        if (event.target.closest('[data-secretary-new-class]')) {
+            if (!hasFullSecretaryConsole()) {
+                showToast('Creating and editing classes needs the Elite School Office.', 'info');
+                return;
+            }
+            import('./classWizard.js').then(({ openClassWizard }) => {
+                openClassWizard({ create: true, onRerender: () => renderSecretaryTab('admin') });
+            });
+            return;
+        }
+
+        const viewClassBtn = event.target.closest('[data-secretary-view-class]');
+        if (viewClassBtn) {
+            state.setSecretaryView({
+                schoolSubTab: 'classes',
+                selectedClassId: viewClassBtn.dataset.secretaryViewClass,
+                classPulseSubTab: 'overview'
+            });
+            activateSecretaryTab('school');
+            return;
+        }
+
+        const leaveBtn = event.target.closest('[data-secretary-leave-student]');
+        if (leaveBtn) {
+            openLeaveDialog(leaveBtn.dataset.secretaryLeaveStudent);
+            return;
+        }
+
+        const returnBtn = event.target.closest('[data-secretary-return-student]');
+        if (returnBtn) {
+            openReturnDialog(returnBtn.dataset.secretaryReturnStudent);
+            return;
+        }
+
+        const deleteFormerBtn = event.target.closest('[data-secretary-delete-former]');
+        if (deleteFormerBtn) {
+            confirmDeleteFormer(deleteFormerBtn.dataset.secretaryDeleteFormer);
+            return;
+        }
+
+        const formerFilterBtn = event.target.closest('[data-secretary-former-filter]');
+        if (formerFilterBtn) {
+            state.setSecretaryView({ formerFilter: formerFilterBtn.dataset.secretaryFormerFilter });
+            renderSecretaryTab('admin');
+            return;
+        }
+
+        if (event.target.closest('[data-secretary-former-reload]')) {
+            void loadFormerStudents({ force: true });
+            renderSecretaryTab('admin');
             return;
         }
 
@@ -372,6 +474,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
                 return;
             }
             state.setSecretaryView({ adminSubTab: adminSubTabBtn.dataset.secretaryAdminSubtab });
+            if (adminSubTabBtn.dataset.secretaryAdminSubtab === 'year') void loadFormerStudents();
             renderSecretaryTab('admin');
             return;
         }
@@ -572,6 +675,11 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         if (event.target.id === 'secretary-student-filter') {
             state.setSecretaryView({ studentFilter: event.target.value, schoolSubTab: 'students' });
             renderSecretaryTab('school');
+            return;
+        }
+        if (event.target.id === 'secretary-registry-search') {
+            state.setSecretaryView({ registrySearch: event.target.value });
+            renderSecretaryTab('admin');
             return;
         }
         if (event.target.id === 'secretary-grades-search') {

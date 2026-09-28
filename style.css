@@ -223,3 +223,6 @@
 
 /* 47. Teacher Settings: the teacher's desk (pages, stationery, picker) */
 @import url('./styles/teacher_settings.css');
+
+/* 48. Secretary Office: the school's front office (signs, registry, dialogs, modal motion) */
+@import url('./styles/secretary_office.css');

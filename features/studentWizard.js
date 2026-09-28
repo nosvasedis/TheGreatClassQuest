@@ -1,4 +1,5 @@
 import * as state from '../state.js';
+import { openOfficeModal, closeOfficeModal, releaseOfficeScrollLock } from './secretary/officeModal.js';
 import { getQuestLeagueDefinition } from '../constants.js';
 import { showToast } from '../ui/effects.js';
 import { canUseFeature } from '../utils/subscription.js';
@@ -133,31 +134,6 @@ function renderLeagueChip(leagueName) {
             <span class="placement-league-chip__name">${escapeHtml(definition.name)}</span>
             <span class="placement-league-chip__age">Ages ${escapeHtml(ageLabel)}</span>
         </span>
-    `;
-}
-
-export function renderStudentLauncher({ classCount } = {}) {
-    const count = Number.isFinite(classCount) ? classCount : activeClasses().length;
-    const badge = count ? (count === 1 ? '1 class' : `${count} classes`) : 'No classes yet';
-    return `
-        <section class="secretary-card student-desk-launcher">
-            <div class="student-desk-launcher__glow" aria-hidden="true"></div>
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">New student</p>
-                    <h3 class="secretary-card__title">Add a new student</h3>
-                </div>
-                <div class="secretary-card__badge">${escapeHtml(badge)}</div>
-            </div>
-            <p class="text-sm text-slate-600 leading-relaxed">
-                ${count
-                    ? 'Seat a new hero in a teacher’s class this year. The teacher owns the roster in their Teacher App.'
-                    : 'Create this year’s classes first, then add new students to a teacher’s roster.'}
-            </p>
-            <button type="button" id="school-year-student-desk-open-btn" class="secretary-shell__primary-btn student-desk-launcher__cta">
-                <i class="fas fa-user-plus mr-2" aria-hidden="true"></i>Open student desk
-            </button>
-        </section>
     `;
 }
 
@@ -667,14 +643,13 @@ export function openStudentWizard({ onRerender } = {}) {
     wizardState.lastCreatedName = '';
     const modal = ensureWizard();
     paintWizard();
-    modal.classList.remove('hidden');
     document.body.classList.add('placement-wizard-open');
+    openOfficeModal(modal);
 }
 
 export function closeStudentWizard() {
     const modal = document.getElementById(WIZARD_ID);
-    if (modal) modal.classList.add('hidden');
-    document.body.classList.remove('placement-wizard-open');
+    closeOfficeModal(modal, { onClosed: releaseOfficeScrollLock });
 }
 
 export function refreshStudentWizardIfOpen() {

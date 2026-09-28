@@ -15,6 +15,10 @@ const auth = getAuth();
 const storage = getStorage();
 const FUNCTIONS_REGION = process.env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1';
 const LEFT_SCHOOL_PURGE_DAYS = 30;
+// Former students keep every record until the Secretary deletes them by hand.
+// Flip to true to bring back the old automatic purge LEFT_SCHOOL_PURGE_DAYS after leaving.
+const AUTO_PURGE_LEFT_STUDENTS = false;
+const FORMER_STUDENT_REASONS = ['moved', 'graduated', 'other'];
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -235,9 +239,11 @@ function buildPurgeAfterAt(fromMs = Date.now()) {
   return Timestamp.fromMillis(fromMs + (LEFT_SCHOOL_PURGE_DAYS * MS_PER_DAY));
 }
 
-async function disableParentAccessForStudent(studentId) {
+async function disableParentAccessForStudent(studentId, { reason = null } = {}) {
   const link = await getParentLink(studentId);
   if (!link) return { disabled: false };
+  // Leaving never relabels access someone had already switched off, so a return won't reopen it.
+  if (reason && link.status === 'disabled') return { disabled: false, alreadyDisabled: true };
   if (link.parentUid) {
     try {
       await auth.updateUser(link.parentUid, { disabled: true });
@@ -248,9 +254,31 @@ async function disableParentAccessForStudent(studentId) {
   }
   await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
     status: 'disabled',
+    disabledReason: reason || FieldValue.delete(),
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
   return { disabled: true };
+}
+
+// Only undoes a disable that leaving the school caused; access a teacher turned off stays off.
+async function restoreParentAccessAfterReturn(studentId) {
+  const link = await getParentLink(studentId);
+  if (!link || link.status !== 'disabled' || link.disabledReason !== 'left-school') return { restored: false };
+  if (link.parentUid) {
+    try {
+      await auth.updateUser(link.parentUid, { disabled: false });
+      await db.collection(PROFILE_COLLECTION).doc(link.parentUid).set({ status: 'active' }, { merge: true });
+    } catch (error) {
+      if (String(error?.code || '') !== 'auth/user-not-found') throw error;
+      return { restored: false };
+    }
+  }
+  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
+    status: 'active',
+    disabledReason: FieldValue.delete(),
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  return { restored: true };
 }
 
 async function deleteCollectionDocsByStudentId(collectionName, studentId) {
@@ -2230,14 +2258,28 @@ exports.assignClassTeacher = callable(async (request) => {
 exports.markStudentLeftSchool = callable(async (request) => {
   await requireYearOperator(request);
   const studentId = String(request.data?.studentId || '').trim();
-  const yearKey = String(request.data?.schoolYearKey || await getPlannedSchoolYearKey()).trim();
   if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
-  await getStudent(studentId);
-  const purgeAfterAt = buildPurgeAfterAt();
+  const student = await getStudent(studentId);
+  const yearKey = String(request.data?.schoolYearKey || student.activeSchoolYearKey || await getPlannedSchoolYearKey()).trim();
+  const rawReason = String(request.data?.reason || '').trim().toLowerCase();
+  const reason = FORMER_STUDENT_REASONS.includes(rawReason) ? rawReason : 'moved';
+  const note = String(request.data?.note || '').trim().slice(0, 240);
+  let formerClassName = '';
+  if (student.classId) {
+    const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get();
+    formerClassName = classSnap.exists ? String(classSnap.data()?.name || '') : '';
+  }
+  const purgeAfterAt = AUTO_PURGE_LEFT_STUDENTS ? buildPurgeAfterAt() : FieldValue.delete();
   await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).set({
     activeSchoolYearKey: yearKey,
     enrollmentStatus: 'inactive',
     classId: null,
+    leftReason: reason,
+    leftNote: note || FieldValue.delete(),
+    formerClassId: student.classId || student.formerClassId || null,
+    formerClassName: formerClassName || student.formerClassName || '',
+    formerTeacher: student.createdBy || null,
+    formerEnrollmentStatus: student.enrollmentStatus || 'active',
     leftSchoolAt: FieldValue.serverTimestamp(),
     purgeAfterAt,
     updatedAt: FieldValue.serverTimestamp()
@@ -2245,12 +2287,138 @@ exports.markStudentLeftSchool = callable(async (request) => {
   await db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`).set(withYear({
     studentId,
     enrollmentStatus: 'inactive',
+    leftReason: reason,
     leftSchoolAt: FieldValue.serverTimestamp(),
     purgeAfterAt
   }, yearKey), { merge: true });
-  await disableParentAccessForStudent(studentId);
+  await disableParentAccessForStudent(studentId, { reason: 'left-school' });
   await upsertParentSnapshot(studentId, { activeSchoolYearKey: yearKey, enrollmentStatus: 'inactive' });
-  return { ok: true, purgeAfterAt: purgeAfterAt.toDate().toISOString() };
+  return { ok: true, reason, purgeAfterAt: AUTO_PURGE_LEFT_STUDENTS ? purgeAfterAt.toDate().toISOString() : null };
+});
+
+// Brings a former student back. With a live class (the one they left, or one the
+// Secretary picks) they return straight to that roster with their stars intact;
+// otherwise they wait in Student placement for this year.
+exports.restoreFormerStudent = callable(async (request) => {
+  await requireYearOperator(request);
+  const studentId = String(request.data?.studentId || '').trim();
+  if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
+  const student = await getStudent(studentId);
+  if ((student.enrollmentStatus || 'active') !== 'inactive') {
+    throw new HttpsError('failed-precondition', `${student.name || 'That student'} is already enrolled.`);
+  }
+  const activeYearKey = await getActiveSchoolYearKey();
+  const toPlacement = request.data?.toPlacement === true;
+  const requestedClassId = toPlacement ? '' : String(request.data?.classId || '').trim();
+  const candidateClassId = toPlacement ? '' : (requestedClassId || String(student.formerClassId || '').trim());
+  let classData = null;
+  if (candidateClassId) {
+    const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${candidateClassId}`).get();
+    const data = classSnap.exists ? classSnap.data() || {} : null;
+    const live = data && data.status !== 'archived' && data.status !== 'closed' &&
+      (!data.schoolYearKey || data.schoolYearKey === activeYearKey) && data.createdBy?.uid;
+    if (live) classData = { id: classSnap.id, ...data };
+    else if (requestedClassId) throw new HttpsError('failed-precondition', 'Choose an active class for this year.');
+  }
+
+  const clearLeaving = {
+    leftSchoolAt: FieldValue.delete(),
+    leftReason: FieldValue.delete(),
+    leftNote: FieldValue.delete(),
+    purgeAfterAt: FieldValue.delete(),
+    formerEnrollmentStatus: FieldValue.delete(),
+    returnedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  };
+
+  if (!classData) {
+    await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).set({
+      ...clearLeaving,
+      classId: null,
+      activeSchoolYearKey: activeYearKey,
+      enrollmentStatus: 'pendingPlacement'
+    }, { merge: true });
+    await db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${activeYearKey}`).set(withYear({
+      studentId,
+      enrollmentStatus: 'pendingPlacement',
+      leftSchoolAt: FieldValue.delete(),
+      purgeAfterAt: FieldValue.delete()
+    }, activeYearKey), { merge: true });
+    await restoreParentAccessAfterReturn(studentId);
+    await upsertParentSnapshot(studentId, { activeSchoolYearKey: activeYearKey, enrollmentStatus: 'pendingPlacement' });
+    return { ok: true, placement: 'pending' };
+  }
+
+  const owner = classData.createdBy;
+  const sameYear = student.activeSchoolYearKey === activeYearKey;
+  const previousOwnerUid = student.createdBy?.uid || null;
+  const scorePayload = {
+    createdBy: owner,
+    activeSchoolYearKey: activeYearKey,
+    updatedAt: FieldValue.serverTimestamp()
+  };
+  if (!sameYear) {
+    // A student coming back from an earlier year starts this year fresh, like placement does.
+    Object.assign(scorePayload, {
+      gold: 0,
+      heroLevel: 0,
+      heroSkills: [],
+      pendingSkillChoice: false,
+      starsByReason: FieldValue.delete(),
+      lastGuildBonusMonth: FieldValue.delete(),
+      lastPatronPathCreditWeekKey: FieldValue.delete(),
+      heroOfDayWins: 0,
+      heroOfDayWinsYearKey: activeYearKey
+    });
+  }
+  const writes = [
+    {
+      ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
+      payload: {
+        ...clearLeaving,
+        classId: classData.id,
+        createdBy: owner,
+        activeSchoolYearKey: activeYearKey,
+        enrollmentStatus: 'active'
+      }
+    },
+    { ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`), payload: scorePayload },
+    {
+      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${activeYearKey}`),
+      payload: withYear({
+        studentId,
+        classId: classData.id,
+        className: classData.name || '',
+        teacher: owner,
+        enrollmentStatus: 'active',
+        leftSchoolAt: FieldValue.delete(),
+        purgeAfterAt: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp()
+      }, activeYearKey)
+    }
+  ];
+  const parentLink = await getParentLink(studentId);
+  if (parentLink?.parentUid || parentLink?.username) {
+    writes.push({
+      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
+      payload: { classId: classData.id, updatedAt: FieldValue.serverTimestamp() }
+    });
+  }
+  await commitBatchChunks(writes);
+  await restoreParentAccessAfterReturn(studentId);
+  const refreshedLink = await getParentLink(studentId);
+  await syncStudentThreadParticipants(studentId, {
+    addUid: owner.uid,
+    removeUid: previousOwnerUid && previousOwnerUid !== owner.uid ? previousOwnerUid : null,
+    keepUids: refreshedLink?.parentUid ? [refreshedLink.parentUid] : []
+  });
+  await upsertParentSnapshot(studentId, {
+    activeSchoolYearKey: activeYearKey,
+    enrollmentStatus: 'active',
+    classId: classData.id,
+    className: classData.name || ''
+  });
+  return { ok: true, placement: 'class', classId: classData.id, className: classData.name || '' };
 });
 
 exports.transferStudentToClass = callable(async (request) => {
@@ -2345,6 +2513,21 @@ exports.purgeLeftSchoolStudents = functionsV1.region(FUNCTIONS_REGION)
   .pubsub.schedule('every 24 hours')
   .timeZone('Europe/Athens')
   .onRun(async () => {
+    if (!AUTO_PURGE_LEFT_STUDENTS) {
+      // Automatic deletion is off: clear any removal dates set by the old policy
+      // so former students are only ever deleted by the Secretary.
+      const markedSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+        .where('purgeAfterAt', '>', Timestamp.fromMillis(0))
+        .get();
+      if (!markedSnap.empty) {
+        await commitBatchChunks(markedSnap.docs.map((studentDoc) => ({
+          ref: studentDoc.ref,
+          payload: { purgeAfterAt: FieldValue.delete() }
+        })));
+      }
+      console.log(JSON.stringify({ event: 'purgeLeftSchoolStudents', autoPurge: false, cleared: markedSnap.size }));
+      return null;
+    }
     const now = Timestamp.now();
     const dueSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
       .where('purgeAfterAt', '<=', now)

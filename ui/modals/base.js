@@ -1,6 +1,7 @@
 // /ui/modals/base.js
 
 // --- IMPORTS ---
+import { isSecretaryOfficeActive, openOfficeModal, closeOfficeModal } from '../../features/secretary/officeModal.js';
 import { fetchLogsForDate, fetchAttendanceForMonth, fetchLogsForMonth } from '../../db/queries.js';
 import { db, doc, getDocs, collection, query, where, orderBy, limit } from '../../firebase.js';
 
@@ -77,6 +78,13 @@ const MODAL_EXIT_ANIMATIONS = new Set(['modal-shell-pop-out', 'logo-picker-out']
 export function showAnimatedModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
+
+    // Inside the Secretary Office every modal shares the office's own open/close motion.
+    if (isSecretaryOfficeActive() && modalId !== 'fortunes-wheel-modal') {
+        openOfficeModal(modal);
+        return;
+    }
+    modal.classList.remove('office-modal');
 
     const innerContent = modal.querySelector('.pop-in');
     innerContent?.classList.remove('is-modal-exiting', 'modal-origin-start', 'pop-out');
@@ -268,6 +276,15 @@ export function hideModal(modalId) {
     const releaseBackdrop = () => {
         if (modalId === 'logo-picker-modal') resumeLogoPickerBackdrop();
     };
+
+    if (modal.classList.contains('office-modal')) {
+        closeOfficeModal(modal, { onClosed: releaseBackdrop });
+        if (currentlySelectedDayCell) {
+            currentlySelectedDayCell.classList.remove('day-selected');
+            currentlySelectedDayCell = null;
+        }
+        return;
+    }
 
     if (innerContent) {
         if (reducedMotion) {

@@ -1,15 +1,15 @@
-import { renderTabHero } from '../roles/shared.js';
+import { renderOfficeSign } from './signs.js';
 import { GRADES_PAGE_SIZE, renderGradesBoard } from './gradesBoard.js';
 
 export { GRADES_PAGE_SIZE };
 
 export function renderSecretaryGrades() {
     return `
-        ${renderTabHero({
-            icon: 'fa-scroll',
-            iconColor: 'text-amber-500',
+        ${renderOfficeSign({
+            variant: 'grades',
+            kicker: 'School report',
             title: 'Grades',
-            subtitle: "Scholar's Scroll scores and Quest Assignment, school-wide."
+            tagline: "Scholar's Scroll scores and Quest Assignment, school-wide."
         })}
         <article class="role-card grades-board">
             ${renderGradesBoard()}

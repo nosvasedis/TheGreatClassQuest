@@ -103,7 +103,8 @@ export function renderSecretaryHome() {
             { icon: 'fa-chart-simple', label: 'Grades', tab: 'grades' },
             { icon: 'fa-comments', label: 'Messages', tab: 'messages' }
         ] : []),
-        { icon: 'fa-cog', label: 'Settings', tab: 'admin' }
+        { icon: 'fa-folder-open', label: 'Registry', tab: 'admin', adminSub: 'registry' },
+        { icon: 'fa-cog', label: 'Settings', tab: 'admin', adminSub: 'settings' }
     ];
 
     const latestGradeHtml = latestScoreInfo
@@ -210,6 +211,7 @@ export function renderSecretaryHome() {
                         <button type="button" class="tool-btn-pop"
                             data-secretary-tab-link="${tool.tab}"
                             ${tool.schoolSub ? `data-secretary-school-subtab="${tool.schoolSub}"` : ''}
+                            ${tool.adminSub ? `data-secretary-admin-subtab="${tool.adminSub}"` : ''}
                             title="${escapeHtml(tool.label)}">
                             <i class="fas ${tool.icon}"></i>
                             <span>${escapeHtml(tool.label)}</span>

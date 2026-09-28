@@ -11,14 +11,23 @@ import {
     normalizeClassAssessmentConfig
 } from '../assessmentConfig.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
+import { renderOfficeSign } from './signs.js';
+import { renderRegistry } from './registry.js';
 
 const ADMIN_AREAS = [
     {
+        key: 'registry',
+        label: 'Students & Classes',
+        description: 'Enrol, seat, classes, former students',
+        icon: 'fa-folder-open',
+        accent: 'sky'
+    },
+    {
         key: 'year',
         label: 'School Year',
-        description: 'Classes, student placement, and the school year',
+        description: 'Open, last day, finish',
         icon: 'fa-calendar-alt',
-        accent: 'sky'
+        accent: 'amber'
     },
     {
         key: 'settings',
@@ -44,46 +53,30 @@ function getAdminAreas() {
 
 function renderAdminHero() {
     const schoolName = state.get('schoolName') || 'Your school';
-    const profile = state.get('currentUserProfile') || {};
-    const areaCount = getAdminAreas().length;
-    return `
-        <header class="secretary-admin-hero">
-            <div class="secretary-admin-hero__main">
-                <div class="secretary-admin-hero__icon" aria-hidden="true">
-                    <i class="fas fa-wand-magic-sparkles"></i>
-                </div>
-                <div>
-                    <p class="secretary-admin-hero__eyebrow">School settings</p>
-                    <h2 class="secretary-admin-hero__title">Keep everything running smoothly.</h2>
-                    <p class="secretary-admin-hero__description">The important school-wide choices for ${escapeHtml(schoolName)}, gathered into ${areaCount} simple section${areaCount === 1 ? '' : 's'}.</p>
-                </div>
-            </div>
-            <div class="secretary-admin-hero__status">
-                <span><i class="fas fa-circle-check" aria-hidden="true"></i> Signed in</span>
-                <strong>${escapeHtml(profile.displayName || 'Secretary')}</strong>
-                <small>You are looking after the whole school.</small>
-            </div>
-        </header>
-    `;
+    return renderOfficeSign({
+        variant: 'admin',
+        kicker: 'School records',
+        title: 'Admin',
+        tagline: `Everything that keeps ${escapeHtml(schoolName)} running, filed in one place.`
+    });
 }
 
 function renderAdminNav(activeKey) {
     const areas = getAdminAreas();
     return `
-        <nav class="secretary-admin-nav" aria-label="Admin sections" role="tablist">
+        <nav class="office-tabs" aria-label="Admin sections" role="tablist">
             ${areas.map((area) => `
                 <button type="button"
-                    class="secretary-admin-nav__item secretary-admin-nav__item--${area.accent}${activeKey === area.key ? ' is-active' : ''}"
+                    class="office-tab office-tab--${area.accent}${activeKey === area.key ? ' is-active' : ''}"
                     data-secretary-admin-subtab="${area.key}"
                     role="tab"
                     aria-selected="${activeKey === area.key ? 'true' : 'false'}"
                     aria-controls="secretary-admin-panel-${area.key}">
-                    <span class="secretary-admin-nav__icon" aria-hidden="true"><i class="fas ${area.icon}"></i></span>
-                    <span class="secretary-admin-nav__copy">
+                    <span class="office-tab__icon" aria-hidden="true"><i class="fas ${area.icon}"></i></span>
+                    <span class="office-tab__copy">
                         <strong>${area.label}</strong>
                         <small>${area.description}</small>
                     </span>
-                    <i class="fas ${activeKey === area.key ? 'fa-circle-check' : 'fa-arrow-right'} secretary-admin-nav__arrow" aria-hidden="true"></i>
                 </button>
             `).join('')}
         </nav>
@@ -266,10 +259,10 @@ function renderSchoolSettings() {
                         <small>Open the message inbox.</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
                     </button>` : ''}
-                    <button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-tab-link="school" data-secretary-school-subtab="students">
-                        <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--emerald"><i class="fas fa-users" aria-hidden="true"></i></span>
-                        <span>Student list</span>
-                        <small>${hasFullConsole ? 'Find a student and edit their details.' : 'Review the schoolwide student list.'}</small>
+                    <button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-registry-link="students">
+                        <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--emerald"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
+                        <span>Students &amp; Classes</span>
+                        <small>${hasFullConsole ? 'Enrol, seat, edit, or mark a student as left.' : 'Seat returning students and look after former students.'}</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
                     </button>
                 </div>
@@ -403,18 +396,23 @@ function renderGradingSetup() {
     `;
 }
 
+const ADMIN_KEYS = new Set(ADMIN_AREAS.map((area) => area.key));
+
 export function renderSecretaryAdmin() {
-    const requestedSubTab = state.get('secretaryView')?.adminSubTab || 'year';
+    const requested = state.get('secretaryView')?.adminSubTab;
+    const requestedSubTab = ADMIN_KEYS.has(requested) ? requested : 'registry';
     const subTab = requestedSubTab === 'grading' && !canUseFeature('secretaryAccess') ? 'settings' : requestedSubTab;
+    const panel = (key, render) => `<div id="secretary-admin-panel-${key}" data-secretary-admin-panel="${key}" class="office-admin__panel${subTab === key ? '' : ' hidden'}" role="tabpanel">${subTab === key ? render() : ''}</div>`;
 
     return `
-        <div class="secretary-admin-page">
+        <div class="secretary-admin-page office-admin">
             ${renderAdminHero()}
             ${renderAdminNav(subTab)}
-            <div class="secretary-admin-panels">
-                <div id="secretary-admin-panel-year" data-secretary-admin-panel="year" class="${subTab === 'year' ? '' : 'hidden'}" role="tabpanel">${renderSchoolYearSection()}</div>
-                <div id="secretary-admin-panel-settings" data-secretary-admin-panel="settings" class="${subTab === 'settings' ? '' : 'hidden'}" role="tabpanel">${renderSchoolSettings()}</div>
-                ${canUseFeature('secretaryAccess') ? `<div id="secretary-admin-panel-grading" data-secretary-admin-panel="grading" class="${subTab === 'grading' ? '' : 'hidden'}" role="tabpanel">${renderGradingSetup()}</div>` : ''}
+            <div class="secretary-admin-panels office-admin__panels">
+                ${panel('registry', renderRegistry)}
+                ${panel('year', renderSchoolYearSection)}
+                ${panel('settings', renderSchoolSettings)}
+                ${canUseFeature('secretaryAccess') ? panel('grading', renderGradingSetup) : ''}
             </div>
         </div>
     `;

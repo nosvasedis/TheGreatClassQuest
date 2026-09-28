@@ -7,21 +7,11 @@ import {
     openSchoolYear,
     archiveCarriedYearGold
 } from '../utils/adminRuntime.js';
-import {
-    openPlacementWizard,
-    renderPlacementLauncher,
-    refreshPlacementWizardIfOpen
-} from './placementWizard.js';
-import {
-    openClassWizard,
-    renderClassLauncher,
-    refreshClassWizardIfOpen
-} from './classWizard.js';
-import {
-    openStudentWizard,
-    renderStudentLauncher,
-    refreshStudentWizardIfOpen
-} from './studentWizard.js';
+import { openPlacementWizard, refreshPlacementWizardIfOpen } from './placementWizard.js';
+import { openClassWizard, refreshClassWizardIfOpen } from './classWizard.js';
+import { openStudentWizard, refreshStudentWizardIfOpen } from './studentWizard.js';
+import { renderRegistryRollCall } from './secretary/registry.js';
+import { openOfficeModal, closeOfficeModal } from './secretary/officeModal.js';
 import {
     buildRolloverConfirmationText,
     closeDateToPickerValue,
@@ -54,14 +44,10 @@ function toIsoDateInputValue(date) {
     return `${y}-${m}-${d}`;
 }
 
-function renderYearSetupLaunchers({ pendingCount } = {}) {
-    return `
-        <div class="school-year-setup-pair">
-            ${renderStudentLauncher()}
-            ${renderClassLauncher()}
-            ${renderPlacementLauncher({ pendingCount })}
-        </div>
-    `;
+// Enrolling, seating and classes live in Admin → Students & Classes; the year view
+// only shows the roll call and points there.
+function renderYearSetupLaunchers() {
+    return renderRegistryRollCall();
 }
 
 function friendlyYearStatus(value) {
@@ -147,27 +133,31 @@ function ensurePreviewModal() {
     if (modal) return modal;
     modal = document.createElement('div');
     modal.id = 'school-year-preview-modal';
-    modal.className = 'fixed inset-0 z-[2200] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm';
+    modal.className = 'office-dialog hidden';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'school-year-preview-title');
     modal.innerHTML = `
-        <div class="school-year-preview-modal-panel pop-in w-full max-w-3xl max-h-[88vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl border border-sky-100 flex flex-col">
-            <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-emerald-50">
-                <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-sky-500">School year</p>
-                    <h3 class="font-title text-2xl text-slate-800">Readiness check</h3>
-                </div>
-                <button type="button" id="school-year-preview-modal-close" class="w-10 h-10 rounded-full bg-white text-slate-500 hover:text-rose-500 hover:bg-rose-50 border border-slate-200 shadow-sm flex items-center justify-center" aria-label="Close preview">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div id="school-year-preview-modal-content" class="p-6 overflow-y-auto custom-scrollbar"></div>
+        <div class="school-year-preview-modal-panel office-dialog__panel office-folder" data-office-panel>
+            <span class="office-folder__tab">School year</span>
+            <button type="button" id="school-year-preview-modal-close" class="office-close" aria-label="Close preview">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+            <header class="office-dialog__header">
+                <p class="office-kicker">Before you finish the year</p>
+                <h3 class="office-dialog__title" id="school-year-preview-title">Readiness check</h3>
+            </header>
+            <div id="school-year-preview-modal-content" class="office-dialog__body custom-scrollbar"></div>
         </div>
     `;
     document.body.appendChild(modal);
     modal.addEventListener('click', (event) => {
         if (event.target === modal || event.target.closest('#school-year-preview-modal-close')) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            closeOfficeModal(modal);
         }
+    });
+    modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeOfficeModal(modal);
     });
     return modal;
 }
@@ -176,8 +166,7 @@ function showPreviewModal(contentHtml) {
     const modal = ensurePreviewModal();
     const content = document.getElementById('school-year-preview-modal-content');
     if (content) content.innerHTML = contentHtml;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    if (modal.classList.contains('hidden')) openOfficeModal(modal);
 }
 
 function renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample }) {
@@ -269,7 +258,7 @@ function renderPreparingMode({
                 </div>
             </section>
 
-            ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
+            ${renderYearSetupLaunchers()}
 
             ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
 
@@ -323,7 +312,7 @@ function renderBetweenYearsMode({
                 </div>
             </section>
 
-            ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
+            ${renderYearSetupLaunchers()}
 
             ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
 
@@ -392,7 +381,7 @@ function renderUnderwayMode({
                 </div>
             </section>
 
-            ${renderYearSetupLaunchers({ pendingCount: pendingStudents.length })}
+            ${renderYearSetupLaunchers()}
 
             ${renderOpeningDayCard({ openingDayPickerValue, openingDaySavedLabel, openingDayExample })}
 
@@ -417,7 +406,7 @@ function renderUnderwayMode({
                     <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}" ${closeReady ? '' : 'disabled'}>
                 </label>
                 <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn mt-4" ${closeReady ? '' : 'disabled'}>
-                    <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : `Available on ${escapeHtml(closeDateSavedLabel)}`}
+                    <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : (schoolYearState.closeDate ? `Available on ${escapeHtml(closeDateSavedLabel)}` : 'Set the last school day first')}
                 </button>
             </section>
         </div>

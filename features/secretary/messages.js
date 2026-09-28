@@ -1,5 +1,6 @@
 import * as state from '../../state.js';
-import { escapeHtml, formatFlexibleDate, renderTabHero, renderEmptyState } from '../roles/shared.js';
+import { escapeHtml, formatFlexibleDate, renderEmptyState } from '../roles/shared.js';
+import { renderOfficeSign } from './signs.js';
 import {
     getActiveThread,
     getThreadTypeMeta,
@@ -121,11 +122,11 @@ export function renderSecretaryMessages() {
     const messageView = state.get('secretaryView')?.messageView || 'inbox';
 
     return `
-        ${messageView === 'thread' ? '' : renderTabHero({
-            icon: 'fa-comments',
-            iconColor: 'text-purple-500',
+        ${messageView === 'thread' ? '' : renderOfficeSign({
+            variant: 'messages',
+            kicker: 'Letters from home',
             title: 'Messages',
-            subtitle: 'Read and reply to messages from parents and teachers.'
+            tagline: 'Read and reply to messages from parents and teachers.'
         })}
         ${messageView === 'thread' ? renderConversation() : renderInbox()}
     `;

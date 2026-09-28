@@ -1,5 +1,6 @@
 import * as state from '../../state.js';
-import { escapeHtml, renderTabHero, renderSubTabBar } from '../roles/shared.js';
+import { escapeHtml, renderSubTabBar } from '../roles/shared.js';
+import { renderOfficeSign } from './signs.js';
 import {
     filteredClasses,
     filteredStudents,
@@ -202,14 +203,14 @@ export function renderSecretarySchool() {
         : null;
 
     return `
-        ${renderTabHero({
-            icon: 'fa-school',
-            iconColor: 'text-green-600',
+        ${renderOfficeSign({
+            variant: 'school',
+            kicker: 'Classes · Students',
             title: 'School',
-            subtitle: selectedClass
-                ? `A live look at ${selectedClass.name} — every classroom ritual, read-only.`
+            tagline: selectedClass
+                ? `A live look at ${escapeHtml(selectedClass.name)}. Every classroom ritual, read-only.`
                 : (hasFullConsole
-                    ? 'Open a class to see how the Quest is going. Create and edit classes from Admin → School Year.'
+                    ? 'Open a class to see how the Quest is going. Enrol students and manage classes from Admin → Students &amp; Classes.'
                     : 'A clear, read-only view of every class and student in your school.')
         })}
         ${selectedClass ? '' : renderSubTabBar([
@@ -225,7 +226,12 @@ export function renderSecretarySchool() {
                             <p class="role-card__eyebrow">${subTab === 'classes' ? 'Class overview' : 'School roster'}</p>
                             <h3 class="role-card__title">${subTab === 'classes' ? 'All classes' : 'All students'}</h3>
                         </div>
-                        <div class="role-card__badge">${subTab === 'classes' ? classes.length : students.length} total</div>
+                        <div class="role-card__header-aside">
+                            <div class="role-card__badge">${subTab === 'classes' ? classes.length : students.length} total</div>
+                            <button type="button" class="office-btn office-btn--small office-btn--quiet" data-secretary-registry-link="${subTab === 'classes' ? 'classes' : 'students'}">
+                                <i class="fas fa-folder-open" aria-hidden="true"></i> Manage
+                            </button>
+                        </div>
                     </div>
                     <div data-secretary-school-panel="classes" class="${subTab === 'classes' ? '' : 'hidden'}">${renderClassesList()}</div>
                     <div data-secretary-school-panel="students" class="${subTab === 'students' ? '' : 'hidden'}">${renderStudentsList()}</div>

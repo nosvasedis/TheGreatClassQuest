@@ -42,7 +42,7 @@ function getDefaultState() {
             communicationStatus: "open",
             activeTab: "home",
             schoolSubTab: "classes",
-            adminSubTab: "year",
+            adminSubTab: "registry",
             messageView: "inbox",
             gradesPage: 0,
             gradesSearch: "",

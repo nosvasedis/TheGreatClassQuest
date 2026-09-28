@@ -66,10 +66,24 @@ test('Secretary Admin uses friendly labels and filled active navigation', () => 
     const year = read('features/schoolYearConsole.js');
     const css = read('styles/roles.css');
 
-    assert.match(admin, /Keep everything running smoothly/);
+    const office = read('styles/secretary_office.css');
+    assert.match(admin, /Students & Classes/);
     assert.match(admin, /View plan and billing/);
     assert.match(admin, /One class can be different/);
     assert.doesNotMatch(admin, /Admin control center|Secretary permissions|Manage plan in Stripe/);
     assert.doesNotMatch(year, /Index readiness|Manifest included|Preview Year Close|Finalize September Sync/);
-    assert.match(css, /\.secretary-admin-nav__item--emerald\.is-active\s*\{[\s\S]*?background:/);
+    assert.match(office, /\.office-tab\.is-active\s*\{[\s\S]*?background:/);
+});
+
+test('Every Secretary Office modal shares one open/close motion', () => {
+    const base = read('ui/modals/base.js');
+    const office = read('styles/secretary_office.css');
+    for (const file of ['features/studentWizard.js', 'features/classWizard.js', 'features/placementWizard.js', 'features/schoolYearConsole.js', 'features/secretary/formerStudents.js']) {
+        const src = read(file);
+        assert.match(src, /openOfficeModal\(/, `${file} opens with the office motion`);
+        assert.match(src, /closeOfficeModal\(/, `${file} closes with the office motion`);
+    }
+    assert.match(base, /isSecretaryOfficeActive\(\)/);
+    assert.match(office, /@keyframes office-file-out/);
+    assert.match(office, /@keyframes office-file-in/);
 });

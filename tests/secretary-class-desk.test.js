@@ -54,12 +54,11 @@ test('class desk Continue enables as soon as the class name is typed', () => {
 test('class desk wizard never dumps raw teacher ids or a native select', () => {
     const wizard = read('features/classWizard.js');
     const year = read('features/schoolYearConsole.js');
-    assert.match(year, /renderClassLauncher/);
+    const registry = read('features/secretary/registry.js');
     assert.match(year, /openClassWizard/);
     assert.match(year, /renderYearSetupLaunchers/);
-    assert.match(year, /school-year-setup-pair/);
-    assert.match(wizard, /This year's classes/);
-    assert.match(wizard, /Create and manage classes/);
+    assert.match(registry, /school-year-class-desk-open-btn/);
+    assert.match(registry, /Create and manage classes/);
     assert.doesNotMatch(wizard, /<select/);
     assert.doesNotMatch(wizard, /teacher\.uid \|\|/);
     assert.match(wizard, /questLeagues/);
@@ -122,27 +121,25 @@ test('createStudent stamps the class teacher, not the signed-in secretary', () =
     assert.match(students, /uid: state\.get\('currentUserId'\)/);
 });
 
-test('School Year student desk is the leftmost launcher and has no native select', () => {
+test('Students & Classes lists the desks in year order and the student desk has no native select', () => {
+    const registry = read('features/secretary/registry.js');
     const year = read('features/schoolYearConsole.js');
     const wizard = read('features/studentWizard.js');
-    const css = read('styles/roles.css');
-    const start = year.indexOf('function renderYearSetupLaunchers');
-    const end = year.indexOf('function friendlyYearStatus');
-    const launchers = year.slice(start, end);
-    const studentIndex = launchers.indexOf('renderStudentLauncher');
-    const classIndex = launchers.indexOf('renderClassLauncher');
-    const placementIndex = launchers.indexOf('renderPlacementLauncher');
-    assert.ok(studentIndex >= 0 && classIndex > studentIndex && placementIndex > classIndex);
+    const css = read('styles/secretary_office.css');
+    const studentIndex = registry.indexOf('school-year-student-desk-open-btn');
+    const placementIndex = registry.indexOf('school-year-placement-open-btn');
+    const classIndex = registry.indexOf('school-year-class-desk-open-btn');
+    assert.ok(studentIndex >= 0 && placementIndex > studentIndex && classIndex > placementIndex);
+    assert.match(registry, /Enrol a new student/);
+    assert.match(registry, /Former students/);
     assert.match(year, /openStudentWizard/);
     assert.match(year, /refreshStudentWizardIfOpen/);
     assert.match(wizard, /New student/);
     assert.match(wizard, /Add a new student/);
-    assert.match(wizard, /Open student desk/);
     assert.match(wizard, /createdBy: owner/);
     assert.match(wizard, /data-student-desk-open-class-desk/);
     assert.match(wizard, /class-desk-step/);
     assert.doesNotMatch(wizard, /<select/);
     assert.doesNotMatch(wizard, /currentUserId/);
-    assert.match(css, /\.school-year-setup-pair \{[\s\S]*?grid-template-columns: 1fr 1fr 1fr/);
-    assert.match(css, /\.student-desk-launcher/);
+    assert.match(css, /\.office-desks \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
 });

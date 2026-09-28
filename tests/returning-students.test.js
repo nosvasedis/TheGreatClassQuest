@@ -191,9 +191,9 @@ test('secretary September placement wizard never dumps guild IDs or a class sele
     assert.doesNotMatch(year, /school-year-student-check/);
     assert.doesNotMatch(year, /student\.guildId \|\| 'No guild yet'/);
     assert.doesNotMatch(year, /Name • League • Teacher|questLevel \|\| 'League'/);
-    assert.match(year, /renderPlacementLauncher/);
     assert.match(year, /openPlacementWizard/);
-    assert.match(year, /school-year-setup-pair/);
+    assert.match(year, /renderRegistryRollCall/);
+    assert.match(read('features/secretary/registry.js'), /school-year-placement-open-btn/);
 
     assert.match(wizard, /getGuildHouseDisplay/);
     assert.match(wizard, /getGuildBadgeHtml/);

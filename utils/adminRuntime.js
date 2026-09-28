@@ -97,6 +97,10 @@ export function markStudentLeftSchool(payload = {}) {
     return callAdmin('markStudentLeftSchool', payload);
 }
 
+export function restoreFormerStudent(payload = {}) {
+    return callAdmin('restoreFormerStudent', payload);
+}
+
 export function purgeStudent(payload = {}) {
     return callAdmin('purgeStudent', payload);
 }

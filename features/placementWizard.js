@@ -1,10 +1,12 @@
 import * as state from '../state.js';
+import { openOfficeModal, closeOfficeModal, releaseOfficeScrollLock } from './secretary/officeModal.js';
 import { getQuestLeagueDefinition } from '../constants.js';
 import { showToast } from '../ui/effects.js';
 import { getGuildBadgeHtml, getGuildHouseDisplay } from './guilds.js';
 import { escapeHtml, initials, setBusyState } from './roles/shared.js';
 import { avatarVariant } from './secretary/helpers.js';
-import { allocateReturningStudents, markStudentLeftSchool, finalizeRollover } from '../utils/adminRuntime.js';
+import { allocateReturningStudents, finalizeRollover } from '../utils/adminRuntime.js';
+import { openLeaveDialog } from './secretary/formerStudents.js';
 import {
     PLACEMENT_GROUP_MODES,
     buildRosterCounts,
@@ -37,7 +39,6 @@ const wizardState = {
     reviewStudentIds: [],
     selectedClassId: null,
     selectedGroupKey: null,
-    confirmLeftStudentId: null,
     listenersBound: false
 };
 
@@ -89,9 +90,6 @@ function pruneSelection() {
         if (!destination || destination.status === 'archived') {
             wizardState.selectedClassId = null;
         }
-    }
-    if (!stillWaiting.has(wizardState.confirmLeftStudentId)) {
-        wizardState.confirmLeftStudentId = null;
     }
 }
 
@@ -151,31 +149,6 @@ function renderSuggestedClassChip(student) {
     `;
 }
 
-export function renderPlacementLauncher({ pendingCount } = {}) {
-    const waiting = Number(pendingCount || 0);
-    const badge = waiting === 1 ? '1 waiting' : (waiting ? `${waiting} waiting` : 'All seated');
-    return `
-        <section class="secretary-card placement-launcher">
-            <div class="placement-launcher__glow" aria-hidden="true"></div>
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">Student placement</p>
-                    <h3 class="secretary-card__title">Place returning students</h3>
-                </div>
-                <div class="secretary-card__badge">${escapeHtml(badge)}</div>
-            </div>
-            <p class="text-sm text-slate-600 leading-relaxed">
-                ${waiting
-                    ? 'Seat last year’s heroes into this year’s classes. Group by previous class, league, or A–Z — then follow the suggestions.'
-                    : 'Everyone has a class this year. Open placement if a returning hero still needs a seat.'}
-            </p>
-            <button type="button" id="school-year-placement-open-btn" class="secretary-shell__primary-btn placement-launcher__cta">
-                <i class="fas fa-hat-wizard mr-2" aria-hidden="true"></i>${waiting ? 'Start placement' : 'Open placement'}
-            </button>
-        </section>
-    `;
-}
-
 function ensureWizard() {
     let modal = document.getElementById(WIZARD_ID);
     if (modal) return modal;
@@ -200,7 +173,6 @@ function ensureWizard() {
             </header>
             <div class="placement-wizard__body custom-scrollbar" id="placement-wizard-body"></div>
             <footer class="placement-wizard__footer" id="placement-wizard-footer"></footer>
-            <div class="placement-confirm hidden" id="placement-wizard-confirm" hidden></div>
         </div>
     `;
     document.body.appendChild(modal);
@@ -505,7 +477,7 @@ function renderReviewStudentCard(student) {
                     </div>
                 </div>
             </label>
-            <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-placement-left="${escapeHtml(student.id)}">Left school</button>
+            <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-placement-left="${escapeHtml(student.id)}">Leaves school</button>
         </article>
     `;
 }
@@ -605,27 +577,6 @@ function renderFooter() {
     return `<p class="placement-footer-hint">Tap a group to continue.</p>`;
 }
 
-function renderConfirmOverlay() {
-    const student = studentById(wizardState.confirmLeftStudentId);
-    if (!student) {
-        return { html: '', hidden: true };
-    }
-    return {
-        hidden: false,
-        html: `
-            <div class="placement-confirm__card">
-                <p class="placement-wizard__eyebrow">Left school</p>
-                <h4>Mark ${escapeHtml(student.name)} as left school?</h4>
-                <p>Turns off parent access now. Removes this student from the app after 30 days.</p>
-                <div class="placement-confirm__actions">
-                    <button type="button" class="secretary-shell__secondary-btn" data-placement-cancel-left>Keep waiting</button>
-                    <button type="button" class="secretary-shell__primary-btn placement-confirm__danger" data-placement-confirm-left="${escapeHtml(student.id)}">Mark left school</button>
-                </div>
-            </div>
-        `
-    };
-}
-
 function restoreSearchCaret(caret) {
     const input = document.getElementById('placement-wizard-search');
     if (!input || caret == null) return;
@@ -641,7 +592,6 @@ function paintWizard({ searchCaret } = {}) {
     const steps = document.getElementById('placement-wizard-steps');
     const body = document.getElementById('placement-wizard-body');
     const footer = document.getElementById('placement-wizard-footer');
-    const confirm = document.getElementById('placement-wizard-confirm');
     if (title) title.textContent = stepTitle();
     if (subtitle) subtitle.textContent = stepSubtitle();
     if (steps) {
@@ -650,13 +600,6 @@ function paintWizard({ searchCaret } = {}) {
     }
     if (body) body.innerHTML = renderBody();
     if (footer) footer.innerHTML = renderFooter();
-    if (confirm) {
-        const overlay = renderConfirmOverlay();
-        confirm.innerHTML = overlay.html;
-        confirm.classList.toggle('hidden', overlay.hidden);
-        confirm.hidden = overlay.hidden;
-    }
-    modal.classList.toggle('is-confirming', Boolean(wizardState.confirmLeftStudentId));
     restoreSearchCaret(searchCaret);
 }
 
@@ -668,7 +611,6 @@ function resetWizardState() {
     wizardState.reviewStudentIds = [];
     wizardState.selectedClassId = null;
     wizardState.selectedGroupKey = null;
-    wizardState.confirmLeftStudentId = null;
 }
 
 function preselectBestClass() {
@@ -703,23 +645,10 @@ async function handleWizardClick(event) {
         return;
     }
 
-    const cancelLeft = event.target.closest('[data-placement-cancel-left]');
-    if (cancelLeft) {
-        wizardState.confirmLeftStudentId = null;
-        paintWizard();
-        return;
-    }
-
-    const confirmLeft = event.target.closest('[data-placement-confirm-left]');
-    if (confirmLeft) {
-        await runMarkLeft(confirmLeft, confirmLeft.dataset.placementConfirmLeft);
-        return;
-    }
-
     const leftBtn = event.target.closest('[data-placement-left]');
     if (leftBtn) {
-        wizardState.confirmLeftStudentId = leftBtn.dataset.placementLeft;
-        paintWizard();
+        // The same leaving dialog as Admin → Students & Classes, opened on top of placement.
+        openLeaveDialog(leftBtn.dataset.placementLeft);
         return;
     }
 
@@ -833,12 +762,6 @@ function handleWizardInput(event) {
 
 function handleWizardKeydown(event) {
     if (event.key !== 'Escape') return;
-    if (wizardState.confirmLeftStudentId) {
-        wizardState.confirmLeftStudentId = null;
-        paintWizard();
-        event.stopPropagation();
-        return;
-    }
     if (wizardState.step === STEPS.GATHER || wizardState.step === STEPS.DONE) {
         closePlacementWizard();
     }
@@ -893,32 +816,6 @@ async function runSeat(button) {
     }
 }
 
-async function runMarkLeft(button, studentId) {
-    if (!studentId) return;
-    try {
-        setBusyState(button, true, 'Marking left...');
-        await markStudentLeftSchool({ studentId });
-        state.setAllStudents((state.get('allStudents') || []).map((student) => (
-            student.id === studentId
-                ? { ...student, enrollmentStatus: 'inactive', classId: null }
-                : student
-        )));
-        showToast('Student marked as left school. Parent access is turned off now. Their data is removed from the app after 30 days.', 'success');
-        wizardState.confirmLeftStudentId = null;
-        wizardState.selectedStudentIds = wizardState.selectedStudentIds.filter((id) => id !== studentId);
-        onPlacementRerender?.();
-        pruneSelection();
-        if (!pendingStudents().length) wizardState.step = STEPS.DONE;
-        if (wizardState.step === STEPS.DONE) await quietlyFinalizePlacement();
-        paintWizard();
-    } catch (error) {
-        console.error('Could not mark student left:', error);
-        showToast(error?.message || 'Could not update that student.', 'error');
-    } finally {
-        setBusyState(button, false);
-    }
-}
-
 export function openPlacementWizard({ onRerender } = {}) {
     if (typeof onRerender === 'function') onPlacementRerender = onRerender;
     if (!pendingStudents().length) {
@@ -928,15 +825,13 @@ export function openPlacementWizard({ onRerender } = {}) {
     resetWizardState();
     const modal = ensureWizard();
     paintWizard();
-    modal.classList.remove('hidden');
     document.body.classList.add('placement-wizard-open');
+    openOfficeModal(modal);
 }
 
 export function closePlacementWizard() {
     const modal = document.getElementById(WIZARD_ID);
-    if (modal) modal.classList.add('hidden');
-    document.body.classList.remove('placement-wizard-open');
-    wizardState.confirmLeftStudentId = null;
+    closeOfficeModal(modal, { onClosed: releaseOfficeScrollLock });
 }
 
 export function refreshPlacementWizardIfOpen() {

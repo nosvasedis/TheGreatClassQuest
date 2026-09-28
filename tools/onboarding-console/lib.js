@@ -213,6 +213,7 @@ const SECRETARY_RUNTIME_FUNCTION_NAMES = [
   'activateSecretaryAdmin',
   'updateSecretaryCredentials',
   'markStudentLeftSchool',
+  'restoreFormerStudent',
   'purgeLeftSchoolStudents',
   'closeSchoolYear',
   'openSchoolYear',

@@ -40,8 +40,30 @@ test('full screen is settled before anything is measured', () => {
 });
 
 test('foreground only fades and comes into focus, it never moves or resizes', () => {
-    const arrive = openBody.slice(openBody.indexOf('// 3.'), openBody.indexOf('await settle(animations)'));
+    const arrive = openBody.slice(openBody.indexOf('const arrive'), openBody.indexOf('await settle(arrive)'));
+    assert.ok(arrive.length > 0);
     assert.doesNotMatch(arrive, /transform|scale|translate/);
+});
+
+test('render state only changes while nothing moves', () => {
+    // The journey is created paused, the camera is mounted (and settled over still frames), and
+    // only then does anything play...
+    for (const body of [openBody, closeBody]) {
+        assert.ok(body.indexOf('pauseAll(animations)') < body.indexOf('await mountCamera('));
+        assert.ok(body.indexOf('await mountCamera(') < body.indexOf('playAll(animations)'));
+        assert.ok(body.indexOf('playAll(animations)') < body.indexOf('runCamera('));
+    }
+    // ...and released only after the journey has come to rest.
+    assert.ok(openBody.indexOf('await settle(animations)') < openBody.indexOf('releaseCamera(wallEl)'));
+    assert.doesNotMatch(portal.slice(portal.indexOf('function runCamera'), portal.indexOf('function cardWords')), /releaseCamera|classList/);
+    // The clip never switches off mid-journey.
+    assert.doesNotMatch(portal.slice(portal.indexOf('function placeCamera'), portal.indexOf('async function mountCamera')), /'none'/);
+});
+
+test("the card's words step aside so the camera swaps in an exact copy of its picture", () => {
+    assert.match(portal, /function cardWords\(card\)/);
+    assert.match(portal, /getAnimations\?\.\(\)\[0\]/);
+    assert.match(css, /\.wp-cardsky::before/);
 });
 
 test("holds never overwrite the foreground's inline opacity (the quote sets its own)", () => {
@@ -54,7 +76,7 @@ test('the zoom is driven frame by frame, never as an animated clip-path', () => 
     assert.match(portal, /requestAnimationFrame\(tick\)/);
     // Web Animations keyframes never carry a clip-path (browsers may run those on the GPU, where they flicker).
     assert.doesNotMatch(portal, /animate\([^;]*clipPath/s);
-    assert.match(css, /\.is-zooming :is\(#wall-center-hub/);
+    assert.match(css, /\.is-journeying :is\(#wall-center-hub/);
 });
 
 test('Esc from full screen closes the projector smoothly instead of half-closing it', () => {

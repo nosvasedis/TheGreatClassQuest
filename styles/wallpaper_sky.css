@@ -995,9 +995,23 @@
 .wall-horizon.is-travelling > .wall-horizon__near { visibility: hidden; }
 .wall-horizon__castle { will-change: transform; }
 
-/* While the camera zooms into or out of the greeting card, the glass panels (all invisible at
-   that moment) are taken out of rendering: backdrop blur under a moving clip flickers. */
-#dynamic-wallpaper-screen.is-zooming :is(#wall-center-hub, #wall-remote, #wall-quote-container,
-    #wall-floating-area, #wall-timer-overlay, #wall-deck-panel, #wall-weather-fx) {
+/* For the whole journey the glass panels (all invisible then) are out of rendering, and the fog
+   keeps its haze without its backdrop blur: backdrop blur under the moving camera window flickers,
+   and switching it on or off mid-motion stutters. They return once everything is still. */
+#dynamic-wallpaper-screen.is-journeying :is(#wall-center-hub, #wall-remote, #wall-quote-container,
+    #wall-floating-area, #wall-timer-overlay, #wall-deck-panel) {
     visibility: hidden;
+}
+#dynamic-wallpaper-screen.is-journeying .wall-fog-layer {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* The card's glass sheen, as on the Home card itself. */
+.wp-cardsky::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, transparent 50%);
+    pointer-events: none;
 }

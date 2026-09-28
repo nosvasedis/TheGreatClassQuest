@@ -868,11 +868,30 @@ function _wedgePath(ctx, radius, startAngle, endAngle) {
     ctx.closePath();
 }
 
-function _brassDot(ctx, x, y, r) {
+/** Four-point gilt star (the rim inlay), rotated to face outward. */
+function _giltStar(ctx, x, y, r, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+        const rr = k % 2 === 0 ? r : r * 0.32;
+        const a = (k * Math.PI) / 4;
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#fbe7a6';
+    ctx.shadowColor = 'rgba(251, 231, 166, 0.8)';
+    ctx.shadowBlur = r * 1.2;
+    ctx.fill();
+    ctx.restore();
+}
+
+function _giltDot(ctx, x, y, r) {
     const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
-    g.addColorStop(0, '#fffbea');
-    g.addColorStop(0.45, '#f7d98b');
-    g.addColorStop(1, '#8a5a1c');
+    g.addColorStop(0, '#fffdf2');
+    g.addColorStop(0.45, '#fbe7a6');
+    g.addColorStop(1, '#9a7128');
     ctx.beginPath();
     ctx.arc(x, y, r, 0, TAU);
     ctx.fillStyle = g;
@@ -880,11 +899,11 @@ function _brassDot(ctx, x, y, r) {
 }
 
 /**
- * Render the full static wheel (rim, wedges, pegs, text, brass hub, sheen)
+ * Render the full static wheel (rim, wedges, pegs, text, gilt hub, sheen)
  * centered at the CURRENT origin. Caller must translate to (center, center) first.
- * Styled as a carnival fortune wheel: lacquered wood rim with brass bands and
- * rivets, jewel-toned rarity wedges split by brass spokes, and peg studs that
- * the pointer ticks against.
+ * Styled as a celestial wheel of fate: midnight enamel rim with gilt bands and
+ * inlaid stars, jewel-toned rarity wedges split by gilt spokes, and peg studs
+ * that the pointer ticks against.
  */
 function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     const radius = _wheelRadius(size);
@@ -900,30 +919,30 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     ctx.shadowOffsetY = size * 0.012;
     ctx.beginPath();
     ctx.arc(0, 0, radius + rimWidth, 0, TAU);
-    ctx.fillStyle = '#2a170c';
+    ctx.fillStyle = '#07051a';
     ctx.fill();
     ctx.restore();
 
-    // Lacquered wood rim
+    // Midnight enamel rim
     ctx.beginPath();
     ctx.arc(0, 0, rimMid, 0, TAU);
-    const woodGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    woodGrad.addColorStop(0, '#a06a3c');
-    woodGrad.addColorStop(0.3, '#7a4a28');
-    woodGrad.addColorStop(0.55, '#57331c');
-    woodGrad.addColorStop(0.8, '#3d2313');
-    woodGrad.addColorStop(1, '#7a4a28');
-    ctx.strokeStyle = woodGrad;
+    const enamelGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    enamelGrad.addColorStop(0, '#3b2d8a');
+    enamelGrad.addColorStop(0.3, '#271d63');
+    enamelGrad.addColorStop(0.55, '#1b1449');
+    enamelGrad.addColorStop(0.8, '#0f0b2e');
+    enamelGrad.addColorStop(1, '#271d63');
+    ctx.strokeStyle = enamelGrad;
     ctx.lineWidth = rimWidth;
     ctx.stroke();
 
-    // Brass bands on both edges of the rim
-    const brassGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    brassGrad.addColorStop(0, '#fff3c4');
-    brassGrad.addColorStop(0.35, '#d9a84e');
-    brassGrad.addColorStop(0.65, '#8a5a1c');
-    brassGrad.addColorStop(1, '#f7d98b');
-    ctx.strokeStyle = brassGrad;
+    // Gilt bands on both edges of the rim
+    const giltGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    giltGrad.addColorStop(0, '#fffdf2');
+    giltGrad.addColorStop(0.35, '#e8c46a');
+    giltGrad.addColorStop(0.65, '#9a7128');
+    giltGrad.addColorStop(1, '#fbe7a6');
+    ctx.strokeStyle = giltGrad;
     ctx.lineWidth = Math.max(2, size * 0.008);
     ctx.beginPath();
     ctx.arc(0, 0, radius + rimWidth - ctx.lineWidth / 2, 0, TAU);
@@ -933,12 +952,12 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     ctx.arc(0, 0, radius + ctx.lineWidth / 2, 0, TAU);
     ctx.stroke();
 
-    // Rivets around the rim
-    const rivetCount = segCount * 2;
-    const rivetR = Math.max(1.5, size * 0.0065);
-    for (let i = 0; i < rivetCount; i++) {
-        const a = (i + 0.5) * (TAU / rivetCount);
-        _brassDot(ctx, Math.cos(a) * rimMid, Math.sin(a) * rimMid, rivetR);
+    // Gilt stars set into the rim
+    const starCount = segCount * 2;
+    const starR = Math.max(2.5, size * 0.011);
+    for (let i = 0; i < starCount; i++) {
+        const a = (i + 0.5) * (TAU / starCount);
+        _giltStar(ctx, Math.cos(a) * rimMid, Math.sin(a) * rimMid, i % 2 ? starR * 0.65 : starR, a);
     }
 
     // Wheel face backing
@@ -977,7 +996,7 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
             }
         } else {
             const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
-            gradient.addColorStop(0, _mixHex(rarityConf.bg, '#000000', 0.45));
+            gradient.addColorStop(0, _mixHex(rarityConf.bg, '#07051a', 0.45));
             gradient.addColorStop(0.5, rarityConf.bg);
             gradient.addColorStop(0.88, _mixHex(rarityConf.bg, rarityConf.color, 0.55));
             gradient.addColorStop(1, _mixHex(rarityConf.bg, rarityConf.color, 0.8));
@@ -1050,11 +1069,11 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
         ctx.restore();
     }
 
-    // Brass spokes between wedges
+    // Gilt spokes between wedges
     const spokeGrad = ctx.createRadialGradient(0, 0, radius * 0.25, 0, 0, radius);
-    spokeGrad.addColorStop(0, 'rgba(138, 90, 28, 0.9)');
-    spokeGrad.addColorStop(0.6, 'rgba(247, 217, 139, 0.95)');
-    spokeGrad.addColorStop(1, 'rgba(217, 168, 78, 1)');
+    spokeGrad.addColorStop(0, 'rgba(154, 113, 40, 0.9)');
+    spokeGrad.addColorStop(0.6, 'rgba(251, 231, 166, 0.95)');
+    spokeGrad.addColorStop(1, 'rgba(232, 196, 106, 1)');
     ctx.strokeStyle = spokeGrad;
     ctx.lineWidth = Math.max(1.5, size / 230);
     ctx.lineCap = 'round';
@@ -1070,7 +1089,7 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     const pegRadius = Math.max(2.5, size * 0.011);
     for (let i = 0; i < segCount; i++) {
         const a = i * segAngle;
-        _brassDot(ctx, Math.cos(a) * bezelRadius, Math.sin(a) * bezelRadius, pegRadius);
+        _giltDot(ctx, Math.cos(a) * bezelRadius, Math.sin(a) * bezelRadius, pegRadius);
     }
 
     // Lamp-light sheen from the upper left, dusk on the lower right
@@ -1083,7 +1102,7 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     ctx.fillStyle = sheen;
     ctx.fill();
 
-    // Brass hub (the guild emblem orb sits on top of it in the DOM)
+    // Gilt hub (the guild emblem orb sits on top of it in the DOM)
     const innerRadius = radius * 0.27;
     const primary = guildDef?.primary || '#7c3aed';
 
@@ -1093,17 +1112,17 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     ctx.beginPath();
     ctx.arc(0, 0, innerRadius, 0, TAU);
     const hubGrad = ctx.createRadialGradient(-innerRadius * 0.35, -innerRadius * 0.4, innerRadius * 0.1, 0, 0, innerRadius);
-    hubGrad.addColorStop(0, '#fffbea');
-    hubGrad.addColorStop(0.35, '#f7d98b');
-    hubGrad.addColorStop(0.75, '#d9a84e');
-    hubGrad.addColorStop(1, '#8a5a1c');
+    hubGrad.addColorStop(0, '#fffdf2');
+    hubGrad.addColorStop(0.35, '#fbe7a6');
+    hubGrad.addColorStop(0.75, '#e8c46a');
+    hubGrad.addColorStop(1, '#9a7128');
     ctx.fillStyle = hubGrad;
     ctx.fill();
     ctx.restore();
 
     ctx.beginPath();
     ctx.arc(0, 0, innerRadius, 0, TAU);
-    ctx.strokeStyle = '#5a3a14';
+    ctx.strokeStyle = '#5c4216';
     ctx.lineWidth = Math.max(1.5, size * 0.004);
     ctx.stroke();
 
@@ -1118,7 +1137,7 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
     const hubRivets = 10;
     for (let i = 0; i < hubRivets; i++) {
         const a = (i / hubRivets) * TAU;
-        _brassDot(ctx, Math.cos(a) * innerRadius * 0.95, Math.sin(a) * innerRadius * 0.95, Math.max(1.2, size * 0.0045));
+        _giltDot(ctx, Math.cos(a) * innerRadius * 0.95, Math.sin(a) * innerRadius * 0.95, Math.max(1.2, size * 0.0045));
     }
 
     // Dark well behind the emblem orb
@@ -1789,7 +1808,7 @@ function _renderCurrentGuildMembers() {
         }).join('')
         : '<div class="fw-guild-members__empty">No students from this guild are in the selected class.</div>';
 
-    panel.style.setProperty('--guild-primary', guildDef?.primary || '#d9a84e');
+    panel.style.setProperty('--guild-primary', guildDef?.primary || '#e8c46a');
     panel.innerHTML = `
         <div class="fw-guild-members__header">${guildDef?.name || 'Active Guild'} Members<span class="fw-guild-members__count">${students.length}</span></div>
         <div class="fw-guild-members__list">${rosterHtml}</div>`;
@@ -1923,7 +1942,7 @@ function _setCardPhase(phase) {
 
 let _lastPointerFlick = 0;
 
-/** Flick the brass pointer as a peg passes under it (visual only). */
+/** Flick the gilt pointer as a peg passes under it (visual only). */
 function _flickPointer() {
     const pointer = document.querySelector('#fortunes-wheel-modal .fw-pointer-bright');
     if (!pointer || typeof pointer.animate !== 'function') return;
@@ -1976,7 +1995,7 @@ function _renderWheelPhase() {
     const headerEl = document.getElementById('fw-guild-header');
     if (headerEl) {
         headerEl.innerHTML = `
-            <div class="fw-guild-banner" style="--guild-primary:${guildDef?.primary || '#d9a84e'};--guild-secondary:${guildDef?.secondary || '#8a5a1c'};">
+            <div class="fw-guild-banner" style="--guild-primary:${guildDef?.primary || '#e8c46a'};--guild-secondary:${guildDef?.secondary || '#9a7128'};">
                 <div class="fw-guild-banner__crest">
                     ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || guildId}" class="fw-guild-banner__crest-image">` : `<span class="fw-guild-banner__crest-fallback">${guildNum}</span>`}
                 </div>
@@ -2000,7 +2019,7 @@ function _renderWheelPhase() {
         stageFrame.classList.remove('is-locked');
         stageFrame.classList.remove('is-spinning');
         delete stageFrame.dataset.lock;
-        stageFrame.style.setProperty('--guild-primary', guildDef?.primary || '#d9a84e');
+        stageFrame.style.setProperty('--guild-primary', guildDef?.primary || '#e8c46a');
         stageFrame.style.setProperty('--guild-glow', guildDef?.glow || guildDef?.primary || '#fbbf24');
     }
 
@@ -2345,7 +2364,7 @@ function _renderWheelSummary() {
                     : '',
             ].join('');
             return `
-                <div class="fw-summary-item" data-rarity="${r.rarity}" style="--guild-primary:${guildDef?.primary || '#8a5a1c'};--rarity-color:${rarityConf.color};--rarity-bg:${rarityConf.bg};animation-delay:${(0.08 + index * 0.1).toFixed(2)}s">
+                <div class="fw-summary-item" data-rarity="${r.rarity}" style="--guild-primary:${guildDef?.primary || '#9a7128'};--rarity-color:${rarityConf.color};--rarity-bg:${rarityConf.bg};animation-delay:${(0.08 + index * 0.1).toFixed(2)}s">
                     <div class="fw-summary-guild">
                         ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-emblem">` : ''}
                         <span>${guildDef?.name || r.guildId}</span>

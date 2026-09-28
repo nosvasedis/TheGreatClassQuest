@@ -1,10 +1,18 @@
 // templates/modals/fortunesWheel.js — Fortune's Wheel modal template
-// A fortune-teller's tent: velvet drapes, a hanging carved sign, a carnival
-// wheel ringed by marquee bulbs, and a wooden desk for the ceremony controls.
+// The celestial Wheel of Fate: a night sky with a turning zodiac ring, a gilded
+// star crest for the title, an enamelled wheel framed by star lamps and zodiac
+// signs, and a tarot-framed oracle panel for the ceremony controls.
 
-const MARQUEE_BULBS = Array.from({ length: 24 }, (_, i) =>
-    `<span class="fw-marquee__bulb" style="--i:${i}"><i></i></span>`
+// Zodiac glyphs with U+FE0E so they render as gilt text, never as emoji tiles
+const ZODIAC = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map(z => `${z}\uFE0E`);
+
+// 24 lamps around the wheel: even positions are stars, odd positions zodiac signs
+const MARQUEE_BULBS = Array.from({ length: 24 }, (_, i) => (i % 2
+    ? `<span class="fw-marquee__bulb" style="--i:${i}" data-z><i data-z="${ZODIAC[(i - 1) / 2]}"></i></span>`
+    : `<span class="fw-marquee__bulb" style="--i:${i}"><i></i></span>`)
 ).join('');
+
+const ZODIAC_RING = ZODIAC.map((z, i) => `<span style="--i:${i}" data-z="${z}"></span>`).join('');
 
 export const fortunesWheelModalHTML = `
     <div id="fortunes-wheel-modal"
@@ -40,9 +48,7 @@ export const fortunesWheelModalHTML = `
                 <div class="fw-atmosphere__halo"></div>
                 <div class="fw-atmosphere__stars"></div>
                 <div class="fw-atmosphere__veil"></div>
-                <div class="fw-atmosphere__drape fw-atmosphere__drape--l"></div>
-                <div class="fw-atmosphere__drape fw-atmosphere__drape--r"></div>
-                <div class="fw-atmosphere__valance"></div>
+                <div class="fw-atmosphere__zodiac">${ZODIAC_RING}</div>
                 <div class="fw-atmosphere__sparks">
                     <span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
@@ -50,15 +56,11 @@ export const fortunesWheelModalHTML = `
 
             <div class="fw-content-unified">
                 <header class="fw-header-floating">
-                    <div class="fw-sign">
-                        <span class="fw-sign__chain fw-sign__chain--l"></span>
-                        <span class="fw-sign__chain fw-sign__chain--r"></span>
-                        <div class="fw-sign__board">
-                            <span class="fw-sign__gem fw-sign__gem--l"></span>
-                            <span class="fw-sign__gem fw-sign__gem--r"></span>
-                            <div class="fw-kicker"><i class="fa-solid fa-star"></i> Fortune Relic <i class="fa-solid fa-star"></i></div>
-                            <h2 id="fortunes-wheel-title" class="fw-title font-title">Fortune's Wheel</h2>
-                        </div>
+                    <div class="fw-crest">
+                        <span class="fw-crest__moon" aria-hidden="true"></span>
+                        <div class="fw-kicker"><i class="fa-solid fa-star"></i> Fortune Relic <i class="fa-solid fa-star"></i></div>
+                        <h2 id="fortunes-wheel-title" class="fw-title font-title">Fortune's Wheel</h2>
+                        <span class="fw-crest__flourish" aria-hidden="true"></span>
                     </div>
                 </header>
 

@@ -1,36 +1,41 @@
 /* ==========================================================================
-   Fortune's Wheel — the fortune-teller's tent
-   Velvet drapes and a scalloped valance · a carved sign on brass chains ·
-   a carnival wheel ringed by marquee bulbs with a brass flapper pointer ·
-   a wooden desk for the ceremony controls · parchment fortunes and ledger.
-   Shares the wood-and-brass palette of the Mystic Market (mystic_market.css).
+   Fortune's Wheel — the celestial Wheel of Fate
+   A night sky with a slow zodiac ring · a gilded star crest for the title ·
+   an enamelled wheel of fate framed by star lamps, with a gilt pointer ·
+   tarot-card panels with double gold filigree borders · fortune cards for
+   reveals and a spread of four cards for the final ledger.
+   Its own look — midnight enamel, gilt and starlight — not the Market's
+   wood and brass.
    ========================================================================== */
 
 #fortunes-wheel-modal {
-    --fw-wood-900: #2a170c;
-    --fw-wood-800: #3d2313;
-    --fw-wood-700: #57331c;
-    --fw-wood-600: #7a4a28;
-    --fw-wood-500: #a06a3c;
-    --fw-brass: #d9a84e;
-    --fw-brass-light: #f7d98b;
-    --fw-brass-dark: #8a5a1c;
-    --fw-parchment: #f8ecd0;
-    --fw-parchment-dark: #e6d2a6;
-    --fw-ink: #3b2716;
-    --fw-velvet: #1c1640;
-    --fw-velvet-2: #2a2156;
-    --fw-velvet-3: #3b2d78;
-    --fw-velvet-deep: #0f0b24;
-    --fw-grain: repeating-linear-gradient(
-        92deg,
-        rgba(255, 255, 255, 0.035) 0 2px,
-        transparent 2px 9px,
-        rgba(0, 0, 0, 0.06) 9px 10px,
-        transparent 10px 17px
-    );
-    --fw-brass-grad: linear-gradient(180deg, var(--fw-brass-light) 0%, var(--fw-brass) 50%, #b9832f 100%);
-    --fw-wood-grad: linear-gradient(180deg, var(--fw-wood-600) 0%, var(--fw-wood-700) 55%, var(--fw-wood-800) 100%);
+    --fw-night-950: #07051a;
+    --fw-night-800: #120d33;
+    --fw-night-700: #1b1449;
+    --fw-night-600: #271d63;
+    --fw-night-500: #b3a8ea;
+    --fw-gold: #e8c46a;
+    --fw-gold-light: #fbe7a6;
+    --fw-gold-dark: #9a7128;
+    --fw-moon: #f4efff;
+    --fw-moon-dim: #c9bff0;
+    --fw-ink: #1b1449;
+    --fw-velvet: #16103d;
+    --fw-velvet-2: #221a58;
+    --fw-velvet-3: #33287c;
+    --fw-velvet-deep: #0b0824;
+    --fw-stardust:
+        radial-gradient(1px 1px at 18% 24%, rgba(244, 239, 255, 0.55), transparent 60%),
+        radial-gradient(1px 1px at 64% 12%, rgba(244, 239, 255, 0.45), transparent 60%),
+        radial-gradient(1px 1px at 82% 66%, rgba(251, 231, 166, 0.5), transparent 60%),
+        radial-gradient(1px 1px at 36% 78%, rgba(244, 239, 255, 0.4), transparent 60%);
+    --fw-gold-grad: linear-gradient(180deg, var(--fw-gold-light) 0%, var(--fw-gold) 50%, #c49a3c 100%);
+    --fw-night-grad: linear-gradient(180deg, #231a5c 0%, #150f3a 60%, #0d0928 100%);
+    /* Tarot frame: outer gold line, dark gap, inner gold hairline */
+    --fw-tarot-frame:
+        0 0 0 1px rgba(232, 196, 106, 0.9),
+        inset 0 0 0 4px var(--fw-night-800),
+        inset 0 0 0 5px rgba(232, 196, 106, 0.55);
 }
 
 /* ── Backdrop + card enter/exit (driven by ui/modals/base.js) ─────────── */
@@ -95,7 +100,7 @@
     width: 100%;
     height: 100dvh;
     overflow: hidden;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
     font-family: 'Fredoka', 'Fredoka One', system-ui, sans-serif;
     background:
         radial-gradient(ellipse 55% 42% at 50% 40%, rgba(251, 191, 36, 0.13), transparent 70%),
@@ -142,7 +147,7 @@
     }
 }
 
-/* ── Atmosphere: stars, drapes, valance, drifting sparks ──────────────── */
+/* ── Atmosphere: stars, zodiac ring, drifting sparks ──────────────── */
 
 .fw-atmosphere,
 .fw-atmosphere__halo,
@@ -183,66 +188,50 @@
     background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(5, 3, 14, 0.55) 100%);
 }
 
-.fw-atmosphere__drape {
+
+
+
+
+
+
+
+
+
+
+/* Great zodiac ring turning slowly behind everything */
+.fw-atmosphere__zodiac {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: clamp(18px, 5.5vw, 96px);
-    background:
-        repeating-linear-gradient(90deg,
-            rgba(0, 0, 0, 0.32) 0 3px,
-            transparent 3px 16px,
-            rgba(255, 255, 255, 0.07) 16px 19px,
-            transparent 19px 30px),
-        linear-gradient(180deg, #4c1d95 0%, #3b0f6b 45%, #2a0b52 100%);
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+    top: 50%;
+    left: 50%;
+    width: max(120vmin, 900px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid rgba(232, 196, 106, 0.16);
+    box-shadow: inset 0 0 0 56px rgba(232, 196, 106, 0.025), inset 0 0 0 57px rgba(232, 196, 106, 0.12);
+    animation: fw-zodiac-turn 240s linear infinite;
 }
 
-.fw-atmosphere__drape--l {
-    left: 0;
-    border-right: 3px solid var(--fw-brass-dark);
-    border-bottom-right-radius: 60% 18%;
-}
-
-.fw-atmosphere__drape--r {
-    right: 0;
-    border-left: 3px solid var(--fw-brass-dark);
-    border-bottom-left-radius: 60% 18%;
-}
-
-/* Brass tie-backs */
-.fw-atmosphere__drape::after {
-    content: '';
+.fw-atmosphere__zodiac span {
     position: absolute;
-    top: 62%;
-    left: -6px;
-    right: -6px;
-    height: 12px;
-    border-radius: 6px;
-    background: var(--fw-brass-grad);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+    inset: 0;
+    transform: rotate(calc(var(--i) * 30deg + 15deg));
 }
 
-.fw-atmosphere__valance {
+.fw-atmosphere__zodiac span::before {
+    content: attr(data-z);
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 30px;
-    background:
-        radial-gradient(circle at 50% 0, #4c1d95 0 68%, transparent 70%) 0 0 / 46px 30px repeat-x;
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', serif;
+    font-size: 28px;
+    color: rgba(251, 231, 166, 0.2);
 }
 
-/* Gold fringe along the valance */
-.fw-atmosphere__valance::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: var(--fw-brass-grad);
+@keyframes fw-zodiac-turn {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 .fw-atmosphere__sparks span {
@@ -314,7 +303,7 @@
     min-width: 0;
 }
 
-/* ── Hanging sign ──────────────────────────────────────────────────────── */
+/* ── Star crest title ──────────────────────────────────────────────────────── */
 
 .fw-header-floating {
     display: flex;
@@ -322,79 +311,86 @@
     flex-shrink: 0;
 }
 
-.fw-sign {
-    position: relative;
-    padding-top: 1rem;
-    transform-origin: 50% 0;
-    animation: fw-sign-sway 7s ease-in-out infinite;
-}
-
-@keyframes fw-sign-sway {
-    0%, 100% { transform: rotate(-0.8deg); }
-    50% { transform: rotate(0.8deg); }
-}
-
-.fw-sign__chain {
-    position: absolute;
-    top: -1.6rem;
-    width: 4px;
-    height: 2.8rem;
-    border-radius: 2px;
-    background: repeating-linear-gradient(180deg, var(--fw-brass-light) 0 4px, var(--fw-brass-dark) 4px 6px);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-.fw-sign__chain--l { left: 20%; }
-.fw-sign__chain--r { right: 20%; }
-
-.fw-sign__board {
+.fw-crest {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.1rem;
-    padding: 0.45rem clamp(1.8rem, 5vw, 3.2rem) 0.55rem;
-    border-radius: 1rem;
-    background: var(--fw-grain), var(--fw-wood-grad);
-    border: 3px solid var(--fw-brass);
-    box-shadow:
-        0 0 0 2px var(--fw-wood-900),
-        inset 0 0 0 2px rgba(0, 0, 0, 0.25),
-        inset 0 2px 0 rgba(255, 255, 255, 0.18),
-        0 14px 28px rgba(0, 0, 0, 0.45),
-        0 0 40px rgba(251, 191, 36, 0.12);
+    padding: 0.2rem 3.2rem 0;
 }
 
-.fw-sign__gem {
+/* Crescent moon cradling the title */
+.fw-crest__moon {
     position: absolute;
-    top: 50%;
-    width: 12px;
-    height: 12px;
-    margin-top: -6px;
-    rotate: 45deg;
-    border-radius: 3px;
-    background: linear-gradient(145deg, #f5d0fe 0%, #c026d3 50%, #701a75 100%);
-    box-shadow: 0 0 10px rgba(217, 70, 239, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.7);
+    top: -1.15rem;
+    left: 50%;
+    width: 2.1rem;
+    height: 2.1rem;
+    margin-left: -1.05rem;
+    border-radius: 50%;
+    box-shadow: inset -0.42rem -0.18rem 0 0 var(--fw-gold-light);
+    transform: rotate(-35deg);
+    filter: drop-shadow(0 0 8px rgba(251, 231, 166, 0.6));
+    opacity: 0.9;
 }
 
-.fw-sign__gem--l { left: 0.75rem; }
-.fw-sign__gem--r { right: 0.75rem; }
+/* Filigree rule under the title with a four-point star at its heart */
+.fw-crest__flourish {
+    position: relative;
+    display: block;
+    width: min(360px, 90%);
+    height: 14px;
+    margin-top: 0.2rem;
+    background:
+        linear-gradient(90deg, transparent, var(--fw-gold) 18%, var(--fw-gold-light) 42%, transparent 46%, transparent 54%, var(--fw-gold-light) 58%, var(--fw-gold) 82%, transparent) center / 100% 1.5px no-repeat;
+}
+
+.fw-crest__flourish::before {
+    content: '\2726';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -52%);
+    font-size: 15px;
+    line-height: 1;
+    color: var(--fw-gold-light);
+    text-shadow: 0 0 10px rgba(251, 231, 166, 0.9);
+    animation: fw-kicker-sparkle 3s ease-in-out infinite;
+}
+
+.fw-crest__flourish::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle, var(--fw-gold-light) 0 2px, transparent 2.5px) 22% 50% / 6px 6px no-repeat,
+        radial-gradient(circle, var(--fw-gold-light) 0 2px, transparent 2.5px) 78% 50% / 6px 6px no-repeat;
+}
+
+
+
+
+
+
+
+
+
 
 .fw-kicker {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--fw-parchment-dark);
+    margin-top: 1.1rem;
+    color: var(--fw-moon-dim);
     font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.34em;
     text-transform: uppercase;
-    opacity: 0.85;
 }
 
 .fw-kicker i {
     font-size: 0.5rem;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
     animation: fw-kicker-sparkle 3s ease-in-out infinite;
 }
 
@@ -406,37 +402,37 @@
 }
 
 .fw-title {
-    margin: 0;
-    font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+    margin: 0.05rem 0 0;
+    font-size: clamp(1.9rem, 3.8vw, 2.9rem);
     line-height: 1.05;
-    letter-spacing: 0.01em;
-    background: linear-gradient(180deg, #fffbea 0%, #fde68a 38%, #f5b93a 62%, #c98516 100%);
+    letter-spacing: 0.02em;
+    background: linear-gradient(180deg, #fffdf2 0%, var(--fw-gold-light) 40%, var(--fw-gold) 65%, #b8872f 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 0 var(--fw-wood-900)) drop-shadow(0 0 14px rgba(251, 191, 36, 0.35));
+    filter: drop-shadow(0 2px 0 rgba(7, 5, 26, 0.9)) drop-shadow(0 0 18px rgba(232, 196, 106, 0.4));
 }
 
-/* ── Close button: brass stud ──────────────────────────────────────────── */
+/* ── Close button: gilt-rimmed night stud ──────────────────────────────────────────── */
 
 .fw-btn--close {
     position: absolute;
     top: 1.1rem;
-    right: clamp(1.4rem, 6.5vw, 7rem);
+    right: clamp(1rem, 4vw, 3rem);
     width: 2.6rem;
     height: 2.6rem;
     border-radius: 999px;
-    border: 2px solid var(--fw-brass-dark);
-    background: radial-gradient(circle at 35% 30%, #fff3c4, var(--fw-brass) 55%, var(--fw-brass-dark));
-    color: var(--fw-wood-900);
+    border: 1.5px solid var(--fw-gold);
+    background: radial-gradient(circle at 35% 30%, var(--fw-night-600), var(--fw-night-800));
+    color: var(--fw-gold-light);
     font-size: 1.05rem;
     display: grid;
     place-items: center;
     z-index: 11;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    transition: transform 180ms ease, filter 180ms ease;
+    box-shadow: 0 0 0 3px rgba(7, 5, 26, 0.8), 0 0 0 4px rgba(232, 196, 106, 0.35), 0 6px 14px rgba(0, 0, 0, 0.5);
+    transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
 .fw-btn--close:hover {
@@ -445,7 +441,7 @@
 }
 
 .fw-btn--close:focus-visible {
-    outline: 3px solid var(--fw-parchment);
+    outline: 3px solid var(--fw-moon);
     outline-offset: 3px;
 }
 
@@ -469,14 +465,14 @@
 
 .fw-guild-header-pill {
     min-width: 0;
-    padding: 0.55rem 0.8rem;
+    padding: 0.6rem 0.9rem;
     border-radius: 0.9rem;
-    background: var(--fw-grain), var(--fw-wood-grad);
-    border: 2px solid var(--fw-brass);
+    background: var(--fw-stardust), var(--fw-night-grad);
+    border: 0;
     box-shadow:
-        0 0 0 2px var(--fw-wood-900),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16),
-        0 10px 22px rgba(0, 0, 0, 0.4);
+        var(--fw-tarot-frame),
+        0 0 0 3px rgba(7, 5, 26, 0.85),
+        0 18px 40px rgba(0, 0, 0, 0.45);
 }
 
 .fw-guild-banner {
@@ -496,9 +492,9 @@
     place-items: center;
     overflow: hidden;
     background: radial-gradient(circle, color-mix(in srgb, var(--guild-primary) 55%, #000), var(--fw-velvet-deep));
-    border: 3px solid var(--fw-brass);
+    border: 3px solid var(--fw-gold);
     box-shadow:
-        0 0 0 2px var(--fw-wood-900),
+        0 0 0 2px var(--fw-night-950),
         0 0 16px color-mix(in srgb, var(--guild-primary) 55%, transparent);
 }
 
@@ -511,7 +507,7 @@
 .fw-guild-banner__crest-fallback {
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
 }
 
 .fw-guild-banner__copy {
@@ -520,7 +516,7 @@
 }
 
 .fw-guild-banner__eyebrow {
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -535,8 +531,8 @@
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.3rem;
     line-height: 1.1;
-    color: var(--fw-parchment);
-    text-shadow: 0 2px 0 var(--fw-wood-900), 0 0 14px color-mix(in srgb, var(--guild-primary) 60%, transparent);
+    color: var(--fw-moon);
+    text-shadow: 0 2px 0 var(--fw-night-950), 0 0 14px color-mix(in srgb, var(--guild-primary) 60%, transparent);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -549,7 +545,7 @@
 }
 
 .fw-guild-banner--summary .fw-guild-banner__name {
-    text-shadow: 0 2px 0 var(--fw-wood-900), 0 0 14px rgba(251, 191, 36, 0.45);
+    text-shadow: 0 2px 0 var(--fw-night-950), 0 0 14px rgba(251, 191, 36, 0.45);
 }
 
 .fw-progress-rail {
@@ -565,7 +561,7 @@
     box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
-/* Brass rail linking the medallions */
+/* Gilt rail linking the medallions */
 .fw-progress-rail::before {
     content: '';
     position: absolute;
@@ -592,7 +588,7 @@
 
 .fw-progress-pill[data-state="current"] {
     opacity: 1;
-    border-color: var(--fw-brass);
+    border-color: var(--fw-gold);
     background: color-mix(in srgb, var(--guild-primary) 22%, rgba(28, 22, 64, 0.95));
     box-shadow: 0 0 14px color-mix(in srgb, var(--guild-primary) 45%, transparent);
 }
@@ -611,7 +607,7 @@
     display: grid;
     place-items: center;
     background: var(--fw-velvet-deep);
-    border: 2px solid color-mix(in srgb, var(--guild-primary) 70%, var(--fw-brass));
+    border: 2px solid color-mix(in srgb, var(--guild-primary) 70%, var(--fw-gold));
     font-size: 0.75rem;
     font-weight: 700;
 }
@@ -644,7 +640,7 @@
 
 .fw-progress-pill__step {
     display: none;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
     font-size: 0.54rem;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -655,7 +651,7 @@
 .fw-progress-pill__name {
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
     line-height: 1.1;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -674,12 +670,13 @@
 }
 
 .fw-stage-frame {
-    --guild-primary: var(--fw-brass);
+    --guild-primary: var(--fw-gold);
     --guild-glow: #fbbf24;
     position: relative;
     width: min(100%, 440px);
     aspect-ratio: 1;
     flex-shrink: 0;
+    container-type: inline-size;
 }
 
 /* Floor shadow — the wheel stands in the tent */
@@ -718,24 +715,26 @@
     pointer-events: none;
 }
 
-/* Marquee frame: fixed wooden ring that carries the bulbs */
+/* Star-lamp band: fixed enamel ring carrying the lamps and zodiac signs */
 .fw-stage-ring--outer {
     inset: 0;
     background:
-        var(--fw-grain),
-        radial-gradient(circle, var(--fw-wood-800) 0 60%, var(--fw-wood-600) 80%, var(--fw-wood-700) 92%, var(--fw-wood-900) 100%);
-    border: 3px solid var(--fw-brass);
+        var(--fw-stardust),
+        radial-gradient(circle, var(--fw-night-800) 0 62%, var(--fw-night-600) 82%, var(--fw-night-700) 92%, var(--fw-night-950) 100%);
+    border: 2px solid var(--fw-gold);
     box-shadow:
-        0 0 0 3px var(--fw-wood-900),
-        0 0 0 5px rgba(217, 168, 78, 0.35),
-        inset 0 0 18px rgba(0, 0, 0, 0.6),
+        0 0 0 3px var(--fw-night-950),
+        0 0 0 4px rgba(232, 196, 106, 0.45),
+        inset 0 0 0 5px var(--fw-night-800),
+        inset 0 0 0 6px rgba(232, 196, 106, 0.4),
+        inset 0 0 22px rgba(0, 0, 0, 0.6),
         0 24px 60px rgba(0, 0, 0, 0.6),
-        0 0 70px color-mix(in srgb, var(--guild-glow) 18%, transparent);
+        0 0 80px color-mix(in srgb, var(--guild-glow) 20%, transparent);
 }
 
 .fw-stage-ring--inner {
     inset: 7%;
-    box-shadow: 0 0 0 3px var(--fw-brass-dark), 0 0 0 5px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 3px var(--fw-gold-dark), 0 0 0 5px rgba(0, 0, 0, 0.45);
 }
 
 .fw-marquee {
@@ -753,16 +752,32 @@
 
 .fw-marquee__bulb i {
     position: absolute;
-    top: 1.6%;
+    top: 0.9%;
     left: 50%;
-    width: 3.4%;
-    aspect-ratio: 1;
-    margin-left: -1.7%;
-    border-radius: 50%;
-    background: radial-gradient(circle at 40% 35%, #fffbea 0 25%, #fde68a 45%, #f59e0b 100%);
-    box-shadow: 0 0 6px 2px rgba(251, 191, 36, 0.75), 0 0 0 1.5px var(--fw-brass-dark);
+    transform: translateX(-50%);
+    font-style: normal;
+    font-size: 4.4cqw;
+    line-height: 1;
+    color: var(--fw-gold-light);
+    text-shadow: 0 0 6px rgba(251, 231, 166, 0.85), 0 0 14px rgba(232, 196, 106, 0.55);
     animation: fw-bulb-idle 2.4s ease-in-out infinite;
     animation-delay: calc(var(--i) * -0.2s);
+}
+
+.fw-marquee__bulb i::before {
+    content: '\2726';
+}
+
+/* Odd positions carry the zodiac signs */
+.fw-marquee__bulb[data-z] i {
+    top: 1.5%;
+    font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', serif;
+    font-size: 3.3cqw;
+    color: rgba(251, 231, 166, 0.8);
+}
+
+.fw-marquee__bulb[data-z] i::before {
+    content: attr(data-z);
 }
 
 .fw-marquee__bulb:nth-child(odd) i {
@@ -770,8 +785,8 @@
 }
 
 @keyframes fw-bulb-idle {
-    0%, 100% { opacity: 1; filter: brightness(1.1); }
-    50% { opacity: 0.45; filter: brightness(0.7); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
 
 .fw-stage-frame.is-spinning .fw-marquee__bulb i {
@@ -780,8 +795,8 @@
 }
 
 @keyframes fw-bulb-chase {
-    0%, 60%, 100% { opacity: 0.35; filter: brightness(0.6); }
-    15%, 30% { opacity: 1; filter: brightness(1.4); box-shadow: 0 0 10px 4px rgba(251, 191, 36, 0.9), 0 0 0 1.5px var(--fw-brass-dark); }
+    0%, 60%, 100% { opacity: 0.35; }
+    15%, 30% { opacity: 1; color: #fffdf2; text-shadow: 0 0 8px #fff, 0 0 18px rgba(251, 231, 166, 0.95), 0 0 30px rgba(232, 196, 106, 0.8); }
 }
 
 .fw-card[data-phase="revealed"] .fw-marquee__bulb i {
@@ -794,15 +809,14 @@
 }
 
 @keyframes fw-bulb-celebrate {
-    0% { opacity: 1; filter: brightness(1.35); }
-    100% { opacity: 0.4; filter: brightness(0.7); }
+    0% { opacity: 1; color: #fffdf2; text-shadow: 0 0 8px #fff, 0 0 20px rgba(251, 231, 166, 0.95); }
+    100% { opacity: 0.4; }
 }
 
 .fw-stage-frame.is-locked .fw-marquee__bulb i {
     animation: none;
-    opacity: 0.25;
-    filter: grayscale(0.6) brightness(0.6);
-    box-shadow: 0 0 0 1.5px var(--fw-brass-dark);
+    opacity: 0.22;
+    text-shadow: none;
 }
 
 .fw-canvas-wrap {
@@ -835,15 +849,15 @@
     place-items: center;
     background: radial-gradient(circle, color-mix(in srgb, var(--guild-primary) 45%, #000), var(--fw-velvet-deep));
     box-shadow:
-        0 0 0 2px var(--fw-wood-900),
+        0 0 0 2px var(--fw-night-950),
         0 0 18px color-mix(in srgb, var(--guild-glow) 55%, transparent);
     z-index: 4;
     animation: fw-emblem-pulse 4s ease-in-out infinite;
 }
 
 @keyframes fw-emblem-pulse {
-    0%, 100% { box-shadow: 0 0 0 2px var(--fw-wood-900), 0 0 12px color-mix(in srgb, var(--guild-glow) 40%, transparent); }
-    50% { box-shadow: 0 0 0 2px var(--fw-wood-900), 0 0 26px color-mix(in srgb, var(--guild-glow) 75%, transparent); }
+    0%, 100% { box-shadow: 0 0 0 2px var(--fw-night-950), 0 0 12px color-mix(in srgb, var(--guild-glow) 40%, transparent); }
+    50% { box-shadow: 0 0 0 2px var(--fw-night-950), 0 0 26px color-mix(in srgb, var(--guild-glow) 75%, transparent); }
 }
 
 .fw-guild-emblem-orb.is-empty {
@@ -860,7 +874,7 @@
     display: none;
 }
 
-/* Brass flapper pointer — fixed at 12 o'clock, pivots from its cap */
+/* Gilt flapper pointer — fixed at 12 o'clock, pivots from its cap */
 .fw-pointer-bright {
     position: absolute;
     top: 0.2%;
@@ -890,8 +904,8 @@
     width: 100%;
     aspect-ratio: 1;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fffbea, var(--fw-brass) 55%, var(--fw-brass-dark));
-    border: 2px solid var(--fw-wood-900);
+    background: radial-gradient(circle at 35% 30%, #fffbea, var(--fw-gold) 55%, var(--fw-gold-dark));
+    border: 2px solid var(--fw-night-950);
 }
 
 .fw-pointer__gem {
@@ -936,10 +950,10 @@
     inset: 0;
     border-radius: 50%;
     background:
-        radial-gradient(circle, var(--fw-velvet-deep) 0 13%, var(--fw-brass-dark) 13.5% 15.5%, transparent 16%),
+        radial-gradient(circle, var(--fw-velvet-deep) 0 13%, var(--fw-gold-dark) 13.5% 15.5%, transparent 16%),
         repeating-conic-gradient(from 9deg, #2a2156 0 18deg, #1c1640 18deg 36deg);
-    border: max(8px, 4.5%) solid var(--fw-wood-700);
-    box-shadow: 0 0 0 3px var(--fw-brass-dark), inset 0 0 40px rgba(0, 0, 0, 0.7);
+    border: max(8px, 4.5%) solid var(--fw-night-700);
+    box-shadow: 0 0 0 3px var(--fw-gold-dark), inset 0 0 40px rgba(0, 0, 0, 0.7);
     filter: saturate(0.6) brightness(0.8);
 }
 
@@ -951,7 +965,7 @@
     height: 12px;
     margin-top: -6px;
     border-radius: 6px;
-    background: repeating-linear-gradient(90deg, var(--fw-brass-light) 0 10px, var(--fw-brass-dark) 10px 14px);
+    background: repeating-linear-gradient(90deg, var(--fw-gold-light) 0 10px, var(--fw-gold-dark) 10px 14px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
     opacity: 0.9;
 }
@@ -970,9 +984,9 @@
     display: grid;
     place-items: center;
     font-size: clamp(1.4rem, 4vw, 2.2rem);
-    color: var(--fw-wood-900);
-    background: radial-gradient(circle at 35% 30%, #fff3c4, var(--fw-brass) 55%, var(--fw-brass-dark));
-    border: 3px solid var(--fw-wood-900);
+    color: var(--fw-night-950);
+    background: radial-gradient(circle at 35% 30%, #fff3c4, var(--fw-gold) 55%, var(--fw-gold-dark));
+    border: 3px solid var(--fw-night-950);
     box-shadow: 0 0 0 4px rgba(217, 168, 78, 0.35), 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
     animation: fw-seal-breathe 3.5s ease-in-out infinite;
 }
@@ -1009,48 +1023,46 @@
     animation-duration: 0.9s;
 }
 
-/* ── Caption: parchment ribbon under the wheel ─────────────────────────── */
+/* ── Caption: starlit ribbon under the wheel ─────────────────────────── */
 
 .fw-stage-caption {
     flex-shrink: 0;
     align-self: center;
     max-width: 640px;
-    padding: 0.5rem 1.2rem;
-    border-radius: 0.6rem;
-    background: linear-gradient(180deg, #fffaf0 0%, var(--fw-parchment) 100%);
-    border: 2px solid var(--fw-brass);
-    box-shadow: 0 0 0 2px var(--fw-wood-900), 0 8px 18px rgba(0, 0, 0, 0.35);
-    color: var(--fw-ink);
+    padding: 0.5rem 1.4rem;
+    border-radius: 999px;
+    background: rgba(18, 13, 51, 0.85);
+    border: 1px solid rgba(232, 196, 106, 0.55);
+    box-shadow: 0 0 0 3px rgba(7, 5, 26, 0.7), 0 8px 18px rgba(0, 0, 0, 0.35);
+    color: var(--fw-moon);
     font-size: 0.88rem;
     font-weight: 500;
     line-height: 1.4;
     text-align: center;
 }
 
-/* ── The desk: wooden control panel ────────────────────────────────────── */
+/* ── The oracle panel: a tarot-framed control card ────────────────────────────────────── */
 
 .fw-controls-section {
-    padding: 1rem;
+    padding: 1.1rem;
     border-radius: 1.2rem;
-    background: var(--fw-grain), linear-gradient(180deg, var(--fw-wood-700) 0%, var(--fw-wood-800) 60%, var(--fw-wood-900) 100%);
-    border: 3px solid var(--fw-brass);
+    background: var(--fw-stardust), var(--fw-night-grad);
+    border: 0;
     box-shadow:
-        0 0 0 3px var(--fw-wood-900),
-        inset 0 2px 0 rgba(255, 255, 255, 0.14),
-        inset 0 0 30px rgba(0, 0, 0, 0.35),
-        0 24px 50px rgba(0, 0, 0, 0.5);
+        var(--fw-tarot-frame),
+        0 0 0 3px rgba(7, 5, 26, 0.85),
+        0 18px 40px rgba(0, 0, 0, 0.45);
     overflow-y: auto;
 }
 
-/* Parchment notice pinned to the desk */
+/* Omen notice */
 .fw-availability-card {
     position: relative;
     padding: 0.85rem 1rem 0.85rem 3.4rem;
-    border-radius: 0.7rem;
-    background: linear-gradient(180deg, #fffaf0 0%, var(--fw-parchment) 70%, var(--fw-parchment-dark) 100%);
-    border: 2px solid var(--fw-brass);
-    color: var(--fw-ink);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35), inset 0 0 20px rgba(160, 106, 60, 0.15);
+    border-radius: 0.8rem;
+    background: linear-gradient(160deg, rgba(51, 40, 124, 0.55), rgba(18, 13, 51, 0.7));
+    border: 1px solid rgba(232, 196, 106, 0.45);
+    color: var(--fw-moon);
 }
 
 /* Wax seal */
@@ -1086,14 +1098,14 @@
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.02rem;
     line-height: 1.2;
-    color: var(--fw-wood-800);
+    color: var(--fw-gold-light);
 }
 
 .fw-availability-message {
     margin-top: 0.2rem;
     font-size: 0.82rem;
     line-height: 1.4;
-    color: rgba(59, 39, 22, 0.85);
+    color: var(--fw-moon-dim);
 }
 
 .fw-availability-meta {
@@ -1103,9 +1115,9 @@
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 600;
-    color: var(--fw-wood-800);
-    background: rgba(217, 168, 78, 0.28);
-    border: 1px solid rgba(138, 90, 28, 0.45);
+    color: var(--fw-gold-light);
+    background: rgba(232, 196, 106, 0.12);
+    border: 1px solid rgba(232, 196, 106, 0.45);
 }
 
 /* "On this wheel" tray */
@@ -1123,7 +1135,7 @@
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.55rem;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -1184,7 +1196,7 @@
 
 /* Guild roster */
 .fw-guild-members-panel {
-    --guild-primary: var(--fw-brass);
+    --guild-primary: var(--fw-gold);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -1203,8 +1215,8 @@
     font-size: 0.66rem;
     letter-spacing: 0;
     text-align: center;
-    color: var(--fw-wood-900);
-    background: var(--fw-brass-grad);
+    color: var(--fw-night-950);
+    background: var(--fw-gold-grad);
 }
 
 .fw-guild-members__header::after { order: 1; }
@@ -1250,14 +1262,14 @@
 .fw-guild-members__initial {
     font-size: 0.78rem;
     font-weight: 700;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
 }
 
 .fw-guild-members__name {
     min-width: 0;
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1295,18 +1307,18 @@
     transition: transform 140ms ease, filter 160ms ease, box-shadow 160ms ease;
 }
 
-/* The big brass spin lever */
+/* The gilded spin medallion-button */
 .fw-btn-primary {
     min-height: 4.4rem;
     padding: 0.7rem 1rem 0.8rem;
-    color: var(--fw-wood-900);
+    color: var(--fw-night-950);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 40%),
-        linear-gradient(180deg, var(--fw-brass-light) 0%, var(--fw-brass) 50%, #b9832f 100%);
-    border: 2px solid var(--fw-brass-dark);
+        linear-gradient(180deg, var(--fw-gold-light) 0%, var(--fw-gold) 50%, #b9832f 100%);
+    border: 2px solid var(--fw-gold-dark);
     box-shadow:
-        0 5px 0 var(--fw-brass-dark),
-        0 0 0 3px var(--fw-wood-900),
+        0 5px 0 var(--fw-gold-dark),
+        0 0 0 3px var(--fw-night-950),
         0 12px 26px rgba(0, 0, 0, 0.45),
         0 0 28px rgba(251, 191, 36, 0.35);
     overflow: hidden;
@@ -1336,8 +1348,8 @@
 .fw-btn-primary:not(:disabled):active {
     transform: translateY(4px);
     box-shadow:
-        0 1px 0 var(--fw-brass-dark),
-        0 0 0 3px var(--fw-wood-900),
+        0 1px 0 var(--fw-gold-dark),
+        0 0 0 3px var(--fw-night-950),
         0 6px 14px rgba(0, 0, 0, 0.45);
 }
 
@@ -1360,8 +1372,8 @@
     cursor: default;
     filter: saturate(0.35) brightness(0.72);
     box-shadow:
-        0 3px 0 var(--fw-brass-dark),
-        0 0 0 3px var(--fw-wood-900),
+        0 3px 0 var(--fw-gold-dark),
+        0 0 0 3px var(--fw-night-950),
         0 8px 18px rgba(0, 0, 0, 0.4);
 }
 
@@ -1375,37 +1387,37 @@
 }
 
 @keyframes fw-busy-pulse {
-    0%, 100% { box-shadow: 0 3px 0 var(--fw-brass-dark), 0 0 0 3px var(--fw-wood-900), 0 0 18px rgba(251, 191, 36, 0.35); }
-    50% { box-shadow: 0 3px 0 var(--fw-brass-dark), 0 0 0 3px var(--fw-wood-900), 0 0 40px rgba(251, 191, 36, 0.75); }
+    0%, 100% { box-shadow: 0 3px 0 var(--fw-gold-dark), 0 0 0 3px var(--fw-night-950), 0 0 18px rgba(251, 191, 36, 0.35); }
+    50% { box-shadow: 0 3px 0 var(--fw-gold-dark), 0 0 0 3px var(--fw-night-950), 0 0 40px rgba(251, 191, 36, 0.75); }
 }
 
 .fw-btn-primary:focus-visible,
 .fw-btn-success:focus-visible,
 .fw-btn-secondary:focus-visible {
-    outline: 3px solid var(--fw-parchment);
+    outline: 3px solid var(--fw-moon);
     outline-offset: 4px;
 }
 
-/* Brass "continue" action */
+/* Gilded "continue" action */
 .fw-btn-success {
     min-height: 3.1rem;
     padding: 0.6rem 1.2rem;
     font-size: 1.05rem;
-    color: var(--fw-wood-900);
-    background: var(--fw-brass-grad);
-    border: 2px solid var(--fw-brass-dark);
-    box-shadow: 0 4px 0 var(--fw-brass-dark), 0 10px 20px rgba(0, 0, 0, 0.4);
+    color: var(--fw-night-950);
+    background: var(--fw-gold-grad);
+    border: 2px solid var(--fw-gold-dark);
+    box-shadow: 0 4px 0 var(--fw-gold-dark), 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
-/* Wooden secondary action */
+/* Midnight secondary action */
 .fw-btn-secondary {
     min-height: 3.1rem;
     padding: 0.6rem 1.2rem;
     font-size: 1.05rem;
-    color: var(--fw-parchment);
-    background: var(--fw-grain), var(--fw-wood-grad);
-    border: 2px solid var(--fw-brass);
-    box-shadow: 0 4px 0 var(--fw-wood-900), 0 10px 20px rgba(0, 0, 0, 0.4);
+    color: var(--fw-moon);
+    background: var(--fw-stardust), var(--fw-night-grad);
+    border: 1.5px solid var(--fw-gold);
+    box-shadow: 0 4px 0 var(--fw-night-950), 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 .fw-btn-success:hover,
@@ -1465,7 +1477,7 @@
     to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Wooden frame around the card */
+/* Tarot frame around the fortune card */
 .fw-reveal-layer__shell {
     --shell-rarity-color: #fbbf24;
     --shell-rarity-glow: rgba(251, 191, 36, 0.4);
@@ -1480,10 +1492,10 @@
     gap: 0.8rem;
     padding: 0.8rem;
     border-radius: 1.6rem;
-    background: var(--fw-grain), linear-gradient(180deg, var(--fw-wood-600) 0%, var(--fw-wood-800) 100%);
-    border: 3px solid var(--fw-brass);
+    background: var(--fw-stardust), var(--fw-night-grad);
+    border: 2px solid var(--fw-gold);
     box-shadow:
-        0 0 0 3px var(--fw-wood-900),
+        0 0 0 3px var(--fw-night-950),
         0 0 60px var(--shell-rarity-glow),
         0 0 140px color-mix(in srgb, var(--shell-rarity-glow) 45%, transparent),
         0 40px 90px rgba(0, 0, 0, 0.7);
@@ -1495,7 +1507,7 @@
     to { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
 }
 
-/* Brass corner studs on the frame */
+/* Gilt star studs in the frame corners */
 .fw-reveal-layer__shell::before {
     content: '';
     position: absolute;
@@ -1503,10 +1515,10 @@
     border-radius: 1.3rem;
     pointer-events: none;
     background:
-        radial-gradient(circle at 8px 8px, var(--fw-brass-light) 0 3px, var(--fw-brass-dark) 3.5px 4.5px, transparent 5px) top left / 50% 50% no-repeat,
-        radial-gradient(circle at calc(100% - 8px) 8px, var(--fw-brass-light) 0 3px, var(--fw-brass-dark) 3.5px 4.5px, transparent 5px) top right / 50% 50% no-repeat,
-        radial-gradient(circle at 8px calc(100% - 8px), var(--fw-brass-light) 0 3px, var(--fw-brass-dark) 3.5px 4.5px, transparent 5px) bottom left / 50% 50% no-repeat,
-        radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), var(--fw-brass-light) 0 3px, var(--fw-brass-dark) 3.5px 4.5px, transparent 5px) bottom right / 50% 50% no-repeat;
+        radial-gradient(circle at 8px 8px, var(--fw-gold-light) 0 3px, var(--fw-gold-dark) 3.5px 4.5px, transparent 5px) top left / 50% 50% no-repeat,
+        radial-gradient(circle at calc(100% - 8px) 8px, var(--fw-gold-light) 0 3px, var(--fw-gold-dark) 3.5px 4.5px, transparent 5px) top right / 50% 50% no-repeat,
+        radial-gradient(circle at 8px calc(100% - 8px), var(--fw-gold-light) 0 3px, var(--fw-gold-dark) 3.5px 4.5px, transparent 5px) bottom left / 50% 50% no-repeat,
+        radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), var(--fw-gold-light) 0 3px, var(--fw-gold-dark) 3.5px 4.5px, transparent 5px) bottom right / 50% 50% no-repeat;
     z-index: 2;
 }
 
@@ -1517,7 +1529,7 @@
     inset: -3px;
     border-radius: inherit;
     padding: 3px;
-    background: conic-gradient(from var(--fw-sweep, 0deg), transparent 0 70%, var(--fw-brass-light) 80%, #fff 84%, var(--fw-brass-light) 88%, transparent 96%);
+    background: conic-gradient(from var(--fw-sweep, 0deg), transparent 0 70%, var(--fw-gold-light) 80%, #fff 84%, var(--fw-gold-light) 88%, transparent 96%);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -1541,8 +1553,8 @@
 }
 
 @keyframes fw-shell-mythic-pulse {
-    0%, 100% { box-shadow: 0 0 0 3px var(--fw-wood-900), 0 0 60px var(--shell-rarity-glow), 0 0 140px color-mix(in srgb, var(--shell-rarity-glow) 45%, transparent), 0 40px 90px rgba(0, 0, 0, 0.7); }
-    50% { box-shadow: 0 0 0 3px var(--fw-wood-900), 0 0 100px var(--shell-rarity-glow), 0 0 220px color-mix(in srgb, var(--shell-rarity-glow) 60%, transparent), 0 40px 90px rgba(0, 0, 0, 0.7); }
+    0%, 100% { box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 60px var(--shell-rarity-glow), 0 0 140px color-mix(in srgb, var(--shell-rarity-glow) 45%, transparent), 0 40px 90px rgba(0, 0, 0, 0.7); }
+    50% { box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 100px var(--shell-rarity-glow), 0 0 220px color-mix(in srgb, var(--shell-rarity-glow) 60%, transparent), 0 40px 90px rgba(0, 0, 0, 0.7); }
 }
 
 .fw-reveal-layer__shell[data-rarity="cursed"] {
@@ -1653,7 +1665,7 @@
     padding-bottom: 0.55rem;
 }
 
-/* Emoji in a brass medallion */
+/* Emoji in a gilt medallion */
 .fw-result-emoji-orb {
     width: 108px;
     height: 108px;
@@ -1665,9 +1677,9 @@
     font-size: 3.3rem;
     line-height: 1;
     background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--rarity-color) 55%, #fff) 0%, var(--rarity-bg) 62%, color-mix(in srgb, var(--rarity-bg) 60%, #000) 100%);
-    border: 4px solid var(--fw-brass);
+    border: 4px solid var(--fw-gold);
     box-shadow:
-        0 0 0 3px var(--fw-wood-900),
+        0 0 0 3px var(--fw-night-950),
         0 0 0 6px color-mix(in srgb, var(--rarity-color) 55%, transparent),
         0 0 44px var(--rarity-glow),
         inset 0 -6px 12px rgba(0, 0, 0, 0.35);
@@ -1675,8 +1687,8 @@
 }
 
 @keyframes fw-orb-pulse {
-    0%, 100% { box-shadow: 0 0 0 3px var(--fw-wood-900), 0 0 0 6px color-mix(in srgb, var(--rarity-color) 55%, transparent), 0 0 26px var(--rarity-glow), inset 0 -6px 12px rgba(0, 0, 0, 0.35); }
-    50% { box-shadow: 0 0 0 3px var(--fw-wood-900), 0 0 0 6px color-mix(in srgb, var(--rarity-color) 55%, transparent), 0 0 60px var(--rarity-glow), inset 0 -6px 12px rgba(0, 0, 0, 0.35); }
+    0%, 100% { box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 0 6px color-mix(in srgb, var(--rarity-color) 55%, transparent), 0 0 26px var(--rarity-glow), inset 0 -6px 12px rgba(0, 0, 0, 0.35); }
+    50% { box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 0 6px color-mix(in srgb, var(--rarity-color) 55%, transparent), 0 0 60px var(--rarity-glow), inset 0 -6px 12px rgba(0, 0, 0, 0.35); }
 }
 
 @keyframes fw-orb-float {
@@ -1700,7 +1712,7 @@
     height: 26px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid var(--fw-brass);
+    border: 2px solid var(--fw-gold);
 }
 
 .fw-result-guild-row__name {
@@ -1708,7 +1720,7 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
 }
 
 .fw-result-card--v2 .fw-result-title {
@@ -1730,19 +1742,19 @@
     to { opacity: 1; letter-spacing: 0; }
 }
 
-/* The fortune itself, written on parchment */
+/* The fortune itself */
 .fw-result-card--v2 .fw-result-description {
     margin: 0.8rem auto 0;
     max-width: 30rem;
     padding: 0.7rem 1rem;
-    border-radius: 0.55rem;
-    background: linear-gradient(180deg, #fffaf0 0%, var(--fw-parchment) 100%);
-    border: 1.5px solid var(--fw-brass);
-    color: var(--fw-ink);
+    border-radius: 0.7rem;
+    background: rgba(7, 5, 26, 0.55);
+    border: 1px solid rgba(232, 196, 106, 0.45);
+    color: var(--fw-moon);
     font-size: 0.98rem;
     font-weight: 500;
     line-height: 1.45;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 0 16px rgba(160, 106, 60, 0.12);
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.4);
 }
 
 .fw-result-divider {
@@ -1757,14 +1769,14 @@
     gap: 0.55rem;
 }
 
-/* Impact tiles: brass-rimmed tokens */
+/* Impact tiles: gilt-rimmed tokens */
 .fw-result-stat {
     min-width: 88px;
     padding: 0.55rem 0.8rem 0.5rem;
     border-radius: 0.8rem;
     background: rgba(15, 11, 36, 0.8);
-    border: 2px solid var(--fw-brass);
-    box-shadow: 0 0 0 2px var(--fw-wood-900), inset 0 0 14px rgba(0, 0, 0, 0.45);
+    border: 2px solid var(--fw-gold);
+    box-shadow: 0 0 0 2px var(--fw-night-950), inset 0 0 14px rgba(0, 0, 0, 0.45);
     animation: fw-stat-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -1811,7 +1823,7 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
     opacity: 0.85;
 }
 
@@ -1822,7 +1834,7 @@
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
 }
 
 .fw-result-artifacts-showcase {
@@ -1838,9 +1850,9 @@
     gap: 0.4rem;
     padding: 0.3rem 0.7rem 0.3rem 0.35rem;
     border-radius: 999px;
-    background: linear-gradient(180deg, #fffaf0, var(--fw-parchment));
-    border: 1.5px solid var(--fw-brass);
-    color: var(--fw-ink);
+    background: rgba(232, 196, 106, 0.12);
+    border: 1px solid rgba(232, 196, 106, 0.55);
+    color: var(--fw-moon);
     transition: transform 220ms ease, box-shadow 220ms ease;
 }
 
@@ -1872,7 +1884,7 @@
     border-radius: 999px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--fw-brass-light);
+    color: var(--fw-gold-light);
     background: rgba(15, 11, 36, 0.7);
     border: 1px dashed rgba(217, 168, 78, 0.55);
 }
@@ -1893,7 +1905,7 @@
     border-radius: 999px;
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
     background: rgba(255, 244, 214, 0.08);
     border: 1px solid rgba(217, 168, 78, 0.45);
     animation: fw-stat-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
@@ -1904,7 +1916,7 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 2px solid var(--fw-brass);
+    border: 2px solid var(--fw-gold);
 }
 
 .fw-result-student-avatar {
@@ -1916,7 +1928,7 @@
     place-items: center;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--fw-parchment);
+    color: var(--fw-moon);
     background: color-mix(in srgb, var(--rarity-color) 40%, var(--fw-velvet-deep));
 }
 
@@ -1959,10 +1971,9 @@
     padding: 1.1rem 1.1rem 1.2rem;
     border-radius: 0.8rem;
     text-align: center;
-    background: linear-gradient(180deg, #fffaf0 0%, var(--fw-parchment) 70%, var(--fw-parchment-dark) 100%);
-    border: 2px solid var(--fw-brass);
-    color: var(--fw-ink);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35), inset 0 0 22px rgba(160, 106, 60, 0.18);
+    background: linear-gradient(160deg, rgba(51, 40, 124, 0.55), rgba(18, 13, 51, 0.7));
+    border: 1px solid rgba(232, 196, 106, 0.45);
+    color: var(--fw-moon);
 }
 
 .fw-locked-sparkles,
@@ -1996,14 +2007,14 @@
     margin: 0;
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.15rem;
-    color: var(--fw-wood-800);
+    color: var(--fw-gold-light);
 }
 
 .fw-locked-message {
     margin: 0.35rem 0 0;
     font-size: 0.86rem;
     line-height: 1.45;
-    color: rgba(59, 39, 22, 0.85);
+    color: var(--fw-moon-dim);
 }
 
 .fw-locked-meta {
@@ -2013,29 +2024,19 @@
     border-radius: 999px;
     font-size: 0.74rem;
     font-weight: 600;
-    color: var(--fw-wood-800);
-    background: rgba(217, 168, 78, 0.28);
-    border: 1px solid rgba(138, 90, 28, 0.45);
+    color: var(--fw-gold-light);
+    background: rgba(232, 196, 106, 0.12);
+    border: 1px solid rgba(232, 196, 106, 0.45);
 }
 
-/* ── Final ledger ──────────────────────────────────────────────────────── */
+/* ── Final ledger: a spread of four fortune cards ──────────────────────────────────────────────────────── */
 
 .fw-summary-card {
     width: 100%;
-    max-width: 920px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 1.2rem clamp(1rem, 2.5vw, 1.6rem) 1.4rem;
-    border-radius: 0.9rem;
-    color: var(--fw-ink);
-    background:
-        repeating-linear-gradient(180deg, transparent 0 27px, rgba(160, 106, 60, 0.12) 27px 28px),
-        linear-gradient(180deg, #fffaf0 0%, var(--fw-parchment) 60%, var(--fw-parchment-dark) 100%);
-    border: 3px solid var(--fw-brass);
-    box-shadow:
-        0 0 0 3px var(--fw-wood-900),
-        0 24px 50px rgba(0, 0, 0, 0.5),
-        inset 0 0 40px rgba(160, 106, 60, 0.2);
-    animation: fw-result-pop-v2 0.6s cubic-bezier(0.17, 0.84, 0.44, 1) both;
+    padding: 0.4rem 0 0.6rem;
+    color: var(--fw-moon);
 }
 
 .fw-summary-header {
@@ -2046,110 +2047,137 @@
 .fw-summary-eyebrow {
     font-size: 0.66rem;
     font-weight: 700;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.3em;
     text-transform: uppercase;
-    color: var(--fw-wood-500);
+    color: var(--fw-moon-dim);
 }
 
 .fw-summary-title {
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
     line-height: 1.1;
-    color: var(--fw-wood-800);
+    background: linear-gradient(180deg, #fffdf2 0%, var(--fw-gold-light) 45%, var(--fw-gold) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px rgba(232, 196, 106, 0.35));
 }
 
 .fw-summary-title::after {
     content: '';
     display: block;
-    width: 140px;
-    height: 10px;
+    width: 160px;
+    height: 12px;
     margin: 0.35rem auto 0;
     background:
-        radial-gradient(circle, var(--fw-brass) 0 3px, transparent 3.5px) center / 10px 10px no-repeat,
-        linear-gradient(90deg, transparent, var(--fw-brass) 20% 42%, transparent 42% 58%, var(--fw-brass) 58% 80%, transparent) center / 100% 2px no-repeat;
+        radial-gradient(circle, var(--fw-gold-light) 0 3px, transparent 3.5px) center / 12px 12px no-repeat,
+        linear-gradient(90deg, transparent, var(--fw-gold) 20% 42%, transparent 42% 58%, var(--fw-gold) 58% 80%, transparent) center / 100% 1.5px no-repeat;
 }
 
 .fw-summary-grid {
+    counter-reset: fw-card;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.8rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: stretch;
 }
 
 .fw-summary-item {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.85rem 0.9rem 0.9rem 1.1rem;
-    border-radius: 0.7rem;
-    background: rgba(255, 250, 240, 0.75);
-    border: 1.5px solid rgba(138, 90, 28, 0.4);
-    box-shadow: 0 3px 8px rgba(59, 39, 22, 0.12);
+    align-items: center;
+    text-align: center;
+    gap: 0.4rem;
+    min-height: 300px;
+    padding: 1.4rem 0.9rem 1rem;
+    border-radius: 1rem;
+    background:
+        radial-gradient(ellipse 90% 40% at 50% 0%, color-mix(in srgb, var(--guild-primary) 35%, transparent), transparent 100%),
+        var(--fw-stardust), var(--fw-night-grad);
+    box-shadow:
+        var(--fw-tarot-frame),
+        0 0 0 3px rgba(7, 5, 26, 0.85),
+        0 18px 36px rgba(0, 0, 0, 0.45);
     overflow: hidden;
-    animation: fw-stat-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation: fw-card-deal 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
-/* Guild colour stripe down the left edge */
+@keyframes fw-card-deal {
+    from { opacity: 0; transform: translateY(40px) rotate(-6deg) scale(0.9); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Card number, tarot-style */
 .fw-summary-item::before {
-    content: '';
+    content: counter(fw-card, upper-roman);
+    counter-increment: fw-card;
     position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 5px;
-    background: var(--guild-primary);
+    top: 0.55rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    color: rgba(251, 231, 166, 0.7);
 }
 
 .fw-summary-guild {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
-    font-size: 0.72rem;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--guild-primary) 75%, var(--fw-ink));
+    color: var(--fw-gold-light);
 }
 
 .fw-summary-emblem {
-    width: 28px;
-    height: 28px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid var(--fw-brass);
+    border: 2px solid var(--fw-gold);
+    box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 0 4px rgba(232, 196, 106, 0.45), 0 0 22px color-mix(in srgb, var(--guild-primary) 60%, transparent);
 }
 
 .fw-summary-result {
+    margin-top: 0.3rem;
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 1.15rem;
+    font-size: 1.12rem;
     line-height: 1.2;
-    color: var(--fw-wood-900);
+    color: var(--fw-moon);
 }
 
 .fw-summary-rarity {
-    align-self: flex-start;
-    padding: 0.1rem 0.55rem;
+    padding: 0.1rem 0.6rem;
     border-radius: 999px;
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #fff;
-    background: color-mix(in srgb, var(--rarity-color) 80%, #000);
+    background: color-mix(in srgb, var(--rarity-color) 75%, #000);
+    border: 1px solid var(--rarity-color);
 }
 
 .fw-summary-desc {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     line-height: 1.4;
-    color: rgba(59, 39, 22, 0.85);
+    color: var(--fw-moon-dim);
 }
 
 .fw-summary-deltas {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.3rem;
     margin-top: auto;
-    padding-top: 0.25rem;
+    padding-top: 0.35rem;
 }
 
 .fw-summary-delta {
@@ -2160,15 +2188,15 @@
     border-radius: 999px;
     font-size: 0.78rem;
     font-weight: 700;
-    color: #065f46;
+    color: #86efac;
     background: rgba(16, 185, 129, 0.14);
-    border: 1px solid rgba(5, 150, 105, 0.35);
+    border: 1px solid rgba(52, 211, 153, 0.4);
 }
 
 .fw-summary-delta--negative {
-    color: #991b1b;
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(220, 38, 38, 0.35);
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(248, 113, 113, 0.4);
 }
 
 .fw-summary-delta__icon {
@@ -2253,7 +2281,7 @@
     }
 }
 
-/* Mid widths (small laptops, 1024 projectors): medallions only in the rail */
+/* Mid widths (small laptops, 1024 projectors): medallions only in the rail; two cards per ledger row */
 @media (max-width: 1250px) {
     .fw-stage-top,
     .fw-card[data-phase="summary"] .fw-stage-top {
@@ -2271,6 +2299,14 @@
     .fw-progress-pill__copy,
     .fw-guild-banner__flag {
         display: none;
+    }
+
+    .fw-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fw-summary-item {
+        min-height: 0;
     }
 }
 
@@ -2303,24 +2339,8 @@
         height: 2.3rem;
     }
 
-    .fw-atmosphere__drape {
-        width: 8px;
-    }
-
-    .fw-atmosphere__drape::after {
-        display: none;
-    }
-
-    .fw-sign {
-        max-width: calc(100% - 5.5rem);
-    }
-
-    .fw-sign__board {
-        padding: 0.35rem 1.4rem 0.45rem;
-    }
-
-    .fw-sign__gem {
-        display: none;
+    .fw-crest {
+        padding: 0.2rem 2.4rem 0;
     }
 
     .fw-stage-top,
@@ -2517,8 +2537,8 @@
 /* ── Reduced motion ────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-    .fw-sign,
-    .fw-kicker i,
+    .fw-crest__flourish::before,
+    .fw-atmosphere__zodiac,
     .fw-atmosphere__stars,
     .fw-atmosphere__sparks span,
     .fw-stage-aura-bright,

@@ -1266,6 +1266,12 @@ export function setupUIListeners() {
     document.getElementById('avatar-creature-pool').addEventListener('click', (e) => avatar.handleAvatarOptionSelect(e, 'creature'));
     document.getElementById('avatar-color-pool').addEventListener('click', (e) => avatar.handleAvatarOptionSelect(e, 'color'));
     document.getElementById('avatar-accessory-pool').addEventListener('click', (e) => avatar.handleAvatarOptionSelect(e, 'accessory'));
+    ['style', 'mood', 'backdrop', 'framing'].forEach((pool) => {
+        document.getElementById(`avatar-${pool}-pool`).addEventListener('click', (e) => avatar.handleAvatarOptionSelect(e, pool));
+    });
+    document.getElementById('avatar-special-input').addEventListener('input', avatar.handleAvatarSpecialInput);
+    document.getElementById('avatar-surprise-btn').addEventListener('click', avatar.handleAvatarSurprise);
+    document.getElementById('avatar-forge-gallery').addEventListener('click', avatar.handleAvatarGalleryPick);
     document.getElementById('avatar-generate-btn').addEventListener('click', avatar.handleGenerateAvatar);
     document.getElementById('avatar-retry-btn').addEventListener('click', avatar.handleGenerateAvatar);
     document.getElementById('avatar-save-btn').addEventListener('click', avatar.handleSaveAvatar);

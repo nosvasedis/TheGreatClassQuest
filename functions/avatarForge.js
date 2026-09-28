@@ -6,18 +6,17 @@ const { getStorage } = require('firebase-admin/storage');
 const { HttpsError } = require('firebase-functions/v1/https');
 const { shopAiChat, shopAiImage } = require('./shop/ai');
 
-const CREATURES = new Set([
-  'Fairy', 'Wizard', 'Witch', 'Elf', 'Dwarf', 'Goblin', 'Knight', 'Dragon',
-  'Unicorn', 'Robot', 'Alien', 'Mermaid', 'Gnome', 'Prince', 'Princess', 'Pirate', 'Superhero'
-]);
-const COLORS = new Set([
-  'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Turquoise',
-  'Black', 'White', 'Grey', 'Rainbow'
-]);
-const ACCESSORIES = new Set([
-  'None', 'Magic Wand', 'Big Glasses', 'Flower Crown', 'Pointy Hat',
-  'Shiny Sword', 'Glowing Book', 'Headphones', 'Small Backpack'
-]);
+// The option lists and prompt builder live in avatarForgeRecipe.mjs so the modal and
+// this callable can never disagree about what a teacher may pick.
+let recipeModule = null;
+function loadRecipe() {
+  if (!recipeModule) recipeModule = import('./avatarForgeRecipe.mjs');
+  return recipeModule;
+}
+
+// Bumped when the callable understands a new recipe shape; the modal repaints in the
+// browser when an older deployment answers.
+const FORGE_VERSION = 2;
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
 
@@ -26,14 +25,6 @@ const MAX_IMAGE_BYTES = 1024 * 1024;
 // re-fetching on every render. Keep this value identical to AVATAR_IMAGE_CACHE_CONTROL
 // in constants.js (client-side fallback).
 const PORTRAIT_CACHE_CONTROL = 'public, max-age=31536000, immutable';
-
-function choice(value, allowed, label) {
-  const text = String(value || '').trim();
-  if (!allowed.has(text)) {
-    throw new HttpsError('invalid-argument', `Choose a ${label} from the Avatar Forge list.`);
-  }
-  return text;
-}
 
 function parseImageDataUrl(value) {
   const match = String(value || '').match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
@@ -72,32 +63,29 @@ function createAvatarForgeHandlers({ requireStudentManager, requireFeatureEnable
     const studentId = String(request.data?.studentId || '').trim();
     if (!studentId) throw new HttpsError('invalid-argument', 'Choose a student first.');
     await requireStudentManager(request, studentId);
-    const creature = choice(request.data?.creature, CREATURES, 'creature');
-    const color = choice(request.data?.color, COLORS, 'colour');
-    const accessory = choice(request.data?.accessory, ACCESSORIES, 'accessory');
-    const accessoryText = accessory === 'None' ? 'with no accessory' : `holding a ${accessory}`;
-    const systemPrompt = "You are an AI art prompt engineer specializing in creating cute, child-friendly avatars. The style MUST be: 'chibi character, cute, simple, flat 2D vector style, thick outlines, solid colors, centered, on a white background'. Your task is to combine a creature, a main color, and an accessory into a concise, effective prompt. The prompt MUST be a single sentence.";
-    const userPrompt = `Generate a prompt for a cute chibi ${creature} with a main color scheme of ${color}, ${accessoryText}.`;
-
-    let prompt = '';
+    const recipeTools = await loadRecipe();
+    let recipe;
     try {
-      prompt = await shopAiChat(systemPrompt, userPrompt);
+      recipe = recipeTools.normalizeForgeRecipe(request.data || {});
     } catch (error) {
-      console.error('forgeStudentAvatar prompt failed:', error?.message || error);
-      throw new HttpsError('unavailable', 'The Avatar Forge could not write a portrait prompt. Try again in a moment.');
+      if (error instanceof recipeTools.ForgeRecipeError) throw new HttpsError('invalid-argument', error.message);
+      throw error;
     }
-    const finalPrompt = String(prompt || '').replace(/\s+/g, ' ').trim().slice(0, 1800);
-    if (!finalPrompt) {
-      throw new HttpsError('unavailable', 'The Avatar Forge returned an empty prompt. Try again.');
+
+    // The writer adds character detail; if it is down, the forge still paints from the
+    // catalogue's own description rather than failing the teacher's click.
+    const { system, user } = recipeTools.buildForgeWriterMessages(recipe);
+    let subject = '';
+    try {
+      subject = recipeTools.cleanWriterSubject(await shopAiChat(system, user));
+    } catch (error) {
+      console.warn('forgeStudentAvatar writer unavailable, using catalogue description:', error?.message || error);
     }
+    const finalPrompt = recipeTools.composeForgeImagePrompt(recipe, subject);
 
     let bytes;
     try {
-      bytes = await shopAiImage(
-        `${finalPrompt} chibi character, cute, simple, flat 2D vector style, thick outlines, solid colors, centered, on a white background`,
-        'text, watermark, blurry, low quality, scary, realistic photo, gore',
-        { width: 512, height: 512, num_steps: 20 }
-      );
+      bytes = await shopAiImage(finalPrompt, recipeTools.FORGE_NEGATIVE_PROMPT, recipeTools.FORGE_IMAGE_OPTIONS);
     } catch (error) {
       console.error('forgeStudentAvatar image failed:', error?.message || error);
       throw new HttpsError('unavailable', 'The Avatar Forge could not paint the portrait. Try again in a moment.');
@@ -105,7 +93,7 @@ function createAvatarForgeHandlers({ requireStudentManager, requireFeatureEnable
     if (!Buffer.isBuffer(bytes) || bytes.length < 32 || bytes.length > 4 * MAX_IMAGE_BYTES) {
       throw new HttpsError('unavailable', 'The Avatar Forge returned an unusable portrait. Try again.');
     }
-    return { imageDataUrl: `data:image/png;base64,${bytes.toString('base64')}` };
+    return { imageDataUrl: `data:image/png;base64,${bytes.toString('base64')}`, forgeVersion: FORGE_VERSION, recipe };
   }
 
   async function saveStudentAvatar(request) {

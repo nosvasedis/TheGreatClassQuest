@@ -12,14 +12,149 @@ import { compressAvatarImageBase64 } from '../utils.js';
 import { AVATAR_IMAGE_CACHE_CONTROL, studentAvatarStoragePath } from '../constants.js';
 import { requireEliteAI } from '../utils/upgradePrompt.js';
 
+import {
+    FORGE_CREATURES, FORGE_COLORS, FORGE_ACCESSORIES, FORGE_MOODS, FORGE_STYLES,
+    FORGE_BACKDROPS, FORGE_FRAMINGS, FORGE_DEFAULTS, FORGE_SPECIAL_MAX, FORGE_NEGATIVE_PROMPT,
+    FORGE_IMAGE_OPTIONS, normalizeForgeRecipe, isLegacyForgeRecipe, buildForgeWriterMessages,
+    cleanWriterSubject, composeForgeImagePrompt, cleanSpecialTouch
+} from '../functions/avatarForgeRecipe.mjs';
+
 // --- LOCAL STATE ---
-let avatarMakerData = {
-    studentId: null,
-    creature: null,
-    color: null,
-    accessory: null,
-    generatedImage: null
+const REQUIRED_POOLS = ['creature', 'color', 'accessory'];
+const OPTIONAL_POOLS = ['style', 'mood', 'backdrop', 'framing'];
+const FORGE_POOLS = {
+    creature: FORGE_CREATURES,
+    color: FORGE_COLORS,
+    accessory: FORGE_ACCESSORIES,
+    style: FORGE_STYLES,
+    mood: FORGE_MOODS,
+    backdrop: FORGE_BACKDROPS,
+    framing: FORGE_FRAMINGS
 };
+// The callable version that understands mood, style, backdrop, framing and the special touch.
+const SERVER_FORGE_VERSION = 2;
+const MAX_GALLERY = 6;
+const LOADER_LINES = ['Heating the metal…', 'Folding in the colour…', 'Hammering out the details…', 'Quenching the portrait…'];
+
+let avatarMakerData = freshForgeState(null);
+let loaderTimer = null;
+
+function freshForgeState(studentId) {
+    return {
+        studentId,
+        creature: null,
+        color: null,
+        accessory: null,
+        ...FORGE_DEFAULTS,
+        generatedImage: null,
+        gallery: []
+    };
+}
+
+function escapeAttr(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function optionButton(option, pool) {
+    const label = option.label || option.value;
+    if (pool === 'color') {
+        const bg = option.hex ?? 'conic-gradient(#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#a855f7,#ef4444)';
+        return `<button type="button" class="avatar-maker-option-btn avatar-color-btn" data-value="${escapeAttr(option.value)}" aria-pressed="false">
+            <span class="avatar-color-swatch" style="background:${bg};"></span>${escapeAttr(label)}
+        </button>`;
+    }
+    return `<button type="button" class="avatar-maker-option-btn" data-value="${escapeAttr(option.value)}" aria-pressed="false">
+        <span class="avatar-maker-option-btn__icon" aria-hidden="true">${option.icon || ''}</span><span>${escapeAttr(label)}</span>
+    </button>`;
+}
+
+function markSelected(pool, value) {
+    const container = document.getElementById(`avatar-${pool}-pool`);
+    if (!container) return;
+    container.querySelectorAll('.avatar-maker-option-btn').forEach((btn) => {
+        const on = btn.dataset.value === value;
+        btn.classList.toggle('selected', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+}
+
+function labelFor(pool, value) {
+    const option = FORGE_POOLS[pool].find((o) => o.value === value);
+    return option ? (option.label || option.value) : '';
+}
+
+function recipeReady() {
+    return REQUIRED_POOLS.every((pool) => avatarMakerData[pool]);
+}
+
+function refreshForgeHeat() {
+    REQUIRED_POOLS.forEach((pool) => {
+        const done = Boolean(avatarMakerData[pool]);
+        document.getElementById(`step-${pool}-check`)?.classList.toggle('is-done', done);
+        document.getElementById(`step-${pool}-dot`)?.classList.toggle('is-hot', done);
+    });
+    const ready = recipeReady();
+    document.querySelector('#avatar-maker-modal .af-card')?.classList.toggle('is-ready', ready);
+    const generateBtn = document.getElementById('avatar-generate-btn');
+    if (generateBtn && !generateBtn.dataset.busy) generateBtn.disabled = !ready;
+
+    const summary = document.getElementById('avatar-recipe-summary');
+    if (summary) {
+        const parts = [
+            avatarMakerData.color && avatarMakerData.creature
+                ? `A ${avatarMakerData.color.toLowerCase()} ${avatarMakerData.creature.toLowerCase()}`
+                : (avatarMakerData.creature ? `A ${avatarMakerData.creature.toLowerCase()}` : ''),
+            avatarMakerData.accessory && avatarMakerData.accessory !== 'None' ? `with ${avatarMakerData.accessory.toLowerCase()}` : '',
+            avatarMakerData.creature ? `· ${labelFor('style', avatarMakerData.style)}` : ''
+        ].filter(Boolean);
+        summary.textContent = parts.join(' ');
+    }
+}
+
+function renderGallery() {
+    const wrap = document.getElementById('avatar-forge-gallery-wrap');
+    const row = document.getElementById('avatar-forge-gallery');
+    if (!wrap || !row) return;
+    const { gallery, generatedImage } = avatarMakerData;
+    wrap.classList.toggle('hidden', gallery.length < 2);
+    row.innerHTML = gallery.map((src, index) => `
+        <button type="button" class="af-gallery__thumb${src === generatedImage ? ' is-current' : ''}" data-index="${index}" aria-label="Use strike ${index + 1}">
+            <img src="${escapeAttr(src)}" alt="">
+        </button>`).join('');
+}
+
+function showPortrait(src, { fresh = false } = {}) {
+    const imgEl = document.getElementById('avatar-maker-img');
+    imgEl.src = src;
+    imgEl.classList.remove('hidden');
+    imgEl.classList.remove('is-fresh');
+    if (fresh) {
+        void imgEl.offsetWidth;
+        imgEl.classList.add('is-fresh');
+    }
+    document.getElementById('avatar-maker-placeholder').classList.add('hidden');
+}
+
+function setHasResult(on) {
+    document.getElementById('avatar-post-generation-btns').classList.toggle('hidden', !on);
+    document.querySelector('#avatar-maker-modal .af-card')?.classList.toggle('has-result', on);
+}
+
+function setForging(on) {
+    const card = document.querySelector('#avatar-maker-modal .af-card');
+    card?.classList.toggle('is-forging', on);
+    const text = document.getElementById('avatar-maker-loader-text');
+    clearInterval(loaderTimer);
+    loaderTimer = null;
+    if (on && text) {
+        let line = 0;
+        text.textContent = LOADER_LINES[0];
+        loaderTimer = setInterval(() => {
+            line = (line + 1) % LOADER_LINES.length;
+            text.textContent = LOADER_LINES[line];
+        }, 2600);
+    }
+}
 
 // --- MODAL & UI FUNCTIONS ---
 
@@ -28,9 +163,9 @@ export function openAvatarMaker(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
-    avatarMakerData = { studentId, creature: null, color: null, accessory: null, generatedImage: null };
-    
-    document.getElementById('avatar-maker-student-name').textContent = `for ${student.name}`;
+    avatarMakerData = freshForgeState(studentId);
+
+    document.getElementById('avatar-maker-student-name').textContent = `Forging a portrait for ${student.name}`;
 
     const deleteBtn = document.getElementById('avatar-delete-btn');
     if (student.avatar) {
@@ -38,74 +173,46 @@ export function openAvatarMaker(studentId) {
     } else {
         deleteBtn.classList.add('hidden');
     }
-    
-    const creatures = [
-        { value: 'Fairy', icon: '🧚' },     { value: 'Wizard', icon: '🧙' },
-        { value: 'Witch', icon: '🧙‍♀️' },   { value: 'Elf', icon: '🧝' },
-        { value: 'Dwarf', icon: '⛏️' },      { value: 'Goblin', icon: '👺' },
-        { value: 'Knight', icon: '🗡️' },    { value: 'Dragon', icon: '🐉' },
-        { value: 'Unicorn', icon: '🦄' },    { value: 'Robot', icon: '🤖' },
-        { value: 'Alien', icon: '👽' },      { value: 'Mermaid', icon: '🧜' },
-        { value: 'Gnome', icon: '🍄' },      { value: 'Prince', icon: '🤴' },
-        { value: 'Princess', icon: '👸' },   { value: 'Pirate', icon: '🏴‍☠️' },
-        { value: 'Superhero', icon: '🦸' },
-    ];
-    const colors = [
-        { value: 'Red', hex: '#ef4444' },       { value: 'Blue', hex: '#3b82f6' },
-        { value: 'Green', hex: '#22c55e' },      { value: 'Yellow', hex: '#eab308' },
-        { value: 'Purple', hex: '#a855f7' },     { value: 'Orange', hex: '#f97316' },
-        { value: 'Pink', hex: '#ec4899' },       { value: 'Turquoise', hex: '#14b8a6' },
-        { value: 'Black', hex: '#374151' },      { value: 'White', hex: '#e5e7eb' },
-        { value: 'Grey', hex: '#9ca3af' },       { value: 'Rainbow', hex: null },
-    ];
-    const accessories = [
-        { value: 'None', icon: '✨' },           { value: 'Magic Wand', icon: '🪄' },
-        { value: 'Big Glasses', icon: '👓' },    { value: 'Flower Crown', icon: '🌸' },
-        { value: 'Pointy Hat', icon: '🎩' },     { value: 'Shiny Sword', icon: '⚔️' },
-        { value: 'Glowing Book', icon: '📚' },   { value: 'Headphones', icon: '🎧' },
-        { value: 'Small Backpack', icon: '🎒' },
-    ];
 
-    document.getElementById('avatar-creature-pool').innerHTML = creatures.map(c =>
-        `<button class="avatar-maker-option-btn" data-value="${c.value}">${c.icon} ${c.value}</button>`
-    ).join('');
-
-    document.getElementById('avatar-color-pool').innerHTML = colors.map(c => {
-        const bg = c.hex ?? 'linear-gradient(90deg,#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#a855f7)';
-        return `<button class="avatar-maker-option-btn avatar-color-btn" data-value="${c.value}">
-            <span class="avatar-color-swatch" style="background:${bg};"></span>${c.value}
-        </button>`;
-    }).join('');
-
-    document.getElementById('avatar-accessory-pool').innerHTML = accessories.map(a =>
-        `<button class="avatar-maker-option-btn" data-value="${a.value}">${a.icon} ${a.value}</button>`
-    ).join('');
-
-    // Reset step checkmarks and dots
-    ['creature', 'color', 'accessory'].forEach(p => {
-        const check = document.getElementById(`step-${p}-check`);
-        if (check) check.style.opacity = '0';
-        
-        const dot = document.getElementById(`step-${p}-dot`);
-        if (dot) dot.classList.replace('bg-purple-500', 'bg-white/10');
+    Object.entries(FORGE_POOLS).forEach(([pool, options]) => {
+        const container = document.getElementById(`avatar-${pool}-pool`);
+        if (container) container.innerHTML = options.map((option) => optionButton(option, pool)).join('');
     });
+    OPTIONAL_POOLS.forEach((pool) => markSelected(pool, avatarMakerData[pool]));
+
+    const specialInput = document.getElementById('avatar-special-input');
+    if (specialInput) {
+        specialInput.value = '';
+        specialInput.maxLength = FORGE_SPECIAL_MAX;
+        handleAvatarSpecialInput();
+    }
 
     const placeholder = document.getElementById('avatar-maker-placeholder');
     const loader = document.getElementById('avatar-maker-loader');
     const imgEl = document.getElementById('avatar-maker-img');
-    
+
     loader.classList.add('hidden');
+    setForging(false);
     if (student.avatar) {
         imgEl.src = student.avatar;
-        imgEl.classList.remove('hidden');
+        imgEl.classList.remove('hidden', 'is-fresh');
         placeholder.classList.add('hidden');
     } else {
         imgEl.classList.add('hidden');
         placeholder.classList.remove('hidden');
     }
 
-    document.getElementById('avatar-generate-btn').disabled = true;
-    document.getElementById('avatar-post-generation-btns').classList.add('hidden');
+    const generateBtn = document.getElementById('avatar-generate-btn');
+    delete generateBtn.dataset.busy;
+    generateBtn.disabled = true;
+    ['avatar-retry-btn', 'avatar-surprise-btn', 'avatar-save-btn'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = false;
+    });
+    setHasResult(false);
+    document.getElementById('avatar-maker-options-wrapper').scrollTop = 0;
+    renderGallery();
+    refreshForgeHeat();
 
     createForgeParticles();
     modals.showAnimatedModal('avatar-maker-modal');
@@ -115,50 +222,65 @@ function createForgeParticles() {
     const container = document.getElementById('forge-particles-container');
     if (!container) return;
     container.innerHTML = '';
-    const count = 20;
+    const count = 26;
     for (let i = 0; i < count; i++) {
-        const p = document.createElement('div');
-        const size = Math.random() * 4 + 2;
-        p.className = 'absolute bg-orange-500/40 rounded-full blur-[1px]';
-        p.style.width = `${size}px`;
-        p.style.height = `${size}px`;
+        const p = document.createElement('span');
+        p.className = 'af-ember';
         p.style.left = `${Math.random() * 100}%`;
-        p.style.top = `${Math.random() * 100}%`;
-        p.style.opacity = Math.random();
-        
-        const duration = Math.random() * 10 + 5;
-        const delay = Math.random() * 5;
-        p.style.animation = `float ${duration}s ease-in-out ${delay}s infinite`;
-        
+        p.style.setProperty('--af-size', `${(Math.random() * 4 + 2).toFixed(1)}px`);
+        p.style.setProperty('--af-dur', `${(Math.random() * 8 + 7).toFixed(1)}s`);
+        p.style.setProperty('--af-delay', `${(-Math.random() * 14).toFixed(1)}s`);
+        p.style.setProperty('--af-drift', `${Math.round(Math.random() * 80 - 40)}px`);
         container.appendChild(p);
     }
 }
 
 export function handleAvatarOptionSelect(event, pool) {
     const btn = event.target.closest('.avatar-maker-option-btn');
-    if (!btn) return;
+    if (!btn || !FORGE_POOLS[pool]) return;
     playSound('click');
 
-    const poolContainer = document.getElementById(`avatar-${pool}-pool`);
-    poolContainer.querySelectorAll('.selected').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-
+    const wasReady = recipeReady();
     avatarMakerData[pool] = btn.dataset.value;
+    markSelected(pool, btn.dataset.value);
+    refreshForgeHeat();
 
-    // Light up the step checkmark and dot
-    const check = document.getElementById(`step-${pool}-check`);
-    if (check) check.style.opacity = '1';
-    
-    const dot = document.getElementById(`step-${pool}-dot`);
-    if (dot) {
-        dot.classList.remove('bg-white/10');
-        dot.classList.add('bg-purple-500', 'shadow-[0_0_10px_#a855f7]');
-    }
+    if (!wasReady && recipeReady()) playSound('magic_chime_short');
+}
 
-    if (avatarMakerData.creature && avatarMakerData.color && avatarMakerData.accessory) {
-        document.getElementById('avatar-generate-btn').disabled = false;
-        playSound('magic_chime_short');
-    }
+export function handleAvatarSpecialInput() {
+    const input = document.getElementById('avatar-special-input');
+    const count = document.getElementById('avatar-special-count');
+    if (!input) return;
+    avatarMakerData.special = input.value;
+    if (count) count.textContent = `${input.value.length}/${FORGE_SPECIAL_MAX}`;
+}
+
+/** Fills every step with a random choice, so a teacher can forge in one tap. */
+export function handleAvatarSurprise() {
+    playSound('click');
+    const pick = (list) => list[Math.floor(Math.random() * list.length)].value;
+    avatarMakerData.creature = pick(FORGE_CREATURES);
+    avatarMakerData.color = pick(FORGE_COLORS);
+    avatarMakerData.accessory = pick(FORGE_ACCESSORIES.filter((o) => o.value !== 'None'));
+    avatarMakerData.mood = pick(FORGE_MOODS);
+    avatarMakerData.style = pick(FORGE_STYLES);
+    avatarMakerData.backdrop = pick(FORGE_BACKDROPS);
+    Object.keys(FORGE_POOLS).forEach((pool) => markSelected(pool, avatarMakerData[pool]));
+    refreshForgeHeat();
+    document.querySelector('#avatar-creature-pool .selected')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    playSound('magic_chime_short');
+}
+
+export function handleAvatarGalleryPick(event) {
+    const thumb = event.target.closest('.af-gallery__thumb');
+    if (!thumb) return;
+    const src = avatarMakerData.gallery[Number(thumb.dataset.index)];
+    if (!src) return;
+    playSound('click');
+    avatarMakerData.generatedImage = src;
+    showPortrait(src);
+    renderGallery();
 }
 
 
@@ -170,14 +292,35 @@ function avatarCallableMissing(error) {
 /**
  * School networks often block workers.dev and then report that as a CORS error.
  * The callable paints the portrait on the server, so the browser never calls that host.
+ * Resolves to null when the deployed callable predates this recipe, so the caller can
+ * paint it in the browser instead.
  */
-async function forgeAvatarOnServer(studentId, creature, color, accessory) {
+async function forgeAvatarOnServer(studentId, recipe) {
     const { functions, httpsCallable } = await import('../firebase.js');
     const forge = httpsCallable(functions, 'forgeStudentAvatar', { timeout: 180000 });
-    const result = await forge({ studentId, creature, color, accessory });
+    let result;
+    try {
+        result = await forge({ studentId, ...recipe });
+    } catch (error) {
+        // An older deployment rejects the new creatures, colours and relics by name.
+        if (String(error?.code || '') === 'functions/invalid-argument' && !isLegacyForgeRecipe(recipe)) return null;
+        throw error;
+    }
     const imageDataUrl = result?.data?.imageDataUrl;
     if (!imageDataUrl) throw new Error('Avatar forge returned no portrait.');
+    if (Number(result?.data?.forgeVersion || 1) < SERVER_FORGE_VERSION && !isLegacyForgeRecipe(recipe)) return null;
     return imageDataUrl;
+}
+
+async function forgeAvatarInBrowser(recipe) {
+    const { system, user } = buildForgeWriterMessages(recipe);
+    let subject = '';
+    try {
+        subject = cleanWriterSubject(await callGeminiApi(system, user));
+    } catch (error) {
+        console.warn('Avatar prompt writer unavailable; using the catalogue description.', error);
+    }
+    return callCloudflareAiImageApi(composeForgeImagePrompt(recipe, subject), FORGE_NEGATIVE_PROMPT, { ...FORGE_IMAGE_OPTIONS });
 }
 
 async function saveAvatarOnServer(studentId, imageDataUrl) {
@@ -193,52 +336,82 @@ async function saveAvatarOnServer(studentId, imageDataUrl) {
 
 export async function handleGenerateAvatar() {
     if (!requireEliteAI({ feature: 'Avatar image generator' })) return;
+    if (!recipeReady()) {
+        showToast('Choose a creature, a colour and a relic first.', 'error');
+        return;
+    }
     playSound('magic_chime');
-    const { creature, color, accessory } = avatarMakerData;
-    if (!creature || !color || !accessory) {
-        showToast('Please select an option from each category.', 'error');
+
+    let recipe;
+    try {
+        recipe = normalizeForgeRecipe({ ...avatarMakerData, special: cleanSpecialTouch(avatarMakerData.special) });
+    } catch (error) {
+        showToast(error.message, 'error');
         return;
     }
 
     const generateBtn = document.getElementById('avatar-generate-btn');
-    const postGenBtns = document.getElementById('avatar-post-generation-btns');
+    const retryBtn = document.getElementById('avatar-retry-btn');
+    const surpriseBtn = document.getElementById('avatar-surprise-btn');
+    const saveBtn = document.getElementById('avatar-save-btn');
     const loader = document.getElementById('avatar-maker-loader');
     const placeholder = document.getElementById('avatar-maker-placeholder');
     const imgEl = document.getElementById('avatar-maker-img');
 
+    generateBtn.dataset.busy = '1';
     generateBtn.disabled = true;
-    postGenBtns.classList.add('hidden');
+    if (retryBtn) retryBtn.disabled = true;
+    if (surpriseBtn) surpriseBtn.disabled = true;
+    if (saveBtn) saveBtn.disabled = true;
     placeholder.classList.add('hidden');
     imgEl.classList.add('hidden');
     loader.classList.remove('hidden');
+    setForging(true);
+    if (window.matchMedia?.('(max-width: 860px)').matches) {
+        document.getElementById('avatar-display-area')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
 
-    const systemPrompt = "You are an AI art prompt engineer specializing in creating cute, child-friendly avatars. The style MUST be: 'chibi character, cute, simple, flat 2D vector style, thick outlines, solid colors, centered, on a white background'. Your task is to combine a creature, a main color, and an accessory into a concise, effective prompt. The prompt MUST be a single sentence.";
-    const accessoryText = accessory === 'None' ? 'with no accessory' : `holding a ${accessory}`;
-    const userPrompt = `Generate a prompt for a cute chibi ${creature} with a main color scheme of ${color}, ${accessoryText}.`;
+    // Closing and reopening the forge mid-strike starts a new session; a late
+    // portrait from the old one must not land in it.
+    const session = avatarMakerData;
+    const stillOpen = () => avatarMakerData === session;
 
     try {
-        let imageBase64 = '';
+        let imageBase64 = null;
         try {
-            imageBase64 = await forgeAvatarOnServer(avatarMakerData.studentId, creature, color, accessory);
+            imageBase64 = await forgeAvatarOnServer(session.studentId, recipe);
         } catch (serverError) {
             if (!avatarCallableMissing(serverError)) throw serverError;
             console.warn('Avatar forge callable is not deployed; using the browser AI proxy.', serverError?.code || serverError);
-            const finalPrompt = await callGeminiApi(systemPrompt, userPrompt);
-            imageBase64 = await callCloudflareAiImageApi(finalPrompt);
         }
+        if (!imageBase64) imageBase64 = await forgeAvatarInBrowser(recipe);
+        if (!stillOpen()) return;
 
         avatarMakerData.generatedImage = imageBase64;
-        imgEl.src = imageBase64;
-
-        imgEl.classList.remove('hidden');
-        postGenBtns.classList.remove('hidden');
+        avatarMakerData.gallery = [imageBase64, ...avatarMakerData.gallery].slice(0, MAX_GALLERY);
+        showPortrait(imageBase64, { fresh: true });
+        setHasResult(true);
+        renderGallery();
+        playSound('magic_chime_short');
     } catch (error) {
         console.error("Avatar Generation Error:", error);
+        if (!stillOpen()) return;
         showToast("The Avatar Forge had a hiccup. Please try again.", "error");
-        placeholder.classList.remove('hidden');
+        if (avatarMakerData.generatedImage) {
+            showPortrait(avatarMakerData.generatedImage);
+        } else {
+            placeholder.classList.remove('hidden');
+        }
     } finally {
-        loader.classList.add('hidden');
-        generateBtn.disabled = false;
+        if (stillOpen()) {
+            loader.classList.add('hidden');
+            setForging(false);
+            delete generateBtn.dataset.busy;
+            generateBtn.disabled = !recipeReady();
+            if (retryBtn) retryBtn.disabled = false;
+            if (surpriseBtn) surpriseBtn.disabled = false;
+            if (saveBtn) saveBtn.disabled = false;
+        }
     }
 }
 
@@ -266,7 +439,7 @@ export async function handleSaveAvatar() {
 
     const saveBtn = document.getElementById('avatar-save-btn');
     saveBtn.disabled = true;
-    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
+    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Cooling and saving…</span>`;
 
     try {
         const compressedAvatar = await compressAvatarImageBase64(generatedImage);
@@ -296,7 +469,7 @@ export async function handleSaveAvatar() {
         showToast("Could not save the avatar. Please try again.", "error");
     } finally {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = `<i class="fas fa-save mr-2"></i> Save Avatar`;
+        saveBtn.innerHTML = `<i class="fas fa-save" aria-hidden="true"></i><span>Keep this portrait</span>`;
     }
 }
 
@@ -310,7 +483,7 @@ export async function handleDeleteAvatar() {
         async () => {
             const deleteBtn = document.getElementById('avatar-delete-btn');
             deleteBtn.disabled = true;
-            deleteBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Removing...`;
+            deleteBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Melting…</span>`;
 
             try {
                 const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
@@ -330,7 +503,7 @@ export async function handleDeleteAvatar() {
                 showToast("Could not remove the avatar. Please try again.", "error");
             } finally {
                 deleteBtn.disabled = false;
-                deleteBtn.innerHTML = `<i class="fas fa-trash-alt mr-2"></i> Remove Avatar`;
+                deleteBtn.innerHTML = `<i class="fas fa-trash-alt" aria-hidden="true"></i><span>Melt the current portrait</span>`;
             }
         },
         'Yes, Remove It',

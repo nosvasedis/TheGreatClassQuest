@@ -120,176 +120,163 @@ export const trophyRoomModalsHTML = `
         </div>
     </div>
 
-    <div id="avatar-maker-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[72] flex items-center justify-center p-4 hidden overflow-hidden">
-        
-        <!-- Background Decorative Elements -->
-        <div class="absolute inset-0 pointer-events-none overflow-hidden">
-            <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse"></div>
-            <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse" style="animation-delay: 2s;"></div>
-            <div id="forge-particles-container" class="absolute inset-0 opacity-30"></div>
+    <div id="avatar-maker-modal" class="af-overlay fixed inset-0 z-[72] hidden" role="dialog" aria-modal="true" aria-labelledby="avatar-maker-title">
+        <!-- Soot, heat haze and rising embers behind the forge -->
+        <div class="af-backdrop" aria-hidden="true">
+            <div class="af-backdrop__heat"></div>
+            <div id="forge-particles-container" class="af-embers"></div>
         </div>
 
-        <div class="relative bg-slate-950/80 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] max-w-5xl w-full pop-in border border-white/10 flex flex-col max-h-[92vh] overflow-hidden backdrop-blur-2xl"
-            style="box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 100px rgba(124,58,237,0.1);">
+        <div class="af-card pop-in">
+            <span class="af-rivet af-rivet--tl" aria-hidden="true"></span>
+            <span class="af-rivet af-rivet--tr" aria-hidden="true"></span>
+            <span class="af-rivet af-rivet--bl" aria-hidden="true"></span>
+            <span class="af-rivet af-rivet--br" aria-hidden="true"></span>
 
-            <!-- Top Header with "Forge" vibe -->
-            <div class="relative px-8 py-6 flex-shrink-0 bg-white/5 border-b border-white/5 overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50"></div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-gradient-to-br from-purple-600 to-blue-700 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-purple-900/40 border border-white/20 transform -rotate-3">⚒️</div>
-                        <div>
-                            <h2 class="font-title text-3xl text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-white to-blue-200 tracking-tight"
-                                style="text-shadow: 0 0 20px rgba(167,139,250,0.3);">Avatar Forge</h2>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <p id="avatar-maker-student-name" class="text-indigo-300/80 text-sm font-medium tracking-wide"></p>
-                            </div>
-                        </div>
-                    </div>
-                    <button id="avatar-maker-close-btn"
-                        class="text-white/30 hover:text-white text-3xl leading-none w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-all duration-300 hover:rotate-90 flex-shrink-0">&times;</button>
+            <!-- Header: the hearth's glowing arch with the forge's name hammered above it -->
+            <header class="af-header">
+                <div class="af-hearth" aria-hidden="true"><span class="af-hearth__fire"></span></div>
+                <div class="af-header__crest" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" class="af-hammer-icon"><path d="M14 20l14-10 8 8-4 4 22 22a4 4 0 0 1-6 6L26 28l-4 4z" fill="currentColor"/><path d="M8 56h30v4H8z" fill="currentColor" opacity=".55"/></svg>
                 </div>
-            </div>
-
-            <!-- Main Content Area -->
-            <div class="relative flex flex-col lg:flex-row flex-1 min-h-0">
-                
-                <!-- Left Column: Selection Pools -->
-                <div id="avatar-maker-options-wrapper" class="flex-1 overflow-y-auto p-8 space-y-8 min-h-0 custom-scrollbar">
-                    
-                    <!-- Progress Bar (Subtle) -->
-                    <div class="flex justify-between items-center px-2 mb-2">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400/60">Crafting Progress</span>
-                        <div class="flex gap-1">
-                            <div id="step-creature-dot" class="w-2 h-2 rounded-full bg-white/10 transition-colors duration-500"></div>
-                            <div id="step-color-dot" class="w-2 h-2 rounded-full bg-white/10 transition-colors duration-500"></div>
-                            <div id="step-accessory-dot" class="w-2 h-2 rounded-full bg-white/10 transition-colors duration-500"></div>
-                        </div>
-                    </div>
-
-                    <!-- Step 1: Creature -->
-                    <div class="avatar-forge-card group">
-                        <div class="flex items-center gap-4 mb-5">
-                            <div class="avatar-step-badge">1</div>
-                            <div>
-                                <h3 class="text-sm font-black text-white uppercase tracking-widest">Select Origin</h3>
-                                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider opacity-60">Choose your base creature</p>
-                            </div>
-                            <div id="step-creature-check" class="ml-auto w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center opacity-0 transition-opacity duration-300">
-                                <i class="fas fa-check text-xs"></i>
-                            </div>
-                        </div>
-                        <div id="avatar-creature-pool" class="flex flex-wrap gap-2"></div>
-                    </div>
-
-                    <!-- Step 2: Color -->
-                    <div class="avatar-forge-card group">
-                        <div class="flex items-center gap-4 mb-5">
-                            <div class="avatar-step-badge">2</div>
-                            <div>
-                                <h3 class="text-sm font-black text-white uppercase tracking-widest">Essence Color</h3>
-                                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider opacity-60">Infuse with magical aura</p>
-                            </div>
-                            <div id="step-color-check" class="ml-auto w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center opacity-0 transition-opacity duration-300">
-                                <i class="fas fa-check text-xs"></i>
-                            </div>
-                        </div>
-                        <div id="avatar-color-pool" class="flex flex-wrap gap-2"></div>
-                    </div>
-
-                    <!-- Step 3: Accessory -->
-                    <div class="avatar-forge-card group">
-                        <div class="flex items-center gap-4 mb-5">
-                            <div class="avatar-step-badge">3</div>
-                            <div>
-                                <h3 class="text-sm font-black text-white uppercase tracking-widest">Relic & Gear</h3>
-                                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider opacity-60">Equip unique artifacts</p>
-                            </div>
-                            <div id="step-accessory-check" class="ml-auto w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center opacity-0 transition-opacity duration-300">
-                                <i class="fas fa-check text-xs"></i>
-                            </div>
-                        </div>
-                        <div id="avatar-accessory-pool" class="flex flex-wrap gap-2"></div>
-                    </div>
-
+                <div class="af-header__text">
+                    <p class="af-eyebrow">Hammer · Heat · Heart</p>
+                    <h2 id="avatar-maker-title" class="af-title">Avatar Forge</h2>
+                    <p id="avatar-maker-student-name" class="af-subtitle"></p>
                 </div>
+                <button id="avatar-maker-close-btn" type="button" class="af-close" aria-label="Close the Avatar Forge">&times;</button>
+            </header>
 
-                <!-- Right Column: Summoning Circle / Preview -->
-                <div class="w-full lg:w-[380px] bg-black/40 border-t lg:border-t-0 lg:border-l border-white/5 p-8 flex flex-col items-center justify-between gap-8">
-                    
-                    <div class="w-full flex flex-col items-center">
-                        <p class="text-[10px] font-black text-purple-400/60 uppercase tracking-[0.3em] mb-8">Summoning Circle</p>
-                        
-                        <!-- The Magic Circle Preview -->
-                        <div class="relative group">
-                            <!-- Animated Rings -->
-                            <div class="absolute -inset-8 border border-purple-500/20 rounded-full animate-[spin_10s_linear_infinite]"></div>
-                            <div class="absolute -inset-4 border border-blue-500/20 rounded-full animate-[spin_15s_linear_infinite_reverse]"></div>
-                            <div class="absolute -inset-12 border-2 border-dashed border-white/5 rounded-full animate-[spin_30s_linear_infinite]"></div>
-                            
-                            <!-- Main Display Area -->
-                            <div id="avatar-display-area" class="relative z-10 w-64 h-64 rounded-[2rem] bg-slate-900 shadow-[0_0_50px_rgba(124,58,237,0.2)] overflow-hidden flex items-center justify-center border border-white/10 group-hover:border-purple-500/40 transition-all duration-500">
-                                
-                                <div id="avatar-maker-placeholder" class="text-center p-6">
-                                    <div class="text-6xl mb-4 animate-float opacity-50">✨</div>
-                                    <h4 class="text-white text-sm font-bold uppercase tracking-widest mb-2">Awaiting Forge</h4>
-                                    <p class="text-[10px] text-indigo-300/50 leading-relaxed uppercase font-medium">Select all ingredients<br>to begin the ritual</p>
-                                </div>
-
-                                <div id="avatar-maker-loader" class="hidden flex flex-col items-center">
-                                    <div class="relative w-24 h-24 mb-6">
-                                        <div class="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse"></div>
-                                        <div class="absolute inset-0 flex items-center justify-center text-5xl animate-bounce">⚒️</div>
-                                    </div>
-                                    <p class="font-title text-xl text-purple-200 animate-pulse tracking-widest uppercase">Forging...</p>
-                                    <div class="mt-4 w-32 h-1 bg-white/10 rounded-full overflow-hidden">
-                                        <div class="h-full bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 animate-[loading-bar_2s_ease-in-out_infinite]" style="width: 50%"></div>
-                                    </div>
-                                </div>
-
-                                <img id="avatar-maker-img" class="hidden w-full h-full object-cover transition-all duration-700 scale-110 group-hover:scale-100" src="" alt="Generated Avatar">
-                                
-                                <!-- Scanline effect -->
-                                <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-white/5 to-transparent h-[20%] w-full animate-[scanline_3s_linear_infinite] opacity-30"></div>
+            <div class="af-body">
+                <!-- The anvil: live portrait, forging state and the actions -->
+                <section class="af-anvil" aria-label="Portrait on the anvil">
+                    <div class="af-anvil__stage">
+                        <div class="af-ring" aria-hidden="true"></div>
+                        <div id="avatar-display-area" class="af-portrait">
+                            <div id="avatar-maker-placeholder" class="af-portrait__empty">
+                                <span class="af-portrait__ingot" aria-hidden="true"></span>
+                                <p class="af-portrait__title">Cold anvil</p>
+                                <p class="af-portrait__hint">Choose a creature, a colour and a relic to heat the metal</p>
                             </div>
+                            <div id="avatar-maker-loader" class="af-portrait__loader hidden" aria-live="polite">
+                                <svg viewBox="0 0 64 64" class="af-loader-hammer" aria-hidden="true"><path d="M14 20l14-10 8 8-4 4 22 22a4 4 0 0 1-6 6L26 28l-4 4z" fill="currentColor"/></svg>
+                                <span class="af-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                                <p id="avatar-maker-loader-text" class="af-loader-text">Heating the metal…</p>
+                            </div>
+                            <img id="avatar-maker-img" class="af-portrait__img hidden" src="" alt="Forged avatar portrait">
                         </div>
+                        <div class="af-anvil__block" aria-hidden="true"></div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="w-full space-y-4">
-                        <button id="avatar-generate-btn"
-                            class="group relative w-full h-16 rounded-2xl overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-                            disabled>
-                            <div class="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 transition-all group-hover:scale-110"></div>
-                            <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-                            <div class="relative flex items-center justify-center gap-3 text-white font-title text-xl tracking-wider">
-                                <i class="fas fa-fire animate-pulse text-orange-400"></i>
-                                <span>FORGE AVATAR</span>
-                            </div>
-                            <!-- Shine effect -->
-                            <div class="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-25deg] group-hover:animate-[shine_1s_ease-in-out]"></div>
-                        </button>
+                    <p id="avatar-recipe-summary" class="af-recipe" aria-live="polite"></p>
 
-                        <div id="avatar-post-generation-btns" class="hidden space-y-3">
-                            <button id="avatar-save-btn"
-                                class="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-white font-title text-lg rounded-2xl shadow-[0_4px_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
-                                <i class="fas fa-save"></i>
-                                <span>KEEP AVATAR</span>
+                    <div class="af-actions">
+                        <div class="af-actions__row af-actions__row--strike">
+                            <button id="avatar-generate-btn" type="button" class="af-strike" disabled>
+                                <span class="af-strike__glow" aria-hidden="true"></span>
+                                <i class="fas fa-hammer" aria-hidden="true"></i>
+                                <span>Strike the Anvil</span>
                             </button>
-                            <button id="avatar-retry-btn"
-                                class="w-full h-12 bg-white/5 hover:bg-white/10 text-indigo-200 font-bold text-xs rounded-2xl border border-white/10 transition-all uppercase tracking-widest hover:text-white">
-                                <i class="fas fa-redo-alt mr-2"></i>Remix Creation
+                            <button id="avatar-surprise-btn" type="button" class="af-btn-iron af-btn-iron--dice" title="Pick a random recipe" aria-label="Surprise me: pick a random recipe">
+                                <i class="fas fa-dice" aria-hidden="true"></i><span class="af-btn-iron__label">Surprise me</span>
                             </button>
                         </div>
 
-                        <button id="avatar-delete-btn"
-                            class="w-full hidden h-10 bg-transparent hover:bg-red-500/10 text-red-400/40 hover:text-red-400 text-[10px] font-black rounded-xl transition-all border border-red-500/5 hover:border-red-500/20 uppercase tracking-[0.2em]">
-                            <i class="fas fa-trash-alt mr-2"></i>Destroy Current
+                        <div id="avatar-post-generation-btns" class="af-post af-actions__row hidden">
+                            <button id="avatar-save-btn" type="button" class="af-keep">
+                                <i class="fas fa-save" aria-hidden="true"></i><span>Keep this portrait</span>
+                            </button>
+                            <button id="avatar-retry-btn" type="button" class="af-btn-iron">
+                                <i class="fas fa-redo-alt" aria-hidden="true"></i><span>Strike again</span>
+                            </button>
+                        </div>
+
+                        <div id="avatar-forge-gallery-wrap" class="af-gallery hidden">
+                            <p class="af-gallery__label">This session's strikes · tap one to keep it instead</p>
+                            <div id="avatar-forge-gallery" class="af-gallery__row"></div>
+                        </div>
+
+                        <button id="avatar-delete-btn" type="button" class="af-melt hidden">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i><span>Melt the current portrait</span>
                         </button>
                     </div>
+                </section>
 
+                <!-- The workbench: recipe steps -->
+                <div id="avatar-maker-options-wrapper" class="af-bench custom-scrollbar">
+                    <div class="af-progress" aria-hidden="true">
+                        <span class="af-progress__label">Heat</span>
+                        <div class="af-progress__bar">
+                            <div id="step-creature-dot" class="af-progress__seg"></div>
+                            <div id="step-color-dot" class="af-progress__seg"></div>
+                            <div id="step-accessory-dot" class="af-progress__seg"></div>
+                        </div>
+                    </div>
+
+                    <section class="af-step" aria-labelledby="af-step-creature">
+                        <div class="af-step__head">
+                            <span class="af-step__num">1</span>
+                            <div>
+                                <h3 id="af-step-creature" class="af-step__title">The Creature</h3>
+                                <p class="af-step__hint">Who steps out of the fire?</p>
+                            </div>
+                            <span id="step-creature-check" class="af-step__check" aria-hidden="true"><i class="fas fa-check"></i></span>
+                        </div>
+                        <div id="avatar-creature-pool" class="af-pool" role="group" aria-label="Creature"></div>
+                    </section>
+
+                    <section class="af-step" aria-labelledby="af-step-color">
+                        <div class="af-step__head">
+                            <span class="af-step__num">2</span>
+                            <div>
+                                <h3 id="af-step-color" class="af-step__title">The Colour</h3>
+                                <p class="af-step__hint">The metal's main hue</p>
+                            </div>
+                            <span id="step-color-check" class="af-step__check" aria-hidden="true"><i class="fas fa-check"></i></span>
+                        </div>
+                        <div id="avatar-color-pool" class="af-pool af-pool--colors" role="group" aria-label="Colour"></div>
+                    </section>
+
+                    <section class="af-step" aria-labelledby="af-step-accessory">
+                        <div class="af-step__head">
+                            <span class="af-step__num">3</span>
+                            <div>
+                                <h3 id="af-step-accessory" class="af-step__title">The Relic</h3>
+                                <p class="af-step__hint">Something to hold or wear</p>
+                            </div>
+                            <span id="step-accessory-check" class="af-step__check" aria-hidden="true"><i class="fas fa-check"></i></span>
+                        </div>
+                        <div id="avatar-accessory-pool" class="af-pool" role="group" aria-label="Relic"></div>
+                    </section>
+
+                    <section class="af-step af-step--temper" aria-labelledby="af-step-temper">
+                        <div class="af-step__head">
+                            <span class="af-step__num af-step__num--temper"><i class="fas fa-fire-alt" aria-hidden="true"></i></span>
+                            <div>
+                                <h3 id="af-step-temper" class="af-step__title">Tempering</h3>
+                                <p class="af-step__hint">Optional finishing touches, already set to good defaults</p>
+                            </div>
+                        </div>
+
+                        <p class="af-sub">Art style</p>
+                        <div id="avatar-style-pool" class="af-pool af-pool--tiles" role="group" aria-label="Art style"></div>
+
+                        <p class="af-sub">Mood</p>
+                        <div id="avatar-mood-pool" class="af-pool" role="group" aria-label="Mood"></div>
+
+                        <p class="af-sub">Backdrop</p>
+                        <div id="avatar-backdrop-pool" class="af-pool" role="group" aria-label="Backdrop"></div>
+
+                        <p class="af-sub">Framing</p>
+                        <div id="avatar-framing-pool" class="af-pool" role="group" aria-label="Framing"></div>
+
+                        <label class="af-sub" for="avatar-special-input">A special touch <span class="af-sub__note">(optional)</span></label>
+                        <div class="af-engrave">
+                            <input id="avatar-special-input" type="text" maxlength="60" autocomplete="off" spellcheck="true"
+                                placeholder="e.g. freckles and a star-shaped badge">
+                            <span id="avatar-special-count" class="af-engrave__count">0/60</span>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>

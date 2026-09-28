@@ -6,17 +6,14 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('bottom nav is a bar-less cloud dock that keeps a tiny gap under the clouds', () => {
+test('bottom nav is a bar-less cloud dock sitting flush on the bottom edge', () => {
   const css = read('styles/nav.css');
   const navBlock = css.match(/#bottom-nav-bar\s*\{[^}]+\}/);
   assert.ok(navBlock, 'desktop bottom nav rule must exist');
   assert.match(navBlock[0], /position:\s*fixed/);
   assert.match(navBlock[0], /background:\s*transparent/);
   assert.match(navBlock[0], /pointer-events:\s*none/);
-  assert.match(
-    navBlock[0],
-    /padding-bottom:\s*calc\(\s*0\.3\d*rem\s*\+\s*env\(safe-area-inset-bottom/,
-  );
+  assert.match(navBlock[0], /padding-bottom:\s*env\(safe-area-inset-bottom, 0px\);/);
 });
 
 test('every teacher nav tab gets its own cloud shape', () => {

@@ -249,93 +249,213 @@
     transform: translateZ(0);
 }
 
+/*
+ * Cloud dock — the teacher bottom nav is no longer a bar: ten floating clouds, each its own shape,
+ * drift over the bottom of the page. `ui/core/cloudDock.js` adds `.cloud-dock--asleep` after a few
+ * idle seconds on mouse devices (clouds sink out of view) and removes it when the pointer reaches
+ * the bottom edge, a cloud gets keyboard focus, or a touch lands near the bottom.
+ * The icon/label hover and active motion above (.nav-button .icon / .text) is shared and unchanged.
+ */
 #bottom-nav-bar {
-    /* Same compositor isolation as header — scrolling premium cards shouldn’t hitch the dock. */
-    transform: translateZ(0);
-    background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);
-    border-top: 1px solid transparent;
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.55),
-        inset 0 -10px 18px -12px rgba(30, 64, 175, 0.35),
-        0 -8px 24px -8px rgba(37, 99, 235, 0.22);
-    transition: background 1s ease, box-shadow 1s ease, border-color 1s ease;
-    /* Tiny lift under the gems; keep the dock compact and still clear the iOS home indicator. */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(0.2rem, 0.7vw, 0.6rem);
+    padding: 0.9rem clamp(0.5rem, 2vw, 1.5rem) 0;
+    /* Tiny lift under the clouds; still clears the iOS home indicator. */
     padding-bottom: calc(0.32rem + env(safe-area-inset-bottom, 0px));
+    background: transparent;
+    /* Only the clouds catch the pointer; the gaps between them stay clickable. */
+    pointer-events: none;
+    transform: translateZ(0);
 }
 
-/* Static sky-light sheen across the dock — sits under the buttons (they are z-index 1+) */
+/* Soft sky haze behind the clouds so they read over busy tab content — not a bar, it fades to nothing. */
 #bottom-nav-bar::before {
     content: '';
+    position: absolute;
+    inset: -1.5rem 0 0 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(186, 230, 253, 0.55), rgba(224, 242, 254, 0.28) 45%, rgba(224, 242, 254, 0));
+    transition: opacity 600ms ease;
+}
+
+body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
+    background: linear-gradient(to top, rgba(30, 27, 75, 0.62), rgba(49, 46, 129, 0.3) 45%, rgba(49, 46, 129, 0));
+}
+
+#bottom-nav-bar .nav-button {
+    --cloud-rise-delay: 0ms;
+    --cloud-sink-delay: 0ms;
+    --cloud-breath: 6s;
+    --cloud-halo: rgba(255, 255, 255, 0.95);
+    --cloud-shadow: rgba(15, 40, 90, 0.28);
+    flex: 0 1 8.4rem;
+    min-width: 0;
+    height: 4.7rem;
+    top: 0;
+    padding: 0 0.2rem;
+    pointer-events: auto;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    filter:
+        drop-shadow(0 0 1px var(--cloud-halo))
+        drop-shadow(0 5px 6px var(--cloud-shadow));
+    transition:
+        transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 520ms ease var(--cloud-rise-delay),
+        top 700ms cubic-bezier(0.34, 1.4, 0.64, 1) var(--cloud-rise-delay),
+        filter 300ms ease;
+}
+
+#bottom-nav-bar .nav-button.active {
+    box-shadow: none;
+    filter:
+        drop-shadow(0 0 1.5px #fff)
+        drop-shadow(0 0 9px rgba(255, 255, 255, 0.85))
+        drop-shadow(0 4px 5px var(--cloud-shadow));
+}
+
+#bottom-nav-bar .nav-button:focus-visible {
+    outline: none;
+    filter:
+        drop-shadow(0 0 2px #fff)
+        drop-shadow(0 0 7px rgba(250, 204, 21, 0.95))
+        drop-shadow(0 4px 5px var(--cloud-shadow));
+}
+
+#bottom-nav-bar .nav-button:focus-visible .text {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+#bottom-nav-bar .nav-button:focus-visible .icon {
+    transform: translateY(-0.5rem) scale(0.65);
+}
+
+/* The rectangular gem gloss has no place on a cloud; the cloud body carries its own light. */
+#bottom-nav-bar .nav-button::before {
+    background: none;
+}
+
+/* Cloud body: the tab colour, lit from above with a shaded underbelly, cut to this tab's own shape. */
+#bottom-nav-bar .nav-cloud {
     position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
     background:
-        radial-gradient(ellipse 55% 160% at 50% 0%, rgba(255, 255, 255, 0.38), transparent 62%),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.16), transparent 45%);
-    transition: background 1s ease;
+        radial-gradient(ellipse 70% 55% at 46% 18%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0) 70%),
+        radial-gradient(ellipse 30% 30% at 22% 52%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 70%),
+        linear-gradient(to top, rgba(15, 23, 42, 0.2) 0%, rgba(15, 23, 42, 0) 26%),
+        linear-gradient(to top, var(--tw-gradient-from, #7dd3fc), var(--tw-gradient-to, #bae6fd));
+    -webkit-mask: var(--cloud-shape) center / 100% 100% no-repeat;
+    mask: var(--cloud-shape) center / 100% 100% no-repeat;
+    transform-origin: 50% 100%;
+    animation: cloud-breathe var(--cloud-breath) ease-in-out infinite;
 }
 
-/*
- * Night dock — same indigo bar as `header.header-night` / award sky.
- * Projector mode keeps its own floating white chrome.
- */
-body.night-mode:not(.projector-mode) #bottom-nav-bar {
-    background: linear-gradient(to right, #1e3a8a 0%, #312e81 100%);
-    border-top-color: #4338ca;
-    box-shadow:
-        inset 0 1px 0 rgba(199, 210, 254, 0.28),
-        inset 0 -12px 20px -14px rgba(15, 23, 42, 0.55),
-        0 -10px 28px -12px rgba(15, 23, 42, 0.42);
+@keyframes cloud-breathe {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    50% { transform: translateY(-2px) scale(1.018, 1.03); }
 }
 
-body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
-    background:
-        radial-gradient(ellipse 60% 140% at 50% 0%, rgba(165, 180, 252, 0.2), transparent 64%),
-        linear-gradient(to bottom, rgba(49, 46, 129, 0.28), transparent 48%);
+#bottom-nav-bar .nav-button.nav-button-locked {
+    background: none;
+    --tw-gradient-from: #9ca3af;
+    --tw-gradient-to: #d1d5db;
+    filter: grayscale(1) drop-shadow(0 0 1px var(--cloud-halo)) drop-shadow(0 4px 5px var(--cloud-shadow));
+}
+
+/* Ceremony-day glow: a golden halo around the Home cloud instead of the old box glow. */
+#bottom-nav-bar .nav-button.ceremony-star-ring {
+    animation: none;
+    filter:
+        drop-shadow(0 0 1.5px #fff)
+        drop-shadow(0 0 8px rgba(251, 191, 36, 0.7))
+        drop-shadow(0 4px 5px var(--cloud-shadow));
+}
+
+/* Asleep: the clouds sink below the page edge in a wave and wait there. */
+#bottom-nav-bar.cloud-dock--asleep::before {
+    opacity: 0;
+}
+
+#bottom-nav-bar.cloud-dock--asleep .nav-button {
+    top: 6rem;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 420ms ease calc(var(--cloud-sink-delay) + 120ms),
+        top 560ms cubic-bezier(0.55, 0, 0.8, 0.2) var(--cloud-sink-delay),
+        filter 300ms ease;
+}
+
+/* Wake from the middle outwards; sink from left to right. Each cloud breathes at its own pace. */
+#bottom-nav-bar .nav-button:nth-child(1)  { --cloud-rise-delay: 180ms; --cloud-sink-delay: 0ms;   --cloud-breath: 6.2s; }
+#bottom-nav-bar .nav-button:nth-child(2)  { --cloud-rise-delay: 140ms; --cloud-sink-delay: 30ms;  --cloud-breath: 7.1s; }
+#bottom-nav-bar .nav-button:nth-child(3)  { --cloud-rise-delay: 100ms; --cloud-sink-delay: 60ms;  --cloud-breath: 5.6s; }
+#bottom-nav-bar .nav-button:nth-child(4)  { --cloud-rise-delay: 60ms;  --cloud-sink-delay: 90ms;  --cloud-breath: 6.8s; }
+#bottom-nav-bar .nav-button:nth-child(5)  { --cloud-rise-delay: 20ms;  --cloud-sink-delay: 120ms; --cloud-breath: 5.9s; }
+#bottom-nav-bar .nav-button:nth-child(6)  { --cloud-rise-delay: 20ms;  --cloud-sink-delay: 150ms; --cloud-breath: 7.4s; }
+#bottom-nav-bar .nav-button:nth-child(7)  { --cloud-rise-delay: 60ms;  --cloud-sink-delay: 180ms; --cloud-breath: 6.4s; }
+#bottom-nav-bar .nav-button:nth-child(8)  { --cloud-rise-delay: 100ms; --cloud-sink-delay: 210ms; --cloud-breath: 5.7s; }
+#bottom-nav-bar .nav-button:nth-child(9)  { --cloud-rise-delay: 140ms; --cloud-sink-delay: 240ms; --cloud-breath: 6.9s; }
+#bottom-nav-bar .nav-button:nth-child(10) { --cloud-rise-delay: 180ms; --cloud-sink-delay: 270ms; --cloud-breath: 6.1s; }
+
+/* A different cloud for every tab (viewBox 120×70, stretched to the button). */
+#bottom-nav-bar .nav-button[data-tab="about-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='34' width='108' height='34' rx='16'/%3E%3Ccircle cx='34' cy='36' r='19'/%3E%3Ccircle cx='62' cy='27' r='24'/%3E%3Ccircle cx='90' cy='37' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="class-leaderboard-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='4' y='38' width='112' height='30' rx='14'/%3E%3Ccircle cx='22' cy='40' r='13'/%3E%3Ccircle cx='44' cy='31' r='17'/%3E%3Ccircle cx='70' cy='28' r='18'/%3E%3Ccircle cx='95' cy='37' r='15'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="student-leaderboard-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='8' y='36' width='104' height='32' rx='15'/%3E%3Ccircle cx='28' cy='42' r='14'/%3E%3Ccircle cx='56' cy='26' r='24'/%3E%3Ccircle cx='84' cy='34' r='16'/%3E%3Ccircle cx='102' cy='44' r='11'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="shop-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='36' width='108' height='32' rx='15'/%3E%3Ccircle cx='34' cy='30' r='23'/%3E%3Ccircle cx='66' cy='36' r='16'/%3E%3Ccircle cx='92' cy='40' r='14'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="guilds-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='36' width='108' height='32' rx='15'/%3E%3Ccircle cx='28' cy='41' r='14'/%3E%3Ccircle cx='54' cy='35' r='16'/%3E%3Ccircle cx='86' cy='29' r='23'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="award-stars-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='36' width='108' height='32' rx='15'/%3E%3Ccircle cx='36' cy='30' r='20'/%3E%3Ccircle cx='84' cy='30' r='20'/%3E%3Ccircle cx='60' cy='40' r='15'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="adventure-log-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='3' y='40' width='114' height='28' rx='13'/%3E%3Ccircle cx='16' cy='44' r='11'/%3E%3Ccircle cx='36' cy='34' r='14'/%3E%3Ccircle cx='60' cy='29' r='16'/%3E%3Ccircle cx='84' cy='34' r='14'/%3E%3Ccircle cx='104' cy='44' r='11'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="scholars-scroll-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='6' y='36' width='108' height='32' rx='15'/%3E%3Ccircle cx='32' cy='38' r='16'/%3E%3Ccircle cx='58' cy='32' r='20'/%3E%3Ccircle cx='76' cy='20' r='11'/%3E%3Ccircle cx='94' cy='40' r='14'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="calendar-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='5' y='38' width='110' height='30' rx='14'/%3E%3Ccircle cx='26' cy='38' r='15'/%3E%3Ccircle cx='49' cy='31' r='18'/%3E%3Ccircle cx='73' cy='31' r='18'/%3E%3Ccircle cx='96' cy='38' r='15'/%3E%3C/g%3E%3C/svg%3E"); }
+#bottom-nav-bar .nav-button[data-tab="reward-ideas-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='8' y='38' width='104' height='30' rx='14'/%3E%3Ccircle cx='24' cy='45' r='13'/%3E%3Ccircle cx='44' cy='33' r='17'/%3E%3Ccircle cx='70' cy='26' r='20'/%3E%3Ccircle cx='98' cy='39' r='14'/%3E%3C/g%3E%3C/svg%3E"); }
+
+/* Night: clouds dim to moonlit versions of their colours with a cool halo. */
+body.night-mode:not(.projector-mode) #bottom-nav-bar .nav-button {
+    --cloud-halo: rgba(199, 210, 254, 0.75);
+    --cloud-shadow: rgba(2, 6, 23, 0.55);
+}
+
+body.night-mode:not(.projector-mode) #bottom-nav-bar .nav-cloud {
+    filter: brightness(0.86) saturate(0.92);
 }
 
 body.night-mode:not(.projector-mode) #bottom-nav-bar .nav-button.active {
-    box-shadow:
-        inset 0 0 0 1.5px rgba(199, 210, 254, 0.42),
-        inset 0 1px 0 rgba(255, 255, 255, 0.28),
-        0 0 16px rgba(165, 180, 252, 0.42),
-        0 2px 4px rgba(0, 0, 0, 0.5);
+    filter:
+        drop-shadow(0 0 1.5px rgba(224, 231, 255, 0.95))
+        drop-shadow(0 0 10px rgba(165, 180, 252, 0.6))
+        drop-shadow(0 4px 5px var(--cloud-shadow));
 }
 
-body.night-mode:not(.projector-mode):has(header.header-night.header-stormy) #bottom-nav-bar {
-    background: linear-gradient(to right, #0f172a 0%, #1e1b4b 55%, #020617 100%);
-    border-top-color: #312e81;
+/* Leave room under the last row of tab content so it can scroll clear of the clouds. */
+body:not(.gcq-mobile) #app-screen > main {
+    padding-bottom: 6rem;
 }
 
-body.night-mode:not(.projector-mode):has(header.header-night.header-rainy) #bottom-nav-bar {
-    background: linear-gradient(to right, #1e293b 0%, #334155 50%, #0f172a 100%);
-    border-top-color: #475569;
-}
+@media (prefers-reduced-motion: reduce) {
+    #bottom-nav-bar .nav-cloud {
+        animation: none;
+    }
 
-body.night-mode:not(.projector-mode):has(header.header-night.header-snowy) #bottom-nav-bar {
-    background: linear-gradient(to right, #475569 0%, #64748b 50%, #334155 100%);
-    border-top-color: #94a3b8;
-}
-
-body.night-mode:not(.projector-mode):has(header.header-night.header-cloudy) #bottom-nav-bar {
-    background: linear-gradient(to right, #475569 0%, #334155 100%);
-    border-top-color: #64748b;
-}
-
-body.night-mode:not(.projector-mode):has(header.header-night.header-foggy) #bottom-nav-bar {
-    background: linear-gradient(to right, #3f4c5c 0%, #2f3b4a 52%, #1e293b 100%);
-    border-top-color: #64748b;
-}
-
-body.night-mode:not(.projector-mode):has(header.header-night.header-icy) #bottom-nav-bar {
-    background: linear-gradient(to right, #16343c 0%, #0f2a32 52%, #0b1c22 100%);
-    border-top-color: #155e75;
-}
-
-body.night-mode:not(.projector-mode):has(header.header-night.header-hail) #bottom-nav-bar {
-    background: linear-gradient(to right, #0f172a 0%, #312e81 50%, #020617 100%);
-    border-top-color: #4338ca;
+    #bottom-nav-bar .nav-button,
+    #bottom-nav-bar.cloud-dock--asleep .nav-button {
+        top: 0;
+        transition: transform 300ms ease, opacity 250ms ease, filter 300ms ease;
+    }
 }
 
 /*
@@ -635,7 +755,6 @@ body.projector-mode #award-immersive-sky {
 }
 
 #app-screen.award-sky-active #bottom-nav-bar {
-    position: relative;
     z-index: 60 !important;
 }
 

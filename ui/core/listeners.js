@@ -25,6 +25,7 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
+import { setupCloudDock } from './cloudDock.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
 import {
     handleAddClass,
@@ -266,6 +267,7 @@ export function setupUIListeners() {
         }
     });
     tabs.updateBottomNavGateState();
+    setupCloudDock();
     document.getElementById('back-to-classes-btn').addEventListener('click', () => tabs.showOptionsSubtab('classes'));
 
     // Auth

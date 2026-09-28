@@ -11,6 +11,8 @@ import { GUILDS, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CERTIFICATE_WIDTH } from '../../../../features/certificateCore.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features/homeGreetingScene.js';
+import { buildSkyCardInner, describeArc, getLessonDialArc } from '../../../../ui/wallpaperDeck.mjs';
+import { getMoonPhaseCard, getWouldYouRatherCard } from '../../../../ui/wallpaperSkyCards.js';
 
 function startShow() {
   hideExtras();
@@ -231,8 +233,10 @@ export function hideHomeTab() {
   tab?.classList.remove('capture-home');
 }
 
-function wallpaperFloatCard(css, html, pos) {
-  return `<div class="wallpaper-float-card ${css} absolute" style="top:${pos.top};bottom:${pos.bottom};left:${pos.left};right:${pos.right};opacity:1;">${html}</div>`;
+/** A Sky Card exactly as the Director builds it (ui/wallpaperDeck.mjs frame + a real card body). */
+function wallpaperSkyCard(family, card, pos, lifeLeft = 0.6) {
+  const inner = buildSkyCardInner({ family, sigil: card.sigil, title: card.title, bodyHtml: card.html, hint: card.hint || '' });
+  return `<div class="wallpaper-float-card sky-card sky-card--${family} absolute is-placed" style="top:${pos.top};left:${pos.left};opacity:1;--card-rotate:${pos.rotate || '0deg'};--life-left:${lifeLeft};">${inner}</div>`;
 }
 
 function fillAnalogueClock() {
@@ -274,13 +278,10 @@ export function showProjector() {
   const classLevel = document.getElementById('wall-class-level');
   const quote = document.getElementById('wall-quote-text');
   const quoteBox = document.getElementById('wall-quote-container');
-  if (timeEl) {
-    timeEl.textContent = '09:15';
-    timeEl.style.textShadow = '0 4px 6px rgba(0,0,0,0.6), 0 0 20px hsl(210, 90%, 50%)';
-  }
+  if (timeEl) timeEl.textContent = '09:15';
   if (dateEl) dateEl.textContent = 'Sunday, 30 August 2026';
-  if (className) className.innerHTML = '<span class="mr-3 text-5xl align-middle">📚</span>Junior B';
-  if (classLevel) classLevel.textContent = 'Quest League';
+  if (className) className.innerHTML = '<span class="sky-hub__logo" aria-hidden="true">📚</span><span class="sky-hub__name">Junior B</span>';
+  if (classLevel) classLevel.textContent = 'Quest League · Junior B';
   if (quote) quote.textContent = 'Courage is a star you can share.';
   quoteBox?.classList.remove('opacity-0');
   quoteBox?.classList.add('opacity-100');
@@ -302,37 +303,32 @@ export function showProjector() {
             <span class="wall-timer-pill__clock">00:04:12</span>
         </div>`;
 
+  // Day arc (sun a little past the morning), lesson ring (09:00–10:00 at 09:15).
+  const marker = document.getElementById('wall-day-marker');
+  const dayDone = document.getElementById('wall-day-done');
+  marker?.setAttribute('transform', 'translate(78.3 23.8)');
+  dayDone?.setAttribute('d', 'M 20 58 A 130 46 0 0 1 78.3 23.8');
+  const rise = document.getElementById('wall-sunrise');
+  const set = document.getElementById('wall-sunset');
+  if (rise) rise.textContent = '☀ 07:05';
+  if (set) set.textContent = '19:52 ☾';
+  const arc = getLessonDialArc('09:00', '10:00', new Date(2026, 7, 30, 9, 15));
+  document.getElementById('wall-lesson-track')?.setAttribute('d', describeArc(100, 100, 93, arc.startDeg, arc.sweepDeg));
+  document.getElementById('wall-lesson-done')?.setAttribute('d', describeArc(100, 100, 93, arc.startDeg, arc.elapsedDeg));
+  const caption = document.getElementById('wall-lesson-caption');
+  if (caption) {
+    caption.textContent = `Lesson ends in ${arc.minutesLeft} min`;
+    caption.classList.add('is-visible');
+  }
+  wall.classList.add('wall-awake');
+
   const area = document.getElementById('wall-floating-area');
   if (area) {
+    const moon = getMoonPhaseCard(new Date(2026, 7, 30, 21));
+    const talk = getWouldYouRatherCard('Junior B');
     area.innerHTML = [
-      wallpaperFloatCard(
-        'float-card-red',
-        `<div class="text-center">
-            <div class="badge-pill bg-red-100 text-red-700">Timekeeper</div>
-            <div class="relative w-48 h-48 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-lg"
-                 style="background: conic-gradient(#ef4444 108deg, #f3f4f6 0deg);">
-                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center flex-col">
-                    <span class="font-title text-6xl text-red-600 leading-none">18</span>
-                    <span class="text-xs font-bold text-red-400 uppercase">Mins</span>
-                </div>
-            </div>
-            <p class="text-red-900 font-bold text-2xl">Until Adventure Ends</p>
-        </div>`,
-        { top: '8%', left: '5%', bottom: 'auto', right: 'auto' }
-      ),
-      wallpaperFloatCard(
-        'float-card-blue',
-        `<div class="text-center w-full">
-            <div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div>
-            <div class="text-9xl mb-4 filter drop-shadow-md">📚</div>
-            <div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner">
-                <div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:62%"></div>
-            </div>
-            <p class="font-title text-4xl text-blue-900">62% Complete</p>
-            <p class="text-sm font-bold text-indigo-600 mt-2">Includes +10 Pathfinder bonus</p>
-        </div>`,
-        { top: 'auto', left: 'auto', bottom: '12%', right: '5%' }
-      )
+      wallpaperSkyCard('sky', moon, { top: '14%', left: '3%', rotate: '-1deg' }, 0.7),
+      wallpaperSkyCard('heart', talk, { top: '30%', left: '68%', rotate: '1deg' }, 0.35)
     ].join('');
   }
 }

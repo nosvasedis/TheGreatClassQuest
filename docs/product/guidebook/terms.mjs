@@ -271,10 +271,10 @@ export const TERMS = [
     chapter: 'classroom-chrome',
     widget: 'projector',
     names: { en: 'Projector Mode', el: 'Projector Mode' },
-    aliases: ['projector mode', 'projector', 'classroom tv', 'the director', 'wallpaper mode', 'projector wallpaper'],
+    aliases: ['projector mode', 'projector', 'classroom tv', 'the director', 'wallpaper mode', 'projector wallpaper', 'sky cards', 'sky deck'],
     def: {
-      en: 'The TV button on the classroom PC. A living wallpaper you can open whenever it helps the lesson: sky, huge clock, analogue hands, class badge, wisdom line, rotating story cards, and — when they are real — remaining times (lesson Timekeeper, next lesson, bounty countdown). Not on the teacher phone. Sky Theater is a different toy.',
-      el: 'Το κουμπί TV στον υπολογιστή τάξης. Ζωντανή ταπετσαρία που ανοίγεις όποτε βοηθά το μάθημα: ουρανός, ρολόι, καρτέλες, και χρόνοι που απομένουν όταν ισχύουν. Όχι στο κινητό. Το Sky Theater είναι άλλο πράγμα.'
+      en: 'The TV button on the classroom PC. A living wallpaper you can open whenever it helps the lesson: sky over the realm’s hills, day arc, huge clock, analogue dial with the lesson ring, class banner, wisdom ribbon, rotating Sky Cards in nine colour families, and — when they are real — remaining times (lesson ring, Timekeeper, next lesson, bounty countdown). A remote (move the mouse) pins, skips or brings back cards; the Sky Deck chooses families and card length. Not on the teacher phone. Sky Theater is a different toy.',
+      el: 'Το κουμπί TV στον υπολογιστή τάξης. Ζωντανή ταπετσαρία που ανοίγεις όποτε βοηθά το μάθημα: ουρανός, τόξο της μέρας, ρολόι με δαχτυλίδι μαθήματος, Sky Cards σε εννέα οικογένειες, και χρόνοι που απομένουν όταν ισχύουν. Το τηλεχειριστήριο καρφιτσώνει ή αλλάζει καρτέλες· το Sky Deck διαλέγει οικογένειες και διάρκεια. Όχι στο κινητό. Το Sky Theater είναι άλλο πράγμα.'
     },
     confuse: { en: 'Sky Theater', el: 'Sky Theater' }
   },

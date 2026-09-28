@@ -48,18 +48,56 @@ Tap the **TV** in the header (classroom PC only — there is no Projector on the
 
 Open it **whenever it helps the lesson** — English on the board, children looking up for a countdown, a quiet atmosphere during pair work. It is not a step you must do before Award Stars. Leave it running on the classroom TV / projector; keep Award Stars, the Market, and ceremonies on your teacher screen. The wallpaper is for **showing**, not for tapping every student.
 
-Leave with **Esc** or the **power** button at the top-right of the wallpaper.
+Leave with **Esc** or the **power** button on the remote at the top-right of the wallpaper.
 
 ### What the room sees
 
 - **Sky.** Follows **real sunrise and sunset** for the school’s weather location. Day: sun and a bright sky. Night: moon and a starfield. Clouds drift. Rain, snow, cloud, and storm skins follow live weather when the location is set.
+- **The realm on the horizon.** Rolling hills and a small castle with a waving flag. At night its windows glow; in snow the hills turn white.
 - **Season.** Leaves, snow, and similar atmosphere can appear with the calendar.
-- **Huge digital clock** plus the **date**, and a **ticking analogue clock** underneath.
-- **Class badge** when a class is selected: the class name and its Quest League (for example Junior B).
-- **Wisdom Dock** along the bottom: a rotating inspirational line in a soft bar.
-- **The Director:** story cards that **float and change about once a minute**, so the wallpaper never goes stale. The mix depends on whether you have a class selected, how far into the lesson you are, and your plan.
+- **The clock hub.** A glass panel with the **day arc** on top (the sun travels from sunrise to sunset, the moon from sunset to sunrise), the **huge digital clock**, the **date**, and a **ticking analogue clock**.
+- **Lesson ring.** When a class is in session, its lesson window is drawn on the analogue dial: a faint band from start to end that fills in gold as the lesson runs. Under the dial a pill says **Lesson ends in … min**; in the last 10 minutes it turns rose and gently pulses. Half an hour before the lesson it says when it starts.
+- **Class banner** when a class is selected: the class crest, name, and Quest League on a ribbon.
+- **Wisdom ribbon** along the bottom: the daily inspirational line. You can hide it in the Sky Deck.
+- **The Director:** **Sky Cards** that drift in and change about once a minute (or at the pace you choose), so the wallpaper never goes stale. The mix depends on whether you have a class selected, how far into the lesson you are, and your plan.
 
 **Sky Theater** (little emoji flights across the *header*) is a different toy. It is not Projector Mode.
+
+### Sky Cards
+
+Every card has the same shape, so children learn to read it at a glance: a **crest** with the card’s emoji on a ribbon, the **family** name, the card’s **title**, the content, and a thin **life bar** at the bottom that drains until the next card. Each family has its own colour:
+
+| Family | Colour | What it holds |
+|--------|--------|---------------|
+| **Hall of Heroes** | Gold | Spotlights, recent awards, birthdays, Star of the Week, stars so far today |
+| **Class Quest** | Royal blue | Team Quest progress, treasury, streaks, bounties, map zone, Familiars, story |
+| **Time & Tides** | Rose | Lesson Timekeeper, next lesson, holidays, tests, the school-year journey |
+| **Word Workshop** | Teal | English from the class’s own lesson, words, phrases, spelling |
+| **Puzzle Nook** | Magenta | Riddles, maths, True or False, Odd one out, Letter hunt, Quick draw |
+| **Wonders** | Indigo | Facts, history, science, myths, namedays |
+| **Mind & Heart** | Green | Mindfulness, healthy habits, Would you rather, creative prompts |
+| **Sky Watch** | Sky blue | Live weather, tonight’s moon, daylight, the season |
+| **The Realm** | Violet | The whole school: pulse, treasury, top classes, guild standings |
+
+Cards with an answer (riddles, True or False, Odd one out, Spell it right, Quiz rewind, Word scramble) keep it **blurred** and say **Answer in 0:38** in the corner. The blur clears slowly and the answer is sharp for the last 10 seconds. Click the card, or press **R**, to reveal it sooner.
+
+### The projector remote
+
+Move the mouse (or press any shortcut) and a small remote appears at the top-right. It fades away, with the cursor, after a few seconds of stillness, so the room only sees the sky.
+
+- **⏮ Previous card** (**←**) brings back the card you just skipped past.
+- **📌 Pin** (**Space**) keeps the current card on the sky until you press it again. Its life bar stops and a pin appears on it. Great for a riddle the class is still arguing about.
+- **⏭ Next card** (**→**) sends the card away and brings a fresh one now.
+- **Sky Deck** (**D**) opens the deck settings (below).
+- **Full screen** (**F**) and **power** (**Esc**) to leave.
+
+### The Sky Deck
+
+Open it from the remote or press **D**. The settings stay on that classroom PC.
+
+- **Families.** Tap a family to switch it off or on. The number shows how many kinds of card that family can deal right now. Birthdays and a finished bounty timer always come through. If you switch everything off, the full deck comes back rather than an empty sky.
+- **Each card stays** 30 seconds, 1 minute, 2 minutes, or 5 minutes.
+- **Wisdom ribbon** on or off.
 
 ### Remaining time (when it is useful)
 
@@ -67,17 +105,19 @@ The wallpaper is not a blank poster. It tells the room how long things last — 
 
 - **Lesson Timekeeper** card: minutes **until this class’s scheduled end** (the analogue ring empties as the lesson runs down). It appears when a class is selected, the class has an end time, and there are still **1–120 minutes** left. It will not show a leftover timer from yesterday.
 - **Next Adventure** card: the **next scheduled lesson day** and start time for this class.
-- **Bounty timer pill** (top-left): if a **Race the Clock** bounty is running for the selected class, a live countdown sits on the wallpaper. The icon calms, then warns (⏳), then burns (🔥) as the last seconds go. When the bounty finishes, the pill leaves. **Time Warp Hourglass** adds **+5 minutes** to that same countdown (and to the bounty board at the top of your teacher screen).
+- **Bounty timer pill** (top-left): if a **Race the Clock** bounty is running for the selected class, a live countdown sits on the wallpaper. The icon calms, then warns (⏳), then burns (🔥) as the last seconds go. When it reaches zero a big **Time’s Up!** card takes the middle of the screen for eight seconds (it outranks a pinned card), then the cards carry on. **Time Warp Hourglass** adds **+5 minutes** to that same countdown (and to the bounty board at the top of your teacher screen).
+- **Lesson ring** on the analogue dial and the **Lesson ends in … min** pill (see above).
 - **Holiday countdown** and **pre-holiday hype** when a school holiday is within a week.
+- **Our year of adventure** card: how much of the school year you have travelled, month by month, and the days to go.
 - **Upcoming test** countdown (Scholar’s Scroll, Pro) when a paper is scheduled in the next seven days — and extra “luck” cards if the test is **today**.
 
 ### Stats and story cards (The Director)
 
 Cards rotate. The Director avoids showing the same *kind* of card twice in a row. Birthdays and namedays **jump the queue** so the room can cheer.
 
-**With a class selected** you typically see: Team Quest progress (percent toward this month’s map, including Pathfinder bonus), class treasury (Gold), attendance / “heroes assembled,” streaks of “super days” (lessons with more than 5 stars), map zone, how this class sits versus the school, top Gold in the class, **reigning Hero of the Day** (Pro), Story Weavers last line (Elite), Familiar parade / hatch watch (Elite), who is absent, spotlights of **present** students only, recent awards, and recent adventure pictures.
+**With a class selected** you typically see: **Stars so far today** (the class total and a podium of today’s top three), **Star of the Week** (most stars in the last seven days), **Birthday coming up** (a classmate’s birthday in the next three weeks), Team Quest progress (percent toward this month’s map, including Pathfinder bonus), class treasury (Gold), attendance / “heroes assembled,” streaks of “super days” (lessons with more than 5 stars), map zone, how this class sits versus the school, top Gold in the class, **reigning Hero of the Day** (Pro), Story Weavers last line (Elite), Familiar parade / hatch watch (Elite), who is absent, spotlights of **present** students only, recent awards, and recent adventure pictures.
 
-**School-wide** (or mixed in): school pulse, school treasury, top heroes, active bounties, weather, next holiday, Greek nameday, Orthodox calendar, guild standings (Pro), and — on Elite — facts, jokes, riddles, idioms, tongue-twisters, and brain-teasers. Morning, afternoon, Monday, and Friday each lean the mix a little.
+**School-wide** (or mixed in): school pulse, school treasury, top heroes, active bounties, **live weather** (temperature, high and low, and a tip for the day), **tonight’s moon** (phase and how much is lit), **daylight** (sunrise, sunset, and how much sunlight is left), **the season** (day of the season and when the next one begins), next holiday, Greek nameday, Orthodox calendar, guild standings (Pro), and — on Elite — facts, jokes, riddles, idioms, tongue-twisters, and brain-teasers. Morning, afternoon, Monday, and Friday each lean the mix a little.
 
 **English-learning cards** join the mix and come from the class's own lesson:
 
@@ -87,9 +127,10 @@ Cards rotate. The Director avoids showing the same *kind* of card twice in a row
 - **Story recall** (Elite): the latest Story Weavers line with the Word of the Day missing
 - **Next quest**: the homework from Quest Assignment
 - **Growth Starfall** (Pro): a child who climbed well above their own average this week (name only, no scores)
+- **Quick games** on every plan, matched to the league: **True or False?**, **Odd one out**, **Spell it right**, **Letter hunt** (name five … that start with a letter, racing the life bar), **Quick draw** (draw it before the bar runs out, then describe it in English), and **Would you rather…** (say why to a partner)
 - On every plan, matched to the league: **Finish the sentence**, **Think · Pair · Share**, **Grammar nugget**, **Say it right** (minimal pairs such as *ship/sheep*, not for Nursery/Pre-Junior), and **Classroom English**
 
-Cards float in the free space around the clock. They never cover the clock, the league badge, the quote dock or the top buttons, and they shrink rather than slide off a smaller projector screen.
+Cards float in the free space around the clock. They never cover the clock, the class banner, the wisdom ribbon or the top controls, and they shrink rather than slide off a smaller projector screen.
 
 The first ~20 minutes of a lesson favour a calmer “opening” mix; after about 70 minutes the mix winds down (mindfulness, study tips, a season snapshot).
 
@@ -100,7 +141,7 @@ If you selected **Follow today’s schedule** or a named class, the wallpaper is
 1. On the classroom PC, Follow today’s schedule is already on (or pick a class).
 2. Tap **TV**. Allow full screen if the browser asks.
 3. Cast / HDMI that window to the classroom display.
-4. Teach on your usual tabs. The TV keeps the sky, the clocks, and the cards.
+4. Teach on your usual tabs. The TV keeps the sky, the clocks, and the cards. Need a card to stay for the discussion? Move the mouse and press **📌** (or **Space**).
 5. When a bounty or the lesson clock matters, glance up — the children already see it.
 
 Do not try to award stars *on* the wallpaper. Come back to Award Stars for that.

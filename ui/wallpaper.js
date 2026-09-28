@@ -15,6 +15,21 @@ import { WALLPAPER_WEATHER_CLASSES, wallpaperClassesForCode } from '../features/
 import { getLiveYearGoldFromAppState, sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { chooseCardPlacement } from '../utils/wallpaperLayout.mjs';
 import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLanguageCardDeck } from './wallpaperLanguageCards.js';
+import { SKY_CARD_TYPES, getSkyCardDeck, hydrateSkyCard, getLiveWeatherCard, rememberSkyWeather } from './wallpaperSkyCards.js';
+import {
+    CARD_FAMILIES,
+    CARD_DURATION_CHOICES,
+    buildSkyCardInner,
+    countDeckByFamily,
+    describeArc,
+    escapeCardText,
+    filterDeckByFamilies,
+    getCardFamilyKey,
+    getLessonDialArc,
+    getSeasonInfo,
+    getSunProgress,
+    normalizeWallpaperPrefs
+} from './wallpaperDeck.mjs';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -94,17 +109,44 @@ const WEATHER_REFRESH_MS = 30 * 60 * 1000; // 30 minutes
 
 const HISTORY_KEY = 'gcq_wall_history';
 const SESSION_KEY = 'gcq_wall_session';
-const CARD_DURATION = 60000;
+const PREFS_KEY = 'gcq_wall_prefs';
 const MEMORY_LIMIT = 100;
-// Timed blur: answer stays blurred for (CARD_DURATION - BLUR_FULLY_VISIBLE_LAST_MS), then fully visible for last 10s
+// Timed blur: the answer clears gradually and is fully visible for the card's last 10 seconds.
 const BLUR_FULLY_VISIBLE_LAST_MS = 10000;
-const BLUR_REVEAL_MS = CARD_DURATION - BLUR_FULLY_VISIBLE_LAST_MS; // 50s of gradual unblur
 const BLUR_MAX_PX = 12;
+const CARD_GAP_MS = 5000;
+const BACK_STACK_LIMIT = 12;
 
-let solarData = {
-    sunrise: new Date().setHours(6, 30, 0, 0),
-    sunset: new Date().setHours(20, 30, 0, 0)
-};
+// Teacher's deck settings for this projector PC (card length, families, wisdom ribbon).
+let wallPrefs = loadWallPrefs();
+
+function loadWallPrefs() {
+    try { return normalizeWallpaperPrefs(JSON.parse(localStorage.getItem(PREFS_KEY) || 'null')); } catch { return normalizeWallpaperPrefs(null); }
+}
+
+function saveWallPrefs(next) {
+    wallPrefs = normalizeWallpaperPrefs(next);
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(wallPrefs)); } catch { /* per-device convenience only */ }
+}
+
+function getCardDurationMs() {
+    return wallPrefs.durationS * 1000;
+}
+
+function getBlurRevealMs() {
+    const duration = getCardDurationMs();
+    return Math.max(duration * 0.6, duration - BLUR_FULLY_VISIBLE_LAST_MS);
+}
+
+// Director remote state: pinned card, the card shown before (for "previous"), pending gap timer.
+let isPaused = false;
+let pausedRemainingMs = 0;
+let cardGapTimeout = null;
+let wallIdleTimeout = null;
+let wallControlsBound = false;
+const backStack = [];
+// Timer bounties this screen already announced (the synced status can lag a moment behind).
+const finishedTimerIds = new Set();
 
 const clockHandAngles = {
     hour: null,
@@ -156,6 +198,7 @@ export function toggleWallpaperMode() {
 
     if (isHidden) {
         isRunning = true;
+        isPaused = false;
         document.body.classList.add('projector-mode');
         wallpaperEl.classList.remove('hidden');
         wallpaperEl.classList.remove('wallpaper-exit');
@@ -166,11 +209,16 @@ export function toggleWallpaperMode() {
         }
 
         if (escListener) document.removeEventListener('keydown', escListener);
-        escListener = (e) => { if (e.key === 'Escape') toggleWallpaperMode(); };
+        escListener = handleWallpaperKeydown;
         document.addEventListener('keydown', escListener);
         // Entering full screen (or resizing the projector window) changes the free space around the clock.
         window.removeEventListener('resize', handleWallpaperResize);
         window.addEventListener('resize', handleWallpaperResize);
+
+        bindWallControls();
+        applyQuotePref();
+        syncRemoteState();
+        wakeWallControls(6000);
 
         utils.fetchSolarCycle();
         startWallpaperClock();
@@ -183,9 +231,11 @@ export function toggleWallpaperMode() {
 
     } else {
         isRunning = false;
+        isPaused = false;
         document.body.classList.remove('projector-mode');
         wallpaperEl.classList.remove('wallpaper-enter');
         wallpaperEl.classList.add('wallpaper-exit');
+        closeDeckPanel();
 
         if (escListener) {
             document.removeEventListener('keydown', escListener);
@@ -193,6 +243,7 @@ export function toggleWallpaperMode() {
         }
         window.removeEventListener('resize', handleWallpaperResize);
         clearTimeout(wallpaperResizeTimeout);
+        clearTimeout(wallIdleTimeout);
 
         setTimeout(() => {
             wallpaperEl.classList.add('hidden');
@@ -200,19 +251,374 @@ export function toggleWallpaperMode() {
                 document.exitFullscreen();
             }
             clearTimeout(directorTimeout);
+            clearTimeout(cardGapTimeout);
             if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
             if (wallpaperTimerHideTimeout) clearTimeout(wallpaperTimerHideTimeout);
             clearInterval(clockInterval);
             resetWallpaperClockHandAngles();
             lastWeatherRefresh = 0;
-            document.getElementById('wall-floating-area').innerHTML = '';
+            clearFloatingArea();
             document.getElementById('wall-quote-container').style.opacity = '0';
         }, 600);
     }
 }
 
+// ─── Projector remote: controls, keyboard, deck settings ────────────────────
+
+function handleWallpaperKeydown(e) {
+    if (!isRunning) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    const panelOpen = !document.getElementById('wall-deck-panel')?.classList.contains('hidden');
+    switch (e.key) {
+        case 'Escape':
+            if (panelOpen) closeDeckPanel();
+            else toggleWallpaperMode();
+            break;
+        case 'ArrowRight': e.preventDefault(); nextWallCard(); break;
+        case 'ArrowLeft': e.preventDefault(); previousWallCard(); break;
+        case ' ':
+            e.preventDefault();
+            // A focused remote button must not also "click" on key-up.
+            if (e.target?.closest?.('button')) e.target.blur();
+            togglePinWallCard();
+            break;
+        case 'r': case 'R': revealWallAnswer(); break;
+        case 'd': case 'D': panelOpen ? closeDeckPanel() : openDeckPanel(); break;
+        case 'f': case 'F': toggleWallFullscreen(); break;
+        default: return;
+    }
+    wakeWallControls();
+}
+
+function bindWallControls() {
+    if (wallControlsBound) return;
+    const screen = document.getElementById('dynamic-wallpaper-screen');
+    if (!screen) return;
+    wallControlsBound = true;
+
+    screen.addEventListener('mousemove', () => wakeWallControls());
+    screen.addEventListener('pointerdown', () => wakeWallControls());
+
+    screen.querySelectorAll('[data-wall-action]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = btn.dataset.wallAction;
+            if (action === 'prev') previousWallCard();
+            else if (action === 'pause') togglePinWallCard();
+            else if (action === 'next') nextWallCard();
+            else if (action === 'deck') openDeckPanel();
+            else if (action === 'fullscreen') toggleWallFullscreen();
+        });
+    });
+
+    // Tapping a card with a hidden answer reveals it (handy with a presenter mouse).
+    document.getElementById('wall-floating-area')?.addEventListener('click', (e) => {
+        if (e.target.closest('.sky-card')) revealWallAnswer();
+    });
+
+    const panel = document.getElementById('wall-deck-panel');
+    panel?.addEventListener('click', (e) => {
+        if (e.target === panel || e.target.closest('[data-deck-close]')) { closeDeckPanel(); return; }
+        const family = e.target.closest('[data-deck-family]');
+        if (family) {
+            const key = family.dataset.deckFamily;
+            saveWallPrefs({ ...wallPrefs, families: { ...wallPrefs.families, [key]: !wallPrefs.families[key] } });
+            renderDeckPanel();
+            return;
+        }
+        const duration = e.target.closest('[data-deck-duration]');
+        if (duration) {
+            saveWallPrefs({ ...wallPrefs, durationS: Number(duration.dataset.deckDuration) });
+            renderDeckPanel();
+            resyncCurrentCardClock();
+            return;
+        }
+        if (e.target.closest('[data-deck-quote]')) {
+            saveWallPrefs({ ...wallPrefs, quote: !wallPrefs.quote });
+            applyQuotePref();
+            renderDeckPanel();
+            return;
+        }
+        if (e.target.closest('[data-deck-all]')) {
+            const allOn = CARD_FAMILIES.every((f) => wallPrefs.families[f.key]);
+            saveWallPrefs({ ...wallPrefs, families: Object.fromEntries(CARD_FAMILIES.map((f) => [f.key, !allOn])) });
+            renderDeckPanel();
+        }
+    });
+}
+
+/** Show the remote and the cursor for a few seconds; on a projector they fade away when idle. */
+function wakeWallControls(ms = 3500) {
+    const screen = document.getElementById('dynamic-wallpaper-screen');
+    if (!screen) return;
+    screen.classList.add('wall-awake');
+    clearTimeout(wallIdleTimeout);
+    wallIdleTimeout = setTimeout(() => {
+        const panelOpen = !document.getElementById('wall-deck-panel')?.classList.contains('hidden');
+        if (!panelOpen) screen.classList.remove('wall-awake');
+    }, ms);
+}
+
+function toggleWallFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+}
+
+function applyQuotePref() {
+    const quote = document.getElementById('wall-quote-container');
+    if (quote) quote.classList.toggle('is-muted', !wallPrefs.quote);
+}
+
+function syncRemoteState() {
+    const pin = document.querySelector('[data-wall-action="pause"]');
+    if (pin) {
+        pin.classList.toggle('is-on', isPaused);
+        pin.setAttribute('aria-pressed', String(isPaused));
+        pin.title = isPaused ? 'Let the cards flow again (Space)' : 'Pin this card (Space)';
+    }
+    const prev = document.querySelector('[data-wall-action="prev"]');
+    if (prev) prev.disabled = backStack.length === 0;
+    const card = document.getElementById('wall-floating-area')?.firstElementChild;
+    if (card) card.classList.toggle('is-pinned', isPaused);
+    const deckBtn = document.querySelector('[data-wall-action="deck"]');
+    if (deckBtn) deckBtn.classList.toggle('is-on', CARD_FAMILIES.some((f) => !wallPrefs.families[f.key]));
+}
+
+function openDeckPanel() {
+    const panel = document.getElementById('wall-deck-panel');
+    if (!panel) return;
+    renderDeckPanel();
+    panel.classList.remove('hidden');
+    wakeWallControls(60000);
+}
+
+function closeDeckPanel() {
+    const panel = document.getElementById('wall-deck-panel');
+    if (!panel || panel.classList.contains('hidden')) return;
+    panel.classList.add('hidden');
+    wakeWallControls();
+}
+
+function formatDurationChoice(seconds) {
+    return seconds < 60 ? `${seconds}s` : `${seconds / 60} min`;
+}
+
+function renderDeckPanel() {
+    const panel = document.getElementById('wall-deck-panel');
+    if (!panel) return;
+    const classId = state.get('globalSelectedClassId');
+    let counts = {};
+    try {
+        counts = countDeckByFamily([...new Set(buildDeckList(classId, getWallpaperCapabilities(), { ignoreFamilies: true, fullGlobal: true }))]);
+    } catch { counts = {}; }
+    const allOn = CARD_FAMILIES.every((f) => wallPrefs.families[f.key]);
+    panel.innerHTML = `
+        <div class="wall-deck" role="dialog" aria-modal="true" aria-labelledby="wall-deck-title">
+            <header class="wall-deck__head">
+                <span class="wall-deck__icon" aria-hidden="true">🃏</span>
+                <div>
+                    <h3 id="wall-deck-title">The Sky Deck</h3>
+                    <p>Choose which cards drift across the sky and how long each one stays.</p>
+                </div>
+                <button type="button" class="wall-deck__close" data-deck-close aria-label="Close"><i class="fas fa-xmark"></i></button>
+            </header>
+            <div class="wall-deck__families">
+                ${CARD_FAMILIES.map((f) => `
+                    <button type="button" class="wall-deck__family sky-fam--${f.key} ${wallPrefs.families[f.key] ? 'is-on' : ''}" data-deck-family="${f.key}" aria-pressed="${wallPrefs.families[f.key]}">
+                        <span class="wall-deck__sigil">${f.sigil}</span>
+                        <span class="wall-deck__name">${f.label}<small>${f.blurb}</small></span>
+                        <span class="wall-deck__count">${counts[f.key] || 0}</span>
+                    </button>`).join('')}
+            </div>
+            <div class="wall-deck__row">
+                <span class="wall-deck__label">Each card stays</span>
+                <div class="wall-deck__seg">
+                    ${CARD_DURATION_CHOICES.map((s) => `<button type="button" data-deck-duration="${s}" class="${wallPrefs.durationS === s ? 'is-on' : ''}">${formatDurationChoice(s)}</button>`).join('')}
+                </div>
+            </div>
+            <div class="wall-deck__row">
+                <span class="wall-deck__label">Wisdom ribbon</span>
+                <button type="button" class="wall-deck__switch ${wallPrefs.quote ? 'is-on' : ''}" data-deck-quote aria-pressed="${wallPrefs.quote}"><i></i></button>
+            </div>
+            <footer class="wall-deck__foot">
+                <button type="button" class="wall-deck__all" data-deck-all>${allOn ? 'Switch all off' : 'Switch all on'}</button>
+                <p><kbd>←</kbd><kbd>→</kbd> browse · <kbd>Space</kbd> pin · <kbd>R</kbd> reveal · <kbd>D</kbd> deck · <kbd>F</kbd> full screen</p>
+            </footer>
+        </div>`;
+    syncRemoteState();
+}
+
+function getCurrentWallCardEl() {
+    const el = document.getElementById('wall-floating-area')?.firstElementChild;
+    return el && el.dataset.cardId !== 'timer_end' ? el : null;
+}
+
+function clearFloatingArea() {
+    const area = document.getElementById('wall-floating-area');
+    if (!area) return;
+    [...area.children].forEach((child) => { if (child._blurIntervalId) clearInterval(child._blurIntervalId); });
+    area.innerHTML = '';
+}
+
+async function leaveCurrentCard(fast = false) {
+    const el = getCurrentWallCardEl();
+    if (!el) return;
+    if (el._blurIntervalId) clearInterval(el._blurIntervalId);
+    el.classList.remove('is-entering');
+    el.classList.add('is-leaving');
+    await new Promise((r) => setTimeout(r, fast ? 380 : 700));
+    if (el.parentElement) el.remove();
+}
+
+/** Skip to a fresh card now. */
+async function nextWallCard() {
+    if (!isRunning) return;
+    clearTimeout(directorTimeout);
+    clearTimeout(cardGapTimeout);
+    isPaused = false;
+    const session = getSession();
+    if (session?.card && session.card.id !== 'timer_end') pushBackStack(session.card);
+    localStorage.removeItem(SESSION_KEY);
+    await leaveCurrentCard(true);
+    directorGameLoop({ skipGap: true });
+}
+
+/** Bring back the card shown before this one. */
+async function previousWallCard() {
+    if (!isRunning || backStack.length === 0) return;
+    clearTimeout(directorTimeout);
+    clearTimeout(cardGapTimeout);
+    isPaused = false;
+    const previous = backStack.pop();
+    setSession(previous, Date.now());
+    await leaveCurrentCard(true);
+    clearFloatingArea();
+    directorGameLoop();
+}
+
+function pushBackStack(card) {
+    if (!card || backStack[backStack.length - 1]?.id === card.id) return;
+    backStack.push(card);
+    if (backStack.length > BACK_STACK_LIMIT) backStack.shift();
+}
+
+/** Pin keeps the current card on the sky until pressed again. */
+function togglePinWallCard() {
+    if (!isRunning) return;
+    const session = getSession();
+    const duration = getCardDurationMs();
+    if (!isPaused) {
+        if (!session || !getCurrentWallCardEl()) return;
+        isPaused = true;
+        pausedRemainingMs = Math.max(4000, duration - (Date.now() - session.start));
+        clearTimeout(directorTimeout);
+        clearTimeout(cardGapTimeout);
+        const el = getCurrentWallCardEl();
+        el?.classList.add('is-pinned');
+        const hint = el?.querySelector('[data-sky-hint]');
+        if (hint && !hint.dataset.answerHint) hint.textContent = '📌 Pinned';
+    } else {
+        isPaused = false;
+        if (session) setSession(session.card, Date.now() - (duration - pausedRemainingMs));
+        const el = getCurrentWallCardEl();
+        el?.classList.remove('is-pinned');
+        const hint = el?.querySelector('[data-sky-hint]');
+        if (hint && !hint.dataset.answerHint) hint.textContent = '';
+        resyncCurrentCardClock();
+        directorGameLoop();
+    }
+    syncRemoteState();
+}
+
+function revealWallAnswer() {
+    const el = getCurrentWallCardEl();
+    const answer = el?.querySelector('.wallpaper-card-answer-blur');
+    if (!answer || answer.classList.contains('is-revealed')) return;
+    if (el._blurIntervalId) clearInterval(el._blurIntervalId);
+    answer.style.filter = '';
+    answer.classList.add('is-revealed');
+    const hint = el.querySelector('[data-sky-hint]');
+    if (hint) hint.textContent = '✨ Answer revealed';
+}
+
+/** Re-time the life bar after a pin, a resume or a new card length. */
+function resyncCurrentCardClock() {
+    const el = getCurrentWallCardEl();
+    const session = getSession();
+    if (!el || !session) return;
+    const duration = getCardDurationMs();
+    const elapsed = Math.max(0, Math.min(duration, Date.now() - session.start));
+    const life = el.querySelector('[data-sky-life]');
+    if (life) {
+        life.style.animation = 'none';
+        void life.offsetWidth;
+        life.style.animation = '';
+        life.style.animationDuration = `${duration}ms`;
+        life.style.animationDelay = `-${elapsed}ms`;
+    }
+    if (!isPaused && session.card?.id === el.dataset.cardId) {
+        clearTimeout(directorTimeout);
+        directorGameLoop();
+    }
+}
+
+// ─── Clock hub: digital time, day arc, analogue dial with the lesson ring ──
+
+function updateDayArc(nowMs) {
+    const marker = document.getElementById('wall-day-marker');
+    const done = document.getElementById('wall-day-done');
+    const riseEl = document.getElementById('wall-sunrise');
+    const setEl = document.getElementById('wall-sunset');
+    if (!marker || !done) return;
+    const sunrise = Number(utils.solarData?.sunrise);
+    const sunset = Number(utils.solarData?.sunset);
+    if (!Number.isFinite(sunrise) || !Number.isFinite(sunset) || sunset <= sunrise) return;
+    let progress = getSunProgress(nowMs, sunrise, sunset);
+    const night = progress < 0 || progress > 1;
+    if (night) {
+        // Across the night the moon travels the same arc, sunset to the next sunrise.
+        const nightLen = 86400000 - (sunset - sunrise);
+        const sinceSunset = ((nowMs - sunset) % 86400000 + 86400000) % 86400000;
+        progress = Math.min(1, sinceSunset / nightLen);
+    }
+    const angle = Math.PI * (1 - progress);
+    const x = 150 + 130 * Math.cos(angle);
+    const y = 58 - 46 * Math.sin(angle);
+    marker.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+    marker.classList.toggle('is-moon', night);
+    done.setAttribute('d', `M 20 58 A 130 46 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}`);
+    const fmt = (ms) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    if (riseEl) riseEl.textContent = night ? `☾ ${fmt(sunset)}` : `☀ ${fmt(sunrise)}`;
+    if (setEl) setEl.textContent = night ? `${fmt(sunrise)} ☀` : `${fmt(sunset)} ☾`;
+}
+
+function updateLessonRing(now, currentClass) {
+    const track = document.getElementById('wall-lesson-track');
+    const done = document.getElementById('wall-lesson-done');
+    const caption = document.getElementById('wall-lesson-caption');
+    const clock = document.getElementById('wall-analogue-clock');
+    const arc = currentClass ? getLessonDialArc(currentClass.timeStart, currentClass.timeEnd, now) : null;
+    clock?.classList.toggle('has-lesson', !!arc);
+    clock?.classList.toggle('is-closing', !!arc && arc.started && arc.minutesLeft <= 10);
+    if (!track || !done || !caption) return;
+    if (!arc) {
+        track.setAttribute('d', '');
+        done.setAttribute('d', '');
+        caption.textContent = '';
+        caption.classList.remove('is-visible', 'is-closing');
+        return;
+    }
+    track.setAttribute('d', describeArc(100, 100, 93, arc.startDeg, arc.sweepDeg));
+    done.setAttribute('d', arc.elapsedDeg > 0.2 ? describeArc(100, 100, 93, arc.startDeg, arc.elapsedDeg) : '');
+    caption.classList.add('is-visible');
+    caption.classList.toggle('is-closing', arc.started && arc.minutesLeft <= 10);
+    caption.textContent = arc.started
+        ? `Lesson ends in ${arc.minutesLeft} min`
+        : `Lesson starts at ${currentClass.timeStart}`;
+}
+
 function startWallpaperClock() {
-    const wall = document.getElementById('dynamic-wallpaper-screen');
+    const hub = document.getElementById('wall-center-hub');
     const hubName = document.getElementById('wall-class-name');
     const hubLevel = document.getElementById('wall-class-level');
     const timeEl = document.getElementById('wall-time');
@@ -246,7 +652,7 @@ function startWallpaperClock() {
         const m = now.getMinutes();
         const s = now.getSeconds();
 
-        // 1. Update Text (Keep the clock ticking!)
+        // 1. Digital time and date
         timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -260,30 +666,13 @@ function startWallpaperClock() {
             setContinuousClockRotation(clockSecond, 'second', secondDeg);
         }
 
-        // 2. Check Night Mode from Global State (Fixes Issue #2)
-        const isNight = document.body.classList.contains('night-mode');
-
-        // 3. Dynamic Glow - Varied Colors (Fixes Issue #5)
-        // Uses time-based seed so colors shift throughout the day
+        // 3. The hub's halo drifts through the colours of the day (a new hue every minute).
         const uniqueTimeSeed = now.getDate() + now.getHours() + (now.getMinutes() * 13);
-        const hue = (uniqueTimeSeed * 137.508) % 360;
+        const hue = Math.round((uniqueTimeSeed * 137.508) % 360);
+        if (hub) hub.style.setProperty('--hub-hue', String(hue));
 
-        let textShadowStyle;
-        if (isNight) {
-            const color = `hsl(${hue}, 80%, 60%)`;
-            textShadowStyle = `0 4px 8px rgba(0,0,0,0.9), 0 0 30px ${color}`;
-        } else {
-            const color = `hsl(${hue}, 90%, 50%)`;
-            textShadowStyle = `0 4px 6px rgba(0,0,0,0.6), 0 0 20px ${color}`;
-        }
-
-        // 4. Apply Styles
-        timeEl.style.textShadow = textShadowStyle;
-        dateEl.style.textShadow = textShadowStyle;
-
-        // Ensure base classes are set
-        timeEl.className = 'font-title text-[9rem] text-white leading-none transition-colors duration-1000';
-        dateEl.className = 'font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide transition-colors duration-1000';
+        // 4. Sun (or moon) travelling across today's arc
+        updateDayArc(now.getTime());
 
         // Periodic weather refresh every 30 minutes
         const nowMs = Date.now();
@@ -293,20 +682,21 @@ function startWallpaperClock() {
         }
 
         const currentClass = identifyCurrentClass();
+        updateLessonRing(now, currentClass);
 
         if (currentClass) {
             if (hubName.dataset.currentId !== currentClass.id) {
                 state.setGlobalSelectedClass(currentClass.id);
-                hubName.innerHTML = `<span class="mr-3 text-5xl align-middle">${currentClass.logo}</span>${currentClass.name}`;
-                hubLevel.innerText = `Quest League: ${currentClass.questLevel}`;
+                hubName.innerHTML = `<span class="sky-hub__logo" aria-hidden="true">${currentClass.logo || '🛡️'}</span><span class="sky-hub__name">${escapeCardText(currentClass.name)}</span>`;
+                hubLevel.innerText = `Quest League · ${currentClass.questLevel}`;
                 hubName.dataset.currentId = currentClass.id;
             }
         } else {
             if (hubName.dataset.currentId !== 'global') {
                 state.setGlobalSelectedClass(null);
                 const schoolName = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
-                hubName.innerHTML = `<span class="mr-3 text-5xl">🏫</span>${schoolName}`;
-                hubLevel.innerText = "Global Quest Network";
+                hubName.innerHTML = `<span class="sky-hub__logo" aria-hidden="true">🏫</span><span class="sky-hub__name">${escapeCardText(schoolName)}</span>`;
+                hubLevel.innerText = 'The whole realm';
                 hubName.dataset.currentId = 'global';
             }
         }
@@ -492,7 +882,7 @@ async function fetchRandomDailyAI(typeFilter = null) {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-async function directorGameLoop() {
+async function directorGameLoop({ skipGap = false } = {}) {
     clearTimeout(directorTimeout);
     if (!isRunning) return;
 
@@ -501,7 +891,7 @@ async function directorGameLoop() {
     const now = Date.now();
 
     // --- PRIORITY 1: ACTIVE TIMER (Real-Time Logic) ---
-    const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
+    const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer' && !finishedTimerIds.has(b.id));
     let timerOverlay = document.getElementById('wall-timer-overlay');
 
     if (!timerOverlay) {
@@ -541,6 +931,8 @@ async function directorGameLoop() {
             } else {
                 // --- TIMER FINISHED ---
                 clearInterval(wallpaperTimerInterval);
+                if (finishedTimerIds.has(activeTimer.id)) return;
+                finishedTimerIds.add(activeTimer.id);
                 const pill = timerOverlay.querySelector('[data-wall-timer-card]');
                 if (pill && !pill.classList.contains('wall-timer-pill--exiting')) {
                     pill.classList.add('wall-timer-pill--exiting');
@@ -552,27 +944,36 @@ async function directorGameLoop() {
 
                 // 1. Mark complete in DB
                 const { updateDoc, doc } = await import('../firebase.js');
-                await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' });
+                updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' })
+                    .catch((e) => console.warn('Could not mark the timer bounty complete:', e));
 
                 // 2. Play Sound
                 const { playSound } = await import('../audio.js');
                 playSound('magic_chime');
 
-                // 3. Show "Time's Up" Card briefly
-                container.innerHTML = '';
+                // 3. Show "Time's Up" Card briefly (it outranks a pinned card)
+                isPaused = false;
+                clearFloatingArea();
                 const html = `
-                    <div class="text-center w-full">
-                        <div class="text-9xl mb-4 animate-bounce">⏰</div>
-                        <h2 class="font-title text-6xl text-white drop-shadow-xl mb-4">Time's Up!</h2>
-                        <p class="text-3xl text-white font-serif italic">"Pencils down, heroes!"</p>
-                    </div>`;
-                const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end', centered: true });
-                el.style.top = '50%'; el.style.left = '50%';
-                el.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                    <p class="sc-big sc-big--xl">Time's Up!</p>
+                    <p class="sc-quote">Pencils down, heroes!</p>
+                    <p class="sc-sub">${escapeCardText(activeTimer.title || 'Bounty')}</p>`;
+                spawnCard(container, { html, id: 'timer_end', centered: true, family: 'time', sigil: '⏰', title: 'The bounty clock has spoken' });
 
-                // Pause director briefly then resume
+                // Let the room read it, then send it off and resume the cards.
                 clearTimeout(directorTimeout);
-                directorTimeout = setTimeout(directorGameLoop, 8000);
+                clearTimeout(cardGapTimeout);
+                directorTimeout = setTimeout(async () => {
+                    const shown = container.firstElementChild;
+                    if (shown?.dataset.cardId === 'timer_end') {
+                        shown.classList.remove('is-entering');
+                        shown.classList.add('is-leaving');
+                        await new Promise((r) => setTimeout(r, 650));
+                        shown.remove();
+                    }
+                    localStorage.removeItem(SESSION_KEY);
+                    directorGameLoop({ skipGap: true });
+                }, 8000);
             }
         };
 
@@ -596,36 +997,38 @@ async function directorGameLoop() {
     }
 
     // --- STANDARD CARD LOGIC (Running in background) ---
+    // A pinned card stays until the teacher lets the cards flow again.
+    if (isPaused) return;
+
+    const duration = getCardDurationMs();
     const session = getSession();
     let currentCardData = null;
     let remainingTime = 0;
 
-    if (session && (now - session.start < CARD_DURATION)) {
+    if (session && (now - session.start < duration)) {
         currentCardData = session.card;
-        remainingTime = CARD_DURATION - (now - session.start);
+        remainingTime = duration - (now - session.start);
     } else {
         // Clear previous card
         if (container.children.length > 0 && !session) {
-            const oldEl = container.firstElementChild;
-            if (oldEl._blurIntervalId) clearInterval(oldEl._blurIntervalId);
-            oldEl.style.opacity = '0';
-            oldEl.style.transform = 'translateY(-50px) scale(0.9)';
-            await new Promise(r => setTimeout(r, 500));
-            container.innerHTML = '';
+            await leaveCurrentCard();
+            if (!isRunning || isPaused) return;
         }
 
-        if (session && (now - session.start < CARD_DURATION + 5000)) {
-            remainingTime = (CARD_DURATION + 5000) - (now - session.start);
+        if (!skipGap && session && (now - session.start < duration + CARD_GAP_MS)) {
+            remainingTime = (duration + CARD_GAP_MS) - (now - session.start);
             directorTimeout = setTimeout(directorGameLoop, remainingTime);
             return;
         }
+        if (session?.card && session.card.id !== 'timer_end') pushBackStack(session.card);
         currentCardData = await selectNextCard(classId);
+        if (!isRunning || isPaused) return;
         if (currentCardData) {
-            setSession(currentCardData, now);
+            setSession(currentCardData, Date.now());
             addToHistory(currentCardData.id);
-            remainingTime = CARD_DURATION;
+            remainingTime = duration;
         } else {
-            remainingTime = 5000;
+            remainingTime = CARD_GAP_MS;
         }
     }
 
@@ -633,25 +1036,27 @@ async function directorGameLoop() {
     if (currentCardData && (!existingCard || existingCard.dataset.cardId !== currentCardData.id)) {
         // Don't overwrite if showing Time's Up
         if (!existingCard || existingCard.dataset.cardId !== 'timer_end') {
-            container.innerHTML = '';
+            clearFloatingArea();
             spawnCard(container, currentCardData);
         }
     }
+    syncRemoteState();
 
     // Loop logic
+    clearTimeout(directorTimeout);
     directorTimeout = setTimeout(async () => {
+        if (isPaused) return;
         const el = container.firstElementChild;
         // Don't fade out if it's the timer end card, let the timeout above handle it
-        if (el && el.dataset.cardId !== 'timer_end') {
-            if (el._blurIntervalId) clearInterval(el._blurIntervalId);
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(-50px) scale(0.9)';
-        }
-        setTimeout(() => {
+        if (el && el.dataset.cardId !== 'timer_end') await leaveCurrentCard();
+        if (isPaused) return;
+        clearTimeout(cardGapTimeout);
+        cardGapTimeout = setTimeout(() => {
             // Only clear if not timer end
-            if (container && (!el || el.dataset.cardId !== 'timer_end')) container.innerHTML = '';
+            const current = container.firstElementChild;
+            if (container && (!current || current.dataset.cardId !== 'timer_end')) clearFloatingArea();
             directorGameLoop();
-        }, 5000);
+        }, CARD_GAP_MS - 700);
     }, remainingTime);
 }
 
@@ -690,7 +1095,7 @@ async function safeHydrate(type, classId, capabilities) {
     }
 }
 
-function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
+function buildDeckList(classId, capabilities = getWallpaperCapabilities(), { ignoreFamilies = false, fullGlobal = false } = {}) {
     let list = [];
     const now = new Date();
     const dateMatch = `-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -749,14 +1154,16 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
 
     if (!classId) {
         // Mode: School Overview
-        list = [...globalPool, ...getLanguageCardDeck(null)];
+        list = [...globalPool, ...getLanguageCardDeck(null), ...getSkyCardDeck(null)];
     } else {
         // Mode: Specific Class
         // Phase-aware mixing
         const globalSample = lessonPhase === 'opening' ? 6 :
             lessonPhase === 'winddown' ? 10 : 8;
         // English-learning cards from this class's own lesson (see wallpaperLanguageCards.js).
-        list = [...classPool, ...getLanguageCardDeck(classId), ...globalPool.sort(() => 0.5 - Math.random()).slice(0, globalSample)];
+        // Sample the school-wide cards from the families the teacher has switched on.
+        const globalChoices = ignoreFamilies ? globalPool : filterDeckByFamilies(globalPool, wallPrefs);
+        list = [...classPool, ...getLanguageCardDeck(classId), ...getSkyCardDeck(classId), ...(fullGlobal ? globalChoices : globalChoices.sort(() => 0.5 - Math.random()).slice(0, globalSample))];
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
         const scores = state.get('allStudentScores');
@@ -846,7 +1253,13 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
         }
     }
 
-    return shuffleDeck(filterDeckForTier(list, capabilities));
+    const allowed = filterDeckForTier(list, capabilities);
+    return shuffleDeck(ignoreFamilies ? allowed : filterDeckByFamilies(allowed, wallPrefs));
+}
+
+/** Hydrate one deck entry into a card ({ id, family, html, ... }) or null. Also used by the guidebook capture. */
+export async function hydrateWallpaperCard(type, classId = state.get('globalSelectedClassId')) {
+    return safeHydrate(type, classId, getWallpaperCapabilities());
 }
 
 async function hydrateCard(type, classId, capabilities = getWallpaperCapabilities()) {
@@ -861,6 +1274,7 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
     const questLevel = cls?.questLevel || null;
 
     if (LANGUAGE_CARD_TYPES.includes(baseType)) content = await hydrateLanguageCard(baseType, classId);
+    else if (SKY_CARD_TYPES.includes(baseType)) content = hydrateSkyCard(baseType, classId, questLevel);
     else if (baseType === 'bday') content = getBirthdayCard(dataId);
     else if (baseType === 'name') content = getNamedayCard(dataId);
     else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId, questLevel);
@@ -888,7 +1302,7 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'giant_clock': content = getGiantClockCard(); break;
             case 'motivation_poster': content = getMotivationCard(questLevel); break;
             case 'holiday': content = getNextHolidayCard(); break;
-            case 'weather': content = getWeatherCard(); break;
+            case 'weather': content = getLiveWeatherCard() || getWeatherCard(); break;
             case 'class_special_quest': content = getActiveSpecialQuestCard(classId); break;
             case 'class_test_luck': content = getTestLuckCard(classId, questLevel); break;
             case 'upcoming_test_countdown': content = getUpcomingTestCountdownCard(classId, questLevel); break;
@@ -971,7 +1385,7 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
     }
 
     if (!content) return null;
-    return { ...baseObj, ...content };
+    return { ...baseObj, family: getCardFamilyKey(type), ...content };
 }
 
 // ─── Guild Leaderboard ────────────────────────────────────────────────────────
@@ -2035,15 +2449,14 @@ function getGiantClockCard() {
 }
 
 function getSeasonalCard() {
-    const m = new Date().getMonth();
-    let icon = '☀️', text = 'Summer Vibes', css = 'float-card-gold';
-    if (m > 8 && m < 11) { icon = '🍂'; text = 'Autumn Leaves'; css = 'float-card-orange'; }
-    if (m === 11 || m < 2) { icon = '❄️'; text = 'Winter Wonder'; css = 'float-card-blue'; }
-    if (m > 1 && m < 5) { icon = '🌸'; text = 'Spring Bloom'; css = 'float-card-pink'; }
-
+    const season = getSeasonInfo(new Date());
     return {
-        html: `<div class="text-center"><div class="text-9xl mb-4 animate-float-slow">${icon}</div><h3 class="font-title text-5xl text-gray-700">${text}</h3></div>`,
-        css: css
+        sigil: season.emoji,
+        title: 'The season outside',
+        html: `<p class="sc-big sc-big--xl">${season.name}</p>
+            <p class="sc-sub">Day ${season.dayOf} of ${season.name.toLowerCase()}</p>
+            <div class="sc-meter" aria-hidden="true"><i style="width:${Math.round(season.progress * 100)}%"></i></div>
+            <p class="sc-text">${season.note} ${season.next.emoji} ${season.next.name} begins in ${season.daysToNext} ${season.daysToNext === 1 ? 'day' : 'days'}.</p>`
     };
 }
 
@@ -2887,7 +3300,7 @@ function placeFloatingCard(el) {
     if (!hub || !screenRect.width || !screenRect.height) return false;
 
     const topObstacles = [
-        getRectInScreen(document.getElementById('exit-wallpaper-btn'), screenRect),
+        getRectInScreen(document.getElementById('wall-remote') || document.getElementById('exit-wallpaper-btn'), screenRect),
         getRectInScreen(document.querySelector('#wall-timer-overlay [data-wall-timer-card]'), screenRect)
     ].filter(Boolean);
     const topReserve = topObstacles.reduce((max, rect) => Math.max(max, rect.bottom), 0);
@@ -2928,12 +3341,64 @@ function handleWallpaperResize() {
     }, 180);
 }
 
-function spawnCard(container, card) {
-    const el = document.createElement('div');
-    el.className = `wallpaper-float-card ${card.css} absolute`;
-    el.innerHTML = card.html;
-    el.dataset.cardId = card.id;
+const SEGMENTER = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'grapheme' }) : null;
 
+function isSingleEmoji(text) {
+    const value = String(text || '').trim();
+    if (!value || value.length > 16 || /[A-Za-z0-9]/.test(value)) return false;
+    const graphemes = SEGMENTER ? [...SEGMENTER.segment(value)].length : [...value].length;
+    return graphemes === 1 && /\p{Extended_Pictographic}/u.test(value);
+}
+
+/**
+ * Older card bodies carry their own badge and a big hero emoji. Lift them into the Sky Card's
+ * title ribbon and crest so every card shares one anatomy; the rest of the body stays as it is.
+ */
+export function liftCardAnatomy(bodyEl) {
+    let title = '';
+    let sigil = '';
+    const badge = bodyEl.querySelector('.badge-pill');
+    if (badge) {
+        title = badge.innerHTML.trim();
+        badge.remove();
+    }
+    const heroes = bodyEl.querySelectorAll('[class*="text-6xl"], [class*="text-7xl"], [class*="text-8xl"], [class*="text-9xl"]');
+    for (const el of heroes) {
+        if (el.closest('.absolute') || el.children.length > 0) continue;
+        if (!isSingleEmoji(el.textContent)) continue;
+        sigil = el.textContent.trim();
+        el.remove();
+        break;
+    }
+    return { title, sigil };
+}
+
+/** Builds the positioned Sky Card element (not yet in the page) for a hydrated card. */
+export function buildSkyCardElement(card) {
+    const family = card.family || getCardFamilyKey(card.id);
+    const el = document.createElement('div');
+    el.className = `wallpaper-float-card sky-card sky-card--${family} absolute`;
+    el.dataset.cardId = card.id;
+    el.dataset.family = family;
+    if (card.css) el.dataset.tone = String(card.css).replace('float-card-', '');
+
+    const scratch = document.createElement('div');
+    scratch.innerHTML = card.html;
+    const lifted = (card.sigil || card.title) ? { title: '', sigil: '' } : liftCardAnatomy(scratch);
+    el.innerHTML = buildSkyCardInner({
+        family,
+        sigil: card.sigil || lifted.sigil,
+        title: card.title ? escapeCardText(card.title) : lifted.title,
+        bodyHtml: scratch.innerHTML,
+        hint: card.timedBlurAnswer ? 'Think first…' : ''
+    });
+    if (card.timedBlurAnswer) el.classList.add('has-answer');
+    return el;
+}
+
+function spawnCard(container, card) {
+    const el = buildSkyCardElement(card);
+    if (card.centered) el.classList.add('is-centered');
     el.style.opacity = '0';
 
     container.appendChild(el);
@@ -2947,9 +3412,20 @@ function spawnCard(container, card) {
 
     void el.offsetWidth;
 
-    el.style.setProperty('--card-rotate', (Math.random() * 2 - 1) + 'deg');
+    el.style.setProperty('--card-rotate', (Math.random() * 2.4 - 1.2).toFixed(2) + 'deg');
     el.style.opacity = '1';
     el.classList.add('is-entering');
+
+    // Life bar: drains over what is left of this card's time on the sky.
+    const session = getSession();
+    const duration = card.id === 'timer_end' ? 8000 : getCardDurationMs();
+    const elapsed = card.id !== 'timer_end' && session?.card?.id === card.id ? Math.max(0, Date.now() - session.start) : 0;
+    const life = el.querySelector('[data-sky-life]');
+    if (life) {
+        life.style.animationDuration = `${duration}ms`;
+        life.style.animationDelay = `-${Math.min(elapsed, duration)}ms`;
+    }
+    if (isPaused) el.classList.add('is-pinned');
 
     // Animate any count-up numbers
     const counters = el.querySelectorAll('.js-count-up');
@@ -2960,18 +3436,25 @@ function spawnCard(container, card) {
 
     if (card.timedBlurAnswer) {
         const answerBlock = el.querySelector('.wallpaper-card-answer-blur');
+        const hint = el.querySelector('[data-sky-hint]');
+        if (hint) hint.dataset.answerHint = '1';
         if (answerBlock) {
             const tick = () => {
-                const session = getSession();
-                if (!session) return;
-                const elapsed = Date.now() - session.start;
-                if (elapsed >= BLUR_REVEAL_MS) {
+                const current = getSession();
+                if (!current || isPaused) return;
+                const revealMs = getBlurRevealMs();
+                const spent = Date.now() - current.start;
+                if (spent >= revealMs) {
+                    answerBlock.style.filter = '';
                     answerBlock.classList.add('is-revealed');
+                    if (hint) hint.textContent = '✨ Answer revealed';
                     clearInterval(el._blurIntervalId);
                     return;
                 }
-                const blurPx = BLUR_MAX_PX * (1 - elapsed / BLUR_REVEAL_MS);
+                const blurPx = BLUR_MAX_PX * (1 - spent / revealMs);
                 answerBlock.style.filter = `blur(${blurPx}px)`;
+                const secs = Math.ceil((revealMs - spent) / 1000);
+                if (hint) hint.textContent = `Answer in ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
             };
             tick();
             el._blurIntervalId = setInterval(tick, 1000);
@@ -3006,15 +3489,24 @@ export async function initSeasonalAtmosphere() {
             const data = JSON.parse(cached);
             if (Date.now() - data.timestamp < 3 * 60 * 60 * 1000) {
                 weatherCode = data.weather.code;
+                rememberSkyWeather(data.weather);
             }
         } catch (e) { }
     }
 
     if (weatherCode === null) {
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=weather_code&timezone=auto`);
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto`);
             const d = await res.json();
             weatherCode = d.current.weather_code;
+            const hi = Number(d.daily?.temperature_2m_max?.[0]);
+            const lo = Number(d.daily?.temperature_2m_min?.[0]);
+            rememberSkyWeather({
+                code: weatherCode,
+                temp: Math.round(Number(d.current.temperature_2m)),
+                hi: Number.isFinite(hi) ? Math.round(hi) : null,
+                lo: Number.isFinite(lo) ? Math.round(lo) : null
+            });
         } catch (_) { /* Seasonal fallback is expected when weather is unavailable. */ }
     }
 

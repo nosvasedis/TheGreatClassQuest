@@ -41,7 +41,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Guild Champion** | Top earner **inside one guild** this month | Prodigy of the Month |
 | **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron | Quest League (Junior B, etc.) |
 | **Quest League** | Age/difficulty band that races together on Team Quest | Guild |
-| **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, remaining times, rotating story cards | Sky Theater (header emoji acts) |
+| **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, lesson ring, remaining times, rotating Sky Cards, a remote to pin or skip cards | Sky Theater (header emoji acts) |
 | **The Director** | Rotating Projector cards | The teacher |
 | **Sky Theater** | Decorative header flights | Projector |
 | **Quest Assignment** | Next-lesson homework on the Quest Board (+ optional scheduled test) | Quest Event |

@@ -446,6 +446,7 @@
       display: flex !important;
       width: 1440px !important;
       height: 980px !important;
+      flex-shrink: 0 !important;
       z-index: 1;
       opacity: 1 !important;
       visibility: visible !important;
@@ -453,6 +454,9 @@
     #dynamic-wallpaper-screen.capture-wall,
     #dynamic-wallpaper-screen.capture-wall * {
       animation: none !important;
+    }
+    #dynamic-wallpaper-screen.capture-wall .sky-card__life i {
+      transform: scaleX(var(--life-left, 0.6));
     }
     #dynamic-wallpaper-screen.capture-wall #wall-quote-container {
       opacity: 1 !important;

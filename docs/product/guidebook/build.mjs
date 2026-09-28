@@ -670,7 +670,7 @@ function headingWidgets(id) {
     return [
       { match: ['What you see (desktop header)', 'Τι βλέπεις (κεφαλίδα'], html: `<div class="live-strip live-strip--header">${headerToolsHtml()}</div>${classPickerHtml()}${uiShot('header-day.png', 'The classroom header by day: title, daily quote, class picker, Adventurer’s Guide (i), Projector (TV), School Office, Settings, and log out.')}${uiShot('header-night.png', 'The same header after sunset — the sky turns to night for your school’s location.')}` },
       { match: ['The cloud dock', 'Το cloud dock'], html: uiShot('nav-dock.png', 'The cloud dock awake: the active tab’s cloud glows and shows its name. On a mouse PC the dock sinks away when idle and floats back at the bottom edge.') },
-      { match: ['Projector Mode'], html: uiShot('projector.png', 'Projector Mode on the classroom PC: living sky, huge digital clock, analogue hands, Junior B badge, bounty countdown, Timekeeper and Quest Progress cards, Wisdom Dock, and the power button to leave.') },
+      { match: ['Projector Mode'], html: uiShot('projector.png', 'Projector Mode on the classroom PC: living sky over the realm’s hills, the day arc and huge digital clock, the lesson ring on the analogue dial (“Lesson ends in 45 min”), the Junior B banner, a bounty countdown, two Sky Cards (Sky Watch moon and a Mind & Heart “Would you rather…”), the wisdom ribbon, and the projector remote.') },
       { match: ['Mobile teacher layout', 'Κινητό'], html: mobileDockHtml() }
     ];
   }

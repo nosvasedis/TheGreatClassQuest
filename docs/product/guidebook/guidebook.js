@@ -258,7 +258,7 @@
       }`;
     }
     if (w === 'projector') {
-      return termShot('projector.png', 'Projector Mode: classroom wallpaper with sky, clocks, class badge, bounty pill, and Director cards');
+      return termShot('projector.png', 'Projector Mode: classroom wallpaper with sky, clocks, lesson ring, class banner, bounty pill, and Sky Cards');
     }
     if (w === 'skill-tree') {
       return termShot('skill-tree.png', 'Guardian Skill Tree with a pending branch');

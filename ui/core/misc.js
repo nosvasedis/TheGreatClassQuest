@@ -107,8 +107,9 @@ export function renderClassEndDatesList() {
     if (myClasses.length === 0) {
         setSaveEnabled(false);
         list.innerHTML = `
-            <div class="rounded-2xl border border-gray-200 bg-white/80 px-6 py-10 text-center text-gray-600 text-sm">
-                No classes on your roster yet. Add a class first, then choose it in the header.
+            <div class="ts-empty">
+                <div class="ts-empty__icon" aria-hidden="true">📚</div>
+                <p class="ts-empty__text">No classes on your roster yet. Add a class first, then choose it in the header.</p>
             </div>`;
         return;
     }
@@ -116,12 +117,10 @@ export function renderClassEndDatesList() {
     if (!classId) {
         setSaveEnabled(false);
         list.innerHTML = `
-            <div class="rounded-2xl border-2 border-dashed border-violet-200 bg-white/90 px-6 py-12 text-center shadow-inner">
-                <div class="text-5xl mb-4 grayscale opacity-70">🎓</div>
-                <p class="font-title text-xl text-violet-900 mb-2">Choose a class in the header</p>
-                <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                    Choose a class in the header to set its <span class="font-semibold text-gray-800">final lesson date</span> here — one class at a time.
-                </p>
+            <div class="ts-empty">
+                <div class="ts-empty__icon" aria-hidden="true">🎓</div>
+                <p class="ts-empty__title font-title">Choose a class in the header</p>
+                <p class="ts-empty__text">Then set its <strong>final lesson date</strong> here, one class at a time.</p>
             </div>`;
         return;
     }
@@ -130,8 +129,9 @@ export function renderClassEndDatesList() {
     if (!cls) {
         setSaveEnabled(false);
         list.innerHTML = `
-            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-8 text-center text-amber-900 text-sm">
-                The class selected in the header isn’t in your teaching roster. Pick one of your classes from the header menu.
+            <div class="ts-empty ts-empty--warn">
+                <div class="ts-empty__icon" aria-hidden="true">🧭</div>
+                <p class="ts-empty__text">The class selected in the header isn’t in your teaching roster. Pick one of your classes from the header menu.</p>
             </div>`;
         return;
     }
@@ -149,46 +149,51 @@ export function renderClassEndDatesList() {
         const pickerValue = utils.toHtmlDateInputValue(currentEndDate);
         const suggestedPicker = utils.toHtmlDateInputValue(suggestedDdMm);
         const league = escapeHtml(cls.questLevel || '');
+        const savedDate = currentEndDate ? utils.parseFlexibleDate(currentEndDate) : null;
+        const savedValid = savedDate && !Number.isNaN(savedDate.getTime());
         let savedLabel = 'Not set yet';
         if (currentEndDate) {
-            const d = utils.parseFlexibleDate(currentEndDate);
-            if (d && !Number.isNaN(d.getTime())) {
-                savedLabel = escapeHtml(d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }));
-            } else {
-                savedLabel = escapeHtml(String(currentEndDate));
-            }
+            savedLabel = savedValid
+                ? escapeHtml(savedDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }))
+                : escapeHtml(String(currentEndDate));
         }
 
         list.innerHTML = `
-            <div class="rounded-2xl border border-violet-100 bg-white p-5 md:p-6 shadow-sm ring-1 ring-violet-100/80">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 text-3xl shadow-inner border border-violet-200/80" aria-hidden="true">${logo}</div>
-                    <div class="min-w-0 flex-1 text-left">
-                        <div class="flex flex-wrap items-center gap-2 mb-1">
-                            <h3 class="font-title text-xl text-gray-900">${name}</h3>
-                            ${league ? `<span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200">League ${league}</span>` : ''}
-                        </div>
-                        <p class="text-xs text-gray-500"><span class="font-semibold text-gray-600">Schedule:</span> ${schedule}</p>
-                        <p class="text-xs text-violet-700 mt-1.5"><span class="font-semibold">Saved end date:</span> ${savedLabel}</p>
-                    </div>
+            <div class="ts-finale">
+                <div class="ts-leaf${savedValid ? '' : ' ts-leaf--empty'}" id="class-end-date-leaf" aria-hidden="true">
+                    <span class="ts-leaf__rings"><i></i><i></i></span>
+                    <span class="ts-leaf__month" data-leaf-month>${savedValid ? escapeHtml(savedDate.toLocaleDateString('en-GB', { month: 'long' })) : 'Last day'}</span>
+                    <span class="ts-leaf__day font-title" data-leaf-day>${savedValid ? savedDate.getDate() : '?'}</span>
+                    <span class="ts-leaf__weekday" data-leaf-weekday>${savedValid ? escapeHtml(savedDate.toLocaleDateString('en-GB', { weekday: 'long' })) : 'not set yet'}</span>
                 </div>
-                <div class="space-y-3">
-                    <label for="class-end-date-active" class="block text-xs font-bold uppercase tracking-wider text-violet-800/90">Final lesson date</label>
-                    <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+                <div class="ts-finale__main">
+                    <div class="ts-finale__class">
+                        <span class="ts-finale__logo" aria-hidden="true">${logo}</span>
+                        <div class="min-w-0">
+                            <div class="ts-finale__name-row">
+                                <h3 class="font-title ts-finale__name">${name}</h3>
+                                ${league ? `<span class="ts-chip">League ${league}</span>` : ''}
+                            </div>
+                            <p class="ts-finale__meta"><i class="fas fa-calendar-week" aria-hidden="true"></i> ${schedule}</p>
+                            <p class="ts-finale__saved"><strong>Saved end date:</strong> ${savedLabel}</p>
+                        </div>
+                    </div>
+                    <label for="class-end-date-active" class="ts-label">Final lesson date</label>
+                    <div class="ts-finale__pick">
                         <input type="date"
                             id="class-end-date-active"
-                            class="flex-1 min-h-[48px] px-4 py-3 rounded-xl border-2 border-violet-200 bg-white text-gray-900 font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-400"
+                            class="ts-input"
                             value="${escapeHtml(pickerValue)}"
                             min="2020-01-01"
                             max="2035-12-31">
                         <button type="button"
-                            class="class-end-date-use-suggested-btn shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800 hover:bg-violet-100 transition-colors"
+                            class="class-end-date-use-suggested-btn ts-btn ts-btn--quiet"
                             data-suggested="${escapeHtml(suggestedPicker)}">
                             <i class="fas fa-wand-magic-sparkles"></i>
                             Use suggested
                         </button>
                     </div>
-<p class="text-[11px] text-gray-500 leading-relaxed">Suggested picks the last scheduled weekday in June (school-year heuristic). Clear the date and save to remove an end date for this class.</p>
+                    <p class="ts-help">Suggested picks the last scheduled weekday in June. Clear the date and save to remove an end date for this class.</p>
                 </div>
             </div>`;
     } catch (e) {
@@ -202,9 +207,27 @@ export function renderClassEndDatesList() {
         btn.addEventListener('click', () => {
             const val = btn.getAttribute('data-suggested') || '';
             const input = document.getElementById('class-end-date-active');
-            if (input) input.value = val;
+            if (input) {
+                input.value = val;
+                syncClassEndDateLeaf(input.value);
+            }
         });
     });
+    document.getElementById('class-end-date-active')?.addEventListener('input', (event) => {
+        syncClassEndDateLeaf(event.target.value);
+    });
+}
+
+// The calendar leaf beside the picker shows whatever date is currently picked.
+function syncClassEndDateLeaf(value) {
+    const leaf = document.getElementById('class-end-date-leaf');
+    if (!leaf) return;
+    const date = value ? new Date(`${value}T12:00:00`) : null;
+    const valid = date && !Number.isNaN(date.getTime());
+    leaf.classList.toggle('ts-leaf--empty', !valid);
+    leaf.querySelector('[data-leaf-month]').textContent = valid ? date.toLocaleDateString('en-GB', { month: 'long' }) : 'Last day';
+    leaf.querySelector('[data-leaf-day]').textContent = valid ? String(date.getDate()) : '?';
+    leaf.querySelector('[data-leaf-weekday]').textContent = valid ? date.toLocaleDateString('en-GB', { weekday: 'long' }) : 'not set yet';
 }
 
 /**

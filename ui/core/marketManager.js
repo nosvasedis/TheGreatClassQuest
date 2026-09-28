@@ -94,10 +94,10 @@ function renderCard(item) {
                 </div>
             </div>
             <div class="market-manager-card__actions">
-                <button type="button" class="market-manager-btn market-manager-btn--save" data-market-action="save">Save</button>
-                <button type="button" class="market-manager-btn market-manager-btn--picture" data-market-action="picture">New picture</button>
-                <button type="button" class="market-manager-btn market-manager-btn--replace" data-market-action="replace">Replace this treasure</button>
-                <button type="button" class="market-manager-btn market-manager-btn--remove" data-market-action="remove">Remove</button>
+                <button type="button" class="market-manager-btn market-manager-btn--save" data-market-action="save"><i class="fas fa-save"></i> Save</button>
+                <button type="button" class="market-manager-btn market-manager-btn--picture" data-market-action="picture"><i class="fas fa-image"></i> New picture</button>
+                <button type="button" class="market-manager-btn market-manager-btn--replace" data-market-action="replace"><i class="fas fa-shuffle"></i> Replace this treasure</button>
+                <button type="button" class="market-manager-btn market-manager-btn--remove" data-market-action="remove"><i class="fas fa-trash"></i> Remove</button>
             </div>
         </article>`;
 }

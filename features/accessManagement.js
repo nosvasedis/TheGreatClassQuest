@@ -80,48 +80,53 @@ function renderParentAccessCard() {
     const selectedStudent = getSelectedStudent();
     const link = selectedStudent ? accessData.parentLinksByStudent[selectedStudent.id] : null;
 
+    const status = link ? String(link.status || 'active') : '';
+    const statusTone = !link ? 'none' : status === 'active' ? 'active' : 'off';
+    const statusLabel = !link ? 'No login yet' : status === 'active' ? 'Active' : status.charAt(0).toUpperCase() + status.slice(1);
+
     return `
-        <article class="bg-white rounded-3xl border border-sky-100 p-6 shadow-lg">
-            <div class="mb-4">
-                <h3 class="font-title text-2xl text-sky-800">Parent Access</h3>
-                <p class="text-sm text-slate-500 mt-1">One login per student. Share the username and password with the family.</p>
-            </div>
+        <article class="ts-access">
             ${students.length ? `
-                <div class="grid gap-4 lg:grid-cols-[minmax(220px,280px)_1fr]">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-400 mb-2" for="options-access-student-select">Student</label>
-                        <select id="options-access-student-select" class="w-full px-4 py-3 border border-slate-200 rounded-2xl bg-white">
+                <div class="ts-access__who">
+                    <label class="ts-field" for="options-access-student-select">
+                        <span class="ts-label">Student</span>
+                        <select id="options-access-student-select" class="ts-input">
                             ${students.map((student) => `
                                 <option value="${student.id}" ${selectedStudent?.id === student.id ? 'selected' : ''}>${escapeHtml(student.name)}</option>
                             `).join('')}
                         </select>
-                        <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    </label>
+                    <div class="ts-keytag ts-keytag--${statusTone}">
+                        <span class="ts-keytag__hole" aria-hidden="true"></span>
+                        <span class="ts-keytag__icon" aria-hidden="true"><i class="fas ${link ? 'fa-key' : 'fa-lock-open'}"></i></span>
+                        <span class="ts-keytag__text">
+                            <span class="ts-keytag__status">${escapeHtml(statusLabel)}</span>
                             ${link
-                                ? `<p><strong class="text-slate-800">Current username:</strong> ${escapeHtml(link.username)}</p><p class="mt-1"><strong class="text-slate-800">Status:</strong> ${escapeHtml(link.status || 'active')}</p>`
-                                : '<p>No parent account has been created for this student yet.</p>'
-                            }
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wide text-slate-400 mb-2" for="options-parent-username">Parent username</label>
-                                <input id="options-parent-username" type="text" class="w-full px-4 py-3 border border-slate-200 rounded-2xl" value="${escapeHtml(link?.username || '')}" placeholder="e.g. maria.parent">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wide text-slate-400 mb-2" for="options-parent-password">Password</label>
-                                <input id="options-parent-password" type="password" class="w-full px-4 py-3 border border-slate-200 rounded-2xl" placeholder="${link ? 'Enter a new password to reset' : 'Create a password'}">
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-3">
-                            <button type="button" id="options-parent-create-btn" class="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold">Save Parent Account</button>
-                            <button type="button" id="options-parent-reset-btn" class="px-5 py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold ${link ? '' : 'hidden'}">Reset Password</button>
-                            <button type="button" id="options-parent-disable-btn" class="px-5 py-3 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold ${link ? '' : 'hidden'}">Disable</button>
-                            <button type="button" id="options-parent-delete-btn" class="px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold ${link ? '' : 'hidden'}">Delete</button>
-                        </div>
+                                ? `<span class="ts-keytag__user">${escapeHtml(link.username)}</span>`
+                                : '<span class="ts-keytag__user">No parent account has been created for this student yet.</span>'}
+                        </span>
                     </div>
                 </div>
-            ` : '<div class="parent-empty">Create students first, then parent accounts can be linked here.</div>'}
+                <div class="ts-access__form">
+                    <p class="ts-access__lede">One login per student. Share the username and password with the family.</p>
+                    <div class="ts-row ts-row--2">
+                        <label class="ts-field" for="options-parent-username">
+                            <span class="ts-label">Parent username</span>
+                            <input id="options-parent-username" type="text" class="ts-input" value="${escapeHtml(link?.username || '')}" placeholder="e.g. maria.parent" autocomplete="off">
+                        </label>
+                        <label class="ts-field" for="options-parent-password">
+                            <span class="ts-label">Password</span>
+                            <input id="options-parent-password" type="password" class="ts-input" placeholder="${link ? 'Enter a new password to reset' : 'Create a password'}" autocomplete="new-password">
+                        </label>
+                    </div>
+                    <div class="ts-actions">
+                        <button type="button" id="options-parent-create-btn" class="ts-btn bubbly-button"><i class="fas fa-save"></i> Save Parent Account</button>
+                        <button type="button" id="options-parent-reset-btn" class="ts-btn ts-btn--quiet bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-rotate"></i> Reset Password</button>
+                        <button type="button" id="options-parent-disable-btn" class="ts-btn ts-btn--quiet bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-ban"></i> Disable</button>
+                        <button type="button" id="options-parent-delete-btn" class="ts-btn ts-btn--danger bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-trash"></i> Delete</button>
+                    </div>
+                </div>
+            ` : '<div class="parent-empty ts-empty"><div class="ts-empty__icon" aria-hidden="true">👪</div><p class="ts-empty__text">Create students first, then parent accounts can be linked here.</p></div>'}
         </article>
     `;
 }
@@ -131,17 +136,13 @@ export async function renderAccessCenterUi() {
     if (!container) return;
     if (!canUseFeature('parentAccess')) {
         container.innerHTML = `
-            <div class="parent-empty">Parent access is not included in this school's plan.</div>
+            <div class="parent-empty ts-empty">Parent access is not included in this school's plan.</div>
         `;
         return;
     }
 
     await loadAccessData();
-    container.innerHTML = `
-        <div class="space-y-6">
-            ${renderParentAccessCard()}
-        </div>
-    `;
+    container.innerHTML = renderParentAccessCard();
 }
 
 export function openAccessCenterForStudent(studentId) {

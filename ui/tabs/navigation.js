@@ -368,15 +368,21 @@ function syncOptionsSubtabSelect() {
         iconEl.innerHTML = `<i class="${icon}"></i>`;
     }
     if (labelEl) labelEl.textContent = optionsSubtabLabel(active) || 'My Classes';
+    const hintEl = document.getElementById('options-subtab-trigger-hint');
+    if (hintEl) hintEl.textContent = active?.dataset.hint || '';
 
     menu.innerHTML = visible.map((btn) => {
         const key = btn.dataset.optionsTab;
         const icon = btn.querySelector('i')?.className || 'fas fa-circle';
         const label = optionsSubtabLabel(btn);
+        const hint = btn.dataset.hint || '';
         const isActive = key === activeKey;
         return `<button type="button" class="options-subtab-select__option${isActive ? ' is-active' : ''}" data-options-tab="${key}" role="option" aria-selected="${isActive}">
             <span class="options-subtab-select__option-icon" aria-hidden="true"><i class="${icon}"></i></span>
-            <span class="options-subtab-select__option-label">${label}</span>
+            <span class="options-subtab-select__option-text">
+                <span class="options-subtab-select__option-label">${label}</span>
+                ${hint ? `<span class="options-subtab-select__option-hint">${hint}</span>` : ''}
+            </span>
             ${isActive ? '<i class="fas fa-check options-subtab-select__check" aria-hidden="true"></i>' : ''}
         </button>`;
     }).join('');
@@ -413,6 +419,23 @@ function wireOptionsSubtabSelect() {
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') setOptionsSubtabSelectOpen(false);
     });
+}
+
+// Profile: the staff badge beside the name field mirrors what is typed.
+function syncTeacherBadge() {
+    const input = document.getElementById('teacher-name-input');
+    const nameEl = document.getElementById('ts-badge-name');
+    const initialsEl = document.getElementById('ts-badge-initials');
+    if (!input || !nameEl) return;
+    const name = input.value.trim();
+    nameEl.textContent = name || 'Your name';
+    if (initialsEl) {
+        const words = name.replace(/^(mr|mrs|ms|miss|dr|mx)\.?\s+/i, '').split(/\s+/).filter(Boolean);
+        const initials = words.length > 1
+            ? `${words[0][0]}${words[words.length - 1][0]}`
+            : (words[0] || '?').slice(0, 2);
+        initialsEl.textContent = initials.toUpperCase();
+    }
 }
 
 export async function showOptionsSubtab(key) {
@@ -542,6 +565,11 @@ export async function showTab(tabName) {
         const teacherInput = document.getElementById('teacher-name-input');
         if (teacherInput) {
             teacherInput.value = state.get('currentTeacherName') || '';
+            if (!teacherInput.dataset.badgeWired) {
+                teacherInput.dataset.badgeWired = '1';
+                teacherInput.addEventListener('input', syncTeacherBadge);
+            }
+            syncTeacherBadge();
         }
         if (hasAssessmentAccess) {
             renderAssessmentOptionsUi();
@@ -630,21 +658,16 @@ export async function showTab(tabName) {
             const summary = getTierSummary(rawTier);
             const badgeEmoji = rawTier === 'elite' ? '🌟' : rawTier === 'pro' ? '🚀' : '🔰';
             summaryEl.innerHTML = `
-                <div class="bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-100 rounded-3xl shadow-md p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4">
-                    <div class="flex-1">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-sky-100 text-xs font-semibold text-sky-700 mb-2">
-                            <span>${badgeEmoji} ${summary.badge}</span>
-                            <span class="h-1 w-1 rounded-full bg-sky-400"></span>
-                            <span>Current plan: ${pretty}</span>
-                        </div>
-                        <h3 class="font-title text-xl text-slate-800 mb-1">${summary.title}</h3>
-                        <p class="text-sm text-slate-600">${summary.body}</p>
+                <div class="ts-plan" data-tier="${rawTier}">
+                    <div class="ts-plan__stub" aria-hidden="true">
+                        <span class="ts-plan__emoji">${badgeEmoji}</span>
+                        <span class="ts-plan__tier font-title">${pretty}</span>
                     </div>
-                    <div class="md:w-56">
-                        <div class="bg-white/80 rounded-2xl px-3 py-3 text-xs text-slate-600 border border-dashed border-sky-100">
-                            <p class="font-semibold text-slate-800 mb-1">Plan information</p>
-                            <p>Subscription and billing changes are managed by the Secretary/admin.</p>
-                        </div>
+                    <div class="ts-plan__body">
+                        <p class="ts-plan__eyebrow">${summary.badge} · Current plan: ${pretty}</p>
+                        <h3 class="font-title ts-plan__title">${summary.title}</h3>
+                        <p class="ts-plan__text">${summary.body}</p>
+                        <p class="ts-plan__foot"><i class="fas fa-circle-info" aria-hidden="true"></i> Subscription and billing changes are managed by the Secretary/admin.</p>
                     </div>
                 </div>
             `;

@@ -24,350 +24,303 @@ export const optionsTabHTML = `
                         <div class="options-subtab-select" id="options-subtab-select" data-active-tab="classes">
                             <button type="button" class="options-subtab-select__trigger" id="options-subtab-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="options-subtab-menu" aria-label="Choose settings section">
                                 <span class="options-subtab-select__icon" id="options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-chalkboard-teacher"></i></span>
-                                <span class="options-subtab-select__label" id="options-subtab-trigger-label">My Classes</span>
-                                <i class="fas fa-chevron-down options-subtab-select__chev" aria-hidden="true"></i>
+                                <span class="options-subtab-select__text">
+                                    <span class="options-subtab-select__label" id="options-subtab-trigger-label">My Classes</span>
+                                    <span class="options-subtab-select__hint" id="options-subtab-trigger-hint">Your classes and rosters</span>
+                                </span>
+                                <span class="options-subtab-select__switch" aria-hidden="true">Switch <i class="fas fa-chevron-down options-subtab-select__chev"></i></span>
                             </button>
                             <div class="options-subtab-select__menu hidden" id="options-subtab-menu" role="listbox" aria-label="Teacher Settings sections"></div>
                         </div>
                         <div class="options-subtab-buttons" aria-hidden="true">
-                            <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="classes">
+                            <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="classes" data-hint="Your classes and rosters">
                                 <i class="fas fa-chalkboard-teacher mr-1.5"></i> My Classes
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="manage">
+                            <button type="button" class="options-subtab-btn" data-options-tab="manage" data-hint="Fix stars, gold or a Familiar">
                                 <i class="fas fa-tools mr-1.5"></i> Student Tools
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="planning">
+                            <button type="button" class="options-subtab-btn" data-options-tab="planning" data-hint="Set a class's last lesson day">
                                 <i class="fas fa-calendar-alt mr-1.5"></i> My Planning
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="profile">
+                            <button type="button" class="options-subtab-btn" data-options-tab="profile" data-hint="Your display name">
                                 <i class="fas fa-user mr-1.5"></i> Profile
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="assessments">
+                            <button type="button" class="options-subtab-btn" data-options-tab="assessments" data-hint="How tests and dictations are marked">
                                 <i class="fas fa-clipboard-check mr-1.5"></i> Class Grading
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="access">
+                            <button type="button" class="options-subtab-btn" data-options-tab="access" data-hint="Parent logins for each student">
                                 <i class="fas fa-user-shield mr-1.5"></i> Family Access
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="quiz">
+                            <button type="button" class="options-subtab-btn" data-options-tab="quiz" data-hint="An AI quiz from this week's lessons">
                                 <i class="fas fa-circle-question mr-1.5"></i> Quiz
                             </button>
-                            <button type="button" class="options-subtab-btn" data-options-tab="market">
+                            <button type="button" class="options-subtab-btn" data-options-tab="market" data-hint="Repair this month's stall">
                                 <i class="fas fa-store mr-1.5"></i> Market
                             </button>
                         </div>
                     </div>
 
-                    <div class="space-y-8">
+                    <div class="ts-desk">
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="manage">
-                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                
-                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
-                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/30 floating-icon">
-                                        <i class="fas fa-star text-white text-4xl"></i>
+                            <!-- ── STUDENT TOOLS ── -->
+                            <section class="ts-page hidden" data-options-section="manage" data-ts-accent="manage">
+                                <span class="ts-page__tape" aria-hidden="true"></span>
+                                <header class="ts-page__head">
+                                    <span class="ts-sticker" aria-hidden="true"><i class="fas fa-tools"></i></span>
+                                    <div class="ts-page__heading">
+                                        <h2 class="font-title ts-page__title">Student Tools</h2>
+                                        <p class="ts-page__lede">Quick fixes for one student at a time: their stars, their gold, or their Familiar.</p>
                                     </div>
-                                    <div class="text-center md:text-left flex-1">
-                                        <h2 class="font-title text-3xl text-amber-800 mb-1">Student Star Manager</h2>
-                                        <p class="text-gray-500 text-sm">Add historical awards or manually override current student scores.</p>
-                                    </div>
-                                </div>
-                                <div id="star-manager-form" class="space-y-4 relative z-10">
-                                    <div>
-                                        <label for="star-manager-student-select"
-                                            class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
-                                        <select id="star-manager-student-select"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
-                                            <option value="">Loading students...</option>
-                                        </select>
-                                    </div>
-                                    <div class="p-4 bg-amber-50 rounded-xl border border-amber-200">
-                                        <h3 class="font-title text-xl text-amber-800 mb-2 text-center">Add Historical
-                                            Award</h3>
-                                        <div class="grid grid-cols-2 gap-4">
+                                </header>
+
+                                <div class="ts-tools">
+                                    <article class="ts-card ts-tools__wide" data-ts-card="stars">
+                                        <header class="ts-card__head">
+                                            <span class="ts-card__icon" aria-hidden="true"><i class="fas fa-star"></i></span>
                                             <div>
-                                                <label for="star-manager-date"
-                                                    class="block text-sm font-medium text-gray-700">Award Date</label>
-                                                <input type="date" id="star-manager-date"
-                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500"
-                                                    disabled>
+                                                <h3 class="font-title ts-card__title">Student Star Manager</h3>
+                                                <p class="ts-card__hint">Add historical awards or manually override current student scores.</p>
                                             </div>
-                                            <div>
-                                                <label for="star-manager-stars-to-add"
-                                                    class="block text-sm font-medium text-gray-700">Stars to Add</label>
-                                                <input type="number" id="star-manager-stars-to-add"
-                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500"
-                                                    min="0.5" step="0.5" max="10" value="1" disabled>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label for="star-manager-reason"
-                                                class="block text-sm font-medium text-gray-700 mt-2">Reason</label>
-                                            <select id="star-manager-reason"
-                                                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-amber-500"
-                                                disabled>
-                                                <option value="teamwork">Teamwork</option>
-                                                <option value="creativity">Creativity</option>
-                                                <option value="respect">Respect</option>
-                                                <option value="focus">Focus/Effort</option>
-                                                <option value="welcome_back">Welcome Back Bonus</option>
-                                                <option value="correction">Manual Correction</option>
-                                            </select>
-                                        </div>
-                                        <button id="star-manager-add-btn"
-                                            class="w-full mt-4 bg-amber-500 hover:bg-amber-600 text-white font-title text-lg py-2 rounded-xl bubbly-button"
-                                            disabled>
-                                            <i class="fas fa-plus-circle mr-2"></i> Add Stars to Log
-                                        </button>
-                                    </div>
-                                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                                        <h3 class="font-title text-xl text-blue-800 mb-2 text-center">Direct Score
-                                            Override</h3>
-                                        <p class="text-xs text-gray-600 text-center mb-3">Manually set the star
-                                            counters. This does NOT create a log entry.</p>
-                                        <div id="star-override-form" class="grid grid-cols-3 gap-4 mb-4">
-                                            <div>
-                                                <label for="override-today-stars"
-                                                    class="block text-sm font-medium text-gray-700">Today</label>
-                                                <input type="number" id="override-today-stars"
-                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                                                    min="0" value="0" disabled>
-                                            </div>
-                                            <div>
-                                                <label for="override-monthly-stars"
-                                                    class="block text-sm font-medium text-gray-700">Monthly</label>
-                                                <input type="number" id="override-monthly-stars"
-                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                                                    min="0" value="0" disabled>
-                                            </div>
-                                            <div>
-                                                <label for="override-total-stars"
-                                                    class="block text-sm font-medium text-gray-700">Total</label>
-                                                <input type="number" id="override-total-stars"
-                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                                                    min="0" value="0" disabled>
+                                        </header>
+                                        <div id="star-manager-form" class="ts-card__body">
+                                            <label class="ts-field">
+                                                <span class="ts-label">Student</span>
+                                                <select id="star-manager-student-select" class="ts-input">
+                                                    <option value="">Loading students...</option>
+                                                </select>
+                                            </label>
+                                            <div class="ts-split">
+                                                <div class="ts-slip" data-ts-card="award">
+                                                    <h4 class="ts-slip__title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Add Historical Award</h4>
+                                                    <p class="ts-slip__hint">Writes a dated entry in the log, as if it were awarded that day.</p>
+                                                    <div class="ts-row ts-row--2">
+                                                        <label class="ts-field" for="star-manager-date">
+                                                            <span class="ts-label">Award date</span>
+                                                            <input type="date" id="star-manager-date" class="ts-input" disabled>
+                                                        </label>
+                                                        <label class="ts-field" for="star-manager-stars-to-add">
+                                                            <span class="ts-label">Stars to add</span>
+                                                            <input type="number" id="star-manager-stars-to-add" class="ts-input" min="0.5" step="0.5" max="10" value="1" disabled>
+                                                        </label>
+                                                    </div>
+                                                    <label class="ts-field" for="star-manager-reason">
+                                                        <span class="ts-label">Reason</span>
+                                                        <select id="star-manager-reason" class="ts-input" disabled>
+                                                            <option value="teamwork">Teamwork</option>
+                                                            <option value="creativity">Creativity</option>
+                                                            <option value="respect">Respect</option>
+                                                            <option value="focus">Focus/Effort</option>
+                                                            <option value="welcome_back">Welcome Back Bonus</option>
+                                                            <option value="correction">Manual Correction</option>
+                                                        </select>
+                                                    </label>
+                                                    <button id="star-manager-add-btn" class="ts-btn bubbly-button" disabled>
+                                                        <i class="fas fa-plus-circle"></i> Add Stars to Log
+                                                    </button>
+                                                </div>
+                                                <div class="ts-slip" data-ts-card="override">
+                                                    <h4 class="ts-slip__title"><i class="fas fa-sliders" aria-hidden="true"></i> Direct Score Override</h4>
+                                                    <p class="ts-slip__hint">Manually set the star counters. This does NOT create a log entry.</p>
+                                                    <div id="star-override-form" class="ts-row ts-row--3">
+                                                        <label class="ts-field" for="override-today-stars">
+                                                            <span class="ts-label">Today</span>
+                                                            <input type="number" id="override-today-stars" class="ts-input ts-input--num" min="0" value="0" disabled>
+                                                        </label>
+                                                        <label class="ts-field" for="override-monthly-stars">
+                                                            <span class="ts-label">Monthly</span>
+                                                            <input type="number" id="override-monthly-stars" class="ts-input ts-input--num" min="0" value="0" disabled>
+                                                        </label>
+                                                        <label class="ts-field" for="override-total-stars">
+                                                            <span class="ts-label">Total</span>
+                                                            <input type="number" id="override-total-stars" class="ts-input ts-input--num" min="0" value="0" disabled>
+                                                        </label>
+                                                    </div>
+                                                    <button id="star-manager-override-btn" class="ts-btn bubbly-button" disabled>
+                                                        <i class="fas fa-wrench"></i> Set Student Scores
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                        <button id="star-manager-override-btn"
-                                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-lg py-2 rounded-xl bubbly-button"
-                                            disabled>
-                                            <i class="fas fa-wrench mr-2"></i> Set Student Scores
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="relative overflow-hidden rounded-[2rem] border border-yellow-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="manage">
-                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-yellow-200 to-amber-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                
-                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl shadow-yellow-500/30 floating-icon">
-                                        <div class="text-4xl">💰</div>
-                                    </div>
-                                    <div class="text-center md:text-left flex-1">
-                                        <h2 class="font-title text-3xl text-yellow-800 mb-1">Coin Purse Manager</h2>
-                                        <p class="text-sm text-gray-500">Fix balances or reward custom gold amounts.</p>
-                                    </div>
-                                </div>
+                                    </article>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                                    <div class="md:col-span-2">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Select
-                                            Student</label>
-                                        <select id="economy-student-select"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
-                                            <option value="">Loading...</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Current Gold</label>
-                                        <div class="relative">
-                                            <input type="number" id="economy-gold-input"
-                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 font-bold text-lg text-yellow-600"
-                                                placeholder="0">
-                                            <div class="absolute right-4 top-3 text-yellow-500">🪙</div>
+                                    <article class="ts-card" data-ts-card="gold">
+                                        <header class="ts-card__head">
+                                            <span class="ts-card__icon" aria-hidden="true"><i class="fas fa-coins"></i></span>
+                                            <div>
+                                                <h3 class="font-title ts-card__title">Coin Purse Manager</h3>
+                                                <p class="ts-card__hint">Fix balances or reward custom gold amounts.</p>
+                                            </div>
+                                        </header>
+                                        <div class="ts-card__body">
+                                            <label class="ts-field" for="economy-student-select">
+                                                <span class="ts-label">Student</span>
+                                                <select id="economy-student-select" class="ts-input">
+                                                    <option value="">Loading...</option>
+                                                </select>
+                                            </label>
+                                            <label class="ts-field" for="economy-gold-input">
+                                                <span class="ts-label">Current gold</span>
+                                                <span class="ts-coin-input">
+                                                    <input type="number" id="economy-gold-input" class="ts-input ts-input--gold" placeholder="0">
+                                                    <span class="ts-coin-input__coin" aria-hidden="true">🪙</span>
+                                                </span>
+                                            </label>
+                                            <button id="save-gold-btn" class="ts-btn bubbly-button" disabled>
+                                                <i class="fas fa-save"></i> Update Balance
+                                            </button>
                                         </div>
-                                    </div>
+                                    </article>
 
-                                    <div class="flex items-end">
-                                        <button id="save-gold-btn"
-                                            class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-title text-lg py-3 rounded-xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled>
-                                            <i class="fas fa-save mr-2"></i> Update Balance
-                                        </button>
-                                    </div>
+                                    <article class="ts-card" data-ts-card="forge">
+                                        <header class="ts-card__head">
+                                            <span class="ts-card__icon" aria-hidden="true"><i class="fas fa-dragon"></i></span>
+                                            <div>
+                                                <h3 class="font-title ts-card__title">Familiar Sprite Forge</h3>
+                                                <p class="ts-card__hint">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
+                                            </div>
+                                        </header>
+                                        <div class="ts-card__body">
+                                            <label class="ts-field" for="familiar-maintenance-student-select">
+                                                <span class="ts-label">Student</span>
+                                                <select id="familiar-maintenance-student-select" class="ts-input">
+                                                    <option value="">Loading familiars...</option>
+                                                </select>
+                                            </label>
+                                            <div id="familiar-maintenance-status" class="ts-note" aria-live="polite">
+                                                Choose a student to inspect or regenerate their Familiar sprite.
+                                            </div>
+                                            <button id="familiar-regenerate-btn" class="ts-btn bubbly-button" disabled>
+                                                <i class="fas fa-wand-sparkles"></i> Regenerate Familiar Sprite
+                                            </button>
+                                        </div>
+                                    </article>
                                 </div>
-                            </div>
+                            </section>
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-rose-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="manage">
-                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-rose-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                
-                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-rose-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl shadow-rose-500/30 floating-icon">
-                                        <div class="text-4xl">🧬</div>
+                            <!-- ── MY CLASSES ── -->
+                            <section class="ts-page" data-options-section="classes" data-ts-accent="classes">
+                                <span class="ts-page__tape" aria-hidden="true"></span>
+                                <header class="ts-page__head">
+                                    <span class="ts-sticker" aria-hidden="true"><i class="fas fa-chalkboard-teacher"></i></span>
+                                    <div class="ts-page__heading">
+                                        <h2 class="font-title ts-page__title">My Classes</h2>
+                                        <p class="ts-page__lede">Manage your classes and student rosters from one place.</p>
                                     </div>
-                                    <div class="text-center md:text-left flex-1">
-                                        <h2 class="font-title text-3xl text-rose-800 mb-1">Familiar Sprite Forge</h2>
-                                        <p class="text-sm text-gray-500">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
-                                    </div>
-                                </div>
-                                <div class="space-y-3 relative z-10">
-                                    <div>
-                                        <label for="familiar-maintenance-student-select" class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
-                                        <select id="familiar-maintenance-student-select"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white">
-                                            <option value="">Loading familiars...</option>
-                                        </select>
-                                    </div>
-                                    <div id="familiar-maintenance-status" class="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm text-rose-900">
-                                        Choose a student to inspect or regenerate their Familiar sprite.
-                                    </div>
-                                    <button id="familiar-regenerate-btn"
-                                        class="w-full bg-rose-500 hover:bg-rose-600 text-white font-title text-lg py-3 rounded-xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed"
-                                        disabled>
-                                        <i class="fas fa-wand-sparkles mr-2"></i> Regenerate Current Familiar Sprite
+                                    <button id="open-create-class-modal-btn" type="button" class="ts-btn ts-page__action bubbly-button">
+                                        <i class="fas fa-plus-circle"></i>
+                                        <span>Add New Class</span>
                                     </button>
-                                </div>
-                            </div>
-                            
-                            <div class="space-y-6" data-options-section="classes">
-                                <div class="relative overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
-                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-green-100 to-cyan-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                </header>
+                                <div id="class-list" class="space-y-4"></div>
+                            </section>
 
-                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
-                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/30 floating-icon">
-                                            <i class="fas fa-chalkboard-teacher text-white text-4xl"></i>
-                                        </div>
-                                        <div class="text-center md:text-left flex-1">
-                                            <h2 class="font-title text-3xl text-emerald-800 mb-1">My Classes</h2>
-                                            <p class="text-gray-500 text-sm">Manage your classes and student rosters from one place.</p>
-                                        </div>
-                                    </div>
-
-                                    <div id="class-list" class="relative z-10 space-y-4"></div>
-                                    <div class="relative z-10 mt-2 flex flex-col items-center gap-2 text-center">
-                                        <p class="text-sm text-gray-500">Need to add another class?</p>
-                                        <button id="open-create-class-modal-btn" type="button"
-                                            class="inline-flex items-center justify-center gap-2 bg-white hover:bg-green-50 text-green-700 border border-green-200 font-bold px-4 py-2.5 rounded-xl shadow-sm bubbly-button">
-                                            <i class="fas fa-plus-circle"></i>
-                                            <span>Add New Class</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-6 hidden" data-options-section="planning">
+                            <!-- ── MY PLANNING ── -->
+                            <section class="ts-page-wrap hidden" data-options-section="planning">
                                 <div id="options-planning-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">📅</div>
                                     <div class="options-tier-locked-title">Planning tools</div>
                                     <p class="options-tier-locked-text">Per-class planning preferences are available on the Pro plan. School-wide dates are managed by the Secretary/admin.</p>
                                     <span class="options-tier-locked-badge">Pro</span>
                                 </div>
-                                <div id="options-planning-content" class="flex flex-col gap-8">
-                                    <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200/80 bg-gradient-to-br from-white via-rose-50/30 to-violet-50/40 shadow-lg p-6 md:p-8 space-y-8">
-                                        <div class="absolute -top-10 -right-10 w-48 h-48 bg-gradient-to-br from-pink-200/80 to-violet-200/70 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-                                        <div class="absolute -bottom-8 -left-8 w-40 h-40 bg-gradient-to-tr from-indigo-100/50 to-fuchsia-100/40 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-
-                                        <div class="relative z-10 flex flex-col items-center text-center gap-2">
-                                            <div class="w-16 h-16 bg-gradient-to-br from-pink-500 via-rose-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-fuchsia-500/25 mb-1 floating-icon ring-2 ring-white/80">
-                                                <i class="fas fa-calendar-alt text-white text-2xl"></i>
-                                            </div>
-                                            <h2 class="font-title text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-800 via-rose-800 to-violet-900 text-center">My Class Planning</h2>
-                                            <p class="text-sm text-gray-600 max-w-xl leading-relaxed">Set the <span class="font-semibold text-gray-800">final lesson day</span> for a class you own. School-wide breaks still shade your calendars, but only the Secretary/admin edits them.</p>
+                                <div id="options-planning-content" class="ts-page" data-ts-accent="planning">
+                                    <span class="ts-page__tape" aria-hidden="true"></span>
+                                    <header class="ts-page__head">
+                                        <span class="ts-sticker" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
+                                        <div class="ts-page__heading">
+                                            <h2 class="font-title ts-page__title">My Class Planning</h2>
+                                            <p class="ts-page__lede">Set the <strong>final lesson day</strong> for a class you own. After that date it drops out of day-by-day schedules.</p>
                                         </div>
+                                    </header>
 
-                                        <div class="relative z-10 space-y-5 pt-6 border-t border-violet-100/90">
-                                            <div class="flex items-center gap-2 justify-center flex-wrap">
-                                                <span class="text-lg" aria-hidden="true">🎯</span>
-                                                <h3 class="font-title text-lg text-violet-900 text-center">Class finale</h3>
-                                            </div>
-                                            <p class="text-sm text-gray-600 text-center max-w-lg mx-auto">Choose a class in the <span class="font-semibold text-violet-800">header</span>, set its last lesson day here, then save. After that date it drops from day-by-day schedules; leave empty if the class continues year-round.</p>
-
-                                            <div id="class-end-dates-list" class="min-h-[120px]">
-                                                <!-- Filled by renderClassEndDatesList() -->
-                                            </div>
-
-                                            <button type="button" id="save-class-end-dates-btn"
-                                                disabled
-                                                class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-title text-lg py-3 rounded-2xl bubbly-button shadow-md shadow-violet-500/20 disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none transition-all">
-                                                <i class="fas fa-save mr-2"></i> Save for this class
-                                            </button>
+                                    <div class="ts-planning">
+                                        <div id="class-end-dates-list" class="ts-planning__list">
+                                            <!-- Filled by renderClassEndDatesList() -->
                                         </div>
+                                        <aside class="ts-sticky-note">
+                                            <p class="ts-sticky-note__title font-title">Class finale</p>
+                                            <ol class="ts-sticky-note__steps">
+                                                <li>Choose a class in the <strong>header</strong>.</li>
+                                                <li>Pick its last lesson day.</li>
+                                                <li>Save. Leave it empty if the class runs all year.</li>
+                                            </ol>
+                                            <p class="ts-sticky-note__foot">School-wide breaks still shade your calendars, but only the Secretary/admin edits them.</p>
+                                        </aside>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="space-y-6 hidden" data-options-section="access">
-                                <div class="relative overflow-hidden rounded-[2rem] border border-indigo-100 bg-white shadow-lg p-8">
-                                    <!-- Decorative background elements -->
-                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                    
-                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                                        <div class="flex-shrink-0 w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 floating-icon">
-                                            <i class="fas fa-user-shield text-white text-4xl"></i>
+                                    <button type="button" id="save-class-end-dates-btn" disabled class="ts-btn ts-btn--block bubbly-button">
+                                        <i class="fas fa-save"></i> Save for this class
+                                    </button>
+                                </div>
+                            </section>
+
+                            <!-- ── FAMILY ACCESS ── -->
+                            <section class="ts-page hidden" data-options-section="access" data-ts-accent="access">
+                                <span class="ts-page__tape" aria-hidden="true"></span>
+                                <header class="ts-page__head">
+                                    <span class="ts-sticker" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+                                    <div class="ts-page__heading">
+                                        <span class="ts-page__eyebrow"><i class="fas fa-lock" aria-hidden="true"></i> Parent logins</span>
+                                        <h2 class="font-title ts-page__title">Family Access</h2>
+                                        <p class="ts-page__lede">Create a parent username and password for each student you teach. Families can follow progress, homework, and school messages.</p>
+                                    </div>
+                                </header>
+                                <div id="options-access-content"></div>
+                            </section>
+
+                            <!-- ── PROFILE ── -->
+                            <section class="ts-page hidden" data-options-section="profile" data-ts-accent="profile">
+                                <span class="ts-page__tape" aria-hidden="true"></span>
+                                <header class="ts-page__head">
+                                    <span class="ts-sticker" aria-hidden="true"><i class="fas fa-user-circle"></i></span>
+                                    <div class="ts-page__heading">
+                                        <h2 class="font-title ts-page__title">Profile Settings</h2>
+                                        <p class="ts-page__lede">This is the name the app uses for you. Your badge updates as you type.</p>
+                                    </div>
+                                </header>
+                                <div class="ts-profile">
+                                    <div class="ts-badge" aria-hidden="true">
+                                        <span class="ts-badge__clip"></span>
+                                        <div class="ts-badge__band">
+                                            <span>Staff</span>
+                                            <i class="fas fa-star"></i>
                                         </div>
-                                        <div class="text-center md:text-left flex-1">
-                                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-100">
-                                                <i class="fas fa-lock"></i> Parent logins
-                                            </div>
-                                            <h2 class="font-title text-4xl text-gray-800 mb-2">Family Access</h2>
-                                            <p class="text-gray-500 leading-relaxed max-w-2xl">
-                                                Create a parent username and password for each student you teach. Families can follow progress, homework, and school messages.
-                                            </p>
-                                        </div>
+                                        <div class="ts-badge__photo" id="ts-badge-initials">?</div>
+                                        <div class="ts-badge__name font-title" id="ts-badge-name">Your name</div>
+                                        <div class="ts-badge__role">Teacher</div>
+                                        <div class="ts-badge__school">The Great Class Quest</div>
+                                        <div class="ts-badge__barcode"></div>
+                                    </div>
+                                    <div class="ts-profile__form">
+                                        <label class="ts-field" for="teacher-name-input">
+                                            <span class="ts-label">Your display name</span>
+                                            <input type="text" id="teacher-name-input" class="ts-input ts-input--lg" autocomplete="off" placeholder="e.g. Ms. Papadaki">
+                                        </label>
+                                        <button id="save-teacher-name-btn" class="ts-btn ts-btn--block bubbly-button">
+                                            <i class="fas fa-save"></i> Save Name
+                                        </button>
                                     </div>
                                 </div>
-                                <div id="options-access-content" class="space-y-6"></div>
-                            </div>
+                            </section>
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-blue-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="profile">
-                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-100 to-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                
-                                <div class="relative z-10 flex flex-col items-center mb-6">
-                                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30 mb-4 floating-icon">
-                                        <i class="fas fa-user-circle text-white text-4xl"></i>
+                            <!-- ── CLASS GRADING ── -->
+                            <section class="ts-page hidden" data-options-section="assessments" data-ts-accent="assessments" data-grading-tab="classes" data-grading-kind="tests">
+                                <span class="ts-page__tape" aria-hidden="true"></span>
+                                <header class="ts-page__head">
+                                    <span class="ts-sticker" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
+                                    <div class="ts-page__heading">
+                                        <h2 class="font-title ts-page__title">Class Grading</h2>
+                                        <p class="ts-page__lede">School picture is read-only. Override Tests or Dictations only for a class you teach.</p>
                                     </div>
-                                    <h2 class="font-title text-3xl text-blue-800 text-center">Profile Settings</h2>
+                                </header>
+                                <div class="class-grading-switch" role="tablist" aria-label="Class Grading sections">
+                                    <button type="button" class="class-grading-switch__btn is-active" data-grading-tab="classes" role="tab" aria-selected="true"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i> My classes</button>
+                                    <button type="button" class="class-grading-switch__btn" data-grading-tab="school" role="tab" aria-selected="false"><i class="fas fa-school" aria-hidden="true"></i> School picture</button>
                                 </div>
-                                <div class="relative z-10">
-                                    <label for="teacher-name-input"
-                                        class="block text-sm font-medium text-gray-700 mb-1">Your Display Name</label>
-                                    <input type="text" id="teacher-name-input"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        autocomplete="off">
-                                </div>
-                                <button id="save-teacher-name-btn"
-                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center mb-4">
-                                    <i class="fas fa-save mr-2"></i> Save Name
-                                </button>
-                            </div>
-
-                            <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-5 hidden" data-options-section="assessments" data-grading-tab="classes" data-grading-kind="tests">
-                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-fuchsia-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-purple-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                
-                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-fuchsia-500/30 floating-icon">
-                                        <i class="fas fa-clipboard-check text-white text-4xl"></i>
-                                    </div>
-                                    <div class="text-center md:text-left flex-1">
-                                        <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Class Grading</h2>
-                                        <p class="text-sm text-slate-500">School picture is read-only. Override Tests or Dictations only for a class you teach.</p>
-                                    </div>
-                                </div>
-                                <div class="relative z-10 class-grading-switch" role="tablist" aria-label="Class Grading sections">
-                                    <button type="button" class="class-grading-switch__btn is-active" data-grading-tab="classes" role="tab" aria-selected="true">My classes</button>
-                                    <button type="button" class="class-grading-switch__btn" data-grading-tab="school" role="tab" aria-selected="false">School picture</button>
-                                </div>
-                                <div class="relative z-10 class-grading-panel hidden" data-grading-panel="school">
+                                <div class="class-grading-panel hidden" data-grading-panel="school">
                                     <p class="class-grading-panel__lead">What the Secretary set for each Quest League. Ask them to change it.</p>
                                     <div id="options-assessment-defaults-editor"></div>
                                 </div>
-                                <div class="relative z-10 class-grading-panel" data-grading-panel="classes">
+                                <div class="class-grading-panel" data-grading-panel="classes">
                                     <div class="class-grading-toolbar">
                                         <label class="class-grading-class-picker">
                                             <span>Class</span>
@@ -379,37 +332,29 @@ export const optionsTabHTML = `
                                         </div>
                                     </div>
                                     <div id="options-class-assessment-editor"></div>
-                                    <button id="save-assessment-settings-btn"
-                                        class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
-                                        <i class="fas fa-save mr-2"></i> Save My Class Grading
+                                    <button id="save-assessment-settings-btn" class="ts-btn ts-btn--block bubbly-button">
+                                        <i class="fas fa-save"></i> Save My Class Grading
                                     </button>
                                 </div>
-                            </div>
+                            </section>
 
                             <!-- Quiz of the Week section -->
-                            <div class="space-y-6 hidden" data-options-section="quiz">
+                            <section class="ts-page-wrap hidden" data-options-section="quiz">
                                 <div id="options-quiz-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">❓</div>
                                     <div class="options-tier-locked-title">Quiz of the Week</div>
                                     <p class="options-tier-locked-text">AI-powered weekly quizzes are available on the Elite plan.</p>
                                     <span class="options-tier-locked-badge">Elite</span>
                                 </div>
-                                <div id="options-quiz-content" class="qow-panel hidden relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
-                                    <!-- Decorative background elements -->
-                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-
-                                    <!-- ── HERO HEADER ── -->
-                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
-                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/30 floating-icon relative">
-                                            <i class="fas fa-trophy text-white text-4xl"></i>
-                                            <div class="absolute -top-2 -right-2 text-2xl" aria-hidden="true">✨</div>
+                                <div id="options-quiz-content" class="qow-panel ts-page hidden" data-ts-accent="quiz">
+                                    <span class="ts-page__tape" aria-hidden="true"></span>
+                                    <header class="ts-page__head">
+                                        <span class="ts-sticker" aria-hidden="true"><i class="fas fa-trophy"></i></span>
+                                        <div class="ts-page__heading">
+                                            <h2 class="font-title ts-page__title">Quiz of the Week</h2>
+                                            <p class="ts-page__lede">AI generates a tailored multiple-choice quiz from this week's lessons — play it live on Home.</p>
                                         </div>
-                                        <div class="text-center md:text-left flex-1">
-                                            <h2 class="font-title text-3xl text-amber-800 mb-1">Quiz of the Week</h2>
-                                            <p class="text-sm text-gray-500">AI generates a tailored multiple-choice quiz from this week's lessons — play it live on Home.</p>
-                                        </div>
-                                    </div>
+                                    </header>
 
                                     <!-- ── HOW IT WORKS ── -->
                                     <div class="qow-steps-row">
@@ -581,33 +526,30 @@ export const optionsTabHTML = `
                                     </div>
 
                                 </div>
-                            </div>
+                            </section>
 
-                            <div class="space-y-6 hidden" data-options-section="market">
+                            <section class="ts-page-wrap hidden" data-options-section="market">
                                 <div id="options-market-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">🛒</div>
                                     <div class="options-tier-locked-title">Market Manager</div>
                                     <p class="options-tier-locked-text">Repair Seasonal Treasures and the Festival Stall — new pictures, copies, and text — on the Elite plan.</p>
                                     <span class="options-tier-locked-badge">Elite</span>
                                 </div>
-                                <div id="options-market-content" class="hidden relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
-                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-fuchsia-200 to-purple-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-amber-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
-                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-fuchsia-500/30 floating-icon">
-                                            <i class="fas fa-store text-white text-4xl"></i>
+                                <div id="options-market-content" class="ts-page hidden" data-ts-accent="market">
+                                    <span class="ts-page__tape" aria-hidden="true"></span>
+                                    <header class="ts-page__head">
+                                        <span class="ts-sticker" aria-hidden="true"><i class="fas fa-store"></i></span>
+                                        <div class="ts-page__heading">
+                                            <h2 class="font-title ts-page__title">Market Manager</h2>
+                                            <p class="ts-page__lede">Fix a black picture, rewrite a description, or change how many copies remain. This class’s stall follows the header.</p>
                                         </div>
-                                        <div class="text-center md:text-left flex-1">
-                                            <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Market Manager</h2>
-                                            <p class="text-sm text-gray-500">Fix a black picture, rewrite a description, or change how many copies remain. This class’s stall follows the header.</p>
-                                        </div>
-                                    </div>
-                                    <div id="market-manager-class" class="relative z-10 rounded-xl border-2 border-fuchsia-100 bg-fuchsia-50/70 px-4 py-3 text-fuchsia-900 font-title font-semibold text-center">
+                                    </header>
+                                    <div id="market-manager-class" class="ts-class-strip">
                                         Choose a class from the header…
                                     </div>
-                                    <div id="market-manager-list" class="relative z-10 space-y-6"></div>
+                                    <div id="market-manager-list" class="market-manager-list"></div>
                                 </div>
-                            </div>
+                            </section>
                     </div>
                     <div id="options-tier-summary" class="mt-8"></div>
                 </div>

@@ -461,6 +461,13 @@ export async function showTab(tabName) {
     const exitDuration = 200;
     const enterDuration = 400;
 
+    // Every tab shares the one <main> scroller, so a new tab would otherwise open at the
+    // previous tab's scroll depth. Reset at the moment the new tab is revealed.
+    const resetTabScroll = () => {
+        const scroller = nextTab.closest('main');
+        if (scroller && scroller.scrollTop !== 0) scroller.scrollTo({ top: 0, behavior: 'instant' });
+    };
+
     if (currentTab) {
         currentTab.classList.add('tab-animate-out');
 
@@ -469,6 +476,7 @@ export async function showTab(tabName) {
             currentTab.classList.remove('tab-animate-out');
 
             nextTab.classList.remove('hidden');
+            resetTabScroll();
             nextTab.classList.add('tab-animate-in');
 
             setTimeout(() => {
@@ -478,6 +486,7 @@ export async function showTab(tabName) {
         }, exitDuration);
     } else {
         nextTab.classList.remove('hidden');
+        resetTabScroll();
         nextTab.classList.add('tab-animate-in');
         setTimeout(() => {
             nextTab.classList.remove('tab-animate-in');

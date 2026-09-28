@@ -26,6 +26,14 @@ main {
     animation: tab-fade-in 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* While a tab slides in, its transform makes it the containing block for position:fixed
+   children, so the off-screen FAB clusters (parked 72-140px past the right edge) briefly
+   count as overflow of <main> and flash a horizontal scrollbar above the nav. <main> is
+   never meant to scroll sideways. */
+#app-screen > main {
+    overflow-x: hidden;
+}
+
 .app-tab.tab-animate-out {
     position: absolute; 
     top: 1.5rem;

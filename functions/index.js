@@ -122,17 +122,34 @@ function mapAdminAuthError(error, fallbackMessage) {
   return new HttpsError('internal', fallbackMessage);
 }
 
+// Starts the reads every signed-in call needs (profile, Secretary role, school plan) the moment
+// the call arrives, so they overlap with the plan check and the call's own reads instead of
+// running one after another. A call checks them at most once, however many helpers ask.
+function prefetchCallerReads(request) {
+  if (!request.auth?.uid || request.callerReads) return;
+  void getSubscriptionConfig().catch(() => {});
+  const reads = Promise.all([
+    db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get(),
+    db.doc(SECRETARY_ROLE_DOC).get()
+  ]);
+  reads.catch(() => {});
+  request.callerReads = reads;
+}
+
 async function requireAuthedCaller(request) {
   if (!request.auth?.uid) {
     throw new HttpsError('unauthenticated', 'You must be signed in first.');
   }
-  // Read the profile, the Secretary role and the school plan together: most calls need all
-  // three, and fetching them one after another made every call wait three round trips.
-  void getSubscriptionConfig().catch(() => {});
-  const [profileSnap, secretaryRoleSnap] = await Promise.all([
-    db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get(),
-    db.doc(SECRETARY_ROLE_DOC).get()
-  ]);
+  if (!request.callerPromise) {
+    request.callerPromise = resolveAuthedCaller(request);
+    request.callerPromise.catch(() => {});
+  }
+  return request.callerPromise;
+}
+
+async function resolveAuthedCaller(request) {
+  prefetchCallerReads(request);
+  const [profileSnap, secretaryRoleSnap] = await request.callerReads;
   if (!profileSnap.exists) {
     throw new HttpsError('permission-denied', 'This account is missing its required access profile.');
   }
@@ -219,11 +236,13 @@ function callable(handler, options = {}) {
     builder = builder.runWith(runWith);
   }
   return builder.https.onCall(async (data, context) => {
-    return handler({
+    const request = {
       data,
       auth: context.auth || null,
       rawRequest: context.rawRequest || null
-    });
+    };
+    prefetchCallerReads(request);
+    return handler(request);
   });
 }
 
@@ -235,9 +254,22 @@ async function getStudent(studentId) {
   return { id: snap.id, ...snap.data() };
 }
 
+// Like Promise.all, but waits for every read and reports the first failure in list order.
+// Permission checks go first in the list, so a caller who may not act never learns anything
+// from the other reads (such as whether a record exists).
+async function allInOrder(promises) {
+  const results = await Promise.allSettled(promises);
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed) throw failed.reason;
+  return results.map((result) => result.value);
+}
+
+function callerAnd(request, promise) {
+  return allInOrder([requireAuthedCaller(request), promise]);
+}
+
 async function requireStudentManager(request, studentId) {
-  const caller = await requireAuthedCaller(request);
-  const student = await getStudent(studentId);
+  const [caller, student] = await callerAnd(request, getStudent(studentId));
   const isSecretary = await isCanonicalSecretaryCaller(caller);
   if (!isSecretary && student.createdBy?.uid !== caller.uid) {
     throw new HttpsError('permission-denied', 'You can only manage access for your own students.');
@@ -246,8 +278,7 @@ async function requireStudentManager(request, studentId) {
 }
 
 async function requireClassManager(request, classId) {
-  const caller = await requireAuthedCaller(request);
-  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get();
+  const [caller, classSnap] = await callerAnd(request, db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get());
   if (!classSnap.exists) {
     throw new HttpsError('not-found', 'That class could not be found.');
   }
@@ -552,26 +583,29 @@ async function countPublishedHomework(studentId) {
 }
 
 async function buildParentSnapshot(studentId, extra = {}) {
-  const student = await getStudent(studentId);
-  const [score, assessments, attendanceSummary, recentCelebrations, parentLink] = await Promise.all([
+  // Everything except the class is read at once; the class waits only for the student record.
+  const studentPromise = getStudent(studentId);
+  const classPromise = studentPromise.then((student) => db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get());
+  const [student, classSnap, score, assessments, attendanceSummary, recentCelebrations, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
+    studentPromise,
+    classPromise,
     getScore(studentId),
     getRecentAssessments(studentId),
     getAttendanceSummary(studentId),
     getRecentCelebrations(studentId),
-    getParentLink(studentId)
+    getParentLink(studentId),
+    getSchoolSettings(),
+    countPublishedHomework(studentId),
+    db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).get()
   ]);
-  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get();
   const classData = classSnap.exists ? classSnap.data() : {};
-  const schoolSettings = await getSchoolSettings();
   const assessmentUses = resolveClassAssessmentUses(classData, schoolSettings);
   const visibleAssessments = assessments.filter((item) => {
     if (item.type === 'dictation') return assessmentUses.dictations;
     if (item.type === 'test') return assessmentUses.tests;
     return assessmentUses.tests || assessmentUses.dictations;
   });
-  const homeworkCount = await countPublishedHomework(studentId);
   const latestGrade = visibleAssessments[0] || null;
-  const previousSnap = await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).get();
   const existing = previousSnap.exists ? previousSnap.data() : {};
 
   return {
@@ -722,7 +756,9 @@ async function addCommunicationMessage({ threadId, studentId, body, authorUid, a
   const thread = threadSnap.data() || {};
   const messageRef = db.collection(`${PUBLIC_DATA_PATH}/communication_messages`).doc();
   const schoolYearKey = thread.schoolYearKey || await getActiveSchoolYearKey();
-  await messageRef.set({
+  // The message and the thread's preview are saved in one commit.
+  const batch = db.batch();
+  batch.set(messageRef, {
     threadId,
     studentId,
     schoolYearKey,
@@ -736,12 +772,33 @@ async function addCommunicationMessage({ threadId, studentId, body, authorUid, a
     requiresReply,
     createdAt: FieldValue.serverTimestamp()
   });
-  await threadRef.set({
+  batch.set(threadRef, {
     lastMessageAt: FieldValue.serverTimestamp(),
     schoolYearKey,
     previewText: body.slice(0, 160),
     status: 'open'
   }, { merge: true });
+  await batch.commit();
+}
+
+// Opens (or reuses) the student's thread of this type with the parent and posts one message.
+async function notifyLinkedParent({ caller, studentId, parentUid, threadType, body }) {
+  const role = caller.profile.role || 'teacher';
+  const { threadId } = await ensureCommunicationThread({
+    studentId,
+    threadType,
+    participantUids: [caller.uid, parentUid],
+    participantRoles: [role, 'parent'],
+    createdBy: { uid: caller.uid, role }
+  });
+  await addCommunicationMessage({
+    threadId,
+    studentId,
+    body,
+    authorUid: caller.uid,
+    authorRole: role,
+    messageType: threadType
+  });
 }
 
 exports.getSecretaryBootstrapStatus = callable(async () => {
@@ -1004,8 +1061,10 @@ exports.createParentAccess = callable(async (request) => {
   if (!studentId || !username || !password) {
     throw new HttpsError('invalid-argument', 'Student, username, and password are required.');
   }
-  const { caller, student } = await requireStudentManager(request, studentId);
-  const link = await getParentLink(studentId);
+  const [{ caller, student }, link] = await allInOrder([
+    requireStudentManager(request, studentId),
+    getParentLink(studentId)
+  ]);
   const email = buildSyntheticRoleEmail('parent', username);
   const displayName = `Parent of ${student.name}`;
   const parentUid = await resolveRoleUser({
@@ -1016,7 +1075,9 @@ exports.createParentAccess = callable(async (request) => {
     roleLabel: 'parent'
   });
 
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
+  // The link and the parent's profile are saved in one commit.
+  const accessBatch = db.batch();
+  accessBatch.set(db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`), {
     studentId,
     classId: student.classId,
     parentUid,
@@ -1026,8 +1087,7 @@ exports.createParentAccess = callable(async (request) => {
     createdAt: FieldValue.serverTimestamp(),
     lastPasswordResetAt: FieldValue.serverTimestamp()
   }, { merge: true });
-
-  await db.collection(PROFILE_COLLECTION).doc(parentUid).set({
+  accessBatch.set(db.collection(PROFILE_COLLECTION).doc(parentUid), {
     role: 'parent',
     displayName,
     loginMode: 'username',
@@ -1037,6 +1097,7 @@ exports.createParentAccess = callable(async (request) => {
     createdAt: FieldValue.serverTimestamp(),
     lastSeenAt: null
   }, { merge: true });
+  await accessBatch.commit();
 
   await upsertParentSnapshot(studentId, { linkedParentUid: parentUid });
 
@@ -1050,8 +1111,10 @@ exports.resetParentAccessPassword = callable(async (request) => {
   if (!studentId || !password) {
     throw new HttpsError('invalid-argument', 'Student and password are required.');
   }
-  await requireStudentManager(request, studentId);
-  const link = await getParentLink(studentId);
+  const [, link] = await allInOrder([
+    requireStudentManager(request, studentId),
+    getParentLink(studentId)
+  ]);
   if (!link?.parentUid) {
     throw new HttpsError('not-found', 'No parent account is linked to this student.');
   }
@@ -1076,19 +1139,22 @@ exports.deleteParentAccess = callable(async (request) => {
   await requireFeatureEnabled('parentAccess');
   const studentId = String(request.data?.studentId || '').trim();
   if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
-  await requireStudentManager(request, studentId);
-  const link = await getParentLink(studentId);
+  const [, link] = await allInOrder([
+    requireStudentManager(request, studentId),
+    getParentLink(studentId)
+  ]);
   const parentUid = link?.parentUid || null;
-  if (parentUid) {
-    await deleteAuthUserIfExists(parentUid);
-    await db.collection(PROFILE_COLLECTION).doc(parentUid).delete();
-  }
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).delete();
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set({
+  // The login is removed first; the records then go in one commit.
+  if (parentUid) await deleteAuthUserIfExists(parentUid);
+  const deleteBatch = db.batch();
+  if (parentUid) deleteBatch.delete(db.collection(PROFILE_COLLECTION).doc(parentUid));
+  deleteBatch.delete(db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`));
+  deleteBatch.set(db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`), {
     linkedParentUid: FieldValue.delete(),
     parentAccessDeletedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
+  await deleteBatch.commit();
   return { ok: true, deletedUid: parentUid };
 });
 
@@ -1110,34 +1176,25 @@ exports.publishParentSummary = callable(async (request) => {
   if (!studentId || !summary) {
     throw new HttpsError('invalid-argument', 'Student and summary are required.');
   }
-  const { caller } = await requireStudentManager(request, studentId);
-  const link = await getParentLink(studentId);
-  const snapshot = await upsertParentSnapshot(studentId);
+  const [{ caller }, link] = await allInOrder([
+    requireStudentManager(request, studentId),
+    getParentLink(studentId)
+  ]);
+  const snapshot = await buildParentSnapshot(studentId);
   const notes = Array.isArray(snapshot.publishedNotes) ? snapshot.publishedNotes : [];
   const nextNotes = [{ label: 'Parent Summary', body: summary, createdAt: new Date().toISOString() }, ...notes].slice(0, 6);
 
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set({
-    latestParentSummary: summary,
-    publishedNotes: nextNotes
-  }, { merge: true });
-
-  if (link?.parentUid) {
-    const { threadId } = await ensureCommunicationThread({
-      studentId,
-      threadType: 'progress-share',
-      participantUids: [caller.uid, link.parentUid],
-      participantRoles: [caller.profile.role || 'teacher', 'parent'],
-      createdBy: { uid: caller.uid, role: caller.profile.role || 'teacher' }
-    });
-    await addCommunicationMessage({
-      threadId,
-      studentId,
-      body: summary,
-      authorUid: caller.uid,
-      authorRole: caller.profile.role || 'teacher',
-      messageType: 'progress-share'
-    });
-  }
+  // The refreshed snapshot and the new summary are one write; the parent's message goes out alongside it.
+  await Promise.all([
+    db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set({
+      ...snapshot,
+      latestParentSummary: summary,
+      publishedNotes: nextNotes
+    }, { merge: true }),
+    link?.parentUid
+      ? notifyLinkedParent({ caller, studentId, parentUid: link.parentUid, threadType: 'progress-share', body: summary })
+      : null
+  ]);
 
   return { ok: true };
 });
@@ -1146,8 +1203,7 @@ exports.publishEmberOath = callable(async (request) => {
   await requireFeatureEnabled('parentAccess');
   await requireFeatureEnabled('heroCampfire');
   if (request.data?.confirmed !== true) throw new HttpsError('invalid-argument', 'Review the family message before publishing.');
-  const caller = await requireAuthedCaller(request);
-  const schoolYearKey = await getActiveSchoolYearKey();
+  const [caller, schoolYearKey] = await allInOrder([requireAuthedCaller(request), getActiveSchoolYearKey()]);
   let note;
   try { note = publicEmberNote({ oathId: request.data?.oathId, summary: request.data?.summary, date: new Date().toISOString(), schoolYearKey }); }
   catch (error) { throw new HttpsError('invalid-argument', error.message); }
@@ -1178,9 +1234,11 @@ exports.publishParentHomework = callable(async (request) => {
   if (!studentId || !classId || !lessonDate || !title || !body) {
     throw new HttpsError('invalid-argument', 'Student, class, date, title, and body are required.');
   }
-  const { caller } = await requireStudentManager(request, studentId);
-  const link = await getParentLink(studentId);
-  const schoolYearKey = await getActiveSchoolYearKey();
+  const [{ caller }, link, schoolYearKey] = await allInOrder([
+    requireStudentManager(request, studentId),
+    getParentLink(studentId),
+    getActiveSchoolYearKey()
+  ]);
   await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`).add({
     studentId,
     classId,
@@ -1193,28 +1251,35 @@ exports.publishParentHomework = callable(async (request) => {
     publishedBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
     publishedAt: FieldValue.serverTimestamp()
   });
-  await upsertParentSnapshot(studentId);
-
-  if (link?.parentUid) {
-    const { threadId } = await ensureCommunicationThread({
-      studentId,
-      threadType: 'homework',
-      participantUids: [caller.uid, link.parentUid],
-      participantRoles: [caller.profile.role || 'teacher', 'parent'],
-      createdBy: { uid: caller.uid, role: caller.profile.role || 'teacher' }
-    });
-    await addCommunicationMessage({
-      threadId,
-      studentId,
-      body: `${title}\n\n${body}`,
-      authorUid: caller.uid,
-      authorRole: caller.profile.role || 'teacher',
-      messageType: 'homework'
-    });
-  }
+  await Promise.all([
+    upsertParentSnapshot(studentId),
+    link?.parentUid
+      ? notifyLinkedParent({ caller, studentId, parentUid: link.parentUid, threadType: 'homework', body: `${title}\n\n${body}` })
+      : null
+  ]);
 
   return { ok: true };
 });
+
+const HOMEWORK_SYNC_CONCURRENCY = 8;
+
+// Runs worker over items with at most `limit` in flight; the first failure is thrown once all settle.
+async function forEachLimited(items, limit, worker) {
+  let next = 0;
+  let firstError = null;
+  const lanes = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      try {
+        await worker(item);
+      } catch (error) {
+        if (!firstError) firstError = error;
+      }
+    }
+  });
+  await Promise.all(lanes);
+  if (firstError) throw firstError;
+}
 
 exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
   await requireFeatureEnabled('parentAccess');
@@ -1240,12 +1305,15 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
     throw new HttpsError('invalid-argument', 'A lesson date and assignment details are required for the parent portal.');
   }
 
-  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
-    .where('classId', '==', classId)
-    .get();
+  const [studentsSnap, schoolYearKey] = await Promise.all([
+    db.collection(`${PUBLIC_DATA_PATH}/students`).where('classId', '==', classId).get(),
+    classData.schoolYearKey || getActiveSchoolYearKey()
+  ]);
 
+  // Students are synced several at a time rather than one after another, so a full class
+  // takes about as long as a few students used to.
   let syncedCount = 0;
-  for (const studentDoc of studentsSnap.docs) {
+  await forEachLimited(studentsSnap.docs, HOMEWORK_SYNC_CONCURRENCY, async (studentDoc) => {
     const studentId = studentDoc.id;
     const existingSnap = await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`)
       .where('studentId', '==', studentId)
@@ -1257,7 +1325,7 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
     const payload = {
       studentId,
       classId,
-      schoolYearKey: classData.schoolYearKey || await getActiveSchoolYearKey(),
+      schoolYearKey,
       lessonDate: effectiveLessonDate,
       title: effectiveTitle,
       body: effectiveBody,
@@ -1277,7 +1345,7 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
     }
     await upsertParentSnapshot(studentId);
     syncedCount += 1;
-  }
+  });
 
   return { ok: true, syncedCount };
 });
@@ -1298,14 +1366,18 @@ exports.postCommunicationMessage = callable(async (request) => {
   }
 
   const threadRef = db.doc(`${PUBLIC_DATA_PATH}/communication_threads/${threadId}`);
-  const threadSnap = await threadRef.get();
+  const isParent = caller.profile.role === 'parent';
+  const [threadSnap, student] = await Promise.all([
+    threadRef.get(),
+    isParent ? null : getStudent(studentId).catch((error) => error)
+  ]);
   if (!threadSnap.exists) {
     throw new HttpsError('not-found', 'That communication thread no longer exists.');
   }
+  if (student instanceof Error) throw student;
   const thread = threadSnap.data() || {};
-  const isParent = caller.profile.role === 'parent';
   const canManage = isSecretary;
-  const ownsStudent = !isParent ? (await getStudent(studentId)).createdBy?.uid === caller.uid : false;
+  const ownsStudent = !isParent ? student.createdBy?.uid === caller.uid : false;
   const isParticipant = Array.isArray(thread.participantUids) && thread.participantUids.includes(caller.uid);
 
   if (!canManage && !ownsStudent && !isParticipant) {
@@ -2204,7 +2276,10 @@ exports.assignClassTeacher = callable(async (request) => {
     throw new HttpsError('invalid-argument', 'Choose a class and a teacher.');
   }
 
-  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get();
+  const [classSnap, profileSnap] = await Promise.all([
+    db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get(),
+    db.collection(PROFILE_COLLECTION).doc(teacherUid).get()
+  ]);
   if (!classSnap.exists) throw new HttpsError('not-found', 'That class was not found.');
   const classData = classSnap.data() || {};
   if (classData.status === 'archived') {
@@ -2212,7 +2287,6 @@ exports.assignClassTeacher = callable(async (request) => {
   }
 
   const previousOwnerUid = classData.createdBy?.uid || null;
-  const profileSnap = await db.collection(PROFILE_COLLECTION).doc(teacherUid).get();
   const owner = {
     uid: teacherUid,
     name: teacherName || profileSnap.data()?.displayName || classData.createdBy?.name || 'Teacher'
@@ -2222,7 +2296,10 @@ exports.assignClassTeacher = callable(async (request) => {
     return { ok: true, alreadyAssigned: true, movedStudents: 0 };
   }
 
-  const yearKey = classData.schoolYearKey || await getActiveSchoolYearKey();
+  const [yearKey, studentsSnap] = await Promise.all([
+    classData.schoolYearKey || getActiveSchoolYearKey(),
+    db.collection(`${PUBLIC_DATA_PATH}/students`).where('classId', '==', classId).get()
+  ]);
   const writes = [{
     ref: classSnap.ref,
     payload: {
@@ -2231,9 +2308,6 @@ exports.assignClassTeacher = callable(async (request) => {
     }
   }];
 
-  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
-    .where('classId', '==', classId)
-    .get();
   const studentMeta = [];
   for (const studentDoc of studentsSnap.docs) {
     const studentData = studentDoc.data() || {};
@@ -2268,18 +2342,20 @@ exports.assignClassTeacher = callable(async (request) => {
   }
 
   await commitBatchChunks(writes);
-  for (const { studentId, previousOwnerUid: previousUid } of studentMeta) {
-    const link = await getParentLink(studentId);
-    await syncStudentThreadParticipants(studentId, {
-      addUid: owner.uid,
-      removeUid: previousUid && previousUid !== owner.uid ? previousUid : null,
-      keepUids: link?.parentUid ? [link.parentUid] : []
-    });
-    await upsertParentSnapshot(studentId, {
-      classId,
-      className: classData.name || ''
-    });
-  }
+  // Each student's threads and family snapshot update together, several students at a time.
+  await forEachLimited(studentMeta, HOMEWORK_SYNC_CONCURRENCY, async ({ studentId, previousOwnerUid: previousUid }) => {
+    await Promise.all([
+      getParentLink(studentId).then((link) => syncStudentThreadParticipants(studentId, {
+        addUid: owner.uid,
+        removeUid: previousUid && previousUid !== owner.uid ? previousUid : null,
+        keepUids: link?.parentUid ? [link.parentUid] : []
+      })),
+      upsertParentSnapshot(studentId, {
+        classId,
+        className: classData.name || ''
+      })
+    ]);
+  });
 
   return { ok: true, movedStudents: studentMeta.length, teacherName: owner.name };
 });
@@ -2337,11 +2413,14 @@ exports.restoreFormerStudent = callable(async (request) => {
   await requireYearOperator(request);
   const studentId = String(request.data?.studentId || '').trim();
   if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
-  const student = await getStudent(studentId);
+  const [student, activeYearKey, parentLink] = await allInOrder([
+    getStudent(studentId),
+    getActiveSchoolYearKey(),
+    getParentLink(studentId)
+  ]);
   if ((student.enrollmentStatus || 'active') !== 'inactive') {
     throw new HttpsError('failed-precondition', `${student.name || 'That student'} is already enrolled.`);
   }
-  const activeYearKey = await getActiveSchoolYearKey();
   const toPlacement = request.data?.toPlacement === true;
   const requestedClassId = toPlacement ? '' : String(request.data?.classId || '').trim();
   const candidateClassId = toPlacement ? '' : (requestedClassId || String(student.formerClassId || '').trim());
@@ -2366,20 +2445,24 @@ exports.restoreFormerStudent = callable(async (request) => {
   };
 
   if (!classData) {
-    await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).set({
+    const pendingBatch = db.batch();
+    pendingBatch.set(db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`), {
       ...clearLeaving,
       classId: null,
       activeSchoolYearKey: activeYearKey,
       enrollmentStatus: 'pendingPlacement'
     }, { merge: true });
-    await db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${activeYearKey}`).set(withYear({
+    pendingBatch.set(db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${activeYearKey}`), withYear({
       studentId,
       enrollmentStatus: 'pendingPlacement',
       leftSchoolAt: FieldValue.delete(),
       purgeAfterAt: FieldValue.delete()
     }, activeYearKey), { merge: true });
-    await restoreParentAccessAfterReturn(studentId);
-    await upsertParentSnapshot(studentId, { activeSchoolYearKey: activeYearKey, enrollmentStatus: 'pendingPlacement' });
+    await pendingBatch.commit();
+    await Promise.all([
+      restoreParentAccessAfterReturn(studentId),
+      upsertParentSnapshot(studentId, { activeSchoolYearKey: activeYearKey, enrollmentStatus: 'pendingPlacement' })
+    ]);
     return { ok: true, placement: 'pending' };
   }
 
@@ -2431,7 +2514,6 @@ exports.restoreFormerStudent = callable(async (request) => {
       }, activeYearKey)
     }
   ];
-  const parentLink = await getParentLink(studentId);
   if (parentLink?.parentUid || parentLink?.username) {
     writes.push({
       ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
@@ -2439,19 +2521,22 @@ exports.restoreFormerStudent = callable(async (request) => {
     });
   }
   await commitBatchChunks(writes);
-  await restoreParentAccessAfterReturn(studentId);
-  const refreshedLink = await getParentLink(studentId);
-  await syncStudentThreadParticipants(studentId, {
-    addUid: owner.uid,
-    removeUid: previousOwnerUid && previousOwnerUid !== owner.uid ? previousOwnerUid : null,
-    keepUids: refreshedLink?.parentUid ? [refreshedLink.parentUid] : []
-  });
-  await upsertParentSnapshot(studentId, {
-    activeSchoolYearKey: activeYearKey,
-    enrollmentStatus: 'active',
-    classId: classData.id,
-    className: classData.name || ''
-  });
+  // Reopening parent access never changes which parent is linked, so the threads and the
+  // family snapshot can update at the same time.
+  await Promise.all([
+    restoreParentAccessAfterReturn(studentId),
+    syncStudentThreadParticipants(studentId, {
+      addUid: owner.uid,
+      removeUid: previousOwnerUid && previousOwnerUid !== owner.uid ? previousOwnerUid : null,
+      keepUids: parentLink?.parentUid ? [parentLink.parentUid] : []
+    }),
+    upsertParentSnapshot(studentId, {
+      activeSchoolYearKey: activeYearKey,
+      enrollmentStatus: 'active',
+      classId: classData.id,
+      className: classData.name || ''
+    })
+  ]);
   return { ok: true, placement: 'class', classId: classData.id, className: classData.name || '' };
 });
 
@@ -2654,18 +2739,29 @@ const shopEngine = createShopEngine({
   publicDataPath: PUBLIC_DATA_PATH
 });
 
+// Checks the teacher, the plan and the season together and returns the active year, so the
+// Market reads the school-year record once per call.
 async function requireEliteShopCaller(request) {
-  const caller = await requireAuthedCaller(request);
-  if (caller.profile.role !== 'teacher') {
-    throw new HttpsError('permission-denied', 'Only teachers can restock the Mystic Market.');
-  }
-  await requireFeatureEnabled('eliteAI');
-  const yearSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
-  const rolloverStatus = String(yearSnap.data()?.rolloverStatus || '').toLowerCase();
+  const [caller, , yearSnap] = await allInOrder([
+    requireAuthedCaller(request).then((resolved) => {
+      if (resolved.profile.role !== 'teacher') {
+        throw new HttpsError('permission-denied', 'Only teachers can restock the Mystic Market.');
+      }
+      return resolved;
+    }),
+    requireFeatureEnabled('eliteAI'),
+    db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get()
+  ]);
+  const yearData = yearSnap.data() || {};
+  const rolloverStatus = String(yearData.rolloverStatus || '').toLowerCase();
   if (rolloverStatus !== 'active') {
     throw new HttpsError('failed-precondition', 'The market stays sealed until the school year opens.');
   }
-  return caller;
+  const yearKey = String(yearData.activeYearKey || '').trim();
+  if (!/^\d{4}-\d{4}$/.test(yearKey)) {
+    throw new HttpsError('failed-precondition', 'The active school year is not configured. Year-scoped writes are blocked.');
+  }
+  return { caller, yearKey };
 }
 
 async function listShopStalls(yearKey) {
@@ -2688,11 +2784,10 @@ async function listShopStalls(yearKey) {
 }
 
 exports.ensureShopStock = callable(async (request) => {
-  const caller = await requireEliteShopCaller(request);
+  const { caller, yearKey } = await requireEliteShopCaller(request);
   const league = String(request.data?.league || '').trim();
   const mode = String(request.data?.mode || 'ensure') === 'replace-monthly' ? 'replace-monthly' : 'ensure';
   if (!league) throw new HttpsError('invalid-argument', 'Choose a class or league first.');
-  const yearKey = await getActiveSchoolYearKey();
   const result = await shopEngine.ensureStall({
     teacherId: caller.uid,
     teacherName: caller.profile.displayName || 'Teacher',
@@ -2745,14 +2840,13 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
   });
 
 exports.manageShopItem = callable(async (request) => {
-  const caller = await requireEliteShopCaller(request);
+  const { caller, yearKey } = await requireEliteShopCaller(request);
   const itemId = String(request.data?.itemId || '').trim();
   const action = String(request.data?.action || '').trim();
   if (!itemId) throw new HttpsError('invalid-argument', 'Choose a treasure first.');
   if (action !== 'new-picture' && action !== 'replace') {
     throw new HttpsError('invalid-argument', 'Choose New picture or Replace this treasure.');
   }
-  const yearKey = await getActiveSchoolYearKey();
   try {
     const result = await shopEngine.manageItem({
       teacherId: caller.uid,

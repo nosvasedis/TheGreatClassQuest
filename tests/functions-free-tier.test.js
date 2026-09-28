@@ -21,3 +21,19 @@ test('callables start quickly: more CPU, on-demand storage, parallel permission 
     assert.match(index, /db\.doc\(SECRETARY_ROLE_DOC\)\.get\(\)\r?\n  \]\);/);
     assert.match(index, /caller\.secretaryRoleSnap \|\|/);
 });
+
+test('callables overlap their reads instead of waiting on each one in turn', () => {
+    const index = read('functions/index.js');
+    // Every signed-in call starts its permission reads on arrival, and checks the caller once.
+    assert.match(index, /prefetchCallerReads\(request\);\r?\n    return handler\(request\);/);
+    assert.match(index, /request\.callerPromise = resolveAuthedCaller\(request\)/);
+    // Permission failures are always reported before anything the other reads found.
+    assert.match(index, /async function allInOrder\(promises\)/);
+    assert.match(index, /const \[caller, student\] = await callerAnd\(request, getStudent\(studentId\)\)/);
+    // The family snapshot reads everything at once; class-wide updates run several students at a time.
+    assert.doesNotMatch(index, /const homeworkCount = await countPublishedHomework/);
+    assert.match(index, /await forEachLimited\(studentsSnap\.docs, HOMEWORK_SYNC_CONCURRENCY/);
+    assert.match(index, /await forEachLimited\(studentMeta, HOMEWORK_SYNC_CONCURRENCY/);
+    // The Market reads the school-year record once per call.
+    assert.match(index, /return \{ caller, yearKey \};/);
+});

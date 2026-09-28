@@ -842,43 +842,113 @@ function _wheelCacheKey(segments, guildDef, size) {
     return k;
 }
 
+/** Wheel face radius for a canvas of `size` px — leaves room for the lacquered rim. */
+function _wheelRadius(size) {
+    return size / 2 - Math.max(10, size * 0.052);
+}
+
+function _hexToRgb(hex) {
+    const c = String(hex || '').replace('#', '');
+    if (c.length < 6) return { r: 0, g: 0, b: 0 };
+    return { r: parseInt(c.substring(0, 2), 16), g: parseInt(c.substring(2, 4), 16), b: parseInt(c.substring(4, 6), 16) };
+}
+
+/** Mix two hex colors (t = 0 → a, t = 1 → b), returned as an rgb() string. */
+function _mixHex(a, b, t) {
+    const x = _hexToRgb(a);
+    const y = _hexToRgb(b);
+    const m = (p, q) => Math.round(p + (q - p) * t);
+    return `rgb(${m(x.r, y.r)}, ${m(x.g, y.g)}, ${m(x.b, y.b)})`;
+}
+
+function _wedgePath(ctx, radius, startAngle, endAngle) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, radius, startAngle, endAngle);
+    ctx.closePath();
+}
+
+function _brassDot(ctx, x, y, r) {
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+    g.addColorStop(0, '#fffbea');
+    g.addColorStop(0.45, '#f7d98b');
+    g.addColorStop(1, '#8a5a1c');
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.fillStyle = g;
+    ctx.fill();
+}
+
 /**
- * Render the full static wheel (segments, rim, text, center emblem, glossy sheen)
+ * Render the full static wheel (rim, wedges, pegs, text, brass hub, sheen)
  * centered at the CURRENT origin. Caller must translate to (center, center) first.
+ * Styled as a carnival fortune wheel: lacquered wood rim with brass bands and
+ * rivets, jewel-toned rarity wedges split by brass spokes, and peg studs that
+ * the pointer ticks against.
  */
 function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
-    const center = size / 2;
-    const radius = center - 24;
+    const radius = _wheelRadius(size);
     const segCount = segments.length;
     const segAngle = TAU / segCount;
+    const rimWidth = Math.max(8, size * 0.042);
+    const rimMid = radius + rimWidth / 2;
 
-    // Assumes ctx is already translated to (center, center) by caller
-
-    // Bright Golden thick outer rim
+    // Soft drop shadow under the whole wheel
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    ctx.shadowBlur = size * 0.03;
+    ctx.shadowOffsetY = size * 0.012;
     ctx.beginPath();
-    ctx.arc(0, 0, radius + 12, 0, TAU);
-    const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    rimGrad.addColorStop(0, '#FEF3C7');
-    rimGrad.addColorStop(0.2, '#F59E0B');
-    rimGrad.addColorStop(0.5, '#FFFBEB');
-    rimGrad.addColorStop(0.8, '#D97706');
-    rimGrad.addColorStop(1, '#FEF3C7');
-    ctx.strokeStyle = rimGrad;
-    ctx.lineWidth = Math.max(16, size / 35);
+    ctx.arc(0, 0, radius + rimWidth, 0, TAU);
+    ctx.fillStyle = '#2a170c';
+    ctx.fill();
+    ctx.restore();
+
+    // Lacquered wood rim
+    ctx.beginPath();
+    ctx.arc(0, 0, rimMid, 0, TAU);
+    const woodGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    woodGrad.addColorStop(0, '#a06a3c');
+    woodGrad.addColorStop(0.3, '#7a4a28');
+    woodGrad.addColorStop(0.55, '#57331c');
+    woodGrad.addColorStop(0.8, '#3d2313');
+    woodGrad.addColorStop(1, '#7a4a28');
+    ctx.strokeStyle = woodGrad;
+    ctx.lineWidth = rimWidth;
     ctx.stroke();
 
-    // Lighter inner rim line for depth
+    // Brass bands on both edges of the rim
+    const brassGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    brassGrad.addColorStop(0, '#fff3c4');
+    brassGrad.addColorStop(0.35, '#d9a84e');
+    brassGrad.addColorStop(0.65, '#8a5a1c');
+    brassGrad.addColorStop(1, '#f7d98b');
+    ctx.strokeStyle = brassGrad;
+    ctx.lineWidth = Math.max(2, size * 0.008);
     ctx.beginPath();
-    ctx.arc(0, 0, radius + 2, 0, TAU);
-    ctx.strokeStyle = 'rgba(217, 119, 6, 0.8)';
-    ctx.lineWidth = 4;
+    ctx.arc(0, 0, radius + rimWidth - ctx.lineWidth / 2, 0, TAU);
+    ctx.stroke();
+    ctx.lineWidth = Math.max(2, size * 0.007);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + ctx.lineWidth / 2, 0, TAU);
     ctx.stroke();
 
-    // Wheel background disc
+    // Rivets around the rim
+    const rivetCount = segCount * 2;
+    const rivetR = Math.max(1.5, size * 0.0065);
+    for (let i = 0; i < rivetCount; i++) {
+        const a = (i + 0.5) * (TAU / rivetCount);
+        _brassDot(ctx, Math.cos(a) * rimMid, Math.sin(a) * rimMid, rivetR);
+    }
+
+    // Wheel face backing
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, TAU);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = '#140c24';
     ctx.fill();
+
+    const bezelRadius = radius - Math.max(3, size * 0.011);
+    const bezelWidth = Math.max(4, size * 0.016);
 
     for (let i = 0; i < segCount; i++) {
         const seg = segments[i];
@@ -887,12 +957,8 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
         const rarityConf = getRarityPalette(seg.rarity, seg.paletteIndex);
         const isPrismatic = seg.isPrismatic === true;
 
-        // Vibrant wedge gradient
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.closePath();
-
+        // Jewel-toned wedge
+        _wedgePath(ctx, radius, startAngle, endAngle);
         if (isPrismatic) {
             const prismaticColors = WHEEL_PRISMATIC_CONFIG.colors;
             if (typeof ctx.createConicGradient === 'function') {
@@ -910,89 +976,71 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
                 ctx.fillStyle = fallbackGrad;
             }
         } else {
-            const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
-            gradient.addColorStop(0, rarityConf.bg);
-            gradient.addColorStop(0.6, rarityConf.bg);
-            gradient.addColorStop(1, rarityConf.color);
+            const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
+            gradient.addColorStop(0, _mixHex(rarityConf.bg, '#000000', 0.45));
+            gradient.addColorStop(0.5, rarityConf.bg);
+            gradient.addColorStop(0.88, _mixHex(rarityConf.bg, rarityConf.color, 0.55));
+            gradient.addColorStop(1, _mixHex(rarityConf.bg, rarityConf.color, 0.8));
             ctx.fillStyle = gradient;
         }
         ctx.fill();
 
-        // Inner bevel highlight
+        // Alternate wedges get a faint lift so neighbours of one rarity still read apart
+        if (i % 2 === 0) {
+            _wedgePath(ctx, radius, startAngle, endAngle);
+            ctx.fillStyle = 'rgba(255, 244, 214, 0.05)';
+            ctx.fill();
+        }
+
+        // Rarity bezel: the coloured band just inside the rim
         ctx.beginPath();
-        ctx.arc(0, 0, radius, startAngle + 0.02, startAngle + segAngle * 0.35);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-        ctx.lineWidth = 2;
+        ctx.arc(0, 0, bezelRadius, startAngle, endAngle);
+        ctx.strokeStyle = isPrismatic ? 'rgba(255, 255, 255, 0.85)' : rarityConf.color;
+        ctx.lineWidth = bezelWidth;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, bezelRadius - bezelWidth / 2, startAngle, endAngle);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.lineWidth = Math.max(1, size * 0.003);
         ctx.stroke();
 
-        // Highlighting edge
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        // Inner shadow for depth
-        ctx.beginPath();
-        ctx.arc(0, 0, radius - 8, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Wedge dividing borders
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
-        const borderGrad = ctx.createLinearGradient(0, 0, Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
-        borderGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        borderGrad.addColorStop(1, 'rgba(245, 158, 11, 0.8)');
-        ctx.strokeStyle = borderGrad;
-        ctx.lineWidth = Math.max(2, size / 150);
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-
-        // Draw emoji icon + label text
+        // Emoji icon near the rim
         ctx.save();
         ctx.rotate(startAngle + segAngle / 2);
 
         const emoji = seg.emoji || '';
         const label = seg.label || '';
-        const maxTextWidth = radius * 0.45;
+        const maxTextWidth = radius * 0.42;
 
         const bgLum = _luminance(rarityConf.bg);
-        const textColor = bgLum > 0.35 ? 'rgba(0, 0, 0, 0.85)' : '#FFFFFF';
-        const shadowColor = bgLum > 0.35 ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.4)';
+        const textColor = bgLum > 0.45 ? 'rgba(42, 23, 12, 0.92)' : '#fff7e6';
+        const shadowColor = bgLum > 0.45 ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.75)';
 
-        // Emoji icon
-        const emojiSize = Math.max(16, Math.floor(size / 28));
-        ctx.font = `${emojiSize}px sans-serif`;
+        const emojiSize = Math.max(14, Math.floor(size / 26));
+        ctx.font = `${emojiSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 3;
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
-        const emojiRadius = radius - Math.max(22, size * 0.07);
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+        ctx.shadowBlur = size * 0.006;
+        ctx.shadowOffsetY = size * 0.002;
+        const emojiRadius = radius - Math.max(20, size * 0.068);
         ctx.fillText(emoji, emojiRadius, 0);
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
 
-        // Label text
-        const fontSize = Math.max(11, Math.floor(size / 42));
-        ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
+        // Label text, reading outward from the hub
+        const fontSize = Math.max(9, Math.floor(size / 40));
+        ctx.font = `600 ${fontSize}px "Fredoka", "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
         ctx.fillStyle = textColor;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.shadowColor = shadowColor;
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
+        ctx.shadowBlur = size * 0.006;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = size * 0.002;
 
         const lines = wrapText(ctx, label, maxTextWidth);
-        const lineHeight = fontSize * 1.2;
+        const lineHeight = fontSize * 1.12;
         const totalTextHeight = lines.length * lineHeight;
-        const textStartRadius = radius - Math.max(34, size * 0.12);
+        const textStartRadius = radius - Math.max(32, size * 0.115);
         const startY = -(totalTextHeight / 2) + (lineHeight / 2);
 
         for (let j = 0; j < lines.length; j++) {
@@ -1002,65 +1050,84 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
         ctx.restore();
     }
 
-    // --- Glossy Sheen Overlay ---
-    const sheen = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    sheen.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
-    sheen.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
-    sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
-    sheen.addColorStop(0.6, 'rgba(0, 0, 0, 0.05)');
-    sheen.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+    // Brass spokes between wedges
+    const spokeGrad = ctx.createRadialGradient(0, 0, radius * 0.25, 0, 0, radius);
+    spokeGrad.addColorStop(0, 'rgba(138, 90, 28, 0.9)');
+    spokeGrad.addColorStop(0.6, 'rgba(247, 217, 139, 0.95)');
+    spokeGrad.addColorStop(1, 'rgba(217, 168, 78, 1)');
+    ctx.strokeStyle = spokeGrad;
+    ctx.lineWidth = Math.max(1.5, size / 230);
+    ctx.lineCap = 'round';
+    for (let i = 0; i < segCount; i++) {
+        const a = i * segAngle;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * radius * 0.25, Math.sin(a) * radius * 0.25);
+        ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+        ctx.stroke();
+    }
+
+    // Peg studs the pointer ticks against — one per wedge boundary
+    const pegRadius = Math.max(2.5, size * 0.011);
+    for (let i = 0; i < segCount; i++) {
+        const a = i * segAngle;
+        _brassDot(ctx, Math.cos(a) * bezelRadius, Math.sin(a) * bezelRadius, pegRadius);
+    }
+
+    // Lamp-light sheen from the upper left, dusk on the lower right
+    const sheen = ctx.createRadialGradient(-radius * 0.4, -radius * 0.5, radius * 0.05, -radius * 0.1, -radius * 0.15, radius * 1.15);
+    sheen.addColorStop(0, 'rgba(255, 244, 214, 0.16)');
+    sheen.addColorStop(0.45, 'rgba(255, 244, 214, 0.04)');
+    sheen.addColorStop(1, 'rgba(10, 5, 20, 0.22)');
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, TAU);
     ctx.fillStyle = sheen;
     ctx.fill();
 
-    // Center Logo / Emblem
-    const innerRadius = radius * 0.28;
+    // Brass hub (the guild emblem orb sits on top of it in the DOM)
+    const innerRadius = radius * 0.27;
+    const primary = guildDef?.primary || '#7c3aed';
 
-    // Center glowing aura
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius + 15, 0, TAU);
-    const centerAura = ctx.createRadialGradient(0, 0, innerRadius, 0, 0, innerRadius + 15);
-    centerAura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}99`);
-    centerAura.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = centerAura;
-    ctx.fill();
-
-    // Center metallic rim
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = size * 0.025;
     ctx.beginPath();
     ctx.arc(0, 0, innerRadius, 0, TAU);
-    const primary = guildDef?.primary || '#7c3aed';
-    const secondary = guildDef?.secondary || '#a78bfa';
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.3, secondary);
-    grad.addColorStop(0.8, primary);
-    grad.addColorStop(1, '#1a0536');
-    ctx.fillStyle = grad;
+    const hubGrad = ctx.createRadialGradient(-innerRadius * 0.35, -innerRadius * 0.4, innerRadius * 0.1, 0, 0, innerRadius);
+    hubGrad.addColorStop(0, '#fffbea');
+    hubGrad.addColorStop(0.35, '#f7d98b');
+    hubGrad.addColorStop(0.75, '#d9a84e');
+    hubGrad.addColorStop(1, '#8a5a1c');
+    ctx.fillStyle = hubGrad;
     ctx.fill();
+    ctx.restore();
 
-    const innerRimGrad = ctx.createLinearGradient(-innerRadius, -innerRadius, innerRadius, innerRadius);
-    innerRimGrad.addColorStop(0, '#fff');
-    innerRimGrad.addColorStop(0.5, '#ffdca8');
-    innerRimGrad.addColorStop(1, '#8c6222');
-    ctx.strokeStyle = innerRimGrad;
-    ctx.lineWidth = Math.max(6, size / 90);
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius, 0, TAU);
+    ctx.strokeStyle = '#5a3a14';
+    ctx.lineWidth = Math.max(1.5, size * 0.004);
     ctx.stroke();
 
+    // Guild-coloured inlay ring
     ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.75, 0, TAU);
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = Math.max(2, size / 190);
+    ctx.arc(0, 0, innerRadius * 0.86, 0, TAU);
+    ctx.strokeStyle = primary;
+    ctx.lineWidth = Math.max(3, size * 0.011);
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.52, 0, TAU);
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
-    ctx.fill();
+    // Hub rivets
+    const hubRivets = 10;
+    for (let i = 0; i < hubRivets; i++) {
+        const a = (i / hubRivets) * TAU;
+        _brassDot(ctx, Math.cos(a) * innerRadius * 0.95, Math.sin(a) * innerRadius * 0.95, Math.max(1.2, size * 0.0045));
+    }
 
+    // Dark well behind the emblem orb
     ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.18, 0, TAU);
-    ctx.fillStyle = '#fff7d6';
+    ctx.arc(0, 0, innerRadius * 0.74, 0, TAU);
+    const wellGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius * 0.74);
+    wellGrad.addColorStop(0, _mixHex(primary, '#000000', 0.35));
+    wellGrad.addColorStop(1, _mixHex(primary, '#000000', 0.75));
+    ctx.fillStyle = wellGrad;
     ctx.fill();
 }
 
@@ -1137,21 +1204,13 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
     if (!ctx) return;
     const size = canvas.width;
     const center = size / 2;
-    const radius = center - 24;
+    const radius = _wheelRadius(size);
     const segCount = segments.length;
     const segAngle = TAU / segCount;
 
     ctx.clearRect(0, 0, size, size);
 
-    // Bright celestial aura behind the wheel (cheap — single radial gradient)
-    const aura = ctx.createRadialGradient(center, center, radius * 0.2, center, center, size / 2);
-    aura.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-    aura.addColorStop(0.5, 'rgba(253, 230, 138, 0.4)');
-    aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    ctx.fillStyle = aura;
-    ctx.fillRect(0, 0, size, size);
-
-    // Blit the pre-rendered static wheel (segments, rim, text, emblem, sheen) with rotation
+    // Blit the pre-rendered static wheel (rim, wedges, text, hub, sheen) with rotation
     const offscreen = _getWheelOffscreen(segments, size, guildDef);
     if (offscreen) {
         ctx.save();
@@ -1168,7 +1227,8 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         ctx.restore();
     }
 
-    // Winner highlight overlay (only drawn on the final revealed frame)
+    // Winner spotlight (only drawn on the final revealed frame): dim every other
+    // wedge, then gild the winning one.
     if (Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < segCount) {
         const seg = segments[highlightIndex];
         const rarityConf = getRarityPalette(seg?.rarity, seg?.paletteIndex);
@@ -1178,17 +1238,23 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         ctx.save();
         ctx.translate(center, center);
         ctx.rotate(rotationAngle);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+
+        for (let i = 0; i < segCount; i++) {
+            if (i === highlightIndex) continue;
+            _wedgePath(ctx, radius, i * segAngle, (i + 1) * segAngle);
+            ctx.fillStyle = 'rgba(12, 6, 24, 0.5)';
+            ctx.fill();
+        }
+
+        _wedgePath(ctx, radius, startAngle, endAngle);
+        ctx.fillStyle = 'rgba(255, 240, 200, 0.12)';
         ctx.shadowColor = rarityConf.glow || 'rgba(251, 191, 36, 0.55)';
-        ctx.shadowBlur = Math.max(18, size / 18);
+        ctx.shadowBlur = Math.max(18, size / 16);
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.lineWidth = Math.max(12, size / 50);
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#fde68a';
+        ctx.lineWidth = Math.max(4, size / 90);
         ctx.stroke();
         ctx.restore();
     }
@@ -1657,7 +1723,12 @@ function _renderLockedState(title, message, emoji) {
     if (stageFrame) {
         stageFrame.classList.add('is-locked');
         stageFrame.classList.remove('is-spinning');
+        stageFrame.dataset.lock = availability.code === 'already_spun' ? 'recharging' : 'sealed';
     }
+    _setCardPhase('locked');
+    const headerEl = document.getElementById('fw-guild-header');
+    if (headerEl) headerEl.innerHTML = '';
+    _renderWheelLegend();
 
     const summaryEl = document.getElementById('fw-summary');
     if (summaryEl) summaryEl.classList.add('hidden');
@@ -1681,7 +1752,7 @@ function _renderLockedState(title, message, emoji) {
     _renderCurrentGuildMembers();
     _setStageCaption('');
 
-    _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson');
+    _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson', availability.code === 'already_spun' ? 'Returns next school week' : 'The relic is sealed');
     const nextBtn = document.getElementById('fw-next-btn');
     if (nextBtn) nextBtn.classList.add('hidden');
     const doneBtn = document.getElementById('fw-done-btn');
@@ -1718,8 +1789,9 @@ function _renderCurrentGuildMembers() {
         }).join('')
         : '<div class="fw-guild-members__empty">No students from this guild are in the selected class.</div>';
 
+    panel.style.setProperty('--guild-primary', guildDef?.primary || '#d9a84e');
     panel.innerHTML = `
-        <div class="fw-guild-members__header">${guildDef?.name || 'Active Guild'} Members</div>
+        <div class="fw-guild-members__header">${guildDef?.name || 'Active Guild'} Members<span class="fw-guild-members__count">${students.length}</span></div>
         <div class="fw-guild-members__list">${rosterHtml}</div>`;
 }
 
@@ -1745,12 +1817,15 @@ export async function triggerSpin() {
     if (stageFrame) stageFrame.classList.add('is-spinning');
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.remove('is-idle');
+    _setCardPhase('spinning');
+    _setStageCaption('The wheel whirls… every eye on the pointer.');
 
     _updateSpinButton(true, 'Spinning...');
 
     // Animate
     const anim = await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
         try { playSound('click'); } catch (_) {}
+        _flickPointer();
     });
     if (stageFrame) stageFrame.classList.remove('is-spinning');
     _wheelState.winnerIndex = winnerIndex;
@@ -1834,10 +1909,61 @@ export async function closeFortunesWheel() {
     _renderCurrentGuildMembers();
 
     hideModal('fortunes-wheel-modal');
+    _setCardPhase('idle');
     _hideResultReveal();
 }
 
 // ── Internal UI helpers ──────────────────────────────────────────────────────
+
+/** Mirror the ceremony phase onto the card so CSS can re-arrange the stage. */
+function _setCardPhase(phase) {
+    const card = document.querySelector('#fortunes-wheel-modal .fw-card');
+    if (card) card.dataset.phase = phase;
+}
+
+let _lastPointerFlick = 0;
+
+/** Flick the brass pointer as a peg passes under it (visual only). */
+function _flickPointer() {
+    const pointer = document.querySelector('#fortunes-wheel-modal .fw-pointer-bright');
+    if (!pointer || typeof pointer.animate !== 'function') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const now = performance.now();
+    if (now - _lastPointerFlick < 45) return;
+    _lastPointerFlick = now;
+    pointer.animate([
+        { transform: 'translateX(-50%) rotate(0deg)' },
+        { transform: 'translateX(-50%) rotate(-16deg)', offset: 0.3 },
+        { transform: 'translateX(-50%) rotate(0deg)' }
+    ], { duration: 150, easing: 'ease-out' });
+}
+
+/** "On this wheel" tally: how many wedges of each rarity this guild faces. */
+function _renderWheelLegend() {
+    const legendEl = document.getElementById('fw-wheel-legend');
+    if (!legendEl) return;
+    const segments = _wheelState.segments || [];
+    if (!_wheelState.active || segments.length === 0 || _wheelState.phase === 'summary') {
+        legendEl.classList.add('hidden');
+        legendEl.innerHTML = '';
+        return;
+    }
+    const order = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'cursed'];
+    const counts = new Map();
+    for (const seg of segments) counts.set(seg.rarity, (counts.get(seg.rarity) || 0) + 1);
+    const chips = order
+        .filter(rarity => counts.get(rarity))
+        .map(rarity => {
+            const conf = getRarityPalette(rarity, 0);
+            return `<span class="fw-wheel-legend__chip" data-rarity="${rarity}" style="--chip-color:${conf.color};--chip-bg:${conf.bg};">
+                <span class="fw-wheel-legend__gem"></span>${conf.label}<b>×${counts.get(rarity)}</b>
+            </span>`;
+        }).join('');
+    legendEl.innerHTML = `
+        <div class="fw-wheel-legend__header">On this wheel</div>
+        <div class="fw-wheel-legend__chips">${chips}</div>`;
+    legendEl.classList.remove('hidden');
+}
 
 function _renderWheelPhase() {
     _hideResultReveal();
@@ -1850,7 +1976,7 @@ function _renderWheelPhase() {
     const headerEl = document.getElementById('fw-guild-header');
     if (headerEl) {
         headerEl.innerHTML = `
-            <div class="fw-guild-banner" style="--guild-primary:${guildDef?.primary || '#fff'};--guild-secondary:${guildDef?.secondary || '#ddd'};">
+            <div class="fw-guild-banner" style="--guild-primary:${guildDef?.primary || '#d9a84e'};--guild-secondary:${guildDef?.secondary || '#8a5a1c'};">
                 <div class="fw-guild-banner__crest">
                     ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || guildId}" class="fw-guild-banner__crest-image">` : `<span class="fw-guild-banner__crest-fallback">${guildNum}</span>`}
                 </div>
@@ -1858,18 +1984,24 @@ function _renderWheelPhase() {
                     <div class="fw-guild-banner__eyebrow">Guild ${guildNum} of ${_wheelState.guildOrder.length}</div>
                     <div class="fw-guild-banner__name">${guildDef?.name || guildId}</div>
                 </div>
+                ${guildDef?.emoji ? `<div class="fw-guild-banner__flag" aria-hidden="true">${guildDef.emoji}</div>` : ''}
             </div>`;
     }
 
     _renderGuildProgress();
     _renderCurrentGuildMembers();
+    _renderWheelLegend();
     _setStageEmblem(guildId);
-    _setStageCaption(`${guildDef?.name || 'This guild'} steps onto the relic stage. Spin to reveal its weekly omen.`);
+    _setStageCaption(`${guildDef?.name || 'This guild'} steps up to the wheel. Spin to reveal its weekly omen.`);
+    _setCardPhase('ready');
 
     const stageFrame = document.getElementById('fw-stage-frame');
     if (stageFrame) {
         stageFrame.classList.remove('is-locked');
         stageFrame.classList.remove('is-spinning');
+        delete stageFrame.dataset.lock;
+        stageFrame.style.setProperty('--guild-primary', guildDef?.primary || '#d9a84e');
+        stageFrame.style.setProperty('--guild-glow', guildDef?.glow || guildDef?.primary || '#fbbf24');
     }
 
     const canvasWrap = document.getElementById('fw-canvas-wrap');
@@ -1902,18 +2034,21 @@ function _sizeAndRenderWheel() {
     const parentWidth = parentEl?.clientWidth || 620;
     const parentHeight = parentEl?.clientHeight || parentWidth;
     const available = Math.min(parentWidth, parentHeight);
-    const displaySize = Math.round(Math.min(640, available));
+    const displaySize = Math.round(Math.min(720, available));
     if (!displaySize || displaySize < 10) return;
+    // Render at device resolution (capped) so labels stay crisp on projectors and tablets
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const pixelSize = Math.round(Math.min(1200, displaySize * dpr));
 
-    if (displaySize !== _lastWheelDisplaySize) {
+    if (pixelSize !== _lastWheelDisplaySize) {
         invalidateWheelCache();
-        _lastWheelDisplaySize = displaySize;
+        _lastWheelDisplaySize = pixelSize;
     }
 
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;
-    canvas.width = displaySize;
-    canvas.height = displaySize;
+    canvas.width = pixelSize;
+    canvas.height = pixelSize;
     const rotation = _wheelState.phase === 'revealed' ? (_wheelState.rotationAngle || 0) : 0;
     const highlightIndex = _wheelState.phase === 'revealed' ? _wheelState.winnerIndex : null;
     drawWheel(canvas, _wheelState.segments, rotation, guildDef, highlightIndex);
@@ -1980,10 +2115,8 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
     }
 
     // Tint the backdrop to the rarity glow colour
-    const backdrop = revealLayer.querySelector('.fw-reveal-layer__backdrop');
-    if (backdrop) {
-        backdrop.style.setProperty('--backdrop-glow', rarityGlow || 'rgba(251,191,36,0.24)');
-    }
+    revealLayer.style.setProperty('--backdrop-glow', rarityGlow || 'rgba(251,191,36,0.24)');
+    revealLayer.style.setProperty('--backdrop-color', rarityColor || '#fbbf24');
 
     if (primaryAction) {
         primaryBtn.classList.remove('hidden');
@@ -2124,6 +2257,7 @@ function _renderWheelResult(segment, result, guildDef) {
         </div>`;
 
     _setStageCaption(`${guildDef?.name || 'The guild'} has received ${segment.label}. Advance when you are ready for the next reveal.`);
+    _setCardPhase('revealed');
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
     _showResultReveal({
         cardHtml,
@@ -2177,11 +2311,18 @@ function _renderWheelSummary() {
     if (headerEl) headerEl.innerHTML = '<div class="fw-guild-banner fw-guild-banner--summary"><div class="fw-guild-banner__copy"><div class="fw-guild-banner__eyebrow">Ceremony Complete</div><div class="fw-guild-banner__name">Fortune Ledger</div></div></div>';
 
     _renderGuildProgress(true);
+    _renderWheelLegend();
+    _setCardPhase('summary');
     _setStageEmblem(null);
     _setStageCaption('All omens have been revealed. Review the final ledger before closing the ceremony.');
 
     const nextBtn = document.getElementById('fw-next-btn');
     if (nextBtn) nextBtn.classList.add('hidden');
+
+    const deltaChip = (value, icon, label, isNeg = value < 0) => `
+        <span class="fw-summary-delta${isNeg ? ' fw-summary-delta--negative' : ''}" title="${label}">
+            <span class="fw-summary-delta__icon">${icon}</span>${value}
+        </span>`;
 
     summaryEl.innerHTML = `
         <div class="fw-summary-header">
@@ -2189,24 +2330,30 @@ function _renderWheelSummary() {
             <div class="fw-summary-title">Guild Fortune Ledger</div>
         </div>
         <div class="fw-summary-grid">
-        ${_wheelState.results.map(r => {
+        ${_wheelState.results.map((r, index) => {
             const guildDef = getGuildById(r.guildId);
             const rarityConf = getRarityPalette(r.rarity, r.paletteIndex);
             const emblemUrl = getGuildEmblemUrl(r.guildId);
+            const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
+            const deltas = [
+                r.gloryDelta ? deltaChip(signed(r.gloryDelta), '⚜️', 'Glory', r.gloryDelta < 0) : '',
+                r.goldDelta ? deltaChip(signed(r.goldDelta), '🪙', 'Gold', r.goldDelta < 0) : '',
+                r.starsDelta ? deltaChip(signed(r.starsDelta), '⭐', 'Stars', r.starsDelta < 0) : '',
+                r.classQuestDelta ? deltaChip(signed(r.classQuestDelta), '🗺️', 'Quest Bonus', r.classQuestDelta < 0) : '',
+                (r.artifactsGranted || r.artifactsRemoved)
+                    ? deltaChip(`${r.artifactsGranted ? `+${r.artifactsGranted}` : ''}${r.artifactsGranted && r.artifactsRemoved ? ' / ' : ''}${r.artifactsRemoved ? `-${r.artifactsRemoved}` : ''}`, '🎒', 'Artifacts', (r.artifactsRemoved || 0) > 0)
+                    : '',
+            ].join('');
             return `
-                <div class="fw-summary-item" style="border-color:${guildDef?.primary || '#666'};">
-                    <div class="fw-summary-guild" style="color:${guildDef?.primary || '#fff'}">
+                <div class="fw-summary-item" data-rarity="${r.rarity}" style="--guild-primary:${guildDef?.primary || '#8a5a1c'};--rarity-color:${rarityConf.color};--rarity-bg:${rarityConf.bg};animation-delay:${(0.08 + index * 0.1).toFixed(2)}s">
+                    <div class="fw-summary-guild">
                         ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-emblem">` : ''}
                         <span>${guildDef?.name || r.guildId}</span>
                     </div>
                     <div class="fw-summary-result">${r.segmentLabel}</div>
-                    <div class="fw-summary-rarity" style="color:${rarityConf.color}">${rarityConf.label}</div>
+                    <div class="fw-summary-rarity">${rarityConf.label}</div>
                     <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
-                    ${r.gloryDelta ? `<div class="fw-result-glory ${r.gloryDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ⚜️</div>` : ''}
-                    ${r.goldDelta ? `<div class="fw-result-glory ${r.goldDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.goldDelta >= 0 ? '+' : ''}${r.goldDelta} 🪙</div>` : ''}
-                    ${r.starsDelta ? `<div class="fw-result-glory ${r.starsDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.starsDelta >= 0 ? '+' : ''}${r.starsDelta} ⭐</div>` : ''}
-                    ${r.classQuestDelta ? `<div class="fw-result-glory ${r.classQuestDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.classQuestDelta >= 0 ? '+' : ''}${r.classQuestDelta} 🗺️</div>` : ''}
-                    ${(r.artifactsGranted || r.artifactsRemoved) ? `<div class="fw-result-glory ${(r.artifactsRemoved || 0) > 0 ? 'fw-result-glory--negative' : ''}">${r.artifactsGranted ? `+${r.artifactsGranted}` : ''}${r.artifactsGranted && r.artifactsRemoved ? ' / ' : ''}${r.artifactsRemoved ? `-${r.artifactsRemoved}` : ''} 🎒</div>` : ''}
+                    ${deltas ? `<div class="fw-summary-deltas">${deltas}</div>` : ''}
                 </div>`;
         }).join('')}
         </div>`;
@@ -2240,6 +2387,7 @@ function _renderGuildProgress(allComplete = false) {
             <div class="fw-progress-pill" data-state="${stateName}" style="--guild-primary:${guildDef?.primary || '#999'};">
                 <div class="fw-progress-pill__crest">
                     ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || guildId}" class="fw-progress-pill__image">` : `<span>${index + 1}</span>`}
+                    ${stateName === 'complete' ? '<span class="fw-progress-pill__check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>' : ''}
                 </div>
                 <div class="fw-progress-pill__copy">
                     <div class="fw-progress-pill__step">Guild ${index + 1}</div>

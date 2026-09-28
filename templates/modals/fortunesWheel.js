@@ -1,4 +1,10 @@
 // templates/modals/fortunesWheel.js — Fortune's Wheel modal template
+// A fortune-teller's tent: velvet drapes, a hanging carved sign, a carnival
+// wheel ringed by marquee bulbs, and a wooden desk for the ceremony controls.
+
+const MARQUEE_BULBS = Array.from({ length: 24 }, (_, i) =>
+    `<span class="fw-marquee__bulb" style="--i:${i}"><i></i></span>`
+).join('');
 
 export const fortunesWheelModalHTML = `
     <div id="fortunes-wheel-modal"
@@ -9,13 +15,14 @@ export const fortunesWheelModalHTML = `
 
         <div class="fw-backdrop"></div>
 
-        <div class="fw-card pop-in">
+        <div class="fw-card pop-in" data-phase="idle">
             <button id="fw-close-btn" type="button" class="fw-btn fw-btn--close" aria-label="Close Fortune's Wheel">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
             <div id="fw-reveal-layer" class="fw-reveal-layer hidden" aria-live="polite">
                 <div class="fw-reveal-layer__backdrop"></div>
+                <div class="fw-reveal-layer__rays" aria-hidden="true"></div>
                 <div class="fw-reveal-layer__shell">
                     <div id="fw-reveal-card" class="fw-reveal-card"></div>
                     <div class="fw-reveal-actions">
@@ -31,7 +38,11 @@ export const fortunesWheelModalHTML = `
 
             <div class="fw-atmosphere" aria-hidden="true">
                 <div class="fw-atmosphere__halo"></div>
+                <div class="fw-atmosphere__stars"></div>
                 <div class="fw-atmosphere__veil"></div>
+                <div class="fw-atmosphere__drape fw-atmosphere__drape--l"></div>
+                <div class="fw-atmosphere__drape fw-atmosphere__drape--r"></div>
+                <div class="fw-atmosphere__valance"></div>
                 <div class="fw-atmosphere__sparks">
                     <span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
@@ -39,29 +50,52 @@ export const fortunesWheelModalHTML = `
 
             <div class="fw-content-unified">
                 <header class="fw-header-floating">
-                    <div class="fw-kicker"><i class="fa-solid fa-stars"></i> Fortune Relic</div>
-                    <h2 id="fortunes-wheel-title" class="fw-title font-title">Fortune's Wheel</h2>
+                    <div class="fw-sign">
+                        <span class="fw-sign__chain fw-sign__chain--l"></span>
+                        <span class="fw-sign__chain fw-sign__chain--r"></span>
+                        <div class="fw-sign__board">
+                            <span class="fw-sign__gem fw-sign__gem--l"></span>
+                            <span class="fw-sign__gem fw-sign__gem--r"></span>
+                            <div class="fw-kicker"><i class="fa-solid fa-star"></i> Fortune Relic <i class="fa-solid fa-star"></i></div>
+                            <h2 id="fortunes-wheel-title" class="fw-title font-title">Fortune's Wheel</h2>
+                        </div>
+                    </div>
                 </header>
 
                 <div class="fw-main-layout">
                     <section class="fw-stage-section">
-                        <div id="fw-guild-header" class="fw-guild-header-pill"></div>
-                        <div id="fw-progress" class="fw-progress-rail" aria-live="polite"></div>
+                        <div class="fw-stage-top">
+                            <div id="fw-guild-header" class="fw-guild-header-pill"></div>
+                            <div id="fw-progress" class="fw-progress-rail" aria-live="polite"></div>
+                        </div>
 
                         <main class="fw-wheel-container">
                             <div id="fw-stage-frame" class="fw-stage-frame">
                                 <div class="fw-stage-aura-bright" aria-hidden="true"></div>
                                 <div class="fw-stage-ring fw-stage-ring--outer" aria-hidden="true"></div>
+                                <div class="fw-marquee" aria-hidden="true">${MARQUEE_BULBS}</div>
                                 <div class="fw-stage-ring fw-stage-ring--inner" aria-hidden="true"></div>
+                                <div class="fw-dormant" aria-hidden="true">
+                                    <div class="fw-dormant__wheel"></div>
+                                    <div class="fw-dormant__chain fw-dormant__chain--a"></div>
+                                    <div class="fw-dormant__chain fw-dormant__chain--b"></div>
+                                    <div class="fw-dormant__seal"><i class="fa-solid fa-hourglass-half fw-dormant__icon--recharge"></i><i class="fa-solid fa-lock fw-dormant__icon--lock"></i></div>
+                                </div>
                                 <div id="fw-canvas-wrap" class="fw-canvas-wrap">
-                                    <div class="fw-pointer-bright" aria-hidden="true"></div>
                                     <canvas id="fortunes-wheel-canvas" class="fw-canvas" width="560" height="560"></canvas>
                                     <div class="fw-guild-emblem-orb" aria-hidden="true">
                                         <img id="fw-guild-emblem-image" class="fw-guild-emblem-image" alt="">
                                     </div>
                                 </div>
+                                <div class="fw-pointer-bright" aria-hidden="true">
+                                    <span class="fw-pointer__cap"></span>
+                                    <span class="fw-pointer__blade"></span>
+                                    <span class="fw-pointer__gem"></span>
+                                </div>
                             </div>
                         </main>
+
+                        <div id="fw-summary" class="fw-summary-card hidden"></div>
 
                         <div id="fw-stage-caption" class="fw-stage-caption">
                             Choose a class in the header to awaken the relic and begin the ceremony.
@@ -75,13 +109,14 @@ export const fortunesWheelModalHTML = `
                             <div id="fw-availability-meta" class="fw-availability-meta"></div>
                         </div>
 
+                        <div id="fw-wheel-legend" class="fw-wheel-legend hidden" aria-live="polite"></div>
+
                         <div id="fw-guild-members" class="fw-guild-members-panel" aria-live="polite">
                             <div class="fw-guild-members__header">Active Guild Members</div>
                             <div class="fw-guild-members__empty">Select a class in the header to view guild members for each turn.</div>
                         </div>
 
                         <div id="fw-result" class="fw-result-card hidden"></div>
-                        <div id="fw-summary" class="fw-summary-card hidden"></div>
 
                         <div class="fw-actions">
                             <button id="fw-spin-btn" type="button" class="bubbly-button fw-btn-primary">

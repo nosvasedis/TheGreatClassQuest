@@ -1047,7 +1047,7 @@ function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, vi
     return { studentStats, winners, topStudent };
 }
 
-async function getProdigyCountsForClass(classId) {
+export async function getProdigyCountsForClass(classId) {
     const cacheKey = `${classId}::${state.getActiveSchoolYearKey() || 'legacy'}::${PRODIGY_COUNTS_CACHE_TAG}`;
     if (prodigyCountsCache.has(cacheKey)) return prodigyCountsCache.get(cacheKey);
 

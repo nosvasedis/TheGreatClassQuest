@@ -36,50 +36,43 @@ export const reportsModalsHTML = `
     </div>
 
     <div id="certificate-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
-        <div class="relative bg-white/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl max-w-2xl w-full pop-in border border-white/50 flex flex-col max-h-[95vh] overflow-hidden">
-            <!-- Decorative Elements -->
-            <div class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <!-- Header -->
-            <div class="relative z-10 flex justify-between items-start mb-8 flex-shrink-0">
-                <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-200 flex items-center justify-center transform -rotate-3 hover:rotate-0 transition-transform">
-                        <i class="fas fa-award text-3xl text-white"></i>
-                    </div>
-                    <div>
-                        <h2 class="font-title text-3xl md:text-4xl text-indigo-900 tracking-wide">Achievement</h2>
-                        <p class="text-sm font-bold uppercase tracking-widest text-indigo-600/80 mt-1">Hero Certificate</p>
-                    </div>
+        class="cert-folio-overlay fixed inset-0 z-[70] flex items-center justify-center p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="certificate-modal-title">
+        <div class="cert-folio pop-in">
+            <div class="cert-folio__head">
+                <div class="cert-folio__seal" aria-hidden="true"><i class="fas fa-award"></i></div>
+                <div class="cert-folio__titles">
+                    <p class="cert-folio__eyebrow">Hall of Honours</p>
+                    <h2 id="certificate-modal-title" class="cert-folio__title">Hero Certificate</h2>
+                    <p id="certificate-modal-student" class="cert-folio__student"></p>
                 </div>
-                <button id="certificate-modal-close-btn"
-                    class="bg-white/50 hover:bg-white text-indigo-800 border border-indigo-100 font-bold w-12 h-12 rounded-full bubbly-button transition-all shadow-sm flex items-center justify-center text-xl">
-                    &times;
+                <button id="certificate-modal-close-btn" type="button" class="cert-folio__close" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="cert-folio__ribbons" role="tablist" aria-label="Certificate period">
+                <button id="cert-tab-monthly" type="button" role="tab" class="cert-ribbon is-active" aria-selected="true">
+                    <span class="cert-ribbon__icon" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
+                    <span class="cert-ribbon__text">
+                        <span class="cert-ribbon__name">Monthly Quest</span>
+                        <span class="cert-ribbon__hint">This month's deeds</span>
+                    </span>
+                </button>
+                <button id="cert-tab-alltime" type="button" role="tab" class="cert-ribbon" aria-selected="false">
+                    <span class="cert-ribbon__icon" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                    <span class="cert-ribbon__text">
+                        <span class="cert-ribbon__name">Legend's Journey</span>
+                        <span class="cert-ribbon__hint">The whole school year</span>
+                    </span>
                 </button>
             </div>
 
-            <!-- Tabs -->
-            <div class="relative z-10 flex gap-2 mb-6 bg-indigo-50/50 p-1.5 rounded-2xl border border-indigo-100 flex-shrink-0">
-                <button id="cert-tab-monthly" class="flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button bg-white text-indigo-600 shadow-sm">
-                    <i class="fas fa-calendar-alt mr-2"></i> Monthly Quest
-                </button>
-                <button id="cert-tab-alltime" class="flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button text-indigo-400 hover:text-indigo-600">
-                    <i class="fas fa-scroll mr-2"></i> Legend's Journey
-                </button>
+            <div id="certificate-modal-content" class="cert-folio__body custom-scrollbar">
+                <!-- Desk (live page preview) and scribe's panel are rendered here -->
             </div>
 
-            <!-- Content Area -->
-            <div id="certificate-modal-content"
-                class="relative z-10 space-y-6 bg-white/60 p-6 md:p-8 rounded-[2rem] border border-white shadow-inner flex-grow overflow-y-auto custom-scrollbar flex flex-col items-center text-center">
-                <!-- Content will be injected here -->
-            </div>
-
-            <!-- Action Button -->
-            <div class="relative z-10 flex-shrink-0">
-                <button id="download-certificate-btn"
-                    class="w-full mt-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-title text-xl py-4 rounded-2xl bubbly-button hidden shadow-lg shadow-indigo-200/50 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                    <i class="fas fa-download mr-2"></i> Download as PDF
+            <div class="cert-folio__footer">
+                <button id="download-certificate-btn" type="button" class="cert-btn cert-btn--seal hidden">
+                    <i class="fas fa-stamp"></i> Seal &amp; Download PDF
                 </button>
             </div>
         </div>

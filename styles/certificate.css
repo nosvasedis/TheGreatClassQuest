@@ -1,0 +1,1012 @@
+/*
+ * certificate.css — the Hero Certificate (printed page) and its modal, the Herald's Folio.
+ *
+ * The page (#certificate-template.gcq-cert) is drawn by html2canvas for the PDF, so it sticks to
+ * what html2canvas paints faithfully: gradients, borders, radii, box/text shadows, inline SVG.
+ * No clip-path, masks, filters, blend modes or background-clip:text on the page.
+ */
+
+/* html2canvas measures each font's baseline with a hidden 1×1 GIF placed on the main document's
+   body. Tailwind's preflight makes every img display:block, which drops that GIF to its own line and
+   shifts all captured text down by most of a line. Keep the probe inline so PDFs print text where
+   the page shows it (certificates, storybooks and analytics exports all use html2canvas). */
+body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
+    display: inline;
+}
+
+/* ─── The printed certificate (A4 landscape at 96dpi) ───────────────────────── */
+
+.gcq-cert {
+    --cert-primary: #1e3a8a;
+    --cert-secondary: #64748b;
+    --cert-ink: #1f2937;
+    --cert-wash: #eef2ff;
+    --cert-gold: #b8862f;
+    --cert-gold-light: #e9c46a;
+    --cert-paper: #fdf8ec;
+    --cert-paper-edge: #efe2c4;
+    --cert-text: #3b2f25;
+    --cert-title-font: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+    --cert-name-font: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+    width: 1123px;
+    height: 794px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    color: var(--cert-text);
+    font-family: 'Lora', Georgia, serif;
+    background: var(--cert-paper);
+    text-align: center;
+}
+
+.gcq-cert *,
+.gcq-cert *::before,
+.gcq-cert *::after {
+    box-sizing: border-box;
+}
+
+.gcq-cert p,
+.gcq-cert h1 {
+    margin: 0;
+}
+
+.gcq-cert--early,
+.gcq-cert--junior {
+    --cert-title-font: 'Fredoka One', 'Fredoka', sans-serif;
+    --cert-name-font: 'Fredoka One', 'Fredoka', sans-serif;
+}
+
+.gcq-cert__paper {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 64px 34px;
+    background:
+        radial-gradient(ellipse 70% 60% at 50% 42%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 70%),
+        radial-gradient(ellipse 120% 90% at 50% 50%, var(--cert-paper) 55%, var(--cert-paper-edge) 100%);
+}
+
+/* Guild-coloured band, then a gilt double rule. Plain borders only: html2canvas paints an
+   inset box-shadow as a solid fill that hides everything beneath it. */
+.gcq-cert__rule {
+    position: absolute;
+    pointer-events: none;
+}
+
+.gcq-cert__rule--outer {
+    inset: 12px;
+    border: 7px solid var(--cert-primary);
+    border-radius: 6px;
+}
+
+.gcq-cert__rule--gold {
+    inset: 21px;
+    border: 2px solid var(--cert-gold);
+    border-radius: 3px;
+}
+
+.gcq-cert__rule--inner {
+    inset: 27px;
+    border: 1px solid var(--cert-gold-light);
+    border-radius: 2px;
+}
+
+.gcq-cert__corner {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    line-height: 0;
+}
+
+.gcq-cert__corner svg { display: block; }
+.gcq-cert__corner--tl { top: 22px; left: 22px; }
+.gcq-cert__corner--tr { top: 22px; right: 22px; transform: scaleX(-1); }
+.gcq-cert__corner--bl { bottom: 22px; left: 22px; transform: scaleY(-1); }
+.gcq-cert__corner--br { bottom: 22px; right: 22px; transform: scale(-1, -1); }
+
+/* Header */
+.gcq-cert__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.gcq-cert__banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 26px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: var(--cert-ink);
+    color: var(--cert-gold-light);
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    line-height: 26px;
+    white-space: nowrap;
+}
+
+.gcq-cert__banner-dot { opacity: 0.6; letter-spacing: 0; }
+
+.gcq-cert__crest-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    height: 70px;
+}
+
+.gcq-cert__laurel { line-height: 0; }
+.gcq-cert__laurel svg { width: 34px; height: 68px; }
+
+.gcq-cert__crest {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    line-height: 1;
+    background: radial-gradient(circle at 35% 30%, #fff8dc 0%, var(--cert-gold-light) 45%, var(--cert-gold) 100%);
+    border: 3px solid var(--cert-paper);
+    box-shadow: 0 0 0 2px var(--cert-gold), 0 4px 10px rgba(80, 50, 10, 0.25);
+}
+
+.gcq-cert__title {
+    margin-top: 4px;
+    font-family: var(--cert-title-font);
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 1.1;
+    white-space: nowrap;
+    max-width: 880px;
+    color: var(--cert-ink);
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.gcq-cert__period {
+    margin-top: 5px;
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--cert-gold);
+}
+
+/* Body: hero medallion | name + citation | guild shield */
+.gcq-cert__body {
+    display: grid;
+    grid-template-columns: 190px 1fr 190px;
+    align-items: center;
+    gap: 22px;
+    width: 100%;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.gcq-cert__side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.gcq-cert__medallion {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+.gcq-cert__medallion-ring {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    padding: 6px;
+    background: radial-gradient(circle at 30% 25%, #fff3c4 0%, var(--cert-gold-light) 40%, var(--cert-gold) 100%);
+    box-shadow: 0 0 0 3px var(--cert-primary), 0 6px 14px rgba(60, 40, 10, 0.28);
+}
+
+.gcq-cert__avatar-img,
+.gcq-cert__avatar-initial {
+    display: flex;
+    width: 138px;
+    height: 138px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--cert-wash);
+    border: 3px solid var(--cert-paper);
+}
+
+.gcq-cert__avatar-initial {
+    align-items: center;
+    justify-content: center;
+    font-family: var(--cert-name-font);
+    font-weight: 700;
+    font-size: 52px;
+    color: var(--cert-primary);
+}
+
+.gcq-cert__medallion-badge {
+    position: absolute;
+    right: -4px;
+    bottom: 2px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    line-height: 1;
+    background: var(--cert-ink);
+    border: 3px solid var(--cert-gold-light);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.gcq-cert__shield {
+    width: 132px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px 18px 66px 66px;
+    background: linear-gradient(160deg, var(--cert-primary) 0%, var(--cert-secondary) 100%);
+    border: 4px solid var(--cert-gold-light);
+    box-shadow: 0 0 0 2px var(--cert-gold), 0 6px 14px rgba(60, 40, 10, 0.28);
+}
+
+.gcq-cert__emblem-img {
+    width: 106px;
+    height: 106px;
+    object-fit: contain;
+}
+
+.gcq-cert__emblem-emoji {
+    font-size: 52px;
+    line-height: 1;
+}
+
+.gcq-cert__side-title {
+    margin-top: 10px;
+    max-width: 190px;
+    font-family: var(--cert-name-font);
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.15;
+    color: var(--cert-ink);
+}
+
+.gcq-cert__side-sub {
+    margin-top: 3px;
+    max-width: 190px;
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.3;
+    color: var(--cert-text);
+    opacity: 0.8;
+}
+
+.gcq-cert__center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.gcq-cert__presented {
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--cert-text);
+    opacity: 0.75;
+}
+
+.gcq-cert__name {
+    margin-top: 6px;
+    max-width: 100%;
+    overflow: hidden;
+    font-family: var(--cert-name-font);
+    font-weight: 700;
+    font-size: 58px;
+    line-height: 1.1;
+    white-space: nowrap;
+    color: var(--cert-primary);
+    text-shadow: 0 2px 0 rgba(255, 255, 255, 0.9);
+    overflow-wrap: anywhere;
+}
+
+
+.gcq-cert__flourish {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 76%;
+    margin: 6px 0 10px;
+    color: var(--cert-gold);
+}
+
+.gcq-cert__flourish span {
+    flex: 1;
+    height: 0;
+    border-top: 1.5px solid var(--cert-gold);
+}
+
+.gcq-cert__flourish i {
+    font-style: normal;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.gcq-cert__citation {
+    max-width: 600px;
+    min-height: 78px;
+    font-size: 18px;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--cert-text);
+}
+
+.gcq-cert--early .gcq-cert__citation,
+.gcq-cert--junior .gcq-cert__citation {
+    font-size: 19px;
+}
+
+.gcq-cert__placeholder {
+    opacity: 0.5;
+}
+
+/* Honours: small gilt medallions */
+.gcq-cert__honours {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.gcq-cert__honour {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 138px;
+    padding: 0 6px 9px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1.5px solid var(--cert-gold-light);
+    box-shadow: 0 2px 6px rgba(80, 50, 10, 0.1);
+}
+
+.gcq-cert__honour-icon {
+    width: 40px;
+    height: 40px;
+    margin-top: -16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    line-height: 1;
+    background: var(--cert-primary);
+    border: 2.5px solid var(--cert-gold-light);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.gcq-cert__honour-value {
+    margin-top: 5px;
+    font-family: var(--cert-name-font);
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.15;
+    color: var(--cert-ink);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.gcq-cert__honour-label {
+    margin-top: 2px;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    font-size: 8.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.25;
+    color: var(--cert-text);
+    opacity: 0.7;
+}
+
+.gcq-cert__skills {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 16px;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--cert-ink);
+}
+
+.gcq-cert__skills-label {
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cert-gold);
+    margin-right: 4px;
+}
+
+.gcq-cert__skill { font-weight: 700; }
+.gcq-cert__skill-sep { color: var(--cert-gold); font-size: 9px; }
+
+.gcq-cert__meta {
+    margin-top: 4px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--cert-text);
+    opacity: 0.65;
+}
+
+.gcq-cert__meta-dot { margin: 0 8px; }
+
+/* Footer: signature | wax seal | date */
+.gcq-cert__foot {
+    display: grid;
+    grid-template-columns: 1fr 180px 1fr;
+    align-items: end;
+    width: 100%;
+    margin-top: auto;
+    padding: 0 40px;
+    flex-shrink: 0;
+}
+
+.gcq-cert__sign {
+    justify-self: center;
+    width: 240px;
+    padding-bottom: 6px;
+}
+
+.gcq-cert__sign-name {
+    padding-bottom: 5px;
+    border-bottom: 1.5px solid var(--cert-ink);
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 19px;
+    line-height: 1.2;
+    min-height: 29px;
+    color: var(--cert-ink);
+}
+
+.gcq-cert__sign-label {
+    margin-top: 5px;
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--cert-gold);
+}
+
+.gcq-cert__seal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.gcq-cert__seal-ribbon {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    margin-left: -48px;
+    line-height: 0;
+}
+
+.gcq-cert__seal-wax {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    line-height: 0;
+}
+
+.gcq-cert__seal-wax svg {
+    width: 104px;
+    height: 104px;
+}
+
+.gcq-cert__seal-mark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    line-height: 1;
+}
+
+.gcq-cert__school {
+    position: relative;
+    margin-top: 16px;
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cert-ink);
+    white-space: nowrap;
+}
+
+.gcq-cert__logo {
+    width: 20px;
+    height: 20px;
+    margin-left: -8px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* ─── The modal: the Herald's Folio ─────────────────────────────────────────── */
+
+#certificate-modal.cert-folio-overlay {
+    background: radial-gradient(ellipse at 50% 30%, rgba(60, 12, 24, 0.55), rgba(10, 4, 8, 0.78));
+}
+
+.cert-folio {
+    --folio-leather: #5a1a28;
+    --folio-leather-dark: #2c0b14;
+    --folio-gold: #d9b25f;
+    --folio-gold-deep: #a47a2c;
+    --folio-vellum: #fbf4e2;
+    position: relative;
+    width: min(1180px, 100%);
+    max-height: calc(100dvh - 2rem);
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px;
+    padding: 18px;
+    color: #fbeed3;
+    background:
+        radial-gradient(ellipse 90% 70% at 30% 10%, rgba(255, 190, 150, 0.12), transparent 60%),
+        repeating-linear-gradient(35deg, rgba(0, 0, 0, 0.035) 0 2px, transparent 2px 5px),
+        linear-gradient(160deg, var(--folio-leather) 0%, #461321 55%, var(--folio-leather-dark) 100%);
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.55),
+        inset 0 0 0 1px rgba(255, 220, 160, 0.15),
+        inset 0 2px 0 rgba(255, 220, 170, 0.12);
+    font-family: 'Lora', Georgia, serif;
+}
+
+/* Gold tooling around the cover */
+.cert-folio::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1.5px solid rgba(217, 178, 95, 0.55);
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 3px rgba(44, 11, 20, 0.6), inset 0 0 0 4px rgba(217, 178, 95, 0.3);
+    pointer-events: none;
+}
+
+.cert-folio__head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 8px 14px;
+    flex-shrink: 0;
+}
+
+.cert-folio__seal {
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff4d6;
+    background: radial-gradient(circle at 35% 30%, #c2413a 0%, #8f1d1f 55%, #5c0f13 100%);
+    box-shadow: 0 0 0 3px rgba(217, 178, 95, 0.75), 0 6px 14px rgba(0, 0, 0, 0.4), inset 0 -4px 8px rgba(0, 0, 0, 0.35);
+}
+
+.cert-folio__titles { min-width: 0; flex: 1; }
+
+.cert-folio__eyebrow {
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--folio-gold);
+    opacity: 0.85;
+}
+
+.cert-folio__title {
+    font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    line-height: 1.1;
+    color: #f7e2b0;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    margin: 2px 0 0;
+}
+
+.cert-folio__student {
+    font-size: 0.9rem;
+    font-style: italic;
+    color: rgba(251, 238, 211, 0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cert-folio__close {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #f7e2b0;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1.5px solid rgba(217, 178, 95, 0.6);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.cert-folio__close:hover { background: rgba(217, 178, 95, 0.2); transform: rotate(90deg); }
+.cert-folio__close:focus-visible,
+.cert-folio button:focus-visible,
+.cert-folio textarea:focus-visible { outline: 3px solid #f7e2b0; outline-offset: 2px; }
+
+/* Ribbon bookmarks for the two scopes */
+.cert-folio__ribbons {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    padding: 0 8px 14px;
+    flex-shrink: 0;
+}
+
+.cert-ribbon {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    text-align: left;
+    cursor: pointer;
+    color: rgba(251, 238, 211, 0.75);
+    background: rgba(0, 0, 0, 0.22);
+    border: 1.5px solid rgba(217, 178, 95, 0.25);
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.cert-ribbon:hover { color: #fbeed3; border-color: rgba(217, 178, 95, 0.55); }
+
+.cert-ribbon__icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(217, 178, 95, 0.4);
+}
+
+.cert-ribbon__text { display: flex; flex-direction: column; min-width: 0; }
+
+.cert-ribbon__name {
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+
+.cert-ribbon__hint { font-size: 0.75rem; font-style: italic; opacity: 0.8; }
+
+.cert-ribbon.is-active {
+    color: #3a1a0c;
+    background: linear-gradient(180deg, #f6dd9c 0%, var(--folio-gold) 55%, var(--folio-gold-deep) 100%);
+    border-color: #f7e2b0;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.cert-ribbon.is-active .cert-ribbon__icon { background: rgba(90, 26, 40, 0.9); color: #f7e2b0; border-color: #f7e2b0; }
+
+/* Body: desk with the page | scribe's panel */
+#certificate-modal-content.cert-folio__body {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    padding: 0 8px 4px;
+}
+
+.cert-desk {
+    position: relative;
+    border-radius: 14px;
+    padding: 18px;
+    background:
+        radial-gradient(ellipse at 50% 40%, rgba(255, 225, 180, 0.12), transparent 70%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.4));
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+}
+
+.cert-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1123 / 794;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.2);
+    background: #fdf8ec;
+}
+
+.cert-preview > .gcq-cert {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+}
+
+.cert-preview.is-inscribing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 236, 190, 0.55) 50%, transparent 70%);
+    background-size: 250% 100%;
+    animation: cert-shimmer 1.4s linear infinite;
+}
+
+@keyframes cert-shimmer {
+    from { background-position: 150% 0; }
+    to { background-position: -100% 0; }
+}
+
+.cert-scribe {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.cert-card {
+    border-radius: 14px;
+    padding: 14px;
+    color: #3b2f25;
+    background: linear-gradient(180deg, var(--folio-vellum) 0%, #f3e6c6 100%);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(164, 122, 44, 0.35);
+}
+
+.cert-card__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8a5a1c;
+    margin-bottom: 10px;
+}
+
+.cert-card__label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(164, 122, 44, 0.55), transparent);
+}
+
+.cert-honours-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.cert-honours-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(164, 122, 44, 0.22);
+}
+
+.cert-honours-list .cert-h-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
+.cert-honours-list .cert-h-text { display: flex; flex-direction: column; min-width: 0; }
+.cert-honours-list .cert-h-value { font-weight: 700; font-size: 0.85rem; line-height: 1.2; color: #3a1a0c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cert-honours-list .cert-h-label { font-family: 'Open Sans', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; line-height: 1.25; text-transform: uppercase; color: #8a6a44; }
+
+.cert-honours-note {
+    margin: 8px 0 0;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #7a6048;
+}
+
+.cert-inscription__intro {
+    margin: 0 0 12px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: #5b4633;
+}
+
+.cert-inscription__input {
+    display: block;
+    width: 100%;
+    min-height: 118px;
+    resize: vertical;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(164, 122, 44, 0.45);
+    background: #fffdf6;
+    color: #3b2f25;
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.cert-inscription__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7rem;
+    color: #8a6a44;
+}
+
+.cert-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+}
+
+.cert-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+.cert-btn:active:not(:disabled) { transform: translateY(1px); }
+.cert-btn:disabled { opacity: 0.6; cursor: progress; }
+
+.cert-btn--oracle {
+    font-size: 0.95rem;
+    color: #fff6dc;
+    background: linear-gradient(180deg, #7b2cbf 0%, #5a189a 100%);
+    border: 1.5px solid rgba(255, 230, 170, 0.6);
+    box-shadow: 0 6px 16px rgba(90, 24, 154, 0.35);
+}
+
+.cert-btn--quiet {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    color: #6b3f12;
+    background: transparent;
+    border: 1.5px solid rgba(164, 122, 44, 0.5);
+}
+
+.cert-btn--seal {
+    color: #fff4d6;
+    background: radial-gradient(ellipse at 50% 0%, #c2413a 0%, #8f1d1f 60%, #6a1216 100%);
+    border: 1.5px solid #f0c977;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 220, 180, 0.4);
+    font-size: 1.05rem;
+}
+
+.cert-btn--seal.hidden { display: none; }
+
+.cert-inscription__actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.cert-inscription__error {
+    margin: 8px 0 0;
+    font-size: 0.82rem;
+    color: #9f1239;
+}
+
+.cert-folio__footer {
+    position: relative;
+    padding: 12px 8px 2px;
+    flex-shrink: 0;
+}
+
+/* Tablet & phone: stack page over the panel */
+@media (max-width: 900px) {
+    /* Stacked layout: the whole folio scrolls, so the page preview is never trapped under the header. */
+    .cert-folio { overflow-y: auto; overscroll-behavior: contain; }
+    .cert-folio::before { display: none; }
+    #certificate-modal-content.cert-folio__body {
+        grid-template-columns: minmax(0, 1fr);
+        overflow: visible;
+        flex: none;
+    }
+    .cert-desk { padding: 10px; }
+    .cert-folio__footer {
+        position: sticky;
+        bottom: -18px;
+        margin: 0 -18px -18px;
+        padding: 12px 26px 18px;
+        background: linear-gradient(180deg, rgba(44, 11, 20, 0) 0%, rgba(44, 11, 20, 0.92) 35%);
+        border-radius: 0 0 22px 22px;
+    }
+}
+
+@media (max-width: 560px) {
+    #certificate-modal.cert-folio-overlay { padding: 0.5rem; align-items: stretch; }
+    /* On a phone the whole folio scrolls, so the page preview is never trapped under the header. */
+    .cert-folio { padding: 12px; border-radius: 18px; max-height: calc(100dvh - 1rem); overflow-y: auto; overscroll-behavior: contain; }
+    .cert-folio::before { display: none; }
+    .cert-folio__head { gap: 10px; padding: 4px 4px 10px; }
+    .cert-folio__seal { width: 40px; height: 40px; font-size: 18px; }
+    .cert-folio__eyebrow { display: none; }
+    .cert-folio__title { font-size: 1.3rem; }
+    .cert-folio__student { font-size: 0.82rem; }
+    .cert-folio__close { width: 38px; height: 38px; font-size: 1.2rem; }
+    .cert-folio__ribbons { gap: 6px; padding: 0 4px 10px; }
+    .cert-ribbon { padding: 8px 10px; gap: 8px; border-radius: 10px; }
+    .cert-ribbon__icon { width: 26px; height: 26px; font-size: 0.8rem; }
+    .cert-ribbon__name { font-size: 0.78rem; letter-spacing: 0; white-space: nowrap; }
+    .cert-ribbon__hint { display: none; }
+    #certificate-modal-content.cert-folio__body { padding: 0 4px 4px; gap: 10px; overflow: visible; flex: none; }
+    .cert-desk { padding: 8px; border-radius: 10px; }
+    .cert-honours-list { gap: 5px; }
+    .cert-honours-list li { padding: 5px 7px; }
+    .cert-folio__footer { position: sticky; bottom: -12px; padding: 10px 4px 12px; margin: 0 -12px -12px; background: linear-gradient(180deg, rgba(44, 11, 20, 0) 0%, rgba(44, 11, 20, 0.92) 35%); border-radius: 0 0 18px 18px; }
+    .cert-folio__footer .cert-btn--seal { width: calc(100% - 16px); margin: 0 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cert-preview.is-inscribing::after { animation: none; }
+    .cert-folio__close:hover { transform: none; }
+}

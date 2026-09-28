@@ -6,8 +6,9 @@ import { reportsModalsHTML } from '../../../../templates/modals/reports.js';
 import { studentModalsHTML } from '../../../../templates/modals/student.js';
 import { heroClassModalsHTML } from '../../../../templates/modals/heroClass.js';
 import { HERO_CLASSES } from '../../../../features/heroClasses.js';
-import { getReasonDisplayName } from '../../../../features/heroSkillTree.js';
-import { getGuildEmblemUrl } from '../../../../features/guilds.js';
+import { HERO_SKILL_TREE, getReasonDisplayName } from '../../../../features/heroSkillTree.js';
+import { GUILDS, getGuildEmblemUrl } from '../../../../features/guilds.js';
+import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CERTIFICATE_WIDTH } from '../../../../features/certificateCore.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 
 function startShow() {
@@ -337,49 +338,63 @@ export function showCertificateForge() {
   if (!modal || !content) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-cert-forge');
+  const model = sampleCertificateModel();
+  paintCertificateTemplate(model, '');
+  const student = document.getElementById('certificate-modal-student');
+  if (student) student.textContent = `${model.name} · ${model.classLogo} ${model.className}`;
   content.innerHTML = `
-        <div class="w-full py-6 min-h-[350px] flex flex-col justify-center">
-            <div class="relative flex flex-col items-center">
-                <div class="relative mb-6">
-                    <div class="relative w-28 h-28 rounded-[2rem] bg-white p-1 shadow-2xl rotate-3">
-                        <div class="w-full h-full rounded-[1.8rem] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-title text-4xl text-white">A</div>
-                        <div class="absolute -bottom-3 -right-3 w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white transform -rotate-6">
-                            <i class="fas fa-pen-fancy text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center space-y-2 mb-8">
-                    <h3 class="font-title text-3xl text-indigo-900 tracking-tight">Forge Alex's Legacy</h3>
-                    <div class="flex items-center justify-center gap-3">
-                        <span class="h-px w-8 bg-indigo-200"></span>
-                        <span class="text-xs font-black uppercase tracking-widest text-indigo-500/80">Monthly Achievement</span>
-                        <span class="h-px w-8 bg-indigo-200"></span>
-                    </div>
-                    <p class="text-indigo-600/70 text-sm max-w-xs mx-auto pt-2 leading-relaxed font-medium">
-                        The Oracle is ready to weave Alex's deeds into a masterpiece.
-                        Choose your mode and let the magic begin.
-                    </p>
-                </div>
-                <div class="grid grid-cols-2 gap-4 w-full max-w-md mb-8">
-                    <div class="bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/60 flex flex-col items-center text-center">
-                        <i class="fas fa-star text-amber-500 mb-1"></i>
-                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Stars Earned</span>
-                        <span class="text-lg font-title text-indigo-900">This Month</span>
-                    </div>
-                    <div class="bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/60 flex flex-col items-center text-center">
-                        <i class="fas fa-shield-halved text-indigo-500 mb-1"></i>
-                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Class Level</span>
-                        <span class="text-lg font-title text-indigo-900">Junior B</span>
-                    </div>
-                </div>
-                <button type="button" id="generate-cert-btn" class="group relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-title text-2xl py-4 px-12 rounded-[1.5rem] shadow-xl shadow-indigo-200/50">
-                    <span class="relative flex items-center gap-3">
-                        <i class="fas fa-wand-sparkles text-xl"></i>
-                        Forge Certificate
-                    </span>
-                </button>
-            </div>
-        </div>`;
+        <div class="cert-desk"><div id="cert-preview" class="cert-preview"></div></div>
+        <aside class="cert-scribe">
+            <section class="cert-card">
+                <p class="cert-card__label">Honours on the page</p>
+                <ul class="cert-honours-list">${model.allHonours.map((h) => `<li><span class="cert-h-icon">${h.icon}</span><span class="cert-h-text"><span class="cert-h-value">${h.value}</span><span class="cert-h-label">${h.label}</span></span></li>`).join('')}</ul>
+                <p class="cert-honours-note">Counted from ${model.periodLabel} only.</p>
+            </section>
+            <section class="cert-card cert-inscription">
+                <p class="cert-card__label">The Oracle's citation</p>
+                <p class="cert-inscription__intro">The Oracle reads Alex's month and writes a short citation in words for the Junior B league. You can edit it before sealing.</p>
+                <button type="button" id="generate-cert-btn" class="cert-btn cert-btn--oracle"><i class="fas fa-wand-sparkles"></i> Ask the Oracle</button>
+            </section>
+        </aside>`;
+  const preview = document.getElementById('cert-preview');
+  const clone = document.getElementById('certificate-template').cloneNode(true);
+  clone.removeAttribute('id');
+  clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+  preview.appendChild(clone);
+  requestAnimationFrame(() => { clone.style.transform = `scale(${preview.clientWidth / CERTIFICATE_WIDTH})`; });
+}
+
+function sampleCertificateModel() {
+  return buildCertificateModel({
+    scope: 'monthly',
+    now: new Date(2026, 8, 30),
+    student: { id: 'alex', name: 'Alex', heroClass: 'Guardian', guildId: 'dragon_flame' },
+    studentClass: { name: 'Junior B', logo: '📚', questLevel: 'Junior B' },
+    ageCategory: 'junior',
+    scoreData: { monthlyStars: 18, totalStars: 96, heroLevel: 2, heroSkills: ['guardian_1a', 'guardian_2b'], lastMonthlyResetDate: '2026-09-01',
+      familiar: { typeId: 'emberfang', name: 'Cinder', state: 'alive', level: 2 } },
+    awardLogs: [{ studentId: 'alex', reason: 'teamwork', stars: 3, date: '12-09-2026' }, { studentId: 'alex', reason: 'respect', stars: 2, date: '18-09-2026' }],
+    writtenScores: [{ studentId: 'alex', date: '15-09-2026', scoreNumeric: 18, maxScore: 20 }],
+    oaths: [{ studentId: 'alex', status: 'kept', text: 'I will help a classmate every week', keptAt: '2026-09-20' }],
+    guild: GUILDS.dragon_flame,
+    heroDef: HERO_CLASSES.Guardian,
+    heroTree: HERO_SKILL_TREE.Guardian,
+    familiarTypes: { emberfang: { name: 'Emberfang', levelNames: ['Hatchling', 'Flame Drake', 'Inferno Dragon'] } },
+    teacherName: 'Ms. Elena',
+    schoolName: 'Your School',
+  });
+}
+
+function paintCertificateTemplate(model, citation) {
+  const tpl = document.getElementById('certificate-template');
+  if (!tpl) return null;
+  tpl.className = `gcq-cert gcq-cert--${model.band}`;
+  tpl.setAttribute('style', certificateStyleVars(model));
+  tpl.innerHTML = renderCertificateInner(model, {
+    citation,
+    assets: { guildEmblem: emblemUrl('dragon_flame'), appLogo: '/assets/great-class-quest-logo.svg' },
+  });
+  return tpl;
 }
 
 export function hideCertificateForge() {
@@ -390,95 +405,11 @@ export function hideCertificateForge() {
 
 export function showCertificatePrint() {
   startShow();
-  const tpl = document.getElementById('certificate-template');
+  const model = sampleCertificateModel();
+  const tpl = paintCertificateTemplate(model, 'This month you led Dragon Flame like a true Warden: 18 stars, a kept Ember Oath, and a class that moved farther down the map together.');
   if (!tpl) return;
-  const wrap = tpl.parentElement;
-  wrap?.classList.add('capture-cert-wrap');
+  tpl.parentElement?.classList.add('capture-cert-wrap');
   tpl.classList.add('capture-cert');
-
-  const style = {
-    borderColor: '#FBBF24',
-    bgColor: '#FFFBEB',
-    titleColor: '#B45309',
-    nameColor: '#D97706',
-    textColor: '#92400E',
-    icon: '⭐'
-  };
-  tpl.style.borderColor = style.borderColor;
-  tpl.style.backgroundColor = style.bgColor;
-  tpl.style.color = style.textColor;
-  ['cert-corner-tl', 'cert-corner-tr', 'cert-corner-bl', 'cert-corner-br'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.style.borderColor = style.borderColor;
-  });
-
-  const icon = document.getElementById('cert-icon');
-  const title = document.getElementById('cert-title');
-  const name = document.getElementById('cert-student-name');
-  const text = document.getElementById('cert-text');
-  const teacher = document.getElementById('cert-teacher-name');
-  const date = document.getElementById('cert-date');
-  const flair = document.getElementById('cert-flair-row');
-  const meta = document.getElementById('cert-meta');
-  const school = tpl.querySelector('[data-school-name]');
-  const logo = document.getElementById('cert-app-logo');
-  const emblem = document.getElementById('cert-guild-emblem');
-
-  if (icon) {
-    icon.textContent = style.icon;
-    icon.style.color = style.borderColor;
-  }
-  if (title) {
-    title.textContent = 'Hero of the Quest';
-    title.style.color = style.titleColor;
-  }
-  if (name) {
-    name.textContent = 'Alex';
-    name.style.color = style.nameColor;
-  }
-  if (text) {
-    text.textContent = 'This month Alex practised Teamwork with a Guardian’s calm — 18 stars, a clear voice in Junior B, and a class that moved farther down the map together.';
-  }
-  if (teacher) {
-    teacher.textContent = 'Ms. Elena';
-    teacher.style.borderTopColor = style.borderColor;
-  }
-  if (date) {
-    date.textContent = '30 August 2026';
-    date.style.borderTopColor = style.borderColor;
-  }
-  if (meta) meta.textContent = 'Monthly Quest · Junior B · 18 ⭐';
-  if (school) school.textContent = 'Your School';
-  if (logo) {
-    logo.src = '/assets/great-class-quest-logo.svg';
-    logo.style.display = 'block';
-  }
-  if (emblem) {
-    emblem.src = emblemUrl('dragon_flame');
-    emblem.style.display = 'block';
-  }
-  if (flair) {
-    flair.innerHTML = ['🌈', '📚', '⭐']
-      .map((ch) => `<span style="font-size:18px">${ch}</span>`)
-      .join('');
-  }
-
-  const pills = {
-    'cert-class-name': { text: '📚 Junior B', bg: '#fff', color: '#92400E', border: '#FBBF24' },
-    'cert-guild-pill': { text: '🔥 Dragon Flame', bg: '#dc2626', color: '#fff', border: '#b91c1c' },
-    'cert-hero-pill': { text: '🛡️ Guardian', bg: '#2563eb', color: '#fff', border: '#1d4ed8' },
-    'cert-stars-pill': { text: '18 ⭐ this month', bg: '#FBBF24', color: '#78350F', border: '#D97706' },
-    'cert-league-pill': { text: 'Junior B', bg: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)', color: '#fff', border: 'rgba(255,255,255,0.55)' },
-    'cert-virtue-pill': { text: '🤝 Teamwork', bg: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', color: '#fff', border: 'rgba(255,255,255,0.55)' }
-  };
-  Object.entries(pills).forEach(([id, spec]) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = spec.text;
-    el.style.background = spec.bg;
-    el.style.color = spec.color;
-    el.style.border = `1px solid ${spec.border}`;
-  });
 }
 
 export function hideCertificatePrint() {

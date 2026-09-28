@@ -38,6 +38,11 @@ function notify() {
     onChange?.();
 }
 
+// Other office dialogs (moves, placements) share the same "records changed" repaint.
+export function notifyRecordsChanged() {
+    notify();
+}
+
 function toMillis(value) {
     if (!value) return 0;
     if (typeof value.toMillis === 'function') return value.toMillis();

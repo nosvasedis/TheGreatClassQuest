@@ -652,6 +652,35 @@
 .sp-tool--forge { --tool: #6d28d9; --tool-soft: #ede9fe; }
 .sp-tool--tree { --tool: #4338ca; --tool-soft: #e0e7ff; }
 .sp-tool--move { --tool: #0f766e; --tool-soft: #ccfbf1; }
+.sp-tool--notes { --tool: #1e3a5f; --tool-soft: #e0ecf8; }
+.sp-tool--leave { --tool: #b91c1c; --tool-soft: #fee2e2; }
+
+.sp-tool__count {
+    margin-left: auto;
+    min-width: 1.35rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--tool);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* ---------- Who is holding the passport ----------
+   The teacher sees classroom tools; the Secretary Office sees its own desk
+   (notes, class moves, grades, leaving), and never the guild sorting. */
+#edit-student-modal:not([data-passport-mode="office"]) [data-office-only],
+#edit-student-modal[data-passport-mode="office"] [data-teacher-only] {
+    display: none !important;
+}
+
+.sp-tools--office { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sp-tools--office .sp-tool { padding: 9px 10px; }
+.sp-tools--office .sp-tool__icon { width: 32px; height: 32px; font-size: 0.88rem; }
+.sp-tools--office .sp-tool__label { font-size: 0.86rem; }
+
+.sp-note.sp-note--office { color: #1e3a5f; font-weight: 600; }
 
 /* ---------- Special-day postage stamps ---------- */
 .sp-stamps {

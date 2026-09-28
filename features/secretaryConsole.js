@@ -518,9 +518,10 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
             return;
         }
 
-        const chronicleBtn = event.target.closest('[data-secretary-chronicle]');
-        if (chronicleBtn) {
-            modals.openHeroChronicleModal(chronicleBtn.dataset.secretaryChronicle);
+        // The office keeps its own notes on a student's file, and reads the teachers' notes there too.
+        const notesBtn = event.target.closest('[data-secretary-notes]');
+        if (notesBtn) {
+            import('./secretary/studentDesk.js').then(({ openStudentNotes }) => openStudentNotes(notesBtn.dataset.secretaryNotes));
             return;
         }
 

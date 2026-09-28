@@ -16,6 +16,7 @@ import { getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { handleAvatarClick } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { escapeHtml } from '../../features/roles/shared.js';
+import { isSecretaryOfficeActive } from '../../features/secretary/officeModal.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -210,7 +211,17 @@ export function openEditStudentModal(studentId, options = {}) {
     if (idInput) idInput.value = studentId;
     if (nameInput) nameInput.value = student.name || '';
     if (titleEl) titleEl.textContent = student.name || 'Edit Student Details';
-    if (subtitleEl) subtitleEl.textContent = 'Customize profile, celebrations & hero path';
+
+    // The Secretary Office holds the same passport, but with the office's own desk:
+    // no classroom tools (portraits, skill trees, hero ceremonies) and never guild sorting.
+    const officeMode = isSecretaryOfficeActive();
+    const passportEl = document.getElementById('edit-student-modal');
+    if (passportEl) passportEl.dataset.passportMode = officeMode ? 'office' : 'teacher';
+    if (subtitleEl) {
+        subtitleEl.textContent = officeMode
+            ? 'Student record: identity, special days, class and office notes'
+            : 'Customize profile, celebrations & hero path';
+    }
 
     // 2. Fetch Class, Guild & Score Data
     const classData = (state.get('allSchoolClasses') || []).find(c => c.id === student.classId);
@@ -287,11 +298,23 @@ export function openEditStudentModal(studentId, options = {}) {
     const currentGuildDisplay = document.getElementById('edit-student-current-guild-display');
     const currentGuildDesc = document.getElementById('edit-student-current-guild-desc');
 
-    if (currentClassDisplay) currentClassDisplay.textContent = classData ? `${classData.logo || '📚'} ${classData.name}` : 'No class assigned';
-    if (currentLeagueDisplay) currentLeagueDisplay.textContent = classData?.questLevel || 'Standard League';
+    if (currentClassDisplay) {
+        currentClassDisplay.textContent = classData
+            ? `${classData.logo || '📚'} ${classData.name}`
+            : (officeMode ? 'Waiting for a class' : 'No class assigned');
+    }
+    if (currentLeagueDisplay) {
+        currentLeagueDisplay.textContent = classData?.questLevel
+            || (officeMode
+                ? (student.previousQuestLevel ? `${student.previousQuestLevel} league last year` : 'Seat them in a class')
+                : 'Standard League');
+    }
     if (currentGuildDisplay) currentGuildDisplay.textContent = guildHouse.label;
     if (currentGuildDesc) {
-        currentGuildDesc.textContent = guildHouse.description;
+        // Guilds are for life: once sorted, a student is never sorted again.
+        currentGuildDesc.textContent = guildHouse.assigned
+            ? 'Member for life. Guilds never change.'
+            : (officeMode ? 'Sorted in class by their teacher.' : guildHouse.description);
         currentGuildDesc.classList.toggle('sp-field__sub--warn', !guildHouse.assigned);
         currentGuildDesc.classList.toggle('sp-field__sub--ok', guildHouse.assigned);
     }
@@ -363,7 +386,9 @@ export function openEditStudentModal(studentId, options = {}) {
     if (summaryPerk) {
         summaryPerk.textContent = classInfo
             ? classInfo.desc
-            : 'Leave unassigned, or open the ceremony so they can choose.';
+            : (officeMode
+                ? 'Not chosen yet. Their teacher runs the ceremony in class.'
+                : 'Leave unassigned, or open the ceremony so they can choose.');
     }
     if (chooseLabel) {
         chooseLabel.textContent = !heroProgressionEnabled
@@ -391,7 +416,12 @@ export function openEditStudentModal(studentId, options = {}) {
         heroSummary.classList.toggle('is-empty', !classInfo);
         heroSummary.classList.toggle('is-locked', heroProgressionEnabled && isLocked);
     }
-    if (!heroProgressionEnabled) {
+    if (officeMode) {
+        if (tierNote) {
+            tierNote.className = 'sp-note sp-note--office';
+            tierNote.textContent = 'Hero classes and skills are chosen in class with their teacher.';
+        }
+    } else if (!heroProgressionEnabled) {
         if (tierNote) {
             tierNote.className = 'sp-note sp-note--hero sp-note--pro';
             tierNote.textContent = '🔒 Pro feature: Hero Archetypes and Skill Trees are unlocked on Pro and above.';
@@ -446,19 +476,66 @@ export function openEditStudentModal(studentId, options = {}) {
 
     const quickMoveBtn = document.getElementById('edit-student-quick-move-btn');
     const hubMoveBtn = document.getElementById('edit-student-hub-move-btn');
+    const officeMoveBtn = document.getElementById('edit-student-office-move-btn');
+    const isWaitingForClass = !classData;
     const handleMove = () => {
         hideModal('edit-student-modal');
+        if (officeMode) {
+            import('../../features/secretary/studentDesk.js').then(d => d.openStudentMove(studentId));
+            return;
+        }
         openMoveStudentModal(studentId);
     };
     if (quickMoveBtn) quickMoveBtn.onclick = handleMove;
     if (hubMoveBtn) hubMoveBtn.onclick = handleMove;
+    if (officeMoveBtn) officeMoveBtn.onclick = handleMove;
+    // A teacher can only move a student who sits in a class; the Office can also seat a waiting one.
+    if (quickMoveBtn) quickMoveBtn.classList.toggle('hidden', !officeMode && isWaitingForClass);
+    const quickMoveLabel = document.getElementById('edit-student-quick-move-label');
+    if (quickMoveLabel) quickMoveLabel.textContent = officeMode && isWaitingForClass ? 'Seat' : 'Move';
+    const officeMoveLabel = document.getElementById('edit-student-office-move-label');
+    if (officeMoveLabel) officeMoveLabel.textContent = isWaitingForClass ? 'Seat in a class' : 'Move class';
 
+    // Guilds are for life: the sorting quiz is only offered to a student who has never been sorted.
     const quickGuildBtn = document.getElementById('edit-student-quick-guild-btn');
     const handleGuildQuiz = () => {
         hideModal('edit-student-modal');
         import('./sortingQuiz.js').then(sq => sq.openSortingQuizModal(studentId));
     };
-    if (quickGuildBtn) quickGuildBtn.onclick = handleGuildQuiz;
+    if (quickGuildBtn) {
+        quickGuildBtn.onclick = handleGuildQuiz;
+        quickGuildBtn.classList.toggle('hidden', officeMode || guildHouse.assigned);
+    }
+
+    // Secretary Office desk
+    const officeNotesBtn = document.getElementById('edit-student-office-notes-btn');
+    const officeNotesCount = document.getElementById('edit-student-office-notes-count');
+    if (officeNotesBtn) {
+        officeNotesBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            import('../../features/secretary/studentDesk.js').then(d => d.openStudentNotes(studentId));
+        };
+    }
+    if (officeNotesCount) {
+        const noteCount = (state.get('allHeroChronicleNotes') || []).filter(n => n.studentId === studentId).length;
+        officeNotesCount.textContent = String(noteCount);
+        officeNotesCount.classList.toggle('hidden', !noteCount);
+    }
+    const officeGradesBtn = document.getElementById('edit-student-office-grades-btn');
+    if (officeGradesBtn) {
+        officeGradesBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            state.setSecretaryView({ gradesBoardSubTab: 'scroll', gradesSearch: student.name || '', gradesPage: 0 });
+            import('../../features/secretaryConsole.js').then(c => c.activateSecretaryTab('grades'));
+        };
+    }
+    const officeLeaveBtn = document.getElementById('edit-student-office-leave-btn');
+    if (officeLeaveBtn) {
+        officeLeaveBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            import('../../features/secretary/formerStudents.js').then(f => f.openLeaveDialog(studentId));
+        };
+    }
 
     const openSkillTreeBtn = document.getElementById('edit-student-open-skilltree-btn');
     const hubSkillTreeBtn = document.getElementById('edit-student-hub-skilltree-btn');

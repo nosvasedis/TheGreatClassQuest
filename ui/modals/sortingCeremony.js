@@ -621,6 +621,8 @@ export function openSortingCeremony(studentId, opts = {}) {
     if (!modal) return;
 
     const student = resolveStudent(studentId);
+    // Guilds are for life: never run the ceremony for a student who is already sorted.
+    if (student?.guildId && getGuildById(student.guildId)) return;
     const data = sortingQuiz.startQuiz(studentId, resolveQuestLevel(student));
     if (!data.question) return;
 

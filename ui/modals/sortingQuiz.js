@@ -5,6 +5,9 @@
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
+import { getGuildHouseDisplay } from '../../features/guilds.js';
+import { showToast } from '../effects.js';
+import * as state from '../../state.js';
 
 let _ceremony = null;
 
@@ -28,6 +31,13 @@ function loadCeremony() {
  * @param {string} studentId
  */
 export function openSortingQuizModal(studentId) {
+    // Guilds are for life: a student who already belongs to a guild is never sorted again.
+    const student = (state.get('allStudents') || []).find((item) => item.id === studentId);
+    const house = getGuildHouseDisplay(student?.guildId);
+    if (house.assigned) {
+        showToast(`${student.name} already belongs to ${house.name}. Guilds are for life.`, 'info');
+        return;
+    }
     if (!canUseFeature('guilds')) {
         showUpgradePrompt({
             feature: 'Guild Sorting Quiz',

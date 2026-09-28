@@ -115,8 +115,8 @@ function renderStudentCard(student, classData, scoreMap, latestScores, threads) 
                     <button type="button" class="secretary-chip-btn" data-secretary-edit-student="${escapeHtml(student.id)}">
                         <i class="fas fa-pen" aria-hidden="true"></i> Edit
                     </button>
-                    <button type="button" class="secretary-chip-btn secretary-chip-btn--emerald" data-secretary-chronicle="${escapeHtml(student.id)}">
-                        <i class="fas fa-book" aria-hidden="true"></i> Notes
+                    <button type="button" class="secretary-chip-btn secretary-chip-btn--emerald" data-secretary-notes="${escapeHtml(student.id)}">
+                        <i class="fas fa-folder-open" aria-hidden="true"></i> Notes
                     </button>
                     ${thread
                         ? `<button type="button" class="secretary-chip-btn secretary-chip-btn--violet" data-secretary-thread="${escapeHtml(thread.id)}" data-secretary-open-messages="1">

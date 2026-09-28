@@ -30,6 +30,9 @@ const publicDataPath = 'artifacts/great-class-quest/public/data';
  */
 export async function assignStudentToGuild(studentId, guildId) {
     if (!studentId || !guildId || !GUILD_IDS.includes(guildId)) return;
+    // Guilds are for life: a student who already belongs to a guild keeps it.
+    const existing = (state.get('allStudents') || []).find(s => s.id === studentId);
+    if (existing?.guildId && GUILD_IDS.includes(existing.guildId)) return;
 
     const studentRef = doc(db, `${publicDataPath}/students`, studentId);
     const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);

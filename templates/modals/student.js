@@ -50,7 +50,7 @@ export const studentModalsHTML = `
                                     <span class="sp-photo__holo" aria-hidden="true"></span>
                                     <div id="edit-student-hero-icon-badge" class="sp-photo__badge" title="Hero Class">🌟</div>
                                 </div>
-                                <button type="button" id="edit-student-open-avatar-btn"
+                                <button type="button" id="edit-student-open-avatar-btn" data-teacher-only
                                     class="edit-student-forge-btn sp-forge bubbly-button"
                                     title="Open Avatar Forge"
                                     aria-label="Open Avatar Forge">
@@ -81,7 +81,7 @@ export const studentModalsHTML = `
                                         <p id="edit-student-current-league-display" class="sp-field__sub">--</p>
                                     </div>
                                     <button type="button" id="edit-student-quick-move-btn" class="sp-mini-btn bubbly-button" title="Transfer to another class">
-                                        <i class="fas fa-exchange-alt" aria-hidden="true"></i><span>Move</span>
+                                        <i class="fas fa-exchange-alt" aria-hidden="true"></i><span id="edit-student-quick-move-label">Move</span>
                                     </button>
                                 </div>
 
@@ -91,7 +91,7 @@ export const studentModalsHTML = `
                                         <p id="edit-student-current-guild-display" class="sp-field__value">Unassigned</p>
                                         <p id="edit-student-current-guild-desc" class="sp-field__sub">No guild assigned</p>
                                     </div>
-                                    <button type="button" id="edit-student-quick-guild-btn" class="sp-mini-btn sp-mini-btn--gold bubbly-button" title="Guild Sorting Quiz">
+                                    <button type="button" id="edit-student-quick-guild-btn" data-teacher-only class="sp-mini-btn sp-mini-btn--gold bubbly-button" title="Guild Sorting Quiz">
                                         <i class="fas fa-hat-wizard" aria-hidden="true"></i><span>Sort</span>
                                     </button>
                                 </div>
@@ -121,8 +121,27 @@ export const studentModalsHTML = `
 
                     <!-- Tools -->
                     <section id="edit-student-panel-actions" class="edit-student-tab-panel sp-section" aria-labelledby="sp-tools-heading">
-                        <h3 id="sp-tools-heading" class="sp-page__heading"><i class="fas fa-bolt"></i><span>Open for this student</span></h3>
-                        <div class="sp-tools">
+                        <h3 id="sp-tools-heading" class="sp-page__heading"><i class="fas fa-bolt"></i><span data-teacher-only>Open for this student</span><span data-office-only>Office desk</span></h3>
+                        <div class="sp-tools sp-tools--office" data-office-only>
+                            <button type="button" id="edit-student-office-notes-btn" class="sp-tool sp-tool--notes bubbly-button" title="Office notes on this student's file">
+                                <span class="sp-tool__icon"><i class="fas fa-folder-open"></i></span>
+                                <span class="sp-tool__label">Notes</span>
+                                <span id="edit-student-office-notes-count" class="sp-tool__count hidden">0</span>
+                            </button>
+                            <button type="button" id="edit-student-office-move-btn" class="sp-tool sp-tool--move bubbly-button" title="Move to another class">
+                                <span class="sp-tool__icon"><i class="fas fa-people-arrows"></i></span>
+                                <span id="edit-student-office-move-label" class="sp-tool__label">Move class</span>
+                            </button>
+                            <button type="button" id="edit-student-office-grades-btn" class="sp-tool sp-tool--analytics bubbly-button" title="See this student's grades">
+                                <span class="sp-tool__icon"><i class="fas fa-scroll"></i></span>
+                                <span class="sp-tool__label">Grades</span>
+                            </button>
+                            <button type="button" id="edit-student-office-leave-btn" class="sp-tool sp-tool--leave bubbly-button" title="Record that this student is leaving the school">
+                                <span class="sp-tool__icon"><i class="fas fa-door-open"></i></span>
+                                <span class="sp-tool__label">Leaves school</span>
+                            </button>
+                        </div>
+                        <div class="sp-tools" data-teacher-only>
                             <button type="button" id="edit-student-hub-chronicle-btn" class="sp-tool sp-tool--chronicle bubbly-button" title="Adventure notes & Oracle AI">
                                 <span class="sp-tool__icon"><i class="fas fa-book-reader"></i></span>
                                 <span class="sp-tool__label">Chronicle</span>
@@ -213,7 +232,7 @@ export const studentModalsHTML = `
                                 <p id="edit-student-hero-summary-virtue" class="sp-visa__virtue">Unassigned</p>
                                 <p id="edit-student-hero-summary-perk" class="sp-visa__perk">Leave unassigned, or open the ceremony so they can choose.</p>
                             </div>
-                            <div class="sp-visa__actions">
+                            <div class="sp-visa__actions" data-teacher-only>
                                 <button type="button" id="edit-student-choose-hero-class-btn" class="sp-visa__choose bubbly-button">
                                     <i class="fas fa-hat-wizard" aria-hidden="true"></i>
                                     <span id="edit-student-choose-hero-class-label">Choose Hero Class</span>

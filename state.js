@@ -408,6 +408,7 @@ export function setAllScheduleOverrides(overrides) {
 }
 export function setAllHeroChronicleNotes(notes) {
     state.allHeroChronicleNotes = notes;
+    _notify("allHeroChronicleNotes");
 }
 export function setSchoolHolidayRanges(ranges) {
     state.schoolHolidayRanges = ranges;

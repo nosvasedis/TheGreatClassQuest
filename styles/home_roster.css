@@ -1178,10 +1178,10 @@
 .greeting-panel.greeting-panel--afternoon { background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f0fdfa 100%); }
 .greeting-panel.greeting-panel--evening { background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 50%, #fdf2f8 100%); }
 .greeting-panel.greeting-panel--night { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 55%, #ede9fe 100%); }
-.greeting-panel--morning { --gp-glow: rgba(251, 191, 36, 0.35); --gp-hill-a: rgba(251, 146, 60, 0.13); --gp-hill-b: rgba(244, 114, 182, 0.1); --gp-accent: #f59e0b; --gp-ring: rgba(245, 158, 11, 0.35); }
-.greeting-panel--afternoon { --gp-glow: rgba(56, 189, 248, 0.3); --gp-hill-a: rgba(45, 212, 191, 0.14); --gp-hill-b: rgba(56, 189, 248, 0.1); --gp-accent: #f59e0b; --gp-ring: rgba(14, 165, 233, 0.35); }
-.greeting-panel--evening { --gp-glow: rgba(236, 72, 153, 0.25); --gp-hill-a: rgba(139, 92, 246, 0.14); --gp-hill-b: rgba(236, 72, 153, 0.1); --gp-accent: #a78bfa; --gp-ring: rgba(139, 92, 246, 0.35); }
-.greeting-panel--night { --gp-glow: rgba(99, 102, 241, 0.3); --gp-hill-a: rgba(79, 70, 229, 0.14); --gp-hill-b: rgba(124, 58, 237, 0.11); --gp-accent: #818cf8; --gp-ring: rgba(99, 102, 241, 0.4); }
+.greeting-panel--morning { --gp-glow: rgba(251, 191, 36, 0.35); }
+.greeting-panel--afternoon { --gp-glow: rgba(56, 189, 248, 0.3); }
+.greeting-panel--evening { --gp-glow: rgba(236, 72, 153, 0.25); }
+.greeting-panel--night { --gp-glow: rgba(99, 102, 241, 0.3); }
 
 .greeting-sky {
     position: absolute;
@@ -1198,17 +1198,6 @@
     width: 55%;
     height: 120%;
     background: radial-gradient(circle at 60% 40%, var(--gp-glow, rgba(99, 102, 241, 0.2)) 0%, transparent 62%);
-}
-.greeting-sky__hills {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 42%;
-    background:
-        radial-gradient(70% 95% at 18% 100%, var(--gp-hill-a, rgba(99, 102, 241, 0.1)) 0 58%, transparent 59%),
-        radial-gradient(60% 80% at 62% 100%, var(--gp-hill-b, rgba(236, 72, 153, 0.08)) 0 55%, transparent 56%),
-        radial-gradient(55% 110% at 100% 100%, var(--gp-hill-a, rgba(99, 102, 241, 0.1)) 0 50%, transparent 51%);
 }
 .greeting-sky__stars {
     position: absolute;
@@ -1234,60 +1223,198 @@
     50% { opacity: 1; }
 }
 
-/* Class logo / school medallion with an orbiting sun or moon */
-.greeting-emblem {
+/* Rolling hills: layered SVG landscape, recoloured for each part of the day */
+.greeting-panel {
+    --gh-far-top: #cfe3dc; --gh-far-bottom: #e4efe9;
+    --gh-mid-top: #a9d59a; --gh-mid-bottom: #cfe8c3;
+    --gh-mid2-top: #8cc57c; --gh-mid2-bottom: #b9dcaa;
+    --gh-near-top: #74b766; --gh-near-bottom: #9fd08f;
+    --gh-mist: #f0fdfa; --gh-light: #fff7d6; --gh-tree: #4d8f4a; --gh-tree-far: #7fb27a;
+    --gh-crest: rgba(255, 255, 255, 0.55);
+}
+.greeting-panel--morning {
+    --gh-far-top: #efcfb8; --gh-far-bottom: #f7e3d3;
+    --gh-mid-top: #b8d99a; --gh-mid-bottom: #dcebc4;
+    --gh-mid2-top: #9ccc7f; --gh-mid2-bottom: #c7e2ad;
+    --gh-near-top: #82bd66; --gh-near-bottom: #acd690;
+    --gh-mist: #fff7ed; --gh-light: #ffe7b0; --gh-tree: #55904a; --gh-tree-far: #93b884;
+    --gh-crest: rgba(255, 236, 190, 0.8);
+}
+.greeting-panel--evening {
+    --gh-far-top: #d9b8d6; --gh-far-bottom: #eed8e6;
+    --gh-mid-top: #a9b39a; --gh-mid-bottom: #cdd0bd;
+    --gh-mid2-top: #8f9f82; --gh-mid2-bottom: #b6bda6;
+    --gh-near-top: #72876c; --gh-near-bottom: #99a88c;
+    --gh-mist: #fdf2f8; --gh-light: #fecdd3; --gh-tree: #4d6149; --gh-tree-far: #8b927d;
+    --gh-crest: rgba(254, 205, 170, 0.75);
+}
+.greeting-panel--night {
+    --gh-far-top: #b7bde6; --gh-far-bottom: #cfd3f1;
+    --gh-mid-top: #8f98c9; --gh-mid-bottom: #b1b8e0;
+    --gh-mid2-top: #7580b6; --gh-mid2-bottom: #9aa3d3;
+    --gh-near-top: #5d689f; --gh-near-bottom: #7f89c0;
+    --gh-mist: #e0e7ff; --gh-light: #eef2ff; --gh-tree: #414a80; --gh-tree-far: #6c75ad;
+    --gh-crest: rgba(224, 231, 255, 0.7);
+}
+.greeting-hills {
     position: absolute;
-    right: 2rem;
-    bottom: 1.6rem;
-    width: 6.4rem;
-    height: 6.4rem;
-    z-index: 1;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 58%;
     pointer-events: none;
 }
-.greeting-emblem__face {
+.greeting-hills .gh-far-top { stop-color: var(--gh-far-top); }
+.greeting-hills .gh-far-bottom { stop-color: var(--gh-far-bottom); }
+.greeting-hills .gh-mid-top { stop-color: var(--gh-mid-top); }
+.greeting-hills .gh-mid-bottom { stop-color: var(--gh-mid-bottom); }
+.greeting-hills .gh-mid2-top { stop-color: var(--gh-mid2-top); }
+.greeting-hills .gh-mid2-bottom { stop-color: var(--gh-mid2-bottom); }
+.greeting-hills .gh-near-top { stop-color: var(--gh-near-top); }
+.greeting-hills .gh-near-bottom { stop-color: var(--gh-near-bottom); }
+.greeting-hills .gh-mist { stop-color: var(--gh-mist); }
+.greeting-hills .gh-light { stop-color: var(--gh-light); }
+.greeting-hills .gh-layer--far { opacity: 0.9; }
+.greeting-hills .gh-layer--mid { opacity: 0.95; }
+.greeting-hills .gh-layer--mid2 { opacity: 0.96; }
+.greeting-hills .gh-layer--near { opacity: 0.97; }
+.greeting-hills .gh-trees--mid .gs-tree { fill: var(--gh-tree-far); opacity: 0.85; }
+.greeting-hills .gh-trees--near .gs-tree { fill: var(--gh-tree); opacity: 0.8; }
+.greeting-hills .gh-crest {
+    fill: none;
+    stroke: var(--gh-crest);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+}
+.greeting-hills .gh-crest--mid { stroke-width: 1.5; opacity: 0.5; }
+.greeting-hills .gh-shadow { stop-color: var(--gh-tree); }
+.greeting-hills .gh-cottage__wall { fill: #fdf6e3; }
+.greeting-hills .gh-cottage__roof { fill: #c2410c; }
+.greeting-hills .gh-cottage__chimney { fill: #9a3412; }
+.greeting-hills .gh-cottage__door { fill: #92400e; }
+.greeting-hills .gh-cottage__window { fill: #93c5fd; }
+.greeting-hills .gh-cottage { opacity: 0.9; }
+.greeting-panel--evening .gh-cottage__wall { fill: #eadfd2; }
+.greeting-panel--evening .gh-cottage__window,
+.greeting-panel--night .gh-cottage__window { fill: #fde047; filter: drop-shadow(0 0 4px #facc15); }
+.greeting-panel--night .gh-cottage__wall { fill: #a5acd6; }
+.greeting-panel--night .gh-cottage__roof { fill: #4c4f8a; }
+.greeting-panel--night .gh-cottage__chimney,
+.greeting-panel--night .gh-cottage__door { fill: #3b3f73; }
+
+/* Class logo inside a live 24-hour day/night ring.
+   Noon at the top, midnight at the bottom; the sun or tonight's moon sits at the real time. */
+.greeting-emblem {
+    position: absolute;
+    right: 1.35rem;
+    bottom: 0.85rem;
+    width: 8.4rem;
+    height: 8.4rem;
+    z-index: 11;
+    pointer-events: none;
+}
+/* Only the ring and medallion catch the pointer (for the sunrise / sunset tooltip). */
+.day-ring__band,
+.greeting-emblem__face { pointer-events: auto; cursor: default; }
+.day-ring__band {
     position: absolute;
     inset: 0;
+    border-radius: 999px;
+    background: var(--dr-band);
+    -webkit-mask-image: radial-gradient(closest-side, transparent 76.2%, #000 76.9%, #000 88.1%, transparent 88.8%);
+    mask-image: radial-gradient(closest-side, transparent 76.2%, #000 76.9%, #000 88.1%, transparent 88.8%);
+    filter: saturate(1.05) drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
+}
+.day-ring__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+.day-ring__rim { fill: none; stroke: rgba(255, 255, 255, 0.75); stroke-width: 1.2; }
+.day-ring__tick { stroke: rgba(71, 85, 105, 0.4); stroke-width: 1.2; stroke-linecap: round; }
+.day-ring__tick.is-major { stroke: rgba(51, 65, 85, 0.65); stroke-width: 2; }
+.greeting-panel--night .day-ring__tick { stroke: rgba(55, 48, 163, 0.45); }
+.greeting-panel--night .day-ring__tick.is-major { stroke: rgba(55, 48, 163, 0.75); }
+.day-ring__star {
+    fill: #fff;
+    animation: day-ring-twinkle 3.2s ease-in-out infinite;
+}
+.day-ring__horizon { stroke: #fff; stroke-width: 1.4; }
+.day-ring__horizon--rise { fill: #fb923c; }
+.day-ring__horizon--set { fill: #e11d48; }
+.day-ring__trail {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.7);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 0;
+}
+.day-ring--night .day-ring__trail { stroke: rgba(224, 231, 255, 0.45); }
+.day-ring__carrier {
+    transform-box: view-box;
+    transform-origin: 120px 120px;
+    transform: rotate(var(--dr-to));
+    transition: transform 1.2s ease-in-out;
+}
+.day-ring__upright {
+    transform: rotate(calc(-1 * var(--dr-to)));
+    transition: transform 1.2s ease-in-out;
+}
+.day-ring.is-intro .day-ring__carrier { animation: day-ring-sweep 2.4s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
+.day-ring.is-intro .day-ring__upright { animation: day-ring-upright 2.4s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
+.day-ring.is-intro .day-ring__trail { animation: day-ring-trail 2.4s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
+@keyframes day-ring-sweep { from { transform: rotate(var(--dr-from)); } }
+@keyframes day-ring-upright { from { transform: rotate(calc(-1 * var(--dr-from))); } }
+@keyframes day-ring-trail { from { stroke-dashoffset: 1; } }
+@keyframes day-ring-twinkle {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+.day-ring .dr-sun-glow-mid { stop-color: #fbbf24; }
+.day-ring .dr-sun-core { stop-color: #fde047; }
+.day-ring .dr-sun-rim { stop-color: #f59e0b; }
+.day-ring.is-low-sun .dr-sun-glow-mid { stop-color: #fb7185; }
+.day-ring.is-low-sun .dr-sun-core { stop-color: #fdba74; }
+.day-ring.is-low-sun .dr-sun-rim { stop-color: #f97316; }
+.day-ring__rays {
+    stroke: #f59e0b;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    animation: day-ring-rays 24s linear infinite;
+}
+.day-ring.is-low-sun .day-ring__rays { stroke: #f97316; }
+@keyframes day-ring-rays { to { transform: rotate(360deg); } }
+.day-ring__moon-dark { fill: #3f4a63; fill-opacity: 0.85; }
+.day-ring__craters circle { fill: #94a3b8; opacity: 0.35; }
+.day-ring__moon { filter: drop-shadow(0 0 3px rgba(199, 210, 254, 0.9)); }
+
+.greeting-emblem__face {
+    position: absolute;
+    inset: 17.5%;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    font-size: 3.3rem;
+    font-size: 2.8rem;
     line-height: 1;
-    background: radial-gradient(circle at 32% 28%, #fff 0%, rgba(255, 255, 255, 0.72) 60%, rgba(255, 255, 255, 0.5) 100%);
+    background: radial-gradient(circle at 32% 28%, #fff 0%, rgba(255, 255, 255, 0.82) 60%, rgba(255, 255, 255, 0.62) 100%);
     border: 3px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 16px 30px -14px rgba(15, 23, 42, 0.35), 0 0 0 6px rgba(255, 255, 255, 0.35), inset 0 -6px 14px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 16px 30px -14px rgba(15, 23, 42, 0.35), inset 0 -6px 14px rgba(15, 23, 42, 0.06);
     animation: greeting-emblem-float 6s ease-in-out infinite;
 }
-.greeting-emblem__orbit {
-    position: absolute;
-    inset: -0.95rem;
-    border-radius: 999px;
-    border: 2px dashed var(--gp-ring, rgba(99, 102, 241, 0.35));
-    animation: greeting-orbit 26s linear infinite;
-}
-.greeting-emblem__orbit i {
-    position: absolute;
-    top: -0.8rem;
-    left: 50%;
-    margin-left: -0.75rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.15rem;
-    color: var(--gp-accent, #f59e0b);
-    filter: drop-shadow(0 0 8px var(--gp-accent, #f59e0b));
-}
-@keyframes greeting-orbit { to { transform: rotate(360deg); } }
 @keyframes greeting-emblem-float {
     0%, 100% { transform: translateY(0) rotate(-3deg); }
-    50% { transform: translateY(-6px) rotate(3deg); }
+    50% { transform: translateY(-3px) rotate(3deg); }
 }
 
 .greeting-main { position: relative; }
 @media (min-width: 640px) {
-    .greeting-main { padding-right: 8.5rem; }
+    .greeting-main { padding-right: 10rem; }
 }
 @media (max-width: 639px) {
     .greeting-emblem { display: none; }
@@ -1460,7 +1587,11 @@
     .weather-card--v2 .weather-sun,
     .greeting-sky__stars,
     .greeting-emblem__face,
-    .greeting-emblem__orbit,
+    .day-ring__carrier,
+    .day-ring__upright,
+    .day-ring__trail,
+    .day-ring__rays,
+    .day-ring__star,
     .home-pill--party .home-pill__icon,
     .home-pill--test-urgent,
     .weather-clock { animation: none !important; }

@@ -10,6 +10,7 @@ import { HERO_SKILL_TREE, getReasonDisplayName } from '../../../../features/hero
 import { GUILDS, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CERTIFICATE_WIDTH } from '../../../../features/certificateCore.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
+import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features/homeGreetingScene.js';
 
 function startShow() {
   hideExtras();
@@ -62,6 +63,12 @@ function heroAvatar(initial, pending) {
   return `<div class="avatar-with-level-up-wrap"><span class="level-up-badge" aria-hidden="true" title="Level up! Assign skill in Skill Tree"><i class="fas fa-arrow-up"></i></span>${inner}</div>`;
 }
 
+/** The real day/night ring, frozen at 09:40 on a mid-September day so captures stay stable. */
+function greetingRingHtml() {
+  const at = (h, m) => new Date(2026, 8, 15, h, m).getTime();
+  return getDayRingEmblemHtml('📚', { now: at(9, 40), sunrise: at(7, 5), sunset: at(19, 25), intro: false });
+}
+
 function homeDashboardHtml() {
   const tools = [
     { icon: 'fa-clipboard-check', label: 'Roll Call', extra: 'data-action="open-attendance" class="tool-btn-pop shortcut-action-btn"' },
@@ -74,9 +81,14 @@ function homeDashboardHtml() {
   return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
-            <div class="vibrant-card h-span-8 greeting-panel">
+            <div class="vibrant-card h-span-8 greeting-panel greeting-panel--morning">
                 <div class="greeting-bg-mesh"></div>
-                <div class="greeting-hero-asset">📚</div>
+                <div class="greeting-sky" aria-hidden="true">
+                    <span class="greeting-sky__glow"></span>
+                    <span class="greeting-sky__stars"></span>
+                    ${getGreetingHillsHtml()}
+                </div>
+                ${greetingRingHtml()}
                 <div class="relative z-10 flex flex-col justify-between h-full">
                     <div class="greeting-top-row">
                         <div id="home-reminders-container" class="greeting-top-row__reminders flex flex-wrap items-center gap-3 py-1">

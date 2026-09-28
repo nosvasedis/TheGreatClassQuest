@@ -45,25 +45,23 @@ export const leaderboardTabHTML = `
                         </div>
                     </div>
 
-                    <!-- Compact League Controls -->
-                    <div class="bg-white/70 backdrop-blur-sm px-5 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-3 mb-6 flex-wrap">
-                        <span class="text-amber-600 text-sm font-bold uppercase tracking-wide flex items-center gap-1.5">
-                            <i class="fas fa-shield-alt"></i> Quest League
-                        </span>
-                        <button id="leaderboard-league-picker-btn"
-                            class="font-title text-base bg-white text-amber-800 py-1.5 px-4 rounded-full shadow border-2 border-amber-300 bubbly-button inline-flex items-center gap-1.5">
-                            <i class="fas fa-layer-group text-amber-500 text-sm"></i>
-                            <span>Select a League</span>
+                    <!-- Quest League bar -->
+                    <div class="league-bar league-bar--quest" role="group" aria-label="Quest League">
+                        <div class="league-bar__league">
+                            <span class="league-bar__emblem" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                            <div class="league-bar__league-copy">
+                                <span class="league-bar__kicker">Quest League</span>
+                                <button type="button" id="leaderboard-league-picker-btn" class="league-bar__pick bubbly-button" title="Choose a Quest League">
+                                    <span class="league-bar__pick-name">Select a League</span>
+                                    <i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" id="leaderboard-league-match-btn" title="Show the league for your selected class" class="hidden league-bar__match bubbly-button">
+                            <i class="fas fa-magic" aria-hidden="true"></i><span>Active class</span>
                         </button>
-                        <button type="button" id="leaderboard-league-match-btn" title="Show the league for your selected class"
-                            class="hidden font-title text-xs bg-emerald-50 text-emerald-800 py-1.5 px-3 rounded-full shadow border border-emerald-200 bubbly-button inline-flex items-center gap-1">
-                            <i class="fas fa-magic text-emerald-500"></i>
-                            <span>Active class</span>
-                        </button>
-                        <button id="class-history-btn"
-                            class="font-title text-sm bg-white text-amber-700 py-1.5 px-4 rounded-full shadow border-2 border-amber-200 bubbly-button inline-flex items-center gap-1.5">
-                            <i class="fas fa-history text-amber-400 text-xs"></i>
-                            <span>History</span>
+                        <button type="button" id="class-history-btn" class="league-bar__history bubbly-button" title="Past months">
+                            <i class="fas fa-history" aria-hidden="true"></i><span>History</span>
                         </button>
                     </div>
 
@@ -138,65 +136,41 @@ export const leaderboardTabHTML = `
                         </div>
                     </div>
 
-                    <!-- Compact Controls Card -->
-                    <div class="bg-white/70 backdrop-blur-sm px-5 py-3 rounded-2xl shadow-lg flex flex-col items-center justify-center mb-6 gap-3">
-                        <!-- League Row -->
-                        <div class="flex flex-wrap items-center justify-center gap-3 w-full">
-                            <span class="text-purple-600 text-sm font-bold uppercase tracking-wide flex items-center gap-1.5">
-                                <i class="fas fa-shield-alt"></i> Quest League
-                            </span>
-                            <button id="student-leaderboard-league-picker-btn"
-                                class="font-title text-base bg-white text-purple-800 py-1.5 px-4 rounded-full shadow border-2 border-purple-300 bubbly-button inline-flex items-center gap-1.5 shrink-0">
-                                <i class="fas fa-layer-group text-purple-400 text-sm"></i>
-                                <span>Select a League</span>
-                            </button>
-                            <button type="button" id="student-leaderboard-league-match-btn" title="Show the league for your selected class"
-                                class="hidden font-title text-xs bg-emerald-50 text-emerald-800 py-1.5 px-3 rounded-full shadow border border-emerald-200 bubbly-button inline-flex items-center gap-1 shrink-0">
-                                <i class="fas fa-magic text-emerald-500"></i>
-                                <span>Active class</span>
-                            </button>
-                            <button id="student-history-btn"
-                                class="hero-challenge-btn font-title text-sm bg-white text-purple-700 py-1.5 px-4 rounded-full shadow border-2 border-purple-200 bubbly-button inline-flex items-center gap-1.5 shrink-0">
-                                <i class="fas fa-history text-purple-400 text-xs"></i>
-                                <span>History</span>
-                            </button>
-                            <!-- Expand toggle -->
-                            <button id="hc-expand-toggle"
-                                class="hc-expand-toggle-btn bubbly-button shrink-0"
-                                aria-expanded="false" title="View options">
-                                <i class="fas fa-chevron-down hc-chevron"></i>
-                            </button>
-                        </div>
-
-                        <!-- View Switcher (collapsed by default via CSS) -->
-                        <div id="student-view-switcher"
-                            class="hc-view-switcher-wrapper flex-wrap items-center justify-center gap-2">
-                            <div class="flex gap-1.5">
-                                <button id="view-by-class"
-                                    class="bg-purple-500 text-white font-bold py-1.5 px-3 rounded-full bubbly-button text-sm inline-flex items-center gap-1.5">
-                                    <i class="fas fa-users text-xs"></i> By Class
-                                </button>
-                                <button id="view-by-league"
-                                    class="bg-gray-300 text-gray-800 font-bold py-1.5 px-3 rounded-full bubbly-button text-sm inline-flex items-center gap-1.5">
-                                    <i class="fas fa-globe text-xs"></i> Global Rank
-                                </button>
-                            </div>
-                            <div class="flex gap-1.5">
-                                <button id="metric-monthly"
-                                    class="bg-purple-500 text-white font-bold py-1.5 px-3 rounded-full bubbly-button text-sm inline-flex items-center gap-1.5">
-                                    <i class="fas fa-star text-xs"></i> Monthly Stars
-                                </button>
-                                <button id="metric-total"
-                                    class="bg-gray-300 text-gray-800 font-bold py-1.5 px-3 rounded-full bubbly-button text-sm inline-flex items-center gap-1.5">
-                                    <i class="fas fa-infinity text-xs"></i> Total Stars
+                    <!-- Quest League bar -->
+                    <div class="league-bar league-bar--hero" role="group" aria-label="Quest League">
+                        <div class="league-bar__league">
+                            <span class="league-bar__emblem" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                            <div class="league-bar__league-copy">
+                                <span class="league-bar__kicker">Quest League</span>
+                                <button type="button" id="student-leaderboard-league-picker-btn" class="league-bar__pick bubbly-button" title="Choose a Quest League">
+                                    <span class="league-bar__pick-name">Select a League</span>
+                                    <i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
+                        <button type="button" id="student-leaderboard-league-match-btn" title="Show the league for your selected class" class="hidden league-bar__match bubbly-button">
+                            <i class="fas fa-magic" aria-hidden="true"></i><span>Active class</span>
+                        </button>
+                        <div id="student-view-switcher" class="league-bar__switches">
+                            <div class="league-seg" role="group" aria-label="Who to rank" style="--seg-i:0">
+                                <span class="league-seg__thumb" aria-hidden="true"></span>
+                                <button type="button" id="view-by-class" class="league-seg__btn is-active" aria-pressed="true"><i class="fas fa-users" aria-hidden="true"></i><span>By Class</span></button>
+                                <button type="button" id="view-by-league" class="league-seg__btn" aria-pressed="false"><i class="fas fa-globe" aria-hidden="true"></i><span>Global Rank</span></button>
+                            </div>
+                            <div class="league-seg" role="group" aria-label="Which stars count" style="--seg-i:0">
+                                <span class="league-seg__thumb" aria-hidden="true"></span>
+                                <button type="button" id="metric-monthly" class="league-seg__btn is-active" aria-pressed="true"><i class="fas fa-star" aria-hidden="true"></i><span>Monthly Stars</span></button>
+                                <button type="button" id="metric-total" class="league-seg__btn" aria-pressed="false"><i class="fas fa-infinity" aria-hidden="true"></i><span>Total Stars</span></button>
+                            </div>
+                        </div>
+                        <button type="button" id="student-history-btn" class="league-bar__history bubbly-button" title="Past months">
+                            <i class="fas fa-history" aria-hidden="true"></i><span>History</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="max-w-4xl mx-auto">
-                    <div id="student-leaderboard-list" class="space-y-4"></div>
+                <div class="hcs-board">
+                    <div id="student-leaderboard-list" class="hcs-list"></div>
                 </div>
             </div>
 `;

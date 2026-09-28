@@ -244,7 +244,7 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     }
 
     if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab();
-    if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab();
+    if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab({ freshVisit: true });
     if (tabId === 'guilds-tab') await renderGuildsTab();
     if (tabId === 'manage-students-tab') renderManageStudentsTab();
     if (tabId === 'options-tab') {

@@ -2,11 +2,10 @@
 import * as state from '../../state.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';
 import * as utils from '../../utils.js';
-import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildLeaderboardData, getGuildChampionsForMonth } from '../../features/guildScoring.js';
-import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
+import { getGuildById, getGuildEmblemUrl, getGuildBadgeHtml } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { renderFamiliarSprite } from '../../features/familiars.js';
 import { getEggAlertState } from '../../features/familiarProgression.mjs';
@@ -21,6 +20,17 @@ import {
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
+import {
+    annotateStandingsChanges,
+    assignHeroRanks,
+    buildStandingsSnapshot,
+    playStandingsChanges,
+    playStandingsEntrance,
+    readStandingsSnapshot,
+    renderStandingsHeraldHtml,
+    renderStandingsSectionHtml,
+    writeStandingsSnapshot
+} from './heroStandings.js';
 
 const TEAM_QUEST_ANALYTICS_ASSETS = {
     plaque: new URL('../../assets/team-quest-map/living-atlas/parchment-plaque.webp', import.meta.url).href,
@@ -845,11 +855,41 @@ export async function renderClassLeaderboardTab() {
     });
 }
 
-export async function renderStudentLeaderboardTab() {
+// What each Hero's Challenge board looked like when this visit to the tab began
+// (drives the ▲/+N chips), and what was last drawn (drives the motion).
+const _heroVisitBaselines = new Map();
+const _heroLastShown = new Map();
+
+function syncHeroStandingsSwitches() {
+    const view = state.get('studentLeaderboardView') === 'league' ? 'league' : 'class';
+    const metric = state.get('studentStarMetric') === 'total' ? 'total' : 'monthly';
+    const setGroup = (ids, activeIndex) => {
+        ids.forEach((id, i) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.classList.toggle('is-active', i === activeIndex);
+            btn.setAttribute('aria-pressed', i === activeIndex ? 'true' : 'false');
+            btn.parentElement?.style.setProperty('--seg-i', String(activeIndex));
+        });
+    };
+    setGroup(['view-by-class', 'view-by-league'], view === 'league' ? 1 : 0);
+    setGroup(['metric-monthly', 'metric-total'], metric === 'total' ? 1 : 0);
+}
+
+function clearHeroStandingsList(list, html) {
+    list.dataset.hcsBoard = '';
+    list.__hcsHtml = '';
+    list.__hcsToken = null;
+    list.className = 'hcs-list';
+    list.innerHTML = html;
+}
+
+export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
 
     syncHeroChallengeFabs();
+    syncHeroStandingsSwitches();
 
     const heroProgressionEnabled = canUseFeature('heroProgression');
 
@@ -863,13 +903,13 @@ export async function renderStudentLeaderboardTab() {
 
     const league = getLeaderboardEffectiveLeague();
     if (!league) {
-        list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the leaderboard.</p></div>`;
+        clearHeroStandingsList(list, `<div class="hcs-empty"><i class="fas fa-shield-halved" aria-hidden="true"></i><p>Choose a Quest League to see its heroes.</p></div>`);
         return;
     }
 
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
     if (classesInLeague.length === 0) {
-        list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
+        clearHeroStandingsList(list, `<div class="hcs-empty"><i class="fas fa-flag" aria-hidden="true"></i><p>No classes in this Quest League yet.</p></div>`);
         return;
     }
 
@@ -1008,9 +1048,6 @@ export async function renderStudentLeaderboardTab() {
     // --- REIGNING PRODIGY (previous month's winners, with co-prodigy/tie support) ---
     const prodigyByClass = await getReigningProdigies();
 
-    // 3. SORTING FUNCTION
-    const sortStudents = utils.sortStudentsByTieBreaker;
-
     // --- RENDER HELPERS ---
     const reasonInfo = {
         teamwork: { icon: 'fa-users', color: 'bg-purple-100 text-purple-700', name: 'Teamwork' },
@@ -1101,170 +1138,119 @@ export async function renderStudentLeaderboardTab() {
     };
 
     const starMetric = state.get('studentStarMetric') === 'monthly' ? 'monthly' : 'total';
-    const metricChipLabel = starMetric === 'monthly' ? 'This month' : 'All-time';
-    const metricChipShort = starMetric === 'monthly' ? 'Monthly' : 'Total';
+    const view = state.get('studentLeaderboardView') === 'league' ? 'league' : 'class';
+    const now = new Date();
+    const monthName = now.toLocaleString('en-US', { month: 'long' });
+    const myClassIdSet = new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
 
-    /**
-     * Unified Hero's Challenge row for Global Rank and By Class (same chrome, layout, motion).
-     */
-    const renderHeroChallengeCard = (s, currentRank, riseDelayMs, { showClassRow }) => {
-        const podium = currentRank <= 3 ? currentRank : 0;
-        const podiumMod = podium === 1 ? 'hc-lb-card--gold' : podium === 2 ? 'hc-lb-card--silver' : podium === 3 ? 'hc-lb-card--bronze' : '';
-
-        const rankInner = podium === 1 ? '<span class="hc-lb-medal" aria-hidden="true">🥇</span>'
-            : podium === 2 ? '<span class="hc-lb-medal" aria-hidden="true">🥈</span>'
-                : podium === 3 ? '<span class="hc-lb-medal" aria-hidden="true">🥉</span>'
-                    : `<span class="hc-lb-rank-num font-title">${currentRank}</span>`;
-
-        const classStrip = showClassRow
-            ? `<div class="hc-lb-class-strip">
-                    <span class="hc-lb-class-strip__emoji" aria-hidden="true">${s.classLogo}</span>
-                    <span class="hc-lb-class-strip__name">${s.className}</span>
-               </div>`
-            : '';
-
-        const familiarHtml = s.familiar
+    const toEntry = (s, rank, { showClass }) => ({
+        id: s.id,
+        name: s.name || '',
+        rank,
+        score: s.score,
+        gold: s.gold,
+        heroIcon: heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : '',
+        avatarHtml: getAvatarHtml(s, 'w-12 h-12 sm:w-14 sm:h-14'),
+        avatarLargeHtml: getAvatarHtml(s, rank === 1 ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16 sm:w-20 sm:h-20'),
+        familiarHtml: s.familiar
             ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>`
-            : '';
+            : '',
+        guildBadgeHtml: s.guildId ? `<span class="hcs-guild">${getGuildBadgeHtml(s.guildId, 'w-6 h-6')}</span>` : '',
+        titleBadgeHtml: getHeroTitleBadgeHtml(s),
+        roleBadgesHtml: getGuildRoleBadgesHtml(s),
+        pillsHtml: getPillsHtml(s),
+        className: s.className,
+        classLogo: s.classLogo,
+        showClass
+    });
 
-        const sparkleHtml = podium
-            ? `<div class="hc-lb-card__sparkles hc-lb-card__sparkles--${podium === 1 ? 'gold' : podium === 2 ? 'silver' : 'bronze'}" aria-hidden="true">
-                    <span class="hc-lb-spark"></span><span class="hc-lb-spark"></span><span class="hc-lb-spark"></span>
-                    <span class="hc-lb-spark"></span><span class="hc-lb-spark"></span>
-               </div>`
-            : '';
-
-        const risePodiumMod = podium ? `hc-lb-card-rise--podium hc-lb-card-rise--podium-${podium}` : '';
-        const scoreStarClass = podium === 1
-            ? 'hc-lb-score-star hc-lb-score-star--p1'
-            : podium === 2
-                ? 'hc-lb-score-star hc-lb-score-star--p2'
-                : podium === 3
-                    ? 'hc-lb-score-star hc-lb-score-star--p3'
-                    : 'hc-lb-score-star';
-
-        return `
-        <div class="tab-mount-rise hc-lb-card-rise ${risePodiumMod}" style="--tab-rise-delay: ${riseDelayMs}ms">
-            <div class="student-leaderboard-card hc-lb-card ${podiumMod}" data-hc-rank="${currentRank}" data-hc-podium="${podium || ''}" style="--tab-rise-delay: ${riseDelayMs}ms">
-                <div class="hc-lb-card__blob hc-lb-card__blob--a" aria-hidden="true"></div>
-                <div class="hc-lb-card__blob hc-lb-card__blob--b" aria-hidden="true"></div>
-                <div class="hc-lb-card__shine" aria-hidden="true"></div>
-                ${sparkleHtml}
-                <div class="hc-lb-card__inner">
-                    <div class="hc-lb-rank-tower" aria-label="Rank ${currentRank}">
-                        ${rankInner}
-                    </div>
-                    <div class="hc-lb-hero-col">
-                        <div class="flex-shrink-0 relative hero-challenge-avatar-wrap hc-lb-avatar-stage">
-                            ${getAvatarHtml(s, 'w-14 h-14 sm:w-16 sm:h-16')}
-                            ${familiarHtml}
-                        </div>
-                    </div>
-                    <div class="hc-lb-copy">
-                        <h3 class="hc-lb-name font-title text-lg sm:text-xl leading-tight flex items-center flex-wrap gap-1.5">
-                            <span class="hc-lb-name__text truncate">${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${escapeLeaderboardHtml(s.name)}</span>
-                            ${getHeroTitleBadgeHtml(s)}
-                            ${getGuildRoleBadgesHtml(s)}
-                        </h3>
-                        <div class="hc-lb-meta-row">
-                            <div class="hc-lb-gold" title="Gold balance">
-                                <i class="fas fa-coins hc-lb-gold__icon"></i>
-                                <span class="hc-lb-gold__val">${s.gold}</span>
-                            </div>
-                            ${classStrip}
-                        </div>
-                        <div class="hc-lb-pills flex flex-wrap gap-1.5">${getPillsHtml(s)}</div>
-                    </div>
-                    <div class="hc-lb-score-stack">
-                        <div class="hc-lb-score-row" title="${metricChipLabel} stars">
-                            <span class="${scoreStarClass}" aria-hidden="true"><i class="fas fa-star"></i></span>
-                            <div class="hc-lb-score">${s.score}</div>
-                        </div>
-                        <div class="hc-lb-stars-label">Stars</div>
-                        <div class="hc-lb-metric-chip">${metricChipShort}</div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
+    const rankGroup = (students, opts) => {
+        const sorted = students.map((s) => ({ ...s, stars: s.score })).sort(utils.sortStudentsByTieBreaker);
+        const ranks = assignHeroRanks(sorted);
+        return sorted.map((s, i) => toEntry(s, ranks[i], opts));
     };
 
-    let outputHtml = '';
+    const sumStars = (students) => students.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+    const starFact = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${n} ${starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${escapeLeaderboardHtml(monthName)}` : `star${n === 1 ? '' : 's'} all-time`}`;
+    const heroFact = (n) => `<i class="fas fa-users" aria-hidden="true"></i>${n} hero${n === 1 ? '' : 'es'}`;
 
-    if (state.get('studentLeaderboardView') === 'league') {
-        // === GLOBAL VIEW ===
-        // Re-map score to stars for sort Students By Tie Breaker
-        studentsInLeague = studentsInLeague.map(s => ({ ...s, stars: s.score }));
-        studentsInLeague.sort(sortStudents);
-        let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
-
-        studentsInLeague.slice(0, 50).forEach((s, index) => {
-            let isBehaviorTie = (s.stars === lastScore && s.stats.count3 === last3 && s.stats.count2 === last2 && s.stats.uniqueReasons === lastUnique);
-            let currentRank;
-            if (index === 0) currentRank = 1;
-            else {
-                if (lastRank <= 3) currentRank = isBehaviorTie ? lastRank : index + 1;
-                else {
-                    let isTotalTie = isBehaviorTie && (s.stats.academicAvg === studentsInLeague[index - 1].stats.academicAvg);
-                    currentRank = isTotalTie ? lastRank : index + 1;
-                }
-            }
-            lastScore = s.stars; last3 = s.stats.count3; last2 = s.stats.count2; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
-
-            outputHtml += renderHeroChallengeCard(s, currentRank, Math.min(index * 42, 720), { showClassRow: true });
+    const sections = [];
+    if (view === 'league') {
+        // === GLOBAL VIEW === (top 50 across the league)
+        const entries = rankGroup(studentsInLeague, { showClass: true }).slice(0, 50);
+        sections.push({
+            id: `league:${league}`,
+            title: `${league} League`,
+            logo: '',
+            facts: [heroFact(studentsInLeague.length), `<i class="fas fa-flag" aria-hidden="true"></i>${classesInLeague.length} class${classesInLeague.length === 1 ? '' : 'es'}`, starFact(sumStars(studentsInLeague))],
+            mine: false,
+            entries
         });
-
     } else {
-        // === BY CLASS VIEW ===
+        // === BY CLASS VIEW === (the teacher's own classes first)
         const classesMap = studentsInLeague.reduce((acc, student) => {
             if (!acc[student.classId]) acc[student.classId] = { name: student.className, logo: student.classLogo, students: [] };
             acc[student.classId].students.push(student);
             return acc;
         }, {});
-
         const allClassIds = Object.keys(classesMap);
-        const myClassIds = allClassIds.filter(id => state.get('allTeachersClasses').some(c => c.id === id));
-        const otherClassIds = allClassIds.filter(id => !myClassIds.includes(id));
+        const myClassIds = allClassIds.filter((id) => myClassIdSet.has(id));
+        const otherClassIds = allClassIds.filter((id) => !myClassIdSet.has(id));
         const nameSort = (a, b) => classesMap[a].name.localeCompare(classesMap[b].name);
-        const sortedClassIds = [...myClassIds.sort(nameSort), ...otherClassIds.sort(nameSort)];
-
-        let hcRiseSeq = 0;
-        for (const classId of sortedClassIds) {
+        [...myClassIds.sort(nameSort), ...otherClassIds.sort(nameSort)].forEach((classId) => {
             const classData = classesMap[classId];
-
-            // Re-map score to stars for sort Students By Tie Breaker
-            classData.students = classData.students.map(s => ({ ...s, stars: s.score }));
-            classData.students.sort(sortStudents);
-            const randomGradient = constants.titleGradients[utils.simpleHashCode(classData.name) % constants.titleGradients.length];
-
-            outputHtml += `
-            <div class="tab-mount-rise hc-lb-section-rise mt-10 mb-6 text-center" style="--tab-rise-delay: ${Math.min(hcRiseSeq++ * 40, 680)}ms">
-                <div class="hc-lb-section-head inline-flex items-center gap-3 sm:gap-4">
-                    <div class="hc-lb-section-head__glow" aria-hidden="true"></div>
-                    <span class="hc-lb-section-logo" aria-hidden="true">${classData.logo}</span>
-                    <h3 class="hc-lb-section-title font-title text-2xl sm:text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}">${escapeLeaderboardHtml(classData.name)}</h3>
-                </div>
-            </div>
-            <div class="hc-lb-list-stack flex flex-col gap-3 mb-12 max-w-5xl mx-auto">`;
-
-            let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
-
-            classData.students.forEach((s, index) => {
-                let isBehaviorTie = (s.stars === lastScore && s.stats.count3 === last3 && s.stats.count2 === last2 && s.stats.uniqueReasons === lastUnique);
-                let currentRank;
-                if (index === 0) currentRank = 1;
-                else {
-                    if (lastRank <= 3) currentRank = isBehaviorTie ? lastRank : index + 1;
-                    else {
-                        let isTotalTie = isBehaviorTie && (s.stats.academicAvg === classData.students[index - 1].stats.academicAvg);
-                        currentRank = isTotalTie ? lastRank : index + 1;
-                    }
-                }
-                lastScore = s.stars; last3 = s.stats.count3; last2 = s.stats.count2; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
-
-                outputHtml += renderHeroChallengeCard(s, currentRank, Math.min(hcRiseSeq++ * 38, 760), { showClassRow: false });
+            sections.push({
+                id: classId,
+                title: classData.name,
+                logo: classData.logo,
+                facts: [heroFact(classData.students.length), starFact(sumStars(classData.students))],
+                mine: myClassIdSet.has(classId),
+                entries: rankGroup(classData.students, { showClass: false })
             });
-            outputHtml += `</div>`;
-        }
+        });
     }
+
+    // --- Rank changes since this device last looked ---
+    const boardKey = [
+        state.getActiveSchoolYearKey() || 'legacy',
+        league,
+        view,
+        starMetric,
+        starMetric === 'monthly' ? `${now.getFullYear()}-${now.getMonth() + 1}` : 'all'
+    ].join('|');
+    const dataReady = allStudentScores.length > 0;
+    if (freshVisit) _heroVisitBaselines.clear();
+    if (dataReady && !_heroVisitBaselines.has(boardKey)) {
+        _heroVisitBaselines.set(boardKey, readStandingsSnapshot(boardKey));
+    }
+    const baseline = dataReady ? _heroVisitBaselines.get(boardKey) : null;
+    const previous = _heroLastShown.get(boardKey) || baseline;
+    const moved = annotateStandingsChanges(sections, baseline, previous);
+
+    const outputHtml = renderStandingsHeraldHtml(sections, { byClass: view === 'class' })
+        + sections.map((section, i) => renderStandingsSectionHtml(section, { monthName, metric: starMetric, delayIndex: i })).join('');
+
+    if (dataReady) {
+        const snap = buildStandingsSnapshot(sections);
+        _heroLastShown.set(boardKey, snap);
+        // First look at this board on this device: it becomes the baseline,
+        // so stars awarded while the tab is open still earn their chips.
+        if (!_heroVisitBaselines.get(boardKey)) _heroVisitBaselines.set(boardKey, snap);
+        writeStandingsSnapshot(boardKey, snap);
+    }
+
+    // Live data re-renders often; leave the board alone (and any show in
+    // progress) when nothing on it changed. Where heroes came from is motion
+    // only, so it is left out of the comparison.
+    const boardSignature = outputHtml.replace(/ data-(?:hcs-)?from="[^"]*"|--hcs-power-from:[^;"]*;?/g, '');
+    const sameBoard = list.dataset.hcsBoard === boardKey;
+    if (!freshVisit && sameBoard && list.__hcsHtml === boardSignature) return;
+    list.dataset.hcsBoard = boardKey;
+    list.__hcsHtml = boardSignature;
+    list.__hcsToken = null;
+    list.className = 'hcs-list';
     list.innerHTML = outputHtml;
+
+    if (moved) playStandingsChanges(list, sections);
+    else if (freshVisit || !sameBoard) playStandingsEntrance(list);
 }

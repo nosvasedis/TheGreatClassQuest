@@ -471,19 +471,15 @@ export function updateAllLeagueSelectors() {
     state.set('isProgrammaticSelection', true);
     const effective = getLeaderboardEffectiveLeague();
     const peeking = Boolean(state.get('leaderboardLeagueOverride'));
-    const leagueButtons = [
-        { id: 'leaderboard-league-picker-btn', accent: 'amber' },
-        { id: 'student-leaderboard-league-picker-btn', accent: 'purple' }
-    ];
-    leagueButtons.forEach(({ id, accent }) => {
+    ['leaderboard-league-picker-btn', 'student-leaderboard-league-picker-btn'].forEach(id => {
         const btn = document.getElementById(id);
         if (btn) {
             const label = effective || 'Select a League';
-            const iconCls = accent === 'purple' ? 'text-purple-400' : 'text-amber-500';
             const peekTag = peeking
-                ? '<span class="ml-1 text-[10px] font-black uppercase tracking-wide text-rose-500">peek</span>'
+                ? '<span class="league-bar__peek" title="Peeking at another league">peek</span>'
                 : '';
-            btn.innerHTML = `<i class="fas fa-layer-group ${iconCls} text-sm"></i><span>${label}</span>${peekTag}`;
+            btn.innerHTML = `<span class="league-bar__pick-name">${label}</span>${peekTag}<i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>`;
+            btn.classList.toggle('is-unset', !effective);
         }
     });
     ['leaderboard-league-match-btn', 'student-leaderboard-league-match-btn'].forEach(mid => {

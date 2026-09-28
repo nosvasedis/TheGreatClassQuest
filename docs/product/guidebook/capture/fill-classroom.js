@@ -8,6 +8,13 @@ import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/
 import { buildTrophySatchel, buildActiveEffects } from '../../../../features/trophyRoomCore.mjs';
 import { getGuildBadgeHtml } from '../../../../features/guilds.js';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
+import {
+  annotateStandingsChanges,
+  buildStandingsSnapshot,
+  playStandingsChanges,
+  renderStandingsHeraldHtml,
+  renderStandingsSectionHtml
+} from '../../../../ui/tabs/heroStandings.js';
 
 function badge(guildId, size = 'w-8 h-8') {
   return getGuildBadgeHtml(guildId, size)
@@ -153,68 +160,102 @@ export function hideAwardStarsTab() {
   tab?.classList.remove('capture-award');
 }
 
-function hcRow({ rank, name, initial, guildId, title, icon, gold, stars, week, topSkill, champion }) {
-  const podium = rank <= 3 ? rank : 0;
-  const podiumMod = podium === 1 ? 'hc-lb-card--gold' : podium === 2 ? 'hc-lb-card--silver' : podium === 3 ? 'hc-lb-card--bronze' : '';
-  const medal = podium === 1 ? '🥇' : podium === 2 ? '🥈' : podium === 3 ? '🥉' : '';
-  const rankInner = podium
-    ? `<span class="hc-lb-medal" aria-hidden="true">${medal}</span>`
-    : `<span class="hc-lb-rank-num font-title">${rank}</span>`;
-  const starClass = podium === 1
-    ? 'hc-lb-score-star hc-lb-score-star--p1'
-    : podium === 2
-      ? 'hc-lb-score-star hc-lb-score-star--p2'
-      : podium === 3
-        ? 'hc-lb-score-star hc-lb-score-star--p3'
-        : 'hc-lb-score-star';
-  const champ = champion
-    ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#dc2626;" title="Guild Champion this month">⚔️ Champion</span>`
-    : '';
-  return `
-        <div class="student-leaderboard-card hc-lb-card ${podiumMod}" data-hc-rank="${rank}" data-hc-podium="${podium || ''}">
-            <div class="hc-lb-card__inner">
-                <div class="hc-lb-rank-tower" aria-label="Rank ${rank}">${rankInner}</div>
-                <div class="hc-lb-hero-col">
-                    <div class="flex-shrink-0 relative hero-challenge-avatar-wrap hc-lb-avatar-stage">
-                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md">${initial}</div>
-                    </div>
-                </div>
-                <div class="hc-lb-copy">
-                    <h3 class="hc-lb-name font-title text-lg sm:text-xl leading-tight flex items-center flex-wrap gap-1.5">
-                        <span class="hc-lb-name__text truncate">${icon} ${name}</span>
-                        <span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white">${title}</span>
-                        ${champ}
-                    </h3>
-                    <div class="hc-lb-meta-row">
-                        <div class="hc-lb-gold" title="Gold balance">
-                            <i class="fas fa-coins hc-lb-gold__icon"></i>
-                            <span class="hc-lb-gold__val">${gold}</span>
-                        </div>
-                        <div class="hc-lb-class-strip">
-                            <span class="hc-lb-class-strip__emoji" aria-hidden="true">📚</span>
-                            <span class="hc-lb-class-strip__name">Junior B</span>
-                        </div>
-                    </div>
-                    <div class="hc-lb-pills flex flex-wrap gap-1.5">
-                        ${rank === 1 ? '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shadow-sm border border-amber-300">👑 Prodigy</div>' : ''}
-                        <div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200"><i class="fas fa-fire"></i> Week: ${week}</div>
-                        <div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 shadow-sm border border-white/50"><i class="fas fa-users"></i> <span>${topSkill}</span></div>
-                        <span class="guild-badge-wrap">${badge(guildId, 'w-6 h-6')}</span>
-                    </div>
-                </div>
-                <div class="hc-lb-score-stack">
-                    <div class="hc-lb-score-row" title="This month stars">
-                        <span class="${starClass}" aria-hidden="true"><i class="fas fa-star"></i></span>
-                        <div class="hc-lb-score">${stars}</div>
-                    </div>
-                    <div class="hc-lb-stars-label">Stars</div>
-                    <div class="hc-lb-metric-chip">Monthly</div>
-                </div>
-            </div>
-        </div>`;
+const HC_PILL = {
+  prodigy: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shadow-sm border border-amber-300">👑 Prodigy</div>',
+  week: (n) => `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200"><i class="fas fa-fire"></i> Week: ${n}</div>`,
+  streak: (n) => `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200"><i class="fas fa-bolt"></i> Streak: ${n}</div>`,
+  skill: {
+    Teamwork: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 shadow-sm border border-white/50"><i class="fas fa-users"></i> <span>Teamwork</span></div>',
+    Focus: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700 shadow-sm border border-white/50"><i class="fas fa-brain"></i> <span>Focus</span></div>',
+    Respect: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 shadow-sm border border-white/50"><i class="fas fa-hands-helping"></i> <span>Respect</span></div>',
+    Creativity: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-700 shadow-sm border border-white/50"><i class="fas fa-lightbulb"></i> <span>Creativity</span></div>'
+  }
+};
+
+const HC_AVATAR_TINTS = ['bg-indigo-100 text-indigo-600', 'bg-rose-100 text-rose-600', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-sky-100 text-sky-700'];
+
+function hcAvatar(h, size) {
+  const tint = HC_AVATAR_TINTS[h.name.length % HC_AVATAR_TINTS.length];
+  const aura = h.aura ? `style="box-shadow: 0 0 0 3px ${h.aura}, 0 0 14px 4px ${h.aura}88; border-color: ${h.aura};"` : '';
+  return `<div data-student-id="${h.id}" class="${size} rounded-full ${tint} flex items-center justify-center font-bold text-lg border-4 border-white shadow-md enlargeable-avatar" ${aura}>${h.name.charAt(0)}</div>`;
 }
 
-export function showHerosChallenge() {
+function hcEntry(h, rank, showClass) {
+  return {
+    id: h.id,
+    name: h.name,
+    rank,
+    score: h.stars,
+    gold: h.gold,
+    heroIcon: h.icon,
+    avatarHtml: hcAvatar(h, 'w-12 h-12 sm:w-14 sm:h-14'),
+    avatarLargeHtml: hcAvatar(h, rank === 1 ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16 sm:w-20 sm:h-20'),
+    familiarHtml: '',
+    guildBadgeHtml: `<span class="hcs-guild">${badge(h.guildId, 'w-6 h-6')}</span>`,
+    titleBadgeHtml: `<span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${h.titleColor}, ${h.titleColor}dd);"><span>${h.title}</span></span>`,
+    roleBadgesHtml: h.champion ? '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#7c3aed;" title="Guild Champion this month">⚔️ Champion</span>' : '',
+    pillsHtml: [h.prodigy ? HC_PILL.prodigy : '', h.week ? HC_PILL.week(h.week) : '', h.streak ? HC_PILL.streak(h.streak) : '', HC_PILL.skill[h.skill] || ''].join(''),
+    className: h.className,
+    classLogo: h.classLogo,
+    showClass
+  };
+}
+
+const HC_CLASSES = [
+  {
+    id: 'junior-b', title: 'Junior B', logo: '🐉', mine: true,
+    heroes: [
+      { id: 'maria', name: 'Maria', icon: '🧙', stars: 22, gold: 55, guildId: 'owl_wisdom', title: 'Spellweaver', titleColor: '#7c3aed', aura: '#a855f7', week: 6, streak: 3, skill: 'Teamwork', champion: true, prodigy: true },
+      { id: 'alex', name: 'Alex', icon: '🛡️', stars: 18, gold: 42, guildId: 'dragon_flame', title: 'Sentinel', titleColor: '#16a34a', week: 5, skill: 'Focus' },
+      { id: 'nikos', name: 'Nikos', icon: '⚔️', stars: 14, gold: 31, guildId: 'grizzly_might', title: 'Scout', titleColor: '#b45309', week: 3, skill: 'Respect' },
+      { id: 'eleni', name: 'Eleni', icon: '🧵', stars: 11, gold: 19, guildId: 'phoenix_rising', title: 'Novice', titleColor: '#db2777', week: 2, skill: 'Creativity' },
+      { id: 'sofia', name: 'Sofia', icon: '🎵', stars: 9, gold: 27, guildId: 'owl_wisdom', title: 'Minstrel', titleColor: '#0891b2', week: 4, skill: 'Creativity' },
+      { id: 'yannis', name: 'Yannis', icon: '🏹', stars: 9, gold: 12, guildId: 'dragon_flame', title: 'Ranger', titleColor: '#15803d', week: 1, skill: 'Focus' },
+      { id: 'dimitra', name: 'Dimitra', icon: '📜', stars: 6, gold: 8, guildId: 'phoenix_rising', title: 'Novice', titleColor: '#db2777', skill: 'Respect' }
+    ]
+  },
+  {
+    id: 'junior-a', title: 'Junior A', logo: '🦉', mine: false,
+    heroes: [
+      { id: 'leo', name: 'Leo', icon: '⚔️', stars: 20, gold: 40, guildId: 'grizzly_might', title: 'Squire', titleColor: '#b45309', week: 7, streak: 2, skill: 'Teamwork', prodigy: true },
+      { id: 'anna', name: 'Anna', icon: '🧙', stars: 17, gold: 33, guildId: 'owl_wisdom', title: 'Apprentice', titleColor: '#7c3aed', week: 4, skill: 'Focus' },
+      { id: 'petros', name: 'Petros', icon: '🛡️', stars: 12, gold: 21, guildId: 'dragon_flame', title: 'Guard', titleColor: '#16a34a', week: 2, skill: 'Respect' },
+      { id: 'ioanna', name: 'Ioanna', icon: '🎵', stars: 8, gold: 15, guildId: 'phoenix_rising', title: 'Novice', titleColor: '#0891b2', week: 2, skill: 'Creativity' }
+    ]
+  }
+];
+
+// Where the board stood at the teacher's last look (for the rank-change show).
+const HC_EARLIER = { maria: 17, alex: 18, nikos: 14, eleni: 7, sofia: 9, yannis: 5, dimitra: 6 };
+const HC_EARLIER_ORDER = ['alex', 'maria', 'nikos', 'sofia', 'eleni', 'dimitra', 'yannis'];
+
+function hcSections(view) {
+  const star = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${n} stars in August`;
+  if (view === 'league') {
+    const all = HC_CLASSES.flatMap((c) => c.heroes.map((h) => ({ ...h, className: c.title, classLogo: c.logo })));
+    all.sort((a, b) => b.stars - a.stars || a.name.localeCompare(b.name));
+    return [{
+      id: 'league:Junior', title: 'Junior League', logo: '', mine: false,
+      facts: [`<i class="fas fa-users" aria-hidden="true"></i>${all.length} heroes`, '<i class="fas fa-flag" aria-hidden="true"></i>2 classes', star(all.reduce((n, h) => n + h.stars, 0))],
+      entries: all.map((h, i) => hcEntry(h, i + 1, true))
+    }];
+  }
+  return HC_CLASSES.map((c) => {
+    const heroes = [...c.heroes].sort((a, b) => b.stars - a.stars);
+    let lastRank = 0;
+    return {
+      id: c.id, title: c.title, logo: c.logo, mine: c.mine,
+      facts: [`<i class="fas fa-users" aria-hidden="true"></i>${heroes.length} heroes`, star(heroes.reduce((n, h) => n + h.stars, 0))],
+      entries: heroes.map((h, i) => {
+        lastRank = i > 0 && heroes[i - 1].stars === h.stars && lastRank > 3 ? lastRank : i + 1;
+        return hcEntry({ ...h, className: c.title, classLogo: c.logo }, lastRank, false);
+      })
+    };
+  });
+}
+
+/** mode: 'class' (default), 'league' (Global Rank), 'moved' (after a lesson: chips + herald), 'replay' (plays the show). */
+export function showHerosChallenge(mode = 'class') {
   startShow();
   const tab = document.getElementById('student-leaderboard-tab');
   if (!tab) return;
@@ -223,23 +264,35 @@ export function showHerosChallenge() {
   const month = document.getElementById('hero-month-name');
   if (month) month.textContent = 'August';
   const leagueBtn = document.getElementById('student-leaderboard-league-picker-btn');
-  if (leagueBtn) {
-    const span = leagueBtn.querySelector('span');
-    if (span) span.textContent = 'Junior';
-  }
-  document.getElementById('student-view-switcher')?.classList.add('is-open');
+  const nameEl = leagueBtn?.querySelector('.league-bar__pick-name');
+  if (nameEl) nameEl.textContent = 'Junior';
+  const view = mode === 'league' ? 'league' : 'class';
+  [['view-by-class', view === 'class'], ['view-by-league', view === 'league'], ['metric-monthly', true], ['metric-total', false]].forEach(([id, on]) => {
+    const btn = document.getElementById(id);
+    btn?.classList.toggle('is-active', on);
+    if (on) btn?.parentElement?.style.setProperty('--seg-i', id === 'view-by-league' ? '1' : '0');
+  });
   document.getElementById('open-prodigy-btn')?.removeAttribute('disabled');
   document.getElementById('open-trophy-room-btn')?.removeAttribute('disabled');
   tab.querySelectorAll('.tab-fab-cluster, .hc-fab-cluster').forEach((el) => el.classList.add('revealed'));
   const list = document.getElementById('student-leaderboard-list');
-  if (list) {
-    list.innerHTML = [
-      hcRow({ rank: 1, name: 'Maria', initial: 'M', guildId: 'owl_wisdom', title: 'Squire', icon: '⚔️', gold: 55, stars: 22, week: 6, topSkill: 'Teamwork', champion: true }),
-      hcRow({ rank: 2, name: 'Alex', initial: 'A', guildId: 'dragon_flame', title: 'Sentinel', icon: '🛡️', gold: 42, stars: 18, week: 5, topSkill: 'Focus', champion: false }),
-      hcRow({ rank: 3, name: 'Nikos', initial: 'N', guildId: 'grizzly_might', title: 'Scout', icon: '⚔️', gold: 31, stars: 14, week: 3, topSkill: 'Respect', champion: false }),
-      hcRow({ rank: 4, name: 'Eleni', initial: 'E', guildId: 'phoenix_rising', title: 'Novice', icon: '🧵', gold: 19, stars: 11, week: 2, topSkill: 'Creativity', champion: false })
-    ].join('');
+  if (!list) return;
+
+  const sections = hcSections(view);
+  let earlier = null;
+  if (mode === 'moved' || mode === 'replay') {
+    const first = sections[0];
+    const ranks = {};
+    HC_EARLIER_ORDER.forEach((id, i) => { ranks[id] = i + 1; });
+    earlier = { sections: { [first.id]: { order: HC_EARLIER_ORDER, scores: HC_EARLIER, ranks } } };
+    sections.slice(1).forEach((sec) => { Object.assign(earlier.sections, buildStandingsSnapshot([sec]).sections); });
   }
+  const moved = annotateStandingsChanges(sections, earlier, mode === 'replay' ? earlier : null);
+  list.className = 'hcs-list';
+  list.innerHTML = renderStandingsHeraldHtml(sections, { byClass: view === 'class' })
+    + sections.map((sec, i) => renderStandingsSectionHtml(sec, { monthName: 'August', metric: 'monthly', delayIndex: i })).join('');
+  if (mode === 'replay' && moved) playStandingsChanges(list, sections);
+  else list.classList.add('hcs-list--settled');
 }
 
 export function hideHerosChallenge() {

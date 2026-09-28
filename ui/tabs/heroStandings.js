@@ -1,0 +1,486 @@
+// /ui/tabs/heroStandings.js
+// Hero's Challenge standings: the podium, the hero rows below it, and the
+// rank-change show that plays when the board has moved since this device last
+// looked (stars counting up, heroes gliding to their new places).
+//
+// Everything here is pure markup + DOM motion: no app state, so the guidebook
+// capture stage renders the same markup the app does.
+
+const SNAPSHOT_KEY = 'gcq.heroStandings.v1';
+const SNAPSHOT_LIMIT = 16;
+const PODIUM_SIZE = 3;
+
+export function escapeStandingsHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Ranks for a list already sorted by utils.sortStudentsByTieBreaker (items carry
+ * `stars` and `stats`). Podium places share a rank on a behaviour tie; lower
+ * places also need the same academic average to share.
+ */
+export function assignHeroRanks(sorted) {
+    const ranks = [];
+    let lastRank = 0;
+    sorted.forEach((s, index) => {
+        if (index === 0) {
+            lastRank = 1;
+        } else {
+            const prev = sorted[index - 1];
+            const behaviourTie = s.stars === prev.stars
+                && s.stats.count3 === prev.stats.count3
+                && s.stats.count2 === prev.stats.count2
+                && s.stats.uniqueReasons === prev.stats.uniqueReasons;
+            const tie = lastRank <= 3
+                ? behaviourTie
+                : behaviourTie && s.stats.academicAvg === prev.stats.academicAvg;
+            lastRank = tie ? lastRank : index + 1;
+        }
+        ranks.push(lastRank);
+    });
+    return ranks;
+}
+
+// --- Snapshots (what this device last showed, per board) ---------------------
+
+function readAllSnapshots() {
+    try {
+        const raw = localStorage.getItem(SNAPSHOT_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+export function readStandingsSnapshot(boardKey) {
+    return readAllSnapshots()[boardKey] || null;
+}
+
+export function writeStandingsSnapshot(boardKey, snapshot) {
+    try {
+        const all = readAllSnapshots();
+        all[boardKey] = { ...snapshot, at: Date.now() };
+        const keys = Object.keys(all).sort((a, b) => (all[b].at || 0) - (all[a].at || 0));
+        keys.slice(SNAPSHOT_LIMIT).forEach((k) => delete all[k]);
+        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(all));
+    } catch {
+        /* storage full or blocked: the board still works, it just can't replay changes */
+    }
+}
+
+/** { sections: { [sectionId]: { order: [id], scores: { id: n }, ranks: { id: n } } } } */
+export function buildStandingsSnapshot(sections) {
+    const out = { sections: {} };
+    sections.forEach((section) => {
+        const scores = {};
+        const ranks = {};
+        section.entries.forEach((e) => {
+            scores[e.id] = e.score;
+            ranks[e.id] = e.rank;
+        });
+        out.sections[section.id] = { order: section.entries.map((e) => e.id), scores, ranks };
+    });
+    return out;
+}
+
+/**
+ * Annotates entries with how they moved against two earlier looks:
+ * `baseline` (start of this visit) drives the ▲/▼ and +N chips, `previous`
+ * (the last thing drawn) drives the motion.
+ */
+export function annotateStandingsChanges(sections, baseline, previous) {
+    let anyMotion = false;
+    sections.forEach((section) => {
+        const base = baseline?.sections?.[section.id] || null;
+        const prev = previous?.sections?.[section.id] || null;
+        const ids = new Set(section.entries.map((e) => e.id));
+        const prevOrder = prev ? prev.order.filter((id) => ids.has(id)) : null;
+        section.previousLeaderId = prev?.order?.[0] || null;
+        section.entries.forEach((e, slot) => {
+            e.slot = slot;
+            if (base && base.scores[e.id] !== undefined) {
+                e.gain = e.score - base.scores[e.id];
+                e.climb = (base.ranks[e.id] || e.rank) - e.rank;
+            } else {
+                e.gain = 0;
+                e.climb = 0;
+            }
+            if (prevOrder) {
+                const from = prevOrder.indexOf(e.id);
+                e.fromSlot = from;
+                e.fromScore = prev.scores[e.id] !== undefined ? prev.scores[e.id] : e.score;
+                e.fromRank = prev.ranks[e.id] || e.rank;
+                if (from !== slot || e.fromScore !== e.score) anyMotion = true;
+            } else {
+                e.fromSlot = slot;
+                e.fromScore = e.score;
+                e.fromRank = e.rank;
+            }
+        });
+    });
+    return anyMotion;
+}
+
+// --- Markup -----------------------------------------------------------------
+
+function moveChipHtml(e) {
+    if (e.climb > 0) {
+        return `<span class="hcs-move hcs-move--up" title="Up ${e.climb} place${e.climb === 1 ? '' : 's'} since your last look"><i class="fas fa-caret-up" aria-hidden="true"></i>${e.climb}</span>`;
+    }
+    if (e.climb < 0) {
+        return `<span class="hcs-move hcs-move--down" title="Down ${-e.climb} place${e.climb === -1 ? '' : 's'} since your last look"><i class="fas fa-caret-down" aria-hidden="true"></i>${-e.climb}</span>`;
+    }
+    return '';
+}
+
+function gainChipHtml(e) {
+    if (!(e.gain > 0)) return '';
+    return `<span class="hcs-gain" title="${e.gain} new star${e.gain === 1 ? '' : 's'} since your last look">+${e.gain}</span>`;
+}
+
+function countHtml(e) {
+    return `<span class="hcs-count" data-hcs-count data-from="${e.fromScore ?? e.score}" data-to="${e.score}">${e.score}</span>`;
+}
+
+function nameHtml(e) {
+    const icon = e.heroIcon ? `<span class="hcs-name__icon" aria-hidden="true">${e.heroIcon}</span>` : '';
+    return `${icon}<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+}
+
+function classChipHtml(e) {
+    if (!e.showClass) return '';
+    return `<span class="hcs-chip hcs-chip--class" title="${escapeStandingsHtml(e.className)}"><span aria-hidden="true">${e.classLogo || ''}</span><span class="hcs-chip__text">${escapeStandingsHtml(e.className)}</span></span>`;
+}
+
+function goldChipHtml(e) {
+    return `<span class="hcs-chip hcs-chip--gold" title="Gold"><i class="fas fa-coins" aria-hidden="true"></i>${escapeStandingsHtml(e.gold)}</span>`;
+}
+
+const PLACE_NAMES = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+
+function podiumFigureHtml(e, place, leadBy) {
+    const crown = place === 1
+        ? '<span class="hcs-figure__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
+        : '';
+    const lead = place === 1 && leadBy > 0
+        ? `<span class="hcs-figure__lead">Leads by ${leadBy}</span>`
+        : '';
+    return `
+        <div class="hcs-figure" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}">
+            ${crown}
+            <div class="hcs-figure__portrait hero-challenge-avatar-wrap">
+                <span class="hcs-figure__ring" aria-hidden="true"></span>
+                ${e.avatarLargeHtml}
+                ${e.familiarHtml || ''}
+            </div>
+            <h3 class="hcs-figure__name font-title">${nameHtml(e)}</h3>
+            <div class="hcs-figure__badges">${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}</div>
+            <div class="hcs-figure__stars">
+                <i class="fas fa-star hcs-figure__star" aria-hidden="true"></i>
+                ${countHtml(e)}
+                ${gainChipHtml(e)}
+            </div>
+            <div class="hcs-figure__chips">${moveChipHtml(e)}${lead}${classChipHtml(e)}</div>
+            <div class="hcs-figure__pills">${e.pillsHtml || ''}</div>
+        </div>`;
+}
+
+function podiumHtml(entries) {
+    const spots = entries.slice(0, PODIUM_SIZE);
+    const leadBy = spots.length > 1 ? spots[0].score - spots[1].score : 0;
+    // Classic stage order: silver, gold, bronze.
+    const order = [1, 0, 2].filter((i) => spots[i]);
+    const spotsHtml = order.map((i) => {
+        const place = i + 1;
+        const e = spots[i];
+        return `
+            <div class="hcs-spot hcs-spot--${PLACE_NAMES[place]}">
+                ${podiumFigureHtml(e, place, leadBy)}
+                <div class="hcs-pedestal" aria-hidden="true">
+                    <span class="hcs-pedestal__cap"></span>
+                    <span class="hcs-pedestal__num font-title">${e.rank}</span>
+                </div>
+            </div>`;
+    }).join('');
+    const motes = Array.from({ length: 10 }, (_, i) => `<i style="--m:${i}"></i>`).join('');
+    return `
+        <div class="hcs-podium" data-spots="${spots.length}">
+            <div class="hcs-podium__backdrop" aria-hidden="true">
+                <div class="hcs-podium__rays"></div>
+                <div class="hcs-podium__motes">${motes}</div>
+                <div class="hcs-podium__valance"></div>
+            </div>
+            <div class="hcs-podium__stage">${spotsHtml}</div>
+        </div>`;
+}
+
+function rowHtml(e, above) {
+    let gapHtml = '';
+    if (above) {
+        const gap = above.score - e.score;
+        gapHtml = gap > 0
+            ? `<span class="hcs-row__gap">${gap} to catch ${escapeStandingsHtml(above.name)}</span>`
+            : `<span class="hcs-row__gap hcs-row__gap--tie">Level on stars</span>`;
+    }
+    return `
+        <li class="hcs-row" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--hcs-power:${e.power.toFixed(3)};--hcs-power-from:${(e.powerFrom ?? e.power).toFixed(3)};--hcs-i:${e.slot}">
+            <div class="hcs-row__rank" aria-label="Rank ${e.rank}">
+                <span class="hcs-shield"><span class="hcs-shield__num font-title" data-hcs-rank data-from="${e.fromRank ?? e.rank}" data-to="${e.rank}">${e.rank}</span></span>
+            </div>
+            <div class="hcs-row__portrait hero-challenge-avatar-wrap">
+                ${e.avatarHtml}
+                ${e.familiarHtml || ''}
+            </div>
+            <div class="hcs-row__body">
+                <div class="hcs-row__head">
+                    <h3 class="hcs-row__name font-title">${nameHtml(e)}</h3>
+                    ${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}${moveChipHtml(e)}
+                </div>
+                <div class="hcs-row__meta">${goldChipHtml(e)}${classChipHtml(e)}${e.pillsHtml || ''}</div>
+                <div class="hcs-row__power" aria-hidden="true"><span class="hcs-row__power-fill"></span></div>
+            </div>
+            <div class="hcs-row__score">
+                <div class="hcs-row__stars">
+                    <i class="fas fa-star" aria-hidden="true"></i>
+                    ${countHtml(e)}
+                    ${gainChipHtml(e)}
+                </div>
+                ${gapHtml}
+            </div>
+        </li>`;
+}
+
+function openRaceHtml(monthName, metric) {
+    const line = metric === 'monthly'
+        ? `No stars yet in ${escapeStandingsHtml(monthName)}. The first hero to shine takes the crown!`
+        : 'No stars yet. The first hero to shine takes the crown!';
+    return `
+        <div class="hcs-open-race">
+            <span class="hcs-open-race__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>
+            <p>${line}</p>
+        </div>`;
+}
+
+/**
+ * section: { id, title, logo, facts: [html], mine, entries }
+ * entry: { id, name, rank, score, gold, heroIcon, avatarHtml, avatarLargeHtml,
+ *          familiarHtml, guildBadgeHtml, titleBadgeHtml, roleBadgesHtml, pillsHtml,
+ *          className, classLogo, showClass, slot, fromSlot, fromScore, gain, climb }
+ */
+export function renderStandingsSectionHtml(section, { monthName = '', metric = 'monthly', delayIndex = 0 } = {}) {
+    const entries = section.entries;
+    const leaderScore = entries.reduce((m, e) => Math.max(m, e.score), 0);
+    const prevLeaderScore = entries.reduce((m, e) => Math.max(m, e.fromScore ?? e.score), 0);
+    entries.forEach((e) => {
+        e.power = leaderScore > 0 ? e.score / leaderScore : 0;
+        e.powerFrom = prevLeaderScore > 0 ? (e.fromScore ?? e.score) / prevLeaderScore : 0;
+    });
+    const podiumCount = Math.min(PODIUM_SIZE, entries.filter((e) => e.score > 0).length);
+    // Stars decide the podium; a hero with no stars never stands on it.
+    const podium = podiumCount > 0 ? podiumHtml(entries.slice(0, podiumCount)) : openRaceHtml(monthName, metric);
+    const rows = entries.slice(podiumCount)
+        .map((e, i) => rowHtml(e, entries[podiumCount + i - 1] || null))
+        .join('');
+    const mine = section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '';
+    const facts = (section.facts || []).map((f) => `<span class="hcs-section__fact">${f}</span>`).join('');
+    const logo = section.logo
+        ? `<span class="hcs-section__crest" aria-hidden="true"><span class="hcs-section__logo">${section.logo}</span></span>`
+        : '<span class="hcs-section__crest hcs-section__crest--league" aria-hidden="true"><i class="fas fa-globe"></i></span>';
+    return `
+        <section class="hcs-section${section.mine ? ' hcs-section--mine' : ''}" data-hcs-section="${escapeStandingsHtml(section.id)}" style="--hcs-d:${delayIndex}">
+            <header class="hcs-section__head">
+                ${logo}
+                <div class="hcs-section__copy">
+                    <h3 class="hcs-section__name font-title">${escapeStandingsHtml(section.title)}</h3>
+                    <div class="hcs-section__facts">${mine}${facts}</div>
+                </div>
+            </header>
+            ${podium}
+            ${rows ? `<ol class="hcs-ranks">${rows}</ol>` : ''}
+        </section>`;
+}
+
+/** One line on what moved since the teacher last looked; empty when nothing did. */
+export function renderStandingsHeraldHtml(sections, { byClass = true } = {}) {
+    let gainers = 0;
+    let starsGained = 0;
+    let bestClimb = null;
+    const newLeaders = [];
+    sections.forEach((section) => {
+        section.entries.forEach((e) => {
+            if (e.gain > 0) {
+                gainers += 1;
+                starsGained += e.gain;
+            }
+            if (e.climb > 0 && (!bestClimb || e.climb > bestClimb.entry.climb)) {
+                bestClimb = { entry: e, section };
+            }
+        });
+        const top = section.entries[0];
+        if (top && top.score > 0 && top.climb > 0 && top.rank === 1) newLeaders.push({ entry: top, section });
+    });
+    if (!gainers && !bestClimb) return '';
+    const bits = [];
+    if (gainers) {
+        bits.push(`<b>${gainers} hero${gainers === 1 ? '' : 'es'}</b> earned <b>${starsGained} star${starsGained === 1 ? '' : 's'}</b>`);
+    }
+    const where = (section) => (byClass ? ` in ${escapeStandingsHtml(section.title)}` : '');
+    if (newLeaders.length) {
+        const { entry, section } = newLeaders[0];
+        bits.push(`<b>${escapeStandingsHtml(entry.name)}</b> took the crown${where(section)}`);
+    } else if (bestClimb) {
+        const { entry, section } = bestClimb;
+        bits.push(`<b>${escapeStandingsHtml(entry.name)}</b> climbed ${entry.climb} place${entry.climb === 1 ? '' : 's'}${where(section)}`);
+    }
+    return `
+        <div class="hcs-herald" role="status">
+            <span class="hcs-herald__horn" aria-hidden="true"><i class="fas fa-bullhorn"></i></span>
+            <p class="hcs-herald__text"><span class="hcs-herald__lead">Since your last look</span> ${bits.join(' · ')}</p>
+        </div>`;
+}
+
+// --- Motion -----------------------------------------------------------------
+
+function reducedMotion() {
+    try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+        return false;
+    }
+}
+
+function countUp(el, from, to, duration) {
+    if (from === to) {
+        el.textContent = String(to);
+        return;
+    }
+    const start = performance.now();
+    const step = (now) => {
+        if (!el.isConnected) return;
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = String(Math.round(from + (to - from) * eased));
+        if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
+function burst(host) {
+    const wrap = document.createElement('span');
+    wrap.className = 'hcs-burst';
+    wrap.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 12; i++) {
+        const s = document.createElement('i');
+        s.style.setProperty('--a', `${i * 30}deg`);
+        s.style.setProperty('--d', `${48 + (i % 3) * 14}px`);
+        wrap.appendChild(s);
+    }
+    host.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 1400);
+}
+
+/** Plain entrance: rows and podium figures rise in, staggered. */
+export function playStandingsEntrance(list) {
+    list.classList.remove('hcs-list--enter');
+    void list.offsetWidth;
+    list.classList.add('hcs-list--enter');
+}
+
+/**
+ * The rank-change show. Every mover is first drawn where it stood before
+ * (FLIP), stars count up, then everyone glides to their new place.
+ */
+export function playStandingsChanges(list, sections) {
+    const token = Symbol('hs');
+    list.__hcsToken = token;
+    const alive = () => list.__hcsToken === token && list.isConnected;
+
+    const counters = [...list.querySelectorAll('[data-hcs-count]')];
+    if (reducedMotion()) {
+        list.classList.add('hcs-list--settled');
+        return;
+    }
+
+    list.classList.add('hcs-list--replay');
+    const moving = [];
+    list.querySelectorAll('[data-hcs-section]').forEach((sectionEl) => {
+        const movers = [...sectionEl.querySelectorAll('[data-hcs-mover]')];
+        const bySlot = [];
+        movers.forEach((m) => { bySlot[Number(m.dataset.hcsSlot)] = m; });
+        const rects = bySlot.map((m) => m?.getBoundingClientRect());
+        movers.forEach((m) => {
+            const slot = Number(m.dataset.hcsSlot);
+            const from = Number(m.dataset.hcsFrom);
+            if (from === slot) return;
+            const to = rects[slot];
+            let fromRect = from >= 0 ? rects[from] : null;
+            if (!to) return;
+            if (!fromRect) {
+                // New to this board: rise in from just below.
+                m.classList.add('hcs-newcomer');
+                return;
+            }
+            const dx = (fromRect.left + fromRect.width / 2) - (to.left + to.width / 2);
+            const dy = (fromRect.top + fromRect.height / 2) - (to.top + to.height / 2);
+            m.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+            m.classList.add(from > slot ? 'hcs-climbing' : 'hcs-falling');
+            moving.push(m);
+        });
+    });
+    counters.forEach((c) => { c.textContent = c.dataset.from; });
+    const rankNums = [...list.querySelectorAll('[data-hcs-rank]')];
+    rankNums.forEach((r) => { r.textContent = r.dataset.from; });
+    void list.offsetWidth;
+
+    // 1. Stars tick up where the heroes stood.
+    setTimeout(() => {
+        if (!alive()) return;
+        list.classList.add('hcs-list--counting');
+        counters.forEach((c) => {
+            const from = Number(c.dataset.from);
+            const to = Number(c.dataset.to);
+            if (from !== to) {
+                c.closest('.hcs-figure__stars, .hcs-row__stars')?.classList.add('hcs-ticking');
+                countUp(c, from, to, 900);
+            }
+        });
+    }, 450);
+
+    // 2. Everyone glides to their new place.
+    setTimeout(() => {
+        if (!alive()) return;
+        moving.forEach((m) => {
+            m.classList.add('hcs-gliding');
+            m.style.transform = '';
+        });
+    }, 1350);
+
+    // 3. Landing: flashes for climbers, the crown for a new leader.
+    setTimeout(() => {
+        if (!alive()) return;
+        moving.forEach((m) => m.classList.remove('hcs-gliding', 'hcs-falling'));
+        rankNums.forEach((r) => { r.textContent = r.dataset.to; });
+        list.querySelectorAll('.hcs-climbing').forEach((m) => {
+            m.classList.remove('hcs-climbing');
+            m.classList.add('hcs-landed');
+        });
+        sections.forEach((section) => {
+            const top = section.entries[0];
+            if (!top || !(top.score > 0) || !section.previousLeaderId || section.previousLeaderId === top.id) return;
+            const sectionEl = [...list.querySelectorAll('[data-hcs-section]')].find((el) => el.dataset.hcsSection === section.id);
+            const fig = sectionEl?.querySelector(`.hcs-spot--gold .hcs-figure[data-hcs-id="${CSS.escape(top.id)}"]`);
+            if (fig) {
+                fig.classList.add('hcs-crowned');
+                burst(fig.querySelector('.hcs-figure__portrait') || fig);
+            }
+        });
+        list.classList.add('hcs-list--settled');
+        list.classList.remove('hcs-list--replay', 'hcs-list--counting');
+    }, 2500);
+}

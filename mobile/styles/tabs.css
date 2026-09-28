@@ -545,93 +545,7 @@ body.gcq-mobile .quest-banner-side {
     gap: 0.35rem !important;
 }
 
-/* 3. Control Cards & League Selector Toolbars — Fully Mobile Optimized */
-body.gcq-mobile #class-leaderboard-tab .bg-white\/70,
-body.gcq-mobile #student-leaderboard-tab .bg-white\/70 {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 0.65rem 0.5rem !important;
-    margin: 0 0 1rem 0 !important;
-    border-radius: 1.35rem !important;
-    background: rgba(255, 255, 255, 0.95) !important;
-    box-shadow: 0 8px 24px -8px rgba(15, 40, 90, 0.18) !important;
-    overflow: visible !important;
-}
-
-body.gcq-mobile #class-leaderboard-tab .bg-white\/70,
-body.gcq-mobile #student-leaderboard-tab .bg-white\/70,
-body.gcq-mobile #student-leaderboard-tab .bg-white\/70 > div,
-body.gcq-mobile #class-leaderboard-tab .bg-white\/70 > div {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.4rem !important;
-    overflow-x: visible !important;
-    overflow-y: visible !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-body.gcq-mobile #class-leaderboard-tab .bg-white\/70 span.uppercase,
-body.gcq-mobile #student-leaderboard-tab .bg-white\/70 span.uppercase {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    font-size: 0.72rem !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.1em !important;
-    margin-bottom: 0.15rem !important;
-}
-
-body.gcq-mobile #class-leaderboard-tab .bg-white\/70 button,
-body.gcq-mobile #student-leaderboard-tab .bg-white\/70 button {
-    flex: 1 1 auto !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    box-sizing: border-box !important;
-    font-size: 0.78rem !important;
-    padding: 0.4rem 0.65rem !important;
-    min-height: 2.45rem !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-body.gcq-mobile #hc-expand-toggle {
-    flex: 0 0 auto !important;
-    width: 2.45rem !important;
-    min-width: 2.45rem !important;
-    padding: 0 !important;
-}
-
-body.gcq-mobile #student-view-switcher {
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0.5rem !important;
-    margin-top: 0.5rem !important;
-    padding-top: 0.5rem !important;
-    border-top: 1px solid rgba(226, 232, 240, 0.85) !important;
-}
-
-body.gcq-mobile #student-view-switcher .flex {
-    width: 100% !important;
-    justify-content: center !important;
-    gap: 0.4rem !important;
-}
-
-body.gcq-mobile #student-view-switcher button {
-    flex: 1 !important;
-    text-align: center !important;
-    justify-content: center !important;
-    font-size: 0.76rem !important;
-    padding: 0.35rem 0.5rem !important;
-}
+/* 3. The Quest League bar styles itself for phones (styles/hero_standings.css). */
 
 /* 4. Team Quest Cards (.team-quest-card-refreshed) */
 body.gcq-mobile .team-quest-card-refreshed {
@@ -677,36 +591,7 @@ body.gcq-mobile .stat-rune-card {
     padding: 0.55rem 0.6rem !important;
 }
 
-/* 5. Student / Hero Cards (.student-leaderboard-card) */
-body.gcq-mobile #student-leaderboard-list .student-leaderboard-card {
-    border-radius: 1.25rem !important;
-    padding: 0.75rem 0.85rem !important;
-    margin-bottom: 0.65rem !important;
-}
-
-body.gcq-mobile .hc-lb-card-rise {
-    margin-bottom: 0.55rem !important;
-}
-
-body.gcq-mobile .hc-lb-rank {
-    width: 2.2rem !important;
-    height: 2.2rem !important;
-    font-size: 1rem !important;
-}
-
-body.gcq-mobile .hc-lb-avatar-wrap {
-    width: 2.6rem !important;
-    height: 2.6rem !important;
-}
-
-body.gcq-mobile .hc-lb-name {
-    font-size: 0.95rem !important;
-}
-
-body.gcq-mobile .hc-lb-score-val,
-body.gcq-mobile .hc-lb-score {
-    font-size: 1.15rem !important;
-}
+/* 5. Hero's Challenge standings style themselves for phones (styles/hero_standings.css). */
 
 /* FABs on Hero's Challenge: refine label display for mobile touch */
 body.gcq-mobile #student-leaderboard-tab .tab-fab {

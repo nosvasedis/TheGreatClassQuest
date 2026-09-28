@@ -1062,53 +1062,18 @@ export function setupUIListeners() {
         });
     }
 
-    // Hero's Challenge expand toggle (reveals view/metric switchers)
-    const hcExpandToggle = document.getElementById('hc-expand-toggle');
-    if (hcExpandToggle) {
-        hcExpandToggle.addEventListener('click', () => {
-            const switcher = document.getElementById('student-view-switcher');
-            const chevron = hcExpandToggle.querySelector('.hc-chevron');
-            const isExpanded = hcExpandToggle.getAttribute('aria-expanded') === 'true';
-            if (isExpanded) {
-                switcher.classList.remove('is-open');
-                hcExpandToggle.setAttribute('aria-expanded', 'false');
-                chevron.style.transform = '';
-            } else {
-                switcher.classList.add('is-open');
-                hcExpandToggle.setAttribute('aria-expanded', 'true');
-                chevron.style.transform = 'rotate(180deg)';
-            }
+    // Hero's Challenge view / metric switches (the render syncs the pressed state)
+    [
+        ['view-by-class', 'studentLeaderboardView', 'class'],
+        ['view-by-league', 'studentLeaderboardView', 'league'],
+        ['metric-monthly', 'studentStarMetric', 'monthly'],
+        ['metric-total', 'studentStarMetric', 'total']
+    ].forEach(([id, key, value]) => {
+        document.getElementById(id)?.addEventListener('click', () => {
+            if (state.get(key) === value) return;
+            state.set(key, value);
+            tabs.renderStudentLeaderboardTab();
         });
-    }
-
-    // Leaderboard View Switchers
-    document.getElementById('view-by-league').addEventListener('click', () => {
-        state.set('studentLeaderboardView', 'league');
-        tabs.renderStudentLeaderboardTab();
-        document.getElementById('view-by-league').classList.add('bg-purple-500', 'text-white');
-        document.getElementById('view-by-class').classList.remove('bg-purple-500', 'text-white');
-        document.getElementById('view-by-class').classList.add('bg-gray-300', 'text-gray-800');
-    });
-    document.getElementById('view-by-class').addEventListener('click', () => {
-        state.set('studentLeaderboardView', 'class');
-        tabs.renderStudentLeaderboardTab();
-        document.getElementById('view-by-class').classList.add('bg-purple-500', 'text-white');
-        document.getElementById('view-by-league').classList.remove('bg-purple-500', 'text-white');
-        document.getElementById('view-by-league').classList.add('bg-gray-300', 'text-gray-800');
-    });
-    document.getElementById('metric-monthly').addEventListener('click', () => {
-        state.set('studentStarMetric', 'monthly');
-        tabs.renderStudentLeaderboardTab();
-        document.getElementById('metric-monthly').classList.add('bg-purple-500', 'text-white');
-        document.getElementById('metric-total').classList.remove('bg-purple-500', 'text-white');
-        document.getElementById('metric-total').classList.add('bg-gray-300', 'text-gray-800');
-    });
-    document.getElementById('metric-total').addEventListener('click', () => {
-        state.set('studentStarMetric', 'total');
-        tabs.renderStudentLeaderboardTab();
-        document.getElementById('metric-total').classList.add('bg-purple-500', 'text-white');
-        document.getElementById('metric-monthly').classList.remove('bg-purple-500', 'text-white');
-        document.getElementById('metric-monthly').classList.add('bg-gray-300', 'text-gray-800');
     });
 
     // Adventure Log

@@ -12,12 +12,16 @@ Spending Gold in the Market **does not** drop anyone on this board. Rank is star
 
 The leaderboard is **not** a guild table. Guild competition lives in **Guild Hall**. Here you will see guild *badges* on rows, but the sort order is individual.
 
-Toggles (expand the view options):
+The **Quest League** bar under the month banner holds the league picker, two switches and **History**:
 
-- **By Class** / **Global Rank** (everyone in that Quest League)
+- **By Class** / **Global Rank** (everyone in that Quest League). By Class shows your own classes first.
 - **Monthly Stars** / **Total Stars**
 
-Each row can show: avatar, name, stars, Gold, **Familiar** (Elite), guild emblem, Hero Path title, a coloured **aura** from Hero Path level 3, **Reigning Prodigy** crown from last month, and **Guild Champion** / top-hero marks when those titles apply.
+Each class opens on a **podium**: a velvet stage where the top three stand on gold, silver and bronze pedestals, with a crown over first place and how far they lead. Only heroes with stars stand on it; before anyone has a star, the class shows an open-race note instead. Everyone else follows in rows with a rank shield, a bar showing their stars against the leader, and how many stars they need to catch the hero above.
+
+Each hero can show: avatar, name, stars, Gold, **Familiar** (Elite), guild emblem, Hero Path title, a coloured **aura** from Hero Path level 3, **Reigning Prodigy** crown from last month, and **Guild Champion** / top-hero marks when those titles apply.
+
+**Rank changes come alive.** The board remembers what this device last showed. When you come back after awarding stars (or stars arrive while the tab is open), a banner says what happened since your last look, stars count up where each hero stood, and then everyone glides to their new place. Climbers flash gold, a new leader gets the crown, and small **▲ / ▼** and **+N** marks stay on each hero for the rest of the visit. With reduced motion switched on in the device, the marks appear without the motion.
 
 Floating action buttons typically include **Hall of Prodigies** (monthly archive) and **Trophy Room** (inventory).
 

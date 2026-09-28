@@ -952,9 +952,19 @@
     animation: none;
 }
 
+/* The stage: the light layer that carries the journey's moving picture over the wallpaper (the
+   card's sky and the hill strips). Only the stage is ever scaled or clipped. */
+.wp-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 101;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 /* The copies borrow the greeting card's palette classes, without the card's own frame. */
-#dynamic-wallpaper-screen .wp-cardsky,
-#dynamic-wallpaper-screen .wp-strip--meadow {
+.wp-stage .wp-cardsky,
+.wp-stage .wp-strip.wp-strip--meadow {
     position: absolute;
     display: block;
     padding: 0;
@@ -965,8 +975,8 @@
     pointer-events: none;
 }
 
-/* The card's pale sky, laid over the realm's sky while the camera is still near the cottage. */
-#dynamic-wallpaper-screen .wp-cardsky {
+/* The card's pale sky, under the hills. */
+.wp-stage .wp-cardsky {
     left: 0;
     right: 0;
     z-index: 3;
@@ -974,8 +984,8 @@
 }
 .wp-cardsky .greeting-sky { border-radius: 0; }
 
-/* Travelling hill strips: meadow and realm copies, stacked by depth next to the real horizon. */
-#dynamic-wallpaper-screen .wp-strip {
+/* Travelling hill strips: meadow and realm copies and the castle, stacked by depth. */
+.wp-stage .wp-strip {
     position: absolute;
     left: 0;
     bottom: 0;
@@ -983,21 +993,20 @@
     pointer-events: none;
     will-change: transform;
 }
-#dynamic-wallpaper-screen .wp-strip--meadow {
+.wp-stage .wp-strip.wp-strip--castle { right: 0; }
+.wp-stage .wp-strip.wp-strip--meadow {
     background: none;
     overflow: hidden !important;
 }
 .wp-strip svg { overflow: visible; }
 .wp-strip .greeting-hills { right: auto; height: 100%; }
 
-/* While the copies travel, the real far and near hills wait; the real castle travels itself. */
-.wall-horizon.is-travelling > .wall-horizon__far,
-.wall-horizon.is-travelling > .wall-horizon__near { visibility: hidden; }
-.wall-horizon__castle { will-change: transform; }
+/* While the stage travels, the real horizon waits; it takes over again once everything is still. */
+.wall-horizon.is-travelling > svg { visibility: hidden; }
 
 /* For the whole journey the glass panels (all invisible then) are out of rendering, and the fog
-   keeps its haze without its backdrop blur: backdrop blur under the moving camera window flickers,
-   and switching it on or off mid-motion stutters. They return once everything is still. */
+   keeps its haze without its backdrop blur, so switching them never happens mid-motion. They
+   return once everything is still. */
 #dynamic-wallpaper-screen.is-journeying :is(#wall-center-hub, #wall-remote, #wall-quote-container,
     #wall-floating-area, #wall-timer-overlay, #wall-deck-panel) {
     visibility: hidden;

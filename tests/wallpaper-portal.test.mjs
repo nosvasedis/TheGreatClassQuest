@@ -12,8 +12,14 @@ const closeBody = portal.slice(portal.indexOf('export async function playPortalC
 test('portal exports an opening and a closing and wallpaper.js uses both', () => {
     assert.match(portal, /export async function playPortalOpen/);
     assert.match(portal, /export async function playPortalClose/);
-    assert.match(wallpaper, /playPortalOpen\(wallpaperEl\)/);
+    assert.match(wallpaper, /playPortalOpen\(wallpaperEl, \{ onCovered: enterProjectorMode \}\)/);
     assert.match(wallpaper, /playPortalClose\(wallpaperEl\)/);
+});
+
+test('projector page styles (they hide the header) wait until Home is covered', () => {
+    const opening = wallpaper.slice(wallpaper.indexOf('if (isHidden) {'), wallpaper.indexOf('} else {', wallpaper.indexOf('if (isHidden) {')));
+    assert.doesNotMatch(opening, /^\s*document\.body\.classList\.add\('projector-mode'\);/m);
+    assert.ok(portal.indexOf("wallEl.style.visibility = '';\n    onCovered?.();") > 0);
 });
 
 test('toggle ignores presses while the portal is animating', () => {
@@ -31,7 +37,7 @@ test('the camera starts on the Home greeting card and its meadow', () => {
 test('the journey travels by depth to the real castle horizon', () => {
     assert.match(portal, /far:[\s\S]*mid:[\s\S]*near:/);
     assert.match(portal, /wall-horizon__castle/);
-    assert.match(css, /\.wall-horizon\.is-travelling > \.wall-horizon__far/);
+    assert.match(css, /\.wall-horizon\.is-travelling > svg/);
 });
 
 test('full screen is settled before anything is measured', () => {
@@ -53,9 +59,10 @@ test('render state only changes while nothing moves', () => {
         assert.ok(body.indexOf('await mountCamera(') < body.indexOf('playAll(animations)'));
         assert.ok(body.indexOf('playAll(animations)') < body.indexOf('runCamera('));
     }
-    // ...and released only after the journey has come to rest.
-    assert.ok(openBody.indexOf('await settle(animations)') < openBody.indexOf('releaseCamera(wallEl)'));
-    assert.doesNotMatch(portal.slice(portal.indexOf('function runCamera'), portal.indexOf('function cardWords')), /releaseCamera|classList/);
+    // ...and the stage hands over to the real horizon only after the journey has come to rest.
+    assert.ok(openBody.indexOf('await settle(animations)') < openBody.indexOf('journey.remove()'));
+    assert.ok(openBody.indexOf('journey.remove()') < openBody.indexOf("classList.remove('is-journeying')"));
+    assert.doesNotMatch(portal.slice(portal.indexOf('function runCamera'), portal.indexOf('function cardWords')), /classList/);
     // The clip never switches off mid-journey.
     assert.doesNotMatch(portal.slice(portal.indexOf('function placeCamera'), portal.indexOf('async function mountCamera')), /'none'/);
 });
@@ -68,7 +75,7 @@ test("the card's words step aside so the camera swaps in an exact copy of its pi
 
 test("holds never overwrite the foreground's inline opacity (the quote sets its own)", () => {
     const writes = portal.match(/[\w.]+\.style\.opacity/g) || [];
-    assert.ok(writes.every((w) => w === 'wallEl.style.opacity'), writes.join(', '));
+    assert.ok(writes.every((w) => w === 'stage.style.opacity'), writes.join(', '));
 });
 
 test('the zoom is driven frame by frame, never as an animated clip-path', () => {
@@ -88,6 +95,16 @@ test('Esc from full screen closes the projector smoothly instead of half-closing
 test('a resize keeps the showing card in its region and glides it there', () => {
     assert.match(wallpaper, /keepRegion: refit \? el\.dataset\.region : ''/);
     assert.match(wallpaper, /refitFloatingCard\(\{ glide: true \}\)/);
+});
+
+test('only the light stage is scaled or clipped, never the wallpaper itself', () => {
+    assert.doesNotMatch(portal, /wallEl\.style\.(transform|clipPath|transformOrigin)/);
+    assert.match(css, /\.wp-stage \{[^}]*position: fixed/);
+    // The wallpaper is switched on and off only while the card's opaque sky covers the screen.
+    assert.ok(openBody.indexOf("await runCamera(stage, cardSky, frame, { direction: 'in'") < openBody.indexOf("wallEl.style.visibility = '';\n    onCovered?.();"));
+    assert.match(closeBody, /onBegin: \(\) => \{ wallEl\.style\.visibility = 'hidden'; \}/);
+    assert.match(portal, /delay: ENTER_MS \+ SKY_WAIT_MS/);
+    assert.match(portal, /duration: EXIT_START - SKY_WAIT_MS - 700, delay: 700/);
 });
 
 test('reduced motion skips the journey', () => {

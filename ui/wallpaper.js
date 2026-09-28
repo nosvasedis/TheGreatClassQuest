@@ -204,17 +204,20 @@ export function toggleWallpaperMode() {
         isRunning = true;
         isPaused = false;
         portalBusy = true;
-        document.body.classList.add('projector-mode');
         wallpaperEl.classList.remove('hidden');
         wallpaperEl.classList.remove('wallpaper-exit');
         wallpaperEl.classList.add('wallpaper-enter');
 
         // The opening enters full screen first (this press is the user's go-ahead), then the camera
         // travels from the meadow to the castle. Cards start only once everything is at rest, so
-        // they are placed against the final layout and never shift afterwards.
-        playPortalOpen(wallpaperEl).finally(() => {
+        // they are placed against the final layout and never shift afterwards. Projector mode's
+        // page styles (they hide the app header and reflow the tabs) switch on only once the
+        // journey covers the screen, so Home never jumps while it is still in view.
+        const enterProjectorMode = () => document.body.classList.add('projector-mode');
+        playPortalOpen(wallpaperEl, { onCovered: enterProjectorMode }).finally(() => {
             portalBusy = false;
             if (!isRunning) return;
+            enterProjectorMode();
             handleWallpaperResize();
             directorGameLoop();
         });

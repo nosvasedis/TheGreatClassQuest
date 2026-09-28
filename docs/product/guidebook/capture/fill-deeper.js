@@ -498,18 +498,21 @@ export function showChronicle() {
   modal.classList.remove('hidden');
   modal.classList.add('capture-chronicle');
   const name = document.getElementById('hero-chronicle-student-name');
-  if (name) name.textContent = 'Alex';
+  if (name) name.textContent = 'The deeds of Alex';
   const avatar = document.getElementById('hero-chronicle-avatar');
-  if (avatar) avatar.textContent = 'A';
+  if (avatar) avatar.innerHTML = '<span class="hc-medallion__initial font-title">A</span>';
   const count = document.getElementById('chronicle-note-count');
   if (count) count.textContent = '1 Note';
   const feed = document.getElementById('hero-chronicle-notes-feed');
   if (feed) {
     feed.innerHTML = `
-            <article class="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">🎓 Academic</p>
-                <p class="text-sm text-slate-700 mt-1">Asked for a harder dictation and stayed to check the spelling list.</p>
-                <p class="text-[10px] text-slate-400 mt-2">30 Aug 2026 · private</p>
+            <article class="hc-entry hc-entry--academic">
+                <time class="hc-entry__date"><span class="hc-entry__day">30</span><span class="hc-entry__month">Aug</span><span class="hc-entry__year">2026</span></time>
+                <span class="hc-entry__seal"><i class="fas fa-graduation-cap"></i></span>
+                <div class="hc-entry__body">
+                    <div class="hc-entry__head"><span class="hc-entry__cat">Academic</span></div>
+                    <p class="hc-entry__text">Asked for a harder dictation and stayed to check the spelling list.</p>
+                </div>
             </article>`;
   }
 }

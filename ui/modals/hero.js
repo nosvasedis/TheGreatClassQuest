@@ -64,15 +64,17 @@ function openHeroChronicleModalContent(studentId, student) {
     }
 
     // Set student name
-    document.getElementById('hero-chronicle-student-name').innerText = `Archived Deeds of ${student.name}`;
+    document.getElementById('hero-chronicle-student-name').innerText = `The deeds of ${student.name}`;
     
     // Inject Avatar
     const avatarContainer = document.getElementById('hero-chronicle-avatar');
     if (student.avatar) {
-        avatarContainer.innerHTML = `<img src="${student.avatar}" class="w-full h-full object-cover" alt="${student.name}">`;
+        avatarContainer.innerHTML = `<img src="${student.avatar}" alt="${student.name}">`;
     } else {
-        avatarContainer.innerHTML = `<span class="font-title text-emerald-600">${student.name.charAt(0)}</span>`;
+        avatarContainer.innerHTML = `<span class="hc-medallion__initial font-title">${student.name.charAt(0)}</span>`;
     }
+
+    bindChronicleCategoryChips();
 
     // Reset Tabs
     switchHeroChronicleTab('notes');
@@ -81,10 +83,11 @@ function openHeroChronicleModalContent(studentId, student) {
     renderHeroChronicleContent(studentId);
     
     // Reset AI output
+    markChosenCounsel(null);
     document.getElementById('hero-chronicle-ai-output').innerHTML = `
-        <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
-            <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-5xl opacity-40">🔮</div>
-            <p class="text-slate-400 font-medium max-w-xs">Select a counsel type to receive the Oracle's wisdom.</p>
+        <div class="hc-oracle-empty">
+            <span class="hc-orb" aria-hidden="true"></span>
+            <p>Choose a counsel to receive the Oracle's wisdom.</p>
         </div>
     `;
 
@@ -92,6 +95,9 @@ function openHeroChronicleModalContent(studentId, student) {
 }
 
 export function switchHeroChronicleTab(tabId) {
+    // Drives the page tint and bookmark colour in styles/chronicle.css
+    const chronicleModal = document.getElementById('hero-chronicle-modal');
+    if (chronicleModal) chronicleModal.dataset.chronicleTab = tabId;
     const oathsTab = document.getElementById('hero-chronicle-content-oaths');
     const oathsBtn = document.getElementById('chronicle-tab-oaths');
     oathsTab?.classList.toggle('hidden', tabId !== 'oaths');
@@ -140,9 +146,10 @@ export function renderHeroChronicleContent(studentId) {
 
     if (notes.length === 0) {
         notesFeed.innerHTML = `
-            <div class="h-48 flex flex-col items-center justify-center text-slate-400 opacity-60">
-                <i class="fas fa-feather-pointed text-4xl mb-3"></i>
-                <p class="font-medium italic">The chronicle is empty...</p>
+            <div class="hc-feed-empty">
+                <span class="hc-feed-empty__book" aria-hidden="true"><i class="fas fa-feather-pointed"></i></span>
+                <p class="hc-feed-empty__title font-title">The chronicle is empty...</p>
+                <p class="hc-feed-empty__hint">Write the first deed and it will appear here.</p>
             </div>
         `;
         return;
@@ -156,44 +163,77 @@ export function renderHeroChronicleContent(studentId) {
         'Goals': 'fa-bullseye'
     };
 
-    const categoryColors = {
-        'General': 'bg-slate-100 text-slate-600',
-        'Academic': 'bg-blue-100 text-blue-600',
-        'Behavior': 'bg-purple-100 text-purple-600',
-        'Social': 'bg-pink-100 text-pink-600',
-        'Goals': 'bg-emerald-100 text-emerald-600'
-    };
-
-    notesFeed.innerHTML = notes.map(note => {
+    notesFeed.innerHTML = notes.map((note, index) => {
         const icon = categoryIcons[note.category] || 'fa-bookmark';
-        const colors = categoryColors[note.category] || 'bg-slate-100 text-slate-600';
-        const dateStr = (note.createdAt ? note.createdAt.toDate() : new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const tone = categoryIcons[note.category] ? note.category.toLowerCase() : 'general';
+        const date = note.createdAt ? note.createdAt.toDate() : new Date();
+        const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const day = date.toLocaleDateString('en-GB', { day: 'numeric' });
+        const month = date.toLocaleDateString('en-GB', { month: 'short' });
+        const year = date.getFullYear();
         
         return `
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-emerald-200 transition-all">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg ${colors} flex items-center justify-center text-xs">
-                            <i class="fas ${icon}"></i>
-                        </div>
-                        <div>
-                            <div class="text-[10px] font-black uppercase tracking-widest leading-tight">${note.category}</div>
-                            <div class="text-[10px] text-slate-400 font-bold">${dateStr}</div>
+            <article class="hc-entry hc-entry--${tone}" style="--i:${Math.min(index, 8)}">
+                <time class="hc-entry__date" title="${dateStr}">
+                    <span class="hc-entry__day">${day}</span>
+                    <span class="hc-entry__month">${month}</span>
+                    <span class="hc-entry__year">${year}</span>
+                </time>
+                <span class="hc-entry__seal" aria-hidden="true"><i class="fas ${icon}"></i></span>
+                <div class="hc-entry__body">
+                    <div class="hc-entry__head">
+                        <span class="hc-entry__cat">${note.category}</span>
+                        <div class="hc-entry__actions">
+                            <button type="button" class="edit-chronicle-note-btn hc-entry__btn" data-note-id="${note.id}" title="Edit Entry" aria-label="Edit entry">
+                                <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="delete-chronicle-note-btn hc-entry__btn hc-entry__btn--danger" data-note-id="${note.id}" title="Delete Entry" aria-label="Delete entry">
+                                <i class="fas fa-trash-can" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="edit-chronicle-note-btn w-7 h-7 flex items-center justify-center rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors" data-note-id="${note.id}" title="Edit Entry">
-                            <i class="fas fa-pen-to-square text-xs"></i>
-                        </button>
-                        <button class="delete-chronicle-note-btn w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 text-rose-500 transition-colors" data-note-id="${note.id}" title="Delete Entry">
-                            <i class="fas fa-trash-can text-xs"></i>
-                        </button>
-                    </div>
+                    <p class="hc-entry__text">${note.noteText}</p>
                 </div>
-                <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">${note.noteText}</p>
-            </div>
+            </article>
         `;
     }).join('');
+}
+
+/** Category chips mirror the hidden <select>, which stays the form's source of truth. */
+function syncChronicleCategoryChips() {
+    const select = document.getElementById('hero-chronicle-note-category');
+    if (!select) return;
+    document.querySelectorAll('#hero-chronicle-note-form .hc-cat').forEach(chip => {
+        chip.setAttribute('aria-checked', String(chip.dataset.category === select.value));
+    });
+}
+
+function bindChronicleCategoryChips() {
+    const group = document.querySelector('#hero-chronicle-note-form .hc-cats');
+    if (!group || group.dataset.bound) return;
+    group.dataset.bound = 'true';
+    group.addEventListener('click', (e) => {
+        const chip = e.target.closest('.hc-cat');
+        if (!chip) return;
+        document.getElementById('hero-chronicle-note-category').value = chip.dataset.category;
+        syncChronicleCategoryChips();
+    });
+    group.addEventListener('keydown', (e) => {
+        if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) return;
+        const chips = [...group.querySelectorAll('.hc-cat')];
+        const current = chips.findIndex(c => c.getAttribute('aria-checked') === 'true');
+        const step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
+        const next = chips[(current + step + chips.length) % chips.length];
+        e.preventDefault();
+        next.click();
+        next.focus();
+    });
+}
+
+function markChosenCounsel(insightType) {
+    document.querySelectorAll('#hero-chronicle-content-oracle .ai-insight-btn').forEach(btn => {
+        btn.classList.toggle('is-chosen', btn.dataset.type === insightType);
+    });
 }
 
 export function resetHeroChronicleForm() {
@@ -202,6 +242,8 @@ export function resetHeroChronicleForm() {
     document.getElementById('hero-chronicle-note-id').value = '';
     document.getElementById('hero-chronicle-cancel-edit-btn').classList.add('hidden');
     form.querySelector('button[type="submit"]').textContent = 'Save Note';
+    form.classList.remove('is-editing');
+    syncChronicleCategoryChips();
 }
 
 export function setupNoteForEditing(noteId) {
@@ -213,6 +255,8 @@ export function setupNoteForEditing(noteId) {
     document.getElementById('hero-chronicle-note-category').value = note.category;
     document.getElementById('hero-chronicle-cancel-edit-btn').classList.remove('hidden');
     document.getElementById('hero-chronicle-note-form').querySelector('button[type="submit"]').textContent = 'Update Note';
+    document.getElementById('hero-chronicle-note-form').classList.add('is-editing');
+    syncChronicleCategoryChips();
     document.getElementById('hero-chronicle-note-text').focus();
 }
 
@@ -299,12 +343,15 @@ export async function generateAIInsight(studentId, insightType) {
     if (!student) return;
 
     const outputEl = document.getElementById('hero-chronicle-ai-output');
+    markChosenCounsel(insightType);
     outputEl.innerHTML = `
-        <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
-            <i class="fas fa-wand-sparkles text-5xl text-indigo-400 animate-pulse"></i>
-            <p class="text-indigo-600 font-bold animate-pulse">The Oracle is consulting the records...</p>
+        <div class="hc-oracle-empty is-thinking">
+            <span class="hc-orb" aria-hidden="true"></span>
+            <p>The Oracle is consulting the records...</p>
         </div>
     `;
+    // On phones the answer sits below the counsel buttons
+    outputEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
     try {
         const insight = await requestAIInsight(studentId, insightType);
@@ -312,18 +359,18 @@ export async function generateAIInsight(studentId, insightType) {
         let htmlInsight = insight
             .replace(/\*\*\*(.*?)\*\*\*/g, '<b>$1</b>') // Handle ***bold***
             .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')   // Handle **bold**
-            .replace(/### (.*?)\n/g, '<h4 class="font-title text-xl text-indigo-700 mt-6 mb-3 flex items-center gap-2"><i class="fas fa-sparkles text-indigo-300 text-sm"></i>$1</h4>')
-            .replace(/\* (.*?)\n/g, '<li class="ml-2 mb-2 flex items-start gap-2"><i class="fas fa-check-circle text-emerald-500 mt-1 text-xs flex-shrink-0"></i><span>$1</span></li>')
+            .replace(/### (.*?)\n/g, '<h4 class="hc-oracle-h font-title">$1</h4>')
+            .replace(/\* (.*?)\n/g, '<li class="hc-oracle-li"><i class="fas fa-star" aria-hidden="true"></i><span>$1</span></li>')
             .replace(/(\n)/g, '<br>');
             
         outputEl.innerHTML = `<div class="ai-response-container animate-fade-in"><ul class="list-none">${htmlInsight}</ul></div>`;
     } catch (error) {
         console.error("AI Insight Error:", error);
         outputEl.innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
-                <i class="fas fa-cloud-bolt text-5xl text-rose-400"></i>
-                <p class="text-rose-500 font-bold">The Oracle could not process the records at this time.</p>
-                <button onclick="location.reload()" class="text-xs bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-full font-bold transition-colors">Retry Connection</button>
+            <div class="hc-oracle-empty is-error">
+                <i class="fas fa-cloud-bolt" aria-hidden="true"></i>
+                <p>The Oracle could not process the records at this time.</p>
+                <button onclick="location.reload()" class="hc-ghost-btn">Retry Connection</button>
             </div>
         `;
     }
@@ -333,25 +380,37 @@ export async function publishParentSummary(studentId) {
     if (!requireEliteAI({ feature: 'The Oracle' })) return;
     const outputEl = document.getElementById('hero-chronicle-ai-output');
     const publishBtn = document.getElementById('hero-chronicle-publish-parent-btn');
+    const publishBtnHtml = publishBtn?.innerHTML;
     if (publishBtn) {
         publishBtn.disabled = true;
-        publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Publishing...';
+        publishBtn.innerHTML = '<span class="hc-publish__icon" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span><span class="hc-publish__text"><span class="hc-publish__name">Publishing...</span></span>';
     }
-    outputEl.innerHTML = `<p class="text-center text-indigo-700"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing a parent-safe summary...</p>`;
+    markChosenCounsel(null);
+    outputEl.innerHTML = `
+        <div class="hc-oracle-empty is-thinking">
+            <span class="hc-orb" aria-hidden="true"></span>
+            <p>Preparing a parent-safe summary...</p>
+        </div>
+    `;
 
     try {
         const summary = await requestAIInsight(studentId, 'parent');
         await publishParentSummaryToRuntime({ studentId, summary });
-        outputEl.innerHTML = `<div class="text-sm text-emerald-800 whitespace-pre-wrap">${summary}</div>`;
+        outputEl.innerHTML = `<div class="hc-oracle-published"><p class="hc-oracle-published__stamp"><i class="fas fa-circle-check" aria-hidden="true"></i> Published to the Parent Portal</p><div class="hc-oracle-published__text">${summary}</div></div>`;
         showToast('Parent summary published to the portal.', 'success');
     } catch (error) {
         console.error('Could not publish parent summary:', error);
-        outputEl.innerHTML = `<p class="text-center text-red-500">The summary could not be published right now.</p>`;
+        outputEl.innerHTML = `
+            <div class="hc-oracle-empty is-error">
+                <i class="fas fa-cloud-bolt" aria-hidden="true"></i>
+                <p>The summary could not be published right now.</p>
+            </div>
+        `;
         showToast(error?.message || 'Could not publish the parent summary.', 'error');
     } finally {
         if (publishBtn) {
             publishBtn.disabled = false;
-            publishBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Publish Parent Summary To Portal';
+            publishBtn.innerHTML = publishBtnHtml;
         }
     }
 }

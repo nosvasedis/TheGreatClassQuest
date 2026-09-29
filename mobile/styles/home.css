@@ -584,44 +584,6 @@
     flex-shrink: 0;
 }
 
-.m-home-schedule-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.3rem;
-    text-align: center;
-    padding: 1.4rem 0.5rem;
-}
-
-.m-home-schedule-empty__icon {
-    font-size: 2.4rem;
-    filter: drop-shadow(0 4px 8px rgba(15, 40, 90, 0.18));
-}
-
-.m-home-schedule-empty strong {
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #047857;
-}
-
-.m-home-schedule-empty small {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #059669;
-}
-
-.m-home-schedule-empty--summer strong { color: #92400e; }
-.m-home-schedule-empty--summer small { color: #b45309; }
-
-.m-home-schedule-empty--sealed strong { color: #1e293b; }
-.m-home-schedule-empty--sealed small { color: #475569; }
-
-.m-home-schedule-empty--weekend strong { color: #0e7490; }
-.m-home-schedule-empty--weekend small { color: #0891b2; }
-
-.m-home-schedule-empty--holiday strong { color: #3730a3; }
-.m-home-schedule-empty--holiday small { color: #4f46e5; }
-
 @media (min-width: 640px) {
     body.gcq-mobile .m-home-actions {
         grid-template-columns: repeat(6, minmax(0, 1fr));

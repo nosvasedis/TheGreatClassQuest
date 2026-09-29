@@ -6,9 +6,9 @@ import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReason
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
 import {
-    getScheduleEmptyStateMarkupClass,
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
+import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 
@@ -133,13 +133,7 @@ function getClassScheduleRows() {
             schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
             classEndDates
         });
-        const emptyClass = getScheduleEmptyStateMarkupClass(emptyState, { mobile: true });
-        return `
-            <div class="${emptyClass}">
-                <span class="m-home-schedule-empty__icon">${emptyState.icon}</span>
-                <strong>${escapeHtml(emptyState.title)}</strong>
-                <small>${escapeHtml(emptyState.message)}</small>
-            </div>`;
+        return buildScheduleEmptySceneHtml(emptyState, { compact: true });
     }
 
     return todaysClasses.map((c) => {

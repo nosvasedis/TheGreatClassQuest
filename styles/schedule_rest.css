@@ -1,0 +1,1208 @@
+/* ==========================================================================
+   School Schedule rest scenes — the Home tab banner when no lessons meet today.
+   Markup: utils/scheduleEmptyScene.js. One painted CSS scene per state:
+   camp (weekday, no lessons) · weekend · holiday · winter · spring · summer · sealed year.
+   Desktop puts the words on a glass plaque beside the art; the phone layout
+   (.rest-scene--compact, or any narrow container) stacks art above words.
+   ========================================================================== */
+
+.rest-scene {
+    --rs-sky: linear-gradient(180deg, #1e1b4b, #f5a25d);
+    --rs-base: #f8fafc;
+    --rs-ink: #1e1b4b;
+    --rs-body: #475569;
+    --rs-chip-bg: #ede9fe;
+    --rs-chip-ink: #5b21b6;
+    --rs-accent: linear-gradient(135deg, #7c3aed, #f97316);
+    --rs-accent-shadow: rgba(124, 58, 237, 0.35);
+    --rs-plaque: rgba(255, 255, 255, 0.86);
+    --rs-plaque-border: rgba(255, 255, 255, 0.95);
+    --rs-shadow: rgba(30, 27, 75, 0.35);
+    --rs-hill-far: #2e2459;
+    --rs-hill-near: #1a1638;
+    --rs-pine: #15122e;
+    --rs-ground: 14%;
+    --rs-confetti-1: #f472b6;
+    --rs-confetti-2: #facc15;
+    --rs-confetti-3: #38bdf8;
+    --rs-confetti-4: #34d399;
+
+    grid-column: 1 / -1;
+    position: relative;
+    display: grid;
+    align-items: center;
+    min-height: 325px;
+    border-radius: 1.6rem;
+    overflow: hidden;
+    isolation: isolate;
+    container-type: inline-size;
+    background: var(--rs-base);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+        0 22px 44px -26px var(--rs-shadow);
+    animation: rs-scene-in 0.6s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+/* ---------- Art canvas ---------- */
+
+.rest-scene__art {
+    --focal: 70%;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: var(--rs-sky);
+}
+
+.rest-scene__art > span,
+.rest-scene__art span span {
+    position: absolute;
+    display: block;
+}
+
+/* ---------- Words on a plaque ---------- */
+
+.rest-scene__copy {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+    max-width: min(25rem, 46%);
+    margin: 1.75rem;
+    padding: 1.4rem 1.55rem 1.5rem;
+    border-radius: 1.35rem;
+    background: var(--rs-plaque);
+    border: 1px solid var(--rs-plaque-border);
+    box-shadow:
+        0 18px 36px -20px var(--rs-shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    backdrop-filter: blur(12px) saturate(1.3);
+    text-align: left;
+    animation: rs-plaque-in 0.7s 0.12s cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
+}
+
+.rest-scene__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.22rem 0.75rem 0.22rem 0.25rem;
+    border-radius: 999px;
+    background: var(--rs-chip-bg);
+    color: var(--rs-chip-ink);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.rest-scene__emoji {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 3px 8px -3px var(--rs-shadow);
+    font-size: 1rem;
+    letter-spacing: 0;
+    line-height: 1;
+}
+
+.rest-scene__title {
+    margin: 0;
+    color: var(--rs-ink);
+    font-size: clamp(1.6rem, 3.6cqi, 2.25rem);
+    line-height: 1.05;
+    text-wrap: balance;
+}
+
+.rest-scene__message {
+    margin: 0;
+    color: var(--rs-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.45;
+    text-wrap: pretty;
+}
+
+.rest-scene__next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+    padding: 0.5rem 0.95rem 0.5rem 0.8rem;
+    border-radius: 999px;
+    background: var(--rs-accent);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    box-shadow: 0 10px 20px -10px var(--rs-accent-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.rest-scene__next i {
+    animation: rs-compass 4s ease-in-out infinite;
+}
+
+.rest-scene__next strong {
+    font-weight: 800;
+}
+
+/* ---------- Stacked layout: phones and narrow cards ---------- */
+
+.rest-scene--compact {
+    display: block;
+    min-height: 0;
+    border-radius: 1.25rem;
+}
+
+.rest-scene--compact .rest-scene__art {
+    --focal: 50%;
+    --rs-ground: 16%;
+    position: relative;
+    height: 170px;
+}
+
+.rest-scene--compact .rest-scene__copy {
+    align-items: center;
+    gap: 0.4rem;
+    max-width: none;
+    margin: -1.6rem 0.6rem 0.6rem;
+    padding: 1rem 1rem 1.1rem;
+    text-align: center;
+}
+
+.rest-scene--compact .rest-scene__title {
+    font-size: 1.4rem;
+}
+
+.rest-scene--compact .rest-scene__message {
+    font-size: 0.8rem;
+}
+
+.rest-scene--compact .rest-scene__next {
+    font-size: 0.74rem;
+}
+
+@container (max-width: 620px) {
+    .rest-scene__art {
+        --focal: 55%;
+        --rs-ground: 16%;
+        position: relative;
+        height: 190px;
+    }
+
+    .rest-scene__copy {
+        align-items: center;
+        max-width: none;
+        margin: -1.75rem 0.85rem 0.85rem;
+        text-align: center;
+    }
+}
+
+/* ==========================================================================
+   Shared scenery pieces
+   ========================================================================== */
+
+.rs-hill {
+    bottom: 0;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.rs-hill--far {
+    left: -12%;
+    width: 78%;
+    height: 40%;
+    background: var(--rs-hill-far);
+}
+
+.rs-hill--near {
+    left: -10%;
+    right: -10%;
+    height: calc(var(--rs-ground) + 8%);
+    border-radius: 60% 60% 0 0 / 100% 100% 0 0;
+    background: var(--rs-hill-near);
+}
+
+.rs-star {
+    left: var(--x);
+    top: var(--y);
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.8);
+    animation: rs-twinkle 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--d) * -1);
+}
+
+.rs-moon {
+    left: calc(var(--focal) + 118px);
+    top: 13%;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    box-shadow: 9px 7px 0 0 #fde68a;
+    filter: drop-shadow(0 0 10px rgba(253, 230, 138, 0.65));
+}
+
+.rs-pine {
+    left: var(--x);
+    bottom: calc(var(--rs-ground) + 4%);
+    width: calc(var(--h) * 0.56);
+    height: var(--h);
+    transform: translateX(-50%);
+    background: var(--rs-pine);
+    clip-path: polygon(50% 0, 76% 36%, 64% 36%, 90% 70%, 56% 70%, 56% 100%, 44% 100%, 44% 70%, 10% 70%, 36% 36%, 24% 36%);
+}
+
+.rs-cloud {
+    width: 78px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    animation: rs-drift 38s ease-in-out infinite alternate;
+}
+
+.rs-cloud::before,
+.rs-cloud::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: inherit;
+}
+
+.rs-cloud::before { width: 34px; height: 34px; left: 12px; top: -16px; }
+.rs-cloud::after { width: 26px; height: 26px; left: 38px; top: -11px; }
+
+.rs-cloud--1 { left: 6%; top: 16%; }
+.rs-cloud--2 { left: 56%; top: 30%; transform: scale(0.75); animation-duration: 46s; animation-direction: alternate-reverse; opacity: 0.85; }
+
+.rs-sun {
+    left: calc(var(--focal) + 104px);
+    top: 11%;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 36%, #fefce8, #fde047 55%, #facc15);
+    box-shadow: 0 0 38px 8px rgba(253, 224, 71, 0.65);
+}
+
+.rs-sun .rs-sun__rays {
+    inset: -24px;
+    z-index: -1;
+    border-radius: 50%;
+    background: repeating-conic-gradient(rgba(254, 240, 138, 0.6) 0deg 9deg, transparent 9deg 30deg);
+    -webkit-mask: radial-gradient(circle, #000 35%, transparent 70%);
+    mask: radial-gradient(circle, #000 35%, transparent 70%);
+    animation: rs-spin 36s linear infinite;
+}
+
+.rs-sea {
+    left: 0;
+    right: 0;
+    bottom: calc(var(--rs-ground) + 2%);
+    height: 24%;
+    background: linear-gradient(180deg, #38bdf8, #0284c7);
+}
+
+.rs-sea .rs-sea__waves {
+    top: -7px;
+    left: -40px;
+    right: -40px;
+    height: 8px;
+    background: radial-gradient(circle at 10px 8px, #38bdf8 7px, transparent 7.5px) 0 0 / 20px 8px repeat-x;
+    animation: rs-waves 6s linear infinite;
+}
+
+.rs-sand {
+    left: -6%;
+    right: -6%;
+    bottom: 0;
+    height: calc(var(--rs-ground) + 6%);
+    border-radius: 50% 50% 0 0 / 28px 28px 0 0;
+    background: linear-gradient(180deg, #fde68a, #fbbf24);
+}
+
+/* ==========================================================================
+   Heroes' Camp — a dusk campsite with a crackling fire
+   ========================================================================== */
+
+.rest-scene--camp {
+    --rs-sky: linear-gradient(180deg, #1e1b4b 0%, #3b2a7a 38%, #8b4a8f 68%, #f5a25d 100%);
+    --rs-base: #fff7ed;
+    --rs-ink: #3b1f6e;
+    --rs-body: #5b4a72;
+    --rs-chip-bg: #fff1e0;
+    --rs-chip-ink: #c2410c;
+    --rs-accent: linear-gradient(135deg, #7c3aed, #f97316);
+    --rs-accent-shadow: rgba(249, 115, 22, 0.5);
+    --rs-shadow: rgba(59, 31, 110, 0.4);
+    --rs-hill-far: #3a2d6b;
+    --rs-hill-near: #1d1840;
+    --rs-pine: #181433;
+}
+
+.rs-tent {
+    left: calc(var(--focal) - 128px);
+    bottom: var(--rs-ground);
+    width: 118px;
+    height: 86px;
+    background: linear-gradient(100deg, #14b8a6 0 50%, #0f766e 50% 100%);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.rs-tent .rs-tent__door {
+    left: 50%;
+    bottom: 0;
+    width: 40px;
+    height: 54px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at 50% 100%, #fef3c7 0%, #fbbf24 35%, #b45309 75%, #451a03 100%);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    animation: rs-lamp 3s ease-in-out infinite;
+}
+
+.rs-fire {
+    left: calc(var(--focal) + 12px);
+    bottom: calc(var(--rs-ground) - 4px);
+    width: 60px;
+    height: 76px;
+}
+
+.rs-fire .rs-fire__glow {
+    left: 50%;
+    bottom: -26px;
+    width: 220px;
+    height: 110px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.55), rgba(249, 115, 22, 0.2) 45%, transparent 70%);
+    animation: rs-glow 2.4s ease-in-out infinite;
+}
+
+.rs-fire .rs-fire__logs {
+    left: 50%;
+    bottom: 2px;
+    width: 58px;
+    height: 11px;
+    margin-left: -29px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #92400e, #57260a);
+    transform: rotate(-11deg);
+}
+
+.rs-fire .rs-fire__logs::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #a16207, #5c2d0c);
+    transform: rotate(22deg);
+}
+
+.rs-fire .rs-flame {
+    left: 50%;
+    bottom: 10px;
+    border-radius: 50% 0 50% 50%;
+    transform: rotate(-45deg);
+    transform-origin: 50% 100%;
+    animation: rs-flicker 1.1s ease-in-out infinite alternate;
+}
+
+.rs-fire .rs-flame--back {
+    width: 42px;
+    height: 42px;
+    margin-left: -21px;
+    background: linear-gradient(45deg, #ea580c, #f97316 60%, #fb923c);
+    box-shadow: 0 0 24px 6px rgba(249, 115, 22, 0.55);
+}
+
+.rs-fire .rs-flame--mid {
+    width: 30px;
+    height: 30px;
+    margin-left: -15px;
+    bottom: 8px;
+    background: linear-gradient(45deg, #f59e0b, #fcd34d);
+    animation-duration: 0.8s;
+    animation-delay: -0.3s;
+}
+
+.rs-fire .rs-flame--core {
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    bottom: 7px;
+    background: #fef9c3;
+    animation-duration: 0.6s;
+    animation-delay: -0.1s;
+}
+
+.rs-fire .rs-ember {
+    left: var(--x);
+    bottom: 40px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fde68a;
+    box-shadow: 0 0 6px 2px rgba(251, 191, 36, 0.8);
+    opacity: 0;
+    animation: rs-ember 2.8s ease-out infinite;
+    animation-delay: var(--d);
+}
+
+/* ==========================================================================
+   Weekend Break — a sunny day at the beach
+   ========================================================================== */
+
+.rest-scene--weekend {
+    --rs-sky: linear-gradient(180deg, #38bdf8 0%, #7dd3fc 40%, #e0f2fe 70%);
+    --rs-base: #f0f9ff;
+    --rs-ink: #0c4a6e;
+    --rs-body: #36627d;
+    --rs-chip-bg: #e0f2fe;
+    --rs-chip-ink: #0369a1;
+    --rs-accent: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    --rs-accent-shadow: rgba(14, 165, 233, 0.5);
+    --rs-shadow: rgba(3, 105, 161, 0.3);
+}
+
+.rs-boat {
+    left: calc(var(--focal) + 118px);
+    bottom: calc(var(--rs-ground) + 14%);
+    width: 48px;
+    height: 50px;
+    transform-origin: 50% 100%;
+    animation: rs-bob 4s ease-in-out infinite;
+}
+
+.rs-boat::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 12px;
+    background: linear-gradient(180deg, #f97316, #c2410c);
+    clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%);
+}
+
+.rs-boat .rs-boat__sail {
+    left: 20px;
+    bottom: 13px;
+    width: 26px;
+    height: 36px;
+    background: linear-gradient(90deg, #fff, #e2e8f0);
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.rs-umbrella {
+    left: calc(var(--focal) - 28px);
+    bottom: calc(var(--rs-ground) + 56px);
+    width: 112px;
+    height: 50px;
+    border-radius: 112px 112px 8px 8px / 100px 100px 8px 8px;
+    background: repeating-linear-gradient(90deg, #f43f5e 0 18.6px, #fff 18.6px 37.3px);
+    box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.08);
+    transform: rotate(-9deg);
+    transform-origin: 50% 100%;
+}
+
+.rs-umbrella .rs-umbrella__pole {
+    left: 54px;
+    top: 44px;
+    width: 4px;
+    height: 70px;
+    border-radius: 2px;
+    background: #7c2d12;
+}
+
+.rs-ball {
+    left: calc(var(--focal) + 112px);
+    bottom: var(--rs-ground);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: conic-gradient(#ef4444 0 25%, #fff 0 50%, #3b82f6 0 75%, #facc15 0);
+    box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.12);
+    animation: rs-ball 1.6s cubic-bezier(0.3, 0, 0.7, 1) infinite alternate;
+}
+
+/* ==========================================================================
+   Summer Quest Pause — a golden-hour sunset beach
+   ========================================================================== */
+
+.rest-scene--summer {
+    --rs-sky: linear-gradient(180deg, #fb923c 0%, #fdba74 32%, #fde68a 62%);
+    --rs-base: #fffbeb;
+    --rs-ink: #7c2d12;
+    --rs-body: #92400e;
+    --rs-chip-bg: #ffedd5;
+    --rs-chip-ink: #c2410c;
+    --rs-accent: linear-gradient(135deg, #f97316, #e11d48);
+    --rs-accent-shadow: rgba(225, 29, 72, 0.4);
+    --rs-shadow: rgba(194, 65, 12, 0.35);
+}
+
+.rest-scene--summer .rs-sea {
+    background: linear-gradient(180deg, #0e9fb8, #0e7490);
+}
+
+.rest-scene--summer .rs-sea .rs-sea__waves {
+    background-image: radial-gradient(circle at 10px 8px, #0e9fb8 7px, transparent 7.5px);
+}
+
+.rs-sun--setting {
+    left: calc(var(--focal) - 20px);
+    top: auto;
+    bottom: calc(var(--rs-ground) + 2% + 24% - 52px);
+    width: 104px;
+    height: 104px;
+    background: radial-gradient(circle at 50% 40%, #fff7ed, #fdba74 45%, #f97316);
+    box-shadow: 0 0 60px 18px rgba(251, 146, 60, 0.6);
+}
+
+.rs-sun--setting .rs-sun__rays {
+    inset: -46px;
+}
+
+.rs-sea .rs-sea__glint {
+    left: calc(var(--focal) - 8px);
+    top: 6px;
+    width: 76px;
+    height: 70%;
+    background: repeating-linear-gradient(180deg, rgba(254, 243, 199, 0.85) 0 3px, transparent 3px 10px);
+    -webkit-mask: linear-gradient(180deg, #000, transparent);
+    mask: linear-gradient(180deg, #000, transparent);
+    animation: rs-glint 2.6s ease-in-out infinite;
+}
+
+.rs-gull {
+    width: 28px;
+    height: 10px;
+    animation: rs-glide 9s ease-in-out infinite alternate;
+}
+
+.rs-gull::before,
+.rs-gull::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 10px;
+    border-top: 3px solid #7c2d12;
+    border-radius: 50% 50% 0 0;
+}
+
+.rs-gull::before { left: 0; transform: rotate(-8deg); }
+.rs-gull::after { right: 0; transform: rotate(8deg); }
+
+.rs-gull--1 { left: calc(var(--focal) + 94px); top: 14%; }
+.rs-gull--2 { left: calc(var(--focal) + 58px); top: 26%; transform: scale(0.7); animation-delay: -4s; }
+
+.rs-palm {
+    left: calc(var(--focal) + 112px);
+    bottom: calc(var(--rs-ground) - 4px);
+    width: 14px;
+    height: 132px;
+    transform-origin: 50% 100%;
+    animation: rs-sway 5s ease-in-out infinite alternate;
+}
+
+.rs-palm .rs-palm__trunk {
+    inset: 0;
+    border-radius: 7px 7px 3px 3px;
+    background: repeating-linear-gradient(180deg, #92400e 0 10px, #6b2d0c 10px 13px);
+    transform: rotate(7deg);
+    transform-origin: 50% 100%;
+}
+
+.rs-palm .rs-palm__crown {
+    left: 50%;
+    top: -26px;
+    width: 132px;
+    height: 62px;
+    margin-left: -58px;
+    background: linear-gradient(180deg, #15803d, #14532d);
+    clip-path: polygon(50% 34%, 22% 0, 0 30%, 30% 24%, 4% 72%, 42% 36%, 30% 100%, 50% 42%, 70% 100%, 58% 36%, 96% 72%, 70% 24%, 100% 30%, 78% 0);
+}
+
+/* ==========================================================================
+   Holiday — bunting, balloons and confetti
+   ========================================================================== */
+
+.rest-scene--holiday {
+    --rs-sky: linear-gradient(180deg, #c4b5fd 0%, #ddd6fe 48%, #fae8ff 100%);
+    --rs-base: #faf5ff;
+    --rs-ink: #3730a3;
+    --rs-body: #5b5b8f;
+    --rs-chip-bg: #ede9fe;
+    --rs-chip-ink: #6d28d9;
+    --rs-accent: linear-gradient(135deg, #6366f1, #d946ef);
+    --rs-accent-shadow: rgba(139, 92, 246, 0.45);
+    --rs-shadow: rgba(79, 70, 229, 0.3);
+    --rs-hill-far: #c7d2fe;
+    --rs-hill-near: #a5b4fc;
+}
+
+.rs-bunting {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+}
+
+.rs-bunting::before {
+    content: '';
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    top: -18px;
+    height: 60px;
+    border-bottom: 2px solid rgba(76, 29, 149, 0.45);
+    border-radius: 0 0 50% 50% / 0 0 100% 100%;
+}
+
+.rs-bunting .rs-flag {
+    left: var(--x);
+    top: var(--y);
+    width: 20px;
+    height: 24px;
+    margin-left: -10px;
+    background: var(--c);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: 50% 0;
+    animation: rs-flag 2.4s ease-in-out infinite alternate;
+    animation-delay: calc(var(--d) * -1);
+}
+
+.rs-confetti {
+    left: var(--x);
+    top: -12px;
+    width: 7px;
+    height: 11px;
+    border-radius: 2px;
+    background: var(--c);
+    animation: rs-fall var(--t) linear infinite;
+    animation-delay: calc(var(--d) * -1);
+}
+
+.rs-balloon {
+    width: 40px;
+    height: 48px;
+    border-radius: 50% 50% 48% 48% / 55% 55% 45% 45%;
+    animation: rs-float 5s ease-in-out infinite alternate;
+}
+
+.rs-balloon::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    width: 8px;
+    height: 6px;
+    margin-left: -4px;
+    background: inherit;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.rs-balloon::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 1px;
+    height: 58px;
+    background: rgba(76, 29, 149, 0.4);
+}
+
+.rs-balloon--1 {
+    left: calc(var(--focal) - 70px);
+    bottom: calc(var(--rs-ground) + 70px);
+    background: radial-gradient(circle at 32% 28%, #fecdd3, #f43f5e 60%);
+}
+
+.rs-balloon--2 {
+    left: calc(var(--focal) - 16px);
+    bottom: calc(var(--rs-ground) + 96px);
+    background: radial-gradient(circle at 32% 28%, #fef9c3, #facc15 60%);
+    animation-delay: -1.8s;
+}
+
+.rs-balloon--3 {
+    left: calc(var(--focal) + 38px);
+    bottom: calc(var(--rs-ground) + 64px);
+    background: radial-gradient(circle at 32% 28%, #bae6fd, #0ea5e9 60%);
+    animation-delay: -3.2s;
+}
+
+/* ==========================================================================
+   Winter Break — snowfall over a cosy cabin
+   ========================================================================== */
+
+.rest-scene--winter {
+    --rs-sky: linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #3b6fd1 100%);
+    --rs-base: #eff6ff;
+    --rs-ink: #1e3a8a;
+    --rs-body: #3f5687;
+    --rs-chip-bg: #dbeafe;
+    --rs-chip-ink: #1d4ed8;
+    --rs-accent: linear-gradient(135deg, #2563eb, #0ea5e9);
+    --rs-accent-shadow: rgba(37, 99, 235, 0.45);
+    --rs-shadow: rgba(30, 58, 138, 0.4);
+    --rs-hill-far: #c7d7f5;
+    --rs-hill-near: #f8fafc;
+    --rs-pine: #1d3b5c;
+}
+
+.rest-scene--winter .rs-moon {
+    box-shadow: 9px 7px 0 0 #e0f2fe;
+    filter: drop-shadow(0 0 12px rgba(224, 242, 254, 0.7));
+}
+
+.rs-cabin {
+    left: calc(var(--focal) - 52px);
+    bottom: var(--rs-ground);
+    width: 94px;
+    height: 58px;
+    border-radius: 3px;
+    background: repeating-linear-gradient(180deg, #92400e 0 9px, #6b2d0c 9px 11px);
+}
+
+.rs-cabin .rs-cabin__roof {
+    left: -12px;
+    right: -12px;
+    top: -40px;
+    height: 42px;
+    background: linear-gradient(180deg, #fff, #dbeafe);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.rs-cabin .rs-cabin__window {
+    left: 14px;
+    top: 17px;
+    width: 22px;
+    height: 20px;
+    border-radius: 3px;
+    background:
+        linear-gradient(90deg, transparent 45%, #6b2d0c 45% 55%, transparent 55%),
+        linear-gradient(180deg, transparent 45%, #6b2d0c 45% 55%, transparent 55%),
+        #fde68a;
+    box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.7);
+    animation: rs-lamp 3.4s ease-in-out infinite;
+}
+
+.rs-cabin::after {
+    content: '';
+    position: absolute;
+    right: 16px;
+    bottom: 0;
+    width: 20px;
+    height: 32px;
+    border-radius: 3px 3px 0 0;
+    background: #451a03;
+}
+
+.rs-cabin .rs-cabin__chimney {
+    right: 14px;
+    top: -42px;
+    width: 14px;
+    height: 26px;
+    background: #7f1d1d;
+}
+
+.rs-cabin .rs-smoke {
+    left: 0;
+    top: -12px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(226, 232, 240, 0.75);
+    animation: rs-smoke 3.6s ease-out infinite;
+}
+
+.rs-cabin .rs-smoke + .rs-smoke {
+    animation-delay: -1.8s;
+}
+
+.rs-snow {
+    left: var(--x);
+    top: -10px;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.9;
+    animation: rs-snow var(--t) linear infinite;
+    animation-delay: calc(var(--d) * -1);
+}
+
+/* ==========================================================================
+   Spring Break — rainbow meadow with butterflies
+   ========================================================================== */
+
+.rest-scene--spring {
+    --rs-sky: linear-gradient(180deg, #7dd3fc 0%, #bae6fd 45%, #fef9c3 100%);
+    --rs-base: #f0fdf4;
+    --rs-ink: #166534;
+    --rs-body: #3f6b4c;
+    --rs-chip-bg: #dcfce7;
+    --rs-chip-ink: #15803d;
+    --rs-accent: linear-gradient(135deg, #22c55e, #14b8a6);
+    --rs-accent-shadow: rgba(34, 197, 94, 0.45);
+    --rs-shadow: rgba(21, 128, 61, 0.3);
+    --rs-hill-far: #86efac;
+    --rs-hill-near: #4ade80;
+}
+
+.rs-rainbow {
+    left: calc(var(--focal) - 140px);
+    bottom: calc(var(--rs-ground) + 2%);
+    width: 280px;
+    height: 140px;
+    background: radial-gradient(circle 140px at 50% 100%,
+        transparent 56%, #a78bfa 56% 62%, #60a5fa 62% 68%, #4ade80 68% 74%,
+        #facc15 74% 80%, #fb923c 80% 86%, #f87171 86% 92%, transparent 92%);
+    opacity: 0.8;
+}
+
+.rs-flower {
+    left: var(--x);
+    bottom: calc(var(--rs-ground) + 14px);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fde047;
+    box-shadow: 0 -6px 0 var(--c), 6px 0 0 var(--c), 0 6px 0 var(--c), -6px 0 0 var(--c);
+    transform-origin: 50% 300%;
+    animation: rs-sway 3s ease-in-out infinite alternate;
+}
+
+.rs-flower::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 12px;
+    width: 2px;
+    height: 16px;
+    background: #15803d;
+}
+
+.rs-butterfly {
+    width: 26px;
+    height: 20px;
+    animation: rs-flutter-path 9s ease-in-out infinite alternate;
+}
+
+.rs-butterfly::before,
+.rs-butterfly::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 13px;
+    height: 18px;
+    background: radial-gradient(circle at 50% 35%, #fff7 0 20%, transparent 22%), var(--wing, #f472b6);
+    animation: rs-wing 0.35s ease-in-out infinite alternate;
+}
+
+.rs-butterfly::before { left: 0; border-radius: 80% 20% 60% 40%; transform-origin: 100% 50%; }
+.rs-butterfly::after { right: 0; border-radius: 20% 80% 40% 60%; transform-origin: 0 50%; }
+
+.rs-butterfly--1 { left: calc(var(--focal) + 70px); top: 26%; --wing: #f472b6; }
+.rs-butterfly--2 { left: calc(var(--focal) + 126px); top: 44%; --wing: #fb923c; animation-delay: -4s; transform: scale(0.8); }
+
+/* ==========================================================================
+   The Year is Sealed — a candlelit scroll under wax
+   ========================================================================== */
+
+.rest-scene--sealed {
+    --rs-sky: radial-gradient(ellipse at 88% 62%, rgba(251, 191, 36, 0.26), transparent 45%),
+        linear-gradient(180deg, #1c1917 0%, #292524 55%, #44403c 100%);
+    --rs-base: #fafaf9;
+    --rs-ink: #292524;
+    --rs-body: #57534e;
+    --rs-chip-bg: #fef3c7;
+    --rs-chip-ink: #92400e;
+    --rs-accent: linear-gradient(135deg, #b91c1c, #d97706);
+    --rs-accent-shadow: rgba(185, 28, 28, 0.4);
+    --rs-shadow: rgba(28, 25, 23, 0.45);
+    --rs-ground: 22%;
+}
+
+.rs-desk {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--rs-ground);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0 3px, transparent 3px),
+        repeating-linear-gradient(90deg, transparent 0 60px, rgba(0, 0, 0, 0.08) 60px 62px),
+        linear-gradient(180deg, #7c3f12, #431a05);
+}
+
+.rs-scroll {
+    left: calc(var(--focal) - 60px);
+    bottom: calc(var(--rs-ground) + 8px);
+    width: 120px;
+    height: 116px;
+    background: linear-gradient(180deg, #fef3c7, #fde68a 70%, #f6d27a);
+    box-shadow: 0 14px 24px -12px rgba(0, 0, 0, 0.6);
+    animation: rs-scroll-in 0.9s 0.15s cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
+}
+
+.rs-scroll .rs-scroll__roll {
+    left: -9px;
+    right: -9px;
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(180deg, #fcd34d, #d97706 55%, #92400e);
+}
+
+.rs-scroll .rs-scroll__roll--top { top: -8px; }
+.rs-scroll .rs-scroll__roll--bottom { bottom: -8px; }
+
+.rs-scroll .rs-scroll__lines {
+    inset: 16px 18px 50px;
+    background: repeating-linear-gradient(180deg, rgba(120, 53, 15, 0.35) 0 2px, transparent 2px 10px);
+    -webkit-mask: linear-gradient(90deg, #000 70%, transparent);
+    mask: linear-gradient(90deg, #000 70%, transparent);
+}
+
+.rs-scroll .rs-scroll__ribbon {
+    left: 50%;
+    top: 58%;
+    bottom: -26px;
+    width: 12px;
+    margin-left: -6px;
+    background: linear-gradient(90deg, #991b1b, #dc2626, #991b1b);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);
+}
+
+.rs-scroll .rs-seal {
+    left: 50%;
+    top: 52%;
+    width: 42px;
+    height: 42px;
+    margin-left: -21px;
+    display: grid;
+    place-items: center;
+    border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
+    background: radial-gradient(circle at 38% 34%, #f87171, #b91c1c 55%, #7f1d1d);
+    box-shadow: 0 4px 10px rgba(127, 29, 29, 0.55), inset 0 0 0 4px rgba(127, 29, 29, 0.45);
+    color: #fecaca;
+    font-size: 1.1rem;
+    line-height: 1;
+    animation: rs-seal 3.2s ease-in-out infinite;
+}
+
+.rs-candle {
+    left: calc(var(--focal) + 128px);
+    bottom: var(--rs-ground);
+    width: 18px;
+    height: 48px;
+    border-radius: 3px 3px 2px 2px;
+    background: linear-gradient(90deg, #fde68a, #fef9c3 45%, #fcd34d);
+}
+
+.rs-candle .rs-candle__flame {
+    left: 50%;
+    bottom: 100%;
+    width: 12px;
+    height: 20px;
+    margin-left: -6px;
+    margin-bottom: 2px;
+    border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
+    background: radial-gradient(ellipse at 50% 72%, #fff 0 20%, #fde047 40%, #f97316 90%);
+    transform-origin: 50% 100%;
+    animation: rs-candle 1.3s ease-in-out infinite alternate;
+}
+
+.rs-candle .rs-candle__halo {
+    left: 50%;
+    bottom: 60%;
+    width: 150px;
+    height: 150px;
+    margin-left: -75px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(253, 224, 71, 0.35), transparent 65%);
+    animation: rs-halo 2.6s ease-in-out infinite;
+}
+
+.rs-quill {
+    left: calc(var(--focal) + 76px);
+    bottom: calc(var(--rs-ground) + 4px);
+    width: 16px;
+    height: 92px;
+    border-radius: 50% 50% 50% 50% / 80% 80% 20% 20%;
+    background: linear-gradient(90deg, #e2e8f0, #fff 50%, #cbd5e1);
+    transform: rotate(-24deg);
+    transform-origin: 50% 100%;
+}
+
+.rs-quill::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: -8px;
+    width: 2px;
+    background: #57534e;
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+
+@keyframes rs-scene-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes rs-plaque-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes rs-scroll-in {
+    from { opacity: 0; transform: translateY(14px) scaleY(0.6); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes rs-twinkle {
+    0%, 100% { opacity: 0.25; transform: scale(0.7); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes rs-flicker {
+    0% { transform: rotate(-45deg) scale(1); }
+    40% { transform: rotate(-42deg) scale(1.08); }
+    100% { transform: rotate(-48deg) scale(0.94); }
+}
+
+@keyframes rs-glow {
+    0%, 100% { opacity: 0.75; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+}
+
+@keyframes rs-halo {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+@keyframes rs-ember {
+    0% { opacity: 0; transform: translate(0, 0) scale(1); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(10px, -70px) scale(0.4); }
+}
+
+@keyframes rs-lamp {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.18); }
+}
+
+@keyframes rs-compass {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(24deg); }
+    60% { transform: rotate(-14deg); }
+}
+
+@keyframes rs-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes rs-drift {
+    from { translate: 0 0; }
+    to { translate: 70px 0; }
+}
+
+@keyframes rs-waves {
+    to { background-position-x: 20px; }
+}
+
+@keyframes rs-bob {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+@keyframes rs-ball {
+    from { transform: translateY(0) rotate(0deg); }
+    to { transform: translateY(-26px) rotate(160deg); }
+}
+
+@keyframes rs-glint {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+}
+
+@keyframes rs-glide {
+    from { translate: 0 0; }
+    to { translate: -36px 8px; }
+}
+
+@keyframes rs-sway {
+    from { rotate: -3deg; }
+    to { rotate: 3deg; }
+}
+
+@keyframes rs-flag {
+    from { rotate: -6deg; }
+    to { rotate: 6deg; }
+}
+
+@keyframes rs-fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    8% { opacity: 1; }
+    100% { transform: translateY(340px) rotate(540deg); opacity: 0.9; }
+}
+
+@keyframes rs-float {
+    from { translate: 0 0; rotate: -4deg; }
+    to { translate: 0 -12px; rotate: 4deg; }
+}
+
+@keyframes rs-smoke {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+    20% { opacity: 0.8; }
+    100% { opacity: 0; transform: translate(14px, -46px) scale(1.8); }
+}
+
+@keyframes rs-snow {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(12px, 170px); }
+    100% { transform: translate(-6px, 340px); }
+}
+
+@keyframes rs-wing {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0.25); }
+}
+
+@keyframes rs-flutter-path {
+    0% { translate: 0 0; }
+    25% { translate: 26px -14px; }
+    50% { translate: 48px 6px; }
+    75% { translate: 20px 18px; }
+    100% { translate: -10px -6px; }
+}
+
+@keyframes rs-seal {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.12) drop-shadow(0 0 8px rgba(248, 113, 113, 0.55)); }
+}
+
+@keyframes rs-candle {
+    from { transform: scale(1, 1) rotate(-2deg); }
+    to { transform: scale(0.9, 1.12) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rest-scene,
+    .rest-scene *,
+    .rest-scene *::before,
+    .rest-scene *::after {
+        animation: none !important;
+    }
+}

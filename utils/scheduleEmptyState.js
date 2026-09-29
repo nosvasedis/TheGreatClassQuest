@@ -2,6 +2,8 @@ import { doesClassMeetOnDate, parseFlexibleDate } from '../utils.js';
 import { isSchoolYearAwaitingOpen } from './schoolYear.js';
 
 export const SUMMER_GAP_HALF_DAYS = 30;
+export const NEXT_LESSON_LOOKAHEAD_DAYS = 28;
+const SUMMER_RETURN_LOOKAHEAD_DAYS = 120;
 
 const EMPTY_STATES = {
     year_closed: {
@@ -9,35 +11,45 @@ const EMPTY_STATES = {
         title: 'The Year is Sealed',
         message: 'The school year is sealed — rest your quills and see you in September!',
         icon: '🔏',
-        cssModifier: 'sealed'
+        cssModifier: 'sealed',
+        scene: 'sealed',
+        eyebrow: 'Chronicle closed'
     },
     summer_break: {
         kind: 'summer_break',
         title: 'Summer Quest Pause',
         message: 'No lessons across the realm for a long stretch. Enjoy the summer sun!',
         icon: '☀️',
-        cssModifier: 'summer'
+        cssModifier: 'summer',
+        scene: 'summer',
+        eyebrow: 'Summer break'
     },
     holiday: {
         kind: 'holiday',
         title: 'Holiday Break',
         message: 'The party has the day off. Recharge and return for the next quest!',
         icon: '📅',
-        cssModifier: 'holiday'
+        cssModifier: 'holiday',
+        scene: 'holiday',
+        eyebrow: 'Holiday'
     },
     weekend: {
         kind: 'weekend',
         title: 'Weekend Break',
         message: 'Enjoy your weekend! Recharge your mana for next week.',
         icon: '🏖️',
-        cssModifier: 'weekend'
+        cssModifier: 'weekend',
+        scene: 'weekend',
+        eyebrow: 'Weekend'
     },
     heroes_camp: {
         kind: 'heroes_camp',
         title: "Heroes' Camp",
         message: 'No lessons today. The party is resting!',
         icon: '⛺',
-        cssModifier: 'camp'
+        cssModifier: 'camp',
+        scene: 'camp',
+        eyebrow: 'Rest day'
     }
 };
 
@@ -107,6 +119,39 @@ export function hasSchoolWideLessonGap({
     return true;
 }
 
+/**
+ * First day after `date` on which any active class meets, or null when none
+ * falls within `maxDays`. Powers the "next quest" hint on rest-day banners.
+ */
+export function findNextLessonDate({
+    date = new Date(),
+    allSchoolClasses = [],
+    allScheduleOverrides = [],
+    schoolHolidayRanges = [],
+    classEndDates = {},
+    maxDays = NEXT_LESSON_LOOKAHEAD_DAYS
+} = {}) {
+    const start = toDateOnly(date);
+    if (!start) return null;
+    const activeClasses = getActiveClasses(allSchoolClasses);
+    if (!activeClasses.length) return null;
+
+    for (let offset = 1; offset <= maxDays; offset += 1) {
+        const cursor = new Date(start);
+        cursor.setDate(start.getDate() + offset);
+        const meets = activeClasses.some((classData) => doesClassMeetOnDate(
+            classData.id,
+            cursor,
+            allSchoolClasses,
+            allScheduleOverrides,
+            schoolHolidayRanges,
+            classEndDates
+        ));
+        if (meets) return { date: toIsoDate(cursor), inDays: offset };
+    }
+    return null;
+}
+
 function buildHolidayState(holiday) {
     const base = { ...EMPTY_STATES.holiday };
     if (!holiday) return base;
@@ -115,7 +160,9 @@ function buildHolidayState(holiday) {
             ...base,
             title: 'Winter Break',
             message: 'Snowflakes and cocoa — the heroes are on winter leave!',
-            icon: '❄️'
+            icon: '❄️',
+            scene: 'winter',
+            eyebrow: 'Winter holiday'
         };
     }
     if (holiday.type === 'easter') {
@@ -123,7 +170,9 @@ function buildHolidayState(holiday) {
             ...base,
             title: 'Spring Break',
             message: 'The realm blooms — enjoy your Easter quest pause!',
-            icon: '🐰'
+            icon: '🐰',
+            scene: 'spring',
+            eyebrow: 'Spring holiday'
         };
     }
     if (holiday.name) {
@@ -153,39 +202,31 @@ export function resolveScheduleEmptyState({
         return { ...EMPTY_STATES.year_closed };
     }
 
-    if (hasSchoolWideLessonGap({
-        date: day,
-        allSchoolClasses,
-        allScheduleOverrides,
-        schoolHolidayRanges,
-        classEndDates
-    })) {
-        return { ...EMPTY_STATES.summer_break };
+    const calendar = { allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates };
+    const withNextLesson = (emptyState, maxDays) => ({
+        ...emptyState,
+        nextLesson: findNextLessonDate({ ...calendar, date: day, maxDays })
+    });
+
+    if (hasSchoolWideLessonGap({ ...calendar, date: day })) {
+        return withNextLesson(EMPTY_STATES.summer_break, SUMMER_RETURN_LOOKAHEAD_DAYS);
     }
 
     const holiday = findHolidayForDate(day, schoolHolidayRanges);
     if (holiday) {
-        return buildHolidayState(holiday);
+        return withNextLesson(buildHolidayState(holiday));
     }
 
     const weekday = day.getDay();
     if (weekday === 0 || weekday === 6) {
-        return { ...EMPTY_STATES.weekend };
+        return withNextLesson(EMPTY_STATES.weekend);
     }
 
-    return { ...EMPTY_STATES.heroes_camp };
+    return withNextLesson(EMPTY_STATES.heroes_camp);
 }
 
 /** Convenience for callers that already know today's DD-MM-YYYY. */
 export function resolveScheduleEmptyStateForDateString(dateString, options = {}) {
     const parsed = parseFlexibleDate(dateString) || new Date();
     return resolveScheduleEmptyState({ ...options, date: parsed });
-}
-
-export function getScheduleEmptyStateMarkupClass(emptyState, { mobile = false } = {}) {
-    const modifier = emptyState?.cssModifier || 'camp';
-    if (mobile) {
-        return `m-home-schedule-empty m-home-schedule-empty--${modifier}`;
-    }
-    return `schedule-empty-camp schedule-empty-camp--${modifier}`;
 }

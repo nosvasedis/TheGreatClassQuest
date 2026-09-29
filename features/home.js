@@ -20,9 +20,9 @@ import { quizLaunchButtonHtml } from '../ui/modals/quizStageMarkup.js';
 import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
 import { escapeHtml } from './roles/shared.js';
 import {
-    getScheduleEmptyStateMarkupClass,
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
+import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from './homeGreetingScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
@@ -848,14 +848,7 @@ function getScheduleHtml(dateString, activeClassId) {
             schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
             classEndDates
         });
-        const emptyClass = getScheduleEmptyStateMarkupClass(emptyState);
-
-        return `
-        <div class="${emptyClass}" style="min-height: 325px;">
-            <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">${escapeHtml(emptyState.icon)}</div>
-            <h4 class="font-title text-3xl mb-2 schedule-empty-camp__title">${escapeHtml(emptyState.title)}</h4>
-            <p class="text-base font-bold opacity-80 schedule-empty-camp__message">${escapeHtml(emptyState.message)}</p>
-        </div>`;
+        return buildScheduleEmptySceneHtml(emptyState);
     }
 
     const gradients = [

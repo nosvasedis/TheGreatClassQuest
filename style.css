@@ -130,6 +130,9 @@
 /* 29. Vibrant Horizons home theme: horizons-grid, weather widget, schedule cards */
 @import url('./styles/home.css');
 
+/* 29a. School Schedule rest scenes: painted camp / weekend / holiday / summer / sealed-year banners */
+@import url('./styles/schedule_rest.css');
+
 /* 30. Roster avatar wiggle, header header-night, new weather widget themes */
 @import url('./styles/misc_wallpaper.css');
 

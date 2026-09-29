@@ -3,7 +3,7 @@ import * as state from '../state.js'; // Import state to get live scores
 import * as utils from '../utils.js';
 
 export { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
-import { QUEST_MAP_ZONES } from './questMapZones.mjs';
+import { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
 
 /** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
 function resolveLeagueMapMetrics(c) {

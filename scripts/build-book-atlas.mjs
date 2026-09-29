@@ -59,8 +59,12 @@ for (let level = 1; level <= 3; level++) {
         { edition: '2e', publisher: 'Cambridge University Press', wordlistRef: 'cpp' + level,
             prevBookId: level > 1 ? 'primary-path-' + (level - 1) : null, nextBookId: level < 3 ? 'primary-path-' + (level + 1) : null });
     item.units = titles.map((title, i) => {
-        const pages = units[i + 1].filter(w => w.component === 'sb' && w.page > 0).map(w => w.page);
-        return { n: i + 1, title, theme: title, grammar: cppGrammar[level - 1][i], pageRange: [Math.min(...pages), Math.max(...pages)], reviewAfter: true };
+        const rangeFor = comp => {
+            const pages = units[i + 1].filter(w => w.component === comp && w.page > 0).map(w => w.page);
+            return pages.length ? [Math.min(...pages), Math.max(...pages)] : null;
+        };
+        const pages = { sb: rangeFor('sb'), wb: rangeFor('wb') };
+        return { n: i + 1, title, theme: title, grammar: cppGrammar[level - 1][i], pageRange: pages.sb, pages, reviewAfter: true };
     });
     writeWords('cpp' + level, { bookId: id, edition: '2e', units, review });
 }
@@ -85,7 +89,7 @@ for (const c of closeup) {
     // Verified against the third-edition scope (newcloseup-b1[-plus]-3e-scope.pdf): the twelve units are
     // contiguous twelve-page units from p5 and all reviews sit at the end (Review units 1-12 pp149-160),
     // so unit 12 starts on p137. (The two-page interleaved reviews belong to the older edition's contents.)
-    item.units = c.titles.map((title, i) => ({ n: i + 1, title, theme: c.themes[i], grammar: c.grammar[i], pageRange: [5 + i * 12, 16 + i * 12], reviewAfter: false }));
+    item.units = c.titles.map((title, i) => ({ n: i + 1, title, theme: c.themes[i], grammar: c.grammar[i], pageRange: [5 + i * 12, 16 + i * 12], pages: { sb: [5 + i * 12, 16 + i * 12] }, reviewAfter: false }));
     // Page annotations from the publisher's wordlists enable targeted retrieval.
     const raw = read('closeup/' + c.ref + '-closeup-wordlists.txt');
     const pageByWord = new Map(); let currentPage = null;
@@ -112,7 +116,7 @@ for (const [ref, id, title, league, aliases] of [
         { publisher: 'Hamilton House', wordlistRef: ref === 'bamboo' ? 'bamboo1' : 'yeti2' });
     // OCR image names denote blocks, not printed page numbers. Never guess a page mapping.
     item.units = rows.map(u => ({ n: u.lesson || u.unit, title: u.title || ('Lesson ' + u.unit),
-        theme: u.title || u.words.slice(0, 4).join(', '), grammar: u.grammar || '', pageRange: null, reviewAfter: false }));
+        theme: u.title || u.words.slice(0, 4).join(', '), grammar: u.grammar || '', pageRange: null, pages: {}, reviewAfter: false }));
     const companion = ref === 'yeti' ? Object.fromEntries(Object.entries(json('ebook/yeti-companion-words.json')).map(([u, ws]) =>
         [u, ws.map(w => ({ w, pos: '', component: 'companion' }))])) : {};
     writeWords(item.wordlistRef, { bookId: id, units, companion, pictureDictionary: input.pictureDictionary || input.picture_dictionary || [] });
@@ -131,7 +135,11 @@ for (let level = 1; level <= 3; level++) {
     const item = book('burlington-grammar-' + level, 'Burlington My Grammar Book ' + level, 'grammar', [['A'], ['B'], ['C']][level - 1],
         ['burlington my grammar book ', 'my grammar book ', 'burlington grammar ', 'burlington ', 'my grammar ', 'mgb ', 'bmg ', 'mg ', 'grammar book ', 'grammar '].map(a => a + level),
         { kind: 'publisher-contents', file: 'burlington-my-grammar-book-' + level + '-toc.pdf' }, { publisher: 'Burlington Books' });
-    item.units = entries.map((u, i) => { const { start, ...rest } = u; return { ...rest, pageRange: [start, (entries[i + 1]?.start || start + 5) - 1], reviewAfter: false }; });
+    item.units = entries.map((u, i) => {
+        const { start, ...rest } = u;
+        const range = [start, (entries[i + 1]?.start || start + 5) - 1];
+        return { ...rest, pageRange: range, pages: { grammar: range }, reviewAfter: false };
+    });
 }
 for (const level of ['b1', 'b2']) {
     const text = read('publisher/grammalysis-' + level + '-sample.pdf.txt');
@@ -148,7 +156,20 @@ for (const level of ['b1', 'b2']) {
     const item = book('grammalysis-' + level, 'Grammalysis ' + level.toUpperCase(), 'grammar', [level === 'b1' ? 'D' : 'Lower'],
         ['grammalysis ' + level, 'grammalysis ' + (level === 'b1' ? '1' : '2'), 'grammalysis for all ' + level],
         { kind: 'publisher-contents', file: 'grammalysis-' + level + '-sample.pdf' }, { publisher: 'Super Course' });
-    item.units = units;
+    item.units = units.map(u => ({ ...u, pages: { grammar: u.pageRange } }));
+}
+// Curated per-component page maps for collections whose parts are not published as scope PDFs.
+// Filled from public publisher material (see book-sources/README.md); unknown parts stay absent.
+let componentPages = {};
+try { componentPages = json('publisher/component-pages.json'); } catch { /* optional, curated by hand */ }
+for (const b of books) {
+    const byUnit = componentPages[b.id] || {};
+    for (const u of b.units) {
+        const extra = byUnit[String(u.n)];
+        if (extra && typeof extra === 'object') u.pages = { ...(u.pages || {}), ...extra };
+        u.pages = u.pages || {};
+        u.pageRange = u.pages.sb || u.pages.grammar || u.pageRange || null;
+    }
 }
 fs.writeFileSync(path.join(root, 'features/bookAtlas.data.mjs'), '// Generated by scripts/build-book-atlas.mjs. Source dates and provenance are per book.\nexport const BOOK_ATLAS = ' + JSON.stringify(books, null, 2) + ';\nexport default BOOK_ATLAS;\n');
 console.log('Book Atlas: ' + books.length + ' books, ' + books.reduce((n, b) => n + b.units.length, 0) + ' units. Vocabulary written to features/bookAtlas/data.');

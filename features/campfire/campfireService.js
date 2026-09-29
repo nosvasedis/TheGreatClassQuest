@@ -78,12 +78,21 @@ async function lessonContext(classId, learnedToday, date, practisedOverride = nu
     const unit = target ? describeUnit(BOOK_ATLAS, target.bookId, target.unit) : null;
     const pages = Array.isArray(target?.pages) ? target.pages : target?.page ? [target.page] : [];
     const vocabulary = target?.unit ? await getUnitWords(target.bookId, target.unit, { component: target.component, pages, lessonCode: target.lessonCode, limit: 24 }).catch(() => []) : [];
+    // A class may use more than one book the same day (coursebook + grammar book, or SB + activity book).
+    // Pull words from every other part that has a wordlist, so the fire reflects the whole lesson.
+    const extraBooks = (Array.isArray(practised?.books) ? practised.books : [])
+        .filter(b => b?.bookId && b.unit && !(b.bookId === target?.bookId && (b.component || 'sb') === (target?.component || 'sb')));
+    const extraWords = [];
+    for (const b of extraBooks) {
+        const ws = await getUnitWords(b.bookId, b.unit, { component: b.component || 'sb', pages: b.page ? [b.page] : [], limit: 12 }).catch(() => []);
+        ws.forEach(w => extraWords.push(w.w));
+    }
     const book = target ? BOOK_ATLAS.find(b => b.id === target.bookId) : null;
     const shaped = lessonThemeFromUnit({ kind: book?.kind, title: unit?.title || '', theme: unit?.theme || target?.customTheme || '', grammar: unit?.grammar || '' });
     const preferGrammar = book?.kind === 'grammar';
     const continuity = unitContinuity(bookPlan.history, practised, practisedOverride ? '9999-12-31' : date);
     // Homework / photocopy words first: they are exactly what these children practised.
-    const words = curateCampfireWords([practised?.words, parsed.words, vocabulary.map(w => w.w), shaped.extraWords, learnedToday?.words], getLeagueBand(state.get('allTeachersClasses').find(c => c.id === classId)?.questLevel));
+    const words = curateCampfireWords([practised?.words, parsed.words, vocabulary.map(w => w.w), extraWords, shaped.extraWords, learnedToday?.words], getLeagueBand(state.get('allTeachersClasses').find(c => c.id === classId)?.questLevel));
     // Tomorrow: the assignment written today (if any), otherwise the next unit. Only its topic is ever shown.
     const nextSource = practisedOverride ? (target?.unit ? { bookId: target.bookId, unit: Number(target.unit) + 1 } : null)
         : (upcoming?.bookId && !upcoming.unconfirmed ? upcoming : target?.unit ? { bookId: target.bookId, unit: Number(target.unit) + 1 } : null);

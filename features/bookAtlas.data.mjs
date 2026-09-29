@@ -40,6 +40,16 @@ export const BOOK_ATLAS = [
           6,
           27
         ],
+        "pages": {
+          "sb": [
+            6,
+            27
+          ],
+          "wb": [
+            3,
+            10
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -51,6 +61,16 @@ export const BOOK_ATLAS = [
           28,
           49
         ],
+        "pages": {
+          "sb": [
+            28,
+            49
+          ],
+          "wb": [
+            13,
+            20
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -62,6 +82,16 @@ export const BOOK_ATLAS = [
           50,
           71
         ],
+        "pages": {
+          "sb": [
+            50,
+            71
+          ],
+          "wb": [
+            23,
+            30
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -73,6 +103,16 @@ export const BOOK_ATLAS = [
           69,
           93
         ],
+        "pages": {
+          "sb": [
+            69,
+            93
+          ],
+          "wb": [
+            33,
+            42
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -84,6 +124,16 @@ export const BOOK_ATLAS = [
           94,
           115
         ],
+        "pages": {
+          "sb": [
+            94,
+            115
+          ],
+          "wb": [
+            43,
+            50
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -95,6 +145,16 @@ export const BOOK_ATLAS = [
           116,
           137
         ],
+        "pages": {
+          "sb": [
+            116,
+            137
+          ],
+          "wb": [
+            53,
+            60
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -106,6 +166,16 @@ export const BOOK_ATLAS = [
           138,
           159
         ],
+        "pages": {
+          "sb": [
+            138,
+            159
+          ],
+          "wb": [
+            63,
+            72
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -117,6 +187,16 @@ export const BOOK_ATLAS = [
           160,
           181
         ],
+        "pages": {
+          "sb": [
+            160,
+            181
+          ],
+          "wb": [
+            73,
+            81
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -128,6 +208,16 @@ export const BOOK_ATLAS = [
           182,
           202
         ],
+        "pages": {
+          "sb": [
+            182,
+            202
+          ],
+          "wb": [
+            83,
+            92
+          ]
+        },
         "reviewAfter": true
       }
     ],
@@ -173,6 +263,16 @@ export const BOOK_ATLAS = [
           6,
           26
         ],
+        "pages": {
+          "sb": [
+            6,
+            26
+          ],
+          "wb": [
+            3,
+            12
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -184,6 +284,16 @@ export const BOOK_ATLAS = [
           28,
           49
         ],
+        "pages": {
+          "sb": [
+            28,
+            49
+          ],
+          "wb": [
+            13,
+            22
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -195,6 +305,16 @@ export const BOOK_ATLAS = [
           50,
           70
         ],
+        "pages": {
+          "sb": [
+            50,
+            70
+          ],
+          "wb": [
+            23,
+            32
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -206,6 +326,16 @@ export const BOOK_ATLAS = [
           72,
           92
         ],
+        "pages": {
+          "sb": [
+            72,
+            92
+          ],
+          "wb": [
+            33,
+            42
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -217,6 +347,16 @@ export const BOOK_ATLAS = [
           94,
           114
         ],
+        "pages": {
+          "sb": [
+            94,
+            114
+          ],
+          "wb": [
+            43,
+            51
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -228,6 +368,16 @@ export const BOOK_ATLAS = [
           116,
           137
         ],
+        "pages": {
+          "sb": [
+            116,
+            137
+          ],
+          "wb": [
+            53,
+            62
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -239,6 +389,16 @@ export const BOOK_ATLAS = [
           138,
           159
         ],
+        "pages": {
+          "sb": [
+            138,
+            159
+          ],
+          "wb": [
+            63,
+            159
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -250,6 +410,16 @@ export const BOOK_ATLAS = [
           160,
           181
         ],
+        "pages": {
+          "sb": [
+            160,
+            181
+          ],
+          "wb": [
+            73,
+            82
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -261,6 +431,16 @@ export const BOOK_ATLAS = [
           182,
           203
         ],
+        "pages": {
+          "sb": [
+            182,
+            203
+          ],
+          "wb": [
+            83,
+            92
+          ]
+        },
         "reviewAfter": true
       }
     ],
@@ -306,6 +486,16 @@ export const BOOK_ATLAS = [
           6,
           27
         ],
+        "pages": {
+          "sb": [
+            6,
+            27
+          ],
+          "wb": [
+            6,
+            12
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -317,6 +507,16 @@ export const BOOK_ATLAS = [
           28,
           49
         ],
+        "pages": {
+          "sb": [
+            28,
+            49
+          ],
+          "wb": [
+            13,
+            22
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -328,6 +528,16 @@ export const BOOK_ATLAS = [
           50,
           71
         ],
+        "pages": {
+          "sb": [
+            50,
+            71
+          ],
+          "wb": [
+            23,
+            32
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -339,6 +549,16 @@ export const BOOK_ATLAS = [
           72,
           93
         ],
+        "pages": {
+          "sb": [
+            72,
+            93
+          ],
+          "wb": [
+            33,
+            40
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -350,6 +570,16 @@ export const BOOK_ATLAS = [
           94,
           115
         ],
+        "pages": {
+          "sb": [
+            94,
+            115
+          ],
+          "wb": [
+            43,
+            52
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -361,6 +591,16 @@ export const BOOK_ATLAS = [
           116,
           136
         ],
+        "pages": {
+          "sb": [
+            116,
+            136
+          ],
+          "wb": [
+            53,
+            62
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -372,6 +612,16 @@ export const BOOK_ATLAS = [
           138,
           159
         ],
+        "pages": {
+          "sb": [
+            138,
+            159
+          ],
+          "wb": [
+            63,
+            70
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -383,6 +633,16 @@ export const BOOK_ATLAS = [
           160,
           181
         ],
+        "pages": {
+          "sb": [
+            160,
+            181
+          ],
+          "wb": [
+            73,
+            82
+          ]
+        },
         "reviewAfter": true
       },
       {
@@ -394,6 +654,16 @@ export const BOOK_ATLAS = [
           182,
           203
         ],
+        "pages": {
+          "sb": [
+            182,
+            203
+          ],
+          "wb": [
+            83,
+            92
+          ]
+        },
         "reviewAfter": true
       }
     ],
@@ -436,6 +706,12 @@ export const BOOK_ATLAS = [
           5,
           16
         ],
+        "pages": {
+          "sb": [
+            5,
+            16
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -447,6 +723,12 @@ export const BOOK_ATLAS = [
           17,
           28
         ],
+        "pages": {
+          "sb": [
+            17,
+            28
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -458,6 +740,12 @@ export const BOOK_ATLAS = [
           29,
           40
         ],
+        "pages": {
+          "sb": [
+            29,
+            40
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -469,6 +757,12 @@ export const BOOK_ATLAS = [
           41,
           52
         ],
+        "pages": {
+          "sb": [
+            41,
+            52
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -480,6 +774,12 @@ export const BOOK_ATLAS = [
           53,
           64
         ],
+        "pages": {
+          "sb": [
+            53,
+            64
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -491,6 +791,12 @@ export const BOOK_ATLAS = [
           65,
           76
         ],
+        "pages": {
+          "sb": [
+            65,
+            76
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -502,6 +808,12 @@ export const BOOK_ATLAS = [
           77,
           88
         ],
+        "pages": {
+          "sb": [
+            77,
+            88
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -513,6 +825,12 @@ export const BOOK_ATLAS = [
           89,
           100
         ],
+        "pages": {
+          "sb": [
+            89,
+            100
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -524,6 +842,12 @@ export const BOOK_ATLAS = [
           101,
           112
         ],
+        "pages": {
+          "sb": [
+            101,
+            112
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -535,6 +859,12 @@ export const BOOK_ATLAS = [
           113,
           124
         ],
+        "pages": {
+          "sb": [
+            113,
+            124
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -546,6 +876,12 @@ export const BOOK_ATLAS = [
           125,
           136
         ],
+        "pages": {
+          "sb": [
+            125,
+            136
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -557,6 +893,12 @@ export const BOOK_ATLAS = [
           137,
           148
         ],
+        "pages": {
+          "sb": [
+            137,
+            148
+          ]
+        },
         "reviewAfter": false
       }
     ],
@@ -601,6 +943,12 @@ export const BOOK_ATLAS = [
           5,
           16
         ],
+        "pages": {
+          "sb": [
+            5,
+            16
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -612,6 +960,12 @@ export const BOOK_ATLAS = [
           17,
           28
         ],
+        "pages": {
+          "sb": [
+            17,
+            28
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -623,6 +977,12 @@ export const BOOK_ATLAS = [
           29,
           40
         ],
+        "pages": {
+          "sb": [
+            29,
+            40
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -634,6 +994,12 @@ export const BOOK_ATLAS = [
           41,
           52
         ],
+        "pages": {
+          "sb": [
+            41,
+            52
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -645,6 +1011,12 @@ export const BOOK_ATLAS = [
           53,
           64
         ],
+        "pages": {
+          "sb": [
+            53,
+            64
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -656,6 +1028,12 @@ export const BOOK_ATLAS = [
           65,
           76
         ],
+        "pages": {
+          "sb": [
+            65,
+            76
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -667,6 +1045,12 @@ export const BOOK_ATLAS = [
           77,
           88
         ],
+        "pages": {
+          "sb": [
+            77,
+            88
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -678,6 +1062,12 @@ export const BOOK_ATLAS = [
           89,
           100
         ],
+        "pages": {
+          "sb": [
+            89,
+            100
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -689,6 +1079,12 @@ export const BOOK_ATLAS = [
           101,
           112
         ],
+        "pages": {
+          "sb": [
+            101,
+            112
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -700,6 +1096,12 @@ export const BOOK_ATLAS = [
           113,
           124
         ],
+        "pages": {
+          "sb": [
+            113,
+            124
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -711,6 +1113,12 @@ export const BOOK_ATLAS = [
           125,
           136
         ],
+        "pages": {
+          "sb": [
+            125,
+            136
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -722,6 +1130,12 @@ export const BOOK_ATLAS = [
           137,
           148
         ],
+        "pages": {
+          "sb": [
+            137,
+            148
+          ]
+        },
         "reviewAfter": false
       }
     ],
@@ -761,6 +1175,7 @@ export const BOOK_ATLAS = [
         "theme": "I'm Bamboo.",
         "grammar": "a/an; What's this? It's a ...",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -769,6 +1184,7 @@ export const BOOK_ATLAS = [
         "theme": "The red apple",
         "grammar": "a/an; It's a/an ...; The ... is (red/green)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -777,6 +1193,7 @@ export const BOOK_ATLAS = [
         "theme": "Toys",
         "grammar": "What's this? It's a ...; plural -s (one ball, two balls)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -785,6 +1202,7 @@ export const BOOK_ATLAS = [
         "theme": "Max's bag",
         "grammar": "This is ... / That is ... (That's ...)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -793,6 +1211,7 @@ export const BOOK_ATLAS = [
         "theme": "Maria's garden",
         "grammar": "These are ... / Those are ...",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -801,6 +1220,7 @@ export const BOOK_ATLAS = [
         "theme": "Mum is happy.",
         "grammar": "am/is/are; short forms (I'm, He's, She's, It's, You're)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -809,6 +1229,7 @@ export const BOOK_ATLAS = [
         "theme": "Miranda's family",
         "grammar": "We're / You're / They're; This is my ...",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -817,6 +1238,7 @@ export const BOOK_ATLAS = [
         "theme": "Funny aliens",
         "grammar": "am/is/are + not (I'm not, isn't, aren't)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -825,6 +1247,7 @@ export const BOOK_ATLAS = [
         "theme": "Hello, Mrs Frog",
         "grammar": "Is he/she/it ...? Yes, he is. / No, he isn't.",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -833,6 +1256,7 @@ export const BOOK_ATLAS = [
         "theme": "Wild animals",
         "grammar": "Are they ...? Yes, they are. / No, they aren't.",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -841,6 +1265,7 @@ export const BOOK_ATLAS = [
         "theme": "Bamboo has got an idea.",
         "grammar": "have got / has got",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -849,6 +1274,7 @@ export const BOOK_ATLAS = [
         "theme": "Who am I?",
         "grammar": "haven't got / hasn't got",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -857,6 +1283,7 @@ export const BOOK_ATLAS = [
         "theme": "Mum's birthday",
         "grammar": "Have you got ...? Yes, I have. / No, I haven't.",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -865,6 +1292,7 @@ export const BOOK_ATLAS = [
         "theme": "Big feet and teeth",
         "grammar": "irregular plurals (foot/feet, tooth/teeth, man/men, woman/women, baby/babies)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -873,6 +1301,7 @@ export const BOOK_ATLAS = [
         "theme": "There is a panda.",
         "grammar": "There is / There are; have got",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -881,6 +1310,7 @@ export const BOOK_ATLAS = [
         "theme": "I'm reading.",
         "grammar": "present continuous (I'm reading); What are you doing?",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -889,6 +1319,7 @@ export const BOOK_ATLAS = [
         "theme": "We're flying.",
         "grammar": "present continuous (We're flying)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -897,6 +1328,7 @@ export const BOOK_ATLAS = [
         "theme": "Panda school",
         "grammar": "present continuous negative (isn't / aren't); numbers 11-20",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -905,6 +1337,7 @@ export const BOOK_ATLAS = [
         "theme": "Snow!",
         "grammar": "present continuous questions (Are you wearing ...? Yes, I am. / No, I'm not.)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -913,6 +1346,7 @@ export const BOOK_ATLAS = [
         "theme": "Jigsaws",
         "grammar": "prepositions of place (on, under, next to, behind, in front of); Where's ...? It's ...",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -921,6 +1355,7 @@ export const BOOK_ATLAS = [
         "theme": "Mum's pyjamas",
         "grammar": "possessive adjectives (my, your, his, her, its); These are ...",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -929,6 +1364,7 @@ export const BOOK_ATLAS = [
         "theme": "Let's watch TV!",
         "grammar": "possessive adjectives (our, their); Is this ...?",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -937,6 +1373,7 @@ export const BOOK_ATLAS = [
         "theme": "Sports",
         "grammar": "can / can't (ability)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -945,6 +1382,7 @@ export const BOOK_ATLAS = [
         "theme": "Can Max dance?",
         "grammar": "can / can't (Can you ...? Yes, I can. / No, I can't.)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -953,6 +1391,7 @@ export const BOOK_ATLAS = [
         "theme": "Let's draw a cat!",
         "grammar": "imperatives (Draw ..., Don't ...); Let's ...",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -961,6 +1400,7 @@ export const BOOK_ATLAS = [
         "theme": "I like flowers.",
         "grammar": "present simple with I/you/we/they; I like ...; days of the week",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -969,6 +1409,7 @@ export const BOOK_ATLAS = [
         "theme": "Well done, Miranda!",
         "grammar": "present simple 3rd person -s (He reads, He goes)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -977,6 +1418,7 @@ export const BOOK_ATLAS = [
         "theme": "Clive the crab",
         "grammar": "don't / doesn't (present simple negative)",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -985,6 +1427,7 @@ export const BOOK_ATLAS = [
         "theme": "Bamboo's farm",
         "grammar": "Do you like ...? Yes, I do. / No, I don't.",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       },
       {
@@ -993,6 +1436,7 @@ export const BOOK_ATLAS = [
         "theme": "Favourite snacks",
         "grammar": "Does he/she/it like ...? Yes, he does. / No, he doesn't.",
         "pageRange": null,
+        "pages": {},
         "reviewAfter": false
       }
     ],
@@ -1033,7 +1477,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 1",
         "theme": "aunt, brother, dad, friend",
         "grammar": "be: am/is/are (affirmative and negative: isn't / aren't)",
-        "pageRange": null,
+        "pageRange": [
+          8,
+          9
+        ],
+        "pages": {
+          "sb": [
+            8,
+            9
+          ],
+          "wb": [
+            8,
+            9
+          ],
+          "companion": [
+            8,
+            11
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1041,7 +1502,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 2",
         "theme": "cold, extinct, famous, fast",
         "grammar": "be questions and short answers: Am I ...? Is he/she/it ...? Are they ...?",
-        "pageRange": null,
+        "pageRange": [
+          10,
+          11
+        ],
+        "pages": {
+          "sb": [
+            10,
+            11
+          ],
+          "wb": [
+            10,
+            11
+          ],
+          "companion": [
+            12,
+            15
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1049,7 +1527,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 3",
         "theme": "arms, box, clothes, cold",
         "grammar": "this/these/those: What's this? It's a snowman. What are these? They're clothes.",
-        "pageRange": null,
+        "pageRange": [
+          12,
+          13
+        ],
+        "pages": {
+          "sb": [
+            12,
+            13
+          ],
+          "wb": [
+            12,
+            13
+          ],
+          "companion": [
+            16,
+            19
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1057,7 +1552,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 4",
         "theme": "board game, clock, game, helmet",
         "grammar": "possessive adjectives (my/your/her/our/their); Whose ...? It's Fred's book.",
-        "pageRange": null,
+        "pageRange": [
+          14,
+          15
+        ],
+        "pages": {
+          "sb": [
+            14,
+            15
+          ],
+          "wb": [
+            14,
+            15
+          ],
+          "companion": [
+            20,
+            23
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1065,7 +1577,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 5",
         "theme": "cloud, rain, rainbow, snow",
         "grammar": "",
-        "pageRange": null,
+        "pageRange": [
+          16,
+          17
+        ],
+        "pages": {
+          "sb": [
+            16,
+            17
+          ],
+          "wb": [
+            16,
+            17
+          ],
+          "companion": [
+            24,
+            28
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1073,7 +1602,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 6",
         "theme": "cry, garden, gloves, hat",
         "grammar": "present continuous: am/is/are + -ing (He's wearing a hat.)",
-        "pageRange": null,
+        "pageRange": [
+          24,
+          25
+        ],
+        "pages": {
+          "sb": [
+            24,
+            25
+          ],
+          "wb": [
+            24,
+            25
+          ],
+          "companion": [
+            29,
+            32
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1081,7 +1627,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 7",
         "theme": "cry, drive, game, go-kart",
         "grammar": "present continuous questions: Is he driving? Are they ...?",
-        "pageRange": null,
+        "pageRange": [
+          26,
+          27
+        ],
+        "pages": {
+          "sb": [
+            26,
+            27
+          ],
+          "wb": [
+            26,
+            27
+          ],
+          "companion": [
+            33,
+            36
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1089,7 +1652,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 8",
         "theme": "banana, costume, dance, dress up",
         "grammar": "imperatives and Let's: Put on ... / Let's dance! Let's sing!",
-        "pageRange": null,
+        "pageRange": [
+          28,
+          29
+        ],
+        "pages": {
+          "sb": [
+            28,
+            29
+          ],
+          "wb": [
+            28,
+            29
+          ],
+          "companion": [
+            37,
+            40
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1097,7 +1677,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 9",
         "theme": "boat, dance, draw, drive",
         "grammar": "can / can't: Can you skate? Yes, I can. / No, I can't.",
-        "pageRange": null,
+        "pageRange": [
+          30,
+          31
+        ],
+        "pages": {
+          "sb": [
+            30,
+            31
+          ],
+          "wb": [
+            30,
+            31
+          ],
+          "companion": [
+            41,
+            44
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1105,7 +1702,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 10",
         "theme": "band, drums, guitar, music",
         "grammar": "can: Can Emily play the violin? Yes, she can.",
-        "pageRange": null,
+        "pageRange": [
+          32,
+          33
+        ],
+        "pages": {
+          "sb": [
+            32,
+            33
+          ],
+          "wb": [
+            32,
+            33
+          ],
+          "companion": [
+            45,
+            49
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1113,7 +1727,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 11",
         "theme": "bank, bookshop, cafe, cinema",
         "grammar": "There is / There are (+ some / any): There are some books. There aren't any books.",
-        "pageRange": null,
+        "pageRange": [
+          40,
+          41
+        ],
+        "pages": {
+          "sb": [
+            40,
+            41
+          ],
+          "wb": [
+            40,
+            41
+          ],
+          "companion": [
+            50,
+            53
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1121,7 +1752,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 12",
         "theme": "be quiet, dress up, listen, museum",
         "grammar": "must / mustn't: You mustn't touch things in the museum.",
-        "pageRange": null,
+        "pageRange": [
+          42,
+          43
+        ],
+        "pages": {
+          "sb": [
+            42,
+            43
+          ],
+          "wb": [
+            42,
+            43
+          ],
+          "companion": [
+            54,
+            57
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1129,7 +1777,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 13",
         "theme": "always, breakfast, brush my teeth, do homework",
         "grammar": "present simple + adverbs of frequency (always, often, sometimes, never)",
-        "pageRange": null,
+        "pageRange": [
+          44,
+          45
+        ],
+        "pages": {
+          "sb": [
+            44,
+            45
+          ],
+          "wb": [
+            44,
+            45
+          ],
+          "companion": [
+            58,
+            61
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1137,7 +1802,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 14",
         "theme": "apple, banana, blanket, brush my teeth",
         "grammar": "present simple negative: don't / doesn't (He doesn't have lunch at school.)",
-        "pageRange": null,
+        "pageRange": [
+          46,
+          47
+        ],
+        "pages": {
+          "sb": [
+            46,
+            47
+          ],
+          "wb": [
+            46,
+            47
+          ],
+          "companion": [
+            62,
+            65
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1145,7 +1827,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 15",
         "theme": "breakfast, early, football, half past",
         "grammar": "present simple questions: Do you ...? Does he ...?; What time is it?",
-        "pageRange": null,
+        "pageRange": [
+          48,
+          49
+        ],
+        "pages": {
+          "sb": [
+            48,
+            49
+          ],
+          "wb": [
+            48,
+            49
+          ],
+          "companion": [
+            66,
+            70
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1153,7 +1852,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 16",
         "theme": "bread, butter, cheese, cherry",
         "grammar": "Is there any ...? Are there any ...?; There is some ... / There are some ...",
-        "pageRange": null,
+        "pageRange": [
+          56,
+          57
+        ],
+        "pages": {
+          "sb": [
+            56,
+            57
+          ],
+          "wb": [
+            56,
+            57
+          ],
+          "companion": [
+            71,
+            74
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1161,7 +1877,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 17",
         "theme": "apple, apples, balloon, bread",
         "grammar": "How much ...? / How many ...?",
-        "pageRange": null,
+        "pageRange": [
+          58,
+          59
+        ],
+        "pages": {
+          "sb": [
+            58,
+            59
+          ],
+          "wb": [
+            58,
+            59
+          ],
+          "companion": [
+            75,
+            78
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1169,7 +1902,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 18",
         "theme": "animal, bat, elephant, frog",
         "grammar": "comparatives: -er / more ... than (The giraffe is taller than the hippo.)",
-        "pageRange": null,
+        "pageRange": [
+          60,
+          61
+        ],
+        "pages": {
+          "sb": [
+            60,
+            61
+          ],
+          "wb": [
+            60,
+            61
+          ],
+          "companion": [
+            79,
+            82
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1177,7 +1927,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 19",
         "theme": "bat, frog, garden, giraffe",
         "grammar": "superlatives: the -est / the most (The spider is the smallest animal.)",
-        "pageRange": null,
+        "pageRange": [
+          62,
+          63
+        ],
+        "pages": {
+          "sb": [
+            62,
+            63
+          ],
+          "wb": [
+            62,
+            63
+          ],
+          "companion": [
+            83,
+            86
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1185,7 +1952,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 20",
         "theme": "child, children, feet, finger",
         "grammar": "irregular plurals: child/children, tooth/teeth, mouse/mice, foot/feet, man/men",
-        "pageRange": null,
+        "pageRange": [
+          64,
+          65
+        ],
+        "pages": {
+          "sb": [
+            64,
+            65
+          ],
+          "wb": [
+            64,
+            65
+          ],
+          "companion": [
+            87,
+            91
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1193,7 +1977,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 21",
         "theme": "eighty, fifty, forty, ninety",
         "grammar": "was / were (past of be)",
-        "pageRange": null,
+        "pageRange": [
+          72,
+          73
+        ],
+        "pages": {
+          "sb": [
+            72,
+            73
+          ],
+          "wb": [
+            72,
+            73
+          ],
+          "companion": [
+            92,
+            95
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1201,7 +2002,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 22",
         "theme": "eighth, fifth, first, fourth",
         "grammar": "was / were: questions and negatives; ordinal numbers",
-        "pageRange": null,
+        "pageRange": [
+          74,
+          75
+        ],
+        "pages": {
+          "sb": [
+            74,
+            75
+          ],
+          "wb": [
+            74,
+            75
+          ],
+          "companion": [
+            96,
+            99
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1209,7 +2027,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 23",
         "theme": "April, August, autumn, December",
         "grammar": "was / were with weather; months of the year",
-        "pageRange": null,
+        "pageRange": [
+          76,
+          77
+        ],
+        "pages": {
+          "sb": [
+            76,
+            77
+          ],
+          "wb": [
+            76,
+            77
+          ],
+          "companion": [
+            100,
+            103
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1217,7 +2052,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 24",
         "theme": "autumn, bush, clouds, dinosaur",
         "grammar": "There was / There were (affirmative and negative): There wasn't any snow on the mountain.",
-        "pageRange": null,
+        "pageRange": [
+          78,
+          79
+        ],
+        "pages": {
+          "sb": [
+            78,
+            79
+          ],
+          "wb": [
+            78,
+            79
+          ],
+          "companion": [
+            104,
+            107
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1225,7 +2077,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 25",
         "theme": "dinosaur, eighty-four, fifty-one, forty-six",
         "grammar": "past simple: regular verbs (-ed: walked, listened, watched, played, lived, skipped)",
-        "pageRange": null,
+        "pageRange": [
+          80,
+          81
+        ],
+        "pages": {
+          "sb": [
+            80,
+            81
+          ],
+          "wb": [
+            80,
+            81
+          ],
+          "companion": [
+            108,
+            112
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1233,7 +2102,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 26",
         "theme": "beach, cake, car, chair",
         "grammar": "past simple: irregular verbs (ate, drank, took, found, woke up, swam, sat, drew, rode, drove)",
-        "pageRange": null,
+        "pageRange": [
+          88,
+          89
+        ],
+        "pages": {
+          "sb": [
+            88,
+            89
+          ],
+          "wb": [
+            88,
+            89
+          ],
+          "companion": [
+            113,
+            116
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1241,7 +2127,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 27",
         "theme": "catch, catch a fish, chess, fishing",
         "grammar": "past simple questions: Did you ...? What did you ...?",
-        "pageRange": null,
+        "pageRange": [
+          90,
+          91
+        ],
+        "pages": {
+          "sb": [
+            90,
+            91
+          ],
+          "wb": [
+            90,
+            91
+          ],
+          "companion": [
+            117,
+            120
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1249,7 +2152,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 28",
         "theme": "bike, boat, book, bus",
         "grammar": "be going to (future plans): I'm going to play a game.",
-        "pageRange": null,
+        "pageRange": [
+          92,
+          93
+        ],
+        "pages": {
+          "sb": [
+            92,
+            93
+          ],
+          "wb": [
+            92,
+            93
+          ],
+          "companion": [
+            121,
+            124
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1257,7 +2177,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 29",
         "theme": "artist, chef, computer, doctor",
         "grammar": "be going to be (jobs): I'm going to be an artist.",
-        "pageRange": null,
+        "pageRange": [
+          94,
+          95
+        ],
+        "pages": {
+          "sb": [
+            94,
+            95
+          ],
+          "wb": [
+            94,
+            95
+          ],
+          "companion": [
+            125,
+            128
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1265,7 +2202,24 @@ export const BOOK_ATLAS = [
         "title": "Lesson 30",
         "theme": "famous, farmer, music, sheep",
         "grammar": "will / won't (future): Will you be a singer? Yes, I will. / No, I won't.",
-        "pageRange": null,
+        "pageRange": [
+          96,
+          97
+        ],
+        "pages": {
+          "sb": [
+            96,
+            97
+          ],
+          "wb": [
+            96,
+            97
+          ],
+          "companion": [
+            129,
+            133
+          ]
+        },
         "reviewAfter": false
       }
     ],
@@ -1311,6 +2265,12 @@ export const BOOK_ATLAS = [
           10,
           16
         ],
+        "pages": {
+          "grammar": [
+            10,
+            16
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1322,6 +2282,12 @@ export const BOOK_ATLAS = [
           17,
           22
         ],
+        "pages": {
+          "grammar": [
+            17,
+            22
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1333,6 +2299,12 @@ export const BOOK_ATLAS = [
           23,
           27
         ],
+        "pages": {
+          "grammar": [
+            23,
+            27
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1344,6 +2316,12 @@ export const BOOK_ATLAS = [
           28,
           34
         ],
+        "pages": {
+          "grammar": [
+            28,
+            34
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1355,6 +2333,12 @@ export const BOOK_ATLAS = [
           35,
           39
         ],
+        "pages": {
+          "grammar": [
+            35,
+            39
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1366,6 +2350,12 @@ export const BOOK_ATLAS = [
           40,
           46
         ],
+        "pages": {
+          "grammar": [
+            40,
+            46
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1377,6 +2367,12 @@ export const BOOK_ATLAS = [
           47,
           53
         ],
+        "pages": {
+          "grammar": [
+            47,
+            53
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1388,6 +2384,12 @@ export const BOOK_ATLAS = [
           54,
           59
         ],
+        "pages": {
+          "grammar": [
+            54,
+            59
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1399,6 +2401,12 @@ export const BOOK_ATLAS = [
           60,
           64
         ],
+        "pages": {
+          "grammar": [
+            60,
+            64
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1410,6 +2418,12 @@ export const BOOK_ATLAS = [
           65,
           73
         ],
+        "pages": {
+          "grammar": [
+            65,
+            73
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1421,6 +2435,12 @@ export const BOOK_ATLAS = [
           74,
           77
         ],
+        "pages": {
+          "grammar": [
+            74,
+            77
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1432,6 +2452,12 @@ export const BOOK_ATLAS = [
           78,
           82
         ],
+        "pages": {
+          "grammar": [
+            78,
+            82
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1443,6 +2469,12 @@ export const BOOK_ATLAS = [
           83,
           88
         ],
+        "pages": {
+          "grammar": [
+            83,
+            88
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1454,6 +2486,12 @@ export const BOOK_ATLAS = [
           89,
           93
         ],
+        "pages": {
+          "grammar": [
+            89,
+            93
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1465,6 +2503,12 @@ export const BOOK_ATLAS = [
           94,
           101
         ],
+        "pages": {
+          "grammar": [
+            94,
+            101
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1476,6 +2520,12 @@ export const BOOK_ATLAS = [
           102,
           108
         ],
+        "pages": {
+          "grammar": [
+            102,
+            108
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1487,6 +2537,12 @@ export const BOOK_ATLAS = [
           109,
           115
         ],
+        "pages": {
+          "grammar": [
+            109,
+            115
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1498,6 +2554,12 @@ export const BOOK_ATLAS = [
           116,
           121
         ],
+        "pages": {
+          "grammar": [
+            116,
+            121
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1509,6 +2571,12 @@ export const BOOK_ATLAS = [
           122,
           131
         ],
+        "pages": {
+          "grammar": [
+            122,
+            131
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1520,6 +2588,12 @@ export const BOOK_ATLAS = [
           132,
           135
         ],
+        "pages": {
+          "grammar": [
+            132,
+            135
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1531,6 +2605,12 @@ export const BOOK_ATLAS = [
           136,
           139
         ],
+        "pages": {
+          "grammar": [
+            136,
+            139
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1542,6 +2622,12 @@ export const BOOK_ATLAS = [
           140,
           144
         ],
+        "pages": {
+          "grammar": [
+            140,
+            144
+          ]
+        },
         "reviewAfter": false
       }
     ]
@@ -1586,6 +2672,12 @@ export const BOOK_ATLAS = [
           6,
           11
         ],
+        "pages": {
+          "grammar": [
+            6,
+            11
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1597,6 +2689,12 @@ export const BOOK_ATLAS = [
           12,
           18
         ],
+        "pages": {
+          "grammar": [
+            12,
+            18
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1608,6 +2706,12 @@ export const BOOK_ATLAS = [
           19,
           29
         ],
+        "pages": {
+          "grammar": [
+            19,
+            29
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1619,6 +2723,12 @@ export const BOOK_ATLAS = [
           30,
           36
         ],
+        "pages": {
+          "grammar": [
+            30,
+            36
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1630,6 +2740,12 @@ export const BOOK_ATLAS = [
           37,
           42
         ],
+        "pages": {
+          "grammar": [
+            37,
+            42
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1641,6 +2757,12 @@ export const BOOK_ATLAS = [
           43,
           49
         ],
+        "pages": {
+          "grammar": [
+            43,
+            49
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1652,6 +2774,12 @@ export const BOOK_ATLAS = [
           50,
           54
         ],
+        "pages": {
+          "grammar": [
+            50,
+            54
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1663,6 +2791,12 @@ export const BOOK_ATLAS = [
           55,
           60
         ],
+        "pages": {
+          "grammar": [
+            55,
+            60
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1674,6 +2808,12 @@ export const BOOK_ATLAS = [
           61,
           69
         ],
+        "pages": {
+          "grammar": [
+            61,
+            69
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1685,6 +2825,12 @@ export const BOOK_ATLAS = [
           70,
           76
         ],
+        "pages": {
+          "grammar": [
+            70,
+            76
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1696,6 +2842,12 @@ export const BOOK_ATLAS = [
           77,
           82
         ],
+        "pages": {
+          "grammar": [
+            77,
+            82
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1707,6 +2859,12 @@ export const BOOK_ATLAS = [
           83,
           92
         ],
+        "pages": {
+          "grammar": [
+            83,
+            92
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1718,6 +2876,12 @@ export const BOOK_ATLAS = [
           93,
           97
         ],
+        "pages": {
+          "grammar": [
+            93,
+            97
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1729,6 +2893,12 @@ export const BOOK_ATLAS = [
           98,
           103
         ],
+        "pages": {
+          "grammar": [
+            98,
+            103
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1740,6 +2910,12 @@ export const BOOK_ATLAS = [
           104,
           112
         ],
+        "pages": {
+          "grammar": [
+            104,
+            112
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1751,6 +2927,12 @@ export const BOOK_ATLAS = [
           113,
           117
         ],
+        "pages": {
+          "grammar": [
+            113,
+            117
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1762,6 +2944,12 @@ export const BOOK_ATLAS = [
           118,
           121
         ],
+        "pages": {
+          "grammar": [
+            118,
+            121
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1773,6 +2961,12 @@ export const BOOK_ATLAS = [
           122,
           130
         ],
+        "pages": {
+          "grammar": [
+            122,
+            130
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1784,6 +2978,12 @@ export const BOOK_ATLAS = [
           131,
           135
         ],
+        "pages": {
+          "grammar": [
+            131,
+            135
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1795,6 +2995,12 @@ export const BOOK_ATLAS = [
           136,
           139
         ],
+        "pages": {
+          "grammar": [
+            136,
+            139
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1806,6 +3012,12 @@ export const BOOK_ATLAS = [
           140,
           145
         ],
+        "pages": {
+          "grammar": [
+            140,
+            145
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1817,6 +3029,12 @@ export const BOOK_ATLAS = [
           146,
           150
         ],
+        "pages": {
+          "grammar": [
+            146,
+            150
+          ]
+        },
         "reviewAfter": false
       }
     ]
@@ -1861,6 +3079,12 @@ export const BOOK_ATLAS = [
           6,
           12
         ],
+        "pages": {
+          "grammar": [
+            6,
+            12
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1872,6 +3096,12 @@ export const BOOK_ATLAS = [
           13,
           19
         ],
+        "pages": {
+          "grammar": [
+            13,
+            19
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1883,6 +3113,12 @@ export const BOOK_ATLAS = [
           20,
           25
         ],
+        "pages": {
+          "grammar": [
+            20,
+            25
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1894,6 +3130,12 @@ export const BOOK_ATLAS = [
           26,
           34
         ],
+        "pages": {
+          "grammar": [
+            26,
+            34
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1905,6 +3147,12 @@ export const BOOK_ATLAS = [
           35,
           40
         ],
+        "pages": {
+          "grammar": [
+            35,
+            40
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1916,6 +3164,12 @@ export const BOOK_ATLAS = [
           41,
           48
         ],
+        "pages": {
+          "grammar": [
+            41,
+            48
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1927,6 +3181,12 @@ export const BOOK_ATLAS = [
           49,
           54
         ],
+        "pages": {
+          "grammar": [
+            49,
+            54
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1938,6 +3198,12 @@ export const BOOK_ATLAS = [
           55,
           60
         ],
+        "pages": {
+          "grammar": [
+            55,
+            60
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1949,6 +3215,12 @@ export const BOOK_ATLAS = [
           61,
           68
         ],
+        "pages": {
+          "grammar": [
+            61,
+            68
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1960,6 +3232,12 @@ export const BOOK_ATLAS = [
           69,
           75
         ],
+        "pages": {
+          "grammar": [
+            69,
+            75
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1971,6 +3249,12 @@ export const BOOK_ATLAS = [
           76,
           80
         ],
+        "pages": {
+          "grammar": [
+            76,
+            80
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1982,6 +3266,12 @@ export const BOOK_ATLAS = [
           81,
           86
         ],
+        "pages": {
+          "grammar": [
+            81,
+            86
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1993,6 +3283,12 @@ export const BOOK_ATLAS = [
           87,
           96
         ],
+        "pages": {
+          "grammar": [
+            87,
+            96
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2004,6 +3300,12 @@ export const BOOK_ATLAS = [
           97,
           102
         ],
+        "pages": {
+          "grammar": [
+            97,
+            102
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2015,6 +3317,12 @@ export const BOOK_ATLAS = [
           103,
           108
         ],
+        "pages": {
+          "grammar": [
+            103,
+            108
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2026,6 +3334,12 @@ export const BOOK_ATLAS = [
           109,
           112
         ],
+        "pages": {
+          "grammar": [
+            109,
+            112
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2037,6 +3351,12 @@ export const BOOK_ATLAS = [
           113,
           120
         ],
+        "pages": {
+          "grammar": [
+            113,
+            120
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2048,6 +3368,12 @@ export const BOOK_ATLAS = [
           121,
           126
         ],
+        "pages": {
+          "grammar": [
+            121,
+            126
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2059,6 +3385,12 @@ export const BOOK_ATLAS = [
           127,
           131
         ],
+        "pages": {
+          "grammar": [
+            127,
+            131
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2070,6 +3402,12 @@ export const BOOK_ATLAS = [
           132,
           137
         ],
+        "pages": {
+          "grammar": [
+            132,
+            137
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2081,6 +3419,12 @@ export const BOOK_ATLAS = [
           138,
           146
         ],
+        "pages": {
+          "grammar": [
+            138,
+            146
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2092,6 +3436,12 @@ export const BOOK_ATLAS = [
           147,
           150
         ],
+        "pages": {
+          "grammar": [
+            147,
+            150
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2103,6 +3453,12 @@ export const BOOK_ATLAS = [
           151,
           155
         ],
+        "pages": {
+          "grammar": [
+            151,
+            155
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2114,6 +3470,12 @@ export const BOOK_ATLAS = [
           156,
           161
         ],
+        "pages": {
+          "grammar": [
+            156,
+            161
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2125,6 +3487,12 @@ export const BOOK_ATLAS = [
           162,
           169
         ],
+        "pages": {
+          "grammar": [
+            162,
+            169
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -2136,6 +3504,12 @@ export const BOOK_ATLAS = [
           170,
           174
         ],
+        "pages": {
+          "grammar": [
+            170,
+            174
+          ]
+        },
         "reviewAfter": false
       }
     ]
@@ -2190,7 +3564,13 @@ export const BOOK_ATLAS = [
               9
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            4,
+            9
+          ]
+        }
       },
       {
         "n": 2,
@@ -2218,7 +3598,13 @@ export const BOOK_ATLAS = [
               15
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            10,
+            15
+          ]
+        }
       },
       {
         "n": 3,
@@ -2246,7 +3632,13 @@ export const BOOK_ATLAS = [
               25
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            20,
+            25
+          ]
+        }
       },
       {
         "n": 4,
@@ -2274,7 +3666,13 @@ export const BOOK_ATLAS = [
               31
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            26,
+            31
+          ]
+        }
       },
       {
         "n": 5,
@@ -2302,7 +3700,13 @@ export const BOOK_ATLAS = [
               41
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            36,
+            41
+          ]
+        }
       },
       {
         "n": 6,
@@ -2330,7 +3734,13 @@ export const BOOK_ATLAS = [
               47
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            42,
+            47
+          ]
+        }
       },
       {
         "n": 7,
@@ -2358,7 +3768,13 @@ export const BOOK_ATLAS = [
               57
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            52,
+            57
+          ]
+        }
       },
       {
         "n": 8,
@@ -2386,7 +3802,13 @@ export const BOOK_ATLAS = [
               63
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            58,
+            63
+          ]
+        }
       },
       {
         "n": 9,
@@ -2414,7 +3836,13 @@ export const BOOK_ATLAS = [
               73
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            68,
+            73
+          ]
+        }
       },
       {
         "n": 10,
@@ -2442,7 +3870,13 @@ export const BOOK_ATLAS = [
               79
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            74,
+            79
+          ]
+        }
       },
       {
         "n": 11,
@@ -2470,7 +3904,13 @@ export const BOOK_ATLAS = [
               89
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            84,
+            89
+          ]
+        }
       },
       {
         "n": 12,
@@ -2498,7 +3938,13 @@ export const BOOK_ATLAS = [
               95
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            90,
+            95
+          ]
+        }
       },
       {
         "n": 13,
@@ -2526,7 +3972,13 @@ export const BOOK_ATLAS = [
               105
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            100,
+            105
+          ]
+        }
       },
       {
         "n": 14,
@@ -2554,7 +4006,13 @@ export const BOOK_ATLAS = [
               111
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            106,
+            111
+          ]
+        }
       },
       {
         "n": 15,
@@ -2582,7 +4040,13 @@ export const BOOK_ATLAS = [
               121
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            116,
+            121
+          ]
+        }
       },
       {
         "n": 16,
@@ -2610,7 +4074,13 @@ export const BOOK_ATLAS = [
               127
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            122,
+            127
+          ]
+        }
       },
       {
         "n": 17,
@@ -2638,7 +4108,13 @@ export const BOOK_ATLAS = [
               137
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            132,
+            137
+          ]
+        }
       },
       {
         "n": 18,
@@ -2666,7 +4142,13 @@ export const BOOK_ATLAS = [
               143
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            138,
+            143
+          ]
+        }
       },
       {
         "n": 19,
@@ -2694,7 +4176,13 @@ export const BOOK_ATLAS = [
               153
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            148,
+            153
+          ]
+        }
       },
       {
         "n": 20,
@@ -2722,7 +4210,13 @@ export const BOOK_ATLAS = [
               159
             ]
           }
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            154,
+            159
+          ]
+        }
       }
     ]
   },
@@ -2759,7 +4253,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           6,
           9
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            6,
+            9
+          ]
+        }
       },
       {
         "n": 2,
@@ -2770,7 +4270,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           10,
           13
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            10,
+            13
+          ]
+        }
       },
       {
         "n": 3,
@@ -2781,7 +4287,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           14,
           17
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            14,
+            17
+          ]
+        }
       },
       {
         "n": 4,
@@ -2792,7 +4304,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           18,
           21
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            18,
+            21
+          ]
+        }
       },
       {
         "n": 5,
@@ -2803,7 +4321,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           22,
           25
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            22,
+            25
+          ]
+        }
       },
       {
         "n": 6,
@@ -2814,7 +4338,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           26,
           29
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            26,
+            29
+          ]
+        }
       },
       {
         "n": 7,
@@ -2825,7 +4355,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           34,
           37
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            34,
+            37
+          ]
+        }
       },
       {
         "n": 8,
@@ -2836,7 +4372,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           38,
           41
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            38,
+            41
+          ]
+        }
       },
       {
         "n": 9,
@@ -2847,7 +4389,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           42,
           45
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            42,
+            45
+          ]
+        }
       },
       {
         "n": 10,
@@ -2858,7 +4406,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           46,
           49
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            46,
+            49
+          ]
+        }
       },
       {
         "n": 11,
@@ -2869,7 +4423,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           50,
           53
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            50,
+            53
+          ]
+        }
       },
       {
         "n": 12,
@@ -2880,7 +4440,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           54,
           57
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            54,
+            57
+          ]
+        }
       },
       {
         "n": 13,
@@ -2891,7 +4457,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           62,
           65
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            62,
+            65
+          ]
+        }
       },
       {
         "n": 14,
@@ -2902,7 +4474,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           66,
           69
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            66,
+            69
+          ]
+        }
       },
       {
         "n": 15,
@@ -2913,7 +4491,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           70,
           73
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            70,
+            73
+          ]
+        }
       },
       {
         "n": 16,
@@ -2924,7 +4508,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           74,
           77
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            74,
+            77
+          ]
+        }
       },
       {
         "n": 17,
@@ -2935,7 +4525,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           78,
           81
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            78,
+            81
+          ]
+        }
       },
       {
         "n": 18,
@@ -2946,7 +4542,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           82,
           85
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            82,
+            85
+          ]
+        }
       },
       {
         "n": 19,
@@ -2957,7 +4559,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           90,
           93
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            90,
+            93
+          ]
+        }
       },
       {
         "n": 20,
@@ -2968,7 +4576,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           94,
           97
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            94,
+            97
+          ]
+        }
       },
       {
         "n": 21,
@@ -2979,7 +4593,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           98,
           101
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            98,
+            101
+          ]
+        }
       },
       {
         "n": 22,
@@ -2990,7 +4610,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           102,
           105
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            102,
+            105
+          ]
+        }
       },
       {
         "n": 23,
@@ -3001,7 +4627,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           106,
           109
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            106,
+            109
+          ]
+        }
       },
       {
         "n": 24,
@@ -3012,7 +4644,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           110,
           113
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            110,
+            113
+          ]
+        }
       },
       {
         "n": 25,
@@ -3023,7 +4661,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           118,
           121
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            118,
+            121
+          ]
+        }
       },
       {
         "n": 26,
@@ -3034,7 +4678,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           122,
           125
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            122,
+            125
+          ]
+        }
       },
       {
         "n": 27,
@@ -3045,7 +4695,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           126,
           129
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            126,
+            129
+          ]
+        }
       },
       {
         "n": 28,
@@ -3056,7 +4712,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           130,
           133
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            130,
+            133
+          ]
+        }
       },
       {
         "n": 29,
@@ -3067,7 +4729,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           134,
           137
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            134,
+            137
+          ]
+        }
       },
       {
         "n": 30,
@@ -3078,7 +4746,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           138,
           141
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            138,
+            141
+          ]
+        }
       },
       {
         "n": 31,
@@ -3089,7 +4763,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           146,
           149
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            146,
+            149
+          ]
+        }
       },
       {
         "n": 32,
@@ -3100,7 +4780,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           150,
           153
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            150,
+            153
+          ]
+        }
       },
       {
         "n": 33,
@@ -3111,7 +4797,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           154,
           157
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            154,
+            157
+          ]
+        }
       },
       {
         "n": 34,
@@ -3122,7 +4814,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           158,
           161
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            158,
+            161
+          ]
+        }
       },
       {
         "n": 35,
@@ -3133,7 +4831,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           162,
           165
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            162,
+            165
+          ]
+        }
       },
       {
         "n": 36,
@@ -3144,7 +4848,13 @@ export const BOOK_ATLAS = [
         "pageRange": [
           166,
           169
-        ]
+        ],
+        "pages": {
+          "grammar": [
+            166,
+            169
+          ]
+        }
       }
     ]
   }

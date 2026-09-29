@@ -95,23 +95,48 @@ export function parseUnits(text) {
 export function describeUnit(atlas = BOOK_ATLAS, bookId, unit) {
     return atlas.find(b => b.id === bookId)?.units.find(u => u.n === Number(unit)) || null;
 }
+export const PART_LABELS = { sb: "Student's Book", wb: 'Activity book', companion: 'Companion', grammar: 'Grammar book', test: 'Test book', reader: 'Reader', 'picture dictionary': 'Picture dictionary', 'alphabet/starter': 'Alphabet & Starter' };
+const STANDARD_PARTS = ['sb', 'wb', 'companion', 'grammar', 'test', 'reader'];
+/**
+ * The parts of a book collection the picker can offer. A book's own page maps decide what exists
+ * (so a workbook-only map shows an Activity book part); a custom book falls back to the standard set.
+ */
+export function bookComponents(book) {
+    if (!book) return [...STANDARD_PARTS];
+    const primary = book.kind === 'grammar' ? 'grammar' : 'sb';
+    const found = new Set([primary]);
+    for (const u of book.units) for (const part of Object.keys(u.pages || {})) if (u.pages[part]) found.add(part);
+    const ordered = STANDARD_PARTS.filter(p => found.has(p));
+    for (const p of found) if (!ordered.includes(p)) ordered.push(p);
+    return ordered;
+}
+// A unit's page map for one part: the part's own published range, or the book's primary range.
+function componentRange(book, unit, component) {
+    if (!unit) return null;
+    const primary = book?.kind === 'grammar' ? 'grammar' : 'sb';
+    // Tolerate legacy calls that pass 'sb' for a grammar-kind book.
+    const comp = component === 'sb' && book?.kind === 'grammar' ? 'grammar' : component;
+    const parts = unit.pages || {};
+    const range = parts[comp] ?? (comp === primary ? unit.pageRange : null);
+    return Array.isArray(range) && range.length === 2 && range[0] > 0 ? range : null;
+}
 export function unitForPage(bookId, page, component = 'sb', atlas = BOOK_ATLAS) {
     const book = atlas.find(b => b.id === bookId);
-    if (!book || (component !== 'sb' && !(component === 'grammar' && book.kind === 'grammar'))) return null;
-    if (!page) return null;
+    if (!book || !page) return null;
     // Published ranges can overlap by a page or two (a unit's opening spread is listed in both units).
     // Resolve deterministically: the page belongs to the unit that started most recently.
-    let best = null;
+    let best = null, bestStart = -Infinity;
     for (const u of book.units) {
-        if (!u.pageRange || page < u.pageRange[0] || page > u.pageRange[1]) continue;
-        if (!best || u.pageRange[0] > best.pageRange[0]) best = u;
+        const range = componentRange(book, u, component);
+        if (!range || page < range[0] || page > range[1]) continue;
+        if (range[0] > bestStart) { best = u; bestStart = range[0]; }
     }
     return best?.n || null;
 }
-/** The published page range [from, to] of a unit, or null when the book has no printed page map. */
-export function pageRangeForUnit(bookId, unit, atlas = BOOK_ATLAS) {
-    const range = describeUnit(atlas, bookId, unit)?.pageRange;
-    return Array.isArray(range) && range.length === 2 ? range : null;
+/** The published page range [from, to] of a unit for one part, or null when that part has no printed page map. */
+export function pageRangeForUnit(bookId, unit, component = 'sb', atlas = BOOK_ATLAS) {
+    const book = atlas.find(b => b.id === bookId);
+    return componentRange(book, describeUnit(atlas, bookId, unit), component);
 }
 function defaultBook(atlas, league, component) {
     const kind = component === 'grammar' ? 'grammar' : 'coursebook';
@@ -181,15 +206,15 @@ export function parseLessonTarget(text, atlas = BOOK_ATLAS, bookPlan = {}) {
 export function resolveLessonTarget({ detected, bookPlan = {}, atlas = BOOK_ATLAS } = {}) {
     const parsed = typeof detected === 'string' ? parseLessonTarget(detected, atlas, bookPlan) : detected;
     const target = parsed?.primary || (Array.isArray(parsed) ? parsed[0] : parsed?.bookId ? parsed : null);
-    return { target, changed: Boolean(target?.bookId && bookPlan.currentBookId && target.bookId !== bookPlan.currentBookId),
+    const targets = Array.isArray(parsed?.targets) ? parsed.targets : target ? [target] : [];
+    return { target, targets, changed: Boolean(target?.bookId && bookPlan.currentBookId && target.bookId !== bookPlan.currentBookId),
         carried: Boolean(target?.carried), needsConfirm: !target || Boolean(target.needsConfirm), candidates: target?.candidates || [] };
 }
 export function buildLessonTargetSummary(target, atlas = BOOK_ATLAS) {
     if (!target) return 'Choose a book and lesson';
     const book = atlas.find(b => b.id === target.bookId), unit = describeUnit(atlas, target.bookId, target.unit);
     const parts = [book?.title || target.customTitle || target.bookId || 'Book not recognised'];
-    const PART = { wb: 'Workbook', companion: 'Companion', grammar: 'Grammar', test: 'Test book', reader: 'Reader', 'picture dictionary': 'Picture dictionary', 'alphabet/starter': 'Starter' };
-    if (target.component && target.component !== 'sb' && !(target.component === 'grammar' && book?.kind === 'grammar')) parts.push(PART[target.component] || target.component);
+    if (target.component && target.component !== 'sb' && !(target.component === 'grammar' && book?.kind === 'grammar')) parts.push(PART_LABELS[target.component] || target.component);
     if (target.review) parts.push('Review ' + target.review);
     else if (target.unit) parts.push('Unit ' + (target.lessonCode || target.unit) + (unit?.title ? ' · ' + unit.title : ''));
     const page = target.pageFrom || target.page;
@@ -213,8 +238,22 @@ export async function getUnitWords(bookId, unit, { component = 'sb', pages = [],
     if (component === 'wb') words = words.filter(w => w.component === 'wb');
     else if (component === 'sb') words = words.filter(w => w.component !== 'wb');
     if (lessonCode) { const matching = words.filter(w => w.location?.toLowerCase() === lessonCode.toLowerCase()); if (matching.length) words = matching; }
-    if (pages.length) words.sort((a, b) => Number(pages.includes(b.page)) - Number(pages.includes(a.page)));
+    if (pages.length) {
+        // Senior courses teach a DIFFERENT vocabulary set on each page set inside one unit. When the
+        // wordlist pins words to pages, take only the requested set; a page-less book (junior) keeps its
+        // whole unit, and a requested page the wordlist does not pin falls back to the unit.
+        const pageSet = words.filter(w => w.page != null && pages.includes(Number(w.page)));
+        if (pageSet.length) words = pageSet.sort((a, b) => Number(a.page) - Number(b.page));
+        else words.sort((a, b) => Number(pages.includes(b.page)) - Number(pages.includes(a.page)));
+    }
     return words.slice(0, limit);
+}
+/** The page sets inside one unit that carry vocabulary (senior courses). Empty for page-less books. */
+export async function unitPageSets(bookId, unit, { component = 'sb' } = {}) {
+    const words = await getUnitWords(bookId, unit, { component });
+    const byPage = new Map();
+    for (const w of words) if (w.page != null) byPage.set(Number(w.page), (byPage.get(Number(w.page)) || 0) + 1);
+    return [...byPage.entries()].map(([page, count]) => ({ page, count })).sort((a, b) => a.page - b.page);
 }
 
 // ─── Lesson history (what each assignment was, dated by the day it was written) ───
@@ -223,14 +262,20 @@ export async function getUnitWords(bookId, unit, { component = 'sb', pages = [],
  * so at the end of lesson N+1 the Campfire finds it as "practised before today".
  * An entry the app is unsure about keeps its words but is marked unconfirmed (it never moves the class book).
  */
-export function lessonHistoryEntry({ text = '', date, assignmentId = null, bookPlan = {}, confirmedTarget = null, atlas = BOOK_ATLAS } = {}) {
+export function lessonHistoryEntry({ text = '', date, assignmentId = null, bookPlan = {}, confirmedTarget = null, confirmedTargets = null, atlas = BOOK_ATLAS } = {}) {
     const resolved = resolveLessonTarget({ detected: text, bookPlan, atlas });
-    const target = confirmedTarget || resolved.target;
-    const confirmed = Boolean(confirmedTarget?.bookId) || Boolean(target?.bookId && !resolved.needsConfirm);
+    const list = (confirmedTargets?.length ? confirmedTargets : confirmedTarget ? [confirmedTarget] : resolved.targets).filter(t => t && t.bookId);
+    // A coursebook part leads; grammar/booster ride along. The primary keeps the legacy single-book fields.
+    const priorities = ['sb', 'companion', 'wb', 'grammar', 'test', 'reader', 'picture dictionary', 'alphabet/starter'];
+    const primary = [...list].sort((a, b) => priorities.indexOf(a.component) - priorities.indexOf(b.component))[0]
+        || confirmedTarget || resolved.target || null;
+    const confirmed = Boolean(confirmedTarget?.bookId || confirmedTargets?.some(t => t?.bookId)) || Boolean(primary?.bookId && !resolved.needsConfirm);
+    const books = list.map(t => ({ bookId: t.bookId, component: t.component || 'sb', unit: t.unit || null, page: t.pageFrom || t.page || null }));
     return {
-        bookId: target?.bookId || null, component: target?.component || 'sb', unit: target?.unit || null,
-        page: target?.pageFrom || target?.page || null, date, assignmentId: assignmentId || null,
+        bookId: primary?.bookId || null, component: primary?.component || 'sb', unit: primary?.unit || null,
+        page: primary?.pageFrom || primary?.page || null, date, assignmentId: assignmentId || null,
         words: extractAssignmentVocabulary(text).words, text: String(text || '').slice(0, 300),
+        ...(books.length ? { books } : {}),
         ...(confirmed ? {} : { unconfirmed: true })
     };
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeBookText, detectBookComponent, detectBooks, parsePages, parseUnits, parseLessonTarget, resolveLessonTarget, BOOK_ATLAS } from '../features/bookAtlas.mjs';
+import { normalizeBookText, detectBookComponent, detectBooks, parsePages, parseUnits, parseLessonTarget, resolveLessonTarget, lessonHistoryEntry, BOOK_ATLAS } from '../features/bookAtlas.mjs';
 const plan = { currentBookId: 'close-up-b1', unit: 2, league: 'D' };
 const components = {
     sb: ['SB p.42', 'S.B. p.42', 'S.B p.42', 'PB p.42', "Student's Book p.42", 'Student Book p. 42', "Pupil's Book pp 42-44", 'book p.10', 'βιβλίο σελ. 10', 'βάλε SB p.42'],
@@ -84,4 +84,34 @@ test('everyday words never become a lesson on their own; a bare sentence only as
     }
     assert.equal(parseLessonTarget('Reader p.12', BOOK_ATLAS, plan).primary.component, 'reader');
     assert.equal(parseLessonTarget('Read the story', BOOK_ATLAS, {}).targets.length, 0);
+});
+
+test('a coursebook and a grammar book on the same day are both understood and kept', () => {
+    const classPlan = { currentBookId: 'primary-path-2', component: 'sb', unit: 3, league: 'B' };
+    const text = 'PP2 u.4 pp.78-80 (SB) + Grammar Book 2 unit 8';
+    assert.equal(parseLessonTarget(text, BOOK_ATLAS, classPlan).targets.length, 2);
+    const resolved = resolveLessonTarget({ detected: text, bookPlan: classPlan });
+    assert.equal(resolved.targets.length, 2);
+    assert.equal(resolved.target.component, 'sb');
+    const entry = lessonHistoryEntry({ text, date: '2026-09-29', assignmentId: 'a1', bookPlan: classPlan, atlas: BOOK_ATLAS });
+    assert.equal(entry.bookId, 'primary-path-2');
+    assert.equal(entry.books.length, 2);
+    assert.deepEqual(entry.books.map(b => b.component), ['sb', 'grammar']);
+    assert.deepEqual(entry.books.map(b => b.bookId), ['primary-path-2', 'burlington-grammar-2']);
+});
+
+test('an activity-book page resolves the unit from its own page map', () => {
+    const classPlan = { currentBookId: 'primary-path-2', component: 'sb', unit: 3, league: 'B' };
+    const target = parseLessonTarget('PP2 activity book p.15', BOOK_ATLAS, classPlan).primary;
+    assert.equal(target.bookId, 'primary-path-2');
+    assert.equal(target.component, 'wb');
+    assert.equal(target.unit, 2);
+});
+
+test('a language-booster page resolves the lesson of a companion-only book', () => {
+    const classPlan = { currentBookId: 'yeti-2', component: 'companion', unit: 1, league: 'Junior B' };
+    const target = parseLessonTarget('yeti 2 language booster p.108', BOOK_ATLAS, classPlan).primary;
+    assert.equal(target.bookId, 'yeti-2');
+    assert.equal(target.component, 'companion');
+    assert.equal(target.unit, 25);
 });

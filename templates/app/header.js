@@ -88,10 +88,21 @@ export const headerHTML = `
                         </defs>
                         <path d="M4 11 C 46 15, 86 4, 128 9 S 206 14, 238 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
                         <path d="M60 13.2 C 92 15.5, 118 10.5, 150 12.4" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
-                        <path d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/>
+                        <path class="gcq-swash__star" d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/>
                     </svg>
-                    <span class="gcq-twinkle gcq-twinkle--title-end" aria-hidden="true"></span>
-                    <span class="gcq-twinkle gcq-twinkle--title-start" aria-hidden="true"></span>
+                    <span class="gcq-pixie-lane" aria-hidden="true">
+                        <span class="gcq-pixie-dust" style="--k: 6"></span>
+                        <span class="gcq-pixie-dust" style="--k: 5"></span>
+                        <span class="gcq-pixie-dust" style="--k: 4"></span>
+                        <span class="gcq-pixie-dust" style="--k: 3"></span>
+                        <span class="gcq-pixie-dust" style="--k: 2"></span>
+                        <span class="gcq-pixie-dust" style="--k: 1"></span>
+                        <span class="gcq-pixie">
+                            <span class="gcq-pixie__wing gcq-pixie__wing--l"></span>
+                            <span class="gcq-pixie__wing gcq-pixie__wing--r"></span>
+                            <span class="gcq-pixie__body"></span>
+                        </span>
+                    </span>
                 </div>
                 <div id="header-quote-container"
                     class="hidden self-start md:inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 shadow-md mt-2">

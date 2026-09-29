@@ -88,6 +88,7 @@
     position: relative;
     display: inline-block;
 }
+.gcq-title-wrap { align-self: flex-start; }
 .gcq-date-wrap { display: block; }
 .gcq-swash {
     position: absolute;
@@ -97,7 +98,7 @@
     pointer-events: none;
     filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.55)) drop-shadow(0 0 3px rgba(255, 236, 170, 0.6));
 }
-.gcq-swash--title { left: 0.1em; width: min(72%, 17rem); }
+.gcq-swash--title { left: 0.1em; width: 17rem; }
 .gcq-swash--date { right: 0; width: min(58%, 15rem); }
 .gcq-swash path:first-of-type {
     stroke-dasharray: 260;
@@ -121,13 +122,127 @@
     opacity: 0;
     animation: gcq-twinkle 7s ease-in-out infinite;
 }
-.gcq-twinkle--title-end { top: -0.15rem; right: -0.85rem; }
-.gcq-twinkle--title-start { top: -0.35rem; left: 0.35em; width: 0.55rem; height: 0.55rem; animation-delay: -3.2s; }
 .gcq-twinkle--date { top: -0.2rem; left: -0.9rem; animation-delay: -1.6s; }
 @keyframes gcq-twinkle {
     0%, 70%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
     78% { opacity: 1; transform: scale(1.15) rotate(35deg); }
     88% { opacity: 0.6; transform: scale(0.8) rotate(70deg); }
+}
+
+
+/* ---------- The title pixie ----------
+   She used to be a spinning ✦ on the title's ::after, moved with left/top.
+   Now she is a little glowing sprite with fluttering wings and a trail of dust,
+   gliding along one smooth motion path over the title, and every flight ends by
+   landing on the star at the tip of the gold swash, which flares as she arrives.
+   The lane is the title's own box; the path is drawn for the sm+ title size. */
+.gcq-pixie-lane {
+    --pixie-cycle: 26s;
+    --pixie-delay: 2.5s;
+    --pixie-path: path('M -26 26 C 6 -16, 64 -24, 108 4 S 178 34, 228 10 S 330 -24, 384 -8 S 436 30, 400 34 S 318 12, 284 28 S 246 41, 234 40');
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+.gcq-pixie,
+.gcq-pixie-dust {
+    position: absolute;
+    top: 0;
+    left: 0;
+    offset-path: var(--pixie-path);
+    offset-rotate: 0deg;
+    offset-distance: 0%;
+    opacity: 0;
+    will-change: offset-distance, opacity, transform;
+}
+.gcq-pixie {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.35));
+    animation: gcq-pixie-fly var(--pixie-cycle) var(--pixie-delay) infinite;
+}
+.gcq-pixie__body {
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ffffff 0%, #fff7d6 40%, #fcd34d 75%, rgba(245, 158, 11, 0.6) 100%);
+    box-shadow:
+        0 0 4px 1px rgba(255, 255, 255, 0.95),
+        0 0 10px 3px rgba(253, 224, 120, 0.8),
+        0 0 22px 6px rgba(245, 158, 11, 0.35);
+}
+/* A tiny four-point sparkle crossing the body, turning slowly */
+.gcq-pixie__body::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
+    background: rgba(255, 255, 255, 0.95);
+    clip-path: polygon(50% 0, 56% 44%, 100% 50%, 56% 56%, 50% 100%, 44% 56%, 0 50%, 44% 44%);
+    animation: gcq-pixie-glint 1.8s linear infinite;
+}
+.gcq-pixie__wing {
+    position: absolute;
+    top: -2px;
+    width: 12px;
+    height: 9px;
+    border-radius: 60% 60% 50% 50% / 70% 70% 40% 40%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(224, 242, 254, 0.35));
+    border: 1px solid rgba(253, 230, 138, 0.85);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+    animation: gcq-pixie-flutter 0.16s ease-in-out infinite alternate;
+}
+.gcq-pixie__wing--l { right: 10px; transform-origin: 100% 90%; transform: rotate(-24deg); }
+.gcq-pixie__wing--r { left: 10px; transform-origin: 0 90%; transform: rotate(24deg); animation-delay: -0.08s; }
+
+.gcq-pixie-dust {
+    width: 8px;
+    height: 8px;
+    margin: 5px 0 0 5px;
+    background: #fff9e0;
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    filter: drop-shadow(0 0 2px rgba(253, 224, 120, 0.95));
+    animation: gcq-pixie-dust var(--pixie-cycle) calc(var(--pixie-delay) + var(--k) * 0.09s) infinite;
+}
+
+@keyframes gcq-pixie-fly {
+    0% { offset-distance: 0%; opacity: 0; transform: scale(0.4); animation-timing-function: ease-out; }
+    3% { opacity: 1; transform: scale(1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.4, 1); }
+    40% { offset-distance: 100%; opacity: 1; transform: scale(1); animation-timing-function: ease-out; }
+    42.5% { offset-distance: 100%; opacity: 1; transform: scale(1.45); animation-timing-function: ease-in; }
+    47% { offset-distance: 100%; opacity: 0; transform: scale(0.2); }
+    100% { offset-distance: 100%; opacity: 0; transform: scale(0.2); }
+}
+@keyframes gcq-pixie-dust {
+    0% { offset-distance: 0%; opacity: 0; transform: scale(0.3) rotate(0deg); animation-timing-function: ease-out; }
+    3% { opacity: calc(0.95 - var(--k) * 0.13); transform: scale(calc(1.05 - var(--k) * 0.12)) rotate(40deg); animation-timing-function: cubic-bezier(0.45, 0.05, 0.4, 1); }
+    40% { offset-distance: 100%; opacity: calc(0.95 - var(--k) * 0.13); transform: scale(calc(1.05 - var(--k) * 0.12)) rotate(400deg); }
+    42% { offset-distance: 100%; opacity: 0; transform: scale(0.1) rotate(440deg); }
+    100% { offset-distance: 100%; opacity: 0; transform: scale(0.1); }
+}
+@keyframes gcq-pixie-flutter {
+    from { scale: 1 1; }
+    to { scale: 0.35 1; }
+}
+@keyframes gcq-pixie-glint {
+    from { transform: rotate(0deg) scale(0.9); }
+    50% { transform: rotate(45deg) scale(1.15); }
+    to { transform: rotate(90deg) scale(0.9); }
+}
+/* The swash star answers her landing with a flare */
+.gcq-swash__star {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: gcq-swash-star-flare 26s 2.5s infinite;
+}
+@keyframes gcq-swash-star-flare {
+    0%, 39.5% { transform: scale(1) rotate(0deg); filter: none; }
+    42.5% { transform: scale(2.1) rotate(45deg); filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #fcd34d); }
+    52%, 100% { transform: scale(1) rotate(90deg); filter: none; }
 }
 
 /* ---------- Control pill: gilt hairline + glass highlight ---------- */
@@ -166,7 +281,8 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
 
 @media (max-width: 639px) {
     .gcq-swash,
-    .gcq-twinkle { display: none; }
+    .gcq-twinkle,
+    .gcq-pixie-lane { display: none; }
     .gcq-header-trim__gem { width: 64px; }
 }
 
@@ -175,4 +291,6 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
     .gcq-header-trim__bead,
     .gcq-swash path:first-of-type { animation: none; }
     .gcq-twinkle { animation: none; opacity: 0; }
+    .gcq-pixie-lane { display: none; }
+    .gcq-swash__star { animation: none; }
 }

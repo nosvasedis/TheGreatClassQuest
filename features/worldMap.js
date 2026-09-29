@@ -2,51 +2,8 @@
 import * as state from '../state.js'; // Import state to get live scores
 import * as utils from '../utils.js';
 
-export const QUEST_MAP_ZONES = [
-    {
-        id: 'bronze',
-        minPercent: 0,
-        label: 'Bronze Meadows',
-        icon: '🌿',
-        desc: 'The first stretch of the adventure road.',
-        glow: 'shadow-[0_0_10px_rgba(165,180,252,0.5)]',
-        animationClass: 'animate-bounce-slow'
-    },
-    {
-        id: 'silver',
-        minPercent: 30,
-        label: 'Silver Peaks',
-        icon: '🏔️',
-        desc: 'Steady climbers reach the high passes.',
-        glow: 'shadow-[0_0_10px_rgba(125,211,252,0.5)] border-sky-200',
-        animationClass: 'animate-bounce-slow'
-    },
-    {
-        id: 'gold',
-        minPercent: 60,
-        label: 'Golden Citadel',
-        icon: '🏰',
-        desc: 'The citadel opens to classes on a streak.',
-        glow: 'shadow-[0_0_12px_rgba(251,191,36,0.6)] border-amber-300',
-        animationClass: 'animate-bounce-slow'
-    },
-    {
-        id: 'crystal',
-        minPercent: 85,
-        label: 'Crystal Realm',
-        icon: '💎',
-        desc: 'Top-tier champions sparkle at the summit.',
-        glow: 'shadow-[0_0_15px_rgba(216,180,254,0.8)] border-purple-300',
-        animationClass: 'animate-pulse'
-    }
-];
-
-export function getQuestMapZoneForProgressPercent(progressPercent = 0) {
-    const safePercent = Number.isFinite(progressPercent) ? progressPercent : 0;
-    return QUEST_MAP_ZONES.reduce((current, zone) => (
-        safePercent >= zone.minPercent ? zone : current
-    ), QUEST_MAP_ZONES[0]);
-}
+export { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
+import { QUEST_MAP_ZONES } from './questMapZones.mjs';
 
 /** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
 function resolveLeagueMapMetrics(c) {

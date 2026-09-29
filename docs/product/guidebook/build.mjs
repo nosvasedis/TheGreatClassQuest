@@ -676,7 +676,7 @@ function headingWidgets(id) {
   }
   if (id === 'home') {
     return [
-      { match: ['What you see', 'Τι βλέπεις'], html: uiShot('home-tab.png', 'Class Home: the greeting for the time of day, the Bounty button, weather with Quiz of the Week, reminder pills, Team Quest progress, the class virtue and class photo, Chronicle, and class actions.') },
+      { match: ['What you see', 'Τι βλέπεις'], html: uiShot('home-tab.png', 'Class Home: the greeting for the time of day, the Bounty button, weather with Quiz of the Week, reminder pills, the Quest Progress road, the class virtue and class photo, Chronicle, and class actions.') },
       { match: ['Before the lesson', 'Πριν το μάθημα'], html: uiShot('settings-quiz.png', 'Quiz setup in Teacher Settings: class from the header, this week’s unit and words, then Generate. Ready this week — play it on Home.') },
       { match: ['When it appears', 'Όταν εμφανίζεται'], html: uiShot('quiz-of-the-week.png', 'When the quiz is ready, the question-mark button appears on the Home weather card — first lesson of the week, during lesson time.') },
       { match: ['How play feels', 'Πώς παίζεται'], html: `${uiShot('quiz-play-intro.png', 'The live Quiz of the Week intro: Ready, Quest Heroes? — question count, present students, then Begin the Quiz.')}${uiShot('quiz-play-question.png', 'A question in play: a student is spotlighted, multiple-choice A–D, progress Q 3 / 8, and Skip.')}` },

@@ -206,6 +206,8 @@
 @import url('./styles/home_chronicle.css');
 /* Home class party card: virtue crest + class photo (features/homePartyCard.mjs) */
 @import url('./styles/home_party.css');
+/* Home Quest Progress road (features/homeQuestRoadCard.mjs) */
+@import url('./styles/home_quest_road.css');
 
 @import url('./styles/student_roster.css');
 @import url('./styles/history_archive.css');

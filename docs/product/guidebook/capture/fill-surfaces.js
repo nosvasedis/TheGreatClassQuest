@@ -12,6 +12,7 @@ import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CE
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features/homeGreetingScene.js';
 import { buildHomePartyCardHtml } from '../../../../features/homePartyCard.mjs';
+import { buildHomeQuestRoadCardHtml } from '../../../../features/homeQuestRoadCard.mjs';
 import { buildSkyCardInner, describeArc, getLessonDialArc } from '../../../../ui/wallpaperDeck.mjs';
 import { getMoonPhaseCard, getWouldYouRatherCard } from '../../../../ui/wallpaperSkyCards.js';
 
@@ -138,33 +139,7 @@ function homeDashboardHtml() {
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden quest-progress-card">
-                <div class="absolute -bottom-14 -left-14 w-56 h-56 rounded-full bg-blue-400/25 blur-3xl pointer-events-none"></div>
-                <div class="absolute -top-10 right-0 w-44 h-44 rounded-full bg-indigo-500/18 blur-2xl pointer-events-none"></div>
-                <div class="relative z-10 flex justify-between items-start mb-5">
-                    <div>
-                        <h3 class="font-bold text-blue-400/80 text-xs uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 border border-blue-300/40"><i class="fas fa-route text-[9px] text-blue-500"></i></span>
-                            Quest Progress
-                        </h3>
-                        <div class="quest-pct-text">62<span style="font-size:2.5rem">%</span></div>
-                        <p class="text-[11px] text-blue-400/60 mt-1 font-semibold tracking-wide">of monthly goal</p>
-                    </div>
-                    <div class="quest-stars-pill">
-                        <div class="font-title text-3xl text-amber-500 leading-none">86 ⭐</div>
-                        <p class="text-[10px] font-bold text-amber-700/60 mt-0.5">this month</p>
-                    </div>
-                </div>
-                <div class="quest-progress-track relative z-10">
-                    <div class="quest-progress-fill" style="width: 62%">
-                        <div class="quest-progress-shine"></div>
-                    </div>
-                </div>
-                <div class="relative z-10 flex justify-between mt-2">
-                    <p class="text-[11px] text-blue-400/50 font-medium">Start</p>
-                    <p class="text-[11px] text-blue-500/70 font-bold">Goal: 138 ⭐</p>
-                </div>
-            </div>
+            ${buildHomeQuestRoadCardHtml({ stars: 86, goal: 138, logo: '📚' })}
 
             ${homePartyCardHtml()}
 

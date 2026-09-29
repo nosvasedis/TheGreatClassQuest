@@ -8,6 +8,7 @@ import * as utils from '../utils.js';
 import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { buildHomePartyCardHtml } from './homePartyCard.mjs';
+import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
@@ -523,13 +524,12 @@ function getActiveDashboard(classData, name, theme, spice) {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const { totalStars: monthlyStarsWithBonus } = utils.getClassMonthlyQuestStars(classData, students, scores, now);
+    const { totalStars: monthlyStarsWithBonus, classBonus } = utils.getClassMonthlyQuestStars(classData, students, scores, now);
 
     // NEW: Dynamic goal based on actual lessons, holidays, and overrides
     // NEW: Pass the full classData to match Leaderboard logic
     let goal = calculateMonthlyClassGoal(classData, students.length);
     if (goal < 18) goal = 18; // Shared safety floor
-    const progress = Math.min(100, (monthlyStarsWithBonus / goal) * 100).toFixed(0);
 
     // Fetch story when missing; patch chronicle text only (avoid full home DOM swap / flash)
     if (!state.get('currentStoryData')[classId]) {
@@ -601,34 +601,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     return getLayout(
         name, theme, getHomeBountyPillHtml(),
         `
-        <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden quest-progress-card">
-            <div class="absolute -bottom-14 -left-14 w-56 h-56 rounded-full bg-blue-400/25 blur-3xl pointer-events-none"></div>
-            <div class="absolute -top-10 right-0 w-44 h-44 rounded-full bg-indigo-500/18 blur-2xl pointer-events-none"></div>
-            <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,255,255,0.38) 0%, transparent 55%); border-radius: inherit;"></div>
-            <div class="relative z-10 flex justify-between items-start mb-5">
-                <div>
-                    <h3 class="font-bold text-blue-400/80 text-xs uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 border border-blue-300/40"><i class="fas fa-route text-[9px] text-blue-500"></i></span>
-                        Quest Progress
-                    </h3>
-                    <div class="quest-pct-text">${progress}<span style="font-size:2.5rem">%</span></div>
-                    <p class="text-[11px] text-blue-400/60 mt-1 font-semibold tracking-wide">of monthly goal</p>
-                </div>
-                <div class="quest-stars-pill">
-                    <div class="font-title text-3xl text-amber-500 leading-none">${monthlyStarsWithBonus} ⭐</div>
-                    <p class="text-[10px] font-bold text-amber-700/60 mt-0.5">this month</p>
-                </div>
-            </div>
-            <div class="quest-progress-track relative z-10">
-                <div class="quest-progress-fill" style="width: ${progress}%">
-                    <div class="quest-progress-shine"></div>
-                </div>
-            </div>
-            <div class="relative z-10 flex justify-between mt-2">
-                <p class="text-[11px] text-blue-400/50 font-medium">Start</p>
-                <p class="text-[11px] text-blue-500/70 font-bold">Goal: ${goal} ⭐</p>
-            </div>
-        </div>
+        ${buildHomeQuestRoadCardHtml({ stars: monthlyStarsWithBonus, goal, bonus: classBonus, logo: classData.logo || '📚' })}
         
         ${buildHomePartyCardHtml({ students: partyHeroes, virtueStars })}
         

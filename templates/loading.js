@@ -34,6 +34,157 @@ const FONT_WAIT_MS = 1200;
 const MOBILE_LOADING_QUERY = '(max-width: 1023px)';
 const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
+// ── Sun and ring artwork ─────────────────────────────────────────────
+// Built once as static SVG strings. Each moving part sits in its own layer
+// and only ever animates transform/opacity, so none of it needs repainting
+// while the app boots behind the loading screen.
+
+const r1 = (n) => Math.round(n * 100) / 100;
+
+function polar(cx, cy, r, deg) {
+    const a = (deg * Math.PI) / 180;
+    return { x: r1(cx + r * Math.sin(a)), y: r1(cy - r * Math.cos(a)) };
+}
+
+/** A tapered sunbeam with a rounded tip, pointing straight up (rotated into place). */
+function sunRayPath(inner, outer, halfWidth) {
+    const tip = r1(halfWidth * 0.32);
+    const shoulder = r1(outer - tip);
+    return `M ${-halfWidth} ${-inner} L ${-tip} ${-shoulder} A ${tip} ${tip} 0 0 1 ${tip} ${-shoulder} L ${halfWidth} ${-inner} Z`;
+}
+
+function sunRays({ count, offset, inner, outer, halfWidth, fill }) {
+    const d = sunRayPath(inner, outer, halfWidth);
+    return Array.from({ length: count }, (_, i) =>
+        `<path d="${d}" fill="${fill}" transform="rotate(${r1(offset + (360 / count) * i)})"/>`).join('');
+}
+
+const SUN_LONG_RAYS_SVG = `
+    <svg viewBox="-100 -100 200 200" focusable="false">
+        <defs>
+            <radialGradient id="ls-ray-long" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="92">
+                <stop offset="0.48" stop-color="#fcd34d" stop-opacity="1"/>
+                <stop offset="0.78" stop-color="#fbbf24" stop-opacity="0.7"/>
+                <stop offset="1" stop-color="#f59e0b" stop-opacity="0.08"/>
+            </radialGradient>
+        </defs>
+        ${sunRays({ count: 12, offset: 0, inner: 46, outer: 90, halfWidth: 11, fill: 'url(#ls-ray-long)' })}
+    </svg>`;
+
+const SUN_SHORT_RAYS_SVG = `
+    <svg viewBox="-100 -100 200 200" focusable="false">
+        <defs>
+            <radialGradient id="ls-ray-short" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="72">
+                <stop offset="0.62" stop-color="#fef9c3" stop-opacity="1"/>
+                <stop offset="1" stop-color="#fde68a" stop-opacity="0.15"/>
+            </radialGradient>
+        </defs>
+        ${sunRays({ count: 12, offset: 15, inner: 46, outer: 70, halfWidth: 8, fill: 'url(#ls-ray-short)' })}
+    </svg>`;
+
+// Same palette and build as the home greeting's day-ring sun (warm cream
+// core → sunflower → amber rim, white rim line), drawn larger with more detail.
+const SUN_DISC_SVG = `
+    <svg viewBox="-100 -100 200 200" focusable="false">
+        <defs>
+            <radialGradient id="ls-corona" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="62">
+                <stop offset="0.72" stop-color="#fffbeb" stop-opacity="0.95"/>
+                <stop offset="1" stop-color="#fde68a" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="ls-disc" cx="0.38" cy="0.35" r="0.72">
+                <stop offset="0" stop-color="#fffbeb"/>
+                <stop offset="0.42" stop-color="#fde047"/>
+                <stop offset="0.82" stop-color="#fbbf24"/>
+                <stop offset="1" stop-color="#f59e0b"/>
+            </radialGradient>
+            <radialGradient id="ls-sheen" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+        <circle r="62" fill="url(#ls-corona)"/>
+        <circle r="47" fill="url(#ls-disc)"/>
+        <circle r="39" fill="none" stroke="#fffbeb" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="2.5 6" stroke-linecap="round"/>
+        <ellipse cx="-15" cy="-17" rx="17" ry="11" fill="url(#ls-sheen)" transform="rotate(-38 -15 -17)"/>
+        <circle r="47" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="2.4"/>
+        <circle r="51.5" fill="none" stroke="#fde68a" stroke-opacity="0.6" stroke-width="1.1"/>
+    </svg>`;
+
+const LOADING_SUN_HTML = `
+    <div class="loading-sun" aria-hidden="true">
+        <div class="loading-sun__body">
+            <span class="loading-sun__halo"></span>
+            <span class="loading-sun__bloom"></span>
+            <span class="loading-sun__rays loading-sun__rays--long">${SUN_LONG_RAYS_SVG}</span>
+            <span class="loading-sun__rays loading-sun__rays--short">${SUN_SHORT_RAYS_SVG}</span>
+            <span class="loading-sun__disc">${SUN_DISC_SVG}</span>
+            <span class="loading-sun__flare"></span>
+        </div>
+    </div>`;
+
+/** A comet arc: a gold head that trails off into a fading tail. */
+function ringComet({ r, from, to, headAtEnd, color, width, headR, glowId }) {
+    const steps = 14;
+    const span = (to - from) / steps;
+    const segments = Array.from({ length: steps }, (_, k) => {
+        const a0 = from + span * k;
+        const a1 = from + span * (k + 1) + (headAtEnd ? 0.6 : -0.6) * Math.sign(span);
+        const t = headAtEnd ? (k + 1) / steps : 1 - k / steps;
+        const p0 = polar(50, 50, r, a0);
+        const p1 = polar(50, 50, r, a1);
+        const sweep = a1 > a0 ? 1 : 0;
+        return `<path d="M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${sweep} ${p1.x} ${p1.y}" stroke-opacity="${r1(t * t)}"/>`;
+    }).join('');
+    const head = polar(50, 50, r, headAtEnd ? to : from);
+    return `
+        <g class="loading-ring__comet" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round">${segments}</g>
+        <circle cx="${head.x}" cy="${head.y}" r="${r1(headR * 2.6)}" fill="url(#${glowId})"/>
+        <circle cx="${head.x}" cy="${head.y}" r="${headR}" fill="#fffbeb"/>`;
+}
+
+const RING_OUTER_SVG = `
+    <svg viewBox="0 0 100 100" focusable="false">
+        <defs>
+            <radialGradient id="lr-glow-outer">
+                <stop offset="0" stop-color="#fde047" stop-opacity="0.9"/>
+                <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+        <circle class="loading-ring__track" cx="50" cy="50" r="46.5" fill="none" stroke="rgba(14, 165, 233, 0.16)" stroke-width="3"/>
+        ${ringComet({ r: 46.5, from: -125, to: 0, headAtEnd: true, color: '#fbbf24', width: 3, headR: 2.1, glowId: 'lr-glow-outer' })}
+    </svg>`;
+
+const RING_INNER_SVG = `
+    <svg viewBox="0 0 100 100" focusable="false">
+        <defs>
+            <radialGradient id="lr-glow-inner">
+                <stop offset="0" stop-color="#fef9c3" stop-opacity="0.85"/>
+                <stop offset="1" stop-color="#fde047" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+        <circle class="loading-ring__track loading-ring__track--inner" cx="50" cy="50" r="38" fill="none" stroke="rgba(103, 232, 249, 0.16)" stroke-width="2.2"/>
+        ${ringComet({ r: 38, from: 180, to: 280, headAtEnd: false, color: '#fde047', width: 2.2, headR: 1.6, glowId: 'lr-glow-inner' })}
+    </svg>`;
+
+// Soft fan of light behind the phone greeting (styles/loading-mobile.css).
+const SUNBURST_SVG = `
+    <svg viewBox="-100 -100 200 200" focusable="false">
+        <defs>
+            <radialGradient id="ls-burst" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="100">
+                <stop offset="0.1" stop-color="#fffbeb" stop-opacity="0.9"/>
+                <stop offset="0.45" stop-color="#fef3c7" stop-opacity="0.45"/>
+                <stop offset="0.9" stop-color="#fde68a" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+        ${Array.from({ length: 16 }, (_, i) => {
+            const a = i * 22.5;
+            const half = i % 2 ? 3.2 : 5;
+            const p0 = polar(0, 0, 100, a - half);
+            const p1 = polar(0, 0, 100, a + half);
+            return `<path d="M 0 0 L ${p0.x} ${p0.y} A 100 100 0 0 1 ${p1.x} ${p1.y} Z" fill="url(#ls-burst)"/>`;
+        }).join('')}
+    </svg>`;
+
 function randomInt(max) {
     return Math.floor(Math.random() * max);
 }
@@ -96,7 +247,7 @@ export const loadingHTML = `
         style="background: linear-gradient(180deg, #E8F6FF 0%, #BFE8FB 42%, #8FDCEF 68%, #CFF3DC 100%);">
 
         <div class="loading-sky-glow" aria-hidden="true"></div>
-        <div class="loading-sun" aria-hidden="true"></div>
+        ${LOADING_SUN_HTML}
 
         <!-- Giant painted cloud assets for a true sky-world feel -->
         <div class="loading-cloud-art-layer" aria-hidden="true">
@@ -168,8 +319,13 @@ export const loadingHTML = `
                 <div class="loading-center-logo" aria-hidden="true">
                     <img src="${LOADING_LOGO_URL}" alt="" />
                 </div>
-                <div class="loading-simple-ring"></div>
+                <div class="loading-simple-ring" aria-hidden="true">
+                    ${RING_OUTER_SVG}
+                    <div class="loading-simple-ring__inner">${RING_INNER_SVG}</div>
+                </div>
             </div>
+
+            <div class="loading-sunburst" aria-hidden="true">${SUNBURST_SVG}</div>
 
             <div id="loading-greeting" class="loading-greeting">
                 <span id="loading-greeting-text"></span>

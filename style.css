@@ -56,6 +56,7 @@
 /* 11. Student leaderboard card float, absence styles, welcome-back-btn */
 @import url('./styles/leaderboard.css');
 @import url('./styles/hero_standings.css');
+@import url('./styles/hero_logs.css');
 
 /* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
 @import url('./styles/guilds.css');

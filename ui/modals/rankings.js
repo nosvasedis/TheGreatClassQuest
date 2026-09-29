@@ -3,6 +3,13 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { showAnimatedModal } from './base.js';
+import {
+    buildProdigyEmptyHtml,
+    buildProdigyLoadingHtml,
+    buildProdigyNavHtml,
+    buildProdigyShrinesHtml,
+    buildProdigyYearHtml
+} from './prodigyHallView.js';
 import { showToast } from '../effects.js';
 import { renderBoonSponsorPicker } from '../boonSponsorPicker.js';
 import { playSound } from '../../audio.js';
@@ -1079,6 +1086,33 @@ export async function getProdigyCountsForClass(classId) {
     return result;
 }
 
+let prodigyRenderToken = 0;
+let prodigyShownMonthKey = null;
+let prodigyFrozenAnimations = [];
+let prodigyCloseObserver = null;
+
+/** Pause looping animations behind the hall while it is open (weak laptops), resume on close. */
+function freezeProdigyBackdrop(modal) {
+    if (typeof document.getAnimations !== 'function' || prodigyFrozenAnimations.length) return;
+    const toasts = document.getElementById('toast-container');
+    prodigyFrozenAnimations = document.getAnimations().filter((animation) => {
+        if (animation.playState !== 'running') return false;
+        if (animation.effect?.getTiming?.().iterations !== Infinity) return false;
+        const target = animation.effect?.target;
+        return !!target && !modal.contains(target) && !toasts?.contains(target);
+    });
+    prodigyFrozenAnimations.forEach((animation) => animation.pause());
+    if (!prodigyCloseObserver && typeof MutationObserver === 'function') {
+        prodigyCloseObserver = new MutationObserver(() => {
+            if (!modal.classList.contains('hidden')) return;
+            const frozen = prodigyFrozenAnimations;
+            prodigyFrozenAnimations = [];
+            frozen.forEach((animation) => { if (animation.playState === 'paused') animation.play(); });
+        });
+        prodigyCloseObserver.observe(modal, { attributes: true, attributeFilter: ['class'] });
+    }
+}
+
 export async function openProdigyModal() {
     const currentGlobal = state.get('globalSelectedClassId');
     const allTeachersClasses = state.get('allTeachersClasses') || [];
@@ -1091,60 +1125,84 @@ export async function openProdigyModal() {
 
     // Hall opens on the most recent completed month only (never the in-progress month).
     prodigyViewDate = getLatestViewableProdigyMonth();
+    prodigyShownMonthKey = null;
+
+    const modal = document.getElementById('prodigy-modal');
+    const contentEl = document.getElementById('prodigy-content');
+    if (contentEl) contentEl.innerHTML = buildProdigyLoadingHtml();
+    const yearEl = document.getElementById('prodigy-year-strip');
+    if (yearEl) {
+        yearEl.innerHTML = '';
+        yearEl.classList.remove('is-settled');
+    }
+    const navEl = document.getElementById('prodigy-nav-container');
+    if (navEl) navEl.innerHTML = '';
 
     showAnimatedModal('prodigy-modal');
+    if (modal) freezeProdigyBackdrop(modal);
     await new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve))
     );
     await renderProdigyHistory(currentGlobal);
 }
 
+function buildProdigyYearMonths(archiveStart, latestViewable, viewKey, winnersByMonth, students) {
+    const byId = new Map(students.map((s) => [s.id, s]));
+    const months = [];
+    if (!archiveStart) return months;
+    const cursor = new Date(archiveStart.getFullYear(), archiveStart.getMonth(), 1);
+    const liveMonth = latestViewable
+        ? new Date(latestViewable.getFullYear(), latestViewable.getMonth() + 1, 1)
+        : new Date(archiveStart.getFullYear(), archiveStart.getMonth(), 1);
+    while (cursor <= liveMonth && months.length < 13) {
+        const key = utils.getMonthKey(cursor);
+        const isLive = cursor.getTime() === liveMonth.getTime();
+        const winners = isLive ? [] : (winnersByMonth?.get?.(key) || [])
+            .map((id) => byId.get(id))
+            .filter(Boolean)
+            .map((s) => ({ name: s.name, avatar: s.avatar }));
+        months.push({
+            key,
+            short: cursor.toLocaleString('en-GB', { month: 'short' }),
+            label: cursor.toLocaleString('en-GB', { month: 'long', year: 'numeric' }),
+            state: isLive ? 'live' : (winners.length ? 'crowned' : 'empty'),
+            isCurrent: key === viewKey,
+            winners,
+        });
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return months;
+}
+
 export async function renderProdigyHistory(classId) {
     if (!classId) return;
     const contentEl = document.getElementById('prodigy-content');
     const navEl = document.getElementById('prodigy-nav-container');
+    const yearEl = document.getElementById('prodigy-year-strip');
     if (!contentEl || !navEl) return;
+    const token = ++prodigyRenderToken;
+    const isStale = () => token !== prodigyRenderToken;
 
-    // Loading State
-    contentEl.innerHTML = `
-        <div class="h-full min-h-[12rem] flex flex-col items-center justify-center text-indigo-300 space-y-5 py-8">
-            <div class="relative w-24 h-24">
-                <div class="absolute inset-0 border-8 border-violet-300/30 rounded-full"></div>
-                <div class="absolute inset-0 border-8 border-violet-500 border-t-transparent rounded-full prodigy-hall-loading-pulse"></div>
-                <div class="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-lg" aria-hidden="true"><i class="fas fa-crown text-amber-500"></i></div>
-            </div>
-            <div class="text-center space-y-2 px-4">
-                <p class="font-title text-2xl sm:text-3xl text-indigo-900 tracking-wide">Opening the vault…</p>
-                <p class="text-indigo-500 font-semibold text-sm prodigy-hall-tagline flex items-center justify-center gap-2 flex-wrap">
-                    <i class="fas fa-wand-magic-sparkles text-amber-500"></i>
-                    Polishing plaques &amp; dusting crowns
-                    <i class="fas fa-sparkles text-violet-400"></i>
-                </p>
-            </div>
-        </div>`;
+    // First paint of this opening shows the lighting-up state; month changes keep the old shrine
+    // dimmed until the new one is ready.
+    if (!prodigyShownMonthKey) contentEl.innerHTML = buildProdigyLoadingHtml();
+    else contentEl.classList.add('is-turning');
 
-    const countsPromise = getProdigyCountsForClass(classId).catch(() => ({ winCounts: new Map() }));
+    const countsPromise = getProdigyCountsForClass(classId).catch(() => ({ winCounts: new Map(), winnersByMonth: new Map() }));
     await import('../../db/actions.js').then(a => a.ensureHistoryLoaded());
+    if (isStale()) return;
 
     const now = new Date();
     const archiveStart = getArchiveStartMonth();
     const latestViewable = getLatestViewableProdigyMonth(now);
+    const students = state.get('allStudents').filter(s => s.classId === classId);
 
     if (!latestViewable) {
         navEl.innerHTML = '';
-        contentEl.innerHTML = `
-            <div class="prodigy-hall-empty h-full flex flex-col items-center justify-center py-12 px-6 max-w-lg mx-auto text-center group">
-                <div class="relative mb-6">
-                    <div class="absolute inset-0 bg-violet-200/50 blur-3xl rounded-full opacity-60"></div>
-                    <div class="prodigy-hall-empty-icon relative w-24 h-24 bg-white rounded-full flex items-center justify-center border-2 border-violet-100 shadow-lg">
-                        <i class="fas fa-dove text-4xl text-indigo-300 group-hover:text-violet-500 transition-colors" aria-hidden="true"></i>
-                    </div>
-                </div>
-                <h4 class="text-indigo-900 font-title text-2xl sm:text-3xl mb-2 tracking-tight flex items-center justify-center gap-2 flex-wrap">
-                    <i class="fas fa-seedling text-emerald-400" aria-hidden="true"></i> A new year
-                </h4>
-                <p class="text-indigo-600/90 prodigy-hall-tagline text-sm sm:text-base max-w-sm">This year's Hall of Prodigies is empty until the first school month closes. Last year's crowns stay in last year's archive.</p>
-            </div>`;
+        if (yearEl) yearEl.innerHTML = buildProdigyYearHtml(buildProdigyYearMonths(archiveStart, null, null, new Map(), students));
+        contentEl.classList.remove('is-turning');
+        contentEl.innerHTML = buildProdigyEmptyHtml({ variant: 'new-year' });
+        prodigyShownMonthKey = 'new-year';
         return;
     }
 
@@ -1162,28 +1220,17 @@ export async function renderProdigyHistory(classId) {
     }
 
     const monthName = prodigyViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    const viewMonthKey = utils.getMonthKey(new Date(viewYear, viewMonthIndex, 1));
 
     const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > archiveStart);
     const nextMonthStart = new Date(viewYear, viewMonthIndex + 1, 1);
     const canGoForward = nextMonthStart <= latestViewable;
 
-    navEl.innerHTML = `
-        <div class="prodigy-hall-nav-wrap flex items-center p-1.5 gap-1">
-            <button type="button" id="prodigy-prev-btn" title="Earlier month" aria-label="Earlier month" class="prodigy-hall-nav-btn prodigy-hall-nav-arrow-btn w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center disabled:opacity-25 disabled:pointer-events-none" ${!canGoBack ? 'disabled' : ''}>
-                <span class="prodigy-hall-nav-glyph" aria-hidden="true">&lt;</span>
-            </button>
-            <div class="px-4 sm:px-5 text-center min-w-[11rem] sm:min-w-[13rem]">
-                <p class="prodigy-hall-month text-base sm:text-lg text-indigo-950 truncate font-semibold">${monthName}</p>
-            </div>
-            <button type="button" id="prodigy-next-btn" title="Later month" aria-label="Later month" class="prodigy-hall-nav-btn prodigy-hall-nav-arrow-btn w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center disabled:opacity-25 disabled:pointer-events-none" ${!canGoForward ? 'disabled' : ''}>
-                <span class="prodigy-hall-nav-glyph" aria-hidden="true">&gt;</span>
-            </button>
-        </div>`;
+    navEl.innerHTML = buildProdigyNavHtml({ monthName, canGoBack, canGoForward });
 
     const { fetchLogsForMonth } = await import('../../db/queries.js');
     const { fetchMonthlyHistory } = await import('../../state.js');
 
-    const viewMonthKey = utils.getMonthKey(new Date(viewYear, viewMonthIndex, 1));
     const archivedByStudent = await fetchMonthlyHistory(viewMonthKey).catch(() => ({}));
 
     const fetched = await fetchLogsForMonth(viewYear, viewMonthIndex + 1);
@@ -1195,207 +1242,48 @@ export async function renderProdigyHistory(classId) {
     });
 
     const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
-    const students = state.get('allStudents').filter(s => s.classId === classId);
-    const { winCounts } = await countsPromise;
+    const { winCounts, winnersByMonth } = await countsPromise;
+    if (isStale()) return;
 
     const hasArchivedNonZero = students.some((s) => (Number(archivedByStudent[s.id]) || 0) > 0);
     const hasLogActivity = monthlyLogs.length > 0;
+    const direction = prodigyShownMonthKey && prodigyShownMonthKey !== 'new-year' && prodigyShownMonthKey !== viewMonthKey
+        ? (viewMonthKey > prodigyShownMonthKey ? 'next' : 'prev')
+        : '';
 
+    let html;
     if (!hasLogActivity && !hasArchivedNonZero) {
-        contentEl.innerHTML = `
-            <div class="prodigy-hall-empty h-full flex flex-col items-center justify-center py-12 px-6 max-w-lg mx-auto text-center group">
-                <div class="relative mb-6">
-                    <div class="absolute inset-0 bg-violet-200/50 blur-3xl rounded-full opacity-60"></div>
-                    <div class="prodigy-hall-empty-icon relative w-24 h-24 bg-white rounded-full flex items-center justify-center border-2 border-violet-100 shadow-lg">
-                        <i class="fas fa-dove text-4xl text-indigo-300 group-hover:text-violet-500 transition-colors" aria-hidden="true"></i>
-                    </div>
-                </div>
-                <h4 class="text-indigo-900 font-title text-2xl sm:text-3xl mb-2 tracking-tight flex items-center justify-center gap-2 flex-wrap">
-                    <i class="fas fa-moon text-indigo-400" aria-hidden="true"></i> Quiet halls
-                </h4>
-                <p class="text-indigo-600/90 prodigy-hall-tagline text-sm sm:text-base max-w-sm">No star awards logged for <span class="font-title text-indigo-800">${monthName}</span> — pick another month.</p>
-            </div>`;
+        html = buildProdigyEmptyHtml({ variant: 'quiet', monthName });
     } else {
         const { winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudent);
-
         if (!winners || winners.length === 0) {
-            contentEl.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-3 text-indigo-500 py-12 px-4 text-center prodigy-hall-tagline">
-                <i class="fas fa-star-half-stroke text-3xl text-amber-400" aria-hidden="true"></i>
-                <span>No stars this month for <span class="font-title text-indigo-800">${monthName}</span>, so there is no prodigy for this month.</span>
-            </div>`;
+            html = buildProdigyEmptyHtml({ variant: 'no-stars', monthName });
         } else {
-            const isTie = winners.length > 1;
-            const titleText = isTie ? "Legendary Co-Prodigy" : "Eternal Prodigy";
-
-            const cardsHtml = winners.map(winner => {
-                const scoreData = state.get('allStudentScores').find(sc => sc.id === winner.id);
-                const inventory = scoreData?.inventory || [];
-                const vaultLimit = isTie ? 10 : 8;
-                const inventoryHtml = inventory.length > 0
-                    ? inventory.slice(0, vaultLimit).map(item => {
-                        const visual = item.image ? `<img src="${item.image}" class="w-full h-full object-cover" alt="">` : `<span class="text-sm leading-none">${item.icon || '📦'}</span>`;
-                        const box = isTie
-                            ? `prodigy-hall-vault-item prodigy-hall-vault-item--co w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/90 border border-white/80 flex items-center justify-center overflow-hidden shrink-0`
-                            : `prodigy-hall-vault-item w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/90 border-2 border-white/80 flex items-center justify-center overflow-hidden shrink-0`;
-                        return `<div class="${box}" title="${item.name}">${visual}</div>`;
-                    }).join('')
-                    : `<span class="text-xs text-white/60 italic${isTie ? ' prodigy-hall-co-empty-vault' : ''}">No shop items yet</span>`;
-
-                const avatarHtml = winner.avatar
-                    ? `<img src="${winner.avatar}" class="w-full h-full object-cover" alt="">`
-                    : `<div class="w-full h-full flex items-center justify-center ${isTie ? 'text-xl sm:text-2xl' : 'text-3xl sm:text-4xl'} font-title text-indigo-600 bg-white">${winner.name.charAt(0)}</div>`;
-
-                let badgeFa = 'fa-heart';
-                let badgeText = 'Heroic Spirit';
-                let badgeColor = 'from-rose-400 to-pink-500';
-                
-                if (winner.stats.academicAvg >= 90) { 
-                    badgeText = `Ancient Sage (${winner.stats.academicAvg.toFixed(0)}%)`;
-                    badgeFa = 'fa-hat-wizard';
-                    badgeColor = 'from-amber-400 to-orange-500';
-                } else if (winner.stats.academicAvg > 0) { 
-                    badgeText = `Learned Hero (${winner.stats.academicAvg.toFixed(0)}%)`;
-                    badgeFa = 'fa-book-open';
-                    badgeColor = 'from-emerald-400 to-teal-500';
-                }
-                
-                const timesCrowned = winCounts.get(winner.id) || 1;
-
-                if (isTie) {
-                    return `
-                <div class="prodigy-hall-card prodigy-hall-card--co relative min-w-0 w-full group/card animate-in">
-                    <div class="prodigy-hall-card__inner prodigy-hall-card__inner--co p-3 sm:p-3.5 h-full max-h-full flex flex-col">
-                        <div class="prodigy-hall-card__stars absolute inset-0 opacity-[0.17] pointer-events-none"></div>
-                        <div class="relative z-[2] flex flex-row gap-2.5 sm:gap-3 items-start text-left flex-1 min-h-0">
-                            <div class="relative shrink-0">
-                                <div class="prodigy-hall-avatar-ring w-14 h-14 sm:w-[4.5rem] sm:h-[4.5rem] rounded-full border-[3px] border-white/35 overflow-hidden bg-indigo-50">
-                                    ${avatarHtml}
-                                </div>
-                                <div class="absolute -top-0.5 -right-0.5 bg-white w-7 h-7 rounded-full flex items-center justify-center shadow-md border-2 border-amber-400 text-amber-500" aria-hidden="true">
-                                    <i class="fas fa-trophy text-xs"></i>
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0 flex flex-col gap-1.5 sm:gap-2">
-                                <div class="flex flex-wrap items-center justify-between gap-1">
-                                    <div class="prodigy-hall-crown-pill text-amber-950 px-2 py-1 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wide flex items-center gap-1 bg-amber-400 leading-tight">
-                                        <i class="fas fa-crown text-[9px]" aria-hidden="true"></i>
-                                        ${titleText}
-                                    </div>
-                                    <div class="prodigy-hall-medal-pill flex items-center gap-1 bg-white/12 px-2 py-0.5 rounded-lg border border-white/20">
-                                        <span class="text-sm text-amber-200 font-title">${timesCrowned}×</span>
-                                        <i class="fas fa-medal text-amber-300 text-[10px]" aria-hidden="true"></i>
-                                    </div>
-                                </div>
-                                <h2 class="prodigy-hall-student-name text-base sm:text-lg md:text-xl text-white tracking-tight leading-snug break-words">${winner.name}</h2>
-                                <div class="prodigy-hall-badge-row flex flex-wrap items-center gap-1.5 text-white/90">
-                                    <span class="text-amber-200 font-title text-xl sm:text-2xl leading-none">${winner.monthlyStars}</span>
-                                    <span class="font-semibold text-[11px] sm:text-xs leading-tight"><i class="fas fa-sparkles text-amber-300 mr-1" aria-hidden="true"></i>stars this month</span>
-                                </div>
-                                <div class="bg-gradient-to-r ${badgeColor} px-2 py-1.5 rounded-xl border border-white/25 flex items-center gap-1.5 shadow-sm">
-                                    <span class="text-white text-sm" aria-hidden="true"><i class="fas ${badgeFa}"></i></span>
-                                    <span class="text-white prodigy-hall-badge-row text-[10px] sm:text-xs leading-snug">${badgeText}</span>
-                                </div>
-                                <div class="grid grid-cols-2 gap-1.5 sm:gap-2 text-left">
-                                    <div class="bg-black/25 rounded-xl px-2 py-2 border border-white/10" title="How many different praise reasons were used when awarding stars">
-                                        <p class="prodigy-hall-stat-label text-[9px] sm:text-[10px] text-indigo-100/95 mb-0.5 flex items-start gap-1 leading-snug">
-                                            <i class="fas fa-comments text-amber-300 shrink-0 mt-0.5" aria-hidden="true"></i>
-                                            <span>Different praise reasons</span>
-                                        </p>
-                                        <p class="text-white font-title text-lg sm:text-xl leading-none">${winner.stats.uniqueReasons}</p>
-                                    </div>
-                                    <div class="bg-black/25 rounded-xl px-2 py-2 border border-white/10" title="Days this month with three or more stars in one go">
-                                        <p class="prodigy-hall-stat-label text-[9px] sm:text-[10px] text-indigo-100/95 mb-0.5 flex items-start gap-1 leading-snug">
-                                            <i class="fas fa-star text-amber-300 shrink-0 mt-0.5" aria-hidden="true"></i>
-                                            <span>Days with 3★ or more</span>
-                                        </p>
-                                        <p class="text-white font-title text-lg sm:text-xl leading-none">${winner.stats.count3}</p>
-                                    </div>
-                                </div>
-                                <div class="mt-0.5 min-h-0">
-                                    <p class="prodigy-hall-vault-title text-[9px] sm:text-[10px] text-indigo-100/90 mb-1 flex items-center gap-1 font-semibold leading-tight">
-                                        <i class="fas fa-bag-shopping text-sky-300" aria-hidden="true"></i> Shop items owned
-                                    </p>
-                                    <div class="prodigy-hall-co-vault-strip flex flex-nowrap gap-1 sm:gap-1.5 justify-start items-center overflow-x-auto overflow-y-hidden pb-0.5 -mx-0.5 px-0.5">
-                                        ${inventoryHtml}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-                }
-
-                return `
-                <div class="prodigy-hall-card relative w-full max-w-3xl group/card animate-in">
-                    <div class="prodigy-hall-card__inner p-5 sm:p-7 md:p-8 h-full min-h-[14rem] sm:min-h-[16rem]">
-                        <div class="prodigy-hall-card__stars absolute inset-0 opacity-[0.17] pointer-events-none"></div>
-                        <div class="relative z-[2] flex flex-col sm:flex-row gap-5 sm:gap-6 md:gap-8 items-center sm:items-stretch text-center sm:text-left">
-                            <div class="relative shrink-0 flex flex-col items-center">
-                                <div class="prodigy-hall-avatar-ring w-[5.5rem] h-[5.5rem] sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full border-[3px] border-white/35 overflow-hidden bg-indigo-50">
-                                    ${avatarHtml}
-                                </div>
-                                <div class="absolute -top-1 -right-1 bg-white w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2 border-amber-400 text-amber-500" aria-hidden="true">
-                                    <i class="fas fa-trophy text-lg"></i>
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0 flex flex-col gap-3 sm:gap-3.5 w-full justify-center">
-                                <div class="flex flex-wrap items-center justify-center sm:justify-between gap-2.5">
-                                    <div class="prodigy-hall-crown-pill text-amber-950 px-3 py-1.5 rounded-xl text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 bg-amber-400">
-                                        <i class="fas fa-crown text-sm" aria-hidden="true"></i>
-                                        ${titleText}
-                                    </div>
-                                    <div class="prodigy-hall-medal-pill flex items-center gap-2 bg-white/12 px-3 py-1.5 rounded-xl border border-white/20">
-                                        <span class="text-lg text-amber-200 font-title">${timesCrowned}×</span>
-                                        <i class="fas fa-medal text-amber-300 text-sm" aria-hidden="true"></i>
-                                    </div>
-                                </div>
-                                <h2 class="prodigy-hall-student-name text-2xl sm:text-3xl md:text-4xl text-white tracking-tight leading-snug break-words">${winner.name}</h2>
-                                <div class="prodigy-hall-badge-row flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-sm text-white/90">
-                                    <span class="text-amber-200 font-title text-2xl sm:text-3xl leading-none">${winner.monthlyStars}</span>
-                                    <span class="font-semibold tracking-wide text-sm sm:text-base"><i class="fas fa-sparkles text-amber-300 mr-1.5" aria-hidden="true"></i>stars this month</span>
-                                </div>
-                                <div class="bg-gradient-to-r ${badgeColor} px-4 py-2.5 sm:py-3 rounded-2xl border border-white/25 flex items-center justify-center sm:justify-start gap-2.5 shadow-md">
-                                    <span class="text-white text-lg" aria-hidden="true"><i class="fas ${badgeFa}"></i></span>
-                                    <span class="text-white prodigy-hall-badge-row text-sm sm:text-base leading-snug">${badgeText}</span>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3 sm:gap-4 text-left">
-                                    <div class="bg-black/25 rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 border border-white/10" title="How many different praise reasons were used when awarding stars">
-                                        <p class="prodigy-hall-stat-label text-xs sm:text-sm text-indigo-100/95 mb-1 flex items-center gap-1.5 leading-snug">
-                                            <i class="fas fa-comments text-amber-300 shrink-0" aria-hidden="true"></i>
-                                            <span>Different praise reasons</span>
-                                        </p>
-                                        <p class="text-white font-title text-2xl sm:text-3xl leading-none">${winner.stats.uniqueReasons}</p>
-                                    </div>
-                                    <div class="bg-black/25 rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 border border-white/10" title="Days this month with three or more stars in one go">
-                                        <p class="prodigy-hall-stat-label text-xs sm:text-sm text-indigo-100/95 mb-1 flex items-center gap-1.5 leading-snug">
-                                            <i class="fas fa-star text-amber-300 shrink-0" aria-hidden="true"></i>
-                                            <span>Days with 3★ or more</span>
-                                        </p>
-                                        <p class="text-white font-title text-2xl sm:text-3xl leading-none">${winner.stats.count3}</p>
-                                    </div>
-                                </div>
-                                <div class="mt-1">
-                                    <p class="prodigy-hall-vault-title text-xs sm:text-sm text-indigo-100/90 tracking-wide mb-2 text-center sm:text-left flex items-center justify-center sm:justify-start gap-2 font-semibold">
-                                        <i class="fas fa-bag-shopping text-sky-300 text-base" aria-hidden="true"></i> Shop items owned
-                                    </p>
-                                    <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
-                                        ${inventoryHtml}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            if (isTie) {
-                const coMany = winners.length > 2;
-                const coExtra = coMany ? ' prodigy-hall-co-grid--many' : '';
-                contentEl.innerHTML = `<div class="prodigy-hall-co-layout prodigy-hall-co-grid w-full h-full min-h-0 animate-in flex-1${coExtra}">${cardsHtml}</div>`;
-            } else {
-                contentEl.innerHTML = `<div class="flex justify-center w-full pb-4 md:pb-6 animate-in">${cardsHtml}</div>`;
-            }
+            const allScoreData = state.get('allStudentScores') || [];
+            const inventoryById = new Map(winners.map((w) => [w.id, allScoreData.find(sc => sc.id === w.id)?.inventory || []]));
+            html = buildProdigyShrinesHtml({ winners, monthName, crownsById: winCounts, inventoryById, direction });
         }
+    }
+
+    contentEl.classList.remove('is-turning');
+    contentEl.innerHTML = html;
+    contentEl.scrollTop = 0;
+    prodigyShownMonthKey = viewMonthKey;
+
+    if (yearEl) {
+        // Coins pop in once per opening; month changes just move the highlight.
+        yearEl.classList.toggle('is-settled', yearEl.childElementCount > 0);
+        yearEl.innerHTML = buildProdigyYearHtml(buildProdigyYearMonths(archiveStart, latestViewable, viewMonthKey, winnersByMonth, students));
+        yearEl.querySelector('.ph-coin.is-current')?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
+        yearEl.querySelectorAll('[data-prodigy-month]').forEach((coin) => {
+            coin.onclick = () => {
+                const [y, m] = coin.dataset.prodigyMonth.split('-').map(Number);
+                if (!y || !m || coin.dataset.prodigyMonth === prodigyShownMonthKey) return;
+                playSound('click');
+                prodigyViewDate = new Date(y, m - 1, 1);
+                renderProdigyHistory(classId);
+            };
+        });
     }
 
     // Bind Listeners

@@ -5,6 +5,7 @@ import { guildPowerExplainerCardHtml } from '../../../../ui/tabs/guilds.js';
 import { leaderboardTabHTML } from '../../../../templates/app/tabs/leaderboard.js';
 import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js';
 import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/modals/trophyRoomView.js';
+import { buildProdigyNavHtml, buildProdigyShrinesHtml, buildProdigyYearHtml } from '../../../../ui/modals/prodigyHallView.js';
 import { buildTrophySatchel, buildActiveEffects } from '../../../../features/trophyRoomCore.mjs';
 import { getGuildBadgeHtml } from '../../../../features/guilds.js';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
@@ -525,59 +526,48 @@ export function hideTrophyRoom() {
   modal?.classList.remove('capture-trophy');
 }
 
+function captureFace(emoji, bg) {
+  return 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="' + bg + '"/><text x="32" y="44" font-size="32" text-anchor="middle">' + emoji + '</text></svg>'
+  );
+}
+
 export function showHallOfProdigies() {
   startShow();
   const modal = document.getElementById('prodigy-modal');
   if (!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-prodigy');
+  const maria = { id: 'maria', name: 'Maria', avatar: captureFace('🐼', '#bfdbfe') };
+  const alex = { id: 'alex', name: 'Alex', avatar: captureFace('🦊', '#fde68a') };
+  const eleni = { id: 'eleni', name: 'Eleni', avatar: captureFace('🐯', '#fed7aa') };
   const nav = document.getElementById('prodigy-nav-container');
-  if (nav) {
-    nav.innerHTML = `
-        <div class="prodigy-hall-nav-wrap flex items-center p-1.5 gap-1">
-            <button type="button" class="prodigy-hall-nav-btn prodigy-hall-nav-arrow-btn w-11 h-11 rounded-xl bg-white border border-indigo-100 text-indigo-600"><span aria-hidden="true">&lt;</span></button>
-            <div class="px-4 text-center min-w-[11rem]">
-                <p class="prodigy-hall-month text-base text-indigo-950 font-semibold">July 2026</p>
-            </div>
-            <button type="button" class="prodigy-hall-nav-btn prodigy-hall-nav-arrow-btn w-11 h-11 rounded-xl bg-white border border-indigo-100 text-indigo-600"><span aria-hidden="true">&gt;</span></button>
-        </div>`;
-  }
+  if (nav) nav.innerHTML = buildProdigyNavHtml({ monthName: 'July 2026', canGoBack: true, canGoForward: false });
   const content = document.getElementById('prodigy-content');
   if (content) {
-    content.innerHTML = `
-                <div class="prodigy-hall-card relative w-full max-w-3xl mx-auto">
-                    <div class="prodigy-hall-card__inner p-5 sm:p-7 md:p-8 min-h-[14rem]">
-                        <div class="relative z-[2] flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-stretch text-center sm:text-left">
-                            <div class="relative shrink-0 flex flex-col items-center">
-                                <div class="prodigy-hall-avatar-ring w-[5.5rem] h-[5.5rem] sm:w-32 sm:h-32 rounded-full border-[3px] border-white/35 overflow-hidden bg-indigo-50 flex items-center justify-center font-title text-4xl text-indigo-600">M</div>
-                                <div class="absolute -top-1 -right-1 bg-white w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2 border-amber-400 text-amber-500">
-                                    <i class="fas fa-trophy text-lg"></i>
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0 flex flex-col gap-3 w-full justify-center">
-                                <div class="flex flex-wrap items-center justify-center sm:justify-between gap-2.5">
-                                    <div class="prodigy-hall-crown-pill text-amber-950 px-3 py-1.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 bg-amber-400">
-                                        <i class="fas fa-crown text-sm"></i> Eternal Prodigy
-                                    </div>
-                                    <div class="prodigy-hall-medal-pill flex items-center gap-2 bg-white/12 px-3 py-1.5 rounded-xl border border-white/20">
-                                        <span class="text-lg text-amber-200 font-title">2×</span>
-                                        <i class="fas fa-medal text-amber-300 text-sm"></i>
-                                    </div>
-                                </div>
-                                <h2 class="prodigy-hall-student-name text-2xl sm:text-3xl text-white tracking-tight">Maria</h2>
-                                <div class="prodigy-hall-badge-row flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-sm text-white/90">
-                                    <span class="text-amber-200 font-title text-2xl leading-none">48</span>
-                                    <span class="font-semibold tracking-wide text-sm"><i class="fas fa-sparkles text-amber-300 mr-1.5"></i>stars this month</span>
-                                </div>
-                                <div class="bg-gradient-to-r from-emerald-400 to-teal-500 px-4 py-2.5 rounded-2xl border border-white/25 flex items-center gap-2.5">
-                                    <span class="text-white text-lg"><i class="fas fa-book-open"></i></span>
-                                    <span class="text-white text-sm">Learned Hero (92%)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-center text-indigo-500 text-sm mt-6 font-semibold">Completed months only — August is still live, so it is not in this hall yet.</p>`;
+    content.innerHTML = buildProdigyShrinesHtml({
+      monthName: 'July 2026',
+      winners: [{ ...maria, monthlyStars: 48, stats: { count3: 6, uniqueReasons: 5, academicAvg: 92 } }],
+      crownsById: { maria: 3 },
+      inventoryById: { maria: [{ name: 'Elixir of Luck', icon: '🧪' }, { name: 'Map of Stars', icon: '🗺️' }, { name: 'Owl Quill', icon: '🪶' }, { name: 'Crystal Orb', icon: '🔮' }] },
+    });
+  }
+  const year = document.getElementById('prodigy-year-strip');
+  if (year) {
+    const winnersByMonth = [alex, maria, eleni, maria, null, alex, eleni, [alex, eleni], maria, eleni, maria];
+    const months = ['Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026', 'Aug 2026'];
+    year.innerHTML = buildProdigyYearHtml(months.map((label, i) => {
+      const won = winnersByMonth[i];
+      const winners = !won ? [] : (Array.isArray(won) ? won : [won]);
+      return {
+        key: `m${i}`,
+        short: label.slice(0, 3),
+        label,
+        state: i === 11 ? 'live' : (winners.length ? 'crowned' : 'empty'),
+        isCurrent: i === 10,
+        winners,
+      };
+    }));
   }
 }
 

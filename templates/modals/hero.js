@@ -1,5 +1,6 @@
 // templates/modals/hero.js
 // Hero celebration, hero stats, hero chronicle, prodigy
+import { PRODIGY_HALL_DEFS_SVG, PRODIGY_ROSE_WINDOW_SVG } from '../../ui/modals/prodigyHallView.js';
 
 export const heroModalsHTML = `
     <div id="hero-celebration-modal"
@@ -286,47 +287,46 @@ export const heroModalsHTML = `
         </div>
     </div>
 
-    <div id="prodigy-modal"
-        class="fixed inset-0 bg-indigo-950/70 z-[95] flex items-center justify-center p-3 sm:p-4 hidden backdrop-blur-xl">
-        <div
-            class="prodigy-hall-shell bg-gradient-to-br from-indigo-50 via-white to-violet-50 rounded-[2rem] md:rounded-[2.5rem] max-w-5xl w-full max-h-[min(96vh,56rem)] min-h-[62vh] sm:min-h-[70vh] md:min-h-[74vh] flex flex-col relative overflow-hidden border-4 border-white pop-in">
-            <span class="prodigy-hall-sparkle prodigy-hall-sparkle--1" aria-hidden="true"></span>
-            <span class="prodigy-hall-sparkle prodigy-hall-sparkle--2" aria-hidden="true"></span>
-            <span class="prodigy-hall-sparkle prodigy-hall-sparkle--3" aria-hidden="true"></span>
-            
-            <!-- Animated Background Glows -->
-            <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-55">
-                <div class="absolute -top-40 -left-40 w-[500px] h-[500px] bg-amber-200 blur-[150px] rounded-full animate-pulse"></div>
-                <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-violet-400/30 blur-[150px] rounded-full animate-pulse" style="animation-delay: 1.5s;"></div>
+    <div id="prodigy-modal" class="ph-backdrop fixed inset-0 z-[95] flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="prodigy-hall-shell ph-hall pop-in" role="dialog" aria-modal="true" aria-labelledby="prodigy-hall-title">
+            ${PRODIGY_HALL_DEFS_SVG}
+            <!-- The hall itself: marble wall, arches, columns, banners and the rose window's light -->
+            <div class="ph-architecture" aria-hidden="true">
+                <span class="ph-arch ph-arch--l"></span>
+                <span class="ph-arch ph-arch--c"></span>
+                <span class="ph-arch ph-arch--r"></span>
+                <div class="ph-rose">${PRODIGY_ROSE_WINDOW_SVG}</div>
+                <span class="ph-ray ph-ray--1"></span>
+                <span class="ph-ray ph-ray--2"></span>
+                <span class="ph-ray ph-ray--3"></span>
+                <span class="ph-banner ph-banner--l"><span class="ph-banner__emblem"><i class="fas fa-crown"></i></span></span>
+                <span class="ph-banner ph-banner--r"><span class="ph-banner__emblem"><i class="fas fa-crown"></i></span></span>
+                <span class="ph-column ph-column--l"></span>
+                <span class="ph-column ph-column--r"></span>
+                <div class="ph-motes">
+                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="ph-floor"></span>
             </div>
 
-            <!-- Header -->
-            <div class="prodigy-hall-header relative z-20 px-4 py-3.5 md:px-8 md:py-5 flex flex-wrap items-center justify-between gap-3 bg-white/55 backdrop-blur-md border-b border-indigo-100/60 flex-shrink-0">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="prodigy-hall-icon-wrap w-14 h-14 md:w-16 md:h-16 shrink-0 bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-700 rounded-xl md:rounded-[1.25rem] flex items-center justify-center text-3xl md:text-4xl border-2 border-white text-white">
-                        <i class="fas fa-landmark" aria-hidden="true"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h2 class="font-title text-3xl md:text-4xl text-indigo-950 tracking-tight leading-none">
-                            Hall of Prodigies
-                        </h2>
-                    </div>
+            <header class="ph-frieze">
+                <span class="ph-frieze__crest" aria-hidden="true"><i class="fas fa-landmark"></i></span>
+                <div class="ph-frieze__titles">
+                    <h2 id="prodigy-hall-title" class="ph-frieze__title">Hall of Prodigies</h2>
+                    <p class="ph-frieze__sub">One crown for every month this school year</p>
                 </div>
+                <div id="prodigy-nav-container" class="ph-nav"></div>
+                <button type="button" id="prodigy-close-btn" class="ph-close" aria-label="Close Hall of Prodigies">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </header>
 
-                <div class="flex items-center gap-3 md:gap-5 w-full sm:w-auto justify-end">
-                    <div id="prodigy-nav-container" class="flex items-center gap-2 flex-1 sm:flex-initial justify-center sm:justify-end min-w-0"></div>
-                    
-                    <button type="button" id="prodigy-close-btn"
-                        class="prodigy-hall-close text-slate-400 hover:text-indigo-600 text-3xl leading-none w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/80 bg-white/30"
-                        aria-label="Close Hall of Prodigies">
-                        <i class="fas fa-circle-xmark" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div id="prodigy-content" class="flex flex-1 flex-col min-h-0 overflow-y-auto p-5 md:p-8 lg:p-10 custom-scrollbar relative z-10 bg-transparent">
+            <div id="prodigy-content" class="ph-content custom-scrollbar">
                 <!-- Content injected here -->
             </div>
+
+            <nav id="prodigy-year-strip" class="ph-year" aria-label="This year's Prodigies by month"></nav>
         </div>
     </div>
 `;

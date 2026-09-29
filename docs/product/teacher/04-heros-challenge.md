@@ -42,7 +42,9 @@ On a phone the hero list becomes a strip across the top.
 
 ### Hall of Prodigies
 
-Archive of **completed months only** — never the live month, and never last school year's months. The **× crowns** count is this year only. Last year's Prodigy plaques stay in last year's archive. Same ranking idea as the ceremony, including **Co-Prodigy** when the top students truly match. Open from this tab, Home, or related shortcuts.
+A sunlit marble hall under a stained-glass rose window. Each **completed month** enshrines its **Prodigy of the Month**: the crown settles on a laurel medallion, the name is engraved on a gold-edged plaque with an honour (**Ancient Sage**, **Learned Hero** or **Heroic Spirit**, from that month's written work), and four tablets show the month's stars, **times crowned this year**, different praise reasons and awards of 3★ or more. The student's treasures from the Mystic Market sit underneath. The ranking is the same as the ceremony's, so when the top students truly match, each **Co-Prodigy** gets an arched niche of their own.
+
+Change month with the arrows beside the month name, or tap a coin in **This year's crowns** along the bottom: a gold coin with the Prodigy's portrait for each crowned month, an empty coin for a month without a crown, and an hourglass for the month still being earned. Only **completed months** open: never the live month, and never last school year's months. The crown count is this year only; last year's Prodigies stay in last year's archive. Open it from this tab, Home, or related shortcuts.
 
 This is **not** the Hall of Heroes. Hall of Heroes (Adventure Log) counts **Hero of the Day** wins **this school year**.
 

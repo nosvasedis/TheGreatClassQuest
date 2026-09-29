@@ -701,7 +701,7 @@ function headingWidgets(id) {
     return [
       { match: ['What you see', 'Τι βλέπεις'], html: uiShot('heros-challenge.png', "Hero's Challenge: the Quest League bar with By Class / Monthly Stars, a gold, silver and bronze podium for each class, ranked rows below with each hero's gap to the one above, Hall of Prodigies and Trophy Room.") },
       { match: ['Trophy Room'], html: uiShot('trophy-room.png', 'Trophy Room: a student’s backpack. Use a relic such as Elixir of Luck, or keep a seasonal treasure vaulted.') },
-      { match: ['Hall of Prodigies'], html: uiShot('hall-of-prodigies.png', 'Hall of Prodigies: completed months only. Maria is Eternal Prodigy for July — August is still live, so it is not archived yet.') },
+      { match: ['Hall of Prodigies'], html: uiShot('hall-of-prodigies.png', 'Hall of Prodigies: a marble hall under the rose window. Maria is Prodigy of the Month for July, crowned 3× this year. The coins along the bottom show every month’s Prodigy; August is still being earned, so it is not in the hall yet.') },
       { match: ['Certificates'], html: `${uiShot('certificate-forge.png', 'Hero Certificate: Monthly Quest or Legend’s Journey ribbons, a live preview, Honours on the page, and the Oracle’s citation (Elite). Open it from Certificate on Manage Students.')}${uiShot('certificate.png', 'The printed certificate: an illuminated A4 landscape page in guild colours, wax seal, hero portrait, guild shield, honours and the Oracle’s citation.')}` }
     ];
   }

@@ -181,6 +181,9 @@
 /* 40b. Student Profile (edit student): the Adventurer's Passport */
 @import url('./styles/student_profile.css');
 
+/* 40c. Move Student: transfer orders (another class or the waiting list) */
+@import url('./styles/move_student.css');
+
 /* 41. Skill Tree: RPG path, node glows, and branch card animations */
 @import url('./styles/skill_tree.css');
 

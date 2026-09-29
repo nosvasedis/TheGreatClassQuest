@@ -17,6 +17,7 @@ import { handleAvatarClick } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { isSecretaryOfficeActive } from '../../features/secretary/officeModal.js';
+import { openMoveStudentModal } from './moveStudent.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -489,10 +490,10 @@ export function openEditStudentModal(studentId, options = {}) {
     if (quickMoveBtn) quickMoveBtn.onclick = handleMove;
     if (hubMoveBtn) hubMoveBtn.onclick = handleMove;
     if (officeMoveBtn) officeMoveBtn.onclick = handleMove;
-    // A teacher can only move a student who sits in a class; the Office can also seat a waiting one.
-    if (quickMoveBtn) quickMoveBtn.classList.toggle('hidden', !officeMode && isWaitingForClass);
+    // A waiting student can be seated from here: by the Office in any class, by a teacher in one of theirs.
+    if (quickMoveBtn) quickMoveBtn.classList.remove('hidden');
     const quickMoveLabel = document.getElementById('edit-student-quick-move-label');
-    if (quickMoveLabel) quickMoveLabel.textContent = officeMode && isWaitingForClass ? 'Seat' : 'Move';
+    if (quickMoveLabel) quickMoveLabel.textContent = isWaitingForClass ? 'Seat' : 'Move';
     const officeMoveLabel = document.getElementById('edit-student-office-move-label');
     if (officeMoveLabel) officeMoveLabel.textContent = isWaitingForClass ? 'Seat in a class' : 'Move class';
 
@@ -742,32 +743,7 @@ export async function openQuestAssignmentModal() {
     }
 }
 
-export function openMoveStudentModal(studentId) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-    const currentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    if (!currentClass) return;
-
-    const modal = document.getElementById('move-student-modal');
-    modal.dataset.studentId = studentId;
-
-    document.getElementById('move-student-name').innerText = student.name;
-    document.getElementById('move-student-current-class').innerText = `${currentClass.logo} ${currentClass.name}`;
-
-    const targetClassSelect = document.getElementById('move-student-target-class');
-    const possibleClasses = state.get('allSchoolClasses').filter(c => c.questLevel === currentClass.questLevel && c.id !== currentClass.id);
-
-    if (possibleClasses.length === 0) {
-        targetClassSelect.innerHTML = `<option value="">No other classes in this league.</option>`;
-        document.getElementById('move-student-confirm-btn').disabled = true;
-    } else {
-        targetClassSelect.innerHTML = possibleClasses.map(c => `<option value="${c.id}">${c.logo} ${c.name} (by ${c.createdBy.name})</option>`).join('');
-        document.getElementById('move-student-confirm-btn').disabled = false;
-    }
-    
-    showAnimatedModal('move-student-modal');
-
-}
+export { openMoveStudentModal };
 
 // --- SINGLE STARFALL (Used for individual entry edit or correction) ---
 export function showStarfallModal(studentId, studentName, bonusAmount, trialType) {

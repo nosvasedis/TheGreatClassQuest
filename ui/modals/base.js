@@ -29,7 +29,6 @@ import {
     saveAdventureLogNote,
     deleteAdventureLog,
     handleDeleteTrial,
-    handleMoveStudent,
     handleMarkAbsent,
     handleAwardBonusStar,
     handleBatchAwardBonus,

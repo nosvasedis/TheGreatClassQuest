@@ -51,7 +51,7 @@ function renderReturningStudentCard(entry, options = {}) {
                     ${badge}
                 </div>
                 <p class="returning-student-card__meta">
-                    <span class="returning-student-chip"><i class="fas fa-door-open" aria-hidden="true"></i>${escapeHtml(oldClass)}</span>
+                    <span class="returning-student-chip"><i class="fas fa-door-open" aria-hidden="true"></i>${student.releasedYearKey ? 'Left ' : ''}${escapeHtml(oldClass)}${student.releasedYearKey ? ' this year' : ''}</span>
                     ${prevLeague ? `<span class="returning-student-chip returning-student-chip--league"><i class="fas fa-flag" aria-hidden="true"></i>${escapeHtml(prevLeague)}</span>` : ''}
                 </p>
                 ${reason ? `<p class="returning-student-card__reason">${escapeHtml(reason)}</p>` : ''}

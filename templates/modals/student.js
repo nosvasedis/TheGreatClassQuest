@@ -304,25 +304,10 @@ export const studentModalsHTML = `
         </div>
     </div>
 
+    <!-- Move Student: "transfer orders". Rendered by ui/modals/moveStudent.js, styled in styles/move_student.css. -->
     <div id="move-student-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-yellow-300">
-            <h2 class="font-title text-2xl text-yellow-800 mb-4 text-center">Move Student</h2>
-            <p class="text-center mb-2">Moving: <b id="move-student-name" class="text-lg"></b></p>
-            <p class="text-center text-sm text-gray-600 mb-6">From: <span id="move-student-current-class"></span></p>
-            <div class="mb-4">
-                <label for="move-student-target-class" class="block text-sm font-medium text-gray-700">Select new class
-                    (must be in the same league):</label>
-                <select id="move-student-target-class"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500"></select>
-            </div>
-            <div class="flex justify-around gap-4 mt-6">
-                <button id="move-student-cancel-btn"
-                    class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Cancel</button>
-                <button id="move-student-confirm-btn"
-                    class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-title text-lg py-2 px-8 rounded-xl bubbly-button">Confirm
-                    Move</button>
-            </div>
-        </div>
+        class="move-student-modal fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="move-student-title">
+        <div class="ms-card pop-in"></div>
     </div>
 `;

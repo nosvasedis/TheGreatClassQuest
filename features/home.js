@@ -16,6 +16,7 @@ import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 import { shouldShowQuizButton } from './quizOfTheWeek.js';
+import { quizLaunchButtonHtml } from '../ui/modals/quizStageMarkup.js';
 import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
 import { escapeHtml } from './roles/shared.js';
 import {
@@ -1147,16 +1148,16 @@ async function injectQuizButton() {
             const quiz = await import('../db/actions/quizOfTheWeek.js').then(m =>
                 m.getQuizForClass(classId)
             );
-            const questionCount = quiz?.questions?.length || '?';
+            const questionCount = (quiz?.questions || []).filter(q => q.type === 'mcq').length;
 
-            footer.innerHTML = `<div class="quiz-week-btn-wrap"><button class="quiz-week-btn" id="quiz-week-trigger-btn" title="Quiz of the Week"><i class="fas fa-question"></i></button></div>`;
+            footer.innerHTML = quizLaunchButtonHtml({ questionCount });
 
             document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));
             });
         } else if (quizState === 'completed') {
             // Show completed state with results button
-            footer.innerHTML = `<div class="quiz-week-btn-wrap"><button class="quiz-week-btn quiz-btn-completed" id="quiz-week-trigger-btn" title="View Quiz Results"><i class="fas fa-check"></i></button></div>`;
+            footer.innerHTML = quizLaunchButtonHtml({ completed: true });
 
             document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));

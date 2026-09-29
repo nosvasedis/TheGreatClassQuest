@@ -16,18 +16,14 @@ import { hideAppScreen, hideExtras, onHideExtras } from './fill-extras.js';
 import { classroomShellHtml, hideClassroom } from './fill-classroom.js';
 import { hideSurfaces, surfacesShellHtml } from './fill-surfaces.js';
 import { hideRedesign, seedSchool } from './fill-redesign.js';
+import { quizIntroHtml as stageIntroHtml, quizResultsHtml as stageResultsHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from '../../../../ui/modals/quizStageMarkup.js';
 
 function assetUrl(url) {
   return String(url || '').replace(/^\.\//, '/');
 }
 
 function quizPlayShellHtml() {
-  return `
-    <div id="quiz-of-week-modal" class="fixed inset-0 z-[90] flex items-center justify-center p-3 hidden backdrop-blur-sm">
-        <div id="quiz-modal-inner" class="quiz-modal-inner">
-            <div id="quiz-modal-content" class="quiz-modal-stage"></div>
-        </div>
-    </div>`;
+  return quizStageShellHtml();
 }
 
 export function deeperShellHtml() {
@@ -925,88 +921,58 @@ export function hideSpecialQuestProjector() {
   if (host) host.innerHTML = '';
 }
 
+const QUIZ_CAST = ['Alex', 'Chloe', 'Dimitris', 'Eleni', 'Jonas', 'Maria', 'Nikos', 'Sofia', 'Yiannis', 'Zoe', 'Leo', 'Anna']
+  .map((name) => ({ name, avatar: null }));
+
+// The live stage's own markup (ui/modals/quizStageMarkup.js) with sample data, so the guidebook never drifts.
 function quizIntroHtml() {
-  return `
-        <div class="quiz-modal-header">
-            <span class="quiz-modal-title">⚔️ Quiz of the Week</span>
-            <button class="quiz-modal-close" type="button"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="quiz-intro">
-            <div class="quiz-intro-icon">🎯</div>
-            <div class="quiz-intro-title">Ready, Quest Heroes?</div>
-            <p class="quiz-intro-subtitle">
-                8 questions on this week's curriculum. Students will be picked at random to answer!
-            </p>
-            <div class="quiz-intro-curriculum">Mix — Simple Present, Daily Actions</div>
-            <div class="quiz-intro-stats">
-                <div class="quiz-intro-stat">
-                    <div class="quiz-intro-stat-num">8</div>
-                    <div class="quiz-intro-stat-label">Questions</div>
-                </div>
-                <div class="quiz-intro-stat">
-                    <div class="quiz-intro-stat-num">12</div>
-                    <div class="quiz-intro-stat-label">Present</div>
-                </div>
-            </div>
-            <button class="quiz-start-btn bubbly-button" type="button">
-                <i class="fas fa-play mr-2"></i> Begin the Quiz!
-            </button>
-        </div>`;
+  return stageIntroHtml({ questionCount: 8, contestants: QUIZ_CAST, absentCount: 1, topic: 'Mix · Simple Present, Daily Routines' });
 }
 
 function quizQuestionHtml() {
-  const options = [
-    ['A', 'She go to school every day.'],
-    ['B', 'She goes to school every day.'],
-    ['C', 'She going to school every day.'],
-    ['D', 'She gone to school every day.']
-  ];
-  return `
-        <div class="quiz-modal-header">
-            <span class="quiz-modal-title">⚔️ Quiz of the Week</span>
-            <button class="quiz-modal-close" type="button"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="quiz-progress-bar">
-            <div class="quiz-progress-fill" style="width:25%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-            <span class="quiz-progress-label">Q 3 / 8</span>
-            <div class="quiz-score-tracker">
-                <span class="quiz-score-correct"><i class="fas fa-check-circle"></i> 2</span>
-                <span class="quiz-score-sep">/</span>
-                <span style="color:rgba(0,0,0,0.5);">8</span>
-                <span style="color:rgba(0,0,0,0.4);font-size:0.78rem;">correct</span>
-            </div>
-        </div>
-        <div class="quiz-spotlight-bar">
-            <div class="quiz-spotlight-avatar"><i class="fas fa-hat-wizard"></i></div>
-            <div>
-                <div class="quiz-spotlight-name">Alex</div>
-                <div class="quiz-spotlight-label">✨ Your turn!</div>
-            </div>
-            <div class="quiz-spotlight-star">
-                <i class="fas fa-star"></i> 18
-            </div>
-        </div>
-        <div class="quiz-question-layout">
-            <div class="quiz-question-area">
-                <div class="quiz-question-kicker">Multiple Choice Challenge</div>
-                <div class="quiz-question-emoji">✨</div>
-                <div class="quiz-question-text">Choose the correct sentence.</div>
-            </div>
-            <div class="quiz-answer-grid">
-                ${options.map(([label, copy]) => `
-        <button class="quiz-answer-btn quiz-answer-visible" type="button">
-            <span class="quiz-answer-label">${label}</span>
-            <span class="quiz-answer-copy">${copy}</span>
-        </button>`).join('')}
-            </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:0.6rem;">
-            <button class="quiz-skip-btn" type="button">
-                <i class="fas fa-forward-fast mr-1"></i> Skip Question
-            </button>
-        </div>`;
+  return quizTurnHtml({
+    question: {
+      question: 'Choose the correct sentence.',
+      options: ['She go to school every day.', 'She goes to school every day.', 'She going to school every day.', 'She gone to school every day.']
+    },
+    questionNumber: 3,
+    total: 8,
+    attemptNumber: 2,
+    student: { name: 'Sofia', avatar: null },
+    stars: 18,
+    trail: ['first', 'late'],
+    firstTryCount: 1,
+    triedIndexes: [0]
+  }).replace('class="qs-answer" data-gem="b"', 'class="qs-answer is-picked is-correct" data-gem="b"')
+    .replace('<div id="quiz-explanation-area" class="qs-verdict hidden" role="status"></div>',
+      `<div id="quiz-explanation-area" class="qs-verdict qs-verdict--correct" role="status">${quizVerdictHtml({ kind: 'correct', attemptNumber: 2, explanation: 'With he, she or it we add -s: she goes.' })}</div>`)
+    .replace('class="qs-btn qs-btn--quiet" id="quiz-skip-btn"', 'class="qs-btn qs-btn--quiet hidden" id="quiz-skip-btn"')
+    .replace('class="qs-btn qs-btn--go hidden" id="quiz-next-btn"', 'class="qs-btn qs-btn--go" id="quiz-next-btn"');
+}
+
+function quizResultsHtml() {
+  const hero = (id, name, guildId, correctCount) => ({ id, name, avatar: null, guildId, correctCount, attemptedCount: correctCount, awardedStars: correctCount * 0.5, awardedGold: correctCount });
+  const heroes = [hero('s1', 'Sofia', 'owl_wisdom', 2), hero('s2', 'Nikos', 'dragon_flame', 2), hero('s3', 'Eleni', 'phoenix_rising', 1), hero('s4', 'Jonas', 'grizzly_might', 1), hero('s5', 'Zoe', 'owl_wisdom', 1)];
+  const guild = (id, glory, names) => ({ guildId: id, name: GUILDS[id].name, emoji: GUILDS[id].emoji, primary: GUILDS[id].primary, glory, contributors: names.map((name) => ({ name, correctCount: 1 })) });
+  const stat = (question, correctIndex, correctAnswer, firstTryCorrect, solved = true) => ({ question, correctIndex, correctAnswer, firstTryCorrect, solved, asked: true });
+  return stageResultsHtml({
+    totalQuestions: 8,
+    correctFirstTry: 7,
+    firstTryCorrectPct: 88,
+    rewards: {
+      tier: 'epic',
+      questBonus: 2,
+      studentRewards: heroes.map((h) => ({ studentId: h.id, stars: h.awardedStars, gold: h.awardedGold })),
+      correctStudentDetails: heroes,
+      guildDetails: [guild('owl_wisdom', 4, ['Sofia', 'Zoe']), guild('dragon_flame', 2, ['Nikos']), guild('phoenix_rising', 2, ['Eleni']), guild('grizzly_might', 2, ['Jonas'])],
+      awardedArtifacts: [{ studentId: 's1', artifact: { name: 'Elixir of Luck', icon: '🧪', description: '50% chance for bonus star next lesson' } }]
+    },
+    questionStats: [
+      stat('What is the opposite of "early"?', 0, 'late', true),
+      stat('Choose the correct sentence.', 1, 'She goes to school every day.', false),
+      stat('Which word is a fruit?', 1, 'banana', true)
+    ]
+  });
 }
 
 export function showQuizPlay(screen = 'intro') {
@@ -1018,7 +984,7 @@ export function showQuizPlay(screen = 'intro') {
   if (!modal || !content) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-quiz-play');
-  content.innerHTML = screen === 'question' ? quizQuestionHtml() : quizIntroHtml();
+  content.innerHTML = screen === 'question' ? quizQuestionHtml() : screen === 'results' ? quizResultsHtml() : quizIntroHtml();
 }
 
 export function hideQuizPlay() {

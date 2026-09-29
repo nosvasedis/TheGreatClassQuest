@@ -1539,60 +1539,7 @@
     border: 1px solid rgba(255,255,255,0.6);
 }
 
-/* Quiz Week Button — compact glass pill */
-@keyframes quiz-btn-enter {
-    0%   { opacity: 0; transform: scale(0.2) rotate(-40deg); }
-    55%  { opacity: 1; transform: scale(1.2) rotate(10deg); }
-    75%  { transform: scale(0.9) rotate(-5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0deg); }
-}
-@keyframes quiz-btn-float {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(-5px); }
-}
-/* Wrapper owns the once-only entrance; button owns the infinite float */
-.quiz-week-btn-wrap {
-    display: inline-flex;
-    animation: quiz-btn-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    filter: drop-shadow(0 2px 7px rgba(0,0,0,0.22));
-    transition: filter 0.22s ease;
-}
-.quiz-week-btn-wrap:hover {
-    filter: drop-shadow(0 4px 16px rgba(0,0,0,0.32));
-}
-.quiz-week-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.12) 100%);
-    border: 1.5px solid rgba(255,255,255,0.55);
-    color: rgba(255,255,255,0.95);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    cursor: pointer;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    animation: quiz-btn-float 3s ease-in-out 0.65s infinite;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
-    transition: background 0.22s ease, box-shadow 0.22s ease;
-}
-.quiz-week-btn:hover {
-    animation: none;
-    transform: scale(1.28);
-    background: linear-gradient(145deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.26) 100%);
-    box-shadow: 0 0 0 4px rgba(255,255,255,0.22);
-}
-.quiz-week-btn:active {
-    animation: none;
-    transform: scale(0.88);
-}
-.quiz-btn-completed {
-    background: linear-gradient(145deg, rgba(167,243,208,0.35) 0%, rgba(52,211,153,0.22) 100%);
-    border-color: rgba(167,243,208,0.65);
-    color: #d1fae5;
-}
+/* Quiz Week launcher lives in styles/quiz_of_the_week.css */
 
 /* Home class selector panel - Enhanced */
 #home-class-selector-panel {

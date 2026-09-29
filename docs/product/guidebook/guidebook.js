@@ -202,7 +202,7 @@
     }
     if (w === 'quiz-week') {
       return termShot('quiz-of-the-week.png', 'Quiz of the Week on the Home weather card')
-        + termShot('quiz-play-question.png', 'Quiz of the Week in play: a student is spotlighted for a multiple-choice question');
+        + termShot('quiz-play-question.png', 'Quiz of the Week in play: the spotlight picks a hero for each multiple-choice question');
     }
     if (w === 'story-weavers') {
       return termShot('story-weavers.png', 'Story Weavers: Word of the Day and the Current Chronicle');

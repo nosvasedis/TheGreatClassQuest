@@ -1,5 +1,6 @@
 /** Live Market, Fortune's Wheel, Skill Tree, and related chrome for guidebook capture. */
 
+import { quizLaunchButtonHtml } from '../../../../ui/modals/quizStageMarkup.js';
 import { shopTabHTML } from '../../../../templates/app/tabs/shop.js';
 import { logTabHTML } from '../../../../templates/app/tabs/log.js';
 import { skillTreeModalHTML } from '../../../../templates/modals/skillTree.js';
@@ -160,18 +161,12 @@ function hallModalHtml() {
 function quizHostHtml() {
   return `
     <div id="capture-quiz-host" class="hidden capture-quiz-host">
-      <div class="vibrant-card weather-card w-day weather-card--capture">
-        <i class="fas fa-sun weather-sun"></i>
-        <i class="fas fa-cloud weather-cloud"></i>
-        <div class="weather-info">
-          <div class="text-7xl font-title">18°</div>
-          <div class="text-2xl font-bold uppercase tracking-widest opacity-95">Sunny</div>
-        </div>
-        <div id="weather-card-footer" class="absolute bottom-4 right-4 z-10">
-          <div class="quiz-week-btn-wrap">
-            <button type="button" class="quiz-week-btn" title="Quiz of the Week"><i class="fas fa-question"></i></button>
-          </div>
-        </div>
+      <div class="vibrant-card weather-card weather-card--v2 w-day weather-card--capture">
+        <div class="weather-deco" aria-hidden="true"><span class="weather-glow"></span><i class="fas fa-cloud weather-cloud"></i><i class="fas fa-cloud weather-cloud weather-cloud--b"></i></div>
+        <i class="fas fa-sun weather-sun" aria-hidden="true"></i>
+        <div class="weather-top"><span></span><div class="weather-meta"><span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>21°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>12°</span></div></div>
+        <div class="weather-info"><div class="weather-temp font-title">18°</div><div class="weather-cond">Sunny</div></div>
+        <div class="weather-bottom"><div id="weather-card-footer" class="weather-card-footer">${quizLaunchButtonHtml({ questionCount: 8 })}</div></div>
       </div>
     </div>`;
 }

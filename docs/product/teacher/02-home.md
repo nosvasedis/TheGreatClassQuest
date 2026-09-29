@@ -71,7 +71,7 @@ Quiz of the Week is a **live game-show review**, not a paper test. It does not r
 
 ### When it appears on Home
 
-The play button shows on the **class Home** when:
+A lit **Quiz of the Week** ticket (with the number of questions and **Play**) shows on the weather card of the **class Home** when:
 
 - this school is on **Elite**,
 - a quiz exists for this week and is **ready**,
@@ -79,11 +79,22 @@ The play button shows on the **class Home** when:
 - you are **inside lesson time**,
 - and there are students to pick.
 
-If the quiz is already **completed**, Home can show **results** for the rest of the week. If it is still generating, or it is the wrong day, the play button stays away — that is intentional, so the ritual stays special.
+If the quiz is already **completed**, the ticket turns green and reads **See the results** for the rest of the week. If it is still generating, or it is the wrong day, the play button stays away — that is intentional, so the ritual stays special.
 
 ### How play feels
 
-Students are picked **at random** to answer. First-try accuracy of the class decides a **performance tier**, and rewards land automatically.
+The quiz opens as a **quiz-show stage** made for the projector. The first screen shows how many questions there are, the heroes on stage today (children marked absent are left out), and the three rules. Press **Raise the curtain** to start.
+
+- **The spotlight picks a hero** for each question. The names flicker for a moment, then land on one child. The choice is fair, not luck: children who have not answered in recent quizzes are called first, and nobody gets a second turn until everyone present has had one.
+- **Answer A, B, C or D.** You can click, or press the keys **1** to **4**; **Enter** moves on.
+- **A wrong answer passes the question on.** The tried answer is crossed out, and the spotlight picks someone new for the same question. If nobody gets it, the stage shows the right answer and its short explanation.
+- **Skip question** is there when a question should not be played.
+- The **lights at the top** show how each question went: gold for right on the first try, green for solved after a pass, red when nobody got it. The star counter beside them counts the first tries.
+- **Pause** (the button top right, or **Esc**) keeps the show where it is. Open the quiz again from Home to carry on; reloading the page starts it over.
+
+At the end the judges tally up, and the **curtain call** shows the class’s tier medal, first-try accuracy, stars granted and the Team Quest bonus, the **stars of the show** with what each earned, **Glory for the guilds**, any treasure, and a **recap of every question** with its answer. Tapping the curtain call skips the reveal. For the rest of the week, **See the results** on Home opens the same curtain call again.
+
+First-try accuracy of the class decides a **performance tier**, and rewards land automatically.
 
 | First-try accuracy | Tier | Feel of the reward |
 |--------------------|------|--------------------|

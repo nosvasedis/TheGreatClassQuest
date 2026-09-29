@@ -322,10 +322,29 @@ export function pickNextQuestion(classId) {
     if (!studentId) return null;
     qs.currentStudent = studentId;
 
+    return describeTurn(qs, question, studentId);
+}
+
+/** The turn already on stage (e.g. after the teacher paused the show), without picking a new one. */
+export function getActiveTurn(classId) {
+    const qs = quizState[classId];
+    if (!qs || !qs.currentQuestion || !qs.currentStudent) return null;
+    return describeTurn(qs, qs.currentQuestion, qs.currentStudent);
+}
+
+/** True when this class has a quiz that was started and not finished in this page session. */
+export function hasResumableQuiz(classId) {
+    const qs = quizState[classId];
+    if (!qs || !qs.inProgress) return false;
+    return qs.attempts.length > 0 || qs.answeredQuestions.length > 0 || Boolean(qs.currentQuestion);
+}
+
+function describeTurn(qs, question, studentId) {
     const students = state.get('allStudents') || [];
     const student = students.find(s => s.id === studentId);
     const scores = state.get('allStudentScores') || [];
     const score = scores.find(s => s.id === studentId);
+    const earlierTries = qs.attempts.filter(a => a.questionId === question.id);
 
     return {
         question,
@@ -334,7 +353,9 @@ export function pickNextQuestion(classId) {
         student: student ? { id: student.id, name: student.name, avatar: student.avatar } : null,
         score: score ? { totalStars: score.totalStars } : { totalStars: 0 },
         correctFirstTry: qs.correctFirstTry,
-        answeredCount: qs.answeredQuestions.length
+        answeredCount: qs.answeredQuestions.length,
+        attemptNumber: earlierTries.length + 1,
+        triedAnswers: earlierTries.filter(a => !a.correct).map(a => a.selectedAnswer)
     };
 }
 
@@ -397,6 +418,8 @@ export async function handleAnswer(classId, selectedAnswer, correct) {
         } else {
             // Don't consume current question — pick a new student for the same question
             qs.remainingQuestions.unshift(question); // Put it back
+            qs.currentQuestion = null;
+            qs.currentStudent = null;
             questionPassedToNextStudent = true;
         }
     }
@@ -437,7 +460,10 @@ export function getQuizProgress(classId) {
 
 export async function finalizeQuiz(classId) {
     const qs = quizState[classId];
-    if (!qs) return null;
+    if (!qs || qs.finalizing) return null;
+    // Rewards are granted once: a second call (double click, reopened stage) must not pay out again.
+    qs.finalizing = true;
+    qs.inProgress = false;
 
     const progress = getQuizProgress(classId);
 

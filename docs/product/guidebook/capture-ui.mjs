@@ -249,6 +249,7 @@ try {
   await captureExtra('Special Quest projector', () => window.__gcqCapture.showSpecialQuestProjector(), '#capture-sq-projector.capture-sq-proj', 'special-quest-projector.png');
   await captureExtra('Quiz play intro', () => window.__gcqCapture.showQuizPlay('intro'), '#quiz-of-week-modal.capture-quiz-play #quiz-modal-inner', 'quiz-play-intro.png');
   await captureExtra('Quiz play question', () => window.__gcqCapture.showQuizPlay('question'), '#quiz-of-week-modal.capture-quiz-play #quiz-modal-inner', 'quiz-play-question.png');
+  await captureExtra('Quiz play results', () => window.__gcqCapture.showQuizPlay('results'), '#quiz-of-week-modal.capture-quiz-play #quiz-modal-inner', 'quiz-play-results.png');
   await captureExtra('Award Stars tab', () => window.__gcqCapture.showAwardStarsTab(), '#award-stars-tab.capture-award', 'award-stars-tab.png');
   await captureExtra("Hero's Challenge", () => window.__gcqCapture.showHerosChallenge(), '#student-leaderboard-tab.capture-hc', 'heros-challenge.png');
   await captureExtra('Team Quest', () => window.__gcqCapture.showTeamQuest(), '#class-leaderboard-tab.capture-tq', 'team-quest.png');

@@ -68,8 +68,18 @@ export function scoreStudentForClass(student, targetClass, options = {}) {
     const perspective = options.perspective || 'teacher';
     let score = 0;
     let reason = '';
+    // Released from a class this school year: they are changing class, not moving up a league.
+    const midYear = Boolean(student.releasedYearKey);
 
-    if (nextLeague && targetLeague === nextLeague) {
+    if (midYear) {
+        if (prevLeague && targetLeague === prevLeague) {
+            score = 100;
+            reason = `Same league as ${student.previousClassName || 'their last class'} (${prevLeague})`;
+        } else if (nextLeague && targetLeague === nextLeague) {
+            score = 35;
+            reason = `One league up from ${prevLeague}`;
+        }
+    } else if (nextLeague && targetLeague === nextLeague) {
         score = 100;
         reason = `Natural step up from ${prevLeague || 'last year'}`;
     } else if (prevLeague && targetLeague === prevLeague) {
@@ -86,7 +96,9 @@ export function scoreStudentForClass(student, targetClass, options = {}) {
 
     if (score > 0 && student.previousTeacher?.uid && targetClass?.createdBy?.uid === student.previousTeacher.uid) {
         score += 15;
-        const teacherReason = sameTeacherReason(targetClass, perspective);
+        const teacherReason = midYear
+            ? (perspective === 'secretary' ? 'same teacher as earlier this year' : 'was with you earlier this year')
+            : sameTeacherReason(targetClass, perspective);
         reason = reason ? `${reason} • ${teacherReason}` : teacherReason;
     }
 

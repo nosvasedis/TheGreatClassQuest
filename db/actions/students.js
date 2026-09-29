@@ -22,7 +22,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { withActiveScoreYear, withActiveStudentYear } from '../../utils/schoolYear.js';
-import { allocateReturningStudents, purgeStudent, transferStudentToClass } from '../../utils/adminRuntime.js';
+import { allocateReturningStudents, purgeStudent } from '../../utils/adminRuntime.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -290,35 +290,6 @@ export async function handlePlaceReturningStudents(classId, studentIds) {
         console.error('Error placing returning students:', error);
         showToast(error?.message || 'Could not place those students.', 'error');
         throw error;
-    }
-}
-
-export async function handleMoveStudent() {
-    const studentId = document.getElementById('move-student-modal').dataset.studentId;
-    const newClassId = document.getElementById('move-student-target-class').value;
-    if (!studentId || !newClassId) {
-        showToast("Please select a target class.", "error");
-        return;
-    }
-    if (!state.get('allSchoolClasses').some(c => c.id === newClassId)) {
-        showToast("Target class data not found.", "error");
-        return;
-    }
-
-    const btn = document.getElementById('move-student-confirm-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Moving...`;
-
-    try {
-        await transferStudentToClass({ studentId, classId: newClassId });
-        showToast("Student moved and ownership transferred successfully!", "success");
-        modals.hideModal('move-student-modal');
-    } catch (error) {
-        console.error("Error moving student:", error);
-        showToast("Failed to move student. Please try again.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = `Confirm Move`;
     }
 }
 

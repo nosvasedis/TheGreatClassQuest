@@ -109,6 +109,10 @@ export function transferStudentToClass(payload = {}) {
     return callAdmin('transferStudentToClass', payload);
 }
 
+export function releaseStudentToPlacement(payload = {}) {
+    return callAdmin('releaseStudentToPlacement', payload);
+}
+
 export function assignClassTeacher(payload = {}) {
     return callAdmin('assignClassTeacher', payload);
 }

@@ -45,7 +45,6 @@ import {
     handleBulkSaveTrial,
     handleSaveQuestAssignment,
     handleMarkAbsent,
-    handleMoveStudent,
     handleStarManagerStudentSelect,
     handleAddQuestEvent,
     handleDeleteQuestEvent,
@@ -1190,9 +1189,7 @@ export function setupUIListeners() {
     document.getElementById('avatar-save-btn').addEventListener('click', avatar.handleSaveAvatar);
     document.getElementById('avatar-delete-btn').addEventListener('click', avatar.handleDeleteAvatar);
 
-    // Move Student
-    document.getElementById('move-student-confirm-btn').addEventListener('click', handleMoveStudent);
-    document.getElementById('move-student-cancel-btn').addEventListener('click', () => modals.hideModal('move-student-modal'));
+    // Move Student: ui/modals/moveStudent.js wires its own buttons when it opens.
 
     // Ceremony Listeners (New System handled via Home Tab Pill)
     document.getElementById('global-leaderboard-close-btn').addEventListener('click', () => modals.hideModal('global-leaderboard-modal'));

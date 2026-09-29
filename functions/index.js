@@ -1926,11 +1926,15 @@ exports.closeSchoolYear = callable(async (request) => {
       payload: {
         activeSchoolYearKey: nextYearKey,
         enrollmentStatus: 'pendingPlacement',
-        previousClassId: student.classId || null,
-        previousClassName: classData.name || '',
-        previousQuestLevel: classData.questLevel || '',
-        previousTeacher: student.createdBy || null,
+        // A student already waiting in placement keeps the class they were released from.
+        previousClassId: student.classId || student.previousClassId || null,
+        previousClassName: classData.name || student.previousClassName || '',
+        previousQuestLevel: classData.questLevel || student.previousQuestLevel || '',
+        previousTeacher: student.classId ? (student.createdBy || null) : (student.previousTeacher || student.createdBy || null),
         classId: null,
+        releasedAt: FieldValue.delete(),
+        releasedYearKey: FieldValue.delete(),
+        releasedBy: FieldValue.delete(),
         heroClassChangeCount: 0,
         heroClassLockYearKey: nextYearKey,
         isHeroClassLocked: false,
@@ -2197,9 +2201,13 @@ exports.allocateReturningStudents = callable(async (request) => {
         `${studentData.name || 'That student'} is not waiting for September placement.`
       );
     }
+    // A student released from a class earlier this same year (releaseStudentToPlacement)
+    // is only changing class, so they keep this year's gold and hero progress.
+    const releasedThisYear = Boolean(studentData.releasedYearKey) && studentData.releasedYearKey === yearKey;
     placementMeta.push({
       studentId,
-      previousOwnerUid: studentData.createdBy?.uid || null
+      previousOwnerUid: studentData.createdBy?.uid || null,
+      releasedThisYear
     });
     writes.push({
       ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
@@ -2209,12 +2217,19 @@ exports.allocateReturningStudents = callable(async (request) => {
         activeSchoolYearKey: yearKey,
         enrollmentStatus: 'active',
         placedAt: FieldValue.serverTimestamp(),
+        releasedAt: FieldValue.delete(),
+        releasedYearKey: FieldValue.delete(),
+        releasedBy: FieldValue.delete(),
         updatedAt: FieldValue.serverTimestamp()
       }
     });
     writes.push({
       ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`),
-      payload: {
+      payload: releasedThisYear ? {
+        createdBy: owner,
+        activeSchoolYearKey: yearKey,
+        updatedAt: FieldValue.serverTimestamp()
+      } : {
         createdBy: owner,
         activeSchoolYearKey: yearKey,
         gold: 0,
@@ -2240,6 +2255,15 @@ exports.allocateReturningStudents = callable(async (request) => {
         placedAt: FieldValue.serverTimestamp()
       }, yearKey)
     });
+    if (releasedThisYear) {
+      // This year's Ember Oaths follow them to the new class, as they do on a direct transfer.
+      const oathsSnap = await db.collection(PUBLIC_DATA_PATH + '/ember_oaths')
+        .where('studentId', '==', studentId).where('schoolYearKey', '==', yearKey).get();
+      oathsSnap.docs.forEach((oath) => writes.push({
+        ref: oath.ref,
+        payload: { classId, teacherId: owner?.uid || null, createdBy: owner, updatedAt: FieldValue.serverTimestamp() }
+      }));
+    }
     const parentLinkSnap = await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).get();
     if (parentLinkSnap.exists && (parentLinkSnap.data()?.parentUid || parentLinkSnap.data()?.username)) {
       writes.push({
@@ -2624,6 +2648,69 @@ exports.transferStudentToClass = callable(async (request) => {
     })
   ]);
   return { ok: true };
+});
+
+// A student who leaves their class mid-year but not the school goes back to the
+// Student placement lot (the same "waiting for a class" list the September rollover
+// fills). Their stars, gold, guild and notes stay on file; whoever seats them next
+// takes them over, and a same-year seat keeps this year's progress (see
+// allocateReturningStudents).
+exports.releaseStudentToPlacement = callable(async (request) => {
+  const caller = await requireAuthedCaller(request);
+  const studentId = String(request.data?.studentId || '').trim();
+  if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
+  const [student, isSecretary] = await Promise.all([
+    getStudent(studentId),
+    isCanonicalSecretaryCaller(caller)
+  ]);
+  if (isSecretary) await requireFeatureEnabled('secretaryAccess');
+  if (!isSecretary && student.createdBy?.uid !== caller.uid) {
+    throw new HttpsError('permission-denied', 'You can only release students from your own classes.');
+  }
+  const status = student.enrollmentStatus || 'active';
+  if (status === 'inactive') {
+    throw new HttpsError('failed-precondition', `${student.name || 'That student'} has left the school.`);
+  }
+  if (status === 'pendingPlacement' || !student.classId) {
+    throw new HttpsError('failed-precondition', `${student.name || 'That student'} is already waiting for a class.`);
+  }
+  const [classSnap, activeYearKey] = await Promise.all([
+    db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get(),
+    getActiveSchoolYearKey()
+  ]);
+  const classData = classSnap.exists ? classSnap.data() || {} : {};
+  const yearKey = student.activeSchoolYearKey || classData.schoolYearKey || activeYearKey;
+
+  const batch = db.batch();
+  batch.set(db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`), {
+    classId: null,
+    enrollmentStatus: 'pendingPlacement',
+    activeSchoolYearKey: yearKey,
+    previousClassId: student.classId,
+    previousClassName: classData.name || '',
+    previousQuestLevel: classData.questLevel || '',
+    previousTeacher: classData.createdBy || student.createdBy || null,
+    releasedAt: FieldValue.serverTimestamp(),
+    releasedYearKey: yearKey,
+    releasedBy: { uid: caller.uid, role: isSecretary ? 'secretary' : 'teacher' },
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  batch.set(db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`), withYear({
+    studentId,
+    classId: null,
+    className: '',
+    enrollmentStatus: 'pendingPlacement',
+    releasedFromClassId: student.classId,
+    releasedFromClassName: classData.name || '',
+    releasedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  }, yearKey), { merge: true });
+  await batch.commit();
+  await upsertParentSnapshot(studentId, {
+    activeSchoolYearKey: yearKey,
+    enrollmentStatus: 'pendingPlacement'
+  });
+  return { ok: true, placement: 'pending', previousClassId: student.classId, previousClassName: classData.name || '' };
 });
 
 exports.purgeStudent = callable(async (request) => {

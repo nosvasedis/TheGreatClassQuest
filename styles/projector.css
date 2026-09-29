@@ -45,10 +45,6 @@ body.projector-mode #view-trial-history-fab {
    page and sinks out of view when idle, so projector mode uses it as is. */
 
 /* 5. Make visuals bigger for the big screen */
-body.projector-mode .student-cloud-card {
-    transform: scale(1.15);
-    margin: 25px;
-}
 
 body.projector-mode #class-leaderboard-list .quest-card {
     border-width: 6px;

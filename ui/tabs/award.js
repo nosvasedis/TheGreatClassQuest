@@ -2,7 +2,21 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
-import { getGuildBadgeHtml } from '../../features/guilds.js';
+import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
+import { renderFamiliarSprite } from '../../features/familiars.js';
+import { resolveDailyModifier, MODIFIER_TYPES } from '../../features/specialQuestEngine.js';
+import {
+    AWARD_CLOUD_KEYS,
+    buildAwardAttendanceHtml,
+    buildAwardBoonButtonHtml,
+    buildAwardCloudCardHtml,
+    buildAwardFinaleHtml,
+    buildAwardHonoursHtml,
+    buildAwardSkySummaryHtml,
+    buildAwardVirtuesHtml,
+    formatAwardStars,
+    resolveAwardAttendanceMode
+} from '../../features/awardCloudCard.mjs';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
@@ -103,20 +117,19 @@ async function getReigningProdigyForClass(classId) {
     return _awardProdigyCache[classId] || new Set();
 }
 
-const AWARD_CLOUD_BACKGROUNDS = [
-    'award-cloud-a',
-    'award-cloud-b',
-    'award-cloud-c',
-    'award-cloud-d',
-    'award-cloud-e',
-    'award-cloud-f',
-    'award-cloud-g',
-    'award-cloud-h'
-];
+/** The month the reigning Prodigy of the Month won ("August"). */
+function getProdigyMonthName() {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return prev.toLocaleString('en-US', { month: 'long' });
+}
 
-function getCloudBackgroundHtml(cloudClass) {
-    const safeClass = cloudClass || AWARD_CLOUD_BACKGROUNDS[0];
-    return `<div class="cloud-bg-svg cloud-bg-asset ${safeClass}" aria-hidden="true"></div>`;
+/** The prodigies we already know this session, without waiting on the network. */
+function getCachedProdigySet(classId) {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const cacheKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+    return _awardProdigyCacheKey === cacheKey ? (_awardProdigyCache[classId] || new Set()) : null;
 }
 
 export function resetAwardCardVisualSession() {
@@ -132,6 +145,7 @@ function ensureAwardVisualSession(classId) {
     awardVisualCache.clear();
 }
 
+/** Each hero keeps one cloud shape and float phase for the whole visit. */
 function getAwardCardVisualState(classId, studentId) {
     ensureAwardVisualSession(classId);
     const cacheKey = `${classId}:${studentId}`;
@@ -139,54 +153,11 @@ function getAwardCardVisualState(classId, studentId) {
 
     const hash = utils.simpleHashCode(`${awardVisualSessionId}:${cacheKey}`);
     const visualState = {
-        cloudAsset: AWARD_CLOUD_BACKGROUNDS[hash % AWARD_CLOUD_BACKGROUNDS.length],
-        floatDuration: (4 + ((hash % 400) / 100)).toFixed(2)
+        cloud: AWARD_CLOUD_KEYS[hash % AWARD_CLOUD_KEYS.length],
+        floatDelay: hash % 6000
     };
     awardVisualCache.set(cacheKey, visualState);
     return visualState;
-}
-
-function getAwardAttendanceState(studentId) {
-    const student = state.get('allStudents').find((item) => item.id === studentId);
-    if (!student) {
-        return {
-            student: null,
-            isVisuallyAbsent: false,
-            isMarkedAbsentToday: false,
-            classHasLessonToday: false
-        };
-    }
-
-    const today = utils.getTodayDateString();
-    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
-    const reasonToday = state.get('todaysStars')[studentId]?.reason;
-    const starsToday = Number(state.get('todaysStars')[studentId]?.stars || 0);
-    const previousLessonDate = utils.getPreviousLessonDate(
-        student.classId,
-        state.get('allSchoolClasses'),
-        state.get('allScheduleOverrides'),
-        state.get('schoolHolidayRanges'),
-        classEndDates
-    );
-    const isMarkedAbsentToday = state.get('allAttendanceRecords').some((record) => record.studentId === studentId && record.date === today);
-    const wasAbsentLastTime = previousLessonDate
-        ? state.get('allAttendanceRecords').some((record) => record.studentId === studentId && record.date === previousLessonDate)
-        : false;
-    const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
-
-    return {
-        student,
-        isVisuallyAbsent: isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday),
-        isMarkedAbsentToday,
-        classHasLessonToday: utils.doesClassMeetOnDate(
-            student.classId,
-            today,
-            state.get('allSchoolClasses'),
-            state.get('allScheduleOverrides'),
-            state.get('schoolHolidayRanges'),
-            classEndDates
-        )
-    };
 }
 
 function cacheAwardStudentOrder(classId, students) {
@@ -232,81 +203,218 @@ function renderTeacherBoonLaunchState(selectedClassId) {
     launchBtn.classList.remove('hidden');
 }
 
-function buildAbsenceControlsHtml({ isVisuallyAbsent, isMarkedAbsentToday, classHasLessonToday, isCardLocked }) {
-    if (isVisuallyAbsent) {
-        if (isMarkedAbsentToday) {
-            return `
-                <button class="absence-btn absence-btn--present" data-action="mark-present" title="Undo: Mark as Present">
-                    <i class="fas fa-user-check pointer-events-none"></i>
-                </button>`;
-        }
-
-        if (classHasLessonToday) {
-            return `
-                <button class="absence-btn absence-btn--present" data-action="mark-present" title="Mark as Present">
-                    <i class="fas fa-user-check pointer-events-none"></i>
-                </button>
-                <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
-                    <i class="fas fa-hand-sparkles pointer-events-none"></i>
-                </button>
-                <button class="absence-btn absence-btn--today" data-action="mark-absent" title="Mark Absent Today">
-                    <i class="fas fa-calendar-xmark pointer-events-none"></i>
-                </button>`;
-        }
-
-        return '';
-    }
-
-    if (!isCardLocked && classHasLessonToday) {
-        return `
-            <button class="absence-btn absence-btn--absent" data-action="mark-absent" title="Mark as Absent">
-                <i class="fas fa-user-slash pointer-events-none"></i>
-            </button>`;
-    }
-
-    return '';
+/** Today's Special Quest modifier for a class (2x Star Day or a virtue Bonus Day), if any. */
+function getAwardDayModifier(classId) {
+    const today = utils.getTodayDateString();
+    const events = (state.get('allQuestEvents') || []).filter((event) =>
+        utils.datesMatch(event.dateKey || event.date, today) &&
+        (!event.classId || event.classId === classId)
+    );
+    const modifier = resolveDailyModifier(events);
+    if (!modifier) return null;
+    if (modifier.type === MODIFIER_TYPES.DOUBLE_STAR_DAY) return { type: 'double' };
+    const reason = modifier.event?.details?.reason;
+    return reason ? { type: 'reason', reason } : null;
 }
 
-function applyAwardCardLockState(studentCard, starsToday, reason) {
-    const undoBtn = studentCard.querySelector('.post-award-undo-btn');
-    const reasonSelector = studentCard.querySelector('.reason-selector');
-    const starSelector = studentCard.querySelector('.star-selector-container');
-    const shouldLock = starsToday > 0 && reason !== 'welcome_back';
+/**
+ * Class-wide facts every cloud needs, gathered once per render: scores, attendance,
+ * boon eligibility, today's stars, the day's modifier.
+ */
+function buildAwardClassContext(classId, studentsInClass) {
+    const allSchoolClasses = state.get('allSchoolClasses');
+    const allScheduleOverrides = state.get('allScheduleOverrides');
+    const schoolHolidayRanges = state.get('schoolHolidayRanges');
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const previousLessonDate = utils.getPreviousLessonDate(classId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates);
+    const today = utils.getTodayDateString();
+    const classHasLessonToday = utils.doesClassMeetOnDate(classId, today, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates);
+    const schoolClass = (allSchoolClasses || []).find((c) => c.id === classId);
 
-    if (shouldLock) {
-        undoBtn?.classList.remove('hidden');
-        reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
-        starSelector?.classList.remove('visible');
-        starSelector?.removeAttribute('data-aura');
-        reasonSelector?.querySelectorAll('.reason-btn.active').forEach((button) => button.classList.remove('active'));
-    } else {
-        undoBtn?.classList.add('hidden');
-        reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
+    const scoreMap = new Map();
+    for (const sc of state.get('allStudentScores') || []) scoreMap.set(sc.id, sc);
+
+    // Hero's Boon: the bottom three this month, or anyone sharing a monthly total with a classmate.
+    const leaderboard = studentsInClass.map((s) => ({ id: s.id, stars: Number(scoreMap.get(s.id)?.monthlyStars) || 0 }));
+    leaderboard.sort((a, b) => a.stars - b.stars);
+    const bottomThreeIds = new Set(leaderboard.slice(0, 3).map((x) => x.id));
+    const scoreCounts = {};
+    leaderboard.forEach((x) => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
+    const monthlyById = new Map(leaderboard.map((x) => [x.id, x.stars]));
+    const classBoonsToday = (state.get('allAwardLogs') || []).filter((l) =>
+        l.classId === classId && l.date === today && l.reason === 'peer_boon'
+    ).length;
+    const dailyLimitReached = classBoonsToday >= 4;
+
+    const absentTodaySet = new Set();
+    const absentPrevSet = new Set();
+    for (const r of state.get('allAttendanceRecords') || []) {
+        if (r.date === today) absentTodaySet.add(r.studentId);
+        if (previousLessonDate && r.date === previousLessonDate) absentPrevSet.add(r.studentId);
     }
 
-    return shouldLock;
+    return {
+        classId,
+        today,
+        classHasLessonToday,
+        scheduleDays: schoolClass?.scheduleDays || [],
+        scoreMap,
+        bottomThreeIds,
+        scoreCounts,
+        monthlyById,
+        dailyLimitReached,
+        absentTodaySet,
+        absentPrevSet,
+        todaysStars: state.get('todaysStars') || {},
+        reigningHero: state.get('reigningHero'),
+        prodigySet: getCachedProdigySet(classId) || new Set(),
+        prodigyMonth: getProdigyMonthName(),
+        heroProgressionEnabled: canUseFeature('heroProgression'),
+        familiarsEnabled: canUseFeature('familiars'),
+        modifier: getAwardDayModifier(classId)
+    };
 }
 
-function applyAttendanceStateToCard(studentCard, studentId, reason = null, starsToday = null) {
-    const attendanceState = getAwardAttendanceState(studentId);
-    if (!attendanceState.student) return;
+function isBoonEligible(ctx, studentId) {
+    if (ctx.dailyLimitReached) return false;
+    const stars = ctx.monthlyById.get(studentId);
+    return ctx.bottomThreeIds.has(studentId) || (stars != null && ctx.scoreCounts[stars] > 1);
+}
 
-    const effectiveStarsToday = starsToday == null
-        ? Number(state.get('todaysStars')[studentId]?.stars || 0)
-        : Number(starsToday);
-    const effectiveReason = reason == null
-        ? state.get('todaysStars')[studentId]?.reason || null
-        : reason;
-    const isCardLocked = effectiveStarsToday > 0 && effectiveReason !== 'welcome_back';
+function getHeroClassView(student, scoreData, ctx) {
+    if (!ctx.heroProgressionEnabled || !student.heroClass) return null;
+    const heroLevel = scoreData.heroLevel || 0;
+    const tree = HERO_SKILL_TREE[student.heroClass];
+    return {
+        title: heroLevel > 0 ? getHeroTitle(student.heroClass, heroLevel) : student.heroClass,
+        icon: HERO_CLASSES[student.heroClass]?.icon || '',
+        aura: tree?.auraColor || '#7c3aed'
+    };
+}
 
-    studentCard.classList.toggle('is-absent', attendanceState.isVisuallyAbsent);
-    const absenceControls = studentCard.querySelector('.absence-controls');
-    if (absenceControls) {
-        absenceControls.innerHTML = buildAbsenceControlsHtml({
-            ...attendanceState,
-            isCardLocked
-        });
+function getGuildView(student) {
+    if (!student.guildId) return null;
+    const guild = getGuildById(student.guildId);
+    if (!guild) return null;
+    return { name: guild.name, emblemUrl: getGuildEmblemUrl(student.guildId), color: guild.primary };
+}
+
+function getOccasion(student, ctx) {
+    if (utils.isSpecialOccasion(student.birthday, ctx.scheduleDays)) return 'birthday';
+    if (utils.isSpecialOccasion(student.nameday, ctx.scheduleDays)) return 'nameday';
+    return null;
+}
+
+/** Everything one cloud shows, as plain data for features/awardCloudCard.mjs. */
+function buildStudentCloudView(student, ctx, index = 0) {
+    const scoreData = ctx.scoreMap.get(student.id) || {};
+    const todayEntry = ctx.todaysStars[student.id];
+    const starsToday = Number(todayEntry?.stars) || 0;
+    const reasonToday = todayEntry?.reason || null;
+    const isMarkedAbsentToday = ctx.absentTodaySet.has(student.id);
+    const wasAbsentLastTime = ctx.absentPrevSet.has(student.id);
+    const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
+    const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
+    const locked = starsToday > 0 && reasonToday !== 'welcome_back';
+    const isHeroOfDay = Boolean(ctx.reigningHero && ctx.reigningHero.id === student.id);
+    const visual = getAwardCardVisualState(ctx.classId, student.id);
+
+    return {
+        id: student.id,
+        name: student.name,
+        firstName: String(student.name || '').split(' ')[0],
+        avatar: student.avatar || null,
+        guild: getGuildView(student),
+        heroClass: getHeroClassView(student, scoreData, ctx),
+        levelUp: ctx.heroProgressionEnabled && Boolean(scoreData.pendingSkillChoice),
+        gold: getLiveYearGoldFromAppState(scoreData, state),
+        today: starsToday,
+        month: scoreData.monthlyStars || 0,
+        total: scoreData.totalStars || 0,
+        todayReason: reasonToday,
+        locked,
+        isAbsent: isVisuallyAbsent,
+        attendanceMode: resolveAwardAttendanceMode({
+            isVisuallyAbsent,
+            isMarkedAbsentToday,
+            classHasLessonToday: ctx.classHasLessonToday,
+            isCardLocked: locked
+        }),
+        boon: { eligible: isBoonEligible(ctx, student.id), dailyLimitReached: ctx.dailyLimitReached },
+        honours: {
+            heroOfDay: isHeroOfDay,
+            heroBonusReady: isHeroOfDay && starsToday <= 0,
+            prodigy: ctx.prodigySet.has(student.id),
+            coProdigy: ctx.prodigySet.has(student.id) && ctx.prodigySet.size > 1,
+            prodigyMonth: ctx.prodigyMonth,
+            occasion: getOccasion(student, ctx),
+            welcomedBack: reasonToday === 'welcome_back'
+        },
+        bonusReason: ctx.modifier?.type === 'reason' ? ctx.modifier.reason : null,
+        familiarHtml: ctx.familiarsEnabled && scoreData.familiar ? renderFamiliarSprite(scoreData.familiar, 'small', student.id) : '',
+        cloud: visual.cloud,
+        floatDelay: visual.floatDelay,
+        riseDelay: Math.min(index * 38, 620)
+    };
+}
+
+function getClassStudents(classId) {
+    return (state.get('allStudents') || []).filter((s) => s.classId === classId);
+}
+
+/** The strip above the clouds: how much of the class shines today, and the day's bonus. */
+function renderAwardSkySummary(classId) {
+    const el = document.getElementById('award-sky-summary');
+    if (!el) return;
+    const students = classId ? getClassStudents(classId) : [];
+    if (!students.length) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
     }
+    const todaysStars = state.get('todaysStars') || {};
+    const today = utils.getTodayDateString();
+    const awayToday = new Set((state.get('allAttendanceRecords') || []).filter((r) => r.date === today).map((r) => r.studentId));
+    let shining = 0;
+    let starsToday = 0;
+    let awaiting = 0;
+    for (const s of students) {
+        const n = Number(todaysStars[s.id]?.stars) || 0;
+        if (n > 0) {
+            shining += 1;
+            starsToday += n;
+        } else if (!awayToday.has(s.id)) {
+            awaiting += 1;
+        }
+    }
+    el.innerHTML = buildAwardSkySummaryHtml({
+        shining,
+        heroes: students.length,
+        starsToday,
+        awaiting,
+        modifier: getAwardDayModifier(classId)
+    });
+    el.classList.remove('hidden');
+}
+
+// Clouds drift only while on screen, so a long class never keeps dozens of layers busy.
+let awardFloatObserver = null;
+function observeAwardFloat(listContainer) {
+    if (typeof IntersectionObserver === 'undefined') {
+        listContainer.querySelectorAll('.aw-card').forEach((card) => card.classList.add('is-afloat'));
+        return;
+    }
+    if (!awardFloatObserver) {
+        awardFloatObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => entry.target.classList.toggle('is-afloat', entry.isIntersecting));
+        }, { rootMargin: '80px 0px' });
+    }
+    awardFloatObserver.disconnect();
+    listContainer.querySelectorAll('.aw-card').forEach((card) => awardFloatObserver.observe(card));
+}
+
+function renderAwardEmptyState(listContainer, message) {
+    listContainer.innerHTML = `<p class="aw-empty col-span-full"><i class="fas fa-cloud" aria-hidden="true"></i> ${message}</p>`;
 }
 
 export function renderAwardStarsTab(options = {}) {
@@ -320,23 +428,20 @@ export function renderAwardStarsTab(options = {}) {
     const allTeachersClasses = state.get('allTeachersClasses');
 
     if (allTeachersClasses.length === 0) {
-        studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">You must create a class first.</p>`;
+        renderAwardEmptyState(studentListContainer, 'You must create a class first.');
         renderTeacherBoonLaunchState(null);
+        renderAwardSkySummary(null);
         return;
     }
 
-    if (selectedClassId) {
-        const selectedClass = allTeachersClasses.find(c => c.id === selectedClassId);
-        if (selectedClass) {
-            renderTeacherBoonLaunchState(selectedClassId);
-            renderAwardStarsStudentList(selectedClassId, !preserveStudentOrder);
-        } else {
-            studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Choose a class from the header to award stars.</p>`;
-            renderTeacherBoonLaunchState(null);
-        }
+    const selectedClass = selectedClassId ? allTeachersClasses.find(c => c.id === selectedClassId) : null;
+    if (selectedClass) {
+        renderTeacherBoonLaunchState(selectedClassId);
+        renderAwardStarsStudentList(selectedClassId, !preserveStudentOrder);
     } else {
-        studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Choose a class from the header to award stars.</p>`;
+        renderAwardEmptyState(studentListContainer, 'Choose a class from the header to award stars.');
         renderTeacherBoonLaunchState(null);
+        renderAwardSkySummary(null);
     }
 }
 
@@ -344,17 +449,16 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
     const listContainer = document.getElementById('award-stars-student-list');
     if (!listContainer) return;
 
-    const renderContent = async () => {
-        const heroProgressionEnabled = canUseFeature('heroProgression');
-
+    const renderContent = () => {
         if (!selectedClassId) {
-            listContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Choose a class from the header to award stars.</p>`;
+            renderAwardEmptyState(listContainer, 'Choose a class from the header to award stars.');
+            renderAwardSkySummary(null);
             return;
         }
 
         ensureAwardVisualSession(selectedClassId);
 
-        let studentsInClass = state.get('allStudents').filter(s => s.classId === selectedClassId);
+        let studentsInClass = getClassStudents(selectedClassId);
 
         if (fullRender) {
             for (let i = studentsInClass.length - 1; i > 0; i--) {
@@ -366,319 +470,141 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             studentsInClass = sortStudentsByAwardOrder(selectedClassId, studentsInClass);
         }
 
+        renderAwardSkySummary(selectedClassId);
+
         if (studentsInClass.length === 0) {
-            listContainer.innerHTML = `<p class="text-sm text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl col-span-full">No students in this class. Add some in "My Classes"!</p>`;
-        } else {
-            const allSchoolClasses = state.get('allSchoolClasses');
-            const allScheduleOverrides = state.get('allScheduleOverrides');
-            const schoolHolidayRanges = state.get('schoolHolidayRanges');
-            const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
-            const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates);
-            const today = utils.getTodayDateString();
-            const classHasLessonToday = utils.doesClassMeetOnDate(
-                selectedClassId,
-                today,
-                allSchoolClasses,
-                allScheduleOverrides,
-                schoolHolidayRanges,
-                classEndDates
-            );
-
-            // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---
-            const prodigySet = await getReigningProdigyForClass(selectedClassId);
-
-            // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
-            const allScores = state.get('allStudentScores');
-            // Build score lookup map for O(1) access in leaderboard + card loop
-            const scoreMap = new Map();
-            for (let i = 0; i < allScores.length; i++) scoreMap.set(allScores[i].id, allScores[i]);
-            // Map students to scores
-            const leaderboard = studentsInClass.map(s => {
-                const sc = scoreMap.get(s.id);
-                return { id: s.id, stars: sc ? (Number(sc.monthlyStars) || 0) : 0 };
-            });
-            // Sort ascending (Lowest stars first)
-            leaderboard.sort((a, b) => a.stars - b.stars);
-            // Identify Bottom 3 IDs
-            const bottomThreeIds = new Set(leaderboard.slice(0, 3).map(x => x.id));
-            // Identify Ties
-            const scoreCounts = {};
-            leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
-            // Build leaderboard map for O(1) lookup
-            const leaderboardMap = new Map();
-            leaderboard.forEach(x => leaderboardMap.set(x.id, x));
-
-            // --- HOIST state lookups outside the loop for O(1) access ---
-            const reigningHero = state.get('reigningHero');
-            const todaysStarsMap = state.get('todaysStars');
-            const attendanceRecords = state.get('allAttendanceRecords');
-
-            // Build attendance lookup sets for O(1) checks
-            const absentTodaySet = new Set();
-            const absentPrevSet = new Set();
-            for (let i = 0; i < attendanceRecords.length; i++) {
-                const r = attendanceRecords[i];
-                if (r.date === today) absentTodaySet.add(r.studentId);
-                if (previousLessonDate && r.date === previousLessonDate) absentPrevSet.add(r.studentId);
-            }
-
-            // Check daily peer boon limit (4 per class per day)
-            const classBoonsToday = state.get('allAwardLogs').filter(l =>
-                l.classId === selectedClassId &&
-                l.date === today &&
-                l.reason === 'peer_boon'
-            ).length;
-            const dailyLimitReached = classBoonsToday >= 4;
-
-            listContainer.innerHTML = studentsInClass.map((s, index) => {
-                const isReigningHero = reigningHero && reigningHero.id === s.id;
-                const scoreData = scoreMap.get(s.id) || {};
-                const totalStars = scoreData.totalStars || 0;
-                const goldCount = getLiveYearGoldFromAppState(scoreData, state);
-                const monthlyStars = scoreData.monthlyStars || 0;
-                const todayEntry = todaysStarsMap[s.id];
-                const starsToday = todayEntry?.stars || 0;
-                const reasonToday = todayEntry?.reason;
-                const visualState = getAwardCardVisualState(selectedClassId, s.id);
-                const cloudAsset = visualState.cloudAsset;
-                const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
-
-                const isMarkedAbsentToday = absentTodaySet.has(s.id);
-                const wasAbsentLastTime = previousLessonDate && absentPrevSet.has(s.id);
-
-                const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
-                const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
-                const isCardLocked = starsToday > 0 && reasonToday !== 'welcome_back';
-
-                let absenceButtonHtml = '';
-
-                if (isVisuallyAbsent) {
-                    if (isMarkedAbsentToday) {
-                        absenceButtonHtml = `
-                            <button class="absence-btn absence-btn--present" data-action="mark-present" title="Undo: Mark as Present">
-                                <i class="fas fa-user-check pointer-events-none"></i>
-                            </button>`;
-                    } else if (classHasLessonToday) {
-                        absenceButtonHtml = `
-                            <button class="absence-btn absence-btn--present" data-action="mark-present" title="Mark as Present">
-                                <i class="fas fa-user-check pointer-events-none"></i>
-                            </button>
-                            <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
-                                <i class="fas fa-hand-sparkles pointer-events-none"></i>
-                            </button>
-                            <button class="absence-btn absence-btn--today" data-action="mark-absent" title="Mark Absent Today">
-                                <i class="fas fa-calendar-xmark pointer-events-none"></i>
-                            </button>`;
-                    }
-                }
-                else {
-                    if (!isCardLocked && classHasLessonToday) {
-                        absenceButtonHtml = `
-                            <button class="absence-btn absence-btn--absent" data-action="mark-absent" title="Mark as Absent">
-                                <i class="fas fa-user-slash pointer-events-none"></i>
-                            </button>`;
-                    }
-                }
-
-                const avatarInner = s.avatar
-                    ? `<img src="${s.avatar}" alt="${s.name}" loading="lazy" decoding="async" class="student-avatar-cloud enlargeable-avatar">`
-                    : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
-                const avatarHtml = avatarInner;
-                const levelUpArrowHtml = heroProgressionEnabled && !!scoreData.pendingSkillChoice
-                    ? `<div class="award-level-up-overlay"><span class="level-up-badge level-up-badge--award" aria-hidden="true" title="Level up! Assign skill in Skill Tree"><i class="fas fa-arrow-up"></i></span></div>`
-                    : '';
-                const guildBadgeHtml = s.guildId
-                    ? getGuildBadgeHtml(s.guildId, 'w-5 h-5')
-                        .replace('guild-badge ', 'guild-badge award-guild-corner ')
-                        .replace(' border-2', '')
-                    : '';
-
-                const coinHtml = `
-                  <div class="coin-pill ${starsToday > 0 ? 'animate-glitter' : ''}" title="Current Gold">
-                      <i class="fas fa-coins text-yellow-400"></i>
-                      <span id="student-gold-display-${s.id}">${goldCount}</span>
-                  </div>
-                `;
-
-                // Hero title pill with class color and icon - shows class name at level 0, title at level 1+
-                const heroLevel = scoreData.heroLevel || 0;
-                const heroTitlePill = heroProgressionEnabled && s.heroClass
-                    ? (() => {
-                        const title = heroLevel > 0 ? getHeroTitle(s.heroClass, heroLevel) : s.heroClass;
-                        const tree = HERO_SKILL_TREE[s.heroClass];
-                        const aura = tree?.auraColor || '#7c3aed';
-                        const icon = HERO_CLASSES[s.heroClass]?.icon || '';
-                        return `<span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd); box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.25) inset;" title="Hero rank">${icon ? `<span class="opacity-90">${icon}</span>` : ''}<span>${title}</span></span>`;
-                      })()
-                    : '';
-
-                // --- BOON BUTTON VISUAL LOGIC ---
-                // Check eligibility based on the pre-calculated leaderboard + daily limit
-                const myLeaderboardData = leaderboardMap.get(s.id);
-                const isEligible = !dailyLimitReached && (
-                    bottomThreeIds.has(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1)
-                );
-
-                let boonBtnHtml = '';
-                if (isEligible) {
-                    boonBtnHtml = `
-                    <button class="boon-btn boon-btn--eligible absolute top-2 left-14 w-8 h-8 rounded-full z-30"
-                            data-receiver-id="${s.id}" title="Bestow Hero's Boon">
-                        <i class="fas fa-heart pointer-events-none"></i>
-                    </button>`;
-                } else {
-                    // Visually disabled state (Greyed out)
-                    boonBtnHtml = `
-                    <button class="boon-btn boon-btn--disabled absolute top-2 left-14 w-8 h-8 rounded-full z-30 cursor-not-allowed"
-                            data-receiver-id="${s.id}" title="Not eligible for Boon">
-                        <i class="fas fa-heart-broken pointer-events-none"></i>
-                    </button>`;
-                }
-
-                return `
-               <div class="award-card-mount tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 38, 620)}ms">
-               <div class="student-cloud-card ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${visualState.floatDuration}s ease-in-out infinite;">
-               ${getCloudBackgroundHtml(cloudAsset)}
-               <div class="absence-controls">
-               ${absenceButtonHtml}
-                    </div>
-                    ${avatarHtml}
-                    ${levelUpArrowHtml}
-                    ${guildBadgeHtml}
-                    ${coinHtml} 
-                    ${boonBtnHtml}
-                    <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
-                    
-                    <div class="card-content-wrapper">
-                        <h3 class="font-title text-2xl text-gray-800 text-center">
-                            <div class="flex flex-wrap items-center justify-center gap-1.5 mb-1">
-                                ${heroTitlePill}
-                            </div>
-                            ${s.name}
-                        </h3>
-                        ${isReigningHero ? `
-                        <div class="reigning-prodigy-label reigning-hero-label">
-                            <span class="crown-icon">${reigningHeroEmoji}</span>
-                            <span class="prodigy-text">Reigning Hero</span>
-                        </div>` : ''}
-                        ${prodigySet.has(s.id) ? `
-                        <div class="reigning-prodigy-label">
-                            <span class="crown-icon">👑</span>
-                            <span class="prodigy-text">Reigning Prodigy</span>
-                        </div>` : ''}
-                        <div class="award-counters-row">
-                            <div class="counter-bubble counter-bubble--today">
-                                <span class="counter-bubble__ring"></span>
-                                <span class="counter-bubble__label">TODAY</span>
-                                <span class="counter-bubble__value font-title" id="today-stars-${s.id}">${starsToday}</span>
-                                <i class="fas fa-star counter-bubble__icon"></i>
-                            </div>
-                            <div class="counter-bubble counter-bubble--month">
-                                <span class="counter-bubble__ring"></span>
-                                <span class="counter-bubble__label">MONTH</span>
-                                <span class="counter-bubble__value font-title" id="monthly-stars-${s.id}">${monthlyStars}</span>
-                                <i class="fas fa-star counter-bubble__icon"></i>
-                            </div>
-                            <div class="counter-bubble counter-bubble--total">
-                                <span class="counter-bubble__ring"></span>
-                                <span class="counter-bubble__label">TOTAL</span>
-                                <span class="counter-bubble__value font-title" id="total-stars-${s.id}">${totalStars}</span>
-                                <i class="fas fa-star counter-bubble__icon"></i>
-                            </div>
-                        </div>
-                        <div class="reason-selector flex justify-center items-center gap-2 ${isCardLocked ? 'pointer-events-none opacity-50' : ''}">
-                            <button class="reason-btn bubbly-button reason-btn--teamwork" data-reason="teamwork" title="Teamwork">
-                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
-                                <i class="fas fa-users pointer-events-none"></i>
-                                <span class="reason-btn__label">Teamwork</span>
-                            </button>
-                            <button class="reason-btn bubbly-button reason-btn--creativity" data-reason="creativity" title="Creativity">
-                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
-                                <i class="fas fa-lightbulb pointer-events-none"></i>
-                                <span class="reason-btn__label">Creativity</span>
-                            </button>
-                            <button class="reason-btn bubbly-button reason-btn--respect" data-reason="respect" title="Respect">
-                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
-                                <i class="fas fa-hands-helping pointer-events-none"></i>
-                                <span class="reason-btn__label">Respect</span>
-                            </button>
-                            <button class="reason-btn bubbly-button reason-btn--focus" data-reason="focus" title="Focus/Effort">
-                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
-                                <i class="fas fa-brain pointer-events-none"></i>
-                                <span class="reason-btn__label">Focus</span>
-                            </button>
-                        </div>
-                        <div class="star-selector-container flex items-center justify-center">
-                            <button data-stars="1" class="star-award-btn star-btn-1" aria-label="Award 1 star">
-                                <span class="star-btn__shine" aria-hidden="true"></span>
-                                <i class="fas fa-star"></i>
-                            </button>
-                            <span class="star-divider" aria-hidden="true"></span>
-                            <button data-stars="2" class="star-award-btn star-btn-2" aria-label="Award 2 stars">
-                                <span class="star-btn__shine" aria-hidden="true"></span>
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </button>
-                            <span class="star-divider" aria-hidden="true"></span>
-                            <button data-stars="3" class="star-award-btn star-btn-3" aria-label="Award 3 stars">
-                                <span class="star-btn__shine" aria-hidden="true"></span>
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div></div>`;
-            }).join('');
+            renderAwardEmptyState(listContainer, 'No students in this class yet. Add some in "My Classes"!');
+            return;
         }
+
+        const ctx = buildAwardClassContext(selectedClassId, studentsInClass);
+        listContainer.innerHTML = studentsInClass
+            .map((s, index) => buildAwardCloudCardHtml(buildStudentCloudView(s, ctx, fullRender ? index : 0)))
+            .join('');
+        // An in-place refresh keeps the clouds still; only a fresh visit replays the rise.
+        if (!fullRender) listContainer.querySelectorAll('.award-card-mount').forEach((m) => m.classList.remove('tab-mount-rise'));
+        observeAwardFloat(listContainer);
+
+        // Last month's Prodigy comes from the network on the first visit of a month:
+        // paint the clouds now, crown the prodigy when the answer lands.
+        const known = ctx.prodigySet;
+        void getReigningProdigyForClass(selectedClassId).then((prodigies) => {
+            if (state.get('globalSelectedClassId') !== selectedClassId) return;
+            const changed = [...prodigies].filter((id) => !known.has(id)).concat([...known].filter((id) => !prodigies.has(id)));
+            // A tie turns every winner into a Co-Prodigy, so a size change repaints them all.
+            if (prodigies.size !== known.size) changed.push(...prodigies);
+            new Set(changed).forEach((id) => refreshAwardCloud(id));
+        }).catch(() => {});
     };
 
     if (fullRender) {
         listContainer.classList.remove('fade-in');
         listContainer.classList.add('fade-out');
         setTimeout(() => {
-            void (async () => {
-                try {
-                    await renderContent();
-                } catch (e) {
-                    console.warn('Award tab: failed to render student list', e);
-                } finally {
-                    listContainer.classList.remove('fade-out');
-                    listContainer.classList.add('fade-in');
-                }
-            })();
+            try {
+                renderContent();
+            } catch (e) {
+                console.warn('Award tab: failed to render student list', e);
+            } finally {
+                listContainer.classList.remove('fade-out');
+                listContainer.classList.add('fade-in');
+            }
         }, 120);
     } else {
-        void renderContent().catch((e) => console.warn('Award tab: failed to render student list', e));
-    }
-}
-
-export function updateStudentCardAttendanceState(studentId, isAbsent) {
-    const selectedClassId = state.get('globalSelectedClassId');
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    const studentCard = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
-
-    if (student && student.classId === selectedClassId && studentCard) {
-        const activeTab = document.querySelector('.app-tab:not(.hidden)');
-        if (activeTab && activeTab.id === 'award-stars-tab') {
-            applyAttendanceStateToCard(studentCard, studentId);
+        try {
+            renderContent();
+        } catch (e) {
+            console.warn('Award tab: failed to render student list', e);
         }
     }
 }
 
+/** Redraws one hero's cloud in place (attendance changes, the prodigy crown arriving). */
+export function refreshAwardCloud(studentId) {
+    const card = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
+    const classId = state.get('globalSelectedClassId');
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+    if (!card || !student || student.classId !== classId) return;
+
+    const ctx = buildAwardClassContext(classId, getClassStudents(classId));
+    const template = document.createElement('template');
+    template.innerHTML = buildAwardCloudCardHtml(buildStudentCloudView(student, ctx));
+    const fresh = template.content.querySelector('.student-cloud-card');
+    if (!fresh) return;
+    if (card.classList.contains('is-afloat')) fresh.classList.add('is-afloat');
+    card.replaceWith(fresh);
+    awardFloatObserver?.observe(fresh);
+    renderAwardSkySummary(classId);
+}
+
+export function updateStudentCardAttendanceState(studentId) {
+    const selectedClassId = state.get('globalSelectedClassId');
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student || student.classId !== selectedClassId) return;
+    const activeTab = document.querySelector('.app-tab:not(.hidden)');
+    if (activeTab && activeTab.id === 'award-stars-tab') refreshAwardCloud(studentId);
+}
+
+/** After an award or an undo: seal or reopen the cloud without redrawing it (effects are still flying). */
 export function updateAwardCardState(studentId, starsToday, reason) {
     const studentCard = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
     if (!studentCard) return;
 
+    const stars = Number(starsToday) || 0;
+    const locked = stars > 0 && reason !== 'welcome_back';
+    const wasLocked = studentCard.classList.contains('is-locked');
+    const wasAbsent = studentCard.classList.contains('is-absent');
+
     const todayStarsEl = studentCard.querySelector(`#today-stars-${studentId}`);
-    if (todayStarsEl && todayStarsEl.textContent != starsToday) {
-        todayStarsEl.textContent = starsToday;
-        const bubble = todayStarsEl.closest('.counter-bubble');
-        if (bubble) {
-            bubble.classList.add('counter-animate');
-            setTimeout(() => bubble.classList.remove('counter-animate'), 500);
+    const shown = formatAwardStars(stars);
+    if (todayStarsEl && todayStarsEl.textContent !== shown) {
+        todayStarsEl.textContent = shown;
+        const item = todayStarsEl.closest('.aw-tally__item');
+        item?.querySelectorAll('.aw-tally__pip').forEach((pip, i) => pip.classList.toggle('is-lit', stars >= i + 1));
+        if (item) {
+            item.classList.remove('counter-animate');
+            void item.offsetWidth;
+            item.classList.add('counter-animate');
+            setTimeout(() => item.classList.remove('counter-animate'), 700);
         }
     }
 
-    applyAwardCardLockState(studentCard, starsToday, reason);
-    applyAttendanceStateToCard(studentCard, studentId, reason, starsToday);
+    const classId = state.get('globalSelectedClassId');
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+    const ctx = student && student.classId === classId
+        ? buildAwardClassContext(classId, getClassStudents(classId))
+        : null;
+    const view = ctx ? buildStudentCloudView(student, ctx) : null;
+
+    // Attendance moved (a welcome back, a present mark): the whole cloud changes shape.
+    if (view && view.isAbsent !== wasAbsent) {
+        refreshAwardCloud(studentId);
+        return;
+    }
+
+    if (locked !== wasLocked || (locked && studentCard.dataset.awarded !== reason)) {
+        const sealView = { ...(view || {}), id: studentId, today: stars, todayReason: reason, locked };
+        studentCard.classList.toggle('is-locked', locked);
+        if (locked) studentCard.dataset.awarded = reason || '';
+        else delete studentCard.dataset.awarded;
+        const virtues = studentCard.querySelector('.aw-virtues');
+        if (virtues) virtues.outerHTML = buildAwardVirtuesHtml(sealView);
+        const finale = studentCard.querySelector('.aw-card__finale');
+        if (finale) finale.innerHTML = buildAwardFinaleHtml(sealView);
+        studentCard.querySelector('.post-award-undo-btn')?.classList.toggle('hidden', !locked);
+        studentCard.removeAttribute('data-aura');
+    }
+
+    if (view) {
+        const corner = studentCard.querySelector('.absence-controls');
+        const cornerHtml = view.attendanceMode === 'absent-offer' ? buildAwardAttendanceHtml('absent-offer', view.firstName) : '';
+        if (corner && corner.innerHTML !== cornerHtml) corner.innerHTML = cornerHtml;
+        const honours = studentCard.querySelector('.aw-card__honours');
+        const honoursHtml = buildAwardHonoursHtml(view.honours);
+        if (honours && honours.innerHTML !== honoursHtml) honours.innerHTML = honoursHtml;
+    }
+
+    renderAwardSkySummary(classId);
 }
 
 /**
@@ -692,54 +618,22 @@ export function updateAwardBoonButtons(selectedClassId) {
     const awardStarsTab = document.getElementById('award-stars-tab');
     if (!awardStarsTab || awardStarsTab.classList.contains('hidden')) return;
 
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === selectedClassId);
+    const studentsInClass = getClassStudents(selectedClassId);
     if (!studentsInClass.length) return;
 
-    // Re-calculate leaderboard from current scores
-    const allScores = state.get('allStudentScores');
-    const scoreMap = new Map();
-    for (const sc of allScores) scoreMap.set(sc.id, sc);
-
-    const leaderboard = studentsInClass.map(s => {
-        const sc = scoreMap.get(s.id);
-        return { id: s.id, stars: sc ? (Number(sc.monthlyStars) || 0) : 0 };
-    });
-    leaderboard.sort((a, b) => a.stars - b.stars);
-    const bottomThreeIds = new Set(leaderboard.slice(0, 3).map(x => x.id));
-    const scoreCounts = {};
-    leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
-    const leaderboardMap = new Map();
-    leaderboard.forEach(x => leaderboardMap.set(x.id, x));
-
-    // Check daily boon limit (4 peer boons per class per day)
-    const today = utils.getTodayDateString();
-    const classBoonsToday = state.get('allAwardLogs').filter(l =>
-        l.classId === selectedClassId &&
-        l.date === today &&
-        l.reason === 'peer_boon'
-    ).length;
-    const dailyLimitReached = classBoonsToday >= 4;
-
-    // Update each boon button in the DOM
-    document.querySelectorAll('.boon-btn[data-receiver-id]').forEach(btn => {
+    const ctx = buildAwardClassContext(selectedClassId, studentsInClass);
+    document.querySelectorAll('#award-stars-student-list .boon-btn[data-receiver-id]').forEach((btn) => {
         const receiverId = btn.dataset.receiverId;
-        const myLeaderboardData = leaderboardMap.get(receiverId);
-        const isEligible = !dailyLimitReached && (
-            bottomThreeIds.has(receiverId) ||
-            (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1)
-        );
-
-        if (isEligible) {
-            btn.className = 'boon-btn boon-btn--eligible absolute top-2 left-14 w-8 h-8 rounded-full z-30';
-            btn.title = 'Bestow Hero\'s Boon';
-            btn.innerHTML = '<i class="fas fa-heart pointer-events-none"></i>';
-        } else {
-            btn.className = 'boon-btn boon-btn--disabled absolute top-2 left-14 w-8 h-8 rounded-full z-30 cursor-not-allowed';
-            btn.title = dailyLimitReached ? 'Daily boon limit reached (4/day)' : 'Not eligible for Boon';
-            btn.innerHTML = '<i class="fas fa-heart-broken pointer-events-none"></i>';
-        }
+        const eligible = isBoonEligible(ctx, receiverId);
+        if (btn.classList.contains('aw-boon--ready') === eligible && btn.dataset.limit === String(ctx.dailyLimitReached)) return;
+        const template = document.createElement('template');
+        template.innerHTML = buildAwardBoonButtonHtml(receiverId, { eligible, dailyLimitReached: ctx.dailyLimitReached });
+        const fresh = template.content.firstElementChild;
+        fresh.dataset.limit = String(ctx.dailyLimitReached);
+        btn.replaceWith(fresh);
     });
 
     // Refresh teacher boon launch button
     renderTeacherBoonLaunchState(selectedClassId);
+    renderAwardSkySummary(selectedClassId);
 }

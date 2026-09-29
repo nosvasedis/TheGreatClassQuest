@@ -806,37 +806,6 @@
     50%      { box-shadow: 0 0 0 2px rgba(255,255,255,0.95), 0 2px 8px rgba(124,58,237,0.6), 0 0 18px rgba(168,85,247,0.8); transform: scale(1.08); }
 }
 
-/* Awards tab: direct emblem on avatar corner (no container chrome) */
-.award-guild-corner {
-    position: absolute;
-    top: calc(24px + var(--award-content-shift-y, 1cm));
-    left: calc(50% + 16px + var(--award-content-shift-x, -0.5cm));
-    z-index: 12;
-    pointer-events: none;
-}
-
-/* Awards tab: level-up badge above the avatar (no wrap) */
-.award-level-up-overlay {
-    position: absolute;
-    top: calc(-22px + var(--award-content-shift-y, 1cm));
-    left: calc(50% + var(--award-content-shift-x, -0.5cm));
-    transform: translateX(-50%);
-    width: 70px;
-    height: 70px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    z-index: 11;
-    pointer-events: none;
-}
-.award-level-up-overlay .level-up-badge {
-    position: static;
-    width: 26px;
-    height: 26px;
-    font-size: 12px;
-    flex-shrink: 0;
-}
-
 /* Enlarged avatar (click-to-expand overlay): level-up badge on the big avatar */
 .enlarged-avatar-level-up-wrap {
     position: fixed;

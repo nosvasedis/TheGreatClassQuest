@@ -101,6 +101,36 @@ export async function setupSounds() {
                 volume: -5
             }).connect(reverb);
 
+            // Award Stars: a bell choir that grows with the award (spark, shine, supernova),
+            // a sparkle wash, a soft low swell for three stars, and one chime per virtue.
+            sounds.award_bell = new Tone.PolySynth(Tone.FMSynth, {
+                harmonicity: 3.01,
+                modulationIndex: 7,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.002, decay: 0.55, sustain: 0, release: 0.9 },
+                modulation: { type: 'sine' },
+                modulationEnvelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 },
+                volume: -15
+            }).connect(reverb);
+            sounds.award_bell.maxPolyphony = 12;
+            const awardSparkleFilter = new Tone.Filter({ frequency: 7000, type: 'highpass' }).connect(reverb);
+            sounds.award_sparkle = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.02, decay: 0.45, sustain: 0, release: 0.2 },
+                volume: -24
+            }).connect(awardSparkleFilter);
+            sounds.award_swell = new Tone.MembraneSynth({
+                pitchDecay: 0.08,
+                octaves: 4,
+                envelope: { attack: 0.002, decay: 0.6, sustain: 0, release: 0.5 },
+                volume: -13
+            }).toDestination();
+            sounds.award_pad = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.04, decay: 0.5, sustain: 0.25, release: 1.1 },
+                volume: -20
+            }).connect(reverb);
+
             // Growth Festival synths for early learners (celeste/music box & ambient harp)
             sounds.growth_bloom = new Tone.FMSynth({
                 harmonicity: 2,
@@ -172,7 +202,8 @@ export async function setupSounds() {
 
 export function playSound(sound) {
     if (!soundsReady || Tone.context.state !== 'running') return;
-    if (!sounds[sound]) return;
+    const composedAward = typeof sound === 'string' && (sound.startsWith('award_') || sound.startsWith('virtue_')) && sounds.award_bell;
+    if (!sounds[sound] && !composedAward) return;
     
     // 1. Get current audio context time
     const now = Tone.now();
@@ -198,6 +229,32 @@ export function playSound(sound) {
             sounds.star3.triggerAttackRelease('E5', '16n', playTime + 0.05);
             sounds.star3.triggerAttackRelease('G5', '16n', playTime + 0.1);
             sounds.star3.triggerAttackRelease('C7', '16n', playTime + 0.15);
+        } else if (sound === 'award_1') {
+            sounds.award_bell.triggerAttackRelease('E6', '16n', playTime);
+            sounds.award_bell.triggerAttackRelease('B6', '32n', playTime + 0.08, 0.5);
+            sounds.award_sparkle.triggerAttackRelease('16n', playTime + 0.02);
+            sounds.award_bell.triggerAttackRelease('E7', '32n', playTime + 0.8, 0.35);
+        } else if (sound === 'award_2') {
+            ['C6', 'E6', 'G6'].forEach((note, i) => sounds.award_bell.triggerAttackRelease(note, '16n', playTime + i * 0.075, 0.8));
+            sounds.award_bell.triggerAttackRelease(['C7', 'E7'], '8n', playTime + 0.24, 0.6);
+            sounds.award_sparkle.triggerAttackRelease('8n', playTime + 0.05);
+            sounds.award_bell.triggerAttackRelease('G7', '32n', playTime + 0.8, 0.3);
+            sounds.award_bell.triggerAttackRelease('C7', '32n', playTime + 0.92, 0.3);
+        } else if (sound === 'award_3') {
+            sounds.award_swell.triggerAttackRelease('C2', '8n', playTime);
+            ['C5', 'E5', 'G5', 'C6', 'E6', 'G6'].forEach((note, i) => sounds.award_bell.triggerAttackRelease(note, '16n', playTime + 0.03 + i * 0.05, 0.75));
+            sounds.award_pad.triggerAttackRelease(['C5', 'G5', 'E6'], '2n', playTime + 0.3);
+            sounds.award_bell.triggerAttackRelease(['C6', 'E6', 'G6', 'C7'], '4n', playTime + 0.36, 0.9);
+            sounds.award_sparkle.triggerAttackRelease('4n', playTime + 0.3);
+            sounds.star3.triggerAttackRelease('C7', '32n', playTime + 0.55);
+            ['G7', 'E7', 'C8'].forEach((note, i) => sounds.award_bell.triggerAttackRelease(note, '32n', playTime + 0.8 + i * 0.12, 0.3));
+        } else if (sound === 'award_undo') {
+            sounds.award_bell.triggerAttackRelease('G5', '32n', playTime, 0.45);
+            sounds.award_bell.triggerAttackRelease('C5', '16n', playTime + 0.09, 0.4);
+            sounds.star_remove.triggerAttackRelease('16n', playTime);
+        } else if (sound.startsWith('virtue_')) {
+            const note = { virtue_teamwork: 'G5', virtue_creativity: 'A5', virtue_respect: 'E5', virtue_focus: 'C6' }[sound] || 'D6';
+            sounds.award_bell.triggerAttackRelease(note, '32n', playTime, 0.45);
         } else if (sound === 'star_remove') sounds.star_remove.triggerAttackRelease('8n', playTime);
         else if (sound === 'confirm') sounds.confirm.triggerAttackRelease('E4', '8n', playTime);
         else if (sound === 'writing') sounds.writing.triggerAttackRelease('4n', playTime);

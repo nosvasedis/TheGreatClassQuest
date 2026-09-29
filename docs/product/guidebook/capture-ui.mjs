@@ -31,18 +31,11 @@ async function startVite() {
 }
 
 async function waitForCloudArt(page) {
+  // Award clouds are inline SVG; only the portraits and guild emblems need to load.
   await page.evaluate(async () => {
-    const urls = new Set();
-    document.querySelectorAll('.cloud-bg-asset').forEach((el) => {
-      const bg = getComputedStyle(el).backgroundImage;
-      const match = /url\(["']?([^"')]+)["']?\)/.exec(bg);
-      if (match?.[1] && match[1] !== 'none') urls.add(match[1]);
-    });
-    await Promise.all([...urls].map((src) => new Promise((resolve) => {
-      const img = new Image();
+    await Promise.all([...document.querySelectorAll('.aw-card img')].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
       img.onload = img.onerror = resolve;
-      img.src = src;
-    })));
+    }))));
   });
 }
 

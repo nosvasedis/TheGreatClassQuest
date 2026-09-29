@@ -136,7 +136,7 @@ Sort by:
 
 The **Teacher Boon** ribbon is honour: it does **not** add a secret rank, and it does **not** break a Prodigy tie by itself. The 2 stars were already in the month’s totals when they were gifted on Award Stars.
 
-Winners are stored in **Hall of Prodigies** and show as **Reigning Prodigy** on Award Stars and Hero’s Challenge until the next month’s ceremony. Finishing the ceremony does **not** wipe stars. Monthly stars reset with the new calendar month as they always do.
+Winners are stored in **Hall of Prodigies** and show as **Prodigy of the Month** (or **Co-Prodigy** after a tie) on a mint cloud on Award Stars, and as **Reigning Prodigy** on Hero’s Challenge, until the next month’s ceremony. Finishing the ceremony does **not** wipe stars. Monthly stars reset with the new calendar month as they always do.
 
 This ritual is **not**:
 

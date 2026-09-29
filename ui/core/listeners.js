@@ -24,7 +24,8 @@ import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
-import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
+import { showToast, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
+import { triggerAwardEffects, playVirtuePick } from '../awardFx.js';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { setupCloudDock } from './cloudDock.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
@@ -797,7 +798,7 @@ export function setupUIListeners() {
             if (actionBtn.dataset.action === 'welcome-back') {
                 const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
                 const firstName = student.name.split(' ')[0];
-                playSound('star2');
+                playSound('award_2');
 
                 // 1. Calculate Streak of Missed Lessons
                 let missedLessons = 0;
@@ -887,7 +888,7 @@ export function setupUIListeners() {
         if (undoBtn) {
             const studentId = undoBtn.closest('.student-cloud-card').dataset.studentid;
             setStudentStarsForToday(studentId, 0, null);
-            playSound('star_remove');
+            playSound('award_undo');
             tabs.updateAwardCardState(studentId, 0, null);
             return;
         }
@@ -905,25 +906,28 @@ export function setupUIListeners() {
             const starSelector = studentCard.querySelector('.star-selector-container');
             const allReasonBtns = studentCard.querySelectorAll('.reason-btn');
 
+            if (!starSelector) return;
             if (reasonBtn.classList.contains('active')) {
                 reasonBtn.classList.remove('active');
+                reasonBtn.setAttribute('aria-pressed', 'false');
                 starSelector.classList.remove('visible');
                 starSelector.removeAttribute('data-aura');
+                delete studentCard.dataset.aura;
             } else {
-                allReasonBtns.forEach(btn => btn.classList.remove('active'));
+                allReasonBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-pressed', 'false');
+                });
                 reasonBtn.classList.add('active');
+                reasonBtn.setAttribute('aria-pressed', 'true');
                 starSelector.classList.add('visible');
                 starSelector.setAttribute('data-aura', reasonBtn.dataset.reason);
+                studentCard.dataset.aura = reasonBtn.dataset.reason;
+                playVirtuePick(reasonBtn, reasonBtn.dataset.reason);
+                reasonBtn.classList.remove('animate-reason-select');
+                void reasonBtn.offsetWidth;
                 reasonBtn.classList.add('animate-reason-select');
-
-                // Dynamic sparkle animation position
-                const randomAngle = Math.random() * 2 * Math.PI;
-                reasonBtn.style.setProperty('--x', `${Math.cos(randomAngle) * 60}px`);
-                reasonBtn.style.setProperty('--y', `${Math.sin(randomAngle) * 60}px`);
-
-                reasonBtn.addEventListener('animationend', () => {
-                    reasonBtn.classList.remove('animate-reason-select');
-                }, { once: true });
+                setTimeout(() => reasonBtn.classList.remove('animate-reason-select'), 600);
             }
             return;
         }

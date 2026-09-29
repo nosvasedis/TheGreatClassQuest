@@ -1,0 +1,1494 @@
+/*
+ * Award Stars: the star clouds (markup: features/awardCloudCard.mjs, effects: ui/awardFx.js).
+ *
+ * Weak-laptop rules for this tab:
+ * - no CSS filters, backdrop blurs or animated box-shadows; glows are pre-drawn gradients
+ *   whose opacity changes;
+ * - everything that moves animates transform or opacity only;
+ * - a cloud drifts only while it is on screen (.is-afloat, set by an IntersectionObserver),
+ *   and every loop stops while the page scrolls (.award-scroll-pause).
+ */
+
+#award-stars-tab > .aw-stage-wide {
+    max-width: 76rem;
+}
+
+/* ───────────────────────── Sky summary ───────────────────────── */
+
+.aw-sky-summary {
+    max-width: 46rem;
+    margin: -0.5rem auto 1.25rem;
+    padding: 0.6rem 1.1rem 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem 1rem;
+    border-radius: 1.4rem;
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(254, 243, 199, 0.55), transparent 55%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 246, 255, 0.86));
+    border: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 10px 26px rgba(30, 64, 175, 0.12), inset 0 -2px 0 rgba(191, 219, 254, 0.55);
+    color: #1e3a8a;
+    font-family: 'Fredoka', sans-serif;
+}
+
+.aw-sky-summary.hidden { display: none; }
+
+.aw-sky-summary__main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.aw-sky-summary__sigil {
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 48%, #d97706);
+    box-shadow: 0 2px 0 #b45309, 0 4px 10px rgba(217, 119, 6, 0.3);
+    font-size: 0.85rem;
+}
+
+.aw-sky-summary__count b,
+.aw-sky-summary__stars b {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.15rem;
+    color: #1d4ed8;
+}
+
+.aw-sky-summary__stars .fa-star { color: #f59e0b; }
+
+.aw-sky-summary__mod {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #6d28d9;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    border: 1.5px solid rgba(139, 92, 246, 0.35);
+}
+
+.aw-sky-summary__mod--double {
+    color: #9a3412;
+    background: linear-gradient(135deg, #fff7ed, #fed7aa);
+    border-color: rgba(249, 115, 22, 0.45);
+}
+
+.aw-sky-summary__track {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    min-height: 10px;
+}
+
+.aw-sky-summary__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.3);
+    box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.12);
+    transition: background-color 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-sky-summary__dot.is-lit {
+    background: radial-gradient(circle at 35% 30%, #fffbeb, #fbbf24 55%, #f59e0b);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.22), 0 0 8px rgba(251, 191, 36, 0.55);
+    transform: scale(1.12);
+}
+
+.aw-sky-summary__bar {
+    display: block;
+    width: 100%;
+    max-width: 24rem;
+    height: 8px;
+    border-radius: 999px;
+    background:
+        linear-gradient(90deg, #fbbf24, #f59e0b) 0 0 / var(--pct, 0%) 100% no-repeat,
+        rgba(148, 163, 184, 0.28);
+}
+
+.aw-sky-summary__note {
+    flex-basis: 100%;
+    text-align: center;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.aw-sky-summary__note--full { color: #b45309; }
+
+#app-screen.header-night .aw-sky-summary {
+    color: #e0e7ff;
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(99, 102, 241, 0.35), transparent 55%),
+        linear-gradient(180deg, rgba(30, 27, 75, 0.88), rgba(49, 46, 129, 0.84));
+    border-color: rgba(165, 180, 252, 0.35);
+    box-shadow: 0 10px 26px rgba(2, 6, 23, 0.35), inset 0 -2px 0 rgba(129, 140, 248, 0.25);
+}
+
+#app-screen.header-night .aw-sky-summary__count b,
+#app-screen.header-night .aw-sky-summary__stars b { color: #fde68a; }
+#app-screen.header-night .aw-sky-summary__note { color: #c7d2fe; }
+#app-screen.header-night .aw-sky-summary__note--full { color: #fde68a; }
+
+/* ───────────────────────── The sky grid ───────────────────────── */
+
+.aw-sky-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20.5rem), 1fr));
+    gap: 3.4rem 2.1rem;
+    align-items: start;
+    padding: 1.9rem 0.6rem 7rem;
+    overflow: visible;
+}
+
+/* A loose, cloud-like formation: the middle column drifts lower. */
+@media (min-width: 1180px) {
+    .aw-sky-grid > .award-card-mount:nth-child(3n + 2) { margin-top: 1.75rem; }
+    .aw-sky-grid > .award-card-mount:nth-child(3n + 3) { margin-top: 0.6rem; }
+}
+
+@media (min-width: 720px) and (max-width: 1179.98px) {
+    .aw-sky-grid > .award-card-mount:nth-child(2n) { margin-top: 1.5rem; }
+}
+
+.aw-empty {
+    grid-column: 1 / -1;
+    justify-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 1rem auto;
+    padding: 0.9rem 1.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #334155;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    box-shadow: 0 8px 20px rgba(30, 64, 175, 0.1);
+}
+
+.aw-empty .fa-cloud { color: #93c5fd; }
+
+/* ───────────────────────── The cloud card ───────────────────────── */
+
+.aw-card {
+    /* Cloud palette (day). The SVG gradient and layers read these. */
+    --awc-top: #ffffff;
+    --awc-mid: #f7f9ff;
+    --awc-bot: #dde5fb;
+    --awc-rim: rgba(160, 176, 228, 0.6);
+    --awc-shelf: rgba(71, 91, 168, 0.17);
+    --awc-sheen: rgba(255, 255, 255, 0.95);
+    --awc-glint: #fcd34d;
+    --awc-tint: #c7d2fe;
+    --awc-tint-o: 0;
+    --awc-halo: rgba(255, 255, 255, 0);
+    --awc-flare: rgba(125, 211, 252, 0.8);
+
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    padding: 0.4rem 1.35rem 2rem;
+    color: #1e293b;
+}
+
+.aw-card__lift {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    transform-origin: 50% 60%;
+}
+
+/* Drift, only while on screen. Transform only, one layer per visible cloud. */
+@keyframes aw-float {
+    0%, 100% { transform: translate3d(0, -4px, 0); }
+    50% { transform: translate3d(0, 5px, 0); }
+}
+
+.aw-card.is-afloat {
+    animation: aw-float 7.2s ease-in-out infinite;
+    animation-delay: var(--aw-float-delay, 0ms);
+}
+
+/* The cloud art */
+.aw-cloud {
+    position: absolute;
+    inset: -0.9rem -1.25rem -1.5rem;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.aw-cloud__art {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.aw-cloud__shelf { fill: var(--awc-shelf); }
+.aw-cloud__rim { fill: var(--awc-rim); stroke: var(--awc-rim); stroke-width: 7; }
+.aw-cloud__tint {
+    fill: var(--awc-tint);
+    opacity: var(--awc-tint-o);
+    transition: opacity 0.35s ease-out;
+}
+.aw-cloud__sheen path {
+    fill: none;
+    stroke: var(--awc-sheen);
+    stroke-width: 7;
+    stroke-linecap: round;
+    opacity: 0.85;
+}
+.aw-cloud__glints path { fill: var(--awc-glint); opacity: 0.85; }
+.aw-cloud__rain { display: none; stroke: #93c5fd; stroke-width: 4; stroke-linecap: round; }
+
+/* Pre-drawn glow behind the cloud (hero, prodigy, and the award flare). */
+.aw-cloud__halo {
+    position: absolute;
+    inset: -14% -12%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--awc-halo), transparent);
+    opacity: 0;
+}
+
+.aw-card--hero {
+    --awc-top: #fffdf6;
+    --awc-mid: #fff8e8;
+    --awc-bot: #fbe4ae;
+    --awc-rim: rgba(245, 180, 40, 0.8);
+    --awc-shelf: rgba(180, 110, 20, 0.18);
+    --awc-halo: rgba(253, 224, 71, 0.55);
+}
+
+.aw-card--prodigy:not(.aw-card--hero) {
+    --awc-top: #fbfffd;
+    --awc-mid: #f1fbf6;
+    --awc-bot: #cdeedd;
+    --awc-rim: rgba(52, 190, 130, 0.62);
+    --awc-shelf: rgba(20, 110, 80, 0.16);
+    --awc-halo: rgba(110, 231, 183, 0.45);
+}
+
+.aw-card--hero .aw-cloud__halo,
+.aw-card--prodigy .aw-cloud__halo { opacity: 1; }
+
+.aw-card--party .aw-cloud__glints path { fill: #f472b6; }
+
+/* The picked virtue tints the whole cloud. */
+.aw-card[data-aura="teamwork"] { --awc-tint: #a78bfa; --awc-tint-o: 0.2; }
+.aw-card[data-aura="creativity"] { --awc-tint: #f472b6; --awc-tint-o: 0.18; }
+.aw-card[data-aura="respect"] { --awc-tint: #34d399; --awc-tint-o: 0.2; }
+.aw-card[data-aura="focus"] { --awc-tint: #fbbf24; --awc-tint-o: 0.24; }
+
+/* Moonlit clouds at night */
+#app-screen.header-night .aw-card {
+    --awc-top: #f4f6ff;
+    --awc-mid: #e6ebff;
+    --awc-bot: #b8c3f0;
+    --awc-rim: rgba(199, 210, 254, 0.8);
+    --awc-shelf: rgba(2, 6, 23, 0.34);
+    --awc-glint: #fef9c3;
+}
+
+#app-screen.header-night .aw-card--hero {
+    --awc-top: #fffbeb;
+    --awc-mid: #fdf1cf;
+    --awc-bot: #e8cc88;
+}
+
+/* A grey rain cloud while a hero is away */
+.aw-card.is-absent {
+    --awc-top: #f8fafc;
+    --awc-mid: #e8edf3;
+    --awc-bot: #c9d3df;
+    --awc-rim: rgba(100, 116, 139, 0.42);
+    --awc-shelf: rgba(51, 65, 85, 0.16);
+    --awc-glint: #cbd5e1;
+    --awc-halo: rgba(255, 255, 255, 0);
+}
+
+.aw-card.is-absent .aw-cloud__rain { display: inline; }
+.aw-card.is-absent .aw-cloud__halo { opacity: 0; }
+.aw-card.is-absent .aw-portrait,
+.aw-card.is-absent .aw-card__nameplate,
+.aw-card.is-absent .aw-tally,
+.aw-card.is-absent .aw-card__head .aw-purse { opacity: 0.62; }
+.aw-card.is-absent .aw-portrait__img { background-color: #cbd5e1; }
+.aw-card.is-absent .aw-virtues,
+.aw-card.is-absent .aw-card__finale { display: none; }
+
+/* ───────────── Corners: boon heart, attendance, undo ───────────── */
+
+.aw-card__corner {
+    position: absolute;
+    top: 2.35rem;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.aw-card__corner--left { left: 0.95rem; }
+.aw-card__corner--right { right: 0.95rem; }
+
+.aw-card__corner .absence-controls:empty { display: none; }
+
+.aw-boon,
+.aw-att,
+.aw-undo {
+    position: relative;
+    width: 2.45rem;
+    height: 2.45rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-boon:active,
+.aw-att:active,
+.aw-undo:active { transform: scale(0.9); }
+
+/* Hero's Boon: a rose heart gem when a classmate can gift, a faint charm when not. */
+.aw-boon__heart {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.02rem;
+}
+
+.aw-boon--ready .aw-boon__heart {
+    color: #fff;
+    background: radial-gradient(circle at 35% 28%, #ffe4e6, #fb7185 42%, #e11d48 78%, #be123c);
+    box-shadow: 0 3px 0 #9f1239, 0 6px 14px rgba(225, 29, 72, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+@keyframes aw-heartbeat {
+    0%, 60%, 100% { transform: scale(1); }
+    12% { transform: scale(1.14); }
+    24% { transform: scale(0.98); }
+    36% { transform: scale(1.08); }
+}
+
+.aw-card.is-afloat .aw-boon--ready .aw-boon__heart {
+    animation: aw-heartbeat 2.4s ease-in-out infinite;
+}
+
+.aw-boon--ready:hover { transform: translateY(-2px) scale(1.1); }
+
+.aw-boon__tag {
+    position: absolute;
+    bottom: -0.55rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.02rem 0.35rem;
+    border-radius: 999px;
+    background: #fff;
+    color: #be123c;
+    border: 1.5px solid #fecdd3;
+    font: 700 0.62rem/1.2 'Fredoka', sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.aw-boon--resting { cursor: not-allowed; }
+
+.aw-boon--resting .aw-boon__heart {
+    color: rgba(148, 163, 184, 0.9);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1.5px dashed rgba(148, 163, 184, 0.55);
+}
+
+/* Attendance and undo: quiet white pebbles with a tip on hover. */
+.aw-att,
+.aw-undo {
+    color: #64748b;
+    background: linear-gradient(180deg, #ffffff, #eef2f7);
+    box-shadow: 0 2px 0 rgba(100, 116, 139, 0.28), 0 5px 12px rgba(30, 41, 59, 0.1);
+    font-size: 0.95rem;
+}
+
+.aw-att:hover { color: #475569; transform: translateY(-2px); }
+.aw-undo { color: #e11d48; }
+.aw-undo:hover { transform: translateY(-2px) rotate(-25deg); }
+.aw-undo.hidden { display: none; }
+
+.aw-att__tip,
+.aw-undo__tip {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 50%;
+    transform: translate(-50%, -4px);
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    background: #1e293b;
+    color: #fff;
+    font: 600 0.66rem/1.4 'Fredoka', sans-serif;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.aw-att:hover .aw-att__tip,
+.aw-att:focus-visible .aw-att__tip,
+.aw-undo:hover .aw-undo__tip,
+.aw-undo:focus-visible .aw-undo__tip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* ───────────────────────── Portrait ───────────────────────── */
+
+.aw-card__head {
+    position: relative;
+    width: 100%;
+    height: 6.1rem;
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.aw-portrait {
+    position: relative;
+    width: 5.2rem;
+    height: 5.2rem;
+    flex: none;
+}
+
+.aw-portrait__ring {
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    background: conic-gradient(from 210deg, var(--aura, #93c5fd), #ffffff 22%, var(--aura, #93c5fd) 48%, #ffffff 74%, var(--aura, #93c5fd));
+    box-shadow: 0 6px 16px rgba(30, 41, 59, 0.18);
+}
+
+.aw-portrait__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    object-fit: cover;
+    background: #e2e8f0;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-portrait__img:hover { transform: scale(1.05) rotate(-3deg); }
+
+.aw-portrait__img--initial {
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #e0e7ff 55%, #c7d2fe);
+    color: #4338ca;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 2.1rem;
+}
+
+.aw-portrait__guild {
+    position: absolute;
+    right: -0.35rem;
+    bottom: -0.2rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: 2.5px solid #fff;
+    background: #fff;
+    object-fit: cover;
+    box-shadow: 0 0 0 2px var(--guild, #6366f1), 0 3px 6px rgba(15, 23, 42, 0.2);
+    pointer-events: none;
+}
+
+.aw-portrait__guild--initial {
+    display: grid;
+    place-items: center;
+    color: var(--guild, #6366f1);
+    font: 700 0.8rem 'Fredoka', sans-serif;
+}
+
+.aw-portrait__levelup {
+    position: absolute;
+    left: -0.45rem;
+    top: -0.15rem;
+    width: 1.65rem;
+    height: 1.65rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.72rem;
+    background: radial-gradient(circle at 35% 30%, #ddd6fe, #8b5cf6 55%, #6d28d9);
+    border: 2px solid #fff;
+    box-shadow: 0 3px 8px rgba(109, 40, 217, 0.4);
+    pointer-events: none;
+}
+
+@keyframes aw-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+.aw-card.is-afloat .aw-portrait__levelup { animation: aw-bob 1.6s ease-in-out infinite; }
+
+.aw-portrait__crown {
+    position: absolute;
+    top: -1.4rem;
+    left: 50%;
+    transform: translateX(-50%) rotate(-10deg);
+    color: #f59e0b;
+    font-size: 1.45rem;
+    text-shadow: 0 2px 0 #b45309, 0 0 10px rgba(253, 224, 71, 0.9);
+    pointer-events: none;
+}
+
+.aw-portrait__laurel {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.aw-portrait__leaf {
+    position: absolute;
+    bottom: -0.3rem;
+    color: #10b981;
+    font-size: 1.25rem;
+    text-shadow: 0 1px 0 #047857;
+}
+
+.aw-portrait__leaf--l { left: -0.95rem; transform: rotate(-35deg) scaleX(-1); }
+.aw-portrait__leaf--r { right: -0.95rem; transform: rotate(35deg); }
+
+/* Gold purse: a minted coin on a little tag. */
+.aw-purse {
+    position: absolute;
+    left: calc(50% + 2.85rem);
+    top: 0.95rem;
+    display: flex;
+    align-items: center;
+    height: 1.65rem;
+    padding: 0 0.6rem 0 0.14rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fffbeb, #fde68a);
+    border: 1.5px solid #f59e0b;
+    color: #78350f;
+    font: 700 0.85rem/1 'Fredoka', sans-serif;
+    box-shadow: 0 2px 0 #d97706, 0 5px 10px rgba(180, 83, 9, 0.18);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.aw-purse__coin {
+    width: 1.3rem;
+    height: 1.3rem;
+    margin-right: 0.3rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff7cc, #fbbf24 48%, #b45309);
+    box-shadow: inset 0 0 0 1.5px rgba(254, 243, 199, 0.8);
+    color: #92400e;
+    font-size: 0.55rem;
+}
+
+@keyframes aw-coin-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.22) rotate(-6deg); }
+    100% { transform: scale(1); }
+}
+
+.aw-purse.coin-update-anim { animation: aw-coin-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+.aw-familiar {
+    position: absolute;
+    right: calc(50% + 3.2rem);
+    bottom: 0;
+    transform-origin: 50% 100%;
+}
+
+/* Familiars rest on the tab and walk only when pointed at, to keep the page calm and cheap. */
+.aw-familiar .familiar-sprite { animation-play-state: paused !important; }
+.aw-familiar:hover .familiar-sprite { animation-play-state: running !important; }
+
+/* ───────────────────────── Name plate ───────────────────────── */
+
+.aw-card__body {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.62rem;
+}
+
+.aw-card__nameplate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.22rem;
+    max-width: 100%;
+}
+
+.aw-card__name {
+    max-width: 100%;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.55rem;
+    line-height: 1.15;
+    color: #1e293b;
+    text-shadow: 0 1px 0 #fff, 0 2px 0 rgba(191, 219, 254, 0.7);
+}
+
+.aw-ribbon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.14rem 1rem;
+    color: #fff;
+    font: 700 0.7rem/1.35 'Fredoka', sans-serif;
+    letter-spacing: 0.03em;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--aura) 72%, #fff), var(--aura) 60%);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 0.45rem) 50%, 100% 100%, 0 100%, 0.45rem 50%);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+.aw-card__honours {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.aw-card__honours:empty { display: none; }
+
+.aw-honour {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    font: 700 0.64rem/1.4 'Fredoka', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1.5px solid transparent;
+}
+
+.aw-honour--hero {
+    color: #78350f;
+    background: linear-gradient(180deg, #fef3c7, #fcd34d);
+    border-color: #f59e0b;
+}
+
+.aw-honour--hero .fa-crown { color: #b45309; }
+
+.aw-honour__bonus {
+    margin-left: 0.1rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #78350f;
+    color: #fef3c7;
+    font-size: 0.6rem;
+}
+
+.aw-honour--prodigy { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+.aw-honour--party { color: #9d174d; background: #fce7f3; border-color: #f9a8d4; }
+.aw-honour--welcome { color: #075985; background: #e0f2fe; border-color: #7dd3fc; }
+
+/* ───────────────────────── Sun · Moon · Stars ───────────────────────── */
+
+.aw-tally {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.aw-tally__item {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 0.4rem;
+    padding: 0.42rem 0.5rem 0.38rem 0.42rem;
+    border-radius: 1.05rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 2px 0 var(--tally-edge), 0 5px 12px rgba(30, 41, 59, 0.07);
+}
+
+.aw-tally__sigil {
+    grid-row: 1 / span 2;
+    width: 1.95rem;
+    height: 1.95rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.aw-tally__value {
+    font-size: 1.38rem;
+    line-height: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aw-tally__label {
+    font: 700 0.56rem/1.2 'Fredoka', sans-serif;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    opacity: 0.78;
+}
+
+.aw-tally__item--today {
+    --tally-edge: #fdba74;
+    color: #9a3412;
+    background: linear-gradient(165deg, #fffaf3, #ffedd5);
+}
+
+.aw-tally__item--today .aw-tally__sigil {
+    background: radial-gradient(circle at 35% 30%, #fef9c3, #fbbf24 45%, #f97316);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.22);
+}
+
+.aw-tally__item--month {
+    --tally-edge: #c4b5fd;
+    color: #5b21b6;
+    background: linear-gradient(165deg, #faf8ff, #ede9fe);
+}
+
+.aw-tally__item--month .aw-tally__sigil {
+    color: #fef9c3;
+    background: radial-gradient(circle at 35% 30%, #a5b4fc, #6366f1 55%, #4338ca);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+.aw-tally__item--total {
+    --tally-edge: #1e1b4b;
+    color: #fff;
+    background:
+        radial-gradient(1.5px 1.5px at 72% 28%, rgba(255, 255, 255, 0.9), transparent 70%),
+        radial-gradient(1px 1px at 88% 70%, rgba(255, 255, 255, 0.7), transparent 70%),
+        radial-gradient(1.5px 1.5px at 58% 82%, rgba(254, 240, 138, 0.8), transparent 70%),
+        linear-gradient(165deg, #3730a3, #1e1b4b);
+    box-shadow: inset 0 1px 0 rgba(165, 180, 252, 0.35), 0 2px 0 var(--tally-edge), 0 5px 12px rgba(30, 27, 75, 0.25);
+}
+
+.aw-tally__item--total .aw-tally__sigil {
+    color: #fbbf24;
+    background: radial-gradient(circle at 35% 30%, #4f46e5, #312e81);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
+}
+
+.aw-tally__pips {
+    position: absolute;
+    top: 0.42rem;
+    right: 0.45rem;
+    display: flex;
+    gap: 2px;
+}
+
+.aw-tally__pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(249, 115, 22, 0.22);
+    transition: background-color 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-tally__pip.is-lit {
+    background: #f97316;
+    transform: scale(1.2);
+}
+
+@keyframes aw-tally-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.14) translateY(-2px); }
+    70% { transform: scale(0.97); }
+    100% { transform: scale(1); }
+}
+
+.aw-tally__item.counter-animate { animation: aw-tally-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ───────────────────────── Virtues ───────────────────────── */
+
+.aw-virtues {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.aw-virtue {
+    --v: #8b5cf6;
+    --v-deep: #6d28d9;
+    --v-soft: #ede9fe;
+    --v-glow: rgba(139, 92, 246, 0.35);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.28rem;
+    min-width: 0;
+    padding: 0.45rem 0.15rem 0.4rem;
+    border-radius: 1rem;
+    border: 1.5px solid color-mix(in srgb, var(--v) 22%, transparent);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--v) 25%, transparent), 0 5px 12px rgba(30, 41, 59, 0.06);
+    cursor: pointer;
+    transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.aw-virtue--creativity { --v: #ec4899; --v-deep: #be185d; --v-soft: #fce7f3; --v-glow: rgba(236, 72, 153, 0.35); }
+.aw-virtue--respect { --v: #10b981; --v-deep: #047857; --v-soft: #d1fae5; --v-glow: rgba(16, 185, 129, 0.35); }
+.aw-virtue--focus { --v: #f59e0b; --v-deep: #b45309; --v-soft: #fef3c7; --v-glow: rgba(245, 158, 11, 0.4); }
+
+.aw-virtue__gem {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.95rem;
+    background: radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--v) 35%, #fff), var(--v) 55%, var(--v-deep));
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12), inset 0 2px 0 rgba(255, 255, 255, 0.45);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-virtue__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--v-deep);
+    font: 700 0.6rem/1.2 'Fredoka', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.aw-virtue:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--v) 45%, transparent);
+    background-color: #fff;
+}
+
+.aw-virtue:hover .aw-virtue__gem { transform: rotate(-10deg) scale(1.08); }
+
+.aw-virtue:focus-visible { outline: 3px solid var(--v); outline-offset: 2px; }
+
+/* Selection ring: drawn once, bursts with transform + opacity. */
+.aw-virtue::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 1.2rem;
+    border: 2.5px solid var(--v);
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes aw-virtue-ring {
+    0% { opacity: 0.9; transform: scale(0.9); }
+    100% { opacity: 0; transform: scale(1.28); }
+}
+
+.aw-virtue.animate-reason-select::after { animation: aw-virtue-ring 0.55s ease-out; }
+
+.aw-virtue.active {
+    transform: translateY(-4px) scale(1.05);
+    border-color: var(--v);
+    background: linear-gradient(170deg, var(--v-soft), #fff 80%);
+    box-shadow: 0 3px 0 var(--v-deep), 0 8px 18px var(--v-glow);
+}
+
+.aw-virtue.active .aw-virtue__gem { transform: scale(1.12); }
+
+.aw-virtue__bonus,
+.aw-virtue__earned {
+    position: absolute;
+    top: -0.5rem;
+    right: -0.3rem;
+    padding: 0.02rem 0.32rem;
+    border-radius: 999px;
+    font: 700 0.6rem/1.3 'Fredoka', sans-serif;
+    pointer-events: none;
+}
+
+.aw-virtue__bonus {
+    color: #fff;
+    background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    border: 1.5px solid #fff;
+}
+
+.aw-virtue__earned {
+    color: #b45309;
+    background: #fef3c7;
+    border: 1.5px solid #fcd34d;
+    letter-spacing: -0.04em;
+}
+
+/* Sealed for today: the virtue that earned the stars stays lit. */
+.aw-virtues.is-locked .aw-virtue { opacity: 0.42; pointer-events: none; }
+.aw-virtues.is-locked .aw-virtue.is-awarded {
+    opacity: 1;
+    border-color: var(--v);
+    background: linear-gradient(170deg, var(--v-soft), #fff 80%);
+    box-shadow: 0 2px 0 var(--v-deep), 0 6px 14px var(--v-glow);
+}
+
+/* ───────────────────────── The stars ───────────────────────── */
+
+.aw-card__finale {
+    position: relative;
+    width: 100%;
+    min-height: 4.55rem;
+    display: grid;
+    place-items: center;
+}
+
+.aw-stage {
+    position: relative;
+    width: 100%;
+    min-height: 4.55rem;
+    display: grid;
+    place-items: center;
+}
+
+.aw-stage__hint {
+    margin: 0;
+    color: #64748b;
+    font: 600 0.78rem/1.3 'Fredoka', sans-serif;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.aw-stage__hint .fa-hand-pointer { color: #94a3b8; margin-right: 0.2rem; }
+
+.aw-stars {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 0.86fr 1fr 1.18fr;
+    align-items: end;
+    gap: 0.45rem;
+    pointer-events: none;
+}
+
+.aw-stars.visible { pointer-events: auto; }
+.aw-stage:has(.aw-stars.visible) .aw-stage__hint { opacity: 0; transform: translateY(6px); }
+
+/* Aura glow behind the buttons, coloured by the virtue (pre-drawn, opacity only). */
+.aw-stars::before {
+    content: '';
+    position: absolute;
+    inset: -60% -8%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--aura-bg, transparent), transparent);
+    opacity: 0;
+    transition: opacity 0.35s ease-out;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.aw-stars[data-aura="teamwork"] { --aura-bg: rgba(139, 92, 246, 0.38); }
+.aw-stars[data-aura="creativity"] { --aura-bg: rgba(236, 72, 153, 0.36); }
+.aw-stars[data-aura="respect"] { --aura-bg: rgba(16, 185, 129, 0.36); }
+.aw-stars[data-aura="focus"] { --aura-bg: rgba(245, 158, 11, 0.42); }
+.aw-stars.visible::before { opacity: 1; }
+
+.aw-star {
+    --s-top: #e0f2fe;
+    --s-mid: #7dd3fc;
+    --s-bot: #0284c7;
+    --s-edge: #0369a1;
+    --s-glow: rgba(56, 189, 248, 0.55);
+    position: relative;
+    height: 3.15rem;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(14px) scale(0.6);
+    transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.aw-star--2 {
+    --s-top: #fae8ff;
+    --s-mid: #c084fc;
+    --s-bot: #7c3aed;
+    --s-edge: #5b21b6;
+    --s-glow: rgba(192, 132, 252, 0.6);
+    height: 3.6rem;
+}
+
+.aw-star--3 {
+    --s-top: #fef9c3;
+    --s-mid: #fbbf24;
+    --s-bot: #f97316;
+    --s-edge: #c2410c;
+    --s-glow: rgba(251, 191, 36, 0.75);
+    height: 4.1rem;
+}
+
+.aw-stars.visible .aw-star { opacity: 1; transform: translateY(0) scale(1); }
+.aw-stars.visible .aw-star--2 { transition-delay: 0.06s; }
+.aw-stars.visible .aw-star--3 { transition-delay: 0.12s; }
+
+.aw-star__face {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.08rem;
+    overflow: hidden;
+    border-radius: 1.05rem;
+    color: #fff;
+    background: linear-gradient(170deg, var(--s-top) -10%, var(--s-mid) 45%, var(--s-bot));
+    box-shadow: 0 4px 0 var(--s-edge), 0 8px 16px rgba(30, 41, 59, 0.14), inset 0 2px 0 rgba(255, 255, 255, 0.55);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-star__icons {
+    display: flex;
+    gap: 0.12rem;
+    font-size: 0.95rem;
+    text-shadow: 0 1px 0 var(--s-edge), 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+.aw-star--2 .aw-star__icons { font-size: 1.02rem; }
+.aw-star--3 .aw-star__icons { font-size: 1.12rem; }
+
+.aw-star__name {
+    font: 700 0.55rem/1 'Fredoka', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.92;
+    text-shadow: 0 1px 0 var(--s-edge);
+}
+
+.aw-star__glow {
+    position: absolute;
+    inset: -45% -25%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--s-glow), transparent);
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    pointer-events: none;
+}
+
+.aw-star:hover .aw-star__glow,
+.aw-star:focus-visible .aw-star__glow { opacity: 1; }
+.aw-star:hover .aw-star__face { transform: translateY(-4px) scale(1.05); }
+.aw-star:active .aw-star__face { transform: translateY(2px) scale(0.97); box-shadow: 0 1px 0 var(--s-edge), 0 3px 8px rgba(30, 41, 59, 0.16), inset 0 2px 0 rgba(255, 255, 255, 0.55); }
+.aw-star:focus-visible { outline: none; }
+.aw-star:focus-visible .aw-star__face { outline: 3px solid var(--s-edge); outline-offset: 2px; }
+
+/* Supernova: a sheen crosses the gold every few seconds and two sparks circle it. */
+.aw-star--3 .aw-star__face::after {
+    content: '';
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: -40%;
+    width: 38%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    transform: translateX(-120%) skewX(-18deg);
+}
+
+@keyframes aw-sheen {
+    0%, 55% { transform: translateX(-120%) skewX(-18deg); }
+    85%, 100% { transform: translateX(420%) skewX(-18deg); }
+}
+
+.aw-card.is-afloat .aw-stars.visible .aw-star--3 .aw-star__face::after { animation: aw-sheen 3.4s ease-in-out infinite; }
+
+.aw-star--3::before,
+.aw-star--3::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    margin: -0.45rem 0 0 -0.35rem;
+    color: #fff7cc;
+    font-size: 0.75rem;
+    line-height: 0.9rem;
+    text-shadow: 0 0 6px rgba(251, 191, 36, 0.95);
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes aw-orbit {
+    from { transform: rotate(0deg) translateX(2.6rem) rotate(0deg) scale(0.8); }
+    to { transform: rotate(360deg) translateX(2.6rem) rotate(-360deg) scale(0.8); }
+}
+
+.aw-card.is-afloat .aw-stars.visible .aw-star--3::before,
+.aw-card.is-afloat .aw-stars.visible .aw-star--3::after {
+    opacity: 1;
+    animation: aw-orbit 4.5s linear infinite;
+}
+
+.aw-card.is-afloat .aw-stars.visible .aw-star--3::after { animation-delay: -2.25s; }
+
+/* Sealed for today */
+.aw-seal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 1.1rem 0.5rem 0.6rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fffbeb, #fef3c7);
+    border: 1.5px solid #fcd34d;
+    box-shadow: 0 3px 0 #f59e0b, 0 8px 18px rgba(245, 158, 11, 0.2);
+    color: #92400e;
+    font-family: 'Fredoka', sans-serif;
+    animation: aw-seal-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes aw-seal-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.8); }
+    to { opacity: 1; transform: none; }
+}
+
+.aw-seal__stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(170deg, #fcd34d, #f59e0b 55%, #ea580c);
+    font: 700 1rem/1.2 'Fredoka One', 'Fredoka', sans-serif;
+    text-shadow: 0 1px 0 #c2410c;
+}
+
+.aw-seal__text { font-weight: 700; font-size: 0.85rem; }
+
+/* ───────────────────────── Welcome desk (away cloud) ───────────────────────── */
+
+.aw-card__desk:empty { display: none; }
+.aw-card__desk { width: 100%; }
+
+.aw-desk {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.75rem 0.75rem;
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1.5px dashed rgba(100, 116, 139, 0.35);
+    text-align: center;
+}
+
+.aw-desk__title {
+    margin: 0;
+    color: #475569;
+    font: 700 0.78rem/1.2 'Fredoka', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.aw-desk__note {
+    margin: 0;
+    color: #64748b;
+    font: 500 0.8rem/1.3 'Fredoka', sans-serif;
+}
+
+.aw-desk--returning {
+    background: linear-gradient(170deg, #fffdf5, #fef3c7);
+    border: 1.5px solid #fcd34d;
+}
+
+.aw-desk--returning .aw-desk__title { color: #b45309; }
+
+.aw-desk__welcome {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem 0.5rem 0.5rem;
+    overflow: hidden;
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(100deg, #fb923c, #f59e0b 50%, #facc15);
+    box-shadow: 0 4px 0 #c2410c, 0 10px 20px rgba(249, 115, 22, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-desk__welcome:hover { transform: translateY(-3px) scale(1.02); }
+.aw-desk__welcome:active { transform: translateY(2px) scale(0.98); }
+
+.aw-desk__welcome::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 30%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: translateX(-120%) skewX(-18deg);
+}
+
+.aw-card.is-afloat .aw-desk__welcome::after { animation: aw-sheen 3.6s ease-in-out infinite; }
+
+.aw-desk__sun {
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 50%, #fffbeb 0 38%, transparent 40%),
+        repeating-conic-gradient(from 0deg, #fff7cc 0 12deg, transparent 12deg 30deg);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.aw-card.is-afloat .aw-desk__sun { animation: aw-spin 9s linear infinite; }
+
+@keyframes aw-spin { to { transform: rotate(360deg); } }
+
+.aw-desk__welcome-text {
+    flex: 1;
+    text-align: left;
+    font: 700 1.05rem/1.1 'Fredoka One', 'Fredoka', sans-serif;
+    text-shadow: 0 1px 0 #c2410c;
+}
+
+.aw-desk__welcome-gift {
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #c2410c;
+    font: 700 0.8rem/1.2 'Fredoka', sans-serif;
+}
+
+.aw-desk__row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.aw-desk__btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.42rem 0.6rem;
+    border-radius: 999px;
+    border: 1.5px solid;
+    background: #fff;
+    font: 700 0.78rem/1.2 'Fredoka', sans-serif;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+}
+
+.aw-desk__btn:hover { transform: translateY(-2px); }
+.aw-desk__btn:active { transform: translateY(1px); }
+.aw-desk__btn--present { color: #047857; border-color: #6ee7b7; }
+.aw-desk__btn--present:hover { background: #ecfdf5; }
+.aw-desk__btn--away { color: #475569; border-color: #cbd5e1; }
+.aw-desk__btn--away:hover { background: #f1f5f9; }
+
+/* ───────────────────────── Award moments (ui/awardFx.js) ───────────────────────── */
+
+/* The cloud flares with the tier's colour, then settles (halo opacity only). */
+@keyframes aw-flare {
+    0% { opacity: 0; transform: scale(0.85); }
+    25% { opacity: 1; transform: scale(1.06); }
+    100% { opacity: 0; transform: scale(1.14); }
+}
+
+.aw-card.aw-flare .aw-cloud__halo {
+    --awc-halo: var(--awc-flare);
+    animation: aw-flare var(--aw-flare-dur, 0.9s) ease-out;
+}
+
+.aw-card.aw-flare--2 { --awc-flare: rgba(216, 180, 254, 0.85); }
+.aw-card.aw-flare--3 { --awc-flare: rgba(253, 224, 71, 0.95); --aw-flare-dur: 1.4s; }
+
+/* The effect layer: one fixed, isolated sheet over the page. */
+.aw-fx-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    overflow: hidden;
+    contain: strict;
+}
+
+.aw-fx-layer > span {
+    position: absolute;
+    display: block;
+    will-change: transform, opacity;
+}
+
+.aw-fx-spark { border-radius: 50%; }
+
+.aw-fx-ring {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid rgba(253, 224, 71, 0.9);
+}
+
+.aw-fx-ring--small { width: 90px; height: 90px; border-width: 2.5px; }
+
+.aw-fx-star {
+    width: 26px;
+    height: 26px;
+    background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fde047' stroke='%23f59e0b' stroke-width='1.4' stroke-linejoin='round' d='M12 1.8l2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 16.9l-6 3.3 1.3-6.7-5-4.7 6.8-.8z'/%3E%3Cpath fill='%23fffbeb' d='M12 5.5l1.3 2.9-2.6.2z'/%3E%3C/svg%3E");
+}
+
+.aw-fx-star--sky {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23bae6fd' stroke='%230ea5e9' stroke-width='1.4' stroke-linejoin='round' d='M12 1.8l2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 16.9l-6 3.3 1.3-6.7-5-4.7 6.8-.8z'/%3E%3Cpath fill='%23fff' d='M12 5.5l1.3 2.9-2.6.2z'/%3E%3C/svg%3E");
+}
+
+.aw-fx-star--violet {
+    width: 28px;
+    height: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e9d5ff' stroke='%239333ea' stroke-width='1.4' stroke-linejoin='round' d='M12 1.8l2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 16.9l-6 3.3 1.3-6.7-5-4.7 6.8-.8z'/%3E%3Cpath fill='%23fff' d='M12 5.5l1.3 2.9-2.6.2z'/%3E%3C/svg%3E");
+}
+
+.aw-fx-star--gold { width: 32px; height: 32px; }
+
+.aw-fx-star--white {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fffbeb' stroke='%23fcd34d' stroke-width='1.2' stroke-linejoin='round' d='M12 1.8l2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 16.9l-6 3.3 1.3-6.7-5-4.7 6.8-.8z'/%3E%3C/svg%3E");
+}
+
+.aw-fx-star--rain { width: 22px; height: 22px; }
+
+.aw-fx-rays {
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(253, 224, 71, 0.55) 0deg 7deg, transparent 7deg 22.5deg);
+    -webkit-mask-image: radial-gradient(circle, #000 12%, rgba(0, 0, 0, 0.6) 36%, transparent 68%);
+    mask-image: radial-gradient(circle, #000 12%, rgba(0, 0, 0, 0.6) 36%, transparent 68%);
+}
+
+.aw-fx-core {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbeb 0 14%, rgba(253, 224, 71, 0.85) 30%, rgba(251, 146, 60, 0.35) 52%, transparent 70%);
+}
+
+.aw-fx-glow {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    left: 0 !important;
+    top: 0 !important;
+}
+
+.aw-fx-label {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    font: 700 1.9rem/1 'Fredoka One', 'Fredoka', sans-serif;
+    color: #fff;
+    white-space: nowrap;
+    text-shadow: 0 2px 0 var(--fx-edge, #0369a1), 0 0 14px var(--fx-glow, rgba(56, 189, 248, 0.8));
+}
+
+.aw-fx-label small {
+    margin-top: 0.2rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.aw-fx-label--violet { --fx-edge: #6d28d9; --fx-glow: rgba(192, 132, 252, 0.85); font-size: 2.2rem; }
+.aw-fx-label--gold { --fx-edge: #c2410c; --fx-glow: rgba(251, 191, 36, 0.95); font-size: 2.7rem; }
+
+/* Pause every loop while the page scrolls */
+#award-stars-tab.award-scroll-pause .aw-card,
+#award-stars-tab.award-scroll-pause .aw-card *,
+#award-stars-tab.award-scroll-pause .aw-card *::before,
+#award-stars-tab.award-scroll-pause .aw-card *::after,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn * {
+    animation-play-state: paused !important;
+}
+
+/* ───────────────────────── Phones ───────────────────────── */
+
+body.gcq-mobile .aw-sky-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.9rem;
+    padding: 1.6rem 0.9rem 6.5rem;
+}
+
+body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
+body.gcq-mobile .aw-sky-summary { margin: -0.25rem 0.75rem 1rem; }
+body.gcq-mobile .aw-card { padding: 0.4rem 1.05rem 1.9rem; }
+body.gcq-mobile .aw-card__corner--left { left: 0.7rem; }
+body.gcq-mobile .aw-card__corner--right { right: 0.7rem; }
+
+@media (max-width: 380px) {
+    .aw-tally__item { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 0.4rem 0.3rem; }
+    .aw-tally__sigil { grid-row: auto; width: 1.6rem; height: 1.6rem; }
+    .aw-tally__pips { top: 0.3rem; right: 0.3rem; }
+}
+
+/* ───────────────────────── Projector & reduced motion ───────────────────────── */
+
+body.projector-mode .aw-card__corner,
+body.projector-mode .aw-desk__row,
+body.projector-mode .aw-desk__welcome {
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aw-card.is-afloat,
+    .aw-card .aw-boon__heart,
+    .aw-card .aw-portrait__levelup,
+    .aw-card .aw-desk__sun,
+    .aw-card .aw-desk__welcome::after,
+    .aw-card .aw-star--3::before,
+    .aw-card .aw-star--3::after,
+    .aw-card .aw-star__face::after {
+        animation: none !important;
+    }
+    .aw-star,
+    .aw-stars.visible .aw-star { transition: opacity 0.15s ease; transform: none; }
+}

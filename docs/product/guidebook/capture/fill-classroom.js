@@ -7,7 +7,8 @@ import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js
 import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/modals/trophyRoomView.js';
 import { buildProdigyNavHtml, buildProdigyShrinesHtml, buildProdigyYearHtml } from '../../../../ui/modals/prodigyHallView.js';
 import { buildTrophySatchel, buildActiveEffects } from '../../../../features/trophyRoomCore.mjs';
-import { getGuildBadgeHtml } from '../../../../features/guilds.js';
+import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl } from '../../../../features/guilds.js';
+import { buildAwardCloudCardHtml, buildAwardSkySummaryHtml } from '../../../../features/awardCloudCard.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 import {
   annotateStandingsChanges,
@@ -41,100 +42,34 @@ export function hideClassroom() {
   hideGuildPowerExplainer();
 }
 
-function cloudCard({
-  id,
-  name,
-  initial,
-  cloud,
-  guildId,
-  title,
-  aura,
-  today,
-  month,
-  total,
-  gold,
-  reason,
-  starsVisible
-}) {
-  const guild = badge(guildId, 'w-5 h-5').replace('guild-badge ', 'guild-badge award-guild-corner ').replace(' border-2', '');
-  const reasons = [
-    ['teamwork', 'fa-users', 'Teamwork'],
-    ['creativity', 'fa-lightbulb', 'Creativity'],
-    ['respect', 'fa-hands-helping', 'Respect'],
-    ['focus', 'fa-brain', 'Focus']
-  ];
-  return `
-      <div class="award-card-mount">
-        <div class="student-cloud-card" data-studentid="${id}">
-          <div class="cloud-bg-svg cloud-bg-asset ${cloud}" aria-hidden="true"></div>
-          <div class="absence-controls">
-            <button class="absence-btn absence-btn--absent" type="button" title="Mark as Absent">
-              <i class="fas fa-user-slash pointer-events-none"></i>
-            </button>
-          </div>
-          <div class="student-avatar-cloud-placeholder">${initial}</div>
-          ${guild}
-          <div class="coin-pill" title="Current Gold">
-            <i class="fas fa-coins text-yellow-400"></i>
-            <span>${gold}</span>
-          </div>
-          <button class="boon-btn boon-btn--eligible absolute top-2 left-14 w-8 h-8 rounded-full z-30" type="button" title="Bestow Hero's Boon">
-            <i class="fas fa-heart pointer-events-none"></i>
-          </button>
-          <div class="card-content-wrapper">
-            <h3 class="font-title text-2xl text-gray-800 text-center">
-              <div class="flex flex-wrap items-center justify-center gap-1.5 mb-1">
-                <span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd);" title="Hero rank"><span class="opacity-90">🛡️</span><span>${title}</span></span>
-              </div>
-              ${name}
-            </h3>
-            <div class="award-counters-row">
-              <div class="counter-bubble counter-bubble--today">
-                <span class="counter-bubble__ring"></span>
-                <span class="counter-bubble__label">TODAY</span>
-                <span class="counter-bubble__value font-title">${today}</span>
-                <i class="fas fa-star counter-bubble__icon"></i>
-              </div>
-              <div class="counter-bubble counter-bubble--month">
-                <span class="counter-bubble__ring"></span>
-                <span class="counter-bubble__label">MONTH</span>
-                <span class="counter-bubble__value font-title">${month}</span>
-                <i class="fas fa-star counter-bubble__icon"></i>
-              </div>
-              <div class="counter-bubble counter-bubble--total">
-                <span class="counter-bubble__ring"></span>
-                <span class="counter-bubble__label">TOTAL</span>
-                <span class="counter-bubble__value font-title">${total}</span>
-                <i class="fas fa-star counter-bubble__icon"></i>
-              </div>
-            </div>
-            <div class="reason-selector flex justify-center items-center gap-2">
-              ${reasons.map(([key, icon, label]) => `
-              <button class="reason-btn bubbly-button reason-btn--${key}${key === reason ? ' active' : ''}" data-reason="${key}" type="button" title="${label}">
-                <span class="reason-btn__shimmer" aria-hidden="true"></span>
-                <i class="fas ${icon} pointer-events-none"></i>
-                <span class="reason-btn__label">${label}</span>
-              </button>`).join('')}
-            </div>
-            <div class="star-selector-container ${starsVisible ? 'visible' : ''} flex items-center justify-center" data-aura="${reason}">
-              <button data-stars="1" class="star-award-btn star-btn-1" type="button" aria-label="Award 1 star">
-                <span class="star-btn__shine" aria-hidden="true"></span>
-                <i class="fas fa-star"></i>
-              </button>
-              <span class="star-divider" aria-hidden="true"></span>
-              <button data-stars="2" class="star-award-btn star-btn-2" type="button" aria-label="Award 2 stars">
-                <span class="star-btn__shine" aria-hidden="true"></span>
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-              </button>
-              <span class="star-divider" aria-hidden="true"></span>
-              <button data-stars="3" class="star-award-btn star-btn-3" type="button" aria-label="Award 3 stars">
-                <span class="star-btn__shine" aria-hidden="true"></span>
-                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>`;
+function guideGuild(guildId) {
+  const g = getGuildById(guildId);
+  if (!g) return null;
+  return { name: g.name, emblemUrl: getGuildEmblemUrl(guildId).replace('./assets/', '/assets/'), color: g.primary };
+}
+
+/** A real award cloud (features/awardCloudCard.mjs) with guide data. */
+export function guideCloudCard({ id, name, cloud, guildId, title, icon = '🛡️', aura, today = 0, month, total, gold, reason = null, starsVisible = false, locked = false, honours = {}, attendanceMode = 'absent-offer', isAbsent = false, boon = { eligible: true } }, index = 0) {
+  const html = buildAwardCloudCardHtml({
+    id, name, firstName: name.split(' ')[0], avatar: null,
+    guild: guideGuild(guildId),
+    heroClass: title ? { title, icon, aura } : null,
+    gold, today, month, total, todayReason: reason, locked, isAbsent, attendanceMode,
+    boon, honours, cloud, floatDelay: index * 900, riseDelay: 0
+  }).replace(' tab-mount-rise', '');
+  if (!starsVisible || !reason || locked) return html;
+  return html
+    .replace(`data-reason="${reason}" title=`, `data-reason="${reason}" data-guide-active title=`)
+    .replace('star-selector-container aw-stars', 'star-selector-container aw-stars visible')
+    .replace('data-studentid=', `data-aura="${reason}" data-studentid=`);
+}
+
+function markGuideActive(root) {
+  root?.querySelectorAll('[data-guide-active]').forEach((btn) => {
+    btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
+    btn.removeAttribute('data-guide-active');
+  });
 }
 
 export function showAwardStarsTab() {
@@ -144,14 +79,20 @@ export function showAwardStarsTab() {
   tab.classList.remove('hidden');
   tab.classList.add('capture-award');
   document.getElementById('open-teacher-boon-btn')?.classList.remove('hidden');
+  const summary = document.getElementById('award-sky-summary');
+  if (summary) {
+    summary.innerHTML = buildAwardSkySummaryHtml({ shining: 2, heroes: 4, starsToday: 3, awaiting: 2 });
+    summary.classList.remove('hidden');
+  }
   const list = document.getElementById('award-stars-student-list');
   if (list) {
     list.innerHTML = [
-      cloudCard({ id: 'alex', name: 'Alex', initial: 'A', cloud: 'award-cloud-a', guildId: 'dragon_flame', title: 'Sentinel', aura: '#16a34a', today: '2', month: '18', total: '86', gold: 42, reason: 'teamwork', starsVisible: true }),
-      cloudCard({ id: 'maria', name: 'Maria', initial: 'M', cloud: 'award-cloud-b', guildId: 'owl_wisdom', title: 'Squire', aura: '#7c3aed', today: '0', month: '22', total: '91', gold: 55, reason: 'creativity', starsVisible: true }),
-      cloudCard({ id: 'nikos', name: 'Nikos', initial: 'N', cloud: 'award-cloud-c', guildId: 'grizzly_might', title: 'Scout', aura: '#b45309', today: '1', month: '14', total: '70', gold: 31, reason: 'respect', starsVisible: false }),
-      cloudCard({ id: 'eleni', name: 'Eleni', initial: 'E', cloud: 'award-cloud-d', guildId: 'phoenix_rising', title: 'Novice', aura: '#db2777', today: '0', month: '11', total: '48', gold: 19, reason: 'focus', starsVisible: true })
+      guideCloudCard({ id: 'alex', name: 'Alex', cloud: 'a', guildId: 'dragon_flame', title: 'Sentinel', aura: '#16a34a', today: 2, month: 18, total: 86, gold: 42, reason: 'teamwork', locked: true, attendanceMode: 'none' }, 0),
+      guideCloudCard({ id: 'maria', name: 'Maria', cloud: 'b', guildId: 'owl_wisdom', title: 'Squire', aura: '#7c3aed', today: 1, month: 22, total: 91, gold: 55, reason: 'creativity', locked: true, attendanceMode: 'none', honours: { heroOfDay: true } }, 1),
+      guideCloudCard({ id: 'nikos', name: 'Nikos', cloud: 'c', guildId: 'grizzly_might', title: 'Scout', aura: '#b45309', month: 14, total: 70, gold: 31, reason: 'respect', starsVisible: true }, 2),
+      guideCloudCard({ id: 'eleni', name: 'Eleni', cloud: 'd', guildId: 'phoenix_rising', title: 'Novice', aura: '#db2777', month: 11, total: 48, gold: 19, honours: { prodigy: true, prodigyMonth: 'August' }, boon: { eligible: false } }, 3)
     ].join('');
+    markGuideActive(list);
   }
 }
 

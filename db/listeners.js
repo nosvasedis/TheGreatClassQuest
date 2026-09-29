@@ -1130,7 +1130,7 @@ export async function setupDataListeners(
                         if (goldEl && goldEl.innerText != newGold) {
                             goldEl.innerText = newGold;
                             // Trigger the CSS animation on the parent pill
-                            const pill = goldEl.closest(".coin-pill");
+                            const pill = goldEl.closest(".aw-purse");
                             if (pill) {
                                 pill.classList.remove("coin-update-anim"); // Reset
                                 void pill.offsetWidth; // Force reflow
@@ -1154,7 +1154,7 @@ export async function setupDataListeners(
 
                         if (monthlyEl && monthlyEl.textContent != newMonthly) {
                             monthlyEl.textContent = newMonthly;
-                            const bubble = monthlyEl.closest(".counter-bubble");
+                            const bubble = monthlyEl.closest(".aw-tally__item");
                             if (bubble) {
                                 bubble.classList.add("counter-animate");
                                 setTimeout(
@@ -1169,7 +1169,7 @@ export async function setupDataListeners(
 
                         if (totalEl && totalEl.textContent != newTotal) {
                             totalEl.textContent = newTotal;
-                            const bubble = totalEl.closest(".counter-bubble");
+                            const bubble = totalEl.closest(".aw-tally__item");
                             if (bubble) {
                                 bubble.classList.add("counter-animate");
                                 setTimeout(

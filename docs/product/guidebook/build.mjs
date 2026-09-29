@@ -182,9 +182,9 @@ function planChip(label) {
 function liveHeroBoon() {
   return `<div class="live-demo">
     <p class="live-demo__label"><i class="fas fa-heart" aria-hidden="true"></i> Hero's Boon</p>
-    <div class="live-row">
-      <button type="button" class="boon-btn boon-btn--eligible" data-term="heros-boon" title="Bestow Hero's Boon"><i class="fas fa-heart"></i></button>
-      <button type="button" class="boon-btn boon-btn--disabled" data-term="heros-boon" title="Not eligible"><i class="fas fa-heart-broken"></i></button>
+    <div class="live-row live-row--award">
+      <button type="button" class="boon-btn aw-boon aw-boon--ready" data-term="heros-boon" title="Hero's Boon: a classmate gifts +½ star"><span class="aw-boon__heart" aria-hidden="true"><i class="fas fa-heart"></i></span><span class="aw-boon__tag" aria-hidden="true">+½</span></button>
+      <button type="button" class="boon-btn aw-boon aw-boon--resting" data-term="heros-boon" title="Not eligible for a Hero's Boon right now" aria-disabled="true"><span class="aw-boon__heart" aria-hidden="true"><i class="fas fa-heart"></i></span></button>
     </div>
   </div>`;
 }
@@ -653,7 +653,7 @@ function headingWidgets(id) {
       ${uiShot('ceremony-hero.png', 'Phase 2 — Hero’s Challenge. Student rank cards in the selected class. Finish Ceremony marks this class complete for the month.')}`;
   const fourReasons = `
       ${starAwardBtnsHtml()}
-      ${uiShot('award-cloud.png', 'A student cloud on Award Stars: virtue gems and 1, 2, or 3 stars after you pick Teamwork.', 'ui-shot-portrait')}
+      ${uiShot('award-cloud.png', 'A student cloud: portrait, Gold purse, Hero Path ribbon, the Sun, Moon and Star tallies, the virtue gems, and Spark, Shine and Supernova after you pick Teamwork.', 'ui-shot-portrait')}
       <div class="virtues">
         <article class="virtue v-teamwork"><i class="fas fa-users"></i><h4>Teamwork</h4><p>Helping, pairing, listening to a classmate.</p></article>
         <article class="virtue v-creativity"><i class="fas fa-lightbulb"></i><h4>Creativity</h4><p>A new idea, a surprising sentence, playful English.</p></article>
@@ -685,7 +685,7 @@ function headingWidgets(id) {
   }
   if (id === 'award-stars') {
     return [
-      { match: ['What you see', 'Τι βλέπεις'], html: uiShot('award-stars-tab.png', 'The Award Stars tab: the star-medal title, the rose-gold Teacher Boon seal (last 7 days of the month only), and floating student clouds; 1, 2, or 3 stars after a virtue.') },
+      { match: ['What you see', 'Τι βλέπεις'], html: uiShot('award-stars-tab.png', 'The Award Stars tab: the star-medal title, the rose-gold Teacher Boon seal (last 7 days of the month only), the sky summary, and the student clouds. Alex and Maria are sealed for today; Maria is Hero of the Day on the gold cloud; Nikos has picked Respect; Eleni is last month’s Prodigy of the Month on the mint cloud.') },
       { match: ['The four reasons', 'Τέσσερις αρετές'], html: fourReasons },
       { match: ['Welcome Back'], html: welcomeBackHtml() },
       { match: ['Hero’s Boon', "Hero's Boon"], html: `<div class="live-strip">${liveHeroBoon()}</div>` },

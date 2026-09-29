@@ -2,7 +2,7 @@
 
 export const awardTabHTML = `
             <div id="award-stars-tab" class="app-tab hidden">
-                <div class="max-w-4xl mx-auto">
+                <div class="max-w-4xl mx-auto aw-stage-wide">
                     <!-- Tab title: Award Stars -->
                     <header class="tab-sign tab-sign--award">
                         <div class="tab-sign__piece">
@@ -49,10 +49,10 @@ export const awardTabHTML = `
                         </button>
                     </div>
 
-                    <div id="award-stars-student-list" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-0 items-start">
-                        <p
-                            class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">
-                            Please choose a class from the header to award stars.</p>
+                    <div id="award-sky-summary" class="aw-sky-summary hidden" aria-live="polite"></div>
+
+                    <div id="award-stars-student-list" class="aw-sky-grid">
+                        <p class="aw-empty col-span-full"><i class="fas fa-cloud" aria-hidden="true"></i> Please choose a class from the header to award stars.</p>
                     </div>
                 </div>
             </div>

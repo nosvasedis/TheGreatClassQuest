@@ -88,7 +88,7 @@ if (typeof window !== 'undefined') {
 // Uses a debounce to re-enable animations ~150 ms after scrolling stops.
 if (typeof window !== 'undefined') {
     let _awardScrollPauseTimer = null;
-    window.addEventListener('scroll', () => {
+    document.addEventListener('scroll', () => {
         const tab = document.getElementById('award-stars-tab');
         if (!tab || tab.classList.contains('hidden')) return;
         tab.classList.add('award-scroll-pause');
@@ -97,7 +97,7 @@ if (typeof window !== 'undefined') {
             _awardScrollPauseTimer = null;
             tab.classList.remove('award-scroll-pause');
         }, 150);
-    }, { passive: true });
+    }, { passive: true, capture: true }); // capture: the tab scrolls inside <main>, whose scroll events do not bubble
 }
 
 /** Delay before immersive Award sky (ms), after navigating onto the tab. */

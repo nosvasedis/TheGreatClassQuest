@@ -2,7 +2,7 @@
 
 Award Stars is the **heart of the Quest**. In each lesson you place 1, 2, or 3 stars on one of four **life skills**. Those stars feed Team Quest, Hero’s Challenge, Guild Glory, Gold, Familiars, Hero Path, the Adventure Log, bounties, and the month’s ceremony.
 
-The tab opens under its title, a **night-sky star medal**, and is built as **floating clouds** — each student a card with Today / Month / Total, a Gold pill, guild badge, Hero Path title, and (when relevant) Reigning Hero or Reigning Prodigy.
+The tab opens under its title, a **night-sky star medal**, and is built as **floating clouds**: each student is an illustrated cloud with a portrait, a Gold purse, a guild emblem, a Hero Path ribbon, three tallies (Sun, Moon, Star) and four virtue gems.
 
 ## Purpose
 
@@ -10,7 +10,16 @@ Name **virtue in action**, in the moment it happens — Teamwork, Creativity, Re
 
 ## What you see
 
-Floating **clouds** on a sky: one card per student. Each cloud shows Today / Month / Total stars, a Gold pill, a guild badge, a Hero Path title, and (when it applies) Reigning Hero or Reigning Prodigy. Tap a virtue, then 1, 2, or 3 stars.
+Above the clouds, a **sky summary** counts how many heroes are shining today (one dot per student), the stars given so far, and how many are still waiting. On a Bonus Day it also shows **2× Star Day** or the day's bonus virtue (for example **Respect Bonus Day**), and that virtue's gem wears a **+1**.
+
+Each **cloud** holds:
+
+- The **portrait** with the guild emblem, a purple level-up arrow when a skill is ready (Pro), and the **Gold purse** beside it
+- The **Hero Path ribbon** and the student's name, with honours under it: **Hero of the Day +1**, **Prodigy of the Month**, **Birthday!**, **Name Day!**, or **Welcomed back**
+- Three tallies: the **Sun** (stars today, with three pips that light up), the **Moon** (this month) and the **Star** (all year)
+- The four **virtue gems**, then the star buttons
+
+Hero of the Day floats on a **gold cloud** with a crown. Last month's Prodigy of the Month (or each Co-Prodigy after a tie) floats on a **mint cloud**. A birthday or name day cloud gets a party tint. Clouds drift gently and pause while you scroll, so older laptops stay smooth.
 
 ## The four reasons
 
@@ -21,13 +30,15 @@ Floating **clouds** on a sky: one card per student. Each cloud shows Today / Mon
 | **Respect** | Kindness, inclusion, care for the room |
 | **Focus** | Effort, attention, sticking with a hard task |
 
-Tap **1**, **2**, or **3**. The card **locks** after a normal award (undo with ×). Sounds and particles should feel like a celebration, not a slap on a chart.
+Tap a gem first: it lights up, the cloud takes on that virtue's colour, and three star buttons rise: **Spark** (1), **Shine** (2) and **Supernova** (3). Each size is a bigger moment. Spark rings a single bell with a small burst. Shine lifts the cloud and chimes twice. Supernova rolls a drum swell into a bell chord, opens a sunburst behind the cloud, and rains stars. In every case the stars fly into the Sun tally.
+
+The cloud then **seals**: the star buttons give way to a stamp such as **+2 ★ for Teamwork**, and the awarded gem keeps its stars. To take it back, tap the round **Undo** button in the top-right corner. Sounds and particles should feel like a celebration, not a slap on a chart.
 
 **Scholar’s Bonus** and **Story Weaver** are **not** buttons here. Scholar’s Bonus arrives from **Starfall** after a high test or dictation. Story Weaver stars arrive from the **Story Weavers** tab when the class hits a writing milestone.
 
 ## Welcome Back
 
-When a student looks absent (marked absent last time, or marked absent today) and the class has a lesson today, the cloud offers **Welcome Back Bonus**, **Mark Present**, and **Mark Absent**.
+An absent student's cloud turns into a soft **grey rain cloud** and its gems are put away. When the student was away last lesson and the class has a lesson today, the cloud shows a **welcome desk**: a sunrise button **Welcome back!**, plus **Present** (no bonus) and **Away today**.
 
 Welcome Back stars scale with consecutive missed scheduled lessons (looking back up to 30 days):
 
@@ -67,14 +78,14 @@ This is **student → student generosity**, paid in Gold.
 | Self | Never |
 | Repeat | Cannot gift the **same** classmate twice in a row |
 
-Grey broken-heart buttons mean “not eligible.” Explain the rules once; children will police fairness better than a lecture.
+The heart sits in the cloud's top-left corner. When the student may receive a boon, it glows pink with a **+½** tag. When they may not (or the class has used its 4 boons today), it rests faded. Explain the rules once; children will police fairness better than a lecture.
 
 On **Pro**, a **Patron** Hero Path levels from **giving** this gift (10 / 20 / 30 weeks with at least one gift). The first gift each calendar week earns the path point; extra gifts that week still work as boons. The giver gets **+10 Gold** on the gift (net cost 5 unless Compassion Token made it free) and no extra rank stars. Overflowing Heart can enlarge the receiver's stars.
 
 Do not confuse this with:
 
 - **Teacher Boon** (your gift, below)
-- The note **“Includes Hero’s Boon (+1 Bonus Star)”** on the **reigning Hero of the Day’s first award** — that is an automatic daily perk, not a 15 Gold gift (see Adventure Log)
+- The **Hero of the Day +1** on the gold cloud. The Hero of the Day's first award each day carries one bonus star automatically; the Adventure Log notes it as **“Includes Hero’s Boon (+1 Bonus Star)”**. It is a daily perk, not a 15 Gold gift
 
 ## Teacher Boon
 
@@ -98,9 +109,9 @@ Use it for character the four buttons cannot quite name. Do not use it to “fix
 
 Without opening the Chronicle you can:
 
-- Mark **Absent** (today)
-- Mark **Present** / undo
-- Offer **Welcome Back**
+- Mark **Absent** today with the small corner button (a crossed-out person) on a cloud that has no award yet
+- Undo it with **Mark present** on the grey cloud's **Away today** desk
+- Offer **Welcome back!**, or mark **Present** or **Away today**, on the welcome desk
 
 Full month history lives on Adventure Log → **Attendance Chronicle** (Pro).
 

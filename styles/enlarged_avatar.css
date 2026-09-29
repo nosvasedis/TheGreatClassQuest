@@ -9,13 +9,6 @@
     transform: scale(1.1);
 }
 
-@keyframes cloud-avatar-wiggle {
-    0%, 100% { transform: translateX(-50%) rotate(-2deg); }
-    50% { transform: translateX(-50%) rotate(2deg); }
-}
-.student-cloud-card .enlargeable-avatar:hover {
-    animation: cloud-avatar-wiggle 0.4s ease-in-out;
-}
 
 
 /* The enlarged-avatar overlay itself (Hero Stage) lives in styles/hero_stage.css. */

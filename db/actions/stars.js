@@ -112,17 +112,9 @@ export async function setStudentStarsForToday(
     const modifier = resolveDailyModifier(activeEvents);
     finalStarValue = applyDailyModifier(finalStarValue, reason, modifier);
 
-    // Audio
-    if (
-        starValue > 0 &&
-        reason !== "welcome_back" &&
-        reason !== "story_weaver" &&
-        reason !== "scholar_s_bonus"
-    ) {
-        if (starValue === 1) playSound("star1");
-        else if (starValue === 2) playSound("star2");
-        else playSound("star3");
-    } else if (reason === "marked_present") {
+    // Audio: the award moment itself (ui/awardFx.js) plays the star sounds in time with the
+    // effects, before this write starts; here only a quiet confirm for a present mark.
+    if (reason === "marked_present") {
         playSound("confirm");
     }
 

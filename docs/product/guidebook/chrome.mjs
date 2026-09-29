@@ -385,32 +385,30 @@ export function glossaryRacesHtml() {
 
 export function welcomeBackHtml() {
   return `<div class="live-demo">
-    <p class="live-demo__label"><i class="fas fa-hand-sparkles" aria-hidden="true"></i> Absence &amp; Welcome Back</p>
-    <div class="live-row">
-      <button type="button" class="absence-btn absence-btn--absent" data-term="welcome-back" title="Mark as Absent"><i class="fas fa-user-slash"></i></button>
-      <button type="button" class="welcome-back-btn" data-term="welcome-back" title="Welcome Back"><i class="fas fa-hand-sparkles"></i></button>
+    <p class="live-demo__label"><i class="fas fa-sun" aria-hidden="true"></i> Absence &amp; Welcome Back</p>
+    <div class="live-row live-row--award">
+      <button type="button" class="aw-att aw-att--guide" data-term="welcome-back" title="Mark absent today"><i class="fas fa-user-slash" aria-hidden="true"></i><span class="aw-att__tip">Absent</span></button>
+      <div class="aw-desk aw-desk--returning aw-desk--guide"><p class="aw-desk__title"><i class="fas fa-cloud-sun" aria-hidden="true"></i> Away last lesson</p>
+        <button type="button" class="aw-desk__welcome" data-term="welcome-back" title="Welcome Back Bonus"><span class="aw-desk__sun" aria-hidden="true"></span><span class="aw-desk__welcome-text">Welcome back!</span><span class="aw-desk__welcome-gift">+<i class="fas fa-star"></i></span></button>
+        <div class="aw-desk__row"><button type="button" class="aw-desk__btn aw-desk__btn--present"><i class="fas fa-user-check" aria-hidden="true"></i> Present</button><button type="button" class="aw-desk__btn aw-desk__btn--away"><i class="fas fa-bed" aria-hidden="true"></i> Away today</button></div>
+      </div>
     </div>
   </div>`;
 }
 
 export function starAwardBtnsHtml() {
   return `<div class="star-award-demo">
-    <p class="live-demo__label"><i class="fas fa-star" aria-hidden="true"></i> Award Stars · tap 1, 2, or 3</p>
-    <div class="star-selector-container visible">
-      <button type="button" class="star-award-btn star-btn-1" data-term="award-stars" aria-label="Award 1 star">
-        <span class="star-btn__shine" aria-hidden="true"></span>
-        <i class="fas fa-star"></i>
-      </button>
-      <span class="star-divider" aria-hidden="true"></span>
-      <button type="button" class="star-award-btn star-btn-2" data-term="award-stars" aria-label="Award 2 stars">
-        <span class="star-btn__shine" aria-hidden="true"></span>
-        <i class="fas fa-star"></i><i class="fas fa-star"></i>
-      </button>
-      <span class="star-divider" aria-hidden="true"></span>
-      <button type="button" class="star-award-btn star-btn-3" data-term="award-stars" aria-label="Award 3 stars">
-        <span class="star-btn__shine" aria-hidden="true"></span>
-        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-      </button>
+    <p class="live-demo__label"><i class="fas fa-star" aria-hidden="true"></i> Award Stars · pick a virtue, then Spark, Shine or Supernova</p>
+    <div class="aw-virtues aw-virtues--guide" role="group" aria-label="Virtues">
+      <span class="aw-virtue aw-virtue--teamwork active"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-users"></i></span><span class="aw-virtue__label">Teamwork</span></span>
+      <span class="aw-virtue aw-virtue--creativity"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-lightbulb"></i></span><span class="aw-virtue__label">Creativity</span></span>
+      <span class="aw-virtue aw-virtue--respect"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-hands-helping"></i></span><span class="aw-virtue__label">Respect</span></span>
+      <span class="aw-virtue aw-virtue--focus"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-brain"></i></span><span class="aw-virtue__label">Focus</span></span>
+    </div>
+    <div class="aw-stars aw-stars--guide" role="group" aria-label="How many stars">
+      <button type="button" class="star-award-btn aw-star aw-star--1" data-term="award-stars" aria-label="Award 1 star"><span class="aw-star__glow" aria-hidden="true"></span><span class="aw-star__face"><span class="aw-star__icons"><i class="fas fa-star"></i></span><span class="aw-star__name">Spark</span></span></button>
+      <button type="button" class="star-award-btn aw-star aw-star--2" data-term="award-stars" aria-label="Award 2 stars"><span class="aw-star__glow" aria-hidden="true"></span><span class="aw-star__face"><span class="aw-star__icons"><i class="fas fa-star"></i><i class="fas fa-star"></i></span><span class="aw-star__name">Shine</span></span></button>
+      <button type="button" class="star-award-btn aw-star aw-star--3" data-term="award-stars" aria-label="Award 3 stars"><span class="aw-star__glow" aria-hidden="true"></span><span class="aw-star__face"><span class="aw-star__icons"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span><span class="aw-star__name">Supernova</span></span></button>
     </div>
   </div>`;
 }

@@ -113,12 +113,12 @@
   function widgetHtml(term) {
     const w = term.widget;
     if (w === 'gold') {
-      return `<span class="coin-pill coin-pill--guide" title="Gold"><i class="fas fa-coins" aria-hidden="true"></i><span>42</span></span>`;
+      return `<span class="aw-purse aw-purse--guide" title="Gold"><span class="aw-purse__coin" aria-hidden="true"><i class="fas fa-star"></i></span><span class="aw-purse__value">42</span></span>`;
     }
     if (w === 'hero-boon') {
-      return `<div class="live-row">
-        <button type="button" class="boon-btn boon-btn--eligible" title="Bestow Hero's Boon"><i class="fas fa-heart"></i></button>
-        <button type="button" class="boon-btn boon-btn--disabled" title="Not eligible"><i class="fas fa-heart-broken"></i></button>
+      return `<div class="live-row live-row--award">
+      <button type="button" class="boon-btn aw-boon aw-boon--ready" title="Hero's Boon: a classmate gifts +½ star"><span class="aw-boon__heart" aria-hidden="true"><i class="fas fa-heart"></i></span><span class="aw-boon__tag" aria-hidden="true">+½</span></button>
+      <button type="button" class="boon-btn aw-boon aw-boon--resting" title="Not eligible for a Hero's Boon right now" aria-disabled="true"><span class="aw-boon__heart" aria-hidden="true"><i class="fas fa-heart"></i></span></button>
       </div>`;
     }
     if (w === 'teacher-boon') {
@@ -140,26 +140,27 @@
       </button>`;
     }
     if (w === 'absence') {
-      return `<div class="live-row">
-        <button type="button" class="absence-btn absence-btn--absent" title="Mark as Absent"><i class="fas fa-user-slash"></i></button>
-        <button type="button" class="welcome-back-btn" title="Welcome Back"><i class="fas fa-hand-sparkles"></i></button>
-      </div>`;
+      return `<div class="live-row live-row--award">
+      <button type="button" class="aw-att aw-att--guide" title="Mark absent today"><i class="fas fa-user-slash" aria-hidden="true"></i><span class="aw-att__tip">Absent</span></button>
+      <div class="aw-desk aw-desk--returning aw-desk--guide"><p class="aw-desk__title"><i class="fas fa-cloud-sun" aria-hidden="true"></i> Away last lesson</p>
+        <button type="button" class="aw-desk__welcome" title="Welcome Back Bonus"><span class="aw-desk__sun" aria-hidden="true"></span><span class="aw-desk__welcome-text">Welcome back!</span><span class="aw-desk__welcome-gift">+<i class="fas fa-star"></i></span></button>
+        <div class="aw-desk__row"><button type="button" class="aw-desk__btn aw-desk__btn--present"><i class="fas fa-user-check" aria-hidden="true"></i> Present</button><button type="button" class="aw-desk__btn aw-desk__btn--away"><i class="fas fa-bed" aria-hidden="true"></i> Away today</button></div>
+      </div>
+    </div>`;
     }
     if (w === 'virtues') {
       return `<div class="star-award-demo">
-        <div class="star-selector-container visible">
-          <button type="button" class="star-award-btn star-btn-1" aria-label="Award 1 star"><i class="fas fa-star"></i></button>
-          <span class="star-divider" aria-hidden="true"></span>
-          <button type="button" class="star-award-btn star-btn-2" aria-label="Award 2 stars"><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
-          <span class="star-divider" aria-hidden="true"></span>
-          <button type="button" class="star-award-btn star-btn-3" aria-label="Award 3 stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
-        </div>
-      </div>
-      <div class="live-row live-row--virtues">
-        <span class="reason-chip rc-team"><i class="fas fa-users"></i> Teamwork</span>
-        <span class="reason-chip rc-create"><i class="fas fa-lightbulb"></i> Creativity</span>
-        <span class="reason-chip rc-respect"><i class="fas fa-hands-helping"></i> Respect</span>
-        <span class="reason-chip rc-focus"><i class="fas fa-brain"></i> Focus</span>
+    <div class="aw-virtues aw-virtues--guide" role="group" aria-label="Virtues">
+      <span class="aw-virtue aw-virtue--teamwork active"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-users"></i></span><span class="aw-virtue__label">Teamwork</span></span>
+      <span class="aw-virtue aw-virtue--creativity"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-lightbulb"></i></span><span class="aw-virtue__label">Creativity</span></span>
+      <span class="aw-virtue aw-virtue--respect"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-hands-helping"></i></span><span class="aw-virtue__label">Respect</span></span>
+      <span class="aw-virtue aw-virtue--focus"><span class="aw-virtue__gem" aria-hidden="true"><i class="fas fa-brain"></i></span><span class="aw-virtue__label">Focus</span></span>
+    </div>
+    <div class="aw-stars aw-stars--guide" role="group" aria-label="How many stars">
+      <button type="button" class="star-award-btn aw-star aw-star--1" aria-label="Award 1 star"><span class="aw-star__glow" aria-hidden="true"></span><span class="aw-star__face"><span class="aw-star__icons"><i class="fas fa-star"></i></span><span class="aw-star__name">Spark</span></span></button>
+      <button type="button" class="star-award-btn aw-star aw-star--2" aria-label="Award 2 stars"><span class="aw-star__glow" aria-hidden="true"></span><span class="aw-star__face"><span class="aw-star__icons"><i class="fas fa-star"></i><i class="fas fa-star"></i></span><span class="aw-star__name">Shine</span></span></button>
+      <button type="button" class="star-award-btn aw-star aw-star--3" aria-label="Award 3 stars"><span class="aw-star__glow" aria-hidden="true"></span><span class="aw-star__face"><span class="aw-star__icons"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></span><span class="aw-star__name">Supernova</span></span></button>
+    </div>
       </div>${termShot('award-stars-tab.png', 'Award Stars tab: floating student clouds')}`;
     }
     if (w === 'ceremony') {

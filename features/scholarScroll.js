@@ -436,25 +436,10 @@ function avatarMarkup(student, cls = 'ss-av', { enlargeable = false } = {}) {
 
 export async function renderScholarsScrollTab(selectedClassId = null, opts = {}) {
     const subtleReenter = opts.subtleReenter === true;
-    const logTrialFab = document.getElementById('log-trial-fab');
-    const viewHistoryFab = document.getElementById('view-trial-history-fab');
-
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
     const inner = document.getElementById('scroll-dashboard-inner');
 
     if (currentVal) {
-        const classData = findScrollClass(currentVal);
-        const usage = getClassAssessmentUsage(classData);
-        const hasScores = (state.get('allWrittenScores') || []).some((score) => score.classId === currentVal);
-        if (logTrialFab) {
-            logTrialFab.disabled = !usage.any;
-            logTrialFab.title = usage.any ? 'Log a test or dictation' : 'This class does not use tests or dictations';
-        }
-        if (viewHistoryFab) {
-            viewHistoryFab.disabled = !usage.any && !hasScores;
-            viewHistoryFab.title = (!usage.any && !hasScores) ? 'This class does not use tests or dictations' : 'View History';
-        }
-
         const prevRendered = lastRenderedScrollClassId;
         const classChanged = prevRendered != null && prevRendered !== currentVal;
         const firstDashboardShow = prevRendered == null && currentVal != null;
@@ -477,9 +462,6 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
     } else {
         lastRenderedScrollClassId = null;
         inner?.classList.remove('scroll-dashboard-inner--swap-in', 'scroll-dashboard-inner--swap-out');
-
-        if (logTrialFab) logTrialFab.disabled = true;
-        if (viewHistoryFab) viewHistoryFab.disabled = true;
 
         setScrollPanelStack(false);
     }

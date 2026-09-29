@@ -27,17 +27,13 @@ body.projector-mode .manage-students-btn,
 body.projector-mode .report-class-btn, 
 body.projector-mode #add-student-form,
 body.projector-mode #quest-assignment-btn,
-body.projector-mode #quest-assignment-btn,
-body.projector-mode #quest-assignment-fab,
 body.projector-mode #attendance-chronicle-btn,
-body.projector-mode #attendance-fab,
+body.projector-mode #adventure-log-tab .al-tools,
 body.projector-mode #gemini-idea-btn,
 body.projector-mode .absence-controls,
 body.projector-mode .post-award-undo-btn,
 body.projector-mode .edit-trial-btn,
-body.projector-mode .delete-trial-btn,
-body.projector-mode #log-trial-fab,
-body.projector-mode #view-trial-history-fab {
+body.projector-mode .delete-trial-btn {
     display: none !important;
 }
 

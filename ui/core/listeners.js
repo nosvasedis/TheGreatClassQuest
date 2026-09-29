@@ -15,7 +15,6 @@ import {
     openAppInfoModal
 } from '../modals.js';
 import * as tabs from '../tabs.js';
-import * as scholarScroll from '../../features/scholarScroll.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import * as avatar from '../../features/avatar.js';
 import * as ceremony from '../../features/ceremony.js';
@@ -65,177 +64,6 @@ import {
     updateFamiliarOptionsState,
     handleRegenerateFamiliarFromOptions
 } from '../../features/familiars.js';
-
-// --- ADVENTURE LOG & HERO'S CHALLENGE FAB EDGE-HOVER REVEAL ---
-function isAnyAppModalOpen() {
-    return document.querySelector('[id$="-modal"]:not(.hidden)') != null;
-}
-
-function setupAdventureLogFabReveal() {
-    const alLeftCluster = document.querySelector('.al-fab-cluster.tab-fab-cluster--left');
-    const alRightCluster = document.querySelector('.al-fab-cluster.tab-fab-cluster--right');
-    const hcLeftCluster = document.querySelector('.hc-fab-cluster.tab-fab-cluster--left');
-    const hcRightCluster = document.querySelector('.hc-fab-cluster.tab-fab-cluster--right');
-    const ssLeftCluster = document.querySelector('.ss-fab-cluster.tab-fab-cluster--left');
-    const ssRightCluster = document.querySelector('.ss-fab-cluster.tab-fab-cluster--right');
-
-    const clusters = [
-        alLeftCluster,
-        alRightCluster,
-        hcLeftCluster,
-        hcRightCluster,
-        ssLeftCluster,
-        ssRightCluster
-    ].filter(Boolean);
-
-    // Edge detection zones
-    const LEFT_EDGE_ZONE = 180;  // pixels from left edge
-    const RIGHT_EDGE_ZONE = 180; // pixels from right edge
-    let lastMouseX = window.innerWidth / 2;
-    let revealTimeout;
-    let modalMoScheduled = false;
-
-    function hideAllSideFabs() {
-        clearTimeout(revealTimeout);
-        for (const el of clusters) {
-            el.classList.remove('revealed');
-        }
-    }
-
-    function applyModalBlockingToFabs() {
-        if (!isAnyAppModalOpen()) return;
-        hideAllSideFabs();
-    }
-
-    function updateFabVisibility() {
-        const isNearLeftEdge = lastMouseX < LEFT_EDGE_ZONE;
-        const isNearRightEdge = lastMouseX > window.innerWidth - RIGHT_EDGE_ZONE;
-
-        clearTimeout(revealTimeout);
-
-        if (isAnyAppModalOpen()) {
-            hideAllSideFabs();
-            return;
-        }
-
-        if (isNearLeftEdge || isNearRightEdge) {
-            revealTimeout = setTimeout(() => {
-                if (isAnyAppModalOpen()) return;
-                if (alLeftCluster) alLeftCluster.classList.add('revealed');
-                if (alRightCluster) alRightCluster.classList.add('revealed');
-                if (hcLeftCluster) hcLeftCluster.classList.add('revealed');
-                if (hcRightCluster) hcRightCluster.classList.add('revealed');
-                if (ssLeftCluster) ssLeftCluster.classList.add('revealed');
-                if (ssRightCluster) ssRightCluster.classList.add('revealed');
-            }, 40);
-        } else {
-            hideAllSideFabs();
-        }
-    }
-
-    document.addEventListener('mousemove', (e) => {
-        lastMouseX = e.clientX;
-        updateFabVisibility();
-    });
-
-    const modalClassObserver = new MutationObserver(() => {
-        if (modalMoScheduled) return;
-        modalMoScheduled = true;
-        requestAnimationFrame(() => {
-            modalMoScheduled = false;
-            applyModalBlockingToFabs();
-            if (!isAnyAppModalOpen()) {
-                updateFabVisibility();
-            }
-        });
-    });
-    modalClassObserver.observe(document.body, {
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class']
-    });
-
-    // Adventure Log FABs
-    if (alLeftCluster) {
-        alLeftCluster.addEventListener('mouseenter', () => {
-            if (isAnyAppModalOpen()) return;
-            clearTimeout(revealTimeout);
-            alLeftCluster.classList.add('revealed');
-        });
-        alLeftCluster.addEventListener('mouseleave', () => {
-            if (lastMouseX >= LEFT_EDGE_ZONE) {
-                alLeftCluster.classList.remove('revealed');
-            }
-        });
-    }
-
-    if (alRightCluster) {
-        alRightCluster.addEventListener('mouseenter', () => {
-            if (isAnyAppModalOpen()) return;
-            clearTimeout(revealTimeout);
-            alRightCluster.classList.add('revealed');
-        });
-        alRightCluster.addEventListener('mouseleave', () => {
-            if (lastMouseX <= window.innerWidth - RIGHT_EDGE_ZONE) {
-                alRightCluster.classList.remove('revealed');
-            }
-        });
-    }
-
-    // Hero's Challenge FABs
-    if (hcLeftCluster) {
-        hcLeftCluster.addEventListener('mouseenter', () => {
-            if (isAnyAppModalOpen()) return;
-            clearTimeout(revealTimeout);
-            hcLeftCluster.classList.add('revealed');
-        });
-        hcLeftCluster.addEventListener('mouseleave', () => {
-            if (lastMouseX >= LEFT_EDGE_ZONE) {
-                hcLeftCluster.classList.remove('revealed');
-            }
-        });
-    }
-
-    if (hcRightCluster) {
-        hcRightCluster.addEventListener('mouseenter', () => {
-            if (isAnyAppModalOpen()) return;
-            clearTimeout(revealTimeout);
-            hcRightCluster.classList.add('revealed');
-        });
-        hcRightCluster.addEventListener('mouseleave', () => {
-            if (lastMouseX <= window.innerWidth - RIGHT_EDGE_ZONE) {
-                hcRightCluster.classList.remove('revealed');
-            }
-        });
-    }
-
-    // Scholar's Scroll FABs
-    if (ssLeftCluster) {
-        ssLeftCluster.addEventListener('mouseenter', () => {
-            if (isAnyAppModalOpen()) return;
-            clearTimeout(revealTimeout);
-            ssLeftCluster.classList.add('revealed');
-        });
-        ssLeftCluster.addEventListener('mouseleave', () => {
-            if (lastMouseX >= LEFT_EDGE_ZONE) {
-                ssLeftCluster.classList.remove('revealed');
-            }
-        });
-    }
-
-    if (ssRightCluster) {
-        ssRightCluster.addEventListener('mouseenter', () => {
-            if (isAnyAppModalOpen()) return;
-            clearTimeout(revealTimeout);
-            ssRightCluster.classList.add('revealed');
-        });
-        ssRightCluster.addEventListener('mouseleave', () => {
-            if (lastMouseX <= window.innerWidth - RIGHT_EDGE_ZONE) {
-                ssRightCluster.classList.remove('revealed');
-            }
-        });
-    }
-}
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -1142,11 +970,8 @@ export function setupUIListeners() {
     });
     document.getElementById('log-adventure-btn').addEventListener('click', handleLogAdventure);
     
-    // ─── QUEST ASSIGNMENT: Old button + new FAB ────────────────────────────
-    const questAssignmentBtn = document.getElementById('quest-assignment-btn');
-    if (questAssignmentBtn) questAssignmentBtn.addEventListener('click', modals.openQuestAssignmentModal);
-    const questAssignmentFab = document.getElementById('quest-assignment-fab');
-    if (questAssignmentFab) questAssignmentFab.addEventListener('click', modals.openQuestAssignmentModal);
+    // ─── Adventure Log class tools: Quest Board + Attendance ────────────────
+    document.getElementById('quest-assignment-btn')?.addEventListener('click', modals.openQuestAssignmentModal);
     
     document.getElementById('adventure-log-feed').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.log-delete-btn');
@@ -1181,29 +1006,16 @@ export function setupUIListeners() {
         document.getElementById(id).addEventListener('input', modals.refreshQuestTestPanelSummary);
     });
     
-    // ─── ATTENDANCE: Old button + new FAB ────────────────────────────────────
-    const attendanceChronicleBtn = document.getElementById('attendance-chronicle-btn');
-    if (attendanceChronicleBtn) attendanceChronicleBtn.addEventListener('click', modals.openAttendanceChronicle);
-    const attendanceFab = document.getElementById('attendance-fab');
-    if (attendanceFab) attendanceFab.addEventListener('click', modals.openAttendanceChronicle);
+    document.getElementById('attendance-chronicle-btn')?.addEventListener('click', modals.openAttendanceChronicle);
     
     document.getElementById('attendance-chronicle-close-btn').addEventListener('click', () => modals.hideModal('attendance-chronicle-modal'));
 
 
-    // Scholar's Scroll — actions are on the side FABs only
-    const logTrialFab = document.getElementById('log-trial-fab');
-    if (logTrialFab) {
-        logTrialFab.addEventListener('click', () => scholarScroll.openTrialTypeModal(state.get('globalSelectedClassId')));
-    }
-
+    // Scholar's Scroll — Log New Trial / History live on the scroll itself (features/scholarScroll.js)
     // NEW: Bulk Save listener
     document.getElementById('bulk-trial-save-btn').addEventListener('click', handleBulkSaveTrial);
     document.getElementById('bulk-trial-close-btn').addEventListener('click', () => modals.hideModal('bulk-trial-modal'));
 
-    const viewTrialHistoryFab = document.getElementById('view-trial-history-fab');
-    if (viewTrialHistoryFab) {
-        viewTrialHistoryFab.addEventListener('click', () => scholarScroll.openTrialHistoryModal(state.get('globalSelectedClassId')));
-    }
     document.getElementById('trial-history-close-btn').addEventListener('click', () => modals.hideModal('trial-history-modal'));
     document.getElementById('starfall-cancel-btn').addEventListener('click', () => modals.hideModal('starfall-modal'));
 
@@ -1346,8 +1158,6 @@ export function setupUIListeners() {
         });
     }
 
-    // ─── Setup Adventure Log FAB Edge-Hover Reveal ────────────────────────────
-    setupAdventureLogFabReveal();
 
     // Skill Tree Modal close
     const skillTreeCloseBtn = document.getElementById('skill-tree-close-btn');

@@ -7,11 +7,7 @@ body.gcq-mobile .m-dock-btn,
 body.gcq-mobile .m-more-item,
 body.gcq-mobile .m-class-option,
 body.gcq-mobile .m-home-action,
-body.gcq-mobile .m-sheet__close,
-body.gcq-mobile .tab-fab,
-body.gcq-mobile .al-fab,
-body.gcq-mobile .hc-fab,
-body.gcq-mobile .ss-fab {
+body.gcq-mobile .m-sheet__close {
     transition:
         transform 0.22s var(--m-spring),
         box-shadow 0.22s var(--m-ease),
@@ -29,11 +25,7 @@ body.gcq-mobile .m-dock-btn:active,
 body.gcq-mobile .m-more-item:active,
 body.gcq-mobile .m-class-option:active,
 body.gcq-mobile .m-home-action:active,
-body.gcq-mobile .m-sheet__close:active,
-body.gcq-mobile .tab-fab:not(:disabled):active,
-body.gcq-mobile .al-fab:not(:disabled):active,
-body.gcq-mobile .hc-fab:not(:disabled):active,
-body.gcq-mobile .ss-fab:not(:disabled):active {
+body.gcq-mobile .m-sheet__close:active {
     transform: scale(var(--m-press-scale));
     filter: brightness(0.97);
 }
@@ -301,15 +293,7 @@ body.gcq-mobile #m-secretary-dock {
     body.gcq-mobile .m-home-quest__fill,
     body.gcq-mobile .m-home-chronicle__chev,
     body.gcq-mobile .m-home-schedule-row,
-    body.gcq-mobile .m-home-chronicle,
-    body.gcq-mobile .tab-fab,
-    body.gcq-mobile .al-fab,
-    body.gcq-mobile .hc-fab,
-    body.gcq-mobile .ss-fab,
-    body.gcq-mobile .tab-fab-cluster,
-    body.gcq-mobile .al-fab-cluster,
-    body.gcq-mobile .hc-fab-cluster,
-    body.gcq-mobile .ss-fab-cluster {
+    body.gcq-mobile .m-home-chronicle {
         transition-duration: 1ms !important;
         animation: none !important;
     }
@@ -347,10 +331,6 @@ body.gcq-mobile #m-secretary-dock {
     body.gcq-mobile #m-parent-dock,
     body.gcq-mobile #m-secretary-dock,
     .m-dock-btn.active .icon,
-    body.gcq-mobile .al-fab-cluster.revealed,
-    body.gcq-mobile .hc-fab-cluster.revealed,
-    body.gcq-mobile .ss-fab-cluster.revealed,
-    body.gcq-mobile .tab-fab-cluster.revealed,
     .m-home-pop,
     .m-home-stat__icon {
         animation: none !important;

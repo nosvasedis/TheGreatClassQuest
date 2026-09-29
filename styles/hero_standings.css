@@ -292,6 +292,139 @@
     }
 }
 
+/* ─── Class halls: Hall of Prodigies + Trophy Room ────────────────────────── */
+
+.hc-halls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    max-width: 40rem;
+    margin: -0.6rem auto 2rem;
+    padding: 0 1rem;
+}
+
+.hc-hall {
+    --hall-a: #7c3aed;
+    --hall-b: #c026d3;
+    --hall-ink: #4c1d95;
+    --hall-soft: #f5f3ff;
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.95rem 0.6rem 0.6rem;
+    text-align: left;
+    border-radius: 1.1rem;
+    border: 1.5px solid color-mix(in srgb, var(--hall-a) 28%, transparent);
+    background:
+        radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--hall-a) 12%, transparent), transparent 60%),
+        linear-gradient(180deg, #fff, var(--hall-soft));
+    box-shadow:
+        0 0 0 4px rgba(255, 255, 255, 0.6),
+        0 12px 24px -16px color-mix(in srgb, var(--hall-a) 80%, transparent);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.hc-hall--trophy {
+    --hall-a: #f59e0b;
+    --hall-b: #ea580c;
+    --hall-ink: #7c2d12;
+    --hall-soft: #fff7ed;
+}
+
+.hc-hall:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--hall-a) 55%, transparent);
+    box-shadow:
+        0 0 0 4px rgba(255, 255, 255, 0.7),
+        0 18px 30px -16px color-mix(in srgb, var(--hall-a) 90%, transparent);
+}
+
+.hc-hall:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.hc-hall:focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 3px;
+}
+
+.hc-hall:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.hc-hall__medal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    font-size: 1rem;
+    color: #fff;
+    background: linear-gradient(140deg, var(--hall-a), var(--hall-b));
+    box-shadow:
+        0 0 0 3px #fde68a,
+        0 0 0 4px color-mix(in srgb, var(--hall-a) 40%, transparent),
+        0 6px 12px -4px color-mix(in srgb, var(--hall-a) 80%, transparent);
+    transition: transform 0.25s ease;
+}
+
+.hc-hall:hover:not(:disabled) .hc-hall__medal {
+    transform: rotate(-8deg) scale(1.06);
+}
+
+.hc-hall__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.hc-hall__title {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1rem;
+    line-height: 1.2;
+    color: var(--hall-ink);
+}
+
+.hc-hall__sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--hall-ink) 70%, #64748b);
+}
+
+.hc-hall__go {
+    font-size: 0.75rem;
+    color: var(--hall-ink);
+    opacity: 0.45;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.hc-hall:hover:not(:disabled) .hc-hall__go {
+    opacity: 0.9;
+    transform: translateX(3px);
+}
+
+@media (max-width: 639px) {
+    .hc-halls {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.6rem;
+        margin-top: -1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hc-hall,
+    .hc-hall__medal,
+    .hc-hall__go { transition: none; }
+}
+
 /* ─── Board ───────────────────────────────────────────────────────────────── */
 
 .hcs-board {

@@ -116,38 +116,6 @@ function wireModalCloseFallback() {
     }, true);
 }
 
-const MOBILE_FAB_SELECTOR = '.al-fab-cluster, .hc-fab-cluster, .ss-fab-cluster, .tab-fab-cluster';
-let fabRevealWired = false;
-
-// Desktop reveals FAB clusters via mousemove edge-hover, which never fires on
-// touch devices — without this, FABs would stay invisible forever on mobile.
-function wireMobileFabAutoReveal() {
-    if (fabRevealWired || typeof document === 'undefined') return;
-    fabRevealWired = true;
-
-    const isBlocked = () => Boolean(
-        document.querySelector('[id$="-modal"]:not(.hidden)')
-        || document.querySelector('.m-sheet.m-sheet--open')
-    );
-
-    const sync = () => {
-        if (!isMobileMode()) return;
-        const show = !isBlocked();
-        document.querySelectorAll(MOBILE_FAB_SELECTOR).forEach((el) => {
-            el.classList.toggle('revealed', show);
-        });
-    };
-
-    const watchRoots = ['app-screen', 'parent-screen', 'secretary-screen', 'app-root']
-        .map((id) => document.getElementById(id))
-        .filter(Boolean);
-    const observer = new MutationObserver(sync);
-    watchRoots.forEach((root) => observer.observe(root, { attributes: true, attributeFilter: ['class'], subtree: true }));
-
-    document.addEventListener('gcq-mobile-mode', sync);
-    sync();
-}
-
 function applyMobileMode() {
     const active = mediaQuery ? mediaQuery.matches : false;
     document.body.classList.toggle('gcq-mobile', active);
@@ -173,7 +141,6 @@ export function initMobileLayer() {
     initMobileGuilds();
     wirePressFeedback();
     wireModalCloseFallback();
-    wireMobileFabAutoReveal();
 
     if (typeof window === 'undefined' || !window.matchMedia) return;
     mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);

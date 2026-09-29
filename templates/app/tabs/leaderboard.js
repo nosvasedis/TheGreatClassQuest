@@ -72,29 +72,6 @@ export const leaderboardTabHTML = `
             </div>
 
             <div id="student-leaderboard-tab" class="app-tab hidden">
-                <!-- FAB — LEFT CORNER -->
-                <div class="hc-fab-cluster tab-fab-cluster tab-fab-cluster--left">
-                    <button id="open-prodigy-btn"
-                        type="button"
-                        disabled
-                        class="hc-fab tab-fab bubbly-button tab-fab--left"
-                        style="background: linear-gradient(135deg, #7c3aed 0%, #9333ea 55%, #c026d3 100%); border: 2px solid rgba(196, 181, 253, 0.75); color: white;">
-                        <i class="fas fa-crown hc-fab-icon tab-fab-icon"></i>
-                        <span class="hc-fab-label tab-fab-label">Hall of Prodigies</span>
-                    </button>
-                </div>
-                <!-- FAB — RIGHT CORNER -->
-                <div class="hc-fab-cluster tab-fab-cluster tab-fab-cluster--right">
-                    <button id="open-trophy-room-btn"
-                        type="button"
-                        disabled
-                        class="hc-fab tab-fab hc-fab--right bubbly-button tab-fab--right"
-                        style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 55%, #ea580c 100%); border: 2px solid rgba(253, 186, 116, 0.75); color: white;">
-                        <i class="fas fa-trophy hc-fab-icon tab-fab-icon"></i>
-                        <span class="hc-fab-label tab-fab-label">Trophy Room</span>
-                    </button>
-                </div>
-
                 <div class="max-w-7xl mx-auto">
                     <!-- Tab title: Hero's Challenge -->
                     <header class="tab-sign tab-sign--hero">
@@ -167,6 +144,26 @@ export const leaderboardTabHTML = `
                             <i class="fas fa-history" aria-hidden="true"></i><span>History</span>
                         </button>
                     </div>
+
+                    <!-- The class's halls: past champions and every hero's satchel -->
+                    <nav class="hc-halls" aria-label="Class halls">
+                        <button type="button" id="open-prodigy-btn" class="hc-hall hc-hall--prodigy" disabled>
+                            <span class="hc-hall__medal" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                            <span class="hc-hall__text">
+                                <span class="hc-hall__title">Hall of Prodigies</span>
+                                <span class="hc-hall__sub">A crown for every month</span>
+                            </span>
+                            <i class="fas fa-chevron-right hc-hall__go" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="open-trophy-room-btn" class="hc-hall hc-hall--trophy" disabled>
+                            <span class="hc-hall__medal" aria-hidden="true"><i class="fas fa-trophy"></i></span>
+                            <span class="hc-hall__text">
+                                <span class="hc-hall__title">Trophy Room</span>
+                                <span class="hc-hall__sub">Every hero's relics and treasures</span>
+                            </span>
+                            <i class="fas fa-chevron-right hc-hall__go" aria-hidden="true"></i>
+                        </button>
+                    </nav>
                 </div>
 
                 <div class="hcs-board">

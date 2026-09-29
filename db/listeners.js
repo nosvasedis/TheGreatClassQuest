@@ -26,6 +26,7 @@ import {
     renderCalendarTab,
     renderStarManagerStudentSelect,
     renderAdventureLog,
+    refreshAdventureLogClassTools,
     updateAwardCardState,
     updateAwardBoonButtons,
 } from "../ui/tabs.js";
@@ -1358,6 +1359,7 @@ export async function setupDataListeners(
                             }),
                         ),
                 );
+                refreshAdventureLogClassTools();
             },
             (error) =>
                 console.error("Error listening to quest assignments:", error),
@@ -1423,6 +1425,7 @@ export async function setupDataListeners(
                             }),
                         ),
                 );
+                refreshAdventureLogClassTools();
 
                 snapshot.docChanges().forEach((change) => {
                     const attendanceData = change.doc.data();

@@ -1,4 +1,9 @@
-/* Sky Theater — alive, happy, playful motion near the sky & clock */
+/*
+ * Sky Theater — a storybook cast that drifts through the header sky and pops up beside the clock.
+ * Actors are inline SVG (features/skyTheater/art.js); flights are generated per stage size
+ * (features/skyTheater/motion.js) and played with the Web Animations API. This sheet handles
+ * stages, sizing, the sticker look, animated parts and the particle trails.
+ */
 
 .sky-theater-sky {
     position: absolute;
@@ -6,6 +11,7 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 2;
+    --st-scale: 1.2;
 }
 
 .sky-theater-cameo {
@@ -14,10 +20,17 @@
     overflow: visible;
     pointer-events: none;
     z-index: 3;
+    --st-scale: 1.15;
+}
+
+@media (max-width: 1024px) {
+    .sky-theater-sky,
+    .sky-theater-cameo { --st-scale: 0.9; }
 }
 
 .m-sky-theater-sky {
     z-index: 1;
+    --st-scale: 0.74;
 }
 
 .m-header__clock {
@@ -27,361 +40,509 @@
 .m-sky-theater-cameo {
     z-index: 2;
     inset: -0.25rem -0.4rem;
+    --st-scale: 0.7;
 }
 
-.sky-theater-actor {
+/* ── Actor ─────────────────────────────────────────────────────────────── */
+
+.skyt-actor {
     position: absolute;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(1.45rem, 2.2vw, 2rem);
-    line-height: 1;
-    filter: drop-shadow(0 2px 5px rgba(15, 40, 90, 0.32));
-    will-change: transform, opacity;
+    left: 0;
+    top: 0;
+    width: calc(var(--st-w, 2.5rem) * var(--st-scale, 1));
+    height: calc(var(--st-h, 2.5rem) * var(--st-scale, 1));
     pointer-events: none;
     user-select: none;
+    will-change: transform, opacity;
+    transform-origin: 50% 50%;
     z-index: 5;
-    transform-origin: center center;
+    /* Sticker look shared with the cloud dock: a whisper of white rim plus a soft sky shadow. */
+    filter:
+        drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+        drop-shadow(0 4px 5px rgba(15, 40, 90, 0.26));
 }
 
-.sky-theater-actor.is-night {
-    filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.5)) drop-shadow(0 2px 6px rgba(15, 23, 42, 0.5));
+.skyt-actor.is-night {
+    filter:
+        drop-shadow(0 0 1px rgba(255, 255, 255, 0.7))
+        drop-shadow(0 0 10px rgba(253, 230, 138, 0.45))
+        drop-shadow(0 4px 6px rgba(8, 10, 40, 0.5));
 }
 
-body.gcq-mobile .sky-theater-actor {
-    font-size: 1.35rem;
+.skyt-actor__flip,
+.skyt-actor__body {
+    width: 100%;
+    height: 100%;
 }
 
-/* Shared playful easing */
-/* —— Flybys: organic paths (wobble, bob, bank) —— */
-
-@keyframes st-fly-rl {
-    0%   { transform: translate(0, 0) rotate(-12deg) scale(0.92); opacity: 0; }
-    8%   { opacity: 1; }
-    18%  { transform: translate(-18vw, -0.55rem) rotate(8deg) scale(1); }
-    32%  { transform: translate(-34vw, 0.45rem) rotate(-10deg); }
-    48%  { transform: translate(-52vw, -0.4rem) rotate(6deg) scale(1.04); }
-    64%  { transform: translate(-70vw, 0.5rem) rotate(-8deg); }
-    80%  { transform: translate(-86vw, -0.25rem) rotate(5deg); opacity: 1; }
-    100% { transform: translate(calc(-100vw - 3rem), 0.15rem) rotate(-4deg) scale(0.95); opacity: 0; }
-}
-.st-fly-rl {
-    top: 30%;
-    left: 100%;
-    animation: st-fly-rl 6.8s cubic-bezier(0.37, 0.05, 0.25, 1) forwards;
+.skyt-actor__flip.is-flipped {
+    transform: scaleX(-1);
 }
 
-@keyframes st-fly-rl-banner {
-    0%   { transform: translate(0, 0) rotate(-6deg); opacity: 0; }
-    10%  { opacity: 1; }
-    25%  { transform: translate(-22vw, -0.35rem) rotate(4deg); }
-    45%  { transform: translate(-45vw, 0.4rem) rotate(-5deg); }
-    70%  { transform: translate(-72vw, -0.2rem) rotate(3deg); opacity: 1; }
-    100% { transform: translate(calc(-100vw - 4rem), 0.3rem) rotate(-2deg); opacity: 0; }
-}
-.st-fly-rl-banner {
-    top: 24%;
-    left: 100%;
-    animation: st-fly-rl-banner 7.1s cubic-bezier(0.33, 0.1, 0.2, 1) forwards;
-}
-.st-fly-rl-banner::after {
-    content: 'QUEST!';
-    position: absolute;
-    left: 108%;
-    top: 10%;
-    font-size: 0.55rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    color: #fff;
-    background: rgba(99, 102, 241, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    border-radius: 0.3rem;
-    padding: 0.12rem 0.38rem;
-    white-space: nowrap;
-    animation: st-banner-wiggle 0.55s ease-in-out infinite alternate;
+.skyt-actor__body {
+    animation: skyt-breathe 2.4s ease-in-out infinite;
+    transform-origin: 50% 60%;
 }
 
-@keyframes st-banner-wiggle {
-    from { transform: rotate(-4deg) translateY(0); }
-    to { transform: rotate(5deg) translateY(-1px); }
+.skyt-sprite {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
 }
 
-/* Confetti bird — flap + hop, not a straight conveyor */
-@keyframes st-fly-rl-trail {
-    0%   { transform: translate(0, 0.2rem) rotate(-18deg) scale(0.9); opacity: 0; }
-    6%   { opacity: 1; }
-    12%  { transform: translate(-10vw, -0.7rem) rotate(14deg) scale(1.05); }
-    20%  { transform: translate(-18vw, 0.55rem) rotate(-16deg) scale(0.98); }
-    28%  { transform: translate(-28vw, -0.85rem) rotate(12deg) scale(1.06); }
-    36%  { transform: translate(-38vw, 0.4rem) rotate(-14deg); }
-    44%  { transform: translate(-48vw, -0.65rem) rotate(10deg) scale(1.04); }
-    52%  { transform: translate(-58vw, 0.5rem) rotate(-12deg); }
-    60%  { transform: translate(-68vw, -0.75rem) rotate(15deg) scale(1.05); }
-    70%  { transform: translate(-78vw, 0.35rem) rotate(-10deg); }
-    82%  { transform: translate(-90vw, -0.5rem) rotate(8deg); opacity: 1; }
-    100% { transform: translate(calc(-100vw - 3rem), 0.2rem) rotate(-6deg) scale(0.92); opacity: 0; }
-}
-.st-fly-rl-trail {
-    top: 34%;
-    left: 100%;
-    animation: st-fly-rl-trail 7.2s cubic-bezier(0.28, 0.15, 0.22, 1) forwards;
-}
-.st-fly-rl-trail::before {
-    content: '✨';
-    position: absolute;
-    right: -0.85rem;
-    top: 0.05rem;
-    font-size: 0.7rem;
-    animation: st-sparkle-twinkle 0.45s ease-in-out infinite alternate;
+@keyframes skyt-breathe {
+    0%, 100% { transform: scale(1, 1); }
+    50% { transform: scale(1.025, 0.975); }
 }
 
-@keyframes st-fly-lr-slow {
-    0%   { transform: translate(0, 0) scaleX(-1) rotate(8deg); opacity: 0; }
-    10%  { opacity: 1; }
-    30%  { transform: translate(30vw, -0.5rem) scaleX(-1) rotate(-6deg); }
-    55%  { transform: translate(55vw, 0.45rem) scaleX(-1) rotate(7deg); }
-    80%  { transform: translate(82vw, -0.3rem) scaleX(-1) rotate(-4deg); opacity: 1; }
-    100% { transform: translate(calc(100vw + 3rem), 0.2rem) scaleX(-1) rotate(3deg); opacity: 0; }
-}
-.st-fly-lr-slow {
-    top: 38%;
-    right: 100%;
+/* Cameos sit on the clock: date line (top-right) or time line (bottom-right). */
+.skyt-actor--cameo {
     left: auto;
-    animation: st-fly-lr-slow 7.2s cubic-bezier(0.35, 0.08, 0.2, 1) forwards;
-}
-
-@keyframes st-fly-lr-bob {
-    0%   { transform: translate(0, 0.4rem) rotate(-5deg) scale(0.92); opacity: 0; }
-    8%   { opacity: 1; }
-    22%  { transform: translate(18vw, -0.75rem) rotate(6deg) scale(1); }
-    40%  { transform: translate(38vw, 0.55rem) rotate(-4deg); }
-    58%  { transform: translate(58vw, -0.65rem) rotate(5deg) scale(1.04); }
-    78%  { transform: translate(80vw, 0.35rem) rotate(-3deg); opacity: 1; }
-    100% { transform: translate(108vw, -0.15rem) rotate(2deg) scale(0.95); opacity: 0; }
-}
-.st-fly-lr-bob {
-    top: 42%;
-    left: -3rem;
-    animation: st-fly-lr-bob 7.6s cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
-}
-
-@keyframes st-fly-rocket {
-    0%   { transform: translate(0, 0) rotate(-28deg) scale(0.85); opacity: 0; }
-    10%  { opacity: 1; transform: translate(-0.15rem, -0.8rem) rotate(-24deg) scale(1); }
-    35%  { transform: translate(0.25rem, -3.2rem) rotate(-16deg) scale(1.05); }
-    60%  { transform: translate(-0.2rem, -5.8rem) rotate(-12deg) scale(1.1); }
-    100% { transform: translate(0.1rem, -9.5rem) rotate(-8deg) scale(1.15); opacity: 0; }
-}
-.st-fly-rocket {
-    left: 78%;
-    bottom: -0.4rem;
     top: auto;
-    animation: st-fly-rocket 6.8s cubic-bezier(0.18, 0.75, 0.25, 1) forwards;
-}
-.st-fly-rocket::after {
-    content: '💨';
-    position: absolute;
-    bottom: -0.55rem;
-    left: 0.15rem;
-    font-size: 0.65rem;
-    opacity: 0.8;
-    animation: st-sparkle-twinkle 0.35s ease-in-out infinite alternate;
+    transform-origin: 50% 90%;
+    z-index: 6;
 }
 
-@keyframes st-fly-swoop {
-    0%   { transform: translate(0, -0.5rem) rotate(22deg) scale(0.9); opacity: 0; }
-    12%  { opacity: 1; }
-    28%  { transform: translate(22vw, 1.1rem) rotate(-4deg) scale(1.05); }
-    48%  { transform: translate(48vw, 0.2rem) rotate(10deg); }
-    72%  { transform: translate(75vw, 0.9rem) rotate(-6deg); opacity: 1; }
-    100% { transform: translate(108vw, -0.3rem) rotate(8deg) scale(0.95); opacity: 0; }
-}
-.st-fly-swoop {
-    top: 10%;
-    left: -3rem;
-    animation: st-fly-swoop 7s cubic-bezier(0.3, 0.12, 0.2, 1) forwards;
-}
-
-@keyframes st-fly-zigzag {
-    0%   { transform: translate(0, 0.3rem) rotate(-8deg); opacity: 0; }
-    8%   { opacity: 1; }
-    20%  { transform: translate(16vw, -1rem) rotate(12deg) scale(1.05); }
-    35%  { transform: translate(32vw, 0.85rem) rotate(-14deg); }
-    50%  { transform: translate(50vw, -0.9rem) rotate(10deg); }
-    65%  { transform: translate(68vw, 0.7rem) rotate(-11deg); }
-    82%  { transform: translate(88vw, -0.45rem) rotate(7deg); opacity: 1; }
-    100% { transform: translate(110vw, 0.2rem) rotate(-3deg); opacity: 0; }
-}
-.st-fly-zigzag {
-    top: 48%;
-    left: -3rem;
-    animation: st-fly-zigzag 7.3s cubic-bezier(0.32, 0.1, 0.18, 1) forwards;
-}
-
-@keyframes st-fly-comet {
-    0%   { transform: translate(0, 0) rotate(28deg) scale(0.75); opacity: 0; }
-    10%  { opacity: 1; }
-    40%  { transform: translate(-42vw, 1.8rem) rotate(30deg) scale(1.05); }
-    100% { transform: translate(-112vw, 4.5rem) rotate(34deg) scale(1.2); opacity: 0; }
-}
-.st-fly-comet {
-    top: -0.35rem;
-    left: 100%;
-    animation: st-fly-comet 6.2s cubic-bezier(0.2, 0.4, 0.35, 1) forwards;
-}
-
-@keyframes st-fly-ufo {
-    0%   { transform: translate(0, 0) scale(0.88) rotate(-4deg); opacity: 0; }
-    10%  { opacity: 1; }
-    28%  { transform: translate(28vw, -0.55rem) scale(1) rotate(3deg); }
-    42%  { transform: translate(42vw, 0.15rem) scale(1.08) rotate(0deg); }
-    52%  { transform: translate(48vw, 0.65rem) scale(1.12); } /* hover */
-    62%  { transform: translate(52vw, 0.1rem) scale(1.05) rotate(-2deg); }
-    80%  { transform: translate(78vw, -0.4rem) scale(1) rotate(4deg); opacity: 1; }
-    100% { transform: translate(112vw, 0.2rem) scale(0.9) rotate(-3deg); opacity: 0; }
-}
-.st-fly-ufo {
-    top: 28%;
-    left: -3rem;
-    animation: st-fly-ufo 7.4s cubic-bezier(0.36, 0.08, 0.22, 1) forwards;
-}
-
-@keyframes st-fly-weave {
-    0%   { transform: translate(0, 0) rotate(10deg) scale(0.92); opacity: 0; }
-    8%   { opacity: 1; }
-    22%  { transform: translate(-20vw, 1rem) rotate(-14deg) scale(1.04); }
-    40%  { transform: translate(-42vw, -0.85rem) rotate(12deg); }
-    58%  { transform: translate(-62vw, 0.75rem) rotate(-10deg); }
-    78%  { transform: translate(-84vw, -0.55rem) rotate(8deg); opacity: 1; }
-    100% { transform: translate(-112vw, 0.15rem) rotate(-4deg) scale(0.95); opacity: 0; }
-}
-.st-fly-weave {
-    top: 26%;
-    left: 100%;
-    animation: st-fly-weave 7.1s cubic-bezier(0.3, 0.12, 0.2, 1) forwards;
-}
-
-@keyframes st-fly-arc {
-    0%   { transform: translate(0, 1.2rem) rotate(-8deg) scale(0.65); opacity: 0; }
-    12%  { opacity: 0.95; }
-    35%  { transform: translate(28vw, -0.9rem) rotate(4deg) scale(1.1); }
-    55%  { transform: translate(48vw, -1.35rem) rotate(0deg) scale(1.2); opacity: 1; }
-    78%  { transform: translate(78vw, -0.5rem) rotate(-5deg) scale(1.05); }
-    100% { transform: translate(108vw, 1.1rem) rotate(6deg) scale(0.7); opacity: 0; }
-}
-.st-fly-arc {
-    top: 36%;
-    left: -3rem;
-    font-size: clamp(1.75rem, 2.8vw, 2.45rem);
-    animation: st-fly-arc 7.3s cubic-bezier(0.34, 0.1, 0.2, 1) forwards;
-}
-
-/* —— Cameos: tucked against date (top-right) or time (bottom-right) —— */
-
-@keyframes st-cameo-pop {
-    0%   { transform: translate(0.2rem, 0.3rem) scale(0.15) rotate(-20deg); opacity: 0; }
-    28%  { transform: translate(0, -0.35rem) scale(1.4) rotate(12deg); opacity: 1; }
-    48%  { transform: translate(-0.1rem, 0) scale(0.92) rotate(-6deg); }
-    68%  { transform: translate(0, -0.15rem) scale(1.12) rotate(4deg); opacity: 1; }
-    100% { transform: translate(0.15rem, -0.55rem) scale(0.45) rotate(-8deg); opacity: 0; }
-}
-.st-cameo-pop {
-    right: 0.15rem;
-    bottom: 0.05rem; /* by the time */
-    animation: st-cameo-pop 3.1s cubic-bezier(0.34, 1.4, 0.45, 1) forwards;
-}
-
-@keyframes st-cameo-peek {
-    0%   { transform: translate(0.4rem, 1.2rem) scale(0.6) rotate(8deg); opacity: 0; }
-    25%  { transform: translate(0, 0) scale(1.08) rotate(-4deg); opacity: 1; }
-    45%  { transform: translate(0.08rem, -0.12rem) scale(1) rotate(3deg); } /* wink bob */
-    55%  { transform: translate(0, 0.05rem) scale(1.05) rotate(-2deg); }
-    72%  { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
-    100% { transform: translate(0.3rem, 1.3rem) scale(0.65) rotate(6deg); opacity: 0; }
-}
-.st-cameo-peek {
-    right: 0.35rem;
-    top: -0.15rem; /* by the date */
-    left: auto;
-    animation: st-cameo-peek 3.25s cubic-bezier(0.34, 1.25, 0.4, 1) forwards;
-}
-
-@keyframes st-cameo-sparks {
-    0%   { transform: translate(0.2rem, 0.4rem) scale(0.3) rotate(-15deg); opacity: 0; }
-    22%  { transform: translate(0, -0.4rem) scale(1.2) rotate(10deg); opacity: 1; }
-    45%  { transform: translate(-0.15rem, -0.15rem) scale(0.95) rotate(-8deg); }
-    65%  { transform: translate(0.1rem, -0.55rem) scale(1.1) rotate(6deg); opacity: 1; }
-    100% { transform: translate(0, -1.1rem) scale(0.55) rotate(-4deg); opacity: 0; }
-}
-.st-cameo-sparks {
-    right: 0.85rem;
-    bottom: 0.05rem; /* sprinkle over time */
-    animation: st-cameo-sparks 3.2s cubic-bezier(0.3, 1.35, 0.4, 1) forwards;
-}
-
-@keyframes st-cameo-stamp {
-    0%   { transform: translate(0, -1rem) scale(1.5) rotate(-18deg); opacity: 0; }
-    32%  { transform: translate(0, 0.08rem) scale(0.92) rotate(4deg); opacity: 1; }
-    48%  { transform: translate(0, -0.12rem) scale(1.12) rotate(-3deg); }
-    70%  { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
-    100% { transform: translate(0.1rem, 0.2rem) scale(0.8) rotate(6deg); opacity: 0; }
-}
-.st-cameo-stamp {
-    right: 0.2rem;
-    top: 0.15rem; /* stamp on the date */
-    left: auto;
-    animation: st-cameo-stamp 3.05s cubic-bezier(0.2, 1.45, 0.35, 1) forwards;
-}
-
-@keyframes st-cameo-highfive {
-    0%   { transform: translate(0.4rem, 0.2rem) scale(0.2) rotate(-25deg); opacity: 0; }
-    30%  { transform: translate(0, -0.2rem) scale(1.45) rotate(15deg); opacity: 1; }
-    50%  { transform: translate(-0.05rem, 0) scale(0.9) rotate(-8deg); }
-    70%  { transform: translate(0, -0.1rem) scale(1.15) rotate(5deg); opacity: 1; }
-    100% { transform: translate(0.2rem, -0.45rem) scale(0.4) rotate(-10deg); opacity: 0; }
-}
-.st-cameo-highfive {
-    right: 0.55rem;
-    bottom: 0.05rem; /* by the time */
-    top: auto;
-    animation: st-cameo-highfive 3.15s cubic-bezier(0.34, 1.5, 0.4, 1) forwards;
-}
-
-@keyframes st-cameo-treasure {
-    0%   { transform: translate(0.15rem, 0.7rem) scale(0.4) rotate(-14deg); opacity: 0; }
-    28%  { transform: translate(0, -0.2rem) scale(1.25) rotate(8deg); opacity: 1; }
-    48%  { transform: translate(0, 0.05rem) scale(0.95) rotate(-4deg); }
-    68%  { transform: translate(0, -0.08rem) scale(1.1) rotate(3deg); opacity: 1; }
-    100% { transform: translate(0.1rem, 0.45rem) scale(0.6) rotate(-6deg); opacity: 0; }
-}
-.st-cameo-treasure {
-    right: 0.25rem;
-    top: 0.2rem; /* by the date */
-    left: auto;
+/* Desktop: JS seats cameos just left of the date / clock line (`.is-seated`, inline left/top).
+ * Fallback corner anchors below tuck them behind the last letters (the clock text sits above). */
+.skyt-actor--cameo.is-seated {
+    right: auto;
     bottom: auto;
-    animation: st-cameo-treasure 3.2s cubic-bezier(0.32, 1.4, 0.4, 1) forwards;
 }
 
-/* Soft sun/moon halo — hugs the time, breathes (not a centered flash) */
-@keyframes st-cameo-halo {
-    0%   { transform: translate(0.35rem, 0.25rem) scale(0.4) rotate(-8deg); opacity: 0; filter: blur(1px); }
-    22%  { transform: translate(0, -0.15rem) scale(1.15) rotate(6deg); opacity: 1; filter: blur(0); }
-    42%  { transform: translate(-0.08rem, 0.08rem) scale(0.95) rotate(-4deg); }
-    62%  { transform: translate(0.05rem, -0.12rem) scale(1.12) rotate(3deg); opacity: 1; }
-    82%  { transform: translate(0, 0) scale(1.05) rotate(-2deg); }
-    100% { transform: translate(0.2rem, -0.35rem) scale(0.7) rotate(4deg); opacity: 0; filter: blur(2px); }
-}
-.st-cameo-halo {
-    right: 0.05rem;
-    bottom: -0.05rem; /* nestled on the time */
-    top: auto;
-    left: auto;
-    animation: st-cameo-halo 3.2s cubic-bezier(0.34, 1.35, 0.4, 1) forwards;
+.skyt-actor--cameo.skyt-anchor--date {
+    right: -0.35rem;
+    top: -0.75rem;
 }
 
-@keyframes st-sparkle-twinkle {
-    from { opacity: 0.35; transform: scale(0.8) rotate(-8deg); }
-    to { opacity: 1; transform: scale(1.15) rotate(8deg); }
+.skyt-actor--cameo.skyt-anchor--time {
+    right: -0.35rem;
+    bottom: -0.35rem;
+}
+
+.m-sky-theater-cameo .skyt-actor--cameo.skyt-anchor--date,
+.m-sky-theater-cameo .skyt-actor--cameo.skyt-anchor--time {
+    right: -1.4rem;
+    top: -0.9rem;
+    bottom: auto;
+}
+
+/* ── Animated parts ────────────────────────────────────────────────────── */
+
+.skyt-part {
+    transform-box: view-box;
+}
+
+.skyt-part--flap {
+    animation: skyt-flap 0.42s ease-in-out infinite alternate;
+}
+
+.skyt-part--flap-back {
+    animation: skyt-flap-back 0.42s ease-in-out infinite alternate;
+}
+
+.skyt-art--owl .skyt-part--flap,
+.skyt-art--owl .skyt-part--flap-back,
+.skyt-art--pegasus .skyt-part--flap,
+.skyt-art--pegasus .skyt-part--flap-back,
+.skyt-art--dragon .skyt-part--flap,
+.skyt-art--dragon .skyt-part--flap-back {
+    animation-duration: 0.6s;
+}
+
+.skyt-art--parrot .skyt-part--flap,
+.skyt-art--parrot .skyt-part--flap-back {
+    animation-duration: 0.3s;
+}
+
+@keyframes skyt-flap {
+    from { transform: rotate(-8deg) scaleY(1); }
+    to { transform: rotate(14deg) scaleY(0.35); }
+}
+
+@keyframes skyt-flap-back {
+    from { transform: rotate(-4deg) scaleY(0.9); }
+    to { transform: rotate(10deg) scaleY(0.3); }
+}
+
+.skyt-part--flap-wide {
+    animation: skyt-flap-wide 0.26s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-flap-wide {
+    from { transform: scaleY(1); }
+    to { transform: scaleY(0.25) translateY(2px); }
+}
+
+.skyt-part--flutter {
+    animation: skyt-flutter 0.18s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-flutter {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0.35); }
+}
+
+.skyt-art--bee .skyt-part--flutter {
+    animation: skyt-buzz 0.07s linear infinite alternate;
+}
+
+@keyframes skyt-buzz {
+    from { transform: rotate(-8deg); }
+    to { transform: rotate(10deg) scaleY(0.8); }
+}
+
+.skyt-part--prop {
+    animation: skyt-prop 0.09s linear infinite alternate;
+}
+
+@keyframes skyt-prop {
+    from { transform: scaleY(1); }
+    to { transform: scaleY(0.12); }
+}
+
+.skyt-part--flicker {
+    animation: skyt-flicker 0.12s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-flicker {
+    from { transform: scale(0.85, 0.8); opacity: 0.9; }
+    to { transform: scale(1.08, 1.18); opacity: 1; }
+}
+
+.skyt-part--blink {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: skyt-blink 3.4s ease-in-out infinite;
+}
+
+@keyframes skyt-blink {
+    0%, 44%, 50%, 100% { transform: scaleY(1); }
+    47% { transform: scaleY(0.1); }
+}
+
+.skyt-part--wink {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: skyt-wink 3.8s ease-in-out infinite;
+}
+
+@keyframes skyt-wink {
+    0%, 30%, 42%, 100% { transform: scaleY(1); }
+    34%, 38% { transform: scaleY(0.1); }
+}
+
+.skyt-part--rays {
+    animation: skyt-spin 9s linear infinite;
+}
+
+.skyt-art--snowflake .skyt-part--rays {
+    animation-duration: 6s;
+}
+
+@keyframes skyt-spin {
+    to { transform: rotate(360deg); }
+}
+
+.skyt-part--pulse {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: skyt-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skyt-pulse {
+    0%, 100% { transform: scale(0.9); opacity: 0.55; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+.skyt-part--sway {
+    animation: skyt-sway 2.2s ease-in-out infinite;
+}
+
+@keyframes skyt-sway {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+.skyt-part--tail {
+    animation: skyt-tail 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-tail {
+    from { transform: rotate(-9deg) skewY(-3deg); }
+    to { transform: rotate(9deg) skewY(3deg); }
+}
+
+.skyt-part--wave {
+    animation: skyt-wave 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-wave {
+    from { transform: skewY(-3deg) scaleY(0.96); }
+    to { transform: skewY(3deg) scaleY(1.03); }
+}
+
+.skyt-part--zzz {
+    animation: skyt-zzz 2s ease-in-out infinite;
+}
+
+@keyframes skyt-zzz {
+    0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+    50% { transform: translate(2px, -3px); opacity: 1; }
+}
+
+.skyt-part--twinkle {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: skyt-twinkle 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-twinkle {
+    from { opacity: 0.3; transform: scale(0.7) rotate(-10deg); }
+    to { opacity: 1; transform: scale(1.15) rotate(10deg); }
+}
+
+.skyt-part--wand {
+    animation: skyt-wand 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-wand {
+    from { transform: rotate(-12deg); }
+    to { transform: rotate(10deg); }
+}
+
+.skyt-part--shine {
+    transform-box: view-box;
+    animation: skyt-shine 1.8s ease-in-out infinite;
+}
+
+@keyframes skyt-shine {
+    0% { transform: translateX(-16px); }
+    60%, 100% { transform: translateX(44px); }
+}
+
+.skyt-part--lights {
+    animation: skyt-lights 0.9s steps(2, jump-none) infinite;
+}
+
+@keyframes skyt-lights {
+    0% { opacity: 1; }
+    100% { opacity: 0.35; }
+}
+
+.skyt-part--beacon {
+    animation: skyt-lights 0.7s steps(2, jump-none) infinite;
+}
+
+/* UFO beam only switches on while hovering. */
+.skyt-part--beam {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: 50% 0;
+    transform: scaleY(0.2);
+    transition: opacity 400ms ease, transform 500ms cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+.skyt-actor.is-beaming .skyt-part--beam {
+    opacity: 1;
+    transform: scaleY(1);
+    animation: skyt-beam 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes skyt-beam {
+    from { opacity: 0.65; }
+    to { opacity: 1; }
+}
+
+/* Popper: confetti hidden until the pop. */
+.skyt-part--confetti {
+    opacity: 0;
+    transform-box: view-box;
+    transform-origin: 20px 44px;
+    transform: scale(0.3);
+    transition: opacity 180ms ease, transform 420ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.skyt-actor.is-popped .skyt-part--confetti {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Treasure: lid swings open, gems and glow rise out. */
+.skyt-part--lid {
+    transition: transform 520ms cubic-bezier(0.34, 1.5, 0.5, 1);
+}
+
+.skyt-part--gems {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 300ms ease, transform 600ms cubic-bezier(0.34, 1.6, 0.5, 1);
+}
+
+.skyt-part--glow {
+    opacity: 0;
+    transition: opacity 400ms ease;
+}
+
+.skyt-actor.is-open .skyt-part--lid {
+    transform: rotate(-38deg) translate(-2px, -4px);
+}
+
+.skyt-actor.is-open .skyt-part--gems {
+    opacity: 1;
+    transform: translateY(-6px);
+}
+
+.skyt-actor.is-open .skyt-part--glow {
+    opacity: 1;
+}
+
+/* ── Particles ─────────────────────────────────────────────────────────── */
+
+.skyt-mote {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--sz, 8px);
+    height: var(--sz, 8px);
+    margin: calc(var(--sz, 8px) / -2) 0 0 calc(var(--sz, 8px) / -2);
+    pointer-events: none;
+    z-index: 4;
+    will-change: transform, opacity;
+}
+
+.skyt-mote--sparkle {
+    background: var(--c, #fde68a);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9));
+    animation: skyt-mote-sparkle 900ms ease-out forwards;
+}
+
+@keyframes skyt-mote-sparkle {
+    0% { transform: translate(0, 0) scale(0) rotate(0deg); opacity: 1; }
+    30% { transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) scale(1.1) rotate(calc(var(--spin) * 0.3)); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0) rotate(var(--spin)); opacity: 0; }
+}
+
+.skyt-mote--puff {
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, #ffffff 0%, rgba(241, 245, 249, 0.95) 45%, rgba(203, 213, 225, 0.7) 100%);
+    animation: skyt-mote-puff 1100ms ease-out forwards;
+}
+
+@keyframes skyt-mote-puff {
+    0% { transform: translate(0, 0) scale(0.35); opacity: 0.95; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(1.7); opacity: 0; }
+}
+
+.skyt-mote--rainbow {
+    --sz: 8px;
+    width: 10px;
+    height: var(--h, 14px);
+    margin: calc(var(--h, 14px) / -2) 0 0 -5px;
+    border-radius: 3px;
+    background: linear-gradient(to bottom, #f43f5e 0 16.6%, #fb923c 16.6% 33.3%, #fde047 33.3% 50%, #4ade80 50% 66.6%, #38bdf8 66.6% 83.3%, #a78bfa 83.3% 100%);
+    transform: rotate(var(--rot));
+    animation: skyt-mote-rainbow 1300ms ease-in forwards;
+}
+
+@keyframes skyt-mote-rainbow {
+    0% { opacity: 0.95; transform: rotate(var(--rot)) scaleY(1); }
+    100% { opacity: 0; transform: rotate(var(--rot)) scale(0.6, 0.55); }
+}
+
+.skyt-mote--dash {
+    width: 12px;
+    height: 2.6px;
+    margin: -1.3px 0 0 -6px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    transform: rotate(var(--rot));
+    animation: skyt-mote-dash 700ms ease-out forwards;
+}
+
+@keyframes skyt-mote-dash {
+    0% { opacity: 0.95; transform: rotate(var(--rot)) scaleX(1); }
+    100% { opacity: 0; transform: rotate(var(--rot)) scaleX(0.2); }
+}
+
+.skyt-mote--glow {
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #fef08a 40%, rgba(253, 224, 71, 0) 72%);
+    animation: skyt-mote-glow 950ms ease-out forwards;
+}
+
+@keyframes skyt-mote-glow {
+    0% { transform: translate(0, 0) scale(1.2); opacity: 0.95; }
+    100% { transform: translate(0, var(--dy)) scale(0.1); opacity: 0; }
+}
+
+.skyt-mote--confetti {
+    width: 4px;
+    height: 7px;
+    margin: -3.5px 0 0 -2px;
+    border-radius: 1px;
+    background: var(--c);
+    animation: skyt-mote-fall 1400ms cubic-bezier(0.3, 0.1, 0.6, 1) forwards;
+}
+
+.skyt-mote--leaf {
+    width: 7px;
+    height: 4px;
+    margin: -2px 0 0 -3.5px;
+    border-radius: 50% 0 50% 0;
+    background: var(--c);
+    animation: skyt-mote-fall 1800ms ease-in-out forwards;
+}
+
+.skyt-mote--feather {
+    width: 5px;
+    height: 10px;
+    margin: -5px 0 0 -2.5px;
+    border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%;
+    background: linear-gradient(to bottom, #ffffff, #e2e8f0);
+    box-shadow: 0 0 0 0.6px rgba(43, 47, 99, 0.35);
+    animation: skyt-mote-fall 2000ms ease-in-out forwards;
+}
+
+@keyframes skyt-mote-fall {
+    0% { transform: translate(0, 0) rotate(var(--rot)); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--rot) + var(--spin))); opacity: 0; }
+}
+
+.skyt-mote--ember {
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 6px 1px rgba(251, 146, 60, 0.75);
+    animation: skyt-mote-ember 900ms ease-out forwards;
+}
+
+@keyframes skyt-mote-ember {
+    0% { transform: translate(0, 0) scale(1.2); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+}
+
+.skyt-mote--snow {
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+    animation: skyt-mote-snow 1500ms ease-out forwards;
+}
+
+@keyframes skyt-mote-snow {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+}
+
+/* Cameo bursts fling particles outward instead of trailing them. */
+.skyt-mote--burst.skyt-mote--sparkle { animation-duration: 1000ms; animation-timing-function: cubic-bezier(0.15, 0.8, 0.3, 1); }
+.skyt-mote--burst.skyt-mote--confetti { animation-name: skyt-mote-fling; animation-duration: 1300ms; }
+
+@keyframes skyt-mote-fling {
+    0% { transform: translate(0, 0) rotate(var(--rot)) scale(0.4); opacity: 1; }
+    40% { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--rot) + var(--spin) * 0.5)) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), calc(var(--dy) + 22px)) rotate(calc(var(--rot) + var(--spin))) scale(0.9); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

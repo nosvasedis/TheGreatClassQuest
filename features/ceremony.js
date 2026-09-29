@@ -28,6 +28,7 @@ import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
+import { showToast } from '../ui/effects.js';
 import { getNormalizedPercentForScore } from './assessmentConfig.js';
 import { formatTeacherBoonReason, getTeacherBoonForMonth } from './boons.js';
 import {
@@ -381,7 +382,7 @@ export function startCeremony(params) {
     const modeResult = resolveCeremonyMode(params.league);
     if (!modeResult.ok) {
         const message = modeResult.reason;
-        if (typeof window !== 'undefined') window.alert(message);
+        if (typeof document !== 'undefined') showToast(message, 'warning');
         return false;
     }
     ceremonyData = {

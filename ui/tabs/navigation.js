@@ -13,6 +13,7 @@ import * as scholarScroll from '../../features/scholarScroll.js';
 import * as avatar from '../../features/avatar.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
+import { showToast } from '../effects.js';
 import { renderActiveBounties } from '../core.js';
 import { renderClassEndDatesList } from '../core/misc.js';
 import { updateCeremonyStatus } from '../../features/ceremony.js';
@@ -1828,7 +1829,7 @@ export async function renderQuizOptionsUi() {
             if (icon) icon.className = 'fas fa-wand-magic-sparkles';
         } catch (e) {
             console.error('Failed to delete quiz:', e);
-            alert('Failed to delete quiz: ' + (e.message || 'Unknown error'));
+            showToast('Failed to delete quiz: ' + (e.message || 'Unknown error'), 'error');
         }
         resetBtn.disabled = false;
         resetBtn.innerHTML = '<i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week\'s Quiz';

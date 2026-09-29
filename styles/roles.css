@@ -2520,7 +2520,6 @@
    ══════════════════════════════════════════════════════════════ */
 
 body.placement-wizard-open { overflow: hidden; }
-body.placement-wizard-open #toast-container { z-index: 2300; }
 
 .placement-launcher {
   position: relative;

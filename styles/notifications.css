@@ -1,0 +1,311 @@
+/* ============================================================
+   HERALD NOTIFICATIONS — the one notification style of the app
+   (ui/effects.js → notify / showToast / showPraiseToast / showUndoToast)
+   A gem medallion, a kicker, the message, an optional action and
+   a draining timer rune. Tones only change the colours.
+   ============================================================ */
+
+#toast-container {
+    position: fixed;
+    top: 5.75rem;
+    right: 1rem;
+    left: auto;
+    z-index: 2450;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: min(24rem, calc(100vw - 2rem));
+    padding: 0;
+    pointer-events: none;
+}
+
+@keyframes herald-in {
+    0%   { opacity: 0; transform: translateX(2.5rem) scale(0.9) rotate(1.5deg); }
+    60%  { opacity: 1; transform: translateX(-0.3rem) scale(1.015) rotate(-0.4deg); }
+    100% { opacity: 1; transform: none; }
+}
+@keyframes herald-out {
+    0%   { opacity: 1; transform: none; max-height: var(--herald-height, 8rem); }
+    45%  { opacity: 0; transform: translateX(3rem) scale(0.96); max-height: var(--herald-height, 8rem); margin-top: 0; }
+    100% { opacity: 0; transform: translateX(4rem) scale(0.94); max-height: 0; margin-top: -0.65rem;
+           padding-top: 0; padding-bottom: 0; border-width: 0; }
+}
+@keyframes herald-gem-in {
+    0%   { transform: scale(0.2) rotate(-40deg); opacity: 0; }
+    65%  { transform: scale(1.15) rotate(8deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes herald-shine {
+    0%   { transform: translateX(-120%) skewX(-18deg); }
+    100% { transform: translateX(260%) skewX(-18deg); }
+}
+@keyframes herald-timer {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
+@keyframes herald-halo {
+    to { transform: rotate(360deg); }
+}
+@keyframes herald-nudge {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+}
+
+.herald {
+    --tone-a: #a78bfa;
+    --tone-b: #7c3aed;
+    --tone-ink: #6d28d9;
+    --tone-glow: rgba(124, 58, 237, 0.32);
+    --tone-wash: rgba(237, 233, 254, 0.55);
+
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 0.6rem 0.9rem 0.8rem;
+    border: 1.5px solid transparent;
+    border-radius: 1.2rem;
+    background:
+        radial-gradient(120% 140% at 0% 0%, var(--tone-wash), transparent 55%) padding-box,
+        linear-gradient(160deg, rgba(255, 255, 255, 0.97), rgba(255, 252, 245, 0.95)) padding-box,
+        linear-gradient(135deg, var(--tone-a), rgba(255, 255, 255, 0.75) 42%, rgba(255, 255, 255, 0.75) 58%, var(--tone-b)) border-box;
+    box-shadow:
+        0 20px 40px -16px var(--tone-glow),
+        0 6px 16px -6px rgba(15, 23, 42, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    font-family: 'Open Sans', sans-serif;
+    overflow: hidden;
+    pointer-events: auto;
+    animation: herald-in 0.55s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+/* One sweep of light as it arrives */
+.herald::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 35%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+    pointer-events: none;
+    transform: translateX(-120%) skewX(-18deg);
+    animation: herald-shine 0.9s 0.25s ease-out both;
+}
+
+.herald.is-leaving {
+    animation: herald-out 0.36s cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
+    pointer-events: none;
+}
+
+/* ── Gem medallion ─────────────────────────────────────────── */
+.herald__gem {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.7), transparent 42%),
+        linear-gradient(145deg, var(--tone-a), var(--tone-b));
+    color: #fff;
+    font-size: 1rem;
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.95),
+        0 0 0 4.5px var(--tone-a),
+        0 8px 16px -6px var(--tone-glow),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.15);
+    animation: herald-gem-in 0.6s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.herald__gem-core {
+    display: grid;
+    place-items: center;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Copy ──────────────────────────────────────────────────── */
+.herald__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+.herald__kicker {
+    font-family: 'Fredoka', 'Fredoka One', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tone-ink);
+}
+.herald__message {
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #1e293b;
+    overflow-wrap: anywhere;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.herald__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 2.2rem;
+    padding: 0 0.85rem;
+    border: 0;
+    flex: 0 0 auto;
+    border-radius: 0.8rem;
+    background: linear-gradient(145deg, var(--tone-a), var(--tone-b));
+    color: #fff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 6px 14px -6px var(--tone-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+.herald__action:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); }
+.herald__action:disabled { opacity: 0.75; cursor: progress; }
+
+.herald__close {
+    align-self: flex-start;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.herald__close:hover { background: rgba(148, 163, 184, 0.16); color: #334155; }
+.herald__action:focus-visible,
+.herald__close:focus-visible { outline: 2px solid var(--tone-b); outline-offset: 2px; }
+
+/* ── Timer rune ────────────────────────────────────────────── */
+.herald__timer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--tone-a), var(--tone-b));
+    opacity: 0.75;
+    transform-origin: left center;
+    animation: herald-timer linear forwards;
+}
+.herald.is-paused .herald__timer { animation-play-state: paused; }
+
+/* ── Tones ─────────────────────────────────────────────────── */
+.herald--success {
+    --tone-a: #34d399;
+    --tone-b: #059669;
+    --tone-ink: #047857;
+    --tone-glow: rgba(5, 150, 105, 0.35);
+    --tone-wash: rgba(209, 250, 229, 0.6);
+}
+.herald--error {
+    --tone-a: #fb7185;
+    --tone-b: #e11d48;
+    --tone-ink: #be123c;
+    --tone-glow: rgba(225, 29, 72, 0.35);
+    --tone-wash: rgba(255, 228, 230, 0.65);
+    animation:
+        herald-in 0.55s cubic-bezier(0.22, 1.2, 0.36, 1) both,
+        herald-nudge 0.4s 0.55s ease-in-out;
+}
+.herald--warning {
+    --tone-a: #fbbf24;
+    --tone-b: #f97316;
+    --tone-ink: #c2410c;
+    --tone-glow: rgba(249, 115, 22, 0.35);
+    --tone-wash: rgba(254, 243, 199, 0.65);
+}
+.herald--info {
+    --tone-a: #a78bfa;
+    --tone-b: #7c3aed;
+    --tone-ink: #6d28d9;
+    --tone-glow: rgba(124, 58, 237, 0.32);
+    --tone-wash: rgba(237, 233, 254, 0.6);
+}
+.herald--undo {
+    --tone-a: #6b8fc4;
+    --tone-b: #1e3a5f;
+    --tone-ink: #1e3a5f;
+    --tone-glow: rgba(30, 58, 95, 0.35);
+    --tone-wash: rgba(219, 234, 254, 0.6);
+}
+.herald--undo .herald__gem-core { color: #fde68a; }
+.herald--undo .herald__action {
+    background: linear-gradient(145deg, #fde68a, #fbbf24);
+    color: #78350f;
+}
+
+/* Praise: gold, a turning halo behind an emoji, warmer words */
+.herald--praise {
+    --tone-a: #fde047;
+    --tone-b: #f59e0b;
+    --tone-ink: #b45309;
+    --tone-glow: rgba(245, 158, 11, 0.42);
+    --tone-wash: rgba(254, 243, 199, 0.85);
+}
+.herald--praise .herald__gem {
+    width: 2.9rem;
+    height: 2.9rem;
+    font-size: 1.45rem;
+}
+.herald--praise .herald__gem::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    z-index: -1;
+    border-radius: 999px;
+    background: repeating-conic-gradient(rgba(251, 191, 36, 0.55) 0 10deg, transparent 10deg 30deg);
+    -webkit-mask: radial-gradient(circle, transparent 55%, #000 57%);
+    mask: radial-gradient(circle, transparent 55%, #000 57%);
+    animation: herald-halo 8s linear infinite;
+}
+.herald--praise .herald__gem-core { text-shadow: none; filter: drop-shadow(0 1px 2px rgba(146, 64, 14, 0.3)); }
+.herald--praise .herald__message {
+    font-family: 'Fredoka', 'Fredoka One', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #92400e;
+}
+
+/* ── Small screens ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+    #toast-container {
+        top: 4.75rem;
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+    }
+    .herald { gap: 0.65rem; }
+    .herald__action { padding: 0 0.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .herald,
+    .herald--error,
+    .herald__gem { animation: none; }
+    .herald::after,
+    .herald--praise .herald__gem::before { animation: none; display: none; }
+    .herald.is-leaving { animation: none; opacity: 0; transition: opacity 0.2s ease; }
+}

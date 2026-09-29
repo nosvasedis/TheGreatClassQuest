@@ -20,8 +20,11 @@
 /* 2. Navigation bar, nav-button, nav-color-* classes, cloud swirl header */
 @import url('./styles/nav.css');
 
-/* 3. Praise toast pop-in/out animations */
+/* 3. Modal shells, league picker, award toolbar */
 @import url('./styles/modals.css');
+
+/* 3a. Herald notifications — the single notification style (ui/effects.js notify) */
+@import url('./styles/notifications.css');
 
 /* 3b. Options tab: sub-tabs bar, tier-locked state */
 @import url('./styles/options.css');

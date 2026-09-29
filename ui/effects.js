@@ -1,62 +1,154 @@
 import * as state from '../state.js';
 
-export function showToast(message, type = 'info', duration = 3000) {
+// ─── Herald notifications ────────────────────────────────────────────────────
+// Every notification in the app is one of these: a gem medallion, a kicker,
+// the message, an optional action and a draining timer rune. showToast,
+// showPraiseToast and the undo bar are all thin wrappers around notify().
+
+const HERALD_TONES = {
+    success: { icon: '<i class="fas fa-check"></i>', kicker: 'Done' },
+    error: { icon: '<i class="fas fa-exclamation"></i>', kicker: 'Oops' },
+    warning: { icon: '<i class="fas fa-bell"></i>', kicker: 'Heads up' },
+    info: { icon: '<i class="fas fa-feather-pointed"></i>', kicker: 'Notice' },
+    praise: { icon: '✨', kicker: 'Well done' },
+    undo: { icon: '<i class="fas fa-stamp"></i>', kicker: 'Saved' }
+};
+const HERALD_MAX_VISIBLE = 4;
+const HERALD_EXIT_MS = 360;
+
+function heraldTone(type) {
+    if (type === 'warn') return 'warning';
+    return HERALD_TONES[type] ? type : 'info';
+}
+
+function heraldReadingTime(message, duration) {
+    const plain = String(message ?? '').replace(/<[^>]*>/g, '');
+    return Math.max(Number(duration) || 0, Math.min(9000, 1800 + plain.length * 50));
+}
+
+function dismissHerald(el) {
+    if (!el || el.dataset.state === 'leaving') return;
+    el.dataset.state = 'leaving';
+    clearTimeout(el.__heraldTimer);
+    el.style.setProperty('--herald-height', `${el.offsetHeight}px`);
+    el.classList.add('is-leaving');
+    setTimeout(() => el.remove(), HERALD_EXIT_MS);
+}
+
+/**
+ * Show a notification.
+ * @param {object} options
+ * @param {string} options.message        Message (HTML allowed; escape user text first).
+ * @param {'success'|'error'|'warning'|'info'|'praise'|'undo'} [options.type]
+ * @param {string} [options.title]        Kicker label above the message.
+ * @param {string} [options.icon]         Emoji or icon HTML for the medallion.
+ * @param {number} [options.duration]     Milliseconds before it leaves (0 = stays).
+ * @param {string} [options.key]          Replaces any open notification with the same key.
+ * @param {{label: string, icon?: string, busyLabel?: string, onClick: Function}} [options.action]
+ * @returns {{ dismiss: Function, element: HTMLElement } | null}
+ */
+export function notify(options = {}) {
     const container = document.getElementById('toast-container');
-    if (!container) return;
+    if (!container) return null;
 
-    let iconHtml;
-    if (type === 'success') { iconHtml = '<i class="fas fa-check-circle"></i>'; }
-    else if (type === 'error') { iconHtml = '<i class="fas fa-exclamation-triangle"></i>'; }
-    else { iconHtml = '<i class="fas fa-info-circle"></i>'; }
+    const tone = heraldTone(options.type);
+    const preset = HERALD_TONES[tone];
+    const duration = options.duration === 0 ? 0 : heraldReadingTime(options.message, options.duration ?? 3000);
 
-    const toast = document.createElement('div');
-    toast.className = `app-toast toast-${type} ml-auto`;
-    toast.innerHTML = `
-        <div class="app-toast-icon-wrap">${iconHtml}</div>
-        <span class="app-toast-message">${message}</span>
-        <div class="app-toast-progress" style="animation-duration:${duration}ms"></div>
+    if (options.key) {
+        container.querySelectorAll('.herald').forEach((el) => {
+            if (el.dataset.key === options.key) dismissHerald(el);
+        });
+    }
+
+    const el = document.createElement('div');
+    el.className = `herald herald--${tone}`;
+    el.setAttribute('role', tone === 'error' ? 'alert' : 'status');
+    if (options.key) el.dataset.key = options.key;
+    const action = options.action;
+    el.innerHTML = `
+        <div class="herald__gem" aria-hidden="true"><span class="herald__gem-core">${options.icon || preset.icon}</span></div>
+        <div class="herald__body">
+            <span class="herald__kicker">${options.title || preset.kicker}</span>
+            <span class="herald__message">${options.message ?? ''}</span>
+        </div>
+        ${action ? `<button type="button" class="herald__action">${action.icon ? `<i class="fas ${action.icon}" aria-hidden="true"></i>` : ''}<span>${action.label}</span></button>` : ''}
+        <button type="button" class="herald__close" aria-label="Dismiss"><i class="fas fa-times" aria-hidden="true"></i></button>
+        ${duration ? `<span class="herald__timer" style="animation-duration:${duration}ms" aria-hidden="true"></span>` : ''}
     `;
-    container.appendChild(toast);
 
-    setTimeout(() => {
-        toast.classList.add('toast-hiding');
-        setTimeout(() => toast.remove(), 320);
-    }, duration);
+    el.querySelector('.herald__close').addEventListener('click', (event) => {
+        event.stopPropagation();
+        dismissHerald(el);
+    });
+
+    if (action) {
+        const btn = el.querySelector('.herald__action');
+        btn.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            if (btn.disabled) return;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>${action.busyLabel || 'Working...'}</span>`;
+            clearTimeout(el.__heraldTimer);
+            el.classList.add('is-paused');
+            try {
+                await action.onClick?.();
+                dismissHerald(el);
+            } catch (error) {
+                console.error('Notification action failed:', error);
+                btn.disabled = false;
+                btn.innerHTML = original;
+                showToast(error?.message || 'That did not work. Please try again.', 'error');
+            }
+        });
+    }
+
+    // Timer pauses while the pointer rests on the notification.
+    let remaining = duration;
+    let startedAt = 0;
+    const arm = () => {
+        if (!remaining) return;
+        startedAt = Date.now();
+        el.__heraldTimer = setTimeout(() => dismissHerald(el), remaining);
+    };
+    el.addEventListener('mouseenter', () => {
+        if (!duration || el.dataset.state === 'leaving') return;
+        clearTimeout(el.__heraldTimer);
+        remaining = Math.max(600, remaining - (Date.now() - startedAt));
+        el.classList.add('is-paused');
+    });
+    el.addEventListener('mouseleave', () => {
+        if (!duration || el.dataset.state === 'leaving' || el.querySelector('.herald__action:disabled')) return;
+        el.classList.remove('is-paused');
+        arm();
+    });
+
+    container.appendChild(el);
+    const live = [...container.querySelectorAll('.herald:not(.is-leaving)')];
+    live.slice(0, Math.max(0, live.length - HERALD_MAX_VISIBLE)).forEach(dismissHerald);
+    arm();
+
+    return { element: el, dismiss: () => dismissHerald(el) };
+}
+
+export function showToast(message, type = 'info', duration = 3000) {
+    return notify({ message, type, duration });
 }
 
 export function showPraiseToast(message, icon = '✨') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const wrapper = document.createElement('div');
-    const isLeft = Math.random() > 0.5;
-    wrapper.className = `w-full flex ${isLeft ? 'justify-start' : 'justify-end'} mb-3`;
+    return notify({ message, type: 'praise', icon, duration: 5000 });
+}
 
-    const toast = document.createElement('div');
-    toast.className = "praise-toast pointer-events-auto";
-    toast.innerHTML = `
-        <div class="praise-toast-content">
-            <div class="praise-toast-icon">${icon}</div>
-            <div class="praise-toast-text">${message}</div>
-        </div>
-        <button class="absolute top-2 right-3 text-amber-400 hover:text-amber-600 text-lg leading-none">&times;</button>
-    `;
-
-    wrapper.appendChild(toast);
-    container.appendChild(wrapper);
-
-    const animateOut = (el) => {
-        if (!el) return;
-        const innerToast = el.querySelector('.praise-toast');
-        if (!innerToast || innerToast.classList.contains('disappearing')) return;
-        innerToast.classList.add('disappearing');
-        setTimeout(() => el.remove(), 400);
-    };
-
-    toast.querySelector('button').addEventListener('click', (e) => {
-        e.stopPropagation();
-        animateOut(wrapper);
+/** A notification with an Undo button; a newer one with the same key replaces it. */
+export function showUndoToast(message, onUndo, { key = 'undo', duration = 9000 } = {}) {
+    return notify({
+        message,
+        type: 'undo',
+        key,
+        duration,
+        action: { label: 'Undo', icon: 'fa-rotate-left', busyLabel: 'Undoing...', onClick: onUndo }
     });
-    setTimeout(() => animateOut(wrapper), 5000);
 }
 
 export async function showWelcomeBackMessage(firstName, stars) {

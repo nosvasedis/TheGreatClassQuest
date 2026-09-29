@@ -3,7 +3,7 @@
 // the student simply drops off every live roster. Only "Delete forever" erases data.
 import * as state from '../../state.js';
 import { db, collection, query, where, getDocs } from '../../firebase.js';
-import { showToast } from '../../ui/effects.js';
+import { showToast, showUndoToast } from '../../ui/effects.js';
 import { showTypedConfirmationModal } from '../../ui/modals/base.js';
 import { markStudentLeftSchool, restoreFormerStudent, purgeStudent } from '../../utils/adminRuntime.js';
 import { escapeHtml, setBusyState } from '../roles/shared.js';
@@ -121,51 +121,8 @@ function formerById(studentId) {
 
 // ── Undo bar ────────────────────────────────────────────────────────────────
 
-function hideUndoBar() {
-    const bar = document.getElementById(UNDO_ID);
-    if (!bar) return;
-    clearTimeout(bar.__timer);
-    bar.classList.remove('is-visible');
-}
-
 export function showUndoBar(message, onUndo) {
-    let bar = document.getElementById(UNDO_ID);
-    if (!bar) {
-        bar = document.createElement('div');
-        bar.id = UNDO_ID;
-        bar.className = 'office-undo';
-        bar.setAttribute('role', 'status');
-        bar.setAttribute('aria-live', 'polite');
-        document.body.appendChild(bar);
-    }
-    clearTimeout(bar.__timer);
-    bar.innerHTML = `
-        <span class="office-undo__icon" aria-hidden="true"><i class="fas fa-stamp"></i></span>
-        <span class="office-undo__message">${escapeHtml(message)}</span>
-        <button type="button" class="office-undo__btn" data-office-undo><i class="fas fa-rotate-left" aria-hidden="true"></i> Undo</button>
-        <button type="button" class="office-undo__close" data-office-undo-close aria-label="Dismiss"><i class="fas fa-times" aria-hidden="true"></i></button>
-        <span class="office-undo__timer" style="animation-duration:${UNDO_MS}ms" aria-hidden="true"></span>
-    `;
-    bar.onclick = async (event) => {
-        if (event.target.closest('[data-office-undo-close]')) {
-            hideUndoBar();
-            return;
-        }
-        const undoBtn = event.target.closest('[data-office-undo]');
-        if (!undoBtn) return;
-        setBusyState(undoBtn, true, 'Undoing...');
-        try {
-            await onUndo();
-            hideUndoBar();
-        } catch (error) {
-            console.error('Undo failed:', error);
-            showToast(error?.message || 'Could not undo that change.', 'error');
-            setBusyState(undoBtn, false);
-        }
-    };
-    void bar.offsetWidth;
-    bar.classList.add('is-visible');
-    bar.__timer = setTimeout(hideUndoBar, UNDO_MS);
+    showUndoToast(escapeHtml(message), onUndo, { key: UNDO_ID, duration: UNDO_MS });
 }
 
 // ── Core actions (each one is the undo of the other) ───────────────────────

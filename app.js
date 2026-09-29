@@ -611,7 +611,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
                     status.textContent = e.message || 'Could not open checkout right now.';
                     status.classList.remove('hidden');
                 } else {
-                    alert('Could not open checkout. Please try again or contact support.');
+                    import('./ui/effects.js').then(({ showToast }) => showToast('Could not open checkout. Please try again or contact support.', 'error'));
                 }
                 if (btn) {
                     btn.disabled = false;
@@ -647,7 +647,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
                 await options.onStartGrace();
             } catch (error) {
                 console.error(error);
-                alert('Could not start the grace period right now. Please try again.');
+                import('./ui/effects.js').then(({ showToast }) => showToast('Could not start the grace period right now. Please try again.', 'error'));
                 graceBtn.disabled = false;
                 graceBtn.innerHTML = '<i class="fas fa-hourglass-start"></i><span>Start 1-Day Grace Period</span>';
             }

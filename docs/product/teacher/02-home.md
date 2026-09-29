@@ -28,7 +28,7 @@ You are looking at **this group**:
 - **Bounty** button in the greeting panel: opens the **Post a Bounty** poster for this class (below)
 - **Reminder pills** along the top: birthdays, namedays, scheduled tests, a glowing pending **Ceremony of the Month** (never for August — school is closed), active bounty, Pathfinder bonus, and similar “do this today” notes
 - **Quest progress** — this class’s monthly stars versus the Team Quest goal (the goal already allows for holidays and cancelled lessons)
-- **Top skill** and a row of hero avatars (a small arrow appears when a student has a Hero Path skill waiting)
+- **Class virtue and class photo**: a crest for the virtue that has earned the class the most stars (or **Ready to Quest!** before the first stars), a ribbon showing how the stars split between virtues, and every hero standing on the meadow for a class photo. Hover a hero for their first name and stars this month; tap to open their Hero Stage. A small arrow marks a Hero Path skill waiting, and a gold star marks who has the most stars this month.
 - **The Chronicle** — latest homework, Story Weavers line, or Adventure Log sentence
 - **Class actions** — shortcuts such as Roll Call, Report, Story, Trials, Stars, Edit
 - **Quiz of the Week** on the weather card when the class is eligible (Elite)

@@ -7,7 +7,7 @@ import { isSpecialQuestType } from './specialQuestEngine.js';
 import * as utils from '../utils.js';
 import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
-import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
+import { buildHomePartyCardHtml } from './homePartyCard.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
@@ -580,23 +580,14 @@ function getActiveDashboard(classData, name, theme, spice) {
     const lastLogText = logs.length > 0 ? logs[0].text : "No adventures chronicled yet.";
     const lastLogDate = logs.length > 0 ? new Date(utils.parseDDMMYYYY(logs[0].date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
 
-    const rosterHtml = students.length > 0
-        ? students.sort((a, b) => a.name.localeCompare(b.name)).map(s => {
-            const scoreData = scores.find(sc => sc.id === s.id);
-            const stars = scoreData?.monthlyStars || 0;
-            const avatarInner = s.avatar
-                ? `<img src="${s.avatar}" alt="${s.name}" loading="lazy" decoding="async" class="roster-avatar enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">`
-                : `<div class="roster-avatar bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">${s.name.charAt(0)}</div>`;
-            const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, !!scoreData?.pendingSkillChoice);
-            return `<div class="relative group -ml-2 first:ml-0 transition-transform hover:z-50">${avatarHtml}</div>`;
-        }).join('')
-        : '<span class="text-xs text-gray-400 pl-2">Empty Roster</span>';
+    const partyHeroes = students.map(s => {
+        const scoreData = scores.find(sc => sc.id === s.id);
+        return { id: s.id, name: s.name, avatar: s.avatar, monthlyStars: scoreData?.monthlyStars || 0, pendingSkillChoice: !!scoreData?.pendingSkillChoice };
+    });
 
     const classLogs = state.get('allAwardLogs').filter(l => l.classId === classId);
-    const reasons = {};
-    classLogs.forEach(l => { if (l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
-    const topReasonEntry = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0];
-    const topSkill = topReasonEntry ? topReasonEntry[0] : null;
+    const virtueStars = {};
+    classLogs.forEach(l => { if (l.reason) virtueStars[l.reason] = (virtueStars[l.reason] || 0) + l.stars; });
 
     const tools = [
         { icon: 'fa-clipboard-check', label: 'Roll Call', action: 'open-attendance' },
@@ -606,9 +597,6 @@ function getActiveDashboard(classData, name, theme, spice) {
         { icon: 'fa-star', label: 'Stars', target: 'award-stars-tab' },
         { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', id: classId },
     ];
-
-    // FIX: Get content AND theme from the new function
-    const skillData = getTopSkillHtml(topSkill);
 
     return getLayout(
         name, theme, getHomeBountyPillHtml(),
@@ -642,20 +630,7 @@ function getActiveDashboard(classData, name, theme, spice) {
             </div>
         </div>
         
-        <div class="vibrant-card h-span-4 p-5 flex flex-col justify-between ${skillData.theme}">
-            <div>
-                <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-1"><i class="fas fa-bolt mr-1"></i> Top Skill</h3>
-                ${skillData.html}
-            </div>
-            <div class="mt-4">
-                <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-2 flex justify-between">
-                    <span>Heroes</span>
-                </h3>
-                <div class="flex items-center flex-wrap pl-2 gap-y-2">
-                    ${rosterHtml}
-                </div>
-            </div>
-        </div>
+        ${buildHomePartyCardHtml({ students: partyHeroes, virtueStars })}
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day for this class) -->
         <div id="grand-guild-ceremony-btn-class" class="hidden h-span-4">
@@ -1723,37 +1698,4 @@ function calculateMonthlyClassGoal(classData, studentCount) {
         state.get('schoolHolidayRanges'),
         state.get('allScheduleOverrides')
     );
-}
-
-function getTopSkillHtml(skill) {
-    if (!skill) {
-        return {
-            html: `<div class="font-title text-3xl text-green-800 truncate">Ready to Quest!</div>`,
-            theme: 'card-gradient-mint'
-        };
-    }
-
-    // Define colors and gradients for each skill
-    const reasonInfo = {
-        teamwork: { icon: 'fa-users', color: 'purple', name: 'Teamwork', theme: 'bg-gradient-to-br from-violet-100 to-purple-200 border-purple-300' },
-        creativity: { icon: 'fa-lightbulb', color: 'pink', name: 'Creativity', theme: 'bg-gradient-to-br from-pink-100 to-rose-200 border-rose-300' },
-        respect: { icon: 'fa-hands-helping', color: 'green', name: 'Respect', theme: 'bg-gradient-to-br from-emerald-100 to-green-200 border-green-300' },
-        focus: { icon: 'fa-brain', color: 'yellow', name: 'Focus', theme: 'bg-gradient-to-br from-amber-100 to-yellow-200 border-amber-300' },
-        welcome_back: { icon: 'fa-hand-sparkles', color: 'cyan', name: 'Welcome', theme: 'bg-gradient-to-br from-cyan-100 to-sky-200 border-sky-300' },
-        story_weaver: { icon: 'fa-feather-alt', color: 'cyan', name: 'Story', theme: 'bg-gradient-to-br from-cyan-100 to-blue-200 border-cyan-300' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'amber', name: 'Scholar', theme: 'bg-gradient-to-br from-orange-100 to-amber-200 border-orange-300' }
-    };
-
-    const info = reasonInfo[skill] || { icon: 'fa-star', color: 'gray', name: skill.replace('_', ' '), theme: 'card-gradient-mint' };
-
-    const html = `
-        <div class="flex items-center gap-3">
-            <div class="text-4xl text-${info.color}-600 filter drop-shadow-sm"><i class="fas ${info.icon}"></i></div>
-            <div class="text-left">
-                <div class="font-title text-2xl text-${info.color}-900 truncate capitalize">${info.name}</div>
-            </div>
-        </div>
-    `;
-
-    return { html, theme: info.theme };
 }

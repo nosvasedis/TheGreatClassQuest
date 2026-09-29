@@ -11,6 +11,7 @@ import { GUILDS, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CERTIFICATE_WIDTH } from '../../../../features/certificateCore.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features/homeGreetingScene.js';
+import { buildHomePartyCardHtml } from '../../../../features/homePartyCard.mjs';
 import { buildSkyCardInner, describeArc, getLessonDialArc } from '../../../../ui/wallpaperDeck.mjs';
 import { getMoonPhaseCard, getWouldYouRatherCard } from '../../../../ui/wallpaperSkyCards.js';
 
@@ -59,10 +60,21 @@ function bountyPillHtml() {
         </button>`;
 }
 
-function heroAvatar(initial, pending) {
-  const inner = `<div class="roster-avatar bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs enlargeable-avatar" title="${initial}">${initial}</div>`;
-  if (!pending) return inner;
-  return `<div class="avatar-with-level-up-wrap"><span class="level-up-badge" aria-hidden="true" title="Level up! Assign skill in Skill Tree"><i class="fas fa-arrow-up"></i></span>${inner}</div>`;
+function partyFace(emoji, bg) {
+  return 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="' + bg + '"/><text x="32" y="44" font-size="32" text-anchor="middle">' + emoji + '</text></svg>'
+  );
+}
+
+/** The real class party card (features/homePartyCard.mjs) with a small sample class. */
+function homePartyCardHtml() {
+  const heroes = [
+    ['Alex', '🦊', '#fde68a', 6], ['Maria', '🐼', '#bfdbfe', 9], ['Nikos', '🦁', '#fecdd3', 4], ['Eleni', '🐯', '#fed7aa', 7, true],
+    ['Robin', '🐸', '#bbf7d0', 3], ['Sofia', '🦉', '#ddd6fe', 5], ['Yannis', '', '', 2], ['Zoe', '🐨', '#e0f2fe', 8]
+  ].map(([name, emoji, bg, monthlyStars, pendingSkillChoice], i) => ({
+    id: `guide-${i}`, name, avatar: emoji ? partyFace(emoji, bg) : '', monthlyStars, pendingSkillChoice: !!pendingSkillChoice
+  }));
+  return buildHomePartyCardHtml({ students: heroes, virtueStars: { teamwork: 34, creativity: 18, respect: 12, focus: 9 } });
 }
 
 /** The real day/night ring, frozen at 09:40 on a mid-September day so captures stay stable. */
@@ -154,28 +166,7 @@ function homeDashboardHtml() {
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-4 p-5 flex flex-col justify-between bg-gradient-to-br from-violet-100 to-purple-200 border-purple-300">
-                <div>
-                    <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-1"><i class="fas fa-bolt mr-1"></i> Top Skill</h3>
-                    <div class="flex items-center gap-3">
-                        <div class="text-4xl text-purple-600 filter drop-shadow-sm"><i class="fas fa-users"></i></div>
-                        <div class="text-left">
-                            <div class="font-title text-2xl text-purple-900 truncate capitalize">Teamwork</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-2 flex justify-between">
-                        <span>Heroes</span>
-                    </h3>
-                    <div class="flex items-center flex-wrap pl-2 gap-y-2">
-                        <div class="relative group -ml-2 first:ml-0">${heroAvatar('A', false)}</div>
-                        <div class="relative group -ml-2">${heroAvatar('M', true)}</div>
-                        <div class="relative group -ml-2">${heroAvatar('N', false)}</div>
-                        <div class="relative group -ml-2">${heroAvatar('E', false)}</div>
-                    </div>
-                </div>
-            </div>
+            ${homePartyCardHtml()}
 
             <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-history mr-2"></i> The Chronicle</h3>

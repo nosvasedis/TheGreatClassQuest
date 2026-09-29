@@ -11,6 +11,7 @@ import { miscModalsHTML } from '../../../../templates/modals/misc.js';
 import { plannerModalHTML } from '../../../../templates/modals/planner.js';
 import { specialQuestModalHTML } from '../../../../templates/modals/specialQuest.js';
 import { GUILDS, getGuildBadgeHtml, getGuildEmblemUrl } from '../../../../features/guilds.js';
+import { trialDateLabel, trialRowHtml, trialScaleLegendHtml, trialTally, trialTallyText, trialTipHtml } from '../../../../features/trialLogCore.mjs';
 import { hideAppScreen, hideExtras, onHideExtras } from './fill-extras.js';
 import { classroomShellHtml, hideClassroom } from './fill-classroom.js';
 import { hideSurfaces, surfacesShellHtml } from './fill-surfaces.js';
@@ -59,46 +60,56 @@ function startShow() {
   hideAppScreen();
 }
 
-export function showBulkTrial() {
+const CAPTURE_DICTATION_SCHEME = {
+  mode: 'qualitative',
+  scale: [
+    { label: 'Great!!!', normalizedPercent: 100 },
+    { label: 'Great!!', normalizedPercent: 75 },
+    { label: 'Great!', normalizedPercent: 50 },
+    { label: 'Nice Try!', normalizedPercent: 25 }
+  ]
+};
+const CAPTURE_TEST_SCHEME = { mode: 'numeric', maxScore: 20 };
+
+/** The real Log New Trial marking board, filled with the same row builder the app uses. */
+export function showBulkTrial(kind = 'dictation') {
   startShow();
   const modal = document.getElementById('bulk-trial-modal');
   if (!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-bulk');
-  const title = document.getElementById('bulk-trial-title');
-  const subtitle = document.getElementById('bulk-trial-subtitle');
-  const date = document.getElementById('bulk-trial-date-display');
-  if (title) title.textContent = 'Log Results';
-  if (subtitle) subtitle.textContent = 'Junior B · Dictation';
-  if (date) date.textContent = '30/08/2026';
+  const isTest = kind === 'test';
+  const scheme = isTest ? CAPTURE_TEST_SCHEME : CAPTURE_DICTATION_SCHEME;
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  set('bulk-trial-title', isTest ? 'Log Test' : 'Log Dictation');
+  set('bulk-trial-subtitle', '📚 Junior B');
+  set('bulk-trial-date-display', trialDateLabel('2026-08-30', '2026-08-30'));
+  document.getElementById('bulk-trial-title-wrapper')?.classList.toggle('hidden', !isTest);
+  const titleInput = document.getElementById('bulk-trial-name');
+  if (titleInput) titleInput.value = isTest ? 'Unit 3 Vocabulary Quiz' : '';
+  const legend = document.getElementById('bulk-trial-legend');
+  if (legend) legend.innerHTML = trialScaleLegendHtml(scheme);
+  const tip = document.getElementById('bulk-trial-tip-default');
+  if (tip) tip.innerHTML = trialTipHtml(scheme);
+  const tabs = document.getElementById('bulk-trial-type-switch');
+  tabs?.classList.remove('hidden');
+  tabs?.querySelectorAll('.tl-tab').forEach((tab) => tab.classList.toggle('is-active', tab.dataset.trialType === kind));
+  document.getElementById('bulk-trial-shell')?.classList.add('tl-board--tabbed');
   const list = document.getElementById('bulk-student-list');
   if (!list) return;
-  const pills = (active) => `
-            <div class="grade-pills-wrapper">
-                <div class="grade-pills-grid">
-                    <button type="button" class="grade-pill grade-pill--emerald${active === 'Great!!!' ? ' active' : ''}">Great!!!</button>
-                    <button type="button" class="grade-pill grade-pill--teal${active === 'Great!!' ? ' active' : ''}">Great!!</button>
-                    <button type="button" class="grade-pill grade-pill--amber${active === 'Great!' ? ' active' : ''}">Great!</button>
-                    <button type="button" class="grade-pill grade-pill--rose${active === 'Nice Try!' ? ' active' : ''}">Nice Try!</button>
-                </div>
-            </div>`;
-  const row = (name, initial, present, grade) => `
-        <div class="bulk-log-item bg-white/80 p-4 rounded-2xl shadow-sm flex items-center gap-3 border border-amber-200/60 ${present ? '' : 'absent'}">
-            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60">${initial}</div>
-            <div class="flex-grow min-w-0">
-                <p class="font-bold text-gray-800 truncate">${name}</p>
-                <button type="button" class="toggle-absent-btn text-xs px-2.5 py-1.5 rounded-full mt-1 ${present ? 'bg-emerald-500 text-white' : 'is-absent bg-red-500 text-white'} shadow-sm">
-                    ${present ? '<i class="fas fa-user-check"></i> Present' : '<i class="fas fa-user-slash"></i> Absent'}
-                </button>
-            </div>
-            <div class="w-36 grade-input-wrapper">${present ? pills(grade) : ''}</div>
-        </div>`;
-  list.innerHTML = [
-    row('Alex', 'A', true, 'Great!!!'),
-    row('Maria', 'M', true, 'Great!!'),
-    row('Nikos', 'N', false, ''),
-    row('Eleni', 'E', true, 'Great!')
-  ].join('');
+  const people = isTest
+    ? [['Alex', '18'], ['Eleni', '15'], ['Maria', ''], ['Nikos', null], ['Sofia', '11'], ['Yannis', '']]
+    : [['Alex', 'Great!!!'], ['Eleni', 'Great!'], ['Maria', 'Great!!'], ['Nikos', null], ['Sofia', ''], ['Yannis', '']];
+  const rows = people.map(([name, value], i) => ({
+    student: { id: `cap-${i}`, name },
+    absent: value === null,
+    value: value || ''
+  }));
+  list.innerHTML = rows.map((r) => trialRowHtml({ student: r.student, scheme, isAbsent: r.absent, value: r.value })).join('');
+  const tally = trialTally(rows);
+  set('bulk-trial-tally', trialTallyText(tally));
+  const fill = document.getElementById('bulk-trial-tally-fill');
+  if (fill) fill.style.width = `${Math.round((tally.graded / tally.present) * 100)}%`;
 }
 
 export function hideBulkTrial() {

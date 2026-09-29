@@ -307,7 +307,7 @@ export async function handleBulkSaveTrial() {
     if (!canonicalDate) {
         showToast('Invalid date selected.', 'error');
         btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Save All`;
+        btn.innerHTML = btn.dataset.idleHtml || `<i class="fas fa-stamp"></i> Save results`;
         return;
     }
 
@@ -510,7 +510,7 @@ export async function handleBulkSaveTrial() {
         showToast("Failed to save scores. Please try again.", "error");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Save All`;
+        btn.innerHTML = btn.dataset.idleHtml || `<i class="fas fa-stamp"></i> Save results`;
     }
 }
 

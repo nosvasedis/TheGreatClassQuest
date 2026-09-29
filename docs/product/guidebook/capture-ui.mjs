@@ -131,7 +131,6 @@ try {
     hcdModal?.classList.add('hidden');
     hcdModal?.classList.remove('capture-hcd');
     window.__gcqCapture.hideAttendanceChronicle();
-    window.__gcqCapture.hideTrialType();
     window.__gcqCapture.showCeremony('intro');
   });
   try {
@@ -183,19 +182,6 @@ try {
   }
 
   await page.evaluate(() => {
-    window.__gcqCapture.hideAttendanceChronicle();
-    window.__gcqCapture.showTrialType();
-  });
-  try {
-    const trial = page.locator('#trial-type-modal > div');
-    await trial.waitFor({ state: 'visible', timeout: 8000 });
-    await shot(trial, 'trial-type.png');
-  } catch (err) {
-    console.warn('Trial type capture skipped:', err.message);
-  }
-
-  await page.evaluate(() => {
-    window.__gcqCapture.hideTrialType();
     window.__gcqCapture.hideCeremony();
     window.__gcqCapture.hideAttendanceChronicle();
   });
@@ -240,7 +226,8 @@ try {
   await captureExtra('Skill Tree', () => window.__gcqCapture.showSkillTree(), '#skill-tree-modal.capture-skill #skill-tree-modal-panel', 'skill-tree.png');
   await captureExtra('Hall of Heroes', () => window.__gcqCapture.showHallOfHeroes(), '#history-modal.capture-hoh #history-modal-panel', 'hall-of-heroes.png');
   await captureExtra('Quiz of the Week', () => window.__gcqCapture.showQuiz(), '#capture-quiz-host.capture-quiz .weather-card', 'quiz-of-the-week.png');
-  await captureExtra('Bulk trial', () => window.__gcqCapture.showBulkTrial(), '#bulk-trial-modal.capture-bulk #bulk-trial-shell', 'scroll-bulk.png');
+  await captureExtra('Bulk trial', () => window.__gcqCapture.showBulkTrial('dictation'), '#bulk-trial-modal.capture-bulk #bulk-trial-shell', 'scroll-bulk.png');
+  await captureExtra('Bulk trial test', () => window.__gcqCapture.showBulkTrial('test'), '#bulk-trial-modal.capture-bulk #bulk-trial-shell', 'scroll-bulk-test.png');
   await captureExtra('Starfall', () => window.__gcqCapture.showStarfall(), '#starfall-modal.capture-starfall #starfall-modal-content', 'starfall.png');
   await captureExtra('Story Weavers', () => window.__gcqCapture.showStoryWeavers(), '#reward-ideas-tab.capture-story', 'story-weavers.png');
   await captureExtra('Settings Student Tools', () => window.__gcqCapture.showSettings('manage'), '#options-tab.capture-settings', 'settings-tools.png');

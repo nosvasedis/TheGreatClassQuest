@@ -183,7 +183,7 @@
       return termShot('attendance-chronicle.png', 'Attendance Chronicle month ledger');
     }
     if (w === 'trial-type') {
-      return termShot('trial-type.png', 'Choose Your Challenge: Test or Dictation');
+      return termShot('scroll-bulk.png', 'Log New Trial marking board: Dictation and Test tabs, stamps for grades');
     }
     if (w === 'market') {
       return termShot('market-legendaries.png', 'Mystic Market legendary artifacts');

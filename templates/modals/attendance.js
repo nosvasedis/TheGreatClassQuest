@@ -1,180 +1,111 @@
 // templates/modals/attendance.js
-// Trial type, bulk trial, attendance chronicle, trial history, hidden print templates
+// Log New Trial marking board, attendance chronicle, trial history, hidden print templates
 
 export const attendanceModalsHTML = `
-    <div id="trial-type-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[72] flex items-center justify-center p-4 hidden">
-        <div class="relative bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-[2rem] shadow-2xl max-w-2xl w-full pop-in border border-amber-200/80 overflow-hidden text-center"
-            style="box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
+    <div id="bulk-trial-modal"
+        class="tl-overlay fixed inset-0 z-[73] flex items-center justify-center p-2 sm:p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="bulk-trial-title">
+        <div id="bulk-trial-shell" class="tl-board pop-in">
+            <div class="tl-clip" aria-hidden="true">
+                <span class="tl-clip__plate"></span>
+                <span class="tl-clip__jaw"></span>
+                <span class="tl-clip__rivet tl-clip__rivet--l"></span>
+                <span class="tl-clip__rivet tl-clip__rivet--r"></span>
+            </div>
 
-            <div class="absolute inset-0 pointer-events-none opacity-40"
-                style="background: radial-gradient(circle at 22% 12%, rgba(251,191,36,0.35), transparent 45%), radial-gradient(circle at 90% 80%, rgba(249,115,22,0.18), transparent 55%);"></div>
-
-            <div class="relative z-10 p-8">
-                <div class="flex items-center justify-center gap-3 mb-2">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white flex items-center justify-center shadow-lg"
-                        style="box-shadow: 0 10px 30px rgba(251,146,60,0.35);">
-                        <i class="fas fa-map-signs text-xl"></i>
-                    </div>
-                </div>
-                <h2 class="font-title text-4xl text-amber-900 leading-tight">Choose Your Challenge</h2>
-                <p class="text-amber-900/60 font-semibold mt-2 mb-7">What kind of trial are we logging today?</p>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <button id="select-dictation-btn" type="button"
-                        class="group relative overflow-hidden rounded-3xl border border-amber-200/80 bg-white/70 p-6 text-left shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bubbly-button">
-                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            style="background: radial-gradient(circle at 30% 20%, rgba(59,130,246,0.18), transparent 55%);"></div>
-                        <div class="relative flex items-center gap-4">
-                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg flex-shrink-0"
-                                style="box-shadow: 0 12px 30px rgba(37,99,235,0.28);">
-                                <i class="fas fa-microphone-alt text-2xl"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700/70">Option</div>
-                                <div class="font-title text-3xl text-blue-900 leading-tight">Dictation</div>
-                                <div class="text-sm text-blue-900/60 font-semibold mt-1">Quick entries • qualitative or numeric</div>
-                            </div>
-                            <div class="ml-auto text-blue-700/40 group-hover:text-blue-700/70 transition-colors">
-                                <i class="fas fa-arrow-right"></i>
-                            </div>
-                        </div>
-                    </button>
-
-                    <button id="select-test-btn" type="button"
-                        class="group relative overflow-hidden rounded-3xl border border-amber-200/80 bg-white/70 p-6 text-left shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bubbly-button">
-                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            style="background: radial-gradient(circle at 30% 20%, rgba(16,185,129,0.18), transparent 55%);"></div>
-                        <div class="relative flex items-center gap-4">
-                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg flex-shrink-0"
-                                style="box-shadow: 0 12px 30px rgba(16,185,129,0.26);">
-                                <i class="fas fa-file-alt text-2xl"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700/70">Option</div>
-                                <div class="font-title text-3xl text-emerald-900 leading-tight">Test</div>
-                                <div class="text-sm text-emerald-900/60 font-semibold mt-1">Optional title • bulk entry</div>
-                            </div>
-                            <div class="ml-auto text-emerald-700/40 group-hover:text-emerald-700/70 transition-colors">
-                                <i class="fas fa-arrow-right"></i>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-
-                <button id="trial-type-cancel-btn" type="button"
-                    class="mt-7 px-4 py-2 rounded-xl font-bold text-amber-900/70 hover:text-red-700 bg-white/60 hover:bg-red-50 border border-amber-200/70 hover:border-red-200 transition-all bubbly-button">
-                    Cancel
+            <div id="bulk-trial-type-switch" class="tl-tabs hidden" role="tablist" aria-label="Kind of trial">
+                <button type="button" class="tl-tab tl-tab--dictation" data-trial-type="dictation" role="tab" aria-selected="false">
+                    <i class="fas fa-microphone-alt" aria-hidden="true"></i><span>Dictation</span>
+                </button>
+                <button type="button" class="tl-tab tl-tab--test" data-trial-type="test" role="tab" aria-selected="false">
+                    <i class="fas fa-file-signature" aria-hidden="true"></i><span>Test</span>
                 </button>
             </div>
-        </div>
-    </div>
 
-    <div id="bulk-trial-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[73] flex items-center justify-center p-4 hidden">
-        <div id="bulk-trial-shell" class="relative bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-[2rem] shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col pop-in border border-amber-200/80 overflow-hidden"
-            style="box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
+            <div class="tl-sheet">
+                <div class="tl-sheet__head">
+                    <div class="tl-sheet__heading">
+                        <p class="tl-kicker"><i class="fas fa-feather-alt" aria-hidden="true"></i> Marking sheet</p>
+                        <h2 id="bulk-trial-title" class="tl-title font-title">Log Results</h2>
+                        <p id="bulk-trial-subtitle" class="tl-subtitle"></p>
+                    </div>
 
-            <div class="absolute inset-0 pointer-events-none opacity-40"
-                style="background: radial-gradient(circle at 20% 10%, rgba(251,191,36,0.35), transparent 45%), radial-gradient(circle at 90% 70%, rgba(249,115,22,0.18), transparent 55%);"></div>
-
-            <div class="relative z-30 px-6 pt-6 pb-5 border-b border-amber-200/70 bg-white/55 backdrop-blur-md flex flex-col gap-4 flex-shrink-0">
-                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                    <div class="flex items-start gap-3 min-w-0">
-                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white flex items-center justify-center shadow-lg flex-shrink-0"
-                            style="box-shadow: 0 10px 30px rgba(251,146,60,0.35);">
-                            <i class="fas fa-feather-alt text-xl"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h2 id="bulk-trial-title" class="font-title text-3xl text-amber-900 leading-tight">Log Results</h2>
-                            <p id="bulk-trial-subtitle" class="text-amber-700 font-semibold truncate"></p>
-                            <div class="relative mt-2">
-                                <button id="bulk-trial-date-chip" type="button"
-                                    class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 border border-amber-200/70 text-amber-900 shadow-sm hover:bg-amber-50 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer group"
-                                    aria-haspopup="true" aria-expanded="false">
-                                    <i class="fas fa-calendar-alt text-amber-500 group-hover:text-amber-600 transition-colors"></i>
-                                    <span id="bulk-trial-date-display" class="text-xs font-black tracking-widest">--/--/----</span>
-                                    <i class="fas fa-chevron-down text-amber-400 text-[10px] transition-transform duration-200 dp-chevron"></i>
-                                </button>
-                                <input type="date" id="bulk-trial-date" class="sr-only" tabindex="-1" aria-hidden="true">
-                                <div id="bulk-trial-date-picker"
-                                    class="hidden absolute left-0 top-full mt-2 z-[120] select-none bulk-date-picker-popover"
-                                    style="filter: drop-shadow(0 20px 48px rgba(0,0,0,0.28)) drop-shadow(0 0 0 1px rgba(251,191,36,0.2));">
-                                    <div class="bulk-date-picker-panel bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-2xl border border-amber-200 overflow-hidden"
-                                        style="box-shadow: 0 0 0 1px rgba(251,191,36,0.18), inset 0 1px 0 rgba(255,255,255,0.95);">
-                                        <div class="px-4 pt-3 pb-2 border-b border-amber-100/80 flex items-center gap-2">
-                                            <i class="fas fa-calendar-alt text-amber-500 text-xs"></i>
-                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700/70">Choose Date</p>
+                    <div class="tl-fields">
+                        <div class="tl-field tl-field--date">
+                            <span class="tl-field__label">Date</span>
+                            <button id="bulk-trial-date-chip" type="button" class="tl-date" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-calendar-day" aria-hidden="true"></i>
+                                <span id="bulk-trial-date-display" class="tl-date__text">--/--/----</span>
+                                <i class="fas fa-chevron-down dp-chevron" aria-hidden="true"></i>
+                            </button>
+                            <input type="date" id="bulk-trial-date" class="sr-only" tabindex="-1" aria-hidden="true">
+                            <div id="bulk-trial-date-picker" class="hidden bulk-date-picker-popover tl-dp">
+                                <div class="bulk-date-picker-panel tl-dp__panel">
+                                    <p class="tl-dp__head"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Choose date</p>
+                                    <div class="tl-dp__wheels">
+                                        <div class="tl-dp__col">
+                                            <button type="button" id="dp-day-up" class="tl-dp__step" aria-label="Next day"><i class="fas fa-chevron-up"></i></button>
+                                            <div id="dp-day" class="tl-dp__value font-title">01</div>
+                                            <button type="button" id="dp-day-down" class="tl-dp__step" aria-label="Previous day"><i class="fas fa-chevron-down"></i></button>
+                                            <span class="tl-dp__unit">Day</span>
                                         </div>
-                                        <div class="flex items-stretch px-1 py-3">
-                                            <div class="flex flex-col items-center gap-0.5 px-3 border-r border-amber-100/80">
-                                                <button type="button" id="dp-day-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                                                <div id="dp-day" class="font-title text-3xl text-amber-900 w-11 text-center leading-none my-1.5 tabular-nums">01</div>
-                                                <button type="button" id="dp-day-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
-                                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Day</span>
-                                            </div>
-                                            <div class="flex flex-col items-center gap-0.5 px-3 border-r border-amber-100/80">
-                                                <button type="button" id="dp-month-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                                                <div id="dp-month" class="font-title text-xl text-amber-900 w-20 text-center leading-none my-1.5">January</div>
-                                                <button type="button" id="dp-month-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
-                                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Month</span>
-                                            </div>
-                                            <div class="flex flex-col items-center gap-0.5 px-3">
-                                                <button type="button" id="dp-year-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                                                <div id="dp-year" class="font-title text-2xl text-amber-900 w-16 text-center leading-none my-1.5 tabular-nums">—</div>
-                                                <button type="button" id="dp-year-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
-                                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Year</span>
-                                            </div>
+                                        <div class="tl-dp__col tl-dp__col--month">
+                                            <button type="button" id="dp-month-up" class="tl-dp__step" aria-label="Next month"><i class="fas fa-chevron-up"></i></button>
+                                            <div id="dp-month" class="tl-dp__value tl-dp__value--month font-title">January</div>
+                                            <button type="button" id="dp-month-down" class="tl-dp__step" aria-label="Previous month"><i class="fas fa-chevron-down"></i></button>
+                                            <span class="tl-dp__unit">Month</span>
                                         </div>
-                                        <div class="px-3 pb-3 flex gap-2">
-                                            <button type="button" id="dp-confirm-btn"
-                                                class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-white font-title text-base py-2 rounded-xl transition-all shadow-md">
-                                                <i class="fas fa-check mr-1.5 text-sm"></i>Set Date
-                                            </button>
-                                            <button type="button" id="dp-cancel-btn"
-                                                class="px-3 py-2 rounded-xl text-amber-900/50 hover:text-amber-900 hover:bg-amber-100 transition-all text-sm font-bold">
-                                                <i class="fas fa-times"></i>
-                                            </button>
+                                        <div class="tl-dp__col">
+                                            <button type="button" id="dp-year-up" class="tl-dp__step" aria-label="Next year"><i class="fas fa-chevron-up"></i></button>
+                                            <div id="dp-year" class="tl-dp__value font-title">—</div>
+                                            <button type="button" id="dp-year-down" class="tl-dp__step" aria-label="Previous year"><i class="fas fa-chevron-down"></i></button>
+                                            <span class="tl-dp__unit">Year</span>
                                         </div>
+                                    </div>
+                                    <div class="tl-dp__actions">
+                                        <button type="button" id="dp-today-btn" class="tl-dp__today">Today</button>
+                                        <button type="button" id="dp-confirm-btn" class="tl-dp__confirm"><i class="fas fa-check" aria-hidden="true"></i> Set date</button>
+                                        <button type="button" id="dp-cancel-btn" class="tl-dp__cancel" aria-label="Close"><i class="fas fa-times"></i></button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="flex flex-wrap gap-3 items-end justify-end">
-                        <div id="bulk-trial-title-wrapper" class="hidden">
-                            <label class="block text-[11px] font-black text-amber-900/70 uppercase tracking-widest mb-1">Title</label>
-                            <input type="text" id="bulk-trial-name" placeholder="e.g. Unit 5 Quiz"
-                                class="px-3.5 py-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm w-52 md:w-72">
+                        <div id="bulk-trial-title-wrapper" class="tl-field tl-field--title hidden">
+                            <label for="bulk-trial-name" class="tl-field__label">Title</label>
+                            <input type="text" id="bulk-trial-name" class="tl-title-input" placeholder="Test title, e.g. Unit 5 Quiz" autocomplete="off">
                         </div>
                     </div>
                 </div>
-                <div id="bulk-trial-scheduled-hint" class="hidden rounded-lg border border-violet-200/70 bg-violet-50/70 px-3 py-1.5 text-[11px] flex items-center gap-2">
-                    <i class="fas fa-calendar-check text-violet-400 shrink-0"></i>
-                    <span id="bulk-trial-scheduled-hint-body" class="text-violet-900/80 font-semibold truncate"></span>
+
+                <div class="tl-sheet__meta">
+                    <div id="bulk-trial-legend" class="tl-legend"></div>
+                    <p id="bulk-trial-tip-default" class="tl-tip">
+                        <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                        Tap <b>Present</b> to mark someone absent. Tap a stamp again to clear it.
+                    </p>
                 </div>
-                <p id="bulk-trial-tip-default" class="text-xs text-amber-900/60 font-semibold">
-                    Tip: Mark a student absent to skip grading them.
-                </p>
-            </div>
+                <div id="bulk-trial-scheduled-hint" class="hidden tl-hint">
+                    <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                    <span id="bulk-trial-scheduled-hint-body"></span>
+                </div>
 
-            <div class="relative z-10 flex-grow overflow-y-auto p-6 bg-gradient-to-b from-white/30 to-orange-50/50">
-                <div id="bulk-student-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-            </div>
+                <div class="tl-sheet__lines scrollbar-custom">
+                    <div id="bulk-student-list" class="tl-list"></div>
+                </div>
 
-            <div class="relative z-10 p-4 md:p-5 border-t border-amber-200/70 bg-white/60 backdrop-blur-md flex justify-between items-center gap-3 flex-shrink-0">
-                <span class="text-xs text-amber-900/40 font-semibold" data-school-name>Your School</span>
-                <div class="flex items-center gap-2">
-                    <button id="bulk-trial-close-btn"
-                        class="px-4 py-2 rounded-xl font-bold text-amber-900/70 hover:text-red-700 bg-white/60 hover:bg-red-50 border border-amber-200/70 hover:border-red-200 transition-all bubbly-button">
-                        Cancel
-                    </button>
-                    <button id="bulk-trial-save-btn"
-                        class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-title text-xl py-2.5 px-8 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bubbly-button"
-                        style="box-shadow: 0 10px 30px rgba(251,146,60,0.35);">
-                        <i class="fas fa-save mr-2"></i> Save All
-                    </button>
+                <div class="tl-sheet__foot">
+                    <div class="tl-tally" aria-live="polite">
+                        <div class="tl-tally__bar"><span id="bulk-trial-tally-fill" class="tl-tally__fill"></span></div>
+                        <span id="bulk-trial-tally" class="tl-tally__text"></span>
+                    </div>
+                    <span class="tl-school" data-school-name>Your School</span>
+                    <div class="tl-actions">
+                        <button id="bulk-trial-close-btn" type="button" class="tl-btn tl-btn--ghost">Cancel</button>
+                        <button id="bulk-trial-save-btn" type="button" class="tl-btn tl-btn--save">
+                            <i class="fas fa-stamp" aria-hidden="true"></i> Save results
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

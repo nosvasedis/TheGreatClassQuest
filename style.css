@@ -99,7 +99,10 @@
 /* 22b. Student analytics modal: tabs, charts, heatmap, exports */
 @import url('./styles/student_analytics.css');
 
-/* 23. Bulk trial log modal: bulk-log-item, toggle-absent-btn */
+/* 22c. App header flourish: gilded trim, title/date swashes, twinkles */
+@import url('./styles/header_flourish.css');
+
+/* 23. Log New Trial marking board: clipboard, ruled sheet, grade stamps */
 @import url('./styles/bulk_trial.css');
 
 /* 24. Holiday calendar overlays: christmas, easter, generic, makeup work */

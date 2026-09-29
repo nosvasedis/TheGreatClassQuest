@@ -18,10 +18,13 @@ Flying buttons: **Log New Trial** and **View History**.
 
 ### Log a trial
 
-1. Choose **Test** or **Dictation** in **Choose Your Challenge** (skipped if only one type is on).
-2. Set the date; bulk-enter the class.
-3. Mark absentees in the same pass.
-4. Save. Personal-best toasts may fire for tests.
+**Log New Trial** opens the **marking board**: the whole class on one ruled sheet.
+
+1. Pick **Dictation** or **Test** from the tabs on top of the sheet (the tabs only appear when the class uses both). It opens on Test when a Quest Board test is due, otherwise on the kind you logged last for this class.
+2. Check the date stamp (it reads **Today** by default; tap it to change). Tests need a **Title**.
+3. Grade each student: tap a stamp (tap it again to clear it), or type the score and press **Enter** to jump to the next student.
+4. Tap **Present** to mark someone absent in the same pass. The tally at the bottom shows how many are marked.
+5. **Save results**. Personal-best toasts may fire for tests.
 
 **Grading language** follows school defaults (by league) unless you overrode them:
 

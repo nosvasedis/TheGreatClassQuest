@@ -50,10 +50,48 @@ export const headerHTML = `
             </div>
             <div class="sky-theater-sky absolute inset-0 z-[2] overflow-hidden pointer-events-none" aria-hidden="true"></div>
 
+            <div class="gcq-header-trim" aria-hidden="true">
+                <span class="gcq-header-trim__thread"></span>
+                <span class="gcq-header-trim__bead" style="--x: 9%; --d: -0.4s"></span>
+                <span class="gcq-header-trim__bead" style="--x: 28%; --d: -2.1s"></span>
+                <svg class="gcq-header-trim__gem" style="--x: 50%" viewBox="0 0 96 20" focusable="false">
+                    <defs>
+                        <linearGradient id="gcq-gem-gold" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#fffbe6"/>
+                            <stop offset="0.45" stop-color="#fcd34d"/>
+                            <stop offset="1" stop-color="#d97706"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M4 10 C 16 10, 26 5, 38 9 C 30 8.5, 22 13, 4 10 Z" fill="#fff7d6"/>
+                    <path d="M92 10 C 80 10, 70 5, 58 9 C 66 8.5, 74 13, 92 10 Z" fill="#fff7d6"/>
+                    <circle cx="14" cy="10" r="1.3" fill="#fde68a"/>
+                    <circle cx="82" cy="10" r="1.3" fill="#fde68a"/>
+                    <path d="M48 1.5 L56.5 10 L48 18.5 L39.5 10 Z" fill="url(#gcq-gem-gold)" stroke="#fffdf2" stroke-width="1.4"/>
+                    <path d="M48 5.5 L52.5 10 L48 14.5 L43.5 10 Z" fill="#fffdf2" opacity="0.85"/>
+                </svg>
+                <span class="gcq-header-trim__bead" style="--x: 72%; --d: -1.3s"></span>
+                <span class="gcq-header-trim__bead" style="--x: 91%; --d: -3s"></span>
+            </div>
+
             <div class="z-10 min-w-0 flex flex-1 flex-col justify-between">
-                <div>
+                <div class="gcq-title-wrap">
                     <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl"
                         data-text="The Great Class Quest">The Great Class Quest</h1>
+                    <svg class="gcq-swash gcq-swash--title" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
+                        <defs>
+                            <linearGradient id="gcq-swash-gold" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0" stop-color="#fff7d6" stop-opacity="0.2"/>
+                                <stop offset="0.35" stop-color="#fde68a"/>
+                                <stop offset="0.7" stop-color="#ffffff"/>
+                                <stop offset="1" stop-color="#fcd34d"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M4 11 C 46 15, 86 4, 128 9 S 206 14, 238 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
+                        <path d="M60 13.2 C 92 15.5, 118 10.5, 150 12.4" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+                        <path d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/>
+                    </svg>
+                    <span class="gcq-twinkle gcq-twinkle--title-end" aria-hidden="true"></span>
+                    <span class="gcq-twinkle gcq-twinkle--title-start" aria-hidden="true"></span>
                 </div>
                 <div id="header-quote-container"
                     class="hidden self-start md:inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 shadow-md mt-2">
@@ -66,13 +104,20 @@ export const headerHTML = `
 
             <div class="z-10 ml-auto flex shrink-0 flex-col justify-between items-end font-title date-time-hover-group relative">
                 <div class="sky-theater-cameo absolute inset-0 z-[3] overflow-visible pointer-events-none" aria-hidden="true"></div>
-                <div id="current-date" class="relative z-[4] text-right text-lg font-bold text-white sm:text-2xl md:text-4xl" style="word-spacing: 0.1em;" data-text="">
+                <div class="gcq-date-wrap relative z-[4]">
+                    <div id="current-date" class="relative z-[4] text-right text-lg font-bold text-white sm:text-2xl md:text-4xl" style="word-spacing: 0.1em;" data-text="">
+                    </div>
+                    <svg class="gcq-swash gcq-swash--date" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
+                        <path d="M256 11 C 214 15, 174 4, 132 9 S 54 14, 22 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
+                        <path d="M11 7 l-2 -5 l-2 5 l-5 2 l5 2 l2 5 l2 -5 l5 -2 z" fill="#fff7d6"/>
+                    </svg>
+                    <span class="gcq-twinkle gcq-twinkle--date" aria-hidden="true"></span>
                 </div>
 
                 <div class="relative z-[4] mt-2 flex items-center gap-2 sm:gap-4">
                     <div id="gcq-update-ready-mount" class="hidden shrink-0" aria-live="polite"></div>
                     <div
-                        class="flex items-center gap-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md overflow-visible">
+                        class="gcq-header-controls flex items-center gap-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md overflow-visible">
                         <div id="header-class-selector-wrap" class="relative z-20 flex items-center overflow-visible">
                             <button type="button" id="header-class-selector-btn"
                                 class="hover:bg-white/40 text-white max-w-[9.5rem] sm:max-w-[13rem] h-7 sm:h-8 pl-2 pr-2 sm:pl-3 sm:pr-2 rounded-full bubbly-button transition-colors duration-300 flex items-center gap-1.5 border border-white/30 font-title leading-none"

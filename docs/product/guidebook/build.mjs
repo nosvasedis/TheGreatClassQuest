@@ -739,7 +739,7 @@ function headingWidgets(id) {
   }
   if (id === 'scholars-scroll') {
     return [
-      { match: ['Log a trial', 'Καταγραφή δοκιμασίας'], html: `${uiShot('trial-type.png', 'Choose Your Challenge: Test or Dictation. This picker appears when you Log New Trial and the class uses both types.')}${uiShot('scroll-bulk.png', 'Bulk mark: the class list, Present / Absent, and grades on one pass. Save All writes the trial.')}` },
+      { match: ['Log a trial', 'Καταγραφή δοκιμασίας'], html: `${uiShot('scroll-bulk.png', 'Log New Trial opens the marking board. Dictation and Test are tabs on the sheet when the class uses both. Tap a stamp to grade, tap Present to mark someone absent; the tally shows who is still unmarked.')}${uiShot('scroll-bulk-test.png', 'A numeric test: type each score and press Enter to jump to the next student. Save results writes the trial.')}` },
       { match: ['Starfall'], html: uiShot('starfall.png', 'Starfall after a bulk save: confirm bonus Scholar’s Bonus stars for outstanding scores. Nothing is forced.') }
     ];
   }

@@ -7,10 +7,8 @@ import { getGuildBadgeHtml } from '../../../../features/guilds.js';
 import {
   hideAttendanceChronicle,
   hideCeremony,
-  hideTrialType,
   showAttendanceChronicle,
   showCeremony,
-  showTrialType
 } from './fill-stage.js';
 import {
   extrasShellHtml,
@@ -275,8 +273,6 @@ window.__gcqCapture = {
   hideCeremony,
   showAttendanceChronicle,
   hideAttendanceChronicle,
-  showTrialType,
-  hideTrialType,
   hideExtras,
   showShop,
   hideShop,

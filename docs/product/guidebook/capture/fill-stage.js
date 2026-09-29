@@ -569,15 +569,3 @@ export function hideAttendanceChronicle() {
   document.getElementById('attendance-chronicle-modal')?.classList.add('hidden');
   document.getElementById('attendance-chronicle-modal')?.classList.remove('capture-ac');
 }
-
-export function showTrialType() {
-  const modal = document.getElementById('trial-type-modal');
-  if (!modal) return;
-  modal.classList.remove('hidden');
-  modal.classList.add('capture-trial');
-}
-
-export function hideTrialType() {
-  document.getElementById('trial-type-modal')?.classList.add('hidden');
-  document.getElementById('trial-type-modal')?.classList.remove('capture-trial');
-}

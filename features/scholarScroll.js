@@ -120,6 +120,15 @@ import {
     getWeightedAcademicAverage,
     listScheduledAssessmentsNeedingGrades
 } from './assessmentConfig.js';
+import {
+    trialDateLabel,
+    trialRowHtml,
+    trialScaleLegendHtml,
+    trialTipHtml,
+    trialTally,
+    trialTallyText,
+    numericBandFor
+} from './trialLogCore.mjs';
 
 function formatYmdFromAnyDateString(dateStr) {
     const d = utils.parseFlexibleDate(dateStr);
@@ -178,52 +187,193 @@ function refreshBulkTrialScheduledHint(classId, type, dateVal) {
     if (hintEl) hintEl.classList.add('hidden');
 }
 
-function populateBulkTrialStudentRows(classId, type, assessmentScheme, dateIso) {
+const TRIAL_SAVE_IDLE_HTML = '<i class="fas fa-stamp" aria-hidden="true"></i> Save results';
+
+function todayIsoDate() {
+    return formatYmdFromAnyDateString(utils.getTodayDateString());
+}
+
+function setTrialDateDisplay(isoDate) {
+    const el = document.getElementById('bulk-trial-date-display');
+    if (el) el.textContent = trialDateLabel(isoDate, todayIsoDate());
+}
+
+/** Reads what the teacher has put on the sheet so far, keyed by student id. */
+function readTrialSheet() {
+    const marks = new Map();
+    document.querySelectorAll('#bulk-student-list .bulk-log-item').forEach((row) => {
+        const input = row.querySelector('.bulk-grade-input');
+        marks.set(row.dataset.studentId, {
+            value: input ? input.value : '',
+            absent: !!row.querySelector('.toggle-absent-btn')?.classList.contains('is-absent')
+        });
+    });
+    return marks;
+}
+
+function updateTrialTally() {
+    const rows = [...document.querySelectorAll('#bulk-student-list .bulk-log-item')];
+    const tally = trialTally(rows.map((row) => ({
+        absent: !!row.querySelector('.toggle-absent-btn')?.classList.contains('is-absent'),
+        value: row.querySelector('.bulk-grade-input')?.value ?? ''
+    })));
+    const text = document.getElementById('bulk-trial-tally');
+    const fill = document.getElementById('bulk-trial-tally-fill');
+    if (text) text.textContent = rows.length ? trialTallyText(tally) : '';
+    if (fill) fill.style.width = tally.present ? `${Math.round((tally.graded / tally.present) * 100)}%` : '0%';
+    const saveBtn = document.getElementById('bulk-trial-save-btn');
+    if (saveBtn) saveBtn.classList.toggle('is-ready', tally.graded > 0 && tally.graded === tally.present);
+}
+
+function setRowAbsent(row, isAbsent) {
+    const btn = row.querySelector('.toggle-absent-btn');
+    const input = row.querySelector('.bulk-grade-input');
+    btn?.classList.toggle('is-absent', isAbsent);
+    if (btn && !btn.classList.contains('hidden')) {
+        btn.setAttribute('aria-pressed', isAbsent ? 'true' : 'false');
+        btn.title = isAbsent ? 'Mark present' : 'Mark absent';
+        btn.innerHTML = isAbsent
+            ? '<i class="fas fa-user-slash" aria-hidden="true"></i><span>Absent</span>'
+            : '<i class="fas fa-user-check" aria-hidden="true"></i><span>Present</span>';
+    }
+    row.classList.toggle('absent', isAbsent);
+    row.querySelectorAll('.tl-stamp').forEach((stamp) => {
+        stamp.disabled = isAbsent;
+        if (isAbsent) {
+            stamp.classList.remove('active');
+            stamp.setAttribute('aria-pressed', 'false');
+        }
+    });
+    if (input) {
+        if (input.type !== 'hidden') input.disabled = isAbsent;
+        if (isAbsent) {
+            input.value = '';
+            input.removeAttribute('data-grade');
+            row.classList.remove('is-graded');
+        }
+    }
+}
+
+/** One set of delegated handlers for the whole sheet (re-assigned, never stacked). */
+function wireTrialSheet(listContainer) {
+    listContainer.onclick = (e) => {
+        const attend = e.target.closest('.toggle-absent-btn');
+        if (attend && listContainer.contains(attend)) {
+            const row = attend.closest('.bulk-log-item');
+            setRowAbsent(row, !attend.classList.contains('is-absent'));
+            updateTrialTally();
+            return;
+        }
+        const stamp = e.target.closest('.tl-stamp');
+        if (stamp && !stamp.disabled) {
+            const row = stamp.closest('.bulk-log-item');
+            const input = row.querySelector('.bulk-grade-input');
+            const wasActive = stamp.classList.contains('active');
+            row.querySelectorAll('.tl-stamp').forEach((b) => {
+                b.classList.remove('active', 'just-stamped');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            if (wasActive) {
+                input.value = '';
+            } else {
+                input.value = stamp.dataset.value;
+                stamp.classList.add('active', 'just-stamped');
+                stamp.setAttribute('aria-pressed', 'true');
+            }
+            row.classList.toggle('is-graded', !!input.value);
+            updateTrialTally();
+        }
+    };
+    listContainer.oninput = (e) => {
+        const input = e.target.closest('.bulk-grade-numeric');
+        if (!input) return;
+        const band = numericBandFor(input.value, input.max);
+        if (band) input.setAttribute('data-grade', band);
+        else input.removeAttribute('data-grade');
+        input.closest('.bulk-log-item')?.classList.toggle('is-graded', input.value !== '');
+        updateTrialTally();
+    };
+    listContainer.onkeydown = (e) => {
+        if (e.key !== 'Enter') return;
+        const input = e.target.closest('.bulk-grade-numeric');
+        if (!input) return;
+        e.preventDefault();
+        const inputs = [...listContainer.querySelectorAll('.bulk-grade-numeric:not(:disabled)')];
+        const next = inputs[inputs.indexOf(input) + 1];
+        if (next) {
+            next.focus();
+            next.select();
+        } else {
+            document.getElementById('bulk-trial-save-btn')?.focus();
+        }
+    };
+    listContainer.onwheel = (e) => {
+        if (e.target.closest('.bulk-grade-numeric') === document.activeElement) document.activeElement.blur();
+    };
+}
+
+function populateBulkTrialStudentRows(classId, type, assessmentScheme, dateIso, carry = null) {
     const students = state.get('allStudents').filter((s) => s.classId === classId).sort((a, b) => a.name.localeCompare(b.name));
     const listContainer = document.getElementById('bulk-student-list');
 
     if (students.length === 0) {
         listContainer.innerHTML = `
-            <div class="col-span-full rounded-3xl border border-amber-200/70 bg-white/70 p-8 text-center shadow-sm">
-                <div class="text-5xl mb-3">🧭</div>
-                <p class="font-title text-2xl text-amber-900">No students found</p>
-                <p class="text-sm text-amber-900/60 font-semibold mt-1">Add students to this class to start logging trials.</p>
+            <div class="tl-empty">
+                <div class="tl-empty__icon">🧭</div>
+                <p class="tl-empty__title font-title">No students yet</p>
+                <p class="tl-empty__text">Add students to this class to start logging trials.</p>
             </div>
         `;
+        updateTrialTally();
         return;
     }
 
     const attendance = state.get('allAttendanceRecords').filter((r) => r.classId === classId && utils.datesMatch(r.date, dateIso));
 
-    listContainer.innerHTML = '';
-    students.forEach((student) => {
-        const isAbsent = attendance.some((r) => r.studentId === student.id);
-        listContainer.innerHTML += renderStudentBulkRow(student, assessmentScheme, isAbsent);
-    });
+    listContainer.innerHTML = students.map((student) => {
+        const wasAbsent = attendance.some((r) => r.studentId === student.id);
+        const kept = carry?.marks?.get(student.id);
+        const isAbsent = carry?.keepAbsences && kept ? kept.absent : wasAbsent;
+        const value = !isAbsent && carry?.keepValues && kept ? kept.value : '';
+        return trialRowHtml({ student, scheme: assessmentScheme, isAbsent, wasAbsent, value });
+    }).join('');
 
-    listContainer.querySelectorAll('.toggle-absent-btn').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-            const row = e.target.closest('.bulk-log-item');
-            const isNowAbsent = !btn.classList.contains('is-absent');
-            const input = row.querySelector('.bulk-grade-input');
+    wireTrialSheet(listContainer);
+    updateTrialTally();
+}
 
-            btn.classList.toggle('is-absent');
+function rememberTrialType(classId, type) {
+    try { localStorage.setItem(`gcq-trial-type-${classId}`, type); } catch (_) { /* private mode */ }
+}
 
-            if (isNowAbsent) {
-                btn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
-                btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
-                btn.innerHTML = '<i class="fas fa-user-slash"></i> Absent';
-            } else {
-                btn.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
-                btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
-                btn.innerHTML = '<i class="fas fa-user-check"></i> Present';
-            }
+function recallTrialType(classId) {
+    try { return localStorage.getItem(`gcq-trial-type-${classId}`); } catch (_) { return null; }
+}
 
-            row.classList.toggle('absent', isNowAbsent);
-            if (input) input.disabled = isNowAbsent;
-            if (isNowAbsent && input) input.value = '';
+/** Resets the parts of the board that edit/makeup mode change. */
+function resetTrialBoard({ tabsFor = null, scheme = null } = {}) {
+    const board = document.getElementById('bulk-trial-shell');
+    const tabs = document.getElementById('bulk-trial-type-switch');
+    if (tabs) {
+        tabs.classList.toggle('hidden', !tabsFor);
+        tabs.querySelectorAll('.tl-tab').forEach((tab) => {
+            const on = tab.dataset.trialType === tabsFor;
+            tab.classList.toggle('is-active', on);
+            tab.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-    });
+    }
+    board?.classList.toggle('tl-board--tabbed', !!tabsFor);
+    const legend = document.getElementById('bulk-trial-legend');
+    if (legend) legend.innerHTML = trialScaleLegendHtml(scheme);
+    const tip = document.getElementById('bulk-trial-tip-default');
+    if (tip) tip.innerHTML = trialTipHtml(scheme);
+    const saveBtn = document.getElementById('bulk-trial-save-btn');
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = TRIAL_SAVE_IDLE_HTML;
+        saveBtn.dataset.idleHtml = TRIAL_SAVE_IDLE_HTML;
+    }
+    document.getElementById('bulk-trial-tip-default')?.classList.remove('hidden');
 }
 
 // --- TAB RENDERING ---
@@ -444,6 +594,7 @@ function renderScrollDashboard(classId) {
 
 // --- NEW MODAL LOGIC ---
 
+/** Log New Trial: one marking board; a Dictation / Test tab pair when the class uses both. */
 export function openTrialTypeModal(classId) {
     if (!classId) return;
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
@@ -461,20 +612,11 @@ export function openTrialTypeModal(classId) {
         openBulkLogModal(classId, 'dictation');
         return;
     }
-
-    modals.showAnimatedModal('trial-type-modal');
-
-    document.getElementById('select-dictation-btn').onclick = () => {
-        modals.hideModal('trial-type-modal');
-        setTimeout(() => openBulkLogModal(classId, 'dictation'), 300);
-    };
-
-    document.getElementById('select-test-btn').onclick = () => {
-        modals.hideModal('trial-type-modal');
-        setTimeout(() => openBulkLogModal(classId, 'test'), 300);
-    };
-
-    document.getElementById('trial-type-cancel-btn').onclick = () => modals.hideModal('trial-type-modal');
+    // A test on the calendar (today or overdue) wins; otherwise the kind last logged for this class.
+    const scheduled = pickBulkTestLogContext(classId).status;
+    const last = recallTrialType(classId);
+    const type = scheduled ? 'test' : (last === 'test' || last === 'dictation' ? last : 'dictation');
+    openBulkLogModal(classId, type, { allowTypeSwitch: true });
 }
 
 function setupBulkDatePicker() {
@@ -622,6 +764,14 @@ function setupBulkDatePicker() {
     };
 
     picker.querySelector('#dp-cancel-btn').onclick = () => closeDp();
+
+    const todayBtn = picker.querySelector('#dp-today-btn');
+    if (todayBtn) {
+        todayBtn.onclick = () => {
+            setStateFromDate(new Date());
+            renderDp();
+        };
+    }
 }
 
 export function openBulkLogModal(classId, type, options = {}) {
@@ -632,27 +782,25 @@ export function openBulkLogModal(classId, type, options = {}) {
         showToast(type === 'dictation' ? 'This class does not use dictations.' : 'This class does not use tests.', 'info');
         return;
     }
+    const modal = document.getElementById('bulk-trial-modal');
+    const isSwitch = !!options.carry;
 
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo} ${classData.name}`;
+    if (!isSwitch) resetTrialBoard({ tabsFor: options.allowTypeSwitch ? type : null, scheme: assessmentScheme });
+    else resetTrialBoard({ tabsFor: type, scheme: assessmentScheme });
+    rememberTrialType(classId, type);
 
-    const dateDisplay = document.getElementById('bulk-trial-date-display');
     const dateInput = document.getElementById('bulk-trial-date');
-    const updateDateDisplay = (val) => {
-        if (!val || !dateDisplay) return;
-        const [y, m, d] = val.split('-');
-        dateDisplay.innerText = `${d}/${m}/${y}`;
-    };
-
-    let initialDate =
-        typeof options.presetDate === 'string' && options.presetDate.trim()
-            ? formatYmdFromAnyDateString(options.presetDate.trim())
-            : null;
-    if (!initialDate) {
-        initialDate = formatYmdFromAnyDateString(utils.getTodayDateString());
+    if (!isSwitch) {
+        let initialDate =
+            typeof options.presetDate === 'string' && options.presetDate.trim()
+                ? formatYmdFromAnyDateString(options.presetDate.trim())
+                : null;
+        if (!initialDate) initialDate = todayIsoDate();
+        dateInput.value = initialDate;
     }
-    dateInput.value = initialDate;
-    updateDateDisplay(dateInput.value);
+    setTrialDateDisplay(dateInput.value);
 
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
@@ -671,90 +819,62 @@ export function openBulkLogModal(classId, type, options = {}) {
         titleInput.value = '';
     }
 
-    const attachDateSync = () => {
-        dateInput.onchange = (e) => {
-            updateDateDisplay(e.target.value);
-            if (type === 'test') {
-                const assn = getScheduledAssignmentForClassOnDate(classId, e.target.value);
-                titleInput.value = String(assn?.testData?.title || '').trim();
-            }
-            populateBulkTrialStudentRows(classId, type, assessmentScheme, e.target.value);
-            refreshBulkTrialScheduledHint(classId, type, e.target.value);
-        };
+    dateInput.onchange = (e) => {
+        setTrialDateDisplay(e.target.value);
+        if (type === 'test') {
+            const assn = getScheduledAssignmentForClassOnDate(classId, e.target.value);
+            if (assn?.testData?.title || !titleInput.value.trim()) titleInput.value = String(assn?.testData?.title || '').trim();
+        }
+        // Keep the marks already written; attendance follows the new day's register.
+        populateBulkTrialStudentRows(classId, type, assessmentScheme, e.target.value, { marks: readTrialSheet(), keepValues: true });
+        refreshBulkTrialScheduledHint(classId, type, e.target.value);
     };
 
-    attachDateSync();
     setupBulkDatePicker();
-    populateBulkTrialStudentRows(classId, type, assessmentScheme, dateInput.value);
+    populateBulkTrialStudentRows(classId, type, assessmentScheme, dateInput.value, options.carry || null);
     refreshBulkTrialScheduledHint(classId, type, dateInput.value);
+    titleInput.oninput = null;
 
-    titleInput.oninput = () => {
-        refreshBulkTrialScheduledHint(classId, type, dateInput.value);
-    };
+    const tabs = document.getElementById('bulk-trial-type-switch');
+    if (tabs) {
+        tabs.onclick = (e) => {
+            const tab = e.target.closest('.tl-tab');
+            const next = tab?.dataset.trialType;
+            if (!next || next === modal.dataset.type) return;
+            const marks = readTrialSheet();
+            const switchNow = () => openBulkLogModal(classId, next, { allowTypeSwitch: true, carry: { marks, keepAbsences: true } });
+            const hasMarks = [...marks.values()].some((m) => !m.absent && m.value !== '');
+            if (hasMarks) {
+                modals.showModal(
+                    `Switch to ${next === 'test' ? 'Test' : 'Dictation'}?`,
+                    'The marks on this sheet will be cleared. Absences stay as they are.',
+                    switchNow,
+                    'Switch',
+                    'Keep marking'
+                );
+            } else {
+                switchNow();
+            }
+        };
+    }
 
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 
-    document.getElementById('bulk-trial-modal').dataset.classId = classId;
-    document.getElementById('bulk-trial-modal').dataset.type = type;
-    document.getElementById('bulk-trial-modal').dataset.gradingMode = assessmentScheme.mode;
+    modal.dataset.classId = classId;
+    modal.dataset.type = type;
+    modal.dataset.gradingMode = assessmentScheme.mode;
 
-    modals.showAnimatedModal('bulk-trial-modal');
-}
-
-function renderStudentBulkRow(student, scheme, isAbsent) {
-    const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60 student-avatar">`
-        : `<div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60 student-avatar">${student.name.charAt(0)}</div>`;
-
-    let inputHtml = '';
-
-    if (scheme.mode === 'qualitative') {
-        const gradeColorClass = (pct) => {
-            if (pct >= 90) return 'grade-pill--emerald';
-            if (pct >= 65) return 'grade-pill--teal';
-            if (pct >= 40) return 'grade-pill--amber';
-            return 'grade-pill--rose';
-        };
-        const pills = (scheme.scale || [])
-            .map((entry) => `<button type="button" class="grade-pill ${gradeColorClass(entry.normalizedPercent)}" data-value="${entry.label}" ${isAbsent ? 'disabled' : ''} onclick="var w=this.closest('.grade-pills-wrapper');w.querySelector('.bulk-grade-input').value=this.dataset.value;w.querySelectorAll('.grade-pill').forEach(b=>b.classList.remove('active'));this.classList.add('active');">${entry.label}</button>`)
-            .join('');
-        inputHtml = `
-            <div class="grade-pills-wrapper${isAbsent ? ' grade-pills-wrapper--disabled' : ''}">
-                <div class="grade-pills-grid">${pills}</div>
-                <input type="hidden" class="bulk-grade-input">
-            </div>
-        `;
-    } else {
-        const maxScore = Number(scheme.maxScore) || 100;
-        inputHtml = `
-            <div class="relative">
-                <input type="number" class="bulk-grade-input bulk-grade-numeric w-full p-2.5 pr-12 border-2 rounded-xl bg-white/80 outline-none shadow-sm transition-all"
-                    placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''}
-                    oninput="(function(i,m){var v=parseFloat(i.value);if(isNaN(v)||i.value===''){i.removeAttribute('data-grade');return;}var p=Math.min(100,Math.max(0,Math.round(v/m*100)));i.setAttribute('data-grade',p>=80?'high':p>=60?'good':p>=40?'mid':p>=20?'low':'fail');})(this,${maxScore})"
-                    onwheel="this.blur()">
-                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-amber-900/45 text-[11px] font-black pointer-events-none">/${maxScore}</span>
-            </div>
-        `;
+    if (isSwitch) {
+        const sheet = modal.querySelector('.tl-sheet');
+        sheet?.classList.remove('tl-sheet--flip');
+        void sheet?.offsetWidth;
+        sheet?.classList.add('tl-sheet--flip');
+        return;
     }
-
-    const buttonClass = isAbsent
-        ? 'is-absent bg-red-500 text-white hover:bg-red-600'
-        : 'bg-emerald-500 text-white hover:bg-emerald-600';
-
-    return `
-        <div class="bulk-log-item bg-white/80 p-4 rounded-2xl shadow-sm flex items-center gap-3 border border-amber-200/60 hover:border-amber-300 hover:shadow-md transition-all ${isAbsent ? 'absent' : ''}" data-student-id="${student.id}">
-            ${avatarHtml}
-            <div class="flex-grow min-w-0">
-                <p class="font-bold text-gray-800 truncate">${student.name}</p>
-                <button type="button" class="toggle-absent-btn text-xs px-2.5 py-1.5 rounded-full mt-1 ${buttonClass} shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400" data-was-absent="${isAbsent}">
-                    ${isAbsent ? '<i class="fas fa-user-slash"></i> Absent' : '<i class="fas fa-user-check"></i> Present'}
-                </button>
-            </div>
-            <div class="w-36 grade-input-wrapper">
-                ${inputHtml}
-            </div>
-        </div>
-    `;
+    modals.showAnimatedModal('bulk-trial-modal');
+    if (type === 'test' && !titleInput.value.trim()) {
+        setTimeout(() => titleInput.focus({ preventScroll: true }), 320);
+    }
 }
 
 // --- HISTORY & SINGLE EDIT ---
@@ -1067,19 +1187,21 @@ export function openSingleTrialEditModal(classId, trialId) {
 
     const modal = document.getElementById('bulk-trial-modal');
     document.getElementById('bulk-trial-scheduled-hint')?.classList.add('hidden');
+    resetTrialBoard({ scheme: assessmentScheme });
+    document.getElementById('bulk-trial-tip-default')?.classList.add('hidden');
 
     document.getElementById('bulk-trial-title').innerText = 'Edit Result';
-    document.getElementById('bulk-trial-subtitle').innerText = `${classData.name}`;
+    document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo || ''} ${classData.name}`.trim();
 
     const dateObj = utils.parseDDMMYYYY(score.date);
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
     const dd = String(dateObj.getDate()).padStart(2, '0');
-    document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
-
-    // Also update display label for single edit
-    const displayEl = document.getElementById('bulk-trial-date-display');
-    if (displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
+    const dateInput = document.getElementById('bulk-trial-date');
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    dateInput.onchange = (e) => setTrialDateDisplay(e.target.value);
+    setTrialDateDisplay(dateInput.value);
+    setupBulkDatePicker();
 
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
@@ -1096,16 +1218,12 @@ export function openSingleTrialEditModal(classId, trialId) {
 
     const student = state.get('allStudents').find(s => s.id === score.studentId);
     if (student) {
-        const rowHtml = renderStudentBulkRow(student, assessmentScheme, false);
-        listContainer.innerHTML = rowHtml;
-
-        const input = listContainer.querySelector('.bulk-grade-input');
-        if (input) {
-            if (score.scoreQualitative) input.value = score.scoreQualitative;
-            else if (score.scoreNumeric !== null) input.value = score.scoreNumeric;
-        }
+        const value = score.scoreQualitative || (score.scoreNumeric !== null && score.scoreNumeric !== undefined ? String(score.scoreNumeric) : '');
+        listContainer.innerHTML = trialRowHtml({ student, scheme: assessmentScheme, value });
         listContainer.querySelector('.bulk-log-item').dataset.trialId = trialId;
     }
+    wireTrialSheet(listContainer);
+    updateTrialTally();
 
     modal.dataset.classId = classId;
     modal.dataset.type = score.type;
@@ -1462,70 +1580,31 @@ function openMakeupModal(classId, studentId, type, title) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     const assessmentScheme = getAssessmentSchemeForClass(classData, type);
 
-    // Reuse Bulk Modal DOM but configure for single makeup
+    // Reuse the marking board, configured for one makeup line
     const modal = document.getElementById('bulk-trial-modal');
     document.getElementById('bulk-trial-scheduled-hint')?.classList.add('hidden');
+    resetTrialBoard({ scheme: assessmentScheme });
+    document.getElementById('bulk-trial-tip-default')?.classList.add('hidden');
 
     document.getElementById('bulk-trial-title').innerText = `Makeup: ${type === 'dictation' ? 'Dictation' : 'Test'}`;
-    document.getElementById('bulk-trial-subtitle').innerText = `${student.name} - ${title}`;
+    document.getElementById('bulk-trial-subtitle').innerText = `${student.name} · ${title}`;
 
-    // Set Date to TODAY (ISO format for input)
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('bulk-trial-date');
+    dateInput.value = todayIsoDate();
+    dateInput.onchange = (e) => setTrialDateDisplay(e.target.value);
+    setTrialDateDisplay(dateInput.value);
+    setupBulkDatePicker();
 
-    // Update Visual Display manually
-    const displayEl = document.getElementById('bulk-trial-date-display');
-    if (displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
-
-    // Handle Title Input
+    // Always show the title for a makeup, to confirm which trial it belongs to
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
-
-    titleWrapper.classList.remove('hidden'); // Always show title for makeup to confirm context
+    titleWrapper.classList.remove('hidden');
     titleInput.value = title || '';
 
-    // Render JUST the one student row
     const listContainer = document.getElementById('bulk-student-list');
-
-    // Simplified Row Generation for Makeup
-    const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60">`
-        : `<div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60">${student.name.charAt(0)}</div>`;
-
-    let inputHtml = '';
-    if (assessmentScheme.mode === 'qualitative') {
-        inputHtml = `
-            <select class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm">
-                <option value="" selected disabled>Select Grade...</option>
-                ${(assessmentScheme.scale || []).map((entry) => `<option value="${entry.label}">${entry.label} (${entry.normalizedPercent}%)</option>`).join('')}
-            </select>`;
-    } else {
-        const maxScore = Number(assessmentScheme.maxScore) || 100;
-        inputHtml = `
-            <div class="relative">
-                <input type="number" class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm"
-                    placeholder="Score" min="0" max="${maxScore}" onwheel="this.blur()">
-                <span class="absolute right-3 top-2.5 text-amber-900/45 text-sm font-bold">/${maxScore}</span>
-            </div>`;
-    }
-
-    listContainer.innerHTML = `
-        <div class="bulk-log-item bg-white/80 p-4 rounded-2xl shadow-sm flex items-center gap-3 border border-amber-200/60 hover:border-amber-300 hover:shadow-md transition-all" data-student-id="${student.id}">
-            ${avatarHtml}
-            <div class="flex-grow min-w-0">
-                <p class="font-bold text-gray-800 truncate">${student.name}</p>
-                <span class="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full font-bold">Taking Makeup</span>
-                <!-- Hidden absent button for logic compatibility -->
-                <button class="toggle-absent-btn hidden" tabindex="-1"></button>
-            </div>
-            <div class="w-36 grade-input-wrapper">
-                ${inputHtml}
-            </div>
-        </div>
-    `;
+    listContainer.innerHTML = trialRowHtml({ student, scheme: assessmentScheme, note: 'Taking makeup', lockAttendance: true });
+    wireTrialSheet(listContainer);
+    updateTrialTally();
 
     // Set modal datasets for saving
     modal.dataset.classId = classId;

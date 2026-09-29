@@ -1140,7 +1140,6 @@ export function setupUIListeners() {
     // NEW: Bulk Save listener
     document.getElementById('bulk-trial-save-btn').addEventListener('click', handleBulkSaveTrial);
     document.getElementById('bulk-trial-close-btn').addEventListener('click', () => modals.hideModal('bulk-trial-modal'));
-    document.getElementById('trial-type-cancel-btn').addEventListener('click', () => modals.hideModal('trial-type-modal'));
 
     const viewTrialHistoryFab = document.getElementById('view-trial-history-fab');
     if (viewTrialHistoryFab) {

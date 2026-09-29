@@ -1,0 +1,178 @@
+/* ==========================================================================
+   App header flourish (fonts untouched)
+   A gilded thread with star beads along the header's lower edge, calligraphic
+   swashes under the title and the date, soft twinkles, and a gilt hairline on
+   the control pill. Purely decorative: pointer-events none, hidden while the
+   Award sky is immersed, and still under reduced motion.
+   Markup: templates/app/header.js
+   ========================================================================== */
+
+/* ---------- Lower-edge trim ---------- */
+.gcq-header-trim {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    height: 20px;
+    pointer-events: none;
+    transition: opacity 400ms ease;
+}
+.gcq-header-trim__thread {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    height: 1.5px;
+    background: linear-gradient(90deg,
+        rgba(255, 244, 200, 0) 0%,
+        rgba(253, 230, 138, 0.85) 12%,
+        rgba(255, 255, 255, 0.95) 30%,
+        rgba(253, 224, 120, 0.9) 50%,
+        rgba(255, 255, 255, 0.95) 70%,
+        rgba(253, 230, 138, 0.85) 88%,
+        rgba(255, 244, 200, 0) 100%);
+    box-shadow: 0 0 6px rgba(255, 236, 170, 0.75);
+}
+/* A slow glint travelling along the thread */
+.gcq-header-trim__thread::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 12%;
+    height: 5px;
+    border-radius: 999px;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 70%);
+    animation: gcq-trim-glint 14s linear infinite;
+}
+@keyframes gcq-trim-glint {
+    0% { transform: translateX(-120%); opacity: 0; }
+    6% { opacity: 1; }
+    40% { opacity: 1; }
+    46%, 100% { transform: translateX(900%); opacity: 0; }
+}
+
+.gcq-header-trim__bead,
+.gcq-header-trim__gem {
+    position: absolute;
+    left: var(--x);
+    bottom: 8.75px;
+    transform: translate(-50%, 50%);
+}
+/* Little four-point stars threaded on the line */
+.gcq-header-trim__bead {
+    width: 11px;
+    height: 11px;
+    background: #fff9e0;
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    filter: drop-shadow(0 0 3px rgba(253, 224, 120, 0.95));
+    animation: gcq-bead-twinkle 5.5s ease-in-out infinite;
+    animation-delay: var(--d, 0s);
+}
+@keyframes gcq-bead-twinkle {
+    0%, 100% { transform: translate(-50%, 50%) scale(0.8) rotate(0deg); opacity: 0.75; }
+    50% { transform: translate(-50%, 50%) scale(1.25) rotate(45deg); opacity: 1; }
+}
+/* Centre ornament: a gilt diamond with curling wings */
+.gcq-header-trim__gem {
+    width: 88px;
+    height: 18px;
+    overflow: visible;
+    filter: drop-shadow(0 0 4px rgba(253, 224, 120, 0.85)) drop-shadow(0 1px 1px rgba(30, 58, 138, 0.35));
+}
+
+/* ---------- Swashes under the title and the date ---------- */
+.gcq-title-wrap,
+.gcq-date-wrap {
+    position: relative;
+    display: inline-block;
+}
+.gcq-date-wrap { display: block; }
+.gcq-swash {
+    position: absolute;
+    bottom: -0.5rem;
+    height: 0.9rem;
+    overflow: visible;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.55)) drop-shadow(0 0 3px rgba(255, 236, 170, 0.6));
+}
+.gcq-swash--title { left: 0.1em; width: min(72%, 17rem); }
+.gcq-swash--date { right: 0; width: min(58%, 15rem); }
+.gcq-swash path:first-of-type {
+    stroke-dasharray: 260;
+    stroke-dashoffset: 0;
+    animation: gcq-swash-draw 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+}
+@keyframes gcq-swash-draw {
+    from { stroke-dashoffset: 260; }
+    to { stroke-dashoffset: 0; }
+}
+
+/* ---------- Twinkles ---------- */
+.gcq-twinkle {
+    position: absolute;
+    width: 0.8rem;
+    height: 0.8rem;
+    pointer-events: none;
+    background: #fffbe8;
+    clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+    filter: drop-shadow(0 0 2px rgba(253, 230, 138, 0.9));
+    opacity: 0;
+    animation: gcq-twinkle 7s ease-in-out infinite;
+}
+.gcq-twinkle--title-end { top: -0.15rem; right: -0.85rem; }
+.gcq-twinkle--title-start { top: -0.35rem; left: 0.35em; width: 0.55rem; height: 0.55rem; animation-delay: -3.2s; }
+.gcq-twinkle--date { top: -0.2rem; left: -0.9rem; animation-delay: -1.6s; }
+@keyframes gcq-twinkle {
+    0%, 70%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+    78% { opacity: 1; transform: scale(1.15) rotate(35deg); }
+    88% { opacity: 0.6; transform: scale(0.8) rotate(70deg); }
+}
+
+/* ---------- Control pill: gilt hairline + glass highlight ---------- */
+.gcq-header-controls {
+    position: relative;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 190, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+.gcq-header-controls::before {
+    content: '';
+    position: absolute;
+    inset: 1px 10% auto;
+    height: 45%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+/* ---------- Night: the gold cools to moonlit silver-gold ---------- */
+header.header-night .gcq-header-trim__thread {
+    background: linear-gradient(90deg,
+        rgba(199, 210, 254, 0) 0%,
+        rgba(224, 231, 255, 0.7) 14%,
+        rgba(253, 230, 138, 0.8) 50%,
+        rgba(224, 231, 255, 0.7) 86%,
+        rgba(199, 210, 254, 0) 100%);
+    box-shadow: 0 0 8px rgba(199, 210, 254, 0.6);
+}
+header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254, 0.55)); }
+
+/* ---------- Where the flourish steps aside ---------- */
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim { opacity: 0; }
+
+@media (max-width: 639px) {
+    .gcq-swash,
+    .gcq-twinkle { display: none; }
+    .gcq-header-trim__gem { width: 64px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gcq-header-trim__thread::after,
+    .gcq-header-trim__bead,
+    .gcq-swash path:first-of-type { animation: none; }
+    .gcq-twinkle { animation: none; opacity: 0; }
+}

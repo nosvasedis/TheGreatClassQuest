@@ -67,6 +67,14 @@ let activeListenerIsSecretary = false;
 let listenerSessionId = 0;
 const featureListenerStarters = new Map();
 const activeDataFeatures = new Set();
+let shopItemsReadyPromise = null;
+let resolveShopItemsReady = null;
+
+function settleShopItemsReady(ready) {
+    if (!resolveShopItemsReady) return;
+    resolveShopItemsReady(Boolean(ready));
+    resolveShopItemsReady = null;
+}
 
 const featureListenerCleanups = new Map([
     ["assessments", () => {
@@ -302,15 +310,21 @@ export function ensureHeroChronicleNotesListener() {
 }
 
 export function ensureShopItemsListener() {
-    if (state.get("hasLoadedShopItems")) return;
+    if (state.get("hasLoadedShopItems")) {
+        return shopItemsReadyPromise || Promise.resolve(true);
+    }
     const userId = activeListenerUserId || state.get("currentUserId");
-    if (!userId) return;
+    if (!userId) return Promise.resolve(false);
 
     const isSecretary =
         activeListenerIsSecretary || state.get("currentUserRole") === "secretary";
     const yearContext = resolveListenerYearContext();
     const { activeYearKey, includeUntagged } = yearContext;
 
+    shopItemsReadyPromise = new Promise((resolve) => {
+        resolveShopItemsReady = resolve;
+    });
+    const initialLoad = shopItemsReadyPromise;
     state.setHasLoadedShopItems(true);
     state.setUnsubscribeShopItems(
         onSnapshot(
@@ -325,6 +339,9 @@ export function ensureShopItemsListener() {
                             }),
                         ),
                 );
+                // The first Market render must use the listener's real stock, even
+                // when this snapshot lands while the tab transition is still hidden.
+                settleShopItemsReady(true);
                 const shopModal = document.getElementById("shop-modal");
                 const shopTab = document.getElementById("shop-tab");
                 const shopVisible =
@@ -340,9 +357,16 @@ export function ensureShopItemsListener() {
                     renderMarketManagerUi();
                 }
             },
-            (error) => console.error("Error listening to shop items:", error),
+            (error) => {
+                console.error("Error listening to shop items:", error);
+                state.setHasLoadedShopItems(false);
+                state.setUnsubscribeShopItems(() => {});
+                settleShopItemsReady(false);
+                shopItemsReadyPromise = null;
+            },
         ),
     );
+    return initialLoad;
 }
 
 function maybeRenderSecretaryPortal(tabKey) {
@@ -416,6 +440,11 @@ export function clearDataListeners() {
     state.get("unsubscribeCommunicationThreads")();
     state.get("unsubscribeCommunicationMessages")();
     state.get("unsubscribeShopItems")();
+    state.setUnsubscribeShopItems(() => {});
+    state.setHasLoadedShopItems(false);
+    state.setCurrentShopItems([]);
+    settleShopItemsReady(false);
+    shopItemsReadyPromise = null;
 }
 
 if (typeof window !== "undefined" && !window.__GCQ_LISTENER_PAGE_LIFECYCLE__) {

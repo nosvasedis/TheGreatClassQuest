@@ -131,6 +131,40 @@ test('Restock on a full stall starts replacement; auto-ensure does not', async (
   assert.equal(shopStallNeedsWork(inProgress, { forceReplace: false }), true);
 });
 
+test('Market auto-ensure waits for loaded stock and skips a complete live stall', async () => {
+  const {
+    SHOP_RESTOCK_ITEM_COUNT,
+    FESTIVAL_STALL_ITEM_COUNT,
+    shopInventoryNeedsEnsure
+  } = await loadShopRestock();
+  const monthly = Array.from({ length: SHOP_RESTOCK_ITEM_COUNT }, (_, index) => complete({
+    id: `monthly-${index}`,
+    stock: 1
+  }));
+  const festival = Array.from({ length: FESTIVAL_STALL_ITEM_COUNT }, (_, index) => complete({
+    id: `festival-${index}`,
+    shelf: 'festival',
+    festivalId: 'christmas-2026',
+    stock: 1
+  }));
+
+  assert.equal(shopInventoryNeedsEnsure(monthly), false);
+  assert.equal(shopInventoryNeedsEnsure(monthly.slice(0, -1)), true);
+  assert.equal(shopInventoryNeedsEnsure([...monthly, ...festival], {
+    activeFestivalId: 'christmas-2026'
+  }), false);
+  assert.equal(shopInventoryNeedsEnsure(monthly, {
+    activeFestivalId: 'christmas-2026'
+  }), true);
+  assert.equal(shopInventoryNeedsEnsure([...monthly, festival[0]]), true);
+
+  const shop = fs.readFileSync(path.join(root, 'ui/core/shop.js'), 'utf8');
+  const listeners = fs.readFileSync(path.join(root, 'db/listeners.js'), 'utf8');
+  assert.match(shop, /await ensureShopItemsListener\(\)/);
+  assert.match(shop, /initializeShopTabContent\(\{ allowAutoEnsure: shopItemsReady \}\)/);
+  assert.match(listeners, /state\.setCurrentShopItems\([\s\S]*?settleShopItemsReady\(true\)/);
+});
+
 test('legacy items without stock count as one copy and sold-out items hide', async () => {
   const {
     shopItemStock,

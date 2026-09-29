@@ -7,7 +7,11 @@ import { getSeasonalShopPriceMeta, getLocalIsoDateString } from '../../utils.js'
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
-import { isVisibleSeasonalShopItem, isVisibleFestivalShopItem } from '../../utils/shopRestock.js';
+import {
+    isVisibleSeasonalShopItem,
+    isVisibleFestivalShopItem,
+    shopInventoryNeedsEnsure
+} from '../../utils/shopRestock.js';
 import { shopMonthKey, getMonthlyShopTheme, getActiveFestival } from '../../utils/shopCalendar.js';
 import { showToast } from '../effects.js';
 import {
@@ -461,15 +465,14 @@ function spillShopCoins() {
 
 // --- SHOP UI LOGIC ---
 
-export function initializeShopTab() {
+export async function initializeShopTab() {
     ensureShopStudentDropdownListeners();
-    import('../../db/listeners.js').then(({ ensureShopItemsListener }) => {
-        ensureShopItemsListener();
-        initializeShopTabContent();
-    });
+    const { ensureShopItemsListener } = await import('../../db/listeners.js');
+    const shopItemsReady = await ensureShopItemsListener();
+    initializeShopTabContent({ allowAutoEnsure: shopItemsReady });
 }
 
-function initializeShopTabContent() {
+function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     const seasonLive = isShopSeasonLive();
     applyShopSeasonLock(seasonLive);
 
@@ -535,7 +538,14 @@ function initializeShopTabContent() {
     populateShopStudentPicker(validStudents);
 
     renderShopUI();
-    if (canUseFeature('eliteAI')) {
+    const currentMonthKey = shopMonthKey();
+    const currentLeagueItems = (state.get('currentShopItems') || []).filter((item) => (
+        item.monthKey === currentMonthKey && item.league === league
+    ));
+    const stockNeedsEnsure = shopInventoryNeedsEnsure(currentLeagueItems, {
+        activeFestivalId: getActiveFestival()?.festivalId
+    });
+    if (allowAutoEnsure && canUseFeature('eliteAI') && stockNeedsEnsure) {
         import('../../db/actions.js').then((actions) => actions.handleEnsureShopStock?.()).catch((error) => {
             console.warn('Shop auto-ensure failed', error);
         });

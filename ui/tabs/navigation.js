@@ -289,7 +289,8 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     }
 
     if (tabId === 'shop-tab') {
-        import('../core/shop.js').then(m => m.initializeShopTab());
+        const { initializeShopTab } = await import('../core/shop.js');
+        await initializeShopTab();
     }
 }
 

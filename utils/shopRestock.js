@@ -190,6 +190,26 @@ export function shopStallNeedsWork(plan, options = {}) {
     return false;
 }
 
+/**
+ * Mirrors the server's automatic ensure decision after the current league/month
+ * stock has loaded. Manual Restock still bypasses this and always requests a new
+ * monthly stall.
+ */
+export function shopInventoryNeedsEnsure(items = [], options = {}) {
+    const activeFestivalId = text(options.activeFestivalId);
+    const monthlyPlan = planShopRestock(items, { shelf: 'seasonal' });
+    if (shopStallNeedsWork(monthlyPlan)) return true;
+
+    const festivalItems = itemsForShelf(items, 'festival');
+    const staleFestivalItems = festivalItems.some((item) => text(item?.festivalId) !== activeFestivalId);
+    if (staleFestivalItems) return true;
+    if (!activeFestivalId) return false;
+
+    const activeFestivalItems = festivalItems.filter((item) => text(item?.festivalId) === activeFestivalId);
+    const festivalPlan = planShopRestock(activeFestivalItems, { shelf: 'festival' });
+    return shopStallNeedsWork(festivalPlan);
+}
+
 export function shopRestockToast(options = {}) {
     const mode = String(options.mode || 'fill');
     const savedThisRun = Math.max(0, Number(options.savedThisRun) || 0);

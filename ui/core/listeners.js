@@ -598,6 +598,7 @@ export function setupUIListeners() {
     }
     // Boon Modal Listeners
     document.getElementById('boon-cancel-btn').addEventListener('click', () => modals.hideModal('bestow-boon-modal'));
+    document.getElementById('boon-close-btn')?.addEventListener('click', () => modals.hideModal('bestow-boon-modal'));
     const boonSenderSelect = document.getElementById('boon-sender-select');
     if (boonSenderSelect) {
         boonSenderSelect.addEventListener('change', (e) => {

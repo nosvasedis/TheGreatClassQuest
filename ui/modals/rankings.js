@@ -13,7 +13,14 @@ import {
 import { showToast } from '../effects.js';
 import { renderBoonSponsorPicker } from '../boonSponsorPicker.js';
 import { playSound } from '../../audio.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
+import {
+    HERO_CLASSES,
+    PEER_BOON_BASE_STARS,
+    PEER_BOON_COST,
+    PEER_BOON_DAILY_CAP,
+    calculatePatronGiftEffects
+} from '../../features/heroClasses.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import {
     getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
@@ -609,7 +616,7 @@ export function openBestowBoonModal(receiverId) {
         l.reason === 'peer_boon'
     ).length;
 
-    if (classBoonsToday >= 4) {
+    if (classBoonsToday >= PEER_BOON_DAILY_CAP) {
         showToast("Daily limit reached: The class has already bestowed 4 Boons today!", "error");
         return;
     }
@@ -659,9 +666,9 @@ export function openBestowBoonModal(receiverId) {
     const select = document.getElementById('boon-sender-select');
 
     const pickerOptions = [];
+    const heroProgressionEnabled = canUseFeature('heroProgression');
     if (classmates.length === 0) {
         select.innerHTML = `<option value="">No other students in class</option>`;
-        document.getElementById('boon-confirm-btn').disabled = true;
     } else {
         const monthKey = utils.getLocalMonthKey();
         const placeholder = '<option value="" disabled selected>-- Select a Sponsor --</option>';
@@ -671,21 +678,10 @@ export function openBestowBoonModal(receiverId) {
             const freeBoonUses = Number(scoreData?.peerBoonFreeUses) || 0;
             const isMonthFree = scoreData?.peerBoonFreeMonthKey === monthKey;
             const hasFreeBoon = isMonthFree || freeBoonUses > 0;
-            const hasEnoughGold = gold >= 15;
+            const hasEnoughGold = gold >= PEER_BOON_COST;
             const isConsecutiveLimit = scoreData?.lastPeerBoonRecipientId === receiverId;
-
-            let labelSuffix = `(${gold} Gold)`;
-            let isDisabled = false;
-
-            if (isConsecutiveLimit) {
-                isDisabled = true;
-                labelSuffix = `(Unavailable: Consecutive Limit)`;
-            } else if (!hasFreeBoon && !hasEnoughGold) {
-                isDisabled = true;
-                labelSuffix = `(Needs 15 Gold, has ${gold})`;
-            } else if (hasFreeBoon) {
-                labelSuffix = `(Free Boon Available!)`;
-            }
+            const isDisabled = isConsecutiveLimit || (!hasFreeBoon && !hasEnoughGold);
+            const patronGift = heroProgressionEnabled ? calculatePatronGiftEffects(s, scoreData) : null;
 
             pickerOptions.push({
                 id: s.id,
@@ -693,16 +689,30 @@ export function openBestowBoonModal(receiverId) {
                 avatar: s.avatar || '',
                 gold,
                 status: isDisabled ? 'locked' : (hasFreeBoon ? 'free' : 'ready'),
-                reason: isConsecutiveLimit ? 'Boosted them last time' : `Needs 15 Gold`
+                reason: isConsecutiveLimit ? 'Gave them the last one' : `Needs ${PEER_BOON_COST} Gold`,
+                patronGoldBack: patronGift?.applies ? patronGift.giverGoldBonus : 0,
+                extraStars: patronGift?.applies ? patronGift.extraStarsForReceiver : 0
             });
 
-            return `<option value="${s.id}" ${isDisabled ? 'disabled style="color: #94a3b8; opacity: 0.5;"' : ''}>${s.name} ${labelSuffix}</option>`;
+            return `<option value="${s.id}"${isDisabled ? ' disabled' : ''}>${String(s.name).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`)}</option>`;
         }).join('');
 
         select.innerHTML = placeholder + optionsHtml;
-        document.getElementById('boon-confirm-btn').disabled = true;
     }
-    renderBoonSponsorPicker(pickerOptions);
+    document.getElementById('boon-confirm-btn').disabled = true;
+    const receiverScore = scores.find(sc => sc.id === receiverId);
+    renderBoonSponsorPicker(pickerOptions, {
+        receiver: {
+            id: receiver.id,
+            name: receiver.name,
+            avatar: receiver.avatar || '',
+            monthlyStars: Math.round((Number(receiverScore?.monthlyStars) || 0) * 10) / 10
+        },
+        boonsToday: classBoonsToday,
+        dailyCap: PEER_BOON_DAILY_CAP,
+        cost: PEER_BOON_COST,
+        baseStars: PEER_BOON_BASE_STARS
+    });
 
     showAnimatedModal('bestow-boon-modal');
 }

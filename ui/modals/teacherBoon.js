@@ -5,12 +5,13 @@ import { showToast } from '../effects.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { TEACHER_BOON_PRESETS, awardTeacherBoon, formatTeacherBoonReason, getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
+import { buildAwardCloudSvg } from '../../features/awardCloudCard.mjs';
 
 const TEACHER_BOON_FIXED_STARS = 2;
 const TEACHER_BOON_STEPS = [
-    { step: 1, label: 'Hero' },
-    { step: 2, label: 'Reason' },
-    { step: 3, label: 'Bestow' }
+    { step: 1, label: 'Hero', icon: 'fa-user' },
+    { step: 2, label: 'Reason', icon: 'fa-feather-pointed' },
+    { step: 3, label: 'Bestow', icon: 'fa-star' }
 ];
 // Icon + accent per preset; the emoji in TEACHER_BOON_PRESETS stays for logs and the ceremony.
 const TEACHER_BOON_PRESET_STYLE = {
@@ -202,11 +203,12 @@ function buildTeacherBoonCardMarkup() {
 
     const meta = readOnly
         ? '<i class="fas fa-circle-check" aria-hidden="true"></i> Given this month'
-        : escapeHtml(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
+        : '<i class="fas fa-calendar-day" aria-hidden="true"></i> ' + escapeHtml(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
 
     return `
         <div class="tb-card ${readOnly ? 'tb-card--given' : ''}">
             <div class="tb-card__rays" aria-hidden="true"></div>
+            <div class="tb-card__cloud" aria-hidden="true">${buildAwardCloudSvg('a', 'tb-card')}</div>
             <div class="tb-card__avatar-wrap">${renderAvatar(student, 'tb-card__avatar')}</div>
             <p class="tb-card__name">${escapeHtml(student.name)}</p>
             <div class="tb-card__stars" aria-label="${stars} stars">
@@ -221,11 +223,11 @@ function buildTeacherBoonCardMarkup() {
 function ensureTeacherBoonStepper() {
     const stepper = document.getElementById('teacher-boon-stepper');
     if (!stepper || stepper.childElementCount) return stepper;
-    stepper.innerHTML = TEACHER_BOON_STEPS.map(({ step, label }) => `
+    stepper.innerHTML = TEACHER_BOON_STEPS.map(({ step, label, icon }) => `
         ${step > 1 ? '<span class="tb-steps__line" aria-hidden="true"><span></span></span>' : ''}
         <button type="button" class="tb-steps__item" data-teacher-boon-step="${step}">
             <span class="tb-steps__dot">
-                <span class="tb-steps__num">${step}</span>
+                <i class="fas ${icon} tb-steps__num" aria-hidden="true"></i>
                 <i class="fas fa-check tb-steps__check" aria-hidden="true"></i>
             </span>
             <span class="tb-steps__label">${label}</span>

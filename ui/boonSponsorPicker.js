@@ -1,166 +1,225 @@
-// Custom sponsor picker for the Hero's Boon modal.
+// Hero's Boon modal: the gift bridge (sponsor → heart → receiver on a cloud), the sponsor
+// tiles and the "boons today" pips. Styles: styles/boons.css (.hb-*).
 // The hidden native <select id="boon-sender-select"> stays the source of truth:
-// picking an option sets its value and dispatches 'change', so existing listeners keep working.
+// picking a tile sets its value and dispatches 'change', so existing listeners keep working.
+
+import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
 
 const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 const STATUS_ORDER = { free: 0, ready: 1, locked: 2 };
+const SEARCH_THRESHOLD = 12;
 
-function avatarHtml(option, size = 'md') {
-    const cls = `boon-picker__avatar boon-picker__avatar--${size}`;
-    if (option.avatar) return `<img src="${escapeHtml(option.avatar)}" alt="" class="${cls}" loading="lazy">`;
-    return `<span class="${cls} boon-picker__avatar--initial">${escapeHtml(option.name.charAt(0).toUpperCase())}</span>`;
+/** "+½", "+1", "+1½" for the star gift. */
+export function formatBoonStars(value) {
+    const n = Math.round((Number(value) || 0) * 2) / 2;
+    const whole = Math.floor(n);
+    const half = n - whole >= 0.5 ? '½' : '';
+    return `+${whole ? whole : ''}${half || (whole ? '' : '0')}`;
 }
 
-function badgeHtml(option) {
-    if (option.status === 'free') return '<span class="boon-picker__badge boon-picker__badge--free">✨ Free Boon</span>';
-    if (option.status === 'locked') return `<span class="boon-picker__badge boon-picker__badge--locked">🔒 ${escapeHtml(option.reason)}</span>`;
-    return `<span class="boon-picker__badge boon-picker__badge--gold">🪙 ${option.gold}</span>`;
+function firstName(name) {
+    return String(name || '').trim().split(/\s+/)[0] || String(name || '');
+}
+
+function faceHtml(person, cls) {
+    if (person.avatar) return `<img src="${escapeHtml(person.avatar)}" alt="" class="${cls}" loading="lazy" decoding="async">`;
+    return `<span class="${cls} ${cls}--initial">${escapeHtml(String(person.name || '?').charAt(0).toUpperCase())}</span>`;
+}
+
+function coinHtml() {
+    return '<span class="hb-coin" aria-hidden="true"><i class="fas fa-star"></i></span>';
+}
+
+function tileStatusHtml(option) {
+    if (option.status === 'locked') {
+        return `<span class="hb-tile__why"><i class="fas fa-moon" aria-hidden="true"></i>${escapeHtml(option.reason)}</span>`;
+    }
+    if (option.status === 'free') {
+        return `<span class="hb-tile__ribbon">Free boon</span>`;
+    }
+    return `<span class="hb-tile__purse">${coinHtml()}${escapeHtml(option.gold)}<span class="sr-only"> Gold</span></span>`;
+}
+
+function tileHtml(option, selectedId) {
+    const locked = option.status === 'locked';
+    const selected = option.id === selectedId;
+    const patron = option.patronGoldBack > 0 && !locked
+        ? `<span class="hb-tile__patron" title="Patron: gets ${option.patronGoldBack} Gold back"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i></span>`
+        : '';
+    const label = locked
+        ? `${option.name}: ${option.reason}`
+        : `${option.name}, ${option.status === 'free' ? 'free boon' : `${option.gold} Gold`}`;
+    return `<button type="button" role="radio" class="hb-tile hb-tile--${option.status}${selected ? ' is-selected' : ''}"
+            data-id="${escapeHtml(option.id)}" aria-checked="${selected}" aria-label="${escapeHtml(label)}"
+            ${locked ? 'aria-disabled="true" tabindex="-1"' : 'tabindex="-1"'}>
+            <span class="hb-tile__face-wrap">${faceHtml(option, 'hb-tile__face')}${patron}
+                <span class="hb-tile__check" aria-hidden="true"><i class="fas fa-check"></i></span></span>
+            <span class="hb-tile__name">${escapeHtml(firstName(option.name))}</span>
+            ${tileStatusHtml(option)}
+        </button>`;
+}
+
+function giverSlotHtml(option) {
+    if (!option) {
+        return `<span class="hb-end__ring hb-end__ring--empty" aria-hidden="true"><i class="fas fa-question"></i></span>
+            <span class="hb-end__name hb-end__name--muted">Sponsor</span>
+            <span class="hb-end__note">pick below</span>`;
+    }
+    const note = option.status === 'free'
+        ? '<span class="hb-end__note hb-end__note--free">free boon</span>'
+        : `<span class="hb-end__note">${coinHtml()}−${option.cost}</span>`;
+    return `<span class="hb-end__ring">${faceHtml(option, 'hb-end__face')}</span>
+        <span class="hb-end__name">${escapeHtml(firstName(option.name))}</span>${note}`;
+}
+
+function receiverSlotHtml(receiver) {
+    return `<span class="hb-cloud" aria-hidden="true">${buildAwardCloudSvg('b', 'hb-receiver')}</span>
+        <span class="hb-end__ring hb-end__ring--receiver">${faceHtml(receiver, 'hb-end__face')}</span>
+        <span class="hb-end__name">${escapeHtml(firstName(receiver.name))}</span>
+        <span class="hb-end__note hb-end__note--stars"><i class="fas fa-star" aria-hidden="true"></i>${escapeHtml(receiver.monthlyStars ?? 0)} this month</span>`;
+}
+
+function dealHtml(option, baseStars, cost) {
+    const stars = baseStars + (option?.extraStars || 0);
+    const pay = option?.status === 'free'
+        ? '<span class="hb-deal__pay hb-deal__pay--free">Free</span>'
+        : `<span class="hb-deal__pay">${coinHtml()}${cost}</span>`;
+    const back = option?.patronGoldBack > 0
+        ? `<span class="hb-deal__back" title="Patron bonus">+${option.patronGoldBack} back</span>`
+        : '';
+    return `${pay}<i class="fas fa-arrow-right hb-deal__arrow" aria-hidden="true"></i>`
+        + `<span class="hb-deal__get"><i class="fas fa-star" aria-hidden="true"></i>${formatBoonStars(stars)}</span>${back}`;
+}
+
+function todayHtml(used, cap) {
+    const left = Math.max(0, cap - used);
+    const pips = Array.from({ length: cap }, (_, i) =>
+        `<span class="hb-today__pip${i < used ? ' is-used' : ''}"></span>`).join('');
+    return `<span class="hb-today__pips" aria-hidden="true">${pips}</span>`
+        + `<span class="hb-today__text"><b>${left}</b> of ${cap} boons left today</span>`;
 }
 
 /**
- * @param {Array<{id:string,name:string,avatar?:string,gold:number,status:'free'|'ready'|'locked',reason?:string}>} options
+ * Fill the Hero's Boon modal.
+ * @param {Array<{id:string,name:string,avatar?:string,gold:number,status:'free'|'ready'|'locked',reason?:string,patronGoldBack?:number,extraStars?:number}>} options
+ * @param {{receiver?:{id:string,name:string,avatar?:string,monthlyStars?:number}, boonsToday?:number, dailyCap?:number, cost?:number, baseStars?:number}} context
  */
-export function renderBoonSponsorPicker(options) {
+export function renderBoonSponsorPicker(options, context = {}) {
     const root = document.getElementById('boon-sponsor-picker');
     const select = document.getElementById('boon-sender-select');
+    const shell = document.getElementById('bestow-boon-shell');
     if (!root || !select) return;
+
+    const { receiver = null, boonsToday = 0, dailyCap = 4, cost = 15, baseStars = 0.5 } = context;
+    const giverSlot = document.getElementById('boon-giver-slot');
+    const receiverSlot = document.getElementById('boon-receiver-slot');
+    const deal = document.getElementById('boon-deal');
+    const today = document.getElementById('boon-today');
+    const confirmLabel = document.getElementById('boon-confirm-label');
+    const confirmBtn = document.getElementById('boon-confirm-btn');
 
     root._cleanup?.();
 
     const sorted = [...options].sort((a, b) =>
         (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || (b.gold - a.gold) || a.name.localeCompare(b.name));
-    const availableCount = sorted.filter(o => o.status !== 'locked').length;
-    const showSearch = sorted.length > 6;
+    const available = sorted.filter((o) => o.status !== 'locked');
+    const resting = sorted.filter((o) => o.status === 'locked');
+    const showSearch = sorted.length > SEARCH_THRESHOLD;
+    const withCost = (o) => (o ? { ...o, cost } : null);
+
+    if (receiver && receiverSlot) receiverSlot.innerHTML = receiverSlotHtml(receiver);
+    if (today) today.innerHTML = todayHtml(boonsToday, dailyCap);
 
     root.innerHTML = `
-        <button type="button" class="boon-picker__trigger" aria-haspopup="listbox" aria-expanded="false"
-            aria-labelledby="boon-sender-label" ${sorted.length === 0 ? 'disabled' : ''}>
-            <span class="boon-picker__value"></span>
-            <i class="fas fa-chevron-down boon-picker__chevron" aria-hidden="true"></i>
-        </button>
-        <div class="boon-picker__panel hidden">
-            ${showSearch ? `<div class="boon-picker__search">
-                <i class="fas fa-search" aria-hidden="true"></i>
-                <input type="text" placeholder="Find a sponsor…" aria-label="Find a sponsor" autocomplete="off">
-            </div>` : ''}
-            <ul class="boon-picker__list" role="listbox" aria-labelledby="boon-sender-label"></ul>
-            <p class="boon-picker__footer">${availableCount} of ${sorted.length} can sponsor</p>
+        ${showSearch ? `<label class="hb-search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="text" placeholder="Find a classmate…" aria-label="Find a classmate" autocomplete="off">
+        </label>` : ''}
+        <div class="hb-tiles-scroll">
+            <div class="hb-tiles" role="radiogroup" aria-labelledby="boon-sender-label"></div>
+            <p class="hb-rest-label hidden"><span>Resting this time</span></p>
+            <div class="hb-tiles hb-tiles--resting" aria-label="Cannot sponsor right now"></div>
+            <p class="hb-picker__empty hidden">No classmate by that name</p>
         </div>`;
 
-    const trigger = root.querySelector('.boon-picker__trigger');
-    const valueEl = root.querySelector('.boon-picker__value');
-    const panel = root.querySelector('.boon-picker__panel');
-    const list = root.querySelector('.boon-picker__list');
-    const search = root.querySelector('.boon-picker__search input');
-    let activeIndex = -1;
-    let visible = sorted;
+    const tiles = root.querySelector('.hb-tiles:not(.hb-tiles--resting)');
+    const restTiles = root.querySelector('.hb-tiles--resting');
+    const restLabel = root.querySelector('.hb-rest-label');
+    const empty = root.querySelector('.hb-picker__empty');
+    const search = root.querySelector('.hb-search input');
 
-    const renderValue = () => {
-        const chosen = sorted.find(o => o.id === select.value);
-        if (!sorted.length) {
-            valueEl.innerHTML = '<span class="boon-picker__placeholder">No other students in class</span>';
-        } else if (!chosen) {
-            valueEl.innerHTML = `<span class="boon-picker__placeholder-icon">🧙</span>
-                <span class="boon-picker__placeholder">Choose a generous hero…</span>`;
-        } else {
-            valueEl.innerHTML = `${avatarHtml(chosen, 'sm')}
-                <span class="boon-picker__name">${escapeHtml(chosen.name)}</span>${badgeHtml(chosen)}`;
+    const syncChrome = () => {
+        const chosen = withCost(available.find((o) => o.id === select.value));
+        if (giverSlot) giverSlot.innerHTML = giverSlotHtml(chosen);
+        if (deal) deal.innerHTML = dealHtml(chosen, baseStars, cost);
+        shell?.classList.toggle('has-sponsor', !!chosen);
+        if (confirmBtn) confirmBtn.disabled = !chosen;
+        if (confirmLabel) {
+            confirmLabel.textContent = !sorted.length
+                ? 'No classmates yet'
+                : (!available.length ? 'No sponsor can give today' : (chosen ? `Send ${firstName(chosen.name)}’s boon` : 'Choose a sponsor'));
         }
-        root.classList.toggle('is-chosen', !!chosen);
     };
 
-    const renderList = () => {
+    const render = () => {
         const q = (search?.value || '').trim().toLowerCase();
-        visible = q ? sorted.filter(o => o.name.toLowerCase().includes(q)) : sorted;
-        if (!visible.length) {
-            list.innerHTML = '<li class="boon-picker__empty">No hero by that name</li>';
-            activeIndex = -1;
-            return;
+        const match = (o) => !q || o.name.toLowerCase().includes(q);
+        const shownAvailable = available.filter(match);
+        const shownResting = resting.filter(match);
+        tiles.innerHTML = shownAvailable.map((o) => tileHtml(o, select.value)).join('');
+        restTiles.innerHTML = shownResting.map((o) => tileHtml(o, select.value)).join('');
+        restLabel.classList.toggle('hidden', !shownResting.length);
+        tiles.classList.toggle('hidden', !shownAvailable.length);
+        empty.classList.toggle('hidden', !!(shownAvailable.length || shownResting.length) || !sorted.length);
+        if (!sorted.length) {
+            empty.textContent = 'No other heroes in this class yet';
+            empty.classList.remove('hidden');
         }
-        list.innerHTML = visible.map((o, i) => `
-            <li role="option" id="boon-opt-${i}" data-id="${escapeHtml(o.id)}"
-                class="boon-picker__option boon-picker__option--${o.status}${o.id === select.value ? ' is-selected' : ''}"
-                aria-selected="${o.id === select.value}" aria-disabled="${o.status === 'locked'}">
-                ${avatarHtml(o)}
-                <span class="boon-picker__option-name">${escapeHtml(o.name)}</span>
-                ${badgeHtml(o)}
-                <i class="fas fa-check boon-picker__check" aria-hidden="true"></i>
-            </li>`).join('');
-        setActive(Math.max(0, visible.findIndex(o => o.id === select.value && o.status !== 'locked')), false);
+        // Roving focus: the chosen tile, else the first one, is the tab stop.
+        const enabled = [...tiles.querySelectorAll('.hb-tile')];
+        const stop = enabled.find((el) => el.dataset.id === select.value) || enabled[0];
+        if (stop) stop.tabIndex = 0;
     };
 
-    const setActive = (index, scroll = true) => {
-        const items = list.querySelectorAll('.boon-picker__option');
-        items.forEach(el => el.classList.remove('is-active'));
-        activeIndex = index;
-        const el = items[index];
-        if (!el) return;
-        el.classList.add('is-active');
-        list.setAttribute('aria-activedescendant', el.id);
-        if (scroll) el.scrollIntoView({ block: 'nearest' });
-    };
-
-    const moveActive = (delta) => {
-        if (!visible.length) return;
-        let i = activeIndex;
-        for (let n = 0; n < visible.length; n += 1) {
-            i = (i + delta + visible.length) % visible.length;
-            if (visible[i].status !== 'locked') return setActive(i);
-        }
-    };
-
-    const open = () => {
-        if (trigger.disabled) return;
-        panel.classList.remove('hidden');
-        root.classList.add('is-open');
-        trigger.setAttribute('aria-expanded', 'true');
-        if (search) search.value = '';
-        renderList();
-        (search || list).focus({ preventScroll: true });
-    };
-
-    const close = (refocus = true) => {
-        panel.classList.add('hidden');
-        root.classList.remove('is-open');
-        trigger.setAttribute('aria-expanded', 'false');
-        if (refocus) trigger.focus({ preventScroll: true });
-    };
-
-    const choose = (option) => {
-        if (!option || option.status === 'locked') return;
+    const choose = (id) => {
+        const option = available.find((o) => o.id === id);
+        if (!option) return;
         select.value = option.id;
         select.dispatchEvent(new Event('change', { bubbles: true }));
-        renderValue();
-        close();
+        tiles.querySelectorAll('.hb-tile').forEach((el) => {
+            const on = el.dataset.id === option.id;
+            el.classList.toggle('is-selected', on);
+            el.setAttribute('aria-checked', String(on));
+            el.tabIndex = on ? 0 : -1;
+        });
+        syncChrome();
     };
 
-    list.tabIndex = -1;
-    trigger.addEventListener('click', () => (root.classList.contains('is-open') ? close() : open()));
-    trigger.addEventListener('keydown', (e) => {
-        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
-    });
-    list.addEventListener('click', (e) => {
-        const li = e.target.closest('.boon-picker__option');
-        if (li) choose(sorted.find(o => o.id === li.dataset.id));
-    });
-    list.addEventListener('mousemove', (e) => {
-        const li = e.target.closest('.boon-picker__option:not(.boon-picker__option--locked)');
-        if (li) setActive([...list.children].indexOf(li), false);
-    });
-    search?.addEventListener('input', renderList);
-    panel.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(1); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); }
-        else if (e.key === 'Enter') { e.preventDefault(); choose(visible[activeIndex]); }
-        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
-        else if (e.key === 'Tab') close(false);
-    });
-    const onDocPointer = (e) => { if (!root.contains(e.target) && root.classList.contains('is-open')) close(false); };
-    document.addEventListener('pointerdown', onDocPointer);
-    root._cleanup = () => document.removeEventListener('pointerdown', onDocPointer);
+    // Property handler, not addEventListener: the root outlives each render.
+    root.onclick = (e) => {
+        const tile = e.target.closest('.hb-tile');
+        if (!tile || tile.getAttribute('aria-disabled') === 'true') return;
+        choose(tile.dataset.id);
+    };
 
-    renderValue();
+    tiles.addEventListener('keydown', (e) => {
+        const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+        if (!(e.key in keys)) return;
+        const list = [...tiles.querySelectorAll('.hb-tile')];
+        const i = list.indexOf(document.activeElement);
+        if (i === -1) return;
+        e.preventDefault();
+        const next = list[(i + keys[e.key] + list.length) % list.length];
+        next.focus();
+        choose(next.dataset.id);
+    });
+
+    search?.addEventListener('input', render);
+    root._cleanup = () => { root.innerHTML = ''; };
+
+    render();
+    syncChrome();
 }

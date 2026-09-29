@@ -1,6 +1,6 @@
 /**
  * Recently redesigned screens for guidebook capture: Post a Bounty poster, Adventurer's Passport,
- * Avatar Forge, class charter and emblem case, guild banner and anthem alcove, Teacher Boon,
+ * Avatar Forge, class charter and emblem case, guild banner and anthem alcove, Teacher Boon, Hero's Boon,
  * and the Secretary Office (front desk and Students & Classes).
  *
  * Every screen is drawn by the app's own templates and renderers, fed with fake state.
@@ -127,6 +127,7 @@ const CAPTURE_TARGETS = [
   ['guild-lore-overlay', 'capture-lore'],
   ['guild-anthem-overlay', 'capture-anthem'],
   ['teacher-boon-modal', 'capture-tb'],
+  ['bestow-boon-modal', 'capture-hb'],
   ['secretary-screen', 'capture-office']
 ];
 
@@ -300,6 +301,29 @@ export async function showTeacherBoon() {
   document.getElementById('teacher-boon-next-btn')?.click();
   modal?.querySelector('[data-teacher-boon-preset="perseverance"]')?.click();
   document.getElementById('teacher-boon-next-btn')?.click();
+}
+
+// ── Hero's Boon ──────────────────────────────────────────────────────────────
+
+/** Yannis (fewest stars) receives; Alex has a free boon, Sofia gave him the last one, Nikos is short of Gold. */
+export async function showHeroBoon() {
+  startShow();
+  const scores = state.get('allStudentScores').map((s) => {
+    if (s.id === 'guide-alex') return { ...s, peerBoonFreeUses: 1 };
+    if (s.id === 'guide-sofia') return { ...s, lastPeerBoonRecipientId: 'guide-yannis' };
+    if (s.id === 'guide-nikos') return { ...s, gold: 9 };
+    return s;
+  });
+  state.set('allStudentScores', scores);
+  state.set('allAwardLogs', [
+    ...state.get('allAwardLogs'),
+    { classId: CLASS_ID, date: '28-09-2026', stars: 0.5, studentId: 'guide-nikos', giverId: 'guide-maria', reason: 'peer_boon' }
+  ]);
+  const { openBestowBoonModal } = await import('../../../../ui/modals/rankings.js');
+  openBestowBoonModal('guide-yannis');
+  const modal = frame('bestow-boon-modal', 'capture-hb');
+  modal?.querySelector('.hb-tile[data-id="guide-maria"]')?.click();
+  await settleFocus();
 }
 
 // ── Secretary Office ─────────────────────────────────────────────────────────

@@ -95,7 +95,8 @@ import {
   showGuildBanner,
   showOffice,
   showPassport,
-  showTeacherBoon
+  showTeacherBoon,
+  showHeroBoon
 } from './fill-redesign.js';
 import {
   hideCampfire,
@@ -255,6 +256,7 @@ window.__gcqCapture = {
   showGuildBanner,
   showGuildAnthem,
   showTeacherBoon,
+  showHeroBoon,
   showOffice
 };
 document.documentElement.classList.add('capture-ready');

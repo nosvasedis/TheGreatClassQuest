@@ -247,6 +247,9 @@
 /* 48. Award Stars: star clouds, virtues, tallies, award moments (features/awardCloudCard.mjs) */
 @import url('./styles/award_stars.css');
 
+/* 48b. Boons: Hero's Boon and Teacher Boon modals, in the Award Stars sky */
+@import url('./styles/boons.css');
+
 /* 48. Secretary Office: the school's front office (signs, registry, dialogs, modal motion) */
 @import url('./styles/secretary_office.css');
 

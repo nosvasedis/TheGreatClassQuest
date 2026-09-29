@@ -1,6 +1,6 @@
 // templates/modals/misc.js
 // Quest update, milestone, welcome back, celebration bonus, quest assignment,
-// starfall, overview, bounty, boon confirm, bestow boon
+// starfall, overview, bounty, bestow boon
 
 export const miscModalsHTML = `
     <div id="quest-update-modal"
@@ -391,103 +391,88 @@ export const miscModalsHTML = `
         </div>
     </div>
 
-    <div id="boon-confirm-modal"
-        class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 hidden backdrop-blur-xl">
-        <div class="boon-confirm-shell pop-in">
-            <div class="boon-confirm-shell__glow"></div>
-            <!-- Heart Icon -->
-            <div class="boon-confirm-icon" aria-hidden="true">
-                <span class="boon-confirm-icon__heart">💝</span>
-                <span class="boon-confirm-icon__ring"></span>
-            </div>
-            <h3 class="boon-confirm-title">Confirm Boon?</h3>
-            <p class="boon-confirm-body">
-                Spend <span class="boon-confirm-cost">15 🪙</span> from
-                <b id="boon-confirm-sender" class="boon-confirm-name"></b>
-                to bestow a Hero’s Boon on
-                <b id="boon-confirm-receiver" class="boon-confirm-name"></b>?
-            </p>
-            <div class="boon-confirm-reward">
-                <i class="fas fa-star" style="color:#fbbf24;"></i>
-                <span>+0.5 Stars awarded</span>
-            </div>
-            <div class="boon-confirm-actions">
-                <button id="boon-confirm-cancel-btn" class="boon-confirm-btn boon-confirm-btn--cancel">Cancel</button>
-                <button id="boon-confirm-final-btn" class="boon-confirm-btn boon-confirm-btn--confirm">Bestow! 💝</button>
-            </div>
-        </div>
-    </div>
-
     <div id="bestow-boon-modal"
-        class="fixed inset-0 bg-black/75 z-[90] flex items-center justify-center p-4 hidden backdrop-blur-lg">
-        <div class="bestow-boon-shell pop-in">
-            <!-- Animated backdrop -->
-            <div class="bestow-boon-shell__backdrop"></div>
-
-            <!-- Floating sparkles -->
-            <div class="bestow-boon-sparkles" aria-hidden="true">
-                <span class="bestow-boon-sparkle bestow-boon-sparkle--1"></span>
-                <span class="bestow-boon-sparkle bestow-boon-sparkle--2"></span>
-                <span class="bestow-boon-sparkle bestow-boon-sparkle--3"></span>
-                <span class="bestow-boon-sparkle bestow-boon-sparkle--4"></span>
-                <span class="bestow-boon-sparkle bestow-boon-sparkle--5"></span>
+        class="hb-overlay fixed inset-0 z-[90] flex items-center justify-center p-4 hidden">
+        <div id="bestow-boon-shell" class="hb-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="bestow-boon-title">
+            <div class="hb-sky" aria-hidden="true">
+                <span class="hb-sky__glow"></span>
+                <span class="hb-sky__puff hb-sky__puff--1"></span>
+                <span class="hb-sky__puff hb-sky__puff--2"></span>
+                <span class="hb-sky__puff hb-sky__puff--3"></span>
+                <span class="hb-sky__twinkle hb-sky__twinkle--1"></span>
+                <span class="hb-sky__twinkle hb-sky__twinkle--2"></span>
+                <span class="hb-sky__twinkle hb-sky__twinkle--3"></span>
             </div>
 
-            <!-- Content -->
-            <div class="bestow-boon-header bestow-boon-entrance bestow-boon-entrance--1">
-                <div class="bestow-boon-crest">
-                    <span class="bestow-boon-crest__icon">💝</span>
-                    <span class="bestow-boon-crest__ring"></span>
+            <header class="hb-header">
+                <span class="hb-gem" aria-hidden="true"><i class="fas fa-heart"></i></span>
+                <div class="hb-header__text">
+                    <p class="hb-eyebrow">A gift between classmates</p>
+                    <h2 id="bestow-boon-title" class="hb-title">Hero’s Boon</h2>
                 </div>
-                <div class="bestow-boon-header__text">
-                    <p class="bestow-boon-eyebrow">Peer Blessing</p>
-                    <h2 class="bestow-boon-title">Hero’s Boon</h2>
-                    <p class="bestow-boon-subtitle">Spread the magic ✨</p>
-                </div>
-            </div>
-
-            <div class="bestow-boon-body bestow-boon-entrance bestow-boon-entrance--2">
-                <p class="bestow-boon-desc">
-                    Choose an adventurer to sponsor
-                    <b id="boon-receiver-name" class="bestow-boon-receiver-name"></b>’s quest!
-                </p>
-                <div class="bestow-boon-cost-pill">
-                    <span>🪙 15 Gold</span>
-                    <span class="bestow-boon-cost-arrow">→</span>
-                    <span>⭐ +0.5 Stars</span>
-                </div>
-            </div>
-
-            <div class="bestow-boon-select-wrap bestow-boon-entrance bestow-boon-entrance--3">
-                <label class="bestow-boon-select-label" id="boon-sender-label">Select the Sponsor</label>
-                <select id="boon-sender-select" class="bestow-boon-select" tabindex="-1" aria-hidden="true">
-                </select>
-                <div id="boon-sponsor-picker" class="boon-picker"></div>
-            </div>
-
-            <div class="bestow-boon-actions bestow-boon-entrance bestow-boon-entrance--4">
-                <button id="boon-cancel-btn" class="bestow-boon-btn bestow-boon-btn--cancel">Cancel</button>
-                <button id="boon-confirm-btn" class="bestow-boon-btn bestow-boon-btn--confirm">
-                    <span class="bestow-boon-btn__shimmer"></span>
-                    Bestow! 💝
+                <button id="boon-close-btn" class="hb-close" type="button" aria-label="Close">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
                 </button>
+            </header>
+
+            <section class="hb-bridge" aria-live="polite">
+                <div id="boon-giver-slot" class="hb-end hb-end--giver"></div>
+                <div class="hb-arc" aria-hidden="true">
+                    <svg class="hb-arc__art" viewBox="0 0 200 64" preserveAspectRatio="none" focusable="false">
+                        <path class="hb-arc__track" d="M8 58 Q100 -6 192 58"/>
+                        <path class="hb-arc__lit" d="M8 58 Q100 -6 192 58" pathLength="100"/>
+                    </svg>
+                    <span class="hb-arc__heart"><i class="fas fa-heart"></i></span>
+                    <span id="boon-deal" class="hb-deal"></span>
+                </div>
+                <div id="boon-receiver-slot" class="hb-end hb-end--receiver"></div>
+            </section>
+
+            <p class="hb-prompt">
+                Who will share their Gold with <b id="boon-receiver-name" class="hb-prompt__name"></b>?
+            </p>
+
+            <div class="hb-picker-wrap">
+                <span id="boon-sender-label" class="sr-only">Choose the sponsor</span>
+                <select id="boon-sender-select" class="hb-native" tabindex="-1" aria-hidden="true"></select>
+                <div id="boon-sponsor-picker" class="hb-picker"></div>
             </div>
+
+            <footer class="hb-footer">
+                <div id="boon-today" class="hb-today"></div>
+                <div class="hb-footer__actions">
+                    <button id="boon-cancel-btn" class="hb-btn hb-btn--ghost" type="button">Cancel</button>
+                    <button id="boon-confirm-btn" class="hb-btn hb-btn--gift" type="button" disabled>
+                        <i class="fas fa-heart" aria-hidden="true"></i>
+                        <span id="boon-confirm-label">Choose a sponsor</span>
+                    </button>
+                </div>
+            </footer>
         </div>
     </div>
 
     <div id="teacher-boon-modal"
-        class="fixed inset-0 bg-slate-950/60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        class="tb-overlay fixed inset-0 z-[95] flex items-center justify-center p-4 hidden">
         <div id="teacher-boon-shell" class="tb-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="teacher-boon-title">
+            <div class="tb-sky" aria-hidden="true">
+                <span class="tb-sky__sun"></span>
+                <span class="tb-sky__puff tb-sky__puff--1"></span>
+                <span class="tb-sky__puff tb-sky__puff--2"></span>
+                <span class="tb-sky__puff tb-sky__puff--3"></span>
+            </div>
+
             <header class="tb-header">
                 <div class="tb-crest" aria-hidden="true">
-                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <span class="tb-crest__rays"></span>
+                    <span class="tb-crest__gem"><i class="fas fa-wand-magic-sparkles"></i></span>
                 </div>
                 <div class="tb-header__text">
+                    <p class="tb-eyebrow">Once a month, from you</p>
                     <h2 id="teacher-boon-title" class="tb-title">Teacher Boon</h2>
                     <p id="teacher-boon-class-name" class="tb-subtitle"></p>
                 </div>
                 <button id="teacher-boon-close-btn" class="tb-close" type="button" aria-label="Close">
-                    <i class="fas fa-xmark"></i>
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
                 </button>
             </header>
 
@@ -514,7 +499,7 @@ export const miscModalsHTML = `
 
             <footer class="tb-footer">
                 <button id="teacher-boon-back-btn" class="tb-btn tb-btn--ghost hidden" type="button">
-                    <i class="fas fa-arrow-left"></i><span>Back</span>
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back</span>
                 </button>
                 <button id="teacher-boon-cancel-btn" class="tb-btn tb-btn--ghost" type="button">Cancel</button>
                 <button id="teacher-boon-next-btn" class="tb-btn tb-btn--primary" type="button"></button>
@@ -522,6 +507,7 @@ export const miscModalsHTML = `
             </footer>
 
             <div id="teacher-boon-success-overlay" class="tb-success hidden" aria-live="polite">
+                <span class="tb-success__rays" aria-hidden="true"></span>
                 <div class="tb-success__burst" aria-hidden="true">
                     <span></span><span></span><span></span><span></span>
                     <span></span><span></span><span></span><span></span>

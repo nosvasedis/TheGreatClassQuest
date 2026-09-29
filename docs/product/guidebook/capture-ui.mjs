@@ -182,7 +182,7 @@ try {
   const REDESIGN_SHOTS = new Set([
     'adventure-log.png', 'campfire-entry.png', 'bounty-poster.png', 'bounty-poster-timer.png',
     'adventurers-passport.png', 'avatar-forge.png', 'class-charter.png', 'class-emblem-case.png',
-    'guild-banner.png', 'guild-anthem.png', 'teacher-boon-modal.png', 'office-home.png', 'office-registry.png'
+    'guild-banner.png', 'guild-anthem.png', 'teacher-boon-modal.png', 'heros-boon-modal.png', 'office-home.png', 'office-registry.png'
   ]);
 
   async function captureExtra(label, run, locator, file) {
@@ -273,6 +273,7 @@ try {
   await captureExtra('Guild banner', () => window.__gcqCapture.showGuildBanner(), '#guild-lore-overlay.capture-lore', 'guild-banner.png');
   await captureExtra('Guild anthem', () => window.__gcqCapture.showGuildAnthem(), '#guild-anthem-overlay.capture-anthem', 'guild-anthem.png');
   await captureExtra('Teacher Boon', () => window.__gcqCapture.showTeacherBoon(), '#teacher-boon-modal.capture-tb', 'teacher-boon-modal.png');
+  await captureExtra("Hero's Boon", () => window.__gcqCapture.showHeroBoon(), '#bestow-boon-modal.capture-hb', 'heros-boon-modal.png');
   await captureExtra('Office front desk', () => window.__gcqCapture.showOffice('home'), '#secretary-screen.capture-office', 'office-home.png');
   await captureExtra('Office Students & Classes', () => window.__gcqCapture.showOffice('registry'), '#secretary-screen.capture-office', 'office-registry.png');
 

@@ -17,37 +17,44 @@ export const calendarTabHTML = `
                         </div>
                         <p class="tab-sign__tagline m-calendar-hero__sub">View your schedule and plan special Quest Events.</p>
                     </header>
-                    <div>
-                        <div
-                            class="flex items-center justify-between mb-4 p-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm m-calendar-nav">
-                            <button id="prev-month-btn" type="button" aria-label="Previous"
-                                class="bg-blue-500 hover:bg-blue-600 text-white font-bold w-12 h-12 rounded-full bubbly-button">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <div class="m-calendar-nav__center text-center min-w-0 px-2">
-                                <h2 id="calendar-month-year" class="font-title text-3xl text-blue-700 text-center"></h2>
-                                <span id="m-calendar-today-chip" class="m-calendar-today-chip hidden">Today</span>
+                    <div class="qc-shell">
+                        <div class="qc-bar m-calendar-nav">
+                            <div class="qc-bar__nav">
+                                <button id="prev-month-btn" type="button" aria-label="Previous month" class="qc-nav-btn">
+                                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                                </button>
+                                <div class="m-calendar-nav__center qc-bar__center">
+                                    <span class="qc-bar__kicker" aria-hidden="true">The month of</span>
+                                    <h2 id="calendar-month-year" class="font-title qc-bar__title"></h2>
+                                    <span id="m-calendar-today-chip" class="m-calendar-today-chip hidden">Today</span>
+                                </div>
+                                <button id="next-month-btn" type="button" aria-label="Next month" class="qc-nav-btn">
+                                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                </button>
                             </div>
-                            <button id="next-month-btn" type="button" aria-label="Next"
-                                class="bg-blue-500 hover:bg-blue-600 text-white font-bold w-12 h-12 rounded-full bubbly-button">
-                                <i class="fas fa-chevron-right"></i>
+                            <div id="qc-month-stats" class="qc-bar__stats" aria-live="polite"></div>
+                            <button id="calendar-today-btn" type="button" class="qc-today-btn hidden">
+                                <i class="fas fa-location-crosshairs" aria-hidden="true"></i>
+                                <span>Back to today</span>
                             </button>
                         </div>
-                        <div id="calendar-grid"
-                            class="grid grid-cols-7 gap-0.5 px-3 py-4 sm:gap-1 sm:px-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm">
-                            <div id="calendar-loader"
-                                class="hidden absolute inset-0 bg-white/50 backdrop-blur-sm flex-col items-center justify-center z-10 rounded-2xl">
-                                <i class="fas fa-star text-amber-500 text-5xl animate-spin"></i>
-                                <p class="font-title text-xl text-amber-700 mt-4">Fetching Quest Logs...</p>
+                        <div class="qc-page">
+                            <div class="qc-page__rings" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                            <div id="calendar-grid" class="qc-grid" role="grid" aria-label="Quest Calendar month">
+                                <div id="calendar-loader" class="qc-loader hidden">
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                    <p class="font-title">Fetching Quest Logs...</p>
+                                </div>
                             </div>
-                            <div class="text-center font-bold text-gray-600">Mon</div>
-                            <div class="text-center font-bold text-gray-600">Tue</div>
-                            <div class="text-center font-bold text-gray-600">Wed</div>
-                            <div class="text-center font-bold text-gray-600">Thu</div>
-                            <div class="text-center font-bold text-gray-600">Fri</div>
-                            <div class="text-center font-bold text-gray-600">Sat</div>
-                            <div class="text-center font-bold text-gray-600">Sun</div>
                         </div>
+                        <ul class="qc-legend" aria-label="Calendar key">
+                            <li><span class="qc-legend__swatch qc-legend__swatch--today"></span>Today</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--stars"><i class="fas fa-star"></i></span>Stars awarded</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--event"></span>Quest Event</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--test">📝</span>Test day</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--holiday"></span>No school</li>
+                            <li class="qc-legend__hint"><i class="fas fa-hand-pointer" aria-hidden="true"></i>Past days open the Quest Log. Today and later open the Planner.</li>
+                        </ul>
                         <div id="m-calendar-day" class="m-calendar-day" hidden aria-live="polite"></div>
                     </div>
                 </div>

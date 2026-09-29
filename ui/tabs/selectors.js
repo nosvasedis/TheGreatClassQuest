@@ -39,16 +39,10 @@ export function populateCalendarStars(logSource) {
 
     for (const [dateString, totalStars] of Object.entries(logsByDate)) {
         const dayCell = document.querySelector(`.calendar-day-cell[data-date="${dateString}"]`);
-        if (dayCell && totalStars > 0) {
-            const dateNumberEl = dayCell.querySelector('.font-bold.text-right');
-            if (dateNumberEl) {
-                const existingStars = dayCell.querySelector('.calendar-star-count');
-                if (existingStars) existingStars.remove();
-
-                const starHtml = `<div class="calendar-star-count text-center text-amber-600 font-bold mt-1 text-sm"><i class="fas fa-star"></i> ${totalStars}</div>`;
-                dateNumberEl.insertAdjacentHTML('afterend', starHtml);
-            }
-        }
+        const head = dayCell?.querySelector('.qc-day__head');
+        if (!head || totalStars <= 0) continue;
+        head.querySelector('.calendar-star-count')?.remove();
+        head.insertAdjacentHTML('beforeend', `<span class="calendar-star-count qc-day__stars"><i class="fas fa-star" aria-hidden="true"></i>${formatStarCount(totalStars)}</span>`);
     }
 }
 
@@ -219,9 +213,84 @@ function renderMobileCalendarDay(customLogs = null) {
     `;
 }
 
+const QC_EVENT_THEMES = {
+    double_star_day: 'star',
+    reason_bonus_day: 'reason',
+    vocabulary_vault: 'vault',
+    grammar_guardians: 'grammar',
+    unbroken_chain: 'chain',
+    scribes_sketch: 'scribe',
+    five_sentence_saga: 'saga',
+};
+
+function formatStarCount(value) {
+    const n = Number(value) || 0;
+    const rounded = Math.round(n * 4) / 4;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/0$/, '');
+}
+
+function splitEventIcon(icon) {
+    const raw = String(icon || '📅');
+    const [glyph] = raw.split(' ');
+    return glyph || '📅';
+}
+
+function renderQuestEventRibbon(e) {
+    const theme = QC_EVENT_THEMES[normalizeQuestType(e.type)] || 'custom';
+    const title = escapeHtml(e.title);
+    const status = e.status && e.status !== 'scheduled'
+        ? `<span class="qc-ribbon__status">${escapeHtml(String(e.status).replace(/_/g, ' '))}</span>`
+        : '';
+    return `
+        <div class="qc-ribbon qc-ribbon--${theme}" title="${title}">
+            <span class="qc-ribbon__glyph" aria-hidden="true">${escapeHtml(splitEventIcon(e.icon))}</span>
+            <span class="qc-ribbon__title">${title}</span>
+            ${status}
+            <button type="button" class="qc-ribbon__delete delete-event-btn" data-id="${escapeHtml(e.id)}" data-name="${title}" aria-label="Delete ${title}">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        </div>`;
+}
+
+function renderLessonChip(c) {
+    const testTitle = c.testAssignment?.testData?.title || 'Test';
+    const test = c.testAssignment
+        ? `<span class="qc-lesson__test" title="Test: ${escapeHtml(testTitle)}">📝</span>`
+        : '';
+    return `
+        <div class="qc-lesson ${c.color?.bg || ''} ${c.color?.text || ''} ${c.color?.border || ''}${c.testAssignment ? ' qc-lesson--test' : ''}" title="${escapeHtml(c.name)}${c.timeDisplay ? ` · ${escapeHtml(c.timeDisplay)}` : ''}">
+            <span class="qc-lesson__logo" aria-hidden="true">${escapeHtml(c.logo || '🏫')}</span>
+            <span class="qc-lesson__text">
+                ${c.timeDisplay ? `<span class="qc-lesson__time">${escapeHtml(c.timeDisplay)}</span>` : ''}
+                <span class="qc-lesson__name">${escapeHtml(c.name)}</span>
+            </span>
+            ${test}
+        </div>`;
+}
+
+function renderMonthStats({ stars, events, schoolDays, tests }) {
+    const host = document.getElementById('qc-month-stats');
+    if (!host) return;
+    const pill = (tone, icon, value, label) => `
+        <span class="qc-stat qc-stat--${tone}" title="${escapeHtml(label)}">
+            <span class="qc-stat__icon" aria-hidden="true">${icon}</span>
+            <span class="qc-stat__value">${value}</span>
+            <span class="qc-stat__label">${escapeHtml(label)}</span>
+        </span>`;
+    host.innerHTML = [
+        pill('stars', '<i class="fas fa-star"></i>', formatStarCount(stars), stars === 1 ? 'star' : 'stars'),
+        pill('events', '<i class="fas fa-wand-magic-sparkles"></i>', events, events === 1 ? 'event' : 'events'),
+        pill('days', '<i class="fas fa-school"></i>', schoolDays, schoolDays === 1 ? 'lesson day' : 'lesson days'),
+        tests ? pill('tests', '📝', tests, tests === 1 ? 'test' : 'tests') : '',
+    ].join('');
+}
+
 // Accepts optional 'customLogs' for historical views. 
 // If null, defaults to state.allAwardLogs (Current Month).
 export function renderCalendarTab(customLogs = null) {
+    // Schedule and event listeners all funnel through here, so keep an open Planner in step.
+    import('../modals/planner.js').then(m => m.refreshOpenDayPlanner?.()).catch(() => {});
+
     if (isMobileCalendarMode()) {
         renderMobileCalendarDay(customLogs);
         return;
@@ -250,15 +319,18 @@ export function renderCalendarTab(customLogs = null) {
     const isLoaderVisible = loader && !loader.classList.contains('hidden');
 
     grid.innerHTML = '';
-    if (isLoaderVisible) {
-        grid.appendChild(loader);
-    }
+    if (loader) grid.appendChild(loader);
 
-    const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayHeaders = [
+        { short: 'Mon', long: 'Monday' }, { short: 'Tue', long: 'Tuesday' }, { short: 'Wed', long: 'Wednesday' },
+        { short: 'Thu', long: 'Thursday' }, { short: 'Fri', long: 'Friday' },
+        { short: 'Sat', long: 'Saturday', weekend: true }, { short: 'Sun', long: 'Sunday', weekend: true },
+    ];
     dayHeaders.forEach(day => {
         const headerEl = document.createElement('div');
-        headerEl.className = 'calendar-header-cell text-center font-bold text-gray-400 uppercase tracking-widest text-[10px] pb-3';
-        headerEl.textContent = day;
+        headerEl.className = `calendar-header-cell qc-weekday${day.weekend ? ' qc-weekday--weekend' : ''}`;
+        headerEl.setAttribute('role', 'columnheader');
+        headerEl.innerHTML = `<abbr title="${day.long}">${day.short}</abbr>`;
         grid.appendChild(headerEl);
     });
 
@@ -271,164 +343,124 @@ export function renderCalendarTab(customLogs = null) {
     today.setHours(0, 0, 0, 0);
     const activeYearStart = state.getActiveSchoolYearStartDate();
     const activeYearEnd = state.getActiveSchoolYearEndDate();
-    document.getElementById('prev-month-btn').disabled = !activeYearStart || calendarCurrentDate <= activeYearStart;
-    document.getElementById('next-month-btn').disabled = !activeYearEnd || (calendarCurrentDate.getMonth() === activeYearEnd.getMonth() && calendarCurrentDate.getFullYear() === activeYearEnd.getFullYear());
     const prevBtn = document.getElementById('prev-month-btn');
     const nextBtn = document.getElementById('next-month-btn');
-    if (prevBtn) prevBtn.setAttribute('aria-label', 'Previous month');
-    if (nextBtn) nextBtn.setAttribute('aria-label', 'Next month');
+    if (prevBtn) {
+        prevBtn.disabled = !activeYearStart || calendarCurrentDate <= activeYearStart;
+        prevBtn.setAttribute('aria-label', 'Previous month');
+    }
+    if (nextBtn) {
+        nextBtn.disabled = !activeYearEnd || (month === activeYearEnd.getMonth() && year === activeYearEnd.getFullYear());
+        nextBtn.setAttribute('aria-label', 'Next month');
+    }
+    const isViewingThisMonth = month === today.getMonth() && year === today.getFullYear();
+    document.getElementById('calendar-today-btn')?.classList.toggle('hidden', isViewingThisMonth);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
-    const isRecentView = calendarCurrentDate >= thirtyDaysAgo;
+    const stats = { stars: 0, events: 0, schoolDays: 0, tests: 0 };
+    const agendaSlices = {
+        allSchoolClasses: state.get('allSchoolClasses'),
+        allTeachersClasses: state.get('allTeachersClasses'),
+        allScheduleOverrides: state.get('allScheduleOverrides'),
+        schoolHolidayRanges: state.get('schoolHolidayRanges'),
+        allQuestEvents: state.get('allQuestEvents'),
+        allQuestAssignments: state.get('allQuestAssignments'),
+        awardLogs: logsToRender,
+        classEndDates,
+        today,
+    };
 
-    for (let i = 0; i < firstDayIndex; i++) {
+    const leadingBlanks = firstDayIndex;
+    for (let i = 0; i < leadingBlanks; i++) {
         const emptyCell = document.createElement('div');
-        emptyCell.className = 'calendar-day-cell calendar-empty-cell opacity-40';
+        emptyCell.className = 'calendar-empty-cell qc-day qc-day--blank';
+        emptyCell.setAttribute('aria-hidden', 'true');
         grid.appendChild(emptyCell);
     }
 
     for (let i = 1; i <= daysInMonth; i++) {
         const day = new Date(year, month, i);
-        const isFuture = day > today;
-        const isToday = today.toDateString() === day.toDateString();
         const dateString = utils.getDDMMYYYY(day);
-
-        const logsForThisDay = logsToRender.filter(log => utils.datesMatch(log.date, dateString));
-        const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
+        const agenda = getDayAgenda({ dateString, ...agendaSlices });
+        const weekdayIndex = (day.getDay() + 6) % 7;
+        const isWeekend = weekdayIndex >= 5;
+        const longDate = day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
         const dayCell = document.createElement('div');
         dayCell.dataset.date = dateString;
+        dayCell.setAttribute('role', 'gridcell');
+        dayCell.tabIndex = 0;
 
-        // 1. Check for Global Holidays
-        const yyyy = day.getFullYear();
-        const mm = String(day.getMonth() + 1).padStart(2, '0');
-        const dd = String(day.getDate()).padStart(2, '0');
-        const compDate = `${yyyy}-${mm}-${dd}`;
+        const tense = agenda.isToday ? 'today' : (agenda.isFuture ? 'future' : 'past');
+        // Today and later open the Planner; earlier days open the Quest Log.
+        const opensPlanner = !agenda.isPast;
+        const dayNumber = `
+            <span class="qc-day__num">${i}</span>
+            ${agenda.isToday ? '<span class="qc-day__today-tag">Today</span>' : ''}`;
+        const starBadge = agenda.starTotal > 0
+            ? `<span class="calendar-star-count qc-day__stars" title="${formatStarCount(agenda.starTotal)} stars awarded"><i class="fas fa-star" aria-hidden="true"></i>${formatStarCount(agenda.starTotal)}</span>`
+            : '';
+        stats.stars += agenda.starTotal;
 
-        const globalHoliday = (state.get('schoolHolidayRanges') || []).find(h => compDate >= h.start && compDate <= h.end);
-
-        // 2. Check for Manual Cancellations
-        const myClasses = state.get('allTeachersClasses');
-        const dayOfWeekStr = day.getDay().toString();
-        const myScheduledClasses = myClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeekStr));
-        const classesOnThisDay = utils.getClassesOnDay(dateString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
-        const myClassIds = myClasses.map(c => c.id);
-        const myCancellations = state.get('allScheduleOverrides').filter(o =>
-            o.date === dateString &&
-            o.type === 'cancelled' &&
-            myClassIds.includes(o.classId)
-        );
-
-        const isFullHoliday = globalHoliday || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0);
-        const dayNumberHtml = isToday ? `<span class="today-date-highlight shadow-lg transform scale-110 ring-2 ring-sky-300 ring-offset-2">${i}</span>` : i;
-
-        if (isFullHoliday) {
-            const themeClass = globalHoliday ? `holiday-theme-${globalHoliday.type}` : 'bg-rose-50 border-rose-100';
-            const labelText = globalHoliday ? (globalHoliday.type === 'christmas' ? 'Winter Break' : globalHoliday.name) : 'No School';
-            const icon = globalHoliday ? (globalHoliday.type === 'christmas' ? '❄️' : (globalHoliday.type === 'easter' ? '🐰' : '📅')) : '⛔';
-
-            dayCell.className = `calendar-day-cell calendar-holiday-cell ${themeClass} relative overflow-hidden flex flex-col group transition-all duration-300 hover:brightness-95`;
+        if (agenda.isNoSchool) {
+            const themeKey = agenda.holiday ? String(agenda.holiday.type || 'generic').replace(/[^a-z]/gi, '') : 'cancelled';
+            dayCell.className = `calendar-day-cell calendar-holiday-cell qc-day qc-day--holiday qc-day--hol-${themeKey} qc-day--${tense} ${opensPlanner ? 'future-day' : 'logbook-day-btn'}`;
+            dayCell.setAttribute('aria-label', `${longDate}: ${agenda.holidayLabel}. ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
             dayCell.innerHTML = `
-                <div class="font-bold text-right text-gray-400 opacity-40 z-10 relative pr-2 pt-2">${i}</div>
-                <div class="absolute inset-0 flex flex-col items-center justify-center opacity-80 pointer-events-none group-hover:scale-110 transition-transform">
-                    <span class="text-3xl mb-1 drop-shadow-sm">${icon}</span>
-                    <span class="font-title text-[10px] uppercase tracking-wider font-bold text-gray-500 text-center leading-tight px-2">${labelText}</span>
-                </div>
-            `;
-        } else {
-            // --- RENDER NORMAL DAY ---
-            dayCell.className = `calendar-day-cell flex flex-col min-h-0 transition-all duration-300 ${isFuture ? 'bg-white/80 future-day hover:bg-sky-50' : 'bg-white logbook-day-btn hover:bg-amber-50/30'}`;
-
-            const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold -mt-5 mb-2 text-sm relative z-10 filter drop-shadow-sm"><i class="fas fa-star mr-1"></i>${totalStarsThisDay}</div>` : '';
-
-            // --- Event Icons Map ---
-            const eventIcons = QUEST_EVENT_ICONS;
-
-            const questEventsOnThisDay = state.get('allQuestEvents').filter(e => utils.datesMatch(e.dateKey || e.date, dateString) && (!e.classId || classesOnThisDay.some(c => c.id === e.classId)));
-
-            // --- NEW: Render Events as Banners (Outside Scroll) ---
-            let questEventsHtml = questEventsOnThisDay.map(e => {
-                const normalizedType = normalizeQuestType(e.type);
-                const title = e.details?.title || QUEST_TYPE_LABELS[normalizedType] || (normalizedType === 'double_star_day' ? '2x Star Day' : normalizedType === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type);
-                const icon = eventIcons[e.type] || eventIcons[title] || '📅 Event';
-                const gradientMap = {
-                    double_star_day: 'from-amber-500 to-yellow-500 shadow-amber-500/30',
-                    reason_bonus_day: 'from-pink-500 to-rose-600 shadow-pink-500/30',
-                    vocabulary_vault: 'from-purple-600 to-indigo-700 shadow-purple-500/30',
-                    grammar_guardians: 'from-emerald-600 to-teal-700 shadow-emerald-500/30',
-                    unbroken_chain: 'from-cyan-600 to-blue-600 shadow-cyan-500/30',
-                    scribes_sketch: 'from-amber-600 to-orange-600 shadow-orange-500/30',
-                    five_sentence_saga: 'from-rose-600 to-purple-800 shadow-rose-500/30'
-                };
-                const gradientClass = gradientMap[normalizedType] || 'from-fuchsia-600 to-indigo-600 shadow-indigo-500/30';
-                // Vibrant Gradient Style
-                return `
-                <div class="relative group w-full mb-1.5 p-1.5 rounded-xl bg-gradient-to-r ${gradientClass} text-white shadow-md border border-white/25 flex items-center justify-between z-20 cursor-help transition-all hover:scale-[1.03] hover:shadow-lg" title="${title}">
-                    <div class="flex items-center gap-1.5 overflow-hidden">
-                        <span class="text-[9px] font-black bg-white/30 px-1.5 py-0.5 rounded-lg backdrop-blur-sm shadow-inner">${icon}</span>
-                        <span class="font-title text-[10px] font-bold truncate leading-tight tracking-tight">${title}</span>
-                        ${e.status ? `<span class="quest-status-chip quest-status-chip--${String(e.status).replace(/[^a-z]/g, '')} text-[8px]">${String(e.status).replace('_', ' ')}</span>` : ''}
-                    </div>
-                    <button class="delete-event-btn bg-white/20 hover:bg-white/40 text-white rounded-full w-4.5 h-4.5 flex items-center justify-center flex-shrink-0 transition-colors" data-id="${e.id}" data-name="${title}">
-                        <i class="fas fa-times text-[8px]"></i>
-                    </button>
+                <div class="qc-day__head">${dayNumber}${starBadge}</div>
+                <div class="qc-day__stamp">
+                    <span class="qc-day__stamp-icon" aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span>
+                    <span class="qc-day__stamp-label">${escapeHtml(agenda.holidayLabel || 'No School')}</span>
                 </div>`;
-            }).join('');
-
-            // Classes (Inside Scroll)
-            let classesHtml = classesOnThisDay.map(c => {
-                const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
-                const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
-
-                // --- NEW: Check for Scheduled Test (Smart Match) ---
-                const testAssignment = state.get('allQuestAssignments').find(a =>
-                    a.classId === c.id &&
-                    a.testData &&
-                    utils.datesMatch(dateString, a.testData.date)
-                );
-                const showTest = testAssignment && classUsesTests(c);
-
-                // 2. Create the Indicator
-                const testIndicator = showTest
-                    ? `<div class="absolute -top-1.5 -right-1.5 z-20">
-                         <span class="relative flex h-3.5 w-3.5">
-                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                           <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-white shadow-sm"></span>
-                         </span>
-                       </div>
-                       <span class="absolute top-[-5px] right-[-5px] bg-rose-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-bl-lg rounded-tr-lg shadow-md z-10 tracking-tighter" title="Test: ${testAssignment.testData.title}">📝 TEST</span>`
-                    : '';
-                // -------------------------------------
-
-                return `
-                <div class="relative text-xs px-2 py-1.5 rounded-xl ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm group hover:scale-[1.02] hover:shadow-md transition-all mb-1" title="${c.name} (${timeDisplay})">
-                    ${testIndicator}
-                    <div class="flex items-center justify-between mb-0.5">
-                        <span class="font-black block text-[9px] opacity-60 tracking-wider">${timeDisplay}</span>
-                    </div>
-                    <span class="truncate block font-bold text-[11px]">${c.logo} ${c.name}</span>
-                </div>`;
-            }).join('');
-
-            dayCell.innerHTML = `
-                <div class="font-bold text-right text-gray-500 text-sm mb-1 pr-2 pt-1 opacity-70">${dayNumberHtml}</div>
-                ${starHtml}
-                
-                <div class="px-1.5 pb-2 flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-                    <!-- Events Area (Fixed Top) -->
-                    <div class="flex flex-col shrink-0">
-                        ${questEventsHtml}
-                    </div>
-                    
-                    <!-- Classes Area (Scrollable) -->
-                    <div class="flex flex-col gap-1 mt-1 min-h-0 flex-1 min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                        ${classesHtml}
-                    </div>
-                </div>
-            `;
+            grid.appendChild(dayCell);
+            continue;
         }
+
+        const lessonIds = new Set(agenda.classes.map(c => c.id));
+        const events = agenda.questEvents.filter(e => !e.classId || lessonIds.has(e.classId));
+        const tests = agenda.classes.filter(c => c.testAssignment).length;
+        stats.events += events.length;
+        stats.tests += tests;
+        if (agenda.classes.some(c => (state.get('allTeachersClasses') || []).some(tc => tc.id === c.id))) stats.schoolDays += 1;
+
+        const summaryBits = [
+            agenda.classes.length ? `${agenda.classes.length} lesson${agenda.classes.length === 1 ? '' : 's'}` : 'no lessons',
+            events.length ? `${events.length} quest event${events.length === 1 ? '' : 's'}` : '',
+            tests ? `${tests} test${tests === 1 ? '' : 's'}` : '',
+            agenda.starTotal > 0 ? `${formatStarCount(agenda.starTotal)} stars` : '',
+        ].filter(Boolean).join(', ');
+        dayCell.setAttribute('aria-label', `${longDate}: ${summaryBits}. ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
+
+        const quiet = !agenda.classes.length && !events.length;
+        dayCell.className = [
+            'calendar-day-cell qc-day',
+            `qc-day--${tense}`,
+            opensPlanner ? 'future-day' : 'logbook-day-btn',
+            isWeekend ? 'qc-day--weekend' : '',
+            quiet ? 'qc-day--quiet' : '',
+            agenda.starTotal > 0 ? 'qc-day--starred' : '',
+        ].filter(Boolean).join(' ');
+
+        const hint = opensPlanner
+            ? `<span class="qc-day__hint"><i class="fas fa-feather-pointed" aria-hidden="true"></i>${agenda.isToday ? 'Plan today' : 'Plan'}</span>`
+            : `<span class="qc-day__hint"><i class="fas fa-book-open" aria-hidden="true"></i>Log</span>`;
+
+        dayCell.innerHTML = `
+            <div class="qc-day__head">${dayNumber}${starBadge}</div>
+            ${events.length ? `<div class="qc-day__events">${events.map(renderQuestEventRibbon).join('')}</div>` : ''}
+            <div class="qc-day__lessons custom-scrollbar">${agenda.classes.map(renderLessonChip).join('')}</div>
+            ${hint}`;
         grid.appendChild(dayCell);
     }
+
+    const trailingBlanks = (7 - ((leadingBlanks + daysInMonth) % 7)) % 7;
+    for (let i = 0; i < trailingBlanks; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-empty-cell qc-day qc-day--blank';
+        emptyCell.setAttribute('aria-hidden', 'true');
+        grid.appendChild(emptyCell);
+    }
+
+    if (loader && !isLoaderVisible) loader.classList.add('hidden');
+    renderMonthStats(stats);
+
 }

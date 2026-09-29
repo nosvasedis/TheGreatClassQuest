@@ -412,7 +412,9 @@ export function setupUIListeners() {
         // 2. Clear grid and show loading state immediately
         const grid = document.getElementById('calendar-grid');
         if (grid) {
-            grid.innerHTML = '<div class="col-span-7 h-64 flex flex-col items-center justify-center text-gray-500"><i class="fas fa-spinner fa-spin text-3xl mb-2 text-indigo-500"></i><p>Traveling through time...</p></div>';
+            const loaderEl = document.getElementById('calendar-loader');
+            grid.innerHTML = '<div class="qc-travel"><span class="qc-travel__hourglass" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span><p class="font-title">Turning the pages…</p></div>';
+            if (loaderEl) grid.appendChild(loaderEl);
         }
 
         // 3. Data Retrieval Strategy
@@ -440,7 +442,7 @@ export function setupUIListeners() {
 
             } catch (error) {
                 console.error("History fetch failed:", error);
-                if (grid) grid.innerHTML = '<div class="col-span-7 text-center text-red-500 p-4">Could not load history.</div>';
+                if (grid) grid.innerHTML = '<div class="qc-travel qc-travel--error"><span class="qc-travel__hourglass" aria-hidden="true"><i class="fas fa-scroll"></i></span><p class="font-title">Could not load this month.</p></div>';
             }
         }
     };
@@ -448,10 +450,9 @@ export function setupUIListeners() {
     document.getElementById('prev-month-btn').addEventListener('click', () => handleCalendarNav(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => handleCalendarNav(1));
 
-    document.getElementById('calendar-grid').addEventListener('click', (e) => {
-        const dayCell = e.target.closest('.calendar-day-cell');
+    const calendarGridEl = document.getElementById('calendar-grid');
+    calendarGridEl.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-event-btn');
-
         if (deleteBtn) {
             e.stopPropagation();
             const eventId = deleteBtn.dataset.id;
@@ -460,23 +461,35 @@ export function setupUIListeners() {
             return;
         }
 
+        const dayCell = e.target.closest('.calendar-day-cell[data-date]');
         if (!dayCell) return;
-
-        const dateString = dayCell.dataset.date;
-        const dayDate = utils.parseDDMMYYYY(dateString);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
-
-        if (dayCell.classList.contains('future-day')) {
-            modals.openDayPlannerModal(dateString, dayCell);
-        } else if (dayCell.classList.contains('logbook-day-btn')) {
-            if (dayDate >= thirtyDaysAgo) {
-                modals.showLogbookModal(dateString);
-            } else {
-                modals.showLogbookModal(dateString, true);
-            }
+        // Past days open the Quest Log; today and later open the Planner.
+        modals.openCalendarDay(dayCell.dataset.date, dayCell);
+    });
+    calendarGridEl.addEventListener('keydown', (e) => {
+        const dayCell = e.target.closest?.('.calendar-day-cell[data-date]');
+        if (!dayCell || e.target !== dayCell) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            modals.openCalendarDay(dayCell.dataset.date, dayCell);
+            return;
         }
+        const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+        if (!(e.key in moves)) return;
+        const days = [...calendarGridEl.querySelectorAll('.calendar-day-cell[data-date]')];
+        const target = days[days.indexOf(dayCell) + moves[e.key]];
+        if (target) {
+            e.preventDefault();
+            target.focus();
+        }
+    });
+
+    document.getElementById('calendar-today-btn')?.addEventListener('click', () => {
+        state.set('calendarCurrentDate', new Date());
+        import('../tabs.js').then((m) => {
+            m.renderCalendarTab(state.get('allAwardLogs'));
+            document.querySelector('.qc-day--today')?.focus({ preventScroll: true });
+        });
     });
 
     document.getElementById('m-calendar-day')?.addEventListener('click', (e) => {
@@ -496,20 +509,51 @@ export function setupUIListeners() {
         if (!dateString) return;
 
         if (actionBtn.dataset.mCalAction === 'plan') {
-            modals.openDayPlannerModal(dateString, null);
+            modals.openCalendarDayPlanner(dateString, null);
             return;
         }
 
         if (actionBtn.dataset.mCalAction === 'logbook') {
-            const dayDate = utils.parseDDMMYYYY(dateString);
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            thirtyDaysAgo.setHours(0, 0, 0, 0);
-            modals.showLogbookModal(dateString, dayDate < thirtyDaysAgo);
+            modals.openCalendarDayLog(dateString);
         }
     });
 
     document.getElementById('day-planner-close-btn').addEventListener('click', () => modals.hideModal('day-planner-modal'));
+    document.getElementById('day-planner-open-log-btn')?.addEventListener('click', () => {
+        const dateString = document.getElementById('day-planner-modal').dataset.date;
+        if (dateString) modals.openCalendarDayLog(dateString);
+    });
+    document.getElementById('logbook-open-planner-btn')?.addEventListener('click', () => {
+        const dateString = document.getElementById('logbook-modal').dataset.date;
+        if (dateString) modals.openCalendarDayPlanner(dateString, document.querySelector(`.calendar-day-cell[data-date="${dateString}"]`));
+    });
+    ['day-planner-modal', 'logbook-modal'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('click', (e) => {
+            const stepBtn = e.target.closest('[data-day-step]');
+            if (stepBtn) modals.stepCalendarDay(Number(stepBtn.dataset.dayStep) || 0);
+        });
+    });
+    document.getElementById('day-planner-glance')?.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-event-btn');
+        if (!deleteBtn) return;
+        const { id: eventId, name: eventName } = deleteBtn.dataset;
+        modals.showModal('Delete Event?', `Are you sure you want to delete the "${eventName}" event?`, () => handleDeleteQuestEvent(eventId));
+    });
+    // Day stepping (← →) and Escape while the Planner or Quest Log is open.
+    document.addEventListener('keydown', (e) => {
+        if (!modals.isCalendarDayModalOpen()) return;
+        if (!document.getElementById('confirmation-modal')?.classList.contains('hidden')) return;
+        if (!document.getElementById('award-note-modal')?.classList.contains('hidden')) return;
+        const tag = (e.target?.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) return;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            modals.stepCalendarDay(e.key === 'ArrowLeft' ? -1 : 1);
+        } else if (e.key === 'Escape') {
+            modals.hideModal('day-planner-modal');
+            modals.hideModal('logbook-modal');
+        }
+    });
     document.getElementById('day-planner-tabs').addEventListener('click', (e) => {
         const btn = e.target.closest('.day-planner-tab-btn');
         if (btn) {
@@ -571,7 +615,18 @@ export function setupUIListeners() {
 
     // Logbook & History
     document.getElementById('logbook-modal-close-btn').addEventListener('click', () => modals.hideModal('logbook-modal'));
-    document.getElementById('logbook-modal-content').addEventListener('click', (e) => {
+    const logbookContentEl = document.getElementById('logbook-modal-content');
+    logbookContentEl.addEventListener('input', (e) => {
+        if (e.target.closest('.qc-log-search__input')) modals.applyLogbookFilters();
+    });
+    logbookContentEl.addEventListener('toggle', () => modals.syncLogbookToggleAllState(), true);
+    logbookContentEl.addEventListener('click', (e) => {
+        if (modals.handleLogbookToolbarClick(e.target)) return;
+        if (e.target.closest('[data-log-action="plan"]')) {
+            const dateString = document.getElementById('logbook-modal').dataset.date;
+            if (dateString) modals.openCalendarDayPlanner(dateString);
+            return;
+        }
         const deleteBtn = e.target.closest('.delete-log-btn');
         if (deleteBtn) {
             const { logId } = deleteBtn.dataset;

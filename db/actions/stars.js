@@ -877,29 +877,9 @@ export async function handleDeleteAwardLog(logId) {
             logElement.style.transform = "scale(0.9)";
             setTimeout(() => {
                 logElement.remove();
-                const contentEl = document.getElementById(
-                    "logbook-modal-content",
+                import("../../ui/modals/log.js").then((m) =>
+                    m.tidyLogbookAfterRemoval(),
                 );
-                if (
-                    contentEl &&
-                    contentEl.querySelectorAll('[id^="log-entry-"]').length ===
-                        0
-                ) {
-                    const container = contentEl.querySelector(".mb-4.bg-white");
-                    if (
-                        container &&
-                        container.querySelectorAll('[id^="log-entry-"]')
-                            .length === 0
-                    ) {
-                        container.remove();
-                    }
-                    if (
-                        contentEl.querySelectorAll(".mb-4.bg-white").length ===
-                        0
-                    ) {
-                        hideModal("logbook-modal");
-                    }
-                }
             }, 300);
         }
     } catch (error) {
@@ -918,6 +898,9 @@ export async function handleSaveAwardNote() {
         );
         showToast("Note saved!", "success");
         hideModal("award-note-modal");
+        import("../../ui/modals/log.js").then((m) =>
+            m.updateLogbookEntryNote(logId, newNote),
+        );
     } catch (error) {
         console.error("Error saving award note:", error);
         showToast("Failed to save note.", "error");

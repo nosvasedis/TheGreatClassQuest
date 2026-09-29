@@ -3,45 +3,53 @@
 
 export const plannerModalHTML = `
     <div id="day-planner-modal"
-        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
-        <div class="day-planner-shell bg-white/95 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-2xl w-full pop-in border border-white/20 flex flex-col max-h-[90vh] overflow-hidden">
+        class="fixed inset-0 bg-slate-950/60 z-[70] flex items-center justify-center p-4 hidden">
+        <div class="day-planner-shell qc-modal qc-modal--planner max-w-2xl w-full pop-in flex flex-col max-h-[92vh] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="day-planner-title">
             
-            <!-- Header Section -->
-            <div class="day-planner-header relative p-6 text-white flex-shrink-0">
-                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                <div class="relative flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="day-planner-header__icon w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-2xl shadow-inner border border-white/30">
-                            <i class="fas fa-calendar-alt text-white drop-shadow-sm"></i>
-                        </div>
-                        <div>
-                            <h2 id="day-planner-title" class="font-title text-2xl drop-shadow-md">Day Planner</h2>
-                            <p id="day-planner-kicker" class="text-indigo-100 font-bold uppercase tracking-widest text-[10px] opacity-80">This day's lessons</p>
-                        </div>
+            <!-- Header: a torn-off calendar leaf, the date, day stepping and the Quest Log switch -->
+            <div class="day-planner-header qc-mhead qc-mhead--planner">
+                <div class="qc-leaf" aria-hidden="true">
+                    <span id="day-planner-leaf-month" class="qc-leaf__month"></span>
+                    <span id="day-planner-leaf-day" class="qc-leaf__day font-title"></span>
+                    <span id="day-planner-leaf-weekday" class="qc-leaf__weekday"></span>
+                </div>
+                <div class="qc-mhead__text">
+                    <p id="day-planner-kicker" class="qc-mhead__kicker">This day's lessons</p>
+                    <h2 id="day-planner-title" class="font-title qc-mhead__title">Day Planner</h2>
+                    <span id="day-planner-when" class="qc-when"></span>
+                </div>
+                <div class="qc-mhead__tools">
+                    <div class="qc-daynav" role="group" aria-label="Change day">
+                        <button type="button" class="qc-daynav__btn" data-day-step="-1" aria-label="Previous day" title="Previous day (←)"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" class="qc-daynav__btn" data-day-step="1" aria-label="Next day" title="Next day (→)"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
                     </div>
-                    <button id="day-planner-close-btn"
-                        class="bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all hover:rotate-90">
-                        <i class="fas fa-times"></i>
+                    <button type="button" id="day-planner-open-log-btn" class="qc-switch hidden">
+                        <i class="fas fa-book-open" aria-hidden="true"></i><span>Quest Log</span>
+                    </button>
+                    <button type="button" id="day-planner-close-btn" class="qc-close" aria-label="Close planner">
+                        <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
 
+            <!-- Day at a glance -->
+            <div id="day-planner-glance" class="qc-glance" aria-live="polite"></div>
+
             <!-- Tab Navigation -->
-            <div class="px-6 py-4 bg-slate-100/50 border-b border-gray-200">
-                <nav id="day-planner-tabs" class="flex p-1 bg-gray-200/50 rounded-2xl border border-gray-200/50">
-                    <button type="button" data-tab="schedule"
-                        class="day-planner-tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all">
-                        <i class="fas fa-calendar-day"></i> Schedule
+            <div class="qc-tabs-wrap">
+                <nav id="day-planner-tabs" class="qc-tabs" role="tablist">
+                    <button type="button" data-tab="schedule" role="tab" class="day-planner-tab-btn qc-tab">
+                        <i class="fas fa-calendar-day" aria-hidden="true"></i><span>Schedule</span>
                     </button>
-                    <button type="button" data-tab="event"
-                        class="day-planner-tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all">
-                        <i class="fas fa-magic"></i> Quest Event
+                    <button type="button" data-tab="event" role="tab" id="day-planner-event-tab-btn" class="day-planner-tab-btn qc-tab">
+                        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>Quest Event</span>
                     </button>
                 </nav>
+                <p id="day-planner-past-note" class="qc-tabs-note hidden"><i class="fas fa-hourglass-end" aria-hidden="true"></i> Quest Events can only be summoned for today or later.</p>
             </div>
 
             <!-- Content Area -->
-            <div id="day-planner-content" class="flex-1 overflow-y-auto p-6 bg-slate-50/30 custom-scrollbar">
+            <div id="day-planner-content" class="qc-modal__body flex-1 overflow-y-auto custom-scrollbar">
                 
                 <!-- Schedule Tab -->
                 <div id="day-planner-schedule-content" class="day-planner-tab-content schedule-tab">

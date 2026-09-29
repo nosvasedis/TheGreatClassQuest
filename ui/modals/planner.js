@@ -4,6 +4,8 @@ import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
 import { handleCancelLesson } from '../../db/actions.js';
 import { QUEST_DEFINITIONS, normalizeQuestType, isSchoolWideModifierType } from '../../features/specialQuestEngine.js';
+import { getDayAgenda } from '../../utils/calendarDay.js';
+import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 
 const QUEST_EVENT_INSIGHTS = {
     '2x Star Day': 'Every positive star award that day is doubled. The app applies this on Award Stars automatically.',
@@ -38,21 +40,162 @@ function escapeHtml(value) {
     }[char]));
 }
 
+// --- DAY HEADER HELPERS (shared look with the Quest Log) ---
+
+function startOfDay(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+/** "Today", "Tomorrow", "In 5 days", "3 days ago"… */
+export function describeRelativeDay(dateString) {
+    const day = startOfDay(utils.parseDDMMYYYY(dateString));
+    const today = startOfDay(new Date());
+    const diff = Math.round((day - today) / 86400000);
+    if (diff === 0) return { label: 'Today', tone: 'today' };
+    if (diff === 1) return { label: 'Tomorrow', tone: 'future' };
+    if (diff === -1) return { label: 'Yesterday', tone: 'past' };
+    if (diff > 1) return { label: diff < 14 ? `In ${diff} days` : `In ${Math.round(diff / 7)} weeks`, tone: 'future' };
+    const ago = -diff;
+    return { label: ago < 14 ? `${ago} days ago` : `${Math.round(ago / 7)} weeks ago`, tone: 'past' };
+}
+
+/** Fill a modal header's calendar leaf + title + relative chip. `prefix` is the id prefix. */
+export function paintDayHeader(prefix, dateString) {
+    const day = utils.parseDDMMYYYY(dateString);
+    const set = (id, text) => {
+        const el = document.getElementById(`${prefix}-${id}`);
+        if (el) el.textContent = text;
+    };
+    set('leaf-month', day.toLocaleDateString('en-GB', { month: 'short' }));
+    set('leaf-day', String(day.getDate()));
+    set('leaf-weekday', day.toLocaleDateString('en-GB', { weekday: 'short' }));
+    const when = document.getElementById(`${prefix}-when`);
+    if (when) {
+        const rel = describeRelativeDay(dateString);
+        when.textContent = rel.label;
+        when.dataset.tone = rel.tone;
+    }
+    return day;
+}
+
+function isPastDate(dateString) {
+    return startOfDay(utils.parseDDMMYYYY(dateString)) < startOfDay(new Date());
+}
+
+function renderPlannerGlance(dateString) {
+    const host = document.getElementById('day-planner-glance');
+    if (!host) return;
+    const agenda = getDayAgenda({
+        dateString,
+        allSchoolClasses: state.get('allSchoolClasses'),
+        allTeachersClasses: state.get('allTeachersClasses'),
+        allScheduleOverrides: state.get('allScheduleOverrides'),
+        schoolHolidayRanges: state.get('schoolHolidayRanges'),
+        allQuestEvents: state.get('allQuestEvents'),
+        allQuestAssignments: state.get('allQuestAssignments'),
+        awardLogs: filterDocsForActiveYear(state.get('allAwardLogs'), state.get('schoolYearState')),
+        classEndDates: state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
+    });
+    const myIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
+    const mine = agenda.classes.filter(c => myIds.has(c.id)).length;
+    const lessonIds = new Set(agenda.classes.map(c => c.id));
+    const events = agenda.questEvents.filter(e => !e.classId || lessonIds.has(e.classId));
+    const tests = agenda.classes.filter(c => c.testAssignment);
+    const classById = new Map((state.get('allSchoolClasses') || []).map(c => [c.id, c]));
+
+    const stat = (tone, icon, value, label) => `
+        <span class="qc-glance__stat qc-glance__stat--${tone}">
+            <span class="qc-glance__stat-icon" aria-hidden="true">${icon}</span>
+            <span><strong>${value}</strong> ${escapeHtml(label)}</span>
+        </span>`;
+
+    const statsHtml = agenda.isNoSchool
+        ? `<span class="qc-glance__holiday"><span aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span> ${escapeHtml(agenda.holidayLabel || 'No School')} — no regular lessons</span>`
+        : [
+            stat('lessons', '<i class="fas fa-school"></i>', agenda.classes.length, agenda.classes.length === 1 ? 'lesson' : 'lessons'),
+            agenda.classes.length && mine !== agenda.classes.length ? stat('mine', '<i class="fas fa-user"></i>', mine, 'yours') : '',
+            tests.length ? stat('tests', '📝', tests.length, tests.length === 1 ? 'test' : 'tests') : '',
+            agenda.starTotal > 0 ? stat('stars', '<i class="fas fa-star"></i>', Math.round(agenda.starTotal * 4) / 4, agenda.isToday ? 'stars so far' : 'stars earned') : '',
+        ].join('');
+
+    const eventsHtml = events.length
+        ? `<div class="qc-glance__events">
+                ${events.map(e => {
+                    const cls = e.classId ? classById.get(e.classId) : null;
+                    const glyph = String(e.icon || '📅').split(' ')[0];
+                    return `<span class="qc-glance__event">
+                        <span aria-hidden="true">${escapeHtml(glyph)}</span>
+                        <span class="qc-glance__event-name">${escapeHtml(e.title)}</span>
+                        <span class="qc-glance__event-scope">${cls ? `${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name)}` : 'All classes'}</span>
+                        <button type="button" class="qc-glance__event-del delete-event-btn" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.title)}" aria-label="Remove ${escapeHtml(e.title)}"><i class="fas fa-times" aria-hidden="true"></i></button>
+                    </span>`;
+                }).join('')}
+           </div>`
+        : '';
+
+    host.innerHTML = `
+        <div class="qc-glance__stats">${statsHtml}</div>
+        ${eventsHtml}`;
+
+    // Only one school-wide standard event fits on a day: rest those cards when it's taken.
+    const standardTaken = agenda.questEvents.some(e => isSchoolWideModifierType(e.type) && !e.classId && e.status !== 'cancelled');
+    document.querySelectorAll('.quest-event-type-grid--standard .quest-event-type-card').forEach((card) => {
+        card.disabled = standardTaken;
+        card.classList.toggle('quest-event-type-card--taken', standardTaken);
+        card.title = standardTaken ? 'A standard event is already scheduled for this day' : '';
+    });
+}
+
+function syncPlannerMode(dateString) {
+    const past = isPastDate(dateString);
+    const eventTab = document.getElementById('day-planner-event-tab-btn');
+    if (eventTab) {
+        eventTab.disabled = past;
+        eventTab.setAttribute('aria-disabled', past ? 'true' : 'false');
+        eventTab.title = past ? 'Quest Events can only be summoned for today or later' : '';
+    }
+    document.getElementById('day-planner-past-note')?.classList.toggle('hidden', !past);
+    const logBtn = document.getElementById('day-planner-open-log-btn');
+    if (logBtn) {
+        const rel = describeRelativeDay(dateString);
+        const showLog = past || rel.tone === 'today';
+        logBtn.classList.toggle('hidden', !showLog);
+        const label = logBtn.querySelector('span');
+        if (label) label.textContent = rel.tone === 'today' ? "Today's Log" : 'Quest Log';
+    }
+    return past;
+}
+
+/** Re-render the open Planner from live state (called whenever the calendar re-renders). */
+export function refreshOpenDayPlanner() {
+    const modal = plannerModal();
+    if (!modal || modal.classList.contains('hidden')) return;
+    const dateString = modal.dataset.date;
+    if (!dateString) return;
+    renderScheduleManagerList(dateString);
+    renderPlannerGlance(dateString);
+}
+
 // --- MAIN FEATURE MODALS ---
 
-export function openDayPlannerModal(dateString, dayCell) {
+export function openDayPlannerModal(dateString, dayCell, options = {}) {
     const prev = getCurrentlySelectedDayCell();
     if (prev) {
         prev.classList.remove('day-selected');
     }
-    setCurrentlySelectedDayCell(dayCell || null);
-    if (dayCell) {
-        dayCell.classList.add('day-selected');
+    const cell = dayCell?.classList?.contains('calendar-day-cell') ? dayCell : null;
+    setCurrentlySelectedDayCell(cell);
+    if (cell) {
+        cell.classList.add('day-selected');
     }
 
     const modal = plannerModal();
-    const displayDate = utils.parseDDMMYYYY(dateString).toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });
-    document.getElementById('day-planner-title').innerText = `Planner: ${displayDate}`;
+    const wasOpen = modal && !modal.classList.contains('hidden');
+    const previousTab = modal?.classList.contains('day-planner--event') ? 'event' : 'schedule';
+    const day = paintDayHeader('day-planner', dateString);
+    document.getElementById('day-planner-title').innerText = day.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });
     modal.dataset.date = dateString;
 
     document.getElementById('quest-event-form').reset();
@@ -60,13 +203,18 @@ export function openDayPlannerModal(dateString, dayCell) {
 
     populateQuestEventClasses();
     renderQuestEventDetails();
+    renderScheduleManagerList(dateString);
+    renderPlannerGlance(dateString);
+    const past = syncPlannerMode(dateString);
 
-    switchDayPlannerTab('schedule');
-    showAnimatedModal('day-planner-modal');
+    const wantedTab = options.tab || (wasOpen ? previousTab : 'schedule');
+    switchDayPlannerTab(past ? 'schedule' : wantedTab);
+    if (!wasOpen) showAnimatedModal('day-planner-modal');
 }
 
 export function switchDayPlannerTab(tabName) {
     const modal = plannerModal();
+    if (tabName === 'event' && modal?.dataset.date && isPastDate(modal.dataset.date)) tabName = 'schedule';
     modal?.classList.toggle('day-planner--event', tabName === 'event');
     const kicker = document.getElementById('day-planner-kicker');
     if (kicker) kicker.textContent = tabName === 'event' ? 'Summon a Quest Event' : "This day's lessons";
@@ -74,11 +222,7 @@ export function switchDayPlannerTab(tabName) {
     document.querySelectorAll('.day-planner-tab-btn').forEach(btn => {
         const isSelected = btn.dataset.tab === tabName;
         btn.classList.toggle('day-planner-tab-btn--active', isSelected);
-        btn.classList.toggle('bg-white', isSelected);
-        btn.classList.toggle('shadow-sm', isSelected);
-        btn.classList.toggle('text-indigo-600', isSelected);
-        btn.classList.toggle('text-gray-500', !isSelected);
-        btn.classList.toggle('hover:text-gray-700', !isSelected);
+        btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
     });
     document.querySelectorAll('.day-planner-tab-content').forEach(content => {
         content.classList.add('hidden');
@@ -236,13 +380,19 @@ function renderScheduleManagerList(dateString) {
 
     const scheduledIds = classesOnDay.map(c => c.id);
     const availableToAdd = state.get('allTeachersClasses').filter(c => !scheduledIds.includes(c.id));
+    const previousChoice = selectEl.value;
     selectEl.innerHTML = availableToAdd.map(c => `<option value="${escapeHtml(c.id)}" data-logo="${escapeHtml(c.logo || '🏫')}">${escapeHtml(c.name)}</option>`).join('');
+    if (previousChoice && availableToAdd.some(c => c.id === previousChoice)) selectEl.value = previousChoice;
     if (selectEl.options.length && !selectEl.value) selectEl.options[0].selected = true;
     document.getElementById('add-onetime-lesson-btn').disabled = availableToAdd.length === 0;
     renderOnetimeLessonChips();
 
     listEl.querySelectorAll('.cancel-lesson-btn').forEach(btn => {
-        btn.onclick = () => handleCancelLesson(dateString, btn.dataset.classId, renderScheduleManagerList);
+        btn.onclick = () => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Cancelling';
+            handleCancelLesson(dateString, btn.dataset.classId);
+        };
     });
 }
 

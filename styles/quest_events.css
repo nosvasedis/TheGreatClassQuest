@@ -3,22 +3,7 @@
    Card picker, class chips, and themed details — keep native selects in sync.
    ========================================================================== */
 
-.day-planner-header {
-    background: linear-gradient(90deg, #4f46e5, #7c3aed 48%, #4338ca);
-}
-
-#day-planner-modal.day-planner--event .day-planner-header {
-    background: linear-gradient(118deg, #6d28d9 0%, #c2410c 48%, #b45309 100%);
-}
-
-.day-planner-header #day-planner-kicker {
-    color: #ffffff;
-    opacity: 0.95;
-}
-
-#day-planner-modal.day-planner--event #day-planner-kicker {
-    color: #ffffff;
-}
+/* The Planner header, day-at-a-glance strip and tabs live in styles/calendar.css. */
 
 .day-planner-tab-btn--active {
     background: #ffffff;

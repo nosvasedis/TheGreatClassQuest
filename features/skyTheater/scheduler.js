@@ -1,8 +1,10 @@
-import { getActsForWeekday, pickCrossoverAct } from './catalog.js';
+import { getActsForWeekday, pickCrossoverAct, pickGuestAct } from './catalog.js';
 
 export const BLOCK_MS = 2 * 60 * 60 * 1000;
 export const MIN_GAP_MS = 20 * 60 * 1000;
 export const CROSSOVER_CHANCE = 0.175;
+/** Chance per block that a seasonal guest (leaf, snowflake, butterfly…) drops by. */
+export const GUEST_CHANCE = 0.4;
 
 /**
  * @param {Date} [date]
@@ -49,12 +51,13 @@ export function pickSpacedTimes(count, startMs, endMs, minGap = MIN_GAP_MS, rng 
 /**
  * Build fires for the current 2-hour block from `now` forward (no backfill).
  * @param {Date} [now]
- * @param {{ rng?: () => number, crossoverChance?: number }} [opts]
+ * @param {{ rng?: () => number, crossoverChance?: number, guestChance?: number }} [opts]
  * @returns {ScheduledFire[]}
  */
 export function buildBlockSchedule(now = new Date(), opts = {}) {
     const rng = opts.rng || Math.random;
     const crossoverChance = opts.crossoverChance ?? CROSSOVER_CHANCE;
+    const guestChance = opts.guestChance ?? GUEST_CHANCE;
 
     const blockStart = getBlockStart(now);
     const blockEndMs = blockStart.getTime() + BLOCK_MS;
@@ -77,19 +80,28 @@ export function buildBlockSchedule(now = new Date(), opts = {}) {
         usedFamilies.add(act.family);
     }
 
-    if (rng() < crossoverChance) {
+    const freeSlot = () => {
         const occupied = fires.map((f) => f.atMs);
-        let crossTime = null;
         for (let attempt = 0; attempt < 40; attempt += 1) {
             const t = windowStartMs + rng() * (blockEndMs - windowStartMs);
-            if (occupied.every((x) => Math.abs(x - t) >= MIN_GAP_MS)) {
-                crossTime = t;
-                break;
-            }
+            if (occupied.every((x) => Math.abs(x - t) >= MIN_GAP_MS)) return t;
         }
+        return null;
+    };
+
+    if (rng() < crossoverChance) {
+        const crossTime = freeSlot();
         if (crossTime != null) {
             const act = pickCrossoverAct(weekday, usedFamilies, rng);
             fires.push({ atMs: crossTime, act, crossover: true });
+        }
+    }
+
+    if (rng() < guestChance) {
+        const guest = pickGuestAct(now.getMonth(), rng);
+        const guestTime = guest ? freeSlot() : null;
+        if (guest && guestTime != null) {
+            fires.push({ atMs: guestTime, act: guest, crossover: true });
         }
     }
 

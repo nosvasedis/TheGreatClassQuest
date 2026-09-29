@@ -655,10 +655,10 @@ export const TERMS = [
     chapter: 'classroom-chrome',
     widget: 'none',
     names: { en: 'Sky Theater', el: 'Sky Theater' },
-    aliases: ['sky theater', 'emoji flights', 'header flights'],
+    aliases: ['sky theater', 'emoji flights', 'header flights', 'sky visitors'],
     def: {
-      en: 'Decorative emoji flights across the header sky. Fun, not Projector Mode (the classroom TV).',
-      el: 'Διακοσμητικές πτήσεις στην κεφαλίδα. Δεν είναι Projector Mode.'
+      en: 'Decorative storybook visitors in the header sky: each weekday has its own cast (rockets on Monday, dragons on Saturday…), a few drop by every couple of hours, and seasonal guests like autumn leaves or snowflakes join in. Some pop up beside the clock. Fun, not Projector Mode (the classroom TV).',
+      el: 'Διακοσμητικοί επισκέπτες στον ουρανό της κεφαλίδας: κάθε μέρα έχει τον δικό της θίασο, με εποχικούς καλεσμένους (φύλλα, νιφάδες). Δεν είναι Projector Mode.'
     },
     confuse: { en: 'Projector Mode', el: 'Projector Mode' }
   },

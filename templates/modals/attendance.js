@@ -130,40 +130,38 @@ export const attendanceModalsHTML = `
     </div>
 
     <div id="trial-history-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[71] flex items-center justify-center p-4 hidden">
-        <div
-            class="relative bg-gradient-to-br from-indigo-50 via-purple-50 to-fuchsia-50 p-6 md:p-8 rounded-[2.5rem] shadow-2xl max-w-5xl w-full pop-in border border-purple-200 flex flex-col h-[85vh] overflow-hidden"
-            style="box-shadow: 0 0 0 2px rgba(168,85,247,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
-            
-            <div class="absolute inset-0 pointer-events-none opacity-40"
-                style="background: radial-gradient(circle at 20% 10%, rgba(168,85,247,0.15), transparent 45%), radial-gradient(circle at 90% 70%, rgba(217,70,239,0.1), transparent 55%);"></div>
+        class="th-overlay fixed inset-0 z-[71] flex items-center justify-center p-2 sm:p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="trial-history-title">
+        <div class="th-book pop-in">
+            <span class="th-book__band" aria-hidden="true"></span>
+            <header class="th-head">
+                <span class="th-head__crest" aria-hidden="true"><i class="fas fa-book-open"></i></span>
+                <div class="th-head__text">
+                    <p class="th-head__kicker">Scholar's Scroll · Record Book</p>
+                    <h2 id="trial-history-title" class="th-head__title">Trial History</h2>
+                    <p id="trial-history-summary" class="th-head__summary"></p>
+                </div>
+                <button id="trial-history-close-btn" type="button" class="th-close" aria-label="Close trial history">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </header>
 
-            <div class="relative z-10 flex justify-between items-start mb-6 border-b border-purple-200/60 pb-4 shrink-0">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-500 text-white flex items-center justify-center shadow-lg shrink-0"
-                        style="box-shadow: 0 10px 30px rgba(168,85,247,0.4);">
-                        <i class="fas fa-scroll text-2xl"></i>
-                    </div>
-                    <div>
-                        <h2 id="trial-history-title" class="font-title text-3xl md:text-4xl text-purple-900 leading-tight">Trial History</h2>
-                        <p class="text-purple-700/70 font-semibold text-sm">Review past performance</p>
-                    </div>
+            <div class="th-page">
+                <div id="trial-history-controls-container" class="th-controls">
+                    <div id="trial-history-view-toggle" class="th-seg" role="tablist" aria-label="Kind of trial"></div>
+                    <div id="trial-history-mode-toggle" class="th-seg th-seg--mode" role="group" aria-label="Arrange records"></div>
+                    <label class="th-search">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input id="trial-history-search" type="search" autocomplete="off" spellcheck="false"
+                            placeholder="Find a student or trial…" aria-label="Find a student or trial">
+                    </label>
                 </div>
-                <button id="trial-history-close-btn"
-                    class="text-purple-900/50 hover:text-purple-900 text-2xl w-10 h-10 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 border border-purple-200/80 shadow-sm transition-all bubbly-button shrink-0">&times;</button>
-            </div>
-            
-            <div id="trial-history-controls-container" class="relative z-10 flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center mb-6 bg-white/60 p-2 rounded-2xl border border-purple-100 shadow-sm backdrop-blur-sm shrink-0">
-                <div id="trial-history-view-toggle"
-                    class="flex items-center gap-1 bg-purple-50/50 p-1.5 rounded-xl border border-purple-100 shadow-inner w-full sm:w-auto">
-                </div>
-                <div id="trial-history-actions" class="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
-                </div>
-            </div>
-            <div id="trial-history-sort-row" class="relative z-10 flex items-center gap-1.5 mb-4 bg-white/60 px-3 py-2 rounded-xl border border-purple-100 shadow-sm backdrop-blur-sm shrink-0 flex-wrap">
-            </div>
-            <div id="trial-history-content"
-                class="relative z-10 space-y-4 overflow-y-auto p-2 pr-4 flex-grow rounded-xl scrollbar-custom">
+                <div id="trial-history-sort-row" class="th-sortbar"></div>
+                <div id="trial-history-content" class="th-pages scrollbar-custom"></div>
+                <footer class="th-foot">
+                    <p id="trial-history-range" class="th-foot__range"></p>
+                    <div id="trial-history-actions" class="th-foot__actions"></div>
+                </footer>
             </div>
         </div>
     </div>

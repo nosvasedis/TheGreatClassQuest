@@ -37,37 +37,39 @@ export const scrollTabHTML = `
 
                     <div class="scroll-main-panels relative w-full">
                         <div id="scroll-dashboard-content"
-                            class="scroll-panel scroll-panel--bg flex flex-col gap-6"
+                            class="scroll-panel scroll-panel--bg ss-desk"
                             aria-hidden="true">
-                            <!-- Alerts / pending grading / makeups — separate from the animated chart block -->
-                            <div id="scroll-dashboard-queues" class="scroll-dashboard-queues flex flex-col gap-4"></div>
+                            <!-- Notices: upcoming test, pending grading, makeups (kept apart from the animated ledger + roll) -->
+                            <div id="scroll-dashboard-queues" class="ss-notices"></div>
                             <div id="scroll-dashboard-inner" class="scroll-dashboard-inner">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="scroll-stats-cards"></div>
+                                <section id="scroll-stats-cards" class="ss-ledger" aria-label="Class summary"></section>
 
-                                <div id="scroll-chart-section"
-                                    class="scroll-chart-section mb-6 p-1 md:p-1 bg-gradient-to-br from-violet-200 via-purple-300 to-indigo-400 rounded-[2rem] md:rounded-[2.3rem] shadow-[0_16px_40px_rgba(99,102,241,0.2)] relative overflow-hidden group">
-                                    <div class="scroll-chart-section-inner bg-white/95 backdrop-blur-xl rounded-[1.65rem] md:rounded-[2rem] p-4 md:p-5 relative overflow-hidden">
-                                        <div class="pointer-events-none absolute -right-10 -top-10 text-[9rem] text-violet-500/[0.07] transform rotate-12 transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-6"
-                                            aria-hidden="true">
-                                            <i class="fas fa-chart-line"></i>
+                                <section id="scroll-chart-section" class="ss-roll" aria-labelledby="ss-roll-title">
+                                    <span class="ss-roll__corner ss-roll__corner--tl" aria-hidden="true"></span>
+                                    <span class="ss-roll__corner ss-roll__corner--tr" aria-hidden="true"></span>
+                                    <span class="ss-roll__corner ss-roll__corner--bl" aria-hidden="true"></span>
+                                    <span class="ss-roll__corner ss-roll__corner--br" aria-hidden="true"></span>
+                                    <header class="ss-roll__head">
+                                        <div class="ss-roll__heading">
+                                            <span class="ss-roll__crest" aria-hidden="true"><i class="fas fa-chart-bar"></i></span>
+                                            <div>
+                                                <p class="ss-roll__kicker">Class Performance</p>
+                                                <h3 id="ss-roll-title" class="ss-roll__title">The Honour Roll</h3>
+                                            </div>
                                         </div>
-                                        <div class="pointer-events-none absolute -left-16 -bottom-16 w-52 h-52 bg-violet-300/20 blur-[64px] rounded-full"
-                                            aria-hidden="true"></div>
-                                        <h3 class="chart-section-title relative z-10 font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight mb-5 flex items-center gap-3">
-                                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-700 text-white shadow-md border border-slate-900/20" aria-hidden="true">
-                                                <i class="fas fa-chart-line text-sm opacity-95"></i>
-                                            </span>
-                                            <span>Class Performance Chart</span>
-                                        </h3>
-                                        <div id="scroll-performance-chart" class="relative z-10 space-y-3"></div>
-                                    </div>
-                                </div>
+                                        <div id="scroll-chart-toolbar" class="ss-roll__tools"></div>
+                                    </header>
+                                    <div id="scroll-chart-legend" class="ss-roll__legend"></div>
+                                    <div id="scroll-performance-chart" class="ss-roll__body"></div>
+                                </section>
                             </div>
                         </div>
                         <div id="scroll-placeholder"
-                            class="scroll-panel scroll-panel--fg text-center text-gray-500 bg-white/50 p-6 rounded-2xl"
+                            class="scroll-panel scroll-panel--fg ss-empty ss-empty--page"
                             aria-hidden="false">
-                            Please choose a class from the header to view academic progress.
+                            <span class="ss-empty__art" aria-hidden="true"><i class="fas fa-scroll"></i></span>
+                            <p class="ss-empty__title">The scroll is still rolled up</p>
+                            <p class="ss-empty__text">Choose a class from the header to unroll its trials, results and honour roll.</p>
                         </div>
                     </div>
                 </div>

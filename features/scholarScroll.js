@@ -13,11 +13,6 @@ function scrollMotionReduced() {
     return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 }
 
-/** Stats + performance chart only (class-swap animation applies here). */
-function getScrollDashboardHost() {
-    return document.getElementById('scroll-dashboard-inner') || document.getElementById('scroll-dashboard-content');
-}
-
 /** Pending grading, makeups, upcoming-test ribbon — stays visually separate from the chart “stage”. */
 function getScrollQueuesHost() {
     return document.getElementById('scroll-dashboard-queues') || document.getElementById('scroll-dashboard-content');
@@ -104,7 +99,6 @@ import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { HERO_CLASSES } from '../features/heroClasses.js';
 import {
-    getAssessmentAverage,
     getAssessmentSchemeForClass,
     getAssessmentValueLabel,
     getClassAssessmentUsage,
@@ -112,12 +106,10 @@ import {
     getNormalizedPercentForScore,
     getScheduledAssessmentStatus,
     getScheduledAssignmentForClassOnDate,
-    getStudentsAwaitingGradeForScheduledStatus,
     classUsesTests,
     isAssessmentSchemeEnabled,
     normalizeAssessmentScheme,
     getUpcomingScheduledAssessment,
-    getWeightedAcademicAverage,
     listScheduledAssessmentsNeedingGrades
 } from './assessmentConfig.js';
 import {
@@ -129,6 +121,20 @@ import {
     trialTallyText,
     numericBandFor
 } from './trialLogCore.mjs';
+import {
+    SCROLL_TIERS,
+    competitionRanks,
+    esc,
+    formatPct,
+    groupTrialSessions,
+    mean,
+    ringGaugeSvg,
+    sparklineSvg,
+    tierBarHtml,
+    tierCounts,
+    tierForPercent,
+    trendFor
+} from './scholarScrollCore.mjs';
 
 function formatYmdFromAnyDateString(dateStr) {
     const d = utils.parseFlexibleDate(dateStr);
@@ -378,6 +384,56 @@ function resetTrialBoard({ tabsFor = null, scheme = null } = {}) {
 
 // --- TAB RENDERING ---
 
+/** Viewer choices on the ledger + Honour Roll. The band filter resets when the class changes. */
+const rollPrefs = { metric: 'overall', range: '3m', sort: 'rank', tier: 'all' };
+/** Rows only animate in when what they show changes (class, metric, period), not on every live update. */
+let lastRollRenderKey = '';
+/** Pending Makeups folded shut, per class, for this session. */
+const collapsedMakeups = new Set();
+
+const RANGE_LABEL = { '30d': 'last 30 days', '3m': 'last 3 months' };
+const METRIC_LABEL = { overall: 'Overall', test: 'Tests', dictation: 'Dictations' };
+
+function findScrollClass(classId) {
+    return (state.get('allSchoolClasses') || []).find((c) => c.id === classId)
+        || (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
+        || null;
+}
+
+/** Start of a period: 30 days back, or the first of the month three months back. */
+function rangeStart(range) {
+    const d = new Date();
+    if (range === '30d') {
+        d.setDate(d.getDate() - 30);
+    } else {
+        d.setMonth(d.getMonth() - 3);
+        d.setDate(1);
+    }
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function shortDate(date, withYear = false) {
+    if (!date) return '';
+    const opts = { day: 'numeric', month: 'short' };
+    if (withYear) opts.year = 'numeric';
+    return date.toLocaleDateString('en-GB', opts);
+}
+
+function heroIconFor(student) {
+    return student?.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : '';
+}
+
+function avatarMarkup(student, cls = 'ss-av', { enlargeable = false } = {}) {
+    const name = esc(student?.name || '?');
+    const extra = enlargeable ? ' enlargeable-avatar' : '';
+    const data = enlargeable ? ` data-student-id="${esc(student.id)}"` : '';
+    if (student?.avatar) {
+        return `<img src="${esc(student.avatar)}" alt="${name}" loading="lazy" decoding="async" class="${cls}${extra}"${data}>`;
+    }
+    return `<span class="${cls} ${cls.split(' ')[0]}--initial${extra}"${data} aria-hidden="${enlargeable ? 'false' : 'true'}">${esc((student?.name || '?').charAt(0))}</span>`;
+}
+
 export async function renderScholarsScrollTab(selectedClassId = null, opts = {}) {
     const subtleReenter = opts.subtleReenter === true;
     const logTrialFab = document.getElementById('log-trial-fab');
@@ -387,8 +443,7 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
     const inner = document.getElementById('scroll-dashboard-inner');
 
     if (currentVal) {
-        const classData = state.get('allSchoolClasses').find((c) => c.id === currentVal)
-            || state.get('allTeachersClasses').find((c) => c.id === currentVal);
+        const classData = findScrollClass(currentVal);
         const usage = getClassAssessmentUsage(classData);
         const hasScores = (state.get('allWrittenScores') || []).some((score) => score.classId === currentVal);
         if (logTrialFab) {
@@ -403,6 +458,7 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
         const prevRendered = lastRenderedScrollClassId;
         const classChanged = prevRendered != null && prevRendered !== currentVal;
         const firstDashboardShow = prevRendered == null && currentVal != null;
+        if (prevRendered !== currentVal) rollPrefs.tier = 'all';
 
         lastRenderedScrollClassId = currentVal;
         setScrollPanelStack(true);
@@ -429,167 +485,411 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
     }
 }
 
-function renderScrollDashboard(classId) {
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    threeMonthsAgo.setDate(1); // Start from the beginning of that month
-
-    const scoresForClass = state.get('allWrittenScores').filter(s => {
-        if (s.classId !== classId || !s.date) return false;
-        const scoreDate = utils.parseFlexibleDate(s.date);
-        return scoreDate >= threeMonthsAgo;
-    });
-    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const testScheme = getAssessmentSchemeForClass(classData, 'test');
-    const dictationScheme = getAssessmentSchemeForClass(classData, 'dictation');
-
-    const statsContainer = document.getElementById('scroll-stats-cards');
-    // --- NEW: Upcoming Test Indicator (with queues / makeups — not the chart block) ---
-    const queuesHost = getScrollQueuesHost();
-    let testAlert = document.getElementById('scroll-test-alert');
-    if (testAlert) testAlert.remove(); // Clear previous to prevent duplicates
-
-    const upcomingTest = classUsesTests(classData) ? getUpcomingScheduledAssessment(classId) : null;
-
-    if (upcomingTest) {
-        const toneClasses = {
-            red: { bg: 'from-red-50 to-white', border: 'border-red-500', heading: 'text-red-800', body: 'text-red-600', icon: 'text-red-200' },
-            rose: { bg: 'from-rose-50 to-white', border: 'border-rose-500', heading: 'text-rose-800', body: 'text-rose-600', icon: 'text-rose-200' },
-            orange: { bg: 'from-amber-50 to-white', border: 'border-amber-500', heading: 'text-amber-800', body: 'text-amber-700', icon: 'text-amber-200' },
-            emerald: { bg: 'from-emerald-50 to-white', border: 'border-emerald-500', heading: 'text-emerald-800', body: 'text-emerald-700', icon: 'text-emerald-200' },
-            slate: { bg: 'from-slate-50 to-white', border: 'border-slate-400', heading: 'text-slate-800', body: 'text-slate-600', icon: 'text-slate-200' },
-            amber: { bg: 'from-amber-50 to-white', border: 'border-amber-500', heading: 'text-amber-800', body: 'text-amber-700', icon: 'text-amber-200' }
-        };
-        const palette = toneClasses[upcomingTest.tone] || toneClasses.amber;
-        testAlert = document.createElement('div');
-        testAlert.id = 'scroll-test-alert';
-        testAlert.className = `mb-4 bg-gradient-to-r ${palette.bg} ${palette.border} border-l-4 p-4 rounded-r-2xl shadow-sm flex items-center justify-between gap-4`;
-        testAlert.innerHTML = `
-            <div>
-                <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${palette.body}">
-                    <i class="fas fa-${upcomingTest.icon}"></i>
-                    <span>${upcomingTest.statusLabel}</span>
-                </div>
-                <h4 class="font-bold ${palette.heading} text-lg flex items-center gap-2 mt-3">
-                    <i class="fas fa-file-alt"></i> ${upcomingTest.testData.title}
-                </h4>
-                <p class="text-sm ${palette.body} ml-6">
-                    <span class="font-semibold">${upcomingTest.detailLabel}</span>
-                    <span class="ml-1">• ${upcomingTest.chipLabel}</span>
-                    ${upcomingTest.phase === 'missed'
-        ? `<span class="block mt-2 text-xs font-semibold opacity-95">Matched to <strong class="font-black">Schedule a Test</strong> on the Quest Board — log results for everyone who wrote so Pending Makeups stay accurate.</span>`
-        : (upcomingTest.phase === 'window_passed'
-            ? `<span class="block mt-2 text-xs font-semibold opacity-95">Lesson window ended — capture grades while memory is fresh. Title &amp; date below stay tied to what you advertised.</span>`
-            : '')}
-                    ${upcomingTest.testData.curriculum ? `<br><span class="text-gray-500 text-xs mt-1 block">Topics: ${upcomingTest.testData.curriculum}</span>` : ''}
-                </p>
-            </div>
-            <div class="text-3xl ${palette.icon}"><i class="fas fa-${upcomingTest.icon}"></i></div>
-        `;
-        // Ribbon sits with other scroll alerts above the performance chart
-        queuesHost.prepend(testAlert);
-    }
-    const chartContainer = document.getElementById('scroll-performance-chart');
-
-    const testScores = scoresForClass.filter(s => s.type === 'test');
-    const dictationScores = scoresForClass.filter(s => s.type === 'dictation');
-
-    const testsByStudentId = new Map();
-    const dictationsByStudentId = new Map();
-    for (const s of scoresForClass) {
-        if (s.type === 'test') {
-            if (!testsByStudentId.has(s.studentId)) testsByStudentId.set(s.studentId, []);
-            testsByStudentId.get(s.studentId).push(s);
-        } else if (s.type === 'dictation') {
-            if (!dictationsByStudentId.has(s.studentId)) dictationsByStudentId.set(s.studentId, []);
-            dictationsByStudentId.get(s.studentId).push(s);
-        }
-    }
-    const scoreMetaByStudentId = new Map(
-        (state.get('allStudentScores') || []).map(sc => [sc.id, sc])
-    );
-
-    // --- Calculate Averages ---
-    const testAvg = getAssessmentAverage(testScores, classData);
-    const dictationAvg = getAssessmentAverage(dictationScores, classData);
-    const avgDictationDisplay = dictationAvg === null
-        ? '--'
-        : (dictationScheme.mode === 'qualitative'
-            ? `${getNearestQualitativeLabel(dictationScheme, dictationAvg)} (${dictationAvg.toFixed(0)}%)`
-            : `${dictationAvg.toFixed(0)}%`);
-
-    let topScholars = [];
-    if (studentsInClass.length > 0 && scoresForClass.length > 0) {
-        const studentAverages = studentsInClass.map(student => {
-            const studentTestScores = testsByStudentId.get(student.id) || [];
-            const studentDictationScores = dictationsByStudentId.get(student.id) || [];
-            if (studentTestScores.length === 0 && studentDictationScores.length === 0) return null;
-
-            const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
-            if (!Number.isFinite(avg)) return null;
-
-            return { name: student.name, avg };
-        }).filter(Boolean);
-
-        if (studentAverages.length > 0) {
-            const maxAvg = Math.max(...studentAverages.map(s => s.avg));
-            topScholars = studentAverages.filter(s => s.avg === maxAvg);
-        }
-    }
-    // Stat cards deprecated - removed as per v2 cleanup
-
-    const studentPerformanceData = studentsInClass.map(student => {
-        const studentTestScores = testsByStudentId.get(student.id) || [];
-        const studentDictationScores = dictationsByStudentId.get(student.id) || [];
-
-        const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
-        const performance = (studentTestScores.length > 0 || studentDictationScores.length > 0) && Number.isFinite(avg)
-            ? { value: avg, display: `${avg.toFixed(1)}%` }
-            : { value: 0, display: '--' };
-        return { student, performance };
-    }).sort((a, b) => b.performance.value - a.performance.value);
-
-    // Render Performance Chart
+/** Everything the ledger and the roll need for one class and period. */
+function buildScrollModel(classId, classData, range) {
+    const since = rangeStart(range);
     const usage = getClassAssessmentUsage(classData);
-    if (!usage.any) {
-        chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">This class does not use tests or dictations. The secretary can turn them on in Grading.</p>`;
-    } else if (studentPerformanceData.length === 0 || studentPerformanceData.every(d => d.performance.value === 0)) {
-        chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">${usage.tests && usage.dictations ? 'Log some trials' : (usage.tests ? 'Log a test' : 'Log a dictation')} to see the performance chart!</p>`;
-    } else {
-        chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({ student, performance }, rowIndex) => {
-            const scoreData = scoreMetaByStudentId.get(student.id);
-            const pendingSkill = !!scoreData?.pendingSkillChoice;
-            const avatarInner = student.avatar
-                ? `<img src="${student.avatar}" alt="${student.name}" loading="lazy" decoding="async" class="student-avatar enlargeable-avatar" data-student-id="${student.id}">`
-                : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold" data-student-id="${student.id}">${student.name.charAt(0)}</div>`;
-            const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
+    const students = (state.get('allStudents') || []).filter((s) => s.classId === classId);
+    const classScores = [];
+    (state.get('allWrittenScores') || []).forEach((score) => {
+        if (score.classId !== classId || !score.date) return;
+        if (score.type !== 'test' && score.type !== 'dictation') return;
+        const date = utils.parseFlexibleDate(score.date);
+        if (!date) return;
+        const pct = getNormalizedPercentForScore(score, classData);
+        if (!Number.isFinite(pct)) return;
+        classScores.push({ score, date, time: date.getTime(), pct });
+    });
+    classScores.sort((a, b) => a.time - b.time);
+    const scores = classScores.filter((e) => e.date >= since);
 
-            const percentage = performance.value;
-            let tier = 'low';
-            if (percentage >= 80) tier = 'high';
-            else if (percentage >= 50) tier = 'mid';
+    const byStudent = new Map();
+    scores.forEach((e) => {
+        if (!byStudent.has(e.score.studentId)) byStudent.set(e.score.studentId, { test: [], dictation: [] });
+        byStudent.get(e.score.studentId)[e.score.type].push(e);
+    });
 
-            return `
-    <div class="chart-row" data-score-tier="${tier}" style="--chart-stagger: ${rowIndex * 0.02}s">
-        <div class="chart-avatar-wrapper">
-            ${avatarHtml}
+    const showTests = usage.tests || classScores.some((e) => e.score.type === 'test');
+    const showDictations = usage.dictations || classScores.some((e) => e.score.type === 'dictation');
+
+    /** Weighted 60/40 when the class uses both, as elsewhere in the app. */
+    const metricValue = (bucket, metric) => {
+        if (!bucket) return null;
+        const t = mean(bucket.test.map((e) => e.pct));
+        const d = mean(bucket.dictation.map((e) => e.pct));
+        if (metric === 'test') return t;
+        if (metric === 'dictation') return d;
+        if (t !== null && d !== null) {
+            if (usage.tests && !usage.dictations) return t;
+            if (usage.dictations && !usage.tests) return d;
+            return (t * 0.6) + (d * 0.4);
+        }
+        return t ?? d;
+    };
+    const seriesFor = (bucket, metric) => {
+        if (!bucket) return [];
+        if (metric === 'test' || metric === 'dictation') return bucket[metric];
+        return [...bucket.test, ...bucket.dictation].sort((a, b) => a.time - b.time);
+    };
+
+    return { since, usage, students, classScores, scores, byStudent, showTests, showDictations, metricValue, seriesFor };
+}
+
+function schemeForMetric(classData, metric, usage) {
+    if (metric === 'test') return getAssessmentSchemeForClass(classData, 'test');
+    if (metric === 'dictation') return getAssessmentSchemeForClass(classData, 'dictation');
+    const t = getAssessmentSchemeForClass(classData, 'test');
+    const d = getAssessmentSchemeForClass(classData, 'dictation');
+    if (usage.tests && usage.dictations) return t.mode === 'qualitative' && d.mode === 'qualitative' ? t : null;
+    return usage.dictations ? d : t;
+}
+
+function qualLabel(scheme, pct) {
+    if (!scheme || scheme.mode !== 'qualitative' || !Number.isFinite(pct)) return '';
+    return getNearestQualitativeLabel(scheme, pct);
+}
+
+function renderScrollDashboard(classId) {
+    const classData = findScrollClass(classId);
+    const ledgerEl = document.getElementById('scroll-stats-cards');
+    const chartEl = document.getElementById('scroll-performance-chart');
+    const toolbarEl = document.getElementById('scroll-chart-toolbar');
+    const legendEl = document.getElementById('scroll-chart-legend');
+    const rollEl = document.getElementById('scroll-chart-section');
+    if (!chartEl || !classData) return;
+
+    renderUpcomingTestNotice(classId, classData);
+
+    const model = buildScrollModel(classId, classData, rollPrefs.range);
+    const { usage, showTests, showDictations } = model;
+    const bothKinds = showTests && showDictations;
+    if (!bothKinds) rollPrefs.metric = 'overall';
+    const metric = rollPrefs.metric;
+
+    const renderKey = `${classId}|${metric}|${rollPrefs.range}|${rollPrefs.sort}|${rollPrefs.tier}`;
+    const animate = renderKey !== lastRollRenderKey && !scrollMotionReduced();
+    lastRollRenderKey = renderKey;
+    rollEl?.classList.toggle('ss-roll--animate', animate);
+    ledgerEl?.classList.toggle('ss-ledger--animate', animate);
+
+    // Does not use tests or dictations and never did.
+    if (!usage.any && model.classScores.length === 0) {
+        ledgerEl.innerHTML = '';
+        ledgerEl.hidden = true;
+        toolbarEl.innerHTML = '';
+        legendEl.innerHTML = '';
+        chartEl.innerHTML = emptyStateHtml({
+            icon: 'fa-feather-alt',
+            title: 'No trials for this class',
+            text: 'This class does not use tests or dictations. The secretary can turn them on in Grading.'
+        });
+        wireScrollControls(classId);
+        return;
+    }
+
+    // --- Rows for the roll ---
+    const rows = model.students.map((student) => {
+        const bucket = model.byStudent.get(student.id);
+        return {
+            student,
+            bucket,
+            value: model.metricValue(bucket, metric),
+            overall: model.metricValue(bucket, 'overall'),
+            series: model.seriesFor(bucket, metric)
+        };
+    });
+    const graded = rows.filter((r) => r.value !== null)
+        .sort((a, b) => (b.value - a.value) || a.student.name.localeCompare(b.student.name));
+    const ranks = competitionRanks(graded.map((r) => Math.round(r.value * 10)));
+    graded.forEach((r, i) => { r.rank = ranks[i]; r.tier = tierForPercent(r.value); });
+    const awaiting = rows.filter((r) => r.value === null).sort((a, b) => a.student.name.localeCompare(b.student.name));
+    const classAvg = mean(graded.map((r) => r.value));
+
+    ledgerEl.hidden = false;
+    ledgerEl.innerHTML = ledgerHtml(classData, model, rows, metric);
+    toolbarEl.innerHTML = toolbarHtml(bothKinds, metric);
+
+    if (graded.length === 0) {
+        legendEl.innerHTML = '';
+        const olderData = rollPrefs.range === '30d' && model.classScores.some((e) => e.date >= rangeStart('3m'));
+        const kindWord = usage.tests && usage.dictations ? 'trial' : (usage.tests ? 'test' : 'dictation');
+        chartEl.innerHTML = olderData
+            ? emptyStateHtml({
+                icon: 'fa-hourglass-half',
+                title: 'A quiet month',
+                text: 'Nothing was graded in the last 30 days.',
+                action: '<button type="button" class="ss-btn ss-btn--ink" data-ss-range="3m"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Show the last 3 months</button>'
+            })
+            : emptyStateHtml({
+                icon: 'fa-feather-alt',
+                title: metric === 'overall' ? 'The roll is still blank' : `No ${METRIC_LABEL[metric].toLowerCase()} yet`,
+                text: `Log a ${metric === 'overall' ? kindWord : metric} to see the performance chart!`,
+                action: usage.any ? '<button type="button" class="ss-btn ss-btn--seal" data-ss-action="log-trial"><i class="fas fa-feather-alt" aria-hidden="true"></i> Log New Trial</button>' : ''
+            });
+        wireScrollControls(classId);
+        return;
+    }
+
+    const counts = { high: 0, mid: 0, low: 0 };
+    graded.forEach((r) => { counts[r.tier] += 1; });
+    if (rollPrefs.tier !== 'all' && !counts[rollPrefs.tier]) rollPrefs.tier = 'all';
+    legendEl.innerHTML = legendHtml(counts, graded.length, classAvg);
+
+    const scheme = schemeForMetric(classData, metric, usage);
+    let visible = rollPrefs.tier === 'all' ? graded : graded.filter((r) => r.tier === rollPrefs.tier);
+    if (rollPrefs.sort === 'name') visible = [...visible].sort((a, b) => a.student.name.localeCompare(b.student.name));
+
+    const scoreMeta = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
+    const rowsHtml = visible.map((r, i) => rollRowHtml(r, i, { metric, scheme, classAvg, scoreMeta })).join('');
+
+    chartEl.innerHTML = `
+        <div class="ss-list-head" aria-hidden="true">
+            <span>Rank</span><span>Scholar</span><span>${metric === 'overall' ? 'Average' : `${METRIC_LABEL[metric]} average`} · ${RANGE_LABEL[rollPrefs.range]}</span><span>Recent</span>
         </div>
-        <button type="button"
-            class="chart-label chart-label-button cursor-pointer"
-            data-student-id="${student.id}"
-            aria-label="Open analytics for ${student.name}">
-            ${student.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : ''} ${student.name}
-        </button>
-        <div class="chart-bar-wrapper">
-            <div class="chart-bar" data-score-tier="${tier}" style="width: ${percentage}%;">
-                <span>${performance.display}</span>
+        <ol class="ss-list" aria-label="Scholars ranked by ${metric === 'overall' ? 'average' : METRIC_LABEL[metric].toLowerCase() + ' average'}">${rowsHtml}</ol>
+        ${awaitingHtml(awaiting, metric)}
+    `;
+    wireScrollControls(classId);
+}
+
+function emptyStateHtml({ icon, title, text, action = '' }) {
+    return `
+        <div class="ss-empty">
+            <span class="ss-empty__art" aria-hidden="true"><i class="fas ${icon}"></i></span>
+            <p class="ss-empty__title">${esc(title)}</p>
+            <p class="ss-empty__text">${esc(text)}</p>
+            ${action ? `<div class="ss-empty__actions">${action}</div>` : ''}
+        </div>`;
+}
+
+function segHtml(name, options, active, label, extraClass = '') {
+    return `<div class="ss-seg ${extraClass}" role="group" aria-label="${esc(label)}">${options.map(([val, text, icon]) => `
+        <button type="button" class="ss-seg__btn${val === active ? ' is-active' : ''}" data-ss-${name}="${val}" aria-pressed="${val === active}">
+            ${icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : ''}<span>${text}</span>
+        </button>`).join('')}</div>`;
+}
+
+function toolbarHtml(bothKinds, metric) {
+    const metricSeg = bothKinds
+        ? segHtml('metric', [['overall', 'Overall', 'fa-layer-group'], ['test', 'Tests', 'fa-file-alt'], ['dictation', 'Dictations', 'fa-microphone-alt']], metric, 'Rank by')
+        : '';
+    const sortSeg = segHtml('sort', [['rank', 'Rank', 'fa-trophy'], ['name', 'A–Z', 'fa-sort-alpha-down']], rollPrefs.sort, 'Order', 'ss-seg--quiet');
+    return `${metricSeg}${sortSeg}`;
+}
+
+function legendHtml(counts, total, classAvg) {
+    const chip = (key, label, range, n) => `
+        <button type="button" class="ss-chip${rollPrefs.tier === key ? ' is-active' : ''}" data-ss-tier="${key}" aria-pressed="${rollPrefs.tier === key}" ${key !== 'all' && !n ? 'disabled' : ''}>
+            ${key !== 'all' ? `<span class="ss-chip__dot" data-tier="${key}" aria-hidden="true"></span>` : ''}
+            <span>${label}</span>${range ? `<small>${range}</small>` : ''}<b>${n}</b>
+        </button>`;
+    return `
+        <div class="ss-legend" role="group" aria-label="Show scholars by band">
+            ${chip('all', 'All scholars', '', total)}
+            ${SCROLL_TIERS.map((t) => chip(t.key, t.label, t.range, counts[t.key])).join('')}
+        </div>
+        <span class="ss-legend__key" title="The dashed line on every bar marks the class average">
+            <span class="ss-legend__mark" aria-hidden="true"></span>Class average <b>${formatPct(classAvg)}</b>
+        </span>`;
+}
+
+function rollRowHtml(r, index, { metric, scheme, classAvg, scoreMeta }) {
+    const { student, value, series, bucket, rank, tier } = r;
+    const pendingSkill = !!scoreMeta.get(student.id)?.pendingSkillChoice;
+    const avatar = wrapAvatarWithLevelUpIndicator(avatarMarkup(student, 'ss-row__img', { enlargeable: true }), pendingSkill);
+    const tests = bucket?.test.length || 0;
+    const dicts = bucket?.dictation.length || 0;
+    const parts = [];
+    if (metric !== 'dictation' && tests) parts.push(`${tests} test${tests === 1 ? '' : 's'}`);
+    if (metric !== 'test' && dicts) parts.push(`${dicts} dictation${dicts === 1 ? '' : 's'}`);
+    const last = series[series.length - 1];
+    if (last) parts.push(`last ${shortDate(last.date)}`);
+    const pcts = series.map((e) => e.pct);
+    const trend = trendFor(pcts);
+    const trendHtml = trend
+        ? `<span class="ss-trend" data-dir="${trend.dir}" title="Latest ${formatPct(trend.latest, 0)} vs earlier average ${formatPct(trend.prior, 0)}">
+                <i class="fas fa-${trend.dir === 'up' ? 'arrow-up' : (trend.dir === 'down' ? 'arrow-down' : 'minus')}" aria-hidden="true"></i>${trend.dir === 'steady' ? '' : Math.round(Math.abs(trend.delta))}
+                <span class="sr-only">${trend.dir === 'up' ? 'improving' : (trend.dir === 'down' ? 'slipping' : 'steady')}</span>
+            </span>`
+        : '<span class="ss-trend" data-dir="none" title="One result so far">·</span>';
+    const qual = qualLabel(scheme, value);
+    return `
+        <li class="ss-row" data-tier="${tier}" style="--i:${Math.min(index, 24)}">
+            <span class="ss-rank"${rank <= 3 ? ` data-podium="${rank}"` : ''} title="Rank ${rank}">${rank}</span>
+            <span class="ss-row__avatar">${avatar}</span>
+            <button type="button" class="ss-row__who chart-label-button" data-student-id="${esc(student.id)}" aria-label="Open analytics for ${esc(student.name)}">
+                <span class="ss-row__name">${heroIconFor(student) ? `<span class="ss-row__hero" aria-hidden="true">${heroIconFor(student)}</span>` : ''}${esc(student.name)}</span>
+                <span class="ss-row__meta">${esc(parts.join(' · '))}</span>
+            </button>
+            <span class="ss-row__track" role="img" aria-label="${esc(student.name)}: ${formatPct(value)}">
+                <span class="ss-row__guide" style="left:50%" aria-hidden="true"></span>
+                <span class="ss-row__guide" style="left:80%" aria-hidden="true"></span>
+                <span class="ss-row__fill" data-tier="${tier}" style="--w:${(Math.max(1.5, value) / 100).toFixed(4)}"></span>
+                ${Number.isFinite(classAvg) ? `<span class="ss-row__avg" style="left:${classAvg.toFixed(2)}%" aria-hidden="true"></span>` : ''}
+            </span>
+            <span class="ss-row__score"><b>${formatPct(value)}</b>${qual ? `<small>${esc(qual)}</small>` : ''}</span>
+            <span class="ss-row__recent">${sparklineSvg(pcts)}${trendHtml}</span>
+        </li>`;
+}
+
+function awaitingHtml(awaiting, metric) {
+    if (!awaiting.length) return '';
+    const noun = metric === 'overall' ? 'a trial' : (metric === 'test' ? 'a test' : 'a dictation');
+    return `
+        <div class="ss-awaiting">
+            <p class="ss-awaiting__title"><i class="fas fa-hourglass-half" aria-hidden="true"></i> Waiting for ${noun} <b>${awaiting.length}</b></p>
+            <div class="ss-awaiting__list">${awaiting.map(({ student }) => `
+                <button type="button" class="ss-awaiting__chip chart-label-button" data-student-id="${esc(student.id)}" aria-label="Open analytics for ${esc(student.name)}">
+                    ${avatarMarkup(student, 'ss-awaiting__av')}<span>${esc(student.name)}</span>
+                </button>`).join('')}
+            </div>
+        </div>`;
+}
+
+function ledgerHtml(classData, model, rows, metric) {
+    const { usage, scores, showTests, showDictations } = model;
+    const bothKinds = showTests && showDictations;
+    const overallVals = rows.map((r) => r.overall).filter((v) => v !== null);
+    const classAvg = mean(overallVals);
+    const overallScheme = schemeForMetric(classData, 'overall', usage);
+
+    // Momentum: the last 30 days against the 60 days before them.
+    const now = Date.now();
+    const DAY = 86400000;
+    const recent = mean(model.classScores.filter((e) => e.time >= now - 30 * DAY).map((e) => e.pct));
+    const earlier = mean(model.classScores.filter((e) => e.time < now - 30 * DAY && e.time >= now - 90 * DAY).map((e) => e.pct));
+    let momentum = '';
+    if (recent !== null && earlier !== null) {
+        const delta = recent - earlier;
+        const dir = delta >= 2 ? 'up' : (delta <= -2 ? 'down' : 'steady');
+        momentum = `<span class="ss-momentum" data-dir="${dir}" title="Average of the last 30 days (${formatPct(recent, 0)}) against the two months before (${formatPct(earlier, 0)})">
+            <i class="fas fa-${dir === 'up' ? 'arrow-trend-up' : (dir === 'down' ? 'arrow-trend-down' : 'equals')}" aria-hidden="true"></i>
+            ${dir === 'steady' ? 'Holding steady' : `${dir === 'up' ? '+' : '−'}${Math.abs(delta).toFixed(1)} pts this month`}
+        </span>`;
+    }
+
+    const kindTile = (type) => {
+        const entries = scores.filter((e) => e.score.type === type);
+        const avg = mean(entries.map((e) => e.pct));
+        const sessions = new Set(entries.map((e) => `${e.score.date}|${String(e.score.title || '').trim().toLowerCase()}`));
+        const latest = entries[entries.length - 1];
+        const scheme = getAssessmentSchemeForClass(classData, type);
+        const qual = qualLabel(scheme, avg);
+        const isTest = type === 'test';
+        const latestName = latest ? (isTest ? (String(latest.score.title || '').trim() || 'Test') : 'Dictation') : '';
+        const active = bothKinds && metric === type;
+        const tag = bothKinds ? 'button' : 'div';
+        return `
+            <${tag} ${bothKinds ? `type="button" data-ss-metric="${type}" aria-pressed="${active}" title="Rank the roll by ${isTest ? 'tests' : 'dictations'}"` : ''} class="ss-tile ss-tile--${type}${active ? ' is-active' : ''}">
+                <span class="ss-tile__icon" aria-hidden="true"><i class="fas ${isTest ? 'fa-file-alt' : 'fa-microphone-alt'}"></i></span>
+                <span class="ss-tile__label">${isTest ? 'Tests' : 'Dictations'}</span>
+                <span class="ss-tile__value">${avg === null ? '--' : formatPct(avg, 0)}${qual ? `<small>${esc(qual)}</small>` : ''}</span>
+                <span class="ss-tile__note">${sessions.size ? `${sessions.size} ${isTest ? 'test' : 'dictation'}${sessions.size === 1 ? '' : 's'} · ${entries.length} results` : 'None logged yet'}</span>
+                ${latest ? `<span class="ss-tile__latest"><i class="fas fa-bookmark" aria-hidden="true"></i><span>${esc(latestName)}</span><em>${shortDate(latest.date)}</em></span>` : ''}
+            </${tag}>`;
+    };
+
+    const top = rows.filter((r) => r.overall !== null).sort((a, b) => b.overall - a.overall);
+    const topVal = top[0]?.overall;
+    const leaders = top.filter((r) => Math.abs(r.overall - topVal) < 0.05).slice(0, 3);
+    const starTile = `
+        <div class="ss-tile ss-tile--star">
+            <span class="ss-tile__icon" aria-hidden="true"><i class="fas fa-crown"></i></span>
+            <span class="ss-tile__label">Top scholar${leaders.length > 1 ? 's' : ''}</span>
+            ${leaders.length ? `
+                <span class="ss-star">
+                    <span class="ss-star__avs">${leaders.map((r) => avatarMarkup(r.student, 'ss-star__av')).join('')}</span>
+                    <span class="ss-star__names">${leaders.map((r) => `<button type="button" class="ss-star__name chart-label-button" data-student-id="${esc(r.student.id)}">${esc(r.student.name)}</button>`).join('')}</span>
+                </span>
+                <span class="ss-tile__note">${formatPct(topVal)} overall average</span>`
+        : '<span class="ss-tile__note">Crowned after the first graded trial</span>'}
+        </div>`;
+
+    const overallActive = bothKinds && metric === 'overall';
+    const avgTag = bothKinds ? 'button' : 'div';
+    return `
+        <div class="ss-ledger__bar">
+            <p class="ss-ledger__caption"><span class="ss-ledger__logo" aria-hidden="true">${esc(classData.logo || '📜')}</span><span>${esc(classData.name || 'Class')}</span><em>· ${RANGE_LABEL[rollPrefs.range]}</em></p>
+            <div class="ss-ledger__actions">
+                ${segHtml('range', [['30d', '30 days'], ['3m', '3 months']], rollPrefs.range, 'Period', 'ss-seg--sm')}
+                <button type="button" class="ss-btn ss-btn--ghost" data-ss-action="history" title="Browse every logged test and dictation"><i class="fas fa-book-open" aria-hidden="true"></i><span>History</span></button>
+                ${usage.any ? '<button type="button" class="ss-btn ss-btn--seal" data-ss-action="log-trial"><i class="fas fa-feather-alt" aria-hidden="true"></i><span>Log New Trial</span></button>' : ''}
             </div>
         </div>
-    </div>
-`;
-        }).join('')}</div>`;
-    }
+        <div class="ss-ledger__grid${bothKinds ? '' : ' ss-ledger__grid--three'}">
+            <${avgTag} ${bothKinds ? `type="button" data-ss-metric="overall" aria-pressed="${overallActive}" title="Rank the roll by the overall average"` : ''} class="ss-tile ss-tile--avg${overallActive ? ' is-active' : ''}">
+                <span class="ss-tile__gauge">${ringGaugeSvg(classAvg)}<span class="ss-tile__gauge-value">${classAvg === null ? '--' : formatPct(classAvg, 0)}</span></span>
+                <span class="ss-tile__stack">
+                    <span class="ss-tile__label">Class average</span>
+                    <span class="ss-tile__headline">${classAvg === null ? 'No grades yet' : esc(qualLabel(overallScheme, classAvg) || SCROLL_TIERS.find((t) => t.key === tierForPercent(classAvg)).label)}</span>
+                    <span class="ss-tile__note">${overallVals.length} of ${rows.length} scholar${rows.length === 1 ? '' : 's'} graded${bothKinds ? ' · tests 60% · dictations 40%' : ''}</span>
+                    ${momentum}
+                </span>
+            </${avgTag}>
+            ${showTests ? kindTile('test') : ''}
+            ${showDictations ? kindTile('dictation') : ''}
+            ${starTile}
+        </div>`;
+}
+
+/** One set of delegated handlers on the tab (re-assigned each render, never stacked). */
+function wireScrollControls(classId) {
+    const host = document.getElementById('scroll-dashboard-inner');
+    if (!host) return;
+    host.onclick = (e) => {
+        const btn = e.target.closest('[data-ss-metric],[data-ss-range],[data-ss-sort],[data-ss-tier],[data-ss-action]');
+        if (!btn || !host.contains(btn) || btn.disabled) return;
+        const d = btn.dataset;
+        if (d.ssAction === 'log-trial') {
+            openTrialTypeModal(classId);
+            return;
+        }
+        if (d.ssAction === 'history') {
+            openTrialHistoryModal(classId);
+            return;
+        }
+        if (d.ssMetric) rollPrefs.metric = d.ssMetric;
+        if (d.ssRange) rollPrefs.range = d.ssRange;
+        if (d.ssSort) rollPrefs.sort = d.ssSort;
+        if (d.ssTier) rollPrefs.tier = d.ssTier;
+        renderScrollDashboard(classId);
+    };
+}
+
+function renderUpcomingTestNotice(classId, classData) {
+    const queuesHost = getScrollQueuesHost();
+    document.getElementById('scroll-test-alert')?.remove();
+    const upcoming = classUsesTests(classData) ? getUpcomingScheduledAssessment(classId) : null;
+    if (!upcoming || !queuesHost) return;
+
+    const canLog = ['today', 'later_today', 'in_progress', 'window_passed', 'missed'].includes(upcoming.phase);
+    const note = upcoming.phase === 'missed'
+        ? 'Announced with <strong>Schedule a Test</strong> on the Quest Board. Log results for everyone who wrote it so Pending Makeups stay accurate.'
+        : (upcoming.phase === 'window_passed'
+            ? 'The lesson has ended. Capture the grades while memory is fresh; title and date stay tied to what you announced.'
+            : '');
+    const notice = document.createElement('article');
+    notice.id = 'scroll-test-alert';
+    notice.className = 'ss-notice ss-notice--test';
+    notice.dataset.tone = upcoming.tone || 'amber';
+    notice.innerHTML = `
+        <span class="ss-notice__seal" aria-hidden="true"><i class="fas fa-${esc(upcoming.icon)}"></i></span>
+        <div class="ss-notice__body">
+            <p class="ss-notice__kicker"><span>${esc(upcoming.statusLabel)}</span><em>${esc(upcoming.chipLabel)}</em></p>
+            <h4 class="ss-notice__title">${esc(upcoming.testData.title || 'Scheduled test')}</h4>
+            <p class="ss-notice__text"><i class="far fa-calendar" aria-hidden="true"></i> ${esc(upcoming.detailLabel)}</p>
+            ${note ? `<p class="ss-notice__hint">${note}</p>` : ''}
+            ${upcoming.testData.curriculum ? `<p class="ss-notice__topics"><b>Topics</b> ${esc(upcoming.testData.curriculum)}</p>` : ''}
+        </div>
+        ${canLog ? `<button type="button" class="ss-btn ss-btn--seal ss-notice__cta"><i class="fas fa-feather-alt" aria-hidden="true"></i> Log results</button>` : ''}
+    `;
+    notice.querySelector('.ss-notice__cta')?.addEventListener('click', () => {
+        openBulkLogModal(classId, 'test', {
+            presetDate: formatYmdFromAnyDateString(upcoming.testData.date),
+            presetTitle: String(upcoming.testData.title || '').trim()
+        });
+    });
+    queuesHost.prepend(notice);
 }
 
 // --- NEW MODAL LOGIC ---
@@ -879,18 +1179,58 @@ export function openBulkLogModal(classId, type, options = {}) {
 
 // --- HISTORY & SINGLE EDIT ---
 
+/** Record-book viewer state (reset each time the book opens). */
+const thState = {
+    classId: null,
+    mode: 'trial',          // 'trial' = grouped by sitting · 'student' = one card per scholar
+    query: '',
+    fullLoaded: false,
+    expanded: new Set(),    // trial keys opened by the teacher
+    collapsed: new Set(),   // trial keys closed by the teacher (overrides the default-open ones)
+    expandAll: null         // null = default, true/false = Expand all / Collapse all
+};
+
+function activeHistoryView() {
+    return document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
+}
+
+/** Scores the book can show: the loaded window from state, plus the archive once fetched. */
+function historyScoresForClass(classId) {
+    const cutoff = rangeStart('3m');
+    const fromState = (state.get('allWrittenScores') || []).filter((s) => {
+        if (s.classId !== classId || !s.date) return false;
+        if (thState.fullLoaded) return true;
+        const d = utils.parseFlexibleDate(s.date);
+        return !!d && d >= cutoff;
+    });
+    // Archive first so the live copy of a record wins.
+    const merged = new Map();
+    loadedHistoricalScores.filter((s) => s.classId === classId).forEach((s) => merged.set(s.id, s));
+    fromState.forEach((s) => merged.set(s.id, s));
+    return [...merged.values()];
+}
+
+function findScoreRecord(trialId) {
+    return (state.get('allWrittenScores') || []).find((s) => s.id === trialId)
+        || loadedHistoricalScores.find((s) => s.id === trialId)
+        || null;
+}
+
 export function openTrialHistoryModal(classId) {
     if (!classId) return;
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
+    const classData = (state.get('allTeachersClasses') || []).find((c) => c.id === classId) || findScrollClass(classId);
     if (!classData) return;
 
     loadedHistoricalScores = [];
     historySortDateDir = 'desc';
     historySortStudentBy = 'name';
+    Object.assign(thState, { classId, mode: 'trial', query: '', fullLoaded: false, expandAll: null });
+    thState.expanded = new Set();
+    thState.collapsed = new Set();
 
     const modal = document.getElementById('trial-history-modal');
     modal.dataset.classId = classId;
-    document.getElementById('trial-history-title').innerHTML = `${classData.logo} Trial History`;
+    document.getElementById('trial-history-title').innerHTML = `<span class="th-head__logo" aria-hidden="true">${esc(classData.logo || '📜')}</span><span>Trial History</span>`;
 
     const usage = getClassAssessmentUsage(classData);
     const scoresForHistory = (state.get('allWrittenScores') || []).filter((score) => score.classId === classId);
@@ -898,288 +1238,405 @@ export function openTrialHistoryModal(classId) {
     const showDictations = usage.dictations || scoresForHistory.some((score) => score.type === 'dictation');
     const initialView = showTests ? 'test' : 'dictation';
 
-    const viewToggleContainer = document.getElementById('trial-history-view-toggle');
-    viewToggleContainer.innerHTML = `
-        ${showTests ? `<button data-view="test" class="toggle-btn ${initialView === 'test' ? 'active-toggle' : ''} px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-file-alt mr-2"></i>Tests</button>` : ''}
-        ${showDictations ? `<button data-view="dictation" class="toggle-btn ${initialView === 'dictation' ? 'active-toggle' : ''} px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>` : ''}
-    `;
-    viewToggleContainer.classList.toggle('hidden', !showTests || !showDictations);
-
-    viewToggleContainer.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            viewToggleContainer.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active-toggle'));
-            e.currentTarget.classList.add('active-toggle');
-            renderTrialHistoryContent(classId, e.currentTarget.dataset.view);
+    // 1. Kind tabs (Tests / Dictations)
+    const viewToggle = document.getElementById('trial-history-view-toggle');
+    const kindBtn = (view, icon, label) => `
+        <button type="button" role="tab" data-view="${view}" aria-selected="${initialView === view}"
+            class="toggle-btn th-seg__btn th-seg__btn--${view}${initialView === view ? ' active-toggle' : ''}">
+            <i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span><b class="th-seg__count" data-count-for="${view}"></b>
+        </button>`;
+    viewToggle.innerHTML = `${showTests ? kindBtn('test', 'fa-file-alt', 'Tests') : ''}${showDictations ? kindBtn('dictation', 'fa-microphone-alt', 'Dictations') : ''}`;
+    viewToggle.classList.toggle('hidden', !showTests || !showDictations);
+    viewToggle.onclick = (e) => {
+        const btn = e.target.closest('.toggle-btn');
+        if (!btn) return;
+        viewToggle.querySelectorAll('.toggle-btn').forEach((b) => {
+            const on = b === btn;
+            b.classList.toggle('active-toggle', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-    });
+        thState.expanded.clear();
+        thState.collapsed.clear();
+        thState.expandAll = null;
+        renderTrialHistoryContent(classId, btn.dataset.view);
+    };
 
-    // 2. Setup Edit/Delete Listeners
+    // 2. Arrangement (by trial / by student)
+    const modeToggle = document.getElementById('trial-history-mode-toggle');
+    const buildModeToggle = () => {
+        modeToggle.innerHTML = [['trial', 'fa-layer-group', 'By trial'], ['student', 'fa-user-graduate', 'By scholar']]
+            .map(([mode, icon, label]) => `
+                <button type="button" class="th-seg__btn${thState.mode === mode ? ' is-active' : ''}" data-mode="${mode}" aria-pressed="${thState.mode === mode}">
+                    <i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>
+                </button>`).join('');
+    };
+    buildModeToggle();
+    modeToggle.onclick = (e) => {
+        const btn = e.target.closest('[data-mode]');
+        if (!btn || btn.dataset.mode === thState.mode) return;
+        thState.mode = btn.dataset.mode;
+        buildModeToggle();
+        buildSortRow();
+        renderTrialHistoryContent(classId, activeHistoryView());
+    };
+
+    // 3. Search
+    const search = document.getElementById('trial-history-search');
+    if (search) {
+        search.value = '';
+        search.oninput = () => {
+            thState.query = search.value.trim();
+            renderTrialHistoryContent(classId, activeHistoryView());
+        };
+    }
+
+    // 4. Content: open/close a trial, edit, delete (delegated, the node is replaced to drop old listeners)
     const contentEl = document.getElementById('trial-history-content');
     const newContentEl = contentEl.cloneNode(false);
     contentEl.parentNode.replaceChild(newContentEl, contentEl);
-
     newContentEl.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-trial-btn');
-        if (deleteBtn) handleDeleteTrial(deleteBtn.dataset.trialId);
+        if (deleteBtn) {
+            const trialId = deleteBtn.dataset.trialId;
+            import('../db/actions.js').then((actions) => actions.handleDeleteTrial(trialId, () => {
+                loadedHistoricalScores = loadedHistoricalScores.filter((s) => s.id !== trialId);
+                renderTrialHistoryContent(classId, activeHistoryView());
+            }));
+            return;
+        }
         const editBtn = e.target.closest('.edit-trial-btn');
-        if (editBtn) openSingleTrialEditModal(classId, editBtn.dataset.trialId);
+        if (editBtn) {
+            openSingleTrialEditModal(classId, editBtn.dataset.trialId);
+            return;
+        }
+        const head = e.target.closest('.th-trial__head');
+        if (head) {
+            const key = head.closest('.th-trial')?.dataset.key;
+            if (!key) return;
+            const open = head.getAttribute('aria-expanded') !== 'true';
+            head.setAttribute('aria-expanded', open ? 'true' : 'false');
+            head.closest('.th-trial').classList.toggle('is-open', open);
+            if (open) { thState.expanded.add(key); thState.collapsed.delete(key); }
+            else { thState.collapsed.add(key); thState.expanded.delete(key); }
+            return;
+        }
+        const clear = e.target.closest('[data-th-clear-search]');
+        if (clear && search) {
+            search.value = '';
+            thState.query = '';
+            renderTrialHistoryContent(classId, activeHistoryView());
+            search.focus();
+            return;
+        }
+        if (e.target.closest('[data-th-load-full]')) document.getElementById('trial-history-load-full-btn')?.click();
     });
 
-    // 3. Initial Render
-    renderTrialHistoryContent(classId, initialView);
-    modals.showAnimatedModal('trial-history-modal');
+    // 5. Sort bar
+    const sortRow = document.getElementById('trial-history-sort-row');
+    const sortSeg = (type, label, options, current) => `
+        <div class="th-sort">
+            <span class="th-sort__label">${label}</span>
+            <div class="th-seg th-seg--sm" role="group" aria-label="${label}">${options.map(([val, text]) => `
+                <button type="button" class="th-seg__btn${val === current ? ' is-active' : ''}" data-sort-type="${type}" data-sort-val="${val}" aria-pressed="${val === current}">${text}</button>`).join('')}
+            </div>
+        </div>`;
+    const buildSortRow = () => {
+        sortRow.innerHTML = `
+            ${sortSeg('date', 'Dates', [['desc', 'Newest first'], ['asc', 'Oldest first']], historySortDateDir)}
+            ${sortSeg('student', 'Scholars', [['name', 'A–Z'], ['name-desc', 'Z–A'], ['score-desc', 'Highest'], ['score-asc', 'Lowest']], historySortStudentBy)}
+            ${thState.mode === 'trial' ? `
+                <div class="th-sort th-sort--end">
+                    <button type="button" class="th-linkbtn" data-expand="open"><i class="fas fa-angle-double-down" aria-hidden="true"></i> Open all</button>
+                    <button type="button" class="th-linkbtn" data-expand="close"><i class="fas fa-angle-double-up" aria-hidden="true"></i> Close all</button>
+                </div>` : ''}`;
+    };
+    buildSortRow();
+    sortRow.onclick = (e) => {
+        const expandBtn = e.target.closest('[data-expand]');
+        if (expandBtn) {
+            thState.expandAll = expandBtn.dataset.expand === 'open';
+            thState.expanded.clear();
+            thState.collapsed.clear();
+            renderTrialHistoryContent(classId, activeHistoryView());
+            return;
+        }
+        const btn = e.target.closest('[data-sort-type]');
+        if (!btn) return;
+        if (btn.dataset.sortType === 'date') historySortDateDir = btn.dataset.sortVal;
+        else historySortStudentBy = btn.dataset.sortVal;
+        buildSortRow();
+        renderTrialHistoryContent(classId, activeHistoryView());
+    };
 
-    // 4. Load full history on demand (one fetch — same query as Student Analytics class scores)
+    // 6. Archive: load every assessment for this class on demand
     const actionsContainer = document.getElementById('trial-history-actions');
     actionsContainer.innerHTML = `
-        <div class="flex flex-col items-end gap-1">
-            <button id="trial-history-load-full-btn" type="button" class="px-3 h-9 rounded-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm transform hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none disabled:transform-none" title="Fetch every assessment for this class from the database">
-                <i class="fas fa-cloud-download-alt"></i>
-                <span>Load full history</span>
-            </button>
-            <span id="trial-history-full-status" class="text-[11px] font-semibold text-purple-800/75 max-w-[240px] text-right leading-snug"></span>
-        </div>`;
-
-    const btn = document.getElementById('trial-history-load-full-btn');
-    const statusEl = document.getElementById('trial-history-full-status');
-
-    btn?.addEventListener('click', async () => {
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading…</span>';
-        if (statusEl) statusEl.textContent = '';
-
+        <button id="trial-history-load-full-btn" type="button" class="th-btn" title="Fetch every assessment for this class from the database">
+            <i class="fas fa-box-archive" aria-hidden="true"></i><span>Open the full archive</span>
+        </button>`;
+    const loadBtn = document.getElementById('trial-history-load-full-btn');
+    loadBtn.onclick = async () => {
+        loadBtn.disabled = true;
+        loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Unrolling the archive…</span>';
         try {
             const { fetchAllTrialsForClass } = await import('../db/queries.js');
             const scores = await fetchAllTrialsForClass(classId);
             loadedHistoricalScores = scores;
-            const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
-            renderTrialHistoryContent(classId, activeView);
-            if (statusEl) {
-                statusEl.textContent = scores.length
-                    ? `Loaded ${scores.length} assessment${scores.length === 1 ? '' : 's'} from the archive.`
-                    : 'No archived assessments found for this class.';
-            }
-            showToast(
-                scores.length ? 'Full trial history is ready.' : 'No records found in the archive.',
-                scores.length ? 'success' : 'info'
-            );
+            thState.fullLoaded = true;
+            renderTrialHistoryContent(classId, activeHistoryView());
+            showToast(scores.length ? 'Full trial history is ready.' : 'No records found in the archive.', scores.length ? 'success' : 'info');
+            loadBtn.innerHTML = '<i class="fas fa-rotate" aria-hidden="true"></i><span>Refresh archive</span>';
         } catch (err) {
             console.error('Trial history full load failed:', err);
-            showToast('Could not load full history. Try again.', 'error');
+            showToast('Could not load full thState. Try again.', 'error');
+            loadBtn.innerHTML = '<i class="fas fa-box-archive" aria-hidden="true"></i><span>Open the full archive</span>';
         } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml || '<i class="fas fa-cloud-download-alt"></i><span>Load full history</span>';
+            loadBtn.disabled = false;
         }
-    });
-
-    // 5. Sort controls
-    const sortRow = document.getElementById('trial-history-sort-row');
-    const chipBase = 'sort-chip px-2.5 py-1 rounded-full text-[11px] font-bold transition-all border';
-    const chipActive = 'bg-purple-100 text-purple-700 border-purple-300 shadow-sm';
-    const chipInactive = 'bg-white text-purple-400 border-purple-100 hover:border-purple-300 hover:text-purple-600';
-    const makeSortChip = (type, val, label, isActive) =>
-        `<button data-sort-type="${type}" data-sort-val="${val}" class="${chipBase} ${isActive ? chipActive : chipInactive}">${label}</button>`;
-
-    const buildSortRow = () => {
-        sortRow.innerHTML = `
-            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider shrink-0 mr-1">Sort</span>
-            <span class="text-[9px] font-semibold text-purple-300 uppercase tracking-wider ml-1">Date</span>
-            ${makeSortChip('date', 'desc', 'Newest ↓', historySortDateDir === 'desc')}
-            ${makeSortChip('date', 'asc', 'Oldest ↑', historySortDateDir === 'asc')}
-            <div class="w-px h-4 bg-purple-200 mx-1 shrink-0"></div>
-            <span class="text-[9px] font-semibold text-purple-300 uppercase tracking-wider">Students</span>
-            ${makeSortChip('student', 'name', 'A→Z', historySortStudentBy === 'name')}
-            ${makeSortChip('student', 'name-desc', 'Z→A', historySortStudentBy === 'name-desc')}
-            ${makeSortChip('student', 'score-desc', 'Score ↓', historySortStudentBy === 'score-desc')}
-            ${makeSortChip('student', 'score-asc', 'Score ↑', historySortStudentBy === 'score-asc')}
-        `;
     };
-    buildSortRow();
 
-    sortRow.addEventListener('click', (e) => {
-        const btn2 = e.target.closest('.sort-chip');
-        if (!btn2) return;
-        const type = btn2.dataset.sortType;
-        const val = btn2.dataset.sortVal;
-        if (type === 'date') historySortDateDir = val;
-        else if (type === 'student') historySortStudentBy = val;
-        buildSortRow();
-        const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
-        renderTrialHistoryContent(classId, activeView);
-    });
+    renderTrialHistoryContent(classId, initialView);
+    modals.showAnimatedModal('trial-history-modal');
+}
+
+function historyStudentSorter(pctOf) {
+    const students = state.get('allStudents') || [];
+    const nameOf = (score) => students.find((s) => s.id === score.studentId)?.name || '';
+    return (a, b) => {
+        if (historySortStudentBy === 'score-desc') return ((pctOf(b) ?? -1) - (pctOf(a) ?? -1)) || nameOf(a).localeCompare(nameOf(b));
+        if (historySortStudentBy === 'score-asc') return ((pctOf(a) ?? 101) - (pctOf(b) ?? 101)) || nameOf(a).localeCompare(nameOf(b));
+        return historySortStudentBy === 'name-desc' ? nameOf(b).localeCompare(nameOf(a)) : nameOf(a).localeCompare(nameOf(b));
+    };
 }
 
 export function renderTrialHistoryContent(classId, view) {
     const contentEl = document.getElementById('trial-history-content');
+    if (!contentEl) return;
+    const classData = findScrollClass(classId);
+    const students = state.get('allStudents') || [];
+    const studentById = new Map(students.map((s) => [s.id, s]));
+    const pctCache = new Map();
+    const pctOf = (score) => {
+        if (!pctCache.has(score.id)) {
+            const p = getNormalizedPercentForScore(score, classData);
+            pctCache.set(score.id, Number.isFinite(p) ? p : null);
+        }
+        return pctCache.get(score.id);
+    };
+    const timeOf = (score) => utils.parseFlexibleDate(score.date)?.getTime() ?? null;
 
-    // 1. Get ONLY recent scores (last 45 days) for the initial view
-    const recentCutoff = new Date();
-    recentCutoff.setDate(recentCutoff.getDate() - 45);
+    const all = historyScoresForClass(classId);
+    const ofView = all.filter((s) => s.type === view);
 
-    const recentScores = state.get('allWrittenScores').filter(s => {
-        if (!s.date || s.classId !== classId) return false;
-        return utils.parseFlexibleDate(s.date) >= recentCutoff;
+    // Header summary + tab counts
+    const sessionsByKind = { test: 0, dictation: 0 };
+    ['test', 'dictation'].forEach((kind) => {
+        sessionsByKind[kind] = groupTrialSessions(all.filter((s) => s.type === kind), timeOf).length;
+        const countEl = document.querySelector(`#trial-history-view-toggle [data-count-for="${kind}"]`);
+        if (countEl) countEl.textContent = sessionsByKind[kind] || '';
     });
+    const viewAvg = mean(ofView.map(pctOf));
+    const summaryEl = document.getElementById('trial-history-summary');
+    if (summaryEl) {
+        const kindWord = view === 'dictation' ? 'dictation' : 'test';
+        summaryEl.innerHTML = `
+            <span>${esc(classData?.name || '')}</span>
+            <span><b>${sessionsByKind[view]}</b> ${kindWord}${sessionsByKind[view] === 1 ? '' : 's'}</span>
+            <span><b>${ofView.length}</b> result${ofView.length === 1 ? '' : 's'}</span>
+            ${viewAvg !== null ? `<span>average <b>${formatPct(viewAvg, 0)}</b></span>` : ''}`;
+    }
+    const rangeEl = document.getElementById('trial-history-range');
+    if (rangeEl) {
+        rangeEl.innerHTML = thState.fullLoaded
+            ? '<i class="fas fa-box-open" aria-hidden="true"></i> Showing the <b>full archive</b>'
+            : '<i class="fas fa-hourglass-half" aria-hidden="true"></i> Showing the <b>last 3 months</b>. Older records live in the archive.';
+    }
 
-    // 2. Combine with scores loaded explicitly via “Load full history” (and dedupe by id)
-    const allScoresForClass = [...recentScores, ...loadedHistoricalScores];
+    // Search: a trial title match keeps the whole sitting; otherwise only matching scholars.
+    const q = thState.query.toLowerCase();
+    const nameOf = (score) => studentById.get(score.studentId)?.name || '';
 
-    // 3. Remove duplicates to be safe
-    const uniqueScores = Array.from(new Map(allScoresForClass.map(item => [item.id, item])).values());
-
-    // 4. Filter by the selected view ('test' or 'dictation')
-    const scoresToRender = uniqueScores.filter(s => s.type === view);
-
-    // 5. Group and Render (use smart date parser — scores may be DD-MM-YYYY or YYYY-MM-DD)
-    const scoresByMonth = scoresToRender.reduce((acc, score) => {
-        const d = utils.parseFlexibleDate(score.date);
-        const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : (score.date && score.date.substring(0, 7)) || 'unknown';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(score);
-        return acc;
-    }, {});
-
-    const sortedMonths = Object.keys(scoresByMonth).sort();
-    if (historySortDateDir === 'desc') sortedMonths.reverse();
-
-    if (sortedMonths.length === 0) {
-        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No ${view} records found. Use <span class="font-semibold text-purple-700">Load full history</span> above to fetch older assessments from the database.</p>`;
+    if (ofView.length === 0) {
+        contentEl.innerHTML = historyEmptyHtml({
+            icon: view === 'dictation' ? 'fa-microphone-alt' : 'fa-file-alt',
+            title: `No ${view === 'dictation' ? 'dictations' : 'tests'} recorded`,
+            text: thState.fullLoaded ? 'The archive has nothing of this kind for this class yet.' : 'Nothing in the last 3 months. Older records may be waiting in the archive.',
+            action: thState.fullLoaded ? '' : '<button type="button" class="th-btn" data-th-load-full><i class="fas fa-box-archive" aria-hidden="true"></i><span>Open the full archive</span></button>'
+        });
         return;
     }
 
-    const newHtml = sortedMonths.map(currentMonthKey => {
-        const monthName = new Date(currentMonthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    const html = thState.mode === 'student'
+        ? historyByStudentHtml({ classId, view, ofView, students, pctOf, timeOf, q })
+        : historyByTrialHtml({ view, ofView, studentById, pctOf, timeOf, q, nameOf });
 
-        const scoresByDate = scoresByMonth[currentMonthKey].reduce((acc, score) => {
-            if (!acc[score.date]) acc[score.date] = [];
-            acc[score.date].push(score);
-            return acc;
-        }, {});
-
-        const sortedDates = Object.keys(scoresByDate).sort((a, b) => {
-            const da = utils.parseFlexibleDate(a);
-            const db = utils.parseFlexibleDate(b);
-            return historySortDateDir === 'asc' ? (da || 0) - (db || 0) : (db || 0) - (da || 0);
-        });
-
-        let monthScoresHtml = sortedDates.map(date => {
-            const dateScoresHtml = [...scoresByDate[date]]
-                .sort((a, b) => {
-                    if (historySortStudentBy === 'score-desc') {
-                        return (getNormalizedPercentForScore(b) || 0) - (getNormalizedPercentForScore(a) || 0);
-                    } else if (historySortStudentBy === 'score-asc') {
-                        return (getNormalizedPercentForScore(a) || 0) - (getNormalizedPercentForScore(b) || 0);
-                    } else {
-                        const students = state.get('allStudents');
-                        const nA = students.find(s => s.id === a.studentId)?.name || '';
-                        const nB = students.find(s => s.id === b.studentId)?.name || '';
-                        return historySortStudentBy === 'name-desc' ? nB.localeCompare(nA) : nA.localeCompare(nB);
-                    }
-                })
-                .map(score => renderTrialHistoryItem(score)).join('');
-            const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
-            const dateObj = utils.parseFlexibleDate(date);
-            const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }) : date;
-
-            return `<div class="mb-5 last:mb-0 relative">
-                        <div class="flex items-center gap-3 mb-3 pl-2">
-                            <div class="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-b from-purple-100 to-white border border-purple-200 shadow-sm text-center leading-none">
-                                <span class="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">${displayDate.substring(0,3)}</span>
-                                <span class="text-lg font-black text-purple-900 font-title">${dateObj ? dateObj.getDate() : ''}</span>
-                            </div>
-                            <div>
-                                <span class="font-bold text-gray-700">${dateObj ? dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : date}</span>
-                                <div class="text-xs font-semibold text-purple-600 bg-purple-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5 border border-purple-200 shadow-sm">${title}</div>
-                            </div>
-                        </div>
-                        <div class="space-y-2 pl-4 ml-8 relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:bg-purple-100">${dateScoresHtml}</div>
-                    </div>`;
-        }).join('');
-
-        return `
-            <details class="group month-group bg-white/80 backdrop-blur-sm rounded-2xl mb-4 shadow-sm border border-purple-100 overflow-hidden transition-all hover:shadow-md" data-month-key="${currentMonthKey}" open>
-                <summary class="flex items-center justify-between font-title text-xl text-purple-900 p-4 cursor-pointer bg-gradient-to-r from-purple-50/50 to-fuchsia-50/50 hover:from-purple-100/50 hover:to-fuchsia-100/50 transition-colors list-none select-none" style="list-style: none;">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-purple-200/50 flex items-center justify-center text-purple-700">
-                            <i class="fas fa-calendar-alt text-sm"></i>
-                        </div>
-                        ${monthName}
-                    </div>
-                    <div class="text-purple-400 group-open:rotate-180 transition-transform duration-300">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </summary>
-                <div class="p-4 pt-4 border-t border-purple-100/50">
-                    ${monthScoresHtml}
-                </div>
-            </details>
-        `;
-    }).join('');
-
-    contentEl.innerHTML = newHtml;
+    contentEl.innerHTML = html || historyEmptyHtml({
+        icon: 'fa-search',
+        title: 'No matches',
+        text: `Nothing matches “${thState.query}”.`,
+        action: '<button type="button" class="th-btn th-btn--quiet" data-th-clear-search><i class="fas fa-times" aria-hidden="true"></i><span>Clear search</span></button>'
+    });
 }
 
-function renderTrialHistoryItem(score) {
-    const student = state.get('allStudents').find(s => s.id === score.studentId);
-    if (!student) return '';
-
-    let scoreDisplay = '';
-    let scorePercent = 0;
-    let colorClass = 'text-blue-600';
-    let bgClass = 'bg-blue-50';
-    let borderClass = 'border-blue-200';
-
-    if (score.scoreQualitative) {
-        scoreDisplay = `<span class="font-title text-lg leading-none">${score.scoreQualitative}</span>`;
-    }
-    else if (score.scoreNumeric !== null && score.maxScore) {
-        scorePercent = getNormalizedPercentForScore(score) || 0;
-        if (scorePercent >= 80) { colorClass = 'text-emerald-700'; bgClass = 'bg-emerald-50'; borderClass = 'border-emerald-200'; }
-        else if (scorePercent >= 60) { colorClass = 'text-amber-700'; bgClass = 'bg-amber-50'; borderClass = 'border-amber-200'; }
-        else { colorClass = 'text-rose-700'; bgClass = 'bg-rose-50'; borderClass = 'border-rose-200'; }
-
-        scoreDisplay = `<span class="font-title text-lg leading-none">${getAssessmentValueLabel(score)}</span>
-                        <span class="text-xs font-bold opacity-70 ml-1.5 mt-0.5">${scorePercent.toFixed(0)}%</span>`;
-    }
-
-    const isOwner = score.teacherId === state.get('currentUserId');
-    const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0">`
-        : `<div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center text-purple-700 font-bold shadow-sm border-2 border-white shrink-0">${student.name.charAt(0)}</div>`;
-
+function historyEmptyHtml({ icon, title, text, action = '' }) {
     return `
-        <div class="trial-history-item relative flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-purple-300 hover:shadow-md transition-all duration-200 group/item">
-            <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl ${scorePercent >= 80 ? 'bg-emerald-400' : scorePercent >= 60 ? 'bg-amber-400' : scorePercent > 0 ? 'bg-rose-400' : 'bg-blue-400'}"></div>
+        <div class="th-empty">
+            <span class="th-empty__art" aria-hidden="true"><i class="fas ${icon}"></i></span>
+            <p class="th-empty__title">${esc(title)}</p>
+            <p class="th-empty__text">${esc(text)}</p>
+            ${action ? `<div class="th-empty__actions">${action}</div>` : ''}
+        </div>`;
+}
 
-            <div class="flex items-center gap-3 pl-3">
-                ${avatarHtml}
-                <span class="font-bold text-gray-800">${student.name}</span>
-            </div>
+function historyByTrialHtml({ view, ofView, studentById, pctOf, timeOf, q, nameOf }) {
+    let sessions = groupTrialSessions(ofView, timeOf);
+    sessions.sort((a, b) => historySortDateDir === 'asc' ? (a.time ?? 0) - (b.time ?? 0) : (b.time ?? 0) - (a.time ?? 0));
 
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-center px-3 py-1.5 rounded-lg ${bgClass} ${borderClass} border ${colorClass}">
-                    ${scoreDisplay}
-                </div>
+    if (q) {
+        sessions = sessions.map((s) => {
+            if (s.title.toLowerCase().includes(q)) return s;
+            const hits = s.scores.filter((sc) => nameOf(sc).toLowerCase().includes(q));
+            return hits.length ? { ...s, scores: hits, filtered: true } : null;
+        }).filter(Boolean);
+    }
+    if (!sessions.length) return '';
 
-                ${isOwner ? `
-                <div class="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <button data-trial-id="${score.id}" class="edit-trial-btn w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-110 transition-all flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pencil-alt text-sm"></i></button>
-                    <button data-trial-id="${score.id}" class="delete-trial-btn w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 transition-all flex items-center justify-center shadow-sm" title="Delete"><i class="fas fa-trash-alt text-sm"></i></button>
-                </div>
-                ` : '<div class="w-[72px]"></div>'}
-            </div>
-        </div>
-    `;
+    const months = [];
+    sessions.forEach((s, i) => {
+        const d = s.time ? new Date(s.time) : null;
+        const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+        let month = months[months.length - 1];
+        if (!month || month.key !== key) {
+            month = { key, label: d ? d.toLocaleString('en-GB', { month: 'long', year: 'numeric' }) : 'Undated', sessions: [] };
+            months.push(month);
+        }
+        month.sessions.push({ ...s, index: i });
+    });
+
+    const sorter = historyStudentSorter(pctOf);
+    const currentUserId = state.get('currentUserId');
+
+    return months.map((month) => `
+        <section class="th-month" data-month-key="${month.key}">
+            <h3 class="th-month__title"><span>${esc(month.label)}</span><em>${month.sessions.length} ${view === 'dictation' ? 'dictation' : 'test'}${month.sessions.length === 1 ? '' : 's'}</em></h3>
+            ${month.sessions.map((s) => {
+        const d = s.time ? new Date(s.time) : null;
+        const pcts = s.scores.map(pctOf).filter((p) => p !== null);
+        const avg = mean(pcts);
+        const title = s.title || (view === 'dictation' ? 'Dictation' : 'Test');
+        const defaultOpen = thState.expandAll !== null ? thState.expandAll : (!!q || s.index < 2);
+        const open = thState.expanded.has(s.key) || (defaultOpen && !thState.collapsed.has(s.key));
+        const results = [...s.scores].sort(sorter).map((score) => historyResultHtml(score, studentById.get(score.studentId), pctOf(score), currentUserId)).join('');
+        const bodyId = `th-trial-${s.key.replace(/[^a-z0-9]/gi, '-')}`;
+        return `
+                <article class="th-trial${open ? ' is-open' : ''}" data-key="${esc(s.key)}" data-tier="${tierForPercent(avg)}">
+                    <button type="button" class="th-trial__head" aria-expanded="${open}" aria-controls="${bodyId}">
+                        <span class="th-date" aria-hidden="true"><b>${d ? d.getDate() : '?'}</b><small>${d ? d.toLocaleDateString('en-GB', { month: 'short' }) : ''}</small><i>${d ? d.toLocaleDateString('en-GB', { weekday: 'short' }) : ''}</i></span>
+                        <span class="th-trial__main">
+                            <span class="th-trial__title">${esc(title)}</span>
+                            <span class="th-trial__meta">${d ? esc(d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })) : esc(s.date)} · ${s.filtered ? `${s.scores.length} matching` : `${s.scores.length} graded`}</span>
+                            ${tierBarHtml(tierCounts(pcts))}
+                        </span>
+                        <span class="th-trial__avg" data-tier="${tierForPercent(avg)}"><b>${avg === null ? '--' : formatPct(avg, 0)}</b><small>average</small></span>
+                        <i class="fas fa-chevron-down th-trial__chev" aria-hidden="true"></i>
+                    </button>
+                    <div class="th-trial__body" id="${bodyId}">
+                        <ul class="th-results">${results}</ul>
+                    </div>
+                </article>`;
+    }).join('')}
+        </section>`).join('');
+}
+
+function historyResultHtml(score, student, pct, currentUserId) {
+    const label = getAssessmentValueLabel(score) || (pct !== null ? formatPct(pct, 0) : '—');
+    const numeric = score.scoreNumeric !== null && score.scoreNumeric !== undefined && !score.scoreQualitative;
+    const isOwner = score.teacherId === currentUserId;
+    const name = student?.name || 'Former scholar';
+    return `
+        <li class="th-result trial-history-item${student ? '' : ' th-result--former'}" data-tier="${tierForPercent(pct)}">
+            ${avatarMarkup(student || { name: '?' }, 'th-av')}
+            <span class="th-result__name">${esc(name)}</span>
+            <span class="th-pill" data-tier="${tierForPercent(pct)}"><b>${esc(label)}</b>${numeric && pct !== null ? `<small>${formatPct(pct, 0)}</small>` : ''}</span>
+            ${isOwner ? `
+                <span class="th-result__tools">
+                    <button type="button" data-trial-id="${esc(score.id)}" class="edit-trial-btn th-tool" title="Edit result" aria-label="Edit ${esc(name)}'s result"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                    <button type="button" data-trial-id="${esc(score.id)}" class="delete-trial-btn th-tool th-tool--danger" title="Delete result" aria-label="Delete ${esc(name)}'s result"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+                </span>` : '<span class="th-result__tools th-result__tools--none" title="Logged by another teacher"><i class="fas fa-lock" aria-hidden="true"></i></span>'}
+        </li>`;
+}
+
+function historyByStudentHtml({ classId, view, ofView, students, pctOf, timeOf, q }) {
+    const currentUserId = state.get('currentUserId');
+    const byStudent = new Map();
+    ofView.forEach((s) => {
+        if (!byStudent.has(s.studentId)) byStudent.set(s.studentId, []);
+        byStudent.get(s.studentId).push(s);
+    });
+    const classStudents = students.filter((s) => s.classId === classId || byStudent.has(s.id));
+    let cards = classStudents.map((student) => {
+        const scores = (byStudent.get(student.id) || []).sort((a, b) => (timeOf(a) ?? 0) - (timeOf(b) ?? 0));
+        const pcts = scores.map(pctOf).filter((p) => p !== null);
+        return { student, scores, pcts, avg: mean(pcts) };
+    });
+    if (q) cards = cards.filter((c) => c.student.name.toLowerCase().includes(q) || c.scores.some((s) => String(s.title || '').toLowerCase().includes(q)));
+
+    const withResults = cards.filter((c) => c.scores.length);
+    const without = cards.filter((c) => !c.scores.length).sort((a, b) => a.student.name.localeCompare(b.student.name));
+    withResults.sort((a, b) => {
+        if (historySortStudentBy === 'score-desc') return ((b.avg ?? -1) - (a.avg ?? -1)) || a.student.name.localeCompare(b.student.name);
+        if (historySortStudentBy === 'score-asc') return ((a.avg ?? 101) - (b.avg ?? 101)) || a.student.name.localeCompare(b.student.name);
+        return historySortStudentBy === 'name-desc' ? b.student.name.localeCompare(a.student.name) : a.student.name.localeCompare(b.student.name);
+    });
+    if (!withResults.length && !without.length) return '';
+
+    const kindWord = view === 'dictation' ? 'dictation' : 'test';
+    const cardsHtml = withResults.map(({ student, scores, pcts, avg }) => {
+        const ordered = historySortDateDir === 'asc' ? scores : [...scores].reverse();
+        const trend = trendFor(pcts);
+        const pills = ordered.map((score) => {
+            const pct = pctOf(score);
+            const d = utils.parseFlexibleDate(score.date);
+            const label = getAssessmentValueLabel(score) || (pct !== null ? formatPct(pct, 0) : '—');
+            const title = score.title || (view === 'dictation' ? 'Dictation' : 'Test');
+            const tip = `${title} · ${d ? shortDate(d, true) : score.date}${pct !== null ? ` · ${formatPct(pct, 0)}` : ''}`;
+            const isOwner = score.teacherId === currentUserId;
+            const inner = `<small>${d ? shortDate(d) : ''}</small><b>${esc(label)}</b>`;
+            return isOwner
+                ? `<button type="button" class="th-mark edit-trial-btn" data-tier="${tierForPercent(pct)}" data-trial-id="${esc(score.id)}" title="${esc(tip)} — click to edit">${inner}</button>`
+                : `<span class="th-mark" data-tier="${tierForPercent(pct)}" title="${esc(tip)}">${inner}</span>`;
+        }).join('');
+        return `
+            <article class="th-scholar" data-tier="${tierForPercent(avg)}">
+                <header class="th-scholar__head">
+                    ${avatarMarkup(student, 'th-av th-av--lg')}
+                    <span class="th-scholar__who">
+                        <span class="th-scholar__name">${esc(student.name)}</span>
+                        <span class="th-scholar__meta">${scores.length} ${kindWord}${scores.length === 1 ? '' : 's'}${trend ? ` · <span class="th-trend" data-dir="${trend.dir}">${trend.dir === 'up' ? 'rising' : (trend.dir === 'down' ? 'slipping' : 'steady')}</span>` : ''}</span>
+                    </span>
+                    ${sparklineSvg(pcts, { width: 84, height: 28, max: 10 })}
+                    <span class="th-trial__avg" data-tier="${tierForPercent(avg)}"><b>${avg === null ? '--' : formatPct(avg, 0)}</b><small>average</small></span>
+                </header>
+                <div class="th-marks">${pills}</div>
+            </article>`;
+    }).join('');
+
+    const withoutHtml = without.length ? `
+        <div class="th-missing">
+            <p class="th-missing__title"><i class="fas fa-user-clock" aria-hidden="true"></i> No ${kindWord}s recorded${thState.fullLoaded ? '' : ' in the last 3 months'}</p>
+            <p class="th-missing__names">${without.map((c) => esc(c.student.name)).join(' · ')}</p>
+        </div>` : '';
+    return `<div class="th-scholars">${cardsHtml}</div>${withoutHtml}`;
 }
 
 // --- SINGLE EDIT MODAL ---
 
 export function openSingleTrialEditModal(classId, trialId) {
-    const score = state.get('allWrittenScores').find(s => s.id === trialId);
+    const score = findScoreRecord(trialId);
     if (!score) return;
 
-    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    const classData = findScrollClass(classId);
+    if (!classData) return;
     let assessmentScheme = getAssessmentSchemeForClass(classData, score.type);
     if (!isAssessmentSchemeEnabled(assessmentScheme) && score.gradingSnapshot) {
         assessmentScheme = normalizeAssessmentScheme(score.gradingSnapshot, score.gradingSnapshot);
@@ -1193,12 +1650,8 @@ export function openSingleTrialEditModal(classId, trialId) {
     document.getElementById('bulk-trial-title').innerText = 'Edit Result';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo || ''} ${classData.name}`.trim();
 
-    const dateObj = utils.parseDDMMYYYY(score.date);
-    const yyyy = dateObj.getFullYear();
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(dateObj.getDate()).padStart(2, '0');
     const dateInput = document.getElementById('bulk-trial-date');
-    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    dateInput.value = formatYmdFromAnyDateString(score.date);
     dateInput.onchange = (e) => setTrialDateDisplay(e.target.value);
     setTrialDateDisplay(dateInput.value);
     setupBulkDatePicker();
@@ -1242,337 +1695,164 @@ export function openSingleTrialEditModal(classId, trialId) {
 }
 
 
-function positionMakeupBelowScheduledQueue(dashboard, container) {
-    if (!dashboard || !container) return;
-    const sched = document.getElementById('scheduled-grading-queue');
-    if (sched) {
-        sched.insertAdjacentElement('afterend', container);
-        return;
-    }
-    dashboard.insertBefore(container, dashboard.firstChild);
+// --- MAKEUP / MISSING WORK ---
+
+function readDismissedMakeups(classId) {
+    try { return JSON.parse(localStorage.getItem(`dismissed_makeups_${classId}`) || '{}'); } catch (_) { return {}; }
 }
-
-function renderScheduledGradingQueue(classId, dashboardEl) {
-    if (!dashboardEl) return;
-    let wrap = document.getElementById('scheduled-grading-queue');
-    const backlog = listScheduledAssessmentsNeedingGrades(classId);
-
-    if (backlog.length === 0) {
-        if (wrap) wrap.remove();
-        return;
-    }
-
-    if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.id = 'scheduled-grading-queue';
-    }
-
-    const cards = backlog.map((st) => {
-        const awaiting = getStudentsAwaitingGradeForScheduledStatus(st);
-        const preview = awaiting
-            .slice(0, 4)
-            .map((s) => s.name.split(' ')[0])
-            .join(', ');
-        const extras = awaiting.length > 4 ? ` +${awaiting.length - 4}` : '';
-        const phaseNote =
-            st.phase === 'missed'
-                ? `Scheduled test day passed — ${Math.abs(st.dayDiff)} day${Math.abs(st.dayDiff) === 1 ? '' : 's'} ago`
-                : `${st.statusLabel} · catching up`;
-
-        const ymd = formatYmdFromAnyDateString(st.testData.date);
-
-        return `
-            <div class="scheduled-grade-card bg-violet-50/50 p-3 md:p-3.5 rounded-2xl border border-violet-100 hover:bg-white hover:border-violet-200 hover:shadow-md transition-all">
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <p class="font-title text-base text-violet-950 leading-snug">${st.testData.title || 'Scheduled test'}</p>
-                        <p class="text-[11px] font-bold text-violet-700/85 mt-0.5">${st.dateLabel} · ${st.chipLabel}</p>
-                        <p class="text-[10px] font-semibold text-slate-500 mt-1">${phaseNote}${awaiting.length ? ` · still missing: ${preview}${extras}` : ''}</p>
-                    </div>
-                    <button type="button" class="log-scheduled-test-btn shrink-0 h-9 px-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-[9px] uppercase tracking-wide shadow-md hover:scale-[1.02] transition-all"
-                        data-preset-date="${ymd}">
-                        Log class results
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    wrap.className = 'mb-6';
-    wrap.innerHTML = `
-        <div class="p-1 md:p-1 bg-gradient-to-br from-violet-200 via-indigo-200 to-sky-200 rounded-[2rem] md:rounded-[2.3rem] shadow-[0_16px_40px_rgba(99,102,241,0.15)] relative overflow-hidden group">
-            <div class="bg-white/95 backdrop-blur-xl rounded-[1.65rem] md:rounded-[2rem] p-4 md:p-5 relative overflow-hidden">
-                <div class="absolute -right-8 -top-8 text-[7rem] text-violet-500/5 pointer-events-none"><i class="fas fa-link"></i></div>
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 relative z-10">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-lg">
-                            <i class="fas fa-clipboard-list text-sm"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <span class="px-2 py-0.5 bg-violet-500/10 text-violet-700 text-[9px] font-black uppercase tracking-[0.18em] rounded-full border border-violet-500/20">Quest Board → Scroll</span>
-                            <h3 class="font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight">Pending grading</h3>
-                            <p class="text-slate-500 text-xs font-medium leading-snug mt-0.5">These tests were announced with <strong>Schedule a Test</strong>. Finish logging so Starfall, analytics, and Pending Makeups stay truthful.</p>
-                        </div>
-                    </div>
-                    <div class="text-[10px] font-black text-violet-800 uppercase tracking-wider bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-100 shrink-0">${backlog.length} open</div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 relative z-10">
-                    ${cards}
-                </div>
-            </div>
-        </div>
-    `;
-
-    dashboardEl.insertBefore(wrap, dashboardEl.firstChild);
-
-    wrap.querySelectorAll('.log-scheduled-test-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const ymd = btn.dataset.presetDate;
-            const assn = getScheduledAssignmentForClassOnDate(classId, ymd);
-            openBulkLogModal(classId, 'test', {
-                presetDate: ymd,
-                presetTitle: String(assn?.testData?.title || '').trim()
-            });
-        });
-    });
-}
-
-// --- NEW: MAKEUP / MISSING WORK LOGIC ---
 
 function renderMissingWorkDashboard(classId) {
     const dashboard = getScrollQueuesHost();
-    document.getElementById('scheduled-grading-queue')?.remove();
-
     let container = document.getElementById('makeup-work-container');
     if (!container) {
-        container = document.createElement('div');
+        container = document.createElement('section');
         container.id = 'makeup-work-container';
     }
     container.innerHTML = '';
 
-    const classData = state.get('allSchoolClasses').find((c) => c.id === classId)
-        || state.get('allTeachersClasses').find((c) => c.id === classId);
+    const classData = findScrollClass(classId);
     if (!classUsesTests(classData)) {
         container.remove();
         return;
     }
 
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);
+    const studentsInClass = state.get('allStudents').filter((s) => s.classId === classId);
+    const scoresForClass = state.get('allWrittenScores').filter((s) => s.classId === classId);
 
-    // 1. Identify unique Tests (Group by Title+Type)
+    // 1. Unique tests (by title)
     const uniqueAssessments = {};
-
-    scoresForClass.forEach(score => {
-        // FIX 2: ONLY Tests
-        if (score.type === 'test') {
-            const key = `${score.type}-${score.title || 'Untitled'}`;
-            if (!uniqueAssessments[key]) {
-                uniqueAssessments[key] = {
-                    type: score.type,
-                    title: score.title || 'Untitled',
-                    originalDate: score.date,
-                    count: 0
-                };
-            }
-            uniqueAssessments[key].count++;
+    scoresForClass.forEach((score) => {
+        if (score.type !== 'test') return;
+        const key = `${score.type}-${score.title || 'Untitled'}`;
+        if (!uniqueAssessments[key]) {
+            uniqueAssessments[key] = { type: score.type, title: score.title || 'Untitled', originalDate: score.date, count: 0 };
         }
+        uniqueAssessments[key].count++;
     });
 
-    // Filter out assessments that only 1 or 2 students took (likely makeups themselves)
+    // Tests only one or two scholars took are most likely makeups themselves.
     const threshold = Math.max(2, Math.floor(studentsInClass.length * 0.3));
-
-    // Only show makeups for assessments within the past 3 months (matching the data load window)
+    // Only the past 3 months (matches the loaded window)
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     threeMonthsAgo.setHours(0, 0, 0, 0);
 
-    const validAssessments = Object.values(uniqueAssessments).filter(a => {
+    const validAssessments = Object.values(uniqueAssessments).filter((a) => {
         if (a.count < threshold) return false;
         const aDate = utils.parseFlexibleDate(a.originalDate);
-        if (!aDate) return false;
-        return aDate >= threeMonthsAgo; // Skip stale assessments from > 3 months ago
+        return !!aDate && aDate >= threeMonthsAgo;
     });
 
-    if (validAssessments.length === 0) {
-        container.remove();
-        return;
-    }
-
-    // 2. Find students who missed these
-    const missingWork = [];
-
-    validAssessments.forEach(assessment => {
-        studentsInClass.forEach(student => {
-            // FIX: Check if student joined AFTER the test date
+    // 2. Who missed each one (skipping scholars who joined after it, and dismissed records)
+    const dismissed = readDismissedMakeups(classId);
+    const groups = validAssessments.map((assessment) => {
+        const testDate = utils.parseFlexibleDate(assessment.originalDate);
+        const missing = studentsInClass.filter((student) => {
             if (student.createdAt) {
                 const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
-                const testDate = utils.parseFlexibleDate(assessment.originalDate);
-                testDate.setHours(23, 59, 59, 999);
-                if (joinDate > testDate) return;
+                const endOfTestDay = new Date(testDate);
+                endOfTestDay.setHours(23, 59, 59, 999);
+                if (joinDate > endOfTestDay) return false;
             }
+            if (dismissed[`${assessment.type}-${assessment.title}-${student.id}`]) return false;
+            return !scoresForClass.some((s) =>
+                s.studentId === student.id
+                && s.type === assessment.type
+                && (s.title === assessment.title || (!s.title && assessment.title === 'Untitled')));
+        }).sort((a, b) => a.name.localeCompare(b.name));
+        return { assessment, testDate, missing };
+    }).filter((g) => g.missing.length).sort((a, b) => b.testDate - a.testDate);
 
-            const hasTaken = scoresForClass.some(s =>
-                s.studentId === student.id &&
-                s.type === assessment.type &&
-                (s.title === assessment.title || (!s.title && !assessment.title))
-            );
-
-            if (!hasTaken) {
-                missingWork.push({
-                    student,
-                    assessment
-                });
-            }
-        });
-    });
-
-    if (missingWork.length === 0) {
+    const total = groups.reduce((n, g) => n + g.missing.length, 0);
+    if (!total) {
         container.remove();
         return;
     }
 
-    // Load dismissed makeups from localStorage (keyed by classId-type-title-studentId)
-    const dismissedKey = `dismissed_makeups_${classId}`;
-    const dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '{}');
-
-    // Filter out dismissed items
-    const filteredWork = missingWork.filter(item => {
-        const itemKey = `${item.assessment.type}-${item.assessment.title}-${item.student.id}`;
-        return !dismissed[itemKey];
-    });
-
-    if (filteredWork.length === 0) {
-        container.remove();
-        return;
-    }
-
-    // 3. Render the list
-    let html = `
-        <div class="mb-6 p-1 md:p-1 bg-gradient-to-br from-amber-200 via-amber-400 to-orange-500 rounded-[2rem] md:rounded-[2.3rem] shadow-[0_16px_40px_rgba(245,158,11,0.18)] relative overflow-hidden group">
-            <div class="bg-white/95 backdrop-blur-xl rounded-[1.65rem] md:rounded-[2rem] p-4 md:p-5 relative overflow-hidden">
-
-                <!-- Atmospheric Background Decor -->
-                <div class="absolute -right-10 -top-10 text-[9rem] text-amber-500/5 transform rotate-12 pointer-events-none transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-6">
-                    <i class="fas fa-scroll-old"></i>
-                </div>
-                <div class="absolute -left-16 -bottom-16 w-52 h-52 bg-amber-200/20 blur-[64px] rounded-full pointer-events-none"></div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 relative z-10">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="relative shrink-0">
-                            <div class="absolute inset-0 bg-amber-400 blur-lg opacity-25 animate-pulse"></div>
-                            <div class="relative w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-200/80 border border-white/20">
-                                <i class="fas fa-hourglass-start text-white text-base"></i>
-                            </div>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                <span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 text-[9px] font-black uppercase tracking-[0.18em] rounded-full border border-amber-500/20 shrink-0">Scholastic Alerts</span>
-                                <h3 class="font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight">Pending Makeups</h3>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100 shrink-0 self-start sm:self-auto">
-                        <div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping"></div>
-                        <span class="text-[10px] font-black text-amber-700 uppercase tracking-wider">${filteredWork.length} Records Found</span>
-                    </div>
-                </div>
-
-                <div class="makeup-items-grid grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
-    `;
-
-    filteredWork.forEach(item => {
-        const student = item.student;
-        const avatar = student.avatar
-            ? `<img src="${student.avatar}" loading="lazy" decoding="async" class="w-11 h-11 rounded-xl object-cover border border-white shadow-sm">`
-            : `<div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-title flex items-center justify-center text-base border border-white shadow-sm">${student.name.charAt(0)}</div>`;
-
-        html += `
-            <div class="scroll-makeup-item bg-slate-50/50 p-3.5 md:p-4 rounded-2xl border border-slate-100 hover:bg-white hover:border-amber-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group/item relative min-w-0">
-                <div class="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none bg-gradient-to-br from-amber-500/0 to-amber-500/[0.02] opacity-0 group-hover/item:opacity-100 transition-opacity"></div>
-
-                <div class="relative z-10 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-                    <div class="flex items-start gap-3 min-w-0 flex-1">
-                        <div class="relative shrink-0 pt-0.5">
-                            <div class="absolute inset-0 bg-amber-200 blur-md opacity-0 group-hover/item:opacity-35 transition-opacity rounded-lg"></div>
-                            <div class="relative transform group-hover/item:scale-105 transition-all duration-300">
-                                ${avatar}
-                            </div>
-                        </div>
-                        <div class="min-w-0 flex-1 space-y-1.5">
-                            <div class="font-title text-base md:text-lg text-slate-800 leading-snug break-words">${student.name}</div>
-                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <span class="text-[8px] font-black text-amber-600 uppercase tracking-wide bg-amber-100/60 px-2 py-0.5 rounded-md border border-amber-500/15">${item.assessment.type}</span>
-                                <span class="text-[11px] font-bold text-slate-600 leading-snug break-words">${item.assessment.title}</span>
-                            </div>
-                            <div class="text-[10px] text-slate-500 font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                <span class="inline-flex items-center gap-1"><i class="far fa-calendar-alt text-amber-500 text-[10px]"></i>
-                                Expected: <span class="text-slate-700 font-bold">${(utils.parseFlexibleDate(item.assessment.originalDate) || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></span>
-                                <span class="w-1 h-1 rounded-full bg-amber-400 animate-pulse shrink-0" aria-hidden="true"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-1.5 shrink-0 sm:flex-col sm:items-end sm:pt-0.5 sm:min-w-[7.5rem]">
-                        <button class="makeup-dismiss-btn w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center transition-all border border-slate-200 hover:border-rose-200 shadow-sm"
-                            data-student-id="${item.student.id}"
-                            data-title="${item.assessment.title}"
-                            data-type="${item.assessment.type}"
-                            title="Dismiss this record">
-                            <i class="fas fa-trash-can text-[10px] pointer-events-none"></i>
-                        </button>
-                        <button class="makeup-log-btn makeup-trigger h-8 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] uppercase tracking-wide shadow-md shadow-amber-200/70 hover:shadow-amber-300/80 hover:scale-[1.02] transition-all flex items-center gap-1.5 whitespace-nowrap"
-                            data-student-id="${item.student.id}"
-                            data-title="${item.assessment.title}"
-                            data-type="${item.assessment.type}">
-                            <span>Log Result</span>
-                            <i class="fas fa-chevron-right text-[7px] opacity-60"></i>
-                        </button>
-                    </div>
-                </div>
+    const collapsed = collapsedMakeups.has(classId);
+    container.className = `ss-notice ss-notice--makeup${collapsed ? ' is-collapsed' : ''}`;
+    container.dataset.tone = 'amber';
+    container.innerHTML = `
+        <header class="ss-notice__row">
+            <span class="ss-notice__seal" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span>
+            <div class="ss-notice__body">
+                <p class="ss-notice__kicker"><span>Scholastic alert</span></p>
+                <h4 class="ss-notice__title">Pending Makeups</h4>
+                <p class="ss-notice__text"><b class="ss-makeup-count">${total}</b> makeup${total === 1 ? "" : "s"} to log across ${groups.length} test${groups.length === 1 ? '' : 's'}</p>
             </div>
-        `;
-    });
-
-
-    html += `
-                </div>
-            </div>
+            <button type="button" class="ss-btn ss-btn--ghost ss-makeup-toggle" aria-expanded="${!collapsed}" aria-controls="ss-makeup-groups">
+                <span>${collapsed ? 'Show' : 'Hide'}</span><i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+        </header>
+        <div class="ss-makeups" id="ss-makeup-groups">
+            ${groups.map(({ assessment, testDate, missing }) => `
+                <div class="ss-makeup-group">
+                    <p class="ss-makeup-group__head">
+                        <i class="fas fa-file-alt" aria-hidden="true"></i>
+                        <b>${esc(assessment.title)}</b>
+                        <span>${esc(shortDate(testDate))}</span>
+                        <em>${missing.length} to catch up</em>
+                    </p>
+                    <ul class="ss-makeup-group__list">
+                        ${missing.map((student) => `
+                            <li class="scroll-makeup-item ss-makeup">
+                                ${avatarMarkup(student, 'ss-makeup__av')}
+                                <span class="ss-makeup__name">${esc(student.name)}</span>
+                                <button type="button" class="makeup-trigger ss-makeup__log"
+                                    data-student-id="${esc(student.id)}" data-title="${esc(assessment.title)}" data-type="${esc(assessment.type)}"
+                                    title="Log ${esc(student.name)}'s makeup result">
+                                    <i class="fas fa-feather-alt" aria-hidden="true"></i><span>Log</span>
+                                </button>
+                                <button type="button" class="makeup-dismiss-btn ss-makeup__dismiss"
+                                    data-student-id="${esc(student.id)}" data-title="${esc(assessment.title)}" data-type="${esc(assessment.type)}"
+                                    title="Dismiss: no makeup needed" aria-label="Dismiss ${esc(student.name)}'s makeup">
+                                    <i class="fas fa-times" aria-hidden="true"></i>
+                                </button>
+                            </li>`).join('')}
+                    </ul>
+                </div>`).join('')}
         </div>
     `;
-    container.innerHTML = html;
-    positionMakeupBelowScheduledQueue(dashboard, container);
+    // Sits after the upcoming-test notice when there is one.
+    const testAlert = document.getElementById('scroll-test-alert');
+    if (testAlert && testAlert.parentNode === dashboard) testAlert.insertAdjacentElement('afterend', container);
+    else dashboard.prepend(container);
 
-    // 4. Bind Click Events
-    container.querySelectorAll('.makeup-trigger').forEach(btn => {
-        btn.addEventListener('click', () => {
-            openMakeupModal(classId, btn.dataset.studentId, btn.dataset.type, btn.dataset.title);
-        });
-    });
-
-    // 5. Bind Dismiss Buttons
-    container.querySelectorAll('.makeup-dismiss-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const itemKey = `${btn.dataset.type}-${btn.dataset.title}-${btn.dataset.studentId}`;
-            const saved = JSON.parse(localStorage.getItem(dismissedKey) || '{}');
-            saved[itemKey] = true;
-            localStorage.setItem(dismissedKey, JSON.stringify(saved));
-            // Remove from DOM immediately
-            const makeupItem = btn.closest('.scroll-makeup-item');
-            if (makeupItem) {
-                makeupItem.style.opacity = '0';
-                makeupItem.style.transition = 'opacity 0.3s';
-                setTimeout(() => {
-                    makeupItem.remove();
-                    // If no items left, remove the whole container
-                    const remaining = container.querySelectorAll('.scroll-makeup-item');
-                    if (remaining.length === 0) container.remove();
-                }, 300);
+    container.onclick = (e) => {
+        const toggle = e.target.closest('.ss-makeup-toggle');
+        if (toggle) {
+            const nowCollapsed = !container.classList.contains('is-collapsed');
+            container.classList.toggle('is-collapsed', nowCollapsed);
+            toggle.setAttribute('aria-expanded', String(!nowCollapsed));
+            toggle.querySelector('span').textContent = nowCollapsed ? 'Show' : 'Hide';
+            if (nowCollapsed) collapsedMakeups.add(classId); else collapsedMakeups.delete(classId);
+            return;
+        }
+        const log = e.target.closest('.makeup-trigger');
+        if (log) {
+            openMakeupModal(classId, log.dataset.studentId, log.dataset.type, log.dataset.title);
+            return;
+        }
+        const dismiss = e.target.closest('.makeup-dismiss-btn');
+        if (!dismiss) return;
+        const saved = readDismissedMakeups(classId);
+        saved[`${dismiss.dataset.type}-${dismiss.dataset.title}-${dismiss.dataset.studentId}`] = true;
+        try { localStorage.setItem(`dismissed_makeups_${classId}`, JSON.stringify(saved)); } catch (_) { /* private mode */ }
+        const item = dismiss.closest('.scroll-makeup-item');
+        if (!item) return;
+        item.classList.add('is-leaving');
+        setTimeout(() => {
+            const group = item.closest('.ss-makeup-group');
+            item.remove();
+            if (group && !group.querySelector('.scroll-makeup-item')) group.remove();
+            const remaining = container.querySelectorAll('.scroll-makeup-item').length;
+            if (!remaining) container.remove();
+            else {
+                const countEl = container.querySelector('.ss-makeup-count');
+                if (countEl) countEl.textContent = remaining;
             }
-        });
-    });
+        }, scrollMotionReduced() ? 0 : 260);
+    };
 }
 
 function openMakeupModal(classId, studentId, type, title) {

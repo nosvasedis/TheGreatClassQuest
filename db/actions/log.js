@@ -186,11 +186,12 @@ export async function handleDeleteCompletedStory(storyId) {
     }, 'Delete Forever');
 }
 
-export function handleDeleteTrial(trialId) {
+export function handleDeleteTrial(trialId, onDeleted = null) {
     showModal('Delete Trial Record?', 'Are you sure you want to permanently delete this score? This cannot be undone.', async () => {
         try {
             await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/written_scores", trialId));
             showToast('Trial record deleted.', 'success');
+            if (typeof onDeleted === 'function') onDeleted(trialId);
         } catch (error) {
             console.error("Error deleting trial record:", error);
             showToast('Could not delete the record.', 'error');

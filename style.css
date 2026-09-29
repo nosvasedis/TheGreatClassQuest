@@ -96,7 +96,7 @@
 /* 20. Enlargeable avatar, enlarged-avatar-container popup */
 @import url('./styles/enlarged_avatar.css');
 
-/* 21. Performance chart bars (grow-bar), chart-row, chart-label */
+/* 21. Scholar's Scroll desk: notices, class ledger, Honour Roll (performance chart) */
 @import url('./styles/performance_chart.css');
 
 /* 22b. Student analytics modal: tabs, charts, heatmap, exports */
@@ -107,6 +107,9 @@
 
 /* 23. Log New Trial marking board: clipboard, ruled sheet, grade stamps */
 @import url('./styles/bulk_trial.css');
+
+/* 23b. Trial History record book: leather boards, sittings, scholar marks */
+@import url('./styles/trial_history.css');
 
 /* 24. Holiday calendar overlays: christmas, easter, generic, makeup work */
 @import url('./styles/holiday.css');

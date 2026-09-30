@@ -2,27 +2,27 @@
 // (Ceremony of the Month arena, Growth Festival garden, Grand Guild Ceremony).
 // Nothing here loads at app start: a ceremony calls prepareCeremonyAudio(bank)
 // when it opens, which builds a few Tone.js synths and starts fetching that
-// bank's music files (committed MP3s under assets/; nothing is fetched from a
-// paid service at runtime).
+// bank's music files: small committed MP3s under assets/ceremony/music/
+// (made once for the app; nothing is generated or paid for at runtime).
 
 import { ensureAudioReady, setCeremonyMuted } from './audio.js';
 import { loadTone } from './utils/lazyLibraries.js';
 
 export const CEREMONY_TRACKS = {
     arena: {
-        arena_theme: { url: 'assets/ceremony_reveal.mp3', loop: true, volume: -11 },
-        heroes_theme: { url: 'assets/ceremony_reveal.mp3', loop: true, volume: -11 },
-        duel: { url: 'assets/ceremony_showdown.mp3', loop: true, volume: -8 },
-        victory: { url: 'assets/ceremony_winner.mp3', loop: false, volume: -5 }
+        arena_theme: { url: 'assets/ceremony/music/arena-theme.mp3', loop: true, volume: -11 },
+        heroes_theme: { url: 'assets/ceremony/music/heroes-theme.mp3', loop: true, volume: -11 },
+        duel: { url: 'assets/ceremony/music/duel-tension.mp3', loop: true, volume: -9 },
+        victory: { url: 'assets/ceremony/music/victory-fanfare.mp3', loop: false, volume: -6 }
     },
     garden: {
-        garden_theme: { url: 'assets/crown_of_petals.mp3', loop: true, volume: -10 },
-        golden_bloom: { url: 'assets/ceremony_winner.mp3', loop: false, volume: -7 }
+        garden_theme: { url: 'assets/ceremony/music/garden-theme.mp3', loop: true, volume: -11 },
+        golden_bloom: { url: 'assets/ceremony/music/golden-bloom.mp3', loop: false, volume: -7 }
     },
     grand: {
-        grand_theme: { url: 'assets/ceremony_reveal.mp3', loop: true, volume: -11 },
-        grand_suspense: { url: 'assets/ceremony_showdown.mp3', loop: true, volume: -9 },
-        grand_crowning: { url: 'assets/ceremony_winner.mp3', loop: false, volume: -5 }
+        grand_theme: { url: 'assets/ceremony/music/grand-festival.mp3', loop: true, volume: -11 },
+        grand_suspense: { url: 'assets/ceremony/music/grand-suspense.mp3', loop: true, volume: -9 },
+        grand_crowning: { url: 'assets/ceremony/music/grand-crowning.mp3', loop: false, volume: -6 }
     }
 };
 

@@ -202,14 +202,6 @@ export const classModalsHTML = `
                     <h2 id="history-modal-title" class="font-title">Historical Leaderboard</h2>
                     <p id="history-modal-subtitle">Quest Archives</p>
                 </div>
-                <div id="history-month-select-wrapper" class="history-month-rail">
-                    <button type="button" class="history-month-nudge" data-dir="-1" aria-label="Earlier month"><i class="fas fa-chevron-left"></i></button>
-                    <div id="history-month-picker-options" class="history-month-track" role="tablist" aria-label="Choose a month"></div>
-                    <button type="button" class="history-month-nudge" data-dir="1" aria-label="Later month"><i class="fas fa-chevron-right"></i></button>
-                    <select id="history-month-select" class="hidden" aria-hidden="true" tabindex="-1">
-                        <option value="">--Choose a month--</option>
-                    </select>
-                </div>
                 <button id="history-modal-close-btn" class="history-archive-close" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>

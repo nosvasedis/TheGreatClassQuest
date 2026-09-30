@@ -57,6 +57,7 @@
 @import url('./styles/leaderboard.css');
 @import url('./styles/hero_standings.css');
 @import url('./styles/hero_logs.css');
+@import url('./styles/league_archive.css');
 
 /* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
 @import url('./styles/guilds.css');

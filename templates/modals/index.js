@@ -9,6 +9,7 @@ import { aiModalsHTML } from './ai.js';
 import { attendanceModalsHTML } from './attendance.js';
 import { heroModalsHTML } from './hero.js';
 import { rankingsModalsHTML } from './rankings.js';
+import { leagueArchiveModalHTML } from './leagueArchive.js';
 import { trophyRoomModalsHTML } from './trophyRoom.js';
 import { miscModalsHTML } from './misc.js';
 import { sortingQuizModalsHTML } from './sortingQuiz.js';
@@ -29,6 +30,7 @@ export const allModalsHTML =
     attendanceModalsHTML +
     heroModalsHTML +
     rankingsModalsHTML +
+    leagueArchiveModalHTML +
     trophyRoomModalsHTML +
     miscModalsHTML +
     sortingQuizModalsHTML +

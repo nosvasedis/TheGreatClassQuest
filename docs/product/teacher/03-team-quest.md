@@ -12,7 +12,7 @@ Build **social cohesion**. Nobody is left as a lonely high-scorer: every star a 
 - The **League Map**: the illustrated parchment path through four zones (the same map art the class sees).
 - Each class as a moving token. Position is **progress toward this month’s goal**, not raw star count alone. Labels are nudged so overlapping classes stay readable.
 - A list of classes with stars, goal, **quest difficulty level**, and zone.
-- **History** of past months (the League Archive): opens on the latest finished month; switch months with the month chips in the header. Each league shows its month champion, then every class with % of goal, stars / goal, difficulty level, "Goal reached", and lesson days lost.
+- **History** opens the **League Archive**, an atlas of past months. It opens on the latest finished month, in your league (or **All leagues**). Step months with the arrows or tap a month on the dotted route; switch league with the chips, or **Find a class** by name. **Your parties** shows where each of your classes finished. Each league sheet has its **Month champion** pennant, a **race chart** showing where every class stopped on the road (realms, and the goal flag), then every class with a rank pennant, % of goal, stars / goal, the realm it reached or the stars it was short, the stars it needed to catch the class ahead, difficulty level, "Goal reached" and lesson days lost. Classes with no stars that month wait under **Still at the start line**. Only this school year's closed months are charted.
 - A reminder on **Home** when last month’s **Ceremony of the Month** has not been run yet; the ceremony opens from there.
 
 Only classes that share the same **Quest League** race each other. Junior B does not race Class C.

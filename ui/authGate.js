@@ -19,6 +19,7 @@ const TIMING = {
 
 // Past this the scene would need a huge re-raster; the light covers the screen by then anyway.
 const MAX_ZOOM = 3.2;
+const EXIT_ZOOM = 1.7;
 const GATE_STATES = ['is-gate-closing', 'is-gate-opening', 'is-gate-entering', 'is-gate-leaving', 'gate-instant'];
 
 let activeGate = null;
@@ -134,7 +135,10 @@ export function playAuthGateEntrance({ onHandoff } = {}) {
         const light = buildLight();
         const gate = { authScreen, portal, light, timers: [], resolve, handedOff: false };
         activeGate = gate;
-        const both = [authScreen, light];
+        // The scene only needs the states that move it; the door steps stay on the gate's
+        // own layers so they never invalidate (and repaint) the whole scene.
+        const both = [authScreen, light, portal];
+        const gateOnly = [light, portal];
 
         prepareGate(authScreen, card, portal, light);
         void portal.offsetWidth;
@@ -143,7 +147,7 @@ export function playAuthGateEntrance({ onHandoff } = {}) {
 
         const slow = slowFactor();
         const later = (ms, fn) => gate.timers.push(setTimeout(fn, ms * slow));
-        later(TIMING.open, () => setStates(both, ['is-gate-opening']));
+        later(TIMING.open, () => setStates(gateOnly, ['is-gate-opening']));
         later(TIMING.enter, () => setStates(both, ['is-gate-entering']));
         later(TIMING.handoff, () => {
             gate.handedOff = true;
@@ -266,29 +270,44 @@ export function playAuthGateExit() {
     card.appendChild(portal);
     const light = buildLight();
     exitElements = [authScreen, portal, light];
-    const both = [authScreen, light];
+    const both = [authScreen, light, portal];
+    const gateOnly = [light, portal];
     prepareGate(authScreen, card, portal, light);
 
     // Start zoomed into the lit arch, with no transitions, then let each step play backwards.
-    setStates(both, ['gate-instant', 'is-gate-leaving', 'is-gate-closing', 'is-gate-opening', 'is-gate-entering']);
-    void authScreen.offsetWidth;
-    setStates(both, [], ['gate-instant']);
+    // The zoom-out starts from a gentler scale than the zoom-in reaches: a shrinking layer
+    // shows more and more of the scene, and at a big scale the browser cannot keep all of
+    // it drawn sharp, so tiles pop in just as the motion settles. At EXIT_ZOOM they don't.
+    const zoom = Number.parseFloat(authScreen.style.getPropertyValue('--gate-zoom')) || EXIT_ZOOM;
+    authScreen.style.setProperty('--gate-zoom', Math.min(zoom, EXIT_ZOOM).toFixed(3));
+    setStates(both, ['gate-instant', 'is-gate-leaving', 'is-gate-closing', 'is-gate-entering']);
+    setStates(gateOnly, ['is-gate-opening']);
     void authScreen.offsetWidth;
 
     const slow = slowFactor();
     const later = (ms, fn) => exitTimers.push(setTimeout(fn, ms * slow));
-    // The flood layer matches the veil exactly, so dropping the veil shows no seam.
-    later(60, () => {
-        clearDaylightVeil();
-        setStates(both, [], ['is-gate-entering']);
-    });
-    later(900, () => setStates(both, [], ['is-gate-opening']));
-    later(1800, () => setStates(both, [], ['is-gate-closing']));
-    later(2150, () => {
-        resetGateElements(authScreen, portal, light);
-        exitElements = null;
-        exitTimers = [];
-    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!exitElements || exitElements[0] !== authScreen) return;
+        setStates(both, [], ['gate-instant']);
+        void authScreen.offsetWidth;
+        // The flood layer matches the veil exactly, so dropping the veil shows no seam.
+        later(0, () => {
+            clearDaylightVeil();
+            setStates(both, [], ['is-gate-entering']);
+        });
+        later(850, () => setStates(gateOnly, [], ['is-gate-opening']));
+        later(1750, () => setStates(both, [], ['is-gate-closing']));
+        // Tidy up in two quiet steps, after everything has stopped moving.
+        later(2150, () => {
+            portal.remove();
+            light.remove();
+        });
+        later(2450, () => {
+            resetGateElements(authScreen, null, null);
+            exitElements = null;
+            exitTimers = [];
+        });
+    }));
 }
 
 if (import.meta.env?.DEV && typeof window !== 'undefined') {

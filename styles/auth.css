@@ -851,7 +851,7 @@
     opacity: 0;
     transition: opacity 0.26s ease;
 }
-#auth-screen.is-gate-closing .auth-gate-portal { opacity: 1; }
+.auth-gate-portal.is-gate-closing { opacity: 1; }
 
 .auth-gate-portal__sky {
     position: absolute;
@@ -875,7 +875,7 @@
     transform: translate(-50%, -50%);
     transition: opacity 0.8s ease;
 }
-#auth-screen.is-gate-opening .auth-gate-portal__rays { opacity: 1; }
+.auth-gate-portal.is-gate-opening .auth-gate-portal__rays { opacity: 1; }
 
 /* The flood of light: two screen-sized layers on top of the sign-in screen (not
    inside it, so they never scale) that only fade, like the loading screen's own
@@ -1003,9 +1003,9 @@
     box-shadow: inset 1px 0 0 var(--auth-accent-soft), inset 6px 0 12px -8px rgba(15, 23, 42, 0.25);
 }
 .auth-gate-portal__door--right::before { background: linear-gradient(270deg, rgba(30, 41, 59, 0.28), rgba(30, 41, 59, 0)); }
-#auth-screen.is-gate-opening .auth-gate-portal__door--left { transform: perspective(900px) rotateY(76deg); }
-#auth-screen.is-gate-opening .auth-gate-portal__door--right { transform: perspective(900px) rotateY(-76deg); }
-#auth-screen.is-gate-opening .auth-gate-portal__door::before { opacity: 1; }
+.auth-gate-portal.is-gate-opening .auth-gate-portal__door--left { transform: perspective(900px) rotateY(76deg); }
+.auth-gate-portal.is-gate-opening .auth-gate-portal__door--right { transform: perspective(900px) rotateY(-76deg); }
+.auth-gate-portal.is-gate-opening .auth-gate-portal__door::before { opacity: 1; }
 
 .auth-gate-portal__ring {
     position: absolute;
@@ -1033,7 +1033,7 @@
     will-change: opacity;
     transition: opacity 0.6s ease;
 }
-#auth-screen.is-gate-opening .auth-gate-portal::before { opacity: 1; }
+.auth-gate-portal.is-gate-opening::before { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
     .auth-gate-portal,
@@ -1069,10 +1069,11 @@
 /* ── Walking back out (logout) ───────────────────────────────────────────────
    The same pieces played backwards: the light draws back into the arch, the
    doors swing shut, then the form returns (ui/authGate.js → playAuthGateExit). */
-#auth-screen.gate-instant .auth-gate-portal,
-#auth-screen.gate-instant .auth-gate-portal *,
-#auth-screen.gate-instant .auth-gate-portal *::before { transition: none !important; }
-#auth-screen.is-gate-leaving .auth-gate-portal { transition: opacity 0.35s ease; }
+.auth-gate-portal.gate-instant,
+.auth-gate-portal.gate-instant::before,
+.auth-gate-portal.gate-instant *,
+.auth-gate-portal.gate-instant *::before { transition: none !important; }
+.auth-gate-portal.is-gate-leaving { transition: opacity 0.35s ease; }
 
 .gate-daylight-veil {
     position: fixed;

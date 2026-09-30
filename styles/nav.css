@@ -580,10 +580,10 @@ body.projector-mode #award-immersive-sky {
     to { opacity: 1; }
 }
 
-/* Stays opaque to the end: it lands exactly on the bar, which takes over in the same frame. */
+/* Stays opaque while it folds, then melts away as the bar's own colour fades in over it. */
 @keyframes awardImmersiveSkyFoldUp {
-    from { opacity: 1; }
-    to { opacity: 1; }
+    0%, 62% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 @keyframes awardImmersiveSkyFoldRm {
@@ -613,9 +613,10 @@ body.projector-mode #award-immersive-sky {
     to { transform: scaleY(1); }
 }
 
+/* Lands with its solid part filling the bar exactly (the soft edge hangs just below it). */
 @keyframes awardSkyRiseBack {
     from { transform: scaleY(1); }
-    to { transform: scaleY(var(--award-sky-from, 0.1)); }
+    to { transform: scaleY(var(--award-sky-to, 0.1)); }
 }
 
 /* Far clouds, stars and weather drift in once the sky is open, and leave first. */

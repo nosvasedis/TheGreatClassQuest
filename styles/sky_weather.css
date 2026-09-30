@@ -286,6 +286,36 @@ body.night-mode #m-teacher-header {
 }
 body.night-mode #m-teacher-header .m-header__clouds { opacity: 1; }
 
+/* Folding back from the Award sky, the bar's own colour fades in over the landing sky
+   (the bar itself stays see-through until the fold ends), so the colour never snaps. */
+#app-screen.award-sky-leaving #award-header-atmosphere::before,
+#app-screen.award-sky-leaving #m-teacher-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 42% 160% at 88% 0%, var(--wx-glow) 0%, transparent 70%),
+        linear-gradient(to right, var(--wx-sky-1) 0%, var(--wx-sky-2) 55%, var(--wx-sky-3) 100%);
+    animation: wxBarColourIn calc(var(--award-sky-reveal-duration, 1100ms) * 0.4) ease-in-out calc(var(--award-sky-reveal-duration, 1100ms) * 0.6) both;
+}
+#app-screen.award-sky-leaving #m-teacher-header::before {
+    background:
+        radial-gradient(ellipse 60% 140% at 90% 0%, var(--wx-glow) 0%, transparent 70%),
+        linear-gradient(135deg, var(--wx-sky-1) 0%, var(--wx-sky-2) 55%, var(--wx-sky-3) 100%);
+}
+@keyframes wxBarColourIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+/* The bar's edge and shadow ease back in once the fold has landed. */
+#app-screen.gcq-trim-rejoin #award-header-atmosphere,
+#app-screen.gcq-trim-rejoin #award-header-atmosphere > header,
+#app-screen.gcq-trim-rejoin #m-teacher-header {
+    transition: border-color 450ms ease, box-shadow 450ms ease;
+}
+
 /* Icicles hang from the bar on freezing days. */
 html[data-wx="freezing"] #award-header-atmosphere::after,
 html[data-wx="fog"][data-wx-int="heavy"] #award-header-atmosphere::after {

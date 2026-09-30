@@ -139,6 +139,8 @@ function setAwardSkyOrigin(appScreen) {
     const tall = (sky?.offsetHeight || window.innerHeight || 1) * 1.28 || 1;
     const from = Math.min(0.5, Math.max(0.04, band / tall));
     appScreen.style.setProperty('--award-sky-from', from.toFixed(3));
+    // Folding back, the sky's solid part (all but its soft 28vh edge) lands exactly on the bar.
+    appScreen.style.setProperty('--award-sky-to', Math.min(0.64, Math.max(0.05, from * 1.28)).toFixed(3));
 }
 
 function finalizeAwardSkyOff(appScreen) {

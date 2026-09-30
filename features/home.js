@@ -11,6 +11,15 @@ import { buildHomePartyCardHtml } from './homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
+import {
+    DAILY_QUOTE_SYSTEM_PROMPT,
+    buildDailyQuoteUserPrompt,
+    cleanGeneratedQuote,
+    getCuratedDailyQuote,
+    isCuratedDailyQuote,
+    isTooSimilarQuote,
+    isUsableQuote
+} from '../utils/dailyQuote.mjs';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
@@ -42,11 +51,12 @@ let renderDebounce = null;
 let currentRenderedViewId = null;
 let hasPlayedInitialHomeEntrance = false;
 
-const FALLBACK_QUOTES = {
-    quote_header: "Every great quest starts with one brave step.",
-    quote_widget: "Curiosity turns every day into an adventure.",
-    default: "The adventure begins with a single step."
-};
+// v2: day-seeded prompts + recent-quote memory. The new doc id also retires the
+// old per-day cache entries that were generated from one fixed prompt.
+const DAILY_QUOTE_TYPE = 'quote_daily_v2';
+const DAILY_QUOTE_HISTORY_KEY = 'gcq_daily_quote_history_v2';
+const DAILY_QUOTE_HISTORY_LIMIT = 21;
+const DAILY_QUOTE_LOOKBACK_DAYS = 5;
 
 let dailySpiceState = {
     day: null,
@@ -64,7 +74,7 @@ async function fetchDailySpice() {
 
     // A static fallback (AI/cache unavailable, e.g. before sign-in) is only
     // reused for a short cooldown so a later attempt can fetch the real quote.
-    const cachedIsFallback = isStaticFallbackQuote(dailySpiceState.value?.headerQuote, 'quote_header');
+    const cachedIsFallback = isCuratedDailyQuote(dailySpiceState.value?.headerQuote);
     if (
         dailySpiceState.day === todayKey &&
         dailySpiceState.value &&
@@ -79,7 +89,7 @@ async function fetchDailySpice() {
     }
 
     dailySpiceState.promise = (async () => {
-        const headerQuote = await getAICachedContent('quote_header');
+        const headerQuote = await getDailyQuote();
 
         const value = { headerQuote };
 
@@ -261,7 +271,7 @@ async function executeRenderHome() {
     theme.nameGradient = "from-slate-700 to-slate-500";
 
     // --- STEP 4: FETCH SPICE & RENDER (non-blocking) ---
-    const spice = { headerQuote: FALLBACK_QUOTES.quote_header };
+    const spice = { headerQuote: getCuratedDailyQuote(utils.getLocalIsoDateString()) };
     fetchDailySpice().then(s => {
         updateHeaderQuote(s.headerQuote);
     }).catch(() => {});
@@ -1327,37 +1337,74 @@ function getReminderPills(classId) {
     return pills.join('');
 }
 
-// --- NEW: Database-backed Shared Caching ---
-function isStaticFallbackQuote(content, type) {
-    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
-    return String(content || '').trim() === fallback;
+// --- Daily Wisdom quote (shared Firestore cache, one generation per day) ---
+const DAILY_CACHE_PATH = "artifacts/great-class-quest/public/data/daily_cache";
+
+function dailyQuoteDocId(dayKey) {
+    return `daily_content_${dayKey}_${DAILY_QUOTE_TYPE}`;
 }
 
-function buildDailyQuoteUserPrompt(type, todayKey) {
-    // Include the local day so each day's request is distinct for cache keys and model variety.
-    if (type === 'quote_header') {
-        return `For ${todayKey}, generate one fresh short quote about new beginnings or focus. Do not reuse yesterday's wording.`;
+function readQuoteHistory() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(DAILY_QUOTE_HISTORY_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter((entry) => entry && entry.day && entry.text) : [];
+    } catch (_) {
+        return [];
     }
-    if (type === 'quote_widget') {
-        return `For ${todayKey}, generate one fresh short quote about curiosity or nature. Do not reuse yesterday's wording.`;
-    }
-    return `For ${todayKey}, generate one fresh short inspiring classroom quote.`;
 }
 
-async function getAICachedContent(type) {
+function rememberQuote(dayKey, text) {
+    try {
+        const history = readQuoteHistory().filter((entry) => entry.day !== dayKey);
+        history.unshift({ day: dayKey, text });
+        localStorage.setItem(DAILY_QUOTE_HISTORY_KEY, JSON.stringify(history.slice(0, DAILY_QUOTE_HISTORY_LIMIT)));
+    } catch (_) { /* storage full or blocked: history is only a nicety */ }
+}
+
+function shiftDayKey(dayKey, deltaDays) {
+    const [y, m, d] = dayKey.split('-').map(Number);
+    return utils.getLocalIsoDateString(new Date(y, m - 1, d + deltaDays));
+}
+
+/** Quotes from the last few days: local history plus the shared cache (few reads, generator only). */
+async function collectRecentQuotes(todayKey) {
+    const recent = readQuoteHistory().filter((entry) => entry.day !== todayKey).map((entry) => entry.text);
+    const dayKeys = Array.from({ length: DAILY_QUOTE_LOOKBACK_DAYS }, (_, i) => shiftDayKey(todayKey, -(i + 1)));
+    const snaps = await Promise.all(dayKeys.map((key) =>
+        getDoc(doc(db, DAILY_CACHE_PATH, dailyQuoteDocId(key))).catch(() => null)
+    ));
+    snaps.forEach((snap) => {
+        const text = snap?.exists?.() ? String(snap.data()?.content || '').trim() : '';
+        if (text && !recent.includes(text)) recent.push(text);
+    });
+    return recent;
+}
+
+async function generateFreshQuote(todayKey, recentQuotes) {
+    const avoid = [...recentQuotes, getCuratedDailyQuote(todayKey)];
+    // Two tries at most: the second one sees the rejected line too.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const raw = await callGeminiApi(
+            DAILY_QUOTE_SYSTEM_PROMPT,
+            buildDailyQuoteUserPrompt(todayKey, avoid),
+            { retries: 1, baseDelay: 500, timeoutMs: 20000, maxTokens: 80 }
+        );
+        const quote = cleanGeneratedQuote(raw);
+        if (isUsableQuote(quote) && !isTooSimilarQuote(quote, avoid)) return quote;
+        if (quote) avoid.unshift(quote);
+    }
+    return '';
+}
+
+async function getDailyQuote() {
     const todayKey = utils.getLocalIsoDateString();
-    const docId = `daily_content_${todayKey}_${type}`;
+    const docId = dailyQuoteDocId(todayKey);
     const localKey = `gcq_daily_content_${docId}`;
-    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
+    const curated = getCuratedDailyQuote(todayKey);
 
     try {
         const localCached = localStorage.getItem(localKey);
-        // Never treat the static fallback as a successful cache hit — that permanently
-        // blocked daily AI retries after a single failed generation.
-        if (localCached && !isStaticFallbackQuote(localCached, type)) return localCached;
-        if (localCached && isStaticFallbackQuote(localCached, type)) {
-            try { localStorage.removeItem(localKey); } catch (_) {}
-        }
+        if (localCached) return localCached;
     } catch (e) {
         console.warn("Local quote cache read failed.", e);
     }
@@ -1367,68 +1414,44 @@ async function getAICachedContent(type) {
     }
 
     const requestPromise = (async () => {
-        // 1. Check Firebase First (Shared Cache)
-        try {
-            const docRef = doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId);
-            const docSnap = await getDoc(docRef);
+        const keep = (text) => {
+            try { localStorage.setItem(localKey, text); } catch (_) { /* ignore */ }
+            rememberQuote(todayKey, text);
+            return text;
+        };
 
-            if (docSnap.exists()) {
-                const content = String(docSnap.data()?.content || '').trim();
-                if (content && !isStaticFallbackQuote(content, type)) {
-                    try {
-                        localStorage.setItem(localKey, content);
-                    } catch (e) {
-                        console.warn("Local quote cache write failed.", e);
-                    }
-                    return content;
-                }
-            }
+        // 1. Shared cache: whoever opens Home first each day generates for everyone.
+        try {
+            const docSnap = await getDoc(doc(db, DAILY_CACHE_PATH, docId));
+            const content = docSnap.exists() ? String(docSnap.data()?.content || '').trim() : '';
+            if (content) return keep(content);
         } catch (e) {
             console.warn("Cache fetch skipped, trying generation.");
         }
 
-        // 2. Generate if not found (Elite only)
-        if (!canUseFeature('eliteAI')) {
-            return fallback;
-        }
+        // 2. Without Elite AI, the day's curated line (it still changes daily).
+        if (!canUseFeature('eliteAI')) return curated;
 
         try {
-            const systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
-            const userPrompt = buildDailyQuoteUserPrompt(type, todayKey);
+            const recent = await collectRecentQuotes(todayKey);
+            const content = await generateFreshQuote(todayKey, recent);
+            if (!content) throw new Error('AI returned no usable fresh quote.');
 
-            // Quotes can take >5s because the worker may throttle upstream requests.
-            // Keep retries low, but allow enough time for a real response.
-            const content = String(
-                await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 20000 })
-            ).trim();
-            if (!content || isStaticFallbackQuote(content, type)) {
-                throw new Error('AI returned an empty or static fallback quote.');
-            }
-
-            // 3. Save to Firebase (So others don't have to generate)
             try {
                 const { setDoc } = await import('../firebase.js');
-                await setDoc(doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId), {
-                    content: content,
+                await setDoc(doc(db, DAILY_CACHE_PATH, docId), {
+                    content,
                     date: todayKey,
-                    type: type
+                    type: DAILY_QUOTE_TYPE
                 });
             } catch (e) {
                 console.error("Failed to save to cache", e);
             }
-
-            try {
-                localStorage.setItem(localKey, content);
-            } catch (e) {
-                console.warn("Local quote cache write failed.", e);
-            }
-
-            return content;
+            return keep(content);
         } catch (e) {
             console.error(e);
-            // Do not cache the static fallback — a transient AI failure must not
-            // lock the home quote for the rest of the day.
-            return fallback;
+            // Not cached: a transient AI failure must not lock the quote for the day.
+            return curated;
         }
     })().finally(() => {
         dailyContentInFlight.delete(docId);

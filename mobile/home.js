@@ -12,6 +12,7 @@ import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from '../features/homeGreetingScene.js';
+import { getCuratedDailyQuote, isCuratedDailyQuote } from '../utils/dailyQuote.mjs';
 
 const SCHEDULE_GRADIENTS = [
     'from-red-100 to-red-200', 'from-orange-100 to-orange-200', 'from-amber-100 to-amber-200',
@@ -37,8 +38,6 @@ let lastHtml = '';
 let cachedQuote = '';
 let cachedQuoteDay = null;
 
-const MOBILE_QUOTE_FALLBACK = 'Every great quest starts with one brave step.';
-
 function getDailyQuoteCardHtml(staggerIndex = 1) {
     const todayKey = utils.getLocalIsoDateString();
     if (cachedQuoteDay && cachedQuoteDay !== todayKey) {
@@ -47,7 +46,7 @@ function getDailyQuoteCardHtml(staggerIndex = 1) {
     }
     const desktopQuote = document.getElementById('header-quote-text')?.textContent?.trim();
     const quote = cachedQuote
-        || (desktopQuote && desktopQuote !== 'Loading wisdom...' ? desktopQuote : MOBILE_QUOTE_FALLBACK);
+        || (desktopQuote && desktopQuote !== 'Loading wisdom...' ? desktopQuote : getCuratedDailyQuote(todayKey));
     return `
         <section class="m-home-card m-home-quote-card card-appear-m" style="--stagger:${staggerIndex}" id="m-daily-quote-card">
             <div class="m-home-quote-card__inner">
@@ -67,16 +66,16 @@ function ensureDailyQuoteFetched() {
         cachedQuote = '';
         cachedQuoteDay = null;
     }
-    // Keep refetching while we only have the static placeholder so a later AI
+    // Keep refetching while we only have the day's curated line so a later AI
     // success can replace it within the same session.
-    if (cachedQuote && cachedQuote !== MOBILE_QUOTE_FALLBACK) return;
+    if (cachedQuote && !isCuratedDailyQuote(cachedQuote)) return;
     import('../features/home.js').then((homeModule) => {
         homeModule.fetchDailySpice?.().then((s) => {
             if (s?.headerQuote) {
                 cachedQuote = s.headerQuote;
                 cachedQuoteDay = todayKey;
                 const el = document.getElementById('m-daily-quote-text');
-                if (el) el.textContent = cachedQuote;
+                if (el) el.textContent = `"${cachedQuote}"`;
             }
         }).catch(() => {});
     });

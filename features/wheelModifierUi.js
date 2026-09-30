@@ -61,7 +61,7 @@ function _explain(mod) {
         case 'momentum_lock':
             return `Pins your guild's momentum ingredient so it can't score below neutral while active. Glory numbers still update normally; this only affects the 5% momentum part of Guild Power.`;
         case 'challenge':
-            return `If your guild holds the strongest weekly Glory run before this challenge expires (compared across guilds here), you'll bank a bonus +${Number.isFinite(mod.bonus) ? bonus : 50} ${GLORY_EMOJI} Glory when the tally resolves. Tie-breakers lean on Glory rules baked into the wheel and scoring.`;
+            return `If your guild earns the most Glory per member by Sunday night, a bonus +${Number.isFinite(mod.bonus) ? bonus : 50} ${GLORY_EMOJI} Glory is written to the ledger the next week. Ties all win.`;
         case 'shattered_mirror':
             return `A fractured reflection — the next positive Fortune's Wheel effect that lands on this guild will have its impact halved (rounded down). Negative effects apply at full strength. This curse fades after one positive effect is reduced, or after a week, whichever comes first.`;
         default:

@@ -13,16 +13,21 @@ import {
     query,
     where,
     increment,
+    arrayUnion,
     serverTimestamp,
 } from '../firebase.js';
 import * as state from '../state.js';
 import { GUILDS, GUILD_IDS } from './guilds.js';
 import { GLORY_PER_STAR, GUILD_POWER_WEIGHTS } from '../constants.js';
+import { isGameplaySeasonLiveFromAppState } from '../utils/schoolYear.js';
 import {
     calculateGuildGloryDelta,
     calculateGuildPower as calculateGuildPowerCore,
     compareGuildLeaderboardRows,
     getMomentumArrow,
+    findWonGuildChallenges,
+    resolveGuildWeek,
+    weekMondayKey,
 } from './guildScoringCore.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
@@ -54,16 +59,9 @@ export function getTargetWeekKey(d = new Date()) {
     return getISOWeekKey(d);
 }
 
-/** Get ISO Monday date string for the start of this week. */
+/** Local Monday ("YYYY-MM-DD") of the week holding `d`. */
 function getISOWeekMonday(d = new Date()) {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    date.setDate(diff);
-    // Format the local calendar day: toISOString() converts to UTC, which in
-    // timezones ahead of UTC turns an early-Monday Monday into Sunday and makes
-    // the weekly reset fire twice.
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return weekMondayKey(d);
 }
 
 // ─── Core scoring ────────────────────────────────────────────────────────────
@@ -81,9 +79,8 @@ function _getStudentScore(studentId) {
 function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, guildData = {}, studentId, now = Date.now(), consumedGloryModifiers = null }) {
     const currentMonday = getISOWeekMonday(new Date(now));
     const weekTurned = !guildData.lastWeeklyReset || guildData.lastWeeklyReset < currentMonday;
-    const previousIds = weekTurned
-        ? []
-        : (Array.isArray(guildData.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : []);
+    const week = resolveGuildWeek(guildData, now);
+    const previousIds = week.weeklyActiveMemberIds;
     const patch = {
         guildId,
         guildName: guildDef?.name || guildData.guildName || guildId,
@@ -95,7 +92,9 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
         lastUpdated: serverTimestamp(),
     };
     if (weekTurned) {
-        patch.previousWeekGlory = Number(guildData.weeklyGlory) || 0;
+        // Last week's Glory only if the stored week really was last week (a guild
+        // that sat out a whole week had 0 last week, not its older total).
+        patch.previousWeekGlory = week.previousWeekGlory;
         patch.lastWeeklyReset = currentMonday;
         patch.weeklyActiveMemberIds = [];
         patch.weeklyActiveMembers = 0;
@@ -106,11 +105,11 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
     if (guildData.chaliceActive === undefined) patch.chaliceActive = false;
     if (guildData.chaliceExpiresAt === undefined) patch.chaliceExpiresAt = 0;
     if (Array.isArray(consumedGloryModifiers)) patch.gloryModifiers = consumedGloryModifiers;
-    if (studentId) {
-        if (!previousIds.includes(studentId)) {
-            patch.weeklyActiveMemberIds = [...previousIds, studentId];
-            patch.weeklyActiveMembers = previousIds.length + 1;
-        }
+    // Only earning Glory makes a member "active"; a correction or a wheel curse does not.
+    if (studentId && (Number(totalGloryDelta) > 0 || Number(starDelta) > 0) && !previousIds.includes(studentId)) {
+        // arrayUnion so two teachers awarding at once never drop each other's member.
+        patch.weeklyActiveMemberIds = weekTurned ? [studentId] : arrayUnion(studentId);
+        patch.weeklyActiveMembers = previousIds.length + 1;
     }
     return patch;
 }
@@ -442,6 +441,43 @@ async function _trackWeeklyActiveMember(guildId, studentId) {
     } catch (_) { /* non-critical */ }
 }
 
+// ─── Glory Challenge tally ───────────────────────────────────────────────────
+
+const _talliedChallengeKeys = new Set();
+
+/**
+ * Pays the Fortune's Wheel Glory Challenge bonus once its week has ended.
+ * Called whenever guild scores arrive; the idempotent ledger event makes sure
+ * the bonus lands exactly once even when several teachers have the app open.
+ */
+export async function settleGuildChallenges() {
+    const allStudents = state.get('allStudents') || [];
+    // Teachers write the ledger; other roles only read the Hall.
+    if ((state.get('currentUserRole') || 'teacher') !== 'teacher') return;
+    if (!allStudents.length || !isGameplaySeasonLiveFromAppState(state)) return;
+    const members = {};
+    for (const student of allStudents) {
+        if (student.guildId) members[student.guildId] = (members[student.guildId] || 0) + 1;
+    }
+    const won = findWonGuildChallenges(state.get('allGuildScores') || {}, members)
+        .filter(({ key }) => !_talliedChallengeKeys.has(key));
+    for (const { guildId, bonus, key } of won) {
+        _talliedChallengeKeys.add(key);
+        try {
+            await recordGuildGloryEvent({
+                guildId,
+                source: 'wheel_challenge_won',
+                directGlory: bonus,
+                note: 'Won the Glory Challenge: most Glory per member last week',
+                idempotencyKey: key,
+            });
+        } catch (err) {
+            _talliedChallengeKeys.delete(key);
+            console.warn('Glory Challenge tally failed:', err);
+        }
+    }
+}
+
 // ─── Weekly Glory Reset ──────────────────────────────────────────────────────
 
 /**
@@ -461,7 +497,7 @@ export async function checkAndPerformWeeklyGloryReset() {
         const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
         try {
             await updateDoc(guildRef, {
-                previousWeekGlory: guildData.weeklyGlory || 0,
+                previousWeekGlory: resolveGuildWeek(guildData).previousWeekGlory,
                 weeklyGlory: 0,
                 weeklyActiveMembers: 0,
                 weeklyActiveMemberIds: [],
@@ -638,6 +674,7 @@ export { getMomentumArrow };
  * Primary sort: guildPower (composite). Fallback compatible with old perCapitaStars.
  */
 export function getGuildLeaderboardData() {
+    const now = Date.now();
     const allGuildScores = state.get('allGuildScores') || {};
     const allStudents = state.get('allStudents') || [];
     const allStudentScores = state.get('allStudentScores') || [];
@@ -645,10 +682,12 @@ export function getGuildLeaderboardData() {
     // First pass: compute raw data
     const rawList = GUILD_IDS.map((gid) => {
         const gDoc = allGuildScores[gid] || {};
+        const week = resolveGuildWeek(gDoc, now);
         const totalStars = Number(gDoc.totalStars) || 0;
-        const totalGlory = Number(gDoc.totalGlory) || (totalStars * GLORY_PER_STAR);
+        const totalGlory = gDoc.totalGlory !== undefined ? (Number(gDoc.totalGlory) || 0) : (totalStars * GLORY_PER_STAR);
         const memberIds = gDoc.memberIds || [];
         const members = allStudents.filter((s) => s.guildId === gid);
+        const memberIdSet = new Set(members.map((s) => s.id));
         const memberCount = members.length || memberIds.length || 0;
         const guildDef = GUILDS[gid];
 
@@ -691,9 +730,10 @@ export function getGuildLeaderboardData() {
             // Glory fields
             totalGlory,
             monthlyGlory: Number(gDoc.monthlyGlory) || 0,
-            weeklyGlory: Number(gDoc.weeklyGlory) || 0,
-            previousWeekGlory: Number(gDoc.previousWeekGlory) || 0,
-            weeklyActiveMembers: Number(gDoc.weeklyActiveMembers) || 0,
+            weeklyGlory: week.weeklyGlory,
+            previousWeekGlory: week.previousWeekGlory,
+            // Only current members count, so a member who left never lifts the share above 100%.
+            weeklyActiveMembers: new Set(week.weeklyActiveMemberIds.filter((id) => memberIdSet.has(id))).size,
             gloryModifiers: gDoc.gloryModifiers || [],
         };
     });
@@ -745,6 +785,7 @@ export function getGuildLeaderboardForClass(classId) {
             const gDoc = allGuildScores[gid] || {};
             const totalStars = Number(gDoc.totalStars) || 0;
             const members = classStudents.filter(s => s.guildId === gid);
+            const global = globalByGuildId[gid] || {};
             const memberCount = members.length || 1;
             const guildDef = GUILDS[gid];
 
@@ -756,9 +797,6 @@ export function getGuildLeaderboardForClass(classId) {
             const perCapitaStars = Math.round((totalStars / memberCount) * 10) / 10;
             const monthlyPerCapitaStars = Math.round((monthlyStars / memberCount) * 10) / 10;
 
-            // Pull global Guild Power values so rankings match the Guild Hall
-            const global = globalByGuildId[gid] || {};
-
             return {
                 guildId: gid,
                 guildName: guildDef?.name || gDoc.guildName || gid,
@@ -767,11 +805,11 @@ export function getGuildLeaderboardForClass(classId) {
                 memberCount,
                 perCapitaStars,
                 monthlyPerCapitaStars,
-                totalGlory: Number(gDoc.totalGlory) || (totalStars * GLORY_PER_STAR),
+                totalGlory: global.totalGlory ?? (totalStars * GLORY_PER_STAR),
                 monthlyGlory: Number(gDoc.monthlyGlory) || 0,
-                weeklyGlory: Number(gDoc.weeklyGlory) || 0,
-                previousWeekGlory: Number(gDoc.previousWeekGlory) || 0,
-                weeklyActiveMembers: Number(gDoc.weeklyActiveMembers) || 0,
+                weeklyGlory: global.weeklyGlory ?? 0,
+                previousWeekGlory: global.previousWeekGlory ?? 0,
+                weeklyActiveMembers: global.weeklyActiveMembers ?? 0,
                 gloryModifiers: gDoc.gloryModifiers || [],
                 // Global Guild Power metrics — authoritative for ranking
                 guildPower: global.guildPower || 0,

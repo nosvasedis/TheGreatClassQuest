@@ -9,6 +9,43 @@ export function clamp(value, min = 0, max = 100) {
     return Math.max(min, Math.min(max, Number(value) || 0));
 }
 
+/** Local-calendar Monday of the week holding `d`, as "YYYY-MM-DD". */
+export function weekMondayKey(d = new Date()) {
+    const date = new Date(d);
+    const day = date.getDay();
+    date.setDate(date.getDate() - day + (day === 0 ? -6 : 1));
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * The guild's week as it really stands at `now`.
+ * guild_scores only rolls its weekly counters when that guild next earns Glory, so a guild
+ * that has earned nothing since Monday still carries last week's numbers in the document.
+ * Every reader goes through this so all guilds are compared on the same week.
+ */
+export function resolveGuildWeek(guildData = {}, now = Date.now()) {
+    const currentMonday = weekMondayKey(new Date(now));
+    const previousMonday = weekMondayKey(new Date(new Date(now).getTime() - 7 * 86400000));
+    const lastReset = String(guildData?.lastWeeklyReset || '');
+    const storedIds = Array.isArray(guildData?.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : null;
+    if (lastReset && lastReset >= currentMonday) {
+        return {
+            weeklyGlory: Number(guildData.weeklyGlory) || 0,
+            previousWeekGlory: Number(guildData.previousWeekGlory) || 0,
+            weeklyActiveMemberIds: storedIds || [],
+            weeklyActiveMembers: storedIds ? new Set(storedIds).size : (Number(guildData.weeklyActiveMembers) || 0),
+            currentMonday,
+        };
+    }
+    return {
+        weeklyGlory: 0,
+        previousWeekGlory: lastReset && lastReset >= previousMonday ? (Number(guildData.weeklyGlory) || 0) : 0,
+        weeklyActiveMemberIds: [],
+        weeklyActiveMembers: 0,
+        currentMonday,
+    };
+}
+
 export function getActiveGuildModifiers(guildData = {}, now = Date.now()) {
     return (Array.isArray(guildData.gloryModifiers) ? guildData.gloryModifiers : [])
         .filter((mod) => (Number(mod?.expiresAt) || 0) > now);
@@ -45,7 +82,43 @@ export function consumeChargeModifiers(modifiers = [], starDelta = 0, now = Date
             const nextCharges = charges - used;
             return nextCharges > 0 ? { ...mod, charges: nextCharges } : null;
         })
-        .filter((mod) => mod && ((Number(mod.expiresAt) || 0) > now || !mod.expiresAt));
+        .filter((mod) => mod && ((Number(mod.expiresAt) || 0) > now || !mod.expiresAt || isChallengeAwaitingTally(mod, now)));
+}
+
+const CHALLENGE_TALLY_WINDOW_MS = 7 * 86400000;
+
+/** A Glory Challenge stays on file for a week after it ends so its result can be tallied. */
+export function isChallengeAwaitingTally(mod, now = Date.now()) {
+    return mod?.type === 'challenge' && now < (Number(mod.expiresAt) || 0) + CHALLENGE_TALLY_WINDOW_MS;
+}
+
+/**
+ * Glory Challenges whose week has ended and can be judged now: the challenge's week must be
+ * last week, so every guild's last-week Glory is still known. The winner is the guild with the
+ * most Glory per member that week (ties all win); a week with no Glory has no winner.
+ * `members` maps guildId → current member count.
+ */
+export function findWonGuildChallenges(allGuildScores = {}, members = {}, now = Date.now()) {
+    const currentMonday = weekMondayKey(new Date(now));
+    const previousMonday = weekMondayKey(new Date(now - 7 * 86400000));
+    const perMember = {};
+    for (const [guildId, data] of Object.entries(allGuildScores || {})) {
+        const count = Number(members[guildId]) || 0;
+        perMember[guildId] = count > 0 ? resolveGuildWeek(data, now).previousWeekGlory / count : 0;
+    }
+    const best = Math.max(0, ...Object.values(perMember));
+    const won = [];
+    for (const [guildId, data] of Object.entries(allGuildScores || {})) {
+        for (const mod of Array.isArray(data?.gloryModifiers) ? data.gloryModifiers : []) {
+            if (mod?.type !== 'challenge' || !isChallengeAwaitingTally(mod, now)) continue;
+            const challengeMonday = weekMondayKey(new Date(Number(mod.createdAt) || 0));
+            if (challengeMonday >= currentMonday || challengeMonday !== previousMonday) continue;
+            if (best > 0 && perMember[guildId] >= best - 1e-9) {
+                won.push({ guildId, bonus: Number(mod.bonus) || 50, key: `challenge_${guildId}_${Number(mod.createdAt) || 0}` });
+            }
+        }
+    }
+    return won;
 }
 
 export function calculateGuildGloryDelta({
@@ -92,7 +165,9 @@ export function calculateGuildGloryDelta({
     const beforeMultiplier = starGlory + perStarBonus;
     let afterMultiplier = beforeMultiplier;
     let multiplierDelta = 0;
-    for (const mod of activeModifiers) {
+    // Multipliers grow earned Glory only. A star taken back (a correction) always
+    // costs its plain Glory, so fixing a mistake during a 4x day never costs 4x.
+    for (const mod of beforeMultiplier > 0 ? activeModifiers : []) {
         if (mod.type !== 'multiply') continue;
         const factor = Number(mod.factor);
         if (!Number.isFinite(factor) || factor === 1) continue;

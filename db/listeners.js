@@ -1576,6 +1576,9 @@ export async function setupDataListeners(
                     allGuildScores[d.id] = { id: d.id, ...d.data() };
                 });
                 state.setAllGuildScores(allGuildScores);
+                import("../features/guildScoring.js")
+                    .then((m) => m.settleGuildChallenges())
+                    .catch((e) => console.warn("Glory Challenge tally skipped:", e));
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();
                 const guildsTab = document.getElementById("guilds-tab");

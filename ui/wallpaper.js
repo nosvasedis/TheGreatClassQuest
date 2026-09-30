@@ -14,6 +14,7 @@ import { PATHFINDER_AWARD_REASON, PATHFINDER_CLASS_QUEST_BONUS_STARS, resolveWal
 import { WALLPAPER_WEATHER_CLASSES, wallpaperClassesForCode } from '../features/weatherTheme.js';
 import { getLiveYearGoldFromAppState, sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { chooseCardPlacement } from '../utils/wallpaperLayout.mjs';
+import { getGuildLeaderboardData } from '../features/guildScoring.js';
 import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLanguageCardDeck } from './wallpaperLanguageCards.js';
 import { SKY_CARD_TYPES, getSkyCardDeck, hydrateSkyCard, getLiveWeatherCard, rememberSkyWeather } from './wallpaperSkyCards.js';
 import {
@@ -1446,10 +1447,6 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
 
 // ─── Guild Leaderboard ────────────────────────────────────────────────────────
 function getGuildLeaderboardCard() {
-    const allGuildScores = state.get('allGuildScores') || {};
-    const allStudents = state.get('allStudents') || [];
-    const allStudentScores = state.get('allStudentScores') || [];
-    const guildIds = ['dragon_flame', 'grizzly_might', 'owl_wisdom', 'phoenix_rising'];
     const guildMeta = {
         dragon_flame: { name: 'Dragon Flame', emoji: '🔥', color: '#ef4444' },
         grizzly_might: { name: 'Grizzly Might', emoji: '🐻', color: '#d97706' },
@@ -1457,31 +1454,24 @@ function getGuildLeaderboardCard() {
         phoenix_rising: { name: 'Phoenix Rising', emoji: '🦅', color: '#ec4899' },
     };
 
-    const guilds = guildIds.map(gid => {
-        const scoreDoc = allGuildScores[gid] || {};
-        const members = allStudents.filter(s => s.guildId === gid);
-        const memberCount = members.length || 1;
-        const monthlyStars = members.reduce((sum, s) => {
-            const sc = allStudentScores.find(sc => sc.id === s.id);
-            return sum + (Number(sc?.monthlyStars) || 0);
-        }, 0);
-        const perCapita = Math.round((monthlyStars / memberCount) * 10) / 10;
-        const meta = guildMeta[gid] || { name: gid, emoji: '⚔️', color: '#9ca3af' };
-        return { gid, name: meta.name, emoji: meta.emoji, color: meta.color, monthlyStars, memberCount, perCapita };
-    }).sort((a, b) => b.perCapita - a.perCapita);
+    // Same standings as the Guild Hall, so the projector never shows a different order.
+    const guilds = getGuildLeaderboardData().map((row) => {
+        const meta = guildMeta[row.guildId] || { name: row.guildName || row.guildId, emoji: '⚔️', color: '#9ca3af' };
+        return { gid: row.guildId, name: meta.name, emoji: meta.emoji, color: meta.color, power: Math.round(Number(row.guildPower) || 0) };
+    });
 
-    const maxPerCapita = Math.max(...guilds.map(g => g.perCapita)) || 1;
+    const maxPower = Math.max(...guilds.map(g => g.power)) || 1;
     const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
 
     const rows = guilds.map((g, i) => {
-        const barWidth = Math.max(8, Math.round((g.perCapita / maxPerCapita) * 100));
+        const barWidth = Math.max(8, Math.round((g.power / maxPower) * 100));
         return `<div class="flex items-center gap-3 mb-2">
             <span class="text-xl w-7 text-center">${rankEmoji[i]}</span>
             <span class="text-2xl">${g.emoji}</span>
             <div class="flex-1">
                 <div class="flex justify-between items-center mb-0.5">
                     <span class="font-bold text-sm" style="color:${g.color}">${g.name}</span>
-                    <span class="text-xs font-bold opacity-70">${g.perCapita} ⭐/member</span>
+                    <span class="text-xs font-bold opacity-70">⚡ ${g.power} Power</span>
                 </div>
                 <div class="h-2 rounded-full bg-white/10 overflow-hidden">
                     <div class="h-full rounded-full" style="width:${barWidth}%;background:${g.color};"></div>
@@ -1493,7 +1483,7 @@ function getGuildLeaderboardCard() {
     return {
         html: `<div class="w-full px-2">
             <div class="badge-pill bg-purple-100 text-purple-800">⚔️ Guild Rankings</div>
-            <p class="text-purple-600 text-xs font-bold uppercase tracking-widest mt-2 mb-4">Per-member this month</p>
+            <p class="text-purple-600 text-xs font-bold uppercase tracking-widest mt-2 mb-4">Guild Hall standings</p>
             ${rows}
         </div>`,
         css: 'float-card-purple'

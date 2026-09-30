@@ -151,3 +151,54 @@ test('leaderboard comparator uses deterministic fair tie-breaks', async () => {
 
   assert.deepEqual(rows.map(r => r.guildName), ['Dawn', 'Cygnus', 'Aether', 'Borealis']);
 });
+
+// Mon 5 Oct 2026, 10:00 local; previous Monday is 28 Sep.
+const MONDAY_OCT_5 = new Date(2026, 9, 5, 10, 0, 0).getTime();
+
+test('a guild that has not earned since Monday is read as a fresh week, not last week', async () => {
+  const { resolveGuildWeek } = await loadCore();
+  const stale = resolveGuildWeek({
+    lastWeeklyReset: '2026-09-28', weeklyGlory: 180, previousWeekGlory: 90,
+    weeklyActiveMembers: 12, weeklyActiveMemberIds: ['a', 'b'],
+  }, MONDAY_OCT_5);
+  assert.equal(stale.weeklyGlory, 0);
+  assert.equal(stale.previousWeekGlory, 180, 'last week is the stored week');
+  assert.equal(stale.weeklyActiveMembers, 0);
+
+  const skippedAWeek = resolveGuildWeek({ lastWeeklyReset: '2026-09-21', weeklyGlory: 180 }, MONDAY_OCT_5);
+  assert.equal(skippedAWeek.previousWeekGlory, 0, 'a guild that sat out last week had 0 last week');
+
+  const current = resolveGuildWeek({
+    lastWeeklyReset: '2026-10-05', weeklyGlory: 14, previousWeekGlory: 180,
+    weeklyActiveMembers: 99, weeklyActiveMemberIds: ['a', 'a', 'b'],
+  }, MONDAY_OCT_5);
+  assert.equal(current.weeklyGlory, 14);
+  assert.equal(current.previousWeekGlory, 180);
+  assert.equal(current.weeklyActiveMembers, 2, 'active members come from the unique id list');
+});
+
+test('taking a star back during a multiplier costs only its plain Glory', async () => {
+  const { calculateGuildGloryDelta } = await loadCore();
+  const guildData = { gloryModifiers: [{ type: 'multiply', factor: 4, expiresAt: MONDAY_OCT_5 + 3600000 }] };
+  const give = calculateGuildGloryDelta({ starDelta: 1, guildData, now: MONDAY_OCT_5 });
+  const takeBack = calculateGuildGloryDelta({ starDelta: -1, guildData, now: MONDAY_OCT_5 });
+  assert.equal(give.totalGloryDelta, 8);
+  assert.equal(takeBack.totalGloryDelta, -2);
+});
+
+test('a Glory Challenge pays the guild with the most Glory per member last week', async () => {
+  const { findWonGuildChallenges, consumeChargeModifiers } = await loadCore();
+  const lastWed = new Date(2026, 8, 30, 11, 0, 0).getTime();
+  const lastSunday = new Date(2026, 9, 4, 23, 59, 59, 999).getTime();
+  const challenge = { type: 'challenge', bonus: 50, createdAt: lastWed, expiresAt: lastSunday };
+  const scores = {
+    small: { lastWeeklyReset: '2026-09-28', weeklyGlory: 100, gloryModifiers: [challenge] },
+    big: { lastWeeklyReset: '2026-10-05', weeklyGlory: 4, previousWeekGlory: 150, gloryModifiers: [{ ...challenge, createdAt: lastWed + 1 }] },
+  };
+  const won = findWonGuildChallenges(scores, { small: 5, big: 10 }, MONDAY_OCT_5);
+  assert.deepEqual(won.map((w) => w.guildId), ['small'], '20 per member beats 15 per member');
+  assert.equal(won[0].key, `challenge_small_${lastWed}`);
+
+  assert.equal(consumeChargeModifiers([challenge], 1, MONDAY_OCT_5).length, 1, 'kept on file until tallied');
+  assert.equal(findWonGuildChallenges(scores, { small: 5, big: 10 }, lastWed + 3600000).length, 0, 'not judged mid-week');
+});

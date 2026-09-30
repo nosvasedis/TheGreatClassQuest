@@ -6,6 +6,7 @@ import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey, updateGuildScores, adjustGuildScoresForWheel } from './guildScoring.js';
+import { resolveGuildWeek } from './guildScoringCore.js';
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
 import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
@@ -23,38 +24,9 @@ function _luminance(hex) {
     return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-function _optimisticallyApplyWheelResultToState({ guildId, gloryDelta = 0, modifierCreated = null, segmentId = '' }) {
-    if (!guildId) return;
-    const allGuildScores = state.get('allGuildScores') || {};
-    if (!allGuildScores || typeof allGuildScores !== 'object') return;
-
-    const applyTo = (gid) => {
-        const current = allGuildScores[gid] || { id: gid };
-        const next = { ...current };
-        if (gloryDelta) {
-            next.totalGlory = (Number(next.totalGlory) || 0) + Number(gloryDelta);
-            next.weeklyGlory = (Number(next.weeklyGlory) || 0) + Number(gloryDelta);
-            next.monthlyGlory = (Number(next.monthlyGlory) || 0) + Number(gloryDelta);
-        }
-        if (modifierCreated && typeof modifierCreated === 'object') {
-            const arr = Array.isArray(next.gloryModifiers) ? [...next.gloryModifiers] : [];
-            arr.push(modifierCreated);
-            next.gloryModifiers = arr;
-        }
-        return next;
-    };
-
-    const seg = String(segmentId || '');
-    // Simple known all-guild glory effect
-    if (seg === 'rainbow_bridge') {
-        const nextAll = { ...allGuildScores };
-        for (const gid of GUILD_IDS) nextAll[gid] = applyTo(gid);
-        state.setAllGuildScores(nextAll);
-        return;
-    }
-
-    if (!allGuildScores[guildId]) return;
-    state.setAllGuildScores({ ...allGuildScores, [guildId]: applyTo(guildId) });
+/** This week's Glory for a guild (0 when its stored week is an older one). */
+function _weeklyGlory(gData) {
+    return resolveGuildWeek(gData || {}).weeklyGlory;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -100,7 +72,7 @@ const ALL_SEGMENTS = [
     { id: 'scholars_blessing', emoji: '📚', label: 'Scholar\'s Blessing', description: '+5 Team Quest bonus stars (this month)!',        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 5) },
     { id: 'treasure_chest',    emoji: '📦', label: 'Treasure Chest',    description: '+20 gold to 1 random member & +10 Glory!',         rarity: 'uncommon',  category: 'perk',  effect: async (ctx) => { const g = await randomGold(ctx, 1, 20); const gl = await instantGlory(ctx, 10); const student = (ctx.guildStudents || []).find(s => s.id === (g.affectedStudents || [])[0]); return { ...g, gloryDelta: gl.gloryDelta, description: student ? `${student.name} receives +20 gold, and the guild earns +10 Glory!` : 'A guild member receives +20 gold, and the guild earns +10 Glory!' }; } },
     { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',          description: '+10 Team Quest bonus stars (this month)!',        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 10) },
-    { id: 'challenge',         emoji: '🥊', label: 'Glory Challenge',   description: 'Earn most Glory this week → bonus +50 Glory!',     rarity: 'epic',      category: 'perk',  effect: (ctx) => applyChallenge(ctx) },
+    { id: 'challenge',         emoji: '🥊', label: 'Glory Challenge',   description: 'Earn most Glory per member this week → bonus +50 Glory!',     rarity: 'epic',      category: 'perk',  effect: (ctx) => applyChallenge(ctx) },
     { id: 'fortress',          emoji: '🏰', label: 'Fortress',          description: 'Cannot lose Glory for 2 days!',                    rarity: 'epic',      category: 'perk',  effect: (ctx) => applyShield(ctx, 2) },
     { id: 'quest_surge',       emoji: '🗺️', label: 'Quest Surge',       description: '+15 Team Quest bonus stars (this month)!',         rarity: 'rare',      category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 15) },
     { id: 'aurum_sprinkle',    emoji: '🪙', label: 'Aurum Sprinkle',     description: '5 random members get +5 gold each!',              rarity: 'common',    category: 'perk',  effect: (ctx) => randomGold(ctx, 5, 5) },
@@ -218,9 +190,13 @@ async function applyMomentumLock(ctx) {
 }
 
 async function applyChallenge(ctx) {
-    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    await applyGloryModifier(ctx.guildId, { type: 'challenge', bonus: 50, expiresAt, label: 'Glory Challenge (+50 if #1 this week)', createdAt: Date.now() });
-    return { gloryDelta: 0, description: 'Challenge accepted! Earn the most Glory this week for +50 bonus!' };
+    // The challenge is for this week: it ends Sunday night and is tallied from Monday.
+    const endOfWeek = new Date();
+    endOfWeek.setDate(endOfWeek.getDate() + ((7 - endOfWeek.getDay()) % 7));
+    endOfWeek.setHours(23, 59, 59, 999);
+    const expiresAt = endOfWeek.getTime();
+    await applyGloryModifier(ctx.guildId, { type: 'challenge', bonus: 50, expiresAt, label: 'Glory Challenge (+50 if #1 per member this week)', createdAt: Date.now() });
+    return { gloryDelta: 0, description: 'Challenge accepted! Earn the most Glory per member this week for +50 bonus!' };
 }
 
 async function gloryTax(ctx, fraction) {
@@ -230,7 +206,7 @@ async function gloryTax(ctx, fraction) {
     const hasShield = (gData.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
     if (hasShield) return { gloryDelta: 0, description: 'Glory Shield blocked the penalty!' };
 
-    const weeklyGlory = Number(gData.weeklyGlory) || 0;
+    const weeklyGlory = _weeklyGlory(gData);
     const loss = -Math.round(weeklyGlory * fraction);
     if (loss < 0) await adjustGuildGlory(ctx.guildId, loss, 'wheel_tax');
     return { gloryDelta: loss, description: `Lost ${Math.abs(loss)} Glory (${Math.round(fraction * 100)}% of weekly).` };
@@ -248,8 +224,8 @@ async function gloryHeist(ctx, fraction) {
     for (const gid of GUILD_IDS) {
         if (gid === ctx.guildId) continue;
         const g = allGuildScores[gid] || {};
-        if ((Number(g.weeklyGlory) || 0) > leaderWeeklyGlory) {
-            leaderWeeklyGlory = Number(g.weeklyGlory);
+        if (_weeklyGlory(g) > leaderWeeklyGlory) {
+            leaderWeeklyGlory = _weeklyGlory(g);
             leaderGuildId = gid;
         }
     }
@@ -285,7 +261,7 @@ async function allGuildsTax(ctx, fraction) {
         const g = allGuildScores[gid] || {};
         const hasShield = (g.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
         if (hasShield) continue;
-        const loss = -Math.round((Number(g.weeklyGlory) || 0) * fraction);
+        const loss = -Math.round(_weeklyGlory(g) * fraction);
         if (loss < 0) await adjustGuildGlory(gid, loss, 'wheel_crash');
         if (gid === ctx.guildId) totalLoss = loss;
     }
@@ -538,7 +514,7 @@ async function mythicCalamity(ctx) {
 async function phoenixRise(ctx) {
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[ctx.guildId] || {};
-    const weeklyGlory = Number(gData.weeklyGlory) || 0;
+    const weeklyGlory = _weeklyGlory(gData);
     let amount = weeklyGlory < 50 ? 100 : 40;
     if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
         amount = Math.floor(amount * Number(ctx.effectScale));
@@ -594,7 +570,7 @@ async function sovereignsBoon(ctx) {
 async function fatesReversal(ctx) {
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[ctx.guildId] || {};
-    const myWeeklyGlory = Number(gData.weeklyGlory) || 0;
+    const myWeeklyGlory = _weeklyGlory(gData);
 
     // Find nearest rival guild (closest weekly glory, not same guild)
     let rivalGuildId = null;
@@ -604,7 +580,7 @@ async function fatesReversal(ctx) {
     for (const gid of GUILD_IDS) {
         if (gid === ctx.guildId) continue;
         const rival = allGuildScores[gid] || {};
-        const rivalGlory = Number(rival.weeklyGlory) || 0;
+        const rivalGlory = _weeklyGlory(rival);
         const diff = Math.abs(rivalGlory - myWeeklyGlory);
         if (diff < smallestDiff) {
             smallestDiff = diff;
@@ -622,6 +598,10 @@ async function fatesReversal(ctx) {
     // Swap weekly glory values
     const myDelta = rivalWeeklyGlory - myWeeklyGlory;
     const rivalDelta = myWeeklyGlory - rivalWeeklyGlory;
+    // A Glory Shield blocks every negative wheel effect, this swap included (the heist already checks).
+    if (rivalDelta < 0 && _hasActiveShield(rivalGuildId)) {
+        return { gloryDelta: 0, description: `${getGuildById(rivalGuildId)?.name || 'The rival'}'s Glory Shield turned Fate aside!` };
+    }
 
     await adjustGuildGlory(ctx.guildId, myDelta, 'wheel_fates_reversal');
     await adjustGuildGlory(rivalGuildId, rivalDelta, 'wheel_fates_reversal');
@@ -778,7 +758,7 @@ export async function applyWheelResult(guildId, segment, classId) {
         classId,
         guildStudents,
         memberCount: guildStudents.length || 1,
-        weeklyGlory: Number(gData.weeklyGlory) || 0,
+        weeklyGlory: _weeklyGlory(gData),
         effectScale: mirrorIdx !== -1 ? 0.5 : 1,
     };
 
@@ -1877,8 +1857,8 @@ export async function triggerSpin() {
     _wheelState.results.push(result);
     _wheelState.phase = 'revealed';
 
-    // Optimistic UI/state refresh (Firestore will still confirm truth shortly)
-    _optimisticallyApplyWheelResultToState({ ...result, segmentId: winningSeg?.id });
+    // The guild_scores listener already carries these writes (Firestore applies local
+    // writes at once); adding the result to state again here counted it twice.
     try {
         const guildsTab = document.getElementById('guilds-tab');
         if (guildsTab && !guildsTab.classList.contains('hidden')) {

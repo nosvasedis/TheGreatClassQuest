@@ -55,6 +55,10 @@ export async function assignStudentToGuild(studentId, guildId) {
         // Add student's existing Glory when joining
         if (studentGloryContribution > 0) {
             updates.totalGlory = increment(studentGloryContribution);
+            const data = guildSnap.data() || {};
+            if (data.memberGloryYear && data.memberGloryYear === data.activeSchoolYearKey) {
+                updates[`memberGlory.${studentId}`] = increment(studentGloryContribution);
+            }
         }
         await updateDoc(guildRef, updates);
     } else {
@@ -75,6 +79,8 @@ export async function assignStudentToGuild(studentId, guildId) {
             lastWeeklyReset: getLocalIsoDateString(),
             memberCount: 1,
             memberIds: [studentId],
+            memberGlory: studentGloryContribution > 0 ? { [studentId]: studentGloryContribution } : {},
+            memberGloryYear: state.getActiveSchoolYearKey(),
             createdAt: serverTimestamp(),
             lastUpdated: serverTimestamp(),
         });

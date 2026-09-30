@@ -18,14 +18,16 @@ import {
 } from '../firebase.js';
 import * as state from '../state.js';
 import { GUILDS, GUILD_IDS } from './guilds.js';
-import { GLORY_PER_STAR, GUILD_POWER_WEIGHTS } from '../constants.js';
+import { GLORY_PER_STAR } from '../constants.js';
 import { isGameplaySeasonLiveFromAppState } from '../utils/schoolYear.js';
 import {
     calculateGuildGloryDelta,
     calculateGuildPower as calculateGuildPowerCore,
     compareGuildLeaderboardRows,
     getMomentumArrow,
+    countedGuildGlory,
     findWonGuildChallenges,
+    guildSizeScale,
     resolveGuildWeek,
     weekMondayKey,
 } from './guildScoringCore.js';
@@ -105,6 +107,12 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
     if (guildData.chaliceActive === undefined) patch.chaliceActive = false;
     if (guildData.chaliceExpiresAt === undefined) patch.chaliceExpiresAt = 0;
     if (Array.isArray(consumedGloryModifiers)) patch.gloryModifiers = consumedGloryModifiers;
+    // Keep each member's share on file so it leaves with them if they leave the school.
+    if (studentId && Number(totalGloryDelta) && guildData.memberGloryYear &&
+        guildData.memberGloryYear === guildData.activeSchoolYearKey &&
+        guildData.activeSchoolYearKey === state.getActiveSchoolYearKey()) {
+        patch[`memberGlory.${studentId}`] = increment(Number(totalGloryDelta));
+    }
     // Only earning Glory makes a member "active"; a correction or a wheel curse does not.
     if (studentId && (Number(totalGloryDelta) > 0 || Number(starDelta) > 0) && !previousIds.includes(studentId)) {
         // arrayUnion so two teachers awarding at once never drop each other's member.
@@ -257,6 +265,8 @@ export async function recordGuildGloryEvent({
                 weeklyActiveMemberIds: studentId ? [studentId] : [],
                 memberCount: 0,
                 memberIds: [],
+                memberGlory: studentId ? { [studentId]: delta.totalGloryDelta } : {},
+                memberGloryYear: state.getActiveSchoolYearKey(),
                 gloryModifiers: delta.consumedGloryModifiers || [],
                 chaliceActive: false,
                 chaliceExpiresAt: 0,
@@ -294,6 +304,8 @@ function _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId }) {
         weeklyActiveMemberIds: studentId ? [studentId] : [],
         memberCount: 0,
         memberIds: [],
+        memberGlory: studentId ? { [studentId]: delta.totalGloryDelta } : {},
+        memberGloryYear: state.getActiveSchoolYearKey(),
         gloryModifiers: delta.consumedGloryModifiers || [],
         chaliceActive: false,
         chaliceExpiresAt: 0,
@@ -467,7 +479,7 @@ export async function settleGuildChallenges() {
             await recordGuildGloryEvent({
                 guildId,
                 source: 'wheel_challenge_won',
-                directGlory: bonus,
+                directGlory: Math.round(bonus * guildSizeScale(members, guildId)),
                 note: 'Won the Glory Challenge: most Glory per member last week',
                 idempotencyKey: key,
             });
@@ -475,6 +487,64 @@ export async function settleGuildChallenges() {
             _talliedChallengeKeys.delete(key);
             console.warn('Glory Challenge tally failed:', err);
         }
+    }
+}
+
+/** Current member count per guild (active students of this school year). */
+export function getGuildMemberCounts() {
+    const counts = {};
+    for (const student of state.get('allStudents') || []) {
+        if (student.guildId && GUILD_IDS.includes(student.guildId)) counts[student.guildId] = (counts[student.guildId] || 0) + 1;
+    }
+    return counts;
+}
+
+/** How much bigger (or smaller) this guild is than the average guild; flat Glory is sized by it. */
+export function getGuildSizeScale(guildId) {
+    return guildSizeScale(getGuildMemberCounts(), guildId);
+}
+
+// ─── Per-member Glory ledger (so leavers' Glory leaves with them) ─────────────
+
+let _memberGloryBackfillStarted = false;
+
+/**
+ * Builds guild_scores.memberGlory (Glory each member earned for the guild this year) from
+ * the Glory ledger, once per school year. Runs from the guild listener when a guild's map is
+ * missing or belongs to an earlier year; afterwards every Glory event keeps it current.
+ */
+export async function backfillGuildMemberGloryIfNeeded() {
+    if (_memberGloryBackfillStarted) return;
+    if ((state.get('currentUserRole') || 'teacher') !== 'teacher') return;
+    const schoolYearKey = state.getActiveSchoolYearKey();
+    const allGuildScores = state.get('allGuildScores') || {};
+    const stale = GUILD_IDS.filter((gid) => {
+        const data = allGuildScores[gid];
+        return data && data.activeSchoolYearKey === schoolYearKey && data.memberGloryYear !== schoolYearKey;
+    });
+    if (!schoolYearKey || !stale.length) return;
+    _memberGloryBackfillStarted = true;
+    try {
+        const byGuild = Object.fromEntries(stale.map((gid) => [gid, {}]));
+        const eventsSnap = await getDocs(query(
+            collection(db, `${publicDataPath}/guild_glory_events`),
+            where('schoolYearKey', '==', schoolYearKey),
+        ));
+        eventsSnap.forEach((eventDoc) => {
+            const e = eventDoc.data() || {};
+            const map = byGuild[e.guildId];
+            if (!map || !e.studentId) return;
+            map[e.studentId] = Math.round(((map[e.studentId] || 0) + (Number(e.totalGloryDelta) || 0)) * 100) / 100;
+        });
+        for (const gid of stale) {
+            await updateDoc(doc(db, `${publicDataPath}/guild_scores`, gid), {
+                memberGlory: byGuild[gid],
+                memberGloryYear: schoolYearKey,
+            });
+        }
+    } catch (err) {
+        _memberGloryBackfillStarted = false;
+        console.warn('Guild member Glory backfill skipped:', err);
     }
 }
 
@@ -662,7 +732,7 @@ export async function reconcileGuildScoreCacheIfDrift({ force = false } = {}) {
  * @returns {{ guildPower: number, gloryScore: number, momentumScore: number, activityScore: number, momentumPct: number }}
  */
 export function calculateGuildPower(guildData, maxima) {
-    return calculateGuildPowerCore(guildData, maxima, GUILD_POWER_WEIGHTS);
+    return calculateGuildPowerCore(guildData, maxima);
 }
 
 export { getMomentumArrow };
@@ -689,6 +759,7 @@ export function getGuildLeaderboardData() {
         const members = allStudents.filter((s) => s.guildId === gid);
         const memberIdSet = new Set(members.map((s) => s.id));
         const memberCount = members.length || memberIds.length || 0;
+        const { countedGlory, leaversGlory } = countedGuildGlory(gDoc, [...memberIdSet]);
         const guildDef = GUILDS[gid];
 
         const monthlyStars = members.reduce((sum, s) => {
@@ -729,6 +800,8 @@ export function getGuildLeaderboardData() {
             topContributors,
             // Glory fields
             totalGlory,
+            countedGlory: gDoc.totalGlory !== undefined ? countedGlory : totalGlory,
+            leaversGlory,
             monthlyGlory: Number(gDoc.monthlyGlory) || 0,
             weeklyGlory: week.weeklyGlory,
             previousWeekGlory: week.previousWeekGlory,
@@ -739,7 +812,7 @@ export function getGuildLeaderboardData() {
     });
 
     // Second pass: calculate Guild Power (needs per-member maxima across non-empty guilds)
-    const maxPerCapitaGlory = Math.max(...rawList.map(g => g.memberCount > 0 ? (g.totalGlory / g.memberCount) : 0)) || 1;
+    const maxPerCapitaGlory = Math.max(...rawList.map(g => g.memberCount > 0 ? (g.countedGlory / g.memberCount) : 0)) || 1;
     const maxWeeklyPerCapitaGlory = Math.max(...rawList.map(g => g.memberCount > 0 ? ((Number(g.weeklyGlory) || 0) / g.memberCount) : 0)) || 1;
 
     const list = rawList.map(g => {
@@ -819,6 +892,7 @@ export function getGuildLeaderboardForClass(classId) {
                 momentumPct: global.momentumPct ?? 0,
                 momentumArrow: global.momentumArrow ?? getMomentumArrow(global.momentumPct ?? 0),
                 perCapitaGlory: global.perCapitaGlory ?? 0,
+                seasonGloryPerMember: global.seasonGloryPerMember ?? 0,
                 weeklyPerCapitaGlory: global.weeklyPerCapitaGlory ?? 0,
             };
         });

@@ -60,12 +60,46 @@ export function getMomentumArrow(pct) {
     return '⬇️';
 }
 
+/**
+ * The year-long race: the guild whose members have earned the most Glory each, on average,
+ * this school year leads. This week's numbers never change the order.
+ */
 export function compareGuildLeaderboardRows(a = {}, b = {}) {
-    return (Number(b.guildPower) || 0) - (Number(a.guildPower) || 0) ||
-        (Number(b.perCapitaGlory) || 0) - (Number(a.perCapitaGlory) || 0) ||
-        (Number(b.weeklyPerCapitaGlory) || 0) - (Number(a.weeklyPerCapitaGlory) || 0) ||
+    const exact = (row) => Number(row.seasonGloryPerMember ?? row.perCapitaGlory ?? row.guildPower) || 0;
+    return exact(b) - exact(a) ||
         (Number(b.totalGlory) || 0) - (Number(a.totalGlory) || 0) ||
         String(a.guildName || a.name || '').localeCompare(String(b.guildName || b.name || ''));
+}
+
+/**
+ * Glory a guild counts toward its standing: everything it earned this year, minus what
+ * members who have since left earned (they no longer count as members, so their Glory
+ * leaves with them). `memberGlory` is only trusted for the year it was built for.
+ */
+export function countedGuildGlory(guildData = {}, currentMemberIds = []) {
+    const totalGlory = Number(guildData?.totalGlory) || 0;
+    const map = guildData?.memberGlory;
+    if (!map || typeof map !== 'object' || !guildData.memberGloryYear ||
+        guildData.memberGloryYear !== guildData.activeSchoolYearKey) {
+        return { countedGlory: totalGlory, leaversGlory: 0, memberGloryReady: false };
+    }
+    const current = new Set(currentMemberIds);
+    let leaversGlory = 0;
+    for (const [studentId, glory] of Object.entries(map)) {
+        if (!current.has(studentId)) leaversGlory += Number(glory) || 0;
+    }
+    return { countedGlory: totalGlory - leaversGlory, leaversGlory, memberGloryReady: true };
+}
+
+/**
+ * Wheel Glory is written for an average-sized guild; a bigger guild gets proportionally more
+ * so every member of every guild gains (or loses) the same.
+ */
+export function guildSizeScale(memberCounts = {}, guildId) {
+    const sizes = Object.values(memberCounts).map(Number).filter((n) => n > 0);
+    const own = Number(memberCounts[guildId]) || 0;
+    if (!sizes.length || own <= 0) return 1;
+    return own / (sizes.reduce((sum, n) => sum + n, 0) / sizes.length);
 }
 
 export function consumeChargeModifiers(modifiers = [], starDelta = 0, now = Date.now()) {
@@ -193,7 +227,7 @@ export function calculateGuildGloryDelta({
     };
 }
 
-export function calculateGuildPower(guildData, maxima = {}, weights) {
+export function calculateGuildPower(guildData, maxima = {}) {
     const memberCountRaw = Number(guildData?.memberCount) || 0;
     if (memberCountRaw <= 0) {
         return {
@@ -205,12 +239,13 @@ export function calculateGuildPower(guildData, maxima = {}, weights) {
             momentumPct: 0,
             momentumArrow: getMomentumArrow(0),
             perCapitaGlory: 0,
+            seasonGloryPerMember: 0,
             weeklyPerCapitaGlory: 0,
         };
     }
 
     const memberCount = Math.max(memberCountRaw, 1);
-    const totalGlory = Number(guildData?.totalGlory) || 0;
+    const totalGlory = Number(guildData?.countedGlory ?? guildData?.totalGlory) || 0;
     const weeklyGlory = Number(guildData?.weeklyGlory) || 0;
     const previousWeekGlory = Number(guildData?.previousWeekGlory) || 0;
     const weeklyActiveMembers = Number(guildData?.weeklyActiveMembers) || 0;
@@ -236,17 +271,13 @@ export function calculateGuildPower(guildData, maxima = {}, weights) {
     momentumPct = clamp(momentumPct, -100, 100);
     const momentumScore = (momentumPct + 100) / 2;
 
-    const safeWeights = weights || { seasonGlory: 0.70, weeklyGlory: 0.15, activity: 0.10, momentum: 0.05 };
-    const guildPower = roundTo(
-        seasonGloryScore * safeWeights.seasonGlory +
-        weeklyGloryScore * safeWeights.weeklyGlory +
-        activityScore * safeWeights.activity +
-        momentumScore * safeWeights.momentum,
-        1
-    );
+    // Guild Power is the year's Glory per member: it only moves when this guild earns (or
+    // loses) Glory. The weekly scores below are shown as "this week" badges only.
+    const guildPower = roundTo(perCapitaGlory, 1);
 
     return {
         guildPower: Math.max(0, guildPower),
+        seasonGloryPerMember: perCapitaGlory,
         seasonGloryScore: roundTo(seasonGloryScore),
         gloryScore: roundTo(seasonGloryScore),
         weeklyGloryScore: roundTo(weeklyGloryScore),

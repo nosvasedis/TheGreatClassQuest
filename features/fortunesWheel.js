@@ -4,8 +4,8 @@ import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
-import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
-import { getISOWeekKey, updateGuildScores, adjustGuildScoresForWheel } from './guildScoring.js';
+import { adjustGuildGlory as writeGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
+import { getISOWeekKey, updateGuildScores, adjustGuildScoresForWheel, getGuildMemberCounts, getGuildSizeScale } from './guildScoring.js';
 import { resolveGuildWeek } from './guildScoringCore.js';
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
@@ -22,6 +22,22 @@ function _luminance(hex) {
     const g = parseInt(c.substring(2, 4), 16) / 255;
     const b = parseInt(c.substring(4, 6), 16) / 255;
     return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+// Wheel amounts that are already fair per member (a share of the guild's own Glory, or
+// worked out per member below) are written as they are; every flat amount is sized to
+// the guild so each member of every guild gains or loses the same.
+const _PER_MEMBER_REASONS = new Set(['wheel_tax', 'wheel_crash', 'wheel_heist_loss', 'wheel_heist_gain', 'wheel_fates_reversal', 'wheel_glory_rain']);
+
+async function adjustGuildGlory(guildId, delta, reason = 'wheel') {
+    const amount = _PER_MEMBER_REASONS.has(reason) ? Math.round(delta) : Math.round(delta * getGuildSizeScale(guildId));
+    if (!amount) return 0;
+    await writeGuildGlory(guildId, amount, reason);
+    return amount;
+}
+
+function _guildSize(guildId) {
+    return Number(getGuildMemberCounts()[guildId]) || 0;
 }
 
 /** This week's Glory for a guild (0 when its stored week is an older one). */
@@ -46,11 +62,11 @@ const ALL_SEGMENTS = [
     { id: 'glory_doubler',     emoji: '📈', label: 'Glory Doubler',     description: 'Future star Glory events count 2× for 1 day!',     rarity: 'rare',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 2, 1) },
     { id: 'glory_tripler',     emoji: '📈', label: 'Glory Tripler',     description: 'Future star Glory events count 3× for 1 day!',     rarity: 'epic',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 3, 1) },
     { id: 'glory_quadruple',   emoji: '📈', label: 'Quadruple Glory',   description: 'Future star Glory events count 4× for 3 days!',    rarity: 'legendary', category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 4, 3) },
-    { id: 'glory_rain',        emoji: '⚜️', label: 'Glory Rain',        description: 'Every guild member gets +5 Glory!',                rarity: 'epic',      category: 'glory', effect: (ctx) => instantGlory(ctx, ctx.memberCount * 5) },
+    { id: 'glory_rain',        emoji: '⚜️', label: 'Glory Rain',        description: 'Every guild member gets +5 Glory!',                rarity: 'epic',      category: 'glory', effect: (ctx) => gloryRain(ctx, 5) },
     { id: 'precision_glory',   emoji: '🎯', label: 'Precision Glory',   description: 'Next 10 stars give +1 extra Glory each.',          rarity: 'uncommon',  category: 'glory', effect: (ctx) => bonusPerStar(ctx, 1, 10) },
     { id: 'glory_magnet',      emoji: '🧲', label: 'Glory Magnet',      description: '+2 Glory per star for 2 days!',                    rarity: 'rare',      category: 'glory', effect: (ctx) => bonusPerStarTimed(ctx, 2, 2) },
     { id: 'glory_shield',      emoji: '🛡️', label: 'Glory Shield',      description: 'Immune to negative wheel effects for 1 week.',    rarity: 'rare',      category: 'glory', effect: (ctx) => applyShield(ctx, 7) },
-    { id: 'glory_momentum',    emoji: '⏳', label: 'Momentum Lock',     description: 'Momentum score locked — can\'t decrease for 1 week.', rarity: 'rare',  category: 'glory', effect: (ctx) => applyMomentumLock(ctx) },
+    { id: 'glory_momentum',    emoji: '⏳', label: 'Momentum Lock',     description: 'Momentum badge locked — it can\'t dip for 1 week.', rarity: 'rare',  category: 'glory', effect: (ctx) => applyMomentumLock(ctx) },
     { id: 'rainbow_bridge',    emoji: '🌈', label: 'Rainbow Bridge',    description: 'All guilds get +10 Glory — unity bonus!',          rarity: 'common',    category: 'glory', effect: (ctx) => allGuildsGlory(ctx, 10) },
     { id: 'glory_windfall',    emoji: '⚜️', label: 'Glory Windfall',    description: '+200 Glory instantly!',                             rarity: 'epic',      category: 'glory', effect: (ctx) => instantGlory(ctx, 200) },
     { id: 'glory_miracle',     emoji: '👑', label: 'Glory Miracle',     description: '+400 Glory instantly!',                             rarity: 'mythic',    category: 'glory', effect: (ctx) => instantGlory(ctx, 400) },
@@ -139,8 +155,16 @@ async function instantGlory(ctx, amount) {
     if (amount < 0 && _hasActiveShield(ctx.guildId)) {
         return { gloryDelta: 0, description: 'Glory Shield blocked the penalty!' };
     }
-    await adjustGuildGlory(ctx.guildId, amount, 'wheel');
-    return { gloryDelta: amount, description: `${amount >= 0 ? '+' : ''}${amount} Glory applied.` };
+    const applied = await adjustGuildGlory(ctx.guildId, amount, 'wheel');
+    return { gloryDelta: applied, description: `${applied >= 0 ? '+' : ''}${applied} Glory applied (sized to the guild, so every member gains the same).` };
+}
+
+/** Glory Rain: +5 Glory for every member of the guild, school-wide. */
+async function gloryRain(ctx, perMember = 5) {
+    let each = perMember;
+    if (Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) each = each * Number(ctx.effectScale);
+    const applied = await adjustGuildGlory(ctx.guildId, each * Math.max(1, _guildSize(ctx.guildId)), 'wheel_glory_rain');
+    return { gloryDelta: applied, description: `Every guild member earned +${Math.round(each * 10) / 10} Glory (+${applied} for the guild).` };
 }
 
 async function gloryMultiplier(ctx, factor, days) {
@@ -221,10 +245,13 @@ async function gloryHeist(ctx, fraction) {
     // Find leader guild (not the current one)
     let leaderGuildId = null;
     let leaderWeeklyGlory = 0;
+    let leaderPerMember = 0;
     for (const gid of GUILD_IDS) {
         if (gid === ctx.guildId) continue;
         const g = allGuildScores[gid] || {};
-        if (_weeklyGlory(g) > leaderWeeklyGlory) {
+        // The leader is the guild with the most Glory per member this week.
+        if (_guildSize(gid) > 0 && _weeklyGlory(g) / _guildSize(gid) > leaderPerMember) {
+            leaderPerMember = _weeklyGlory(g) / _guildSize(gid);
             leaderWeeklyGlory = _weeklyGlory(g);
             leaderGuildId = gid;
         }
@@ -236,12 +263,14 @@ async function gloryHeist(ctx, fraction) {
     const leaderHasShield = (leaderData.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
     if (leaderHasShield) return { gloryDelta: 0, description: `${getGuildById(leaderGuildId)?.name || 'Leader'}'s Glory Shield blocked the heist!` };
 
+    // Each leader member loses what each thief member gains, whatever the guild sizes.
     const stolen = Math.round(leaderWeeklyGlory * fraction);
+    const gained = Math.round(stolen * (Math.max(1, _guildSize(ctx.guildId)) / Math.max(1, _guildSize(leaderGuildId))));
     if (stolen > 0) {
         await adjustGuildGlory(leaderGuildId, -stolen, 'wheel_heist_loss');
-        await adjustGuildGlory(ctx.guildId, stolen, 'wheel_heist_gain');
+        await adjustGuildGlory(ctx.guildId, gained, 'wheel_heist_gain');
     }
-    return { gloryDelta: stolen, description: `Stole ${stolen} Glory from ${getGuildById(leaderGuildId)?.name || 'the leader'}!` };
+    return { gloryDelta: gained, description: `Stole ${gained} Glory from ${getGuildById(leaderGuildId)?.name || 'the leader'}!` };
 }
 
 async function allGuildsGlory(ctx, amount) {
@@ -515,12 +544,13 @@ async function phoenixRise(ctx) {
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[ctx.guildId] || {};
     const weeklyGlory = _weeklyGlory(gData);
-    let amount = weeklyGlory < 50 ? 100 : 40;
+    const rising = weeklyGlory < 50 * getGuildSizeScale(ctx.guildId);
+    let amount = rising ? 100 : 40;
     if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
         amount = Math.floor(amount * Number(ctx.effectScale));
     }
-    await adjustGuildGlory(ctx.guildId, amount, 'wheel_phoenix_rise');
-    return { gloryDelta: amount, description: weeklyGlory < 50 ? `Phoenix rises from the ashes! +100 Glory!` : `Phoenix grants +40 Glory.` };
+    const applied = await adjustGuildGlory(ctx.guildId, amount, 'wheel_phoenix_rise');
+    return { gloryDelta: applied, description: rising ? `Phoenix rises from the ashes! +${applied} Glory!` : `Phoenix grants +${applied} Glory.` };
 }
 
 async function echoesOfGlory(ctx) {
@@ -570,9 +600,10 @@ async function sovereignsBoon(ctx) {
 async function fatesReversal(ctx) {
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[ctx.guildId] || {};
-    const myWeeklyGlory = _weeklyGlory(gData);
+    const mySize = Math.max(1, _guildSize(ctx.guildId));
+    const myWeeklyGlory = _weeklyGlory(gData) / mySize;
 
-    // Find nearest rival guild (closest weekly glory, not same guild)
+    // Find nearest rival guild (closest weekly Glory per member, not same guild)
     let rivalGuildId = null;
     let rivalWeeklyGlory = 0;
     let smallestDiff = Infinity;
@@ -580,7 +611,8 @@ async function fatesReversal(ctx) {
     for (const gid of GUILD_IDS) {
         if (gid === ctx.guildId) continue;
         const rival = allGuildScores[gid] || {};
-        const rivalGlory = _weeklyGlory(rival);
+        if (!_guildSize(gid)) continue;
+        const rivalGlory = _weeklyGlory(rival) / _guildSize(gid);
         const diff = Math.abs(rivalGlory - myWeeklyGlory);
         if (diff < smallestDiff) {
             smallestDiff = diff;
@@ -591,13 +623,14 @@ async function fatesReversal(ctx) {
 
     if (!rivalGuildId) {
         // Fallback: just give +150 glory
-        await adjustGuildGlory(ctx.guildId, 150, 'wheel_fates_reversal_fallback');
-        return { gloryDelta: 150, description: "Fate couldn't find a rival — instead, +150 Glory!" };
+        const applied = await adjustGuildGlory(ctx.guildId, 150, 'wheel_fates_reversal_fallback');
+        return { gloryDelta: applied, description: `Fate couldn't find a rival — instead, +${applied} Glory!` };
     }
 
-    // Swap weekly glory values
-    const myDelta = rivalWeeklyGlory - myWeeklyGlory;
-    const rivalDelta = myWeeklyGlory - rivalWeeklyGlory;
+    // Swap weekly Glory per member, so the swap is the same for each child in both guilds.
+    const rivalSize = Math.max(1, _guildSize(rivalGuildId));
+    const myDelta = Math.round((rivalWeeklyGlory - myWeeklyGlory) * mySize);
+    const rivalDelta = Math.round((myWeeklyGlory - rivalWeeklyGlory) * rivalSize);
     // A Glory Shield blocks every negative wheel effect, this swap included (the heist already checks).
     if (rivalDelta < 0 && _hasActiveShield(rivalGuildId)) {
         return { gloryDelta: 0, description: `${getGuildById(rivalGuildId)?.name || 'The rival'}'s Glory Shield turned Fate aside!` };

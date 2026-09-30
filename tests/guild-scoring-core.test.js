@@ -62,7 +62,7 @@ test('empty guilds score zero and negative weekly glory clamps safely', async ()
   assert.equal(penalized.weeklyGloryScore, 0);
   assert.equal(penalized.activityScore, 0);
   assert.equal(penalized.momentumScore, 0);
-  assert.equal(penalized.guildPower, 70);
+  assert.equal(penalized.guildPower, 10, 'a bad week never lowers Guild Power; only the year\'s Glory per member counts');
 });
 
 test('momentum lock prevents negative momentum from lowering the momentum component', async () => {
@@ -86,7 +86,7 @@ test('momentum lock prevents negative momentum from lowering the momentum compon
   assert.equal(unlocked.momentumScore, 25);
   assert.equal(locked.momentumPct, 0);
   assert.equal(locked.momentumScore, 50);
-  assert.ok(locked.guildPower > unlocked.guildPower);
+  assert.equal(locked.guildPower, unlocked.guildPower, 'momentum is a badge, not part of the ranking');
 });
 
 test('glory events combine stars, Banner, Chalice, charged bonuses, and multipliers once', async () => {
@@ -138,19 +138,40 @@ test('negative wheel star effects write negative Glory without per-star bonuses'
   assert.equal(result.consumedGloryModifiers[0].charges, 5);
 });
 
-test('leaderboard comparator uses deterministic fair tie-breaks', async () => {
-  const { compareGuildLeaderboardRows } = await loadCore();
+test('the year-long race is ranked by Glory per member only; this week never reorders it', async () => {
+  const { compareGuildLeaderboardRows, calculateGuildPower } = await loadCore();
+  const steady = calculateGuildPower({ memberCount: 10, totalGlory: 300, weeklyGlory: 0, previousWeekGlory: 50 }, { maxWeeklyPerCapitaGlory: 5 });
+  const hotWeek = calculateGuildPower({ memberCount: 10, totalGlory: 299, weeklyGlory: 50, previousWeekGlory: 0, weeklyActiveMembers: 10 }, { maxWeeklyPerCapitaGlory: 5 });
+  assert.equal(steady.guildPower, 30);
+  assert.ok(steady.guildPower > hotWeek.guildPower);
+
   const rows = [
-    { guildName: 'Borealis', guildPower: 80, perCapitaGlory: 12, weeklyPerCapitaGlory: 5, totalGlory: 90 },
-    { guildName: 'Aether', guildPower: 80, perCapitaGlory: 12, weeklyPerCapitaGlory: 5, totalGlory: 90 },
-    { guildName: 'Cygnus', guildPower: 80, perCapitaGlory: 12, weeklyPerCapitaGlory: 6, totalGlory: 80 },
-    { guildName: 'Dawn', guildPower: 81, perCapitaGlory: 1, weeklyPerCapitaGlory: 0, totalGlory: 1 },
+    { guildName: 'Borealis', seasonGloryPerMember: 12, totalGlory: 90 },
+    { guildName: 'Aether', seasonGloryPerMember: 12, totalGlory: 90 },
+    { guildName: 'Cygnus', seasonGloryPerMember: 12, totalGlory: 120 },
+    { guildName: 'Dawn', seasonGloryPerMember: 12.04, totalGlory: 12 },
   ];
-
   rows.sort(compareGuildLeaderboardRows);
-
   assert.deepEqual(rows.map(r => r.guildName), ['Dawn', 'Cygnus', 'Aether', 'Borealis']);
 });
+
+test('Glory earned by students who left leaves the guild with them', async () => {
+  const { countedGuildGlory } = await loadCore();
+  const guild = { activeSchoolYearKey: '2026-2027', memberGloryYear: '2026-2027', totalGlory: 130, memberGlory: { a: 40, b: 50, gone: 30 } };
+  assert.deepEqual(countedGuildGlory(guild, ['a', 'b']), { countedGlory: 100, leaversGlory: 30, memberGloryReady: true });
+  const lastYearMap = { ...guild, memberGloryYear: '2025-2026' };
+  assert.equal(countedGuildGlory(lastYearMap, ['a', 'b']).countedGlory, 130, 'an old year\'s map is ignored');
+});
+
+test('wheel Glory is sized so each member of every guild gains the same', async () => {
+  const { guildSizeScale } = await loadCore();
+  const sizes = { small: 10, big: 30 };
+  assert.equal(guildSizeScale(sizes, 'small'), 0.5);
+  assert.equal(guildSizeScale(sizes, 'big'), 1.5);
+  assert.equal(20 * guildSizeScale(sizes, 'small') / 10, 20 * guildSizeScale(sizes, 'big') / 30);
+  assert.equal(guildSizeScale({}, 'small'), 1);
+});
+
 
 // Mon 5 Oct 2026, 10:00 local; previous Monday is 28 Sep.
 const MONDAY_OCT_5 = new Date(2026, 9, 5, 10, 0, 0).getTime();

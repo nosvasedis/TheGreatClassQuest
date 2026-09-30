@@ -59,7 +59,7 @@ function _explain(mod) {
         case 'shield':
             return `Protects this guild from certain Fortune's Wheel penalties that steal or drain weekly Glory — for example Glory Heists or Glory Tax-style hits check for an active Shield first. Positive spins still apply as normal.`;
         case 'momentum_lock':
-            return `Pins your guild's momentum ingredient so it can't score below neutral while active. Glory numbers still update normally; this only affects the 5% momentum part of Guild Power.`;
+            return `Keeps your guild's momentum badge from dipping below neutral while active. It's a badge of honour only: Guild Power and the ranking come from the year's Glory per member.`;
         case 'challenge':
             return `If your guild earns the most Glory per member by Sunday night, a bonus +${Number.isFinite(mod.bonus) ? bonus : 50} ${GLORY_EMOJI} Glory is written to the ledger the next week. Ties all win.`;
         case 'shattered_mirror':

@@ -21,20 +21,20 @@ let _powerExplainerWired = false;
 export function guildPowerExplainerCardHtml() {
     const parts = [
         {
-            key: 'season', icon: '⚜️', weight: 70, name: 'Glory per member this year',
-            copy: 'All the Glory the guild has earned this school year, shared out per member.',
+            key: 'season', icon: '⚜️', name: 'Glory per member this year',
+            copy: 'All the Glory the guild earned this school year, shared out per member. This one number is the Guild Power and decides the order.',
         },
         {
-            key: 'week', icon: '📅', weight: 15, name: 'Glory per member this week',
-            copy: 'Glory earned since Monday, shared out per member. Rewards guilds that are busy right now.',
+            key: 'week', icon: '📅', name: 'This week’s form',
+            copy: 'Glory per member this week, members taking part and the week-on-week trend. Fun to watch, but it never moves the ranking.',
         },
         {
-            key: 'active', icon: '🔥', weight: 10, name: 'Members taking part',
-            copy: 'How many members earned any Glory this week. Every child counts.',
+            key: 'active', icon: '⚖️', name: 'Every guild size is equal',
+            copy: 'Fortune’s Wheel Glory is sized to each guild, so every member of every guild gains or loses the same.',
         },
         {
-            key: 'momentum', icon: '📈', weight: 5, name: 'Momentum',
-            copy: 'This week compared with last week. A rise helps a little; a dip costs a little. A Momentum Lock from Fortune’s Wheel stops the dip.',
+            key: 'momentum', icon: '🚪', name: 'Leavers take their Glory with them',
+            copy: 'If a student leaves the school, the Glory they earned leaves the guild too, so no guild climbs by getting smaller.',
         },
     ];
     return `
@@ -46,14 +46,12 @@ export function guildPowerExplainerCardHtml() {
                 <span class="guild-power-explainer-bolt" aria-hidden="true"><i class="fas fa-bolt"></i></span>
                 <h3 id="guild-power-explainer-title" class="guild-power-explainer-title font-title">How Guild Power works</h3>
                 <p class="guild-power-explainer-copy">
-                    A fair score out of <strong>100</strong>. Glory is always shared out <strong>per member</strong>,
-                    so a small guild where everyone joins in can beat a big guild where only a few do.
+                    The <strong>Glory each member has earned this year</strong>, on average. It only moves when this
+                    guild earns Glory, so a small guild where everyone joins in can beat a big guild where only a few do.
+                    In June the guild with the highest Guild Power is crowned.
                 </p>
             </header>
 
-            <div class="guild-power-explainer-mix" aria-hidden="true">
-                ${parts.map((p) => `<span class="guild-power-explainer-mix__seg guild-power-explainer-mix__seg--${p.key}" style="flex:${p.weight} 1 0;">${p.weight}%</span>`).join('')}
-            </div>
 
             <ul class="guild-power-explainer-list">
                 ${parts.map((p) => `
@@ -63,12 +61,10 @@ export function guildPowerExplainerCardHtml() {
                         <span class="guild-power-explainer-item__name">${p.name}</span>
                         <span class="guild-power-explainer-item__copy">${p.copy}</span>
                     </span>
-                    <span class="guild-power-explainer-item__weight">${p.weight}%</span>
                 </li>`).join('')}
             </ul>
 
             <p class="guild-power-explainer-note">
-                Each part is scored against the guild doing best in it, then the parts are blended by the weights above.
                 Glory comes from stars (${GLORY_EMOJI}2 each), boons, Mystic Market relics, Quiz of the Week and Fortune’s Wheel,
                 and every change is written in the Glory ledger — so the standings can always be checked.
             </p>
@@ -641,18 +637,17 @@ function _buildGuildRaceTrack(displayData) {
 
 /** Short "chase" line under each column's Guild Power (gap to the guild one place above). */
 function _guildChaseLine(displayData, index, rankLabels) {
-    const power = (row) => Math.max(0, Math.round(Number(row?.guildPower) || 0));
+    const power = (row) => Math.max(0, Number(row?.seasonGloryPerMember ?? row?.guildPower) || 0);
+    const fmt = (gap) => (gap >= 10 ? String(Math.round(gap)) : gap.toFixed(1));
     if (index === 0) {
         const gap = displayData[1] ? power(displayData[0]) - power(displayData[1]) : 0;
-        return gap > 0
-            ? { tone: 'lead', icon: 'fa-crown', text: `${gap} Power ahead of 2nd` }
-            : { tone: 'tie', icon: 'fa-scale-balanced', text: 'Tied for 1st' };
+        if (gap >= 0.05) return { tone: 'lead', icon: 'fa-crown', text: `${fmt(gap)} Power ahead of 2nd` };
+        return { tone: 'tie', icon: 'fa-scale-balanced', text: gap > 0 ? 'Neck and neck with 2nd' : 'Tied for 1st' };
     }
     const target = rankLabels[index - 1] || `#${index}`;
     const gap = power(displayData[index - 1]) - power(displayData[index]);
-    return gap > 0
-        ? { tone: 'chase', icon: 'fa-flag-checkered', text: `${gap} Power behind ${target}` }
-        : { tone: 'tie', icon: 'fa-scale-balanced', text: `Tied with ${target}` };
+    if (gap >= 0.05) return { tone: 'chase', icon: 'fa-flag-checkered', text: `${fmt(gap)} Power behind ${target}` };
+    return { tone: 'tie', icon: 'fa-scale-balanced', text: gap > 0 ? `Neck and neck with ${target}` : `Tied with ${target}` };
 }
 
 /**
@@ -732,6 +727,8 @@ export function renderGuildsTab() {
             topContributors: found?.topContributors || [],
             // Glory & Power fields (must mirror getGuildLeaderboardData / calculateGuildPower)
             totalGlory: found?.totalGlory || 0,
+            countedGlory: found?.countedGlory ?? found?.totalGlory ?? 0,
+            seasonGloryPerMember: found?.seasonGloryPerMember ?? 0,
             weeklyGlory: found?.weeklyGlory || 0,
             previousWeekGlory: found?.previousWeekGlory || 0,
             perCapitaGlory: found?.perCapitaGlory || 0,
@@ -920,11 +917,11 @@ export function renderGuildsTab() {
                     </span>
                     <span class="guild-crystal-chase guild-crystal-chase--${chase.tone}"><i class="fas ${chase.icon}" aria-hidden="true"></i>${chase.text}</span>
                     ${_guildTrendRow(powerDeltas.get(g.guildId), isFirstRender, index, rankLabels)}
-                    <div class="guild-crystal-power-strip guild-crystal-power-strip--tiles" aria-label="Power ingredients for ${g.guildName}">
-                        <span class="guild-crystal-power-tile" title="Season Glory per current guild member (70% of Guild Power)"><strong>${g.perCapitaGlory.toFixed(1)}</strong><small>${GLORY_EMOJI} per member<br>this year</small></span>
-                        <span class="guild-crystal-power-tile" title="This week's Glory per current guild member (15% of Guild Power)"><strong>${g.weeklyPerCapitaGlory.toFixed(1)}</strong><small>${GLORY_EMOJI} per member<br>this week</small></span>
-                        <span class="guild-crystal-power-tile" title="Share of members who earned Glory this week (10% of Guild Power)"><strong>${Math.round(Number(g.activityScore) || 0)}%</strong><small>🔥 members<br>active this week</small></span>
-                        <span class="guild-crystal-power-tile guild-crystal-power-tile--${g.momentumPct > 0 ? 'up' : g.momentumPct < 0 ? 'down' : 'flat'}" title="This week's Glory compared with last week's (5% of Guild Power)"><strong>${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</strong><small>${g.momentumArrow} Glory vs<br>last week</small></span>
+                    <div class="guild-crystal-power-strip guild-crystal-power-strip--tiles" aria-label="How ${g.guildName} is doing">
+                        <span class="guild-crystal-power-tile" title="All the Glory this guild's current members earned this year. Guild Power is this shared out per member."><strong>${Math.round(Number(g.countedGlory) || 0)}</strong><small>${GLORY_EMOJI} earned<br>this year</small></span>
+                        <span class="guild-crystal-power-tile" title="This week's Glory per member. This week's form never changes the ranking."><strong>${g.weeklyPerCapitaGlory.toFixed(1)}</strong><small>${GLORY_EMOJI} per member<br>this week</small></span>
+                        <span class="guild-crystal-power-tile" title="Share of members who earned Glory this week. This week's form never changes the ranking."><strong>${Math.round(Number(g.activityScore) || 0)}%</strong><small>🔥 members<br>active this week</small></span>
+                        <span class="guild-crystal-power-tile guild-crystal-power-tile--${g.momentumPct > 0 ? 'up' : g.momentumPct < 0 ? 'down' : 'flat'}" title="This week's Glory compared with last week's. This week's form never changes the ranking."><strong>${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</strong><small>${g.momentumArrow} Glory vs<br>last week</small></span>
                     </div>
                 </div>`
             : `
@@ -945,12 +942,12 @@ export function renderGuildsTab() {
                                 <div class="guild-crystal-metric">
                                     <div class="guild-crystal-metric__label">Season Glory/member</div>
                                     <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                    <div class="guild-crystal-metric__hint">70% of Guild Power</div>
+                                    <div class="guild-crystal-metric__hint">This is the Guild Power</div>
                                 </div>
                                 <div class="guild-crystal-metric">
                                     <div class="guild-crystal-metric__label">Weekly Glory/member</div>
                                     <div class="guild-crystal-metric__value">${g.weeklyPerCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                    <div class="guild-crystal-metric__hint">15% of Guild Power</div>
+                                    <div class="guild-crystal-metric__hint">This week's form</div>
                                 </div>
                                 <div class="guild-crystal-metric">
                                     <div class="guild-crystal-metric__label">Activity + momentum</div>

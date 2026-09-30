@@ -1577,7 +1577,7 @@ export async function setupDataListeners(
                 });
                 state.setAllGuildScores(allGuildScores);
                 import("../features/guildScoring.js")
-                    .then((m) => m.settleGuildChallenges())
+                    .then((m) => Promise.all([m.settleGuildChallenges(), m.backfillGuildMemberGloryIfNeeded()]))
                     .catch((e) => console.warn("Glory Challenge tally skipped:", e));
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();

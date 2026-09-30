@@ -147,13 +147,14 @@ function renderScrollBoard({ classId, search, page }) {
     }
 
     return `
-        <div class="pulse-stats">
+        <div class="pulse-stats" data-secretary-live="grades-stats">
             ${renderBoardStat('Recorded', scores.length, 'sky', 'fa-file-circle-check')}
             ${renderBoardStat('Average', averagePercent, 'emerald', 'fa-chart-line')}
             ${renderBoardStat('With marks', numericScores.length, 'amber', 'fa-hashtag')}
             ${renderBoardStat('With words', scores.length - numericScores.length, 'violet', 'fa-comment-dots')}
         </div>
         ${renderSearchBar(search, 'Search by student, class, or assessment…')}
+        <div data-secretary-live="grades-results">
         ${pageScores.length ? grouped.map((group) => `
             <section class="grades-day">
                 <h4 class="grades-day__date"><i class="fas fa-calendar-day" aria-hidden="true"></i>${escapeHtml(formatFlexibleDate(group.date))}<span>${group.items.length}</span></h4>
@@ -185,6 +186,7 @@ function renderScrollBoard({ classId, search, page }) {
             </section>
         `).join('') : renderEmptyBoard('fa-scroll', search ? 'No grades match that search.' : 'No grades recorded yet.')}
         ${renderPagination(safePage, totalPages)}
+        </div>
     `;
 }
 
@@ -210,11 +212,12 @@ function renderHomeworkBoard({ classId, search, page }) {
     const pageItems = assignments.slice(safePage * GRADES_PAGE_SIZE, (safePage + 1) * GRADES_PAGE_SIZE);
 
     return `
-        <div class="pulse-stats">
+        <div class="pulse-stats" data-secretary-live="grades-stats">
             ${renderBoardStat('Assignments', assignments.length, 'sky', 'fa-feather')}
             ${renderBoardStat('With a test', assignments.filter((item) => item.testData).length, 'amber', 'fa-file-pen')}
         </div>
         ${renderSearchBar(search, 'Search Quest Assignment by class or words…')}
+        <div data-secretary-live="grades-results">
         ${pageItems.length ? `<div class="grades-quests">${pageItems.map((item) => {
             const classData = classMap.get(item.classId);
             const dateLabel = formatFlexibleDate(assignmentDate(item));
@@ -230,5 +233,6 @@ function renderHomeworkBoard({ classId, search, page }) {
             `;
         }).join('')}</div>` : renderEmptyBoard('fa-feather', search ? 'No Quest Assignment matches that search.' : 'No Quest Assignment yet.')}
         ${renderPagination(safePage, totalPages)}
+        </div>
     `;
 }

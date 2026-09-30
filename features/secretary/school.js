@@ -54,6 +54,7 @@ function renderClassesList() {
 
     return `
         ${renderSearchBar('secretary-class-filter', filter, 'Search classes by name, league, or teacher…')}
+        <div data-secretary-live="school-classes">
         ${classes.length
             ? `<div class="class-overview-grid">
                 ${classes.map((item) => {
@@ -77,6 +78,7 @@ function renderClassesList() {
               </div>`
             : '<div class="role-empty-state">No classes match your search.</div>'
         }
+        </div>
     `;
 }
 
@@ -154,6 +156,7 @@ function renderStudentsList() {
 
     return `
         ${renderSearchBar('secretary-student-filter', filter, 'Search heroes by name, class, league, or teacher…')}
+        <div data-secretary-live="school-students">
         ${students.length
             ? `<div class="school-hero-groups">
                 ${orderedKeys.map((key) => {
@@ -189,6 +192,7 @@ function renderStudentsList() {
               </div>`
             : '<div class="role-empty-state">No students match your search.</div>'
         }
+        </div>
     `;
 }
 
@@ -227,7 +231,7 @@ export function renderSecretarySchool() {
                             <h3 class="role-card__title">${subTab === 'classes' ? 'All classes' : 'All students'}</h3>
                         </div>
                         <div class="role-card__header-aside">
-                            <div class="role-card__badge">${subTab === 'classes' ? classes.length : students.length} total</div>
+                            <div class="role-card__badge" data-secretary-live="school-count">${subTab === 'classes' ? classes.length : students.length} total</div>
                             <button type="button" class="office-btn office-btn--small office-btn--quiet" data-secretary-registry-link="${subTab === 'classes' ? 'classes' : 'students'}">
                                 <i class="fas fa-folder-open" aria-hidden="true"></i> Manage
                             </button>

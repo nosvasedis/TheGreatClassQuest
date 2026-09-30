@@ -170,6 +170,7 @@ function renderStudentsLane() {
         <div class="office-lane-bar">
             ${renderSearch('secretary-registry-search', search, 'Find a student, class or teacher…')}
         </div>
+        <div data-secretary-live="registry-results">
         ${students.length ? `
             <div class="office-drawers">
                 ${keys.map((key) => {
@@ -205,6 +206,7 @@ function renderStudentsLane() {
                 <p>${search ? 'Try a first name, a class, or a teacher.' : 'Enrol a new student, or seat returning students once the year is open.'}</p>
             </div>
         `}
+        </div>
     `;
 }
 
@@ -218,6 +220,7 @@ function renderClassesLane() {
         <div class="office-lane-bar">
             ${renderSearch('secretary-registry-search', search, 'Find a class, league or teacher…')}
         </div>
+        <div data-secretary-live="registry-results">
         <div class="office-class-grid">
             ${classes.map((item) => {
                 const count = rosterCount(item.id);
@@ -257,6 +260,7 @@ function renderClassesLane() {
         ${!classes.length && search ? `
             <div class="office-empty"><i class="fas fa-chalkboard" aria-hidden="true"></i><h4>No class matches that search</h4><p>Try a class name, a league or a teacher.</p></div>
         ` : ''}
+        </div>
     `;
 }
 
@@ -335,7 +339,7 @@ function renderFormerLane() {
             </div>
         </div>
         <p class="office-lane-note"><i class="fas fa-shield-heart" aria-hidden="true"></i>Former students keep every star, grade and note. Nothing here is deleted unless you choose Delete forever.</p>
-        ${body}
+        <div data-secretary-live="registry-results">${body}</div>
     `;
 }
 

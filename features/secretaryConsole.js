@@ -137,7 +137,7 @@ export function renderSecretaryTab(tabKey) {
     const renderer = TAB_RENDERERS[resolved];
     const section = document.querySelector(`[data-secretary-section="${resolved}"]`);
     if (!renderer || !section) return;
-    // Search boxes re-render the tab on every keystroke; keep the caret where it was.
+    // A full re-render keeps focus and the caret where they were.
     const active = document.activeElement;
     const focusId = active?.id && section.contains(active) ? active.id : '';
     const caret = focusId && typeof active.selectionStart === 'number' ? [active.selectionStart, active.selectionEnd] : null;
@@ -159,6 +159,44 @@ export function renderSecretaryTab(tabKey) {
         target?.focus({ preventScroll: true });
         if (caret && typeof target?.setSelectionRange === 'function') target.setSelectionRange(caret[0], caret[1]);
     }
+}
+
+// Typing in a search box must not rebuild the whole tab: that replays the panel's
+// entrance animation and makes the entire office flash on every keystroke. Render
+// the tab off-screen and swap only the regions a search changes
+// ([data-secretary-live]); the search box, header and nav stay untouched.
+let pendingLiveRefresh = null;
+function refreshSecretarySearch(tabKey) {
+    if (pendingLiveRefresh) cancelAnimationFrame(pendingLiveRefresh);
+    pendingLiveRefresh = requestAnimationFrame(() => {
+        pendingLiveRefresh = null;
+        let resolved = resolveTabKey(tabKey);
+        if (!hasFullSecretaryConsole() && (resolved === 'grades' || resolved === 'messages')) resolved = 'admin';
+        const renderer = TAB_RENDERERS[resolved];
+        const section = document.querySelector(`[data-secretary-section="${resolved}"]`);
+        const liveRegions = section ? [...section.querySelectorAll('[data-secretary-live]')] : [];
+        if (!renderer || !liveRegions.length) {
+            renderSecretaryTab(resolved);
+            return;
+        }
+        const next = document.createElement('template');
+        try {
+            next.innerHTML = renderer();
+        } catch (error) {
+            console.error('Could not refresh School Office search:', error);
+            return;
+        }
+        const fresh = [...next.content.querySelectorAll('[data-secretary-live]')];
+        if (fresh.length !== liveRegions.length
+            || fresh.some((region, index) => region.dataset.secretaryLive !== liveRegions[index].dataset.secretaryLive)) {
+            renderSecretaryTab(resolved);
+            return;
+        }
+        liveRegions.forEach((region, index) => {
+            if (region.innerHTML !== fresh[index].innerHTML) region.innerHTML = fresh[index].innerHTML;
+        });
+        applySecretaryTierUi();
+    });
 }
 
 function openRegistry(lane = 'students') {
@@ -670,22 +708,22 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
     document.getElementById('secretary-screen')?.addEventListener('input', (event) => {
         if (event.target.id === 'secretary-class-filter') {
             state.setSecretaryView({ classFilter: event.target.value, schoolSubTab: 'classes' });
-            renderSecretaryTab('school');
+            refreshSecretarySearch('school');
             return;
         }
         if (event.target.id === 'secretary-student-filter') {
             state.setSecretaryView({ studentFilter: event.target.value, schoolSubTab: 'students' });
-            renderSecretaryTab('school');
+            refreshSecretarySearch('school');
             return;
         }
         if (event.target.id === 'secretary-registry-search') {
             state.setSecretaryView({ registrySearch: event.target.value });
-            renderSecretaryTab('admin');
+            refreshSecretarySearch('admin');
             return;
         }
         if (event.target.id === 'secretary-grades-search') {
             state.setSecretaryView({ gradesSearch: event.target.value, gradesPage: 0 });
-            renderSecretaryTab(getActiveTabKey());
+            refreshSecretarySearch(getActiveTabKey());
             return;
         }
         if (event.target.id === 'options-school-location-results') {

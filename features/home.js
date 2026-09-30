@@ -15,6 +15,7 @@ import {
     DAILY_QUOTE_SYSTEM_PROMPT,
     buildDailyQuoteUserPrompt,
     cleanGeneratedQuote,
+    decideDailyQuoteClaim,
     getCuratedDailyQuote,
     isCuratedDailyQuote,
     isTooSimilarQuote,
@@ -57,6 +58,10 @@ const DAILY_QUOTE_TYPE = 'quote_daily_v2';
 const DAILY_QUOTE_HISTORY_KEY = 'gcq_daily_quote_history_v2';
 const DAILY_QUOTE_HISTORY_LIMIT = 21;
 const DAILY_QUOTE_LOOKBACK_DAYS = 5;
+// School-wide guard: one laptop claims the day's generation, the rest wait for it.
+const DAILY_QUOTE_CLAIM_MS = 90 * 1000;
+const DAILY_QUOTE_MAX_ATTEMPTS = 3; // AI calls per day for the whole school, even if the AI keeps failing
+const DAILY_QUOTE_WAIT_POLLS = [8000, 12000, 20000];
 
 let dailySpiceState = {
     day: null,
@@ -1396,12 +1401,45 @@ async function generateFreshQuote(todayKey, recentQuotes) {
     return '';
 }
 
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function readSharedQuote(docRef) {
+    const snap = await getDoc(docRef);
+    return snap.exists() ? String(snap.data()?.content || '').trim() : '';
+}
+
+/**
+ * Atomically decides who generates today's quote. Returns
+ * { content } when it already exists, { claimed: true } for the one laptop that
+ * should call the AI, { wait: true } while another laptop is generating, and
+ * { exhausted: true } once the day's attempt budget is spent.
+ */
+async function claimDailyQuote(docRef, todayKey) {
+    const { runTransaction } = await import('../firebase.js');
+    return runTransaction(db, async (tx) => {
+        const snap = await tx.get(docRef);
+        const data = snap.exists() ? snap.data() : {};
+        const decision = decideDailyQuoteClaim(data, Date.now(), DAILY_QUOTE_MAX_ATTEMPTS);
+        if (decision === 'use') return { content: String(data.content).trim() };
+        if (decision === 'exhausted') return { exhausted: true };
+        if (decision === 'wait') return { wait: true };
+        tx.set(docRef, {
+            date: todayKey,
+            type: DAILY_QUOTE_TYPE,
+            attempts: (Number(data?.attempts) || 0) + 1,
+            claimedUntil: Date.now() + DAILY_QUOTE_CLAIM_MS
+        }, { merge: true });
+        return { claimed: true };
+    });
+}
+
 async function getDailyQuote() {
     const todayKey = utils.getLocalIsoDateString();
     const docId = dailyQuoteDocId(todayKey);
     const localKey = `gcq_daily_content_${docId}`;
     const curated = getCuratedDailyQuote(todayKey);
 
+    // 0. This laptop already has today's quote: no reads, no AI.
     try {
         const localCached = localStorage.getItem(localKey);
         if (localCached) return localCached;
@@ -1414,23 +1452,44 @@ async function getDailyQuote() {
     }
 
     const requestPromise = (async () => {
+        const docRef = doc(db, DAILY_CACHE_PATH, docId);
         const keep = (text) => {
             try { localStorage.setItem(localKey, text); } catch (_) { /* ignore */ }
             rememberQuote(todayKey, text);
             return text;
         };
 
-        // 1. Shared cache: whoever opens Home first each day generates for everyone.
+        // 1. Shared cache: one read, and every laptop in the school gets the same quote.
         try {
-            const docSnap = await getDoc(doc(db, DAILY_CACHE_PATH, docId));
-            const content = docSnap.exists() ? String(docSnap.data()?.content || '').trim() : '';
+            const content = await readSharedQuote(docRef);
             if (content) return keep(content);
         } catch (e) {
-            console.warn("Cache fetch skipped, trying generation.");
+            console.warn("Daily quote cache read failed; showing today's curated line.");
+            return curated;
         }
 
         // 2. Without Elite AI, the day's curated line (it still changes daily).
         if (!canUseFeature('eliteAI')) return curated;
+
+        // 3. Claim the day's generation so only one laptop ever calls the AI.
+        let claim;
+        try {
+            claim = await claimDailyQuote(docRef, todayKey);
+        } catch (e) {
+            // Offline or blocked: never generate without a claim.
+            console.warn("Daily quote claim failed; showing today's curated line.", e);
+            return curated;
+        }
+        if (claim.content) return keep(claim.content);
+        if (claim.exhausted) return curated;
+        if (claim.wait) {
+            for (const delay of DAILY_QUOTE_WAIT_POLLS) {
+                await pause(delay);
+                const content = await readSharedQuote(docRef).catch(() => '');
+                if (content) return keep(content);
+            }
+            return curated;
+        }
 
         try {
             const recent = await collectRecentQuotes(todayKey);
@@ -1439,18 +1498,18 @@ async function getDailyQuote() {
 
             try {
                 const { setDoc } = await import('../firebase.js');
-                await setDoc(doc(db, DAILY_CACHE_PATH, docId), {
-                    content,
-                    date: todayKey,
-                    type: DAILY_QUOTE_TYPE
-                });
+                await setDoc(docRef, { content, claimedUntil: 0 }, { merge: true });
             } catch (e) {
                 console.error("Failed to save to cache", e);
             }
             return keep(content);
         } catch (e) {
             console.error(e);
-            // Not cached: a transient AI failure must not lock the quote for the day.
+            // Release the claim so a later visit may retry, within the day's attempt budget.
+            try {
+                const { setDoc } = await import('../firebase.js');
+                await setDoc(docRef, { claimedUntil: 0 }, { merge: true });
+            } catch (_) { /* the claim simply expires */ }
             return curated;
         }
     })().finally(() => {

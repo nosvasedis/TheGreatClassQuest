@@ -55,3 +55,13 @@ test('the prompt names the day recipe and lists recent quotes to avoid', () => {
     const prompt = buildDailyQuoteUserPrompt(key, ['Old line one.', 'Old line two.']);
     for (const part of [theme, voice, image, 'Old line one.', 'Old line two.']) assert.ok(prompt.includes(part), part);
 });
+
+test('only one laptop claims the day, others wait, and the AI budget is capped', async () => {
+    const { decideDailyQuoteClaim } = await import('../utils/dailyQuote.mjs');
+    const now = 1_000_000;
+    assert.equal(decideDailyQuoteClaim(undefined, now, 3), 'claim');
+    assert.equal(decideDailyQuoteClaim({ attempts: 1, claimedUntil: now + 5000 }, now, 3), 'wait');
+    assert.equal(decideDailyQuoteClaim({ attempts: 1, claimedUntil: now - 1 }, now, 3), 'claim');
+    assert.equal(decideDailyQuoteClaim({ attempts: 3, claimedUntil: 0 }, now, 3), 'exhausted');
+    assert.equal(decideDailyQuoteClaim({ content: 'Hi there, friends.', attempts: 3 }, now, 3), 'use');
+});

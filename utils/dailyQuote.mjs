@@ -202,3 +202,15 @@ export function buildDailyQuoteUserPrompt(dateKey, recentQuotes = []) {
     }
     return lines.join(' ');
 }
+
+/**
+ * Who generates today's quote, from the shared doc's current data:
+ * 'use' (content exists), 'exhausted' (attempt budget spent), 'wait' (another
+ * laptop holds a live claim) or 'claim' (this laptop should call the AI).
+ */
+export function decideDailyQuoteClaim(data, now, maxAttempts) {
+    if (String(data?.content || '').trim()) return 'use';
+    if ((Number(data?.attempts) || 0) >= maxAttempts) return 'exhausted';
+    if ((Number(data?.claimedUntil) || 0) > now) return 'wait';
+    return 'claim';
+}

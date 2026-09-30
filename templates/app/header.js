@@ -7,85 +7,14 @@ import { buildCloudsHtml } from '../../features/skyWeatherArt.js';
 export const DEFAULT_SKY_SCENE = resolveSkyScene({}, {});
 
 /**
- * Gold ribbons that unfurl from the header's gem down into the Award sky as it
- * opens, and wind back up into it on the way out (styles/header_flourish.css).
- * Each ribbon is a real twisting band: its width pinches where it turns over,
- * the front faces are bright gold and the backs a deeper amber, and it ends in
- * a swallow-tail. A stroke along its centreline (pathLength 1) is the mask that
- * draws it in, so CSS can unfurl and furl it with stroke-dashoffset.
+ * Two sparks that ride the thread's cut ends as it unwraps from the gem out to
+ * the edges (Award sky opening) and back in again, plus the glimmer the gem
+ * gives when the thread is whole again (styles/header_flourish.css).
  */
-const RIBBONS = [
-    { w: 17, turns: 3.5, segs: [[[500, 4], [430, 40], [330, 30], [292, 108]], [[292, 108], [254, 186], [350, 270], [252, 358]], [[252, 358], [154, 446], [120, 470], [168, 586]]] },
-    { w: 12, turns: 2.5, segs: [[[500, 4], [478, 70], [405, 95], [415, 190]], [[415, 190], [425, 285], [480, 300], [442, 398]]] }
-];
-
-const cubicAt = ([p0, p1, p2, p3], t) => {
-    const u = 1 - t;
-    return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]);
-};
-
-function ribbonShapes({ w, turns, segs }, mirror) {
-    const fx = (x) => (mirror ? 1000 - x : x);
-    const S = segs.map((seg) => seg.map(([x, y]) => [fx(x), y]));
-    const N = 90;
-    const pts = [];
-    for (let i = 0; i <= N; i++) {
-        const g = (i / N) * S.length;
-        const si = Math.min(S.length - 1, Math.floor(g));
-        pts.push(cubicAt(S[si], g - si));
-    }
-    const r = (v) => Math.round(v * 10) / 10;
-    const edges = pts.map((p, i) => {
-        const a = pts[Math.max(0, i - 1)];
-        const b = pts[Math.min(N, i + 1)];
-        const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-        const nx = -(b[1] - a[1]) / len;
-        const ny = (b[0] - a[0]) / len;
-        const t = i / N;
-        const c = Math.cos(t * Math.PI * turns);
-        const half = (w / 2) * (0.12 + 0.88 * Math.abs(c));
-        return { l: [p[0] + nx * half, p[1] + ny * half], r: [p[0] - nx * half, p[1] - ny * half], front: c >= 0 };
-    });
-    // Split into faces at each pinch so fronts and backs can differ in colour.
-    const faces = [];
-    let start = 0;
-    for (let i = 1; i <= N; i++) {
-        if (i === N || edges[i].front !== edges[start].front) {
-            const run = edges.slice(start, i + 1);
-            const d = `M${run.map((e) => `${r(e.l[0])} ${r(e.l[1])}`).join(' L')} L${run.reverse().map((e) => `${r(e.r[0])} ${r(e.r[1])}`).join(' L')}Z`;
-            faces.push(`<path class="gcq-ribbon__${edges[start].front ? 'front' : 'back'}" d="${d}"/>`);
-            start = i;
-        }
-    }
-    // Swallow-tail notch at the end.
-    const end = pts[N];
-    const prev = pts[N - 3];
-    const len = Math.hypot(end[0] - prev[0], end[1] - prev[1]) || 1;
-    const ux = (end[0] - prev[0]) / len;
-    const uy = (end[1] - prev[1]) / len;
-    const hw = w * 0.62;
-    const tail = `M${r(end[0] - uy * hw)} ${r(end[1] + ux * hw)} L${r(end[0] + ux * w * 1.4 - uy * hw * 1.2)} ${r(end[1] + uy * w * 1.4 + ux * hw * 1.2)} L${r(end[0] + ux * w * 0.5)} ${r(end[1] + uy * w * 0.5)} L${r(end[0] + ux * w * 1.4 + uy * hw * 1.2)} ${r(end[1] + uy * w * 1.4 - ux * hw * 1.2)} L${r(end[0] + uy * hw)} ${r(end[1] - ux * hw)}Z`;
-    faces.push(`<path class="gcq-ribbon__${edges[N].front ? 'front' : 'back'}" d="${tail}"/>`);
-    const centre = `M${S[0][0][0]} ${S[0][0][1]} ${S.map((seg) => `C${seg.slice(1).map((q) => q.join(' ')).join(', ')}`).join(' ')} l${r(ux * w * 1.6)} ${r(uy * w * 1.6)}`;
-    return { faces: faces.join(''), centre };
-}
-
-export const headerRibbonsHTML = (() => {
-    const list = [];
-    RIBBONS.forEach((rb, k) => [false, true].forEach((mirror) => list.push({ ...ribbonShapes(rb, mirror), w: rb.w, i: k * 2 + (mirror ? 1 : 0), kind: k ? 'short' : 'long' })));
-    return `
-                <svg class="gcq-ribbons" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMin meet" aria-hidden="true" focusable="false">
-                    <defs>
-                        <linearGradient id="gcq-ribbon-gold" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0" stop-color="#fffbe6"/>
-                            <stop offset="0.35" stop-color="#fde68a"/>
-                            <stop offset="1" stop-color="#fbbf24"/>
-                        </linearGradient>
-                        ${list.map((rb) => `<mask id="gcq-ribbon-mask-${rb.i}" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="620"><path class="gcq-ribbon__reveal" style="--i: ${rb.i}" d="${rb.centre}" pathLength="1" stroke-width="${rb.w * 3}"/></mask>`).join('')}
-                    </defs>
-                    ${list.map((rb) => `<g class="gcq-ribbon gcq-ribbon--${rb.kind}" style="--i: ${rb.i}" mask="url(#gcq-ribbon-mask-${rb.i})">${rb.faces}</g>`).join('')}
-                </svg>`;
-})();
+export const trimSparksHTML = `
+                <span class="gcq-trim-spark gcq-trim-spark--l"></span>
+                <span class="gcq-trim-spark gcq-trim-spark--r"></span>
+                <span class="gcq-trim-glimmer"></span>`;
 
 /** Soft INNER letter carve filters — must stay outside elements that mobile hides
  *  with display:none, or filter:url(#…) silently fails on the mobile chrome. */
@@ -154,7 +83,7 @@ export const headerHTML = `
                 </svg>
                 <span class="gcq-header-trim__bead" style="--x: 72%; --d: -1.3s"></span>
                 <span class="gcq-header-trim__bead" style="--x: 91%; --d: -3s"></span>
-                ${headerRibbonsHTML}
+                ${trimSparksHTML}
             </div>
 
             <div class="z-10 min-w-0 flex flex-1 flex-col justify-between">

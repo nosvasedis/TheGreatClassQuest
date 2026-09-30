@@ -106,6 +106,7 @@ const AWARD_IMMERSIVE_SKY_DELAY_MS = 1500;
 const AWARD_SKY_EXIT_FALLBACK_MS = 1360;
 
 let awardSkyDelayTimer = null;
+let trimRejoinTimer = null;
 let awardSkyExitFallbackTimer = null;
 /** @type {{ sky: HTMLElement, handler: (e: AnimationEvent) => void } | null} */
 let awardSkyExitAnimListener = null;
@@ -175,6 +176,10 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
             const finishExit = () => {
                 clearAwardSkyExitAnimation();
                 finalizeAwardSkyOff(appScreen);
+                // The header thread has just wrapped back into its gem: let the gem glimmer.
+                appScreen.classList.add('gcq-trim-rejoin');
+                clearTimeout(trimRejoinTimer);
+                trimRejoinTimer = window.setTimeout(() => appScreen.classList.remove('gcq-trim-rejoin'), 900);
             };
 
             const handler = (e) => {
@@ -198,7 +203,7 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
     }
 
     clearAwardSkyExitAnimation();
-    appScreen.classList.remove('award-sky-leaving');
+    appScreen.classList.remove('award-sky-leaving', 'gcq-trim-rejoin');
 
     if (
         continueSession &&

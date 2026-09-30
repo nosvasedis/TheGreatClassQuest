@@ -1,4 +1,4 @@
-import { DEFAULT_SKY_SCENE } from '../templates/app/header.js';
+import { DEFAULT_SKY_SCENE, trimSparksHTML } from '../templates/app/header.js';
 import { buildCloudsHtml } from '../features/skyWeatherArt.js';
 const APP_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
@@ -22,6 +22,7 @@ const HEADER_TRIM = `
         </svg>
         <span class="m-header__bead" style="--x: 69%; --d: -1.3s"></span>
         <span class="m-header__bead" style="--x: 88%; --d: -3s"></span>
+        ${trimSparksHTML}
     </div>`;
 
 const TITLE_SWASH = `

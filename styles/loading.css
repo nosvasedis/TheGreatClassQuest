@@ -11,6 +11,10 @@
     align-items: center;
     justify-content: center;
     perspective: 1200px;
+    /* Where the sun sits; the sunbeams and the exit daylight start from here. */
+    --sun-size: clamp(150px, 17vw, 240px);
+    --sun-top: clamp(10px, 3vh, 36px);
+    --sun-right: clamp(12px, 3.5vw, 56px);
 }
 
 #loading-screen::before,
@@ -82,10 +86,9 @@
      halo / rays / disc  breathe and turn at their own slow pace
      bloom / flare       only light up for the Welcome moment */
 .loading-sun {
-    --sun-size: clamp(150px, 17vw, 240px);
     position: absolute;
-    top: clamp(10px, 3vh, 36px);
-    right: clamp(12px, 3.5vw, 56px);
+    top: var(--sun-top);
+    right: var(--sun-right);
     width: var(--sun-size);
     height: var(--sun-size);
     pointer-events: none;
@@ -210,8 +213,28 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loading-sun__body > span {
+    .loading-sun__body > span,
+    .loading-sunbeams svg,
+    .loading-balloon__bob,
+    .loading-flock__glide,
+    .loading-bird {
         animation: none !important;
+    }
+
+    /* A still sky: travellers hold where they are, twinkles rest. */
+    #loading-screen .loading-cloud-art,
+    .loading-balloon,
+    .loading-flock {
+        animation-play-state: paused !important;
+    }
+
+    .loading-twinkles {
+        display: none;
+    }
+
+    #loading-screen .loading-cloud-art,
+    .loading-balloon {
+        transition: none !important;
     }
 
     .loading-sun__body {
@@ -225,10 +248,21 @@
     transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-#loading-screen.loading-final-moment .loading-clouds,
+/* Welcome: the clouds part like curtains (templates/loading.js#partCloudsForWelcome
+   gives each one --part-x towards its own side) and thin out a little. The
+   standalone `translate` property stacks on top of the drift animation's
+   transform, so both stay on the compositor. */
+#loading-screen .loading-cloud-art {
+    transition: translate 2.4s cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+#loading-screen.loading-final-moment .loading-cloud-art {
+    translate: var(--part-x, 0) 0;
+}
+
 #loading-screen.loading-final-moment .loading-cloud-art-layer {
-    opacity: 0;
-    transform: scale(1.04);
+    opacity: 0.72;
+    transition: opacity 1.6s ease;
 }
 
 .loading-cloud,
@@ -351,121 +385,219 @@
 .lca-7 { top: 74%; --offset: -7vw;  --scale: 1.06; --depth: -130px; --fromY: 2px;  --toY: -3px; animation-duration: 144s; animation-delay: -36s; background-image: url('../assets/award-clouds/cloud-g.png'); }
 .lca-8 { top: 84%; --offset: 26vw;  --scale: 0.98; --depth: -110px; --fromY: -2px; --toY: 3px;  animation-duration: 138s; animation-delay: -74s; background-image: url('../assets/award-clouds/cloud-h.png'); }
 
-.loading-journey-icons {
+/* ── Sunbeams ───────────────────────────────────────────────────
+   Long soft shafts falling from the sun. The box's top-right corner sits on
+   the sun's centre; the shafts fade in once the sun is up, breathe slowly,
+   and brighten for the Welcome. */
+.loading-sunbeams {
     position: absolute;
-    inset: 0;
-    z-index: 3;
+    top: calc(var(--sun-top) + var(--sun-size) / 2);
+    right: calc(var(--sun-right) + var(--sun-size) / 2);
+    width: 115vw;
+    height: 105vh;
+    z-index: 1;
     pointer-events: none;
-    overflow: hidden;
-    opacity: 0.22;
-    transition: opacity 420ms cubic-bezier(0.25, 0.88, 0.32, 1);
+    transform-origin: 100% 0;
+    animation: loading-beams-in 3s ease 1.1s both;
 }
 
-.loading-journey-icon {
+@keyframes loading-beams-in {
+    from { opacity: 0; transform: rotate(-6deg); }
+    to { opacity: 1; transform: none; }
+}
+
+.loading-sunbeams__glow {
     position: absolute;
+    inset: 0;
+    transform-origin: 100% 0;
+    opacity: 0.6;
+    transition: opacity 1.2s ease, transform 2.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.loading-sunbeams svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform-origin: 100% 0;
+    animation: loading-beams-sway 14s ease-in-out infinite alternate;
+}
+
+@keyframes loading-beams-sway {
+    from { opacity: 0.7; transform: rotate(-2.5deg); }
+    to { opacity: 1; transform: rotate(2.5deg); }
+}
+
+#loading-screen.loading-final-moment .loading-sunbeams__glow {
+    opacity: 1;
+    transform: scale(1.12);
+}
+
+/* ── Sky travellers: hot-air balloons and birds ───────────────────
+   Built in templates/loading.js (buildBalloons, buildFlocks). Each one is a
+   drift layer carrying a bob layer, both plain transforms. */
+.loading-balloons,
+.loading-birds,
+.loading-twinkles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.loading-balloons { z-index: 2; }
+.loading-birds { z-index: 2; transition: opacity 0.9s ease; }
+.loading-twinkles { z-index: 3; transition: opacity 0.8s ease; }
+
+@keyframes loading-drift-right {
+    from { transform: translate3d(-18vw, 0, 0); }
+    to { transform: translate3d(118vw, 0, 0); }
+}
+
+@keyframes loading-drift-left {
+    from { transform: translate3d(118vw, 0, 0); }
+    to { transform: translate3d(-18vw, 0, 0); }
+}
+
+.loading-balloon,
+.loading-flock {
+    position: absolute;
+    left: 0;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
     will-change: transform;
 }
 
-.loading-journey-icon i {
+.loading-balloon__bob {
     display: block;
-    opacity: 0.62;
-    animation: loading-journey-twirl 12s ease-in-out infinite;
+    animation: loading-balloon-bob 7s ease-in-out infinite alternate;
 }
 
-@keyframes loading-journey-twirl {
-    0% {
-        transform: translateY(0) rotate(0deg) scale(var(--iconScale, 1));
-    }
-    50% {
-        transform: translateY(-10px) rotate(180deg) scale(calc(var(--iconScale, 1) * 1.06));
-    }
-    100% {
-        transform: translateY(0) rotate(360deg) scale(var(--iconScale, 1));
-    }
+@keyframes loading-balloon-bob {
+    from { transform: translate3d(0, -7px, 0) rotate(-2.5deg); }
+    to { transform: translate3d(0, 7px, 0) rotate(2.5deg); }
 }
 
-@keyframes loading-icon-right {
-    from {
-        transform: translate3d(calc(-150vw + var(--iOffset, 0vw)), var(--iFromY, 0px), var(--iDepth, 0px));
-    }
-    to {
-        transform: translate3d(calc(150vw + var(--iOffset, 0vw)), var(--iToY, -5px), var(--iDepth, 0px));
-    }
+.loading-balloon svg,
+.loading-bird svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
 }
 
-@keyframes loading-icon-left {
-    from {
-        transform: translate3d(calc(150vw + var(--iOffset, 0vw)), var(--iFromY, 0px), var(--iDepth, 0px));
-    }
-    to {
-        transform: translate3d(calc(-150vw + var(--iOffset, 0vw)), var(--iToY, 5px), var(--iDepth, 0px));
-    }
+/* Welcome: the balloons let go and sail up out of the sky, one after another. */
+.loading-balloon {
+    transition: translate 3.4s cubic-bezier(0.55, 0, 0.8, 0.45) var(--rise-delay, 0ms);
 }
 
-.ji-1, .ji-3, .ji-5, .ji-7, .ji-9, .ji-11 {
-    animation-name: loading-icon-right;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+#loading-screen.loading-final-moment .loading-balloon {
+    translate: 0 -75vh;
 }
 
-.ji-2, .ji-4, .ji-6, .ji-8, .ji-10, .ji-12 {
-    animation-name: loading-icon-left;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+/* ...and melt into the sky as they go, so none drifts across the greeting. */
+.loading-balloons {
+    transition: opacity 1.1s ease 0.35s;
 }
 
-.ji-1  { top: 7%;  color: #0284c7; --iOffset: -18vw; --iDepth: -120px; --iFromY: 0px;  --iToY: -5px; --iconScale: 0.9;  font-size: clamp(1.1rem, 1.8vw, 1.65rem); animation-duration: 88s; animation-delay: -62s; }
-.ji-2  { top: 14%; color: #f97316; --iOffset: 24vw;  --iDepth: -100px; --iFromY: -2px; --iToY: 4px;  --iconScale: 1;    font-size: clamp(1.2rem, 2vw, 1.78rem); animation-duration: 81s; animation-delay: -38s; }
-.ji-3  { top: 22%; color: #8b5cf6; --iOffset: -30vw; --iDepth: -82px;  --iFromY: 1px;  --iToY: -4px; --iconScale: 0.94; font-size: clamp(1rem, 1.7vw, 1.6rem); animation-duration: 92s; animation-delay: -71s; }
-.ji-4  { top: 30%; color: #f59e0b; --iOffset: 12vw;  --iDepth: -70px;  --iFromY: -1px; --iToY: 5px;  --iconScale: 1.02; font-size: clamp(1.25rem, 2.1vw, 1.9rem); animation-duration: 78s; animation-delay: -29s; }
-.ji-5  { top: 38%; color: #ec4899; --iOffset: 33vw;  --iDepth: -58px;  --iFromY: 2px;  --iToY: -5px; --iconScale: 1.08; font-size: clamp(1.2rem, 2vw, 1.84rem); animation-duration: 84s; animation-delay: -66s; }
-.ji-6  { top: 47%; color: #0891b2; --iOffset: -10vw; --iDepth: -44px;  --iFromY: -2px; --iToY: 5px;  --iconScale: 0.92; font-size: clamp(1.1rem, 1.9vw, 1.7rem); animation-duration: 74s; animation-delay: -34s; }
-.ji-7  { top: 56%; color: #eab308; --iOffset: -40vw; --iDepth: -30px;  --iFromY: 1px;  --iToY: -4px; --iconScale: 1.04; font-size: clamp(1.22rem, 2vw, 1.86rem); animation-duration: 90s; animation-delay: -79s; }
-.ji-8  { top: 65%; color: #10b981; --iOffset: 26vw;  --iDepth: -18px;  --iFromY: -1px; --iToY: 5px;  --iconScale: 1.02; font-size: clamp(1.2rem, 2vw, 1.84rem); animation-duration: 76s; animation-delay: -43s; }
-.ji-9  { top: 73%; color: #6366f1; --iOffset: -20vw; --iDepth: -6px;   --iFromY: 1px;  --iToY: -3px; --iconScale: 0.96; font-size: clamp(1.05rem, 1.8vw, 1.68rem); animation-duration: 86s; animation-delay: -58s; }
-.ji-10 { top: 81%; color: #ef4444; --iOffset: 35vw;  --iDepth: 4px;    --iFromY: -2px; --iToY: 4px;  --iconScale: 1.1;  font-size: clamp(1.2rem, 2vw, 1.9rem); animation-duration: 80s; animation-delay: -27s; }
-.ji-11 { top: 89%; color: #14b8a6; --iOffset: -6vw;  --iDepth: 10px;   --iFromY: 1px;  --iToY: -4px; --iconScale: 0.94; font-size: clamp(1.1rem, 1.8vw, 1.66rem); animation-duration: 93s; animation-delay: -69s; }
-.ji-12 { top: 95%; color: #06b6d4; --iOffset: 44vw;  --iDepth: 16px;   --iFromY: -2px; --iToY: 5px;  --iconScale: 1.08; font-size: clamp(1.25rem, 2.1vw, 1.95rem); animation-duration: 82s; animation-delay: -46s; }
-
-#loading-screen.loading-final-moment .loading-journey-icons {
-    opacity: 0.1;
+#loading-screen.loading-final-moment .loading-balloons {
+    opacity: 0;
 }
 
-/* Sparkle particles */
-.loading-particles {
+.loading-flock__glide {
+    display: block;
+    position: relative;
+    animation: loading-flock-glide 9s ease-in-out infinite alternate;
+}
+
+@keyframes loading-flock-glide {
+    from { transform: translate3d(0, -10px, 0); }
+    to { transform: translate3d(0, 12px, 0); }
+}
+
+.loading-bird {
+    position: absolute;
+    opacity: 0.5;
+    transform-origin: 50% 70%;
+    animation: loading-bird-flap 0.9s ease-in-out infinite;
+}
+
+/* Squashing the "m" vertically reads as a wingbeat and stays a transform. */
+@keyframes loading-bird-flap {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(-0.35); }
+}
+
+#loading-screen.loading-final-moment .loading-birds {
+    opacity: 0;
+}
+
+/* ── Twinkles and glints ─────────────────────────────────────────
+   The same four-point sparkle (GLINT_SVG) twinkles quietly in the sky
+   while loading and pops in a ring around the Welcome. */
+.loading-glint {
+    position: absolute;
+    display: block;
+    width: 18px;
+    height: 18px;
+    translate: -50% -50%;
+    opacity: 0;
+}
+
+.loading-glint svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.loading-twinkles .loading-glint {
+    animation: loading-twinkle 5.2s ease-in-out infinite;
+}
+
+@keyframes loading-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+    45% { opacity: 0.95; transform: scale(1) rotate(45deg); }
+    60% { opacity: 0.8; transform: scale(0.85) rotate(60deg); }
+}
+
+.loading-twinkles .lt-1 { top: 9%;  left: 7%;  width: 16px; height: 16px; animation-delay: -0.4s; }
+.loading-twinkles .lt-2 { top: 18%; left: 31%; width: 11px; height: 11px; animation-delay: -2.1s; animation-duration: 6.1s; }
+.loading-twinkles .lt-3 { top: 34%; left: 5%;  width: 13px; height: 13px; animation-delay: -3.6s; }
+.loading-twinkles .lt-4 { top: 44%; left: 88%; width: 15px; height: 15px; animation-delay: -1.2s; animation-duration: 5.8s; }
+.loading-twinkles .lt-5 { top: 70%; left: 11%; width: 18px; height: 18px; animation-delay: -4.4s; }
+.loading-twinkles .lt-6 { top: 78%; left: 84%; width: 12px; height: 12px; animation-delay: -2.9s; animation-duration: 4.6s; }
+.loading-twinkles .lt-7 { top: 58%; left: 22%; width: 10px; height: 10px; animation-delay: -0.9s; animation-duration: 6.6s; }
+
+#loading-screen.loading-final-moment .loading-twinkles {
+    opacity: 0;
+}
+
+/* ── Daylight: the hand-off into the app ─────────────────────────
+   As the scene fades, warm light spreads out from the sun's corner, so the
+   app appears out of the light rather than behind a plain fade. */
+.loading-daylight {
     position: absolute;
     inset: 0;
-    z-index: 3;
+    z-index: 40;
     pointer-events: none;
-    overflow: hidden;
-    opacity: 1;
-    transition: opacity 380ms cubic-bezier(0.25, 0.88, 0.32, 1), transform 380ms cubic-bezier(0.25, 0.88, 0.32, 1);
-}
-
-.loading-particle {
-    position: absolute;
-    color: rgba(251, 191, 36, 0.85);
-    text-shadow: 0 0 12px rgba(251, 191, 36, 0.52);
-    animation: load-particle-float 4.2s ease-in-out infinite;
-}
-
-@keyframes load-particle-float {
-    0%, 100% { transform: translateY(0) scale(0.95); opacity: 0.18; }
-    50% { transform: translateY(-12px) scale(1.12); opacity: 0.72; }
-}
-
-.lp-1 { top: 8%; left: 8%; font-size: 0.74rem; animation-duration: 4.1s; }
-.lp-2 { top: 38%; right: 12%; font-size: 0.92rem; animation-duration: 3.8s; animation-delay: 0.6s; }
-.lp-3 { top: 32%; left: 4%; font-size: 0.56rem; animation-duration: 4.6s; animation-delay: 1.1s; }
-.lp-4 { top: 27%; right: 5%; font-size: 0.8rem; animation-duration: 3.5s; animation-delay: 1.7s; }
-.lp-5 { bottom: 23%; left: 8%; font-size: 0.62rem; animation-duration: 4.8s; animation-delay: 0.4s; }
-.lp-6 { bottom: 18%; right: 8%; font-size: 0.96rem; animation-duration: 4s; animation-delay: 1.3s; }
-.lp-7 { bottom: 38%; left: 17%; font-size: 0.52rem; animation-duration: 3.9s; animation-delay: 0.9s; }
-.lp-8 { top: 56%; right: 14%; font-size: 0.7rem; animation-duration: 4.4s; animation-delay: 2s; }
-
-#loading-screen.loading-final-moment .loading-particles {
     opacity: 0;
-    transform: scale(1.04);
+    transform-origin: 90% 10%;
+    background:
+        radial-gradient(circle at calc(100% - var(--sun-right) - var(--sun-size) / 2) calc(var(--sun-top) + var(--sun-size) / 2),
+            rgba(255, 251, 235, 1) 0%,
+            rgba(255, 250, 230, 0.85) 30%,
+            rgba(240, 249, 255, 0.7) 70%,
+            rgba(240, 249, 255, 0.6) 100%);
+}
+
+#loading-screen.loading-screen-exit .loading-daylight {
+    animation: loading-daylight-wash 950ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes loading-daylight-wash {
+    0% { opacity: 0; transform: scale(0.9); }
+    55% { opacity: 1; transform: none; }
+    100% { opacity: 1; transform: none; }
 }
 
 /* Open-sky content cluster (no card/panel shell) */
@@ -522,16 +654,24 @@
     letter-spacing: 0.02em !important;
     text-align: center !important;
     margin: 0.5rem 0 0.1rem !important;
-    /* Storybook gradient fill — deep sky blue into cyan into gold */
-    background: linear-gradient(120deg, #0f4c81 0%, #0ea5e9 46%, #fbbf24 100%) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
     color: transparent !important;
     /* Longhand (not shorthand) so the final-moment reveal can smoothly
        transition the width/color into the celebratory border below. */
     -webkit-text-stroke-width: 0.6px;
     -webkit-text-stroke-color: rgba(255, 255, 255, 0.55);
     text-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
+}
+
+/* Storybook gradient fill — deep sky blue into cyan into gold. It sits on an
+   inner span, not on .loading-title itself: background-clip:text on the
+   title would force its ::before glow to be repainted with the words on
+   every frame of the glow's breathing. */
+.loading-title__ink {
+    display: block;
+    background: linear-gradient(120deg, #0f4c81 0%, #0ea5e9 46%, #fbbf24 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 /* Cheap "glow breathing" — a single blurred duplicate of the title text that
@@ -553,6 +693,13 @@
     opacity: 0.45;
     pointer-events: none;
     will-change: opacity, transform;
+}
+
+/* Start breathing only once the words are visible. Chrome decides once, at
+   an animation's start, whether it can run on the compositor; one started
+   while the title is still hidden counts as "no visible change" and stays
+   on the main thread, repainting the title on every frame. */
+#loading-screen.loading-text-ready .loading-title::before {
     animation: loading-glow-pulse 2.8s ease-in-out infinite alternate;
 }
 
@@ -709,40 +856,9 @@
 }
 
 /* --- Auto-detected low-power devices (templates/loading.js: detectLowPowerTier) ---
-   Strip the costliest filter/blur/drop-shadow layers while every element stays
-   on the same cheap transform/opacity animations. Capable machines never see
-   this rule set; constrained ones get a lighter (still lively) sky for free. */
-#loading-screen.gcq-perf-low .loading-particle {
-    text-shadow: none;
-}
-
-#loading-screen.gcq-perf-low .loading-title::before,
-#loading-screen.gcq-perf-low #loading-greeting-text::before {
-    display: none;
-}
-
-#loading-screen.gcq-perf-low .loading-burst {
-    display: none;
-}
-
-/* Final-moment: drop paint-heavy filters that flicker on Android GPUs */
-#loading-screen.gcq-perf-low.loading-final-moment .loading-clouds,
-#loading-screen.gcq-perf-low.loading-final-moment .loading-cloud-art-layer {
-    filter: none;
-}
-
-#loading-screen.gcq-perf-low.loading-final-moment .loading-stage {
-    filter: none;
-}
-
-#loading-screen.gcq-perf-low.loading-final-moment .loading-spinner-wrap {
-    filter: none;
-}
-
-#loading-screen.gcq-perf-low .loading-greeting {
-    filter: none;
-    transition: opacity 0.55s ease, transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+   The scene no longer uses filters anywhere, so constrained machines keep the
+   same look; they just get fewer clouds, balloons and birds (set in
+   initLoadingAtmosphere). */
 
 @media (max-width: 640px) {
     .loading-stage {

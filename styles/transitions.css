@@ -75,18 +75,20 @@ main {
     overflow: hidden;
 }
 
+/* The daylight wash (styles/loading.css) brightens over the first half,
+   then the whole scene fades out of that light into the app. */
 @keyframes loading-screen-exit {
     0% {
         opacity: 1;
         transform: scale(1);
     }
-    40% {
+    45% {
         opacity: 1;
-        transform: scale(1.02);
+        transform: scale(1.015);
     }
     100% {
         opacity: 0;
-        transform: scale(1.04);
+        transform: scale(1.03);
     }
 }
 
@@ -118,7 +120,7 @@ main {
 
 #loading-screen.loading-screen-exit {
     will-change: transform, opacity;
-    animation: loading-screen-exit 920ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: loading-screen-exit 950ms cubic-bezier(0.45, 0, 0.35, 1) forwards;
 }
 
 #loading-screen.loading-screen-exit .loading-center-logo {
@@ -209,13 +211,9 @@ main {
     .loading-stage,
     .loading-cloud,
     .loading-cloud-art,
-    .loading-journey-icon,
-    .loading-journey-icon i,
     .loading-sun,
-    .loading-particle,
-    .loading-burst-star,
-    .loading-firework,
-    .loading-firework::after,
+    .loading-sunbeams,
+    .loading-daylight,
     .loading-title,
     .loading-title::before,
     #loading-greeting-text,

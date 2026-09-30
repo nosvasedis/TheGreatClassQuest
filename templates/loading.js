@@ -185,6 +185,94 @@ const SUNBURST_SVG = `
         }).join('')}
     </svg>`;
 
+// ── Sky travellers and finale glints ─────────────────────────────────
+// Shared gradients live in one always-rendered <defs> block: Chrome will not
+// paint a gradient whose defining <svg> sits inside a display:none subtree.
+const LOADING_DEFS_SVG = `
+    <svg class="loading-defs" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+            <radialGradient id="lg-glint-glow">
+                <stop offset="0" stop-color="#fffbeb" stop-opacity="0.95"/>
+                <stop offset="0.45" stop-color="#fde68a" stop-opacity="0.4"/>
+                <stop offset="1" stop-color="#fde68a" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="lg-glint-star" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0" stop-color="#ffffff"/>
+                <stop offset="0.5" stop-color="#fef9c3"/>
+                <stop offset="1" stop-color="#fbbf24"/>
+            </radialGradient>
+            <radialGradient id="lb-shade" cx="0.36" cy="0.3" r="0.75">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+                <stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
+                <stop offset="1" stop-color="#0f172a" stop-opacity="0.22"/>
+            </radialGradient>
+            <radialGradient id="ls-beam" gradientUnits="userSpaceOnUse" cx="1000" cy="0" r="1350">
+                <stop offset="0" stop-color="#fffbeb" stop-opacity="0.8"/>
+                <stop offset="0.3" stop-color="#fef3c7" stop-opacity="0.3"/>
+                <stop offset="0.8" stop-color="#fef3c7" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+    </svg>`;
+
+/** A four-point sparkle with a soft glow. */
+const GLINT_SVG = `
+    <svg viewBox="-12 -12 24 24" focusable="false">
+        <circle r="8" fill="url(#lg-glint-glow)"/>
+        <path d="M0 -11 C0.9 -2.4 2.4 -0.9 11 0 C2.4 0.9 0.9 2.4 0 11 C-0.9 2.4 -2.4 0.9 -11 0 C-2.4 -0.9 -0.9 -2.4 0 -11 Z" fill="url(#lg-glint-star)"/>
+    </svg>`;
+
+function glints(className, count) {
+    return Array.from({ length: count }, (_, i) =>
+        `<span class="loading-glint ${className}-${i + 1}">${GLINT_SVG}</span>`).join('');
+}
+
+// Long soft shafts of light falling from the sun towards the lower left.
+// The box's top-right corner sits on the sun's centre (styles/loading.css).
+const SUNBEAMS_SVG = `
+    <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" focusable="false">
+        ${[[124, 4.5], [146, 6], [168, 3.5], [192, 5]].map(([a, half]) =>
+            // Three nested wedges per beam fake a soft edge without any blur.
+            [[1.9, 0.28], [1.1, 0.4], [0.45, 0.5]].map(([w, o]) => {
+                const p0 = polar(1000, 0, 1400, a - half * w);
+                const p1 = polar(1000, 0, 1400, a + half * w);
+                return `<path d="M 1000 0 L ${p0.x} ${p0.y} L ${p1.x} ${p1.y} Z" fill="url(#ls-beam)" fill-opacity="${o}"/>`;
+            }).join('')).join('')}
+    </svg>`;
+
+// Hot-air balloons: striped gores, a gold crown band, ropes and a wicker basket.
+const BALLOON_PALETTES = [
+    { a: '#fb7185', b: '#fff1f2', band: '#f59e0b' },
+    { a: '#38bdf8', b: '#f0f9ff', band: '#fbbf24' },
+    { a: '#a78bfa', b: '#faf5ff', band: '#f472b6' },
+    { a: '#34d399', b: '#ecfdf5', band: '#fbbf24' },
+    { a: '#fb923c', b: '#fff7ed', band: '#0ea5e9' },
+];
+
+function balloonSvg(palette, id) {
+    const envelope = 'M30 2 C47 2 58 15 58 30 C58 44 47 53 39 61 L21 61 C13 53 2 44 2 30 C2 15 13 2 30 2 Z';
+    return `
+    <svg viewBox="0 0 60 84" focusable="false">
+        <defs><clipPath id="lb-clip-${id}"><path d="${envelope}"/></clipPath></defs>
+        <path d="M23 61 L25.5 72 M37 61 L34.5 72 M30 61 L30 72" stroke="#7c5a3a" stroke-width="0.9" stroke-opacity="0.75"/>
+        <g clip-path="url(#lb-clip-${id})">
+            <rect x="0" y="0" width="60" height="64" fill="${palette.a}"/>
+            <ellipse cx="30" cy="30" rx="18.5" ry="36" fill="${palette.b}"/>
+            <ellipse cx="30" cy="30" rx="7.5" ry="36" fill="${palette.a}"/>
+            <rect x="0" y="52" width="60" height="4.5" fill="${palette.band}"/>
+            <rect x="0" y="0" width="60" height="64" fill="url(#lb-shade)"/>
+        </g>
+        <path d="${envelope}" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1"/>
+        <rect x="24" y="72" width="12" height="9" rx="2" fill="#b7791f"/>
+        <path d="M24.5 75.5 H35.5 M24.5 78.5 H35.5" stroke="#8a5a14" stroke-width="0.8" stroke-opacity="0.7"/>
+        <rect x="23.4" y="71.2" width="13.2" height="2.2" rx="1.1" fill="#d69e2e"/>
+    </svg>`;
+}
+
+const BIRD_SVG = `
+    <svg viewBox="0 0 26 10" focusable="false">
+        <path d="M1 7.5 Q4 2.2 8 3.4 Q11 4.4 13 7.5 Q15 4.4 18 3.4 Q22 2.2 25 7.5 Q21.5 5 18 5.6 Q15 6.2 13 9 Q11 6.2 8 5.6 Q4.5 5 1 7.5 Z" fill="#334e6f"/>
+    </svg>`;
+
 function randomInt(max) {
     return Math.floor(Math.random() * max);
 }
@@ -246,6 +334,7 @@ export const loadingHTML = `
         class="fixed inset-0 flex flex-col items-center justify-center z-[1100]"
         style="background: linear-gradient(180deg, #E8F6FF 0%, #BFE8FB 42%, #8FDCEF 68%, #CFF3DC 100%);">
 
+        ${LOADING_DEFS_SVG}
         <div class="loading-sky-glow" aria-hidden="true"></div>
         ${LOADING_SUN_HTML}
 
@@ -265,47 +354,21 @@ export const loadingHTML = `
             <span class="loading-cloud-art lca-12"></span>
         </div>
 
-        <!-- Journey icons inspired by app features -->
-        <div class="loading-journey-icons" aria-hidden="true">
-            <span class="loading-journey-icon ji-1"><i class="fas fa-book-open"></i></span>
-            <span class="loading-journey-icon ji-2"><i class="fas fa-compass"></i></span>
-            <span class="loading-journey-icon ji-3"><i class="fas fa-scroll"></i></span>
-            <span class="loading-journey-icon ji-4"><i class="fas fa-crown"></i></span>
-            <span class="loading-journey-icon ji-5"><i class="fas fa-wand-sparkles"></i></span>
-            <span class="loading-journey-icon ji-6"><i class="fas fa-shield-halved"></i></span>
-            <span class="loading-journey-icon ji-7"><i class="fas fa-trophy"></i></span>
-            <span class="loading-journey-icon ji-8"><i class="fas fa-gem"></i></span>
-            <span class="loading-journey-icon ji-9"><i class="fas fa-feather"></i></span>
-            <span class="loading-journey-icon ji-10"><i class="fas fa-star"></i></span>
-            <span class="loading-journey-icon ji-11"><i class="fas fa-map"></i></span>
-            <span class="loading-journey-icon ji-12"><i class="fas fa-rocket"></i></span>
+        <!-- Light falling from the sun -->
+        <div class="loading-sunbeams" aria-hidden="true">
+            <div class="loading-sunbeams__glow">${SUNBEAMS_SVG}</div>
         </div>
 
-        <!-- Celebratory fireworks — only ignite during the final greeting moment -->
-        <div class="loading-fireworks" aria-hidden="true">
-            <span class="loading-firework fw-1"></span>
-            <span class="loading-firework fw-2"></span>
-            <span class="loading-firework fw-3"></span>
-            <span class="loading-firework fw-4"></span>
-            <span class="loading-firework fw-5"></span>
-            <span class="loading-firework fw-6"></span>
-        </div>
+        <!-- Sky travellers: hot-air balloons and flocks (built in initLoadingAtmosphere) -->
+        <div class="loading-balloons" aria-hidden="true"></div>
+        <div class="loading-birds" aria-hidden="true"></div>
 
-        <!-- Sparkle particles -->
-        <div class="loading-particles" aria-hidden="true">
-            <span class="loading-particle lp-1"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-2"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-3"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-4"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-5"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-6"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-7"><i class="fas fa-star"></i></span>
-            <span class="loading-particle lp-8"><i class="fas fa-star"></i></span>
-        </div>
+        <!-- Slow twinkles scattered across the sky -->
+        <div class="loading-twinkles" aria-hidden="true">${glints('lt', 7)}</div>
 
         <!-- Center content -->
         <div class="loading-stage">
-            <div class="loading-title" data-text="The Great Class Quest">The Great Class Quest</div>
+            <div class="loading-title" data-text="The Great Class Quest"><span class="loading-title__ink">The Great Class Quest</span></div>
 
             <div class="loading-title-flourish" aria-hidden="true">
                 <span class="loading-flourish-line"></span>
@@ -328,36 +391,20 @@ export const loadingHTML = `
             <div class="loading-sunburst" aria-hidden="true">${SUNBURST_SVG}</div>
 
             <div id="loading-greeting" class="loading-greeting">
-                <span id="loading-greeting-text"></span>
-                <span class="loading-stardust" aria-hidden="true">
-                    <i class="loading-stardust-mote sd-1"></i>
-                    <i class="loading-stardust-mote sd-2"></i>
-                    <i class="loading-stardust-mote sd-3"></i>
-                    <i class="loading-stardust-mote sd-4"></i>
-                    <i class="loading-stardust-mote sd-5"></i>
-                    <i class="loading-stardust-mote sd-6"></i>
-                    <i class="loading-stardust-mote sd-7"></i>
-                </span>
+                <span id="loading-greeting-text"><span class="loading-greeting-ink"></span></span>
             </div>
 
-            <div class="loading-burst" aria-hidden="true">
-                <span class="loading-burst-star lb-1"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-2"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-3"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-4"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-5"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-6"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-7"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-8"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-9"><i class="fas fa-star"></i></span>
-                <span class="loading-burst-star lb-10"><i class="fas fa-star"></i></span>
-            </div>
+            <!-- Welcome finale: sparkles pop in a ring around the greeting -->
+            <div class="loading-cheer" aria-hidden="true">${glints('lc', 8)}</div>
 
             <!-- Fixed-height card: tips of one or two lines never shift the stage -->
             <div class="loading-tip-card">
                 <div id="loading-tip" class="loading-tip" aria-live="polite">Preparing your quest&hellip;</div>
             </div>
         </div>
+
+        <!-- Warm light that washes over the scene as it hands over to the app -->
+        <div class="loading-daylight" aria-hidden="true"></div>
     </div>
 `;
 
@@ -421,7 +468,9 @@ export function initLoadingAtmosphere() {
         // larger, more prominent ones lower down — not evenly spread top to bottom.
         // We build three loose groups and let randomness mix them naturally.
         // Weaker devices (auto-detected) get a lighter sky so motion stays smooth.
-        const cloudCount = mobile ? (lowPower ? 6 : 8) : (lowPower ? 18 : 32);
+        // A calmer sky than the old 32 clouds: fewer, better-spaced layers read
+        // as more painterly and leave the balloons room to be seen.
+        const cloudCount = mobile ? (lowPower ? 6 : 8) : (lowPower ? 14 : 22);
 
         for (let index = 0; index < cloudCount; index += 1) {
             const cloud = document.createElement('span');
@@ -487,20 +536,99 @@ export function initLoadingAtmosphere() {
         }
     }
 
-    // Journey icons are hidden on the phone scene; leave them untouched there.
-    const journeyIcons = mobile ? [] : Array.from(document.querySelectorAll('.loading-journey-icon'));
-    journeyIcons.forEach((iconWrap) => {
-        const base = parseFloat(getComputedStyle(iconWrap).animationDuration) || 82;
-        const duration = base * randomRange(0.92, 1.14);
-        iconWrap.style.animationDuration = `${duration.toFixed(2)}s`;
-        iconWrap.style.animationDelay = `-${randomRange(10, 180).toFixed(2)}s`;
+    buildBalloons(document.querySelector('.loading-balloons'), { mobile, lowPower });
+    buildFlocks(document.querySelector('.loading-birds'), { mobile, lowPower });
+}
 
-        const icon = iconWrap.querySelector('i');
-        if (icon) {
-            const twirlDuration = randomRange(9.5, 14.5);
-            icon.style.animationDuration = `${twirlDuration.toFixed(2)}s`;
-            icon.style.animationDelay = `-${randomRange(0, 8).toFixed(2)}s`;
+/**
+ * A few hot-air balloons drifting across at different depths. Far ones are
+ * small, paler and slower. Each balloon is two layers: the drift across the
+ * sky, and a gentle bob and sway inside it.
+ */
+function buildBalloons(layer, { mobile, lowPower }) {
+    if (!layer) return;
+    layer.innerHTML = '';
+    const count = mobile ? (lowPower ? 1 : 2) : (lowPower ? 3 : 5);
+    const start = randomInt(BALLOON_PALETTES.length);
+    // Spread vertically in bands so two balloons never stack up.
+    const bands = mobile ? [[6, 18], [72, 82]] : [[8, 22], [24, 40], [44, 60], [10, 30], [60, 72]];
+    for (let i = 0; i < count; i += 1) {
+        const depth = mobile ? 0.5 : i / Math.max(1, count - 1);   // 0 far → 1 near
+        const [lo, hi] = bands[i % bands.length];
+        const size = Math.round((mobile ? 40 : 38 + depth * 46) + randomRange(-4, 4));
+        const duration = (mobile ? 95 : 150 - depth * 55) + randomRange(-10, 10);
+        const balloon = document.createElement('span');
+        balloon.className = 'loading-balloon';
+        balloon.style.top = `${randomRange(lo, hi).toFixed(1)}%`;
+        balloon.style.width = `${size}px`;
+        balloon.style.opacity = (0.72 + depth * 0.28).toFixed(2);
+        balloon.style.animationName = i % 2 ? 'loading-drift-left' : 'loading-drift-right';
+        balloon.style.animationDuration = `${duration.toFixed(1)}s`;
+        balloon.style.animationDelay = `-${randomRange(0.1, 0.9) * duration}s`;
+        balloon.style.setProperty('--rise-delay', `${i * 90}ms`);
+        const bob = document.createElement('span');
+        bob.className = 'loading-balloon__bob';
+        bob.style.animationDuration = `${randomRange(6, 8.5).toFixed(2)}s`;
+        bob.style.animationDelay = `-${randomRange(0, 6).toFixed(2)}s`;
+        bob.innerHTML = balloonSvg(BALLOON_PALETTES[(start + i) % BALLOON_PALETTES.length], i);
+        balloon.appendChild(bob);
+        layer.appendChild(balloon);
+    }
+}
+
+/** Small flocks of birds gliding across the upper sky, wings beating out of step. */
+function buildFlocks(layer, { mobile, lowPower }) {
+    if (!layer) return;
+    layer.innerHTML = '';
+    const flocks = mobile ? (lowPower ? 0 : 1) : (lowPower ? 1 : 2);
+    // A loose V: leader in front, followers trailing behind and to the sides.
+    const formation = [[0, 0], [-22, -9], [-20, 11], [-42, -16], [-40, 19]];
+    for (let f = 0; f < flocks; f += 1) {
+        const rightward = f % 2 === 0;
+        const duration = randomRange(46, 62);
+        const flock = document.createElement('span');
+        flock.className = 'loading-flock';
+        flock.style.top = `${randomRange(mobile ? 12 : 8, mobile ? 22 : 30).toFixed(1)}%`;
+        flock.style.animationName = rightward ? 'loading-drift-right' : 'loading-drift-left';
+        flock.style.animationDuration = `${duration.toFixed(1)}s`;
+        flock.style.animationDelay = `-${randomRange(0.15, 0.7) * duration}s`;
+        const glide = document.createElement('span');
+        glide.className = 'loading-flock__glide';
+        const size = mobile ? 22 : randomRange(24, 32);
+        const members = 3 + randomInt(3);
+        for (let b = 0; b < members; b += 1) {
+            const [x, y] = formation[b];
+            const bird = document.createElement('span');
+            bird.className = 'loading-bird';
+            bird.style.left = `${(rightward ? x : -x) * (size / 20)}px`;
+            bird.style.top = `${y * (size / 20)}px`;
+            bird.style.width = `${(size * (b ? randomRange(0.8, 0.95) : 1)).toFixed(1)}px`;
+            bird.style.animationDuration = `${randomRange(0.8, 1.05).toFixed(2)}s`;
+            bird.style.animationDelay = `-${randomRange(0, 1).toFixed(2)}s`;
+            bird.innerHTML = BIRD_SVG;
+            glide.appendChild(bird);
         }
+        flock.appendChild(glide);
+        layer.appendChild(flock);
+    }
+}
+
+/**
+ * For the Welcome, the clouds part like curtains: each one slides out
+ * towards the side of the screen it is already on. Measured once, at the
+ * moment the finale starts.
+ */
+function partCloudsForWelcome() {
+    const clouds = document.querySelectorAll('#loading-screen .loading-cloud-art');
+    if (!clouds.length) return;
+    const mid = window.innerWidth / 2;
+    const rects = Array.from(clouds, (cloud) => cloud.getBoundingClientRect());
+    clouds.forEach((cloud, i) => {
+        const r = rects[i];
+        const centre = r.left + r.width / 2;
+        // Clouds near the middle move furthest, so the centre clears first.
+        const pull = 1 - Math.min(1, Math.abs(centre - mid) / mid);
+        cloud.style.setProperty('--part-x', `${(centre < mid ? -1 : 1) * (14 + pull * 26)}vw`);
     });
 }
 
@@ -551,7 +679,7 @@ export function revealStagedLoadingPersonalization() {
     const greetingText = document.getElementById('loading-greeting-text');
     const tipEl        = document.getElementById('loading-tip');
     const stageEl      = document.querySelector('.loading-stage');
-    const burstEl      = document.querySelector('.loading-burst');
+    const cheerEl      = document.querySelector('.loading-cheer');
     if (!greetingEl || !greetingText || !_stagedPersonalization) return false;
 
     if (_tipIntervalId) {
@@ -559,20 +687,25 @@ export function revealStagedLoadingPersonalization() {
         _tipIntervalId = null;
     }
 
-    greetingText.textContent = _stagedPersonalization.greeting;
+    partCloudsForWelcome();
+
+    // The words go in an inner "ink" span that carries the gradient fill;
+    // keeping background-clip:text off the outer span lets its ::before glow
+    // breathe on the compositor instead of repainting the words every frame.
+    const ink = greetingText.querySelector('.loading-greeting-ink') || greetingText;
+    ink.textContent = _stagedPersonalization.greeting;
     // Kept in sync so the cheap ::before(attr(data-text)) glow layer always
     // mirrors the visible (per-role, personalized) text.
     greetingText.dataset.text = _stagedPersonalization.greeting;
     greetingEl.classList.add('loading-greeting-visible');
     if (stageEl) stageEl.classList.add('loading-stage-reveal');
 
-    if (burstEl) {
-        // One-shot celebratory sparkle burst — restart cleanly even if this
-        // ever fires more than once for the same screen instance. Plays on
-        // every device: it's a sub-second finale, not a continuous effect.
-        burstEl.classList.remove('loading-burst-active');
-        void burstEl.offsetWidth;
-        burstEl.classList.add('loading-burst-active');
+    if (cheerEl) {
+        // One-shot ring of sparkles; restart cleanly even if this ever fires
+        // more than once for the same screen instance.
+        cheerEl.classList.remove('loading-cheer-active');
+        void cheerEl.offsetWidth;
+        cheerEl.classList.add('loading-cheer-active');
     }
 
     if (tipEl) {
@@ -602,7 +735,7 @@ export function reopenLoadingScreen() {
     loadingScreen.classList.remove('loading-screen-exit', 'loading-final-moment', 'hidden');
     document.getElementById('loading-greeting')?.classList.remove('loading-greeting-visible');
     document.querySelector('.loading-stage')?.classList.remove('loading-stage-reveal');
-    document.querySelector('.loading-burst')?.classList.remove('loading-burst-active');
+    document.querySelector('.loading-cheer')?.classList.remove('loading-cheer-active');
     void loadingScreen.offsetWidth; // flush the display change before animating opacity
     requestAnimationFrame(() => {
         loadingScreen.classList.remove('opacity-0', 'pointer-events-none');

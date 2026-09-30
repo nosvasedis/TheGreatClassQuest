@@ -14,13 +14,17 @@
      subtitle
    The tip card is pinned near the bottom safe area with a fixed height.
    Decoration is pared back: 6–8 slow clouds kept out of the middle band, a
-   smaller sun peeking in from the top corner, and no journey icons,
-   particles, fireworks or stardust. The Welcome finale is the phone's own:
-   a fan of sunlight opens behind the greeting while a ring of stars pops
-   out of it and the corner sun flares. Every piece is a single layer that
-   only animates transform/opacity. */
+   smaller sun peeking in from the top corner with its light falling across
+   the screen, one or two balloons and a single flock, and no sky twinkles.
+   The Welcome finale is the phone's own: the clouds part, the balloons sail
+   off, a fan of sunlight opens behind the greeting while glints pop around
+   it, and the corner sun flares. Every piece is a single layer that only
+   animates transform/opacity. */
 
 #loading-screen.gcq-loading-mobile {
+    --sun-size: clamp(7.5rem, 34vw, 10.5rem);
+    --sun-top: calc(env(safe-area-inset-top) - var(--sun-size) * 0.24);
+    --sun-right: calc(var(--sun-size) * -0.24);
     padding:
         max(1rem, env(safe-area-inset-top))
         max(1rem, env(safe-area-inset-right))
@@ -28,19 +32,23 @@
         max(1rem, env(safe-area-inset-left));
 }
 
-#loading-screen.gcq-loading-mobile .loading-journey-icons,
-#loading-screen.gcq-loading-mobile .loading-particles,
-#loading-screen.gcq-loading-mobile .loading-fireworks,
-#loading-screen.gcq-loading-mobile .loading-stardust {
+#loading-screen.gcq-loading-mobile .loading-twinkles {
     display: none !important;
 }
 
 /* ── Corner sun ───────────────────────────────────────────── */
 
-#loading-screen.gcq-loading-mobile .loading-sun {
-    --sun-size: clamp(7.5rem, 34vw, 10.5rem);
-    top: calc(env(safe-area-inset-top) - var(--sun-size) * 0.24);
-    right: calc(var(--sun-size) * -0.24);
+#loading-screen.gcq-loading-mobile .loading-sunbeams {
+    width: 130vw;
+    height: 90vh;
+}
+
+#loading-screen.gcq-loading-mobile .loading-sunbeams__glow {
+    opacity: 0.4;
+}
+
+#loading-screen.gcq-loading-mobile.loading-final-moment .loading-sunbeams__glow {
+    opacity: 0.85;
 }
 
 /* One slow ray layer is plenty at this size. */
@@ -53,8 +61,7 @@
 }
 
 #loading-screen.gcq-loading-mobile.loading-final-moment .loading-cloud-art-layer {
-    opacity: 0.35;
-    transform: none;
+    opacity: 0.55;
 }
 
 /* ── Stage ─────────────────────────────────────────────────── */
@@ -200,18 +207,19 @@
     text-wrap: balance;
 }
 
-#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text {
+#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text .loading-greeting-ink {
     /* Still colourful, but a single paint: no per-frame shimmer on phones. */
     animation: none;
     background-position: 30% 50%;
+}
+
+#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text {
     -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.4);
     text-shadow: 0 0 16px rgba(255, 255, 255, 0.8);
 }
 
 #loading-screen.gcq-loading-mobile #loading-greeting-text::before {
-    animation: none;
-    opacity: 0.5;
-    filter: blur(12px);
+    opacity: 0.6;
 }
 
 /* ── Welcome finale: sunburst + star pop in the hero cell ─── */
@@ -257,21 +265,24 @@
     z-index: 2;
 }
 
-/* The desktop star burst, scaled down and centred on the greeting. */
-#loading-screen.gcq-loading-mobile .loading-burst {
+/* The glint ring, fitted around the greeting in the hero cell. */
+#loading-screen.gcq-loading-mobile .loading-cheer {
     grid-area: hero;
     position: relative;
     top: auto;
     left: auto;
     align-self: center;
     justify-self: center;
+    width: 100%;
+    height: 8rem;
     margin-bottom: 1.25rem;
-    transform: scale(0.72);
+    transform: none;
     z-index: 3;
 }
 
-#loading-screen.gcq-loading-mobile .loading-burst-star {
-    font-size: 1.05rem;
+#loading-screen.gcq-loading-mobile .lc-5,
+#loading-screen.gcq-loading-mobile .lc-6 {
+    display: none;
 }
 
 /* ── Tip card: pinned above the bottom safe area ──────────── */
@@ -330,8 +341,13 @@
         display: none;
     }
 
-    #loading-screen.gcq-loading-mobile .loading-sun {
+    #loading-screen.gcq-loading-mobile {
         --sun-size: 6.5rem;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-cheer {
+        height: 5.5rem;
+        margin-bottom: 0.7rem;
     }
 
     #loading-screen.gcq-loading-mobile .loading-sunburst {

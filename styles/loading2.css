@@ -13,14 +13,15 @@
     z-index: 9;
     pointer-events: none;
 
-    /* Bloom start: invisible + tiny (no blur — filter interpolation flickers on Android) */
+    /* Bloom start: a little small and low, then it rises into place with a
+       soft settle (no blur: filter interpolation flickers on Android). */
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.06);
+    transform: translate(-50%, calc(-50% + 18px)) scale(0.62);
     transform-origin: center center;
 
     transition:
-        opacity 0.6s ease,
-        transform 0.95s cubic-bezier(0.34, 1.56, 0.64, 1);
+        opacity 0.7s ease 0.12s,
+        transform 1.05s cubic-bezier(0.2, 1.25, 0.4, 1) 0.12s;
 }
 
 .loading-greeting.loading-greeting-visible {
@@ -57,6 +58,10 @@
     opacity: 0.5;
     pointer-events: none;
     will-change: opacity, transform;
+}
+
+/* Only once the greeting is shown (see the title glow in loading.css for why). */
+.loading-greeting.loading-greeting-visible #loading-greeting-text::before {
     animation: loading-glow-pulse 2.2s ease-in-out infinite alternate;
 }
 
@@ -86,10 +91,10 @@
     opacity: 0;
 }
 
-/* Last-second reveal pulse right before screen exits */
+/* Welcome: the whole stage lifts gently (a slow settle, not a jolt) */
 .loading-final-moment .loading-stage {
-    transform: translateY(-12px) scale(1.035);
-    transition: transform 220ms cubic-bezier(0.25, 0.88, 0.32, 1);
+    transform: translateY(-12px) scale(1.03);
+    transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .loading-final-moment .loading-stage::before {
@@ -102,8 +107,8 @@
 
 .loading-final-moment .loading-spinner-wrap {
     opacity: 0;
-    transform: scale(0.68);
-    transition: opacity 300ms cubic-bezier(0.25, 0.88, 0.32, 1), transform 300ms cubic-bezier(0.25, 0.88, 0.32, 1);
+    transform: scale(1.18);
+    transition: opacity 420ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .loading-final-moment .loading-subtitle {
@@ -143,8 +148,8 @@
        frame, which made the slide hitch. */
     -webkit-text-stroke-width: 1.5px;
     -webkit-text-stroke-color: rgba(0, 0, 0, 0.55);
-    /* Bouncy "back out" easing gives the move a little life instead of a flat glide */
-    transition: transform 0.62s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* A soft settle: a touch of life without the old springy bounce */
+    transition: transform 0.95s cubic-bezier(0.25, 1.15, 0.4, 1);
 }
 
 #loading-screen.loading-final-moment .loading-title::before,
@@ -183,18 +188,6 @@
        into cyan into sunlight gold (a lighter, airier cousin of the loading
        title's fill). The 300% scroll shimmers the colors across the words;
        start/end stops match so the loop is seamless. */
-    background: linear-gradient(100deg,
-        #0ea5e9 0%,
-        #22d3ee 16%,
-        #7dd3fc 32%,
-        #bae6fd 46%,
-        #fde68a 60%,
-        #fbbf24 74%,
-        #38bdf8 88%,
-        #0ea5e9 100%);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
     color: transparent;
     -webkit-text-fill-color: transparent;
     /* Same inner stroke as the app header title: stroke paints ON TOP of
@@ -209,6 +202,25 @@
        element repaints while the shimmer moves, and big blurred shadows
        made every one of those repaints expensive. */
     text-shadow: none;
+}
+
+/* The fill lives on the inner ink span (see templates/loading.js), so the
+   ::before glow on #loading-greeting-text stays a layer of its own. */
+#loading-screen.loading-final-moment #loading-greeting-text .loading-greeting-ink {
+    background: linear-gradient(100deg,
+        #0ea5e9 0%,
+        #22d3ee 16%,
+        #7dd3fc 32%,
+        #bae6fd 46%,
+        #fde68a 60%,
+        #fbbf24 74%,
+        #38bdf8 88%,
+        #0ea5e9 100%);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
     animation: loading-greeting-shimmer 6s linear infinite;
 }
 
@@ -225,242 +237,48 @@
    still (but still colorful) gradient fill instead of a per-frame repaint.
    The fill/outline/shadow above are filter-free and identical either way —
    only this background-scrolling animation is skipped for low-power tiers. */
-#loading-screen.gcq-perf-low.loading-final-moment #loading-greeting-text {
+#loading-screen.gcq-perf-low.loading-final-moment #loading-greeting-text .loading-greeting-ink {
     animation: none;
     background-position: 30% 50%;
 }
 
-/* ── Stardust drifting above the greeting ───────────────────── */
-
-.loading-stardust {
+/* ── Welcome cheer: a ring of glints around the greeting ─────────
+   Eight sparkles (the sky's twinkle shape) pop and spin around the words
+   in a staggered ring, twice, while the greeting is held. */
+.loading-cheer {
     position: absolute;
     left: 50%;
-    top: -0.5em;
-    transform: translateX(-50%);
-    width: 92%;
-    height: 1.8em;
-    pointer-events: none;
-    z-index: 4;
-    opacity: 0;
-    transition: opacity 0.5s ease 0.1s;
-}
-
-#loading-screen.loading-final-moment .loading-stardust {
-    opacity: 1;
-}
-
-.loading-stardust-mote {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.95), 0 0 14px 3px rgba(125, 211, 252, 0.65);
-    opacity: 0;
-    will-change: transform, opacity;
-    animation: stardust-drift 3.4s ease-in-out infinite;
-}
-
-@keyframes stardust-drift {
-    0% {
-        transform: translate(0, 4px) scale(0.4);
-        opacity: 0;
-    }
-    18% {
-        opacity: 1;
-    }
-    60% {
-        opacity: 0.85;
-    }
-    100% {
-        transform: translate(var(--sd-drift, 6px), -24px) scale(1);
-        opacity: 0;
-    }
-}
-
-.sd-1 { left: 4%;  width: 3px; height: 3px; animation-delay: 0s;    --sd-drift: 8px; }
-.sd-2 { left: 18%; width: 5px; height: 5px; animation-delay: 0.55s; --sd-drift: -6px; }
-.sd-3 { left: 33%; width: 3px; height: 3px; animation-delay: 1.15s; --sd-drift: 7px; }
-.sd-4 { left: 50%; width: 4px; height: 4px; animation-delay: 0.3s;  --sd-drift: -5px; }
-.sd-5 { left: 66%; width: 5px; height: 5px; animation-delay: 0.95s; --sd-drift: 6px; }
-.sd-6 { left: 81%; width: 3px; height: 3px; animation-delay: 1.6s;  --sd-drift: -7px; }
-.sd-7 { left: 93%; width: 4px; height: 4px; animation-delay: 0.15s; --sd-drift: 5px; }
-
-/* Sparkle motes are pure decoration — cut them on constrained hardware. */
-#loading-screen.gcq-perf-low .loading-stardust {
-    display: none;
-}
-
-/* ── One-shot arrival sparkle burst ─────────────────────────── */
-
-.loading-burst {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
+    top: 58%;
+    width: min(88vw, 700px);
+    height: 210px;
+    transform: translate(-50%, -50%);
     z-index: 10;
     pointer-events: none;
 }
 
-.loading-burst-star {
-    position: absolute;
-    top: 0;
-    left: 0;
-    color: #fde047;
-    text-shadow: 0 0 10px rgba(253, 224, 71, 0.7);
-    font-size: 0.85rem;
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+@keyframes loading-glint-pop {
+    0% { opacity: 0; transform: scale(0.2) rotate(-30deg); }
+    35% { opacity: 1; transform: scale(1.15) rotate(25deg); }
+    65% { opacity: 0.9; transform: scale(0.9) rotate(55deg); }
+    100% { opacity: 0; transform: scale(0.3) rotate(110deg); }
 }
 
-@keyframes loading-burst-pop {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
-    }
-    35% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-        transform: translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(1) rotate(var(--brot));
-    }
+.loading-cheer-active .loading-glint {
+    animation: loading-glint-pop 1.25s cubic-bezier(0.22, 1, 0.36, 1) var(--gd, 0ms) 2 both;
 }
 
-/* Setting the animation only while active (rather than toggling
-   play-state) means each reveal starts a fresh timeline, delay included. */
-.loading-burst-active .loading-burst-star {
-    animation: loading-burst-pop 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--bdelay, 0ms) forwards;
-}
-
-.lb-1 { --bx: -130px; --by: -75px;  --brot: -35deg; --bdelay: 0ms; }
-.lb-2 { --bx: 120px;  --by: -90px;  --brot: 30deg;  --bdelay: 60ms; }
-.lb-3 { --bx: -160px; --by: 35px;   --brot: -50deg; --bdelay: 120ms; }
-.lb-4 { --bx: 155px;  --by: 25px;   --brot: 45deg;  --bdelay: 30ms; }
-.lb-5 { --bx: -75px;  --by: 120px;  --brot: -20deg; --bdelay: 150ms; }
-.lb-6 { --bx: 85px;   --by: 130px;  --brot: 25deg;  --bdelay: 90ms; }
-.lb-7 { --bx: -40px;  --by: -140px; --brot: -60deg; --bdelay: 45ms; }
-.lb-8 { --bx: 30px;   --by: -150px; --brot: 55deg;  --bdelay: 105ms; }
-.lb-9 { --bx: -185px; --by: -25px;  --brot: -15deg; --bdelay: 75ms; }
-.lb-10 { --bx: 180px; --by: -35px;  --brot: 40deg;  --bdelay: 135ms; }
+.lc-1 { left: 4%;  top: 30%; width: 32px; height: 32px; --gd: 250ms; }
+.lc-2 { left: 96%; top: 26%; width: 29px; height: 29px; --gd: 380ms; }
+.lc-3 { left: 12%; top: 84%; width: 23px; height: 23px; --gd: 520ms; }
+.lc-4 { left: 88%; top: 80%; width: 35px; height: 35px; --gd: 300ms; }
+.lc-5 { left: 30%; top: 2%;  width: 20px; height: 20px; --gd: 640ms; }
+.lc-6 { left: 70%; top: 4%;  width: 25px; height: 25px; --gd: 460ms; }
+.lc-7 { left: 24%; top: 100%; width: 19px; height: 19px; --gd: 720ms; }
+.lc-8 { left: 76%; top: 98%; width: 22px; height: 22px; --gd: 580ms; }
 
 /* The sunburst behind the greeting is the phone scene's finale
-   (styles/loading-mobile.css); the desktop has fireworks instead. */
+   (styles/loading-mobile.css). */
 .loading-sunburst {
-    display: none;
-}
-
-/* ── Fireworks finale (greeting phase only) ─────────────────
-   Pure-DOM spark rings: each .loading-firework is a tiny glowing core whose
-   ::before paints a ring of colored sparks via box-shadow; scaling the core
-   flings the whole ring outward. Ignite only while .loading-final-moment is
-   on the screen, so the show starts exactly when the greeting blooms and
-   rides along during the welcome hold. */
-
-.loading-fireworks {
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.loading-firework {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    margin: -4px 0 0 -4px;
-    border-radius: 50%;
-    background: #ffffff;
-    opacity: 0;
-    transform: scale(0.12);
-    /* Glow baked into the box-shadows (blur radius per spark) instead of a
-       drop-shadow filter the GPU had to re-run on every frame of the burst. */
-    box-shadow: 0 0 8px 2px var(--fw, #fde047);
-    will-change: transform, opacity;
-}
-
-/* Outer spark ring — 8 hue sparks + 4 small white inner glints */
-.loading-firework::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    box-shadow:
-        0 -56px 2px 0 var(--fw, #fde047),
-        40px -40px 2px 0 var(--fw, #fde047),
-        56px 0 2px 0 var(--fw, #fde047),
-        40px 40px 2px 0 var(--fw, #fde047),
-        0 56px 2px 0 var(--fw, #fde047),
-        -40px 40px 2px 0 var(--fw, #fde047),
-        -56px 0 2px 0 var(--fw, #fde047),
-        -40px -40px 2px 0 var(--fw, #fde047),
-        0 -30px 0 -2px #ffffff,
-        30px 0 0 -2px #ffffff,
-        0 30px 0 -2px #ffffff,
-        -30px 0 0 -2px #ffffff;
-}
-
-/* Expanding halo flash at ignition */
-.loading-firework::after {
-    content: '';
-    position: absolute;
-    inset: -10px;
-    border-radius: 50%;
-    border: 3px solid var(--fw, #fde047);
-    opacity: 0;
-}
-
-@keyframes loading-firework-burst {
-    0% {
-        opacity: 0;
-        transform: scale(0.12) rotate(0deg);
-    }
-    10% {
-        opacity: 1;
-    }
-    55% {
-        opacity: 0.95;
-    }
-    100% {
-        opacity: 0;
-        transform: scale(1.65) rotate(26deg);
-    }
-}
-
-@keyframes loading-firework-flash {
-    0% {
-        opacity: 0.85;
-        transform: scale(0.3);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(2.4);
-    }
-}
-
-#loading-screen.loading-final-moment .loading-firework {
-    animation: loading-firework-burst 1.5s cubic-bezier(0.16, 1, 0.3, 1) var(--fwdelay, 0ms) 2;
-}
-
-#loading-screen.loading-final-moment .loading-firework::after {
-    animation: loading-firework-flash 0.55s ease-out var(--fwdelay, 0ms) 2;
-}
-
-.fw-1 { top: 16%; left: 12%; --fw: #fde047; --fwdelay: 150ms; }
-.fw-2 { top: 12%; left: 84%; --fw: #f9a8d4; --fwdelay: 550ms; }
-.fw-3 { top: 52%; left: 7%;  --fw: #67e8f9; --fwdelay: 950ms; }
-.fw-4 { top: 46%; left: 93%; --fw: #c4b5fd; --fwdelay: 350ms; }
-.fw-5 { top: 78%; left: 18%; --fw: #6ee7b7; --fwdelay: 1150ms; }
-.fw-6 { top: 74%; left: 79%; --fw: #fdba74; --fwdelay: 750ms; }
-
-/* Constrained / mobile hardware: skip fireworks entirely — multi-point
-   box-shadow rings are the main Android flicker source in the finale. */
-#loading-screen.gcq-perf-low .loading-fireworks,
-#loading-screen.gcq-perf-low .loading-firework {
     display: none;
 }
 

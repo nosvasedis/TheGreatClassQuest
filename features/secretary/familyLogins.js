@@ -201,6 +201,7 @@ function renderPosterCard() {
                 <span>Scanning it opens the sign-in screen straight on the Parent door.</span>
                 <div class="family-keys__poster-actions">
                     <button type="button" class="office-btn office-btn--gold office-btn--small" data-family-print-poster><i class="fas fa-print" aria-hidden="true"></i> Print poster</button>
+                    <button type="button" class="office-btn office-btn--gold office-btn--small" data-family-print-poster="el" lang="el" title="Print the poster in Greek"><i class="fas fa-print" aria-hidden="true"></i> Αφίσα στα ελληνικά</button>
                     <button type="button" class="office-btn office-btn--quiet office-btn--small" data-family-copy-link><i class="fas fa-link" aria-hidden="true"></i> Copy link</button>
                 </div>
             </div>
@@ -843,7 +844,7 @@ export function handleFamilyLoginsClick(event) {
     const posterBtn = event.target.closest('[data-family-print-poster]');
     if (posterBtn) {
         setBusyState(posterBtn, true, 'Preparing…');
-        printFamilyPoster({ schoolName: schoolName() })
+        printFamilyPoster({ schoolName: schoolName(), lang: posterBtn.dataset.familyPrintPoster === 'el' ? 'el' : 'en' })
             .catch((error) => {
                 console.error('Could not print the QR poster:', error);
                 showToast('Could not open printing. Try again.', 'error');

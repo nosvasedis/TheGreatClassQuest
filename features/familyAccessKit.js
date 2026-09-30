@@ -163,10 +163,42 @@ const PRINT_BASE_CSS = `
     .qr svg { display: block; width: 100%; height: auto; }
 `;
 
-/** The school's QR poster (A4), for the notice board, the front door or a letter home. */
-export function buildFamilyPosterHtml({ schoolName = '', qrSvg = '', url = '', logoUrl = LOGO_URL } = {}) {
+const POSTER_COPY = {
+    en: {
+        title: 'Family sign-in QR',
+        heading: 'Follow your child’s <span>quest</span><br>from home',
+        lede: 'Homework, stars, progress and notes from school, all in The Great Class Quest family app.',
+        scan: 'Scan to sign in',
+        steps: [
+            'Open your phone’s camera and point it at the code.',
+            'Tap the link. The Parent sign-in opens by itself.',
+            'Type the username and password the school gave you.'
+        ],
+        foot: 'No login yet? Ask your child’s teacher or the school office.'
+    },
+    el: {
+        title: 'QR σύνδεσης γονέων',
+        heading: 'Ακολουθήστε την <span>περιπέτεια</span><br>του παιδιού σας από το σπίτι',
+        lede: 'Εργασίες, αστέρια, πρόοδος και σημειώσεις από το σχολείο, όλα στην εφαρμογή οικογένειας του The Great Class Quest.',
+        scan: 'Σκανάρετε για σύνδεση',
+        steps: [
+            'Ανοίξτε την κάμερα του κινητού σας και στρέψτε τη στον κωδικό.',
+            'Πατήστε τον σύνδεσμο. Η σύνδεση γονέα ανοίγει αυτόματα.',
+            'Πληκτρολογήστε το όνομα χρήστη και τον κωδικό που σας έδωσε το σχολείο.'
+        ],
+        foot: 'Δεν έχετε ακόμη λογαριασμό; Ρωτήστε τον εκπαιδευτικό του παιδιού σας ή τη γραμματεία.'
+    }
+};
+
+// Fredoka has no Greek letters, so the Greek poster uses Comfortaa, a rounded face that does.
+const GREEK_FONT = '<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap" rel="stylesheet">';
+
+/** The school's QR poster (A4), for the notice board, the front door or a letter home. lang: 'en' or 'el'. */
+export function buildFamilyPosterHtml({ schoolName = '', qrSvg = '', url = '', logoUrl = LOGO_URL, lang = 'en' } = {}) {
     const school = escapeHtml(schoolName || 'The Great Class Quest');
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Family sign-in QR · ${school}</title>${PRINT_FONT}
+    const greek = lang === 'el';
+    const copy = POSTER_COPY[greek ? 'el' : 'en'];
+    return `<!doctype html><html lang="${greek ? 'el' : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${copy.title} · ${school}</title>${PRINT_FONT}${greek ? GREEK_FONT : ''}
 <style>
     ${PRINT_BASE_CSS}
     @page { size: A4 portrait; margin: 0; }
@@ -191,25 +223,27 @@ export function buildFamilyPosterHtml({ schoolName = '', qrSvg = '', url = '', l
     .steps li { background: rgba(255, 255, 255, 0.92); border-radius: 5mm; padding: 5mm 4mm; font-size: 10.5pt; line-height: 1.4; color: #334155; box-shadow: 0 2mm 5mm -3mm rgba(31, 42, 68, 0.3); }
     .steps b { display: grid; place-items: center; width: 9mm; height: 9mm; margin: 0 auto 2mm; border-radius: 3mm; background: #d97706; color: #ffffff; font-family: 'Fredoka One', system-ui; font-weight: 400; font-size: 13pt; }
     .foot { margin-top: auto; font-size: 9pt; color: #1f5132; font-weight: 600; }
+    .poster:lang(el) h1, .poster:lang(el) .display, .poster:lang(el) .steps b { font-family: 'Comfortaa', 'Open Sans', system-ui, sans-serif; font-weight: 700; }
+    .poster:lang(el) h1 { font-size: 28pt; line-height: 1.12; }
+    .poster:lang(el) .scan { font-size: 15pt; }
+    .poster:lang(el) .steps li { font-size: 10pt; }
     @media screen { body { background: #e2e8f0; padding: 8mm 0; } .poster { margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,.15); } }
 </style></head><body>
 <main class="poster">
     <img class="crest" src="${escapeHtml(logoUrl)}" alt="">
     <p class="school">${school}</p>
-    <h1>Follow your child’s <span>quest</span><br>from home</h1>
-    <p class="lede">Homework, stars, progress and notes from school, all in The Great Class Quest family app.</p>
+    <h1>${copy.heading}</h1>
+    <p class="lede">${copy.lede}</p>
     <div class="gate">
         <div class="keystone">★</div>
         <div class="qr">${qrSvg}</div>
-        <p class="scan display">Scan to sign in</p>
+        <p class="scan display">${copy.scan}</p>
         ${url ? `<p class="url">${escapeHtml(url)}</p>` : ''}
     </div>
     <ol class="steps">
-        <li><b>1</b>Open your phone’s camera and point it at the code.</li>
-        <li><b>2</b>Tap the link. The Parent sign-in opens by itself.</li>
-        <li><b>3</b>Type the username and password the school gave you.</li>
+        ${copy.steps.map((step, i) => `<li><b>${i + 1}</b>${step}</li>`).join('\n        ')}
     </ol>
-    <p class="foot">No login yet? Ask your child’s teacher or the school office.</p>
+    <p class="foot">${copy.foot}</p>
 </main>
 </body></html>`;
 }
@@ -311,10 +345,10 @@ export function printHtml(html) {
     });
 }
 
-export async function printFamilyPoster({ schoolName } = {}) {
+export async function printFamilyPoster({ schoolName, lang = 'en' } = {}) {
     const url = getParentLoginUrl();
     const qrSvg = await renderQrSvg(url, { title: 'Family sign-in QR code' });
-    await printHtml(buildFamilyPosterHtml({ schoolName, qrSvg, url }));
+    await printHtml(buildFamilyPosterHtml({ schoolName, qrSvg, url, lang }));
 }
 
 /** Prints one or many family slips: slips = [{ studentName, className, username, password }]. */

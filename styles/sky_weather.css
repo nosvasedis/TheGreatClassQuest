@@ -918,18 +918,23 @@ html[data-wx-light="golden"] .wx-g-sun__rays { fill: #fdba74; }
 }
 
 /* Hourly strip: the next few hours of the school day. */
+/* Spans the whole card (under the glyph's side too) with the chips centred and evenly sized. */
 .wx-hours {
     display: flex;
-    gap: 0.3rem;
-    margin-top: 0.55rem;
+    justify-content: center;
+    gap: 0.45rem;
+    align-self: stretch;
+    margin: 0.6rem -6rem 0 0;
 }
 .wx-hour {
+    flex: 1 1 0;
+    max-width: 4.75rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.05rem;
-    min-width: 2.6rem;
-    padding: 0.25rem 0.3rem 0.3rem;
+    min-width: 3.2rem;
+    padding: 0.3rem 0.45rem 0.35rem;
     border-radius: 0.8rem;
     background: rgba(255, 255, 255, 0.18);
     border: 1px solid rgba(255, 255, 255, 0.28);
@@ -939,7 +944,7 @@ html[data-wx-light="golden"] .wx-g-sun__rays { fill: #fdba74; }
     color: var(--wx-card-ink);
 }
 .wx-hour__t { opacity: 0.8; letter-spacing: 0.02em; }
-.wx-hour__g { width: 1.5rem; height: 1.5rem; }
+.wx-hour__g { width: 1.75rem; height: 1.75rem; }
 .wx-hour__g .wx-glyph__layer { animation: none !important; }
 .wx-hour__g .wx-glyph__layer--fall { opacity: 0.9; }
 .wx-hour__deg { font-size: 0.72rem; }

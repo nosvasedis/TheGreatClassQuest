@@ -387,7 +387,7 @@ function extendMeadow(svg) {
     svg.querySelector('.gh-trees--near')?.after(nearTrees);
 
     // The side shading keeps its look over the card's width and simply carries on past it.
-    const shade = svg.querySelector('linearGradient[id$="gh-shade"]');
+    const shade = svg.querySelector('linearGradient[id$="-shade"]');
     shade?.setAttribute('gradientUnits', 'userSpaceOnUse');
     shade?.setAttribute('x2', '1440');
 }

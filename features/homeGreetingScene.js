@@ -57,34 +57,41 @@ export function treesHtml(trees) {
     }).join('');
 }
 
+let hillsSerial = 0;
+
 export function getGreetingHillsHtml() {
     // Wide canvas that crops from the middle on narrow cards (slice), so the
     // trees keep their shape instead of stretching.
+    // Gradient ids are unique per copy: the phone and desktop Home both render
+    // these hills, and url(#id) picks the first match in the document, so a
+    // shared id would paint the visible hills with the hidden copy's gradients
+    // (which Chrome draws as nothing, leaving only the trees and cottage).
+    const uid = `gh-${++hillsSerial}`;
     return `
     <svg class="greeting-hills" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
         <defs>
-            <linearGradient id="gh-far" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="${uid}-far" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" class="gh-far-top"/>
                 <stop offset="1" class="gh-far-bottom"/>
             </linearGradient>
-            <linearGradient id="gh-mid" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="${uid}-mid" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" class="gh-mid-top"/>
                 <stop offset="1" class="gh-mid-bottom"/>
             </linearGradient>
-            <linearGradient id="gh-mid2" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="${uid}-mid2" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" class="gh-mid2-top"/>
                 <stop offset="1" class="gh-mid2-bottom"/>
             </linearGradient>
-            <linearGradient id="gh-near" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="${uid}-near" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" class="gh-near-top"/>
                 <stop offset="1" class="gh-near-bottom"/>
             </linearGradient>
-            <linearGradient id="gh-mist" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="${uid}-mist" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" class="gh-mist" stop-opacity="0"/>
                 <stop offset="0.55" class="gh-mist" stop-opacity="0.75"/>
                 <stop offset="1" class="gh-mist" stop-opacity="0"/>
             </linearGradient>
-            <linearGradient id="gh-shade" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id="${uid}-shade" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0" class="gh-shadow" stop-opacity="0.22"/>
                 <stop offset="0.5" class="gh-shadow" stop-opacity="0.05"/>
                 <stop offset="1" class="gh-shadow" stop-opacity="0.16"/>
@@ -92,12 +99,12 @@ export function getGreetingHillsHtml() {
         </defs>
 
         <!-- Distant range, softened by haze -->
-        <path class="gh-layer gh-layer--far" fill="url(#gh-far)"
+        <path class="gh-layer gh-layer--far" fill="url(#${uid}-far)"
             d="M0 168 C 70 150, 120 128, 190 132 C 250 136, 290 158, 350 150 C 420 140, 460 104, 540 108 C 610 112, 650 148, 720 146 C 790 144, 830 118, 900 112 C 980 106, 1030 140, 1100 142 C 1170 144, 1210 116, 1280 112 C 1350 108, 1400 128, 1440 136 L1440 320 L0 320 Z"/>
-        <rect class="gh-layer" x="0" y="118" width="1440" height="90" fill="url(#gh-mist)"/>
+        <rect class="gh-layer" x="0" y="118" width="1440" height="90" fill="url(#${uid}-mist)"/>
 
         <!-- Middle hills -->
-        <path class="gh-layer gh-layer--mid" fill="url(#gh-mid)"
+        <path class="gh-layer gh-layer--mid" fill="url(#${uid}-mid)"
             d="M0 206 C 90 184, 170 170, 260 178 C 350 186, 400 212, 490 206 C 590 198, 640 164, 740 160 C 840 156, 900 190, 990 196 C 1080 202, 1140 178, 1230 170 C 1320 162, 1390 176, 1440 184 L1440 320 L0 320 Z"/>
         <g class="gh-trees gh-trees--mid">
             ${treesHtml([
@@ -106,11 +113,11 @@ export function getGreetingHillsHtml() {
                 [236, 178, 0.8, 'o'], [262, 179, 0.85, 'c']
             ])}
         </g>
-        <path class="gh-layer gh-layer--mid2" fill="url(#gh-mid2)"
+        <path class="gh-layer gh-layer--mid2" fill="url(#${uid}-mid2)"
             d="M0 240 C 110 222, 200 212, 300 220 C 390 228, 450 250, 560 246 C 660 242, 720 222, 820 224 C 930 226, 980 252, 1090 250 C 1190 248, 1260 224, 1350 222 C 1400 221, 1425 226, 1440 229 L1440 320 L0 320 Z"/>
 
         <!-- Near meadow -->
-        <path class="gh-layer gh-layer--near" fill="url(#gh-near)"
+        <path class="gh-layer gh-layer--near" fill="url(#${uid}-near)"
             d="M0 272 C 140 256, 260 250, 400 262 C 520 272, 610 292, 740 288 C 880 284, 960 258, 1100 256 C 1230 254, 1330 270, 1440 276 L1440 320 L0 320 Z"/>
         <path class="gh-crest" d="M0 272 C 140 256, 260 250, 400 262 C 520 272, 610 292, 740 288 C 880 284, 960 258, 1100 256 C 1230 254, 1330 270, 1440 276"/>
         <path class="gh-crest gh-crest--mid" d="M0 240 C 110 222, 200 212, 300 220 C 390 228, 450 250, 560 246 C 660 242, 720 222, 820 224 C 930 226, 980 252, 1090 250 C 1190 248, 1260 224, 1350 222 C 1400 221, 1425 226, 1440 229"/>
@@ -125,7 +132,7 @@ export function getGreetingHillsHtml() {
             ${treesHtml([[1012, 261, 1.3, 'c'], [1030, 259, 1.05, 'c'], [1112, 258, 1.3, 'o'], [470, 268, 1.2, 'o'], [80, 263, 1.25, 'o'], [108, 262, 1.0, 'c']])}
         </g>
 
-        <path class="gh-shade" fill="url(#gh-shade)"
+        <path class="gh-shade" fill="url(#${uid}-shade)"
             d="M0 272 C 140 256, 260 250, 400 262 C 520 272, 610 292, 740 288 C 880 284, 960 258, 1100 256 C 1230 254, 1330 270, 1440 276 L1440 320 L0 320 Z"/>
 
     </svg>`;

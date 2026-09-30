@@ -135,11 +135,11 @@
     column-gap: clamp(2rem, 6vw, 5.5rem);
     row-gap: 0.9rem;
     align-items: center;
-    animation: auth-content-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: auth-content-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 @keyframes auth-content-in {
     from { opacity: 0; transform: translateY(14px) scale(0.985); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 1; transform: none; }
 }
 
 /* ── Welcome column ──────────────────────────────────────────────────────── */
@@ -836,19 +836,18 @@
 
 /* ── Through the gate ────────────────────────────────────────────────────────
    After a successful sign-in the card turns into a pair of doors, they swing
-   inward, and the view walks through the arch into daylight (ui/authGate.js).
-   Only opacity and transform move, so the whole show stays on the compositor. */
-#auth-screen.is-gate-closing { will-change: transform; }
-#auth-screen.is-gate-closing .auth-gate__keystone { z-index: 6; }
+   inward onto a sunlit sky, and light floods out of the arch until it fills the
+   screen (ui/authGate.js). Nothing on the sign-in scene itself is scaled: only
+   the doors and a pre-sized light layer move, with transform and opacity, so the
+   glass cards and the painted scene never have to be redrawn mid-flight. */
+#auth-screen.is-gate-closing .auth-gate__keystone { z-index: 7; }
 
 .auth-gate-portal {
     position: absolute;
     inset: 0;
-    z-index: 5;
+    z-index: 6;
     border-radius: inherit;
-    overflow: hidden;
     pointer-events: none;
-    perspective: 1100px;
     opacity: 0;
     transition: opacity 0.26s ease;
 }
@@ -857,6 +856,7 @@
 .auth-gate-portal__sky {
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     background:
         radial-gradient(circle at 50% 58%, #fffdf3 0%, #fff4d2 16%, rgba(255, 240, 200, 0) 52%),
         linear-gradient(180deg, #E8F6FF 0%, #BFE8FB 42%, #8FDCEF 68%, #CFF3DC 100%);
@@ -866,45 +866,53 @@
     position: absolute;
     left: 50%;
     top: 58%;
-    width: 260%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: repeating-conic-gradient(from 0deg, rgba(255, 246, 214, 0.75) 0deg 7deg, rgba(255, 246, 214, 0) 7deg 22deg);
-    -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 22%, transparent 55%);
-    mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 22%, transparent 55%);
-    opacity: 0;
-    transform: translate(-50%, -50%) rotate(0deg) scale(0.7);
-    transition: opacity 0.6s ease, transform 2.2s cubic-bezier(0.2, 0, 0.2, 1);
-}
-#auth-screen.is-gate-opening .auth-gate-portal__rays {
-    opacity: 1;
-    transform: translate(-50%, -50%) rotate(40deg) scale(1);
-}
-
-.auth-gate-portal__bloom {
-    position: absolute;
-    left: 50%;
-    top: 58%;
     width: 150%;
     aspect-ratio: 1;
     border-radius: 50%;
-    background: radial-gradient(circle,
-        rgba(255, 253, 244, 1) 0%,
-        rgba(255, 250, 232, 0.96) 32%,
-        rgba(255, 246, 220, 0.6) 52%,
-        rgba(255, 246, 220, 0) 70%);
+    background:
+        radial-gradient(circle, rgba(255, 246, 214, 0.55) 0%, rgba(255, 246, 214, 0) 58%),
+        repeating-conic-gradient(from 0deg, rgba(255, 246, 214, 0.5) 0deg 7deg, rgba(255, 246, 214, 0) 7deg 22deg);
+    -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.55) 25%, transparent 62%);
+    mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.55) 25%, transparent 62%);
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3);
-    transition: opacity 0.7s ease, transform 1s cubic-bezier(0.5, 0, 0.2, 1);
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.6);
+    transition: opacity 0.6s ease, transform 1.6s cubic-bezier(0.2, 0, 0.2, 1);
 }
-#auth-screen.is-gate-opening .auth-gate-portal__bloom {
-    opacity: 0.8;
-    transform: translate(-50%, -50%) scale(0.55);
-}
-#auth-screen.is-gate-entering .auth-gate-portal__bloom {
+#auth-screen.is-gate-opening .auth-gate-portal__rays {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.9);
+    transform: translate(-50%, -50%) rotate(24deg) scale(1);
 }
+
+/* The flood of light: two screen-sized layers fixed to the viewport that only
+   fade (and the glow grows a little), like the loading screen's own daylight.
+   A fixed layer never scales the scene, so nothing behind it is redrawn. */
+.auth-gate-portal__glow,
+.auth-gate-portal__flood {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+}
+.auth-gate-portal__glow {
+    background: radial-gradient(circle farthest-corner at var(--gate-cx, 50%) var(--gate-cy, 50%),
+        rgba(255, 253, 244, 1) 0%,
+        rgba(255, 250, 230, 0.9) 12%,
+        rgba(255, 246, 218, 0.55) 26%,
+        rgba(255, 246, 218, 0.18) 42%,
+        rgba(255, 246, 218, 0) 60%);
+    transform-origin: var(--gate-cx, 50%) var(--gate-cy, 50%);
+    transform: scale(1);
+    transition: opacity 0.7s ease, transform 1.1s cubic-bezier(0.45, 0, 0.3, 1);
+}
+.auth-gate-portal__flood {
+    background: radial-gradient(circle farthest-corner at var(--gate-cx, 50%) var(--gate-cy, 50%),
+        #fffdf4 0%, #fffbee 55%, #fdfbf3 100%);
+    transition: opacity 0.6s cubic-bezier(0.5, 0, 0.5, 1);
+}
+#auth-screen.is-gate-opening .auth-gate-portal__glow { opacity: 0.75; }
+#auth-screen.is-gate-entering .auth-gate-portal__glow { opacity: 1; transform: scale(1.35); }
+/* Once the light floods out, the keystone sinks behind it with the rest of the gate. */
+#auth-screen.is-gate-entering .auth-gate__keystone { z-index: 5; }
+#auth-screen.is-gate-entering .auth-gate-portal__flood { opacity: 1; transition-delay: 0.15s; }
 
 .auth-gate-portal__door {
     position: absolute;
@@ -925,6 +933,7 @@
     content: '';
     position: absolute;
     inset: 0;
+    border-radius: inherit;
     background: linear-gradient(90deg, rgba(30, 41, 59, 0.28), rgba(30, 41, 59, 0));
     opacity: 0;
     transition: opacity 0.95s ease;
@@ -932,16 +941,18 @@
 .auth-gate-portal__door--left {
     left: 0;
     transform-origin: left center;
+    transform: perspective(900px) rotateY(0deg);
     box-shadow: inset -1px 0 0 var(--auth-accent-soft), inset -6px 0 12px -8px rgba(15, 23, 42, 0.25);
 }
 .auth-gate-portal__door--right {
     right: 0;
     transform-origin: right center;
+    transform: perspective(900px) rotateY(0deg);
     box-shadow: inset 1px 0 0 var(--auth-accent-soft), inset 6px 0 12px -8px rgba(15, 23, 42, 0.25);
 }
-.auth-gate-portal__door--right::before { transform: scaleX(-1); }
-#auth-screen.is-gate-opening .auth-gate-portal__door--left { transform: rotateY(84deg); }
-#auth-screen.is-gate-opening .auth-gate-portal__door--right { transform: rotateY(-84deg); }
+.auth-gate-portal__door--right::before { background: linear-gradient(270deg, rgba(30, 41, 59, 0.28), rgba(30, 41, 59, 0)); }
+#auth-screen.is-gate-opening .auth-gate-portal__door--left { transform: perspective(900px) rotateY(76deg); }
+#auth-screen.is-gate-opening .auth-gate-portal__door--right { transform: perspective(900px) rotateY(-76deg); }
 #auth-screen.is-gate-opening .auth-gate-portal__door::before { opacity: 1; }
 
 .auth-gate-portal__ring {
@@ -972,24 +983,21 @@
     100% { transform: translateX(-50%) scale(1.05); }
 }
 
-/* Walking through: the whole scene grows around the arch until its light fills the screen. */
-#auth-screen.is-gate-entering {
-    transform-origin: var(--gate-origin-x, 50%) var(--gate-origin-y, 50%);
-    transform: scale(var(--gate-zoom, 4));
-    transition: transform 1s cubic-bezier(0.55, 0, 0.2, 1);
-}
-#auth-screen.is-gate-entering .auth-welcome,
-#auth-screen.is-gate-entering .auth-footnote,
-#auth-screen.is-gate-entering .auth-cloud-layer {
-    opacity: 0;
-    transition: opacity 0.45s ease;
+@media (prefers-reduced-motion: reduce) {
+    .auth-gate-portal,
+    #auth-screen.auth-screen-arrive .auth-content,
+    #auth-screen.auth-screen-arrive #login-form-container.auth-card,
+    #auth-screen.auth-screen-arrive .auth-gate__keystone {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 /* ── Arriving at the gate ────────────────────────────────────────────────────
    On a cold start the loading screen fades out of its daylight; the card rises
    into place just as the light clears. */
 #auth-screen.auth-screen-arrive .auth-content {
-    animation: auth-content-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--arrive-delay, 0ms) both;
+    animation: auth-content-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--arrive-delay, 0ms) backwards;
 }
 #auth-screen.auth-screen-arrive #login-form-container.auth-card {
     animation: auth-gate-rise 1s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--arrive-delay, 0ms) + 80ms) both;
@@ -1006,35 +1014,15 @@
     to   { opacity: 1; transform: translateX(-50%); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .auth-gate-portal,
-    #auth-screen.is-gate-entering,
-    #auth-screen.auth-screen-arrive .auth-content,
-    #auth-screen.auth-screen-arrive #login-form-container.auth-card,
-    #auth-screen.auth-screen-arrive .auth-gate__keystone {
-        animation: none !important;
-        transition: none !important;
-    }
-}
-/* Keep the zoomed view steady if the app hides the sign-in screen mid-walk. */
-#auth-screen.is-gate-entering.auth-screen-out { animation: none; }
-
 /* ── Walking back out (logout) ───────────────────────────────────────────────
-   The same pieces played backwards: the view eases out of the arch, the doors
-   swing shut, then the form returns (ui/authGate.js → playAuthGateExit). */
-#auth-screen.gate-instant,
-#auth-screen.gate-instant *,
-#auth-screen.gate-instant *::before,
-#auth-screen.gate-instant *::after { transition: none !important; }
-#auth-screen.is-gate-leaving {
-    will-change: transform;
-    transform-origin: var(--gate-origin-x, 50%) var(--gate-origin-y, 50%);
-    transition: transform 1.15s cubic-bezier(0.22, 0.8, 0.25, 1);
-}
-#auth-screen.is-gate-leaving .auth-welcome,
-#auth-screen.is-gate-leaving .auth-footnote,
-#auth-screen.is-gate-leaving .auth-cloud-layer {
-    transition: opacity 0.7s ease 0.45s;
+   The same pieces played backwards: the light draws back into the arch, the
+   doors swing shut, then the form returns (ui/authGate.js → playAuthGateExit). */
+#auth-screen.gate-instant .auth-gate-portal,
+#auth-screen.gate-instant .auth-gate-portal *,
+#auth-screen.gate-instant .auth-gate-portal *::before { transition: none !important; }
+#auth-screen.is-gate-leaving .auth-gate-portal__flood { transition: opacity 0.7s cubic-bezier(0.3, 0, 0.3, 1); }
+#auth-screen.is-gate-leaving .auth-gate-portal__glow {
+    transition: opacity 0.6s ease 0.45s, transform 1.1s cubic-bezier(0.2, 0.7, 0.25, 1);
 }
 #auth-screen.is-gate-leaving .auth-gate-portal { transition: opacity 0.35s ease; }
 
@@ -1044,16 +1032,12 @@
     z-index: 5000;
     pointer-events: none;
     opacity: 0;
-    background: radial-gradient(circle farthest-corner at 50% 55%,
-        rgba(255, 253, 244, 1) 0%,
-        rgba(255, 250, 232, 0.98) 45%,
-        rgba(250, 252, 255, 0.96) 100%);
+    background: radial-gradient(circle farthest-corner at 50% 55%, #fffdf4 0%, #fffbee 55%, #fdfbf3 100%);
     transition: opacity 0.42s ease-in;
 }
 .gate-daylight-veil.is-shown { opacity: 1; pointer-events: auto; }
-.gate-daylight-veil.is-clearing { transition: opacity 0.8s ease-out; }
+.gate-daylight-veil.is-clearing { transition: opacity 0.35s ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
-    #auth-screen.is-gate-leaving,
     .gate-daylight-veil { transition: none !important; }
 }

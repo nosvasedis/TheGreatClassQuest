@@ -1,13 +1,13 @@
 // ui/authGate.js — the sign-in card is the Quest Gate. After a successful sign-in its two
-// doors swing open, the view walks through the arch into daylight, and the loading screen
+// doors swing open, light floods out of the arch until it fills the screen, and the loading screen
 // rises out of that same light. On a cold start the loading screen's daylight lands the
 // user back at the gate (playAuthGateArrival), so the two screens read as one journey.
 // Logging out plays the entrance backwards (walkOutThroughGate + playAuthGateExit): the app
-// dissolves into daylight, the view steps back out of the arch and the doors close.
+// dissolves into daylight, the light draws back into the arch and the doors close.
 
 const TIMING = {
     open: 320,      // doors appear over the form, then start to swing
-    enter: 900,     // the view starts walking through the arch
+    enter: 900,     // light starts flooding out of the arch
     handoff: 1500,  // the light fills the screen: the loading screen takes over
     cleanup: 2300
 };
@@ -35,40 +35,43 @@ function buildPortal() {
     portal.innerHTML = `
         <div class="auth-gate-portal__sky"></div>
         <div class="auth-gate-portal__rays"></div>
-        <div class="auth-gate-portal__bloom"></div>
         <div class="auth-gate-portal__door auth-gate-portal__door--left"><span class="auth-gate-portal__ring"></span></div>
         <div class="auth-gate-portal__door auth-gate-portal__door--right"><span class="auth-gate-portal__ring"></span></div>
+        <div class="auth-gate-portal__glow"></div>
+        <div class="auth-gate-portal__flood"></div>
     `;
     return portal;
 }
 
-/** How far to zoom so the arch (and the light inside it) covers the whole screen. */
-function measureZoom(authScreen, card) {
-    const screenRect = authScreen.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
-    const vw = screenRect.width || window.innerWidth;
-    const vh = screenRect.height || window.innerHeight;
-    // Aim at the visible part of the card (on a phone it can run below the fold).
-    const top = Math.max(cardRect.top, screenRect.top);
-    const bottom = Math.min(cardRect.bottom, screenRect.bottom);
-    const cx = cardRect.left + cardRect.width / 2 - screenRect.left;
-    const cy = (top + bottom) / 2 - screenRect.top;
-    const halfW = Math.max(cardRect.width / 2, 1);
-    const halfH = Math.max((bottom - top) / 2, 1);
-    const needX = Math.max(cx, vw - cx) / halfW;
-    const needY = Math.max(cy, vh - cy) / halfH;
-    // Extra room for the rounded top of the arch.
-    const zoom = Math.min(Math.max(needX, needY) * 1.45, 14);
-    return { zoom, originX: cx, originY: cy };
+/** Where the light shines from (the middle of the arch, on screen) and the door shapes. */
+function prepareGate(authScreen, card, portal) {
+    const rect = card.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const top = Math.max(rect.top, 0);
+    const bottom = Math.min(rect.bottom, vh);
+    const cx = rect.left + rect.width / 2;
+    const cy = top + (bottom - top) * 0.55;
+    authScreen.style.setProperty('--gate-cx', `${Math.round(cx)}px`);
+    authScreen.style.setProperty('--gate-cy', `${Math.round(cy)}px`);
+
+    // Each door carries its own half of the arch, so nothing has to clip them while they turn.
+    const style = getComputedStyle(card);
+    const [tlx, tly = tlx] = style.borderTopLeftRadius.split(' ');
+    const [trx, try_ = trx] = style.borderTopRightRadius.split(' ');
+    const [blx, bly = blx] = style.borderBottomLeftRadius.split(' ');
+    const [brx, bry = brx] = style.borderBottomRightRadius.split(' ');
+    const left = portal.querySelector('.auth-gate-portal__door--left');
+    const right = portal.querySelector('.auth-gate-portal__door--right');
+    if (left) left.style.borderRadius = `${tlx} 0 0 ${blx} / ${tly} 0 0 ${bly}`;
+    if (right) right.style.borderRadius = `0 ${trx} ${brx} 0 / 0 ${try_} ${bry} 0`;
 }
 
 function clearGate(gate) {
     gate.timers.forEach(clearTimeout);
     gate.timers = [];
     gate.authScreen.classList.remove('is-gate-closing', 'is-gate-opening', 'is-gate-entering');
-    gate.authScreen.style.removeProperty('--gate-zoom');
-    gate.authScreen.style.removeProperty('--gate-origin-x');
-    gate.authScreen.style.removeProperty('--gate-origin-y');
+    gate.authScreen.style.removeProperty('--gate-cx');
+    gate.authScreen.style.removeProperty('--gate-cy');
     gate.portal.remove();
 }
 
@@ -95,10 +98,7 @@ export function playAuthGateEntrance({ onHandoff } = {}) {
         const gate = { authScreen, portal, timers: [], resolve, handedOff: false };
         activeGate = gate;
 
-        const { zoom, originX, originY } = measureZoom(authScreen, card);
-        authScreen.style.setProperty('--gate-zoom', zoom.toFixed(3));
-        authScreen.style.setProperty('--gate-origin-x', `${Math.round(originX)}px`);
-        authScreen.style.setProperty('--gate-origin-y', `${Math.round(originY)}px`);
+        prepareGate(authScreen, card, portal);
         void portal.offsetWidth;
         authScreen.classList.add('is-gate-closing');
 
@@ -206,8 +206,8 @@ export function consumeGateExit() {
 }
 
 /**
- * The sign-in screen as seen from inside the gate: it starts zoomed into the lit arch
- * with the doors open, steps back out, the doors close and the form returns.
+ * The sign-in screen as seen from inside the gate: it starts filled with the arch's light
+ * with the doors open, the light draws back into the arch, the doors close and the form returns.
  */
 export function playAuthGateExit() {
     cancelAuthGate();
@@ -222,10 +222,7 @@ export function playAuthGateExit() {
     authScreen.querySelector('.auth-gate-portal')?.remove();
     const portal = buildPortal();
     card.appendChild(portal);
-    const { zoom, originX, originY } = measureZoom(authScreen, card);
-    authScreen.style.setProperty('--gate-zoom', zoom.toFixed(3));
-    authScreen.style.setProperty('--gate-origin-x', `${Math.round(originX)}px`);
-    authScreen.style.setProperty('--gate-origin-y', `${Math.round(originY)}px`);
+    prepareGate(authScreen, card, portal);
 
     // Start inside the light, with no transitions, then let each step play backwards.
     authScreen.classList.add('gate-instant', 'is-gate-leaving', 'is-gate-closing', 'is-gate-opening', 'is-gate-entering');
@@ -235,17 +232,17 @@ export function playAuthGateExit() {
 
     const slow = slowFactor();
     const later = (ms, fn) => exitTimers.push(setTimeout(fn, ms * slow));
+    // The flood layer matches the veil exactly, so dropping the veil shows no seam.
     later(60, () => {
         clearDaylightVeil();
         authScreen.classList.remove('is-gate-entering');
     });
-    later(820, () => authScreen.classList.remove('is-gate-opening'));
-    later(1750, () => authScreen.classList.remove('is-gate-closing'));
-    later(2100, () => {
+    later(700, () => authScreen.classList.remove('is-gate-opening'));
+    later(1600, () => authScreen.classList.remove('is-gate-closing'));
+    later(1950, () => {
         authScreen.classList.remove('is-gate-leaving');
-        authScreen.style.removeProperty('--gate-zoom');
-        authScreen.style.removeProperty('--gate-origin-x');
-        authScreen.style.removeProperty('--gate-origin-y');
+        authScreen.style.removeProperty('--gate-cx');
+        authScreen.style.removeProperty('--gate-cy');
         portal.remove();
         exitTimers = [];
     });

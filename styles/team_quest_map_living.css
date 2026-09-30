@@ -640,11 +640,11 @@
 .tq-token__logo {
     position: absolute;
     z-index: 2;
-    top: 51.5%;
-    left: 50%;
+    top: var(--tq-hole-y, 49.4%);
+    left: var(--tq-hole-x, 49.8%);
     display: grid;
-    width: 62%;
-    height: 62%;
+    width: var(--tq-hole-size, 60%);
+    height: var(--tq-hole-size, 60%);
     place-items: center;
     overflow: hidden;
     border-radius: 50%;
@@ -655,11 +655,13 @@
     transform: translate(-50%, -50%);
 }
 
-.tq-token--tier-gold .tq-token__logo {
-    top: 58.5%;
-    width: 56%;
-    height: 56%;
-}
+/* Each frame's transparent opening, measured from the 256px art (centre and
+   diameter as % of the image). The disc is ~3% wider than the opening so its
+   edge tucks under the ring and no gap shows. */
+.tq-token--tier-gold { --tq-hole-x: 49.8%; --tq-hole-y: 54.7%; --tq-hole-size: 57%; }
+.tq-token--tier-silver,
+.tq-token--tier-slate { --tq-hole-x: 49.7%; --tq-hole-y: 49.4%; --tq-hole-size: 60%; }
+.tq-token--tier-bronze { --tq-hole-x: 49.6%; --tq-hole-y: 47.3%; --tq-hole-size: 66%; }
 
 /* The active class wears an orbiting ring and a little flag. */
 .tq-token.is-mine .tq-token__disc::after {

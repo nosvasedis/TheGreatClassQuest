@@ -323,6 +323,11 @@
     place-items: center;
 }
 
+.tqc-seal--gold { --tq-hole-x: 49.8%; --tq-hole-y: 54.7%; }
+.tqc-seal--silver,
+.tqc-seal--slate { --tq-hole-x: 49.7%; --tq-hole-y: 49.4%; }
+.tqc-seal--bronze { --tq-hole-x: 49.6%; --tq-hole-y: 47.3%; }
+
 .tqc-seal img {
     position: absolute;
     inset: 0;
@@ -335,8 +340,8 @@
 .tqc-seal strong {
     position: absolute;
     z-index: 1;
-    top: 51.5%;
-    left: 50%;
+    top: var(--tq-hole-y, 49.4%);
+    left: var(--tq-hole-x, 49.7%);
     display: grid;
     width: 46%;
     height: 46%;
@@ -350,7 +355,7 @@
     transform: translate(-50%, -50%);
 }
 
-.tqc-seal--gold strong { top: 58.5%; width: 42%; height: 42%; color: #7b4517; background: radial-gradient(circle at 35% 28%, #fffef0 0 22%, #ffe77c 62%, #e99b24 100%); }
+.tqc-seal--gold strong { width: 42%; height: 42%; color: #7b4517; background: radial-gradient(circle at 35% 28%, #fffef0 0 22%, #ffe77c 62%, #e99b24 100%); }
 .tqc-seal--silver strong { color: #43617d; background: radial-gradient(circle at 35% 28%, #fff 0 22%, #e8f5ff 60%, #9fc4df 100%); }
 .tqc-seal--bronze strong { color: #7d431d; background: radial-gradient(circle at 35% 28%, #fff7e9 0 22%, #f6bd78 62%, #c97836 100%); }
 

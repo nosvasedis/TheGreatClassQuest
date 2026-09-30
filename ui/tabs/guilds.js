@@ -612,7 +612,7 @@ function _buildGuildRaceTrack(displayData) {
             ? `<img src="${emblemUrl}" alt="" class="guild-race-track__emblem" loading="lazy" decoding="async" width="22" height="22">`
             : `<span class="guild-race-track__emblem guild-race-track__emblem--initial">${initial}</span>`;
         return `
-                    <div class="guild-race-track__seg${i === 0 ? ' is-leader' : ''}"
+                    <div class="guild-race-track__seg${i === 0 && total > 0 ? ' is-leader' : ''}"
                          style="flex:${grow} 1 0;--seg-primary:${primary};--seg-secondary:${secondary};--seg-glow:${glow};"
                          title="${g.guildName}: ${fmtPower(powers[i])} Guild Power (${pct}% of the hall)">
                         ${badge}
@@ -623,7 +623,9 @@ function _buildGuildRaceTrack(displayData) {
     const leader = displayData[0];
     const runnerUp = displayData[1];
     const leadGap = runnerUp ? powers[0] - powers[1] : powers[0];
-    const leaderLine = leadGap >= 0.05
+    const leaderLine = total <= 0.005
+        ? 'The race begins with the first Glory earned &mdash; every guild starts level'
+        : leadGap >= 0.05
         ? `<strong>${leader.guildName}</strong> leads the season race by <strong>${fmtPower(leadGap)}</strong> Power`
         : 'Dead heat at the top &mdash; every star counts!';
 
@@ -653,26 +655,52 @@ function _momentumTileHtml(g) {
     return `<span class="guild-crystal-power-tile guild-crystal-power-tile--${pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'}" title="${title}"><strong>${pct >= 0 ? '+' : ''}${pct}%</strong><small>${g.momentumArrow} Glory vs<br>last week</small></span>`;
 }
 
+/** Exact Guild Power used for places and gaps (never a rounded value). */
+function _exactPower(row) {
+    return Math.max(0, Number(row?.seasonGloryPerMember ?? row?.guildPower) || 0);
+}
+
+/**
+ * Shared places: guilds with the same Power share a place ("1st, 1st, 3rd, 4th").
+ * `raceStarted` is false until any guild has earned Glory, so an all-zero Hall shows no
+ * winners and no ties at all.
+ */
+function _guildPlaces(displayData) {
+    const powers = displayData.map(_exactPower);
+    const same = (a, b) => Math.abs(a - b) < 0.005;
+    const places = powers.map((p, i) => {
+        let first = i;
+        while (first > 0 && same(powers[first - 1], p)) first -= 1;
+        return first;
+    });
+    return { places, raceStarted: powers.some((p) => p > 0.005) };
+}
+
 /** Short "chase" line under each column's Guild Power (gap to the guild one place above). */
-function _guildChaseLine(displayData, index, rankLabels) {
-    const power = (row) => Math.max(0, Number(row?.seasonGloryPerMember ?? row?.guildPower) || 0);
-    const fmt = (gap) => (gap >= 10 ? String(Math.round(gap)) : gap.toFixed(1));
-    if (index === 0) {
-        const gap = displayData[1] ? power(displayData[0]) - power(displayData[1]) : 0;
-        if (gap >= 0.05) return { tone: 'lead', icon: 'fa-crown', text: `${fmt(gap)} Power ahead of 2nd` };
-        return { tone: 'tie', icon: 'fa-scale-balanced', text: gap > 0 ? 'Neck and neck with 2nd' : 'Tied for 1st' };
+function _guildChaseLine(displayData, index, rankLabels, standing = _guildPlaces(displayData)) {
+    const fmt = (gap) => (gap >= 10 ? String(Math.round(gap)) : String(Math.round(gap * 10) / 10));
+    const label = (i) => rankLabels[standing.places[i]] || `#${standing.places[i] + 1}`;
+    if (!standing.raceStarted) {
+        return { tone: 'tie', icon: 'fa-hourglass-start', text: 'Race not started' };
     }
-    const target = rankLabels[index - 1] || `#${index}`;
-    const gap = power(displayData[index - 1]) - power(displayData[index]);
-    if (gap >= 0.05) return { tone: 'chase', icon: 'fa-flag-checkered', text: `${fmt(gap)} Power behind ${target}` };
-    return { tone: 'tie', icon: 'fa-scale-balanced', text: gap > 0 ? `Neck and neck with ${target}` : `Tied with ${target}` };
+    const place = standing.places[index];
+    const sharesPlace = standing.places.some((p, i) => i !== index && p === place);
+    if (sharesPlace) return { tone: 'tie', icon: 'fa-scale-balanced', text: `Tied for ${label(index)}` };
+    if (index === 0) {
+        const gap = displayData[1] ? _exactPower(displayData[0]) - _exactPower(displayData[1]) : 0;
+        if (gap >= 0.05) return { tone: 'lead', icon: 'fa-crown', text: `${fmt(gap)} Power ahead of ${label(1)}` };
+        return { tone: 'tie', icon: 'fa-scale-balanced', text: `Neck and neck with ${label(1)}` };
+    }
+    const gap = _exactPower(displayData[index - 1]) - _exactPower(displayData[index]);
+    if (gap >= 0.05) return { tone: 'chase', icon: 'fa-flag-checkered', text: `${fmt(gap)} Power behind ${label(index - 1)}` };
+    return { tone: 'tie', icon: 'fa-scale-balanced', text: `Neck and neck with ${label(index - 1)}` };
 }
 
 /**
  * "Latest" row under the chase line: the most recent Guild Power change and any place change,
  * written out in words. Empty (but still reserving its row, so columns stay aligned) until something moves.
  */
-function _guildTrendRow(delta, isFirstRender, index, rankLabels) {
+function _guildTrendRow(delta, isFirstRender, index, rankLabels, placeIndex = index) {
     const items = [];
     if (delta && !isFirstRender) {
         if (delta.powerDelta) {
@@ -684,7 +712,7 @@ function _guildTrendRow(delta, isFirstRender, index, rankLabels) {
         }
         if (delta.rankDelta) {
             const climbed = delta.rankDelta > 0;
-            const place = rankLabels[index] || `#${index + 1}`;
+            const place = rankLabels[placeIndex] || `#${placeIndex + 1}`;
             items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${climbed ? 'climb' : 'slip'}"
                 title="${climbed ? 'Climbed' : 'Slipped'} to ${place} place with the latest Glory change">
                 <i class="fas ${climbed ? 'fa-circle-up' : 'fa-circle-down'}" aria-hidden="true"></i>${climbed ? 'Up' : 'Down'} to ${place}</span>`);
@@ -795,6 +823,7 @@ export function renderGuildsTab() {
     }
 
     const rankLabels = ['1st', '2nd', '3rd', '4th'];
+    const standing = _guildPlaces(displayData);
 
     const columns = displayData.map((g, index) => {
         const guild = getGuildById(g.guildId);
@@ -923,7 +952,7 @@ export function renderGuildsTab() {
         const powerNow = Math.round(Number(g.guildPower) || 0);
         const prevPowerEntry = _prevGuildPower.get(g.guildId);
         const powerFrom = prevPowerEntry ? Math.round(Number(prevPowerEntry.power) || 0) : 0;
-        const chase = seasonLive ? _guildChaseLine(displayData, index, rankLabels) : null;
+        const chase = seasonLive ? _guildChaseLine(displayData, index, rankLabels, standing) : null;
 
         const countBlock = seasonLive
             ? `
@@ -934,7 +963,7 @@ export function renderGuildsTab() {
                         <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
                     </span>
                     <span class="guild-crystal-chase guild-crystal-chase--${chase.tone}"><i class="fas ${chase.icon}" aria-hidden="true"></i>${chase.text}</span>
-                    ${_guildTrendRow(powerDeltas.get(g.guildId), isFirstRender, index, rankLabels)}
+                    ${_guildTrendRow(powerDeltas.get(g.guildId), isFirstRender, index, rankLabels, standing.places[index])}
                     <div class="guild-crystal-power-strip guild-crystal-power-strip--tiles" aria-label="How ${g.guildName} is doing">
                         <span class="guild-crystal-power-tile" title="All the Glory this guild's current members earned this year. Guild Power is this shared out per member."><strong>${Math.round(Number(g.countedGlory) || 0)}</strong><small>${GLORY_EMOJI} earned<br>this year</small></span>
                         <span class="guild-crystal-power-tile" title="This week's Glory per member. This week's form never changes the ranking."><strong>${g.weeklyPerCapitaGlory.toFixed(1)}</strong><small>${GLORY_EMOJI} per member<br>this week</small></span>
@@ -1023,7 +1052,7 @@ export function renderGuildsTab() {
                  style="--guild-primary:${primary};--guild-secondary:${secondary};--guild-glow:${glow};">
 
                 <!-- ── Rank ── -->
-                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${seasonLive && index === 0 ? '<i class="fas fa-crown guild-crystal-rank__crown" aria-hidden="true"></i>' : ''}${seasonLive ? (rankLabels[index] || `#${index + 1}`) : '❄'}</span></div>
+                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${seasonLive && standing.raceStarted && standing.places[index] === 0 ? '<i class="fas fa-crown guild-crystal-rank__crown" aria-hidden="true"></i>' : ''}${!seasonLive ? '❄' : !standing.raceStarted ? '—' : (rankLabels[standing.places[index]] || `#${standing.places[index] + 1}`)}</span></div>
 
                 <!-- ── Header section (fixed min-height so all columns align at tube start) ── -->
                 <div class="guild-crystal-header">

@@ -76,16 +76,18 @@ Not for grading. For **coaching**: which classes feed which house, who the quiet
 
 ## Grand Guild Ceremony
 
-End-of-year spectacle (Home shows the call when it is time). It looks back across the year:
+The end-of-year spectacle, a **Midsummer Festival** under the guild castle. Home shows the call when it is time. The top bar has **Exit** (Esc), six chapter marks and a **sound** toggle; **Space** presses the big button.
 
-- Hero of the Day legends
-- Team Quest journeys
-- Prodigy timeline
-- Fortune’s Wheel
-- Familiars
-- Guild Champions
+**Opening.** The castle at sunset with the four guild banners, the school year, and **Begin the Festival**. The app then gathers the year’s tales from every month.
 
-Then it crowns the winning guild by **Guild Power**. Music, drumrolls, the same dignity rules as the monthly ceremony: the climb matters.
+- **Chapter I · Legends of the Day.** The students with the most Hero of the Day wins this year rise as lanterns, the top hero in the middle.
+- **Chapter II · The Quest Road.** Each class’s year as a row of monthly bars. Classes are not ranked against other leagues.
+- **Chapter III · The Crown Road.** One tile per finished month with its Prodigy of the Month (or Co-Prodigies), and a **Most crowned** plaque.
+- **Chapter IV · Wonders of the Year.** Fortune’s Wheel spins and Familiars hatched, with the luckiest guild. Skipped when the year has neither.
+- **Chapter V · The Guild Crowning.** Night falls. The four guild pillars stand with their power hidden and are revealed **from last place up** (**Reveal #4**, **#3**, **#2**). **🥁 Crown the Champion** runs a drumroll with the spotlight sweeping the last two pillars, then crowns the winning guild by **Guild Power**. Its crest, motto and **anthem** follow, with the lyrics lighting up in time with the music, and the guild’s top heroes.
+- **Chapter VI · The Hall of Heroes.** Every hero of the participating classes appears as a star in the night sky, with the numbers of the year.
+
+**Finish Ceremony** saves the year’s summary (heroes, class stars, prodigy crowns, the guild ranking, Wheel spins and Familiars) and says farewell until next year. Guilds are for life: the ceremony never re-sorts anyone.
 
 This is **not** Ceremony of the Month. Do not run the monthly dual ritual and call it the Guild Ceremony.
 

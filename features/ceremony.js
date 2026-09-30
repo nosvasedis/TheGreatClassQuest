@@ -1,34 +1,29 @@
-// /features/ceremony.js
+// /features/ceremony.js — Ceremony of the Month.
+// Classic Arena (torchlit arena, Team Quest then Hero's Challenge) and the
+// Growth Festival (storybook garden for Nursery and Pre-Junior). Results are
+// prepared and locked once (ceremonySnapshots); markup lives in
+// ceremonyArenaView.js / ceremonyGardenView.js; effects in ui/ceremonyFx.js;
+// sound in ceremonyAudio.js.
 
 import { db, updateDoc, setDoc, getDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
-import { 
-    playSound, 
-    ceremonyMusic, 
-    winnerFanfare, 
-    showdownSting, 
-    fadeCeremonyMusic, 
-    stopAllCeremonyAudio, 
-    playCeremonyMusic, 
-    playDrumRoll, 
-    stopDrumRoll, 
-    playWinnerFanfare,
-    playGrowthBloomChime,
-    playGrowthFanfare,
-    playGrowthAmbient,
-    stopGrowthAmbient,
-    playGrowthMusic,
-    stopGrowthMusic,
-    fadeGrowthMusic,
-    crownOfPetalsMusic,
-    toggleCeremonyMute,
-    isCeremonyMuted
-} from '../audio.js';
+import {
+    prepareCeremonyAudio,
+    playCeremonyTrack,
+    playCeremonySfx,
+    stopCeremonyMusic,
+    stopCeremonyAudio,
+    startCeremonyDrumroll,
+    stopCeremonyDrumroll,
+    toggleCeremonyAudioMute,
+    isCeremonyAudioMuted
+} from '../ceremonyAudio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { showToast } from '../ui/effects.js';
+import { createCeremonyFx } from '../ui/ceremonyFx.js';
 import { getNormalizedPercentForScore } from './assessmentConfig.js';
 import { formatTeacherBoonReason, getTeacherBoonForMonth } from './boons.js';
 import {
@@ -37,39 +32,35 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
-import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
+import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle, seededHash, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
+import {
+    arenaBackdropHtml,
+    arenaIntroHtml,
+    arenaSummonHtml,
+    arenaRevealHtml,
+    arenaDuelHtml,
+    arenaCardFaceHtml,
+    arenaTransitionHtml,
+    arenaLadderTokenHtml,
+    arenaStandingsHtml,
+    arenaCollectiveHtml,
+    arenaOutroHtml
+} from './ceremonyArenaView.js';
+import {
+    gardenBackdropHtml,
+    gardenIntroHtml,
+    gardenLeagueHtml,
+    gardenTransitionHtml,
+    gardenParadeHtml,
+    gardenFinaleHtml,
+    gardenEndHtml,
+    gardenSprigHtml
+} from './ceremonyGardenView.js';
 
-const CEREMONY_REASON_INFO = {
-    teamwork: { icon: 'fa-users', chip: 'ceremony-chip--teamwork', name: 'Teamwork' },
-    creativity: { icon: 'fa-lightbulb', chip: 'ceremony-chip--creativity', name: 'Creativity' },
-    respect: { icon: 'fa-hands-helping', chip: 'ceremony-chip--respect', name: 'Respect' },
-    focus: { icon: 'fa-brain', chip: 'ceremony-chip--focus', name: 'Focus' },
-    welcome_back: { icon: 'fa-hand-sparkles', chip: 'ceremony-chip--welcome', name: 'Back!' },
-    story_weaver: { icon: 'fa-feather-alt', chip: 'ceremony-chip--story', name: 'Story' },
-    scholar_s_bonus: { icon: 'fa-graduation-cap', chip: 'ceremony-chip--scholar', name: 'Scholar' },
-    teacher_boon: { icon: 'fa-wand-magic-sparkles', chip: 'ceremony-chip--boon', name: 'Teacher Boon' },
-    pathfinder_map: { icon: 'fa-map', chip: 'ceremony-chip--pathfinder', name: 'Pathfinder' }
-};
-
-const CEREMONY_LEVEL_STYLES = {
-    1: { chip: 'ceremony-chip--lvl-1', icon: '🌱', label: 'Level 1' },
-    2: { chip: 'ceremony-chip--lvl-2', icon: '💧', label: 'Level 2' },
-    3: { chip: 'ceremony-chip--lvl-3', icon: '🛡️', label: 'Level 3' },
-    4: { chip: 'ceremony-chip--lvl-4', icon: '🔮', label: 'Level 4' },
-    5: { chip: 'ceremony-chip--lvl-5', icon: '🔥', label: 'Level 5' },
-    6: { chip: 'ceremony-chip--lvl-6', icon: '🐉', label: 'Level 6' }
-};
-
-const CEREMONY_ZONE_CHIPS = {
-    bronze: 'ceremony-chip--zone-bronze',
-    silver: 'ceremony-chip--zone-silver',
-    gold: 'ceremony-chip--zone-gold',
-    crystal: 'ceremony-chip--zone-crystal'
-};
 let ceremonyData = {
     active: false,
-    phase: 'intro', 
+    phase: 'intro',
     monthKey: null,
     monthName: '',
     classId: null,
@@ -82,23 +73,9 @@ let ceremonyData = {
     growthStudents: [],
     growthSpotlights: [],
     growthWinners: [],
-    classPointer: 0, 
-    studentPointer: 0 
+    classPointer: 0,
+    studentPointer: 0
 };
-
-// --- HELPER: Title Formatter (Fixes Emoji Gradient Issue) ---
-function formatTitleHtml(text) {
-    const emojiRegex = /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g;
-    const parts = text.split(emojiRegex);
-    return parts.map(part => {
-        if (part.match(emojiRegex)) {
-            return `<span class="emoji-reset">${part}</span>`;
-        } else if (part.trim().length > 0) {
-            return `<span class="gradient-text">${part}</span>`;
-        }
-        return '';
-    }).join('');
-}
 
 function getCeremonyMonthBounds(monthKey) {
     const [year, month] = String(monthKey || '').split('-').map(Number);
@@ -124,195 +101,6 @@ function existedByMonthEnd(record, monthKey) {
 function formatPercent(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric.toFixed(0) : '0';
-}
-
-function getTeacherBoonCeremonyMarkup(teacherBoon, options = {}) {
-    if (!teacherBoon) return '';
-    const { compact = false } = options;
-    const stars = Number(teacherBoon.stars) || 0;
-    const reasonText = formatTeacherBoonReason(teacherBoon);
-
-    return `
-        <div class="teacher-boon-ceremony-ribbon ${compact ? 'teacher-boon-ceremony-ribbon--compact' : ''}">
-            <div class="teacher-boon-ceremony-ribbon__kicker">Teacher Boon</div>
-            <div class="teacher-boon-ceremony-ribbon__stars">${'⭐'.repeat(Math.max(1, stars))}</div>
-            <div class="teacher-boon-ceremony-ribbon__reason">${reasonText}</div>
-        </div>
-    `;
-}
-
-let lastCeremonyViewMode = 'intro';
-
-const PODIUM_REVEAL_DELAY_MS = 2800;
-
-function setCeremonyActionLabel(text) {
-    const btn = document.getElementById('ceremony-action-btn');
-    if (!btn) return;
-    const label = btn.querySelector('.ceremony-action-btn__label');
-    if (label) label.textContent = text;
-    else btn.textContent = text;
-}
-
-function setCeremonyViewMode(mode) {
-    const screen = document.getElementById('ceremony-screen');
-    if (!screen) return;
-
-    const prev = lastCeremonyViewMode;
-
-    screen.classList.remove(
-        'ceremony-view--intro',
-        'ceremony-view--classes',
-        'ceremony-view--transition',
-        'ceremony-view--students',
-        'ceremony-view--growth',
-        'ceremony-view--final',
-        'ceremony-view--outro',
-        'ceremony-theme-morph-active',
-        'ceremony-theme-morph--to-violet',
-        'ceremony-theme-morph--violet-lock'
-    );
-    screen.classList.add(`ceremony-view--${mode}`);
-
-    const isTransitionFromLeagues = mode === 'transition' && prev === 'classes';
-    const isHeroPhaseEntry = mode === 'students' && (prev === 'transition' || prev === 'classes');
-
-    if (isTransitionFromLeagues) {
-        screen.classList.add('ceremony-theme-morph-active', 'ceremony-theme-morph--to-violet');
-    } else if (isHeroPhaseEntry) {
-        screen.classList.add('ceremony-theme-morph-active', 'ceremony-theme-morph--violet-lock');
-        setTimeout(() => {
-            screen.classList.remove(
-                'ceremony-theme-morph-active',
-                'ceremony-theme-morph--to-violet',
-                'ceremony-theme-morph--violet-lock'
-            );
-        }, 4500);
-    }
-
-    lastCeremonyViewMode = mode;
-
-    const header = document.getElementById('ceremony-header');
-    if (header) {
-        header.classList.toggle('ceremony-header--hidden', mode === 'final');
-        header.classList.toggle('ceremony-header--intro', mode === 'intro');
-    }
-
-    const actionBtn = document.getElementById('ceremony-action-btn');
-    if (actionBtn) {
-        actionBtn.classList.remove(
-            'ceremony-action-btn--intro',
-            'ceremony-action-btn--classes',
-            'ceremony-action-btn--transition',
-            'ceremony-action-btn--students',
-            'ceremony-action-btn--growth',
-            'ceremony-action-btn--final',
-            'ceremony-action-btn--outro'
-        );
-        actionBtn.classList.add(`ceremony-action-btn--${mode}`);
-    }
-}
-
-function resetCeremonyStage(stageEl) {
-    const stage = stageEl || document.getElementById('ceremony-stage-area');
-    const screen = document.getElementById('ceremony-screen');
-    if (stage) {
-        stage.classList.remove('ceremony-stage--podium', 'ceremony-stage--podium-duo');
-    }
-    if (screen) {
-        screen.classList.remove('ceremony-phase-podium');
-    }
-}
-
-function revealCeremonyChips(container, delayMs = 0) {
-    if (!container) return;
-    const blocks = container.querySelectorAll('.ceremony-chips-reveal--hidden');
-    blocks.forEach((block, blockIndex) => {
-        setTimeout(() => {
-            block.classList.remove('ceremony-chips-reveal--hidden');
-            block.classList.add('ceremony-chips-reveal--shown');
-            block.querySelectorAll('.ceremony-chip').forEach((chip, chipIndex) => {
-                chip.style.animationDelay = `${chipIndex * 0.07}s`;
-            });
-        }, delayMs + blockIndex * 90);
-    });
-}
-
-function renderCeremonyIntroSplash(params) {
-    const stage = document.getElementById('ceremony-stage-area');
-    if (!stage) return;
-
-    const classData = state.get('allSchoolClasses').find((c) => c.id === params.classId);
-    const className = classData?.name || 'Your Class';
-    const classLogo = classData?.logo || '📚';
-    const isGrowth = params.mode === 'growth_festival';
-    const leagueLabel = `League ${params.league}`;
-
-    stage.innerHTML = `
-        <div class="ceremony-intro-splash">
-            <div class="ceremony-intro-splash__aurora" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--a" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--b" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__ring" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__emblem-wrap">
-                <span class="ceremony-intro-splash__emblem">${classLogo}</span>
-            </div>
-            <p class="ceremony-intro-splash__kicker">Ceremony of the Month</p>
-            <h1 class="ceremony-intro-splash__title font-title">${params.monthName}</h1>
-            <p class="ceremony-intro-splash__brand">The Great Class Quest</p>
-            <div class="ceremony-intro-splash__details">
-                <span class="ceremony-intro-chip ceremony-intro-chip--amber"><i class="fas fa-route"></i>${leagueLabel}</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--violet"><i class="fas fa-school"></i>${className}</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--blend"><i class="fas ${isGrowth ? 'fa-seedling' : 'fa-wand-magic-sparkles'}"></i>${isGrowth ? 'Growth Festival' : "Team Quest → Hero's Challenge"}</span>
-            </div>
-            <p class="ceremony-intro-splash__tagline">${isGrowth ? 'Every learner brings a special bloom to our garden.' : 'League champions rise first — then your class heroes claim the spotlight.'}</p>
-        </div>
-    `;
-}
-
-function getCurrentStageCard() {
-    const stage = document.getElementById('ceremony-stage-area');
-    if (!stage) return null;
-    return stage.querySelector('.ceremony-display-card:not(.face-off)');
-}
-
-function transitionStageCard(entry, type) {
-    const stage = document.getElementById('ceremony-stage-area');
-    if (!stage) return;
-
-    resetCeremonyStage(stage);
-    const outgoing = getCurrentStageCard();
-    let didTransition = false;
-
-    const renderIncoming = () => {
-        if (didTransition) return;
-        didTransition = true;
-        stage.innerHTML = '';
-        renderCard(entry, type);
-        const incoming = getCurrentStageCard();
-        if (incoming) {
-            incoming.classList.add('ceremony-card-transition-in');
-            setTimeout(() => revealCeremonyChips(incoming, 380), 120);
-        }
-    };
-
-    if (!outgoing) {
-        renderIncoming();
-        return;
-    }
-
-    outgoing.classList.add('ceremony-card-transition-out');
-    outgoing.addEventListener('animationend', renderIncoming, { once: true });
-    setTimeout(renderIncoming, 520);
-}
-
-function triggerRevealFlash() {
-    const screen = document.getElementById('ceremony-screen');
-    if (!screen) return;
-
-    const flash = document.createElement('div');
-    flash.className = 'ceremony-reveal-flash';
-    screen.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove(), { once: true });
 }
 
 // --- 1. STATUS & INITIALIZATION ---
@@ -378,129 +166,21 @@ export async function replayCeremony(classId) {
     if (params) startCeremony(params);
     return params;
 }
-export function startCeremony(params) {
-    const modeResult = resolveCeremonyMode(params.league);
-    if (!modeResult.ok) {
-        const message = modeResult.reason;
-        if (typeof document !== 'undefined') showToast(message, 'warning');
-        return false;
-    }
-    ceremonyData = {
-        active: true,
-        phase: 'intro',
-        monthKey: params.monthKey,
-        currentAppClassId: state.get('globalSelectedClassId'), // Identify who is watching
-        monthName: params.monthName,
-        classId: params.classId,
-        className: params.className || state.get('allSchoolClasses').find((item) => item.id === params.classId)?.name || 'Our Class',
-        league: params.league,
-        mode: modeResult.mode,
-        snapshot: params.snapshot || null,
-        replay: Boolean(params.replay),
-        classQueue: [],
-        studentQueue: [],
-        classPointer: 0,
-        studentPointer: 0
-    };
-
-
-    const screen = document.getElementById('ceremony-screen');
-    const title = document.getElementById('ceremony-title');
-    const subtitle = document.getElementById('ceremony-subtitle');
-    const actionBtn = document.getElementById('ceremony-action-btn');
-    const stage = document.getElementById('ceremony-stage-area');
-    const aiBox = document.getElementById('ceremony-ai-box');
-    const closeBtn = document.getElementById('ceremony-close-btn');
-    const soundBtn = document.getElementById('ceremony-sound-btn');
-    const soundIcon = document.getElementById('ceremony-sound-icon');
-
-    screen.classList.remove('hidden');
-    screen.classList.remove(
-        'ceremony-phase-suspense',
-        'ceremony-phase-reveal',
-        'ceremony-theme-morph-active',
-        'ceremony-theme-morph--to-violet',
-        'ceremony-theme-morph--violet-lock'
-    );
-    resetCeremonyStage(stage);
-    aiBox.style.opacity = '0';
-    lastCeremonyViewMode = 'intro';
-    if (modeResult.mode === 'growth_festival') {
-        setCeremonyViewMode('growth');
-        document.getElementById('ceremony-header')?.classList.add('ceremony-header--intro');
-    } else {
-        setCeremonyViewMode('intro');
-    }
-    renderCeremonyIntroSplash({ ...params, mode: modeResult.mode });
-
-    title.innerHTML = formatTitleHtml('');
-    subtitle.innerHTML = formatTitleHtml('');
-    setCeremonyActionLabel(modeResult.mode === 'growth_festival' ? 'Enter the Garden 🌸' : 'Start Ceremony');
-    actionBtn.onclick = loadDataAndAdvance;
-
-    if (closeBtn) closeBtn.onclick = closeCeremony;
-    if (soundBtn) {
-        soundBtn.onclick = () => {
-            const muted = toggleCeremonyMute();
-            if (soundIcon) {
-                soundIcon.className = muted ? 'fas fa-volume-xmark text-sm text-red-400' : 'fas fa-volume-high text-sm';
-            }
-        };
-    }
-
-    // Keyboard navigation: Space / Enter advances, Escape closes
-    const handleKeyNav = (e) => {
-        if (!ceremonyData.active) return;
-        if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-        if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            const btn = document.getElementById('ceremony-action-btn');
-            if (btn && !btn.disabled) btn.click();
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            closeCeremony();
-        }
-    };
-    window.__ceremonyKeyNavHandler = handleKeyNav;
-    window.removeEventListener('keydown', handleKeyNav);
-    window.addEventListener('keydown', handleKeyNav);
-
-    if (modeResult.mode === 'growth_festival') {
-        playGrowthMusic();
-        setTimeout(() => playGrowthBloomChime(), 420);
-    } else {
-        if (ceremonyMusic.loaded) {
-            ceremonyMusic.volume.value = -12;
-            ceremonyMusic.start();
-        }
-        setTimeout(() => playSound('ceremony_gling'), 420);
-    }
-
-    aiBox.style.opacity = '1';
-    document.getElementById('ceremony-ai-text').innerText = modeResult.mode === 'growth_festival'
-        ? 'Welcome to the garden! Every bloom has a story...'
-        : 'The scrolls are ready. The arena awaits...';
-    triggerAICommentary('intro', { month: params.monthName });
-}
-
 // --- 2. DATA LOADING ---
 
-async function loadDataAndAdvance() {
-    const btn = document.getElementById('ceremony-action-btn');
-    btn.disabled = true;
-    setCeremonyActionLabel('Summoning Scrolls...');
-
+async function loadCeremonyResults() {
+    if (ceremonyData.loaded) return true;
     try {
         if (ceremonyData.snapshot && ['locked', 'completed'].includes(ceremonyData.snapshot.status)) {
             hydrateCeremonyFromSnapshot(ceremonyData.snapshot, ceremonyData.replay);
-            advanceCeremony();
-            return;
+            ceremonyData.loaded = true;
+            return true;
         }
         if (ceremonyData.mode === 'growth_festival') {
             await loadGrowthCeremonyData();
             await persistPreparedCeremonySnapshot();
-            advanceCeremony();
-            return;
+            ceremonyData.loaded = true;
+            return true;
         }
         const [year, month] = ceremonyData.monthKey.split('-').map(Number);
         const { monthStart } = getCeremonyMonthBounds(ceremonyData.monthKey);
@@ -641,12 +321,35 @@ async function loadDataAndAdvance() {
         ceremonyData.studentQueue = studentStats.reverse();
         ceremonyData.phase = 'class_reveal';
         await persistPreparedCeremonySnapshot();
-        advanceCeremony();
-
+        ceremonyData.loaded = true;
+        return true;
     } catch (e) {
-        console.error("Ceremony Load Error:", e);
-        setCeremonyActionLabel('Error loading. Check connection.');
+        console.error('Ceremony Load Error:', e);
+        return false;
     }
+}
+
+async function loadDataAndAdvance() {
+    const stage = $('ceremony-stage-area');
+    if (ceremonyData.mode !== 'growth_festival') {
+        setScene('summon');
+        stage.innerHTML = arenaSummonHtml();
+        setHeading('', '');
+        playCeremonySfx('whoosh');
+    }
+    setHerald('');
+    setAction(ceremonyData.mode === 'growth_festival' ? 'Gathering the garden…' : 'Unrolling the scrolls…', null, { disabled: true });
+    const started = performance.now();
+    const ok = await loadCeremonyResults();
+    if (!ceremonyData.active) return;
+    if (!ok) {
+        showLoadError();
+        return;
+    }
+    const wait = Math.max(0, 1300 - (performance.now() - started));
+    setTimeout(() => {
+        if (ceremonyData.active) advanceCeremony();
+    }, wait);
 }
 
 function hydrateCeremonyFromSnapshot(snapshot, replay = false) {
@@ -775,178 +478,925 @@ async function loadGrowthCeremonyData() {
     ceremonyData.phase = 'growth_garden';
 }
 
-function getVirtueBadgeMeta(key) {
-    const map = {
-        respect: { label: 'Kind Heart Bloom', icon: '💖', className: 'growth-pill--kindness' },
-        creativity: { label: 'Bright Idea Bloom', icon: '💡', className: 'growth-pill--ideas' },
-        teamwork: { label: 'Teamwork Bloom', icon: '🤝', className: 'growth-pill--teamwork' },
-        focus: { label: 'Steady Little Light', icon: '✨', className: 'growth-pill--steady' },
-        teacher_special_bloom: { label: "Teacher's Special Bloom", icon: '🌟', className: 'growth-pill--special' },
-        growing_stronger: { label: 'Growing Stronger', icon: '🌱', className: 'growth-pill--growth' },
-        rainbow_of_strengths: { label: 'Rainbow of Strengths', icon: '🌈', className: 'growth-pill--special' },
-        steady_little_light: { label: 'Steady Little Light', icon: '✨', className: 'growth-pill--steady' }
+// ============================================================== SHELL
+
+const $ = (id) => document.getElementById(id);
+let ceremonyFx = null;
+let timeline = null;
+let frozenAnimations = [];
+
+function screenEl() {
+    return $('ceremony-screen');
+}
+
+function freezeAppBackdrop(screen) {
+    if (frozenAnimations.length || typeof document.getAnimations !== 'function') return;
+    frozenAnimations = document.getAnimations().filter((animation) => {
+        if (animation.playState !== 'running') return false;
+        if (animation.effect?.getTiming?.().iterations !== Infinity) return false;
+        const target = animation.effect?.target;
+        return Boolean(target) && !screen.contains(target);
+    });
+    frozenAnimations.forEach((animation) => animation.pause());
+}
+
+function resumeAppBackdrop() {
+    const frozen = frozenAnimations;
+    frozenAnimations = [];
+    frozen.forEach((animation) => {
+        if (animation.playState === 'paused') animation.play();
+    });
+}
+
+function mountShell(mode) {
+    const screen = screenEl();
+    const backdrop = $('ceremony-backdrop');
+    screen.dataset.mode = mode;
+    if (backdrop && backdrop.dataset.mode !== mode) {
+        backdrop.innerHTML = mode === 'garden' ? gardenBackdropHtml() : arenaBackdropHtml();
+        backdrop.dataset.mode = mode;
+    }
+    const bedRow = document.getElementById('gdn-bed-row');
+    if (bedRow) bedRow.innerHTML = '';
+    const ladder = $('ceremony-ladder');
+    if (ladder) ladder.innerHTML = '';
+    screen.dataset.ladder = 'off';
+    const host = $('ceremony-fx-host');
+    if (host && !ceremonyFx) ceremonyFx = createCeremonyFx(host);
+    else ceremonyFx?.resize();
+    // Lite machines keep the scenery still; only the reveals move.
+    screen.dataset.tier = ceremonyFx?.tier || 'lite';
+}
+
+function setScene(scene, { realm } = {}) {
+    const screen = screenEl();
+    if (!screen) return;
+    screen.dataset.scene = scene;
+    if (realm) screen.dataset.realm = realm;
+    screen.classList.remove('is-drumroll', 'is-revealed');
+    delete screen.dataset.spot;
+}
+
+function replay(el, className) {
+    if (!el) return;
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+}
+
+function setHeading(kicker = '', title = '') {
+    const kickerEl = $('ceremony-subtitle');
+    const titleEl = $('ceremony-title');
+    if (kickerEl) kickerEl.textContent = kicker;
+    if (titleEl) titleEl.textContent = title;
+    const header = $('ceremony-header');
+    if (header) {
+        header.classList.toggle('is-empty', !kicker && !title);
+        replay(header, 'is-fresh');
+    }
+}
+
+function setHerald(text = '') {
+    const box = $('ceremony-ai-box');
+    const p = $('ceremony-ai-text');
+    if (!box || !p) return;
+    p.textContent = text;
+    box.classList.toggle('is-on', Boolean(text));
+    if (text) replay(box, 'is-fresh');
+}
+
+function setAction(label, handler, { disabled = false } = {}) {
+    const btn = $('ceremony-action-btn');
+    if (!btn) return;
+    const labelEl = btn.querySelector('.cer-action__label');
+    if (labelEl) labelEl.textContent = label;
+    btn.disabled = disabled;
+    btn.onclick = () => {
+        if (finishTimeline()) return;
+        handler?.();
     };
-    return map[key] || { label: 'Special Garden Bloom', icon: '🌸', className: 'growth-pill--special' };
+    replay(btn, 'is-fresh');
 }
 
-function growthFieldPetalsHtml() {
-    const petals = [
-        ['🌸', '6%', '9%', '0s', '1.2'],
-        ['🌼', '90%', '13%', '0.9s', '0.95'],
-        ['🌷', '13%', '76%', '1.6s', '1.08'],
-        ['🌺', '84%', '70%', '0.35s', '0.9'],
-        ['✿', '47%', '4%', '2s', '0.72'],
-        ['🌸', '23%', '22%', '2.4s', '0.78'],
-        ['🌼', '71%', '83%', '1.15s', '0.82'],
-        ['❀', '94%', '42%', '2.7s', '0.7'],
-        ['🌷', '3%', '45%', '0.55s', '0.88']
-    ];
-    return `<div class="growth-petals" aria-hidden="true">${petals.map(([emoji, x, y, delay, scale]) =>
-        `<span class="growth-petal" style="--x:${x};--y:${y};--d:${delay};--s:${scale}">${emoji}</span>`
-    ).join('')}</div>`;
+// A timeline is a set of steps at fixed offsets. Pressing Next (or Space)
+// while one runs fast-forwards it: every remaining step runs at once with
+// `fast = true`, so a teacher is never stuck waiting for an animation.
+function runTimeline(steps, onDone) {
+    cancelTimeline();
+    const tl = { steps: steps.map((step) => ({ ...step, done: false })), timers: [], onDone };
+    timeline = tl;
+    const settle = () => {
+        if (tl.steps.every((step) => step.done)) {
+            if (timeline === tl) timeline = null;
+            tl.onDone?.();
+        }
+    };
+    tl.steps.forEach((step) => {
+        tl.timers.push(setTimeout(() => {
+            if (timeline !== tl || step.done) return;
+            step.done = true;
+            step.run(false);
+            settle();
+        }, step.at));
+    });
+    if (!tl.steps.length) settle();
 }
 
-function growthBloomBurstHtml() {
-    const petals = [
-        ['🌸', '12deg', '56%', '0s', '1.18'],
-        ['🌼', '48deg', '62%', '0.35s', '0.92'],
-        ['🌷', '92deg', '57%', '0.7s', '1.08'],
-        ['🌺', '138deg', '63%', '0.15s', '0.96'],
-        ['🌸', '178deg', '58%', '1s', '0.86'],
-        ['🌼', '222deg', '61%', '0.5s', '1.12'],
-        ['✿', '266deg', '54%', '0.85s', '0.8'],
-        ['🌷', '312deg', '60%', '0.22s', '1.02'],
-        ['❀', '344deg', '52%', '1.2s', '0.76']
-    ];
-    return `<div class="growth-bloom-burst" aria-hidden="true">${petals.map(([emoji, angle, radius, delay, scale]) =>
-        `<span class="growth-petal" style="--a:${angle};--r:${radius};--d:${delay};--s:${scale}">${emoji}</span>`
-    ).join('')}</div>`;
+function finishTimeline() {
+    const tl = timeline;
+    if (!tl) return false;
+    timeline = null;
+    tl.timers.forEach(clearTimeout);
+    const screen = screenEl();
+    screen?.classList.add('is-skipping');
+    tl.steps.filter((step) => !step.done).forEach((step) => {
+        step.done = true;
+        step.run(true);
+    });
+    tl.onDone?.();
+    requestAnimationFrame(() => requestAnimationFrame(() => screen?.classList.remove('is-skipping')));
+    return true;
 }
 
-function growthGardenButterfliesHtml() {
-    return `
-        <div class="growth-garden-butterflies" aria-hidden="true">
-            <span class="growth-butterfly growth-butterfly--a">🦋</span>
-            <span class="growth-butterfly growth-butterfly--b">✨</span>
-            <span class="growth-butterfly growth-butterfly--c">🦋</span>
-        </div>
-    `;
+function cancelTimeline() {
+    if (!timeline) return;
+    timeline.timers.forEach(clearTimeout);
+    timeline = null;
 }
 
-function growthStudentCard(card, index = 0, total = 1) {
-    const safe = (value) => String(value || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
-    const safeName = safe(card.studentName || 'Learner');
-    const safeText = safe(card.publicText || 'Brought joy, curiosity, and kindness to our garden.');
-    const badgeMeta = getVirtueBadgeMeta(card.key);
+function countUp(el, to, { fast = false, duration = 900 } = {}) {
+    if (!el) return;
+    const target = Number(to) || 0;
+    if (fast || target <= 0 || typeof requestAnimationFrame !== 'function') {
+        el.textContent = String(target);
+        return;
+    }
+    const start = performance.now();
+    const step = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = String(Math.round(target * eased));
+        if (t < 1 && el.isConnected) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
 
-    const allStudents = state.get('allStudents') || [];
-    const student = allStudents.find((s) => s.id === card.studentId) || (ceremonyData.growthStudents || []).find((s) => s.id === card.studentId);
-    
-    let avatarHtml;
-    if (student && student.avatar) {
-        avatarHtml = `<img src="${safe(student.avatar)}" class="growth-bloom-avatar" alt="${safeName}" loading="lazy" />`;
+function fxPoint(el) {
+    return ceremonyFx?.pointOf(el) || { x: 0, y: 0 };
+}
+
+const METAL_SPARKS = {
+    gold: ['#fde68a', '#fbbf24', '#ffffff'],
+    silver: ['#e2e8f0', '#cbd5e1', '#ffffff'],
+    bronze: ['#fdba74', '#f59e0b', '#ffffff'],
+    steel: ['#c7d2fe', '#a5b4fc', '#ffffff']
+};
+
+/** Animate elements from their old box to their new box (transform only). */
+function flipLayout(elements, mutate, { fast = false, duration = 950 } = {}) {
+    const first = new Map(elements.map((el) => [el, el.getBoundingClientRect()]));
+    mutate();
+    if (fast || typeof Element.prototype.animate !== 'function') return;
+    elements.forEach((el) => {
+        const a = first.get(el);
+        const b = el.getBoundingClientRect();
+        if (!a || !b.width) return;
+        const dx = a.left - b.left;
+        const dy = a.top - b.top;
+        const s = a.width / b.width;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(s - 1) < 0.01) return;
+        el.style.transformOrigin = '0 0';
+        const anim = el.animate([
+            { transform: `translate(${dx}px, ${dy}px) scale(${s})` },
+            { transform: 'translate(0, 0) scale(1)' }
+        ], { duration, easing: 'cubic-bezier(.2,.85,.25,1)' });
+        anim.onfinish = () => { el.style.transformOrigin = ''; };
+    });
+}
+
+// ============================================================== START / CLOSE
+
+function handleCeremonyKeys(e) {
+    if (!ceremonyData.active) return;
+    if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const btn = $('ceremony-action-btn');
+        if (btn && !btn.disabled) btn.click();
+        else finishTimeline();
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCeremony();
+    }
+}
+
+export function startCeremony(params) {
+    const modeResult = resolveCeremonyMode(params.league);
+    if (!modeResult.ok) {
+        if (typeof document !== 'undefined') showToast(modeResult.reason, 'warning');
+        return false;
+    }
+    const allClasses = state.get('allSchoolClasses') || [];
+    const classData = allClasses.find((item) => item.id === params.classId) || {};
+    ceremonyData = {
+        active: true,
+        phase: 'intro',
+        monthKey: params.monthKey,
+        currentAppClassId: state.get('globalSelectedClassId'),
+        monthName: params.monthName,
+        classId: params.classId,
+        className: params.className || classData.name || 'Our Class',
+        classLogo: classData.logo || '📚',
+        league: params.league,
+        mode: modeResult.mode,
+        snapshot: params.snapshot || null,
+        replay: Boolean(params.replay),
+        classQueue: [],
+        studentQueue: [],
+        classPointer: 0,
+        studentPointer: 0,
+        growthPointer: 0,
+        gardenPlanted: new Set()
+    };
+
+    const screen = screenEl();
+    if (!screen) return false;
+    const isGarden = modeResult.mode === 'growth_festival';
+    screen.classList.remove('hidden', 'is-closing');
+    document.documentElement.classList.add('cer-open');
+    mountShell(isGarden ? 'garden' : 'arena');
+    freezeAppBackdrop(screen);
+    requestAnimationFrame(() => screen.classList.add('is-open'));
+
+    const closeBtn = $('ceremony-close-btn');
+    const soundBtn = $('ceremony-sound-btn');
+    const soundIcon = $('ceremony-sound-icon');
+    const crumb = $('ceremony-crumb');
+    if (crumb) crumb.textContent = `${ceremonyData.monthName} · ${ceremonyData.className}`;
+    if (closeBtn) closeBtn.onclick = closeCeremony;
+    const paintSound = () => {
+        const off = isCeremonyAudioMuted();
+        if (soundIcon) soundIcon.className = off ? 'fas fa-volume-xmark' : 'fas fa-volume-high';
+        soundBtn?.setAttribute('aria-pressed', off ? 'true' : 'false');
+    };
+    if (soundBtn) {
+        soundBtn.onclick = () => {
+            toggleCeremonyAudioMute();
+            paintSound();
+            if (!isCeremonyAudioMuted()) playCeremonyTrack(ceremonyData.music || (isGarden ? 'garden_theme' : 'arena_theme'));
+        };
+    }
+    paintSound();
+
+    window.removeEventListener('keydown', handleCeremonyKeys);
+    window.addEventListener('keydown', handleCeremonyKeys);
+
+    ceremonyData.music = isGarden ? 'garden_theme' : 'arena_theme';
+    prepareCeremonyAudio(isGarden ? 'garden' : 'arena').then(() => {
+        if (!ceremonyData.active) return;
+        playCeremonyTrack(ceremonyData.music);
+        playCeremonySfx(isGarden ? 'chime' : 'boom');
+    });
+
+    const stage = $('ceremony-stage-area');
+    if (isGarden) {
+        setScene('gate', { realm: 'day' });
+        stage.innerHTML = gardenIntroHtml({ monthName: ceremonyData.monthName, className: ceremonyData.className, classLogo: ceremonyData.classLogo });
+        setHeading('', '');
+        setHerald('Welcome to the garden! Every bloom has a story…');
+        setAction('Enter the Garden 🌸', openGardenGate);
     } else {
-        const initials = safeName.slice(0, 2).toUpperCase();
-        avatarHtml = `<div class="growth-bloom-avatar" aria-label="${safeName}">${initials || '🌸'}</div>`;
+        setScene('intro', { realm: 'ember' });
+        stage.innerHTML = arenaIntroHtml({ monthName: ceremonyData.monthName, league: ceremonyData.league, className: ceremonyData.className, classLogo: ceremonyData.classLogo });
+        setHeading('', '');
+        setHerald('The scrolls are sealed. The arena awaits…');
+        setAction('Start Ceremony', () => loadDataAndAdvance());
+        ceremonyFx?.embers({ count: 26, duration: 4000 });
+    }
+    triggerAICommentary('intro', { month: params.monthName });
+    return true;
+}
+
+function closeCeremony() {
+    ceremonyData.active = false;
+    cancelTimeline();
+    window.removeEventListener('keydown', handleCeremonyKeys);
+    stopCeremonyAudio({ fade: 0.6 });
+    ceremonyFx?.clear();
+    const screen = screenEl();
+    if (screen) {
+        screen.classList.remove('is-open');
+        screen.classList.add('hidden');
+    }
+    document.documentElement.classList.remove('cer-open');
+    resumeAppBackdrop();
+    import('../features/home.js').then((m) => m.renderHomeTab());
+}
+
+function showLoadError() {
+    setHerald('The scrolls could not be read. Check the connection and try again.');
+    setAction('Try again', () => loadDataAndAdvance());
+}
+
+// ============================================================== CLASSIC ARENA
+
+function getLadder() {
+    return $('ceremony-ladder');
+}
+
+function ladderReset(type, upTo = 0) {
+    const ladder = getLadder();
+    const screen = screenEl();
+    if (!ladder || !screen) return;
+    ladder.innerHTML = '';
+    ladder.dataset.type = type;
+    screen.dataset.ladder = 'on';
+    const queue = type === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
+    queue.slice(0, upTo).forEach((entry) => ladder.insertAdjacentHTML('beforeend', arenaLadderTokenHtml(entry, type)));
+}
+
+function ladderAdd(entry, type) {
+    const ladder = getLadder();
+    if (!ladder) return;
+    ladder.insertAdjacentHTML('beforeend', arenaLadderTokenHtml(entry, type));
+    const token = ladder.lastElementChild;
+    token?.classList.add('is-new');
+    ladder.scrollTo?.({ left: ladder.scrollWidth, behavior: 'smooth' });
+}
+
+function ladderOff() {
+    const screen = screenEl();
+    if (screen) screen.dataset.ladder = 'off';
+}
+
+/** Herald banner drops, the wax seal cracks, the card flips, stars count up. */
+function revealRank(entry, type) {
+    const stage = $('ceremony-stage-area');
+    const isMyClass = type === 'class' && entry.id === ceremonyData.currentAppClassId;
+    stage.innerHTML = arenaRevealHtml(entry, type, { isMyClass });
+    const reveal = stage.querySelector('.cer-reveal');
+    const card = reveal.querySelector('.cer-card');
+    const metal = reveal.dataset.metal;
+    const screen = screenEl();
+    runTimeline([
+        { at: 30, run: (fast) => { reveal.classList.add('is-dropping'); if (!fast) playCeremonySfx('drop'); } },
+        { at: 720, run: (fast) => { reveal.classList.add('is-breaking'); if (!fast) playCeremonySfx('crack'); } },
+        { at: 1080, run: (fast) => {
+            reveal.classList.remove('is-sealed');
+            reveal.classList.add('is-open');
+            if (!fast) {
+                playCeremonySfx(entry.rank <= 3 ? 'reveal' : 'chime');
+                const p = fxPoint(card);
+                ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS[metal] || METAL_SPARKS.steel, count: entry.rank <= 3 ? 90 : 50, speed: 300 });
+                replay(screen, 'is-cheering');
+            }
+            countUp(card.querySelector('.cer-count'), entry.score, { fast });
+        } },
+        { at: 1650, run: () => {
+            reveal.classList.add('is-settled');
+            ladderAdd(entry, type);
+        } }
+    ]);
+}
+
+function setupDuel(silver, gold, type) {
+    const stage = $('ceremony-stage-area');
+    const flip = seededHash(`${ceremonyData.monthKey}:${ceremonyData.classId}:${type}`) % 2 === 1;
+    const left = flip ? gold : silver;
+    const right = flip ? silver : gold;
+    const queue = type === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
+    const bronze = queue.length >= 3 && queue[queue.length - 3]?.rank === 3 ? queue[queue.length - 3] : null;
+    ceremonyData.duel = { type, bronze };
+    setScene('duel');
+    stage.innerHTML = arenaDuelHtml(left, right, type, { myClassId: ceremonyData.currentAppClassId });
+    setHeading(type === 'student' ? "Hero's Challenge" : 'Team Quest', 'The Final Duel');
+    setHerald('');
+    triggerAICommentary('showdown_build', { name1: left.name, name2: right.name });
+    playCeremonyTrack('duel');
+    playCeremonySfx('boom');
+    const duel = stage.querySelector('.cer-duel');
+    requestAnimationFrame(() => duel?.classList.add('is-in'));
+}
+
+function unveilDuelist(duelist, fast) {
+    const rank = Number(duelist.dataset.rank);
+    const metal = rank === 1 ? 'gold' : 'silver';
+    const card = duelist.querySelector('.cer-card');
+    card?.classList.remove('cer-metal--mystery');
+    card?.classList.add(`cer-metal--${metal}`);
+    const plate = card?.querySelector('.cer-card__plate');
+    if (plate) plate.innerHTML = `<span>${rank === 1 ? 'Gold' : 'Silver'}</span><b>#${rank}</b>`;
+    card?.querySelector('.cer-card__score')?.classList.remove('is-veiled');
+    countUp(card?.querySelector('.cer-count'), card?.querySelector('.cer-count')?.dataset.count, { fast });
+    duelist.classList.add(rank === 1 ? 'is-winner' : 'is-runnerup');
+    if (rank === 1) card?.classList.add('is-crowned');
+}
+
+function handleDuelReveal() {
+    const stage = $('ceremony-stage-area');
+    const screen = screenEl();
+    const duel = stage.querySelector('.cer-duel');
+    if (!duel) return advanceCeremony();
+    const left = duel.querySelector('.cer-duelist--left');
+    const right = duel.querySelector('.cer-duelist--right');
+    const rankL = Number(left?.dataset.rank);
+    const rankR = Number(right?.dataset.rank);
+    const isTie = rankL === 1 && rankR === 1;
+    const winnerSide = isTie ? 'both' : (rankL === 1 ? 'l' : 'r');
+    const type = ceremonyData.duel?.type || 'class';
+    const countEl = duel.querySelector('.cer-vs__count');
+    const labelEl = duel.querySelector('.cer-vs__label');
+    const finishedClassShowdown = ceremonyData.phase === 'class_showdown';
+
+    setAction('Revealing…', null);
+    screen.classList.add('is-drumroll');
+    duel.classList.add('is-tense');
+    if (labelEl) labelEl.textContent = 'Get ready…';
+    stopCeremonyMusic({ fade: 0.4 });
+    startCeremonyDrumroll(2.9);
+
+    const sweeps = [0, 470, 880, 1240, 1550, 1810, 2030, 2210, 2360, 2480, 2580, 2670, 2750];
+    const steps = sweeps.map((at, i) => ({ at, run: (fast) => {
+        if (fast) return;
+        screen.dataset.spot = i % 2 ? 'r' : 'l';
+        if (i % 2 === 0) playCeremonySfx('tick');
+    } }));
+    [3, 2, 1].forEach((n, i) => steps.push({ at: 650 + i * 760, run: (fast) => {
+        if (fast) return;
+        if (countEl) countEl.textContent = String(n);
+        if (labelEl) labelEl.textContent = 'Revealing…';
+        replay(duel.querySelector('.cer-vs'), 'is-tick');
+        playCeremonySfx('heartbeat');
+    } }));
+    steps.push({ at: 2950, run: (fast) => {
+        stopCeremonyDrumroll({ crash: !fast });
+        screen.dataset.spot = winnerSide;
+        screen.classList.remove('is-drumroll');
+        screen.classList.add('is-revealed');
+        duel.classList.remove('is-tense');
+        duel.classList.add('is-revealed');
+        if (!fast) replay(screen, 'is-flashing');
+        [left, right].forEach((d) => d && unveilDuelist(d, fast));
+        const winners = [left, right].filter((d) => Number(d?.dataset.rank) === 1);
+        const names = winners.map((d) => d.querySelector('.cer-card__name')?.textContent || '');
+        if (isTie) {
+            setHeading(type === 'student' ? 'Co-Prodigies' : "It's a draw", type === 'student' ? 'Two crowns tonight!' : 'Shared Champions!');
+            triggerAICommentary('tie', { names: names.join(' & ') });
+        } else {
+            setHeading(type === 'student' ? `${ceremonyData.monthName} · ${ceremonyData.className}` : `League ${ceremonyData.league}`, type === 'student' ? 'Prodigy of the Month' : 'Champion of the League');
+            const winner = winners[0];
+            triggerAICommentary(finishedClassShowdown ? 'class_winner' : 'student_winner', { id: winner?.dataset.id, name: names[0] });
+        }
+        if (!fast) {
+            playCeremonyTrack('victory');
+            playCeremonySfx('gold');
+            winners.forEach((d) => {
+                const p = fxPoint(d.querySelector('.cer-card'));
+                ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.gold, count: 140, speed: 380, ring: true });
+            });
+            ceremonyFx?.fireworks({ count: 7, spread: 2600 });
+            ceremonyFx?.confetti({ count: 160, duration: 1400 });
+            replay(screen, 'is-cheering');
+        }
+        ceremonyData.phase = finishedClassShowdown ? 'class_showdown_done' : 'student_showdown_done';
+    } });
+    steps.push({ at: 5600, run: (fast) => {
+        const bronze = isTie ? null : ceremonyData.duel?.bronze;
+        const duelists = [left, right].filter(Boolean);
+        flipLayout(duelists, () => {
+            duel.classList.add('is-podium');
+            if (isTie) duel.classList.add('is-tie');
+            duelists.forEach((d) => { d.dataset.place = String(Number(d.dataset.rank) === 1 ? (isTie && d === right ? '1b' : '1') : '2'); });
+        }, { fast });
+        if (bronze) {
+            duel.insertAdjacentHTML('beforeend', `<div class="cer-duelist cer-duelist--bronze is-runnerup" data-place="3" data-rank="3">
+                <div class="cer-pedestal" aria-hidden="true"><span></span></div>
+                ${arenaCardFaceHtml(bronze, type, { metal: 'bronze', isMyClass: type === 'class' && bronze.id === ceremonyData.currentAppClassId })}
+            </div>`);
+            const bronzeCard = duel.querySelector('.cer-duelist--bronze .cer-card');
+            if (!fast) playCeremonySfx('reveal');
+            countUp(bronzeCard?.querySelector('.cer-count'), bronze.score, { fast });
+        } else {
+            duel.classList.add('is-duo');
+        }
+        delete screen.dataset.spot;
+    } });
+    runTimeline(steps, () => {
+        setAction(finishedClassShowdown ? "On to the Hero's Challenge" : 'Show Final Standings', advanceCeremony);
+    });
+}
+
+function renderTransition() {
+    const stage = $('ceremony-stage-area');
+    ladderOff();
+    setScene('transition', { realm: 'violet' });
+    stage.innerHTML = arenaTransitionHtml();
+    setHeading('Individual Honours', 'Who went above and beyond?');
+    setHerald('');
+    triggerAICommentary('transition', {});
+    ceremonyData.music = 'heroes_theme';
+    playCeremonyTrack('heroes_theme', { fade: 1.6 });
+    playCeremonySfx('whoosh');
+    ceremonyFx?.stars({ count: 40, colors: ['#ddd6fe', '#c4b5fd', '#fef3c7'], duration: 2400 });
+}
+
+function renderStandings() {
+    const stage = $('ceremony-stage-area');
+    ladderOff();
+    setScene('standings', { realm: 'violet' });
+    const queue = ceremonyData.studentQueue || [];
+    if (queue.length && queue.every((student) => Number(student.score) <= 0)) {
+        stage.innerHTML = arenaCollectiveHtml();
+        setHeading(ceremonyData.monthName, 'Our Whole Class Quest');
+    } else {
+        stage.innerHTML = arenaStandingsHtml(queue.slice().reverse(), { monthName: ceremonyData.monthName });
+        setHeading('', '');
+    }
+    setHerald('');
+    ceremonyFx?.confetti({ count: 70, duration: 1800 });
+    playCeremonySfx('fanfare');
+}
+
+function renderArenaOutro() {
+    const stage = $('ceremony-stage-area');
+    ladderOff();
+    setScene('outro', { realm: 'violet' });
+    const champions = (ceremonyData.studentQueue || []).filter((s) => s.rank === 1 && Number(s.score) > 0).map((s) => s.name);
+    stage.innerHTML = arenaOutroHtml({ className: ceremonyData.className, classLogo: ceremonyData.classLogo, monthName: ceremonyData.monthName, champions });
+    setHeading('Ceremony Complete', 'Until the next moon');
+    triggerAICommentary('outro', {});
+    ceremonyFx?.fireworks({ count: 6, spread: 3000 });
+    ceremonyFx?.confetti({ count: 120, duration: 1600 });
+    playCeremonySfx('gold');
+}
+
+function advanceCeremony() {
+    const screen = screenEl();
+    if (!screen || !ceremonyData.active) return;
+    persistCeremonyPlayback();
+
+    if (ceremonyData.mode === 'growth_festival') {
+        advanceGrowthCeremony();
+        return;
     }
 
-    return `
-        <div class="growth-bloom-card-wrap">
-            <article class="growth-bloom-card" data-student-id="${safe(card.studentId)}">
-                <div class="growth-bloom-wreath-container">
-                    ${growthBloomBurstHtml()}
-                    <div class="growth-bloom-wreath-img" aria-hidden="true"></div>
-                    ${avatarHtml}
-                </div>
-                <h3>${safeName}</h3>
-                <div class="growth-bloom-spotlight-pill ${badgeMeta.className}">
-                    <span>${badgeMeta.icon}</span>
-                    <span>${badgeMeta.label}</span>
-                </div>
-                <p>${safeText}</p>
-                <div class="growth-bloom-counter-wrap">
-                    <button type="button" class="growth-bloom-nav-btn growth-bloom-nav-btn--prev" data-growth-nav="prev" ${index === 0 ? 'disabled' : ''} aria-label="Previous Bloom" title="Previous Bloom">
-                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                    </button>
-                    <div class="growth-bloom-counter">Bloom ${index + 1} of ${total} 🌸</div>
-                    <button type="button" class="growth-bloom-nav-btn growth-bloom-nav-btn--next" data-growth-nav="next" ${index + 1 >= total ? 'disabled' : ''} aria-label="Next Bloom" title="Next Bloom">
-                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </article>
-        </div>
-    `;
+    if (ceremonyData.phase === 'class_reveal') {
+        const queue = ceremonyData.classQueue || [];
+        if (!queue.length) {
+            ceremonyData.phase = 'transition';
+            advanceCeremony();
+            return;
+        }
+        if (screen.dataset.scene !== 'classes') {
+            setScene('classes', { realm: 'ember' });
+            ladderReset('class', ceremonyData.classPointer);
+        }
+        if (queue.length === 1) {
+            revealRank(queue[0], 'class');
+            setHeading(`League ${ceremonyData.league}`, 'Champion of the League');
+            ceremonyData.phase = 'transition';
+            setAction("On to the Hero's Challenge", advanceCeremony);
+            return;
+        }
+        const pointer = ceremonyData.classPointer;
+        if (pointer >= queue.length - 2) {
+            ceremonyData.phase = 'class_showdown';
+            ladderOff();
+            setupDuel(queue[queue.length - 2], queue[queue.length - 1], 'class');
+            setAction('🥁 Drumroll…', handleDuelReveal);
+            return;
+        }
+        const entry = queue[pointer];
+        revealRank(entry, 'class');
+        setHeading(`Team Quest · League ${ceremonyData.league}`, 'The League Rises');
+        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: formatPercent(entry.progress) });
+        ceremonyData.classPointer += 1;
+        setAction('Next', advanceCeremony);
+        return;
+    }
+
+    if (ceremonyData.phase === 'class_showdown_done') {
+        ceremonyData.phase = 'transition';
+        advanceCeremony();
+        return;
+    }
+
+    if (ceremonyData.phase === 'transition') {
+        renderTransition();
+        ceremonyData.phase = 'student_reveal';
+        setAction("Begin Hero's Challenge", advanceCeremony);
+        return;
+    }
+
+    if (ceremonyData.phase === 'student_reveal') {
+        const queue = ceremonyData.studentQueue || [];
+        if (!queue.length) {
+            ceremonyData.phase = 'final_leaderboard';
+            advanceCeremony();
+            return;
+        }
+        if (screen.dataset.scene !== 'heroes') {
+            setScene('heroes', { realm: 'violet' });
+            ladderReset('student', ceremonyData.studentPointer);
+            if (ceremonyData.music !== 'heroes_theme') {
+                ceremonyData.music = 'heroes_theme';
+                playCeremonyTrack('heroes_theme');
+            }
+        }
+        if (queue.length === 1) {
+            revealRank(queue[0], 'student');
+            setHeading(ceremonyData.className, 'Class Hero');
+            ceremonyData.phase = 'final_leaderboard';
+            setAction('See Full Results', advanceCeremony);
+            return;
+        }
+        const pointer = ceremonyData.studentPointer;
+        if (pointer >= queue.length - 2) {
+            ceremonyData.phase = 'student_showdown';
+            ladderOff();
+            setupDuel(queue[queue.length - 2], queue[queue.length - 1], 'student');
+            setAction('Crown the Champion', handleDuelReveal);
+            return;
+        }
+        const entry = queue[pointer];
+        revealRank(entry, 'student');
+        setHeading(`Hero's Challenge · ${ceremonyData.className}`, entry.rank === 3 ? 'The Bronze Hero' : 'Heroes of the Month');
+        let tieReason = '';
+        if (pointer > 0) {
+            const prev = queue[pointer - 1];
+            if (entry.score === prev.score && entry.rank < prev.rank) {
+                if (entry.stats.count3 > prev.stats.count3) tieReason = 'tie_3star';
+                else if (entry.stats.count2 > prev.stats.count2) tieReason = 'tie_2star';
+                else if (entry.stats.academicAvg > prev.stats.academicAvg) tieReason = 'tie_academic';
+                else if (entry.stats.uniqueReasons > prev.stats.uniqueReasons) tieReason = 'tie_variety';
+            }
+        }
+        triggerAICommentary('student_rank', { name: entry.name, rank: entry.rank, score: entry.score, tieReason });
+        ceremonyData.studentPointer += 1;
+        setAction('Next', advanceCeremony);
+        return;
+    }
+
+    if (ceremonyData.phase === 'student_showdown_done') {
+        ceremonyData.phase = 'final_leaderboard';
+        advanceCeremony();
+        return;
+    }
+
+    if (ceremonyData.phase === 'final_leaderboard') {
+        renderStandings();
+        ceremonyData.phase = 'end';
+        setAction('Finish Ceremony', advanceCeremony);
+        return;
+    }
+
+    if (ceremonyData.phase === 'end') {
+        saveCeremonyComplete();
+        renderArenaOutro();
+        setAction('Close', closeCeremony);
+        ceremonyData.phase = 'closed';
+    }
+}
+
+// ============================================================== GROWTH FESTIVAL
+
+function gardenPerson(id, fallbackName = '') {
+    const all = state.get('allStudents') || [];
+    const found = all.find((s) => s.id === id) || (ceremonyData.growthStudents || []).find((s) => s.id === id);
+    return { id, name: found?.name || fallbackName || 'Learner', avatar: found?.avatar || null };
+}
+
+function gardenLearners() {
+    const cards = ceremonyData.growthSpotlights || [];
+    const fromCards = cards.map((card) => gardenPerson(card.studentId, card.studentName));
+    const seen = new Set(fromCards.map((p) => p.id));
+    (ceremonyData.growthStudents || []).forEach((s) => {
+        if (!seen.has(s.id)) {
+            seen.add(s.id);
+            fromCards.push(gardenPerson(s.id, s.name));
+        }
+    });
+    return fromCards;
+}
+
+function plantSprig(person, { fast = false, from = null } = {}) {
+    const row = document.getElementById('gdn-bed-row');
+    if (!row || ceremonyData.gardenPlanted.has(person.id)) return;
+    ceremonyData.gardenPlanted.add(person.id);
+    row.insertAdjacentHTML('beforeend', gardenSprigHtml(person, row.children.length));
+    row.style.setProperty('--n', String(row.children.length));
+    const sprig = row.lastElementChild;
+    if (fast || !from) {
+        sprig.classList.add('is-planted');
+        return;
+    }
+    sprig.classList.add('is-arriving');
+    const a = from.getBoundingClientRect();
+    const b = sprig.querySelector('.gdn-bloom')?.getBoundingClientRect();
+    if (!b || typeof from.animate !== 'function') {
+        sprig.classList.add('is-planted');
+        return;
+    }
+    const flyer = from.cloneNode(true);
+    flyer.classList.add('gdn-flyer');
+    Object.assign(flyer.style, { position: 'fixed', left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px`, height: `${a.height}px`, margin: '0', transformOrigin: '0 0', zIndex: '40', pointerEvents: 'none' });
+    document.body.appendChild(flyer);
+    const s = b.width / a.width;
+    const anim = flyer.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${(b.left - a.left) * 0.5}px, ${(b.top - a.top) * 0.35 - 80}px) scale(${(1 + s) / 2})`, opacity: 1, offset: 0.5 },
+        { transform: `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${s})`, opacity: 0.9 }
+    ], { duration: 900, easing: 'cubic-bezier(.3,.7,.3,1)' });
+    anim.onfinish = () => {
+        flyer.remove();
+        sprig.classList.remove('is-arriving');
+        sprig.classList.add('is-planted');
+        const p = fxPoint(sprig.querySelector('.gdn-bloom'));
+        ceremonyFx?.burst(p.x, p.y, { colors: ['#fde68a', '#f9a8d4', '#ffffff'], count: 22, speed: 120, size: 8, gravity: 40 });
+    };
+}
+
+function openGardenGate() {
+    const stage = $('ceremony-stage-area');
+    const gate = stage.querySelector('.gdn-gate');
+    setAction('Opening the gate…', null);
+    const loading = loadCeremonyResults();
+    playCeremonySfx('whoosh');
+    gate?.classList.add('is-opening');
+    ceremonyFx?.petals({ count: 36, duration: 1600 });
+    let ready = false;
+    let opened = false;
+    const go = () => {
+        if (ready && opened && ceremonyData.active) advanceCeremony();
+    };
+    loading.then((ok) => {
+        if (!ok) {
+            showLoadError();
+            return;
+        }
+        ready = true;
+        go();
+    });
+    runTimeline([{ at: 1500, run: () => { opened = true; } }], go);
+}
+
+function renderGardenLeague() {
+    const stage = $('ceremony-stage-area');
+    setScene('league', { realm: 'day' });
+    const garden = ceremonyData.growthGardenClasses || [];
+    const pathfinder = garden.find((item) => item.id === ceremonyData.growthPathfinderId);
+    const ordered = [...garden.filter((item) => item.id !== ceremonyData.growthPathfinderId), ...(pathfinder ? [pathfinder] : [])];
+    stage.innerHTML = gardenLeagueHtml(ordered, { pathfinderId: ceremonyData.growthPathfinderId, myClassId: ceremonyData.classId, soloClassName: ceremonyData.className });
+    setHeading('Our League Garden', 'Every class grows in its own way');
+    setHerald('Look how our league garden is blossoming together! 🌸');
+    const planters = [...stage.querySelectorAll('.gdn-planter')];
+    const steps = planters.map((planter, i) => ({
+        at: 250 + i * 520 + (planter.classList.contains('gdn-planter--pathfinder') ? 500 : 0),
+        run: (fast) => {
+            planter.classList.add('is-grown');
+            if (fast) return;
+            playCeremonySfx(planter.classList.contains('gdn-planter--pathfinder') ? 'pop' : 'sprout');
+            const p = fxPoint(planter.querySelector('.gdn-bloom'));
+            ceremonyFx?.burst(p.x, p.y, { colors: planter.classList.contains('gdn-planter--pathfinder') ? ['#fde68a', '#fbbf24', '#fff'] : ['#f9a8d4', '#bbf7d0', '#fff'], count: 30, speed: 160, gravity: 60 });
+        }
+    }));
+    runTimeline(steps);
+}
+
+function renderGardenRain() {
+    const stage = $('ceremony-stage-area');
+    setScene('rain', { realm: 'day' });
+    stage.innerHTML = gardenTransitionHtml();
+    setHeading('', '');
+    setHerald('Every little step, warm smile and kind helping hand made our classroom blossom! 🌷');
+    playCeremonySfx('chime');
+    ceremonyFx?.petals({ count: 50, duration: 3000 });
+}
+
+function renderGardenParade(index) {
+    const stage = $('ceremony-stage-area');
+    const queue = ceremonyData.growthSpotlights || [];
+    const card = queue[index];
+    setScene('parade', { realm: 'day' });
+    // Children shown before this card are already in the bed (resume or back-navigation).
+    queue.slice(0, index).forEach((c) => plantSprig(gardenPerson(c.studentId, c.studentName), { fast: true }));
+    const person = gardenPerson(card.studentId, card.studentName);
+    stage.innerHTML = gardenParadeHtml(card, { index, total: queue.length, person });
+    setHeading('Parade of Blooms', 'A special part of our garden');
+    setHerald(`Let's celebrate ${person.name}! 🌸`);
+    const parade = stage.querySelector('.gdn-parade');
+    const head = parade.querySelector('.gdn-grow__head .gdn-bloom');
+    const already = ceremonyData.gardenPlanted.has(person.id);
+    stage.querySelector('[data-growth-nav="prev"]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cancelTimeline();
+        if (index > 0) {
+            renderGardenParade(index - 1);
+            ceremonyData.growthPointer = index;
+            setParadeAction(index - 1);
+        }
+    });
+    stage.querySelector('[data-growth-nav="next"]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (index + 1 >= queue.length) return;
+        finishTimeline();
+        cancelTimeline();
+        ceremonyData.growthPointer = index + 1;
+        advanceGrowthCeremony();
+    });
+    runTimeline([
+        { at: 60, run: (fast) => { parade.classList.add('is-seeded'); if (!fast) playCeremonySfx('seed'); } },
+        { at: 650, run: (fast) => { parade.classList.add('is-sprouting'); if (!fast) playCeremonySfx('sprout'); } },
+        { at: 1350, run: () => { parade.classList.add('is-budding'); } },
+        { at: 2350, run: (fast) => {
+            parade.classList.add('is-bloomed');
+            head?.classList.add('is-open');
+            if (!fast) {
+                playCeremonySfx('pop');
+                const p = fxPoint(head);
+                ceremonyFx?.burst(p.x, p.y, { colors: ['#fde68a', '#f9a8d4', '#c4b5fd', '#ffffff'], count: 60, speed: 240, gravity: 70 });
+                ceremonyFx?.petals({ count: 16, duration: 800 });
+            }
+        } },
+        { at: 2700, run: () => { parade.classList.add('is-told'); } },
+        { at: 3500, run: (fast) => { if (!already) plantSprig(person, { fast, from: head }); } }
+    ]);
+}
+
+function setParadeAction(index) {
+    const total = (ceremonyData.growthSpotlights || []).length;
+    setAction(index + 1 >= total ? 'Reveal Our Golden Bloom ✨' : 'Next Bloom 🌸', advanceCeremony);
+}
+
+function renderGardenFinale() {
+    const stage = $('ceremony-stage-area');
+    setScene('finale', { realm: 'day' });
+    gardenLearners().forEach((person) => plantSprig(person, { fast: true }));
+    const allStudents = state.get('allStudents') || [];
+    const winners = (ceremonyData.growthWinners || []).map((w) => {
+        const s = allStudents.find((x) => x.id === w.id) || w;
+        return { id: s.id, name: s.name || w.name, avatar: s.avatar || null };
+    });
+    stage.innerHTML = gardenFinaleHtml(winners, { classLogo: ceremonyData.classLogo, className: ceremonyData.className });
+    setHeading('The Golden Bloom', 'Who is shining brightest?');
+    setHerald('Shh… the biggest bud in the garden is waking up!');
+    const finale = stage.querySelector('.gdn-finale');
+    stopCeremonyMusic({ fade: 1 });
+    playCeremonyTrack('golden_bloom');
+    const bed = document.querySelector('.gdn-bed');
+    runTimeline([
+        { at: 80, run: () => finale.classList.add('is-growing') },
+        { at: 900, run: (fast) => { if (!fast) playCeremonySfx('chime'); } },
+        { at: 1700, run: (fast) => { finale.classList.add('is-glowing'); if (!fast) playCeremonySfx('chime'); } },
+        { at: 2600, run: (fast) => { if (!fast) playCeremonySfx('sprout'); } },
+        { at: 3300, run: (fast) => {
+            finale.classList.add('is-open');
+            finale.querySelectorAll('.gdn-bloom').forEach((b) => b.classList.add('is-open'));
+            if (winners.length) {
+                setHeading(winners.length > 1 ? 'Co-Prodigies' : 'Prodigy of the Month', winners.length > 1 ? 'Our Golden Blooms' : 'Our Golden Bloom');
+                setHerald(winners.length > 1 ? 'Two golden blooms are shining in our garden! 👑✨' : `${winners[0].name} is our Golden Bloom! 👑✨`);
+            } else {
+                setHeading('Whole Class Garden', 'Everyone helped our garden grow');
+                setHerald('Everyone helped our class garden grow and blossom together! 🌸💖');
+            }
+            if (!fast) {
+                playCeremonySfx('pop');
+                playCeremonySfx('gold');
+                finale.querySelectorAll('.gdn-golden .gdn-bloom').forEach((b) => {
+                    const p = fxPoint(b);
+                    ceremonyFx?.burst(p.x, p.y, { colors: ['#fde047', '#facc15', '#ffffff', '#f9a8d4'], count: 120, speed: 320, ring: true, gravity: 60 });
+                });
+                ceremonyFx?.confetti({ count: 120, colors: ['#fde68a', '#f9a8d4', '#bbf7d0', '#c4b5fd', '#a5f3fc'], duration: 1500 });
+                ceremonyFx?.petals({ count: 40, duration: 2500 });
+            }
+            replay(bed, 'is-cheering');
+        } }
+    ]);
+}
+
+function renderGardenEnd() {
+    const stage = $('ceremony-stage-area');
+    setScene('end', { realm: 'dusk' });
+    stage.innerHTML = gardenEndHtml({ className: ceremonyData.className });
+    setHeading('Ceremony Complete', 'Sleep well, little garden');
+    setHerald('Our classroom garden will keep blooming bright all year long! 🌿💖');
+    ceremonyFx?.stars({ count: 36, colors: ['#fef9c3', '#fde68a', '#fbcfe8'], duration: 4000 });
+    playCeremonySfx('chime');
 }
 
 function advanceGrowthCeremony() {
-    const stage = document.getElementById('ceremony-stage-area');
-    const title = document.getElementById('ceremony-title');
-    const subtitle = document.getElementById('ceremony-subtitle');
-    const btn = document.getElementById('ceremony-action-btn');
-    const screen = document.getElementById('ceremony-screen');
-    const aiText = document.getElementById('ceremony-ai-text');
-    if (!stage || !btn) return;
-    persistCeremonyPlayback();
-    screen?.classList.remove('ceremony-phase-suspense');
-
-    const safe = (value) => String(value || '').replace(/[<&>"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
-
     if (ceremonyData.phase === 'growth_garden') {
-        playGrowthBloomChime();
-        title.innerHTML = formatTitleHtml('Our League Garden');
-        subtitle.innerHTML = formatTitleHtml('Every class grows in its own beautiful way');
-        if (aiText) aiText.innerText = 'Look how our classroom garden is blossoming together! 🌸🌱';
-        const garden = ceremonyData.growthGardenClasses || [];
-        const pathfinder = garden.find((item) => item.id === ceremonyData.growthPathfinderId);
-        const ordered = [...garden.filter((item) => item.id !== ceremonyData.growthPathfinderId), ...(pathfinder ? [pathfinder] : [])];
-        const cards = ordered.map((item) => `
-            <article class="growth-class-card${item.id === ceremonyData.growthPathfinderId ? ' growth-class-card--pathfinder' : ''}">
-                <span class="growth-class-emblem" aria-hidden="true">${safe(item.logo || '🌱')}</span>
-                <h3>${safe(item.className || item.name || 'Our class')}</h3>
-                <p>${safe(item.progressLabel || 'Growing together')}</p>
-                ${item.topSkill ? `<span class="growth-class-virtue">${safe(item.topSkill)} bloom</span>` : ''}
-                ${item.id === ceremonyData.growthPathfinderId ? '<strong class="growth-class-pathfinder">✨ League Pathfinder</strong>' : ''}
-            </article>
-        `).join('');
-        stage.innerHTML = `
-            <div class="growth-festival-garden" role="region" aria-label="Our League Garden">
-                <div class="growth-garden-gate" aria-hidden="true"></div>
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-garden-cards">
-                    ${cards || `<article class="growth-class-card"><span class="growth-class-emblem" aria-hidden="true">🌱</span><h3>${safe(ceremonyData.className || 'Our class')}</h3><p>Our class garden is growing together.</p></article>`}
-                </div>
-            </div>
-        `;
-        setCeremonyViewMode('growth');
-        setCeremonyActionLabel('Explore Our Blooms 🌸');
+        renderGardenLeague();
+        setAction('Explore Our Blooms 🌸', advanceCeremony);
         ceremonyData.phase = 'growth_transition';
         return;
     }
-
     if (ceremonyData.phase === 'growth_transition') {
-        playGrowthBloomChime();
-        title.innerHTML = formatTitleHtml('Every Garden Grows Together');
-        subtitle.innerHTML = '';
-        if (aiText) aiText.innerText = 'Every little step, warm smile, and kind helping hand made our classroom blossom! 🌷✨';
-        stage.innerHTML = `
-            <div class="growth-festival-garden" role="region" aria-label="Season of Wonder & Growth">
-                <div class="growth-garden-gate" aria-hidden="true"></div>
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-transition-message">
-                    <div class="growth-fireflies" aria-hidden="true">🌸 ✧ 🌷 ✧ 🌼</div>
-                    <h2>A Season of Wonder &amp; Growth</h2>
-                    <p>Every little step, warm smile, and helping hand helped our classroom blossom into something extraordinary.</p>
-                </div>
-            </div>
-        `;
-        setCeremonyViewMode('growth');
-        setCeremonyActionLabel('Begin the Bloom Parade 🌺');
+        renderGardenRain();
+        setAction('Begin the Bloom Parade 🌺', advanceCeremony);
         ceremonyData.phase = 'growth_parade';
         return;
     }
-
     if (ceremonyData.phase === 'growth_parade') {
         const queue = ceremonyData.growthSpotlights || [];
         const index = ceremonyData.growthPointer || 0;
@@ -955,1137 +1405,26 @@ function advanceGrowthCeremony() {
             advanceGrowthCeremony();
             return;
         }
-        playGrowthBloomChime();
-        triggerConfetti();
-        title.innerHTML = formatTitleHtml('Parade of Blooms');
-        subtitle.innerHTML = formatTitleHtml('A special part of our garden');
-        const currentSpotlight = queue[index];
-        if (aiText && currentSpotlight) {
-            aiText.innerText = `Let's celebrate ${safe(currentSpotlight.studentName || 'Learner')} — ${safe(currentSpotlight.publicText || 'a bright, shining bloom in our garden!')} 🌸`;
-        }
-        stage.innerHTML = `
-            <div class="growth-festival-garden" role="region" aria-label="Parade of Blooms">
-                <div class="growth-garden-gate" aria-hidden="true"></div>
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                ${growthStudentCard(currentSpotlight, index, queue.length)}
-            </div>
-        `;
-        stage.querySelector('[data-growth-nav="prev"]')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (index > 0) {
-                ceremonyData.growthPointer = index - 1;
-                advanceGrowthCeremony();
-            }
-        });
-        stage.querySelector('[data-growth-nav="next"]')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (index + 1 >= queue.length) return;
-            advanceGrowthCeremony();
-        });
+        renderGardenParade(index);
         ceremonyData.growthPointer = index + 1;
-        setCeremonyViewMode('growth');
-        setCeremonyActionLabel(index + 1 >= queue.length ? 'Reveal Our Golden Bloom ✨' : 'Next Bloom 🌸');
+        setParadeAction(index);
         return;
     }
-
     if (ceremonyData.phase === 'growth_final') {
-        playGrowthFanfare();
-        triggerConfetti();
-        const winners = ceremonyData.growthWinners || [];
-        title.innerHTML = formatTitleHtml(winners.length ? 'Golden Bloom' : 'Whole Class Garden');
-        subtitle.innerHTML = formatTitleHtml(winners.length ? 'Prodigy of the Month' : 'Everyone helped our garden grow');
-        if (aiText) {
-            aiText.innerText = winners.length
-                ? 'Behold our Golden Bloom! A shining flower of wonder in our whole class family! 👑✨'
-                : 'Everyone helped our class family garden grow and blossom together! 🌸💖';
-        }
-
-        const allStudents = state.get('allStudents') || [];
-        const winnerCardsHtml = winners.map((winner) => {
-            const safeWinnerName = safe(winner.name || 'Prodigy');
-            const winnerStudent = allStudents.find((s) => s.id === winner.id) || winner;
-            let avatarHtml;
-            if (winnerStudent && winnerStudent.avatar) {
-                avatarHtml = `<img src="${safe(winnerStudent.avatar)}" class="growth-golden-avatar" alt="${safeWinnerName}" loading="lazy" />`;
-            } else {
-                avatarHtml = `<div class="growth-golden-avatar" aria-label="${safeWinnerName}">👑</div>`;
-            }
-            return `
-                <div class="growth-golden-bloom-item">
-                    <div class="growth-golden-wreath-container">
-                        ${growthBloomBurstHtml()}
-                        <div class="growth-golden-bloom-wreath-img" aria-hidden="true"></div>
-                        ${avatarHtml}
-                    </div>
-                    <div class="growth-golden-kicker">✨ Prodigy of the Month ✨</div>
-                    <h2 class="growth-golden-title">${safeWinnerName}</h2>
-                </div>
-            `;
-        }).join('');
-
-        const miniBloomsHtml = (ceremonyData.growthStudents || []).map((student) => {
-            const sName = safe(student.name || 'Learner');
-            const studentObj = allStudents.find((s) => s.id === student.id) || student;
-            const icon = studentObj.avatar ? `<img src="${safe(studentObj.avatar)}" class="w-7 h-7 rounded-full object-cover border border-amber-300 shadow-sm" alt="${sName}" />` : '🌸';
-            return `
-                <div class="growth-mini-bloom-item" title="${sName}">
-                    <span class="growth-mini-bloom-icon" aria-hidden="true">${icon}</span>
-                    <span class="growth-mini-bloom-name">${sName}</span>
-                </div>
-            `;
-        }).join('');
-
-        stage.innerHTML = `
-            <div class="growth-final-garden" role="region" aria-label="Golden Bloom Celebration">
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-golden-bloom-wrap">
-                    ${winnerCardsHtml || `
-                        <div class="growth-golden-bloom-item">
-                            <div class="growth-golden-wreath-container">
-                                ${growthBloomBurstHtml()}
-                                <div class="growth-golden-bloom-wreath-img" aria-hidden="true"></div>
-                                <div class="growth-golden-avatar">🌿</div>
-                            </div>
-                            <h2 class="growth-golden-title">Our Whole Class Garden</h2>
-                        </div>
-                    `}
-                </div>
-                <div class="growth-mini-blooms-section">
-                    <div class="growth-mini-blooms-label">Every Blossom in Our Class Family</div>
-                    <div class="growth-mini-blooms" aria-label="All class members">
-                        ${miniBloomsHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-        setCeremonyViewMode('growth');
-        setCeremonyActionLabel('Finish Ceremony 🌿');
+        renderGardenFinale();
+        setAction('Finish Ceremony 🌿', advanceCeremony);
         ceremonyData.phase = 'growth_end';
         return;
     }
-
     if (ceremonyData.phase === 'growth_end') {
         saveCeremonyComplete();
-        if (aiText) aiText.innerText = 'Our classroom garden will keep blooming bright all year long! 🌿💖';
-        stage.innerHTML = `
-            <div class="growth-festival-garden" role="region" aria-label="Ceremony Complete">
-                <div class="growth-garden-gate" aria-hidden="true"></div>
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-outro">
-                    <h2>Our garden will keep blooming!</h2>
-                    <p>Thank you for making this month so magical and joyful.</p>
-                    <div class="growth-outro-emblems" aria-hidden="true">🌿 🌸 🌼 🦋 🌷</div>
-                </div>
-            </div>
-        `;
-        title.innerHTML = formatTitleHtml('Ceremony Complete');
-        subtitle.innerHTML = '';
-        setCeremonyViewMode('growth');
-        setCeremonyActionLabel('Close');
-        btn.onclick = closeCeremony;
-        ceremonyData.phase = 'end';
-        return;
-    }
-}
-// --- 3. THE "CONVEYOR BELT" ENGINE ---
-function advanceCeremony() {
-    const btn = document.getElementById('ceremony-action-btn');
-    const stage = document.getElementById('ceremony-stage-area');
-    const title = document.getElementById('ceremony-title');
-    const aiBox = document.getElementById('ceremony-ai-box');
-    const subtitle = document.getElementById('ceremony-subtitle');
-    const screen = document.getElementById('ceremony-screen');
-    persistCeremonyPlayback();
-
-    if (ceremonyData.mode === 'growth_festival') {
-        advanceGrowthCeremony();
-        return;
-    }
-
-    btn.disabled = false;
-    btn.onclick = advanceCeremony; 
-    if (screen) {
-        screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
-        if (ceremonyData.phase === 'class_showdown' || ceremonyData.phase === 'student_showdown') {
-            screen.classList.add('ceremony-phase-suspense');
-        }
-    }
-
-    // --- PHASE 1: CLASSES ---
-    if (ceremonyData.phase === 'class_reveal') {
-        setCeremonyViewMode('classes');
-        const queue = ceremonyData.classQueue;
-        
-        if (!queue || queue.length === 0) {
-            ceremonyData.phase = 'transition';
-            advanceCeremony();
-            return;
-        }
-
-        if (queue.length === 1) {
-            transitionStageCard(queue[0], 'class');
-            title.innerHTML = formatTitleHtml("The Champion");
-            ceremonyData.phase = 'transition';
-            setCeremonyActionLabel('See Student Heroes');
-            return;
-        }
-
-        const pointer = ceremonyData.classPointer;
-
-        if (pointer >= queue.length - 2) {
-            setCeremonyViewMode('classes');
-            ceremonyData.phase = 'class_showdown'; 
-            const silver = queue[queue.length - 2];
-            const gold = queue[queue.length - 1];
-            setupShowdown(silver, gold, 'The Final Duel', 'Two legends remain...', 'class');
-            setCeremonyActionLabel('🥁 Drumroll...');
-            btn.onclick = handleDramaticReveal;
-            return;
-        }
-
-        const entry = queue[pointer];
-        transitionStageCard(entry, 'class');
-        
-        title.innerHTML = formatTitleHtml(`Rank #${entry.rank}`);
-        subtitle.innerHTML = formatTitleHtml("Team Quest");
-        aiBox.style.opacity = '1';
-        
-        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: formatPercent(entry.progress) });
-
-        ceremonyData.classPointer++;
-        setCeremonyActionLabel('Next');
-    }
-
-    // --- PHASE 1.5: CLASS SHOWDOWN DONE → HERO'S CHALLENGE SPLASH ---
-    else if (ceremonyData.phase === 'class_showdown_done') {
-        resetCeremonyStage(stage);
-        ceremonyData.phase = 'transition';
-        advanceCeremony();
-    }
-
-    // --- PHASE 2: TRANSITION (amber → violet morph begins here) ---
-    else if (ceremonyData.phase === 'transition') {
-        setCeremonyViewMode('transition');
-        stopAllCeremonyAudio();
-        setTimeout(() => { playCeremonyMusic(); }, 500);
-        resetCeremonyStage(stage);
-        stage.innerHTML = `
-            <div class="ceremony-transition-panel ceremony-card-enter ceremony-transition-panel--morph">
-                <div class="ceremony-transition-panel__orb"></div>
-                <div class="ceremony-transition-panel__gold-glow" aria-hidden="true"></div>
-                <div class="ceremony-transition-panel__violet-glow" aria-hidden="true"></div>
-                <div class="ceremony-transition-panel__kicker">The torches turn inward</div>
-                <i class="fas fa-user-astronaut ceremony-transition-panel__icon"></i>
-                <h2 class="font-title ceremony-transition-panel__title">Hero's Challenge</h2>
-                <p class="ceremony-transition-panel__text">The league banners fade to gold, then violet — as your class heroes step into the spotlight.</p>
-            </div>
-        `;
-        title.innerHTML = formatTitleHtml('Individual Honors');
-        subtitle.innerHTML = formatTitleHtml("Who went above and beyond?");
-        aiBox.style.opacity = '0';
-        triggerAICommentary('transition', {});
-
-        setCeremonyActionLabel("Begin Hero's Challenge");
-        ceremonyData.phase = 'student_reveal';
-    }
-        
-    // --- PHASE 3: STUDENTS ---
-    else if (ceremonyData.phase === 'student_reveal') {
-        setCeremonyViewMode('students');
-        const queue = ceremonyData.studentQueue;
-        
-        if (!queue || queue.length === 0) {
-            ceremonyData.phase = 'final_leaderboard';
-            advanceCeremony();
-            return;
-        }
-
-        if (queue.length === 1) {
-            transitionStageCard(queue[0], 'student');
-            title.innerHTML = formatTitleHtml("Class Hero");
-            ceremonyData.phase = 'final_leaderboard';
-            setCeremonyActionLabel('See Full Results');
-            return;
-        }
-
-        const pointer = ceremonyData.studentPointer;
-
-        if (pointer >= queue.length - 2) {
-            setCeremonyViewMode('students');
-            ceremonyData.phase = 'student_showdown';
-            const silver = queue[queue.length - 2];
-            const gold = queue[queue.length - 1];
-            setupShowdown(silver, gold, 'Top Heroes', 'Two legends remain...', 'student');
-            setCeremonyActionLabel('Crown the Champion');
-            btn.onclick = handleDramaticReveal;
-            return;
-        }
-
-        const entry = queue[pointer];
-        transitionStageCard(entry, 'student');
-        
-        let rankText = `#${entry.rank}`;
-        if (entry.rank === 3) rankText = "🥉 Bronze";
-        
-        title.innerHTML = formatTitleHtml(`${rankText} Place`);
-        subtitle.innerHTML = formatTitleHtml("Hero's Challenge");
-        
-        aiBox.style.opacity = '1';
-        
-        let winReason = "";
-        if (pointer > 0) {
-            const prevEntry = queue[pointer - 1];
-            if (entry.score === prevEntry.score && entry.rank < prevEntry.rank) {
-                if (entry.stats.count3 > prevEntry.stats.count3) winReason = "tie_3star";
-                else if (entry.stats.count2 > prevEntry.stats.count2) winReason = "tie_2star";
-                else if (entry.stats.academicAvg > prevEntry.stats.academicAvg) winReason = "tie_academic";
-                else if (entry.stats.uniqueReasons > prevEntry.stats.uniqueReasons) winReason = "tie_variety";
-            }
-        }
-
-        triggerAICommentary('student_rank', { 
-            name: entry.name, 
-            rank: entry.rank, 
-            score: entry.score,
-            tieReason: winReason 
-        });
-
-        ceremonyData.studentPointer++;
-        setCeremonyActionLabel('Next');
-    }
-
-    // --- PHASE 3.5: STUDENT SHOWDOWN DONE ---
-    else if (ceremonyData.phase === 'student_showdown_done') {
-        resetCeremonyStage(stage);
-        setCeremonyViewMode('final');
-        ceremonyData.phase = 'final_leaderboard';
-        advanceCeremony();
-    }
-
-    // --- PHASE 3.6: FINAL LEADERBOARD (NEW) ---
-    else if (ceremonyData.phase === 'final_leaderboard') {
-        resetCeremonyStage(stage);
-        setCeremonyViewMode('final');
-        stage.innerHTML = '';
-        renderFinalLeaderboard();
-        
-        title.innerHTML = '';
-        subtitle.innerHTML = '';
-        aiBox.style.opacity = '0';
-        
-        setCeremonyActionLabel('Finish Ceremony');
+        renderGardenEnd();
+        setAction('Close', closeCeremony);
         ceremonyData.phase = 'end';
     }
-
-    // --- PHASE 4: END ---
-    else if (ceremonyData.phase === 'end') {
-        setCeremonyViewMode('outro');
-        saveCeremonyComplete();
-        
-        stage.innerHTML = `
-            <div class="text-center">
-                <h2 class="font-title text-6xl text-white mb-4">Congratulations!</h2>
-                <p class="text-2xl text-indigo-200">A new quest begins...</p>
-                <div class="mt-8 text-8xl animate-bounce">🎓</div>
-            </div>
-        `;
-        title.innerHTML = formatTitleHtml("Ceremony Complete");
-        subtitle.innerHTML = formatTitleHtml("Until next time..."); 
-        aiBox.style.opacity = '0';
-        triggerAICommentary('outro', {});
-        setCeremonyActionLabel('Close');
-        btn.onclick = closeCeremony;
-        
-        triggerConfetti();
-        triggerFireworks();
-        if (winnerFanfare.loaded) winnerFanfare.start();
-        if (screen) screen.classList.add('ceremony-phase-reveal');
-    }
 }
 
-// --- 4. RENDERERS ---
-
-function ceremonyChip(chipClass, content, title = '') {
-    const titleAttr = title ? ` title="${title.replace(/"/g, '&quot;')}"` : '';
-    return `<span class="ceremony-chip ${chipClass}"${titleAttr}>${content}</span>`;
-}
-
-function getCeremonyRankMeta(rank) {
-    if (rank === 1) {
-        return {
-            cardClass: 'card-rank-1',
-            extraClass: '',
-            rankbarClass: 'ceremony-card-rankbar--gold',
-            pillClass: 'ceremony-rank-badge__pill--gold',
-            pillContent: '🥇 Gold'
-        };
-    }
-    if (rank === 2) {
-        return {
-            cardClass: 'card-rank-2',
-            extraClass: '',
-            rankbarClass: 'ceremony-card-rankbar--silver',
-            pillClass: 'ceremony-rank-badge__pill--silver',
-            pillContent: '🥈 Silver'
-        };
-    }
-    if (rank === 3) {
-        return {
-            cardClass: 'card-rank-3',
-            extraClass: 'bronze-shine',
-            rankbarClass: 'ceremony-card-rankbar--bronze',
-            pillClass: 'ceremony-rank-badge__pill--bronze',
-            pillContent: '🥉 Bronze'
-        };
-    }
-    return {
-        cardClass: 'card-rank-other',
-        extraClass: '',
-        rankbarClass: 'ceremony-card-rankbar--other',
-        pillClass: 'ceremony-rank-badge__pill--other',
-        pillContent: `#${rank}`
-    };
-}
-
-function buildCeremonyRankbarHtml(rank) {
-    const meta = getCeremonyRankMeta(rank);
-    return `
-        <div class="ceremony-card-rankbar ${meta.rankbarClass}">
-            <span class="ceremony-rank-badge__pill ${meta.pillClass}">${meta.pillContent}</span>
-            <span class="ceremony-card-rankbar__label">Rank #${rank}</span>
-        </div>`;
-}
-
-function buildCeremonyKicker(type, mode = 'reveal') {
-    const isStudent = type === 'student';
-    if (mode === 'duel') {
-        return {
-            icon: isStudent ? 'fa-user-ninja' : 'fa-shield-halved',
-            label: isStudent ? 'Hero Duel' : 'League Duel'
-        };
-    }
-    return {
-        icon: isStudent ? 'fa-user-shield' : 'fa-route',
-        label: isStudent ? "Hero's Challenge" : 'Team Quest'
-    };
-}
-
-function buildCeremonyClassChips(entry, { compact = false, hidden = false } = {}) {
-    const chips = [];
-    const lvl = Math.min(6, Math.max(1, entry.level || 1));
-    const lvlStyle = CEREMONY_LEVEL_STYLES[lvl] || CEREMONY_LEVEL_STYLES[1];
-    chips.push(ceremonyChip(
-        lvlStyle.chip,
-        `${lvlStyle.icon} ${compact ? `Lv ${lvl}` : lvlStyle.label}`,
-        `Quest difficulty level ${lvl}`
-    ));
-
-    if (entry.zone) {
-        const zoneChip = CEREMONY_ZONE_CHIPS[entry.zone.id] || CEREMONY_ZONE_CHIPS.bronze;
-        chips.push(ceremonyChip(
-            zoneChip,
-            compact ? `${entry.zone.icon}` : `${entry.zone.icon} ${entry.zone.label}`,
-            entry.zone.desc
-        ));
-    }
-
-    if (!compact && entry.avgPerHero > 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--avg',
-            `<i class="fas fa-user-group"></i>${entry.avgPerHero.toFixed(1)} avg/hero`,
-            'Average stars per hero'
-        ));
-    }
-
-    if (entry.teamBonus > 0) {
-        const isPathfinder = entry.teamBonus >= 10;
-        chips.push(ceremonyChip(
-            isPathfinder ? 'ceremony-chip--pathfinder' : 'ceremony-chip--bonus',
-            isPathfinder
-                ? `<i class="fas fa-map"></i>${compact ? `+${entry.teamBonus}` : `Pathfinder +${entry.teamBonus}`}`
-                : `<i class="fas fa-people-group"></i>+${entry.teamBonus} team`,
-            'Team Quest bonus stars'
-        ));
-    }
-
-    if (entry.topSkill) {
-        const info = CEREMONY_REASON_INFO[entry.topSkill] || { icon: 'fa-star', chip: 'ceremony-chip--neutral', name: 'Strength' };
-        chips.push(ceremonyChip(
-            info.chip,
-            compact ? `<i class="fas ${info.icon}"></i> ${info.name}` : `<i class="fas ${info.icon}"></i> Top: ${info.name}`,
-            'Top class strength this month'
-        ));
-    }
-
-    if (!compact || chips.length < 3) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--heroes',
-            `<i class="fas fa-users"></i>${entry.studentCount}${compact ? '' : ' heroes'}`,
-            'Heroes in this class'
-        ));
-    }
-
-    const hiddenClass = hidden ? ' ceremony-chips-reveal--hidden' : '';
-    return `<div class="ceremony-card-metrics${compact ? ' ceremony-card-metrics--compact' : ''}${hiddenClass}">${chips.join('')}</div>`;
-}
-
-function buildCeremonyStudentChips(entry, { compact = false, hidden = false } = {}) {
-    const stats = entry.stats || {};
-    const chips = [];
-
-    if (stats.count3 > 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--epic',
-            `<i class="fas fa-bolt"></i>${stats.count3}${compact ? '' : ' × 3⭐'}`,
-            'Epic lessons (3-star)'
-        ));
-    }
-    if (stats.count2 > 0 && !compact) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--strong',
-            `<i class="fas fa-star-half-alt"></i>${stats.count2} × 2⭐`,
-            'Strong lessons (2-star)'
-        ));
-    }
-    if (stats.topSkill) {
-        const info = CEREMONY_REASON_INFO[stats.topSkill] || { icon: 'fa-star', chip: 'ceremony-chip--neutral', name: 'Star' };
-        chips.push(ceremonyChip(
-            info.chip,
-            `<i class="fas ${info.icon}"></i> ${info.name}`,
-            'Top strength this month'
-        ));
-    }
-    if (!compact && stats.uniqueReasons > 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--variety',
-            `<i class="fas fa-shapes"></i>${stats.uniqueReasons} strengths`,
-            'Unique award reasons (tie-breaker)'
-        ));
-    }
-    if (stats.academicAvg > 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--scholar',
-            `<i class="fas fa-graduation-cap"></i>${Math.round(stats.academicAvg)}% Scholar`,
-            'Average written score this month'
-        ));
-    }
-    if (compact && chips.length < 2 && stats.count2 > 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--strong',
-            `<i class="fas fa-star-half-alt"></i>${stats.count2}`,
-            'Strong lessons (2-star)'
-        ));
-    }
-    if (compact && chips.length < 2 && stats.uniqueReasons > 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--variety',
-            `<i class="fas fa-shapes"></i>${stats.uniqueReasons}`,
-            'Unique strengths'
-        ));
-    }
-    if (chips.length === 0) {
-        chips.push(ceremonyChip(
-            'ceremony-chip--neutral',
-            `<i class="fas fa-star"></i>${entry.score} this month`,
-            'Monthly stars'
-        ));
-    }
-
-    const hiddenClass = hidden ? ' ceremony-chips-reveal--hidden' : '';
-    return `<div class="ceremony-card-metrics${compact ? ' ceremony-card-metrics--compact' : ''}${hiddenClass}">${chips.join('')}</div>`;
-}
-
-function unwrapCeremonyChipRow(html) {
-    return html.replace(/^<div class="ceremony-card-metrics[^"]*">/, '').replace(/<\/div>\s*$/, '');
-}
-
-function buildCeremonyClassScoreHeadline(entry) {
-    return `
-        <div class="ceremony-class-score-headline">
-            <span class="ceremony-class-score-headline__value">${entry.score}</span>
-            <span class="ceremony-class-score-headline__label">Stars Collected</span>
-            <span class="ceremony-class-score-headline__heroes"><i class="fas fa-users"></i>${entry.studentCount} heroes</span>
-        </div>`;
-}
-
-function buildCeremonyClassGoalPanel(entry, { hidden = false, compact = false } = {}) {
-    const p = Math.min(100, Math.max(0, Number(entry.progress) || 0));
-    const hiddenClass = hidden ? ' ceremony-chips-reveal--hidden' : '';
-    const compactClass = compact ? ' ceremony-class-goal-panel--compact' : '';
-    const fillBronze = Math.min(p, 30) / 30 * 100;
-    const fillSilver = Math.min(Math.max(p - 30, 0), 30) / 30 * 100;
-    const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
-    const fillCrystal = Math.min(Math.max(p - 85, 0), 15) / 15 * 100;
-    const zone = entry.zone;
-    const zoneLabel = zone?.label || 'Quest Path';
-    const zoneIcon = zone?.icon || '🌿';
-    const markerHtml = compact
-        ? ''
-        : `<div class="ceremony-quest-trail__marker" style="left:${Math.min(p, 100)}%"></div>`;
-    const stagesHtml = compact
-        ? ''
-        : '<span class="ceremony-class-goal-panel__stages">🌿 🏔️ 🏰 💎</span>';
-
-    return `
-        <div class="ceremony-class-goal-panel${compactClass}${hiddenClass}">
-            <div class="ceremony-class-goal-panel__header">
-                <span class="ceremony-class-goal-panel__zone">${zoneIcon} ${zoneLabel}</span>
-                <span class="ceremony-class-goal-panel__pct">${formatPercent(p)}%</span>
-            </div>
-            <div class="ceremony-quest-trail" aria-label="Quest goal progress ${formatPercent(p)} percent">
-                <div class="ceremony-quest-trail__track">
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--bronze">
-                        <div class="ceremony-quest-trail__fill" style="width:${fillBronze}%"></div>
-                    </div>
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--silver">
-                        <div class="ceremony-quest-trail__fill" style="width:${fillSilver}%"></div>
-                    </div>
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--gold">
-                        <div class="ceremony-quest-trail__fill" style="width:${fillGold}%"></div>
-                    </div>
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--crystal">
-                        <div class="ceremony-quest-trail__fill" style="width:${fillCrystal}%"></div>
-                    </div>
-                </div>
-                ${markerHtml}
-            </div>
-            <div class="ceremony-class-goal-panel__meta">
-                <span>${entry.score} / ${entry.goal || 0} goal</span>
-                ${stagesHtml}
-            </div>
-        </div>`;
-}
-
-function buildCeremonyStudentClassStrip(entry) {
-    if (!entry.className) return '';
-    return `
-        <div class="ceremony-card-class-strip">
-            <span class="ceremony-card-class-strip__emoji" aria-hidden="true">${entry.classLogo || '📚'}</span>
-            <span class="ceremony-card-class-strip__name">${entry.className}</span>
-        </div>`;
-}
-
-function renderCard(entry, type) {
-    const stage = document.getElementById('ceremony-stage-area');
-    const isStudent = type === 'student';
-    const kicker = buildCeremonyKicker(type, 'reveal');
-    const rankMeta = getCeremonyRankMeta(entry.rank);
-    const rankBadgeHtml = buildCeremonyRankbarHtml(entry.rank);
-
-    // --- Avatar / logo ---
-    const avatarBorderColor = entry.rank === 1 ? '#F59E0B' : entry.rank === 2 ? '#94a3b8' : entry.rank === 3 ? '#cd7f32' : '#818cf8';
-    const imageHtml = isStudent
-        ? (entry.avatar
-            ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full object-cover mx-auto mb-4" style="border: 4px solid ${avatarBorderColor}; box-shadow: 0 0 18px ${avatarBorderColor}66;">`
-            : `<div class="w-40 h-40 rounded-full flex items-center justify-center text-7xl font-bold mx-auto mb-4" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); border: 4px solid ${avatarBorderColor}; box-shadow: 0 0 18px ${avatarBorderColor}66; color:white;">${entry.name.charAt(0)}</div>`)
-        : `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`;
-
-    const subText = isStudent
-        ? `<span class="font-title text-3xl" style="color:#d97706;">${entry.score} ⭐</span>`
-        : buildCeremonyClassScoreHeadline(entry);
-    const detailChips = isStudent
-        ? buildCeremonyStudentChips(entry, { hidden: true })
-        : `${buildCeremonyClassChips(entry, { hidden: true })}${buildCeremonyClassGoalPanel(entry, { hidden: true, compact: true })}`;
-    const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon) : '';
-    // Check if this card belongs to the class currently using the app
-    const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
-    const myClassBadge = isMyClass
-        ? `<span class="ceremony-my-class-badge">YOU</span>`
-        : '';
-    const card = document.createElement('div');
-    card.className = `ceremony-display-card ceremony-display-card--${type} ${rankMeta.cardClass} ${rankMeta.extraClass}`;
-    card.style.position = 'relative';
-    card.innerHTML = `
-        <div class="ceremony-card-aura"></div>
-        ${rankBadgeHtml}
-        <div class="ceremony-card-shell">
-            ${myClassBadge}
-            <div class="ceremony-card-kicker"><i class="fas ${kicker.icon}"></i>${kicker.label}</div>
-            ${isStudent ? buildCeremonyStudentClassStrip(entry) : ''}
-            ${imageHtml}
-            <h3 class="font-title ceremony-card-name text-gray-800">${entry.name}</h3>
-            <div class="mt-2">${subText}</div>
-            ${detailChips}
-            ${teacherBoonHtml}
-        </div>
-    `;
-
-    stage.appendChild(card);
-    playSound(entry.rank <= 3 ? 'star2' : 'click');
-}
-
-function getShowdownBronzeEntry(entryType) {
-    const queue = entryType === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
-    if (!queue || queue.length < 3) return null;
-    const bronze = queue[queue.length - 3];
-    return bronze?.rank === 3 ? bronze : null;
-}
-
-function setupShowdown(silverEntry, goldEntry, titleText, subText, entryType) {
-    const stage = document.getElementById('ceremony-stage-area');
-    const title = document.getElementById('ceremony-title');
-    const subtitle = document.getElementById('ceremony-subtitle');
-    const aiBox = document.getElementById('ceremony-ai-box');
-
-    ceremonyData.showdownContext = {
-        entryType,
-        bronze: getShowdownBronzeEntry(entryType)
-    };
-
-    title.innerHTML = formatTitleHtml(titleText);
-    subtitle.innerHTML = formatTitleHtml(subText);
-    subtitle.style.opacity = '1';
-    aiBox.style.opacity = '1'; 
-
-    resetCeremonyStage(stage);
-    stage.innerHTML = '';
-
-    const spotlight = document.createElement('div');
-    spotlight.className = 'absolute inset-0 bg-radial-gradient-spotlight pointer-events-none animate-pulse-slow';
-    stage.appendChild(spotlight);
-
-    const leftCard = createFaceOff(silverEntry, silverEntry.rank, 'left', entryType);
-    const rightCard = createFaceOff(goldEntry, goldEntry.rank, 'right', entryType);
-    
-    const vsBadge = document.createElement('div');
-    vsBadge.id = 'ceremony-vs-badge';
-    vsBadge.className = 'ceremony-countdown-ring';
-    vsBadge.innerHTML = `
-        <span class="ceremony-countdown-ring__halo"></span>
-        <span class="ceremony-countdown-ring__number">VS</span>
-        <span class="ceremony-countdown-ring__label">Final Duel</span>
-    `;
-
-    stage.appendChild(leftCard);
-    stage.appendChild(vsBadge);
-    stage.appendChild(rightCard);
-
-    triggerAICommentary('showdown_build', { name1: silverEntry.name, name2: goldEntry.name });
-
-    stopAllCeremonyAudio(); 
-    if (showdownSting.loaded) {
-        showdownSting.volume.value = -5;
-        showdownSting.start();
-    }
-}
-
-function createFaceOff(entry, realRank, position, entryType) {
-    if (!entry) return document.createElement('div');
-
-    const div = document.createElement('div');
-    // Pick a rank card class: gold for #1 finalist, silver for #2 finalist (revealed later)
-    const rankCardClass = realRank === 1 ? 'card-rank-1' : 'card-rank-2';
-    div.className = `ceremony-display-card ceremony-card ceremony-display-card--${entryType} face-off face-off--duel ${rankCardClass} relative`;
-
-    div.id = `showdown-card-${position}`;
-    div.dataset.rank = realRank;
-    div.dataset.name = entry.name;
-    div.dataset.score = entry.score;
-    div.dataset.id = entry.id;
-    div.dataset.teacherBoonReason = entry.teacherBoon?.reasonText || '';
-
-    const isStudent = entryType === 'student';
-
-    // Avatar border tinted per rank (greyed during face-off, pops on reveal via CSS)
-    const imageHtml = !isStudent
-        ? `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`
-        : (entry.avatar
-            ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full border-4 border-gray-300 mx-auto mb-4 object-cover shadow-inner">`
-            : `<div class="w-40 h-40 rounded-full bg-gray-200 flex items-center justify-center text-7xl text-gray-500 font-bold mx-auto mb-4 border-4 border-gray-300 shadow-inner">${entry.name.charAt(0)}</div>`);
-
-    const scoreDisplay = isStudent
-        ? `<span class="font-title text-2xl" style="color:#d97706;">${entry.score} ⭐</span>`
-        : buildCeremonyClassScoreHeadline(entry);
-    const faceOffKicker = buildCeremonyKicker(entryType, 'duel');
-    const faceOffMetrics = isStudent
-        ? buildCeremonyStudentChips(entry, { compact: true, hidden: true })
-        : buildCeremonyClassChips(entry, { compact: true, hidden: true });
-    const faceOffGoalPanel = !isStudent
-        ? buildCeremonyClassGoalPanel(entry, { hidden: true, compact: true })
-        : '';
-    const teacherBoonWrapped = isStudent && entry.teacherBoon
-        ? `<div class="ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(entry.teacherBoon, { compact: true })}</div>`
-        : '';
-
-    div.innerHTML = `
-        <div class="ceremony-card-aura"></div>
-        <div class="rank-badge ceremony-card-rankbar ceremony-card-rankbar--faceoff ${realRank === 1 ? 'ceremony-card-rankbar--gold' : 'ceremony-card-rankbar--silver'}">
-            <span class="ceremony-rank-badge__pill ${realRank === 1 ? 'ceremony-rank-badge__pill--gold' : 'ceremony-rank-badge__pill--silver'}">${realRank === 1 ? '🥇 Gold' : '🥈 Silver'}</span>
-            <span class="ceremony-card-rankbar__label">Rank #${realRank}</span>
-        </div>
-        <div class="ceremony-card-shell">
-            <div class="ceremony-card-kicker"><i class="fas ${faceOffKicker.icon}"></i>${faceOffKicker.label}</div>
-            ${isStudent ? buildCeremonyStudentClassStrip(entry) : ''}
-            ${imageHtml}
-            <h3 class="font-title ceremony-card-name ceremony-card-name--faceoff text-gray-700">${entry.name}</h3>
-            <div class="star-count opacity-0 transition-all duration-500">
-                ${scoreDisplay}
-            </div>
-            ${faceOffMetrics}
-            ${faceOffGoalPanel}
-            ${teacherBoonWrapped}
-        </div>
-    `;
-    return div;
-}
-
-function createPodiumCard(entry, entryType) {
-    const card = createFaceOff(entry, entry.rank, 'bronze', entryType);
-    card.id = 'showdown-card-bronze';
-    card.classList.remove('face-off', 'card-rank-2');
-    card.classList.add('card-rank-3', 'bronze-shine', 'revealed-bronze', 'ceremony-podium-card');
-
-    const rankbar = card.querySelector('.ceremony-card-rankbar');
-    if (rankbar) {
-        rankbar.classList.remove('ceremony-card-rankbar--silver', 'ceremony-card-rankbar--gold');
-        rankbar.classList.add('ceremony-card-rankbar--bronze');
-        const pill = rankbar.querySelector('.ceremony-rank-badge__pill');
-        if (pill) {
-            pill.className = 'ceremony-rank-badge__pill ceremony-rank-badge__pill--bronze';
-            pill.textContent = '🥉 Bronze';
-        }
-    }
-
-    const badge = card.querySelector('.rank-badge');
-    const scoreEl = card.querySelector('.star-count');
-    if (badge) badge.classList.remove('opacity-0');
-    if (scoreEl) {
-        scoreEl.classList.remove('opacity-0');
-        scoreEl.classList.add('opacity-100');
-    }
-
-    return card;
-}
-
-function insertPodiumSteps(stage, hasBronze) {
-    if (stage.querySelector('.ceremony-podium-steps')) return;
-
-    const steps = document.createElement('div');
-    steps.className = `ceremony-podium-steps${hasBronze ? '' : ' ceremony-podium-steps--duo'}`;
-    steps.innerHTML = `
-        <div class="ceremony-podium-step ceremony-podium-step--2"></div>
-        <div class="ceremony-podium-step ceremony-podium-step--1"></div>
-        ${hasBronze ? '<div class="ceremony-podium-step ceremony-podium-step--3"></div>' : ''}
-    `;
-    stage.appendChild(steps);
-}
-
-function animateShowdownPodium(cardLeft, cardRight, isTie) {
-    const stage = document.getElementById('ceremony-stage-area');
-    const ctx = ceremonyData.showdownContext || {};
-    if (!stage || !cardLeft || !cardRight) return;
-
-    const rankLeft = parseInt(cardLeft.dataset.rank, 10);
-    const rankRight = parseInt(cardRight.dataset.rank, 10);
-    const winnerCard = rankLeft === 1 ? cardLeft : (rankRight === 1 ? cardRight : cardRight);
-    const secondCard = winnerCard === cardLeft ? cardRight : cardLeft;
-    const hasBronze = Boolean(ctx.bronze) && !isTie;
-
-    const screen = document.getElementById('ceremony-screen');
-    if (screen) screen.classList.add('ceremony-phase-podium');
-
-    stage.classList.add('ceremony-stage--podium');
-    if (!hasBronze) stage.classList.add('ceremony-stage--podium-duo');
-    insertPodiumSteps(stage, hasBronze);
-
-    [cardLeft, cardRight].forEach((card) => {
-        card.classList.remove(
-            'converge-left',
-            'converge-right',
-            'tension-active',
-            'face-off',
-            'ceremony-duel-reveal'
-        );
-        void card.offsetWidth;
-    });
-
-    if (isTie) {
-        cardLeft.classList.add('ceremony-podium-tie-left', 'revealed-gold', 'ceremony-winner');
-        cardRight.classList.add('ceremony-podium-tie-right', 'revealed-gold', 'ceremony-winner');
-        return;
-    }
-
-    winnerCard.classList.add('ceremony-podium-first');
-    secondCard.classList.add('ceremony-podium-second');
-
-    if (!hasBronze) return;
-
-    setTimeout(() => {
-        const bronzeCard = createPodiumCard(ctx.bronze, ctx.entryType);
-        bronzeCard.classList.add('ceremony-podium-third');
-        stage.appendChild(bronzeCard);
-
-        const bronzeStep = stage.querySelector('.ceremony-podium-step--3');
-        if (bronzeStep) bronzeStep.classList.add('ceremony-podium-step--visible');
-
-        setTimeout(() => revealCeremonyChips(bronzeCard, 200), 400);
-        playSound('star2');
-    }, 1350);
-}
-
-function handleDramaticReveal() {
-    const btn = document.getElementById('ceremony-action-btn');
-    const title = document.getElementById('ceremony-title');
-    const subtitle = document.getElementById('ceremony-subtitle');
-    const cards = document.querySelectorAll('.ceremony-card.face-off');
-    const screen = document.getElementById('ceremony-screen');
-    
-    btn.disabled = true;
-    if (screen) {
-        screen.classList.remove('ceremony-phase-suspense');
-        screen.classList.add('ceremony-phase-reveal');
-    }
-
-    stopAllCeremonyAudio();
-    playDrumRoll();
-
-    cards.forEach(card => card.classList.add('tension-active'));
-    const finishedClassShowdown = ceremonyData.phase === 'class_showdown';
-    const countdownRing = document.getElementById('ceremony-vs-badge');
-    const countdownNumber = countdownRing?.querySelector('.ceremony-countdown-ring__number');
-    const countdownLabel = countdownRing?.querySelector('.ceremony-countdown-ring__label');
-
-    if (countdownLabel) countdownLabel.textContent = 'Get ready...';
-
-    [3, 2, 1].forEach((count, index) => {
-        setTimeout(() => {
-            if (countdownRing) {
-                countdownRing.classList.remove('is-tick');
-                countdownRing.dataset.count = String(count);
-            }
-            if (countdownNumber) countdownNumber.textContent = String(count);
-            if (countdownLabel) countdownLabel.textContent = 'Revealing...';
-            if (countdownRing) {
-                void countdownRing.offsetWidth;
-                countdownRing.classList.add('is-tick');
-            }
-        }, index * 760);
-    });
-
-    setTimeout(() => {
-        stopDrumRoll();
-        triggerRevealFlash();
-
-        if (screen) {
-            screen.classList.add('ceremony-phase-reveal-burst');
-            setTimeout(() => screen.classList.remove('ceremony-phase-reveal-burst'), 1400);
-        }
-        
-        if(subtitle) {
-            subtitle.style.opacity = '0'; 
-            setTimeout(() => subtitle.innerHTML = '', 500);
-        }
-
-        const vsBadge = document.getElementById('ceremony-vs-badge');
-        if (vsBadge) {
-            vsBadge.classList.add('fade-out-fast');
-            setTimeout(() => vsBadge.remove(), 500);
-        }
-        
-        let winners = [];
-        const cardLeft = document.getElementById('showdown-card-left');
-        const cardRight = document.getElementById('showdown-card-right');
-
-        const rankLeft = parseInt(cardLeft?.dataset.rank);
-        const rankRight = parseInt(cardRight?.dataset.rank);
-        const isTie = rankLeft === rankRight && rankLeft === 1;
-
-        if (cardLeft) {
-            cardLeft.classList.remove('tension-active', 'face-off');
-            cardLeft.classList.add('converge-left', 'ceremony-duel-reveal');
-        }
-        if (cardRight) {
-            cardRight.classList.remove('tension-active', 'face-off');
-            cardRight.classList.add('converge-right', 'ceremony-duel-reveal');
-        }
-
-        [cardLeft, cardRight].forEach(card => {
-            if(!card) return;
-            
-            const badge = card.querySelector('.rank-badge');
-            const scoreEl = card.querySelector('.star-count');
-            
-            if(badge) badge.classList.remove('opacity-0');
-            if(scoreEl) {
-                scoreEl.classList.remove('opacity-0');
-                scoreEl.classList.add('opacity-100', 'ceremony-score-reveal-pop');
-            }
-
-            const boonReveal = card.querySelector('.ceremony-teacher-boon-reveal');
-            if (boonReveal) {
-                boonReveal.classList.remove('ceremony-teacher-boon-reveal--hidden');
-            }
-
-            setTimeout(() => revealCeremonyChips(card, 0), 480);
-
-            const r = parseInt(card.dataset.rank);
-            if (r === 1) {
-                card.classList.add('revealed-gold', 'ceremony-winner', 'ceremony-winner-spectacular');
-                winners.push(card.dataset.name);
-                
-                setTimeout(() => {
-                    triggerFireworks();
-                    triggerFireworks();
-                    triggerConfetti();
-                }, 120);
-                setTimeout(() => {
-                    triggerFireworks();
-                    triggerConfetti();
-                }, 520);
-            } else {
-                card.classList.add('revealed-silver');
-            }
-        });
-
-        playWinnerFanfare();
-
-        if (isTie) {
-            title.innerHTML = formatTitleHtml("It's a Draw! 🤝");
-            triggerAICommentary('tie', { names: winners.join(' & '), score: cardRight.dataset.score });
-        } else {
-            title.innerHTML = formatTitleHtml("Champion Crowned!");
-            const phaseType = ceremonyData.phase === 'class_showdown' ? 'class_winner' : 'student_winner';
-            triggerAICommentary(phaseType, { id: cardRight.dataset.id, name: cardRight.dataset.name, score: cardRight.dataset.score });
-        }
-
-        if (finishedClassShowdown) {
-            ceremonyData.phase = 'class_showdown_done'; 
-        } else {
-            ceremonyData.phase = 'student_showdown_done'; 
-        }
-
-        setTimeout(() => {
-            animateShowdownPodium(cardLeft, cardRight, isTie);
-        }, PODIUM_REVEAL_DELAY_MS);
-
-        btn.disabled = false;
-        setCeremonyActionLabel(
-            finishedClassShowdown ? 'Conclude Team Quest Awards' : 'Show Final Standings'
-        );
-        btn.onclick = advanceCeremony; 
-
-    }, 2520);
-}
-
-// --- NEW FUNCTION: RENDER FINAL LEADERBOARD ---
-function renderFinalLeaderboard() {
-    const stage = document.getElementById('ceremony-stage-area');
-
-    if (ceremonyData.studentQueue.length && ceremonyData.studentQueue.every((student) => Number(student.score) <= 0)) {
-        stage.innerHTML = '<div class="ceremony-collective-close text-center"><div class="text-7xl mb-4">🌟</div><h2 class="font-title text-5xl text-white">Our Whole Class Quest</h2><p class="text-xl text-indigo-100 mt-3">Every learner helped the class move forward.</p></div>';
-        return;
-    }
-    
-    const container = document.createElement('div');
-    container.className = 'ceremony-leaderboard-container';
-    
-    const queue = ceremonyData.studentQueue.slice().reverse();
-
-    function buildItemHtml(s, animIndex) {
-        const rank = s.rank;
-        let rankBarClass = 'ceremony-lb-rankbar--other';
-        let badgePillClass = 'ceremony-rank-badge__pill--other';
-        let badgeContent = `#${rank}`;
-        let itemExtraClass = '';
-
-        if (rank === 1) {
-            rankBarClass = 'ceremony-lb-rankbar--gold';
-            badgePillClass = 'ceremony-rank-badge__pill--gold';
-            badgeContent = '🥇 Gold';
-            itemExtraClass = 'rank-top3-gold';
-        } else if (rank === 2) {
-            rankBarClass = 'ceremony-lb-rankbar--silver';
-            badgePillClass = 'ceremony-rank-badge__pill--silver';
-            badgeContent = '🥈 Silver';
-            itemExtraClass = 'rank-top3-silver';
-        } else if (rank === 3) {
-            rankBarClass = 'ceremony-lb-rankbar--bronze';
-            badgePillClass = 'ceremony-rank-badge__pill--bronze';
-            badgeContent = '🥉 Bronze';
-            itemExtraClass = 'rank-top3-bronze';
-        }
-
-        const avatarBorder = rank === 1 ? '#F59E0B' : rank === 2 ? '#94a3b8' : rank === 3 ? '#cd7f32' : '#818cf8';
-        const avatarHtml = s.avatar
-            ? `<img src="${s.avatar}" class="cli-avatar" style="border-color:${avatarBorder}; box-shadow: 0 0 14px ${avatarBorder}55;">`
-            : `<div class="cli-avatar cli-avatar--fallback" style="border-color:${avatarBorder}; box-shadow: 0 0 14px ${avatarBorder}55;">${s.name.charAt(0)}</div>`;
-
-        const showDelayedBoon = (rank === 1 || rank === 2) && s.teacherBoon;
-        const boonRowHtml = showDelayedBoon
-            ? `<div class="ceremony-leaderboard-boon-row ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(s.teacherBoon, { compact: true })}</div>`
-            : '';
-
-        return `
-            <div class="ceremony-leaderboard-item ${itemExtraClass}" style="animation-delay: ${animIndex * 0.1}s">
-                <div class="ceremony-lb-rankbar ${rankBarClass}">
-                    <span class="ceremony-rank-badge__pill ${badgePillClass}">${badgeContent}</span>
-                    <span class="ceremony-lb-rankbar__label">Rank #${rank}</span>
-                </div>
-                <div class="ceremony-lb-body">
-                    ${avatarHtml}
-                    <div class="cli-info">
-                        <div class="cli-name">${s.name}</div>
-                        <div class="cli-stats ceremony-lb-chips">
-                            ${unwrapCeremonyChipRow(buildCeremonyStudentChips(s, { compact: true }))}
-                        </div>
-                    </div>
-                    <div class="cli-stars">${s.score} ⭐</div>
-                </div>
-                ${boonRowHtml}
-            </div>
-        `;
-    }
-
-    const top3 = queue.filter(s => s.rank <= 3);
-    const rest  = queue.filter(s => s.rank > 3);
-
-    let html = `
-        <div class="ceremony-leaderboard-header">
-            <div class="ceremony-leaderboard-header__glow"></div>
-            <span class="ceremony-leaderboard-title">🏆 Final Standings</span>
-            <div class="ceremony-leaderboard-title__sub">${ceremonyData.monthName} · Month of Glory</div>
-        </div>
-        <div class="ceremony-leaderboard-scroll custom-scrollbar">
-            <div class="ceremony-leaderboard-list">
-    `;
-
-    if (top3.length > 0) {
-        html += `<div class="ceremony-leaderboard-top3">`;
-        top3.forEach((s, i) => { html += buildItemHtml(s, i); });
-        html += `</div>`;
-    }
-
-    if (rest.length > 0) {
-        if (top3.length > 0) html += `<div class="ceremony-leaderboard-divider"></div>`;
-        rest.forEach((s, i) => { html += buildItemHtml(s, i + top3.length); });
-    }
-
-    html += `
-            </div>
-        </div>
-    `;
-
-    container.innerHTML = html;
-    stage.appendChild(container);
-
-    queue.forEach((s, index) => {
-        if (!((s.rank === 1 || s.rank === 2) && s.teacherBoon)) return;
-        const allItems = container.querySelectorAll('.ceremony-leaderboard-item');
-        const item = allItems[index];
-        const boonRow = item?.querySelector('.ceremony-leaderboard-boon-row');
-        if (!boonRow) return;
-        setTimeout(() => {
-            boonRow.classList.remove('ceremony-teacher-boon-reveal--hidden');
-        }, index * 100 + 350);
-    });
-    
-    triggerConfetti(); 
-}
-
-// --- 5. HELPERS ---
+// ============================================================== SAVE
 
 async function saveCeremonyComplete() {
     const classId = ceremonyData.classId;
@@ -2140,64 +1479,16 @@ async function saveCeremonyComplete() {
     } catch(e) { console.error("Save failed", e); }
 }
 
-function closeCeremony() {
-    ceremonyData.active = false;
-    if (window.__ceremonyKeyNavHandler) {
-        window.removeEventListener('keydown', window.__ceremonyKeyNavHandler);
-        window.__ceremonyKeyNavHandler = null;
-    }
-    const screen = document.getElementById('ceremony-screen');
-    screen.classList.add('hidden');
-    screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
-    stopAllCeremonyAudio();
-    import('../features/home.js').then(m => m.renderHomeTab());
-}
-        
-function triggerConfetti() {
-    const container = document.getElementById('ceremony-confetti-container');
-    container.innerHTML = '';
-    const colors = ['#fcd34d', '#f87171', '#60a5fa', '#a78bfa', '#34d399'];
-    for(let i=0; i<150; i++) {
-        const el = document.createElement('div');
-        el.className = 'confetti-piece';
-        el.style.left = Math.random() * 100 + '%';
-        el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        el.style.animationDuration = (Math.random() * 2 + 2) + 's';
-        el.style.animationDelay = (Math.random() * 2) + 's';
-        container.appendChild(el);
-    }
-}
-
-// Firework Generator
-function triggerFireworks() {
-    const container = document.getElementById('ceremony-confetti-container');
-    for(let i=0; i<5; i++) {
-        setTimeout(() => {
-            const x = 20 + Math.random() * 60; 
-            const y = 20 + Math.random() * 40; 
-            
-            const firework = document.createElement('div');
-            firework.className = 'firework';
-            firework.style.left = x + '%';
-            firework.style.top = y + '%';
-            container.appendChild(firework);
-            
-            setTimeout(() => firework.remove(), 1000);
-        }, i * 300);
-    }
-}
-
 // --- AI COMMENTARY ---
 let aiDebounce = null;
 
+let heraldToken = 0;
+
 async function triggerAICommentary(phase, data) {
     if (aiDebounce) clearTimeout(aiDebounce);
-
-    const aiBox = document.getElementById('ceremony-ai-box');
-    const aiText = document.getElementById('ceremony-ai-text');
+    const token = ++heraldToken;
 
     aiDebounce = setTimeout(async () => {
-        aiBox.style.opacity = '0.5'; 
 
         // 1. Determine Tone based on League (Age Group)
         const league = ceremonyData.league || 'A'; // Default to A if missing
@@ -2239,10 +1530,10 @@ async function triggerAICommentary(phase, data) {
             else if (data.tieReason === 'tie_variety') userPrompt = `Hype ${data.name} for being a jack-of-all-trades!`;
             else userPrompt = `Shout out ${data.name} for hitting Rank #${data.rank}.`;
         }
-        else if (phase === 'student_winner') userPrompt = `Announce ${data.name} is the PRODIGY of the Month!`;
+        else if (phase === 'student_winner') userPrompt = `Announce ${data.name} is the Prodigy of the Month!`;
         else if (phase === 'outro') userPrompt = "Sign off with energy. See you next month.";
         else if (phase === 'showdown_build') userPrompt = `It's down to ${data.name1} vs ${data.name2}. The tension is maximum! Build extreme suspense but DO NOT announce the winner yet.`;
-        else if (phase === 'tie') userPrompt = `UNBELIEVABLE! It's a Tie! Double winners!`;
+        else if (phase === 'tie') userPrompt = `UNBELIEVABLE! It's a tie between ${data.names}! Two Co-Prodigies!`;
 
         const genericByPhase = {
             intro: `Welcome to the ${data.month} Ceremony!`,
@@ -2250,29 +1541,23 @@ async function triggerAICommentary(phase, data) {
             class_winner: `${data.name} wins! You did it!`,
             transition: 'Who will be our Prodigy?',
             student_rank: `Shout out to ${data.name}!`,
-            student_winner: `${data.name} is the PRODIGY of the Month!`,
+            student_winner: `${data.name} is our Prodigy of the Month!`,
             outro: 'See you next month!',
             showdown_build: `${data.name1} vs ${data.name2} — the final showdown!`,
-            tie: 'Unbelievable — double winners!'
+            tie: `Two crowns! ${data.names || 'Our Co-Prodigies'} share the glory!`
         };
         const genericMessage = genericByPhase[phase] || 'Congratulations to our heroes!';
 
         try {
             if (canUseFeature('eliteAI')) {
                 const commentary = await callGeminiApi(systemPrompt, userPrompt);
-                aiBox.style.opacity = '0';
-                setTimeout(() => {
-                    aiText.innerText = commentary;
-                    aiBox.style.opacity = '1';
-                }, 300);
+                if (ceremonyData.active && token === heraldToken) setHerald(String(commentary || genericMessage).trim());
             } else {
-                aiText.innerText = genericMessage;
-                aiBox.style.opacity = '1';
+                setHerald(genericMessage);
             }
         } catch (e) {
-            console.error("AI Error", e);
-            aiText.innerText = genericMessage;
-            aiBox.style.opacity = '1';
+            console.error('AI Error', e);
+            if (ceremonyData.active && token === heraldToken) setHerald(genericMessage);
         }
     }, 250); 
 }

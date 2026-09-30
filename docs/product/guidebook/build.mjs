@@ -646,11 +646,12 @@ function headingWidgets(id) {
         <article class="phase-card phase-a"><span class="phase-n">1</span><h4><i class="fas fa-route" aria-hidden="true"></i> Team Quest</h4><p>League classes, lowest first, then a League Duel.</p></article>
         <article class="phase-card phase-b"><span class="phase-n">2</span><h4><i class="fas fa-user-graduate" aria-hidden="true"></i> Hero's Challenge</h4><p>This class only. Prodigy of the Month, and Co-Prodigy when the tie is true.</p></article>
       </div>
-      ${uiShot('ceremony-intro.png', 'The Ceremony of the Month intro: month title, league and class chips, then Start Ceremony. This is a full-screen ritual — not a small modal.')}
-      ${uiShot('ceremony-team-quest.png', 'Phase 1 — Team Quest. Rank cards for classes in the Quest League. YOU marks the class you selected. Chips show difficulty, map zone, Pathfinder, and top virtue.')}
-      ${uiShot('ceremony-duel.png', 'League Duel: second versus first, with the VS ring. Drumroll, then the gold and silver ranks.')}
-      ${uiShot('ceremony-transition.png', 'The sky turns inward. Begin Hero’s Challenge — now the ritual is about students in this class, not the league.')}
-      ${uiShot('ceremony-hero.png', 'Phase 2 — Hero’s Challenge. Student rank cards in the selected class. Finish Ceremony marks this class complete for the month.')}`;
+      ${uiShot('ceremony-intro.png', 'Classic Arena intro: a gold shield with the class emblem in a laurel, the month, league and class chips, and the route Team Quest → Hero’s Challenge. Start Ceremony opens the arena.')}
+      ${uiShot('ceremony-team-quest.png', 'Team Quest: each place arrives as a sealed card that cracks open. Bronze place here, with the quest-goal trail and chips for difficulty, map zone, stars per hero and top virtue.')}
+      ${uiShot('ceremony-duel.png', 'League Duel after the drumroll: the champion is crowned on the gold step, second place takes silver. Your class wears its tag.')}
+      ${uiShot('ceremony-transition.png', 'The torches turn violet: Begin Hero’s Challenge. Now the ritual is about students in this class, not the league.')}
+      ${uiShot('ceremony-hero.png', 'Hero Duel: Maria is crowned Prodigy of the Month, Alex takes silver. Two crowns appear when the tie is true.')}
+      ${uiShot('ceremony-standings.png', 'Final Standings: the Roll of Honour with every hero’s monthly stars and strengths. The gift marks a Teacher Boon. Finish Ceremony closes the month.')}`;
   const fourReasons = `
       ${starAwardBtnsHtml()}
       ${uiShot('award-cloud.png', 'A student cloud: portrait, Gold purse, Hero Path ribbon, the Sun, Moon and Star tallies, the virtue gems, and Spark, Shine and Supernova after you pick Teamwork.', 'ui-shot-portrait')}
@@ -707,8 +708,8 @@ function headingWidgets(id) {
   }
   if (id === 'ceremony') {
     return [
-      { match: ['What you see', 'Τι βλέπεις'], html: ceremonyShots },
-      { match: ['Growth Festival (Nursery'], html: `${uiShot('ceremony-growth-intro.png', 'Growth Festival intro: Exit Ceremony and sound in the top bar, Nursery league chip, Growth Festival seedling, Every learner brings a special bloom to our garden, and Enter the Garden.')}${uiShot('ceremony-growth-garden.png', 'Our League Garden: class emblems and progress words, never ranks. Nursery A is revealed last as League Pathfinder. Butterflies drift over the garden. The button is Explore Our Blooms.')}${uiShot('ceremony-growth-bloom.png', 'Parade of Blooms: wreath, avatar, Growing Stronger pill, Bloom 1 of 4 with previous/next chevrons. The button is Next Bloom. No Stars, ranks, or podium.')}${uiShot('ceremony-growth-finale.png', 'Golden Bloom: Maria is Prodigy of the Month. Every blossom in the class family stays on screen. The button is Finish Ceremony.')}` }
+      { match: ['Classic Arena'], html: ceremonyShots },
+      { match: ['Growth Festival garden', 'κήπος του Growth Festival'], html: `${uiShot('ceremony-growth-intro.png', 'Growth Festival garden gate: a rose arch with the class emblem and the month. Enter the Garden opens the doors.')}${uiShot('ceremony-growth-garden.png', 'Our League Garden: one flower pot per class with gentle progress words and its strength as a bloom, never ranks. The class that led the month grows last in golden light as League Pathfinder.')}${uiShot('ceremony-growth-bloom.png', 'Parade of Blooms: a seed grows into Mia’s flower and her seed-packet card tells her story. Bloom 4 of 10 with chevrons; each child already shown is planted in the bed below. No Stars, ranks or podium.')}${uiShot('ceremony-growth-finale.png', 'The Golden Bloom: Mia is Prodigy of the Month, and every learner’s flower stands in the class garden. The button is Finish Ceremony.')}` }
     ];
   }
   if (id === 'market') {
@@ -725,7 +726,8 @@ function headingWidgets(id) {
       { match: ['Glory and Guild Power', 'Glory και Guild Power'], html: uiShot('guild-power.png', 'How Guild Power works: a fair score out of 100. 70% Glory per member this year, 15% Glory per member this week, 10% members taking part, 5% momentum. Each part is scored against the guild doing best in it.') },
       { match: ['What you see', 'Τι βλέπεις στην καρτέλα'], html: uiShot('guild-hall.png', 'Guild Hall crystal columns, ranked by Guild Power. Tap an emblem to unfurl the guild’s banner; the music-note button plays the anthem.') },
       { match: ["Fortune’s Wheel", "Fortune's Wheel"], html: uiShot('fortunes-wheel.png', "Fortune’s Wheel, the celestial Wheel of Fate: each guild takes its turn on its own 20-wedge wheel. Last lesson of a Monday–Friday week, once per class.") },
-      { match: ['Fortune Ledger'], html: uiShot('fortune-ledger.png', 'Fortune Ledger: this school year’s collapsible Wheel history on Guild Hall. Last year’s spins stay in last year. Each week lists Glory swings and omens per house.') }
+      { match: ['Fortune Ledger'], html: uiShot('fortune-ledger.png', 'Fortune Ledger: this school year’s collapsible Wheel history on Guild Hall. Last year’s spins stay in last year. Each week lists Glory swings and omens per house.') },
+      { match: ['Grand Guild Ceremony'], html: `${uiShot('grand-ceremony-opening.png', 'Grand Guild Ceremony: a midsummer festival under the guild castle, with the four crests, the school year and the classes taking part.')}${uiShot('grand-ceremony-prodigies.png', 'Chapter III, The Crown Road: every finished month with its Prodigy of the Month, and the Most crowned plaque.')}${uiShot('grand-ceremony-crowning.png', 'Chapter V, The Guild Crowning: pillars revealed from last place up, then the drumroll crowns the guild with the highest Guild Power.')}${uiShot('grand-ceremony-champion.png', 'The champion guild: crest, motto and anthem, with the lyrics lighting up as it plays, and the heroes leading it in your classes.')}` }
     ];
   }
   if (id === 'adventure-log') {

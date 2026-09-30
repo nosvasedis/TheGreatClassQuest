@@ -1,13 +1,16 @@
 import { headerHTML, svgFiltersHTML } from '../../../../templates/app/header.js';
 import { navHTML } from '../../../../templates/app/nav.js';
 import { ceremonyHTML } from '../../../../templates/app/screens/ceremony.js';
+import { grandGuildCeremonyHTML } from '../../../../templates/app/screens/grandGuildCeremony.js';
 import { heroModalsHTML } from '../../../../templates/modals/hero.js';
 import { attendanceModalsHTML } from '../../../../templates/modals/attendance.js';
 import {
   hideAttendanceChronicle,
   hideCeremony,
+  hideGrandCeremony,
   showAttendanceChronicle,
   showCeremony,
+  showGrandCeremony,
 } from './fill-stage.js';
 import {
   extrasShellHtml,
@@ -156,7 +159,7 @@ document.getElementById('app-root').innerHTML = `
 
 fillHeader(false);
 document.body.insertAdjacentHTML('beforeend', heroModalsHTML);
-document.body.insertAdjacentHTML('beforeend', ceremonyHTML);
+document.body.insertAdjacentHTML('beforeend', ceremonyHTML + grandGuildCeremonyHTML);
 document.body.insertAdjacentHTML('beforeend', attendanceModalsHTML);
 document.body.insertAdjacentHTML('beforeend', extrasShellHtml());
 document.body.insertAdjacentHTML('beforeend', deeperShellHtml());
@@ -178,6 +181,8 @@ window.__gcqCapture = {
   fillHeader,
   showCeremony,
   hideCeremony,
+  showGrandCeremony,
+  hideGrandCeremony,
   showAttendanceChronicle,
   hideAttendanceChronicle,
   hideExtras,

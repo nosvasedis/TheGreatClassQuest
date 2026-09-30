@@ -3,11 +3,8 @@ import { loadTone } from './utils/lazyLibraries.js';
 
 let Tone = null;
 let sounds = {};
-export let ceremonyMusic = {};
 export let winnerFanfare = {};
-export let showdownSting = {};
 export let heroFanfare = {};
-export let crownOfPetalsMusic = {};
 let soundsReady = false;
 let soundSetupPromise = null;
 let audioStartPromise = null;
@@ -131,31 +128,6 @@ export async function setupSounds() {
                 volume: -20
             }).connect(reverb);
 
-            // Growth Festival synths for early learners (celeste/music box & ambient harp)
-            sounds.growth_bloom = new Tone.FMSynth({
-                harmonicity: 2,
-                modulationIndex: 3,
-                oscillator: { type: 'sine' },
-                envelope: { attack: 0.02, decay: 0.4, sustain: 0.1, release: 0.8 },
-                modulation: { type: 'triangle' },
-                modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.05, release: 0.5 },
-                volume: -10
-            }).connect(reverb);
-
-            sounds.growth_ambient = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.3, decay: 0.6, sustain: 0.4, release: 1.2 },
-                volume: -18
-            }).connect(reverb);
-
-            ceremonyMusic = new Tone.Player({
-                url: "assets/ceremony_reveal.mp3",
-                loop: true,
-                volume: -12,
-                onload: () => {},
-                onerror: (e) => console.warn("Ceremony Music failed to load", e)
-            }).toDestination();
-
             winnerFanfare = new Tone.Player({
                 url: "assets/ceremony_winner.mp3",
                 volume: -3,
@@ -163,26 +135,11 @@ export async function setupSounds() {
                 onerror: (e) => console.warn("Winner Fanfare failed to load", e)
             }).toDestination();
 
-            showdownSting = new Tone.Player({
-                url: "assets/ceremony_showdown.mp3",
-                volume: -6,
-                onload: () => {},
-                onerror: (e) => console.warn("Showdown Sting failed to load", e)
-            }).toDestination();
-
             heroFanfare = new Tone.Player({
                 url: "assets/hero_fanfare.mp3",
                 volume: -2,
                 onload: () => {},
                 onerror: (e) => console.warn("Hero Fanfare failed to load", e)
-            }).toDestination();
-
-            crownOfPetalsMusic = new Tone.Player({
-                url: "assets/crown_of_petals.mp3",
-                loop: true,
-                volume: -10,
-                onload: () => {},
-                onerror: (e) => console.warn("Crown of Petals Music failed to load", e)
             }).toDestination();
 
             soundsReady = true;
@@ -306,20 +263,6 @@ export function playSound(sound) {
         else if (sound === 'ceremony_gling') {
             sounds.ceremony_gling.triggerAttackRelease('G6', '64n', playTime);
         }
-        else if (sound === 'growth_bloom') {
-            sounds.growth_bloom.triggerAttackRelease('C6', '16n', playTime);
-            sounds.growth_bloom.triggerAttackRelease('E6', '16n', playTime + 0.08);
-            sounds.growth_bloom.triggerAttackRelease('G6', '16n', playTime + 0.16);
-            sounds.growth_bloom.triggerAttackRelease('C7', '8n', playTime + 0.24);
-        }
-        else if (sound === 'growth_fanfare') {
-            sounds.growth_bloom.triggerAttackRelease('C5', '16n', playTime);
-            sounds.growth_bloom.triggerAttackRelease('G5', '16n', playTime + 0.1);
-            sounds.growth_bloom.triggerAttackRelease('C6', '16n', playTime + 0.2);
-            sounds.growth_bloom.triggerAttackRelease('E6', '16n', playTime + 0.3);
-            sounds.growth_bloom.triggerAttackRelease('G6', '16n', playTime + 0.4);
-            sounds.growth_bloom.triggerAttackRelease('C7', '4n', playTime + 0.55);
-        }
 
         // Custom Fanfare Logic (if you added it previously)
         else if (sound === 'hero_fanfare' && sounds.star3) {
@@ -368,7 +311,6 @@ export function isAudioReady() {
     return soundsReady && Tone?.context?.state === 'running';
 }
 
-let growthAmbientLoop = null;
 let ceremonyMuted = false;
 
 export function isCeremonyMuted() {
@@ -390,106 +332,8 @@ export function toggleCeremonyMute() {
 export function stopAllCeremonyAudio() {
     if (soundsReady) {
         try {
-            if (ceremonyMusic.state === "started") ceremonyMusic.stop();
             if (winnerFanfare.state === "started") winnerFanfare.stop();
-            if (showdownSting.state === "started") showdownSting.stop();
-            stopGrowthMusic();
         } catch (_) { /* Already stopped or not initialized. */ }
-    }
-}
-
-export function playCeremonyMusic() {
-    if (ceremonyMuted) return;
-    if (soundsReady && ceremonyMusic.loaded) {
-        // Reset volume just in case it was faded out previously
-        ceremonyMusic.volume.value = -12; 
-        ceremonyMusic.start();
-    }
-}
-
-export function playGrowthMusic() {
-    if (ceremonyMuted) return;
-    if (soundsReady && crownOfPetalsMusic && crownOfPetalsMusic.loaded) {
-        crownOfPetalsMusic.volume.value = -10;
-        crownOfPetalsMusic.start();
-    } else {
-        playGrowthAmbient();
-    }
-}
-
-export function stopGrowthMusic() {
-    if (soundsReady && crownOfPetalsMusic && crownOfPetalsMusic.state === "started") {
-        try {
-            crownOfPetalsMusic.stop();
-        } catch (_) {}
-    }
-    stopGrowthAmbient();
-}
-
-export function fadeGrowthMusic(volume, duration) {
-    if (soundsReady && crownOfPetalsMusic && crownOfPetalsMusic.loaded) {
-        crownOfPetalsMusic.volume.rampTo(volume, duration);
-    }
-}
-
-export function playGrowthBloomChime() {
-    if (ceremonyMuted || !soundsReady || !sounds.growth_bloom) return;
-    const now = Tone.now();
-    const playTime = Math.max(now + 0.05, lastSoundTime + 0.08);
-    lastSoundTime = playTime + 0.35;
-    try {
-        sounds.growth_bloom.triggerAttackRelease('C6', '16n', playTime);
-        sounds.growth_bloom.triggerAttackRelease('E6', '16n', playTime + 0.08);
-        sounds.growth_bloom.triggerAttackRelease('G6', '16n', playTime + 0.16);
-        sounds.growth_bloom.triggerAttackRelease('C7', '8n', playTime + 0.24);
-    } catch (_) {}
-}
-
-export function playGrowthFanfare() {
-    if (ceremonyMuted || !soundsReady || !sounds.growth_bloom) return;
-    const now = Tone.now();
-    const playTime = Math.max(now + 0.05, lastSoundTime + 0.1);
-    lastSoundTime = playTime + 0.8;
-    try {
-        sounds.growth_bloom.triggerAttackRelease('C5', '16n', playTime);
-        sounds.growth_bloom.triggerAttackRelease('G5', '16n', playTime + 0.1);
-        sounds.growth_bloom.triggerAttackRelease('C6', '16n', playTime + 0.2);
-        sounds.growth_bloom.triggerAttackRelease('E6', '16n', playTime + 0.3);
-        sounds.growth_bloom.triggerAttackRelease('G6', '16n', playTime + 0.4);
-        sounds.growth_bloom.triggerAttackRelease('C7', '4n', playTime + 0.55);
-        if (sounds.magic_chime) {
-            sounds.magic_chime.triggerAttackRelease('C7', '4n', playTime + 0.55);
-        }
-    } catch (_) {}
-}
-
-export function playGrowthAmbient() {
-    if (ceremonyMuted || !soundsReady || !sounds.growth_ambient) return;
-    stopGrowthAmbient();
-    const chords = [
-        ['C4', 'E4', 'G4', 'B4'], // Cmaj7
-        ['A3', 'C4', 'E4', 'G4'], // Am7
-        ['F3', 'A3', 'C4', 'E4'], // Fmaj7
-        ['G3', 'B3', 'D4', 'F4']  // G7
-    ];
-    let chordIndex = 0;
-    try {
-        growthAmbientLoop = new Tone.Loop((time) => {
-            if (ceremonyMuted) return;
-            const currentChord = chords[chordIndex % chords.length];
-            sounds.growth_ambient.triggerAttackRelease(currentChord, '2n', time);
-            chordIndex++;
-        }, '2n').start(0);
-        Tone.Transport.start();
-    } catch (_) {}
-}
-
-export function stopGrowthAmbient() {
-    if (growthAmbientLoop) {
-        try {
-            growthAmbientLoop.dispose();
-        } catch (_) {}
-        growthAmbientLoop = null;
     }
 }
 
@@ -497,19 +341,6 @@ export function playWinnerFanfare() {
     if (ceremonyMuted) return;
     if (soundsReady && winnerFanfare.loaded) {
         winnerFanfare.start();
-    }
-}
-
-export function playShowdownSting() {
-    if (ceremonyMuted) return;
-    if (soundsReady && showdownSting.loaded) {
-        showdownSting.start();
-    }
-}
-
-export function fadeCeremonyMusic(volume, duration) {
-    if (soundsReady && ceremonyMusic.loaded) {
-        ceremonyMusic.volume.rampTo(volume, duration);
     }
 }
 

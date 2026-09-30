@@ -1,62 +1,43 @@
-// templates/app/screens/ceremony.js
+// templates/app/screens/ceremony.js — shell for the Ceremony of the Month.
+// The backdrop (torchlit arena or storybook garden) and every scene are drawn
+// by features/ceremony.js from ceremonyArenaView.js / ceremonyGardenView.js.
 
 export const ceremonyHTML = `
-    <div id="ceremony-screen"
-        class="fixed inset-0 z-[100] hidden overflow-hidden bg-gray-900 transition-opacity duration-1000">
+    <div id="ceremony-screen" class="cer-screen hidden" data-mode="arena" data-scene="intro" data-realm="ember"
+        role="dialog" aria-modal="true" aria-label="Ceremony of the Month">
+        <div id="ceremony-backdrop" class="cer-backdrop" aria-hidden="true"></div>
+        <div id="ceremony-fx-host" class="cer-fx-host" aria-hidden="true"></div>
 
-        <div class="absolute inset-0 z-0">
-            <div id="ceremony-bg-gradient"
-                class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-black opacity-80"></div>
-            <div id="ceremony-theme-veil" class="ceremony-theme-veil" aria-hidden="true">
-                <div class="ceremony-theme-veil__layer ceremony-theme-veil__amber"></div>
-                <div class="ceremony-theme-veil__layer ceremony-theme-veil__violet"></div>
-                <div class="ceremony-theme-veil__sweep"></div>
-            </div>
-            <div id="ceremony-confetti-container" class="absolute inset-0 pointer-events-none"></div>
-            <div
-                class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse-slow">
-            </div>
-        </div>
-
-        <div class="ceremony-utility-bar" role="toolbar" aria-label="Ceremony controls">
-            <button id="ceremony-close-btn" type="button" class="ceremony-utility-btn" title="Exit Ceremony (Esc)" aria-label="Exit Ceremony">
-                <i class="fas fa-times text-sm"></i>
+        <div class="cer-topbar" role="toolbar" aria-label="Ceremony controls">
+            <button id="ceremony-close-btn" type="button" class="cer-iconbtn" title="Exit Ceremony (Esc)" aria-label="Exit Ceremony">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
             </button>
-            <div class="ceremony-utility-bar__end">
-                <span class="ceremony-key-hint">
-                    <kbd>Space</kbd> Next
-                </span>
-                <button id="ceremony-sound-btn" type="button" class="ceremony-utility-btn" title="Toggle Sound" aria-label="Toggle Sound">
-                    <i id="ceremony-sound-icon" class="fas fa-volume-high text-sm"></i>
+            <p id="ceremony-crumb" class="cer-topbar__crumb"></p>
+            <div class="cer-topbar__end">
+                <span class="cer-keyhint"><kbd>Space</kbd> Next</span>
+                <button id="ceremony-sound-btn" type="button" class="cer-iconbtn" title="Sound on or off" aria-label="Sound on or off" aria-pressed="false">
+                    <i id="ceremony-sound-icon" class="fas fa-volume-high" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
 
-        <div class="relative z-10 ceremony-layout w-full h-full px-3 py-2 md:px-5 md:py-4">
-
-            <div id="ceremony-header" class="text-center transform transition-all duration-500">
-                <h2 id="ceremony-title"
-                    class="font-title text-4xl md:text-6xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] mb-1">
-                    The Great Class Quest</h2>
-                <p id="ceremony-subtitle"
-                    class="text-base md:text-xl text-indigo-200 font-semibold tracking-widest uppercase"></p>
+        <div class="cer-layout">
+            <header id="ceremony-header" class="cer-heading is-empty">
+                <p id="ceremony-subtitle" class="cer-heading__kicker"></p>
+                <h2 id="ceremony-title" class="cer-heading__title"></h2>
+            </header>
+            <div id="ceremony-stage-area" class="cer-stage" role="region" aria-live="polite" aria-label="Ceremony stage"></div>
+            <div id="ceremony-ai-box" class="cer-herald" aria-live="polite">
+                <span class="cer-herald__icon" aria-hidden="true"></span>
+                <p id="ceremony-ai-text"></p>
             </div>
-
-            <div id="ceremony-stage-area"
-                class="w-full perspective-1000" role="region" aria-live="polite" aria-label="Ceremony stage">
-            </div>
-
-            <div id="ceremony-ai-box"
-                class="w-full max-w-4xl bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-center min-h-[52px] flex items-center justify-center opacity-0 transition-opacity duration-500">
-                <p id="ceremony-ai-text" class="text-sm md:text-base text-white font-serif italic text-shadow"></p>
-            </div>
-
-            <div class="pb-2 ceremony-action-btn-wrap">
-                <button id="ceremony-action-btn" type="button" class="ceremony-action-btn" aria-live="polite">
-                    <span class="ceremony-action-btn__rim" aria-hidden="true"></span>
-                    <span class="ceremony-action-btn__label">Start Ceremony</span>
+            <div class="cer-controls">
+                <button id="ceremony-action-btn" type="button" class="cer-action">
+                    <span class="cer-action__label">Start Ceremony</span>
                 </button>
             </div>
         </div>
+
+        <ol id="ceremony-ladder" class="cer-ladder" aria-label="Revealed so far"></ol>
     </div>
 `;

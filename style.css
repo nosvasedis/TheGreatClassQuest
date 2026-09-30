@@ -86,7 +86,7 @@
 /* 17. Avatar display, avatar-maker, avatar-maker-option-btn */
 @import url('./styles/avatar.css');
 
-/* 18. Award Ceremony: ceremony-pulse, ceremony-card, podium styles, confetti */
+/* 18. Ceremony star ring on the nav + shared slide-in keyframe */
 @import url('./styles/ceremony.css');
 
 /* 19. Tab fade-in/out, auth-screen, app-screen transition animations */
@@ -138,9 +138,10 @@
 /* 30. Roster avatar wiggle, header header-night, new weather widget themes */
 @import url('./styles/misc_wallpaper.css');
 
-/* 31. Ceremony V2 revamp: card-enter, heartbeat, ceremony-display-card, confetti-piece, ceremony leaderboard */
+/* 31. Shared app effects + Ceremony of the Month (torchlit arena, storybook garden) */
 @import url('./styles/ceremony2.css');
-@import url('./styles/ceremony_growth.css');
+@import url('./styles/ceremony_arena.css');
+@import url('./styles/ceremony_garden.css');
 @import url('./styles/special_quests.css');
 @import url('./styles/quest_events.css');
 
@@ -171,8 +172,8 @@
 /* 36b. Familiars: stats overlay redesign — animated card, particles, stagger */
 @import url('./styles/familiar_modal.css');
 
-/* 37. Grand Guild Ceremony: ultimate end-of-year celebration styles */
-@import url('./styles/grandGuildCeremony.css');
+/* 37. Grand Guild Ceremony: Midsummer Festival of the Guilds (end of year) */
+@import url('./styles/ceremony_grand.css');
 
 /* 38. Role-aware screens: parent portal, secretary console, access center */
 @import url('./styles/roles.css');

@@ -1,320 +1,146 @@
-/** Exact classroom markup for guidebook UI capture (same classes as the live app). */
+/** Guidebook capture stage: the ceremonies and the Attendance Chronicle, drawn with the live view builders. */
 
-export function ceremonyIntroSplashHtml() {
-  return `
-        <div class="ceremony-intro-splash">
-            <div class="ceremony-intro-splash__aurora" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--a" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--b" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__ring" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__emblem-wrap">
-                <span class="ceremony-intro-splash__emblem">📚</span>
-            </div>
-            <p class="ceremony-intro-splash__kicker">Ceremony of the Month</p>
-            <h1 class="ceremony-intro-splash__title font-title">August 2026</h1>
-            <p class="ceremony-intro-splash__brand">The Great Class Quest</p>
-            <div class="ceremony-intro-splash__details">
-                <span class="ceremony-intro-chip ceremony-intro-chip--amber"><i class="fas fa-route"></i>League Junior B</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--violet"><i class="fas fa-school"></i>Junior B</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--blend"><i class="fas fa-wand-magic-sparkles"></i>Team Quest → Hero's Challenge</span>
-            </div>
-            <p class="ceremony-intro-splash__tagline">League champions rise first — then your class heroes claim the spotlight.</p>
-        </div>`;
+import {
+  arenaBackdropHtml,
+  arenaDuelHtml,
+  arenaIntroHtml,
+  arenaRevealHtml,
+  arenaStandingsHtml,
+  arenaTransitionHtml
+} from '../../../../features/ceremonyArenaView.js';
+import {
+  gardenBackdropHtml,
+  gardenFinaleHtml,
+  gardenIntroHtml,
+  gardenLeagueHtml,
+  gardenParadeHtml,
+  gardenSprigHtml
+} from '../../../../features/ceremonyGardenView.js';
+import {
+  GRAND_CHAPTERS,
+  grandBackdropHtml,
+  grandChampionHtml,
+  grandGuildPillarsHtml,
+  grandOpeningHtml,
+  grandProdigyRoadHtml
+} from '../../../../features/grandCeremonyView.js';
+import { GUILD_IDS, getGuildById as liveGuild } from '../../../../features/guilds.js';
+import { getQuestMapZoneForProgressPercent } from '../../../../features/questMapZones.mjs';
+
+// The stage page lives under docs/, so root-relative asset paths need a leading slash.
+function getGuildById(id) {
+  const g = liveGuild(id);
+  if (!g) return g;
+  const fix = (url) => (url && !/^(\/|https?:|data:)/.test(url) ? `/${url}` : url);
+  return { ...g, emblem: fix(g.emblem), anthem: fix(g.anthem) };
 }
 
-export function ceremonyGrowthIntroSplashHtml() {
-  return `
-        <div class="ceremony-intro-splash">
-            <div class="ceremony-intro-splash__aurora" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--a" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--b" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__ring" aria-hidden="true"></div>
-            <div class="ceremony-intro-splash__emblem-wrap">
-                <span class="ceremony-intro-splash__emblem">🐣</span>
-            </div>
-            <p class="ceremony-intro-splash__kicker">Ceremony of the Month</p>
-            <h1 class="ceremony-intro-splash__title font-title">August 2026</h1>
-            <p class="ceremony-intro-splash__brand">The Great Class Quest</p>
-            <div class="ceremony-intro-splash__details">
-                <span class="ceremony-intro-chip ceremony-intro-chip--amber"><i class="fas fa-route"></i>League Nursery</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--violet"><i class="fas fa-school"></i>Nursery A</span>
-                <span class="ceremony-intro-chip ceremony-intro-chip--blend"><i class="fas fa-seedling"></i>Growth Festival</span>
-            </div>
-            <p class="ceremony-intro-splash__tagline">Every learner brings a special bloom to our garden.</p>
-        </div>`;
+const TEAM = [
+  { id: 'c-jb', name: 'Junior B Owls', logo: '🦉', rank: 1, score: 212, goal: 200, progress: 100, level: 4, avgPerHero: 17.7, teamBonus: 10, topSkill: 'teamwork', studentCount: 12 },
+  { id: 'c-ja', name: 'Junior B Comets', logo: '☄️', rank: 2, score: 188, goal: 200, progress: 94, level: 4, avgPerHero: 15.7, teamBonus: 5, topSkill: 'creativity', studentCount: 12 },
+  { id: 'c-jk', name: 'Junior B Knights', logo: '🛡️', rank: 3, score: 151, goal: 200, progress: 76, level: 3, avgPerHero: 13.7, teamBonus: 0, topSkill: 'focus', studentCount: 11 }
+].map((c) => ({ ...c, zone: getQuestMapZoneForProgressPercent(c.progress) }));
+
+const HEROES = [
+  { id: 'maria', name: 'Maria', rank: 1, score: 31, stats: { count3: 6, count2: 4, topSkill: 'creativity', uniqueReasons: 4, academicAvg: 94 }, teacherBoon: { stars: 2, reasonText: 'Helped a new classmate every lesson' } },
+  { id: 'alex', name: 'Alex', rank: 2, score: 28, stats: { count3: 5, count2: 3, topSkill: 'teamwork', uniqueReasons: 4, academicAvg: 88 } },
+  { id: 'eleni', name: 'Eleni', rank: 3, score: 24, stats: { count3: 3, count2: 5, topSkill: 'respect', uniqueReasons: 3, academicAvg: 90 } },
+  { id: 'nikos', name: 'Nikos', rank: 4, score: 19, stats: { count3: 2, count2: 4, topSkill: 'focus', uniqueReasons: 3 } },
+  { id: 'sofia', name: 'Sofia', rank: 5, score: 16, stats: { count3: 1, count2: 5, topSkill: 'teamwork', uniqueReasons: 2 } },
+  { id: 'yannis', name: 'Yannis', rank: 6, score: 12, stats: { count3: 1, count2: 3, topSkill: 'creativity', uniqueReasons: 2 } }
+];
+
+const LEARNERS = ['Anna', 'Leo', 'Mia', 'Theo', 'Zoe', 'Nick', 'Ella', 'Sam', 'Iris', 'Max'].map((name) => ({ id: name.toLowerCase(), name }));
+
+function captureScreen(id) {
+  const screen = document.getElementById(id);
+  if (!screen) return null;
+  screen.classList.remove('hidden');
+  screen.classList.add('capture-ceremony', 'is-open');
+  screen.dataset.tier = 'full';
+  return screen;
 }
 
-function growthFieldPetalsHtml() {
-  const petals = [
-    ['🌸', '6%', '9%', '0s', '1.2'],
-    ['🌼', '90%', '13%', '0.9s', '0.95'],
-    ['🌷', '13%', '76%', '1.6s', '1.08'],
-    ['🌺', '84%', '70%', '0.35s', '0.9'],
-    ['✿', '47%', '4%', '2s', '0.72'],
-    ['🌸', '23%', '22%', '2.4s', '0.78'],
-    ['🌼', '71%', '83%', '1.15s', '0.82'],
-    ['❀', '94%', '42%', '2.7s', '0.7'],
-    ['🌷', '3%', '45%', '0.55s', '0.88']
-  ];
-  return `<div class="growth-petals" aria-hidden="true">${petals.map(([emoji, x, y, delay, scale]) =>
-    `<span class="growth-petal" style="--x:${x};--y:${y};--d:${delay};--s:${scale}">${emoji}</span>`
-  ).join('')}</div>`;
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
 }
 
-function growthBloomBurstHtml() {
-  const petals = [
-    ['🌸', '12deg', '56%', '0s', '1.18'],
-    ['🌼', '48deg', '62%', '0.35s', '0.92'],
-    ['🌷', '92deg', '57%', '0.7s', '1.08'],
-    ['🌺', '138deg', '63%', '0.15s', '0.96'],
-    ['🌸', '178deg', '58%', '1s', '0.86'],
-    ['🌼', '222deg', '61%', '0.5s', '1.12'],
-    ['✿', '266deg', '54%', '0.85s', '0.8'],
-    ['🌷', '312deg', '60%', '0.22s', '1.02'],
-    ['❀', '344deg', '52%', '1.2s', '0.76']
-  ];
-  return `<div class="growth-bloom-burst" aria-hidden="true">${petals.map(([emoji, angle, radius, delay, scale]) =>
-    `<span class="growth-petal" style="--a:${angle};--r:${radius};--d:${delay};--s:${scale}">${emoji}</span>`
-  ).join('')}</div>`;
+function setCeremonyChrome({ kicker = '', title = '', herald = '', action = '' }) {
+  setText('ceremony-subtitle', kicker);
+  setText('ceremony-title', title);
+  document.getElementById('ceremony-header')?.classList.toggle('is-empty', !kicker && !title);
+  setText('ceremony-ai-text', herald);
+  document.getElementById('ceremony-ai-box')?.classList.toggle('is-on', Boolean(herald));
+  const label = document.querySelector('#ceremony-action-btn .cer-action__label');
+  if (label) label.textContent = action;
 }
 
-function growthGardenButterfliesHtml() {
-  return `
-        <div class="growth-garden-butterflies" aria-hidden="true">
-            <span class="growth-butterfly growth-butterfly--a">🦋</span>
-            <span class="growth-butterfly growth-butterfly--b">✨</span>
-            <span class="growth-butterfly growth-butterfly--c">🦋</span>
-        </div>`;
+function openReveal(stage) {
+  const reveal = stage.querySelector('.cer-reveal');
+  reveal?.classList.remove('is-sealed');
+  reveal?.classList.add('is-dropping', 'is-breaking', 'is-open', 'is-settled');
+  stage.querySelectorAll('.cer-count').forEach((el) => { el.textContent = el.dataset.count; });
 }
 
-function setCeremonyCaptureNarrator(ai, text) {
-  if (!ai) return;
-  if (!text) {
-    ai.style.opacity = '0';
-    return;
+function crownDuel(stage, type) {
+  const duel = stage.querySelector('.cer-duel');
+  if (!duel) return;
+  duel.classList.add('is-in', 'is-revealed', 'is-podium');
+  duel.querySelectorAll('.cer-duelist').forEach((d) => {
+    const rank = Number(d.dataset.rank);
+    const card = d.querySelector('.cer-card');
+    card?.classList.remove('cer-metal--mystery');
+    card?.classList.add(`cer-metal--${rank === 1 ? 'gold' : 'silver'}`);
+    const plate = card?.querySelector('.cer-card__plate');
+    if (plate) plate.innerHTML = `<span>${rank === 1 ? 'Gold' : 'Silver'}</span><b>#${rank}</b>`;
+    const count = card?.querySelector('.cer-count');
+    if (count) count.textContent = count.dataset.count;
+    card?.querySelector('.cer-card__score')?.classList.remove('is-veiled');
+    d.classList.add(rank === 1 ? 'is-winner' : 'is-runnerup');
+    if (rank === 1) card?.classList.add('is-crowned');
+    d.dataset.place = rank === 1 ? '1' : '2';
+  });
+  if (type === 'student') duel.dataset.type = 'student';
+}
+
+function mountArena(scene, realm) {
+  const screen = captureScreen('ceremony-screen');
+  if (!screen) return null;
+  screen.dataset.mode = 'arena';
+  screen.dataset.scene = scene;
+  screen.dataset.realm = realm;
+  screen.dataset.ladder = 'off';
+  const backdrop = document.getElementById('ceremony-backdrop');
+  if (backdrop && backdrop.dataset.mode !== 'arena') {
+    backdrop.innerHTML = arenaBackdropHtml();
+    backdrop.dataset.mode = 'arena';
   }
-  ai.style.opacity = '1';
-  const p = document.getElementById('ceremony-ai-text');
-  if (p) p.textContent = text;
+  document.getElementById('gdn-bed-row')?.replaceChildren();
+  return document.getElementById('ceremony-stage-area');
 }
 
-function ceremonyGrowthGardenHtml() {
-  return `
-            <div class="growth-festival-garden" role="region" aria-label="Our League Garden">
-                <div class="growth-garden-gate" aria-hidden="true"></div>
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-garden-cards">
-                    <article class="growth-class-card">
-                        <span class="growth-class-emblem" aria-hidden="true">🌷</span>
-                        <h3>Pre-Junior A</h3>
-                        <p>Growing steadily</p>
-                        <span class="growth-class-virtue">creativity bloom</span>
-                    </article>
-                    <article class="growth-class-card growth-class-card--pathfinder">
-                        <span class="growth-class-emblem" aria-hidden="true">🐣</span>
-                        <h3>Nursery A</h3>
-                        <p>Blooming brightly</p>
-                        <span class="growth-class-virtue">teamwork bloom</span>
-                        <strong class="growth-class-pathfinder">✨ League Pathfinder</strong>
-                    </article>
-                </div>
-            </div>`;
+function mountGarden(scene, realm = 'day') {
+  const screen = captureScreen('ceremony-screen');
+  if (!screen) return null;
+  screen.dataset.mode = 'garden';
+  screen.dataset.scene = scene;
+  screen.dataset.realm = realm;
+  screen.dataset.ladder = 'off';
+  const backdrop = document.getElementById('ceremony-backdrop');
+  if (backdrop && backdrop.dataset.mode !== 'garden') {
+    backdrop.innerHTML = gardenBackdropHtml();
+    backdrop.dataset.mode = 'garden';
+  }
+  return document.getElementById('ceremony-stage-area');
 }
 
-function ceremonyGrowthBloomHtml() {
-  return `
-            <div class="growth-festival-garden" role="region" aria-label="Parade of Blooms">
-                <div class="growth-garden-gate" aria-hidden="true"></div>
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-bloom-card-wrap">
-            <article class="growth-bloom-card" data-student-id="alex">
-                <div class="growth-bloom-wreath-container">
-                    ${growthBloomBurstHtml()}
-                    <div class="growth-bloom-wreath-img" aria-hidden="true"></div>
-                    <div class="growth-bloom-avatar" aria-label="Alex">AL</div>
-                </div>
-                <h3>Alex</h3>
-                <div class="growth-bloom-spotlight-pill growth-pill--growth">
-                    <span>🌱</span>
-                    <span>Growing Stronger</span>
-                </div>
-                <p>Alex helped our class garden grow stronger.</p>
-                <div class="growth-bloom-counter-wrap">
-                    <button type="button" class="growth-bloom-nav-btn growth-bloom-nav-btn--prev" disabled aria-label="Previous Bloom" title="Previous Bloom">
-                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
-                    </button>
-                    <div class="growth-bloom-counter">Bloom 1 of 4 🌸</div>
-                    <button type="button" class="growth-bloom-nav-btn growth-bloom-nav-btn--next" aria-label="Next Bloom" title="Next Bloom">
-                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </article>
-                </div>
-            </div>`;
-}
-
-function ceremonyGrowthFinaleHtml() {
-  return `
-            <div class="growth-final-garden" role="region" aria-label="Golden Bloom Celebration">
-                ${growthFieldPetalsHtml()}
-                ${growthGardenButterfliesHtml()}
-                <div class="growth-golden-bloom-wrap">
-                    <div class="growth-golden-bloom-item">
-                        <div class="growth-golden-wreath-container">
-                            ${growthBloomBurstHtml()}
-                            <div class="growth-golden-bloom-wreath-img" aria-hidden="true"></div>
-                            <div class="growth-golden-avatar" aria-label="Maria">👑</div>
-                        </div>
-                        <div class="growth-golden-kicker">✨ Prodigy of the Month ✨</div>
-                        <h2 class="growth-golden-title">Maria</h2>
-                    </div>
-                </div>
-                <div class="growth-mini-blooms-section">
-                    <div class="growth-mini-blooms-label">Every Blossom in Our Class Family</div>
-                    <div class="growth-mini-blooms" aria-label="All class members">
-                        <div class="growth-mini-bloom-item" title="Alex"><span class="growth-mini-bloom-icon" aria-hidden="true">🌸</span><span class="growth-mini-bloom-name">Alex</span></div>
-                        <div class="growth-mini-bloom-item" title="Maria"><span class="growth-mini-bloom-icon" aria-hidden="true">🌸</span><span class="growth-mini-bloom-name">Maria</span></div>
-                        <div class="growth-mini-bloom-item" title="Nikos"><span class="growth-mini-bloom-icon" aria-hidden="true">🌸</span><span class="growth-mini-bloom-name">Nikos</span></div>
-                        <div class="growth-mini-bloom-item" title="Eleni"><span class="growth-mini-bloom-icon" aria-hidden="true">🌸</span><span class="growth-mini-bloom-name">Eleni</span></div>
-                    </div>
-                </div>
-            </div>`;
-}
-
-function classGoalPanelHtml() {
-  return `
-        <div class="ceremony-class-goal-panel">
-            <div class="ceremony-class-goal-panel__header">
-                <span class="ceremony-class-goal-panel__zone">🏰 Golden Citadel</span>
-                <span class="ceremony-class-goal-panel__pct">62%</span>
-            </div>
-            <div class="ceremony-quest-trail" aria-label="Quest goal progress 62 percent">
-                <div class="ceremony-quest-trail__track">
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--bronze"><div class="ceremony-quest-trail__fill" style="width:100%"></div></div>
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--silver"><div class="ceremony-quest-trail__fill" style="width:100%"></div></div>
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--gold"><div class="ceremony-quest-trail__fill" style="width:8%"></div></div>
-                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--crystal"><div class="ceremony-quest-trail__fill" style="width:0%"></div></div>
-                </div>
-                <div class="ceremony-quest-trail__marker" style="left:62%"></div>
-            </div>
-            <div class="ceremony-class-goal-panel__meta">
-                <span>86 / 138 goal</span>
-                <span class="ceremony-class-goal-panel__stages">🌿 🏔️ 🏰 💎</span>
-            </div>
-        </div>`;
-}
-
-function classMetricsHtml() {
-  return `<div class="ceremony-card-metrics">
-            <span class="ceremony-chip ceremony-chip--lvl-2">💧 Level 2</span>
-            <span class="ceremony-chip ceremony-chip--zone-gold">🏰 Golden Citadel</span>
-            <span class="ceremony-chip ceremony-chip--avg"><i class="fas fa-user-group"></i>7.2 avg/hero</span>
-            <span class="ceremony-chip ceremony-chip--pathfinder"><i class="fas fa-map"></i>Pathfinder +10</span>
-            <span class="ceremony-chip ceremony-chip--teamwork"><i class="fas fa-users"></i> Top: Teamwork</span>
-            <span class="ceremony-chip ceremony-chip--heroes"><i class="fas fa-users"></i>12 heroes</span>
-        </div>`;
-}
-
-export function ceremonyTeamCardHtml() {
-  return `
-    <div class="ceremony-display-card ceremony-display-card--class card-rank-1" style="position:relative">
-      <div class="ceremony-card-aura"></div>
-      <div class="ceremony-card-rankbar ceremony-card-rankbar--gold">
-        <span class="ceremony-rank-badge__pill ceremony-rank-badge__pill--gold">🥇 Gold</span>
-        <span class="ceremony-card-rankbar__label">Rank #1</span>
-      </div>
-      <div class="ceremony-card-shell">
-        <span class="ceremony-my-class-badge">YOU</span>
-        <div class="ceremony-card-kicker"><i class="fas fa-route"></i>Team Quest</div>
-        <div class="text-8xl mb-4 filter drop-shadow-lg">📚</div>
-        <h3 class="font-title ceremony-card-name text-gray-800">Junior B</h3>
-        <div class="mt-2">
-          <div class="ceremony-class-score-headline">
-            <span class="ceremony-class-score-headline__value">86</span>
-            <span class="ceremony-class-score-headline__label">Stars Collected</span>
-            <span class="ceremony-class-score-headline__heroes"><i class="fas fa-users"></i>12 heroes</span>
-          </div>
-        </div>
-        ${classMetricsHtml()}
-        ${classGoalPanelHtml()}
-      </div>
-    </div>`;
-}
-
-function duelCardHtml(rank, name, logo, side) {
-  const gold = rank === 1;
-  return `
-    <div id="showdown-card-${side}" class="ceremony-display-card ceremony-card ceremony-display-card--class face-off face-off--duel ${gold ? 'card-rank-1' : 'card-rank-2'} relative">
-      <div class="ceremony-card-aura"></div>
-      <div class="rank-badge ceremony-card-rankbar ${gold ? 'ceremony-card-rankbar--gold' : 'ceremony-card-rankbar--silver'}">
-        <span class="ceremony-rank-badge__pill ${gold ? 'ceremony-rank-badge__pill--gold' : 'ceremony-rank-badge__pill--silver'}">${gold ? '🥇 Gold' : '🥈 Silver'}</span>
-        <span class="ceremony-card-rankbar__label">Rank #${rank}</span>
-      </div>
-      <div class="ceremony-card-shell">
-        <div class="ceremony-card-kicker"><i class="fas fa-shield-halved"></i>League Duel</div>
-        <div class="text-8xl mb-4 filter drop-shadow-lg">${logo}</div>
-        <h3 class="font-title ceremony-card-name text-gray-800">${name}</h3>
-        <div class="star-count opacity-100">
-          <div class="ceremony-class-score-headline">
-            <span class="ceremony-class-score-headline__value">${gold ? '86' : '81'}</span>
-            <span class="ceremony-class-score-headline__label">Stars Collected</span>
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
-
-export function ceremonyDuelHtml() {
-  return `
-    ${duelCardHtml(2, 'Junior A', '🦊', 'left')}
-    <div id="ceremony-vs-badge" class="ceremony-countdown-ring">
-      <span class="ceremony-countdown-ring__halo"></span>
-      <span class="ceremony-countdown-ring__number">VS</span>
-      <span class="ceremony-countdown-ring__label">Final Duel</span>
-    </div>
-    ${duelCardHtml(1, 'Junior B', '📚', 'right')}`;
-}
-
-export function ceremonyHeroCardHtml() {
-  return `
-    <div class="ceremony-display-card ceremony-display-card--student card-rank-1" style="position:relative">
-      <div class="ceremony-card-aura"></div>
-      <div class="ceremony-card-rankbar ceremony-card-rankbar--gold">
-        <span class="ceremony-rank-badge__pill ceremony-rank-badge__pill--gold">🥇 Gold</span>
-        <span class="ceremony-card-rankbar__label">Rank #1</span>
-      </div>
-      <div class="ceremony-card-shell">
-        <div class="ceremony-card-kicker"><i class="fas fa-user-shield"></i>Hero's Challenge</div>
-        <div class="ceremony-card-class-strip">
-            <span class="ceremony-card-class-strip__emoji" aria-hidden="true">📚</span>
-            <span class="ceremony-card-class-strip__name">Junior B</span>
-        </div>
-        <div class="w-40 h-40 rounded-full flex items-center justify-center text-7xl font-bold mx-auto mb-4" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); border: 4px solid #F59E0B; box-shadow: 0 0 18px #F59E0B66; color:white;">A</div>
-        <h3 class="font-title ceremony-card-name text-gray-800">Alex</h3>
-        <div class="mt-2"><span class="font-title text-3xl" style="color:#d97706;">48 ⭐</span></div>
-        <div class="ceremony-card-metrics">
-            <span class="ceremony-chip ceremony-chip--epic"><i class="fas fa-bolt"></i>6 × 3⭐</span>
-            <span class="ceremony-chip ceremony-chip--strong"><i class="fas fa-star-half-alt"></i>4 × 2⭐</span>
-            <span class="ceremony-chip ceremony-chip--teamwork"><i class="fas fa-users"></i> Teamwork</span>
-            <span class="ceremony-chip ceremony-chip--variety"><i class="fas fa-shapes"></i>4 strengths</span>
-        </div>
-      </div>
-    </div>`;
-}
-
-export function ceremonyTransitionHtml() {
-  return `
-            <div class="ceremony-transition-panel">
-                <div class="ceremony-transition-panel__orb"></div>
-                <div class="ceremony-transition-panel__gold-glow" aria-hidden="true"></div>
-                <div class="ceremony-transition-panel__violet-glow" aria-hidden="true"></div>
-                <div class="ceremony-transition-panel__kicker">The torches turn inward</div>
-                <i class="fas fa-user-astronaut ceremony-transition-panel__icon"></i>
-                <h2 class="font-title ceremony-transition-panel__title">Hero's Challenge</h2>
-                <p class="ceremony-transition-panel__text">The league banners fade to gold, then violet — as your class heroes step into the spotlight.</p>
-            </div>`;
+function plantBed(count) {
+  const row = document.getElementById('gdn-bed-row');
+  if (!row) return;
+  row.innerHTML = LEARNERS.slice(0, count).map((p, i) => gardenSprigHtml(p, i)).join('');
+  row.style.setProperty('--n', String(row.children.length));
+  row.querySelectorAll('.gdn-sprig').forEach((s) => s.classList.add('is-planted'));
 }
 
 export function attendanceChronicleInnerHtml() {
@@ -408,150 +234,165 @@ export function attendanceChronicleInnerHtml() {
 }
 
 export function showCeremony(mode) {
-  const screen = document.getElementById('ceremony-screen');
-  const stage = document.getElementById('ceremony-stage-area');
-  const title = document.getElementById('ceremony-title');
-  const subtitle = document.getElementById('ceremony-subtitle');
-  const header = document.getElementById('ceremony-header');
-  const btn = document.getElementById('ceremony-action-btn');
-  const label = btn?.querySelector('.ceremony-action-btn__label');
-  const ai = document.getElementById('ceremony-ai-box');
-  if (!screen || !stage) return;
-
-  const growth = String(mode || '').startsWith('growth-');
-  const view = growth
-    ? (mode === 'growth-intro' ? 'intro' : 'students')
-    : (mode === 'team' || mode === 'duel' ? 'classes' : mode === 'hero' ? 'students' : mode);
-
-  screen.classList.remove('hidden');
-  screen.classList.add('capture-ceremony');
-  screen.classList.remove(
-    'ceremony-view--intro',
-    'ceremony-view--classes',
-    'ceremony-view--transition',
-    'ceremony-view--students',
-    'ceremony-view--growth',
-    'ceremony-phase-suspense'
-  );
-  stage.classList.remove('ceremony-stage--podium', 'ceremony-stage--podium-duo');
-  header?.classList.toggle('ceremony-header--intro', view === 'intro');
-  header?.classList.remove('ceremony-header--hidden');
-  btn?.classList.remove(
-    'ceremony-action-btn--intro',
-    'ceremony-action-btn--classes',
-    'ceremony-action-btn--transition',
-    'ceremony-action-btn--students',
-    'ceremony-action-btn--growth'
-  );
-  if (growth) {
-    screen.classList.add('ceremony-view--growth');
-    btn?.classList.add('ceremony-action-btn--growth');
-  } else {
-    btn?.classList.add(`ceremony-action-btn--${view}`);
-  }
-
-  if (mode === 'growth-intro') {
-    header?.classList.add('ceremony-header--intro');
-    stage.innerHTML = ceremonyGrowthIntroSplashHtml();
-    if (title) title.textContent = 'The Great Class Quest';
-    if (subtitle) subtitle.textContent = 'Ceremony of the Month';
-    if (label) label.textContent = 'Enter the Garden 🌸';
-    setCeremonyCaptureNarrator(ai, '');
-    return;
-  }
-
-  if (mode === 'growth-garden') {
-    stage.innerHTML = ceremonyGrowthGardenHtml();
-    if (title) title.innerHTML = '<span class="gradient-text">Our League Garden</span>';
-    if (subtitle) subtitle.innerHTML = '<span class="gradient-text">Every class grows in its own beautiful way</span>';
-    if (label) label.textContent = 'Explore Our Blooms 🌸';
-    setCeremonyCaptureNarrator(ai, 'Look how our classroom garden is blossoming together! 🌸🌱');
-    return;
-  }
-
-  if (mode === 'growth-bloom') {
-    stage.innerHTML = ceremonyGrowthBloomHtml();
-    if (title) title.innerHTML = '<span class="gradient-text">Parade of Blooms</span>';
-    if (subtitle) subtitle.innerHTML = '<span class="gradient-text">A special part of our garden</span>';
-    if (label) label.textContent = 'Next Bloom 🌸';
-    setCeremonyCaptureNarrator(ai, 'Let\'s celebrate Alex — Alex helped our class garden grow stronger. 🌸');
-    return;
-  }
-
-  if (mode === 'growth-finale') {
-    stage.innerHTML = ceremonyGrowthFinaleHtml();
-    if (title) title.innerHTML = '<span class="gradient-text">Golden Bloom</span>';
-    if (subtitle) subtitle.innerHTML = '<span class="gradient-text">Prodigy of the Month</span>';
-    if (label) label.textContent = 'Finish Ceremony 🌿';
-    setCeremonyCaptureNarrator(ai, 'Behold our Golden Bloom! A shining flower of wonder in our whole class family! 👑✨');
-    return;
-  }
-
   if (mode === 'intro') {
-    screen.classList.add('ceremony-view--intro');
-    stage.innerHTML = ceremonyIntroSplashHtml();
-    if (title) title.textContent = 'The Great Class Quest';
-    if (subtitle) subtitle.textContent = 'Ceremony of the Month';
-    if (label) label.textContent = 'Start Ceremony';
-    if (ai) ai.style.opacity = '0';
+    const stage = mountArena('intro', 'ember');
+    stage.innerHTML = arenaIntroHtml({ monthName: 'May', league: 'Junior B', className: 'Junior B Owls', classLogo: '🦉' });
+    setCeremonyChrome({ herald: 'The scrolls are sealed. The arena awaits…', action: 'Start Ceremony' });
     return;
   }
-
   if (mode === 'team') {
-    screen.classList.add('ceremony-view--classes');
-    stage.innerHTML = ceremonyTeamCardHtml();
-    if (title) title.textContent = 'Rank #1';
-    if (subtitle) subtitle.textContent = 'Team Quest';
-    if (label) label.textContent = 'Next';
-    if (ai) {
-      ai.style.opacity = '1';
-      const p = document.getElementById('ceremony-ai-text');
-      if (p) p.textContent = 'Junior B leads the league — Pathfinder bonus and a Golden Citadel finish.';
-    }
+    const stage = mountArena('classes', 'ember');
+    stage.innerHTML = arenaRevealHtml(TEAM[2], 'class', { isMyClass: false });
+    openReveal(stage);
+    setCeremonyChrome({ kicker: 'Team Quest · League Junior B', title: 'The League Rises', herald: 'Junior B Knights walked three quarters of the quest road this month!', action: 'Next' });
     return;
   }
-
   if (mode === 'duel') {
-    screen.classList.add('ceremony-view--classes', 'ceremony-phase-suspense');
-    stage.innerHTML = ceremonyDuelHtml();
-    if (title) title.textContent = 'The Final Duel';
-    if (subtitle) subtitle.textContent = 'Two legends remain...';
-    if (label) label.textContent = '🥁 Drumroll...';
-    if (ai) {
-      ai.style.opacity = '1';
-      const p = document.getElementById('ceremony-ai-text');
-      if (p) p.textContent = 'Two legends remain — Junior A and Junior B. Drumroll for the league crown.';
-    }
+    const stage = mountArena('duel', 'ember');
+    stage.innerHTML = arenaDuelHtml(TEAM[1], TEAM[0], 'class', { myClassId: 'c-jb' });
+    crownDuel(stage, 'class');
+    document.getElementById('ceremony-screen')?.classList.add('is-revealed');
+    setCeremonyChrome({ kicker: 'League Junior B', title: 'Champion of the League', herald: 'Junior B Owls take the league crown!', action: "On to the Hero's Challenge" });
     return;
   }
-
   if (mode === 'transition') {
-    screen.classList.add('ceremony-view--transition');
-    stage.innerHTML = ceremonyTransitionHtml();
-    if (title) title.textContent = 'Individual Honors';
-    if (subtitle) subtitle.textContent = 'Who went above and beyond?';
-    if (label) label.textContent = "Begin Hero's Challenge";
-    if (ai) ai.style.opacity = '0';
+    const stage = mountArena('transition', 'violet');
+    stage.innerHTML = arenaTransitionHtml();
+    setCeremonyChrome({ kicker: 'Individual Honours', title: 'Who went above and beyond?', action: "Begin Hero's Challenge" });
     return;
   }
-
   if (mode === 'hero') {
-    screen.classList.add('ceremony-view--students');
-    stage.innerHTML = ceremonyHeroCardHtml();
-    if (title) title.textContent = 'Rank #1';
-    if (subtitle) subtitle.textContent = "Hero's Challenge";
-    if (label) label.textContent = 'Next';
-    if (ai) {
-      ai.style.opacity = '1';
-      const p = document.getElementById('ceremony-ai-text');
-      if (p) p.textContent = 'Alex leads the class — six epic lessons and four strengths this month.';
-    }
+    const stage = mountArena('heroes', 'violet');
+    stage.innerHTML = arenaDuelHtml(HEROES[1], HEROES[0], 'student');
+    crownDuel(stage, 'student');
+    document.getElementById('ceremony-screen')?.classList.add('is-revealed');
+    setCeremonyChrome({ kicker: 'May · Junior B Owls', title: 'Prodigy of the Month', herald: 'Maria is the Prodigy of the Month!', action: 'Show Final Standings' });
+    return;
+  }
+  if (mode === 'standings') {
+    const stage = mountArena('standings', 'violet');
+    stage.innerHTML = arenaStandingsHtml(HEROES, { monthName: 'May' });
+    setCeremonyChrome({ action: 'Finish Ceremony' });
+    return;
+  }
+  if (mode === 'growth-intro') {
+    const stage = mountGarden('gate');
+    plantBed(0);
+    stage.innerHTML = gardenIntroHtml({ monthName: 'May', className: 'Nursery Bees', classLogo: '🐝' });
+    setCeremonyChrome({ herald: 'Welcome to the garden! Every bloom has a story…', action: 'Enter the Garden 🌸' });
+    return;
+  }
+  if (mode === 'growth-garden') {
+    const stage = mountGarden('league');
+    plantBed(0);
+    stage.innerHTML = gardenLeagueHtml([
+      { id: 'c-nu2', className: 'Nursery Ducklings', logo: '🐥', progressLabel: 'Growing steadily', topSkill: 'creativity' },
+      { id: 'c-nu3', className: 'Nursery Ladybirds', logo: '🐞', progressLabel: 'Blooming brightly', topSkill: 'respect' },
+      { id: 'c-nu', className: 'Nursery Bees', logo: '🐝', progressLabel: 'Reaching for the sun', topSkill: 'teamwork' }
+    ], { pathfinderId: 'c-nu', myClassId: 'c-nu' });
+    stage.querySelectorAll('.gdn-planter').forEach((el) => el.classList.add('is-grown'));
+    setCeremonyChrome({ kicker: 'Our League Garden', title: 'Every class grows in its own way', herald: 'Look how our league garden is blossoming together! 🌸', action: 'Explore Our Blooms 🌸' });
+    return;
+  }
+  if (mode === 'growth-bloom') {
+    const stage = mountGarden('parade');
+    plantBed(3);
+    stage.innerHTML = gardenParadeHtml({ studentId: 'mia', studentName: 'Mia', key: 'growing_stronger', publicText: 'Mia tried new words every lesson and helped our garden grow stronger.' }, { index: 3, total: 10, person: LEARNERS[2] });
+    const parade = stage.querySelector('.gdn-parade');
+    parade?.classList.add('is-seeded', 'is-sprouting', 'is-budding', 'is-bloomed', 'is-told');
+    stage.querySelector('.gdn-grow__head .gdn-bloom')?.classList.add('is-open');
+    setCeremonyChrome({ kicker: 'Parade of Blooms', title: 'A special part of our garden', action: 'Next Bloom 🌸' });
+    return;
+  }
+  if (mode === 'growth-finale') {
+    const stage = mountGarden('finale');
+    plantBed(10);
+    stage.innerHTML = gardenFinaleHtml([{ id: 'mia', name: 'Mia' }], { classLogo: '🐝', className: 'Nursery Bees' });
+    const finale = stage.querySelector('.gdn-finale');
+    finale?.classList.add('is-growing', 'is-glowing', 'is-open');
+    finale?.querySelectorAll('.gdn-bloom').forEach((b) => b.classList.add('is-open'));
+    setCeremonyChrome({ kicker: 'Prodigy of the Month', title: 'Our Golden Bloom', herald: 'Mia is our Golden Bloom this month! 🌼', action: 'Finish Ceremony 🌿' });
   }
 }
 
 export function hideCeremony() {
-  document.getElementById('ceremony-screen')?.classList.add('hidden');
-  document.getElementById('ceremony-screen')?.classList.remove('capture-ceremony', 'ceremony-phase-suspense');
+  const screen = document.getElementById('ceremony-screen');
+  screen?.classList.add('hidden');
+  screen?.classList.remove('capture-ceremony', 'is-open', 'is-revealed');
+}
+
+const GRAND_ROWS = [
+  { guildId: 'owl_wisdom', guildPower: 86 },
+  { guildId: 'dragon_flame', guildPower: 79 },
+  { guildId: 'phoenix_rising', guildPower: 71 },
+  { guildId: 'grizzly_might', guildPower: 64 }
+].map((row, i) => ({ ...row, rank: i + 1, guild: getGuildById(row.guildId), guildName: getGuildById(row.guildId)?.name }));
+
+function setGrandChrome({ scene, realm, kicker = '', title = '', herald = '', action = '' }) {
+  const screen = captureScreen('grand-guild-ceremony-screen');
+  if (!screen) return null;
+  screen.dataset.scene = scene;
+  screen.dataset.realm = realm;
+  const backdrop = document.getElementById('grd-backdrop');
+  if (backdrop && !backdrop.childElementCount) backdrop.innerHTML = grandBackdropHtml(GUILD_IDS.map(getGuildById));
+  const chapters = document.getElementById('grd-chapters');
+  if (chapters) {
+    const at = GRAND_CHAPTERS.findIndex((c) => c.key === (scene === 'champion' ? 'guilds' : scene));
+    chapters.innerHTML = GRAND_CHAPTERS.map((c, i) => `<li class="${i < at ? 'is-done' : i === at ? 'is-on' : ''}" title="${c.title}"><i class="fas ${c.icon}" aria-hidden="true"></i><span>${c.numeral}</span></li>`).join('');
+  }
+  setText('grd-kicker', kicker);
+  setText('grd-title', title);
+  document.getElementById('grd-header')?.classList.toggle('is-empty', !kicker && !title);
+  setText('grd-herald-text', herald);
+  document.getElementById('grd-herald')?.classList.toggle('is-on', Boolean(herald));
+  const label = document.querySelector('#grd-action-btn .grd-action__label');
+  if (label) label.textContent = action;
+  return document.getElementById('grd-stage');
+}
+
+export function showGrandCeremony(mode) {
+  if (mode === 'opening') {
+    const stage = setGrandChrome({ scene: 'opening', realm: 'dusk', herald: 'The lanterns are lit. Welcome to the end-of-year festival!', action: 'Begin the Festival' });
+    stage.innerHTML = grandOpeningHtml({
+      yearLabel: '2025–26',
+      classes: [{ name: 'Junior B Owls', logo: '🦉' }, { name: 'Junior B Comets', logo: '☄️' }, { name: 'Nursery Bees', logo: '🐝' }, { name: 'Class C Dragons', logo: '🐲' }],
+      guilds: GUILD_IDS.map(getGuildById)
+    });
+    return;
+  }
+  if (mode === 'prodigies') {
+    const stage = setGrandChrome({ scene: 'prodigies', realm: 'dusk', kicker: 'Chapter III · The Crown Road', title: 'A crown for every month', action: 'Wonders of the Year' });
+    const months = ['2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
+    const names = [['Maria'], ['Alex'], ['Eleni', 'Nikos'], ['Maria'], ['Sofia'], ['Alex'], ['Maria'], ['Yannis'], ['Zoe']];
+    stage.innerHTML = grandProdigyRoadHtml(months.map((monthKey, i) => ({ monthKey, winners: names[i].map((name) => ({ name })) })), { mostCrowned: [{ name: 'Maria' }], mostCount: 3 });
+    stage.querySelectorAll('.grd-month, .grd-crowned').forEach((el) => el.classList.add('is-shown'));
+    return;
+  }
+  if (mode === 'crowning') {
+    const stage = setGrandChrome({ scene: 'guilds', realm: 'night', kicker: 'Guild Champions of the Year', title: GRAND_ROWS[0].guildName, action: `Hear the ${GRAND_ROWS[0].guildName} anthem` });
+    const display = GUILD_IDS.map((id) => GRAND_ROWS.find((r) => r.guildId === id));
+    stage.innerHTML = grandGuildPillarsHtml(display, { maxPower: GRAND_ROWS[0].guildPower });
+    stage.querySelector('.grd-pillars')?.classList.add('is-rising', 'is-crowned');
+    stage.querySelectorAll('.grd-pillar').forEach((el) => el.classList.add('is-revealed'));
+    stage.querySelector('.grd-pillar[data-rank="1"]')?.classList.add('is-champion');
+    stage.querySelectorAll('.grd-count').forEach((el) => { el.textContent = el.dataset.count; });
+    document.getElementById('grand-guild-ceremony-screen')?.classList.add('is-revealed');
+    return;
+  }
+  if (mode === 'champion') {
+    const champion = GRAND_ROWS[0];
+    const stage = setGrandChrome({ scene: 'champion', realm: 'night', herald: `“${champion.guild?.motto || ''}”`, action: 'Enter the Hall of Heroes' });
+    stage.innerHTML = grandChampionHtml(champion, { heroes: [{ name: 'Maria' }, { name: 'Alex' }, { name: 'Eleni' }] });
+    const lines = stage.querySelectorAll('.grd-lyrics li');
+    lines.forEach((li, i) => { if (i < 3) li.classList.add('is-sung'); });
+    lines[2]?.classList.add('is-now');
+  }
+}
+
+export function hideGrandCeremony() {
+  const screen = document.getElementById('grand-guild-ceremony-screen');
+  screen?.classList.add('hidden');
+  screen?.classList.remove('capture-ceremony', 'is-open', 'is-revealed');
 }
 
 export function showAttendanceChronicle() {

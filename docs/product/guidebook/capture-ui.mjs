@@ -130,40 +130,40 @@ try {
     await page.locator('#ceremony-screen.capture-ceremony').waitFor({ state: 'attached', timeout: 8000 });
     await page.waitForTimeout(200);
     await shot(page.locator('#ceremony-screen'), 'ceremony-intro.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('team'));
-    await page.waitForTimeout(120);
-    await shot(page.locator('#ceremony-screen'), 'ceremony-team-quest.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('duel'));
-    await page.waitForTimeout(120);
-    await shot(page.locator('#ceremony-screen'), 'ceremony-duel.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('transition'));
-    await page.waitForTimeout(120);
-    await shot(page.locator('#ceremony-screen'), 'ceremony-transition.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('hero'));
-    await page.waitForTimeout(120);
-    await shot(page.locator('#ceremony-screen'), 'ceremony-hero.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('growth-intro'));
-    await page.waitForTimeout(200);
-    await waitForBgImages(page, '#ceremony-screen');
-    await shot(page.locator('#ceremony-screen'), 'ceremony-growth-intro.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('growth-garden'));
-    await page.waitForTimeout(200);
-    await waitForBgImages(page, '#ceremony-screen');
-    await shot(page.locator('#ceremony-screen'), 'ceremony-growth-garden.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('growth-bloom'));
-    await page.waitForTimeout(200);
-    await waitForBgImages(page, '#ceremony-screen');
-    await shot(page.locator('#ceremony-screen'), 'ceremony-growth-bloom.png');
-    await page.evaluate(() => window.__gcqCapture.showCeremony('growth-finale'));
-    await page.waitForTimeout(450);
-    await waitForBgImages(page, '#ceremony-screen');
-    await shot(page.locator('#ceremony-screen'), 'ceremony-growth-finale.png');
+    const ceremonyShots = [
+      ['team', 'ceremony-team-quest.png'],
+      ['duel', 'ceremony-duel.png'],
+      ['transition', 'ceremony-transition.png'],
+      ['hero', 'ceremony-hero.png'],
+      ['standings', 'ceremony-standings.png'],
+      ['growth-intro', 'ceremony-growth-intro.png'],
+      ['growth-garden', 'ceremony-growth-garden.png'],
+      ['growth-bloom', 'ceremony-growth-bloom.png'],
+      ['growth-finale', 'ceremony-growth-finale.png']
+    ];
+    for (const [mode, file] of ceremonyShots) {
+      await page.evaluate((m) => window.__gcqCapture.showCeremony(m), mode);
+      await page.waitForTimeout(200);
+      await shot(page.locator('#ceremony-screen'), file);
+    }
+    await page.evaluate(() => window.__gcqCapture.hideCeremony());
+    for (const mode of ['opening', 'prodigies', 'crowning', 'champion']) {
+      await page.evaluate((m) => window.__gcqCapture.showGrandCeremony(m), mode);
+      await page.evaluate(async () => {
+        await Promise.all([...document.images].map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
+          img.onload = img.onerror = resolve;
+        }))));
+      });
+      await page.waitForTimeout(200);
+      await shot(page.locator('#grand-guild-ceremony-screen'), `grand-ceremony-${mode}.png`);
+    }
   } catch (err) {
     console.warn('Ceremony capture skipped:', err.message);
   }
 
   await page.evaluate(() => {
     window.__gcqCapture.hideCeremony();
+    window.__gcqCapture.hideGrandCeremony();
     window.__gcqCapture.showAttendanceChronicle();
   });
   try {

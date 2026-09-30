@@ -1125,7 +1125,7 @@ function getLatestViewableProdigyMonth(ref = new Date()) {
 
 let prodigyViewDate = null;
 
-function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudentId = {}) {
+export function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudentId = {}) {
     const studentStats = students.map((student) => {
         const studentLogs = monthlyLogs.filter((log) => log.studentId === student.id);
         const fromLogs = studentLogs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);

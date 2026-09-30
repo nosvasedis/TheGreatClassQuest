@@ -6,7 +6,7 @@
   <title>GCQ guidebook UI capture</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Uncial+Antiqua&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
   <style>
     html, body {
@@ -70,24 +70,22 @@
     #app-screen.hidden {
       display: none !important;
     }
-    #ceremony-screen.capture-ceremony {
+    #ceremony-screen.capture-ceremony,
+    #grand-guild-ceremony-screen.capture-ceremony {
       position: fixed !important;
       inset: 0 !important;
-      display: block !important;
       width: 1440px !important;
       height: 980px !important;
       opacity: 1 !important;
       visibility: visible !important;
       z-index: 200 !important;
     }
-    #ceremony-screen.capture-ceremony .ceremony-layout {
-      width: 100% !important;
-      height: 100% !important;
-      max-width: none;
-    }
-    #ceremony-screen.capture-ceremony,
-    #ceremony-screen.capture-ceremony *:not(.growth-petal) {
+    .capture-ceremony,
+    .capture-ceremony *,
+    .capture-ceremony *::before,
+    .capture-ceremony *::after {
       animation: none !important;
+      transition: none !important;
     }
     #attendance-chronicle-modal.capture-ac {
       position: relative !important;

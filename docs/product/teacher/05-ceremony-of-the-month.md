@@ -24,8 +24,7 @@ result throughout the ceremony, even if someone later edits a score.
 
 Growth Festival keeps the monthly winner private until the right moment. The
 children’s screen never shows ranks, Stars, academic numbers, or silver/bronze
-podiums. The projector sky is a light garden (mint, peach, and cream) — not the
-dark Classic Arena colours. It shows a gentle League Garden, a warm Parade of
+podiums. The projector shows a sunny storybook garden, not the torchlit Classic Arena. It shows a gentle League Garden, a warm Parade of
 Blooms, and a Golden Bloom or Whole Class Garden finale. Every learner appears
 in the final class garden, including children who do not receive an individual
 bloom card.
@@ -89,17 +88,41 @@ Run it once per class per month, early in the new month, with the projector on i
 
 ## What you see
 
-This is a **full-screen** ritual (not a small modal). The classroom sky fills the projector. The top bar has **Exit Ceremony** (Esc) and a **sound** toggle; on a wide screen a **Space** Next hint sits beside the sound button.
+This is a **full-screen** ritual (not a small modal) built for the projector. The top bar has **Exit Ceremony** (Esc) and a **sound** toggle; on a wide screen a **Space** Next hint sits beside the sound button. **Space**, **Enter** or the right arrow press the big button. Pressing it while a reveal is still playing skips straight to the end of that reveal.
 
-**Intro.** Kicker **Ceremony of the Month**, the month’s name, chips for the Quest League and the class you selected, and the big start button: **Start Ceremony** in Classic Arena, **Enter the Garden 🌸** in Growth Festival. Growth Festival says **Every learner brings a special bloom to our garden**; Classic Arena says **Team Quest → Hero's Challenge**.
+### Classic Arena
 
-**Phase 1 — Team Quest.** Rank cards for every class in the league, **lowest first**. Each card shows Stars Collected, a **YOU** badge on the class in the header, chips for **quest difficulty** (Level 1–6), **map zone**, average stars per hero, **Pathfinder / team bonus**, and the class’s **top virtue**, plus the quest-goal trail. Then a **League Duel**: second versus first, **VS** ring, drumroll.
+A torchlit arena at dusk: a moon, league pennants, a cheering crowd in the stands and two torches that burn **ember gold** for Team Quest and turn **violet** for the Hero’s Challenge.
 
-**Transition.** The sky shifts toward violet. The button reads **Begin Hero's Challenge**.
+**Intro.** A gold shield with the class emblem inside a laurel, **Ceremony of the Month**, the month’s name, chips for the Quest League and the class, and a small route map: **Team Quest → Hero’s Challenge**. Press **Start Ceremony**; the herald unrolls the month’s scrolls.
 
-**Phase 2 — Hero’s Challenge.** Only students in the selected class. Rank cards, then a **Hero Duel** for the top two, then the final board. If a student received this month’s **Teacher Boon**, a **ribbon** sits on their card — honour, not a rank, and not the wand button from Award Stars.
+**Phase 1 — Team Quest.** Classes in the league are revealed **lowest first**. Each place arrives as a **sealed card**: a herald banner names the place, the card drops in, the wax seal cracks and the card flips to show the class. Gold, silver and bronze places have their own metal; every other place is steel. The class card shows Stars Collected (counting up), a **Your class** tag, the quest-goal trail, and chips for **quest difficulty** (Level 1–6), **map zone**, average stars per hero, **Pathfinder / team bonus** and the class’s **top virtue**. On a wide screen a **ladder** at the side keeps every class already revealed.
 
-**Finish Ceremony** (Growth Festival labels it **Finish Ceremony 🌿**) marks this class complete for that month. Other classes in the league still need their own finish if you teach more than one.
+**League Duel.** The top two face each other as veiled **Finalist** cards across crossed swords, scores hidden. Press **🥁 Drumroll…**: the spotlights swing between them, then land on the champion, who is crowned while the second card takes the silver step of a podium. A true tie shows **Shared Champions!**
+
+**Transition.** The torches turn violet and the gate reads **Hero’s Challenge**. Press **Begin Hero’s Challenge**.
+
+**Phase 2 — Hero’s Challenge.** Only students in the selected class, revealed the same way with a portrait medallion instead of a crest. A student who received this month’s **Teacher Boon** carries a **ribbon** on the card: honour, not a rank. The top two meet in the **Hero Duel**; **Crown the Champion** runs the drumroll and crowns the **Prodigy of the Month** (or two **Co-Prodigies**).
+
+**Final Standings.** A Roll of Honour lists every hero with their monthly stars and strengths. If nobody earned stars, the screen shows **Our Whole Class Quest** instead. **Finish Ceremony** closes the month; the closing screen says **Well fought** to the class and names the crowns.
+
+### The Growth Festival garden
+
+A storybook garden on a sunny day: rolling hills, bunting, clouds and butterflies, and a flower bed along the bottom of the screen.
+
+**Garden gate.** A rose arch with the class emblem, **Growth Festival** and the month. **Enter the Garden 🌸** opens the gate doors.
+
+**Our League Garden.** One flower pot per class grows in, each with its emblem, a gentle progress line and its shared strength as a **bloom**. The class that led the month grows last, in gold light, as **League Pathfinder**. There are no numbers.
+
+**Every Garden Grows Together.** A rainbow and a watering can. Then **Begin the Bloom Parade 🌺**.
+
+**Parade of Blooms.** For each learner a seed drops, sprouts and opens into a flower with the child’s initial, and a seed-packet card tells their kind story. **Bloom X of Y** and the chevrons step through the cards. As each card is shown, that child’s little flower is planted in the bed at the bottom, so the whole class garden fills up as the parade goes on.
+
+**The Golden Bloom.** The biggest bud grows, glows and opens: **Prodigy of the Month**, or **Co-Prodigies** side by side, or **Whole Class Garden** when there is no individual winner. **Finish Ceremony 🌿** lets the sun set on the garden.
+
+### On slower laptops
+
+The ceremony checks how fast the computer is. On a slower laptop it keeps the scenery still (no twinkling stars, drifting clouds or flickering torches) and uses fewer sparks, while every reveal still plays. Nothing needs to be set.
 
 ## What you do (teacher)
 
@@ -108,7 +131,7 @@ This is a **full-screen** ritual (not a small modal). The classroom sky fills th
 3. Intro splash → **Start Ceremony** (Classic Arena) or **Enter the Garden 🌸** (Growth Festival).
 4. The first load quietly prepares and saves the month’s result; the ceremony then uses that same result from start to finish.
 5. In Classic Arena, pace **Team Quest** yourself: Next through the ranks, then the League Duel.
-6. In Growth Festival, pace with the garden buttons: **Explore Our Blooms 🌸**, then **Begin the Bloom Parade 🌺**, then **Next Bloom 🌸** (or **Reveal Our Golden Bloom ✨** on the last card). Chevrons beside **Bloom X of Y** step through cards; the last card’s next chevron stays off so **Reveal Our Golden Bloom ✨** opens the finale. In Classic Arena, continue with **Hero’s Challenge**.
+6. In Growth Festival, pace with the garden buttons: **Enter the Garden 🌸**, **Explore Our Blooms 🌸**, then **Begin the Bloom Parade 🌺**, then **Next Bloom 🌸** (or **Reveal Our Golden Bloom ✨** on the last card). Chevrons beside **Bloom X of Y** step through cards; the last card’s next chevron stays off so **Reveal Our Golden Bloom ✨** opens the finale. In Classic Arena, continue with **Hero’s Challenge**.
 7. **Finish Ceremony**. Before that, a refresh or an exit simply continues the saved ceremony next time you open it.
 
 You only control the pacing. Press **Start Ceremony** or **Enter the Garden 🌸**, then the labelled next button when the class is ready. You never choose the flowers, write a

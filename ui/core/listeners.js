@@ -3,6 +3,7 @@
 // --- IMPORTS ---
 import * as state from '../../state.js';
 import { db, auth, signOut, doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from '../../firebase.js';
+import { walkOutThroughGate } from '../authGate.js';
 import { setupHomeListeners } from '../../features/home.js';
 import { wireHeaderClassSelector } from '../headerClassSelector.js';
 
@@ -102,7 +103,7 @@ export function setupUIListeners() {
     // Auth
     document.getElementById('logout-btn').addEventListener('click', async () => {
         playSound('click');
-        await signOut(auth);
+        await walkOutThroughGate(() => signOut(auth));
         if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
     });
 

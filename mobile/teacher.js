@@ -1,6 +1,7 @@
 import * as state from '../state.js';
 import { playSound } from '../audio.js';
 import { auth, signOut } from '../firebaseAuth.js';
+import { walkOutThroughGate } from '../ui/authGate.js';
 import { getDeviceCacheChoice, clearLocalAppData } from '../utils/deviceCache.js';
 import { escapeHtml } from '../features/roles/shared.js';
 import { renderMobileHome } from './home.js';
@@ -76,7 +77,7 @@ function anySheetOpen() {
 
 function logout() {
     playSound('click');
-    void signOut(auth).then(() => {
+    void walkOutThroughGate(() => signOut(auth)).then(() => {
         if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
     });
 }

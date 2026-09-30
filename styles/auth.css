@@ -1018,3 +1018,42 @@
 }
 /* Keep the zoomed view steady if the app hides the sign-in screen mid-walk. */
 #auth-screen.is-gate-entering.auth-screen-out { animation: none; }
+
+/* ── Walking back out (logout) ───────────────────────────────────────────────
+   The same pieces played backwards: the view eases out of the arch, the doors
+   swing shut, then the form returns (ui/authGate.js → playAuthGateExit). */
+#auth-screen.gate-instant,
+#auth-screen.gate-instant *,
+#auth-screen.gate-instant *::before,
+#auth-screen.gate-instant *::after { transition: none !important; }
+#auth-screen.is-gate-leaving {
+    will-change: transform;
+    transform-origin: var(--gate-origin-x, 50%) var(--gate-origin-y, 50%);
+    transition: transform 1.15s cubic-bezier(0.22, 0.8, 0.25, 1);
+}
+#auth-screen.is-gate-leaving .auth-welcome,
+#auth-screen.is-gate-leaving .auth-footnote,
+#auth-screen.is-gate-leaving .auth-cloud-layer {
+    transition: opacity 0.7s ease 0.45s;
+}
+#auth-screen.is-gate-leaving .auth-gate-portal { transition: opacity 0.35s ease; }
+
+.gate-daylight-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle farthest-corner at 50% 55%,
+        rgba(255, 253, 244, 1) 0%,
+        rgba(255, 250, 232, 0.98) 45%,
+        rgba(250, 252, 255, 0.96) 100%);
+    transition: opacity 0.42s ease-in;
+}
+.gate-daylight-veil.is-shown { opacity: 1; pointer-events: auto; }
+.gate-daylight-veil.is-clearing { transition: opacity 0.8s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+    #auth-screen.is-gate-leaving,
+    .gate-daylight-veil { transition: none !important; }
+}

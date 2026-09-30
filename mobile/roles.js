@@ -1,5 +1,6 @@
 import { playSound } from '../audio.js';
 import { auth, signOut } from '../firebaseAuth.js';
+import { walkOutThroughGate } from '../ui/authGate.js';
 import { getDeviceCacheChoice, clearLocalAppData } from '../utils/deviceCache.js';
 
 let wired = false;
@@ -7,7 +8,7 @@ const observers = [];
 
 function logout() {
     playSound('click');
-    void signOut(auth).then(() => {
+    void walkOutThroughGate(() => signOut(auth)).then(() => {
         if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
     });
 }

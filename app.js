@@ -2,7 +2,7 @@
 
 import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen } from './templates/loading.js';
-import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival } from './ui/authGate.js';
+import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival, playAuthGateExit, consumeGateExit, walkOutThroughGate } from './ui/authGate.js';
 injectHTML();
 
 // Browser DevTools helper (not the npm terminal). Available even before theater auto-starts.
@@ -476,7 +476,7 @@ function setSecretaryReturnButtonVisible(isVisible) {
 }
 
 async function logoutWithLocalCleanup() {
-    await signOut(auth);
+    await walkOutThroughGate(() => signOut(auth));
     if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
 }
 
@@ -1329,7 +1329,8 @@ function setupAuthListeners() {
             const loadingStillShowing = loadingScreen
                 && !loadingScreen.classList.contains('hidden')
                 && loadingScreen.dataset.exiting !== 'true';
-            playAuthGateArrival({ delayMs: loadingStillShowing ? 480 : 0 });
+            if (consumeGateExit()) playAuthGateExit();
+            else playAuthGateArrival({ delayMs: loadingStillShowing ? 480 : 0 });
             animateLoadingScreenOut(loadingScreen);
         }
     });

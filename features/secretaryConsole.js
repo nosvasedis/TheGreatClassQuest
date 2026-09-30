@@ -463,6 +463,17 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
             return;
         }
 
+        const enrolBtn = event.target.closest('[data-secretary-enrol-in]');
+        if (enrolBtn) {
+            import('./studentWizard.js').then(({ openStudentWizard }) => {
+                openStudentWizard({
+                    classId: enrolBtn.dataset.secretaryEnrolIn || '',
+                    onRerender: () => renderSecretaryTab(getActiveTabKey())
+                });
+            });
+            return;
+        }
+
         const viewClassBtn = event.target.closest('[data-secretary-view-class]');
         if (viewClassBtn) {
             state.setSecretaryView({

@@ -57,8 +57,9 @@ test('class desk wizard never dumps raw teacher ids or a native select', () => {
     const registry = read('features/secretary/registry.js');
     assert.match(year, /openClassWizard/);
     assert.match(year, /renderYearSetupLaunchers/);
-    assert.match(registry, /school-year-class-desk-open-btn/);
-    assert.match(registry, /Create and manage classes/);
+    assert.match(registry, /data-secretary-new-class/);
+    assert.match(registry, /Open a new class/);
+    assert.match(registry, /data-secretary-open-class-desk/);
     assert.doesNotMatch(wizard, /<select/);
     assert.doesNotMatch(wizard, /teacher\.uid \|\|/);
     assert.match(wizard, /questLeagues/);
@@ -121,25 +122,53 @@ test('createStudent stamps the class teacher, not the signed-in secretary', () =
     assert.match(students, /uid: state\.get\('currentUserId'\)/);
 });
 
-test('Students & Classes lists the desks in year order and the student desk has no native select', () => {
+test('Students & Classes is one path: open a class, then enrol into it', () => {
     const registry = read('features/secretary/registry.js');
     const year = read('features/schoolYearConsole.js');
     const wizard = read('features/studentWizard.js');
+    const classWizard = read('features/classWizard.js');
+    const console = read('features/secretaryConsole.js');
     const css = read('styles/secretary_office.css');
+    const classIndex = registry.indexOf('data-secretary-new-class');
     const studentIndex = registry.indexOf('school-year-student-desk-open-btn');
     const placementIndex = registry.indexOf('school-year-placement-open-btn');
-    const classIndex = registry.indexOf('school-year-class-desk-open-btn');
-    assert.ok(studentIndex >= 0 && placementIndex > studentIndex && classIndex > placementIndex);
+    assert.ok(classIndex >= 0 && studentIndex > classIndex && placementIndex > studentIndex);
+    // The old class list desk duplicated the Classes lane.
+    assert.doesNotMatch(registry, /school-year-class-desk-open-btn/);
+    assert.doesNotMatch(registry, /Create and manage classes/);
     assert.match(registry, /Enrol a new student/);
     assert.match(registry, /Former students/);
+    // Every class card and class drawer enrols straight into that class.
+    assert.match(registry, /data-secretary-enrol-in/);
+    assert.match(console, /data-secretary-enrol-in/);
+    assert.match(console, /openStudentWizard\(\{\s*classId/);
     assert.match(year, /openStudentWizard/);
     assert.match(year, /refreshStudentWizardIfOpen/);
     assert.match(wizard, /New student/);
-    assert.match(wizard, /Add a new student/);
     assert.match(wizard, /createdBy: owner/);
-    assert.match(wizard, /data-student-desk-open-class-desk/);
     assert.match(wizard, /class-desk-step/);
+    assert.doesNotMatch(wizard, /STEPS\.REVIEW/);
+    // A missing class is opened on the way, then the student desk comes back with it.
+    assert.match(wizard, /data-student-desk-new-class/);
+    assert.match(wizard, /onCreated: \(classId\) => openStudentWizard/);
+    assert.match(classWizard, /onClassCreated/);
+    assert.match(classWizard, /data-class-desk-enrol/);
+    assert.match(classWizard, /STEPS\.CREATED/);
     assert.doesNotMatch(wizard, /<select/);
     assert.doesNotMatch(wizard, /currentUserId/);
-    assert.match(css, /\.office-desks \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+    assert.match(css, /\.office-desks__link/);
+});
+
+test('Office searches swap only their results, never the whole tab', () => {
+    const console = read('features/secretaryConsole.js');
+    const start = console.indexOf("addEventListener('input'");
+    const handler = console.slice(start, console.indexOf('export { GRADES_PAGE_SIZE }'));
+    for (const id of ['secretary-registry-search', 'secretary-class-filter', 'secretary-student-filter', 'secretary-grades-search']) {
+        const block = handler.slice(handler.indexOf(id), handler.indexOf('return;', handler.indexOf(id)));
+        assert.match(block, /refreshSecretarySearch\(/, `${id} should refresh live regions`);
+        assert.doesNotMatch(block, /renderSecretaryTab\(/, `${id} should not rebuild the tab`);
+    }
+    assert.match(read('features/secretary/registry.js'), /data-secretary-live="registry-results"/);
+    assert.match(read('features/secretary/school.js'), /data-secretary-live="school-students"/);
+    assert.match(read('features/secretary/gradesBoard.js'), /data-secretary-live="grades-results"/);
 });

@@ -781,7 +781,7 @@ function headingWidgets(id) {
   if (id === 'school-office') {
     return [
       { match: ['Home — the front desk', 'Home — η υποδοχή'], html: uiShot('office-home.png', 'The front desk: the school’s counts, what is waiting on you today, the latest grade and message, the office drawers, and the former students on file.') },
-      { match: ['Admin → Students & Classes'], html: uiShot('office-registry.png', 'Students & Classes: enrol a new student, seat returning students, and each class’s drawer. Students waiting for a class come first.') }
+      { match: ['Admin → Students & Classes'], html: uiShot('office-registry.png', 'Students & Classes as one path: open a class, then enrol students into it. Each class drawer has its own Enrol, and students waiting for a class come first.') }
     ];
   }
   if (id === 'hero-campfire') {

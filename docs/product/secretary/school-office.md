@@ -16,7 +16,7 @@ Header: **School Office** title, **Open Teacher App**, log out. Each tab title s
 | **Messages** | Inbox and replies with families and teachers |
 | **Admin** | **Students & Classes** (opens first), **School Year**, **School Details**, **Grading** |
 
-Without full Elite Secretary, Grades and Messages are hidden, the Edit buttons are hidden, and Admin → Grading is not shown. Admin still has Students & Classes (seating returning students and former students), School Year, and School Details. **Enrol a new student** and **Create and manage classes** carry an Elite lock.
+Without full Elite Secretary, Grades and Messages are hidden, the Edit buttons are hidden, and Admin → Grading is not shown. Admin still has Students & Classes (seating returning students and former students), School Year, and School Details. **Open a new class** and **Enrol a new student** carry an Elite lock.
 
 There is **no** separate “invite teachers” screen here. Teacher accounts are a school-setup / billing concern. The Office **opens the Teacher App** when the secretary also teaches. Create classes for teachers who already have a Quest Master account.
 
@@ -36,38 +36,42 @@ Tapping a class opens a bright class banner (logo, teacher, league, schedule, ho
 
 ## Admin → Students & Classes
 
-One place for the whole student journey. Three desks sit on top, in the order a year runs: **Enrol a new student**, **Seat returning students** (with a count of who is waiting), and **Create and manage classes**. Under them, a folder with three lanes, each with its own search:
+One place for the whole student journey, laid out as one path. On top, the front counter reads left to right: **1 Open a new class**, then **2 Enrol a new student**. When returning students are waiting, a third desk, **Seat returning students**, appears with a count. Under them, a folder with three lanes, each with its own search:
 
-- **Students** — everyone enrolled, grouped by class, with **Waiting for a class** first (its **Seat them** button opens placement). Each row has **Edit** (opens the student's passport) and **Leaves**
-- **Classes** — class cards with teacher, schedule, and roster size. **View** opens the class in the School tab; **Manage** opens the class desk; the **New class** card starts a new one
+- **Students** — everyone enrolled, grouped by class, with **Waiting for a class** first (its **Seat them** button opens placement). Each class drawer has **Enrol**, which adds a new student straight into that class. Each row has **Edit** (opens the student's passport) and **Leaves**
+- **Classes** — class cards with teacher, schedule, and roster size. **Enrol** adds a new student to that class, **Edit** opens the class's file, and the eye opens the class in the School tab. The **Open a new class** card starts a new one
 - **Former students** — everyone who has left, with reason chips to filter (**All**, **Moved away**, **Graduated**, **Other reason**)
+
+Typing in a search only changes the results; the rest of the page stays still.
 
 ### Add a new student
 
-**Enrol a new student** opens a wizard (not the teacher New Student form):
+**Enrol a new student** opens a two-step desk (not the teacher New Student form):
 
-1. Choose this year’s class from tiles grouped by teacher (logo, league, teacher, roster). If no classes exist yet, open the class desk
-2. Full name (required). Optional birthday and nameday chips — the same Special Dates a teacher can set on Edit
-3. Review, then **Add to roster**. Stay open to add another to the same class
+1. **Class** — choose this year’s class from tiles grouped by teacher (logo, league, teacher, roster). Their class isn’t there yet? The last tile, **Their class isn’t here yet**, opens a new class on the way; once it is made, the desk comes back with that class already chosen and anything you typed kept
+2. **Student** — the chosen class stays pinned on top (with **Change class**). Full name (required), optional birthday and nameday chips (the same Special Dates a teacher can set on Edit), then **Add to roster** (or press Enter). The desk stays on the same class for the next student; **Done** closes it
+
+**Enrol** on a class card or class drawer skips step 1 and opens straight on that class.
 
 The **class teacher** owns the student, exactly as if they had tapped **New Student** on their own roster. That is why they can award stars and edit the record. This is **not** seating returning students: a new hero starts **active** in the chosen class. Guild, Hero Class, avatar, and Family Access are classroom or family rituals after the student exists.
 
-### Create and manage classes
+### Open and edit classes
 
-**Create and manage classes** (or **Manage** on a class card, or **New class**) opens the class desk, a wizard (not the teacher Add New Class modal):
+**Open a new class** (the first desk, or the dashed card in the Classes lane) opens the class desk, a wizard (not the teacher Add New Class modal):
 
-1. This year’s classes, grouped by teacher
-2. **New class** — chip tracker (**Teacher**, **Name**, **League**, **Schedule**, **Review**; finished chips jump back). Pick the teacher, then name + logo, **Quest League** chips, schedule days and times, review, create. The teacher owns the class in their Teacher App
-3. **Edit** — same fields, including moving the class to another teacher. Empty classes can be removed
+1. Chip tracker (**Teacher**, **Name**, **League**, **Schedule**, **Review**; finished chips jump back). Pick the teacher, then name + logo, **Quest League** chips, schedule days and times, review, create. The teacher owns the class in their Teacher App
+2. Once the class is open, two next steps sit side by side: **Enrol its students** (opens the student desk on the new class) and **Open another class** (keeps the same teacher picked)
 
-The School tab does **not** create or edit classes. Use the class desk for that, or **Open class desk** from a class view.
+**Edit** on a class card opens the class's file: **Enrol a new student here** on top, then **Teacher** (including moving the class to another teacher), **Name and emblem**, **Quest League**, and **Lesson days and times**. **Save class** or **Cancel** returns to the list. Empty classes can be removed.
+
+The School tab does **not** create or edit classes. Use the Classes lane for that, or **Open class desk** from a class view.
 
 ### Place returning students
 
 **Seat returning students** opens a three-step placement wizard (not a dropdown of class names):
 
 1. **Gather** — group by **Previous class** (default), **League**, or **A–Z**. Search by name, old class, league, or teacher. Tap a last-year group to take everyone forward. In A–Z, tick individual heroes, or use **Select all** / **Unselect all** for everyone currently on the list (respects search). Each card can show a suggested class.
-2. **New class** — choose this year’s class from tiles (logo, teacher, league chip, how many already seated). The best match is highlighted using last year’s league: natural next league first, then the same teacher, then the smaller roster. If no classes exist yet, open the class desk from here.
+2. **New class** — choose this year’s class from tiles (logo, teacher, league chip, how many already seated). The best match is highlighted using last year’s league: natural next league first, then the same teacher, then the smaller roster. If no classes exist yet, open one from here.
 3. **Review** — avatars, previous class, league chips, and guild emblems with house names. Uncheck anyone who should wait, or use **Select all** / **Unselect all**. **Seat** the rest. **Leaves school** opens the same leaving dialog as the Students lane.
 
 The wizard stays open until everyone is seated or you tap **Done**. When the last returning student is seated, guild membership is synced quietly; every hero keeps the guild they already have. Teachers can still place returning students from **Student setup** on their own class roster.

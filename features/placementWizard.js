@@ -426,9 +426,9 @@ function renderClassBody() {
             <div class="placement-empty">
                 <i class="fas fa-chalkboard" aria-hidden="true"></i>
                 <h4>No classes yet this year</h4>
-                <p>Create this year’s classes on the class desk, then come back to seat returning heroes.</p>
+                <p>Open this year’s first class. Once it is made, you come straight back here to seat returning heroes.</p>
                 <button type="button" class="secretary-shell__primary-btn mt-4" data-placement-open-class-desk>
-                    <i class="fas fa-chalkboard-user mr-2" aria-hidden="true"></i>Open class desk
+                    <i class="fas fa-chalkboard-user mr-2" aria-hidden="true"></i>Open a new class
                 </button>
             </div>
         `;
@@ -641,7 +641,9 @@ async function handleWizardClick(event) {
     if (classDeskBtn) {
         closePlacementWizard();
         const { openClassWizard } = await import('./classWizard.js');
-        openClassWizard({ onRerender: onPlacementRerender });
+        const rerender = onPlacementRerender;
+        const backToPlacement = () => openPlacementWizard({ onRerender: rerender });
+        openClassWizard({ create: true, onRerender: rerender, onCreated: backToPlacement, onCancelled: backToPlacement });
         return;
     }
 

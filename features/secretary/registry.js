@@ -64,37 +64,45 @@ function renderSearch(id, value, placeholder) {
     `;
 }
 
-// The three desks, as the first thing on the page, in the order a year runs.
+// The front counter: one path from an empty school to a full roster.
+// Classes come first, students sit in them, and anyone waiting gets a seat.
+// Every class card and class drawer below carries its own Enrol and Edit too.
 function renderDeskActions(hasFullConsole) {
     const waiting = waitingStudents().length;
     const classCount = liveSchoolClasses().length;
     const lock = hasFullConsole ? '' : '<span class="office-desk__lock"><i class="fas fa-gem" aria-hidden="true"></i> Elite</span>';
     return `
-        <div class="office-desks" role="group" aria-label="Student and class desks">
+        <div class="office-desks${waiting ? ' has-waiting' : ''}" role="group" aria-label="Students and classes">
+            <button type="button" class="office-desk office-desk--classes${classCount ? '' : ' is-first'}" data-secretary-new-class>
+                <span class="office-desk__step" aria-hidden="true">1</span>
+                <span class="office-desk__icon" aria-hidden="true"><i class="fas fa-chalkboard-user"></i></span>
+                <span class="office-desk__copy">
+                    <strong>Open a new class</strong>
+                    <small>${classCount
+                        ? `${classCount} ${classCount === 1 ? 'class' : 'classes'} this year. Edit one from its card.`
+                        : 'Start here: name, league, days and teacher.'}</small>
+                </span>
+                ${lock}
+            </button>
+            <span class="office-desks__link" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
             <button type="button" id="school-year-student-desk-open-btn" class="office-desk office-desk--enrol"${classCount ? '' : ' data-empty="1"'}>
+                <span class="office-desk__step" aria-hidden="true">2</span>
                 <span class="office-desk__icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
                 <span class="office-desk__copy">
                     <strong>Enrol a new student</strong>
-                    <small>${classCount ? 'Seat a new hero in a teacher’s class.' : 'Create a class first, then enrol.'}</small>
+                    <small>${classCount ? 'Pick their class, write their name. Done.' : 'Open a class first, or make one on the way.'}</small>
                 </span>
                 ${lock}
             </button>
-            <button type="button" id="school-year-placement-open-btn" class="office-desk office-desk--seat${waiting ? ' has-waiting' : ''}">
-                <span class="office-desk__icon" aria-hidden="true"><i class="fas fa-chair"></i></span>
-                <span class="office-desk__copy">
-                    <strong>Seat returning students</strong>
-                    <small>${waiting ? `${waiting} waiting for a class this year.` : 'Nobody is waiting right now.'}</small>
-                </span>
-                ${waiting ? `<span class="office-desk__count" aria-label="${waiting} waiting">${waiting}</span>` : ''}
-            </button>
-            <button type="button" id="school-year-class-desk-open-btn" class="office-desk office-desk--classes">
-                <span class="office-desk__icon" aria-hidden="true"><i class="fas fa-chalkboard-user"></i></span>
-                <span class="office-desk__copy">
-                    <strong>Create and manage classes</strong>
-                    <small>${classCount ? `${classCount} ${classCount === 1 ? 'class' : 'classes'} this year.` : 'No classes yet this year.'}</small>
-                </span>
-                ${lock}
-            </button>
+            ${waiting ? `
+                <button type="button" id="school-year-placement-open-btn" class="office-desk office-desk--seat has-waiting">
+                    <span class="office-desk__icon" aria-hidden="true"><i class="fas fa-chair"></i></span>
+                    <span class="office-desk__copy">
+                        <strong>Seat returning students</strong>
+                        <small>${waiting} ${waiting === 1 ? 'is' : 'are'} waiting for a class this year.</small>
+                    </span>
+                    <span class="office-desk__count" aria-label="${waiting} waiting">${waiting}</span>
+                </button>` : ''}
         </div>
     `;
 }
@@ -145,6 +153,7 @@ function renderStudentRow(student, classData) {
 
 function renderStudentsLane() {
     const search = view().registrySearch || '';
+    const hasFullConsole = canUseFeature('secretaryAccess');
     const classMap = getClassMap();
     const students = enrolledStudents()
         .filter((student) => {
@@ -186,7 +195,10 @@ function renderStudentsLane() {
                                         ? `${escapeHtml(classData.createdBy?.name || 'Teacher')} · ${escapeHtml(formatClassSchedule(classData))}`
                                         : 'Returning or re-admitted students who still need a class this year.'}</p>
                                 </div>
-                                ${classData ? renderLeagueTag(classData.questLevel) : `
+                                ${classData ? `${renderLeagueTag(classData.questLevel)}${hasFullConsole ? `
+                                    <button type="button" class="office-btn office-btn--small office-btn--enrol" data-secretary-enrol-in="${escapeHtml(classData.id)}" aria-label="Enrol a new student in ${escapeHtml(classData.name)}">
+                                        <i class="fas fa-user-plus" aria-hidden="true"></i><span>Enrol</span>
+                                    </button>` : ''}` : `
                                     <button type="button" class="office-btn office-btn--small office-btn--gold" data-secretary-registry-seat>
                                         <i class="fas fa-chair" aria-hidden="true"></i> Seat them
                                     </button>`}
@@ -203,7 +215,15 @@ function renderStudentsLane() {
             <div class="office-empty">
                 <i class="fas fa-user-graduate" aria-hidden="true"></i>
                 <h4>${search ? 'Nobody matches that search' : 'No students yet'}</h4>
-                <p>${search ? 'Try a first name, a class, or a teacher.' : 'Enrol a new student, or seat returning students once the year is open.'}</p>
+                <p>${search
+                    ? 'Try a first name, a class, or a teacher.'
+                    : (liveSchoolClasses().length
+                        ? 'Enrol a new student into one of this year’s classes.'
+                        : 'Open this year’s first class, then enrol students into it.')}</p>
+                ${!search && hasFullConsole ? `
+                    <button type="button" class="office-btn office-btn--primary" ${liveSchoolClasses().length ? 'data-secretary-enrol-in=""' : 'data-secretary-new-class'}>
+                        <i class="fas ${liveSchoolClasses().length ? 'fa-user-plus' : 'fa-chalkboard-user'}" aria-hidden="true"></i> ${liveSchoolClasses().length ? 'Enrol a new student' : 'Open a new class'}
+                    </button>` : ''}
             </div>
         `}
         </div>
@@ -239,13 +259,16 @@ function renderClassesLane() {
                             <div><dt><i class="fas fa-users" aria-hidden="true"></i><span class="sr-only">Students</span></dt><dd>${count} ${count === 1 ? 'student' : 'students'}</dd></div>
                         </dl>
                         <div class="office-class-card__actions">
-                            <button type="button" class="office-btn office-btn--small office-btn--quiet" data-secretary-view-class="${escapeHtml(item.id)}">
-                                <i class="fas fa-eye" aria-hidden="true"></i> View
-                            </button>
                             ${hasFullConsole ? `
-                                <button type="button" class="office-btn office-btn--small office-btn--primary" data-secretary-open-class-desk="${escapeHtml(item.id)}">
-                                    <i class="fas fa-pen-ruler" aria-hidden="true"></i> Manage
+                                <button type="button" class="office-btn office-btn--small office-btn--enrol" data-secretary-enrol-in="${escapeHtml(item.id)}" aria-label="Enrol a new student in ${escapeHtml(item.name)}">
+                                    <i class="fas fa-user-plus" aria-hidden="true"></i> Enrol
+                                </button>
+                                <button type="button" class="office-btn office-btn--small office-btn--quiet" data-secretary-open-class-desk="${escapeHtml(item.id)}" aria-label="Edit ${escapeHtml(item.name)}">
+                                    <i class="fas fa-pen" aria-hidden="true"></i> Edit
                                 </button>` : ''}
+                            <button type="button" class="office-btn office-btn--small office-btn--quiet${hasFullConsole ? ' office-btn--icon' : ''}" data-secretary-view-class="${escapeHtml(item.id)}" title="See how ${escapeHtml(item.name)} is doing" aria-label="See how ${escapeHtml(item.name)} is doing">
+                                <i class="fas fa-eye" aria-hidden="true"></i>${hasFullConsole ? '' : ' View'}
+                            </button>
                         </div>
                     </article>
                 `;
@@ -253,8 +276,8 @@ function renderClassesLane() {
             ${hasFullConsole && !search ? `
                 <button type="button" class="office-class-card office-class-card--new" data-secretary-new-class>
                     <span class="office-class-card__plus" aria-hidden="true"><i class="fas fa-plus"></i></span>
-                    <strong>New class</strong>
-                    <small>Name, logo, league, schedule and teacher.</small>
+                    <strong>Open a new class</strong>
+                    <small>Name, emblem, league, days and teacher.</small>
                 </button>` : ''}
         </div>
         ${!classes.length && search ? `

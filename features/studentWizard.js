@@ -24,18 +24,18 @@ const MONTHS = Object.freeze([
     { value: 12, label: 'Dec' }
 ]);
 
+// Two steps: which class, then who. The class card stays in view on the second
+// step, so there is nothing left to review before adding them.
 const STEPS = Object.freeze({
     CLASS: 'class',
-    IDENTITY: 'identity',
-    REVIEW: 'review'
+    IDENTITY: 'identity'
 });
 
-const CREATE_FLOW = [STEPS.CLASS, STEPS.IDENTITY, STEPS.REVIEW];
+const CREATE_FLOW = [STEPS.CLASS, STEPS.IDENTITY];
 
 const CREATE_STEPS = Object.freeze([
     { id: STEPS.CLASS, label: 'Class', icon: 'fa-chalkboard' },
-    { id: STEPS.IDENTITY, label: 'Name', icon: 'fa-user-plus' },
-    { id: STEPS.REVIEW, label: 'Review', icon: 'fa-clipboard-check' }
+    { id: STEPS.IDENTITY, label: 'Student', icon: 'fa-user-plus' }
 ]);
 
 const wizardState = {
@@ -103,14 +103,6 @@ function formatOccasionDate(month, day) {
     return `0000-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-function formatOccasionLabel(month, day) {
-    const m = Number(month);
-    const d = Number(day);
-    if (!m || !d) return '';
-    const label = MONTHS.find((item) => item.value === m)?.label || String(m);
-    return `${label} ${d}`;
-}
-
 function resetIdentity({ keepClass = false } = {}) {
     if (!keepClass) wizardState.classId = '';
     wizardState.name = '';
@@ -137,7 +129,7 @@ function renderLeagueChip(leagueName) {
     `;
 }
 
-function paintWizard({ nameCaret, focusName = false } = {}) {
+function paintWizard({ nameCaret, focusName = false, resetScroll = false } = {}) {
     const modal = document.getElementById(WIZARD_ID);
     if (!modal) return;
     const title = document.getElementById('student-desk-title');
@@ -154,9 +146,11 @@ function paintWizard({ nameCaret, focusName = false } = {}) {
     body.innerHTML = renderBody();
     footer.innerHTML = renderFooter();
 
+    // A new step starts at the top, so the class card stays in view above the name.
+    if (resetScroll) body.scrollTop = 0;
     const nameInput = document.getElementById('student-desk-name');
     if (nameInput && focusName) {
-        nameInput.focus();
+        nameInput.focus({ preventScroll: true });
         if (typeof nameCaret === 'number') {
             const caret = Math.min(nameCaret, nameInput.value.length);
             nameInput.setSelectionRange(caret, caret);
@@ -170,21 +164,16 @@ function headingCopy() {
     if (wizardState.step === STEPS.CLASS) {
         const count = activeClasses().length;
         return {
-            title: 'Choose a class',
+            title: 'Which class are they joining?',
             subtitle: count
-                ? 'The teacher who owns this class will see the new student in their Teacher App.'
-                : 'Create a class first. Then you can add a new student to that roster.'
+                ? 'Their teacher will see them in the Teacher App straight away. Class not here yet? Open it from the last card.'
+                : 'There are no classes this year yet. Open one now and you will come straight back here.'
         };
     }
-    if (wizardState.step === STEPS.IDENTITY) {
-        return {
-            title: 'Name the new student',
-            subtitle: 'Full name is enough. Birthday and nameday are optional — you can still set them later from Edit.'
-        };
-    }
+    const classData = selectedClass();
     return {
-        title: 'Review and add',
-        subtitle: 'Check the class, teacher, and name, then add the student to the roster.'
+        title: classData ? `Who is joining ${classData.name}?` : 'Who is joining?',
+        subtitle: 'A full name is enough. Birthday and nameday are optional, and you can add them later from Edit.'
     };
 }
 
@@ -258,9 +247,9 @@ function renderClassBody() {
             <div class="placement-empty">
                 <i class="fas fa-chalkboard" aria-hidden="true"></i>
                 <h4>No classes this year yet</h4>
-                <p>Create this year’s classes for each teacher, then come back to add a new student.</p>
-                <button type="button" class="secretary-shell__primary-btn" data-student-desk-open-class-desk>
-                    <i class="fas fa-chalkboard-user mr-2" aria-hidden="true"></i>Open class desk
+                <p>Open the class first. Once it is made, you come straight back here to enrol the student into it.</p>
+                <button type="button" class="secretary-shell__primary-btn" data-student-desk-new-class>
+                    <i class="fas fa-chalkboard-user mr-2" aria-hidden="true"></i>Open a new class
                 </button>
             </div>
         `;
@@ -287,6 +276,13 @@ function renderClassBody() {
                     </div>
                 </section>
             `).join('')}
+            <button type="button" class="class-desk-class-tile student-desk-new-class" data-student-desk-new-class>
+                <span class="student-desk-new-class__plus" aria-hidden="true"><i class="fas fa-plus"></i></span>
+                <span class="placement-class-tile__copy">
+                    <strong>Their class isn’t here yet</strong>
+                    <span class="placement-class-tile__roster">Open a new class, then come straight back to enrol them.</span>
+                </span>
+            </button>
         </div>
     `;
 }
@@ -333,7 +329,7 @@ function renderIdentityBody() {
         ${wizardState.lastCreatedName ? `
             <p class="student-desk-success">
                 <i class="fas fa-check-circle" aria-hidden="true"></i>
-                ${escapeHtml(wizardState.lastCreatedName)} is on the roster. Add another to the same class, or go back to pick a different class.
+                ${escapeHtml(wizardState.lastCreatedName)} is on the roster. Enrol the next student below, or choose Done.
             </p>
         ` : ''}
         ${classData ? `
@@ -342,7 +338,15 @@ function renderIdentityBody() {
                 <div>
                     <p class="class-desk-summary__kicker">${escapeHtml(classOwner(classData)?.name || 'Teacher')}</p>
                     <strong>${escapeHtml(classData.name)}</strong>
+                    <div class="class-desk-summary__meta">
+                        ${classData.questLevel ? renderLeagueChip(classData.questLevel) : ''}
+                        <span>${escapeHtml(formatClassSchedule(classData))}</span>
+                        <span>${rosterCount(classData.id)} ${rosterCount(classData.id) === 1 ? 'student' : 'students'}</span>
+                    </div>
                 </div>
+                <button type="button" class="secretary-chip-btn student-desk-change-class" data-student-desk-back>
+                    <i class="fas fa-arrows-rotate" aria-hidden="true"></i> Change class
+                </button>
             </div>
         ` : ''}
         <label class="secretary-field class-desk-name-field">
@@ -356,32 +360,8 @@ function renderIdentityBody() {
     `;
 }
 
-function renderReviewBody() {
-    const classData = selectedClass();
-    const owner = classOwner(classData);
-    const birthdayLabel = formatOccasionLabel(wizardState.birthdayMonth, wizardState.birthdayDay);
-    const namedayLabel = formatOccasionLabel(wizardState.namedayMonth, wizardState.namedayDay);
-    return `
-        <div class="class-desk-summary">
-            <span class="placement-class-tile__logo" aria-hidden="true">${escapeHtml(classData?.logo || '📚')}</span>
-            <div>
-                <p class="class-desk-summary__kicker">${escapeHtml(owner?.name || 'No teacher yet')}</p>
-                <strong>${escapeHtml(wizardState.name.trim() || 'Unnamed student')}</strong>
-                <div class="class-desk-summary__meta">
-                    <span>${escapeHtml(classData?.name || 'No class')}</span>
-                    ${classData?.questLevel ? renderLeagueChip(classData.questLevel) : ''}
-                    ${birthdayLabel ? `<span>Birthday ${escapeHtml(birthdayLabel)}</span>` : ''}
-                    ${namedayLabel ? `<span>Nameday ${escapeHtml(namedayLabel)}</span>` : ''}
-                </div>
-            </div>
-        </div>
-        <p class="placement-hint">This is a new student, not a returning hero. The class teacher owns the record, so they can award stars and edit details in the Teacher App.</p>
-    `;
-}
-
 function renderBody() {
     if (wizardState.step === STEPS.IDENTITY) return renderIdentityBody();
-    if (wizardState.step === STEPS.REVIEW) return renderReviewBody();
     return renderClassBody();
 }
 
@@ -391,28 +371,15 @@ function renderFooter() {
             ? `<p class="placement-hint">Tap a class to continue.</p>`
             : '';
     }
-    const back = `<button type="button" class="secretary-shell__secondary-btn" data-student-desk-back><i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back</button>`;
-    if (wizardState.step === STEPS.REVIEW) {
-        const ready = Boolean(selectedClass() && classOwner(selectedClass()) && String(wizardState.name || '').trim());
-        return `
-            ${back}
-            <button type="button" class="secretary-shell__primary-btn" data-student-desk-create ${ready ? '' : 'disabled'}>
-                Add to roster
-            </button>
-        `;
-    }
+    const ready = Boolean(selectedClass() && classOwner(selectedClass()) && String(wizardState.name || '').trim());
     return `
-        ${back}
-        <button type="button" class="secretary-shell__primary-btn" data-student-desk-continue ${canAdvance() ? '' : 'disabled'}>
-            Continue<i class="fas fa-arrow-right ml-2" aria-hidden="true"></i>
+        ${wizardState.lastCreatedName
+            ? '<button type="button" class="secretary-shell__secondary-btn" data-student-desk-close>Done</button>'
+            : '<button type="button" class="secretary-shell__secondary-btn" data-student-desk-back><i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back</button>'}
+        <button type="button" class="secretary-shell__primary-btn" data-student-desk-create ${ready ? '' : 'disabled'}>
+            <i class="fas fa-user-plus mr-2" aria-hidden="true"></i>Add to roster
         </button>
     `;
-}
-
-function canAdvance() {
-    if (wizardState.step === STEPS.CLASS) return Boolean(selectedClass() && classOwner(selectedClass()));
-    if (wizardState.step === STEPS.IDENTITY) return Boolean(String(wizardState.name || '').trim());
-    return false;
 }
 
 function captureFormFields() {
@@ -425,16 +392,7 @@ function goBack() {
     const index = CREATE_FLOW.indexOf(wizardState.step);
     if (index <= 0) return;
     wizardState.step = CREATE_FLOW[index - 1];
-    paintWizard({ focusName: wizardState.step === STEPS.IDENTITY });
-}
-
-function goForward() {
-    captureFormFields();
-    const index = CREATE_FLOW.indexOf(wizardState.step);
-    if (index < 0 || index >= CREATE_FLOW.length - 1 || !canAdvance()) return;
-    wizardState.lastCreatedName = '';
-    wizardState.step = CREATE_FLOW[index + 1];
-    paintWizard();
+    paintWizard({ focusName: wizardState.step === STEPS.IDENTITY, resetScroll: true });
 }
 
 function goToCreateStep(stepId) {
@@ -443,7 +401,7 @@ function goToCreateStep(stepId) {
     const current = CREATE_FLOW.indexOf(wizardState.step);
     if (target < 0 || current < 0 || target >= current) return;
     wizardState.step = stepId;
-    paintWizard({ focusName: stepId === STEPS.IDENTITY });
+    paintWizard({ focusName: stepId === STEPS.IDENTITY, resetScroll: true });
 }
 
 function chooseClass(classId) {
@@ -456,7 +414,7 @@ function chooseClass(classId) {
     wizardState.classId = classId;
     wizardState.lastCreatedName = '';
     wizardState.step = STEPS.IDENTITY;
-    paintWizard({ focusName: true });
+    paintWizard({ focusName: true, resetScroll: true });
 }
 
 function setOccasionPart(kind, part, value) {
@@ -506,7 +464,7 @@ async function runCreate(button) {
         wizardState.lastCreatedName = name;
         resetIdentity({ keepClass: true });
         wizardState.step = STEPS.IDENTITY;
-        paintWizard({ focusName: true });
+        paintWizard({ focusName: true, resetScroll: true });
         onStudentDeskRerender?.();
     } catch (error) {
         console.error('Could not add student:', error);
@@ -524,10 +482,6 @@ function handleWizardClick(event) {
         goBack();
         return;
     }
-    if (event.target.closest('[data-student-desk-continue]')) {
-        goForward();
-        return;
-    }
     const gotoBtn = event.target.closest('[data-student-desk-goto]');
     if (gotoBtn) {
         goToCreateStep(gotoBtn.dataset.studentDeskGoto);
@@ -542,10 +496,8 @@ function handleWizardClick(event) {
         runCreate(event.target.closest('[data-student-desk-create]'));
         return;
     }
-    if (event.target.closest('[data-student-desk-open-class-desk]')) {
-        import('./classWizard.js').then(({ openClassWizard }) => {
-            openClassWizard({ onRerender: onStudentDeskRerender });
-        });
+    if (event.target.closest('[data-student-desk-new-class]')) {
+        openClassOnTheWay();
         return;
     }
     const bMonth = event.target.closest('[data-student-desk-birthday-month]');
@@ -583,6 +535,29 @@ function handleWizardClick(event) {
     }
 }
 
+// A class that doesn't exist yet is opened on the way: the class desk takes over,
+// and once the class is made the student desk comes back with it already chosen.
+function openClassOnTheWay() {
+    captureFormFields();
+    const draft = {
+        name: wizardState.name,
+        birthdayMonth: wizardState.birthdayMonth,
+        birthdayDay: wizardState.birthdayDay,
+        namedayMonth: wizardState.namedayMonth,
+        namedayDay: wizardState.namedayDay
+    };
+    const rerender = onStudentDeskRerender;
+    closeStudentWizard();
+    import('./classWizard.js').then(({ openClassWizard }) => {
+        openClassWizard({
+            create: true,
+            onRerender: rerender,
+            onCreated: (classId) => openStudentWizard({ classId, onRerender: rerender, draft }),
+            onCancelled: () => openStudentWizard({ onRerender: rerender, draft })
+        });
+    });
+}
+
 function handleWizardInput(event) {
     if (event.target.id === 'student-desk-name') {
         wizardState.name = event.target.value;
@@ -592,6 +567,12 @@ function handleWizardInput(event) {
 }
 
 function handleWizardKeydown(event) {
+    if (event.key === 'Enter' && event.target.id === 'student-desk-name') {
+        event.preventDefault();
+        const addBtn = document.querySelector('[data-student-desk-create]:not(:disabled)');
+        if (addBtn) runCreate(addBtn);
+        return;
+    }
     if (event.key !== 'Escape') return;
     closeStudentWizard();
 }
@@ -632,7 +613,7 @@ function ensureWizard() {
     return modal;
 }
 
-export function openStudentWizard({ onRerender } = {}) {
+export function openStudentWizard({ onRerender, classId = '', draft = null } = {}) {
     if (typeof onRerender === 'function') onStudentDeskRerender = onRerender;
     if (!hasFullConsole()) {
         showToast('Adding students needs the Elite School Office.', 'info');
@@ -640,9 +621,16 @@ export function openStudentWizard({ onRerender } = {}) {
     }
     wizardState.step = STEPS.CLASS;
     resetIdentity();
+    if (draft) Object.assign(wizardState, draft);
     wizardState.lastCreatedName = '';
+    // Enrolling from a class card (or right after opening a class) skips the class step.
+    const preset = classId ? classById(classId) : null;
+    if (preset && classOwner(preset)) {
+        wizardState.classId = preset.id;
+        wizardState.step = STEPS.IDENTITY;
+    }
     const modal = ensureWizard();
-    paintWizard();
+    paintWizard({ focusName: wizardState.step === STEPS.IDENTITY, resetScroll: true });
     document.body.classList.add('placement-wizard-open');
     openOfficeModal(modal);
 }

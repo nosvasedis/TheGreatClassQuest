@@ -36,7 +36,8 @@ const STEPS = Object.freeze({
     LEAGUE: 'league',
     SCHEDULE: 'schedule',
     REVIEW: 'review',
-    EDIT: 'edit'
+    EDIT: 'edit',
+    CREATED: 'created'
 });
 
 const CREATE_FLOW = [STEPS.TEACHER, STEPS.IDENTITY, STEPS.LEAGUE, STEPS.SCHEDULE, STEPS.REVIEW];
@@ -60,6 +61,10 @@ const wizardState = {
     timeStart: '',
     timeEnd: '',
     editClassId: '',
+    createdClassId: '',
+    // 'list' when the desk opened on the class list; 'direct' when it opened
+    // straight into a new class or one class's edit sheet (Back then leaves).
+    entry: 'list',
     confirmDeleteId: '',
     teacherSearch: '',
     nameSuggestions: [],
@@ -70,6 +75,9 @@ const wizardState = {
 };
 
 let onClassDeskRerender = null;
+// Set when the student desk opened a class on the way: hand the new class back.
+let onClassCreated = null;
+let onClassCancelled = null;
 
 function hasFullConsole() {
     return canUseFeature('secretaryAccess');
@@ -201,6 +209,12 @@ function paintWizard({ searchCaret } = {}) {
     if (!title || !body || !footer) return;
 
     const copy = headingCopy();
+    const eyebrow = modal.querySelector('.placement-wizard__eyebrow');
+    if (eyebrow) {
+        eyebrow.textContent = onClassCreated
+            ? 'A new class, then back where you were'
+            : (wizardState.step === STEPS.EDIT ? 'Class file' : 'This year’s classes');
+    }
     title.textContent = copy.title;
     subtitle.textContent = copy.subtitle;
     steps.innerHTML = renderSteps();
@@ -216,6 +230,13 @@ function paintWizard({ searchCaret } = {}) {
 }
 
 function headingCopy() {
+    if (wizardState.step === STEPS.CREATED) {
+        const created = classById(wizardState.createdClassId);
+        return {
+            title: created ? `${created.name} is open` : 'The class is open',
+            subtitle: 'Its teacher can see it now. Enrol its students next, or open another class.'
+        };
+    }
     if (wizardState.step === STEPS.EDIT) {
         return {
             title: 'Edit this class',
@@ -232,7 +253,12 @@ function headingCopy() {
         };
     }
     if (wizardState.step === STEPS.TEACHER) {
-        return { title: 'Who teaches this class?', subtitle: 'Choose the Quest Master who will own this classroom.' };
+        return {
+            title: 'Who teaches this class?',
+            subtitle: onClassCreated
+                ? 'Choose the Quest Master who will own it. Once the class is made, you go straight back to where you were.'
+                : 'Choose the Quest Master who will own this classroom.'
+        };
     }
     if (wizardState.step === STEPS.IDENTITY) {
         return { title: 'Name and emblem', subtitle: 'Give the class a living name and a logo the children will recognise.' };
@@ -247,7 +273,7 @@ function headingCopy() {
 }
 
 function renderSteps() {
-    if (wizardState.step === STEPS.LIST || wizardState.step === STEPS.EDIT) return '';
+    if (wizardState.step === STEPS.LIST || wizardState.step === STEPS.EDIT || wizardState.step === STEPS.CREATED) return '';
     const index = CREATE_FLOW.indexOf(wizardState.step);
     const pct = ((index + 1) / CREATE_FLOW.length) * 100;
     return `
@@ -345,7 +371,7 @@ function renderTeacherPicker({ includeSearch = true } = {}) {
                 <input type="search" id="class-desk-teacher-search" value="${escapeHtml(wizardState.teacherSearch)}" placeholder="Search teachers..." autocomplete="off">
             </label>
         ` : ''}
-        <div class="class-desk-teacher-grid">
+        <div class="class-desk-teacher-grid" data-class-desk-teachers>
             ${teachers.map((teacher) => renderTeacherTile(teacher, {
                 selected: teacher.uid === wizardState.teacherUid,
                 classCount: counts.get(teacher.uid) || 0
@@ -507,13 +533,24 @@ function renderEditBody() {
     const classData = classById(wizardState.editClassId);
     const count = classData ? rosterCount(classData.id) : 0;
     const confirming = wizardState.confirmDeleteId === wizardState.editClassId;
+    const section = (icon, title, body) => `
+        <section class="class-desk-edit-section">
+            <h4 class="class-desk-group__title"><i class="fas ${icon}" aria-hidden="true"></i>${title}</h4>
+            ${body}
+        </section>
+    `;
     return `
         ${renderSummaryCard()}
+        ${classData ? `
+            <button type="button" class="class-desk-next__btn class-desk-next__btn--enrol class-desk-edit-enrol" data-class-desk-enrol="${escapeHtml(classData.id)}">
+                <span class="class-desk-next__icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
+                <span><strong>Enrol a new student here</strong><small>${count} ${count === 1 ? 'student' : 'students'} in ${escapeHtml(classData.name)} so far.</small></span>
+            </button>` : ''}
         <div class="class-desk-edit-stack">
-            ${renderTeacherPicker({ includeSearch: true })}
-            ${renderIdentityBody()}
-            ${renderLeagueBody()}
-            ${renderScheduleBody()}
+            ${section('fa-chalkboard-user', 'Teacher', renderTeacherPicker({ includeSearch: true }))}
+            ${section('fa-pen-nib', 'Name and emblem', renderIdentityBody())}
+            ${section('fa-crown', 'Quest League', renderLeagueBody())}
+            ${section('fa-clock', 'Lesson days and times', renderScheduleBody())}
         </div>
         ${count === 0 ? `
             <div class="class-desk-danger">
@@ -531,7 +568,39 @@ function renderEditBody() {
     `;
 }
 
+function renderCreatedBody() {
+    const created = classById(wizardState.createdClassId);
+    if (!created) return renderListBody();
+    return `
+        <div class="class-desk-created">
+            <span class="class-desk-created__seal" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <div class="class-desk-summary">
+                <span class="placement-class-tile__logo" aria-hidden="true">${escapeHtml(created.logo || '📚')}</span>
+                <div>
+                    <p class="class-desk-summary__kicker">${escapeHtml(created.createdBy?.name || 'Teacher')}</p>
+                    <strong>${escapeHtml(created.name)}</strong>
+                    <div class="class-desk-summary__meta">
+                        ${renderLeagueChip(created.questLevel)}
+                        <span>${escapeHtml(formatClassSchedule(created))}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="class-desk-next">
+                <button type="button" class="class-desk-next__btn class-desk-next__btn--enrol" data-class-desk-enrol="${escapeHtml(created.id)}">
+                    <span class="class-desk-next__icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
+                    <span><strong>Enrol its students</strong><small>Add new students to ${escapeHtml(created.name)} now.</small></span>
+                </button>
+                <button type="button" class="class-desk-next__btn class-desk-next__btn--class" data-class-desk-new>
+                    <span class="class-desk-next__icon" aria-hidden="true"><i class="fas fa-chalkboard-user"></i></span>
+                    <span><strong>Open another class</strong><small>Same teacher is picked for you.</small></span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 function renderBody() {
+    if (wizardState.step === STEPS.CREATED) return renderCreatedBody();
     if (wizardState.step === STEPS.LIST) return renderListBody();
     if (wizardState.step === STEPS.TEACHER) return renderTeacherPicker();
     if (wizardState.step === STEPS.IDENTITY) return renderIdentityBody();
@@ -551,15 +620,23 @@ function renderFooter() {
             </button>
         `;
     }
+    if (wizardState.step === STEPS.CREATED) {
+        return `<button type="button" class="secretary-shell__secondary-btn" data-class-desk-close>Done</button>`;
+    }
     if (wizardState.step === STEPS.EDIT) {
         return `
-            <button type="button" class="secretary-shell__secondary-btn" data-class-desk-back>Back to list</button>
+            ${wizardState.entry === 'direct'
+                ? '<button type="button" class="secretary-shell__secondary-btn" data-class-desk-close>Cancel</button>'
+                : '<button type="button" class="secretary-shell__secondary-btn" data-class-desk-back>Back to list</button>'}
             <button type="button" class="secretary-shell__primary-btn" data-class-desk-save ${wizardState.name && wizardState.questLevel && wizardState.teacherUid ? '' : 'disabled'}>
                 Save class
             </button>
         `;
     }
-    const back = `<button type="button" class="secretary-shell__secondary-btn" data-class-desk-back><i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back</button>`;
+    const leaving = wizardState.entry === 'direct' && CREATE_FLOW.indexOf(wizardState.step) === 0;
+    const back = leaving && !onClassCancelled
+        ? '<button type="button" class="secretary-shell__secondary-btn" data-class-desk-close>Cancel</button>'
+        : `<button type="button" class="secretary-shell__secondary-btn" data-class-desk-back><i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back</button>`;
     if (wizardState.step === STEPS.REVIEW) {
         const ready = wizardState.teacherUid && wizardState.name && wizardState.questLevel;
         return `
@@ -586,7 +663,23 @@ function canAdvance() {
     return false;
 }
 
+// Leave the desk after a direct visit, or return to the list it opened on.
+function finishOrReturnToList() {
+    wizardState.editClassId = '';
+    wizardState.confirmDeleteId = '';
+    if (wizardState.entry === 'direct') {
+        closeClassWizard();
+        return;
+    }
+    wizardState.step = STEPS.LIST;
+    paintWizard();
+}
+
 function goBack() {
+    if (wizardState.step === STEPS.EDIT && wizardState.entry === 'direct') {
+        closeClassWizard();
+        return;
+    }
     if (wizardState.step === STEPS.EDIT) {
         wizardState.step = STEPS.LIST;
         wizardState.editClassId = '';
@@ -595,6 +688,18 @@ function goBack() {
         return;
     }
     const index = CREATE_FLOW.indexOf(wizardState.step);
+    if (index <= 0 && onClassCancelled) {
+        const cancelled = onClassCancelled;
+        onClassCreated = null;
+        onClassCancelled = null;
+        closeClassWizard();
+        cancelled();
+        return;
+    }
+    if (index <= 0 && wizardState.entry === 'direct') {
+        closeClassWizard();
+        return;
+    }
     if (index <= 0) {
         wizardState.step = STEPS.LIST;
         resetCreateDraft();
@@ -641,7 +746,7 @@ async function runCreate(button) {
     if (showClassCreationLimitIfNeeded(teacher.uid)) return;
     try {
         setBusyState(button, true, 'Creating...');
-        await createClass({
+        const newClassId = await createClass({
             name: wizardState.name.trim(),
             questLevel: wizardState.questLevel,
             logo: wizardState.logo || '📚',
@@ -650,10 +755,23 @@ async function runCreate(button) {
             timeEnd: wizardState.timeEnd,
             createdBy: { uid: teacher.uid, name: teacher.name }
         }, { silent: true });
+        if (!newClassId) return;
         showToast(`${wizardState.name.trim()} is ready for ${teacher.name}.`, 'success');
         onClassDeskRerender?.();
         resetCreateDraft({ keepTeacher: true });
-        wizardState.step = STEPS.LIST;
+        if (onClassCreated) {
+            const handBack = onClassCreated;
+            onClassCreated = null;
+            onClassCancelled = null;
+            closeClassWizard();
+            // The new class reaches state through the live listener; give it a moment.
+            await waitForClass(newClassId);
+            handBack(newClassId);
+            return;
+        }
+        wizardState.createdClassId = newClassId;
+        wizardState.step = STEPS.CREATED;
+        await waitForClass(newClassId);
         paintWizard();
     } catch (error) {
         console.error('Could not create class:', error);
@@ -692,9 +810,7 @@ async function runSave(button) {
         }, { silent: true });
         showToast(`${wizardState.name.trim()} is updated.`, 'success');
         onClassDeskRerender?.();
-        wizardState.step = STEPS.LIST;
-        wizardState.editClassId = '';
-        paintWizard();
+        finishOrReturnToList();
     } catch (error) {
         console.error('Could not update class:', error);
         showToast(error?.message || 'Could not save that class.', 'error');
@@ -711,16 +827,26 @@ async function runDelete(button) {
         const ok = await deleteEmptyClass(classId);
         if (!ok) return;
         onClassDeskRerender?.();
-        wizardState.step = STEPS.LIST;
-        wizardState.editClassId = '';
-        wizardState.confirmDeleteId = '';
-        paintWizard();
+        finishOrReturnToList();
     } catch (error) {
         console.error('Could not remove class:', error);
         showToast(error?.message || 'Could not remove that class.', 'error');
     } finally {
         setBusyState(button, false);
     }
+}
+
+function waitForClass(classId, timeoutMs = 2500) {
+    if (classById(classId)) return Promise.resolve(true);
+    return new Promise((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+            if (classById(classId)) return resolve(true);
+            if (Date.now() - started > timeoutMs) return resolve(false);
+            setTimeout(tick, 120);
+        };
+        tick();
+    });
 }
 
 async function runSuggestNames(button) {
@@ -760,8 +886,17 @@ function handleWizardClick(event) {
         closeClassWizard();
         return;
     }
+    const enrolBtn = event.target.closest('[data-class-desk-enrol]');
+    if (enrolBtn) {
+        const classId = enrolBtn.dataset.classDeskEnrol;
+        const rerender = onClassDeskRerender;
+        closeClassWizard();
+        import('./studentWizard.js').then(({ openStudentWizard }) => openStudentWizard({ classId, onRerender: rerender }));
+        return;
+    }
     if (event.target.closest('[data-class-desk-new]')) {
-        resetCreateDraft();
+        const keepTeacher = wizardState.step === STEPS.CREATED;
+        resetCreateDraft({ keepTeacher });
         wizardState.step = STEPS.TEACHER;
         ensureTeachers().then(() => paintWizard());
         paintWizard();
@@ -857,8 +992,15 @@ function handleWizardClick(event) {
 
 function handleWizardInput(event) {
     if (event.target.id === 'class-desk-teacher-search') {
+        // Only the teacher tiles change while typing; repainting the whole desk
+        // would blink it and jump the edit sheet's scroll on every letter.
         wizardState.teacherSearch = event.target.value;
-        paintWizard({ searchCaret: event.target.selectionStart });
+        const grid = document.querySelector(`#${WIZARD_ID} [data-class-desk-teachers]`);
+        const next = document.createElement('template');
+        next.innerHTML = renderTeacherPicker({ includeSearch: false });
+        const fresh = next.content.querySelector('[data-class-desk-teachers]');
+        if (grid && fresh) grid.innerHTML = fresh.innerHTML;
+        else paintWizard({ searchCaret: event.target.selectionStart });
         return;
     }
     if (event.target.id === 'class-desk-name') {
@@ -876,7 +1018,7 @@ function handleWizardKeydown(event) {
     if (document.getElementById('logo-picker-modal') && !document.getElementById('logo-picker-modal').classList.contains('hidden')) {
         return;
     }
-    if (wizardState.step === STEPS.LIST) closeClassWizard();
+    if (wizardState.step === STEPS.LIST || wizardState.step === STEPS.CREATED) closeClassWizard();
 }
 
 function ensureWizard() {
@@ -922,13 +1064,17 @@ function ensureWizard() {
     return modal;
 }
 
-export async function openClassWizard({ onRerender, classId, create = false } = {}) {
+export async function openClassWizard({ onRerender, classId, create = false, onCreated = null, onCancelled = null } = {}) {
     if (typeof onRerender === 'function') onClassDeskRerender = onRerender;
+    onClassCreated = typeof onCreated === 'function' ? onCreated : null;
+    onClassCancelled = typeof onCancelled === 'function' ? onCancelled : null;
     if (!hasFullConsole()) {
         showToast('Creating and editing classes needs the Elite School Office.', 'info');
         return;
     }
     wizardState.step = STEPS.LIST;
+    wizardState.entry = classId || create ? 'direct' : 'list';
+    wizardState.createdClassId = '';
     resetCreateDraft();
     const modal = ensureWizard();
     await ensureTeachers();
@@ -950,6 +1096,8 @@ export function closeClassWizard() {
     const modal = document.getElementById(WIZARD_ID);
     closeOfficeModal(modal, { onClosed: releaseOfficeScrollLock });
     wizardState.confirmDeleteId = '';
+    onClassCreated = null;
+    onClassCancelled = null;
 }
 
 export function refreshClassWizardIfOpen() {

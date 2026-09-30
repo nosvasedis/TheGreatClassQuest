@@ -9,6 +9,29 @@ const HEADER_CLOUDS = `
     </div>
     <div class="sky-theater-sky m-sky-theater-sky" aria-hidden="true"></div>`;
 
+// Same gilded thread as the desktop header (styles/header_flourish.css), sized for a phone.
+const HEADER_TRIM = `
+    <div class="m-header__trim" aria-hidden="true">
+        <span class="m-header__thread"></span>
+        <span class="m-header__bead" style="--x: 12%; --d: -0.4s"></span>
+        <span class="m-header__bead" style="--x: 31%; --d: -2.1s"></span>
+        <svg class="m-header__gem" viewBox="0 0 96 20" focusable="false">
+            <path d="M4 10 C 16 10, 26 5, 38 9 C 30 8.5, 22 13, 4 10 Z" fill="#fff7d6"/>
+            <path d="M92 10 C 80 10, 70 5, 58 9 C 66 8.5, 74 13, 92 10 Z" fill="#fff7d6"/>
+            <path d="M48 1.5 L56.5 10 L48 18.5 L39.5 10 Z" fill="#fcd34d" stroke="#fffdf2" stroke-width="1.4"/>
+            <path d="M48 5.5 L52.5 10 L48 14.5 L43.5 10 Z" fill="#fffdf2" opacity="0.85"/>
+        </svg>
+        <span class="m-header__bead" style="--x: 69%; --d: -1.3s"></span>
+        <span class="m-header__bead" style="--x: 88%; --d: -3s"></span>
+    </div>`;
+
+const TITLE_SWASH = `
+    <svg class="m-header__swash" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
+        <path d="M4 11 C 46 15, 86 4, 128 9 S 206 14, 238 7" fill="none" stroke="#fde68a" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M60 13.2 C 92 15.5, 118 10.5, 150 12.4" fill="none" stroke="#fffbe8" stroke-width="1" stroke-linecap="round" opacity="0.75"/>
+        <path d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/>
+    </svg>`;
+
 const HEADER_ACTION_BTN = (id, icon, label, extraClass = '') => `
     <button type="button" id="${id}" class="m-header-btn m-header-btn--mini m-pressable bubbly-button ${extraClass}" title="${label}" aria-label="${label}">
         <i class="fas ${icon}"></i>
@@ -20,7 +43,10 @@ const teacherHeaderHTML = `
         <div class="m-header__row m-header__row--primary">
             <div class="m-header__brand m-header__brand--pressable" id="m-teacher-brand">
                 <img class="m-header__logo" src="${APP_LOGO_URL}" alt="" width="44" height="44" decoding="async" />
-                <h1 class="m-header__title font-title" data-text="The Great Class Quest">The Great Class Quest</h1>
+                <span class="m-header__title-wrap">
+                    <h1 class="m-header__title font-title" data-text="The Great Class Quest">The Great Class Quest</h1>
+                    ${TITLE_SWASH}
+                </span>
                 <div class="m-header__brand-sparkle" aria-hidden="true">
                     <span class="m-header__sparkle-star m-hss-1">✨</span>
                     <span class="m-header__sparkle-star m-hss-2">⭐</span>
@@ -31,7 +57,10 @@ const teacherHeaderHTML = `
         <div class="m-header__row m-header__row--class">
             <button type="button" id="m-class-selector-btn" class="m-class-pill m-class-pill--compact m-pressable bubbly-button" aria-haspopup="dialog" aria-label="Choose class">
                 <span id="m-class-selector-logo" class="m-class-pill__logo" aria-hidden="true">🏫</span>
-                <span id="m-class-selector-text" class="m-class-pill__text">General</span>
+                <span class="m-class-pill__copy">
+                    <span id="m-class-selector-eyebrow" class="m-class-pill__eyebrow">Viewing</span>
+                    <span id="m-class-selector-text" class="m-class-pill__text">General</span>
+                </span>
                 <i class="fas fa-chevron-down m-class-pill__chev" aria-hidden="true"></i>
             </button>
 
@@ -45,34 +74,36 @@ const teacherHeaderHTML = `
                 <div id="m-gcq-update-ready-mount" class="m-header__update-mount"></div>
                 ${HEADER_ACTION_BTN('m-app-info-btn', 'fa-info', 'Game Guide')}
                 ${HEADER_ACTION_BTN('m-header-settings-btn', 'fa-cog', 'Settings')}
-                ${HEADER_ACTION_BTN('m-logout-btn', 'fa-sign-out-alt', 'Log out', 'm-header-btn--danger')}
             </div>
         </div>
+        ${HEADER_TRIM}
     </header>`;
 
 const teacherDockHTML = `
     <nav id="m-teacher-dock" class="m-dock m-dock--teacher" aria-label="Main navigation">
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-cyan active" data-tab="about-tab" aria-label="Home" aria-current="page">
-            <i class="fas fa-home icon"></i><span class="text">Home</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-home icon"></i><span class="text">Home</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-amber" data-tab="class-leaderboard-tab" aria-label="Team Quest">
-            <i class="fas fa-route icon"></i><span class="text">Team</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-route icon"></i><span class="text">Team</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-purple" data-tab="student-leaderboard-tab" aria-label="Heroes">
-            <i class="fas fa-user-graduate icon"></i><span class="text">Heroes</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-user-graduate icon"></i><span class="text">Heroes</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-rose" data-tab="award-stars-tab" aria-label="Award Stars">
-            <i class="fas fa-star icon"></i><span class="text">Award</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-star icon"></i><span class="text">Award</span>
         </button>
         <button type="button" id="m-more-btn" class="nav-button m-dock-btn m-pressable nav-color-indigo" aria-label="More" aria-haspopup="dialog" aria-expanded="false">
-            <i class="fas fa-ellipsis icon"></i><span class="text">More</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-ellipsis icon" id="m-more-btn-icon"></i><span class="text" id="m-more-btn-text">More</span>
+            <span class="m-dock-more-dots" aria-hidden="true"><i></i><i></i><i></i></span>
         </button>
     </nav>`;
 
-const moreItem = (tab, color, icon, label) => `
+const moreItem = (tab, color, icon, label, hint) => `
     <button type="button" class="nav-button m-more-item m-pressable ${color}" data-tab="${tab}" aria-label="${label}">
-        <i class="fas ${icon} icon"></i><span class="text">${label}</span>
-        <i class="fas fa-chevron-right m-more-item__chev" aria-hidden="true"></i>
+        <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas ${icon} icon"></i></span>
+        <span class="text">${label}</span>
+        <span class="m-more-item__hint">${hint}</span>
     </button>`;
 
 const moreSheetHTML = `
@@ -81,22 +112,32 @@ const moreSheetHTML = `
         <div class="m-sheet__panel">
             <div class="m-sheet__grabber" aria-hidden="true"></div>
             <div class="m-sheet__heading m-sheet__heading--compact">
+                <p class="m-sheet__eyebrow">Every corner of the Quest</p>
                 <h2 class="m-sheet__title font-title">Jump to&hellip;</h2>
                 <button type="button" id="m-more-close-btn" class="m-sheet__close m-pressable bubbly-button" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
-            <div class="m-sheet__list">
-                ${moreItem('shop-tab', 'nav-color-lime', 'fa-store', 'Mystic Market')}
-                ${moreItem('guilds-tab', 'nav-color-guild', 'fa-shield-alt', 'Guild Hall')}
-                ${moreItem('adventure-log-tab', 'nav-color-teal', 'fa-book-open', 'Adventure Log')}
-                ${moreItem('scholars-scroll-tab', 'nav-color-scroll', 'fa-scroll', "Scholar's Scroll")}
-                ${moreItem('calendar-tab', 'nav-color-blue', 'fa-calendar-alt', 'Quest Calendar')}
-                ${moreItem('reward-ideas-tab', 'nav-color-indigo', 'fa-feather-alt', 'Story Weavers')}
-                ${moreItem('manage-students-tab', 'nav-color-fuchsia', 'fa-user-graduate', 'Student Roster')}
+            <div class="m-sheet__list m-more-grid">
+                ${moreItem('shop-tab', 'nav-color-lime', 'fa-store', 'Mystic Market', 'Spend Gold')}
+                ${moreItem('guilds-tab', 'nav-color-guild', 'fa-shield-alt', 'Guild Hall', 'Four guilds')}
+                ${moreItem('adventure-log-tab', 'nav-color-teal', 'fa-book-open', 'Adventure Log', 'Class diary')}
+                ${moreItem('scholars-scroll-tab', 'nav-color-scroll', 'fa-scroll', "Scholar's Scroll", 'Tests & marks')}
+                ${moreItem('calendar-tab', 'nav-color-blue', 'fa-calendar-alt', 'Quest Calendar', 'Plan the days')}
+                ${moreItem('reward-ideas-tab', 'nav-color-indigo', 'fa-feather-alt', 'Story Weavers', 'Class stories')}
+                ${moreItem('manage-students-tab', 'nav-color-fuchsia', 'fa-user-graduate', 'Student Roster', 'Your heroes')}
                 <button type="button" id="m-secretary-console-item" class="nav-button m-more-item m-pressable nav-color-cyan hidden" aria-label="School Office">
-                    <i class="fas fa-building-shield icon"></i><span class="text">School Office</span>
-                    <i class="fas fa-chevron-right m-more-item__chev" aria-hidden="true"></i>
+                    <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas fa-building-shield icon"></i></span>
+                    <span class="text">School Office</span>
+                    <span class="m-more-item__hint">Front desk</span>
                 </button>
-                ${moreItem('options-tab', 'nav-color-gray', 'fa-cog', 'Settings')}
+                ${moreItem('options-tab', 'nav-color-gray', 'fa-cog', 'Settings', 'Classes & tools')}
+            </div>
+            <div class="m-sheet__footer">
+                <button type="button" id="m-more-guide-btn" class="m-sheet__footer-btn m-pressable">
+                    <i class="fas fa-book-open-reader" aria-hidden="true"></i><span>Game Guide</span>
+                </button>
+                <button type="button" id="m-logout-btn" class="m-sheet__footer-btn m-sheet__footer-btn--leave m-pressable">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Log out</span>
+                </button>
             </div>
         </div>
     </div>`;
@@ -107,7 +148,7 @@ const classPickerSheetHTML = `
         <div class="m-sheet__panel">
             <div class="m-sheet__grabber" aria-hidden="true"></div>
             <div class="m-sheet__heading">
-                <p class="m-sheet__eyebrow">Currently viewing</p>
+                <p class="m-sheet__eyebrow" id="m-class-picker-eyebrow">Currently viewing</p>
                 <h2 class="m-sheet__title font-title">Choose a class</h2>
                 <button type="button" id="m-class-picker-close-btn" class="m-sheet__close m-pressable bubbly-button" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
@@ -115,13 +156,14 @@ const classPickerSheetHTML = `
                 <button type="button" id="m-class-follow-schedule" class="m-class-option m-class-option--special m-pressable">
                     <span class="m-class-option__logo" aria-hidden="true">⏰</span>
                     <span class="m-class-option__body"><strong>Follow today's schedule</strong><small>Auto-switch to the class in session, or General when none is</small></span>
-                    <i class="fas fa-chevron-right m-class-option__chev" aria-hidden="true"></i>
+                    <span class="m-class-option__switch" aria-hidden="true"><span></span></span>
                 </button>
-                <button type="button" class="m-class-option m-class-option--special m-pressable" data-m-class-id="">
+                <button type="button" id="m-class-general-option" class="m-class-option m-class-option--special m-pressable" data-m-class-id="">
                     <span class="m-class-option__logo" aria-hidden="true">🏫</span>
                     <span class="m-class-option__body"><strong>General view</strong><small>See everything at once</small></span>
-                    <i class="fas fa-chevron-right m-class-option__chev" aria-hidden="true"></i>
+                    <i class="fas fa-check m-class-option__chev" aria-hidden="true"></i>
                 </button>
+                <p class="m-class-picker__label">Your classes</p>
                 <div id="m-class-list" class="m-class-picker__list"></div>
             </div>
         </div>
@@ -131,7 +173,10 @@ const optionsSubtabDropdownHTML = `
     <div class="m-subtab-dropdown" id="m-options-subtab-dropdown">
         <button type="button" id="m-options-subtab-trigger" class="m-subtab-dropdown__trigger m-pressable bubbly-button" aria-haspopup="dialog" aria-expanded="false" aria-label="Choose settings section">
             <span class="m-subtab-dropdown__icon" id="m-options-subtab-trigger-icon" aria-hidden="true"><i class="fas fa-chalkboard-teacher"></i></span>
-            <span class="m-subtab-dropdown__label" id="m-options-subtab-trigger-label">My Classes</span>
+            <span class="m-subtab-dropdown__copy">
+                <span class="m-subtab-dropdown__eyebrow">Section</span>
+                <span class="m-subtab-dropdown__label" id="m-options-subtab-trigger-label">My Classes</span>
+            </span>
             <i class="fas fa-chevron-down m-subtab-dropdown__chev" aria-hidden="true"></i>
         </button>
     </div>`;
@@ -142,6 +187,7 @@ const optionsSubtabSheetHTML = `
         <div class="m-sheet__panel">
             <div class="m-sheet__grabber" aria-hidden="true"></div>
             <div class="m-sheet__heading m-sheet__heading--compact">
+                <p class="m-sheet__eyebrow">Teacher Settings</p>
                 <h2 class="m-sheet__title font-title">Jump to section</h2>
                 <button type="button" id="m-options-subtab-close-btn" class="m-sheet__close m-pressable bubbly-button" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
@@ -170,6 +216,7 @@ const roleHeaderHTML = (role, markIcon, eyebrow, titleId, subtitleId, actions) =
                 ${actions}
             </div>
         </div>
+        ${HEADER_TRIM}
     </header>`;
 
 const secretaryHeaderHTML = roleHeaderHTML(
@@ -185,19 +232,19 @@ const secretaryHeaderHTML = roleHeaderHTML(
 const secretaryDockHTML = `
     <nav id="m-secretary-dock" class="m-dock m-dock--secretary" aria-label="School office navigation">
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-cyan active" data-secretary-tab="home" aria-label="Home" aria-current="page">
-            <i class="fas fa-home icon"></i><span class="text">Home</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-home icon"></i><span class="text">Home</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-green" data-secretary-tab="school" aria-label="School">
-            <i class="fas fa-school icon"></i><span class="text">School</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-school icon"></i><span class="text">School</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-amber" data-secretary-tab="grades" aria-label="Grades">
-            <i class="fas fa-chart-bar icon"></i><span class="text">Grades</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-chart-bar icon"></i><span class="text">Grades</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-purple" data-secretary-tab="messages" aria-label="Messages">
-            <i class="fas fa-comments icon"></i><span class="text">Messages</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-comments icon"></i><span class="text">Messages</span>
         </button>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-indigo" data-secretary-tab="admin" aria-label="Admin">
-            <i class="fas fa-cog icon"></i><span class="text">Admin</span>
+            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-cog icon"></i><span class="text">Admin</span>
         </button>
     </nav>`;
 

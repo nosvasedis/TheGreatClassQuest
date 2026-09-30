@@ -602,3 +602,76 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* --------------------------------------------------------------------------
+   Hero card = the desktop greeting in miniature: time-of-day sky, painted
+   hills and the live day ring around the class logo (features/homeGreetingScene.js).
+   -------------------------------------------------------------------------- */
+.m-home-hero.greeting-panel {
+    min-height: 9.6rem;
+    padding: 1.05rem 1.1rem 3.1rem;
+    border: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 30px -16px rgba(15, 40, 90, 0.35), inset 0 1px 0 #fff;
+}
+
+.m-home-hero.greeting-panel::before {
+    display: none;
+}
+
+.m-home-hero.greeting-panel .greeting-hills {
+    height: 52%;
+}
+
+.m-home-hero .m-home-hero__greeting,
+.m-home-hero .m-home-hero__school,
+.m-home-hero .m-home-hero__reminders {
+    position: relative;
+    z-index: 2;
+}
+
+.m-home-hero.greeting-panel .m-home-hero__greeting {
+    font-family: 'Fredoka One', 'Fredoka', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 1.32rem;
+    line-height: 1.2;
+    color: #1e3a5f;
+    padding-right: 5.6rem;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.m-home-hero.greeting-panel .m-home-hero__school {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+    max-width: calc(100% - 5.6rem);
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 3px 8px -5px rgba(15, 40, 90, 0.35);
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.m-home-hero.greeting-panel .m-home-hero__reminders div {
+    background: rgba(255, 251, 235, 0.92);
+}
+
+/* Day ring: the desktop dial at phone size, top right of the card. */
+body.gcq-mobile .m-home-hero .greeting-emblem {
+    display: block;
+    top: 0.7rem;
+    right: 0.7rem;
+    bottom: auto;
+    width: 5.4rem;
+    height: 5.4rem;
+    z-index: 3;
+}
+
+.m-home-hero.greeting-panel .m-home-hero__greeting .bg-clip-text {
+    text-shadow: none;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9)) drop-shadow(0 1px 1.5px rgba(124, 45, 18, 0.28));
+}

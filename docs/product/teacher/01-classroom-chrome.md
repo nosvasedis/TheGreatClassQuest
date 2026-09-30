@@ -173,13 +173,19 @@ Other quiet treats you will meet elsewhere in this handbook:
 
 | Desktop | Phone |
 |---------|--------|
-| Ten-cloud dock (sinks away when idle) | Dock of **five** that always stays put: Home, Team Quest, Hero’s Challenge, Award Stars, **More** |
+| Ten-cloud dock (sinks away when idle) | A bank of **five clouds** that always stays put: Home, Team Quest, Hero’s Challenge, Award Stars, **More**. The open tab’s cloud lifts and glows |
 | Quote in the header | **Daily Wisdom** on Home |
+| Greeting card with hills and the day ring | The same painted hills and live **day ring** around your class logo, at the top of Home |
 | Projector TV button | **No Projector** |
-| Class dropdown | Bottom **class picker sheet** |
-| Settings cog in the header; section **dropdown** inside Settings | Settings cog in the phone header too; sections chosen from a **sheet** |
+| Class dropdown | Tap the **class crest** in the header (it reads *On schedule* while following today’s schedule) to open the **class picker sheet** |
+| Settings cog in the header; section **dropdown** inside Settings | Game Guide (i) and Settings cog in the phone header; Settings sections chosen from a **sheet**, each with its one-line hint |
+| Log out in the header | **Log out** sits at the bottom of the **More** sheet, next to **Game Guide**, so it is never tapped by accident |
 
-**More** reaches Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Story Weavers, Student Roster, School Office (if allowed), and Settings.
+**More** opens a sheet of cloud tiles: Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Story Weavers, Student Roster, School Office (if allowed), and Settings. While one of those tabs is open, the **More** cloud takes its colour, icon and short name (for example *Market*), with three small dots to say it still opens the sheet.
+
+The **class picker** shows each of your classes with its days and time, a **Today** tag when it meets today and an **In session** tag while the lesson is on. **Follow today’s schedule** is a switch at the top; a tick marks the class you are viewing.
+
+Every phone sheet (More, class picker, Settings sections) closes with ✕, a tap outside it, or by dragging its handle down.
 
 The phone is the same Quest. Prefer the PC whenever the class should *see* the world: Projector, ceremonies, Guild Hall crystals, Story Weavers reveal.
 

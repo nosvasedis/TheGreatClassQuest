@@ -11,6 +11,7 @@ import {
 import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
+import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from '../features/homeGreetingScene.js';
 
 const SCHEDULE_GRADIENTS = [
     'from-red-100 to-red-200', 'from-orange-100 to-orange-200', 'from-amber-100 to-amber-200',
@@ -82,8 +83,19 @@ function ensureDailyQuoteFetched() {
 }
 
 function getGreeting() {
-    const { greeting, gradient } = utils.getCurrentDayPart();
-    return { label: greeting, gradient };
+    const { greeting, gradient, part } = utils.getCurrentDayPart();
+    return { label: greeting, gradient, part: part || 'afternoon' };
+}
+
+/** The desktop greeting's painted hills and live day ring, sized for the phone hero card. */
+function heroSceneHtml(greeting, logo) {
+    return `
+            <div class="greeting-sky" aria-hidden="true">
+                <span class="greeting-sky__glow"></span>
+                <span class="greeting-sky__stars"></span>
+                ${getGreetingHillsHtml()}
+            </div>
+            ${getDayRingEmblemHtml(escapeHtml(logo), { intro: false })}`;
 }
 
 function getTopSkill(classId) {
@@ -253,8 +265,8 @@ function renderClassView(classData) {
     const reminders = getTodayReminders(classData.id);
 
     return `
-        <section class="m-home-hero m-home-card card-appear-m" style="--stagger:0">
-            <span class="m-home-hero__asset" aria-hidden="true">${escapeHtml(classData.logo || '✨')}</span>
+        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${greeting.part} card-appear-m" style="--stagger:0">
+            ${heroSceneHtml(greeting, classData.logo || '✨')}
             <p class="m-home-hero__greeting">
                 <span class="text-transparent bg-clip-text bg-gradient-to-r ${greeting.gradient}">${greeting.label}</span>, ${escapeHtml(teacherName)}!
             </p>
@@ -320,8 +332,8 @@ function renderGeneralView() {
     const reminders = getTodayReminders(null);
 
     return `
-        <section class="m-home-hero m-home-card card-appear-m" style="--stagger:0">
-            <span class="m-home-hero__asset" aria-hidden="true">🏫</span>
+        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${greeting.part} card-appear-m" style="--stagger:0">
+            ${heroSceneHtml(greeting, '🏫')}
             <p class="m-home-hero__greeting">
                 <span class="text-transparent bg-clip-text bg-gradient-to-r ${greeting.gradient}">${greeting.label}</span>, ${escapeHtml(teacherName)}!
             </p>
@@ -386,6 +398,7 @@ function render() {
     lastHtml = html;
 
     container.innerHTML = html;
+    startDayRingClock(container);
     requestAnimationFrame(() => {
         const questCard = container.querySelector('.m-home-quest');
         if (questCard) questCard.classList.add('m-home-quest--entered');

@@ -466,7 +466,7 @@ export function namesDistinctHtml() {
 export function mobileDockHtml() {
   return `<div class="panel">
     <h3><i class="fas fa-mobile-alt" aria-hidden="true"></i> On a phone</h3>
-    <p class="shelf-note" style="margin-top:0">Five buttons. More holds the rest. Projector Mode is classroom-PC only.</p>
+    <p class="shelf-note" style="margin-top:0">Five clouds. More holds the rest, plus Game Guide and Log out. Projector Mode is classroom-PC only.</p>
     <nav class="dock dock--five" aria-label="Phone dock">
       <a class="nav-color-cyan is-active" href="#home"><i class="fas fa-home"></i>Home</a>
       <a class="nav-color-amber" href="#team-quest"><i class="fas fa-route"></i>Team Quest</a>

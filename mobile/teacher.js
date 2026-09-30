@@ -4,6 +4,7 @@ import { auth, signOut } from '../firebaseAuth.js';
 import { getDeviceCacheChoice, clearLocalAppData } from '../utils/deviceCache.js';
 import { escapeHtml } from '../features/roles/shared.js';
 import { renderMobileHome } from './home.js';
+import { getTodayDateString, getClassesOnDay } from '../utils.js';
 
 const TEACHER_APP_SCREEN = 'app-screen';
 const SECRETARY_SCREEN = 'secretary-screen';
@@ -98,26 +99,85 @@ function syncClassPill() {
         logoEl.textContent = '🏫';
         textEl.textContent = 'General';
     }
+    const eyebrowEl = document.getElementById('m-class-selector-eyebrow');
+    if (eyebrowEl) eyebrowEl.textContent = follow ? 'On schedule' : (classData ? 'Class' : 'Viewing');
     pill.classList.toggle('m-class-pill--follow', Boolean(follow));
     pill.title = follow
         ? 'Following today\'s schedule — tap to change'
         : 'Choose class — tap to change';
 }
 
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function minutesOf(hhmm) {
+    const [h, m] = String(hhmm || '').split(':').map(Number);
+    return Number.isFinite(h) ? h * 60 + (Number.isFinite(m) ? m : 0) : null;
+}
+
+/** Days, time and whether each class meets today / is in session right now. */
+function describeClassSchedule(c, todayIds, nowMinutes) {
+    const days = (c.scheduleDays || [])
+        .map((d) => WEEKDAY_SHORT[Number(d) % 7])
+        .filter(Boolean)
+        .join(' · ');
+    const time = c.timeStart ? `${c.timeStart}${c.timeEnd ? `–${c.timeEnd}` : ''}` : '';
+    const today = todayIds.has(c.id);
+    const start = minutesOf(c.timeStart);
+    const end = minutesOf(c.timeEnd);
+    const live = today && start !== null && end !== null && nowMinutes >= start && nowMinutes < end;
+    return { line: [days, time].filter(Boolean).join('  ·  ') || (c.questLevel || 'Quest'), today, live };
+}
+
 function renderClassPickerList() {
     const mount = document.getElementById('m-class-list');
     if (!mount) return;
+    const activeId = state.get('globalSelectedClassId') || '';
+    const follow = Boolean(state.get('classFollowSchedule'));
     const classes = (state.get('allTeachersClasses') || [])
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name));
+
+    let todayIds = new Set();
+    try {
+        const todays = getClassesOnDay(
+            getTodayDateString(),
+            state.get('allSchoolClasses') || classes,
+            state.get('allScheduleOverrides') || [],
+            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+        );
+        todayIds = new Set(todays.map((c) => c.id));
+    } catch (_) { /* schedule unknown: rows just show their days */ }
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
     mount.innerHTML = classes.length
-        ? classes.map((c) => `
-            <button type="button" class="m-class-option m-pressable" data-m-class-id="${escapeHtml(c.id)}">
+        ? classes.map((c) => {
+            const info = describeClassSchedule(c, todayIds, nowMinutes);
+            const current = c.id === activeId;
+            const badge = info.live
+                ? '<span class="m-class-option__badge m-class-option__badge--live">In session</span>'
+                : (info.today ? '<span class="m-class-option__badge">Today</span>' : '');
+            return `
+            <button type="button" class="m-class-option m-pressable ${current ? 'm-class-option--current' : ''}" data-m-class-id="${escapeHtml(c.id)}" ${current ? 'aria-current="true"' : ''}>
                 <span class="m-class-option__logo" aria-hidden="true">${escapeHtml(c.logo || '📚')}</span>
-                <span class="m-class-option__body"><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.questLevel || 'Quest')}</small></span>
-                <i class="fas fa-chevron-right m-class-option__chev" aria-hidden="true"></i>
-            </button>`).join('')
-        : '<p class="m-class-picker__empty">No classes yet — create one from Settings.</p>';
+                <span class="m-class-option__body"><strong>${escapeHtml(c.name)}${badge}</strong><small>${escapeHtml(info.line)}</small></span>
+                <i class="fas ${current ? 'fa-check' : 'fa-chevron-right'} m-class-option__chev" aria-hidden="true"></i>
+            </button>`;
+        }).join('')
+        : '<p class="m-class-picker__empty">No classes yet. Create one from Settings.</p>';
+
+    const general = document.getElementById('m-class-general-option');
+    general?.classList.toggle('m-class-option--current', !activeId && !follow);
+    const followBtn = document.getElementById('m-class-follow-schedule');
+    followBtn?.classList.toggle('m-class-option--on', follow);
+    followBtn?.setAttribute('aria-pressed', follow ? 'true' : 'false');
+    const eyebrow = document.getElementById('m-class-picker-eyebrow');
+    if (eyebrow) {
+        const current = classes.find((c) => c.id === activeId);
+        eyebrow.textContent = follow
+            ? 'Following today\'s schedule'
+            : `Currently viewing ${current ? current.name : 'General'}`;
+    }
 }
 
 function openMoreSheet() {
@@ -132,6 +192,97 @@ function openMoreSheet() {
     if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
 }
 
+// When the open tab lives inside More, the More cloud wears that tab's colour, icon
+// and name, so the dock always shows where you are.
+const DOCK_TAB_IDS = new Set(['about-tab', 'class-leaderboard-tab', 'student-leaderboard-tab', 'award-stars-tab']);
+const MORE_SHORT_LABELS = {
+    'shop-tab': 'Market',
+    'guilds-tab': 'Guilds',
+    'adventure-log-tab': 'Log',
+    'scholars-scroll-tab': 'Scroll',
+    'calendar-tab': 'Calendar',
+    'reward-ideas-tab': 'Stories',
+    'manage-students-tab': 'Roster',
+    'options-tab': 'Settings'
+};
+let moreActiveObserver = null;
+
+function syncMoreButton() {
+    const moreBtn = document.getElementById('m-more-btn');
+    const icon = document.getElementById('m-more-btn-icon');
+    const text = document.getElementById('m-more-btn-text');
+    if (!moreBtn || !icon || !text) return;
+    const activeItem = document.querySelector('#m-more-sheet .m-more-item.active[data-tab]');
+    const tabId = activeItem?.dataset.tab;
+    const colorClass = (el) => [...(el?.classList || [])].find((c) => c.startsWith('nav-color-'));
+    [...moreBtn.classList].filter((c) => c.startsWith('nav-color-')).forEach((c) => moreBtn.classList.remove(c));
+    if (tabId && !DOCK_TAB_IDS.has(tabId)) {
+        moreBtn.classList.add(colorClass(activeItem) || 'nav-color-indigo', 'active', 'm-dock-btn--carrying');
+        const itemIcon = activeItem.querySelector('.icon');
+        icon.className = `${[...(itemIcon?.classList || [])].filter((c) => c.startsWith('fa')).join(' ') || 'fas fa-ellipsis'} icon`;
+        text.textContent = MORE_SHORT_LABELS[tabId] || 'More';
+        moreBtn.setAttribute('aria-label', `More (now: ${activeItem.getAttribute('aria-label') || text.textContent})`);
+    } else {
+        moreBtn.classList.remove('active', 'm-dock-btn--carrying');
+        moreBtn.classList.add('nav-color-indigo');
+        icon.className = 'fas fa-ellipsis icon';
+        text.textContent = 'More';
+        moreBtn.setAttribute('aria-label', 'More');
+    }
+}
+
+function observeMoreActive() {
+    const list = document.querySelector('#m-more-sheet .m-sheet__list');
+    if (!list) return;
+    if (moreActiveObserver) moreActiveObserver.disconnect();
+    moreActiveObserver = new MutationObserver(syncMoreButton);
+    moreActiveObserver.observe(list, { attributes: true, attributeFilter: ['class'], subtree: true });
+    syncMoreButton();
+}
+
+// Drag a sheet down by its grabber or heading to close it (touch and pen).
+function wireSheetSwipe(sheet, close) {
+    const panel = sheet?.querySelector('.m-sheet__panel');
+    if (!panel) return;
+    let startY = 0;
+    let startT = 0;
+    let dy = 0;
+    let dragging = false;
+    let pointerId = null;
+
+    panel.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse') return;
+        if (!event.target.closest('.m-sheet__grabber, .m-sheet__heading')) return;
+        if (event.target.closest('button')) return;
+        dragging = true;
+        pointerId = event.pointerId;
+        startY = event.clientY;
+        startT = performance.now();
+        dy = 0;
+        try { panel.setPointerCapture?.(pointerId); } catch (_) { /* synthetic or ended pointer */ }
+        panel.classList.add('m-sheet__panel--dragging');
+    });
+    panel.addEventListener('pointermove', (event) => {
+        if (!dragging || event.pointerId !== pointerId) return;
+        dy = Math.max(0, event.clientY - startY);
+        panel.style.transform = `translateY(${dy}px)`;
+    });
+    const end = (event) => {
+        if (!dragging || event.pointerId !== pointerId) return;
+        dragging = false;
+        try { panel.releasePointerCapture?.(pointerId); } catch (_) { /* already released */ }
+        panel.classList.remove('m-sheet__panel--dragging');
+        const speed = dy / Math.max(1, performance.now() - startT);
+        panel.style.transform = '';
+        if (dy > 90 || (dy > 24 && speed > 0.55)) {
+            playSound('click');
+            close();
+        }
+    };
+    panel.addEventListener('pointerup', end);
+    panel.addEventListener('pointercancel', end);
+}
+
 function closeMoreSheet() {
     const sheet = document.getElementById('m-more-sheet');
     setSheetOpen(sheet, false);
@@ -144,11 +295,13 @@ function openClassPicker() {
     syncClassPill();
     const sheet = document.getElementById('m-class-picker-sheet');
     setSheetOpen(sheet, true);
+    document.getElementById('m-class-selector-btn')?.setAttribute('aria-expanded', 'true');
 }
 
 function closeClassPicker() {
     const sheet = document.getElementById('m-class-picker-sheet');
     setSheetOpen(sheet, false);
+    document.getElementById('m-class-selector-btn')?.setAttribute('aria-expanded', 'false');
 }
 
 // Desktop Teacher Settings uses a dropdown for its sections. Mobile hides
@@ -164,10 +317,11 @@ function renderOptionsSubtabList() {
             const label = escapeHtml(btn.textContent.trim());
             const key = btn.dataset.optionsTab;
             const active = btn.classList.contains('options-subtab-active');
+            const hint = btn.dataset.hint ? `<small class="m-options-subtab-option__hint">${escapeHtml(btn.dataset.hint)}</small>` : '';
             return `
-                <button type="button" class="m-options-subtab-option m-pressable ${active ? 'm-options-subtab-option--active' : ''}" data-m-subtab-key="${key}">
+                <button type="button" class="m-options-subtab-option m-pressable ${active ? 'm-options-subtab-option--active' : ''}" data-m-subtab-key="${key}" ${active ? 'aria-current="true"' : ''}>
                     <span class="m-options-subtab-option__icon" aria-hidden="true"><i class="${icon}"></i></span>
-                    <span class="m-options-subtab-option__label">${label}</span>
+                    <span class="m-options-subtab-option__label">${label}${hint}</span>
                     ${active ? '<i class="fas fa-check m-options-subtab-option__check" aria-hidden="true"></i>' : ''}
                 </button>`;
         }).join('');
@@ -348,7 +502,20 @@ function wire() {
         import('../ui/tabs.js').then((tabs) => tabs.showTab('options-tab'));
     });
 
-    document.getElementById('m-logout-btn')?.addEventListener('click', logout);
+    document.getElementById('m-logout-btn')?.addEventListener('click', () => {
+        closeMoreSheet();
+        logout();
+    });
+
+    document.getElementById('m-more-guide-btn')?.addEventListener('click', () => {
+        playSound('click');
+        closeMoreSheet();
+        import('../ui/modals.js').then((modals) => modals.openAppInfoModal());
+    });
+
+    wireSheetSwipe(document.getElementById('m-more-sheet'), closeMoreSheet);
+    wireSheetSwipe(document.getElementById('m-class-picker-sheet'), closeClassPicker);
+    wireSheetSwipe(document.getElementById('m-options-subtab-sheet'), closeOptionsSubtabSheet);
 
     const dock = document.getElementById('m-teacher-dock');
     dock?.addEventListener('click', (event) => {
@@ -473,6 +640,7 @@ function wire() {
     mirrorUpdateReady();
     observeDesktopClassPill();
     observeOptionsSubtabs();
+    observeMoreActive();
     requestAnimationFrame(measureHeaderHeight);
 }
 

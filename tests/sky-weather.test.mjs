@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     conditionForCode, resolveSkyLight, windForReading, cloudCountFor, resolveSkyScene,
-    cloudLayout, sceneLayoutKey
+    cloudLayout, sceneLayoutKey,
+    SHAPE_POOLS, SHAPE_VARIANTS
 } from '../features/skyWeather.mjs';
 import { buildCloudsHtml, buildWeatherFxHtml, weatherGlyphSvg, cloudSvg, CLOUD_SHAPES } from '../features/skyWeatherArt.js';
 
@@ -83,9 +84,13 @@ test('cloud layouts are stable per seed and stay inside the sky', () => {
 
 test('cloud art is flat SVG with no filters or gradients (cheap on weak laptops)', () => {
     for (const shape of Object.keys(CLOUD_SHAPES)) {
-        const svg = cloudSvg(shape);
-        assert.match(svg, /^<svg class="wx-cloud__art"/);
-        assert.doesNotMatch(svg, /filter|Gradient/);
+        CLOUD_SHAPES[shape].forEach((_, v) => {
+            const svg = cloudSvg(shape, v);
+            assert.match(svg, /^<svg class="wx-cloud__art"/);
+            assert.doesNotMatch(svg, /filter|Gradient|NaN/);
+            // Kept light: a cloud stays a few dozen flat shapes.
+            assert.ok((svg.match(/<(circle|rect|ellipse)/g) || []).length < 100, `${shape} ${v}`);
+        });
     }
     const scene = resolveSkyScene({ code: 2 }, { now: at(12), ...SUN });
     const html = buildCloudsHtml(scene, 'header');
@@ -128,4 +133,15 @@ test('a cloudy night still shows the moon phase, veiled', () => {
     assert.match(weatherGlyphSvg(overcastNight, { moonPhase: 0.4 }), /wx-g-moon--veiled/);
     const stormNight = resolveSkyScene({ code: 95 }, { now: at(23), ...SUN });
     assert.doesNotMatch(weatherGlyphSvg(stormNight), /wx-g-moon/);
+});
+
+test('every cloud family has several variants, and layouts spread them out', () => {
+    for (const [family, variants] of Object.entries(CLOUD_SHAPES)) {
+        assert.ok(variants.length >= 3, family);
+        assert.equal(SHAPE_VARIANTS[family], variants.length, family);
+    }
+    for (const pool of Object.values(SHAPE_POOLS)) for (const f of pool) assert.ok(CLOUD_SHAPES[f], f);
+    const layout = cloudLayout('sky', 8, 'fair', 11);
+    const seen = new Set(layout.map((c) => `${c.shape}:${c.variant}`));
+    assert.ok(seen.size >= 7, 'clouds in one sky should rarely repeat');
 });

@@ -10,26 +10,224 @@
  *  - rain/snow/hail are pre-drawn tiles that slide, not background-position loops.
  */
 
-import { cloudLayout } from './skyWeather.mjs';
+import { cloudLayout, seededRandom } from './skyWeather.mjs';
 import { moonLitPath } from '../utils/dayCycle.mjs';
 
 /*
- * Each cloud is a union of round lobes (and an optional flat base). The art
- * draws cel-shaded passes of the same lobes: a shade silhouette, the body
- * lifted inside it (so the shade reads as an underbelly), broad lit caps on the
- * upper lobes, and a few glints. [cx, cy, r] per lobe; base is [x, y, w, h].
+ * Cloud shapes are generated once, from fixed seeds, as a union of round lobes
+ * plus flat parts (a base, an anvil plate). Each family has several variants so
+ * a sky rarely repeats itself. The art draws cel-shaded passes of the same
+ * silhouette: a shade silhouette, the body lifted inside it (the shade reads as
+ * an underbelly), lit caps on the crest lobes only, and a few glints.
+ * Lobes are [cx, cy, r]; flat parts are [x, y, w, h] rounded rects; `crest`
+ * lists the lobes that form the top edge (the only ones that catch the light).
  */
+const r1 = (v) => Math.round(v * 10) / 10;
+
+/**
+ * A cumulus-type cloud: domes (humps) of different heights on one flat base.
+ * The crest follows the tallest dome at each x, so neighbouring domes merge into
+ * one cauliflower top instead of a row of separate balls.
+ */
+function genCumulus(rand, { w, h, humps, flat = 0.2, ragged = 0, step = [0.5, 0.72], maxR = 0.17, noBase = false, gaps = 0 }) {
+    const top = Math.max(6, h * 0.1 + 4);
+    const baseY = h - 4;
+    const tall = baseY - top;
+    const height = (x) => {
+        let v = 0;
+        for (const hp of humps) {
+            const d = (x - hp.x * w) / (hp.spread * w);
+            v = Math.max(v, hp.h * Math.exp(-d * d));
+        }
+        return v;
+    };
+    // The cloud runs only where it has real height: no flat brim past the domes.
+    const lo = 0.2;
+    let xL = 2;
+    while (xL < w / 2 && height(xL) < lo) xL += 1;
+    let xR = w - 2;
+    while (xR > w / 2 && height(xR) < lo) xR -= 1;
+    const lobes = [];
+    const crest = [];
+    let x = xL;
+    for (;;) {
+        const local = Math.max(lo, height(x)) * tall;
+        let r = local * (0.4 + rand() * 0.14);
+        r = Math.min(r, w * maxR, tall * 0.42);
+        r = Math.max(r, Math.min(tall * 0.16, 7));
+        r = Math.min(r, x - 1, w - 1 - x);
+        let cy = baseY - local + r + (rand() - 0.5) * ragged * r;
+        cy = Math.min(cy, baseY - r * 0.6);
+        if (!gaps || height(x) >= gaps) {
+            crest.push(lobes.length);
+            lobes.push([x, cy, r]);
+        }
+        if (x >= xR) break;
+        x = Math.min(xR, x + r * (step[0] + rand() * (step[1] - step[0])));
+    }
+    // Cores fill each dome below its crest, so no sky shows through the middle.
+    const cores = [];
+    for (const hp of humps) {
+        if (hp.x * w < xL || hp.x * w > xR) continue;
+        const hh = hp.h * tall;
+        const cr = Math.min(hh * 0.46, hp.spread * w * 0.85, w * maxR * 1.25);
+        cores.push(lobes.length);
+        lobes.push([hp.x * w, baseY - cr * 0.95, cr]);
+    }
+    const first = lobes[crest[0]];
+    const last = lobes[crest[crest.length - 1]];
+    const bh = Math.min(Math.max(6, tall * flat), Math.min(first[2], last[2]) * 1.3);
+    // Tucked under the end lobes so no sliver of base shows past them.
+    const bx0 = first[0] + first[2] * 0.35;
+    const bx1 = last[0] - last[2] * 0.35;
+    const base = [bx0, baseY - bh, Math.max(bh, bx1 - bx0), bh];
+    return { w, h, lobes: lobes.map((l) => l.map(r1)), crest, cores, base: noBase ? null : base.map(r1) };
+}
+
+/** A flat-topped storm anvil on a towering column. */
+function genAnvil(rand, { w, h }) {
+    const col = genCumulus(rand, {
+        w, h,
+        humps: [{ x: pick(rand, 0.42, 0.5), h: 0.86, spread: 0.16 }, { x: pick(rand, 0.54, 0.6), h: 0.8, spread: 0.15 }, { x: 0.3, h: 0.46, spread: 0.1 }, { x: 0.7, h: 0.42, spread: 0.1 }, { x: 0.2, h: 0.24, spread: 0.08 }],
+        flat: 0.16,
+        maxR: 0.09,
+        step: [0.45, 0.62]
+    });
+    const baseY = h - 4;
+    const tall = baseY - Math.max(6, h * 0.1 + 4);
+    const colTop = baseY - tall * 0.86;
+    const plateH = h * pick(rand, 0.12, 0.15);
+    const plateY = colTop - plateH * 0.35;
+    const left = w * pick(rand, 0.06, 0.14);
+    const right = w * pick(rand, 0.9, 0.96);
+    const mid = w * 0.47;
+    // Thick over the column, thinning towards the edges, with the far side swept out by the wind.
+    const plates = [
+        [mid - w * 0.2, plateY - plateH * 0.25, w * 0.4, plateH * 1.35],
+        [left, plateY + plateH * 0.1, right - left, plateH * 0.7]
+    ];
+    // A neck of lobes widening up into the plate.
+    const neck = [
+        [mid, colTop + plateH * 1.2, w * 0.12], [mid - w * 0.13, colTop + plateH * 0.75, w * 0.085],
+        [mid + w * 0.14, colTop + plateH * 0.8, w * 0.09], [mid - w * 0.24, plateY + plateH * 1.05, w * 0.05],
+        [mid + w * 0.26, plateY + plateH * 1.05, w * 0.055]
+    ];
+    return {
+        w, h,
+        lobes: [...col.lobes, ...neck.map((l) => l.map(r1))],
+        // Only the plate catches the light; lit caps down the column read as loose balls.
+        crest: [],
+        cores: col.cores,
+        base: col.base,
+        plates: plates.map((p) => p.map(r1))
+    };
+}
+
+/** Cirrus: a few thin streaks, some with a hooked tail. */
+function genWisp(rand, { w, h, n }) {
+    const streaks = [];
+    for (let i = 0; i < n; i++) {
+        const rx = w * (0.14 + rand() * 0.26);
+        const cx = rx + 4 + rand() * (w - rx * 2 - 8);
+        const cy = h * (0.25 + rand() * 0.5);
+        const ry = (i === 0 ? 5 : 3) + rand() * (i === 0 ? 5 : 3.5);
+        const tilt = (rand() - 0.5) * 7;
+        streaks.push([r1(cx), r1(cy), r1(rx), r1(ry), r1(tilt)]);
+    }
+    return { w, h, wisp: true, streaks };
+}
+
+/** Keep only crest lobes whose top is on the outside edge (not buried inside another lobe or plate). */
+function outerCrest(shape) {
+    const { lobes, plates = [], cores = [] } = shape;
+    const inner = new Set(cores);
+    shape.crest = (shape.crest || []).filter((i) => {
+        const [cx, cy, r] = lobes[i];
+        const px = cx - r * 0.2;
+        const py = cy - r * 0.92;
+        // Buried = inside a lobe that rises clearly higher (a neighbour at the same height does not count).
+        const buried = lobes.some(([x, y, rr], j) => j !== i && !inner.has(j) && y - rr < cy - r - r * 0.5 && (px - x) ** 2 + (py - y) ** 2 < (rr * 0.92) ** 2)
+            || plates.some(([x, y, w, h]) => px > x && px < x + w && py > y && py < y + h);
+        return !buried;
+    });
+    return shape;
+}
+
+function makeFamily(seed, count, fn, { outer = false } = {}) {
+    const rand = seededRandom(seed);
+    return Array.from({ length: count }, () => {
+        const shape = fn(rand);
+        return outer ? outerCrest(shape) : shape;
+    });
+}
+
+const pick = (rand, a, b) => a + (b - a) * rand();
+
 export const CLOUD_SHAPES = {
-    cumulus: { w: 200, h: 120, lobes: [[100, 40, 30], [70, 52, 26], [132, 54, 26], [45, 72, 22], [160, 72, 22], [100, 66, 32], [30, 92, 15], [62, 95, 20], [100, 97, 21], [138, 95, 20], [170, 92, 15]] },
-    puff: { w: 132, h: 94, lobes: [[66, 34, 24], [42, 48, 20], [90, 46, 21], [66, 58, 26], [24, 66, 15], [108, 66, 15], [48, 74, 18], [84, 74, 18]] },
-    twin: { w: 230, h: 112, lobes: [[70, 40, 27], [152, 34, 31], [112, 56, 26], [40, 62, 21], [192, 58, 24], [24, 84, 14], [58, 86, 19], [98, 88, 20], [140, 88, 21], [180, 86, 19], [208, 82, 14]] },
-    long: { w: 290, h: 80, base: [14, 48, 264, 24], lobes: [[26, 58, 15], [56, 44, 22], [92, 50, 20], [128, 38, 25], [166, 48, 21], [204, 40, 23], [240, 50, 20], [266, 58, 15]] },
-    tower: { w: 172, h: 160, lobes: [[86, 30, 24], [66, 52, 23], [106, 54, 24], [86, 74, 30], [58, 84, 26], [116, 86, 27], [40, 112, 22], [132, 112, 22], [86, 110, 32], [28, 132, 15], [60, 136, 20], [112, 136, 20], [146, 132, 15], [86, 138, 20]] },
-    anvil: { w: 272, h: 160, lobes: [[58, 42, 17], [94, 32, 25], [135, 27, 29], [176, 31, 25], [212, 39, 19], [240, 47, 13], [136, 60, 26], [118, 76, 27], [154, 76, 26], [106, 104, 31], [162, 104, 30], [78, 124, 22], [198, 124, 21], [134, 122, 30], [56, 140, 14], [98, 140, 19], [172, 140, 19], [220, 140, 13]] },
-    wisp: { w: 262, h: 58, wisp: true, streaks: [[132, 30, 112, 9], [88, 22, 62, 6], [182, 38, 64, 6], [60, 36, 40, 4]] }
+    // Fair-weather cumulus: one to three domes, broad and friendly.
+    cumulus: makeFamily(101, 7, (rand) => {
+        const n = 1 + Math.floor(rand() * 3);
+        const humps = Array.from({ length: n }, (_, i) => ({
+            x: n === 1 ? pick(rand, 0.42, 0.58) : 0.24 + (0.52 * i) / (n - 1) + pick(rand, -0.06, 0.06),
+            h: i === 0 || rand() > 0.5 ? pick(rand, 0.72, 1) : pick(rand, 0.45, 0.7),
+            spread: pick(rand, 0.16, 0.26)
+        }));
+        return genCumulus(rand, { w: 210, h: Math.round(pick(rand, 104, 128)), humps });
+    }),
+    // Small humilis puffs.
+    puff: makeFamily(202, 5, (rand) => genCumulus(rand, {
+        w: 136, h: Math.round(pick(rand, 72, 92)),
+        humps: [{ x: pick(rand, 0.4, 0.6), h: pick(rand, 0.8, 1), spread: pick(rand, 0.2, 0.3) }, { x: pick(rand, 0.22, 0.32), h: pick(rand, 0.4, 0.6), spread: 0.14 }, { x: pick(rand, 0.68, 0.78), h: pick(rand, 0.35, 0.6), spread: 0.14 }],
+        flat: 0.24
+    })),
+    // Two clouds grown together on one base, one clearly taller.
+    twin: makeFamily(303, 4, (rand) => {
+        const tallLeft = rand() > 0.5;
+        return genCumulus(rand, {
+            w: 240, h: Math.round(pick(rand, 108, 124)),
+            humps: [
+                { x: pick(rand, 0.24, 0.32), h: tallLeft ? pick(rand, 0.85, 1) : pick(rand, 0.5, 0.65), spread: pick(rand, 0.14, 0.2) },
+                { x: pick(rand, 0.46, 0.54), h: pick(rand, 0.4, 0.55), spread: 0.14 },
+                { x: pick(rand, 0.68, 0.76), h: tallLeft ? pick(rand, 0.5, 0.65) : pick(rand, 0.85, 1), spread: pick(rand, 0.14, 0.2) }
+            ]
+        });
+    }),
+    // Stratocumulus bank: long, low, gently rolling top.
+    long: makeFamily(404, 5, (rand) => {
+        const n = 4 + Math.floor(rand() * 3);
+        const humps = Array.from({ length: n }, (_, i) => ({ x: 0.12 + (0.76 * i) / (n - 1) + pick(rand, -0.03, 0.03), h: pick(rand, 0.55, 1), spread: pick(rand, 0.08, 0.12) }));
+        return genCumulus(rand, { w: 300, h: Math.round(pick(rand, 64, 80)), humps, flat: 0.34, step: [0.78, 1.02] });
+    }),
+    // Towering cumulus (congestus): a tall column with a cauliflower head.
+    tower: makeFamily(505, 4, (rand) => genCumulus(rand, {
+        w: 180, h: Math.round(pick(rand, 150, 172)),
+        humps: [
+            { x: pick(rand, 0.44, 0.56), h: 1, spread: pick(rand, 0.15, 0.2) },
+            { x: pick(rand, 0.28, 0.36), h: pick(rand, 0.5, 0.72), spread: 0.14 },
+            { x: pick(rand, 0.64, 0.72), h: pick(rand, 0.45, 0.7), spread: 0.14 },
+            { x: pick(rand, 0.14, 0.2), h: pick(rand, 0.18, 0.3), spread: 0.09 },
+            { x: pick(rand, 0.8, 0.86), h: pick(rand, 0.18, 0.3), spread: 0.09 }
+        ],
+        flat: 0.14,
+        maxR: 0.13,
+        step: [0.42, 0.6]
+    })),
+    // Cumulonimbus with a flat, spreading anvil top.
+    anvil: makeFamily(606, 3, (rand) => genAnvil(rand, { w: 280, h: Math.round(pick(rand, 160, 176)) })),
+    // Ragged scraps under rain and storm clouds.
+    fractus: makeFamily(707, 5, (rand) => {
+        const n = 2 + Math.floor(rand() * 3);
+        const humps = Array.from({ length: n }, () => ({ x: pick(rand, 0.18, 0.82), h: pick(rand, 0.4, 1), spread: pick(rand, 0.07, 0.14) }));
+        return genCumulus(rand, { w: 170, h: Math.round(pick(rand, 50, 64)), humps, flat: 0.28, ragged: 0.7, step: [0.55, 0.85], noBase: true, gaps: 0.34 });
+    }),
+    // Cirrus streaks.
+    wisp: makeFamily(808, 5, (rand) => genWisp(rand, { w: 270, h: 60, n: 3 + Math.floor(rand() * 3) }))
 };
 
-const r1 = (v) => Math.round(v * 10) / 10;
+/** How many variants a family has (cloudLayout picks one per cloud). */
+export function cloudVariantCount(shapeName) {
+    return (CLOUD_SHAPES[shapeName] || CLOUD_SHAPES.cumulus).length;
+}
 
 function lobeCircles(lobes, fn) {
     return lobes.map(([cx, cy, r]) => {
@@ -38,38 +236,37 @@ function lobeCircles(lobes, fn) {
     }).join('');
 }
 
-function baseRect([x, y, w, h], lift = 0) {
-    return `<rect x="${x}" y="${r1(y - lift)}" width="${w}" height="${h}" rx="${h / 2}"/>`;
+function rrect([x, y, w, h], dy = 0) {
+    return `<rect x="${r1(x)}" y="${r1(y + dy)}" width="${r1(w)}" height="${r1(h)}" rx="${r1(h / 2)}"/>`;
 }
 
 /** One cloud's SVG. Colours come from --wx-cloud-shade / -body / -lit / -glint on an ancestor. */
-export function cloudSvg(shapeName) {
-    const shape = CLOUD_SHAPES[shapeName] || CLOUD_SHAPES.cumulus;
+export function cloudSvg(shapeName, variant = 0) {
+    const family = CLOUD_SHAPES[shapeName] || CLOUD_SHAPES.cumulus;
+    const shape = family[((variant % family.length) + family.length) % family.length];
     const { w, h } = shape;
     if (shape.wisp) {
         const streaks = shape.streaks;
-        const body = streaks.map(([cx, cy, rx, ry]) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`).join('');
-        const lit = streaks.map(([cx, cy, rx, ry]) => `<ellipse cx="${r1(cx - rx * 0.12)}" cy="${r1(cy - ry * 0.3)}" rx="${r1(rx * 0.72)}" ry="${r1(ry * 0.45)}"/>`).join('');
+        const rot = (cx, cy, t) => (t ? ` transform="rotate(${t} ${cx} ${cy})"` : '');
+        const body = streaks.map(([cx, cy, rx, ry, t]) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"${rot(cx, cy, t)}/>`).join('');
+        const lit = streaks.map(([cx, cy, rx, ry, t]) => `<ellipse cx="${r1(cx - rx * 0.12)}" cy="${r1(cy - ry * 0.3)}" rx="${r1(rx * 0.72)}" ry="${r1(ry * 0.45)}"${rot(cx, cy, t)}/>`).join('');
         return `<svg class="wx-cloud__art" viewBox="0 0 ${w} ${h}" aria-hidden="true" focusable="false"><g class="wx-cb">${body}</g><g class="wx-cl">${lit}</g></svg>`;
     }
-    const tops = shape.lobes.map(([, cy, r]) => cy - r);
-    const topY = Math.min(...tops);
-    const bottomY = Math.max(...shape.lobes.map(([, cy, r]) => cy + r));
-    const span = bottomY - topY;
-    const base = shape.base;
-    const shade = lobeCircles(shape.lobes, (cx, cy, r) => [cx, cy, r]) + (base ? baseRect(base) : '');
+    const lobes = shape.lobes;
+    const flats = [shape.base, ...(shape.plates || [])].filter(Boolean);
+    const topY = Math.min(...lobes.map(([, cy, r]) => cy - r), ...flats.map((f) => f[1]));
+    const bottomY = Math.max(...lobes.map(([, cy, r]) => cy + r));
+    const lift = r1(Math.max(4, (bottomY - topY) * 0.075));
+    const silhouette = lobeCircles(lobes, (cx, cy, r) => [cx, cy, r]) + flats.map((f) => rrect(f)).join('');
+    const shade = silhouette;
     // The body is the same silhouette lifted, so the shade shows as an even underbelly with no seams.
-    const lift = r1(Math.max(4, span * 0.075));
-    const body = `<g transform="translate(0 -${lift})">${lobeCircles(shape.lobes, (cx, cy, r) => [cx, cy, r])}${base ? baseRect(base) : ''}</g>`;
-    // Broad lit caps on the upper lobes: the body shows as a mid band between lit and shade.
-    const lit = lobeCircles(
-        shape.lobes.filter(([, cy, r]) => cy - r < topY + span * 0.5),
-        (cx, cy, r) => [cx - r * 0.1, cy - lift - r * 0.16, r * 0.8]
-    );
-    const glint = lobeCircles(
-        shape.lobes.filter(([, cy, r]) => cy - r <= topY + span * 0.14),
-        (cx, cy, r) => [cx - r * 0.38, cy - lift - r * 0.42, r * 0.13]
-    );
+    const body = `<g transform="translate(0 -${lift})">${silhouette}</g>`;
+    // Lit caps only on the crest (and the top of any anvil plate): one lit rim, not a pile of balls.
+    const crest = (shape.crest || []).map((i) => lobes[i]);
+    const lit = lobeCircles(crest, (cx, cy, r) => [cx - r * 0.08, cy - lift - r * 0.15, r * 0.82])
+        + (shape.plates || []).map(([x, y, pw, ph]) => rrect([x + ph * 0.3, y - lift - ph * 0.12, pw - ph * 0.9, ph * 0.62])).join('');
+    const sorted = [...crest].sort((a, b) => (a[1] - a[2]) - (b[1] - b[2]));
+    const glint = lobeCircles(sorted.slice(0, 3), (cx, cy, r) => [cx - r * 0.36, cy - lift - r * 0.44, r * 0.12]);
     return `<svg class="wx-cloud__art" viewBox="0 0 ${w} ${h}" aria-hidden="true" focusable="false"><g class="wx-cs">${shade}</g><g class="wx-cb">${body}</g><g class="wx-cl">${lit}</g><g class="wx-cg">${glint}</g></svg>`;
 }
 
@@ -90,7 +287,7 @@ export function buildCloudsHtml(scene, surface, { count, seed = 7 } = {}) {
             `animation-duration:${c.duration}s`,
             `animation-delay:${c.delay}s`
         ].join(';');
-        return `<div class="wx-cloud wx-cloud--${c.shape}${c.flip ? ' is-flipped' : ''}${c.depth < 0.34 ? ' is-far' : c.depth > 0.7 ? ' is-near' : ''}" data-wx-i="${i}" style="${style}">${cloudSvg(c.shape)}</div>`;
+        return `<div class="wx-cloud wx-cloud--${c.shape}${c.flip ? ' is-flipped' : ''}${c.depth < 0.34 ? ' is-far' : c.depth > 0.7 ? ' is-near' : ''}" data-wx-i="${i}" style="${style}">${cloudSvg(c.shape, c.variant)}</div>`;
     }).join('');
 }
 

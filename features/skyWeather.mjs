@@ -179,14 +179,17 @@ export function seededRandom(seed) {
 
 /** Cloud shapes each weather family draws from (see skyWeatherArt CLOUD_SHAPES). */
 export const SHAPE_POOLS = {
-    fair: ['cumulus', 'puff', 'twin', 'long', 'cumulus', 'puff', 'wisp', 'tower'],
-    grey: ['long', 'cumulus', 'twin', 'tower', 'long', 'cumulus'],
-    storm: ['anvil', 'tower', 'long', 'cumulus', 'anvil', 'twin'],
-    fog: ['long', 'wisp', 'long', 'twin'],
-    snow: ['cumulus', 'long', 'twin', 'puff', 'long'],
-    rain: ['long', 'cumulus', 'tower', 'twin', 'long'],
-    ice: ['long', 'cumulus', 'twin', 'long']
+    fair: ['cumulus', 'puff', 'twin', 'long', 'cumulus', 'puff', 'wisp', 'tower', 'cumulus', 'twin'],
+    grey: ['long', 'cumulus', 'twin', 'tower', 'long', 'fractus', 'cumulus'],
+    storm: ['anvil', 'tower', 'long', 'fractus', 'cumulus', 'anvil', 'twin', 'fractus'],
+    fog: ['long', 'wisp', 'long', 'twin', 'fractus'],
+    snow: ['cumulus', 'long', 'twin', 'puff', 'long', 'fractus'],
+    rain: ['long', 'cumulus', 'tower', 'fractus', 'twin', 'long', 'fractus'],
+    ice: ['long', 'cumulus', 'twin', 'long', 'fractus']
 };
+
+/** Variants each family has (kept in step with skyWeatherArt CLOUD_SHAPES). */
+export const SHAPE_VARIANTS = { cumulus: 7, puff: 5, twin: 4, long: 5, tower: 4, anvil: 3, fractus: 5, wisp: 5 };
 
 /** Vertical band (fraction of the surface height) where clouds may sit. */
 const BANDS = {
@@ -213,6 +216,9 @@ export function cloudLayout(surface, count, tone = 'fair', seed = 7, wind = { fa
     const sizeRange = {
         header: [7, 15], sky: [9, 22], card: [3.4, 6], wall: [14, 30], mobile: [4.5, 8]
     }[surface] || [8, 16];
+    // A separate stream picks each cloud's variant, so the layout itself stays as it was.
+    const vrand = seededRandom(seed * 7919 + count);
+    const used = {};
     const out = [];
     for (let i = 0; i < count; i++) {
         // Spread depths evenly, then jitter, so there is always a near and a far cloud.
@@ -221,8 +227,14 @@ export function cloudLayout(surface, count, tone = 'fair', seed = 7, wind = { fa
         const size = sizeRange[0] + (sizeRange[1] - sizeRange[0]) * (0.35 + depth * 0.65) * (0.85 + rand() * 0.3);
         const top = (top0 + (top1 - top0) * rand()) * 100;
         const duration = (base * (1.9 - depth * 0.95) * (0.85 + rand() * 0.3)) / factor;
+        // Walk through a family's variants so two clouds of one family rarely match.
+        const nv = SHAPE_VARIANTS[shape] || 1;
+        used[shape] = used[shape] ?? Math.floor(vrand() * nv);
+        const variant = used[shape] % nv;
+        used[shape] += 1 + Math.floor(vrand() * 2);
         out.push({
             shape,
+            variant,
             top: Math.round(top * 10) / 10,
             size: Math.round(size * 10) / 10,
             depth: Math.round(depth * 100) / 100,

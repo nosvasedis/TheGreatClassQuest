@@ -1,7 +1,7 @@
 /**
  * Recently redesigned screens for guidebook capture: Post a Bounty poster, Adventurer's Passport,
  * Avatar Forge, class charter and emblem case, guild banner and anthem alcove, Teacher Boon, Hero's Boon,
- * and the Secretary Office (front desk and Students & Classes).
+ * the Secretary Office (front desk and Students & Classes), and the Adventurer's Guide.
  *
  * Every screen is drawn by the app's own templates and renderers, fed with fake state.
  * capture-ui.mjs fixes the page clock (Monday 28 September 2026, 10:15) before these run,
@@ -13,6 +13,7 @@ import { applySubscriptionPreview } from '../../../../utils/subscription.js';
 import { classModalsHTML } from '../../../../templates/modals/class.js';
 import { baseModalsHTML } from '../../../../templates/modals/base.js';
 import { roleShellsHTML } from '../../../../templates/roles.js';
+import { aiModalsHTML } from '../../../../templates/modals/ai.js';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 
 const CLASS_ID = 'guide-jb';
@@ -115,7 +116,8 @@ function lift(html, id) {
 export function redesignShellHtml() {
   return lift(classModalsHTML, 'create-class-modal')
     + lift(baseModalsHTML, 'logo-picker-modal')
-    + lift(roleShellsHTML, 'secretary-screen');
+    + lift(roleShellsHTML, 'secretary-screen')
+    + lift(aiModalsHTML, 'app-info-modal');
 }
 
 const CAPTURE_TARGETS = [
@@ -128,7 +130,8 @@ const CAPTURE_TARGETS = [
   ['guild-anthem-overlay', 'capture-anthem'],
   ['teacher-boon-modal', 'capture-tb'],
   ['bestow-boon-modal', 'capture-hb'],
-  ['secretary-screen', 'capture-office']
+  ['secretary-screen', 'capture-office'],
+  ['app-info-modal', 'capture-ag']
 ];
 
 export function hideRedesign() {
@@ -261,7 +264,7 @@ export async function showGuildBanner(guildId = 'dragon_flame') {
     memberCount: 7,
     totalStars: 142,
     perCapitaStars: 20.3,
-    guildPower: 78,
+    guildPower: 45,
     totalGlory: 318,
     weeklyGlory: 36,
     perCapitaGlory: 45.4,
@@ -404,4 +407,16 @@ export async function showAdventureLogDiary(entry = 'oaths') {
       : oathsButtonMarkup({ ready: 2 });
     actions.append(wrap);
   }
+}
+
+// ── Adventurer's Guide ───────────────────────────────────────────────────────
+
+/** The (i) field guide on an Elite school, open on The three races (Guild Hall and Fortune's Wheel included). */
+export async function showAdventurersGuide(chapter = 'races') {
+  startShow();
+  try { localStorage.removeItem('gcq-guide-place'); } catch (_) { /* ignore */ }
+  const { openAdventurersGuide } = await import('../../../../ui/modals/adventurersGuide.js');
+  openAdventurersGuide({ audience: 'teacher', chapter });
+  frame('app-info-modal', 'capture-ag');
+  await settleFocus();
 }

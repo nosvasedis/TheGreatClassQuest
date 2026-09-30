@@ -199,7 +199,7 @@
       return termShot('fortune-ledger.png', 'Fortune Ledger: this year’s Wheel history on Guild Hall');
     }
     if (w === 'guild-power') {
-      return termShot('guild-power.png', 'Guild Power: 70 / 15 / 10 / 5 mix, scored per member');
+      return termShot('guild-power.png', 'Guild Power: the year’s Glory per member');
     }
     if (w === 'quiz-week') {
       return termShot('quiz-of-the-week.png', 'Quiz of the Week on the Home weather card')
@@ -295,7 +295,7 @@
       return `<span class="quest-chip qc-bounty"><i class="fas fa-bullseye"></i> Star Hunt · 12 stars</span> <span class="quest-chip qc-bounty"><i class="fas fa-hourglass-half"></i> Race the Clock · 10:00</span>`;
     }
     if (w === 'guide') {
-      return `<button type="button" class="hdr-btn hdr-btn--solid" title="Adventurer's Guide"><i class="fas fa-info"></i></button>`;
+      return `<button type="button" class="hdr-btn hdr-btn--solid" title="Adventurer's Guide"><i class="fas fa-info"></i></button>${termShot('adventurers-guide.png', 'The Adventurer’s Guide: a field guide with chapter tabs, search and Take me there')}`;
     }
     if (w === 'family') {
       return `<div class="family-card"><span>👨‍👩‍👧</span><div><strong>Family Portal</strong><p>One login per child</p></div></div>`;

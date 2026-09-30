@@ -15,7 +15,8 @@ import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features
 import { buildHomePartyCardHtml } from '../../../../features/homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from '../../../../features/homeQuestRoadCard.mjs';
 import { buildSkyCardInner, describeArc, getLessonDialArc } from '../../../../ui/wallpaperDeck.mjs';
-import { getMoonPhaseCard, getWouldYouRatherCard } from '../../../../ui/wallpaperSkyCards.js';
+import { getWouldYouRatherCard } from '../../../../ui/wallpaperSkyCards.js';
+import { hydrateAtlasCard } from '../../../../ui/wallpaperAtlasCards.js';
 
 function startShow() {
   hideExtras();
@@ -285,10 +286,10 @@ export function showProjector() {
 
   const area = document.getElementById('wall-floating-area');
   if (area) {
-    const moon = getMoonPhaseCard(new Date(2026, 7, 30, 21));
+    const stars = hydrateAtlasCard('sky_constellation', null, 'Junior B');
     const talk = getWouldYouRatherCard('Junior B');
     area.innerHTML = [
-      wallpaperSkyCard('sky', moon, { top: '14%', left: '3%', rotate: '-1deg' }, 0.7),
+      wallpaperSkyCard('sky', stars, { top: '14%', left: '3%', rotate: '-1deg' }, 0.7),
       wallpaperSkyCard('heart', talk, { top: '30%', left: '68%', rotate: '1deg' }, 0.35)
     ].join('');
   }

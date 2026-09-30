@@ -189,8 +189,8 @@ export const TERMS = [
     names: { en: 'Guild Power', el: 'Guild Power' },
     aliases: ['guild power', 'house score', 'fair house score'],
     def: {
-      en: 'The fair house score Guild Hall ranks by — not raw Total Stars. Mix: 70% season Glory per member, 15% this week’s Glory per member, 10% activity (who earned Glory this week), 5% momentum (this week vs last).',
-      el: 'Το δίκαιο σκορ των σπιτιών στο Guild Hall — όχι τα ακατέργαστα Total Stars. 70% Glory σεζόν ανά μέλος, 15% Glory αυτής της εβδομάδας, 10% δραστηριότητα, 5% ορμή.'
+      en: 'The fair house score Guild Hall ranks by — not raw Total Stars. It is the Glory each member earned this school year, on average, and it only moves when that guild earns or loses Glory. This week’s Glory, activity and momentum are badges that never change the order. Leavers take their Glory with them. The highest Guild Power is crowned in June.',
+      el: 'Το δίκαιο σκορ των σπιτιών στο Guild Hall — όχι τα ακατέργαστα Total Stars. Είναι το Glory που κέρδισε κάθε μέλος αυτή τη σχολική χρονιά, κατά μέσο όρο, και κινείται μόνο όταν αυτό το guild κερδίζει ή χάνει Glory. Το Glory της εβδομάδας, η δραστηριότητα και το momentum είναι σήματα που δεν αλλάζουν ποτέ τη σειρά. Όποιος φεύγει παίρνει το Glory του μαζί του. Το υψηλότερο Guild Power στέφεται τον Ιούνιο.'
     },
     confuse: { en: 'Guild Glory (ledger from stars), Gold', el: 'Guild Glory (κατάστιχο από αστέρια), Gold' }
   },
@@ -213,8 +213,8 @@ export const TERMS = [
     names: { en: "Fortune's Wheel", el: "Fortune's Wheel" },
     aliases: ["fortune's wheel", 'fortunes wheel', 'fortune wheel', 'the wheel'],
     def: {
-      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. Pro.',
-      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Pro.'
+      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. Wheel Glory is sized to each guild, so every member of every guild gains or loses the same. Pro.',
+      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Το Glory του τροχού προσαρμόζεται σε κάθε guild, ώστε κάθε μέλος κάθε guild να κερδίζει ή να χάνει το ίδιο. Pro.'
     },
     confuse: { en: 'Quiz of the Week', el: 'Quiz of the Week' }
   },
@@ -273,8 +273,8 @@ export const TERMS = [
     names: { en: 'Projector Mode', el: 'Projector Mode' },
     aliases: ['projector mode', 'projector', 'classroom tv', 'the director', 'wallpaper mode', 'projector wallpaper', 'sky cards', 'sky deck'],
     def: {
-      en: 'The TV button on the classroom PC. A living wallpaper you can open whenever it helps the lesson: sky over the realm’s hills, day arc, huge clock, analogue dial with the lesson ring, class banner, wisdom ribbon, rotating Sky Cards in nine colour families, and — when they are real — remaining times (lesson ring, Timekeeper, next lesson, bounty countdown). A remote (move the mouse) pins, skips or brings back cards; the Sky Deck chooses families and card length. Not on the teacher phone. Sky Theater is a different toy.',
-      el: 'Το κουμπί TV στον υπολογιστή τάξης. Ζωντανή ταπετσαρία που ανοίγεις όποτε βοηθά το μάθημα: ουρανός, τόξο της μέρας, ρολόι με δαχτυλίδι μαθήματος, Sky Cards σε εννέα οικογένειες, και χρόνοι που απομένουν όταν ισχύουν. Το τηλεχειριστήριο καρφιτσώνει ή αλλάζει καρτέλες· το Sky Deck διαλέγει οικογένειες και διάρκεια. Όχι στο κινητό. Το Sky Theater είναι άλλο πράγμα.'
+      en: 'The TV button on the classroom PC. A living wallpaper you can open whenever it helps the lesson: sky over the realm’s hills, day arc, huge clock, analogue dial with the lesson ring, class banner, wisdom ribbon, rotating Sky Cards (about 160 kinds, from the class’s own star trail to word games and wonders) in nine colour families, and — when they are real — remaining times (lesson ring, Timekeeper, next lesson, bounty countdown). A remote (move the mouse) pins, skips or brings back cards; the Sky Deck chooses families and card length. Not on the teacher phone. Sky Theater is a different toy.',
+      el: 'Το κουμπί TV στον υπολογιστή τάξης. Ζωντανή ταπετσαρία που ανοίγεις όποτε βοηθά το μάθημα: ουρανός, τόξο της μέρας, ρολόι με δαχτυλίδι μαθήματος, Sky Cards (περίπου 160 είδη, από το star trail του τμήματος ως παιχνίδια λέξεων και θαύματα) σε εννέα οικογένειες, και χρόνοι που απομένουν όταν ισχύουν. Το τηλεχειριστήριο καρφιτσώνει ή αλλάζει καρτέλες· το Sky Deck διαλέγει οικογένειες και διάρκεια. Όχι στο κινητό. Το Sky Theater είναι άλλο πράγμα.'
     },
     confuse: { en: 'Sky Theater', el: 'Sky Theater' }
   },
@@ -321,8 +321,8 @@ export const TERMS = [
     names: { en: "Adventurer's Guide", el: "Adventurer's Guide" },
     aliases: ["adventurer's guide", 'adventurers guide', 'game guide', 'in-app guide'],
     def: {
-      en: 'The short in-app explainer (the i in the header). This Quest Master’s Guidebook is the full teacher handbook.',
-      el: 'Ο σύντομος οδηγός μέσα στην εφαρμογή (το i στην κεφαλίδα). Αυτό το βιβλίο είναι ο πλήρης οδηγός δασκάλου.'
+      en: 'The field guide in the app (the i in the header; Game Guide on the phone): a green cloth cover with a brass compass and your plan tag, colour-coded chapter tabs, search, Take me there jumps, and a For the class view in big type for the projector. This Quest Master’s Guidebook is the full teacher handbook.',
+      el: 'Ο οδηγός πεδίου μέσα στην εφαρμογή (το i στην κεφαλίδα· Game Guide στο κινητό): πράσινο υφασμάτινο εξώφυλλο με μπρούντζινη πυξίδα και το ταμπελάκι του πλάνου σου, χρωματιστές καρτέλες κεφαλαίων, αναζήτηση, άλματα Take me there και όψη For the class με μεγάλα γράμματα για τον projector. Αυτό το βιβλίο είναι ο πλήρης οδηγός δασκάλου.'
     },
     confuse: { en: 'This guidebook', el: 'Αυτόν τον οδηγό' }
   },

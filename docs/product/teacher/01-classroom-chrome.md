@@ -18,7 +18,7 @@ Left to right:
 | **Daily quote** | A short inspirational line, refreshed for the day (desktop). On a phone it moves into a **Daily Wisdom** card on Home. |
 | **Date and live clock** | Always visible. Sunrise and sunset for the school’s weather location drive **day / night** colours. |
 | **Class selector** | **Follow today’s schedule** is the default when you open the app: it auto-switches to the class in session, and falls back to **General view** when no lesson is on. You can still pick **General view** or a named class by hand — that pauses follow until you tap Follow today’s schedule again. Almost every tab respects this choice. |
-| **Information** (i) | Opens **The Adventurer’s Guide** — a short in-app explainer for teachers (and a student-facing view). New teachers may see it automatically once. |
+| **Information** (i) | Opens **The Adventurer’s Guide**, a pocket field guide to the Quest (see below). New teachers see it once, on its **Start here** chapter. |
 | **Projector Mode** (TV icon) | Full-screen classroom display. Not available on the phone header. |
 | **School Office** (shield) | Only when this school has Secretary access (Elite). Opens the School Office. |
 | **Settings** (cog) | **Teacher Settings** (classes, roster tools, Family Access, Quiz setup, and more). |
@@ -29,6 +29,18 @@ Behind the header, **clouds** drift by day. At night the header darkens and star
 **Sky Theater** is a quiet extra: on a schedule, small emoji “acts” fly across the header (a rocket on Monday, an owl on Wednesday, a dragon on Saturday, and so on). They are decorative. They pause if the device asks for reduced motion.
 
 An **update pill** may appear when a new version of the app is ready.
+
+### The Adventurer’s Guide (i)
+
+A field guide bound in green cloth, with a brass compass on the cover and a tag naming your plan. It gives the short answer to “what is this, and where is it?”. This guidebook is the long answer.
+
+- **Chapter tabs** down the side, each in its own colour: **Start here** (a lesson from start to finish, the three races, and names to keep apart), Stars in the lesson, The three races, Gold and the Market, Heroes and identity, End of the lesson, Learning and records, Screens and settings, Families and the Office, and Your plan.
+- Every entry is a **field note**: where the feature lives, what it does, and why it matters.
+- **Search the guide** looks through every entry. Press **/** to jump to the search box.
+- **Take me there** closes the guide and opens that tab or Settings section. Anything your plan does not include carries a lock and names the plan that unlocks it.
+- **For the class** switches to a children’s version in big type, made for the projector: Welcome, hero, Earning stars, Our races, Gold and treasures, Your hero, and Class adventures. **Quest Master** switches back.
+- It remembers the chapter you were reading. **Esc**, ✕ or a click outside closes it.
+- On the phone, **Game Guide** opens it as a sheet with the chapters on a scrolling strip.
 
 ## The cloud dock (bottom navigation)
 
@@ -71,17 +83,19 @@ Every card has the same shape, so children learn to read it at a glance: a **cre
 
 | Family | Colour | What it holds |
 |--------|--------|---------------|
-| **Hall of Heroes** | Gold | Spotlights, recent awards, birthdays, Star of the Week, stars so far today |
-| **Class Quest** | Royal blue | Team Quest progress, treasury, streaks, bounties, map zone, Familiars, story |
-| **Time & Tides** | Rose | Lesson Timekeeper, next lesson, holidays, tests, the school-year journey |
-| **Word Workshop** | Teal | English from the class’s own lesson, words, phrases, spelling |
-| **Puzzle Nook** | Magenta | Riddles, maths, True or False, Odd one out, Letter hunt, Quick draw |
-| **Wonders** | Indigo | Facts, history, science, myths, namedays |
-| **Mind & Heart** | Green | Mindfulness, healthy habits, Would you rather, creative prompts |
-| **Sky Watch** | Sky blue | Live weather, tonight’s moon, daylight, the season |
-| **The Realm** | Violet | The whole school: pulse, treasury, top classes, guild standings |
+| **Hall of Heroes** | Gold | Spotlights, recent awards, birthdays, Star of the Week, stars so far today, first light, rising star, virtue champions, name poems |
+| **Class Quest** | Royal blue | Team Quest progress, treasury, streaks, bounties, map zone, Familiars, story, the class’s star trail, constellation and month so far |
+| **Time & Tides** | Rose | Lesson Timekeeper, next lesson, holidays, tests, the school-year journey, this week’s path, the month calendar, world clocks |
+| **Word Workshop** | Teal | English from the class’s own lesson, words, phrases, spelling, and word games |
+| **Puzzle Nook** | Magenta | Riddles, maths, True or False, Odd one out, Letter hunt, Quick draw, patterns, code breaker, Who am I?, Simon says |
+| **Wonders** | Indigo | Facts, history, science, myths, namedays, animals, countries, space, inventions |
+| **Mind & Heart** | Green | Mindfulness, healthy habits, Would you rather, creative prompts, breathing, gratitude, kindness quests, stretch breaks |
+| **Sky Watch** | Sky blue | Live weather, tonight’s moon, daylight, the season, tonight’s constellation, planet of the week |
+| **The Realm** | Violet | The whole school: pulse, treasury, top classes, guild standings, stars today, guild banners |
 
-Cards with an answer (riddles, True or False, Odd one out, Spell it right, Quiz rewind, Word scramble) keep it **blurred** and say **Answer in 0:38** in the corner. The blur clears slowly and the answer is sharp for the last 10 seconds. Click the card, or press **R**, to reveal it sooner.
+The Director has about **160 kinds of card** across the nine families. Cards that read your class’s data only appear when there is something real to show, so a new class sees more games and wonders until its first stars arrive.
+
+Cards with an answer (riddles, True or False, Odd one out, Spell it right, Quiz rewind, Word scramble, the word games and the new puzzles) keep it **blurred** and say **Answer in 0:38** in the corner. The blur clears slowly and the answer is sharp for the last 10 seconds. Click the card, or press **R**, to reveal it sooner.
 
 ### The projector remote
 
@@ -119,7 +133,19 @@ Cards rotate. The Director avoids showing the same *kind* of card twice in a row
 
 **With a class selected** you typically see: **Stars so far today** (the class total and a podium of today’s top three), **Star of the Week** (most stars in the last seven days), **Birthday coming up** (a classmate’s birthday in the next three weeks), Team Quest progress (percent toward this month’s map, including Pathfinder bonus), class treasury (Gold), attendance / “heroes assembled,” streaks of “super days” (lessons with more than 5 stars), map zone, how this class sits versus the school, top Gold in the class, **reigning Hero of the Day** (Pro), Story Weavers last line (Elite), Familiar parade / hatch watch (Elite), who is absent, spotlights of **present** students only, recent awards, and recent adventure pictures.
 
-**School-wide** (or mixed in): school pulse, school treasury, top heroes, active bounties, **live weather** (temperature, high and low, and a tip for the day), **tonight’s moon** (phase and how much is lit), **daylight** (sunrise, sunset, and how much sunlight is left), **the season** (day of the season and when the next one begins), next holiday, Greek nameday, Orthodox calendar, guild standings (Pro), and — on Elite — facts, jokes, riddles, idioms, tongue-twisters, and brain-teasers. Morning, afternoon, Monday, and Friday each lean the mix a little.
+**New class cards** read the class’s own award log, roster and timetable:
+
+- **First light**: the first hero to earn a star today, with the time and the reason
+- **Rising star**: the child who climbed most this week compared with last week
+- **Almost there!**: a hero one to three stars from a round number this month
+- **Virtue champions**: this month’s top hero for Teamwork, Creativity, Respect and Focus
+- **Steady flame**: the hero who earned stars on the most different days this month
+- **Kindness spotted**: the latest Respect, Teamwork or Hero’s Boon star from the last two weeks
+- **Birthdays this month** and a **Name poem** (an acrostic of one child’s first name)
+- **Our star trail** (stars per lesson this month), **Our best lesson this month**, **Where our stars came from** (a virtue wheel), **Our class constellation** (every hero a star, brighter for more stars), **Every hero counts** (how many children have earned stars this month), **Our guilds this month**, and **Month so far**
+- **This week’s path** (the class’s lesson days this week) and a **month calendar** marking the lesson days that earned stars and the holidays
+
+**School-wide** (or mixed in): school pulse, school treasury, top heroes, active bounties, **live weather** (temperature, high and low, and a tip for the day), **tonight’s moon** (phase and how much is lit), **daylight** (sunrise, sunset, and how much sunlight is left), **the season** (day of the season and when the next one begins), next holiday, Greek nameday, Orthodox calendar, guild standings (Pro, in the same order as Guild Hall, by Guild Power), **The school today** (stars across the school today), **Brightest classes** this month, **the realm in numbers**, **Guild banners** (each guild’s stars this month), **Weekend watch** (sleeps until the weekend), **Around the English-speaking world** (four city clocks and what people are doing there), **Tonight’s constellation**, **The turning year** (days to the next season), **Planet of the week**, and — on Elite — facts, jokes, riddles, idioms, tongue-twisters, and brain-teasers. Morning, afternoon, Monday, and Friday each lean the mix a little.
 
 **English-learning cards** join the mix and come from the class's own lesson:
 
@@ -130,6 +156,9 @@ Cards rotate. The Director avoids showing the same *kind* of card twice in a row
 - **Next quest**: the homework from Quest Assignment
 - **Growth Starfall** (Pro): a child who climbed well above their own average this week (name only, no scores)
 - **Quick games** on every plan, matched to the league: **True or False?**, **Odd one out**, **Spell it right**, **Letter hunt** (name five … that start with a letter, racing the life bar), **Quick draw** (draw it before the bar runs out, then describe it in English), and **Would you rather…** (say why to a partner)
+- **Word games** on every plan, matched to the league: **Opposites**, **Rhyme time**, **Word maths** (two words make a new one), **One… two…** (plurals that do not just add -s), **Say what?** (an idiom to guess), **Emoji translator** (say the emoji sentence in English), and **Words inside words**
+- **Puzzles** on every plan: **What comes next?**, **Quick count**, **Code breaker** (A = 1, B = 2 …), **Who am I?**, and **Simon says**
+- **Wonders and calm breaks** on every plan: an **animal**, a **country where English is spoken**, a **space wonder**, **Who invented it?**, **Bubble breathing**, a **Thankful moment**, **Today’s kindness quest**, and a **Stretch break**
 - On every plan, matched to the league: **Finish the sentence**, **Think · Pair · Share**, **Grammar nugget**, **Say it right** (minimal pairs such as *ship/sheep*, not for Nursery/Pre-Junior), and **Classroom English**
 
 Cards float in the free space around the clock. They never cover the clock, the class banner, the wisdom ribbon or the top controls, and they shrink rather than slide off a smaller projector screen.

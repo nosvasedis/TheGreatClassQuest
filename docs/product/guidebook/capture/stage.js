@@ -90,6 +90,7 @@ import {
   hideRedesign,
   redesignShellHtml,
   showAdventureLogDiary as showAdventureLog,
+  showAdventurersGuide,
   showAvatarForge,
   showBountyPoster,
   showClassCharter,
@@ -262,6 +263,7 @@ window.__gcqCapture = {
   showGuildAnthem,
   showTeacherBoon,
   showHeroBoon,
-  showOffice
+  showOffice,
+  showAdventurersGuide
 };
 document.documentElement.classList.add('capture-ready');

@@ -32,9 +32,9 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Legendary Artifacts** | Fixed power-ups, 2 buys/student/month | Seasonal “legendary” treasures |
 | **The Mask of the Protagonist** | 75 Gold; next Adventure Log is **Hero of the Day** (1 buy per student per month) | Picking Hero of the Day by hand |
 | **Familiar** | One companion egg that hatches and evolves | Avatar |
-| **Guild Power** | Fair house score: 70% season Glory/member, 15% this week’s Glory/member, 10% activity, 5% momentum | Raw Total Stars |
+| **Guild Power** | Fair house score: the Glory each member earned this school year, on average. This week’s form is a badge only | Raw Total Stars |
 | **Guild Glory** | Ledger from stars (2 Glory per star) plus Wheel / Quiz / artifacts | Gold |
-| **Fortune’s Wheel** | Weekly ritual, last lesson of the week: each guild spins its own celestial wheel in turn | Quiz of the Week |
+| **Fortune’s Wheel** | Weekly ritual, last lesson of the week: each guild spins its own celestial wheel in turn. Its Glory is sized so every member of every guild gains or loses the same | Quiz of the Week |
 | **Guild banner** | The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall; the anthem plays in a torch-lit alcove | Guild Power explainer |
 | **Fortune Ledger** | This school year’s Fortune’s Wheel outcomes on Guild Hall. Last year’s spins stay in last year. | Adventure Log |
 | **Grand Guild Ceremony** | End-of-year house crowning | Ceremony of the Month |
@@ -42,7 +42,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron | Quest League (Junior B, etc.) |
 | **Quest League** | Age/difficulty band that races together on Team Quest | Guild |
 | **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, lesson ring, remaining times, rotating Sky Cards, a remote to pin or skip cards | Sky Theater (header emoji acts) |
-| **The Director** | Rotating Projector cards | The teacher |
+| **The Director** | Rotating Projector cards (about 160 kinds, in nine families) | The teacher |
 | **Sky Theater** | Decorative header flights | Projector |
 | **Quest Assignment** | Next-lesson homework on the Quest Board (+ optional scheduled test) | Quest Event |
 | **Quest Event** | Calendar event: 2×/Reason modifier or one of five Special Quests (Vault, Guardians, Chain, Sketch, Saga) | Quiz of the Week |
@@ -63,7 +63,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Teacher Settings** | Cog: sheets on the teacher’s desk for classes, tools, Family Access, Quiz setup | School Office Admin |
 | **Cloud dock** | The ten classroom tabs as clouds along the bottom; on a mouse PC they sink away when idle | Header tools (Settings is the cog) |
 | **Bounty** | Whole-class challenge from the Bounty poster on Home: **Star Hunt** (star target) or **Race the Clock** (countdown) | Hero’s Challenge ranks |
-| **Adventurer’s Guide** | Short in-app explainer | This product handbook |
+| **Adventurer’s Guide** | The (i) field guide in the app: chapter tabs, search, Take me there, and a For the class view | This product handbook |
 | **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |
 | **Star-Ember** | Keepsake in the Trophy Room for a kept oath; worth no stars or Gold | Stars; Starfall; Growth Starfall |

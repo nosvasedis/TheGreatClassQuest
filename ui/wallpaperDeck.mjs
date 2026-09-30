@@ -28,45 +28,56 @@ const FAMILY_OF_TYPE = {
     heroes: [
         'stu_spotlight', 'stu_funfact', 'recent_award', 'top_student_monthly', 'top_student_daily',
         'bday', 'name', 'reigning_hero_spotlight', 'lang_growth_star', 'school_top_student',
-        'absent_heroes', 'teacher_shoutout', 'class_stars_today', 'class_star_of_week', 'class_next_birthday'
+        'absent_heroes', 'teacher_shoutout', 'class_stars_today', 'class_star_of_week', 'class_next_birthday',
+        'hero_first_light', 'hero_rising_star', 'hero_milestone_near', 'hero_virtue_champions',
+        'hero_steady_flame', 'hero_kindness_spotted', 'hero_birthdays_month', 'hero_name_acrostic'
     ],
     quest: [
         'class_quest', 'treasury_class', 'streak', 'class_bounty', 'quest_map_position',
         'class_rank_vs_school', 'class_gold_ranking', 'class_gold_top_trio', 'class_familiar_parade',
         'class_familiar_hatch_watch', 'class_special_quest', 'attendance_summary', 'class_season_snapshot',
-        'lesson_milestone', 'story_sentence', 'log'
+        'lesson_milestone', 'story_sentence', 'log',
+        'class_star_trail', 'class_best_day', 'class_virtue_wheel', 'class_constellation', 'class_every_hero',
+        'class_guild_colours', 'class_month_so_far'
     ],
     time: [
         'timekeeper', 'next_lesson', 'holiday', 'pre_holiday_hype', 'upcoming_test_countdown',
         'class_test_luck', 'school_upcoming_event', 'context_morning', 'context_afternoon', 'context_night',
         'context_monday', 'context_friday', 'post_holiday_welcome', 'giant_clock', 'school_year_journey',
-        'timer_end'
+        'timer_end',
+        'time_week_path', 'time_month_calendar', 'time_weekend_countdown', 'time_world_clocks'
     ],
     words: [
         'lang_learned_today', 'lang_quiz_rewind', 'lang_word_scramble', 'lang_story_recall',
         'lang_sentence_starter', 'lang_think_pair_share', 'lang_grammar_nugget', 'lang_minimal_pair',
         'lang_classroom_english', 'lang_next_quest', 'ai_word', 'ai_idiom', 'ai_tongue_twister',
-        'fun_english_phrase', 'word_of_the_day', 'language_origin', 'book_recommendation', 'spell_it_right'
+        'fun_english_phrase', 'word_of_the_day', 'language_origin', 'book_recommendation', 'spell_it_right',
+        'word_opposites', 'word_rhyme_time', 'word_compound', 'word_plurals', 'word_idiom_picture',
+        'word_emoji_sentence', 'word_hidden_words'
     ],
     puzzles: [
         'ai_riddle', 'ai_brain_teaser', 'ai_joke', 'emoji_riddle', 'math_challenge', 'puzzle_of_the_day',
-        'math_magic', 'daily_challenge', 'true_or_false', 'odd_one_out', 'letter_hunt', 'quick_draw'
+        'math_magic', 'daily_challenge', 'true_or_false', 'odd_one_out', 'letter_hunt', 'quick_draw',
+        'puzzle_what_next', 'puzzle_count_stars', 'puzzle_code_breaker', 'puzzle_who_am_i', 'puzzle_simon_says'
     ],
     wonders: [
         'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 'ai_fact_geography', 'ai_fact_math',
         'ai_did_you_know', 'this_day_history', 'world_record', 'thought_experiment', 'mythology_moment',
         'historical_figure_spotlight', 'science_demo', 'on_this_day_science', 'greek_nameday_today',
-        'orthodox_calendar'
+        'orthodox_calendar',
+        'wonder_animal', 'wonder_country', 'wonder_space', 'wonder_invention'
     ],
     heart: [
         'mindfulness', 'healthy_habit', 'eco_hero_tip', 'class_mood_check', 'study_tip',
-        'motivation_poster', 'creative_prompt', 'would_you_rather'
+        'motivation_poster', 'creative_prompt', 'would_you_rather',
+        'heart_breathe', 'heart_gratitude', 'heart_kindness_quest', 'heart_stretch'
     ],
-    sky: ['weather', 'season_visual', 'sky_moon_phase', 'sky_daylight'],
+    sky: ['weather', 'season_visual', 'sky_moon_phase', 'sky_daylight', 'sky_constellation', 'sky_season_turn', 'sky_planet'],
     realm: [
         'school_pulse', 'treasury_school', 'school_leader_top3', 'school_active_bounties',
         'school_adventure_count', 'school_gold_leader', 'school_avg_attendance', 'guild_leaderboard',
-        'league_race'
+        'league_race',
+        'realm_stars_today', 'realm_class_league', 'realm_in_numbers', 'realm_guild_banners'
     ]
 };
 

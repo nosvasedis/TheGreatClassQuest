@@ -17,6 +17,7 @@ import { chooseCardPlacement } from '../utils/wallpaperLayout.mjs';
 import { getGuildLeaderboardData } from '../features/guildScoring.js';
 import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLanguageCardDeck } from './wallpaperLanguageCards.js';
 import { SKY_CARD_TYPES, getSkyCardDeck, hydrateSkyCard, getLiveWeatherCard, rememberSkyWeather } from './wallpaperSkyCards.js';
+import { ATLAS_CARD_TYPES, getAtlasCardDeck, hydrateAtlasCard } from './wallpaperAtlasCards.js';
 import {
     CARD_FAMILIES,
     CARD_DURATION_CHOICES,
@@ -1211,7 +1212,7 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities(), { ign
 
     if (!classId) {
         // Mode: School Overview
-        list = [...globalPool, ...getLanguageCardDeck(null), ...getSkyCardDeck(null)];
+        list = [...globalPool, ...getLanguageCardDeck(null), ...getSkyCardDeck(null), ...getAtlasCardDeck(null)];
     } else {
         // Mode: Specific Class
         // Phase-aware mixing
@@ -1220,7 +1221,7 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities(), { ign
         // English-learning cards from this class's own lesson (see wallpaperLanguageCards.js).
         // Sample the school-wide cards from the families the teacher has switched on.
         const globalChoices = ignoreFamilies ? globalPool : filterDeckByFamilies(globalPool, wallPrefs);
-        list = [...classPool, ...getLanguageCardDeck(classId), ...getSkyCardDeck(classId), ...(fullGlobal ? globalChoices : globalChoices.sort(() => 0.5 - Math.random()).slice(0, globalSample))];
+        list = [...classPool, ...getLanguageCardDeck(classId), ...getSkyCardDeck(classId), ...getAtlasCardDeck(classId), ...(fullGlobal ? globalChoices : globalChoices.sort(() => 0.5 - Math.random()).slice(0, globalSample))];
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
         const scores = state.get('allStudentScores');
@@ -1332,6 +1333,7 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
 
     if (LANGUAGE_CARD_TYPES.includes(baseType)) content = await hydrateLanguageCard(baseType, classId);
     else if (SKY_CARD_TYPES.includes(baseType)) content = hydrateSkyCard(baseType, classId, questLevel);
+    else if (ATLAS_CARD_TYPES.includes(baseType)) content = hydrateAtlasCard(baseType, classId, questLevel);
     else if (baseType === 'bday') content = getBirthdayCard(dataId);
     else if (baseType === 'name') content = getNamedayCard(dataId);
     else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId, questLevel);

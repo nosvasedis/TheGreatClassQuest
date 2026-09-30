@@ -276,7 +276,7 @@ export function arenaHeroChipsHtml(entry, { compact = false } = {}) {
         const info = ARENA_REASON_INFO[stats.topSkill] || { icon: 'fa-star', tone: 'neutral', name: 'Star' };
         chips.push(chip(info.tone, `<i class="fas ${info.icon}" aria-hidden="true"></i>${info.name}`, 'Top strength this month'));
     }
-    if (stats.uniqueReasons > 0 && !compact) chips.push(chip('variety', `<i class="fas fa-shapes" aria-hidden="true"></i>${stats.uniqueReasons} strengths`, 'Different award reasons (tie-breaker)'));
+    if (stats.uniqueReasons > 0 && !compact) chips.push(chip('variety', `<i class="fas fa-shapes" aria-hidden="true"></i>${stats.uniqueReasons} ${stats.uniqueReasons === 1 ? 'strength' : 'strengths'}`, 'Different award reasons (tie-breaker)'));
     if (stats.academicAvg > 0) chips.push(chip('scholar', `<i class="fas fa-graduation-cap" aria-hidden="true"></i>${Math.round(stats.academicAvg)}%`, 'Average written score this month'));
     if (!chips.length) chips.push(chip('neutral', `<i class="fas fa-star" aria-hidden="true"></i>${Number(entry.score) || 0} this month`, 'Monthly stars'));
     return `<div class="cer-chips">${chips.join('')}</div>`;

@@ -11,6 +11,7 @@
 
 import { resolveSkyScene, sceneLayoutKey } from './skyWeather.mjs';
 import { buildCloudsHtml, buildWeatherFxHtml, BOLT_PATHS } from './skyWeatherArt.js';
+import { moonPhase, moonLitPath } from '../utils/dayCycle.mjs';
 
 let currentScene = null;
 let lastReading = null;
@@ -82,16 +83,26 @@ function setHtmlState(scene) {
     d.wxDir = scene.wind.dir < 0 ? 'w' : 'e';
     d.wxSun = scene.sun ? '1' : '0';
     d.wxMoon = scene.moon ? '1' : '0';
-    d.wxStars = scene.stars ? '1' : '0';
+    d.wxStars = !scene.stars ? '0' : scene.shootingStars ? '1' : 'dim';
     d.wxLite = LITE ? '1' : '0';
     html.style.setProperty('--wx-slant', `${scene.wind.slant}deg`);
     html.style.setProperty('--wx-wind', String(scene.wind.factor));
+}
+
+/** Shade the Award and Projector moons to tonight's real phase. */
+function paintMoonPhase(now = Date.now()) {
+    const lit = moonLitPath(moonPhase(now), 50, 50, 50);
+    const d = `M50 0 A50 50 0 1 1 50 100 A50 50 0 1 1 50 0 Z ${lit}`;
+    document.querySelectorAll('.gcq-moon__phase path').forEach((path) => {
+        if (path.getAttribute('d') !== d) path.setAttribute('d', d);
+    });
 }
 
 export function applySkyScene(scene) {
     if (!scene || typeof document === 'undefined') return;
     currentScene = scene;
     setHtmlState(scene);
+    paintMoonPhase(scene.now);
     for (const { surface } of SURFACES) paintSkySurface(surface);
     setLightning(scene.lightning);
 }

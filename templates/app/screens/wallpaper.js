@@ -3,7 +3,8 @@
 import moonUrl from '../../../assets/celestial/moon.jpg?url';
 
 export function celestialMoonHTML() {
-    return `<img class="gcq-moon__body" src="${moonUrl}" alt="" decoding="async" draggable="false" />`;
+    // The dark side is painted over the photo in the real phase (features/skyWeatherStage.js).
+    return `<img class="gcq-moon__body" src="${moonUrl}" alt="" decoding="async" draggable="false" /><svg class="gcq-moon__phase" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d=""/></svg>`;
 }
 
 export const wallpaperHTML = `

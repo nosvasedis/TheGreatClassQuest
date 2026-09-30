@@ -226,7 +226,7 @@ export function weatherGlyphSvg(scene, { moonPhase = 0.5 } = {}) {
     const base = [];
     const layers = [];
     const cond = s.condition || 'partly';
-    const showBody = cond === 'partly' || cond === 'showers' || (cond === 'snow' && s.intensity === 'light');
+    const showBody = cond === 'partly' || (cond === 'showers' && s.intensity !== 'heavy') || (cond === 'snow' && s.intensity === 'light');
     if (cond === 'clear') {
         if (night) base.push(glyphMoon(50, 48, 26, moonPhase));
         else {
@@ -242,7 +242,7 @@ export function weatherGlyphSvg(scene, { moonPhase = 0.5 } = {}) {
             }
         }
         // On a cloudy night the moon still shows its real phase, veiled behind the clouds.
-        if (night && !showBody && (cond === 'overcast' || cond === 'drizzle' || cond === 'rain' || cond === 'snow')) {
+        if (night && !showBody && ['overcast', 'drizzle', 'rain', 'showers', 'snow'].includes(cond)) {
             base.push(`<g class="wx-g-moon--veiled">${glyphMoon(68, 28, 16, moonPhase)}</g>`);
         }
         if (cond === 'overcast' || cond === 'fog') base.push(glyphCloud(26, 14, 0.8, 'wx-g-cloud--back'));

@@ -80,6 +80,17 @@
     background: radial-gradient(circle at 42% 32%, rgba(255, 252, 235, 0.14) 0%, transparent 36%);
 }
 
+/* The unlit part of the disc for tonight's real phase. */
+.gcq-moon__phase {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.gcq-moon__phase path { fill: rgba(12, 18, 46, 0.86); }
+
 .gcq-moon__body {
     display: block;
     width: 100%;

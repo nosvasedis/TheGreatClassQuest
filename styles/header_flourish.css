@@ -276,14 +276,137 @@ header.header-night .gcq-header-trim__thread {
 }
 header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254, 0.55)); }
 
-/* ---------- Where the flourish steps aside ---------- */
-#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim { opacity: 0; }
+/* ---------- Award sky: the thread unravels, and ravels back up ----------
+   As the Award sky pours out of the header, the gold thread comes undone from
+   the gem outwards, its star beads slip off, the gem flares and lets go, and
+   four gold ribbons unfurl from it down into the sky before melting away.
+   Leaving plays it backwards: the ribbons wind up into the gem, the thread
+   knits itself back together from both ends, and the beads settle back on.
+   Timing follows --award-sky-reveal-duration (styles/nav.css). */
+.gcq-header-trim__thread {
+    /* Two strips meeting in the middle, so the gap can open from the gem outwards. */
+    clip-path: polygon(0 -300%, 50% -300%, 50% 400%, 50% 400%, 50% -300%, 100% -300%, 100% 400%, 0 400%);
+}
+
+.gcq-ribbons {
+    position: absolute;
+    top: calc(100% - 9px);
+    left: 50%;
+    width: min(62vw, 58rem);
+    height: auto;
+    aspect-ratio: 1000 / 620;
+    translate: -50% 0;
+    overflow: visible;
+    pointer-events: none;
+    visibility: hidden;
+}
+.gcq-ribbon__reveal {
+    fill: none;
+    stroke: #fff;
+    stroke-linecap: round;
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+}
+.gcq-ribbon__front { fill: url(#gcq-ribbon-gold); stroke: rgba(180, 83, 9, 0.35); stroke-width: 0.8; stroke-linejoin: round; }
+.gcq-ribbon__back { fill: #d97706; stroke: rgba(146, 64, 14, 0.4); stroke-width: 0.8; stroke-linejoin: round; }
+header.header-night .gcq-ribbon__front { fill: #fde68a; }
+header.header-night .gcq-ribbon__back { fill: #a16207; }
+
+/* Opening */
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim__thread {
+    animation: gcq-thread-unravel calc(var(--award-sky-reveal-duration) * 0.42) cubic-bezier(0.55, 0, 0.3, 1) both;
+}
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim__thread::after { animation-play-state: paused; opacity: 0; }
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim__bead {
+    animation: gcq-bead-slip calc(var(--award-sky-reveal-duration) * 0.5) cubic-bezier(0.5, 0, 0.75, 0.4) var(--slip, 0ms) both;
+}
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim__gem {
+    animation: gcq-gem-untie calc(var(--award-sky-reveal-duration) * 0.55) cubic-bezier(0.3, 0, 0.3, 1) both;
+}
+#app-screen.award-sky-active .gcq-ribbons { visibility: visible; }
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-ribbons {
+    animation: gcq-ribbons-melt calc(var(--award-sky-reveal-duration) * 1.6) ease-in both;
+}
+#app-screen.award-sky-active:not(.award-sky-leaving) .gcq-ribbon__reveal {
+    animation: gcq-ribbon-unfurl calc(var(--award-sky-reveal-duration) * 0.95) cubic-bezier(0.25, 0.8, 0.3, 1) calc(var(--award-sky-reveal-duration) * (0.08 + var(--i) * 0.05)) both;
+}
+
+/* Leaving */
+#app-screen.award-sky-leaving .gcq-ribbons {
+    animation: gcq-ribbons-return var(--award-sky-reveal-duration) linear both;
+}
+#app-screen.award-sky-leaving .gcq-ribbon__reveal {
+    animation: gcq-ribbon-furl calc(var(--award-sky-reveal-duration) * 0.7) cubic-bezier(0.5, 0, 0.4, 1) calc(var(--award-sky-reveal-duration) * (0.02 + (3 - var(--i)) * 0.03)) both;
+}
+#app-screen.award-sky-leaving .gcq-header-trim__gem {
+    animation: gcq-gem-retie calc(var(--award-sky-reveal-duration) * 0.5) cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--award-sky-reveal-duration) * 0.5) both;
+}
+#app-screen.award-sky-leaving .gcq-header-trim__thread {
+    animation: gcq-thread-ravel calc(var(--award-sky-reveal-duration) * 0.42) cubic-bezier(0.3, 0, 0.3, 1) calc(var(--award-sky-reveal-duration) * 0.55) both;
+}
+#app-screen.award-sky-leaving .gcq-header-trim__bead {
+    animation:
+        gcq-bead-settle calc(var(--award-sky-reveal-duration) * 0.3) cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--award-sky-reveal-duration) * 0.72 + var(--slip, 0ms)) both,
+        gcq-bead-twinkle 5.5s ease-in-out var(--d, 0s) infinite;
+}
+
+/* Beads nearest the gem slip off first. */
+.gcq-header-trim__bead[style*="--x: 28%"],
+.gcq-header-trim__bead[style*="--x: 72%"] { --slip: 40ms; }
+.gcq-header-trim__bead[style*="--x: 9%"],
+.gcq-header-trim__bead[style*="--x: 91%"] { --slip: 170ms; }
+
+@keyframes gcq-thread-unravel {
+    from { clip-path: polygon(0 -300%, 50% -300%, 50% 400%, 50% 400%, 50% -300%, 100% -300%, 100% 400%, 0 400%); }
+    to { clip-path: polygon(0 -300%, 0 -300%, 0 400%, 100% 400%, 100% -300%, 100% -300%, 100% 400%, 0 400%); }
+}
+@keyframes gcq-thread-ravel {
+    from { clip-path: polygon(0 -300%, 0 -300%, 0 400%, 100% 400%, 100% -300%, 100% -300%, 100% 400%, 0 400%); }
+    to { clip-path: polygon(0 -300%, 50% -300%, 50% 400%, 50% 400%, 50% -300%, 100% -300%, 100% 400%, 0 400%); }
+}
+@keyframes gcq-bead-slip {
+    from { opacity: 1; translate: 0 0; rotate: 0deg; }
+    to { opacity: 0; translate: 0 26px; rotate: 160deg; }
+}
+@keyframes gcq-bead-settle {
+    from { opacity: 0; translate: 0 -14px; scale: 0.3; }
+    to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes gcq-gem-untie {
+    0% { opacity: 1; scale: 1; rotate: 0deg; }
+    30% { opacity: 1; scale: 1.35; rotate: 0deg; }
+    100% { opacity: 0; scale: 0.3 1.6; rotate: 0deg; translate: 0 10px; }
+}
+@keyframes gcq-gem-retie {
+    0% { opacity: 0; scale: 0.3 1.6; translate: 0 10px; }
+    60% { opacity: 1; scale: 1.3; translate: 0 0; }
+    100% { opacity: 1; scale: 1; translate: 0 0; }
+}
+@keyframes gcq-ribbon-unfurl {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+}
+@keyframes gcq-ribbon-furl {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: 1; }
+}
+/* Unfurled, the ribbons drift a little lower and melt into the sky. */
+@keyframes gcq-ribbons-melt {
+    0%, 55% { opacity: 1; translate: -50% 0; }
+    100% { opacity: 0; translate: -50% 3vh; }
+}
+@keyframes gcq-ribbons-return {
+    0% { opacity: 0; translate: -50% 3vh; }
+    14% { opacity: 1; translate: -50% 0; }
+    100% { opacity: 1; translate: -50% 0; }
+}
 
 @media (max-width: 639px) {
     .gcq-swash,
     .gcq-twinkle,
     .gcq-pixie-lane { display: none; }
     .gcq-header-trim__gem { width: 64px; }
+    .gcq-ribbons { width: 92vw; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -293,4 +416,39 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
     .gcq-twinkle { animation: none; opacity: 0; }
     .gcq-pixie-lane { display: none; }
     .gcq-swash__star { animation: none; }
+    .gcq-ribbons { display: none; }
+    #app-screen.award-sky-active .gcq-header-trim__thread,
+    #app-screen.award-sky-active .gcq-header-trim__bead,
+    #app-screen.award-sky-active .gcq-header-trim__gem { animation: none !important; }
+    #app-screen.award-sky-active:not(.award-sky-leaving) .gcq-header-trim { opacity: 0; }
+}
+
+/* The phone header's thread comes undone and knits back the same way (no ribbons: the phone header clips). */
+.m-header__thread {
+    clip-path: polygon(0 -300%, 50% -300%, 50% 400%, 50% 400%, 50% -300%, 100% -300%, 100% 400%, 0 400%);
+}
+#app-screen.award-sky-active:not(.award-sky-leaving) .m-header__thread {
+    animation: gcq-thread-unravel calc(var(--award-sky-reveal-duration) * 0.42) cubic-bezier(0.55, 0, 0.3, 1) both;
+}
+#app-screen.award-sky-active:not(.award-sky-leaving) .m-header__bead {
+    animation: gcq-bead-slip calc(var(--award-sky-reveal-duration) * 0.5) cubic-bezier(0.5, 0, 0.75, 0.4) both;
+}
+#app-screen.award-sky-active:not(.award-sky-leaving) .m-header__gem {
+    animation: gcq-gem-untie calc(var(--award-sky-reveal-duration) * 0.55) cubic-bezier(0.3, 0, 0.3, 1) both;
+}
+#app-screen.award-sky-leaving .m-header__gem {
+    animation: gcq-gem-retie calc(var(--award-sky-reveal-duration) * 0.5) cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--award-sky-reveal-duration) * 0.5) both;
+}
+#app-screen.award-sky-leaving .m-header__thread {
+    animation: gcq-thread-ravel calc(var(--award-sky-reveal-duration) * 0.42) cubic-bezier(0.3, 0, 0.3, 1) calc(var(--award-sky-reveal-duration) * 0.55) both;
+}
+#app-screen.award-sky-leaving .m-header__bead {
+    animation:
+        gcq-bead-settle calc(var(--award-sky-reveal-duration) * 0.3) cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--award-sky-reveal-duration) * 0.72) both,
+        m-bead-twinkle 5.5s ease-in-out var(--d, 0s) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    #app-screen.award-sky-active .m-header__thread,
+    #app-screen.award-sky-active .m-header__bead,
+    #app-screen.award-sky-active .m-header__gem { animation: none !important; }
 }

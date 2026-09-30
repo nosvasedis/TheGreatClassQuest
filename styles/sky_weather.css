@@ -149,11 +149,12 @@ html[data-wx-tone="rain"] {
 }
 
 html[data-wx-tone="storm"] {
-    --wx-sky-1: #4b5563;
-    --wx-sky-2: #394154;
-    --wx-sky-3: #272d3d;
+    --wx-sky-1: #5d6776;
+    --wx-sky-2: #4a5362;
+    --wx-sky-3: #384050;
     --wx-zenith: rgba(15, 23, 42, 0.42);
-    --wx-horizon: rgba(129, 140, 248, 0.16);
+    /* Daylight still glows low under a storm, which keeps it reading as day. */
+    --wx-horizon: rgba(214, 222, 214, 0.26);
     --wx-cloud-shade: #232937;
     --wx-cloud-body: #434b5d;
     --wx-cloud-lit: #545d70;
@@ -163,8 +164,8 @@ html[data-wx-tone="storm"] {
     --wx-drop-far: rgba(200, 212, 232, 0.34);
 }
 html[data-wx="hail"] {
-    --wx-sky-2: #3d3a74;
-    --wx-horizon: rgba(165, 180, 252, 0.2);
+    --wx-sky-2: #4c5670;
+    --wx-horizon: rgba(203, 213, 225, 0.24);
 }
 
 html[data-wx-tone="snow"] {
@@ -718,8 +719,14 @@ html[data-wx-night="1"] #app-screen.award-sky-active #award-stars-tab .tab-sign 
     text-shadow: 0 1px 3px rgba(15, 23, 42, 0.55);
 }
 
-/* Header stars stay the header's own (misc_wallpaper.css); hide them behind heavy cloud. */
-html[data-wx-night="1"]:not([data-wx-tone="fair"]) header .header-night-stars { opacity: 0.25; }
+/* Stars follow the real cloud cover everywhere: all out on a clear night, a few
+   through broken cloud, none behind overcast, rain, snow or fog. */
+html[data-wx-stars="dim"] header .header-night-stars,
+html[data-wx-stars="dim"] #award-immersive-sky .award-immersive-stars,
+html[data-wx-stars="dim"] #wall-stars { opacity: 0.4 !important; }
+html[data-wx-stars="0"] header .header-night-stars,
+html[data-wx-stars="0"] #award-immersive-sky .award-immersive-stars,
+html[data-wx-stars="0"] #wall-stars { opacity: 0 !important; visibility: hidden !important; }
 
 /* ============================================================
    6. AWARD SKY: sun and moon follow the scene

@@ -148,13 +148,15 @@ export function resolveSkyScene(weather = {}, sun = {}, { lite = false } = {}) {
         fog: condition === 'fog' || (condition === 'drizzle' && intensity === 'heavy'),
         lightning: condition === 'storm' || condition === 'hail',
         rainbow: condition === 'showers' && intensity !== 'heavy' && !isNight,
-        sun: !isNight && cover < 72 && !['rain', 'storm', 'hail', 'freezing', 'drizzle'].includes(condition),
+        sun: !isNight && cover < 72 && !['rain', 'storm', 'hail', 'freezing', 'drizzle'].includes(condition)
+            && !(condition === 'showers' && intensity === 'heavy'),
         moon: isNight && cover < 82,
         stars: isNight && cover < 80,
         shootingStars: isNight && cover < 45,
         gusts: wind.level === 'windy' || wind.level === 'gale',
         icicles: condition === 'freezing' || (condition === 'fog' && intensity === 'heavy'),
         lite: !!lite,
+        now,
         counts: {}
     };
     for (const surface of ['header', 'sky', 'card', 'wall', 'mobile']) {

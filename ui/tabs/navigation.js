@@ -20,7 +20,6 @@ import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
 import { requestDayRingIntro } from '../../features/homeGreetingScene.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
-import { generateLeagueMapHtml } from '../../features/worldMap.js';
 import { refreshFortunesWheelModalFromGlobalClass } from '../../features/fortunesWheel.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
 import { renderGuildsTab } from './guilds.js';
@@ -245,7 +244,7 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
         updateCeremonyStatus(tabId);
     }
 
-    if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab();
+    if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab({ freshVisit: true });
     if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab({ freshVisit: true });
     if (tabId === 'guilds-tab') await renderGuildsTab();
     if (tabId === 'manage-students-tab') renderManageStudentsTab();

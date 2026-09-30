@@ -3,7 +3,14 @@ import * as state from '../state.js'; // Import state to get live scores
 import * as utils from '../utils.js';
 
 export { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
-import { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
+import { getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
+import {
+    QUEST_ROAD_STOPS,
+    describeQuestRaceGaps,
+    describeQuestRaceLine,
+    formatQuestStars,
+    getQuestNextStop
+} from './teamQuestRace.mjs';
 
 /** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
 function resolveLeagueMapMetrics(c) {
@@ -84,7 +91,7 @@ const QUEST_ROUTE_SEGMENTS = [
         d: 'M 951 224 C 972 224 989 217 1000 209 C 1021 194 1032 176 1048 164 C 1062 154 1072 146 1079 136 C 1084 131 1087 127 1088 125'
     }
 ];
-const MAP_LANE_GAP = 42;
+const MAP_LANE_GAP = 54;
 const MAP_TOKEN_EDGE_MARGIN = 44;
 
 const LIVING_MAP_ASSETS = {
@@ -136,7 +143,22 @@ const ZONE_SCROLL_BY_ID = {
     diamond: LIVING_MAP_ASSETS.scrollCrystal
 };
 
+
+const ROAD_STOP_BADGE = {
+    silver: LIVING_MAP_ASSETS.badgeSilver,
+    gold: LIVING_MAP_ASSETS.badgeGold,
+    crystal: LIVING_MAP_ASSETS.badgeCrystal,
+    portal: LIVING_MAP_ASSETS.badgeCrystal
+};
+
+const TIER_BY_RANK = ['gold', 'silver', 'bronze'];
+const RANK_WORDS = ['Quest leader', '2nd place', '3rd place'];
+const LITE_FX_STORAGE_KEY = 'gcq-team-quest-map-fx';
+
 let activeLivingMapController = null;
+// Where each party was last drawn, so live updates walk tokens forward from
+// there instead of replaying the whole journey from the start of the road.
+const mapMemory = { leagueKey: null, tokens: new Map(), pinnedKey: null };
 
 function escapeMapHtml(value) {
     return String(value ?? '')
@@ -145,6 +167,26 @@ function escapeMapHtml(value) {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
+}
+
+function readStoredFxPreference() {
+    try { return sessionStorage.getItem(LITE_FX_STORAGE_KEY); } catch { return null; }
+}
+
+function storeFxPreference(value) {
+    try { sessionStorage.setItem(LITE_FX_STORAGE_KEY, value); } catch { /* private mode */ }
+}
+
+/** Modest machines keep the map, the road and the parties, but drop the large drifting art layers. */
+function shouldUseLiteMapFx() {
+    if (readStoredFxPreference() === 'lite') return true;
+    try {
+        const nav = navigator;
+        if (nav.connection?.saveData) return true;
+        if (Number(nav.deviceMemory) > 0 && Number(nav.deviceMemory) <= 4) return true;
+        if (Number(nav.hardwareConcurrency) > 0 && Number(nav.hardwareConcurrency) <= 4) return true;
+    } catch { /* not available */ }
+    return false;
 }
 
 function assignStableMapLanes(items) {
@@ -164,125 +206,167 @@ function assignStableMapLanes(items) {
     };
 
     ordered.forEach((item) => {
-        if (cluster.length && item.pct - cluster[0].pct > 2.5) flushCluster();
+        if (cluster.length && item.pct - cluster[0].pct > 4) flushCluster();
         cluster.push(item);
     });
     flushCluster();
     return items;
 }
 
+function buildMapItems(classes, { activeClassId = null } = {}) {
+    const gaps = describeQuestRaceGaps(classes.map((c, index) => ({
+        ...c,
+        progress: Number.isFinite(Number(c.progress)) ? Number(c.progress) : resolveLeagueMapMetrics(c).pct,
+        rank: c.rank || index + 1
+    })));
+
+    return assignStableMapLanes(classes.map((c, leagueIndex) => {
+        const metrics = resolveLeagueMapMetrics(c);
+        const rankPosition = Number(c.rank) || leagueIndex + 1;
+        return {
+            c,
+            ...metrics,
+            rankPosition,
+            pinTier: TIER_BY_RANK[rankPosition - 1] || 'slate',
+            isLeader: rankPosition === 1,
+            isMine: Boolean(activeClassId) && c.id === activeClassId,
+            displayLevel: (Number(c.difficulty) || 0) + 1,
+            weeklyStars: Number(c.weeklyStars) || 0,
+            topHeroes: Array.isArray(c.topHeroes) ? c.topHeroes : [],
+            gap: gaps.get(c.id) || null,
+            tokenKey: encodeURIComponent(String(c.id || c.name || leagueIndex)),
+            lane: 0
+        };
+    }));
+}
+
 function renderMapToken(item) {
-    const {
-        c,
-        pct,
-        isLeader,
-        pinTier,
-        progressDisplay,
-        starsDisplay,
-        liveMonthlyStars,
-        goal,
-        displayLevel,
-        classQuestBonus,
-        rankPosition,
-        tokenKey,
-        lane
-    } = item;
+    const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
     const safeName = escapeMapHtml(c.name || 'Class');
     const safeLogo = escapeMapHtml(c.logo || '📚');
-    const safeZone = escapeMapHtml(zone.label);
-    const zoneBadge = ZONE_BADGE_BY_ID[zone.id];
-    const nextMilestone = [
-        { progress: 30, label: 'Silver Peaks', badgeId: 'silver' },
-        { progress: 60, label: 'Golden Citadel', badgeId: 'gold' },
-        { progress: 85, label: 'Crystal Realm', badgeId: 'crystal' },
-        { progress: 100, label: 'Quest Finish', badgeId: 'crystal' }
-    ].find((milestone) => pct < milestone.progress) || null;
-    const starsToNext = nextMilestone
-        ? Math.max(0, Math.ceil((goal * nextMilestone.progress / 100) - liveMonthlyStars))
-        : 0;
-    const starsToGoal = Math.max(0, Math.ceil(goal - liveMonthlyStars));
-    const milestoneLabel = nextMilestone ? nextMilestone.label : 'Crystal Realm reached';
-    const milestoneDetail = nextMilestone ? `${starsToNext} star${starsToNext === 1 ? '' : 's'} to arrive` : 'Quest complete!';
-    const milestoneBadge = ZONE_BADGE_BY_ID[nextMilestone?.badgeId || 'crystal'];
-    const tooltipPosition = [
-        pct >= 78 ? 'tq-class-token--tooltip-below' : '',
-        pct >= 90 ? 'tq-class-token--tooltip-left' : '',
-        pct <= 8 ? 'tq-class-token--tooltip-right' : ''
-    ].filter(Boolean).map((className) => ` ${className}`).join('');
-    const ariaLabel = `${safeName}, league rank ${rankPosition}, ${progressDisplay}% complete, ${starsDisplay} of ${goal} stars, ${safeZone}, level ${displayLevel}, ${milestoneDetail} ${milestoneLabel}`;
+    const classes = [
+        'tq-token',
+        `tq-token--${zone.id}`,
+        `tq-token--tier-${pinTier}`,
+        isLeader ? 'is-leader' : '',
+        isMine ? 'is-mine' : '',
+        pct >= 100 ? 'is-complete' : ''
+    ].filter(Boolean).join(' ');
+    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${Math.round(Number(progressDisplay))}% of the monthly quest, ${starsDisplay} of ${goal} stars, in ${escapeMapHtml(zone.label)}.`;
 
     return `
         <button type="button"
-                class="tq-class-token tq-class-token--${zone.id} tq-class-token--frame-${pinTier} league-map-avatar${isLeader ? ' is-leader' : ''}${tooltipPosition}"
+                class="${classes}"
                 data-map-token
                 data-token-key="${tokenKey}"
+                data-class-id="${escapeMapHtml(c.id || '')}"
                 data-progress="${pct}"
+                data-stars="${Number(liveMonthlyStars) || 0}"
                 data-lane="${lane}"
                 aria-label="${ariaLabel}"
+                aria-haspopup="dialog"
                 aria-expanded="false">
-            <span class="tq-class-token__visual" aria-hidden="true">
-                <span class="tq-class-token__shadow"></span>
-                <span class="tq-class-token__core">
-                    <span class="tq-class-token__logo">${safeLogo}</span>
-                    <img class="tq-class-token__frame"
-                         src="${TOKEN_FRAME_BY_TIER[pinTier]}"
-                         alt=""
-                         draggable="false">
+            <span class="tq-token__shadow" aria-hidden="true"></span>
+            <span class="tq-token__body" aria-hidden="true">
+                <span class="tq-token__aura"></span>
+                <span class="tq-token__disc">
+                    <span class="tq-token__logo">${safeLogo}</span>
+                    <img class="tq-token__frame" src="${TOKEN_FRAME_BY_TIER[pinTier]}" alt="" draggable="false" decoding="async">
                 </span>
-            </span>
-
-            <span class="tq-map-tooltip tq-map-tooltip--${zone.id}${isLeader ? ' tq-map-tooltip--leader' : ''}" role="tooltip">
-                <span class="tq-map-tooltip__spark tq-map-tooltip__spark--one" aria-hidden="true">✦</span>
-                <span class="tq-map-tooltip__spark tq-map-tooltip__spark--two" aria-hidden="true">✧</span>
-                <span class="tq-map-tooltip__rank">
-                    <span>${isLeader ? 'Quest leader' : `League rank #${rankPosition}`}</span>
-                </span>
-                <span class="tq-map-tooltip__header">
-                    <span class="tq-map-tooltip__logo" aria-hidden="true">${safeLogo}</span>
-                    <span class="tq-map-tooltip__identity">
-                        <strong class="tq-map-tooltip__title">${safeName}</strong>
-                        <span class="tq-map-tooltip__zone">
-                            <img src="${zoneBadge}" alt="" draggable="false" aria-hidden="true">
-                            <span>${safeZone}</span>
-                        </span>
-                    </span>
-                    <span class="tq-map-tooltip__level">Lvl ${displayLevel}</span>
-                </span>
-                <span class="tq-map-tooltip__journey">
-                    <span class="tq-map-tooltip__journey-label">
-                        <span>Monthly journey</span>
-                        <strong>${progressDisplay}%</strong>
-                    </span>
-                    <span class="tq-map-tooltip__meter" aria-hidden="true">
-                        <span class="tq-map-tooltip__meter-fill" style="width:${pct}%"></span>
-                    </span>
-                </span>
-                <span class="tq-map-tooltip__stats">
-                    <span class="tq-map-tooltip__stat">
-                        <span>
-                            <small>Collected</small>
-                            <strong>${starsDisplay} / ${goal}</strong>
-                        </span>
-                    </span>
-                    <span class="tq-map-tooltip__stat">
-                        <span>
-                            <small>To monthly goal</small>
-                            <strong>${starsToGoal > 0 ? `${starsToGoal} stars` : 'Complete'}</strong>
-                        </span>
-                    </span>
-                </span>
-                <span class="tq-map-tooltip__milestone">
-                    <img class="tq-map-tooltip__milestone-badge" src="${milestoneBadge}" alt="" draggable="false" aria-hidden="true">
-                    <span>
-                        <small>${nextMilestone ? 'Next milestone' : 'Celebration unlocked'}</small>
-                        <strong>${milestoneLabel}</strong>
-                        <em>${milestoneDetail}</em>
-                    </span>
-                </span>
-                ${classQuestBonus > 0 ? `<span class="tq-map-tooltip__bonus">+${classQuestBonus} Pathfinder</span>` : ''}
+                <span class="tq-token__rank">${rankPosition}</span>
+                ${isMine ? '<span class="tq-token__pennant"><i class="fas fa-flag"></i>Active</span>' : ''}
             </span>
         </button>`;
+}
+
+function renderRouteStrip(pct) {
+    const stops = [{ id: 'bronze', progress: 0 }, ...QUEST_ROAD_STOPS];
+    const dots = stops.map((stop) => `
+        <span class="tq-card__stop tq-card__stop--${stop.id}${pct >= stop.progress ? ' is-reached' : ''}" style="left:${stop.progress}%"></span>
+    `).join('');
+    return `
+        <span class="tq-card__route" aria-hidden="true">
+            <span class="tq-card__route-track"></span>
+            <span class="tq-card__route-fill" style="--p:${pct}%"></span>
+            ${dots}
+            <span class="tq-card__route-marker" style="left:${pct}%"></span>
+        </span>`;
+}
+
+function renderTokenCard(item) {
+    const { c, pct, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey } = item;
+    const zone = getQuestMapZoneForProgressPercent(pct);
+    const next = getQuestNextStop(pct, liveMonthlyStars, goal);
+    const safeName = escapeMapHtml(c.name || 'Class');
+    const safeLogo = escapeMapHtml(c.logo || '📚');
+    const rankWord = RANK_WORDS[rankPosition - 1] || `${rankPosition}th place`;
+    const raceLine = describeQuestRaceLine(gap);
+    const heroes = topHeroes.filter((hero) => (Number(hero.stars) || 0) > 0).slice(0, 3);
+    const heroesHtml = heroes.length ? `
+        <span class="tq-card__heroes">
+            <small>Leading the way</small>
+            <span class="tq-card__hero-row">
+                ${heroes.map((hero) => `
+                    <span class="tq-card__hero">
+                        ${hero.avatar
+                            ? `<img src="${escapeMapHtml(hero.avatar)}" alt="" loading="lazy" decoding="async">`
+                            : `<span class="tq-card__hero-initial">${escapeMapHtml(String(hero.name || '?').charAt(0))}</span>`}
+                        <span class="tq-card__hero-name">${escapeMapHtml(String(hero.name || '').split(' ')[0])}</span>
+                        <span class="tq-card__hero-stars">${formatQuestStars(hero.stars)}★</span>
+                    </span>`).join('')}
+            </span>
+        </span>` : '';
+
+    return `
+        <template data-card-for="${tokenKey}">
+            <div class="tq-card tq-card--${zone.id}${isLeader ? ' tq-card--leader' : ''}">
+                <span class="tq-card__ribbon">
+                    <span class="tq-card__seal tq-card__seal--${pinTier}">${isLeader ? '<i class="fas fa-crown" aria-hidden="true"></i>' : rankPosition}</span>
+                    <span class="tq-card__ribbon-text">${rankWord}${isMine ? ' · <b>Active class</b>' : ''}</span>
+                    <span class="tq-card__lvl" title="Quest level: the monthly goal grows with each level"><i class="fas fa-shield-halved" aria-hidden="true"></i>Lvl ${displayLevel}</span>
+                </span>
+                <span class="tq-card__head">
+                    <span class="tq-card__logo" aria-hidden="true">${safeLogo}</span>
+                    <span class="tq-card__identity">
+                        <strong class="tq-card__name">${safeName}</strong>
+                        <span class="tq-card__zone"><img src="${ZONE_BADGE_BY_ID[zone.id]}" alt="" aria-hidden="true" draggable="false">${escapeMapHtml(zone.label)}</span>
+                    </span>
+                    <span class="tq-card__pct">${Math.floor(pct)}<small>%</small></span>
+                </span>
+                ${renderRouteStrip(pct)}
+                <span class="tq-card__facts">
+                    <span class="tq-card__fact tq-card__fact--stars"><i class="fas fa-star" aria-hidden="true"></i><strong>${starsDisplay}</strong><small>of ${formatQuestStars(goal)} stars</small></span>
+                    <span class="tq-card__fact tq-card__fact--week"><i class="fas fa-fire" aria-hidden="true"></i><strong>+${formatQuestStars(weeklyStars)}</strong><small>this week</small></span>
+                </span>
+                <span class="tq-card__next${next.complete ? ' is-complete' : ''}">
+                    <img src="${ROAD_STOP_BADGE[next.id] || LIVING_MAP_ASSETS.badgeCrystal}" alt="" aria-hidden="true" draggable="false">
+                    <span>
+                        <small>${next.complete ? 'The portal is open' : 'Next stop'}</small>
+                        <strong>${next.complete ? 'Quest complete!' : escapeMapHtml(next.label)}</strong>
+                    </span>
+                    <em>${next.complete ? '<i class="fas fa-trophy" aria-hidden="true"></i>' : `${next.starsNeeded}★ to go`}</em>
+                </span>
+                ${raceLine ? `<span class="tq-card__race"><i class="fas fa-flag-checkered" aria-hidden="true"></i>${escapeMapHtml(raceLine)}</span>` : ''}
+                ${heroesHtml}
+                ${classQuestBonus > 0 ? `<span class="tq-card__bonus"><i class="fas fa-compass" aria-hidden="true"></i>+${formatQuestStars(classQuestBonus)} Pathfinder bonus</span>` : ''}
+                <button type="button" class="tq-card__cta" data-open-chronicle="${escapeMapHtml(c.id || '')}">
+                    <i class="fas fa-book-open" aria-hidden="true"></i><span>Open in Quest Chronicles</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        </template>`;
+}
+
+function buildLeagueMapParts(classes, options = {}) {
+    const items = buildMapItems(classes, options);
+    return {
+        count: items.length,
+        tokensHtml: items.map(renderMapToken).join(''),
+        cardsHtml: items.map(renderTokenCard).join(''),
+        connectorsHtml: items.map((item) => (
+            `<line class="tq-route__connector" data-connector-key="${item.tokenKey}" x1="0" y1="0" x2="0" y2="0"></line>`
+        )).join('')
+    };
 }
 
 function renderWaypoint({ id, label, progress, className }) {
@@ -294,52 +378,34 @@ function renderWaypoint({ id, label, progress, className }) {
                  src="${ZONE_SCROLL_BY_ID[id]}"
                  alt=""
                  draggable="false"
+                 decoding="async"
                  aria-hidden="true">
             <button type="button"
                     class="tq-waypoint__button zone-trigger"
                     data-zone="${id}"
                     aria-label="Open ${label} region overview">
                 <span class="tq-waypoint__halo" aria-hidden="true"></span>
-                <img class="tq-waypoint__badge" src="${ZONE_BADGE_BY_ID[id]}" alt="" draggable="false" aria-hidden="true">
+                <span class="tq-waypoint__burst" aria-hidden="true"></span>
+                <img class="tq-waypoint__badge" src="${ZONE_BADGE_BY_ID[id]}" alt="" draggable="false" decoding="async" aria-hidden="true">
             </button>
         </span>`;
 }
 
-export function generateLeagueMapHtml(classes) {
-    const mapItems = assignStableMapLanes(classes.map((c, leagueIndex) => {
-        const {
-            liveMonthlyStars,
-            classQuestBonus,
-            starsDisplay,
-            goal,
-            pct,
-            progressDisplay
-        } = resolveLeagueMapMetrics(c);
-        const pinTier = leagueIndex === 0 ? 'gold'
-            : leagueIndex === 1 ? 'silver'
-                : leagueIndex === 2 ? 'bronze'
-                    : 'slate';
+function renderChronicleButton(count) {
+    return `
+        <button id="toggle-map-list-btn" class="tq-chronicle-btn" type="button" aria-controls="league-standings-container" aria-expanded="false">
+            <span class="tq-chronicle-btn__book" aria-hidden="true"><i class="fas fa-book-open"></i></span>
+            <span class="tq-chronicle-btn__copy">
+                <small>Field notes</small>
+                <strong>Quest Chronicles</strong>
+            </span>
+            <span class="tq-chronicle-btn__count" data-chronicle-count aria-label="${count} parties">${count}</span>
+        </button>`;
+}
 
-        return {
-            c,
-            pct,
-            liveMonthlyStars,
-            classQuestBonus,
-            starsDisplay,
-            goal,
-            progressDisplay,
-            pinTier,
-            isLeader: leagueIndex === 0,
-            rankPosition: leagueIndex + 1,
-            displayLevel: (c.difficulty || 0) + 1,
-            tokenKey: encodeURIComponent(String(c.id || c.name || leagueIndex)),
-            lane: 0
-        };
-    }));
-
-    const connectors = mapItems.map((item) => (
-        `<line class="tq-route__connector" data-connector-key="${item.tokenKey}" x1="0" y1="0" x2="0" y2="0"></line>`
-    )).join('');
+/** Map shell (art, road, waypoints) plus the parties on it. */
+export function generateLeagueMapHtml(classes, options = {}) {
+    const parts = buildLeagueMapParts(classes, options);
 
     const waypoints = [
         { id: 'bronze', label: 'Bronze Meadows', progress: 0, className: 'bronze' },
@@ -348,31 +414,18 @@ export function generateLeagueMapHtml(classes) {
         { id: 'diamond', label: 'Crystal Realm', progress: 85, className: 'crystal' }
     ].map(renderWaypoint).join('');
 
-    const routeShadows = QUEST_ROUTE_SEGMENTS.map((segment) => (
-        `<path class="tq-route__shadow" d="${segment.d}"></path>`
-    )).join('');
-    const routeEdges = QUEST_ROUTE_SEGMENTS.map((segment) => (
-        `<path class="tq-route__edge" d="${segment.d}"></path>`
-    )).join('');
-    const routeRoads = QUEST_ROUTE_SEGMENTS.map((segment) => (
-        `<path class="tq-route__segment tq-route__segment--${segment.id}"
-               d="${segment.d}"
-               data-route-segment
-               data-progress-min="${segment.minProgress}"
-               data-progress-max="${segment.maxProgress}"></path>`
-    )).join('');
-    const routeGleams = QUEST_ROUTE_SEGMENTS.map((segment) => (
-        `<path class="tq-route__gleam" d="${segment.d}"></path>`
+    const pathsFor = (className, extra = () => '') => QUEST_ROUTE_SEGMENTS.map((segment) => (
+        `<path class="${className}${className === 'tq-route__segment' ? ` tq-route__segment--${segment.id}` : ''}" d="${segment.d}"${extra(segment)}></path>`
     )).join('');
 
     return `
-    <div class="team-quest-map-parchment tq-living-map" role="region" aria-label="League quest map" data-living-quest-map>
-        <img class="tq-living-map__parchment-backing" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" aria-hidden="true">
+    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${shouldUseLiteMapFx() ? 'lite' : 'full'}">
+        <img class="tq-living-map__parchment-backing" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async" aria-hidden="true">
         <div class="tq-living-map__frame">
-            <img class="tq-living-map__background" src="${LIVING_MAP_ASSETS.background}" alt="" draggable="false">
-            <img class="tq-living-map__crystal-aura" src="${LIVING_MAP_ASSETS.crystalAura}" alt="" draggable="false" aria-hidden="true">
-            <img class="tq-living-map__mist tq-living-map__mist--near" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" aria-hidden="true">
-            <img class="tq-living-map__mist tq-living-map__mist--far" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" aria-hidden="true">
+            <img class="tq-living-map__background" src="${LIVING_MAP_ASSETS.background}" alt="" draggable="false" decoding="async" fetchpriority="high">
+            <img class="tq-living-map__crystal-aura" src="${LIVING_MAP_ASSETS.crystalAura}" alt="" draggable="false" decoding="async" aria-hidden="true">
+            <img class="tq-living-map__mist tq-living-map__mist--near tq-fx-heavy" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" decoding="async" aria-hidden="true">
+            <img class="tq-living-map__mist tq-living-map__mist--far tq-fx-heavy" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" decoding="async" aria-hidden="true">
 
             <svg class="tq-route" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                 <defs>
@@ -397,15 +450,16 @@ export function generateLeagueMapHtml(classes) {
                         <stop offset="100%" stop-color="#f193ff"></stop>
                     </linearGradient>
                 </defs>
-                ${routeShadows}
-                ${routeEdges}
-                ${routeRoads}
-                ${routeGleams}
-                <g class="tq-route__connectors">${connectors}</g>
+                ${pathsFor('tq-route__shadow')}
+                ${pathsFor('tq-route__edge')}
+                ${pathsFor('tq-route__segment', (segment) => ` data-route-segment data-progress-min="${segment.minProgress}" data-progress-max="${segment.maxProgress}"`)}
+                ${pathsFor('tq-route__gleam')}
+                ${pathsFor('tq-route__fog', (segment) => ` data-fog-segment data-progress-min="${segment.minProgress}" data-progress-max="${segment.maxProgress}"`)}
+                <g class="tq-route__connectors">${parts.connectorsHtml}</g>
             </svg>
 
             <div class="tq-map-title" aria-hidden="true">
-                <img class="tq-map-title__scroll" src="${LIVING_MAP_ASSETS.scrollMap}" alt="" draggable="false">
+                <img class="tq-map-title__scroll" src="${LIVING_MAP_ASSETS.scrollMap}" alt="" draggable="false" decoding="async">
             </div>
 
             <div class="tq-map-ambient" aria-hidden="true">
@@ -418,35 +472,66 @@ export function generateLeagueMapHtml(classes) {
                 <span class="tq-ambient tq-ambient--crystal-spark-one">✦</span>
                 <span class="tq-ambient tq-ambient--crystal-spark-two">✧</span>
                 <span class="tq-ambient tq-ambient--crystal-spark-three">✦</span>
-                <img class="tq-ambient tq-water-ripple tq-water-ripple--one" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false">
-                <img class="tq-ambient tq-water-ripple tq-water-ripple--two" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false">
-                <img class="tq-ambient tq-water-ripple tq-water-ripple--three" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false">
-                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--one" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false">
-                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--two" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false">
-                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--one" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false">
-                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--two" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false">
-                <img class="tq-ambient tq-city-sparks tq-city-sparks--one" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false">
-                <img class="tq-ambient tq-city-sparks tq-city-sparks--two" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false">
-                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--one" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false">
-                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--two" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false">
+                <img class="tq-ambient tq-water-ripple tq-water-ripple--one" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-water-ripple tq-water-ripple--two" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-water-ripple tq-water-ripple--three tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--one tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--one tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-city-sparks tq-city-sparks--one" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-city-sparks tq-city-sparks--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--one tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false" decoding="async">
+                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false" decoding="async">
             </div>
 
             ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" data-offset-x="9" data-offset-y="-46" aria-label="Quest finish at 100 percent">
-                <span class="tq-route-finish__glow" aria-hidden="true"></span>
-                <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
-                <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" aria-hidden="true">
+            <span class="tq-route-finish" data-route-progress="100" data-offset-x="9" data-offset-y="-46" aria-hidden="true">
+                <span class="tq-route-finish__glow"></span>
+                <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async">
+                <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async">
             </span>
-            <div class="tq-class-token-layer">${mapItems.map(renderMapToken).join('')}</div>
+            <div class="tq-class-token-layer">${parts.tokensHtml}</div>
 
             <div class="tq-map-controls">
-                <button id="toggle-map-list-btn" class="map-toggle-roster-btn tq-map-control tq-map-control--analysis" type="button">
-                    <i class="fas fa-list-ul" aria-hidden="true"></i>
-                    <span>Analysis</span>
+                <button type="button" class="tq-map-replay" data-map-replay title="Replay the journey" aria-label="Replay the journey">
+                    <i class="fas fa-shoe-prints" aria-hidden="true"></i>
                 </button>
+                ${renderChronicleButton(parts.count)}
             </div>
         </div>
+        <div class="tq-popover" data-map-popover role="dialog" aria-label="Quest party details" hidden>
+            <div class="tq-popover__inner" data-map-popover-body></div>
+            <span class="tq-popover__arrow" aria-hidden="true"></span>
+        </div>
+        <div class="tq-token-cards" data-token-cards hidden>${parts.cardsHtml}</div>
     </div>`;
+}
+
+/**
+ * Draws the league map into `slot`. When the map shell is already there, only
+ * the parties are swapped — the artwork stays decoded and nothing flashes.
+ */
+export function renderLeagueMapInto(slot, classes, options = {}) {
+    if (!slot) return null;
+    const root = slot.querySelector('[data-living-quest-map]');
+    if (!root) {
+        slot.innerHTML = generateLeagueMapHtml(classes, options);
+        return slot.querySelector('[data-living-quest-map]');
+    }
+    const parts = buildLeagueMapParts(classes, options);
+    const tokenLayer = root.querySelector('.tq-class-token-layer');
+    const cards = root.querySelector('[data-token-cards]');
+    const connectors = root.querySelector('.tq-route__connectors');
+    if (tokenLayer) tokenLayer.innerHTML = parts.tokensHtml;
+    if (cards) cards.innerHTML = parts.cardsHtml;
+    if (connectors) connectors.innerHTML = parts.connectorsHtml;
+    const count = root.querySelector('[data-chronicle-count]');
+    if (count) {
+        count.textContent = String(parts.count);
+        count.setAttribute('aria-label', `${parts.count} parties`);
+    }
+    return root;
 }
 
 function getRoutePoint(routeSegments, progress) {
@@ -472,59 +557,110 @@ function getRoutePoint(routeSegments, progress) {
     };
 }
 
-function mapTransform(point, rootRect) {
-    const x = (point.x / MAP_VIEWBOX_WIDTH) * rootRect.width;
-    const y = (point.y / MAP_VIEWBOX_HEIGHT) * rootRect.height;
-    return `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
-}
-
 function constrainMapPoint(point) {
     point.x = Math.min(MAP_VIEWBOX_WIDTH - MAP_TOKEN_EDGE_MARGIN, Math.max(MAP_TOKEN_EDGE_MARGIN, point.x));
     point.y = Math.min(MAP_VIEWBOX_HEIGHT - MAP_TOKEN_EDGE_MARGIN, Math.max(MAP_TOKEN_EDGE_MARGIN, point.y));
     return point;
 }
 
-function sampleTokenJourney(routeSegments, targetProgress, lane, rootRect) {
-    const steps = Math.max(8, Math.ceil(targetProgress / 6));
+function getLanePoint(routeSegments, progress, lane) {
+    const anchor = getRoutePoint(routeSegments, progress);
+    const point = constrainMapPoint({
+        x: anchor.x + anchor.normalX * lane * MAP_LANE_GAP,
+        y: anchor.y + anchor.normalY * lane * MAP_LANE_GAP
+    });
+    return { anchor, point };
+}
+
+function mapTransform(point, rootRect) {
+    const x = (point.x / MAP_VIEWBOX_WIDTH) * rootRect.width;
+    const y = (point.y / MAP_VIEWBOX_HEIGHT) * rootRect.height;
+    return `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%)`;
+}
+
+function sampleTokenJourney(routeSegments, fromProgress, toProgress, fromLane, toLane, rootRect, fadeIn) {
+    const distance = Math.abs(toProgress - fromProgress);
+    const steps = Math.max(6, Math.ceil(distance / 3));
     const frames = [];
     for (let index = 0; index <= steps; index++) {
         const ratio = index / steps;
-        const easedProgress = targetProgress * ratio;
-        const point = getRoutePoint(routeSegments, easedProgress);
-        const laneStrength = lane * MAP_LANE_GAP * ratio;
-        point.x += point.normalX * laneStrength;
-        point.y += point.normalY * laneStrength;
+        const progress = fromProgress + (toProgress - fromProgress) * ratio;
+        const lane = fromLane + (toLane - fromLane) * ratio;
+        const { point } = getLanePoint(routeSegments, progress, lane);
         frames.push({
-            transform: mapTransform(constrainMapPoint(point), rootRect),
-            opacity: index === 0 ? 0 : 1,
+            transform: mapTransform(point, rootRect),
+            opacity: fadeIn ? Math.min(1, ratio * 6) : 1,
             offset: ratio
         });
     }
     return frames;
 }
 
-export function initializeLivingQuestMap(scope) {
+/** The living map controller for the map currently on screen (null when none). */
+export function getActiveLivingQuestMap() {
+    return activeLivingMapController;
+}
+
+export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false } = {}) {
     activeLivingMapController?.destroy?.();
     activeLivingMapController = null;
 
     const root = scope?.querySelector?.('[data-living-quest-map]');
     const frame = root?.querySelector('.tq-living-map__frame');
-    const routeSegments = [...(root?.querySelectorAll?.('[data-route-segment]') || [])].map((path) => ({
+    const toSegments = (selector) => [...(root?.querySelectorAll?.(selector) || [])].map((path) => ({
         path,
         minProgress: Number(path.dataset.progressMin) || 0,
         maxProgress: Number(path.dataset.progressMax) || 100,
         totalLength: path.getTotalLength()
     }));
+    const routeSegments = toSegments('[data-route-segment]');
     if (!root || !frame || routeSegments.length === 0) return null;
+    const fogSegments = toSegments('[data-fog-segment]');
+
+    const listeners = new AbortController();
+    const on = (target, type, handler, options = {}) => target.addEventListener(type, handler, { ...options, signal: listeners.signal });
+    const timers = new Set();
+    const later = (fn, ms) => {
+        const id = setTimeout(() => { timers.delete(id); fn(); }, ms);
+        timers.add(id);
+        return id;
+    };
 
     const tokens = [...root.querySelectorAll('[data-map-token]')];
     const waypoints = [...root.querySelectorAll('[data-waypoint-progress]')];
     const routeAnchors = [...root.querySelectorAll('[data-route-progress]:not([data-map-token])')];
-    const activeAnimations = [];
+    const connectorsByKey = new Map(
+        [...root.querySelectorAll('[data-connector-key]')].map((line) => [line.dataset.connectorKey, line])
+    );
+    const popover = root.querySelector('[data-map-popover]');
+    const popoverBody = root.querySelector('[data-map-popover-body]');
+    const replayButton = root.querySelector('[data-map-replay]');
+    const activeAnimations = new Set();
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const continuing = !replay && Boolean(leagueKey) && mapMemory.leagueKey === leagueKey;
+    const previous = continuing ? new Map(mapMemory.tokens) : new Map();
+    const pinnedKeyToRestore = continuing ? mapMemory.pinnedKey : null;
+    if (!continuing) mapMemory.pinnedKey = null;
     let offscreen = false;
     let pageHidden = document.hidden;
-    let initialJourneyPlayed = false;
+    let journeyPlayed = false;
+    let destroyed = false;
+
+    const tokenState = (token) => ({
+        key: token.dataset.tokenKey,
+        progress: Math.min(100, Math.max(0, Number(token.dataset.progress) || 0)),
+        stars: Number(token.dataset.stars) || 0,
+        lane: Number(token.dataset.lane) || 0
+    });
+
+    // Remember where everyone ends up, whatever happens to this controller.
+    mapMemory.leagueKey = leagueKey || null;
+    mapMemory.tokens = new Map(tokens.map((token) => {
+        const s = tokenState(token);
+        return [s.key, { progress: s.progress, stars: s.stars, lane: s.lane }];
+    }));
+
+    const leaderProgress = () => Math.max(0, ...tokens.map((token) => tokenState(token).progress));
 
     const positionStaticElements = () => {
         routeAnchors.forEach((element) => {
@@ -536,9 +672,28 @@ export function initializeLivingQuestMap(scope) {
         });
     };
 
+    // The road beyond the furthest party is still unexplored: washed out under a veil of parchment.
+    const updateExploration = (explored, { animate = false } = {}) => {
+        const rect = frame.getBoundingClientRect();
+        const unitsPerPixel = rect.width ? MAP_VIEWBOX_WIDTH / rect.width : 1;
+        fogSegments.forEach((segment) => {
+            const range = segment.maxProgress - segment.minProgress || 1;
+            const ratio = Math.min(1, Math.max(0, (explored - segment.minProgress) / range));
+            const exploredLength = segment.totalLength * ratio;
+            const rest = Math.max(0, segment.totalLength - exploredLength);
+            segment.path.style.strokeWidth = (17 * unitsPerPixel).toFixed(2);
+            segment.path.style.transitionDelay = animate
+                ? `${Math.round((segment.minProgress / Math.max(1, explored)) * 1200)}ms`
+                : '0ms';
+            segment.path.classList.toggle('is-animated', animate);
+            segment.path.style.strokeDasharray = `${rest.toFixed(1)} ${(segment.totalLength + 40).toFixed(1)}`;
+            segment.path.style.strokeDashoffset = (-exploredLength).toFixed(1);
+        });
+    };
+
     const updateWaypointStates = () => {
-        const progressValues = tokens.map((token) => Math.min(100, Math.max(0, Number(token.dataset.progress) || 0)));
-        const leaderProgress = Math.max(0, ...progressValues);
+        const progressValues = tokens.map((token) => tokenState(token).progress);
+        const leader = Math.max(0, ...progressValues);
         const checkpointStarts = [0, 0, 30, 60];
 
         waypoints.forEach((waypoint, index) => {
@@ -547,7 +702,7 @@ export function initializeLivingQuestMap(scope) {
             const checkpointRange = Math.max(1, targetProgress - startProgress);
             const charge = targetProgress === 0
                 ? 1
-                : Math.min(1, Math.max(0, (leaderProgress - startProgress) / checkpointRange));
+                : Math.min(1, Math.max(0, (leader - startProgress) / checkpointRange));
             const occupied = progressValues.some((progress) => Math.abs(progress - targetProgress) <= 3.5);
             const haloOpacity = 0.16 + charge * 0.42;
             const haloScale = 0.84 + charge * 0.22;
@@ -557,56 +712,149 @@ export function initializeLivingQuestMap(scope) {
             waypoint.style.setProperty('--waypoint-hover-opacity', Math.min(1, haloOpacity + 0.35).toFixed(3));
             waypoint.style.setProperty('--waypoint-hover-scale', (haloScale + 0.15).toFixed(3));
             waypoint.classList.toggle('is-occupied', occupied);
+            waypoint.classList.toggle('is-reached', targetProgress === 0 || leader >= targetProgress);
         });
     };
 
-    const positionTokens = ({ animate = false } = {}) => {
+    const celebrateWaypoint = (progress) => {
+        const waypoint = waypoints.find((candidate) => Number(candidate.dataset.waypointProgress) === progress);
+        if (!waypoint) return;
+        waypoint.classList.remove('is-celebrating');
+        void waypoint.offsetWidth;
+        waypoint.classList.add('is-celebrating');
+        later(() => waypoint.classList.remove('is-celebrating'), 1800);
+    };
+
+    const placeToken = (token, rect) => {
+        const { key, progress, lane } = tokenState(token);
+        const { anchor, point } = getLanePoint(routeSegments, progress, lane);
+        token.style.transform = mapTransform(point, rect);
+        token.style.zIndex = String(60 + Math.round(progress) + Math.abs(lane) + (token.classList.contains('is-mine') ? 30 : 0));
+        token.dataset.positioned = 'true';
+        const connector = connectorsByKey.get(key);
+        if (connector) {
+            connector.setAttribute('x1', anchor.x.toFixed(1));
+            connector.setAttribute('y1', anchor.y.toFixed(1));
+            connector.setAttribute('x2', point.x.toFixed(1));
+            connector.setAttribute('y2', point.y.toFixed(1));
+            connector.classList.toggle('is-visible', lane !== 0);
+        }
+    };
+
+    const positionTokens = () => {
         const rect = frame.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
+        tokens.forEach((token) => placeToken(token, rect));
+    };
 
-        tokens.forEach((token, index) => {
-            const progress = Math.min(100, Math.max(0, Number(token.dataset.progress) || 0));
-            const lane = Number(token.dataset.lane) || 0;
-            const anchor = getRoutePoint(routeSegments, progress);
-            const point = {
-                ...anchor,
-                x: anchor.x + anchor.normalX * lane * MAP_LANE_GAP,
-                y: anchor.y + anchor.normalY * lane * MAP_LANE_GAP
-            };
-            constrainMapPoint(point);
-            const finalTransform = mapTransform(point, rect);
-            token.style.transform = finalTransform;
-            token.style.zIndex = String(60 + Math.round(progress) + Math.abs(lane));
-            token.dataset.positioned = 'true';
+    const showGain = (token, gain) => {
+        if (!(gain > 0)) return;
+        const chip = document.createElement('span');
+        chip.className = 'tq-token__gain';
+        chip.setAttribute('aria-hidden', 'true');
+        chip.textContent = `+${formatQuestStars(Math.round(gain * 10) / 10)}★`;
+        token.querySelector('.tq-token__body')?.appendChild(chip);
+        later(() => chip.remove(), 2200);
+    };
 
-            const connector = root.querySelector(`[data-connector-key="${token.dataset.tokenKey}"]`);
-            if (connector) {
-                connector.setAttribute('x1', String(anchor.x));
-                connector.setAttribute('y1', String(anchor.y));
-                connector.setAttribute('x2', String(point.x));
-                connector.setAttribute('y2', String(point.y));
-                connector.classList.toggle('is-visible', lane !== 0);
-            }
+    const travel = (token, { from, to, fromLane, toLane, delay, fadeIn, gain }) => {
+        const rect = frame.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const distance = Math.abs(to - from);
+        const duration = Math.min(3000, 650 + distance * 17);
+        const animation = token.animate(
+            sampleTokenJourney(routeSegments, from, to, fromLane, toLane, rect, fadeIn),
+            { duration, delay, easing: 'cubic-bezier(0.37, 0.08, 0.22, 1)', fill: 'backwards' }
+        );
+        activeAnimations.add(animation);
+        later(() => token.classList.add('is-travelling'), delay);
+        const settle = () => {
+            activeAnimations.delete(animation);
+            token.classList.remove('is-travelling');
+        };
+        animation.addEventListener('finish', () => {
+            settle();
+            if (destroyed) return;
+            token.classList.add('is-arrived');
+            later(() => token.classList.remove('is-arrived'), 1100);
+            if (openToken === token) positionPopover();
+            showGain(token, gain);
+            QUEST_ROAD_STOPS.forEach((stop) => {
+                if (stop.progress < 100 && from < stop.progress && to >= stop.progress) celebrateWaypoint(stop.progress);
+            });
+        }, { once: true });
+        animation.addEventListener('cancel', settle, { once: true });
+        if (offscreen || pageHidden) animation.pause();
+    };
 
-            if (animate && !reducedMotionQuery.matches) {
-                const animation = token.animate(
-                    sampleTokenJourney(routeSegments, progress, lane, rect),
-                    {
-                        duration: 1050 + Math.round(progress * 10),
-                        delay: index * 90,
-                        easing: 'cubic-bezier(0.22, 0.74, 0.22, 1)',
-                        fill: 'none'
-                    }
-                );
-                activeAnimations.push(animation);
-                const forgetAnimation = () => {
-                    const animationIndex = activeAnimations.indexOf(animation);
-                    if (animationIndex >= 0) activeAnimations.splice(animationIndex, 1);
-                };
-                animation.addEventListener('finish', forgetAnimation, { once: true });
-                animation.addEventListener('cancel', forgetAnimation, { once: true });
-            }
+    const playJourney = ({ fromStart = false } = {}) => {
+        const rect = frame.getBoundingClientRect();
+        const reduced = reducedMotionQuery.matches;
+        positionTokens();
+        root.dataset.mapReady = 'true';
+        if (!rect.width || reduced) {
+            updateExploration(leaderProgress());
+            return;
+        }
+
+        // Stagger from the back of the pack so the leader arrives last, to applause.
+        const ordered = [...tokens].sort((a, b) => tokenState(a).progress - tokenState(b).progress);
+        let delayIndex = 0;
+        ordered.forEach((token) => {
+            const current = tokenState(token);
+            const before = fromStart ? null : previous.get(current.key);
+            const from = before ? before.progress : 0;
+            const moved = Math.abs(current.progress - from) > 0.05 || !before;
+            if (!moved) return;
+            travel(token, {
+                from,
+                to: current.progress,
+                fromLane: before ? before.lane : 0,
+                toLane: current.lane,
+                delay: (before ? 120 : 220) + delayIndex * (before ? 90 : 140),
+                fadeIn: !before,
+                gain: before ? current.stars - before.stars : 0
+            });
+            delayIndex += 1;
         });
+
+        const previousLeader = fromStart || !continuing
+            ? 0
+            : Math.max(0, ...[...previous.values()].map((value) => value.progress));
+        updateExploration(previousLeader);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!destroyed) updateExploration(leaderProgress(), { animate: true });
+        }));
+    };
+
+    const probeFrameRate = () => {
+        if (root.dataset.fx === 'lite' || reducedMotionQuery.matches) return;
+        let frames = 0;
+        let last = performance.now();
+        let slow = 0;
+        const tick = (now) => {
+            if (destroyed) return;
+            const delta = now - last;
+            last = now;
+            if (delta > 34) slow += 1;
+            frames += 1;
+            if (frames < 60) requestAnimationFrame(tick);
+            else if (slow > 24) {
+                root.dataset.fx = 'lite';
+                storeFxPreference('lite');
+            }
+        };
+        requestAnimationFrame(tick);
+    };
+
+    const startJourney = () => {
+        if (journeyPlayed || destroyed) return;
+        journeyPlayed = true;
+        positionStaticElements();
+        updateWaypointStates();
+        playJourney();
+        updateMotionState();
+        if (!continuing) probeFrameRate();
     };
 
     const updateMotionState = () => {
@@ -618,88 +866,245 @@ export function initializeLivingQuestMap(scope) {
             if (suspended) animation.pause();
             else animation.play();
         });
-
     };
 
-    const playInitialJourney = () => {
-        if (initialJourneyPlayed) return;
-        initialJourneyPlayed = true;
-        positionStaticElements();
-        updateWaypointStates();
-        positionTokens({ animate: true });
-        root.dataset.mapReady = 'true';
-        updateMotionState();
+    // --- Party card (one shared popover) -------------------------------------
+    let openToken = null;
+    let pinned = false;
+    let restoringFocus = false;
+    let showTimer = 0;
+    let hideTimer = 0;
+
+    const positionPopover = () => {
+        if (!openToken || !popover || popover.hidden) return;
+        const rootRect = root.getBoundingClientRect();
+        const disc = (openToken.querySelector('.tq-token__disc') || openToken).getBoundingClientRect();
+        const width = popover.offsetWidth;
+        const height = popover.offsetHeight;
+        const centerX = disc.left + disc.width / 2 - rootRect.left;
+        const gapPx = 14;
+        let placement = 'top';
+        let top = disc.top - rootRect.top - height - gapPx;
+        if (disc.top - height - gapPx < 8) {
+            placement = 'bottom';
+            top = disc.bottom - rootRect.top + gapPx;
+        }
+        const left = Math.min(Math.max(6, centerX - width / 2), Math.max(6, rootRect.width - width - 6));
+        popover.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+        popover.style.setProperty('--arrow-x', `${Math.round(Math.min(width - 22, Math.max(22, centerX - left)))}px`);
+        popover.dataset.placement = placement;
     };
 
-    const tokenClickHandlers = new Map();
-    tokens.forEach((token) => {
-        const handler = (event) => {
-            event.stopPropagation();
-            const nextSelected = !token.classList.contains('is-selected');
-            tokens.forEach((item) => {
-                item.classList.remove('is-selected');
-                item.setAttribute('aria-expanded', 'false');
-            });
-            token.classList.toggle('is-selected', nextSelected);
-            token.setAttribute('aria-expanded', String(nextSelected));
-        };
-        token.addEventListener('click', handler);
-        tokenClickHandlers.set(token, handler);
-    });
+    const closePopover = ({ restoreFocus = false } = {}) => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+        if (!openToken || !popover) return;
+        const token = openToken;
+        token.classList.remove('is-selected');
+        token.setAttribute('aria-expanded', 'false');
+        openToken = null;
+        pinned = false;
+        mapMemory.pinnedKey = null;
+        popover.dataset.state = 'closed';
+        hideTimer = later(() => {
+            if (!openToken) popover.hidden = true;
+        }, 180);
+        if (restoreFocus) {
+            restoringFocus = true;
+            token.focus({ preventScroll: true });
+            restoringFocus = false;
+        }
+    };
 
-    const closeSelectedToken = (event) => {
-        if (event.type === 'keydown' && event.key !== 'Escape') return;
-        tokens.forEach((token) => {
-            token.classList.remove('is-selected');
-            token.setAttribute('aria-expanded', 'false');
+    const openPopover = (token, { pin = false } = {}) => {
+        if (!popover || !popoverBody) return;
+        clearTimeout(hideTimer);
+        clearTimeout(showTimer);
+        if (openToken !== token) {
+            const template = root.querySelector(`template[data-card-for="${CSS.escape(token.dataset.tokenKey)}"]`);
+            if (!template) return;
+            openToken?.classList.remove('is-selected');
+            openToken?.setAttribute('aria-expanded', 'false');
+            popoverBody.replaceChildren(template.content.cloneNode(true));
+            openToken = token;
+            popover.dataset.state = 'closed';
+        }
+        pinned = pin || pinned;
+        popover.dataset.pinned = pinned ? 'true' : 'false';
+        if (pinned) mapMemory.pinnedKey = token.dataset.tokenKey;
+        token.classList.add('is-selected');
+        token.setAttribute('aria-expanded', 'true');
+        popover.hidden = false;
+        positionPopover();
+        requestAnimationFrame(() => {
+            if (openToken === token) popover.dataset.state = 'open';
         });
     };
-    frame.addEventListener('click', closeSelectedToken);
-    frame.addEventListener('keydown', closeSelectedToken);
 
-    const visibilityHandler = () => {
+    const scheduleClose = () => {
+        if (pinned) return;
+        clearTimeout(hideTimer);
+        hideTimer = later(() => { if (!pinned) closePopover(); }, 170);
+    };
+
+    tokens.forEach((token) => {
+        on(token, 'pointerenter', (event) => {
+            if (event.pointerType !== 'mouse' || pinned) return;
+            clearTimeout(hideTimer);
+            clearTimeout(showTimer);
+            showTimer = later(() => openPopover(token), openToken ? 0 : 70);
+        });
+        on(token, 'pointerleave', (event) => {
+            if (event.pointerType !== 'mouse') return;
+            clearTimeout(showTimer);
+            scheduleClose();
+        });
+        on(token, 'click', (event) => {
+            event.stopPropagation();
+            if (openToken === token && pinned) {
+                closePopover();
+                return;
+            }
+            openPopover(token, { pin: true });
+            // Keyboard activation (Enter/Space) moves focus into the card so its button is reachable.
+            if (event.detail === 0) requestAnimationFrame(() => popover?.querySelector('[data-open-chronicle]')?.focus({ preventScroll: true }));
+        });
+        on(token, 'focus', () => {
+            if (!restoringFocus && token.matches(':focus-visible') && !pinned) openPopover(token);
+        });
+        on(token, 'blur', (event) => {
+            if (popover?.contains(event.relatedTarget)) return;
+            scheduleClose();
+        });
+    });
+
+    if (popover) {
+        on(popover, 'pointerenter', () => clearTimeout(hideTimer));
+        on(popover, 'pointerleave', () => scheduleClose());
+        on(popover, 'focusout', (event) => {
+            if (popover.contains(event.relatedTarget) || tokens.includes(event.relatedTarget)) return;
+            scheduleClose();
+        });
+        on(popover, 'click', (event) => {
+            const cta = event.target.closest('[data-open-chronicle]');
+            if (!cta) return;
+            const classId = cta.dataset.openChronicle;
+            closePopover();
+            root.dispatchEvent(new CustomEvent('tq:open-chronicle', { bubbles: true, detail: { classId } }));
+        });
+    }
+
+    on(root, 'keydown', (event) => {
+        if (event.key === 'Escape' && openToken) {
+            event.stopPropagation();
+            closePopover({ restoreFocus: true });
+        }
+    });
+    on(document, 'pointerdown', (event) => {
+        if (!openToken) return;
+        if (popover?.contains(event.target) || event.target.closest?.('[data-map-token]')) return;
+        closePopover();
+    }, { capture: true });
+
+    if (replayButton) {
+        on(replayButton, 'click', () => {
+            closePopover();
+            [...activeAnimations].forEach((animation) => animation.cancel());
+            replayButton.classList.remove('is-spinning');
+            void replayButton.offsetWidth;
+            replayButton.classList.add('is-spinning');
+            if (reducedMotionQuery.matches) return;
+            positionTokens();
+            playJourney({ fromStart: true });
+        });
+    }
+
+    on(document, 'visibilitychange', () => {
         pageHidden = document.hidden;
         updateMotionState();
-    };
-    document.addEventListener('visibilitychange', visibilityHandler);
+    });
+    on(reducedMotionQuery, 'change', () => updateMotionState());
 
-    const reducedMotionHandler = () => updateMotionState();
-    reducedMotionQuery.addEventListener?.('change', reducedMotionHandler);
+    // Art first, then the parties set off — never over a blank map.
+    const background = root.querySelector('.tq-living-map__background');
+    const markArtReady = () => root.classList.add('is-art-ready');
+    if (background?.complete && background.naturalWidth) markArtReady();
+    else {
+        root.classList.remove('is-art-ready');
+        background?.addEventListener('load', markArtReady, { once: true, signal: listeners.signal });
+        background?.addEventListener('error', markArtReady, { once: true, signal: listeners.signal });
+    }
+    const artReady = new Promise((resolve) => {
+        if (root.classList.contains('is-art-ready')) { resolve(); return; }
+        const decode = background?.decode ? background.decode().catch(() => {}) : Promise.resolve();
+        Promise.race([decode, new Promise((done) => later(done, 1400))]).then(() => {
+            markArtReady();
+            resolve();
+        });
+    });
 
     const intersectionObserver = new IntersectionObserver((entries) => {
         offscreen = !entries[0]?.isIntersecting;
         updateMotionState();
-        if (!offscreen) playInitialJourney();
+        if (!offscreen) artReady.then(startJourney);
     }, { threshold: 0.08 });
     intersectionObserver.observe(root);
 
+    let resizeFrame = 0;
     const resizeObserver = new ResizeObserver(() => {
-        positionStaticElements();
-        updateWaypointStates();
-        positionTokens({ animate: false });
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+            positionStaticElements();
+            positionTokens();
+            updateExploration(leaderProgress());
+            positionPopover();
+        });
     });
     resizeObserver.observe(frame);
 
     positionStaticElements();
     updateWaypointStates();
-    positionTokens({ animate: false });
-    requestAnimationFrame(() => {
-        const bounds = root.getBoundingClientRect();
-        offscreen = bounds.bottom <= 0 || bounds.top >= window.innerHeight;
-        if (offscreen) updateMotionState();
-        else playInitialJourney();
-    });
+    positionTokens();
+    updateExploration(continuing ? leaderProgress() : 0);
+    if (continuing) root.dataset.mapReady = 'true';
+    else delete root.dataset.mapReady;
+
+    // A live update redraws the parties; keep the card the teacher pinned open.
+    if (pinnedKeyToRestore) {
+        const token = tokens.find((candidate) => candidate.dataset.tokenKey === pinnedKeyToRestore);
+        if (token) requestAnimationFrame(() => { if (!destroyed) openPopover(token, { pin: true }); });
+    }
 
     const controller = {
+        root,
+        /** Scrolls the map into view and opens the party card for `classId`. */
+        focusClass(classId) {
+            const token = tokens.find((candidate) => candidate.dataset.classId === String(classId));
+            if (!token) return false;
+            root.scrollIntoView({ behavior: reducedMotionQuery.matches ? 'auto' : 'smooth', block: 'center' });
+            token.classList.remove('is-beacon');
+            void token.offsetWidth;
+            token.classList.add('is-beacon');
+            later(() => token.classList.remove('is-beacon'), 2600);
+            later(() => {
+                openPopover(token, { pin: true });
+                token.focus({ preventScroll: true });
+            }, 520);
+            return true;
+        },
         destroy() {
+            destroyed = true;
             [...activeAnimations].forEach((animation) => animation.cancel());
+            timers.forEach((id) => clearTimeout(id));
+            timers.clear();
+            cancelAnimationFrame(resizeFrame);
+            listeners.abort();
             intersectionObserver.disconnect();
             resizeObserver.disconnect();
-            document.removeEventListener('visibilitychange', visibilityHandler);
-            reducedMotionQuery.removeEventListener?.('change', reducedMotionHandler);
-            frame.removeEventListener('click', closeSelectedToken);
-            frame.removeEventListener('keydown', closeSelectedToken);
-            tokenClickHandlers.forEach((handler, token) => token.removeEventListener('click', handler));
+            if (popover) {
+                popover.hidden = true;
+                popover.dataset.state = 'closed';
+            }
             if (activeLivingMapController === controller) activeLivingMapController = null;
         }
     };

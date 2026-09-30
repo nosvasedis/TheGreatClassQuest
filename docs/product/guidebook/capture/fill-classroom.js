@@ -3,6 +3,7 @@
 import { awardTabHTML } from '../../../../templates/app/tabs/award.js';
 import { guildPowerExplainerCardHtml } from '../../../../ui/tabs/guilds.js';
 import { leaderboardTabHTML } from '../../../../templates/app/tabs/leaderboard.js';
+import { renderQuestChroniclesHtml } from '../../../../ui/tabs/teamQuestChronicles.js';
 import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js';
 import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/modals/trophyRoomView.js';
 import { buildProdigyNavHtml, buildProdigyShrinesHtml, buildProdigyYearHtml } from '../../../../ui/modals/prodigyHallView.js';
@@ -243,62 +244,6 @@ export function hideHerosChallenge() {
   tab?.classList.remove('capture-hc');
 }
 
-function questCard({ rank, name, logo, stars, avg, progress, heroes, you }) {
-  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-  const rankClass = rank === 1 ? 'team-quest-card-refreshed--rank-1' : rank === 2 ? 'team-quest-card-refreshed--rank-2' : rank === 3 ? 'team-quest-card-refreshed--rank-3' : 'team-quest-card-refreshed--rank-other';
-  const header = rank === 1
-    ? 'bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-100'
-    : rank === 2
-      ? 'bg-gradient-to-r from-slate-50 to-gray-50/50 border-b border-slate-100'
-      : 'bg-gradient-to-r from-orange-50 to-amber-50/50 border-b border-orange-100';
-  const p = progress;
-  const fillBronze = Math.min(p, 30) / 30 * 100;
-  const fillSilver = Math.min(Math.max(p - 30, 0), 30) / 30 * 100;
-  const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
-  const fillCrystal = Math.min(Math.max(p - 85, 0), 15) / 15 * 100;
-  const youChip = you ? '<span class="text-[10px] font-black bg-sky-600 text-white px-3 py-1 rounded-full uppercase tracking-widest">YOU</span>' : '';
-  return `
-        <div class="team-quest-card-refreshed ${rankClass}">
-            <div class="${header} p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2.5 shrink-0">
-                        <span class="rank-emblem-wrap rank-emblem-wrap--${rank}">${medal}</span>
-                        <div class="quest-logo-container text-4xl md:text-5xl">${logo}</div>
-                    </div>
-                    <div>
-                        <h4 class="font-title text-3xl text-indigo-900 leading-tight">${name}</h4>
-                        <div class="flex flex-wrap gap-2 mt-2 items-center">
-                            <span class="text-[10px] font-black bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-widest">Level 3</span>
-                            <span class="text-[10px] font-black bg-white text-indigo-600 px-3 py-1 rounded-full border border-indigo-100 uppercase tracking-widest"><i class="fas fa-users mr-1"></i>12 Heroes</span>
-                            ${youChip}
-                        </div>
-                    </div>
-                </div>
-                <div class="quest-status-crystal flex items-center gap-6">
-                    <div class="text-center px-2 border-r border-indigo-100">
-                        <div class="font-title text-4xl text-indigo-600 leading-none">${stars}</div>
-                        <div class="text-[9px] font-black text-indigo-400 uppercase mt-1 tracking-wider">Stars Collected</div>
-                    </div>
-                    <div class="text-center px-2">
-                        <div class="font-title text-4xl text-amber-500 leading-none">${avg}</div>
-                        <div class="text-[9px] font-black text-amber-500 uppercase mt-1 tracking-wider">Avg / Hero</div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 bg-gradient-to-b from-transparent to-indigo-50/30">
-                <div class="relative w-full" style="height: 3.25rem;">
-                    <div class="flex items-stretch w-full h-6 absolute rounded-full overflow-hidden shadow-inner border border-slate-200/60" style="top: 8px; background: #e9ecef;">
-                        <div class="quest-trail-segment--bronze h-full relative overflow-hidden" style="flex: 30;"><div class="quest-trail-segment--bronze-fill h-full" style="width: ${fillBronze}%"></div></div>
-                        <div class="quest-trail-segment--silver h-full relative overflow-hidden" style="flex: 30;"><div class="quest-trail-segment--silver-fill h-full" style="width: ${fillSilver}%"></div></div>
-                        <div class="quest-trail-segment--gold h-full relative overflow-hidden" style="flex: 25;"><div class="quest-trail-segment--gold-fill h-full" style="width: ${fillGold}%"></div></div>
-                        <div class="quest-trail-segment--crystal h-full relative overflow-hidden" style="flex: 15;"><div class="quest-trail-segment--crystal-fill h-full" style="width: ${fillCrystal}%"></div></div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 mt-3">${heroes}</div>
-            </div>
-        </div>`;
-}
-
 export function showTeamQuest() {
   startShow();
   const tab = document.getElementById('class-leaderboard-tab');
@@ -312,14 +257,29 @@ export function showTeamQuest() {
     const span = leagueBtn.querySelector('span');
     if (span) span.textContent = 'Junior';
   }
-  const av = (letter) => `<div class="w-8 h-8 rounded-full border border-gray-200 overflow-hidden shadow-sm"><div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xs">${letter}</div></div>`;
   const list = document.getElementById('class-leaderboard-list');
   if (list) {
-    list.innerHTML = [
-      questCard({ rank: 1, name: 'Junior A', logo: '🦉', stars: 96, avg: '8.0', progress: 72, heroes: av('M') + av('S'), you: false }),
-      questCard({ rank: 2, name: 'Junior B', logo: '📚', stars: 84, avg: '7.0', progress: 62, heroes: av('A') + av('N'), you: true }),
-      questCard({ rank: 3, name: 'Junior C', logo: '🌟', stars: 61, avg: '5.1', progress: 44, heroes: av('E'), you: false })
-    ].join('');
+    const party = (id, rank, name, logo, stars, goal, heroes, extra = {}) => ({
+      id, rank, name, logo,
+      progress: (stars / goal) * 100,
+      currentMonthlyStars: stars,
+      goals: { diamond: goal },
+      topHeroes: heroes.map(([heroName, heroStars]) => ({ name: heroName, stars: heroStars })),
+      studentCount: 12,
+      ...extra
+    });
+    const entries = [
+      party('junior-a', 1, 'Junior A', '🦉', 96, 133, [['Maria', 14], ['Sofia', 12], ['Nikos', 11]], { topSkill: 'teamwork', weeklyStars: 11, totalGold: 240, adventureCount: 3, difficulty: 1 }),
+      party('junior-b', 2, 'Junior B', '📚', 84, 135, [['Anna', 13], ['Nikos', 10]], { topSkill: 'focus', weeklyStars: 9, totalGold: 188, adventureCount: 2, difficulty: 1 }),
+      party('junior-c', 3, 'Junior C', '🌟', 61, 139, [['Eleni', 9]], { topSkill: 'creativity', weeklyStars: 4, totalGold: 120, adventureCount: 1 })
+    ];
+    list.innerHTML = `<div class="tq-board"><section class="tq-chronicles is-open">${renderQuestChroniclesHtml(entries, {
+      monthName: 'August',
+      leagueName: 'Junior',
+      activeClassId: 'junior-b',
+      openIds: new Set(['junior-b']),
+      showFind: false
+    })}</section></div>`;
   }
 }
 

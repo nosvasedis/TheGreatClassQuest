@@ -12,7 +12,9 @@ import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { generateLeagueMapHtml, initializeLivingQuestMap, QUEST_MAP_ZONES } from '../../features/worldMap.js';
+import { getActiveLivingQuestMap, initializeLivingQuestMap, QUEST_MAP_ZONES, renderLeagueMapInto } from '../../features/worldMap.js';
+import { getQuestNextStop } from '../../features/teamQuestRace.mjs';
+import { renderQuestChroniclesHtml } from './teamQuestChronicles.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { getSchoolYearStartMonthDate } from '../../utils/schoolYear.js';
 import {
@@ -33,7 +35,6 @@ import {
 } from './heroStandings.js';
 
 const TEAM_QUEST_ANALYTICS_ASSETS = {
-    plaque: new URL('../../assets/team-quest-map/living-atlas/parchment-plaque.webp', import.meta.url).href,
     bronze: new URL('../../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
     silver: new URL('../../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
     gold: new URL('../../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
@@ -99,24 +100,7 @@ function getRaceRankFrame(rank) {
     return { asset: TEAM_QUEST_ANALYTICS_ASSETS.rankSlate, tier: 'slate' };
 }
 
-function getNextQuestMilestone(progress, stars, goal) {
-    const milestones = [
-        { percent: 30, label: 'Silver Peaks' },
-        { percent: 60, label: 'Golden Citadel' },
-        { percent: 85, label: 'Crystal Realm' },
-        { percent: 100, label: 'the finish' }
-    ];
-    const next = milestones.find((milestone) => progress < milestone.percent);
-    if (!next) return { complete: true, label: 'Quest complete', starsNeeded: 0 };
-
-    return {
-        complete: false,
-        label: next.label,
-        starsNeeded: Math.max(0, Math.ceil((goal * next.percent / 100) - stars))
-    };
-}
-
-function generateTeacherMobileRaceHtml(classScores) {
+function generateTeacherMobileRaceHtml(classScores, activeClassId = null) {
     const realmKeyHtml = QUEST_MAP_ZONES.map((zone) => `
         <div class="tq-mobile-race__realm tq-mobile-race__realm--${zone.id}">
             <img src="${TEAM_QUEST_ANALYTICS_ASSETS[zone.id]}" alt="" draggable="false" aria-hidden="true">
@@ -135,16 +119,17 @@ function generateTeacherMobileRaceHtml(classScores) {
             (current, candidate) => (progress >= candidate.minPercent ? candidate : current),
             QUEST_MAP_ZONES[0]
         );
-        const nextMilestone = getNextQuestMilestone(progress, stars, goal);
+        const nextMilestone = getQuestNextStop(progress, stars, goal);
         const nextStepText = nextMilestone.complete
             ? 'The portal is open!'
             : `${nextMilestone.starsNeeded} ${nextMilestone.starsNeeded === 1 ? 'star' : 'stars'} to ${nextMilestone.label}`;
+        const isMine = Boolean(activeClassId) && classroom.id === activeClassId;
         const pathfinderText = classroom.classQuestBonus > 0
             ? `<span class="tq-mobile-race-card__bonus"><i class="fas fa-compass" aria-hidden="true"></i> +${formatQuestNumber(classroom.classQuestBonus)} Pathfinder</span>`
             : '';
 
         return `
-            <article class="tq-mobile-race-card tq-mobile-race-card--${zone.id}" style="--race-progress: ${progress}%; --race-delay: ${Math.min(index * 70, 560)}ms;">
+            <article class="tq-mobile-race-card tq-mobile-race-card--${zone.id}${isMine ? ' is-mine' : ''}" data-chronicle-open="${escapeLeaderboardHtml(classroom.id || '')}" style="--race-progress: ${progress}%; --race-delay: ${Math.min(index * 70, 560)}ms;">
                 <header class="tq-mobile-race-card__header">
                     <span class="tq-mobile-race-card__rank tq-mobile-race-card__rank--${rankFrame.tier}" aria-label="League rank ${rank}">
                         <img src="${rankFrame.asset}" alt="" draggable="false" aria-hidden="true">
@@ -196,9 +181,9 @@ function generateTeacherMobileRaceHtml(classScores) {
                     <h3 id="tq-mobile-race-title">Monthly Race</h3>
                     <p>${classScores.length} ${classScores.length === 1 ? 'class is' : 'classes are'} on the trail</p>
                 </span>
-                <button type="button" id="toggle-map-list-btn" class="tq-mobile-race__analysis bubbly-button">
-                    <i class="fas fa-chart-simple" aria-hidden="true"></i>
-                    <span>Mission Analytics</span>
+                <button type="button" id="toggle-map-list-btn" class="tq-mobile-race__analysis" aria-controls="league-standings-container" aria-expanded="false">
+                    <i class="fas fa-book-open" aria-hidden="true"></i>
+                    <span>Chronicles</span>
                 </button>
             </header>
 
@@ -328,7 +313,7 @@ function syncHeroChallengeFabs() {
 
 // --- TAB CONTENT RENDERERS ---
 
-export async function renderClassLeaderboardTab() {
+export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
     const list = document.getElementById('class-leaderboard-list');
     if (!list) return;
     bindTeacherQuestCompactViewportListener();
@@ -343,16 +328,20 @@ export async function renderClassLeaderboardTab() {
 
     const league = getLeaderboardEffectiveLeague();
     if (!league) {
-        list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest ${useCompactTeacherRaceView ? 'race' : 'map'}.</p></div>`;
-        initializeLivingQuestMap(list);
+        teardownTeamQuestBoard();
+        list.__tqSignature = null;
+        list.innerHTML = renderTeamQuestEmptyState('fa-compass', 'Choose a Quest League', `Pick a league above to unroll its Team Quest ${useCompactTeacherRaceView ? 'race' : 'map'}.`);
+        initializeLivingQuestMap(null);
         return;
     }
 
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
 
     if (classesInLeague.length === 0) {
-        list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
-        initializeLivingQuestMap(list);
+        teardownTeamQuestBoard();
+        list.__tqSignature = null;
+        list.innerHTML = renderTeamQuestEmptyState('fa-flag', 'The road is quiet', 'No classes have joined this Quest League yet.');
+        initializeLivingQuestMap(null);
         return;
     }
 
@@ -505,354 +494,231 @@ export async function renderClassLeaderboardTab() {
         };
     }));
 
-    // Removed: quest update button no longer exists
+    const activeClassId = state.get('globalSelectedClassId') || null;
+    const monthName = now.toLocaleString('en-US', { month: 'long' });
+    const mode = useCompactTeacherRaceView ? 'compact' : 'map';
 
-    const raceOverviewHtml = useCompactTeacherRaceView
-        ? generateTeacherMobileRaceHtml(classScores)
-        : generateLeagueMapHtml(classScores);
+    // Live listeners call this often; leave the board (and any journey in
+    // progress) alone when nothing on it changed.
+    const signature = JSON.stringify([
+        league, mode, activeClassId, monthName,
+        classScores.map((c) => [
+            c.id, c.name, c.logo, c.rank, Math.round((Number(c.progress) || 0) * 100),
+            c.currentMonthlyStars, c.goals?.diamond, c.goalDifference, c.classQuestBonus,
+            c.weeklyStars, c.totalGold, c.adventureCount, c.topSkill, c.studentCount, c.difficulty,
+            c.topHeroes.map((h) => [h.name, h.stars, String(h.avatar || '').slice(-32)])
+        ])
+    ]);
 
-    // --- RENDER ANALYTICS CARDS ---
-    const cardsHtml = classScores.map((c, index) => {
-        const rank = c.rank || index + 1;
+    let board = list.querySelector(':scope > [data-tq-board]');
+    if (!freshVisit && board && board.dataset.mode === mode && list.__tqSignature === signature) return;
+    list.__tqSignature = signature;
 
-        // 1. EXACT LEVELS (1-6) - NO NAMES - HOVER INFO
-        const diff = (c.difficulty || 0) + 1;
-        let diffBadge = "";
-        let factor = 1.0 + (c.difficulty * 0.1); // Fake factor calculation for display
-
-        // Define style based on level 1-6
-        const lvlStyles = {
-            1: { icon: 'fa-seedling' },
-            2: { icon: 'fa-water' },
-            3: { icon: 'fa-shield-alt' },
-            4: { icon: 'fa-gem' },
-            5: { icon: 'fa-fire' },
-            6: { icon: 'fa-dragon' }
-        };
-        const style = lvlStyles[diff] || lvlStyles[1];
-
-        // Badge with JS-based hover for simplicity/reliability
-        diffBadge = `
-        <div class="relative inline-block" 
-             onmouseenter="this.querySelector('.lvl-tooltip').classList.remove('opacity-0', 'pointer-events-none')"
-             onmouseleave="this.querySelector('.lvl-tooltip').classList.add('opacity-0', 'pointer-events-none')">
-            <span class="quest-level-badge quest-level-badge--${diff}">
-                <i class="fas ${style.icon}" aria-hidden="true"></i>
-                <span>Quest Level ${diff}</span>
-            </span>
-            <div class="lvl-tooltip quest-micro-tooltip absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none transition-opacity z-50 text-center">
-                Quest intensity <strong>${factor.toFixed(1)}×</strong><br>
-                <span>The monthly destination scales with the class level.</span>
-            </div>
-        </div>`;
-
-        // 2. Goal Adjustment Icon (Umbrella/Calendar)
-        // Only visible if there IS a difference. Tooltip logic attached strictly to the Icon.
-        let goalIconHtml = "";
-        if (c.goalDifference !== 0) {
-            const isReduction = c.goalDifference < 0;
-            const sign = isReduction ? "" : "+"; // Negative number already has sign
-            const colorClass = isReduction ? "text-orange-500" : "text-green-500";
-            const icon = isReduction ? "fa-umbrella-beach" : "fa-calendar-plus";
-
-            goalIconHtml = `
-            <div class="relative inline-block ml-2" 
-                 onmouseenter="this.querySelector('.goal-tooltip').classList.remove('opacity-0', 'pointer-events-none')" 
-                 onmouseleave="this.querySelector('.goal-tooltip').classList.add('opacity-0', 'pointer-events-none')">
-                <i class="fas ${icon} ${colorClass} text-sm cursor-help animate-pulse"></i>
-                <div class="goal-tooltip absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-40 bg-gray-900 text-white text-[10px] p-2 rounded shadow-lg opacity-0 pointer-events-none transition-opacity z-50 text-center leading-tight">
-                    Goal adjusted by <span class="font-bold ${isReduction ? 'text-orange-300' : 'text-green-300'} text-xs">${sign}${c.goalDifference} stars</span> due to holidays/events.
-                </div>
-            </div>`;
-        }
-
-        const skillIcons = { teamwork: 'users', creativity: 'lightbulb', respect: 'hand-holding-heart', focus: 'brain', scholar_s_bonus: 'scroll', welcome_back: 'door-open', teacher_boon: 'wand-magic-sparkles' };
-        const skillName = c.topSkill.replace(/_/g, ' ');
-
-        const weeklyGrowth = c.weeklyStars > 0 ? 'Trail rising' : 'Holding steady';
-        const spiritRank = c.adventureCount > 3 ? 'Legendary' : (c.adventureCount > 1 ? 'Adventurous' : 'Gathering');
-
-        let cardRankClass = "team-quest-card-refreshed--rank-other";
-        let rankEmblemClass = "rank-emblem-wrap--other";
-        let rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankSlate;
-        let headerColor = "bg-gray-50 border-b border-gray-200";
-
-        if (rank === 1) { 
-            headerColor = "bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-100"; 
-            cardRankClass = "team-quest-card-refreshed--rank-1";
-            rankEmblemClass = "rank-emblem-wrap--1";
-            rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankGold;
-        }
-        else if (rank === 2) { 
-            headerColor = "bg-gradient-to-r from-slate-50 to-gray-50/50 border-b border-slate-100"; 
-            cardRankClass = "team-quest-card-refreshed--rank-2";
-            rankEmblemClass = "rank-emblem-wrap--2";
-            rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankSilver;
-        }
-        else if (rank === 3) { 
-            headerColor = "bg-gradient-to-r from-orange-50 to-amber-50/50 border-b border-orange-100"; 
-            cardRankClass = "team-quest-card-refreshed--rank-3";
-            rankEmblemClass = "rank-emblem-wrap--3";
-            rankFrameAsset = TEAM_QUEST_ANALYTICS_ASSETS.rankBronze;
-        }
-
-        let rankBadge = `<span class="rank-emblem-wrap ${rankEmblemClass}" aria-label="League rank ${rank}"><img src="${rankFrameAsset}" alt="" draggable="false" aria-hidden="true"><strong>${rank}</strong></span>`;
-
-        // Multi-Stage Progress Bar Styled as an Adventure Trail Path
-        const p = c.progress;
-        const fillBronze = Math.min(p, 30) / 30 * 100;
-        const fillSilver = Math.min(Math.max(p - 30, 0), 30) / 30 * 100;
-        const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
-        const fillCrystal = Math.min(Math.max(p - 85, 0), 15) / 15 * 100;
-
-        const nodeBronzeClass = p >= 30 ? "quest-stage-node--active-bronze" : "";
-        const nodeSilverClass = p >= 60 ? "quest-stage-node--active-silver" : "";
-        const nodeGoldClass = p >= 85 ? "quest-stage-node--active-gold" : "";
-        const nodeCrystalClass = p >= 100 ? "quest-stage-node--active-crystal" : "";
-
-        // Current zone derived from QUEST_MAP_ZONES thresholds
-        const currentZone = QUEST_MAP_ZONES.reduce((cur, z) => (p >= z.minPercent ? z : cur), QUEST_MAP_ZONES[0]);
-        const currentZoneBadge = TEAM_QUEST_ANALYTICS_ASSETS[currentZone.id] || TEAM_QUEST_ANALYTICS_ASSETS.bronze;
-
-        const multiStageBar = `
-            <div class="relative w-full select-none" style="height: 3.25rem;">
-                <!-- Seamless multi-segment track -->
-                <div class="flex items-stretch w-full h-6 absolute rounded-full overflow-hidden shadow-inner border border-slate-200/60" style="top: 8px; background: #e9ecef;">
-                    <div class="quest-trail-segment--bronze h-full relative overflow-hidden" style="flex: 30;" title="Bronze Meadows (0–30%)">
-                        <div class="quest-trail-segment--bronze-fill h-full" style="width: ${fillBronze}%"></div>
-                    </div>
-                    <div class="quest-trail-segment--silver h-full relative overflow-hidden" style="flex: 30;" title="Silver Peaks (30–60%)">
-                        <div class="quest-trail-segment--silver-fill h-full" style="width: ${fillSilver}%"></div>
-                    </div>
-                    <div class="quest-trail-segment--gold h-full relative overflow-hidden" style="flex: 25;" title="Golden Citadel (60–85%)">
-                        <div class="quest-trail-segment--gold-fill h-full" style="width: ${fillGold}%"></div>
-                    </div>
-                    <div class="quest-trail-segment--crystal h-full relative overflow-hidden" style="flex: 15;" title="Crystal Realm (85–100%)">
-                        <div class="quest-trail-segment--crystal-fill h-full" style="width: ${fillCrystal}%"></div>
-                    </div>
-                </div>
-                
-                <!-- Stage Checkpoints / Nodes -->
-                <div class="quest-stage-node ${nodeBronzeClass}" style="left: 30%;" title="🌿 Bronze Meadows threshold"></div>
-                <div class="quest-stage-node ${nodeSilverClass}" style="left: 60%;" title="🏔️ Silver Peaks threshold"></div>
-                <div class="quest-stage-node ${nodeGoldClass}" style="left: 85%;" title="🏰 Golden Citadel threshold"></div>
-                <div class="quest-stage-node ${nodeCrystalClass}" style="left: 99.5%;" title="💎 Crystal Realm — Summit"></div>
-                
-                <!-- Position marker -->
-                <div class="quest-trail-marker-pin" style="left: ${Math.min(p, 100)}%;">
-                    <div class="quest-trail-marker-ripple"></div>
-                    <div class="quest-trail-marker-icon font-bold animate-none" title="Class Position: ${p.toFixed(0)}%">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Stage labels aligned to segment proportional widths (30/30/25/15) -->
-                <div class="quest-stage-labels">
-                    <div>
-                    <span class="quest-stage-label quest-stage-label--bronze"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.bronze}" alt="" aria-hidden="true"><span>Bronze Meadows</span></span>
-                    </div>
-                    <div>
-                    <span class="quest-stage-label quest-stage-label--silver"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.silver}" alt="" aria-hidden="true"><span>Silver Peaks</span></span>
-                    </div>
-                    <div>
-                    <span class="quest-stage-label quest-stage-label--gold"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.gold}" alt="" aria-hidden="true"><span>Golden Citadel</span></span>
-                    </div>
-                    <div>
-                    <span class="quest-stage-label quest-stage-label--crystal"><img src="${TEAM_QUEST_ANALYTICS_ASSETS.crystal}" alt="" aria-hidden="true"><span>Crystal Realm</span></span>
-                    </div>
-                </div>
-        `;
-
-        const starsFormatted = Number(c.currentMonthlyStars) % 1 !== 0 ? c.currentMonthlyStars.toFixed(1) : c.currentMonthlyStars.toFixed(0);
-        const weeklyFormatted = Number(c.weeklyStars) % 1 !== 0 ? c.weeklyStars.toFixed(1) : c.weeklyStars.toFixed(0);
-        const talentLabel = c.topSkill === 'None' ? 'Still emerging' : skillName;
-
-        const topHeroesHtml = c.topHeroes.length > 0 ?
-            c.topHeroes.map(h => `
-                <div class="flex flex-col items-center" title="${escapeLeaderboardHtml(h.name)}: ${h.stars} Stars">
-                    <div class="w-8 h-8 rounded-full border border-gray-200 overflow-hidden shadow-sm">
-                        ${h.avatar ? `<img src="${h.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xs">${escapeLeaderboardHtml((h.name || '')[0])}</div>`}
-                    </div>
-                </div>
-            `).join('') : '<span class="text-xs text-gray-400 italic">No heroes yet</span>';
-
-        return `
-        <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 55, 800)}ms">
-        <div class="team-quest-card-refreshed team-quest-card-refreshed--zone-${currentZone.id} ${cardRankClass} group pop-in">
-            <div class="${headerColor} team-quest-card__header p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2.5 shrink-0">
-                        ${rankBadge}
-                        <div class="quest-logo-container text-4xl md:text-5xl filter drop-shadow-md transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
-                    </div>
-                    <div class="team-quest-card__identity">
-                        <div class="team-quest-card__eyebrow"><span>Quest party</span><span>League rank #${rank}</span></div>
-                        <h4 class="font-title text-3xl text-indigo-900 leading-tight">${escapeLeaderboardHtml(c.name)}</h4>
-                        <div class="flex flex-wrap gap-2 mt-2 items-center">
-                            ${diffBadge}
-                            <span class="quest-party-size"><i class="fas fa-users" aria-hidden="true"></i>${c.studentCount} Heroes</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 bg-gradient-to-b from-transparent to-indigo-50/30">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <div class="bg-white p-4 rounded-3xl border quest-progress-section" style="border-color: rgba(226,232,240,0.9); box-shadow: 0 2px 10px rgba(99,102,241,0.05), inset 0 1px 0 rgba(255,255,255,0.9);">
-                            <div class="quest-progress-section__header">
-                                <span class="quest-progress-section__title"><small>Monthly journey</small><strong>Quest Route</strong></span>
-                                <div class="flex items-center gap-2">
-                                    <span class="quest-current-zone"><img src="${currentZoneBadge}" alt="" aria-hidden="true">${currentZone.label}</span>
-                                    <span class="quest-progress-percent">${c.progress.toFixed(0)}%</span>
-                                </div>
-                            </div>
-                            
-                            ${multiStageBar}
-                            
-                            <div class="quest-progress-section__footer">
-                                <span class="quest-star-goal"><i class="fas fa-star" aria-hidden="true"></i><strong>${starsFormatted}</strong><em>of ${c.goals.diamond} stars</em></span>
-                                ${goalIconHtml}
-                            </div>
-                        </div>
-                        <div class="champions-vanguard-banner p-4 flex items-center justify-between">
-                            <img class="champions-vanguard-banner__crest" src="${currentZoneBadge}" alt="" draggable="false" aria-hidden="true">
-                            <span class="champions-vanguard-banner__title">
-                                <i class="fas fa-crown" aria-hidden="true"></i>
-                                <span><small>Class vanguard</small><strong>Trailblazing Heroes</strong></span>
-                            </span>
-                            <div class="flex -space-x-2.5 pr-2 champions-vanguard-avatars">${topHeroesHtml}</div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="stat-rune-card stat-rune-card--fire px-3 pt-3 pb-3">
-                            <span class="stat-rune-card__heading"><small>Weekly Momentum</small><strong>${weeklyGrowth}</strong></span>
-                            <span class="stat-rune-card__medallion"><i class="fas fa-fire stat-rune-card__icon" aria-hidden="true"></i></span>
-                            <span class="stat-rune-card__value"><strong>+${weeklyFormatted}</strong><small>stars this week</small></span>
-                        </div>
-                        
-                        <div class="stat-rune-card stat-rune-card--magic px-3 pt-3 pb-3">
-                            <span class="stat-rune-card__heading"><small>Signature Strength</small><strong>Most celebrated</strong></span>
-                            <span class="stat-rune-card__medallion"><i class="fas fa-wand-magic-sparkles stat-rune-card__icon" aria-hidden="true"></i></span>
-                            <span class="stat-rune-card__value"><strong class="capitalize" title="${talentLabel}">${talentLabel}</strong><small>class talent</small></span>
-                        </div>
-                        
-                        <div class="stat-rune-card stat-rune-card--gold px-3 pt-3 pb-3">
-                            <span class="stat-rune-card__heading"><small>Guild Treasury</small><strong>Class reserves</strong></span>
-                            <span class="stat-rune-card__medallion"><i class="fas fa-coins stat-rune-card__icon" aria-hidden="true"></i></span>
-                            <span class="stat-rune-card__value"><strong>${c.totalGold}</strong><small>gold saved</small></span>
-                        </div>
-                        
-                        <div class="stat-rune-card stat-rune-card--heart px-3 pt-3 pb-3">
-                            <span class="stat-rune-card__heading"><small>Quest Spirit</small><strong>Monthly activity</strong></span>
-                            <span class="stat-rune-card__medallion"><i class="fas fa-heart stat-rune-card__icon" aria-hidden="true"></i></span>
-                            <span class="stat-rune-card__value"><strong>${spiritRank}</strong><small>${c.adventureCount} ${c.adventureCount === 1 ? 'adventure' : 'adventures'} this month</small></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </div>`;
-    }).join('');
-
-    // --- RENDER CONTAINER + STICKY BUTTON ---
-    list.innerHTML = `
-        <div class="mb-8 animate-fade-in ${useCompactTeacherRaceView ? 'teacher-quest-compact-view' : 'teacher-quest-map-view'}">${raceOverviewHtml}</div>
-        <div id="league-standings-container" class="max-w-5xl mx-auto hidden transition-all duration-500 opacity-0 transform translate-y-4 relative">
-            <div class="team-quest-analytics-heading mb-5">
-                <div class="team-quest-analytics-heading__plaque">
-                    <img src="${TEAM_QUEST_ANALYTICS_ASSETS.plaque}" alt="" draggable="false" aria-hidden="true">
-                    <span class="team-quest-analytics-heading__copy">
-                        <small>Quest log</small>
-                        <strong>Mission Analytics</strong>
-                    </span>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-1 gap-4">${cardsHtml}</div>
-        </div>
-        
-        <button id="sticky-show-map-btn" 
-                class="fixed bottom-24 right-6 bg-indigo-600 text-white shadow-2xl rounded-full w-14 h-14 flex items-center justify-center font-bold z-50 transform translate-y-32 opacity-0 transition-all duration-500 hover:scale-110 hover:bg-indigo-700 hover:shadow-indigo-500/50 bubbly-button" 
-                title="${useCompactTeacherRaceView ? 'Back to Race Overview' : 'Back to Map'}">
-            <i class="fas ${useCompactTeacherRaceView ? 'fa-flag-checkered' : 'fa-map'} text-xl"></i>
-        </button>
-    `;
-
-    initializeLivingQuestMap(list);
-
-    const toggleBtn = document.getElementById('toggle-map-list-btn');
-    const container = document.getElementById('league-standings-container');
-    const stickyBtn = document.getElementById('sticky-show-map-btn');
-
-    if (toggleBtn && container) {
-        // Main Toggle Button Logic
-        toggleBtn.onclick = () => {
-            // FIX: Always act as "Open/Go To" when clicked. 
-            // Do not toggle closed, because the sticky button handles closing.
-
-            container.classList.remove('hidden');
-            requestAnimationFrame(() => {
-                container.classList.remove('opacity-0', 'translate-y-4');
-            });
-
-            // 1. Hide the original Analysis button
-            toggleBtn.classList.add('opacity-0', 'pointer-events-none');
-
-            // 2. Show the sticky button immediately
-            if (stickyBtn) stickyBtn.classList.remove('translate-y-32', 'opacity-0');
-
-            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        };
-
-        // Sticky Button Logic
-        if (stickyBtn) {
-            stickyBtn.onclick = () => hideAnalytics();
-
-            // Watch the active race overview to automatically toggle buttons when scrolling.
-            const mapArea = list.querySelector('.tq-mobile-race') || list.querySelector('.team-quest-map-parchment') || list.querySelector('.league-map-wrapper') || list.firstElementChild;
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    // If map comes back into view (User scrolled to top)
-                    if (entry.isIntersecting) {
-                        toggleBtn.classList.remove('opacity-0', 'pointer-events-none'); // Show Analysis
-                        stickyBtn.classList.add('translate-y-32', 'opacity-0');       // Hide Pin
-                    } else {
-                        // Map is gone (User scrolled down) -> Ensure Pin is shown if Analytics is open
-                        if (!container.classList.contains('hidden')) {
-                            toggleBtn.classList.add('opacity-0', 'pointer-events-none');
-                            stickyBtn.classList.remove('translate-y-32', 'opacity-0');
-                        }
-                    }
-                });
-            }, { threshold: 0.1 }); // Trigger when 10% of the map is visible
-
-            if (mapArea) observer.observe(mapArea);
-        }
-
-        function hideAnalytics() {
-            // CLOSE ANALYTICS
-            container.classList.add('opacity-0', 'translate-y-4');
-            setTimeout(() => container.classList.add('hidden'), 300);
-
-            // 1. Restore the original Analysis button
-            toggleBtn.classList.remove('opacity-0', 'pointer-events-none');
-
-            // 2. Hide the sticky button
-            if (stickyBtn) stickyBtn.classList.add('translate-y-32', 'opacity-0');
-
-            // Scroll back to the race overview smoothly.
-            list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    if (freshVisit || !board || board.dataset.league !== league) {
+        teamQuestUi.chroniclesOpen = false;
+        teamQuestUi.openIds = new Set(activeClassId ? [activeClassId] : []);
     }
 
-    list.querySelectorAll('.zone-trigger').forEach(zone => {
-        zone.addEventListener('click', (e) => {
-            const zoneType = e.currentTarget.dataset.zone;
-            import('../modals.js').then(m => m.openZoneOverviewModal(zoneType));
-        });
+    if (!board || board.dataset.mode !== mode) {
+        teardownTeamQuestBoard();
+        list.innerHTML = renderTeamQuestBoardShell(mode);
+        board = list.querySelector(':scope > [data-tq-board]');
+        bindTeamQuestBoard(board);
+    }
+    board.dataset.league = league;
+
+    const mapSlot = board.querySelector('[data-tq-map-slot]');
+    if (mode === 'map') {
+        renderLeagueMapInto(mapSlot, classScores, { activeClassId });
+        initializeLivingQuestMap(mapSlot, { leagueKey: league, replay: freshVisit });
+    } else {
+        initializeLivingQuestMap(null);
+        mapSlot.innerHTML = generateTeacherMobileRaceHtml(classScores, activeClassId);
+    }
+
+    const chronicles = board.querySelector('[data-tq-chronicles]');
+    chronicles.innerHTML = renderQuestChroniclesHtml(classScores, {
+        monthName,
+        leagueName: league,
+        activeClassId,
+        openIds: teamQuestUi.openIds,
+        showFind: mode === 'map'
     });
+    teamQuestUi.entries = classScores;
+    setChroniclesOpen(board, teamQuestUi.chroniclesOpen, { animate: false });
+}
+
+// --- TEAM QUEST BOARD (map/race + Quest Chronicles) ---
+
+const teamQuestUi = {
+    chroniclesOpen: false,
+    openIds: new Set(),
+    entries: [],
+    observer: null
+};
+
+function renderTeamQuestEmptyState(icon, title, text) {
+    return `
+        <div class="tq-empty">
+            <span class="tq-empty__icon" aria-hidden="true"><i class="fas ${icon}"></i></span>
+            <strong>${title}</strong>
+            <p>${text}</p>
+        </div>`;
+}
+
+function renderTeamQuestBoardShell(mode) {
+    return `
+        <div class="tq-board tq-board--${mode}" data-tq-board data-mode="${mode}">
+            <div class="tq-board__race ${mode === 'map' ? 'teacher-quest-map-view' : 'teacher-quest-compact-view'}" data-tq-map-slot></div>
+            <section id="league-standings-container" class="tq-chronicles" data-tq-chronicles aria-label="Quest Chronicles" hidden></section>
+            <button type="button" class="tq-map-return" data-tq-return aria-label="${mode === 'map' ? 'Back to the map' : 'Back to the race'}">
+                <span class="tq-map-return__rose" aria-hidden="true"><i class="fas ${mode === 'map' ? 'fa-compass' : 'fa-flag-checkered'}"></i></span>
+                <span class="tq-map-return__label">${mode === 'map' ? 'Map' : 'Race'}</span>
+            </button>
+        </div>`;
+}
+
+function teardownTeamQuestBoard() {
+    teamQuestUi.observer?.disconnect();
+    teamQuestUi.observer = null;
+}
+
+function syncChronicleToggleButtons(board) {
+    board.querySelectorAll('#toggle-map-list-btn').forEach((button) => {
+        button.setAttribute('aria-expanded', teamQuestUi.chroniclesOpen ? 'true' : 'false');
+    });
+}
+
+function syncMapReturnButton(board, mapVisible) {
+    const button = board.querySelector('[data-tq-return]');
+    if (!button) return;
+    button.classList.toggle('is-visible', teamQuestUi.chroniclesOpen && !mapVisible);
+}
+
+function setChroniclesOpen(board, open, { animate = true } = {}) {
+    const chronicles = board.querySelector('[data-tq-chronicles]');
+    if (!chronicles) return;
+    teamQuestUi.chroniclesOpen = open;
+    clearTimeout(chronicles.__tqHideTimer);
+    if (open) {
+        chronicles.hidden = false;
+        if (animate) {
+            chronicles.classList.remove('is-open');
+            chronicles.classList.add('is-entering');
+            void chronicles.offsetWidth;
+            clearTimeout(chronicles.__tqEnterTimer);
+            chronicles.__tqEnterTimer = setTimeout(() => chronicles.classList.remove('is-entering'), 1400);
+        }
+        chronicles.classList.add('is-open');
+    } else {
+        chronicles.classList.remove('is-open');
+        if (animate) chronicles.__tqHideTimer = setTimeout(() => { chronicles.hidden = true; }, 280);
+        else chronicles.hidden = true;
+        syncMapReturnButton(board, true);
+    }
+    syncChronicleToggleButtons(board);
+}
+
+function scrollToElement(element, block = 'start') {
+    if (!element) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    element.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block });
+}
+
+function setChronicleCardOpen(card, open) {
+    const id = card.dataset.chronicleId;
+    card.classList.toggle('is-open', open);
+    card.querySelector('[data-chronicle-toggle]')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) teamQuestUi.openIds.add(id);
+    else teamQuestUi.openIds.delete(id);
+}
+
+function syncExpandAllButton(board) {
+    const button = board.querySelector('[data-chronicles-expand-all]');
+    if (!button) return;
+    const cards = [...board.querySelectorAll('.tqc-card')];
+    const allOpen = cards.length > 0 && cards.every((card) => card.classList.contains('is-open'));
+    button.setAttribute('aria-pressed', allOpen ? 'true' : 'false');
+    button.innerHTML = `<i class="fas ${allOpen ? 'fa-compress' : 'fa-expand'}" aria-hidden="true"></i>${allOpen ? 'Close all pages' : 'Open all pages'}`;
+}
+
+function openChronicleForClass(board, classId) {
+    setChroniclesOpen(board, true);
+    const card = [...board.querySelectorAll('.tqc-card')].find((candidate) => candidate.dataset.chronicleId === String(classId));
+    if (!card) {
+        scrollToElement(board.querySelector('[data-tq-chronicles]'));
+        return;
+    }
+    setChronicleCardOpen(card, true);
+    syncExpandAllButton(board);
+    requestAnimationFrame(() => {
+        scrollToElement(card, 'center');
+        card.classList.remove('is-flash');
+        void card.offsetWidth;
+        card.classList.add('is-flash');
+        setTimeout(() => card.classList.remove('is-flash'), 1800);
+    });
+}
+
+function bindTeamQuestBoard(board) {
+    const mapSlot = board.querySelector('[data-tq-map-slot]');
+
+    board.addEventListener('click', (event) => {
+        const target = event.target;
+
+        if (target.closest('#toggle-map-list-btn')) {
+            setChroniclesOpen(board, true);
+            requestAnimationFrame(() => scrollToElement(board.querySelector('[data-tq-chronicles]')));
+            return;
+        }
+        if (target.closest('[data-chronicles-close]') || target.closest('[data-tq-return]')) {
+            scrollToElement(mapSlot);
+            return;
+        }
+        const zone = target.closest('.zone-trigger');
+        if (zone) {
+            import('../modals.js').then((m) => m.openZoneOverviewModal(zone.dataset.zone));
+            return;
+        }
+        const toggle = target.closest('[data-chronicle-toggle]');
+        if (toggle) {
+            const card = toggle.closest('.tqc-card');
+            if (card) setChronicleCardOpen(card, !card.classList.contains('is-open'));
+            syncExpandAllButton(board);
+            return;
+        }
+        if (target.closest('[data-chronicles-expand-all]')) {
+            const cards = [...board.querySelectorAll('.tqc-card')];
+            const openAll = !cards.every((card) => card.classList.contains('is-open'));
+            cards.forEach((card) => setChronicleCardOpen(card, openAll));
+            syncExpandAllButton(board);
+            return;
+        }
+        const raceCard = target.closest('[data-chronicle-open]');
+        if (raceCard) {
+            openChronicleForClass(board, raceCard.dataset.chronicleOpen);
+            return;
+        }
+        const find = target.closest('[data-chronicle-find]');
+        if (find) {
+            const map = getActiveLivingQuestMap();
+            if (!map || !map.focusClass(find.dataset.chronicleFind)) scrollToElement(mapSlot);
+        }
+    });
+
+    board.addEventListener('tq:open-chronicle', (event) => {
+        openChronicleForClass(board, event.detail?.classId);
+    });
+
+    teardownTeamQuestBoard();
+    if (typeof IntersectionObserver === 'function') {
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[entries.length - 1];
+            syncMapReturnButton(board, Boolean(entry?.isIntersecting));
+        }, { threshold: 0.12 });
+        observer.observe(mapSlot);
+        teamQuestUi.observer = observer;
+    }
 }
 
 // What each Hero's Challenge board looked like when this visit to the tab began

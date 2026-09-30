@@ -547,49 +547,7 @@ body.gcq-mobile .quest-banner-side {
 
 /* 3. The Quest League bar styles itself for phones (styles/hero_standings.css). */
 
-/* 4. Team Quest Cards (.team-quest-card-refreshed) */
-body.gcq-mobile .team-quest-card-refreshed {
-    border-radius: 1.5rem !important;
-    margin-bottom: 1rem !important;
-}
-
-body.gcq-mobile .team-quest-card-refreshed .p-6 {
-    padding: 0.85rem 0.9rem !important;
-}
-
-body.gcq-mobile .team-quest-card-refreshed h4 {
-    font-size: 1.35rem !important;
-}
-
-body.gcq-mobile .team-quest-card-refreshed .quest-logo-container {
-    font-size: 2.2rem !important;
-}
-
-body.gcq-mobile .quest-status-crystal {
-    gap: 0.8rem !important;
-    justify-content: center !important;
-    margin-top: 0.5rem;
-}
-
-body.gcq-mobile .quest-status-crystal .font-title {
-    font-size: 1.6rem !important;
-}
-
-body.gcq-mobile .team-quest-card-refreshed .champions-vanguard-banner {
-    flex-direction: column !important;
-    gap: 0.6rem !important;
-    text-align: center !important;
-    padding: 0.75rem 0.85rem !important;
-    border-radius: 1.15rem !important;
-}
-
-body.gcq-mobile .champions-vanguard-avatars {
-    justify-content: center !important;
-}
-
-body.gcq-mobile .stat-rune-card {
-    padding: 0.55rem 0.6rem !important;
-}
+/* 4. Quest Chronicles style themselves for phones (styles/team_quest_cards.css). */
 
 /* 5. Hero's Challenge standings style themselves for phones (styles/hero_standings.css). */
 

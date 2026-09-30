@@ -1,7 +1,7 @@
 /* Team Quest living storybook map
    A single continuous quest road, rendered as four contiguous color regions. */
 
-.team-quest-map-parchment.tq-living-map {
+.tq-living-map {
     position: relative;
     width: 100%;
     max-width: 80rem;
@@ -35,7 +35,10 @@
     overflow: hidden;
     border: 3px solid #684424;
     border-radius: 1.5rem;
-    background: #b9e3ed;
+    background:
+        radial-gradient(circle at 50% 45%, rgba(255, 251, 232, 0.9), rgba(236, 222, 186, 0.9) 60%, rgba(214, 190, 140, 0.95)),
+        #e9dcb8;
+    contain: paint;
     box-shadow: 0 1.45rem 2.8rem rgba(62, 38, 17, 0.22), 0 0.3rem 0.7rem rgba(62, 38, 17, 0.18), inset 0 0 0 0.22rem rgba(255, 246, 201, 0.46);
 }
 
@@ -75,7 +78,29 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 1;
+    transform: none;
+    transition: opacity 520ms ease, transform 900ms cubic-bezier(0.22, 0.76, 0.25, 1);
 }
+
+/* While the art decodes the frame shows a softly lit parchment, then the world fades in. */
+.tq-living-map:not(.is-art-ready) .tq-living-map__background {
+    opacity: 0;
+    transform: scale(1.03);
+}
+
+.tq-living-map:not(.is-art-ready) .tq-living-map__frame > :not(.tq-living-map__background):not(.tq-map-title) {
+    visibility: hidden;
+}
+
+.tq-living-map:not(.is-art-ready) .tq-map-title { animation: tq-title-wait 1.4s ease-in-out infinite; }
+
+/* Lite effects: modest laptops keep the map, road and parties but skip the
+   big drifting art layers. Chosen from device hints or a slow first second. */
+.tq-living-map[data-fx='lite'] .tq-fx-heavy { display: none; }
+.tq-living-map[data-fx='lite'] .tq-living-map__crystal-aura { animation: none; opacity: 0.26; }
+.tq-living-map[data-fx='lite'] .tq-token__frame { filter: none; }
+.tq-living-map[data-fx='lite'] .tq-waypoint__scroll { filter: drop-shadow(0 0.35rem 0.3rem rgba(45, 29, 17, 0.42)); }
 
 .tq-living-map__crystal-aura {
     z-index: 1;
@@ -153,10 +178,24 @@
 .tq-route__segment--crystal { stroke: url('#tqCrystalRoad'); }
 
 .tq-route__gleam {
-    stroke: rgba(255, 255, 242, 0.95);
+    stroke: rgba(255, 255, 242, 0.8);
     stroke-width: 2.3;
     stroke-dasharray: 3 17;
-    animation: tq-road-sparkle 3.8s ease-in-out infinite;
+}
+
+/* Unexplored road: a veil of parchment from the furthest party onward.
+   Stroke width is set in JS (viewBox units) so the dash range lines up. */
+.tq-route__fog {
+    fill: none;
+    stroke: rgba(246, 236, 210, 0.7);
+    stroke-linecap: butt;
+    stroke-linejoin: round;
+}
+
+.tq-route__fog.is-animated {
+    transition:
+        stroke-dasharray 1500ms cubic-bezier(0.45, 0, 0.2, 1),
+        stroke-dashoffset 1500ms cubic-bezier(0.45, 0, 0.2, 1);
 }
 
 .tq-route__connector {
@@ -485,7 +524,9 @@
 .tq-crystal-stardust--one { left: 76%; top: 3%; }
 .tq-crystal-stardust--two { left: 84%; top: 27%; animation-delay: -2.6s; }
 
-/* Class tokens */
+/* ── Parties on the road ────────────────────────────────────────────────
+   Each class is a crested token that walks the road. One shared party card
+   (the popover) replaces per-token tooltips, so the map stays light. */
 .tq-class-token-layer {
     position: absolute;
     inset: 0;
@@ -493,66 +534,98 @@
     pointer-events: none;
 }
 
-.tq-living-map .tq-class-token.league-map-avatar {
+.tq-living-map .tq-token {
+    --tq-token-size: clamp(3.1rem, 4.8vw, 4rem);
+    --tq-glow: 146, 232, 104;
     position: absolute;
     top: 0;
     left: 0;
     display: block;
-    width: clamp(3.25rem, 5vw, 4.15rem);
-    height: clamp(3.25rem, 5vw, 4.15rem);
+    width: var(--tq-token-size);
+    height: var(--tq-token-size);
     padding: 0;
     border: 0;
     outline: 0;
     background: transparent;
     cursor: pointer;
-    filter: none;
     opacity: 0;
     pointer-events: auto;
-    transition: opacity 160ms ease;
+    transition: opacity 240ms ease;
     will-change: transform;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.tq-living-map[data-map-ready='true'] .tq-class-token[data-positioned='true'] { opacity: 1; }
+.tq-token--silver { --tq-glow: 149, 224, 255; }
+.tq-token--gold { --tq-glow: 255, 208, 84; }
+.tq-token--crystal { --tq-glow: 214, 142, 255; }
 
-.tq-living-map .tq-class-token:hover,
-.tq-living-map .tq-class-token:focus-visible,
-.tq-living-map .tq-class-token.is-selected { z-index: 200 !important; }
+.tq-living-map[data-map-ready='true'] .tq-token[data-positioned='true'] { opacity: 1; }
 
-.tq-class-token__visual {
+.tq-living-map .tq-token:hover,
+.tq-living-map .tq-token:focus-visible,
+.tq-living-map .tq-token.is-selected,
+.tq-living-map .tq-token.is-beacon { z-index: 300 !important; }
+
+.tq-token__shadow {
+    position: absolute;
+    left: 20%;
+    right: 20%;
+    bottom: -5%;
+    height: 17%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(40, 24, 10, 0.5), rgba(40, 24, 10, 0));
+    transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.tq-token__body {
     position: absolute;
     inset: 0;
     display: block;
-    transform-origin: 50% 72%;
-    transition: transform 180ms ease;
+    transform-origin: 50% 88%;
+    transition: transform 240ms cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
-.tq-class-token:hover .tq-class-token__visual,
-.tq-class-token:focus-visible .tq-class-token__visual,
-.tq-class-token.is-selected .tq-class-token__visual { transform: translateY(-0.28rem) scale(1.12); }
+.tq-token:hover .tq-token__body,
+.tq-token:focus-visible .tq-token__body,
+.tq-token.is-selected .tq-token__body { transform: translateY(-0.32rem) scale(1.14); }
 
-.tq-class-token__shadow {
+.tq-token:hover .tq-token__shadow,
+.tq-token:focus-visible .tq-token__shadow,
+.tq-token.is-selected .tq-token__shadow { transform: scale(0.78); opacity: 0.6; }
+
+.tq-token__aura {
     position: absolute;
-    z-index: 0;
-    left: 17%;
-    right: 17%;
-    bottom: 1%;
-    height: 16%;
+    inset: -26%;
     border-radius: 50%;
-    background: rgba(52, 33, 18, 0.28);
+    background: radial-gradient(circle, rgba(var(--tq-glow), 0.62) 0%, rgba(var(--tq-glow), 0.2) 42%, rgba(var(--tq-glow), 0) 70%);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 240ms ease, transform 280ms ease;
 }
 
-.tq-class-token__core {
+.tq-token:hover .tq-token__aura,
+.tq-token:focus-visible .tq-token__aura,
+.tq-token.is-selected .tq-token__aura,
+.tq-token.is-mine .tq-token__aura { opacity: 1; transform: scale(1); }
+
+.tq-token.is-leader .tq-token__aura,
+.tq-token.is-complete .tq-token__aura {
+    --tq-glow: 255, 214, 92;
+    opacity: 1;
+    transform: scale(1);
+    animation: tq-aura-pulse 2.8s ease-in-out infinite;
+}
+
+.tq-token.is-complete .tq-token__aura { --tq-glow: 205, 150, 255; }
+
+.tq-token__disc {
     position: absolute;
-    z-index: 1;
     inset: 0;
-    display: grid;
-    place-items: center;
-    overflow: visible;
+    display: block;
     border-radius: 50%;
-    background: transparent;
 }
 
-.tq-class-token__frame {
+.tq-token__frame {
     position: absolute;
     z-index: 3;
     inset: 0;
@@ -561,9 +634,10 @@
     object-fit: contain;
     pointer-events: none;
     user-select: none;
+    filter: drop-shadow(0 0.16rem 0.16rem rgba(45, 28, 12, 0.35));
 }
 
-.tq-class-token__logo {
+.tq-token__logo {
     position: absolute;
     z-index: 2;
     top: 51.5%;
@@ -574,341 +648,678 @@
     place-items: center;
     overflow: hidden;
     border-radius: 50%;
-    background: #fffdf3;
-    box-shadow: inset 0 0 0 1px rgba(91, 58, 29, 0.16);
-    font-size: clamp(0.9rem, 1.55vw, 1.3rem);
+    background: radial-gradient(circle at 35% 30%, #ffffff, #fff6dc 70%, #f3e2b8);
+    box-shadow: inset 0 0 0 1px rgba(91, 58, 29, 0.16), inset 0 -0.18rem 0.3rem rgba(160, 110, 50, 0.16);
+    font-size: clamp(0.95rem, 1.6vw, 1.35rem);
     line-height: 1;
     transform: translate(-50%, -50%);
 }
 
-.tq-class-token--frame-gold .tq-class-token__logo {
+.tq-token--tier-gold .tq-token__logo {
     top: 58.5%;
     width: 56%;
     height: 56%;
 }
 
-.tq-class-token:focus-visible .tq-class-token__core { box-shadow: 0 0 0 3px white, 0 0 0 6px rgba(71, 112, 191, 0.9); }
-.tq-class-token.is-leader .tq-class-token__visual { animation: tq-leader-float 2.7s ease-in-out infinite; }
-
-.tq-class-token.is-leader:hover .tq-class-token__visual,
-.tq-class-token.is-leader:focus-visible .tq-class-token__visual,
-.tq-class-token.is-leader.is-selected .tq-class-token__visual { animation: none; }
-
-/* Celebratory, information-rich class quest card. */
-.tq-map-tooltip {
-    --tooltip-accent: #55aa67;
-    --tooltip-soft: #eff9ec;
-    --tooltip-deep: #277247;
-    position: absolute;
-    z-index: 120;
-    left: 50%;
-    bottom: calc(100% + 0.78rem);
-    display: block;
-    width: clamp(17rem, 24vw, 19.5rem);
-    padding: 0.82rem 0.9rem 0.88rem;
-    overflow: hidden;
-    color: #30343a;
-    border: 2px solid color-mix(in srgb, var(--tooltip-accent) 68%, white);
-    border-radius: 1.38rem;
-    background:
-        radial-gradient(circle at 92% 5%, color-mix(in srgb, var(--tooltip-accent) 20%, transparent) 0 10%, transparent 31%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.99), var(--tooltip-soft));
-    box-shadow: 0 1rem 2rem rgba(35, 32, 28, 0.28), 0 0 0 0.22rem rgba(255, 255, 255, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.96);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(-50%) translateY(0.5rem) scale(0.95);
-    transform-origin: 50% 100%;
-    transition: opacity 170ms ease, transform 190ms cubic-bezier(0.22, 0.78, 0.25, 1);
-}
-
-.tq-map-tooltip::before {
+/* The active class wears an orbiting ring and a little flag. */
+.tq-token.is-mine .tq-token__disc::after {
     content: '';
     position: absolute;
-    inset: 0 0 auto;
-    height: 0.48rem;
-    background: linear-gradient(90deg, var(--tooltip-deep), var(--tooltip-accent) 55%, #ffe07a);
-}
-
-.tq-map-tooltip::after {
-    content: '';
-    position: absolute;
-    right: -1.9rem;
-    bottom: -2.1rem;
-    width: 6rem;
-    aspect-ratio: 1;
-    border: 1px solid color-mix(in srgb, var(--tooltip-accent) 24%, transparent);
+    z-index: 1;
+    inset: -10%;
+    border: 2px dashed rgba(255, 255, 255, 0.95);
     border-radius: 50%;
-    box-shadow: 0 0 0 0.65rem color-mix(in srgb, var(--tooltip-accent) 7%, transparent), 0 0 0 1.3rem color-mix(in srgb, var(--tooltip-accent) 5%, transparent);
+    box-shadow: 0 0 0.6rem rgba(90, 150, 255, 0.55);
+    animation: tq-mine-orbit 12s linear infinite;
 }
 
-.tq-map-tooltip--silver { --tooltip-accent: #69b8e9; --tooltip-soft: #edf8ff; --tooltip-deep: #3e69b4; }
-.tq-map-tooltip--gold { --tooltip-accent: #edae32; --tooltip-soft: #fff6d7; --tooltip-deep: #ca5828; }
-.tq-map-tooltip--crystal { --tooltip-accent: #b26de0; --tooltip-soft: #f7edff; --tooltip-deep: #369ebd; }
+.tq-token--tier-gold.is-mine .tq-token__disc::after { inset: 4% -8% -12%; }
 
-.tq-map-tooltip__spark {
+.tq-token__rank {
     position: absolute;
-    z-index: 0;
-    color: color-mix(in srgb, var(--tooltip-accent) 78%, white);
-    line-height: 1;
-    opacity: 0.48;
-}
-
-.tq-map-tooltip__spark--one { top: 0.92rem; right: 1.05rem; font-size: 0.8rem; transform: rotate(12deg); }
-.tq-map-tooltip__spark--two { top: 2rem; right: 2.15rem; font-size: 0.52rem; }
-
-.tq-class-token:hover .tq-map-tooltip,
-.tq-class-token:focus-visible .tq-map-tooltip,
-.tq-class-token.is-selected .tq-map-tooltip { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-
-.tq-class-token--tooltip-below .tq-map-tooltip { top: calc(100% + 0.78rem); bottom: auto; transform-origin: 50% 0; }
-
-.tq-class-token--tooltip-right .tq-map-tooltip {
-    right: auto;
-    left: -0.55rem;
-    transform: translateX(0) translateY(0.5rem) scale(0.95);
-    transform-origin: 15% 100%;
-}
-
-.tq-class-token--tooltip-left .tq-map-tooltip {
-    right: -0.55rem;
-    left: auto;
-    transform: translateX(0) translateY(0.5rem) scale(0.95);
-    transform-origin: 85% 0;
-}
-
-.tq-class-token--tooltip-right:hover .tq-map-tooltip,
-.tq-class-token--tooltip-right:focus-visible .tq-map-tooltip,
-.tq-class-token--tooltip-right.is-selected .tq-map-tooltip,
-.tq-class-token--tooltip-left:hover .tq-map-tooltip,
-.tq-class-token--tooltip-left:focus-visible .tq-map-tooltip,
-.tq-class-token--tooltip-left.is-selected .tq-map-tooltip { transform: translateX(0) translateY(0) scale(1); }
-
-.tq-map-tooltip__rank {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    min-height: 1.45rem;
-    align-items: center;
-    gap: 0.32rem;
-    margin: 0.12rem 0 0.58rem;
-    padding: 0.28rem 0.52rem;
-    color: var(--tooltip-deep);
-    border: 1px solid color-mix(in srgb, var(--tooltip-accent) 32%, white);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
-    font-size: 0.6rem;
-    font-weight: 900;
-    letter-spacing: 0.045em;
-    text-transform: uppercase;
-}
-
-.tq-map-tooltip--leader .tq-map-tooltip__rank { color: #8a5510; border-color: rgba(226, 166, 45, 0.52); background: #fff7d9; }
-.tq-map-tooltip__rank i { color: #e0a420; }
-
-.tq-map-tooltip__header {
-    position: relative;
-    z-index: 1;
+    z-index: 5;
+    right: -8%;
+    bottom: 0;
     display: grid;
-    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-    gap: 0.68rem;
-    align-items: center;
-}
-
-.tq-map-tooltip__logo {
-    display: grid;
-    width: 2.75rem;
-    height: 2.75rem;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.3rem;
     place-items: center;
-    border: 3px solid color-mix(in srgb, var(--tooltip-accent) 56%, white);
-    border-radius: 50%;
-    background: white;
-    font-size: 1.34rem;
-    box-shadow: 0 0.24rem 0.55rem rgba(44, 40, 34, 0.16), inset 0 0 0 0.16rem rgba(255, 255, 255, 0.9);
+    color: #fff8e6;
+    border: 2px solid #fff4d6;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #6b4724, #3d2711);
+    box-shadow: 0 0.14rem 0.3rem rgba(40, 20, 5, 0.35);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.72rem;
+    line-height: 1;
 }
 
-.tq-map-tooltip__identity { min-width: 0; }
-.tq-map-tooltip__title,
-.tq-map-tooltip__zone { display: flex; min-width: 0; align-items: center; }
+.tq-token--tier-gold .tq-token__rank { color: #5a3306; background: linear-gradient(180deg, #ffe07a, #d9901c); }
+.tq-token--tier-silver .tq-token__rank { color: #2f3d52; background: linear-gradient(180deg, #f5f9fd, #a7b6cb); }
+.tq-token--tier-bronze .tq-token__rank { color: #fff; background: linear-gradient(180deg, #f0ac74, #a95b24); }
 
-.tq-map-tooltip__title {
+.tq-token__pennant {
+    position: absolute;
+    z-index: 6;
+    top: 100%;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+    padding: 0.14rem 0.46rem 0.16rem;
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2f7de1, #6c4de6);
+    box-shadow: 0 0.2rem 0.45rem rgba(30, 40, 90, 0.3);
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: translate(-50%, 0.2rem);
+}
+
+.tq-token__pennant i { font-size: 0.5rem; }
+
+.tq-token:focus-visible .tq-token__disc {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px rgba(71, 112, 191, 0.85);
+}
+
+/* Walking: a springy hop with a puff of road dust. */
+.tq-token.is-travelling .tq-token__body { animation: tq-token-hop 0.34s ease-in-out infinite alternate; }
+
+.tq-token.is-travelling .tq-token__shadow { animation: tq-token-hop-shadow 0.34s ease-in-out infinite alternate; }
+
+.tq-token.is-travelling::after {
+    content: '';
+    position: absolute;
+    left: 26%;
+    bottom: -8%;
+    width: 48%;
+    height: 22%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 246, 220, 0.9), rgba(255, 246, 220, 0));
+    animation: tq-token-dust 0.68s ease-out infinite;
+    pointer-events: none;
+}
+
+/* Arrival: a ring of light and a happy squash. */
+.tq-token.is-arrived::before,
+.tq-token.is-beacon::before {
+    content: '';
+    position: absolute;
+    inset: -8%;
+    border: 3px solid rgba(var(--tq-glow), 0.95);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: tq-token-land 900ms ease-out forwards;
+}
+
+.tq-token.is-beacon::before {
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0.8rem rgba(var(--tq-glow), 0.9);
+    animation: tq-token-land 860ms ease-out 3;
+}
+
+.tq-token.is-arrived .tq-token__body { animation: tq-token-settle 560ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+
+.tq-token__gain {
+    position: absolute;
+    z-index: 8;
+    bottom: 100%;
+    left: 50%;
+    padding: 0.16rem 0.5rem;
+    color: #6b3f00;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff6c8, #ffcf52);
+    box-shadow: 0 0.3rem 0.7rem rgba(120, 70, 0, 0.35);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.82rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: tq-gain-rise 2.1s ease-out forwards;
+}
+
+/* ── Party card (shared popover) ─────────────────────────────────────── */
+.tq-popover {
+    position: absolute;
+    z-index: 400;
+    top: 0;
+    left: 0;
+    width: min(19.25rem, calc(100vw - 2rem));
+    pointer-events: auto;
+}
+
+.tq-popover[hidden] { display: none; }
+
+.tq-popover__inner {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.94);
+    transform-origin: var(--arrow-x, 50%) 100%;
+    transition: opacity 160ms ease, transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.tq-popover[data-placement='bottom'] .tq-popover__inner {
+    transform: translateY(-0.5rem) scale(0.94);
+    transform-origin: var(--arrow-x, 50%) 0;
+}
+
+.tq-popover[data-state='open'] .tq-popover__inner {
+    opacity: 1;
+    transform: none;
+}
+
+.tq-popover__arrow {
+    position: absolute;
+    bottom: -7px;
+    left: var(--arrow-x, 50%);
+    width: 15px;
+    height: 15px;
+    border-right: 2px solid var(--tq-card-border, #b88a4d);
+    border-bottom: 2px solid var(--tq-card-border, #b88a4d);
+    background: #fbf1d9;
+    opacity: 0;
+    transform: translateX(-50%) rotate(45deg);
+    transition: opacity 160ms ease;
+}
+
+.tq-popover[data-placement='bottom'] .tq-popover__arrow {
+    top: -7px;
+    bottom: auto;
+    border: 0;
+    border-top: 2px solid var(--tq-card-border, #b88a4d);
+    border-left: 2px solid var(--tq-card-border, #b88a4d);
+    background: #fffdf4;
+}
+
+.tq-popover[data-state='open'] .tq-popover__arrow { opacity: 1; }
+
+.tq-card {
+    --acc: #55aa67;
+    --deep: #2a7449;
+    position: relative;
+    display: block;
+    padding: 0.72rem 0.82rem 0.8rem;
+    overflow: hidden;
+    color: #3a2a1a;
+    border: 2px solid color-mix(in srgb, var(--acc) 50%, #b88a4d);
+    border-radius: 1.3rem;
+    background:
+        radial-gradient(circle at 104% -4%, color-mix(in srgb, var(--acc) 26%, transparent) 0 18%, transparent 44%),
+        linear-gradient(172deg, #fffdf4, #fbf1d9);
+    box-shadow:
+        0 1.1rem 2.2rem -0.6rem rgba(50, 30, 10, 0.42),
+        0 0 0 0.24rem rgba(255, 250, 232, 0.62),
+        inset 0 1px 0 #fff;
+    font-family: 'Fredoka', ui-rounded, sans-serif;
+}
+
+.tq-card--silver { --acc: #5eaee3; --deep: #2f5fa8; }
+.tq-card--gold { --acc: #e9a92b; --deep: #b45718; }
+.tq-card--crystal { --acc: #b06ee0; --deep: #6b3aa8; }
+
+.tq-card__ribbon {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.55rem;
+}
+
+.tq-card__seal {
+    display: grid;
+    flex: 0 0 auto;
+    width: 1.65rem;
+    height: 1.65rem;
+    place-items: center;
+    color: #fff8e6;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #8a6440, #4a2f16);
+    box-shadow: 0 0.16rem 0.32rem rgba(50, 25, 5, 0.3);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.78rem;
+}
+
+.tq-card__seal--gold { color: #6b3a05; background: radial-gradient(circle at 35% 30%, #fff1a8, #e0a226 70%); }
+.tq-card__seal--silver { color: #2f3d52; background: radial-gradient(circle at 35% 30%, #ffffff, #aebdd0 70%); }
+.tq-card__seal--bronze { color: #fff; background: radial-gradient(circle at 35% 30%, #f5bd8a, #a95b24 70%); }
+
+.tq-card__ribbon-text {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    color: var(--deep);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tq-card__ribbon-text b { color: #2f64c8; }
+
+.tq-card__lvl {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    color: var(--deep);
+    border: 1px solid color-mix(in srgb, var(--acc) 40%, white);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 0.62rem;
+    font-weight: 800;
+}
+
+.tq-card__lvl i { font-size: 0.55rem; }
+
+.tq-card__head {
+    display: grid;
+    grid-template-columns: 2.8rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.tq-card__logo {
+    display: grid;
+    width: 2.8rem;
+    height: 2.8rem;
+    place-items: center;
+    border: 3px solid color-mix(in srgb, var(--acc) 55%, white);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #fff7df);
+    box-shadow: 0 0.22rem 0.5rem rgba(44, 30, 14, 0.18);
+    font-size: 1.4rem;
+}
+
+.tq-card__identity { min-width: 0; }
+
+.tq-card__name {
     display: block;
     overflow: hidden;
-    color: #292d33;
+    color: #2e2216;
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 1.02rem;
+    font-size: 1.1rem;
     font-weight: 400;
-    line-height: 1.12;
+    line-height: 1.1;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.tq-map-tooltip__zone {
-    gap: 0.32rem;
-    margin-top: 0.2rem;
-    overflow: hidden;
-    color: var(--tooltip-deep);
-    font-size: 0.69rem;
-    font-weight: 900;
-    white-space: nowrap;
-}
-
-.tq-map-tooltip__zone img { width: 1.18rem; height: 1.18rem; flex: 0 0 auto; object-fit: contain; }
-.tq-map-tooltip__zone span { overflow: hidden; text-overflow: ellipsis; }
-
-.tq-map-tooltip__level {
-    align-self: start;
-    padding: 0.32rem 0.5rem;
-    color: var(--tooltip-deep);
-    border: 1px solid color-mix(in srgb, var(--tooltip-accent) 38%, white);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.82);
-    font-size: 0.62rem;
-    font-weight: 900;
-    white-space: nowrap;
-}
-
-.tq-map-tooltip__journey {
-    position: relative;
-    z-index: 1;
-    display: block;
-    margin-top: 0.72rem;
-    padding: 0.58rem 0.66rem 0.62rem;
-    border: 1px solid color-mix(in srgb, var(--tooltip-accent) 20%, white);
-    border-radius: 0.85rem;
-    background: rgba(255, 255, 255, 0.58);
-}
-
-.tq-map-tooltip__journey-label { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
-.tq-map-tooltip__journey-label span { color: #737b85; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
-.tq-map-tooltip__journey-label strong { color: var(--tooltip-deep); font-size: 0.82rem; font-weight: 900; }
-
-.tq-map-tooltip__meter {
-    display: block;
-    height: 0.58rem;
-    margin-top: 0.42rem;
-    overflow: hidden;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--tooltip-accent) 16%, #dfe5e3);
-    box-shadow: inset 0 1px 2px rgba(36, 42, 48, 0.14);
-}
-
-.tq-map-tooltip__meter-fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--tooltip-accent), var(--tooltip-deep));
-    box-shadow: 0 0 0.5rem color-mix(in srgb, var(--tooltip-accent) 55%, transparent);
-}
-
-.tq-map-tooltip__stats {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.52rem;
-    margin-top: 0.56rem;
-}
-
-.tq-map-tooltip__stat {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: center;
-    padding: 0.5rem 0.55rem;
-    border: 1px solid color-mix(in srgb, var(--tooltip-accent) 18%, white);
-    border-radius: 0.82rem;
-    background: rgba(255, 255, 255, 0.68);
-}
-
-.tq-map-tooltip__stat span,
-.tq-map-tooltip__stat small,
-.tq-map-tooltip__stat strong { display: block; min-width: 0; }
-.tq-map-tooltip__stat small { color: #7a828c; font-size: 0.5rem; font-weight: 900; letter-spacing: 0.045em; text-transform: uppercase; }
-.tq-map-tooltip__stat strong { margin-top: 0.08rem; overflow: hidden; color: #30343a; font-size: 0.72rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
-
-.tq-map-tooltip__milestone {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr);
-    gap: 0.58rem;
-    align-items: center;
-    margin-top: 0.56rem;
-    padding: 0.58rem 0.66rem;
-    color: var(--tooltip-deep);
-    border: 1px solid color-mix(in srgb, var(--tooltip-accent) 30%, white);
-    border-radius: 0.9rem;
-    background: color-mix(in srgb, var(--tooltip-accent) 11%, white);
-}
-
-.tq-map-tooltip__milestone-badge {
-    display: block;
-    width: 2rem;
-    height: 2rem;
-    object-fit: contain;
-    filter: drop-shadow(0 0.2rem 0.26rem rgba(75, 48, 22, 0.18));
-}
-
-.tq-map-tooltip__milestone small,
-.tq-map-tooltip__milestone strong,
-.tq-map-tooltip__milestone em { display: block; min-width: 0; }
-.tq-map-tooltip__milestone small { font-size: 0.5rem; font-style: normal; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.72; }
-.tq-map-tooltip__milestone strong { margin-top: 0.05rem; overflow: hidden; font-size: 0.76rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
-.tq-map-tooltip__milestone em { margin-top: 0.05rem; color: #626a72; font-size: 0.59rem; font-style: normal; font-weight: 800; }
-
-.tq-map-tooltip__bonus {
-    position: relative;
-    z-index: 1;
-    display: block;
-    margin-top: 0.52rem;
-    padding: 0.4rem 0.55rem;
-    color: #725016;
-    border: 1px solid rgba(225, 170, 51, 0.3);
-    border-radius: 999px;
-    background: linear-gradient(90deg, #fff8d9, #ffedaa, #fff8d9);
-    font-size: 0.63rem;
-    font-weight: 900;
-    text-align: center;
-}
-
-.tq-map-controls {
-    position: absolute;
-    z-index: 90;
-    right: 1.1rem;
-    bottom: 1rem;
+.tq-card__zone {
     display: flex;
     align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.16rem;
+    color: var(--deep);
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
-.tq-living-map .tq-map-control,
-.tq-living-map .map-toggle-roster-btn.tq-map-control {
-    position: static;
-    display: inline-flex;
-    min-width: 0;
-    min-height: 2.55rem;
+.tq-card__zone img { width: 1.15rem; height: 1.15rem; object-fit: contain; }
+
+.tq-card__pct {
+    color: var(--deep);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.7rem;
+    line-height: 1;
+}
+
+.tq-card__pct small { margin-left: 0.05rem; font-size: 0.85rem; opacity: 0.8; }
+
+/* The road in miniature: four realms, five stops, one marker. */
+.tq-card__route {
+    position: relative;
+    display: block;
+    height: 1.3rem;
+    margin: 0.55rem 0.35rem 0.45rem;
+}
+
+.tq-card__route-track,
+.tq-card__route-fill {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 0.46rem;
+    border-radius: 999px;
+    transform: translateY(-50%);
+}
+
+.tq-card__route-track {
+    background: rgba(120, 88, 45, 0.16);
+    box-shadow: inset 0 1px 2px rgba(80, 50, 20, 0.2);
+}
+
+.tq-card__route-fill {
+    background: linear-gradient(90deg, #6fc466 0 30%, #7fcbf2 30% 60%, #f3bd3d 60% 85%, #bd82f2 85% 100%);
+    clip-path: inset(0 calc(100% - var(--p, 0%)) 0 0 round 999px);
+}
+
+.tq-card__stop {
+    position: absolute;
+    top: 50%;
+    width: 0.62rem;
+    height: 0.62rem;
+    border: 2px solid #fffaf0;
+    border-radius: 50%;
+    background: #cdbb9a;
+    box-shadow: 0 0 0 1px rgba(110, 80, 40, 0.3);
+    transform: translate(-50%, -50%);
+}
+
+.tq-card__stop.is-reached { background: var(--deep); }
+.tq-card__stop--portal { width: 0.8rem; height: 0.8rem; background: #d7c3ef; }
+.tq-card__stop--portal.is-reached { background: #9b5de5; box-shadow: 0 0 0.5rem rgba(155, 93, 229, 0.8); }
+
+.tq-card__route-marker {
+    position: absolute;
+    top: 50%;
+    width: 1.05rem;
+    height: 1.05rem;
+    border: 2.5px solid #fff;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff6b8, #f0a818);
+    box-shadow: 0 0.12rem 0.3rem rgba(80, 45, 5, 0.4), 0 0 0 3px rgba(var(--tq-card-glow, 240, 168, 24), 0.25);
+    transform: translate(-50%, -50%);
+}
+
+.tq-card__facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+
+.tq-card__fact {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 0.4rem;
+    align-items: center;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid rgba(160, 120, 60, 0.18);
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.tq-card__fact i {
+    grid-row: 1 / span 2;
+    font-size: 0.95rem;
+}
+
+.tq-card__fact--stars i { color: #eab308; }
+.tq-card__fact--week i { color: #f97316; }
+
+.tq-card__fact strong {
+    color: #2e2216;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.05;
+}
+
+.tq-card__fact small {
+    overflow: hidden;
+    color: #857057;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tq-card__next {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.45rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--acc) 32%, white);
+    border-radius: 0.9rem;
+    background: color-mix(in srgb, var(--acc) 12%, #fffdf5);
+}
+
+.tq-card__next img { width: 2rem; height: 2rem; object-fit: contain; }
+.tq-card__next small,
+.tq-card__next strong { display: block; }
+.tq-card__next small { color: #8a7358; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.tq-card__next strong { overflow: hidden; color: var(--deep); font-size: 0.82rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+
+.tq-card__next em {
+    padding: 0.22rem 0.5rem;
+    color: #fff;
+    border-radius: 999px;
+    background: var(--deep);
+    font-size: 0.7rem;
+    font-style: normal;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.tq-card__next.is-complete em { background: linear-gradient(135deg, #f5b921, #d97706); }
+
+.tq-card__race {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.45rem;
+    color: #6e5439;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.tq-card__race i { color: #9b6a35; font-size: 0.7rem; }
+
+.tq-card__heroes { display: block; margin-top: 0.5rem; }
+.tq-card__heroes > small { display: block; margin-bottom: 0.25rem; color: #8a7358; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.tq-card__hero-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3rem; }
+
+.tq-card__hero {
+    display: grid;
+    grid-template-columns: 1.45rem minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 0.3rem;
+    align-items: center;
+    padding: 0.22rem 0.3rem;
+    border-radius: 0.7rem;
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.tq-card__hero img,
+.tq-card__hero-initial {
+    grid-row: 1 / span 2;
+    width: 1.45rem;
+    height: 1.45rem;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0.1rem 0.2rem rgba(0, 0, 0, 0.18);
+}
+
+.tq-card__hero-initial { display: grid; place-items: center; color: #5b3fb6; background: #ece6ff; font-size: 0.65rem; font-weight: 800; }
+.tq-card__hero-name { overflow: hidden; color: #3a2a1a; font-size: 0.64rem; font-weight: 800; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.tq-card__hero-stars { color: #b7791f; font-size: 0.58rem; font-weight: 800; line-height: 1.1; }
+
+.tq-card__bonus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+    padding: 0.3rem 0.5rem;
+    color: #725016;
+    border: 1px solid rgba(225, 170, 51, 0.35);
+    border-radius: 999px;
+    background: linear-gradient(90deg, #fff8d9, #ffedaa, #fff8d9);
+    font-size: 0.66rem;
+    font-weight: 800;
+}
+
+.tq-card__cta {
+    display: flex;
+    width: 100%;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0.58rem 0.88rem;
-    color: #5b391c;
-    border: 2px solid rgba(100, 62, 25, 0.6);
-    border-radius: 999px;
-    background: #fff4c8;
-    box-shadow: 0 0.28rem 0.68rem rgba(55, 35, 16, 0.2), inset 0 0 0 0.12rem rgba(255, 255, 255, 0.5);
-    font-size: 0.76rem;
-    font-weight: 900;
-    line-height: 1;
+    margin-top: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    color: #fff;
+    border: 0;
+    border-radius: 0.85rem;
+    background: linear-gradient(135deg, var(--deep), color-mix(in srgb, var(--deep) 70%, #1b1030));
+    box-shadow: 0 0.25rem 0 color-mix(in srgb, var(--deep) 60%, #000), 0 0.5rem 0.9rem rgba(40, 20, 5, 0.25);
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+    transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
 }
 
-.tq-living-map .tq-map-control:hover,
-.tq-living-map .tq-map-control:focus-visible {
-    transform: translateY(-0.12rem);
-    background: #fff9df;
-    box-shadow: 0 0.42rem 0.82rem rgba(55, 35, 16, 0.24), inset 0 0 0 0.12rem rgba(255, 255, 255, 0.65);
+.tq-card__cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.tq-card__cta:active { transform: translateY(0.2rem); box-shadow: 0 0.05rem 0 color-mix(in srgb, var(--deep) 60%, #000); }
+.tq-card__cta:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 5px var(--deep); }
+.tq-card__cta i:last-child { font-size: 0.7rem; transition: transform 160ms ease; }
+.tq-card__cta:hover i:last-child { transform: translateX(0.2rem); }
+
+/* ── Map controls ────────────────────────────────────────────────────── */
+.tq-map-controls {
+    position: absolute;
+    z-index: 90;
+    right: 1rem;
+    bottom: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
 }
 
-.tq-living-map .tq-map-control:focus-visible { outline: 3px solid rgba(255, 255, 255, 0.96); outline-offset: 2px; }
+.tq-chronicle-btn,
+.tq-map-replay {
+    color: #5b3419;
+    border: 2px solid #7a4a1f;
+    background: linear-gradient(180deg, #fff9e2, #f1d9a0);
+    box-shadow: 0 0.3rem 0 #a66a2c, 0 0.65rem 1.1rem rgba(50, 30, 10, 0.35), inset 0 1px 0 #fff;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tq-chronicle-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.38rem 0.55rem 0.38rem 0.4rem;
+    border-radius: 1rem;
+    font-family: 'Fredoka', sans-serif;
+}
+
+.tq-chronicle-btn:hover,
+.tq-map-replay:hover { filter: brightness(1.04); transform: translateY(-2px); box-shadow: 0 0.42rem 0 #a66a2c, 0 0.85rem 1.3rem rgba(50, 30, 10, 0.38), inset 0 1px 0 #fff; }
+
+.tq-chronicle-btn:active,
+.tq-map-replay:active { transform: translateY(0.24rem); box-shadow: 0 0.06rem 0 #a66a2c, 0 0.3rem 0.6rem rgba(50, 30, 10, 0.3), inset 0 1px 0 #fff; }
+
+.tq-chronicle-btn:focus-visible,
+.tq-map-replay:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.tq-chronicle-btn__book {
+    position: relative;
+    display: grid;
+    width: 2.3rem;
+    height: 2.3rem;
+    place-items: center;
+    overflow: hidden;
+    color: #ffd98a;
+    border-radius: 0.7rem;
+    background: linear-gradient(135deg, #9a5424, #5a2c10);
+    box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.35), 0 0.12rem 0.2rem rgba(0, 0, 0, 0.25);
+    font-size: 1rem;
+}
+
+.tq-chronicle-btn__book::after {
+    content: '';
+    position: absolute;
+    inset: -20% auto -20% -60%;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 240, 200, 0.55), transparent);
+    transform: skewX(-20deg);
+    animation: tq-book-shine 5.5s ease-in-out infinite;
+}
+
+.tq-chronicle-btn__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.05;
+}
+
+.tq-chronicle-btn__copy small {
+    color: #9a6a3a;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.tq-chronicle-btn__copy strong {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.98rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.tq-chronicle-btn__count {
+    display: grid;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.35rem;
+    place-items: center;
+    color: #fff3cf;
+    border-radius: 999px;
+    background: #7a4a1f;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.tq-chronicle-btn[aria-expanded='true'] .tq-chronicle-btn__count { background: #2a7449; }
+
+.tq-map-replay {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.95rem;
+}
+
+.tq-map-replay.is-spinning i { animation: tq-replay-steps 700ms ease-out; }
+
+/* ── Waypoint states ─────────────────────────────────────────────────── */
+.tq-waypoint:not(.is-reached) .tq-waypoint__badge { filter: grayscale(0.55) brightness(0.96); opacity: 0.86; }
+
+.tq-waypoint__burst {
+    position: absolute;
+    z-index: 1;
+    inset: -20%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--waypoint-glow), 0.95) 0%, rgba(var(--waypoint-glow), 0.35) 40%, rgba(var(--waypoint-glow), 0) 68%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tq-waypoint.is-celebrating .tq-waypoint__burst { animation: tq-waypoint-burst 1.6s ease-out; }
+.tq-waypoint.is-celebrating .tq-waypoint__badge { animation: tq-waypoint-cheer 900ms cubic-bezier(0.3, 1.6, 0.5, 1); }
 
 /* The same station crest anchors the expanded region modal. */
 .zone-overview-hero__icon-ring {
@@ -961,15 +1372,15 @@
 
 .tq-living-map.is-motion-paused .tq-living-map__crystal-aura,
 .tq-living-map.is-motion-paused .tq-living-map__mist,
-.tq-living-map.is-motion-paused .tq-route__gleam,
+.tq-living-map.is-motion-paused .tq-token__aura,
+.tq-living-map.is-motion-paused .tq-token__disc::after,
+.tq-living-map.is-motion-paused .tq-chronicle-btn__book::after,
 .tq-living-map.is-motion-paused .tq-waypoint__badge,
 .tq-living-map.is-motion-paused .tq-route-finish,
 .tq-living-map.is-motion-paused .tq-route-finish__glow,
 .tq-living-map.is-motion-paused .tq-portal-vortex,
-.tq-living-map.is-motion-paused .tq-ambient,
-.tq-living-map.is-motion-paused .tq-class-token.is-leader .tq-class-token__visual { animation-play-state: paused; }
+.tq-living-map.is-motion-paused .tq-ambient { animation-play-state: paused; }
 
-@keyframes tq-road-sparkle { 0%, 100% { opacity: 0.38; } 50% { opacity: 0.95; } }
 @keyframes tq-crystal-breathe { 0%, 100% { opacity: 0.2; transform: scale(0.97); } 50% { opacity: 0.36; transform: scale(1.035); } }
 @keyframes tq-mist-near { 0% { opacity: 0.08; transform: translate3d(-2.5%, 0, 0); } 100% { opacity: 0.16; transform: translate3d(4%, 1.4%, 0); } }
 @keyframes tq-mist-far { 0% { opacity: 0.05; transform: translate3d(-3%, 0, 0) scale(0.78); } 100% { opacity: 0.12; transform: translate3d(6%, -1.5%, 0) scale(0.78); } }
@@ -988,7 +1399,24 @@
 @keyframes tq-snow-drift { 0% { opacity: 0; transform: translate3d(-0.3rem, -0.7rem, 0) scale(0.72); } 18% { opacity: 0.9; } 82% { opacity: 0.72; } 100% { opacity: 0; transform: translate3d(1.2rem, 3.1rem, 0) scale(1); } }
 @keyframes tq-city-glow { 0%, 100% { opacity: 0.36; transform: scale(0.72); } 50% { opacity: 1; transform: scale(1.35); } }
 @keyframes tq-crystal-mote { 0%, 100% { opacity: 0; transform: translate3d(0, 0.7rem, 0) rotate(0) scale(0.55); } 34% { opacity: 1; } 72% { opacity: 0.72; } 100% { transform: translate3d(0.8rem, -2.2rem, 0) rotate(28deg) scale(1.1); } }
-@keyframes tq-leader-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.2rem); } }
+@keyframes tq-aura-pulse { 0%, 100% { opacity: 0.75; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes tq-mine-orbit { to { transform: rotate(360deg); } }
+@keyframes tq-token-hop { from { transform: translateY(0) rotate(-5deg); } to { transform: translateY(-0.42rem) rotate(5deg); } }
+@keyframes tq-token-hop-shadow { from { transform: scale(1); opacity: 1; } to { transform: scale(0.72); opacity: 0.55; } }
+@keyframes tq-token-dust { 0% { opacity: 0.85; transform: translateX(0.2rem) scale(0.5); } 100% { opacity: 0; transform: translateX(-0.7rem) scale(1.4); } }
+@keyframes tq-token-land { 0% { opacity: 1; transform: scale(0.6); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes tq-token-settle { 0% { transform: translateY(-0.4rem) scale(1.08, 0.92); } 55% { transform: translateY(0) scale(0.93, 1.07); } 100% { transform: none; } }
+@keyframes tq-gain-rise {
+    0% { opacity: 0; transform: translate(-50%, 0.6rem) scale(0.6); }
+    14% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+    72% { opacity: 1; transform: translate(-50%, -0.9rem) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -1.7rem) scale(0.95); }
+}
+@keyframes tq-book-shine { 0%, 70% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(560%) skewX(-20deg); } }
+@keyframes tq-replay-steps { 0% { transform: translateX(0); } 30% { transform: translateX(-0.2rem) rotate(-12deg); } 60% { transform: translateX(0.25rem) rotate(10deg); } 100% { transform: none; } }
+@keyframes tq-waypoint-burst { 0% { opacity: 0; transform: scale(0.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes tq-waypoint-cheer { 0% { transform: scale(1); } 40% { transform: translateY(-0.4rem) scale(1.16) rotate(-4deg); } 100% { transform: none; } }
+@keyframes tq-title-wait { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 @media (max-width: 1180px) {
     .tq-living-map__frame { border-radius: 1.15rem; }
@@ -997,9 +1425,12 @@
     .tq-waypoint__scroll { width: clamp(11rem, 24vw, 15rem); }
     .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(11.5rem, 25vw, 15.6rem); }
     .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(11.3rem, 24.5vw, 15.3rem); }
-    .tq-living-map .tq-class-token.league-map-avatar { width: clamp(2.8rem, 4.8vw, 3.45rem); height: clamp(2.8rem, 4.8vw, 3.45rem); }
-    .tq-map-tooltip { width: 16.5rem; padding-right: 0.78rem; padding-left: 0.78rem; }
-    .tq-map-controls { right: 0.8rem; bottom: 0.72rem; }
+    .tq-living-map .tq-token { --tq-token-size: clamp(2.8rem, 4.8vw, 3.45rem); }
+    .tq-map-controls { right: 0.8rem; bottom: 0.72rem; gap: 0.4rem; }
+    .tq-chronicle-btn__copy small { display: none; }
+    .tq-chronicle-btn__copy strong { font-size: 0.85rem; }
+    .tq-chronicle-btn__book { width: 1.9rem; height: 1.9rem; font-size: 0.85rem; }
+    .tq-map-replay { width: 2.3rem; height: 2.3rem; }
 }
 
 @media (max-width: 520px) {
@@ -1013,18 +1444,30 @@
 @media (prefers-reduced-motion: reduce) {
     .tq-living-map__crystal-aura,
     .tq-living-map__mist,
-    .tq-route__gleam,
     .tq-waypoint__badge,
+    .tq-waypoint__burst,
+    .tq-token__aura,
+    .tq-token__disc::after,
+    .tq-token__body,
+    .tq-token__shadow,
+    .tq-token::before,
+    .tq-token::after,
+    .tq-token__gain,
+    .tq-chronicle-btn__book::after,
     .tq-route-finish,
     .tq-route-finish__glow,
     .tq-portal-vortex,
     .tq-ambient,
-    .tq-class-token.is-leader .tq-class-token__visual,
     .zone-overview-hero__icon-ring { animation: none !important; }
 
     .tq-waypoint,
     .tq-waypoint__badge,
-    .tq-class-token__visual,
-    .tq-map-tooltip,
-    .tq-living-map .tq-map-control { transition-duration: 0.01ms !important; }
+    .tq-token__body,
+    .tq-popover__inner,
+    .tq-route__fog,
+    .tq-living-map__background,
+    .tq-chronicle-btn,
+    .tq-map-replay { transition-duration: 0.01ms !important; }
 }
+
+.tq-card__next strong::first-letter { text-transform: uppercase; }

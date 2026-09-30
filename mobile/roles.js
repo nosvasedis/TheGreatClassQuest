@@ -30,20 +30,6 @@ function mirrorText(sourceSelector, targetId) {
     observers.push(observer);
 }
 
-function wireParent() {
-    document.getElementById('m-parent-refresh-btn')?.addEventListener('click', () => {
-        playSound('click');
-        Promise.all([
-            import('../db/listeners.js'),
-            import('../features/parentPortal.js')
-        ]).then(([listeners, portal]) => listeners.refreshParentPortalData().then(() => portal.renderParentPortal()));
-    });
-
-    document.getElementById('m-parent-logout-btn')?.addEventListener('click', logout);
-    mirrorText('#parent-screen [data-parent-title]', 'm-parent-title');
-    mirrorText('#parent-screen [data-parent-student-name]', 'm-parent-student-name');
-}
-
 function wireSecretary() {
     document.getElementById('m-secretary-open-teacher-app-btn')?.addEventListener('click', () => {
         playSound('click');
@@ -60,7 +46,6 @@ function wireSecretary() {
 function wire() {
     if (wired) return;
     wired = true;
-    wireParent();
     wireSecretary();
 }
 

@@ -378,18 +378,27 @@ function maybeRenderSecretaryPortal(tabKey) {
     });
 }
 
-function maybeRenderParentPortal(tabKey) {
+function maybeRenderParentPortal() {
     const screen = document.getElementById("parent-screen");
     if (!screen || screen.classList.contains("hidden")) return;
     import("../features/parentPortal.js").then((module) => {
-        module.renderParentPortal(tabKey);
+        module.renderParentPortal();
     });
+}
+
+// Asks the server to rebuild the family summary (it skips the work if it is only minutes old).
+// Older deployments without this function simply keep the last summary.
+function requestFamilySnapshotRefresh() {
+    return import("../utils/adminRuntime.js")
+        .then((runtime) => runtime.refreshFamilySnapshot())
+        .catch((error) => console.warn("Family summary refresh skipped:", error?.message || error));
 }
 
 export async function refreshParentPortalData() {
     const profile = state.get("currentUserProfile");
     const studentId = profile?.linkedStudentId;
     if (!studentId) return;
+    await requestFamilySnapshotRefresh();
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const snapshotRef = doc(db, `${publicDataPath}/parent_snapshots`, studentId);
     const snapshot = await getDoc(snapshotRef);
@@ -487,7 +496,7 @@ export function watchCommunicationThread(threadId) {
                         .getElementById("parent-screen")
                         ?.classList.contains("hidden")
                 ) {
-                    maybeRenderParentPortal("messages");
+                    maybeRenderParentPortal();
                 }
                 if (
                     !document
@@ -544,7 +553,7 @@ function subscribeCommunicationThreads({ userId, isSecretary = false }) {
                         .getElementById("parent-screen")
                         ?.classList.contains("hidden")
                 ) {
-                    maybeRenderParentPortal("messages");
+                    maybeRenderParentPortal();
                 }
                 if (
                     !document
@@ -607,6 +616,8 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
         "holidays",
     );
 
+    requestFamilySnapshotRefresh();
+
     state.setUnsubscribeParentSnapshot(
         onSnapshot(
             parentSnapshotRef,
@@ -618,7 +629,7 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
                 );
                 snapshotReady = true;
                 maybeReady();
-                maybeRenderParentPortal("home");
+                maybeRenderParentPortal();
             },
             (error) =>
                 console.error("Error listening to parent snapshot:", error),
@@ -635,7 +646,7 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
                         ...docSnap.data(),
                     })),
                 );
-                maybeRenderParentPortal("homework");
+                maybeRenderParentPortal();
             },
             (error) =>
                 console.error("Error listening to parent homework:", error),

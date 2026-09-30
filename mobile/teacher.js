@@ -249,7 +249,6 @@ function measureBrowserChromeBottom() {
 function measureHeaderHeight() {
     const header =
         document.getElementById('m-teacher-header') ||
-        document.getElementById('m-parent-header') ||
         document.getElementById('m-secretary-header');
     if (!header || !document.body.classList.contains('gcq-mobile')) return;
     measureBrowserChromeBottom();
@@ -259,7 +258,6 @@ function measureHeaderHeight() {
     }
     const dock =
         document.getElementById('m-teacher-dock') ||
-        document.getElementById('m-parent-dock') ||
         document.getElementById('m-secretary-dock');
     if (dock) {
         const dockH = Math.ceil(dock.getBoundingClientRect().height);

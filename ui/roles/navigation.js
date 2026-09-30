@@ -3,7 +3,7 @@
 const ROLE_CONFIG = {
     parent: {
         screenId: 'parent-screen',
-        navSelector: '.nav-button[data-parent-tab]',
+        navSelector: '.fp-nav__btn[data-parent-tab]',
         panelSelector: '[data-parent-section]',
         tabAttr: 'parentTab',
         sectionAttr: 'parentSection',

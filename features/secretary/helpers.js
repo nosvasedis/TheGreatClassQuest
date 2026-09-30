@@ -80,7 +80,11 @@ export function getThreadTypeMeta(threadType) {
         'attendance-alert': { label: 'Attendance', icon: 'fa-calendar-xmark', tone: 'rose' },
         'meeting-request': { label: 'Meeting Request', icon: 'fa-handshake', tone: 'violet' },
         'admin-announcement': { label: 'Announcement', icon: 'fa-bullhorn', tone: 'indigo' },
-        'school-message': { label: 'School Message', icon: 'fa-envelope-open-text', tone: 'slate' }
+        'school-message': { label: 'School Message', icon: 'fa-envelope-open-text', tone: 'slate' },
+        // Conversations a family starts from the Family Portal.
+        'family-question': { label: 'Family Question', icon: 'fa-circle-question', tone: 'sky' },
+        'absence-note': { label: 'Absence Note', icon: 'fa-bed', tone: 'rose' },
+        'family-message': { label: 'Family Note', icon: 'fa-feather-pointed', tone: 'emerald' }
     };
     return metaMap[type] || { label: 'School Message', icon: 'fa-envelope-open-text', tone: 'slate' };
 }

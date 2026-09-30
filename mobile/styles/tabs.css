@@ -146,7 +146,6 @@ body.gcq-mobile .role-main {
     padding-bottom: calc(1rem + var(--m-dock-clearance) * 0.2);
 }
 
-body.gcq-mobile [data-parent-section],
 body.gcq-mobile [data-secretary-section] {
     display: flex;
     flex-direction: column;

@@ -12,8 +12,6 @@
 
 #m-teacher-header,
 #m-teacher-dock,
-#m-parent-header,
-#m-parent-dock,
 #m-secretary-header,
 #m-secretary-dock,
 #home-dashboard-mobile,
@@ -22,13 +20,11 @@
 }
 
 body.gcq-mobile #m-teacher-header,
-body.gcq-mobile #m-parent-header,
 body.gcq-mobile #m-secretary-header {
     display: flex;
 }
 
 body.gcq-mobile #m-teacher-dock,
-body.gcq-mobile #m-parent-dock,
 body.gcq-mobile #m-secretary-dock {
     display: grid;
 }
@@ -41,7 +37,6 @@ body.gcq-mobile #m-options-subtab-dropdown {
 body.gcq-mobile #award-header-atmosphere,
 body.gcq-mobile #bottom-nav-bar,
 body.gcq-mobile .role-shell .role-header-atmosphere,
-body.gcq-mobile #parent-bottom-nav,
 body.gcq-mobile #secretary-bottom-nav,
 body.gcq-mobile #home-dashboard-container {
     display: none !important;

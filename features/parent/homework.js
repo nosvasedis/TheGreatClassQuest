@@ -1,74 +1,140 @@
+// features/parent/homework.js — homework pinned to the family fridge
 import * as state from '../../state.js';
-import { escapeHtml, formatFlexibleDate, renderTabHero, renderEmptyState } from '../roles/shared.js';
+import {
+    escapeHtml,
+    getSnapshot,
+    firstName,
+    splitHomework,
+    shortDate,
+    relativeDay,
+    countdownLabel,
+    daysFromToday,
+    monthShort,
+    toDate,
+    toMillis,
+    isHomeworkNew,
+    getNextLesson,
+    weekdayName
+} from './helpers.js';
 
-function getHomeworkItems() {
-    return state.get('currentParentHomework') || [];
+function sortedHomework() {
+    return (state.get('currentParentHomework') || [])
+        .slice()
+        .sort((a, b) => toMillis(b.publishedAt || b.updatedAt) - toMillis(a.publishedAt || a.updatedAt));
 }
 
-function renderHomeworkList() {
-    const items = getHomeworkItems();
-
+function renderTestCard(item, test) {
+    const diff = daysFromToday(test.date);
+    const upcoming = diff !== null && diff >= 0;
+    const date = toDate(test.date);
     return `
-        <article class="role-card">
-            <div class="role-card__header">
-                <div>
-                    <p class="role-card__eyebrow">Homework list</p>
-                    <h3 class="role-card__title">All assignments</h3>
-                </div>
-                <div class="role-card__badge">${items.length} items</div>
+        <div class="fp-test${upcoming ? '' : ' fp-test--past'}">
+            <span class="fp-leaf fp-leaf--violet" aria-hidden="true">
+                <span class="fp-leaf__month">${escapeHtml(monthShort(test.date))}</span>
+                <span class="fp-leaf__day">${date ? date.getDate() : '–'}</span>
+            </span>
+            <div class="fp-test__copy">
+                <p class="fp-kicker">${upcoming ? 'Test coming up' : 'Test'}</p>
+                <p class="fp-test__title">${escapeHtml(test.title)}</p>
+                <p class="fp-test__when">${escapeHtml(shortDate(test.date))}${upcoming ? ` · <strong>${escapeHtml(countdownLabel(test.date))}</strong>` : ''}</p>
+                ${test.curriculum ? `<p class="fp-test__topics"><i class="fas fa-list-check" aria-hidden="true"></i> ${escapeHtml(test.curriculum)}</p>` : ''}
             </div>
-            ${items.length
-                ? items.map((item) => `
-                    <button type="button" class="role-list-row" data-parent-homework-id="${escapeHtml(item.id)}">
-                        <div class="role-list-row__avatar role-list-row__avatar--amber"><i class="fas fa-book"></i></div>
-                        <div class="role-list-row__body">
-                            <div class="role-list-row__title">${escapeHtml(item.title || 'Homework')}</div>
-                            <div class="role-list-row__meta">${escapeHtml(formatFlexibleDate(item.lessonDate || item.updatedAt))}</div>
-                        </div>
-                        <i class="fas fa-chevron-right text-slate-400"></i>
-                    </button>
-                `).join('')
-                : renderEmptyState('No homework has been shared yet. Check back after the next lesson.', { large: true })
-            }
-        </article>
-    `;
+            ${upcoming ? `<button type="button" class="fp-btn fp-btn--soft fp-test__cal" data-parent-ics="${escapeHtml(item.id)}"><i class="fas fa-calendar-plus" aria-hidden="true"></i> Add to calendar</button>` : ''}
+        </div>`;
 }
 
-function renderHomeworkDetail(item) {
-    if (!item) {
-        return renderEmptyState('Homework not found.', { large: true });
+function renderNote(item, { main = false } = {}) {
+    const parts = splitHomework(item);
+    // The current note is titled by the lesson it is for, the way a family would say it.
+    if (main && parts.title === 'Homework') {
+        const lesson = getNextLesson(getSnapshot());
+        if (lesson) parts.title = lesson.inDays === 0 ? 'For today' : lesson.inDays === 1 ? 'For tomorrow' : `For ${weekdayName(lesson.date)}`;
     }
-
+    const isNew = isHomeworkNew(item);
     return `
-        <button type="button" class="role-back-btn" data-parent-homework-view="list"><i class="fas fa-arrow-left"></i> Back to homework</button>
-        <article class="role-card">
-            <div class="role-card__header">
-                <div>
-                    <p class="role-card__eyebrow">Homework detail</p>
-                    <h3 class="role-card__title">${escapeHtml(item.title || 'Homework')}</h3>
-                </div>
-                <div class="role-card__badge">${escapeHtml(formatFlexibleDate(item.lessonDate || item.updatedAt))}</div>
-            </div>
-            <div class="text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(item.body || 'No details provided.')}</div>
-            ${item.teacherName ? `<p class="text-sm text-slate-500 mt-4">From: ${escapeHtml(item.teacherName)}</p>` : ''}
-        </article>
-    `;
+        <article class="fp-note${main ? ' fp-note--main' : ''} fp-rise" style="--fp-delay:${main ? 1 : 2}">
+            <span class="fp-note__magnet" aria-hidden="true"></span>
+            <header class="fp-note__head">
+                <h3 class="fp-note__title">${escapeHtml(parts.title)}</h3>
+                ${isNew ? '<span class="fp-new-tag">New</span>' : ''}
+            </header>
+            <p class="fp-note__date"><i class="fas fa-thumbtack" aria-hidden="true"></i> Set ${escapeHtml(relativeDay(parts.setOn))}${parts.setOn ? ` · ${escapeHtml(shortDate(parts.setOn))}` : ''}</p>
+            ${parts.body ? `<div class="fp-note__body">${escapeHtml(parts.body)}</div>` : ''}
+            ${parts.test ? renderTestCard(item, parts.test) : ''}
+        </article>`;
 }
 
 export function renderParentHomework() {
-    const view = state.get('parentView') || {};
-    const items = getHomeworkItems();
-    const selectedId = view.selectedHomeworkId;
-    const selectedItem = items.find((item) => item.id === selectedId) || null;
-    const homeworkView = view.homeworkView === 'detail' && selectedItem ? 'detail' : 'list';
-
+    const items = sortedHomework();
+    const name = firstName(getSnapshot().studentName);
+    const [current, ...earlier] = items;
     return `
-        ${homeworkView === 'list' ? renderTabHero({
-            icon: 'fa-book',
-            iconColor: 'text-amber-500',
-            title: 'Homework',
-            subtitle: 'Tap an assignment to read the full details.'
-        }) : ''}
-        ${homeworkView === 'detail' ? renderHomeworkDetail(selectedItem) : renderHomeworkList()}
-    `;
+        <header class="fp-pagehead fp-rise">
+            <span class="fp-pagehead__icon fp-pagehead__icon--amber" aria-hidden="true"><i class="fas fa-book-open"></i></span>
+            <div>
+                <h2 class="fp-pagehead__title">Homework</h2>
+                <p class="fp-pagehead__sub">What ${escapeHtml(name)} needs to do before the next lesson.</p>
+            </div>
+        </header>
+        <div class="fp-fridge">
+            ${current ? renderNote(current, { main: true }) : `
+                <div class="fp-note fp-note--empty fp-rise">
+                    <span class="fp-note__magnet" aria-hidden="true"></span>
+                    <h3 class="fp-note__title">Nothing pinned yet</h3>
+                    <p class="fp-note__body">When the teacher sets homework after a lesson, it appears here.</p>
+                </div>`}
+            ${earlier.length ? `
+                <p class="fp-section-label">Earlier</p>
+                ${earlier.map((item) => renderNote(item)).join('')}` : ''}
+        </div>
+        <p class="fp-tip"><i class="fas fa-lightbulb" aria-hidden="true"></i> A few calm minutes a day beats one long evening. Ask ${escapeHtml(name)} to explain the task to you in English.</p>`;
+}
+
+function icsDate(date) {
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function icsText(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (m) => `\\${m}`);
+}
+
+/** Downloads an all-day calendar event for the homework's test. */
+export function downloadTestCalendarEvent(homeworkId) {
+    const item = (state.get('currentParentHomework') || []).find((entry) => entry.id === homeworkId);
+    const test = item ? splitHomework(item).test : null;
+    const date = test ? toDate(test.date) : null;
+    if (!date) return false;
+    const next = new Date(date);
+    next.setDate(date.getDate() + 1);
+    const snapshot = getSnapshot();
+    const summary = `${firstName(snapshot.studentName)}: ${test.title}`;
+    const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//The Great Class Quest//Family Portal//EN',
+        'BEGIN:VEVENT',
+        `UID:${icsText(`${homeworkId}-${icsDate(date)}`)}@greatclassquest`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')}`,
+        `DTSTART;VALUE=DATE:${icsDate(date)}`,
+        `DTEND;VALUE=DATE:${icsDate(next)}`,
+        `SUMMARY:${icsText(summary)}`,
+        `DESCRIPTION:${icsText([snapshot.className, test.curriculum].filter(Boolean).join('\n'))}`,
+        'BEGIN:VALARM',
+        'TRIGGER:-PT15H',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:${icsText(summary)}`,
+        'END:VALARM',
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ];
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${test.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'test'}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return true;
 }

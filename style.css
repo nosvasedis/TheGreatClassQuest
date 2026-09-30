@@ -258,3 +258,6 @@
 
 /* 49. Post a Bounty: a bounty notice pinned up for the class */
 @import url('./styles/bounty_poster.css');
+
+/* 50. Family Portal: a warm home for families (postcard, star jar, fridge door, letters) */
+@import url('./styles/family_portal.css');

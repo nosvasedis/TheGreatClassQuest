@@ -12,7 +12,7 @@ The school has **three interfaces**. The same school year lives in all three; ea
 |-----------|-------------|----------------|
 | **Teacher** | The classroom teacher | The full Quest on a **classroom PC**. Depth grows with the plan: **Starter**, **Pro**, and **Elite**. |
 | **Secretary** (School Office) | The person who runs the school year | Classes for each teacher, new students, student placement, holidays, year open/close, school-wide grading defaults, family messages. **Elite.** |
-| **Parent** (Family Portal) | One login per child | Progress, homework, attendance snapshot, calm messages. **Pro and Elite.** |
+| **Parent** (Family Portal) | One login per child | The week at a glance, homework, progress, attendance, messages with the school. **Pro and Elite.** |
 
 Students do not log in. They **see the Quest** on the classroom screen — clouds, a map, houses, ceremonies — while you run it.
 

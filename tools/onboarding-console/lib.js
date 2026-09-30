@@ -207,6 +207,8 @@ const PARENT_RUNTIME_FUNCTION_NAMES = [
   'publishParentHomework',
   'postCommunicationMessage',
   'syncQuestAssignmentToParentHomework',
+  'refreshFamilySnapshot',
+  'sendFamilyMessage',
 ];
 
 const SECRETARY_RUNTIME_FUNCTION_NAMES = [

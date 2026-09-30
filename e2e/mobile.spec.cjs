@@ -29,8 +29,9 @@ test.describe('mobile experience layer', () => {
     expect(state.teacherHeaderDisplay).toBe(isMobileProject ? 'flex' : 'none');
 
     const shellsPresent = await page.evaluate(() => ({
-      parentHeader: !!document.getElementById('m-parent-header'),
-      parentDock: !!document.getElementById('m-parent-dock'),
+      // The Family Portal keeps one responsive header and tab bar on every screen size.
+      familyHeader: !!document.querySelector('#parent-screen .fp-header'),
+      familyNav: !!document.getElementById('parent-bottom-nav'),
       secretaryHeader: !!document.getElementById('m-secretary-header'),
       secretaryDock: !!document.getElementById('m-secretary-dock'),
       moreSheet: !!document.getElementById('m-more-sheet'),
@@ -43,8 +44,8 @@ test.describe('mobile experience layer', () => {
       headerLogo: !!document.querySelector('#m-teacher-header .m-header__logo')
     }));
     expect(shellsPresent).toEqual({
-      parentHeader: true,
-      parentDock: true,
+      familyHeader: true,
+      familyNav: true,
       secretaryHeader: true,
       secretaryDock: true,
       moreSheet: true,
@@ -65,7 +66,7 @@ test.describe('mobile experience layer', () => {
     expect(tabWiringValid).toBe(true);
 
     const roleDockWiringValid = await page.evaluate(() => {
-      const parentKeys = [...document.querySelectorAll('#m-parent-dock .nav-button[data-parent-tab]')].map((b) => b.dataset.parentTab);
+      const parentKeys = [...document.querySelectorAll('#parent-bottom-nav .fp-nav__btn[data-parent-tab]')].map((b) => b.dataset.parentTab);
       const secretaryKeys = [...document.querySelectorAll('#m-secretary-dock .nav-button[data-secretary-tab]')].map((b) => b.dataset.secretaryTab);
       const parentSections = [...document.querySelectorAll('[data-parent-section]')].map((el) => el.dataset.parentSection);
       const secretarySections = [...document.querySelectorAll('[data-secretary-section]')].map((el) => el.dataset.secretarySection);

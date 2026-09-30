@@ -369,7 +369,7 @@ export function familyPortalHtml() {
       <span>👨‍👩‍👧</span>
       <div>
         <strong><i class="fas fa-house-user" aria-hidden="true"></i> One login per child</strong>
-        <p>Progress, homework, attendance snapshot, calm messages. They do not see your private Chronicle unless you publish.</p>
+        <p>The week at a glance, homework and tests, progress, attendance, and messages with the school. They do not see your private Chronicle unless you publish.</p>
       </div>
     </div>
   </div>`;

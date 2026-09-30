@@ -1,17 +1,8 @@
-const roleHeaderActions = (role) => {
-    if (role === 'secretary') {
-        return `
-            <button type="button" id="secretary-open-teacher-app-btn"
-                class="role-header-icon-btn bubbly-button" title="Open Teacher App" aria-label="Open Teacher App">
-                <i class="fas fa-chalkboard-teacher text-xs"></i>
-            </button>`;
-    }
-    return `
-        <button type="button" id="parent-refresh-btn"
-            class="role-header-icon-btn bubbly-button" title="Refresh" aria-label="Refresh">
-            <i class="fas fa-rotate text-xs"></i>
-        </button>`;
-};
+const secretaryHeaderActions = `
+    <button type="button" id="secretary-open-teacher-app-btn"
+        class="role-header-icon-btn bubbly-button" title="Open Teacher App" aria-label="Open Teacher App">
+        <i class="fas fa-chalkboard-teacher text-xs"></i>
+    </button>`;
 
 const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
     <div class="role-header-atmosphere role-header-atmosphere--${role} relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
@@ -23,15 +14,14 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
                 <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
             </div>
             <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3 overflow-visible">
-                ${role === 'secretary' ? '' : '<span class="role-header-brand__mark" aria-hidden="true"><i class="fas fa-heart"></i></span>'}
                 <div class="min-w-0 overflow-visible">
-                    <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">${role === 'secretary' ? 'School Office' : 'Family Portal'}</p>
+                    <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">School Office</p>
                     <h1 class="font-title text-2xl text-white sm:text-4xl whitespace-nowrap" ${titleAttr} data-text="Loading...">Loading...</h1>
                     <p class="text-white/90 text-sm font-semibold mt-1 truncate" ${subtitleAttr}></p>
                 </div>
             </div>
             <div class="z-10 flex shrink-0 items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md">
-                ${roleHeaderActions(role)}
+                ${secretaryHeaderActions}
                 <button type="button" id="${logoutId}"
                     class="role-header-icon-btn role-header-icon-btn--danger bubbly-button" title="Log Out" aria-label="Log Out">
                     <i class="fas fa-sign-out-alt text-xs"></i>
@@ -52,21 +42,57 @@ const bottomNav = (role, items) => `
         `).join('')}
     </nav>`;
 
+// The Family Portal has its own home-like shell (header and tab bar) on every screen size.
+const familyHeader = `
+    <header class="fp-header" aria-label="Family Portal">
+        <div class="fp-header__town" aria-hidden="true">
+            <span class="fp-town fp-town--back"></span>
+            <span class="fp-town fp-town--front"></span>
+            <span class="fp-town fp-town--windows"></span>
+        </div>
+        <div class="fp-header__row">
+            <div class="fp-portrait" data-parent-portrait aria-hidden="true"><span>?</span></div>
+            <div class="fp-header__copy">
+                <p class="fp-header__eyebrow"><i class="fas fa-house-chimney-window" aria-hidden="true"></i> Family Portal<span class="fp-header__school" data-parent-school></span></p>
+                <h1 class="fp-header__title" data-parent-title>Loading…</h1>
+                <p class="fp-header__sub" data-parent-student-name></p>
+            </div>
+            <div class="fp-header__actions">
+                <button type="button" id="parent-refresh-btn" class="fp-icon-btn" title="Check for news" aria-label="Check for news">
+                    <i class="fas fa-rotate" aria-hidden="true"></i>
+                </button>
+                <button type="button" id="parent-logout-btn" class="fp-icon-btn fp-icon-btn--quiet" title="Log out" aria-label="Log out">
+                    <i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </header>`;
+
+const familyNav = `
+    <nav id="parent-bottom-nav" class="fp-nav" aria-label="Family Portal">
+        ${[
+            { key: 'home', icon: 'fa-house', label: 'Home' },
+            { key: 'homework', icon: 'fa-book-open', label: 'Homework' },
+            { key: 'progress', icon: 'fa-seedling', label: 'Progress' },
+            { key: 'messages', icon: 'fa-envelope', label: 'Messages' }
+        ].map(({ key, icon, label }, index) => `
+            <button type="button" class="fp-nav__btn${index === 0 ? ' active' : ''}" data-parent-tab="${key}" aria-current="${index === 0 ? 'page' : 'false'}">
+                <span class="fp-nav__icon"><i class="fas ${icon}" aria-hidden="true"></i><span class="fp-nav__badge hidden" data-parent-badge="${key}"></span></span>
+                <span class="fp-nav__label">${label}</span>
+            </button>
+        `).join('')}
+    </nav>`;
+
 export const roleShellsHTML = `
-    <div id="parent-screen" class="hidden role-shell flex flex-col h-full overflow-hidden">
-        ${roleHeader('parent', 'data-parent-title', 'data-parent-student-name', 'parent-logout-btn')}
-        <main class="role-main flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
-            <section class="role-tab max-w-4xl mx-auto" data-parent-section="home"></section>
-            <section class="role-tab max-w-4xl mx-auto hidden" data-parent-section="homework"></section>
-            <section class="role-tab max-w-4xl mx-auto hidden" data-parent-section="progress"></section>
-            <section class="role-tab max-w-4xl mx-auto hidden" data-parent-section="messages"></section>
+    <div id="parent-screen" class="hidden role-shell fp-shell flex flex-col h-full overflow-hidden" data-time="day">
+        ${familyHeader}
+        <main class="fp-main flex-1 overflow-y-auto custom-scrollbar min-h-0">
+            <section class="fp-tab" data-parent-section="home"></section>
+            <section class="fp-tab hidden" data-parent-section="homework"></section>
+            <section class="fp-tab hidden" data-parent-section="progress"></section>
+            <section class="fp-tab hidden" data-parent-section="messages"></section>
         </main>
-        ${bottomNav('parent', [
-            { key: 'home', icon: 'fa-home', label: 'Home', color: 'cyan', active: true },
-            { key: 'homework', icon: 'fa-book', label: 'Homework', color: 'amber' },
-            { key: 'progress', icon: 'fa-chart-line', label: 'Progress', color: 'green' },
-            { key: 'messages', icon: 'fa-envelope', label: 'Messages', color: 'purple' }
-        ])}
+        ${familyNav}
     </div>
 
     <div id="secretary-screen" class="hidden role-shell role-shell--secretary flex flex-col h-full overflow-hidden">

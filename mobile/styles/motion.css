@@ -211,7 +211,6 @@ body.gcq-mobile .app-tab.tab-animate-out {
     }
 }
 
-body.gcq-mobile [data-parent-section]:not(.hidden),
 body.gcq-mobile [data-secretary-section]:not(.hidden) {
     animation: m-tab-enter 0.34s var(--m-spring) both;
 }
@@ -263,13 +262,11 @@ body.gcq-mobile [data-secretary-section]:not(.hidden) {
 }
 
 body.gcq-mobile #m-teacher-header,
-body.gcq-mobile #m-parent-header,
 body.gcq-mobile #m-secretary-header {
     animation: m-header-in 0.45s var(--m-spring) both;
 }
 
 body.gcq-mobile #m-teacher-dock,
-body.gcq-mobile #m-parent-dock,
 body.gcq-mobile #m-secretary-dock {
     animation: m-dock-pop 0.5s var(--m-spring) 0.05s both;
 }
@@ -320,15 +317,12 @@ body.gcq-mobile #m-secretary-dock {
     .m-home-quest__shine,
     .m-class-pill--follow::after,
     body.gcq-mobile .app-tab.active,
-    body.gcq-mobile [data-parent-section]:not(.hidden),
     body.gcq-mobile [data-secretary-section]:not(.hidden),
     .m-sheet--open .m-sheet__list > *,
     .card-appear-m,
     body.gcq-mobile #m-teacher-header,
-    body.gcq-mobile #m-parent-header,
     body.gcq-mobile #m-secretary-header,
     body.gcq-mobile #m-teacher-dock,
-    body.gcq-mobile #m-parent-dock,
     body.gcq-mobile #m-secretary-dock,
     .m-dock-btn.active .icon,
     .m-home-pop,

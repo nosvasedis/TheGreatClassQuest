@@ -1,6 +1,6 @@
 const { getApp, initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore');
+const { FieldPath, FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore');
 const crypto = require('node:crypto');
 const { publicEmberNote, mergePublishedEmber } = require('./campfireCore.cjs');
 const functionsV1 = require('firebase-functions/v1');
@@ -507,38 +507,120 @@ async function getRecentAssessments(studentId) {
   const snap = await db.collection(`${PUBLIC_DATA_PATH}/written_scores`)
     .where('studentId', '==', studentId)
     .orderBy('date', 'desc')
-    .limit(8)
+    .limit(10)
     .get();
   return snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
 }
 
+// Family-facing dates follow the school's clock, not the server's.
+const SCHOOL_TIME_ZONE = 'Europe/Athens';
+
+function schoolDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: SCHOOL_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(date)
+    .reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+  return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day) };
+}
+
+// award_log and attendance store DD-MM-YYYY; written_scores store YYYY-MM-DD. Both become a sortable YYYY-MM-DD key.
+function toIsoDateKey(value) {
+  const text = String(value || '').trim();
+  let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  match = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  return '';
+}
+
+function isoDaysAgo(days) {
+  const { year, month, day } = schoolDateParts();
+  const date = new Date(Date.UTC(year, month - 1, day - days));
+  return date.toISOString().slice(0, 10);
+}
+
 async function getAttendanceSummary(studentId) {
+  // Only absences are stored, so the few docs a child has are cheap to read in full.
   const snap = await db.collection(`${PUBLIC_DATA_PATH}/attendance`)
     .where('studentId', '==', studentId)
-    .count()
+    .limit(60)
     .get();
-  const absences = Number(snap.data().count || 0);
+  const absenceDates = snap.docs
+    .map((docSnap) => toIsoDateKey(docSnap.data()?.date))
+    .filter(Boolean)
+    .sort()
+    .reverse();
+  const absences = absenceDates.length;
   return {
     absences,
+    absenceDates: absenceDates.slice(0, 12),
     lessonsHeld: null,
     rateLabel: absences === 0 ? 'Perfect so far' : `${absences} absence${absences === 1 ? '' : 's'}`
   };
 }
 
-async function getRecentCelebrations(studentId) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/award_log`)
-    .where('studentId', '==', studentId)
-    .orderBy('date', 'desc')
+async function getRecentAwardLogs(studentId) {
+  const collectionRef = db.collection(`${PUBLIC_DATA_PATH}/award_log`);
+  try {
+    // Newest first by creation time (the DD-MM-YYYY date field cannot be ordered).
+    const snap = await collectionRef
+      .where('studentId', '==', studentId)
+      .orderBy('createdAt', 'desc')
+      .limit(30)
+      .get();
+    return snap.docs.map((docSnap) => docSnap.data() || {});
+  } catch (error) {
+    // Until the (studentId, createdAt) index is built, read the latest dates and sort them here.
+    console.warn('award_log createdAt index not ready, using the date index:', error?.message || error);
+    const snap = await collectionRef.where('studentId', '==', studentId).limit(60).get();
+    return snap.docs
+      .map((docSnap) => docSnap.data() || {})
+      .sort((a, b) => toIsoDateKey(b.date).localeCompare(toIsoDateKey(a.date)))
+      .slice(0, 30);
+  }
+}
+
+// Positive awards a family can celebrate; corrections and plain attendance marks stay out.
+const NON_CELEBRATION_REASONS = new Set(['correction', 'wheel_curse', 'marked_present']);
+
+function summarizeAwardLogs(logs) {
+  const weekStart = isoDaysAgo(6);
+  let weekStars = 0;
+  const recentCelebrations = [];
+  logs.forEach((data) => {
+    const stars = Number(data.stars || 0);
+    const dateKey = toIsoDateKey(data.date);
+    if (dateKey && dateKey >= weekStart && stars > 0) weekStars += stars;
+    if (stars <= 0 || NON_CELEBRATION_REASONS.has(data.reason)) return;
+    if (recentCelebrations.length >= 8) return;
+    recentCelebrations.push({
+      title: data.reason || 'Award',
+      reason: data.reason || 'excellence',
+      stars,
+      description: data.note || `${stars} star${stars === 1 ? '' : 's'} awarded`,
+      note: data.note || '',
+      date: dateKey || data.date || ''
+    });
+  });
+  return { weekStars: Math.round(weekStars * 10) / 10, recentCelebrations };
+}
+
+async function getStarsHistory(studentId) {
+  const snap = await db.collection(`${PUBLIC_DATA_PATH}/student_scores/${studentId}/monthly_history`)
+    .orderBy(FieldPath.documentId(), 'desc')
     .limit(6)
     .get();
-  return snap.docs.map((docSnap) => {
-    const data = docSnap.data() || {};
-    return {
-      title: data.reason || 'Award',
-      description: data.note || `${data.stars || 0} star${Number(data.stars || 0) === 1 ? '' : 's'} awarded`,
-      date: data.date || ''
-    };
-  });
+  return snap.docs
+    .map((docSnap) => ({ month: String(docSnap.data()?.month || docSnap.id), stars: Number(docSnap.data()?.stars || 0) }))
+    .filter((item) => /^\d{4}-\d{2}$/.test(item.month))
+    .reverse();
+}
+
+// monthlyStars is only reset when a teacher opens the app in a new month; until then it still holds last month.
+function currentMonthStars(score) {
+  const { year, month } = schoolDateParts();
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  if (score.lastMonthlyResetDate && score.lastMonthlyResetDate !== monthStart) return 0;
+  return score.monthlyStars || 0;
 }
 
 async function getSchoolSettings() {
@@ -582,17 +664,31 @@ async function countPublishedHomework(studentId) {
   return Number(snap.data().count || 0);
 }
 
+function assessmentPercent(item) {
+  const percent = Number(item.normalizedPercent);
+  if (Number.isFinite(percent)) return Math.max(0, Math.min(100, Math.round(percent)));
+  const score = Number(item.scoreNumeric);
+  const max = Number(item.maxScore);
+  if (Number.isFinite(score) && max > 0) return Math.max(0, Math.min(100, Math.round((score / max) * 100)));
+  return null;
+}
+
+function assessmentScoreLabel(item) {
+  return item.scoreQualitative || `${item.scoreNumeric || 0}${item.maxScore ? ` / ${item.maxScore}` : ''}`;
+}
+
 async function buildParentSnapshot(studentId, extra = {}) {
   // Everything except the class is read at once; the class waits only for the student record.
   const studentPromise = getStudent(studentId);
   const classPromise = studentPromise.then((student) => db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get());
-  const [student, classSnap, score, assessments, attendanceSummary, recentCelebrations, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
+  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
     getScore(studentId),
     getRecentAssessments(studentId),
     getAttendanceSummary(studentId),
-    getRecentCelebrations(studentId),
+    getRecentAwardLogs(studentId),
+    getStarsHistory(studentId).catch(() => []),
     getParentLink(studentId),
     getSchoolSettings(),
     countPublishedHomework(studentId),
@@ -607,34 +703,52 @@ async function buildParentSnapshot(studentId, extra = {}) {
   });
   const latestGrade = visibleAssessments[0] || null;
   const existing = previousSnap.exists ? previousSnap.data() : {};
+  const { weekStars, recentCelebrations } = summarizeAwardLogs(awardLogs);
+  const percents = visibleAssessments.map(assessmentPercent).filter((value) => value !== null);
+  const gradeAveragePercent = percents.length
+    ? Math.round(percents.reduce((sum, value) => sum + value, 0) / percents.length)
+    : null;
 
   return {
     studentId,
     studentName: student.name || '',
+    avatar: student.avatar || null,
+    guildId: student.guildId || null,
     classId: student.classId,
     className: classData.name || '',
+    classLogo: classData.logo || '',
+    teacherName: classData.createdBy?.name || '',
     questLevel: classData.questLevel || '',
+    scheduleDays: Array.isArray(classData.scheduleDays) ? classData.scheduleDays.map(String) : [],
+    timeStart: classData.timeStart || '',
+    timeEnd: classData.timeEnd || '',
     assessmentUses,
     heroClass: student.heroClass || '',
     progress: {
       totalStars: score.totalStars || 0,
-      monthlyStars: score.monthlyStars || 0,
+      monthlyStars: currentMonthStars(score),
       heroLevel: score.heroLevel || 0,
       gold: score.gold || 0
     },
+    weekStars,
+    starsHistory,
     attendanceSummary,
     latestGrade: latestGrade
       ? {
-          label: latestGrade.scoreQualitative || `${latestGrade.scoreNumeric || 0}${latestGrade.maxScore ? ` / ${latestGrade.maxScore}` : ''}`,
-          title: latestGrade.title || latestGrade.type || 'Assessment'
+          label: assessmentScoreLabel(latestGrade),
+          title: latestGrade.title || latestGrade.type || 'Assessment',
+          type: latestGrade.type || '',
+          percent: assessmentPercent(latestGrade)
         }
       : null,
-    gradeAverageLabel: visibleAssessments.length ? `${Math.round(visibleAssessments.length)} recent item${visibleAssessments.length === 1 ? '' : 's'}` : 'N/A',
+    gradeAverageLabel: gradeAveragePercent !== null ? `${gradeAveragePercent}%` : 'N/A',
+    gradeAveragePercent,
     gradeHistory: visibleAssessments.map((item) => ({
       title: item.title || item.type || 'Assessment',
       type: item.type || '',
       date: item.date || '',
-      scoreLabel: item.scoreQualitative || `${item.scoreNumeric || 0}${item.maxScore ? ` / ${item.maxScore}` : ''}`
+      scoreLabel: assessmentScoreLabel(item),
+      percent: assessmentPercent(item)
     })),
     recentCelebrations,
     homeworkCount,
@@ -642,6 +756,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
     linkedParentUid: parentLink?.parentUid || null,
     publishedNotes: existing.publishedNotes || [],
     latestParentSummary: existing.latestParentSummary || null,
+    refreshedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
     ...extra
   };
@@ -776,6 +891,7 @@ async function addCommunicationMessage({ threadId, studentId, body, authorUid, a
     lastMessageAt: FieldValue.serverTimestamp(),
     schoolYearKey,
     previewText: body.slice(0, 160),
+    lastAuthorRole: authorRole,
     status: 'open'
   }, { merge: true });
   await batch.commit();
@@ -1398,6 +1514,77 @@ exports.postCommunicationMessage = callable(async (request) => {
   });
 
   return { ok: true };
+});
+
+async function requireLinkedParent(request) {
+  const caller = await requireAuthedCaller(request);
+  if (caller.profile.role !== 'parent') {
+    throw new HttpsError('permission-denied', 'Only a family login can do this.');
+  }
+  const studentId = String(caller.profile.linkedStudentId || '').trim();
+  if (!studentId) {
+    throw new HttpsError('failed-precondition', 'This family login is not linked to a student yet.');
+  }
+  return { caller, studentId };
+}
+
+// A family opening the portal asks for a fresh summary; one rebuild every few minutes keeps
+// stars and grades current without spending reads on every tap.
+const FAMILY_REFRESH_MIN_MS = 5 * 60 * 1000;
+
+exports.refreshFamilySnapshot = callable(async (request) => {
+  const [{ studentId }] = await allInOrder([requireLinkedParent(request), requireFeatureEnabled('parentAccess')]);
+  const snapRef = db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`);
+  const current = await snapRef.get();
+  const refreshedAt = current.exists ? current.data()?.refreshedAt : null;
+  const refreshedMs = refreshedAt?.toMillis ? refreshedAt.toMillis() : 0;
+  if (refreshedMs && Date.now() - refreshedMs < FAMILY_REFRESH_MIN_MS) {
+    return { ok: true, refreshed: false };
+  }
+  await upsertParentSnapshot(studentId);
+  return { ok: true, refreshed: true };
+});
+
+// What a family can start a conversation about. Each topic keeps one thread per child.
+const FAMILY_TOPICS = {
+  question: 'family-question',
+  meeting: 'meeting-request',
+  absence: 'absence-note',
+  message: 'family-message'
+};
+
+exports.sendFamilyMessage = callable(async (request) => {
+  const [{ caller, studentId }] = await allInOrder([requireLinkedParent(request), requireFeatureEnabled('parentAccess')]);
+  const threadType = FAMILY_TOPICS[String(request.data?.topic || '').trim()];
+  const body = String(request.data?.body || '').trim();
+  if (!threadType) throw new HttpsError('invalid-argument', 'Choose what the message is about.');
+  if (!body) throw new HttpsError('invalid-argument', 'Write a message first.');
+  if (body.length > 2000) throw new HttpsError('invalid-argument', 'Keep the message under 2000 characters.');
+
+  const student = await getStudent(studentId);
+  // The child's teacher joins the thread; the School Office reads every family thread.
+  const { threadId, threadRef } = await ensureCommunicationThread({
+    studentId,
+    threadType,
+    participantUids: [caller.uid, student.createdBy?.uid],
+    participantRoles: ['parent', 'teacher'],
+    createdBy: { uid: caller.uid, role: 'parent' }
+  });
+  const threadSnap = await threadRef.get();
+  const participants = Array.isArray(threadSnap.data()?.participantUids) ? threadSnap.data().participantUids : [];
+  if (!participants.includes(caller.uid)) {
+    await threadRef.set({ participantUids: FieldValue.arrayUnion(caller.uid) }, { merge: true });
+  }
+  await addCommunicationMessage({
+    threadId,
+    studentId,
+    body,
+    authorUid: caller.uid,
+    authorRole: 'parent',
+    messageType: threadType,
+    requiresReply: threadType === 'meeting-request'
+  });
+  return { ok: true, threadId };
 });
 
 exports.backfillRoleAccessData = callable(async (request) => {

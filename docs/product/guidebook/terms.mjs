@@ -297,8 +297,8 @@ export const TERMS = [
     names: { en: 'Family Portal', el: 'Family Portal' },
     aliases: ['family portal', 'family access', 'parent portal', 'parents'],
     def: {
-      en: 'One login per child. Progress, homework, attendance snapshot, calm messages. Pro and Elite.',
-      el: 'Μία είσοδος ανά παιδί. Πρόοδος, εργασίες, απουσίες, ήρεμα μηνύματα. Pro και Elite.'
+      en: 'One login per child, made for phones. The week at a glance, homework and tests, progress, attendance, messages with the school. Pro and Elite.',
+      el: 'Μία είσοδος ανά παιδί, φτιαγμένη για κινητά. Η εβδομάδα με μια ματιά, εργασίες και τεστ, πρόοδος, παρουσίες, μηνύματα με το σχολείο. Pro και Elite.'
     },
     confuse: { en: 'Teacher app, School Office', el: 'Εφαρμογή δασκάλου, School Office' }
   },

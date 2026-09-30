@@ -128,3 +128,11 @@ export async function manageShopItem(payload = {}) {
     const result = await fn(payload);
     return result?.data || null;
 }
+
+export function refreshFamilySnapshot(payload = {}) {
+    return callAdmin('refreshFamilySnapshot', payload);
+}
+
+export function sendFamilyMessage(payload) {
+    return callAdmin('sendFamilyMessage', payload);
+}

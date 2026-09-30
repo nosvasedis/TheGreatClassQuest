@@ -172,32 +172,6 @@ const roleHeaderHTML = (role, markIcon, eyebrow, titleId, subtitleId, actions) =
         </div>
     </header>`;
 
-const parentHeaderHTML = roleHeaderHTML(
-    'parent',
-    'fa-heart',
-    'Family Portal',
-    'm-parent-title',
-    'm-parent-student-name',
-    HEADER_ACTION_BTN('m-parent-refresh-btn', 'fa-rotate', 'Refresh') +
-    HEADER_ACTION_BTN('m-parent-logout-btn', 'fa-sign-out-alt', 'Log out', 'm-header-btn--danger')
-);
-
-const parentDockHTML = `
-    <nav id="m-parent-dock" class="m-dock m-dock--parent" aria-label="Family portal navigation">
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-cyan active" data-parent-tab="home" aria-label="Home" aria-current="page">
-            <i class="fas fa-home icon"></i><span class="text">Home</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-amber" data-parent-tab="homework" aria-label="Homework">
-            <i class="fas fa-book icon"></i><span class="text">Homework</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-green" data-parent-tab="progress" aria-label="Progress">
-            <i class="fas fa-chart-line icon"></i><span class="text">Progress</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-purple" data-parent-tab="messages" aria-label="Messages">
-            <i class="fas fa-envelope icon"></i><span class="text">Messages</span>
-        </button>
-    </nav>`;
-
 const secretaryHeaderHTML = roleHeaderHTML(
     'secretary',
     'fa-wand-magic-sparkles',
@@ -252,22 +226,6 @@ export function injectMobileShells() {
         const subtabBar = document.querySelector('#options-tab .options-subtab-bar');
         if (subtabBar && !document.getElementById('m-options-subtab-dropdown')) {
             subtabBar.insertAdjacentHTML('beforebegin', optionsSubtabDropdownHTML);
-        }
-    }
-
-    const parentScreen = document.getElementById('parent-screen');
-    if (parentScreen && !document.getElementById('m-parent-header')) {
-        const parentMain = parentScreen.querySelector('.role-main');
-        if (parentMain) {
-            parentMain.insertAdjacentHTML('beforebegin', parentHeaderHTML);
-        } else {
-            parentScreen.insertAdjacentHTML('afterbegin', parentHeaderHTML);
-        }
-        const parentNav = document.getElementById('parent-bottom-nav');
-        if (parentNav) {
-            parentNav.insertAdjacentHTML('afterend', parentDockHTML);
-        } else {
-            parentScreen.insertAdjacentHTML('beforeend', parentDockHTML);
         }
     }
 

@@ -511,7 +511,7 @@ function widgets(id, print = false) {
         <div class="ifaces">
           <article class="iface"><h4><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i> Teacher</h4><p>The full Quest on a classroom PC. Depth grows with the plan: <span class="plan-badge plan-badge--starter">Starter</span>, <span class="plan-badge plan-badge--pro">Pro</span>, and <span class="plan-badge plan-badge--elite">Elite</span>.</p></article>
           <article class="iface"><h4><i class="fas fa-building-shield" aria-hidden="true"></i> School Office</h4><p>Secretary. Students &amp; Classes, former students, holidays, school year, grading defaults, family messages. <span class="plan-badge plan-badge--elite">Elite</span>.</p></article>
-          <article class="iface"><h4><i class="fas fa-house-user" aria-hidden="true"></i> Family Portal</h4><p>One login per child. Progress, homework, attendance snapshot, calm messages. <span class="plan-badge plan-badge--pro">Pro</span> and <span class="plan-badge plan-badge--elite">Elite</span>.</p></article>
+          <article class="iface"><h4><i class="fas fa-house-user" aria-hidden="true"></i> Family Portal</h4><p>One login per child, made for phones. The week at a glance, homework and tests, progress, messages with the school. <span class="plan-badge plan-badge--pro">Pro</span> and <span class="plan-badge plan-badge--elite">Elite</span>.</p></article>
         </div>
       </div>
       <div class="panel">

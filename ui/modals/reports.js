@@ -8,6 +8,7 @@ import { showAnimatedModal } from './base.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
 import { callGeminiApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import { getAssessmentValueLabel, getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { showToast } from '../effects.js';
 import { auth } from '../../firebase.js';
@@ -28,56 +29,269 @@ import {
 let currentCertStudentId = null;
 let currentCertScope = 'monthly';
 
+// ─── Weekly Report ("The Week's Scroll") ────────────────────────────────────
+// Numbers come from features/weeklyReportCore.mjs (Mon–Sun lesson week, compared with the week
+// before); markup from ./weeklyReportView.mjs. The Oracle's reading is written on top and cached
+// per class + week for this session. History holds ~30 days of award logs, so the week picker
+// goes back at most three weeks (each week also needs the one before it).
+
+const REPORT_MIN_OFFSET = -3;
+const reportReadings = new Map();
+let reportClassId = null;
+let reportOffset = 0;
+let reportModel = null;
+let reportReadingState = { status: 'idle' };
+let reportToken = 0;
+let reportCore = null;
+let reportView = null;
+
+async function loadReportModules() {
+    if (!reportCore || !reportView) {
+        [reportCore, reportView] = await Promise.all([
+            import('../../features/weeklyReportCore.mjs'),
+            import('./weeklyReportView.mjs'),
+        ]);
+    }
+    return { core: reportCore, view: reportView };
+}
+
+function reportReadingKey() {
+    return reportModel ? `${reportModel.classId}:${reportModel.week.key}` : '';
+}
+
+function buildReportModelFor(classData, offset) {
+    const week = reportCore.getReportWeek(new Date(), offset);
+    const students = (state.get('allStudents') || [])
+        .filter((s) => s.classId === classData.id && s.enrollmentStatus !== 'inactive');
+    return reportCore.buildWeeklyReportModel({
+        classData,
+        students,
+        awardLogs: state.get('allAwardLogs') || [],
+        writtenScores: state.get('allWrittenScores') || [],
+        attendance: state.get('allAttendanceRecords') || [],
+        adventureLogs: state.get('allAdventureLogs') || [],
+        week,
+        starCredit: getAwardLogMonthlyStarCredit,
+        scorePercent: (score) => {
+            const pct = getNormalizedPercentForScore(score, classData);
+            return Number.isFinite(Number(pct)) ? Number(pct) : null;
+        },
+        scoreLabel: (score) => getAssessmentValueLabel(score, classData),
+        youngLearners: utils.getAgeCategoryForLeague(classData.questLevel) === 'early',
+    });
+}
+
+function setReportButtonsEnabled(enabled) {
+    ['report-copy-btn', 'report-pdf-btn'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = !enabled;
+    });
+}
+
+function renderReportHeader(classData) {
+    const logo = document.getElementById('report-modal-logo');
+    if (logo) logo.textContent = classData.logo || '📚';
+    const sub = document.getElementById('report-modal-sub');
+    if (sub) sub.textContent = `${classData.name}${classData.questLevel ? ` · ${classData.questLevel}` : ''}`;
+    const week = reportCore.getReportWeek(new Date(), reportOffset);
+    const name = document.getElementById('report-week-name');
+    const label = document.getElementById('report-week-label');
+    if (name) name.textContent = week.name;
+    if (label) label.textContent = week.label;
+    const prev = document.getElementById('report-week-prev');
+    const next = document.getElementById('report-week-next');
+    if (prev) prev.disabled = reportOffset <= REPORT_MIN_OFFSET;
+    if (next) next.disabled = reportOffset >= 0;
+}
+
+function renderReportBody() {
+    const contentEl = document.getElementById('report-modal-content');
+    if (!contentEl || !reportModel) return;
+    contentEl.innerHTML = reportView.renderWeeklyReportMarkup(reportModel, reportReadingState, {
+        canGoBack: reportOffset > REPORT_MIN_OFFSET,
+    });
+    setReportButtonsEnabled(!reportModel.isEmpty);
+}
+
+function renderReportReading() {
+    const body = document.getElementById('wr-reading-body');
+    if (body) body.innerHTML = reportView.renderReadingMarkup(reportReadingState);
+}
+
+async function requestReportReading({ force = false } = {}) {
+    if (!reportModel || reportModel.isEmpty) return;
+    const key = reportReadingKey();
+    if (!force && reportReadings.has(key)) {
+        reportReadingState = { status: 'ready', reading: reportReadings.get(key) };
+        renderReportReading();
+        return;
+    }
+    if (!canUseFeature('eliteAI')) {
+        reportReadingState = { status: 'locked' };
+        renderReportReading();
+        return;
+    }
+    const token = reportToken;
+    reportReadingState = { status: 'loading' };
+    renderReportReading();
+    try {
+        const { system, user } = reportCore.buildWeeklyReportPrompt(reportModel, {
+            audience: utils.getLeagueAiAudience?.(reportModel.league) || 'young learners',
+        });
+        const reading = reportCore.parseWeeklyReading(await callGeminiApi(system, user));
+        if (!reading) throw new Error('Empty reading');
+        reportReadings.set(key, reading);
+        if (token !== reportToken || key !== reportReadingKey()) return;
+        reportReadingState = { status: 'ready', reading };
+    } catch (error) {
+        console.error('AI Report Generation Error:', error);
+        if (token !== reportToken || key !== reportReadingKey()) return;
+        reportReadingState = { status: 'error' };
+    }
+    renderReportReading();
+}
+
+async function showReportWeek(offset) {
+    const classData = (state.get('allTeachersClasses') || []).find((c) => c.id === reportClassId);
+    if (!classData) return;
+    reportToken += 1;
+    reportOffset = Math.max(REPORT_MIN_OFFSET, Math.min(0, offset));
+    reportModel = buildReportModelFor(classData, reportOffset);
+    const cached = reportReadings.get(reportReadingKey());
+    reportReadingState = cached ? { status: 'ready', reading: cached } : { status: 'idle' };
+    renderReportHeader(classData);
+    renderReportBody();
+    const contentEl = document.getElementById('report-modal-content');
+    if (contentEl) contentEl.scrollTop = 0;
+    if (!cached) requestReportReading();
+}
+
+async function copyToClipboard(text, okMessage) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast(okMessage, 'success');
+    } catch (_) {
+        showToast('Could not copy. Select the text and copy it by hand.', 'error');
+    }
+}
+
+function wireReportModal() {
+    const modal = document.getElementById('report-modal');
+    if (!modal || modal.dataset.wrWired === '1') return;
+    modal.dataset.wrWired = '1';
+    document.getElementById('report-week-prev')?.addEventListener('click', () => showReportWeek(reportOffset - 1));
+    document.getElementById('report-week-next')?.addEventListener('click', () => showReportWeek(reportOffset + 1));
+    document.getElementById('report-copy-btn')?.addEventListener('click', () => {
+        if (!reportModel) return;
+        const reading = reportReadingState.status === 'ready' ? reportReadingState.reading : null;
+        copyToClipboard(reportCore.buildWeeklyReportText(reportModel, reading), 'Weekly report copied.');
+    });
+    document.getElementById('report-pdf-btn')?.addEventListener('click', () => downloadWeeklyReportPdf());
+    modal.addEventListener('click', (event) => {
+        const action = event.target.closest('[data-wr-action]')?.dataset.wrAction;
+        if (action === 'reading') requestReportReading({ force: reportReadingState.status === 'ready' });
+        else if (action === 'prev') showReportWeek(reportOffset - 1);
+        else if (action === 'copy-family') {
+            const note = reportReadingState.reading?.familyNote;
+            if (note) copyToClipboard(note, 'Family note copied.');
+        }
+    });
+    modal.addEventListener('keydown', (event) => {
+        if (event.target.closest('input, textarea, select')) return;
+        if (event.key === 'ArrowLeft' && reportOffset > REPORT_MIN_OFFSET) showReportWeek(reportOffset - 1);
+        else if (event.key === 'ArrowRight' && reportOffset < 0) showReportWeek(reportOffset + 1);
+    });
+}
+
 export async function handleGenerateReport(classId) {
     if (!requireEliteAI({ feature: 'Weekly report' })) return;
-    await ensureHistoryLoaded();
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
+    const classData = (state.get('allTeachersClasses') || []).find(c => c.id === classId);
     if (!classData) return;
+    reportClassId = classId;
+    reportModel = null;
     const contentEl = document.getElementById('report-modal-content');
-    contentEl.innerHTML = `<p class="text-center"><i class="fas fa-spinner fa-spin mr-2"></i> Generating your report from the Quest Log...</p>`;
+    if (contentEl) {
+        contentEl.innerHTML = `<div class="wr-gathering"><i class="fas fa-feather-pointed fa-beat-fade"></i> Gathering the week from the Quest Log…</div>`;
+    }
+    setReportButtonsEnabled(false);
+    const logo = document.getElementById('report-modal-logo');
+    if (logo) logo.textContent = classData.logo || '📚';
+    const sub = document.getElementById('report-modal-sub');
+    if (sub) sub.textContent = classData.name;
     showAnimatedModal('report-modal');
 
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const oneWeekAgoStr = oneWeekAgo.toLocaleDateString('en-GB');
+    await Promise.all([ensureHistoryLoaded(), loadReportModules()]);
+    wireReportModal();
+    if (reportClassId !== classId) return;
 
-    const logs = state.get('allAwardLogs').filter(log => log.classId === classId && log.date >= oneWeekAgoStr);
-    const totalStars = logs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
-    const reasonCounts = logs.reduce((acc, log) => { acc[log.reason] = (acc[log.reason] || 0) + getAwardLogMonthlyStarCredit(log); return acc; }, {});
-    const reasonsString = Object.entries(reasonCounts).map(([reason, count]) => `${reason}: ${count}`).join(', ');
-    const behaviorNotes = logs.filter(log => log.note).map(log => `On ${log.date}, a note mentioned: "${log.note}"`).join('. ');
-    
-    const academicScores = state.get('allWrittenScores').filter(score => score.classId === classId && score.date >= oneWeekAgoStr);
-    const academicNotes = academicScores.filter(s => s.note).map(s => `For a ${s.type} on ${s.date}, a note said: "${s.note}"`).join('. ');
-    const academicSummary = academicScores.map(s => `A ${s.type} score of ${getAssessmentValueLabel(s)}${Number.isFinite(Number(s.normalizedPercent)) ? ` (${Number(s.normalizedPercent).toFixed(0)}%)` : ''}`).join(', ');
+    // Early in the week there is often nothing yet: open on last week instead.
+    const thisWeek = buildReportModelFor(classData, 0);
+    await showReportWeek(thisWeek.isEmpty || thisWeek.lessonCount === 0 ? -1 : 0);
+}
 
-    const systemPrompt = "You are the 'Quest Master,' a helpful AI assistant. You write encouraging, insightful reports for teachers. Format your response beautifully using markdown, with clear headings (##) for 'Weekly Summary' and 'Suggested Mini-Quest'. Use bold text (**) for emphasis on important metrics or traits. Your analysis must be based on ALL provided data: behavioral (stars) and academic (scores), including any teacher notes.";
-    const userPrompt = `Class "${classData.name}" (League: ${classData.questLevel}) this week:
-- Behavior Data: Earned ${totalStars} stars. Breakdown: ${reasonsString || 'None'}. Notes: ${behaviorNotes || 'None'}.
-- Academic Data: Recent scores: ${academicSummary || 'None'}. Notes on scores: ${academicNotes || 'None'}.
-Write a 2-paragraph summary highlighting connections between behavior and academics, and suggest a 'mini-quest' for next week based on this combined data.`;
-    
+async function downloadWeeklyReportPdf() {
+    const btn = document.getElementById('report-pdf-btn');
+    const source = document.getElementById('report-modal-content');
+    if (!btn || !source || !reportModel || reportModel.isEmpty) return;
+    const idle = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing…';
+    let host = null;
     try {
-        const report = await callGeminiApi(systemPrompt, userPrompt);
-        const htmlReport = typeof marked !== 'undefined' ? marked.parse(report) : report.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
-        contentEl.innerHTML = `
-            <div class="flex items-center gap-3 mb-6 pb-4 border-b border-emerald-100">
-                <span class="text-4xl drop-shadow-md">${classData.logo}</span>
-                <h3 class="font-title text-3xl text-emerald-700">${classData.name}</h3>
-            </div>
-            <div class="prose prose-emerald prose-lg max-w-none prose-headings:font-title prose-headings:text-emerald-800 prose-p:text-gray-700 prose-strong:text-emerald-700 prose-ul:text-gray-700">
-                ${htmlReport}
-            </div>
-        `;
+        const { html2canvas, jsPDF } = await loadPdfTools();
+        // Print a detached copy: fixed width, no scroll, cross-origin portraits as initials.
+        const width = 900;
+        host = document.createElement('div');
+        host.className = 'wr-print-host';
+        Object.assign(host.style, { position: 'fixed', left: '-12000px', top: '0', width: `${width}px`, pointerEvents: 'none', zIndex: '-1' });
+        host.innerHTML = `
+            <div class="wr-print-title">
+                <span class="wr-print-title__logo">${escapeHtml(reportModel.classLogo)}</span>
+                <div><p>Weekly Report · ${escapeHtml(reportModel.week.label)}</p><h1>${escapeHtml(reportModel.className)}</h1></div>
+            </div>`;
+        const clone = source.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+        clone.querySelectorAll('button').forEach((el) => el.remove());
+        clone.querySelectorAll('.wr-avatar img').forEach((img) => {
+            const hero = img.closest('.wr-shine, .wr-unseen__hero');
+            const name = hero?.querySelector('.wr-shine__name')?.textContent || hero?.textContent || '';
+            const span = document.createElement('span');
+            span.textContent = name.trim().charAt(0).toUpperCase();
+            img.replaceWith(span);
+        });
+        clone.className = 'wr-body wr-body--print';
+        host.appendChild(clone);
+        document.body.appendChild(host);
+        await withTimeout(document.fonts?.ready, 2000, null);
+
+        const canvas = await html2canvas(host, { scale: 2, backgroundColor: '#fbf7ec', logging: false, width, windowWidth: width });
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const margin = 8;
+        const imgW = pageW - margin * 2;
+        const pxPerMm = canvas.width / imgW;
+        const sliceHpx = Math.floor((pageH - margin * 2) * pxPerMm);
+        for (let y = 0, page = 0; y < canvas.height; y += sliceHpx, page += 1) {
+            const h = Math.min(sliceHpx, canvas.height - y);
+            const slice = document.createElement('canvas');
+            slice.width = canvas.width;
+            slice.height = h;
+            slice.getContext('2d').drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+            if (page > 0) pdf.addPage();
+            pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, imgW, h / pxPerMm);
+        }
+        pdf.setProperties({ title: `${reportModel.className}: Weekly Report ${reportModel.week.label}`, creator: 'The Great Class Quest' });
+        const safe = String(reportModel.className).replace(/[^A-Za-z0-9Ͱ-ϿЀ-ӿ]+/g, '_').replace(/^_+|_+$/g, '') || 'Class';
+        pdf.save(`${safe}_Weekly_Report_${reportModel.week.key}.pdf`);
     } catch (error) {
-        console.error("AI Report Generation Error:", error);
-        contentEl.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-                <i class="fas fa-exclamation-triangle text-4xl text-rose-400 mb-4 animate-pulse"></i>
-                <h3 class="font-title text-2xl text-rose-600 mb-2">The Oracle is resting</h3>
-                <p class="text-gray-600">The Quest Master is currently on another adventure. Please try again later.</p>
-            </div>
-        `;
+        console.error('Weekly report PDF error:', error);
+        showToast('Could not create the PDF.', 'error');
+    } finally {
+        host?.remove();
+        btn.disabled = false;
+        btn.innerHTML = idle;
     }
 }
 

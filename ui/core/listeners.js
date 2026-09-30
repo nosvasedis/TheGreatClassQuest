@@ -169,8 +169,13 @@ export function setupUIListeners() {
             document.getElementById('add-student-panel').classList.add('hidden');
         }
     });
-    document.getElementById('edit-class-form').addEventListener('submit', (e) => { e.preventDefault(); handleEditClass(); });
+    document.getElementById('edit-class-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!modals.validateEditClassForm()) return;
+        modals.runEditClassSave(handleEditClass);
+    });
     document.getElementById('edit-class-cancel-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
+    document.getElementById('edit-class-close-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
     document.getElementById('edit-student-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-modal'));
     document.getElementById('edit-student-confirm-btn').addEventListener('click', () => {
         import('../../db/actions.js').then(actions => actions.handleSaveStudentDetails());

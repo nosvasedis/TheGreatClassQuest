@@ -31,7 +31,7 @@ Three index cards side by side:
 
 ### My Classes
 
-Each class is a card: emblem, name, Quest League, days and times. The buttons along the card are **Report** (AI weekly summary + suggested mini-quest on Elite), **Edit**, **Students** (the roster, below), **Oaths** (the class’s Ember Oaths board, Pro), and the **trash can**, always last. Deleting a class deletes its students too, so the app asks first.
+Each class is a card: emblem, name, Quest League, days and times. The buttons along the card are **Report** (Elite, the weekly report below), **Edit**, **Students** (the roster, below), **Oaths** (the class’s Ember Oaths board, Pro), and the **trash can**, always last. Deleting a class deletes its students too, so the app asks first.
 
 **Add New Class** opens a **class charter**: a founding page with the class emblem pinned on its ribbon.
 
@@ -41,7 +41,28 @@ Each class is a card: emblem, name, Quest League, days and times. The buttons al
 4. **Meets on** — tap the weekday pegs, then **From** / **To** times.
 5. **Create Class**.
 
-**Edit** changes the same details later.
+**Edit** opens the same charter as an amendment. Under the title it shows the class's heroes, league and the month it was founded. Change the emblem, name, league, days and times:
+
+- **Quick days** — *Mon · Wed*, *Tue · Thu*, *Mon · Wed · Fri*, or **Clear**.
+- **Length** — 45 min, 1 h, 1 h 30 or 2 h sets **To** from **From**.
+- **On the charter** — one live line, for example *Meets Mon & Wed · 17:00–18:30 (1 h 30 min)*.
+- Changing the **league** shows a note first: the class moves to that league's Team Quest map and rivals, and quiz topics, ceremony style and Oracle tone can change. Stars, heroes and history stay.
+- The save button counts your changes (*Save 2 changes*) and stays off while nothing has changed. A lesson that ends before it starts, or only one time filled in, is flagged before saving.
+
+### Weekly report (Elite)
+
+**Report** on a class card (or on Home) opens **The Week's Scroll** for one Monday–Sunday week. Early in the week, when nothing is logged yet, it opens on last week. The arrows (or ← / →) step back up to three weeks.
+
+- **The week in numbers** — stars earned (with the change against the week before), lessons, heroes recognised (for example 11/13), attendance, and the trial average.
+- **Quick observations** — growth, the virtue that led, a quiet virtue, heroes not yet recognised, and heroes who missed two or more lessons.
+- **Stars through the week** (bars per day, lesson days dotted, the best day in gold) and the **Virtue compass** (Teamwork, Creativity, Respect, Focus, each against the week before). Boons, quests and bonuses are counted in the total but not as a virtue.
+- **Shining this week** — the three heroes with the most stars, plus that week's Heroes of the Day.
+- **Waiting to be noticed** — heroes who came but earned no star yet: a prompt for specific praise next lesson.
+- **Scholar's desk** — each trial that week with the class average and the best score.
+- **The Oracle's reading** — a short story of the week, wins, things to watch, a **Mini-Quest** for next week (goal, how to win, reward) and a **note for families** with its own Copy button. **Write a new reading** asks again. If the Oracle is resting, the numbers are still complete.
+- **Copy text** puts the whole report on the clipboard; **Save PDF** saves an A4 copy.
+
+For Nursery and Pre-Junior classes the report leaves out per-hero star counts and trial averages.
 
 ## Profile
 

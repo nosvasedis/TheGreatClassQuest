@@ -95,7 +95,7 @@ function wireModalCloseFallback() {
         if (!isMobileMode()) return;
 
         const closeBtn = event.target.closest?.(
-            '#create-class-close-btn, #create-class-cancel-btn, #edit-class-cancel-btn'
+            '#create-class-close-btn, #create-class-cancel-btn, #edit-class-cancel-btn, #edit-class-close-btn'
         );
         if (closeBtn) {
             const modalId = closeBtn.id.includes('edit-class')

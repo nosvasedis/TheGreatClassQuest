@@ -237,7 +237,9 @@
 @import url('./styles/hero_stage.css');
 @import url('./styles/trophy_room.css');
 @import url('./styles/certificate.css');
-/* Class emblem case (logo picker) + Add New Class charter */
+/* Weekly Report: The Week's Scroll (ui/modals/weeklyReportView.mjs) */
+@import url('./styles/weekly_report.css');
+/* Class emblem case (logo picker) + Add New Class and Edit Class charters */
 @import url('./styles/class_charter.css');
 /* Guild Sorting Ceremony (templates/modals/sortingQuiz.js) */
 @import url('./styles/sorting_ceremony.css');

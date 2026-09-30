@@ -6,6 +6,7 @@
 export * from './base.js';
 export * from './planner.js';
 export * from './log.js';
+export * from './editClass.js';
 export * from './calendarDay.js';
 export * from './attendance.js';
 export * from './student.js';

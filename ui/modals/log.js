@@ -30,23 +30,6 @@ function getLogRewardMarkup(log) {
     return `<span class="font-title text-lg text-amber-600">${label}</span>`;
 }
 
-export function openEditClassModal(classId) {
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
-    if (!classData) return;
-    document.getElementById('edit-class-id').value = classId;
-    document.getElementById('edit-class-name').value = classData.name;
-    document.getElementById('edit-class-logo').value = classData.logo || '📚';
-    document.getElementById('edit-logo-picker-btn').innerText = classData.logo || '📚';
-    document.getElementById('edit-class-time-start').value = classData.timeStart || '';
-    document.getElementById('edit-class-time-end').value = classData.timeEnd || '';
-    const levelSelect = document.getElementById('edit-class-level');
-    levelSelect.innerHTML = constants.questLeagues.map(l => `<option value="${l}" ${l === classData.questLevel ? 'selected' : ''}>${l}</option>`).join('');
-    const daysContainer = document.getElementById('edit-schedule-days');
-    const days = [{ v: "1", l: "Mon" }, { v: "2", l: "Tue" }, { v: "3", l: "Wed" }, { v: "4", l: "Thu" }, { v: "5", l: "Fri" }, { v: "6", l: "Sat" }, { v: "0", l: "Sun" }];
-    daysContainer.innerHTML = days.map(d => `<label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded-full"><input type="checkbox" name="edit-schedule-day" value="${d.v}" ${(classData.scheduleDays || []).includes(d.v) ? 'checked' : ''}><span>${d.l}</span></label>`).join('');
-    showAnimatedModal('edit-class-modal');
-}
-
 let logbookRenderToken = 0;
 
 function escapeLogText(value) {

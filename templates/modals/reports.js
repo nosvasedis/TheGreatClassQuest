@@ -3,35 +3,45 @@
 
 export const reportsModalsHTML = `
     <div id="report-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
-        <div class="relative bg-white/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl max-w-3xl w-full pop-in border border-white/50 overflow-hidden">
-            <!-- Decorative Orbs -->
-            <div class="absolute -top-20 -right-20 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-green-400/20 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div class="relative z-10">
-                <!-- Header -->
-                <div class="flex justify-between items-start mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 shadow-lg shadow-green-200 flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform">
-                            <i class="fas fa-scroll text-3xl text-white"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-title text-3xl md:text-4xl text-emerald-800 tracking-wide drop-shadow-sm">Weekly Report</h2>
-                            <p class="text-sm font-bold uppercase tracking-widest text-emerald-600/80 mt-1">Oracle AI Analysis</p>
-                        </div>
+        class="wr-backdrop fixed inset-0 z-[70] flex items-center justify-center p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+        <div class="wr-shell pop-in">
+            <header class="wr-head">
+                <div class="wr-head__sky" aria-hidden="true"><span></span><span></span><span></span></div>
+                <div class="wr-seal" aria-hidden="true"><span id="report-modal-logo">📚</span></div>
+                <div class="wr-head__titles">
+                    <p class="wr-kicker">The Week's Scroll</p>
+                    <h2 id="report-modal-title" class="wr-title">Weekly Report</h2>
+                    <p id="report-modal-sub" class="wr-sub"></p>
+                </div>
+                <div class="wr-weeknav" role="group" aria-label="Choose the week">
+                    <button type="button" id="report-week-prev" class="wr-weeknav__btn" aria-label="Week before" title="Week before">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <div class="wr-weeknav__label" aria-live="polite">
+                        <span id="report-week-name">This week</span>
+                        <strong id="report-week-label"></strong>
                     </div>
-                    <button id="report-modal-close-btn"
-                        class="bg-white/50 hover:bg-white text-emerald-800 border border-emerald-100 font-bold w-12 h-12 rounded-full bubbly-button transition-all shadow-sm flex items-center justify-center text-xl">
-                        &times;
+                    <button type="button" id="report-week-next" class="wr-weeknav__btn" aria-label="Week after" title="Week after">
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
                     </button>
                 </div>
+                <button type="button" id="report-modal-close-btn" class="wr-close" aria-label="Close">&times;</button>
+            </header>
 
-                <!-- Content Area -->
-                <div id="report-modal-content"
-                    class="space-y-4 max-h-[65vh] overflow-y-auto pr-4 custom-scrollbar text-gray-700 leading-relaxed text-lg bg-white/60 p-6 md:p-8 rounded-[1.5rem] border border-white shadow-inner">
+            <div id="report-modal-content" class="wr-body custom-scrollbar"></div>
+
+            <footer class="wr-foot">
+                <p id="report-foot-hint" class="wr-foot__hint">Counted from your Quest Log: stars, Adventure Log, trials and attendance.</p>
+                <div class="wr-foot__actions">
+                    <button type="button" id="report-copy-btn" class="wr-btn wr-btn--ghost" disabled>
+                        <i class="far fa-copy" aria-hidden="true"></i> Copy text
+                    </button>
+                    <button type="button" id="report-pdf-btn" class="wr-btn wr-btn--gold" disabled>
+                        <i class="fas fa-file-pdf" aria-hidden="true"></i> Save PDF
+                    </button>
                 </div>
-            </div>
+            </footer>
         </div>
     </div>
 

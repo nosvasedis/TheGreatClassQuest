@@ -898,8 +898,225 @@ body:not(.gcq-mobile) #create-class-modal.cc-backdrop {
     }
 }
 
+/* ============================================================
+   EDIT CLASS — amending the charter
+   Same parchment as Add New Class, with class facts under the
+   title, quick presets, a live schedule line and change tracking.
+   ============================================================ */
+#edit-class-modal.cc-backdrop {
+    background-color: rgba(6, 30, 27, 0.6);
+}
+
+body:not(.gcq-mobile) #edit-class-modal.cc-backdrop {
+    align-items: flex-start;
+}
+
+.cc-charter--edit .cc-title {
+    overflow-wrap: anywhere;
+}
+
+.cc-facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0.6rem auto 0;
+}
+
+.cc-facts span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #e2efeb;
+    background: rgba(242, 247, 245, 0.1);
+    border: 1px solid rgba(201, 214, 210, 0.3);
+}
+
+.cc-facts i {
+    color: #6ee7b7;
+    font-size: 0.72rem;
+}
+
+.cc-error {
+    margin: 0.35rem 0 0;
+    min-height: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #be123c;
+}
+
+.cc-error:empty {
+    display: none;
+}
+
+.cc-field.has-error .cc-input {
+    border-color: #fb7185;
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.2);
+}
+
+/* League move: what changes, and what stays */
+.cc-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.9rem;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #78350f;
+    animation: cc-note-in 220ms ease-out;
+}
+
+.cc-note.hidden {
+    display: none;
+}
+
+.cc-note i {
+    margin-top: 0.15rem;
+    color: #d97706;
+}
+
+.cc-note p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+@keyframes cc-note-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Quick presets under the days and times */
+.cc-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+}
+
+.cc-presets:empty {
+    display: none;
+}
+
+.cc-presets__label {
+    margin-right: 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7a8c88;
+}
+
+.cc-preset {
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0f5a4d;
+    background: #fff;
+    border: 1px solid #cfe0da;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.cc-preset:hover:not(:disabled) {
+    border-color: #34d399;
+    background: #f0fdf8;
+}
+
+.cc-preset:focus-visible {
+    outline: 3px solid #34d399;
+    outline-offset: 2px;
+}
+
+.cc-preset.is-active {
+    color: #fff;
+    background: #0f5a4d;
+    border-color: #0b3a35;
+}
+
+.cc-preset:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.cc-preset--quiet {
+    color: #7a8c88;
+    border-style: dashed;
+}
+
+/* Live schedule line, written like a charter clause */
+.cc-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1rem;
+    border-radius: 1rem;
+    background: linear-gradient(160deg, #145247 0%, #0b3a35 100%);
+    color: #f2f7f5;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.cc-summary__icon {
+    flex-shrink: 0;
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0b3a35;
+    background: radial-gradient(circle at 35% 30%, #f2f7f5 0%, #c9d6d2 60%, #7f9a94 100%);
+}
+
+.cc-summary__kicker {
+    display: block;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #9fdcc8;
+}
+
+.cc-summary__text {
+    margin: 0.1rem 0 0;
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+/* Save reflects whether anything changed */
+#edit-class-save-btn:disabled {
+    cursor: default;
+    filter: saturate(0.4);
+    opacity: 0.7;
+    transform: none;
+    box-shadow: 0 2px 0 #062622;
+}
+
+#edit-class-save-btn.is-saving i {
+    animation: cc-quill 0.9s ease-in-out infinite;
+}
+
+@keyframes cc-quill {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-18deg) translateY(-2px); }
+}
+
+.cc-charter--edit.is-dirty .cc-emblem-seat {
+    box-shadow: 0 10px 22px rgba(2, 20, 17, 0.3), 0 0 0 4px #fffdf6, 0 0 0 6px rgba(52, 211, 153, 0.45);
+}
+
 /* Phone shell: keep the close button in the ribbon, and the form's own padding. */
-body.gcq-mobile #add-class-form.cc-charter {
+body.gcq-mobile #add-class-form.cc-charter,
+body.gcq-mobile #edit-class-form.cc-charter {
     padding-top: 0 !important;
 }
 
@@ -923,8 +1140,13 @@ body.gcq-mobile #logo-picker-modal > .logo-picker-shell {
     .logo-picker-chip,
     #logo-picker-modal .logo-select-btn,
     .cc-day span,
-    .cc-btn {
+    .cc-btn,
+    .cc-preset {
         transition: none;
+    }
+    .cc-note,
+    #edit-class-save-btn.is-saving i {
+        animation: none;
     }
     #logo-picker-modal .logo-picker-shell.modal-origin-start {
         transform: none;

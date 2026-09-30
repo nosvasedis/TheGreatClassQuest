@@ -87,70 +87,84 @@ export const classModalsHTML = `
     </div>
 
     <div id="edit-class-modal"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden overflow-y-auto">
-        <form id="edit-class-form"
-            class="bg-white p-6 md:p-8 rounded-[2rem] shadow-2xl max-w-2xl w-full pop-in border border-cyan-100 my-8 relative overflow-hidden">
-            <!-- Decorative Header Gradient -->
-            <div class="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-cyan-500/20 via-sky-400/10 to-transparent pointer-events-none"></div>
-            
+        class="cc-backdrop fixed inset-0 z-[70] flex items-center justify-center p-4 hidden overflow-y-auto">
+        <form id="edit-class-form" class="cc-charter cc-charter--edit pop-in w-full relative" novalidate
+            aria-labelledby="edit-class-title">
+            <button type="button" id="edit-class-close-btn" class="cc-close" aria-label="Close">&times;</button>
+
             <div class="relative">
-                <div class="text-center mb-8">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-100 text-cyan-500 text-3xl mb-3 shadow-inner floating-icon">
-                        <i class="fas fa-edit"></i>
+                <header class="cc-head">
+                    <div class="cc-ribbon" aria-hidden="true"></div>
+                    <p class="cc-kicker">Amend the class charter</p>
+                    <h2 id="edit-class-title" class="cc-title">Edit Class</h2>
+                    <p id="edit-class-facts" class="cc-facts"></p>
+                </header>
+
+                <div class="cc-emblem-row">
+                    <div class="cc-emblem-seat">
+                        <button type="button" id="edit-logo-picker-btn" class="cc-emblem" aria-label="Change the class logo">📚</button>
+                        <input type="hidden" id="edit-class-logo">
                     </div>
-                    <h2 class="font-title text-4xl text-cyan-800 text-center" style="text-shadow: 0 2px 4px rgba(0,0,0,0.05);">Edit Class</h2>
-                    <p class="text-gray-500 mt-2">Update the details and schedule for this class.</p>
+                    <div class="cc-emblem-copy">
+                        <span class="cc-label">Class Logo</span>
+                        <p>Tap the emblem to change it.</p>
+                    </div>
                 </div>
 
                 <input type="hidden" id="edit-class-id">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div class="md:col-span-2">
-                        <label for="edit-class-name" class="block text-sm font-semibold text-gray-700 mb-1">Class Name</label>
-                        <input type="text" id="edit-class-name"
-                            class="block w-full px-4 py-3 border border-gray-200 bg-gray-50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-white transition-colors"
-                            autocomplete="off" required>
+                <div class="cc-fields">
+                    <div class="cc-field" data-cc-field="name">
+                        <label for="edit-class-name" class="cc-label">Class Name <span id="edit-class-name-count"></span></label>
+                        <input type="text" id="edit-class-name" class="cc-input" maxlength="60" autocomplete="off" required
+                            aria-describedby="edit-class-name-error">
+                        <p id="edit-class-name-error" class="cc-error" role="alert"></p>
                     </div>
-                    <div>
-                        <label for="edit-class-level" class="block text-sm font-semibold text-gray-700 mb-1">Quest Level</label>
-                        <select id="edit-class-level"
-                            class="block w-full px-4 py-3 border border-gray-200 bg-gray-50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-white transition-colors"
-                            required></select>
+                    <div class="cc-field" data-cc-field="level">
+                        <label for="edit-class-level" class="cc-label">Quest League <span id="edit-class-level-age"></span></label>
+                        <select id="edit-class-level" class="cc-input" required aria-describedby="edit-class-league-note"></select>
+                        <p id="edit-class-level-error" class="cc-error" role="alert"></p>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div id="edit-class-league-note" class="cc-field cc-field--wide cc-note hidden" role="status">
+                        <i class="fas fa-map-signs" aria-hidden="true"></i>
+                        <p></p>
+                    </div>
+
+                    <fieldset class="cc-field cc-field--wide cc-panel">
+                        <legend class="cc-label"><i class="far fa-calendar-alt" aria-hidden="true"></i>Meets on</legend>
+                        <div id="edit-schedule-days" class="cc-days"></div>
+                        <div class="cc-presets" id="edit-class-day-presets" aria-label="Quick day patterns"></div>
+                    </fieldset>
+
+                    <div class="cc-field cc-field--wide cc-panel" data-cc-field="time">
+                        <div class="cc-times">
+                            <div>
+                                <label for="edit-class-time-start" class="cc-label"><i class="far fa-clock" aria-hidden="true"></i>From</label>
+                                <input type="time" id="edit-class-time-start" class="cc-input">
+                            </div>
+                            <span class="cc-times__dash" aria-hidden="true"></span>
+                            <div>
+                                <label for="edit-class-time-end" class="cc-label"><i class="far fa-clock" aria-hidden="true"></i>To</label>
+                                <input type="time" id="edit-class-time-end" class="cc-input">
+                            </div>
+                        </div>
+                        <div class="cc-presets" id="edit-class-length-presets" aria-label="Lesson length"></div>
+                        <p id="edit-class-time-error" class="cc-error" role="alert"></p>
+                    </div>
+
+                    <div class="cc-field cc-field--wide cc-summary" aria-live="polite">
+                        <span class="cc-summary__icon" aria-hidden="true"><i class="fas fa-scroll"></i></span>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Class Logo</label>
-                            <button type="button" id="edit-logo-picker-btn"
-                                class="bg-gradient-to-br from-cyan-50 to-white border border-cyan-200 rounded-xl px-4 py-3 text-3xl bubbly-button shadow-sm hover:shadow-md transition-shadow"></button>
-                            <input type="hidden" id="edit-class-logo">
-                        </div>
-                    </div>
-                    <div class="md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <label class="block text-sm font-semibold text-gray-700 mb-3"><i class="far fa-calendar-alt text-cyan-500 mr-2"></i>Schedule Days</label>
-                        <div id="edit-schedule-days" class="flex flex-wrap gap-2"></div>
-                    </div>
-                    <div class="md:col-span-2 flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <div class="flex-1">
-                            <label for="edit-class-time-start" class="block text-sm font-semibold text-gray-700 mb-1"><i class="far fa-clock text-cyan-500 mr-2"></i>From</label>
-                            <input type="time" id="edit-class-time-start"
-                                class="block w-full px-4 py-3 border border-gray-200 bg-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
-                        </div>
-                        <div class="flex-1">
-                            <label for="edit-class-time-end" class="block text-sm font-semibold text-gray-700 mb-1"><i class="far fa-clock text-cyan-500 mr-2"></i>To</label>
-                            <input type="time" id="edit-class-time-end"
-                                class="block w-full px-4 py-3 border border-gray-200 bg-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <span class="cc-summary__kicker">On the charter</span>
+                            <p id="edit-class-summary" class="cc-summary__text"></p>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col-reverse sm:flex-row gap-4 mt-8 pt-6 border-t border-gray-100">
-                    <button type="button" id="edit-class-cancel-btn"
-                        class="w-full sm:w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-title text-lg py-3 rounded-xl bubbly-button transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                        class="w-full sm:w-1/2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-title text-xl py-3 rounded-xl bubbly-button shadow-lg shadow-cyan-500/30">
-                        <i class="fas fa-save mr-2"></i> Save Changes
+                <div class="cc-actions">
+                    <button type="button" id="edit-class-cancel-btn" class="cc-btn cc-btn--ghost">Cancel</button>
+                    <button type="submit" id="edit-class-save-btn" class="cc-btn cc-btn--primary">
+                        <i class="fas fa-feather-pointed" aria-hidden="true"></i> <span>Save Changes</span>
                     </button>
                 </div>
             </div>

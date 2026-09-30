@@ -359,7 +359,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 |--------|--------|----------------|
 | **Avatar Forge** | Edit Student (or onboarding) | **Elite.** Student picks base (e.g. Wizard, Robot), color, accessory. AI generates a **Chibi-style** avatar. |
 | **AI Nameday Lookup** | Edit Student → Nameday | **Elite.** Magic wand sends name to AI (Greek Orthodox Εορτολόγιο); returns suggested nameday date. |
-| **Class Report** | My Classes → Report | AI **Weekly Summary** + **Suggested Mini-Quest** from behavior + academic data. |
+| **Class Report** | My Classes → Report | **Elite.** A Monday–Sunday week (step back up to three weeks): stars by day and virtue vs the week before, heroes who shone, heroes present but not yet recognised, attendance, trials, Heroes of the Day, plus the Oracle's reading, a **Mini-Quest** and a note for families. Copy as text or save as PDF. |
 | **Certificate** | Roster | AI writes a unique praise paragraph from top reason + monthly stars; PDF with avatar and age-themed style. |
 | **Hero's Chronicle – Oracle** | Student modal → Chronicle | **Elite.** Four report types: **Parent Summary**, **Teacher Strategy**, **Strengths/Weaknesses**, **Goal Suggestion**. |
 | **Daily Log** | Adventure Log | **Elite:** AI diary + storybook image. **Pro:** teacher writes the diary. |

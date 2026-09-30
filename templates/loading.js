@@ -230,7 +230,7 @@ function glints(className, count) {
 // The box's top-right corner sits on the sun's centre (styles/loading.css).
 const SUNBEAMS_SVG = `
     <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" focusable="false">
-        ${[[124, 4.5], [146, 6], [168, 3.5], [192, 5]].map(([a, half]) =>
+        ${[[194, 4], [210, 5.5], [227, 3.5], [244, 4.5]].map(([a, half]) =>
             // Three nested wedges per beam fake a soft edge without any blur.
             [[1.9, 0.28], [1.1, 0.4], [0.45, 0.5]].map(([w, o]) => {
                 const p0 = polar(1000, 0, 1400, a - half * w);

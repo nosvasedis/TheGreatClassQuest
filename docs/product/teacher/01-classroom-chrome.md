@@ -15,7 +15,7 @@ Left to right:
 | Piece | What it does |
 |-------|----------------|
 | **Title** | “The Great Class Quest” |
-| **Daily quote** | A short inspirational line, refreshed for the day (desktop). On a phone it moves into a **Daily Wisdom** card on Home. |
+| **Daily quote** | A short inspirational line that is new every day, with a fresh theme and voice, and never a repeat of a recent one. It is made once a day for the whole school and shared by every screen. If that is not possible, one of 60 built-in lines takes its place. Shown in the header on desktop; on a phone it moves into a **Daily Wisdom** card on Home. |
 | **Date and live clock** | Always visible. Sunrise and sunset for the school’s weather location drive **day / night** colours. |
 | **Class selector** | **Follow today’s schedule** is the default when you open the app: it auto-switches to the class in session, and falls back to **General view** when no lesson is on. You can still pick **General view** or a named class by hand — that pauses follow until you tap Follow today’s schedule again. Almost every tab respects this choice. |
 | **Information** (i) | Opens **The Adventurer’s Guide**, a pocket field guide to the Quest (see below). New teachers see it once, on its **Start here** chapter. |

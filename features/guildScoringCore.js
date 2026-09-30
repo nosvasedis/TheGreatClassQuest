@@ -29,7 +29,10 @@ export function resolveGuildWeek(guildData = {}, now = Date.now()) {
     const lastReset = String(guildData?.lastWeeklyReset || '');
     const storedIds = Array.isArray(guildData?.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : null;
     if (lastReset && lastReset >= currentMonday) {
+        const map = guildData.weeklyMemberGlory;
         return {
+            // Per-member net Glory this week; only trusted when it was started this week.
+            weeklyMemberGlory: map && typeof map === 'object' && guildData.weeklyMemberGloryWeek === lastReset ? map : null,
             weeklyGlory: Number(guildData.weeklyGlory) || 0,
             previousWeekGlory: Number(guildData.previousWeekGlory) || 0,
             weeklyActiveMemberIds: storedIds || [],
@@ -38,12 +41,59 @@ export function resolveGuildWeek(guildData = {}, now = Date.now()) {
         };
     }
     return {
+        weeklyMemberGlory: {},
         weeklyGlory: 0,
         previousWeekGlory: lastReset && lastReset >= previousMonday ? (Number(guildData.weeklyGlory) || 0) : 0,
         weeklyActiveMemberIds: [],
         weeklyActiveMembers: 0,
         currentMonday,
     };
+}
+
+/**
+ * Members who earned Glory this week, counting each member's net: a star given and then
+ * taken back leaves that member not active.
+ */
+export function countActiveMembersThisWeek(week = {}, memberIds = []) {
+    const members = new Set(memberIds);
+    if (week.weeklyMemberGlory) {
+        return Object.entries(week.weeklyMemberGlory)
+            .filter(([id, glory]) => members.has(id) && (Number(glory) || 0) > 0.001).length;
+    }
+    if (!((Number(week.weeklyGlory) || 0) > 0)) return 0;
+    return new Set((week.weeklyActiveMemberIds || []).filter((id) => members.has(id))).size;
+}
+
+/**
+ * A Glory change of an exact size: used to take back precisely the Glory an award gave
+ * (whatever multipliers were active then) or to correct Glory left behind.
+ */
+export function exactGuildGloryDelta({ starDelta = 0, glory = 0, guildData = {} } = {}) {
+    const amount = roundTo(Number(glory) || 0, 2);
+    return {
+        starDelta: Number(starDelta) || 0,
+        baseGlory: amount,
+        modifierGlory: 0,
+        directGlory: 0,
+        totalGloryDelta: amount,
+        breakdown: [{ type: 'exact_glory', amount, detail: 'Exact Glory change' }],
+        consumedGloryModifiers: Array.isArray(guildData.gloryModifiers) ? guildData.gloryModifiers : [],
+    };
+}
+
+/**
+ * Members holding Glory for stars they no longer have: a current member with no stars this
+ * year cannot have earned star Glory, so what the ledger still credits them is left over
+ * from awards that were taken back. Returns corrections that bring each back to 0.
+ * `starsByStudent` must hold every current member's stars this year (missing = 0).
+ */
+export function findOrphanMemberGlory(guildData = {}, memberIds = [], starsByStudent = {}) {
+    const { memberGloryReady } = countedGuildGlory(guildData, memberIds);
+    if (!memberGloryReady) return [];
+    const map = guildData.memberGlory || {};
+    return memberIds
+        .filter((id) => Math.abs(Number(map[id]) || 0) > 0.001 && !(Number(starsByStudent[id]) > 0))
+        .map((id) => ({ studentId: id, glory: roundTo(-(Number(map[id]) || 0), 2) }));
 }
 
 export function getActiveGuildModifiers(guildData = {}, now = Date.now()) {

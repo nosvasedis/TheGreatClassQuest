@@ -594,7 +594,9 @@ function _buildGuildChampionPanel(g, primary) {
  */
 function _buildGuildRaceTrack(displayData) {
     if (!displayData.length) return '';
-    const powers = displayData.map((g) => Math.max(0, Math.round(Number(g.guildPower) || 0)));
+    // Exact Glory per member, so small early-season numbers aren't all rounded to 0 (equal shares).
+    const powers = displayData.map((g) => Math.max(0, Number(g.seasonGloryPerMember ?? g.guildPower) || 0));
+    const fmtPower = (n) => (n >= 10 ? String(Math.round(n)) : (Math.round(n * 10) / 10).toString());
     const total = powers.reduce((sum, p) => sum + p, 0);
 
     const segments = displayData.map((g, i) => {
@@ -612,7 +614,7 @@ function _buildGuildRaceTrack(displayData) {
         return `
                     <div class="guild-race-track__seg${i === 0 ? ' is-leader' : ''}"
                          style="flex:${grow} 1 0;--seg-primary:${primary};--seg-secondary:${secondary};--seg-glow:${glow};"
-                         title="${g.guildName}: ${powers[i]} Guild Power (${pct}% of the hall)">
+                         title="${g.guildName}: ${fmtPower(powers[i])} Guild Power (${pct}% of the hall)">
                         ${badge}
                         <span class="guild-race-track__pct">${pct}%</span>
                     </div>`;
@@ -621,8 +623,8 @@ function _buildGuildRaceTrack(displayData) {
     const leader = displayData[0];
     const runnerUp = displayData[1];
     const leadGap = runnerUp ? powers[0] - powers[1] : powers[0];
-    const leaderLine = leadGap > 0
-        ? `<strong>${leader.guildName}</strong> leads the season race by <strong>${leadGap}</strong> Power`
+    const leaderLine = leadGap >= 0.05
+        ? `<strong>${leader.guildName}</strong> leads the season race by <strong>${fmtPower(leadGap)}</strong> Power`
         : 'Dead heat at the top &mdash; every star counts!';
 
     return `
@@ -633,6 +635,22 @@ function _buildGuildRaceTrack(displayData) {
                     <span class="guild-race-track__goal"><i class="fas fa-circle-info" aria-hidden="true"></i>Each colour = that guild's share of all Guild Power</span>
                 </div>
             </div>`;
+}
+
+/**
+ * This week against last week. Until the guild earns Glory this week there is nothing to
+ * compare yet (a quiet Monday is not a -100% week), and a first week has no "last week".
+ */
+function _momentumTileHtml(g) {
+    const title = "This week's Glory compared with last week's. This week's form never changes the ranking.";
+    if (!((Number(g.weeklyGlory) || 0) > 0)) {
+        return `<span class="guild-crystal-power-tile guild-crystal-power-tile--flat" title="${title}"><strong>—</strong><small>no Glory yet<br>this week</small></span>`;
+    }
+    if (!((Number(g.previousWeekGlory) || 0) > 0)) {
+        return `<span class="guild-crystal-power-tile guild-crystal-power-tile--up" title="${title}"><strong>New</strong><small>🌱 nothing<br>last week</small></span>`;
+    }
+    const pct = Number(g.momentumPct) || 0;
+    return `<span class="guild-crystal-power-tile guild-crystal-power-tile--${pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'}" title="${title}"><strong>${pct >= 0 ? '+' : ''}${pct}%</strong><small>${g.momentumArrow} Glory vs<br>last week</small></span>`;
 }
 
 /** Short "chase" line under each column's Guild Power (gap to the guild one place above). */
@@ -921,7 +939,7 @@ export function renderGuildsTab() {
                         <span class="guild-crystal-power-tile" title="All the Glory this guild's current members earned this year. Guild Power is this shared out per member."><strong>${Math.round(Number(g.countedGlory) || 0)}</strong><small>${GLORY_EMOJI} earned<br>this year</small></span>
                         <span class="guild-crystal-power-tile" title="This week's Glory per member. This week's form never changes the ranking."><strong>${g.weeklyPerCapitaGlory.toFixed(1)}</strong><small>${GLORY_EMOJI} per member<br>this week</small></span>
                         <span class="guild-crystal-power-tile" title="Share of members who earned Glory this week. This week's form never changes the ranking."><strong>${Math.round(Number(g.activityScore) || 0)}%</strong><small>🔥 members<br>active this week</small></span>
-                        <span class="guild-crystal-power-tile guild-crystal-power-tile--${g.momentumPct > 0 ? 'up' : g.momentumPct < 0 ? 'down' : 'flat'}" title="This week's Glory compared with last week's. This week's form never changes the ranking."><strong>${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</strong><small>${g.momentumArrow} Glory vs<br>last week</small></span>
+                        ${_momentumTileHtml(g)}
                     </div>
                 </div>`
             : `
@@ -952,7 +970,7 @@ export function renderGuildsTab() {
                                 <div class="guild-crystal-metric">
                                     <div class="guild-crystal-metric__label">Activity + momentum</div>
                                     <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}% · ${g.momentumArrow}</div>
-                                    <div class="guild-crystal-metric__hint">${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}% vs last week</div>
+                                    <div class="guild-crystal-metric__hint">${!((Number(g.weeklyGlory) || 0) > 0) ? 'No Glory yet this week' : !((Number(g.previousWeekGlory) || 0) > 0) ? 'New this week' : `${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}% vs last week`}</div>
                                 </div>
                             </div>
                             <div class="guild-crystal-roster-ribbon" style="--guild-roster-accent:${primary};">

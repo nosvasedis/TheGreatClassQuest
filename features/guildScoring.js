@@ -25,7 +25,10 @@ import {
     calculateGuildPower as calculateGuildPowerCore,
     compareGuildLeaderboardRows,
     getMomentumArrow,
+    countActiveMembersThisWeek,
     countedGuildGlory,
+    exactGuildGloryDelta,
+    findOrphanMemberGlory,
     findWonGuildChallenges,
     guildSizeScale,
     resolveGuildWeek,
@@ -78,11 +81,13 @@ function _getStudentScore(studentId) {
     return allScores.find(sc => sc.id === studentId) || {};
 }
 
-function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, guildData = {}, studentId, now = Date.now(), consumedGloryModifiers = null }) {
+function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, guildData = {}, studentId, now = Date.now(), consumedGloryModifiers = null, affectsWeek = true }) {
     const currentMonday = getISOWeekMonday(new Date(now));
     const weekTurned = !guildData.lastWeeklyReset || guildData.lastWeeklyReset < currentMonday;
     const week = resolveGuildWeek(guildData, now);
     const previousIds = week.weeklyActiveMemberIds;
+    // A correction of an older award belongs to the year, not to this week's form.
+    const weekDelta = affectsWeek ? (Number(totalGloryDelta) || 0) : 0;
     const patch = {
         guildId,
         guildName: guildDef?.name || guildData.guildName || guildId,
@@ -90,7 +95,7 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
         totalStars: increment(starDelta || 0),
         totalGlory: increment(totalGloryDelta || 0),
         monthlyGlory: increment(totalGloryDelta || 0),
-        weeklyGlory: weekTurned ? (totalGloryDelta || 0) : increment(totalGloryDelta || 0),
+        weeklyGlory: weekTurned ? weekDelta : increment(weekDelta),
         lastUpdated: serverTimestamp(),
     };
     if (weekTurned) {
@@ -100,6 +105,11 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
         patch.lastWeeklyReset = currentMonday;
         patch.weeklyActiveMemberIds = [];
         patch.weeklyActiveMembers = 0;
+        patch.weeklyMemberGlory = studentId && weekDelta ? { [studentId]: weekDelta } : {};
+        patch.weeklyMemberGloryWeek = currentMonday;
+    } else if (studentId && weekDelta) {
+        // Each member's net Glory this week, so a star given and taken back leaves them not active.
+        patch[`weeklyMemberGlory.${studentId}`] = increment(weekDelta);
     }
     if (guildData.totalGlory === undefined) patch.totalGlory = Number(guildData.totalStars || 0) * GLORY_PER_STAR + (totalGloryDelta || 0);
     if (guildData.monthlyGlory === undefined) patch.monthlyGlory = totalGloryDelta || 0;
@@ -114,7 +124,7 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
         patch[`memberGlory.${studentId}`] = increment(Number(totalGloryDelta));
     }
     // Only earning Glory makes a member "active"; a correction or a wheel curse does not.
-    if (studentId && (Number(totalGloryDelta) > 0 || Number(starDelta) > 0) && !previousIds.includes(studentId)) {
+    if (studentId && weekDelta > 0 && !previousIds.includes(studentId)) {
         // arrayUnion so two teachers awarding at once never drop each other's member.
         patch.weeklyActiveMemberIds = weekTurned ? [studentId] : arrayUnion(studentId);
         patch.weeklyActiveMembers = previousIds.length + 1;
@@ -167,6 +177,13 @@ async function _setOrUpdateGuildScore(guildRef, guildId, patch, initialData = {}
     return {};
 }
 
+function _gloryDelta({ starDelta, directGlory, exactGlory, scoreData, guildData, now }) {
+    if (exactGlory !== null && exactGlory !== undefined && Number.isFinite(Number(exactGlory))) {
+        return exactGuildGloryDelta({ starDelta, glory: exactGlory, guildData });
+    }
+    return calculateGuildGloryDelta({ starDelta, directGlory, scoreData, guildData, gloryPerStar: GLORY_PER_STAR, now });
+}
+
 /**
  * Records an auditable Guild Glory event and updates the materialized guild score cache.
  */
@@ -182,11 +199,13 @@ export async function recordGuildGloryEvent({
     note = '',
     eventMeta = {},
     idempotencyKey = null,
+    exactGlory = null,
+    affectsWeek = true,
 } = {}) {
     if (!guildId || !GUILD_IDS.includes(guildId)) return;
     if (idempotencyKey) {
         return _recordIdempotentGuildGloryEvent({
-            guildId, studentId, classId, source, starDelta, directGlory, note, eventMeta, idempotencyKey,
+            guildId, studentId, classId, source, starDelta, directGlory, note, eventMeta, idempotencyKey, exactGlory, affectsWeek,
         });
     }
     const now = Date.now();
@@ -200,14 +219,7 @@ export async function recordGuildGloryEvent({
     const liveGuildData = guildData || (guildSnap?.exists?.() ? guildSnap.data() : (state.get('allGuildScores') || {})[guildId]) || {};
     const liveScoreData = scoreData || (studentId ? _getStudentScore(studentId) : {});
     const guildDef = GUILDS[guildId];
-    const delta = calculateGuildGloryDelta({
-        starDelta,
-        directGlory,
-        scoreData: liveScoreData,
-        guildData: liveGuildData,
-        gloryPerStar: GLORY_PER_STAR,
-        now,
-    });
+    const delta = _gloryDelta({ starDelta, directGlory, exactGlory, scoreData: liveScoreData, guildData: liveGuildData, now });
 
     if (!delta.starDelta && !delta.totalGloryDelta) return delta;
 
@@ -245,6 +257,7 @@ export async function recordGuildGloryEvent({
         studentId,
         now,
         consumedGloryModifiers: delta.consumedGloryModifiers,
+        affectsWeek,
     });
 
     try {
@@ -263,6 +276,8 @@ export async function recordGuildGloryEvent({
                 previousWeekGlory: 0,
                 weeklyActiveMembers: studentId ? 1 : 0,
                 weeklyActiveMemberIds: studentId ? [studentId] : [],
+        weeklyMemberGlory: studentId ? { [studentId]: delta.totalGloryDelta } : {},
+        weeklyMemberGloryWeek: getISOWeekMonday(),
                 memberCount: 0,
                 memberIds: [],
                 memberGlory: studentId ? { [studentId]: delta.totalGloryDelta } : {},
@@ -302,6 +317,8 @@ function _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId }) {
         previousWeekGlory: 0,
         weeklyActiveMembers: studentId ? 1 : 0,
         weeklyActiveMemberIds: studentId ? [studentId] : [],
+        weeklyMemberGlory: studentId ? { [studentId]: delta.totalGloryDelta } : {},
+        weeklyMemberGloryWeek: getISOWeekMonday(),
         memberCount: 0,
         memberIds: [],
         memberGlory: studentId ? { [studentId]: delta.totalGloryDelta } : {},
@@ -322,7 +339,7 @@ function _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId }) {
  * Unlike the fire-and-forget path, failures are thrown so callers can retry.
  */
 async function _recordIdempotentGuildGloryEvent({
-    guildId, studentId, classId, source, starDelta, directGlory, note, eventMeta, idempotencyKey,
+    guildId, studentId, classId, source, starDelta, directGlory, note, eventMeta, idempotencyKey, exactGlory = null, affectsWeek = true,
 }) {
     const now = Date.now();
     const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
@@ -343,14 +360,7 @@ async function _recordIdempotentGuildGloryEvent({
         const liveGuildData = guildSnap.exists()
             ? guildSnap.data()
             : ((state.get('allGuildScores') || {})[guildId] || {});
-        const delta = calculateGuildGloryDelta({
-            starDelta,
-            directGlory,
-            scoreData: liveScoreData,
-            guildData: liveGuildData,
-            gloryPerStar: GLORY_PER_STAR,
-            now,
-        });
+        const delta = _gloryDelta({ starDelta, directGlory, exactGlory, scoreData: liveScoreData, guildData: liveGuildData, now });
         // The marker event is written even for a zero delta so the key is
         // recorded as processed.
         transaction.set(eventRef, {
@@ -384,6 +394,7 @@ async function _recordIdempotentGuildGloryEvent({
                     studentId,
                     now,
                     consumedGloryModifiers: delta.consumedGloryModifiers,
+                    affectsWeek,
                 }));
             } else {
                 transaction.set(guildRef, _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId }));
@@ -545,6 +556,59 @@ export async function backfillGuildMemberGloryIfNeeded() {
     } catch (err) {
         _memberGloryBackfillStarted = false;
         console.warn('Guild member Glory backfill skipped:', err);
+    }
+}
+
+const _correctedOrphanKeys = new Set();
+let _orphanRetryScheduled = false;
+
+/**
+ * Takes back Glory still credited to members who have no stars this year (left over from
+ * stars that were given and then taken back). Idempotent per member and amount, so several
+ * open apps correct it once. Counts for the year only, never for this week's form.
+ */
+export async function correctOrphanMemberGlory() {
+    if ((state.get('currentUserRole') || 'teacher') !== 'teacher') return;
+    if (!isGameplaySeasonLiveFromAppState(state)) return;
+    const allStudents = state.get('allStudents') || [];
+    const allStudentScores = state.get('allStudentScores') || [];
+    if (!allStudents.length || !allStudentScores.length) {
+        // Rosters load alongside guild scores; look again shortly (once).
+        if (!_orphanRetryScheduled) {
+            _orphanRetryScheduled = true;
+            setTimeout(() => { correctOrphanMemberGlory().catch(() => {}); }, 20000);
+        }
+        return;
+    }
+    const starsByStudent = Object.fromEntries(allStudentScores.map((sc) => [sc.id, Number(sc.totalStars) || 0]));
+    const allGuildScores = state.get('allGuildScores') || {};
+    for (const guildId of GUILD_IDS) {
+        const data = allGuildScores[guildId];
+        if (!data || data.activeSchoolYearKey !== state.getActiveSchoolYearKey()) continue;
+        // Only once the guild has been quiet for a while: a star taken back writes the
+        // student's score first and the guild's Glory a moment later.
+        const lastUpdatedMs = typeof data.lastUpdated?.toMillis === 'function' ? data.lastUpdated.toMillis() : 0;
+        if (!lastUpdatedMs || Date.now() - lastUpdatedMs < 5 * 60 * 1000) continue;
+        const memberIds = allStudents.filter((st) => st.guildId === guildId).map((st) => st.id);
+        for (const { studentId, glory } of findOrphanMemberGlory(data, memberIds, starsByStudent)) {
+            const key = `orphan_${guildId}_${studentId}_${String(glory).replace('.', '_')}`;
+            if (_correctedOrphanKeys.has(key)) continue;
+            _correctedOrphanKeys.add(key);
+            try {
+                await recordGuildGloryEvent({
+                    guildId,
+                    studentId,
+                    source: 'glory_correction',
+                    exactGlory: glory,
+                    affectsWeek: false,
+                    note: 'Glory left over from stars that were taken back',
+                    idempotencyKey: key,
+                });
+            } catch (err) {
+                _correctedOrphanKeys.delete(key);
+                console.warn('Guild Glory correction skipped:', err);
+            }
+        }
     }
 }
 
@@ -806,7 +870,7 @@ export function getGuildLeaderboardData() {
             weeklyGlory: week.weeklyGlory,
             previousWeekGlory: week.previousWeekGlory,
             // Only current members count, so a member who left never lifts the share above 100%.
-            weeklyActiveMembers: new Set(week.weeklyActiveMemberIds.filter((id) => memberIdSet.has(id))).size,
+            weeklyActiveMembers: countActiveMembersThisWeek(week, [...memberIdSet]),
             gloryModifiers: gDoc.gloryModifiers || [],
         };
     });

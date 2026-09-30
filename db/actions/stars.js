@@ -121,6 +121,11 @@ export async function setStudentStarsForToday(
     let studentClassId = null;
     let difference = 0;
     let guildStarCredit = 0;
+    // The day's award row: its id, the stars it credited and the Glory those earned, so a
+    // star taken back removes exactly the Glory it gave.
+    let dailyLogIdForGlory = null;
+    let priorLogCredit = 0;
+    let priorLogGlory = null;
     const heroProgressionEnabled = canUseFeature("heroProgression");
     /** Set when a hero level-up occurs in the transaction; used after commit to show celebration modal. */
     let levelUpInfo = null;
@@ -165,6 +170,9 @@ export async function setStudentStarsForToday(
             finalStarValue = baseFinalStarValue;
             difference = 0;
             guildStarCredit = 0;
+            dailyLogIdForGlory = null;
+            priorLogCredit = 0;
+            priorLogGlory = null;
             studentClassId = null;
             levelUpInfo = null;
 
@@ -391,6 +399,16 @@ export async function setStudentStarsForToday(
             const dailyPerformanceLog = dailyAwardLogSnap.exists()
                 ? { id: dailyAwardLogRef.id, ...dailyAwardLogSnap.data() }
                 : stateDailyPerformanceLog;
+            if (dailyPerformanceLog) {
+                priorLogCredit = getAwardLogMonthlyStarCredit(dailyPerformanceLog);
+                const loggedGlory = Number(dailyPerformanceLog.guildGlory);
+                priorLogGlory = Number.isFinite(loggedGlory) ? loggedGlory : null;
+            }
+            // The row keeps the day's total credit (not just this change), so deleting it
+            // later takes back exactly what the day gave.
+            const cumulativeCredit = appliedCreditForDailyLog != null
+                ? (dailyPerformanceLog ? priorLogCredit : 0) + appliedCreditForDailyLog
+                : null;
 
             if (finalStarValue === 0) {
                 if (dailyPerformanceLog)
@@ -407,8 +425,8 @@ export async function setStudentStarsForToday(
                     classId: studentData.classId,
                     teacherId: state.get("currentUserId"),
                     stars: finalStarValue,
-                    ...(appliedCreditForDailyLog != null
-                        ? { appliedStarCredit: appliedCreditForDailyLog }
+                    ...(cumulativeCredit != null
+                        ? { appliedStarCredit: cumulativeCredit }
                         : {}),
                     reason: reason || "excellence",
                     note: heroBoonNote || "",
@@ -429,10 +447,10 @@ export async function setStudentStarsForToday(
                         ),
                         {
                             stars: finalStarValue,
-                            ...(appliedCreditForDailyLog != null
+                            ...(cumulativeCredit != null
                                 ? {
                                       appliedStarCredit:
-                                          appliedCreditForDailyLog,
+                                          cumulativeCredit,
                                   }
                                 : {}),
                             reason: reason || dailyPerformanceLog.reason,
@@ -441,6 +459,7 @@ export async function setStudentStarsForToday(
                 } else {
                     transaction.set(dailyAwardLogRef, logData);
                 }
+                dailyLogIdForGlory = dailyPerformanceLog ? dailyPerformanceLog.id : dailyAwardLogRef.id;
             }
         });
 
@@ -466,7 +485,10 @@ export async function setStudentStarsForToday(
         if (studentClassId && difference > 0) {
             debouncedCheckAndRecordQuestCompletion(studentClassId);
             checkBountyProgress(studentClassId, difference);
-            updateGuildScores(studentId, guildStarCredit || difference, 'standard_star_award');
+            const logIdForGlory = dailyLogIdForGlory;
+            updateGuildScores(studentId, guildStarCredit || difference, 'standard_star_award')
+                .then((event) => _noteDailyLogGlory(logIdForGlory, event?.totalGloryDelta))
+                .catch((e) => console.warn("Guild Glory award failed:", e));
             // Apply outward skill effects (guildmate/classmate gold) — fire-and-forget
             _applyOutwardSkillEffects(
                 studentId,
@@ -482,14 +504,24 @@ export async function setStudentStarsForToday(
         } else if (studentClassId && difference < 0) {
             const student = (state.get("allStudents") || []).find((s) => s.id === studentId);
             if (student?.guildId) {
+                const credit = guildStarCredit || difference;
+                // Take back exactly the Glory these stars earned (a star given on a 2x day
+                // returns 4, not 2). Rows from before this was tracked use the plain rate.
+                const exactGlory = priorLogGlory != null && priorLogCredit > 0
+                    ? -Math.round(priorLogGlory * Math.min(1, -credit / priorLogCredit) * 100) / 100
+                    : null;
+                const logIdForGlory = finalStarValue > 0 ? dailyLogIdForGlory : null;
                 recordGuildGloryEvent({
                     guildId: student.guildId,
                     studentId,
                     classId: studentClassId,
                     source: 'standard_star_award_adjustment',
-                    starDelta: guildStarCredit || difference,
+                    starDelta: credit,
+                    exactGlory,
                     note: 'Daily award was reduced',
-                }).catch((e) => console.warn("Guild Glory reduction failed:", e));
+                })
+                    .then((event) => _noteDailyLogGlory(logIdForGlory, event?.totalGloryDelta))
+                    .catch((e) => console.warn("Guild Glory reduction failed:", e));
             }
         }
 
@@ -788,6 +820,15 @@ export async function checkAndRecordQuestCompletion(classId) {
     }
 }
 
+/** Adds the Glory an award (or its reduction) wrote to the day's award row. */
+function _noteDailyLogGlory(logId, gloryDelta) {
+    const amount = Number(gloryDelta);
+    if (!logId || !Number.isFinite(amount) || amount === 0) return;
+    updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), {
+        guildGlory: increment(amount),
+    }).catch(() => { /* the row may have been removed meanwhile */ });
+}
+
 const debouncedCheckAndRecordQuestCompletion = debounce(
     checkAndRecordQuestCompletion,
     4000,
@@ -812,11 +853,13 @@ export async function handleDeleteAwardLog(logId) {
             const studentId = logData.studentId;
             const student = (state.get("allStudents") || []).find((s) => s.id === studentId);
             if (student?.guildId && starCredit) {
+                const loggedGlory = Number(logData.guildGlory);
                 deletedGuildEvent = {
                     guildId: student.guildId,
                     studentId,
                     classId: logData.classId || student.classId || null,
                     starCredit,
+                    guildGlory: Number.isFinite(loggedGlory) ? loggedGlory : null,
                     reason: logData.reason || 'award_log',
                 };
             }
@@ -863,6 +906,7 @@ export async function handleDeleteAwardLog(logId) {
                 classId: deletedGuildEvent.classId,
                 source: `delete_${deletedGuildEvent.reason}`,
                 starDelta: -deletedGuildEvent.starCredit,
+                exactGlory: deletedGuildEvent.guildGlory != null ? -deletedGuildEvent.guildGlory : null,
                 note: `Deleted award log ${logId}`,
             }).catch((error) => console.warn("Guild Glory delete adjustment failed:", error));
         }

@@ -223,3 +223,29 @@ test('a Glory Challenge pays the guild with the most Glory per member last week'
   assert.equal(consumeChargeModifiers([challenge], 1, MONDAY_OCT_5).length, 1, 'kept on file until tallied');
   assert.equal(findWonGuildChallenges(scores, { small: 5, big: 10 }, lastWed + 3600000).length, 0, 'not judged mid-week');
 });
+
+test('a star given and taken back leaves that member not active this week', async () => {
+  const { resolveGuildWeek, countActiveMembersThisWeek } = await loadCore();
+  const week = resolveGuildWeek({
+    lastWeeklyReset: '2026-10-05', weeklyMemberGloryWeek: '2026-10-05', weeklyGlory: 2,
+    weeklyMemberGlory: { tested: 0, real: 2, left: 4 }, weeklyActiveMemberIds: ['tested', 'real', 'left'],
+  }, MONDAY_OCT_5);
+  assert.equal(countActiveMembersThisWeek(week, ['tested', 'real']), 1);
+
+  const legacy = resolveGuildWeek({ lastWeeklyReset: '2026-10-05', weeklyGlory: 0, weeklyActiveMemberIds: ['tested'] }, MONDAY_OCT_5);
+  assert.equal(countActiveMembersThisWeek(legacy, ['tested']), 0, 'no net Glory this week means nobody is active');
+});
+
+test('Glory left on members with no stars is found so it can be taken back', async () => {
+  const { findOrphanMemberGlory } = await loadCore();
+  const guild = { activeSchoolYearKey: 'Y', memberGloryYear: 'Y', totalGlory: 16, memberGlory: { tested: 12, real: 4, gone: 0 } };
+  assert.deepEqual(findOrphanMemberGlory(guild, ['tested', 'real'], { real: 2 }), [{ studentId: 'tested', glory: -12 }]);
+  assert.deepEqual(findOrphanMemberGlory({ ...guild, memberGloryYear: 'X' }, ['tested'], {}), [], 'not before the map is built');
+});
+
+test('an exact Glory change ignores multipliers', async () => {
+  const { exactGuildGloryDelta } = await loadCore();
+  const d = exactGuildGloryDelta({ starDelta: -1, glory: -8, guildData: { gloryModifiers: [{ type: 'multiply', factor: 4 }] } });
+  assert.equal(d.totalGloryDelta, -8);
+  assert.equal(d.consumedGloryModifiers.length, 1);
+});

@@ -54,15 +54,15 @@ test('award immersive weather is painted from the shared sky palette, not header
   }
 });
 
-test('immersed header chrome lets the weather sky continue through the bar', () => {
+test('immersed header chrome lets the weather sky continue through the bar, opening and folding back', () => {
   const css = read('styles/award_immersive_weather.css');
   assert.match(
     css,
-    /#app-screen\.award-sky-active:not\(\.award-sky-leaving\) #award-header-atmosphere > header[\s\S]*?background:\s*transparent\s*!important/,
+    /#app-screen\.award-sky-active #award-header-atmosphere > header[\s\S]*?background:\s*transparent\s*!important/,
   );
   assert.match(
     css,
-    /#app-screen\.award-sky-active:not\(\.award-sky-leaving\) #award-header-atmosphere > header[\s\S]*?border-bottom-color:\s*transparent\s*!important/,
+    /#app-screen\.award-sky-active #award-header-atmosphere > header[\s\S]*?border-bottom-color:\s*transparent\s*!important/,
   );
   assert.match(
     css,

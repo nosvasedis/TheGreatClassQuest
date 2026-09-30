@@ -122,3 +122,10 @@ test('layout keys change with the weather so surfaces repaint only when needed',
     assert.equal(sceneLayoutKey(a, 'sky'), sceneLayoutKey(b, 'sky'));
     assert.notEqual(sceneLayoutKey(a, 'sky'), sceneLayoutKey(c, 'sky'));
 });
+
+test('a cloudy night still shows the moon phase, veiled', () => {
+    const overcastNight = resolveSkyScene({ code: 3 }, { now: at(23), ...SUN });
+    assert.match(weatherGlyphSvg(overcastNight, { moonPhase: 0.4 }), /wx-g-moon--veiled/);
+    const stormNight = resolveSkyScene({ code: 95 }, { now: at(23), ...SUN });
+    assert.doesNotMatch(weatherGlyphSvg(stormNight), /wx-g-moon/);
+});

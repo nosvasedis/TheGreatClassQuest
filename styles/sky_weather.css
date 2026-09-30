@@ -380,7 +380,7 @@ html[data-wx-dir="w"] .wx-cloud { animation-direction: reverse; }
     pointer-events: none;
 }
 
-.wx-stage--header { z-index: 1; }
+.wx-stage--header { z-index: 1; transition: opacity 0.5s ease; }
 #app-screen.award-sky-active:not(.award-sky-leaving) .wx-stage--header { opacity: 0; }
 #app-screen.award-sky-active:not(.award-sky-leaving) .wx-stage--header * { animation-play-state: paused; }
 
@@ -834,6 +834,7 @@ html[data-wx-light="golden"] .wx-g-sun__rays { fill: #fdba74; }
 .wx-g-moon__dark { fill: rgba(30, 41, 99, 0.55); stroke: rgba(199, 210, 254, 0.5); stroke-width: 1.2; }
 .wx-g-moon__lit { fill: #fef3c7; }
 .wx-g-moon__crater { fill: rgba(148, 163, 184, 0.35); }
+.wx-g-moon--veiled { opacity: 0.6; }
 
 .wx-g-cloud__shade { fill: #c9d8ee; }
 .wx-g-cloud__body { fill: #ffffff; }

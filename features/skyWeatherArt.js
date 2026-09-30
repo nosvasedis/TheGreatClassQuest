@@ -241,6 +241,10 @@ export function weatherGlyphSvg(scene, { moonPhase = 0.5 } = {}) {
                 base.push(glyphSun(64, 34, 16));
             }
         }
+        // On a cloudy night the moon still shows its real phase, veiled behind the clouds.
+        if (night && !showBody && (cond === 'overcast' || cond === 'drizzle' || cond === 'rain' || cond === 'snow')) {
+            base.push(`<g class="wx-g-moon--veiled">${glyphMoon(68, 28, 16, moonPhase)}</g>`);
+        }
         if (cond === 'overcast' || cond === 'fog') base.push(glyphCloud(26, 14, 0.8, 'wx-g-cloud--back'));
         if (cond === 'storm' || cond === 'hail') base.push(glyphCloud(24, 10, 0.82, 'wx-g-cloud--back'));
         base.push(glyphCloud(8, 26, 1.12, ['rain', 'drizzle', 'storm', 'hail', 'freezing', 'overcast', 'fog'].includes(cond) ? 'wx-g-cloud--grey' : ''));

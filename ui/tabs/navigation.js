@@ -103,7 +103,7 @@ if (typeof window !== 'undefined') {
 const AWARD_IMMERSIVE_SKY_DELAY_MS = 1500;
 
 /** Matches `--award-sky-reveal-duration` + small buffer for fold cleanup */
-const AWARD_SKY_EXIT_FALLBACK_MS = 1180;
+const AWARD_SKY_EXIT_FALLBACK_MS = 1360;
 
 let awardSkyDelayTimer = null;
 let awardSkyExitFallbackTimer = null;
@@ -127,6 +127,17 @@ function clearAwardSkyExitAnimation() {
         sky?.removeEventListener('animationend', handler);
         awardSkyExitAnimListener = null;
     }
+}
+
+/** Header height as a share of the sky, so the Award sky grows out of (and back into) the bar. */
+function setAwardSkyOrigin(appScreen) {
+    const band = document.getElementById('m-teacher-header')?.offsetHeight
+        || document.getElementById('award-header-atmosphere')?.offsetHeight
+        || 0;
+    const sky = document.getElementById('award-immersive-sky');
+    const tall = (sky?.offsetHeight || window.innerHeight || 1) * 1.28 || 1;
+    const from = Math.min(0.5, Math.max(0.04, band / tall));
+    appScreen.style.setProperty('--award-sky-from', from.toFixed(3));
 }
 
 function finalizeAwardSkyOff(appScreen) {
@@ -157,6 +168,7 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
 
         if (appScreen.classList.contains('award-sky-active')) {
             clearAwardSkyExitAnimation();
+            setAwardSkyOrigin(appScreen);
             appScreen.classList.add('award-sky-leaving');
 
             const sky = document.getElementById('award-immersive-sky');
@@ -203,6 +215,7 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
         : AWARD_IMMERSIVE_SKY_DELAY_MS;
 
     if (delayMs === 0) {
+        setAwardSkyOrigin(appScreen);
         appScreen.classList.add('award-sky-active');
         return;
     }
@@ -211,6 +224,7 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
         awardSkyDelayTimer = null;
         const visible = document.querySelector('.app-tab:not(.hidden)');
         if (visible?.id === 'award-stars-tab') {
+            setAwardSkyOrigin(appScreen);
             appScreen.classList.add('award-sky-active');
         }
     }, delayMs);

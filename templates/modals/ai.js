@@ -2,35 +2,51 @@
 // App info, story reveal, story history, story archive, storybook viewer, story input
 
 export const aiModalsHTML = `
-    <div id="app-info-modal"
-        class="fixed inset-0 bg-slate-950/60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div
-            class="guide-shell bg-white p-0 rounded-[1.8rem] shadow-2xl max-w-5xl w-full h-[86vh] pop-in border border-slate-200 flex flex-col overflow-hidden relative">
-            <button id="app-info-close-btn"
-                class="premium-close-btn guide-close-btn absolute top-4 right-4 bg-white/75 hover:bg-white text-slate-500 hover:text-rose-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
+    <div id="app-info-modal" class="ag-overlay fixed inset-0 z-[95] hidden" role="dialog" aria-modal="true" aria-labelledby="ag-title">
+        <div class="ag-book pop-in">
+            <header class="ag-cover">
+                <svg class="ag-compass" viewBox="0 0 64 64" aria-hidden="true">
+                    <circle cx="32" cy="32" r="29" class="ag-compass__rim"/>
+                    <circle cx="32" cy="32" r="24.5" class="ag-compass__face"/>
+                    <path class="ag-compass__rose" d="M32 9 35 29 55 32 35 35 32 55 29 35 9 32 29 29Z"/>
+                    <path class="ag-compass__rose ag-compass__rose--small" d="M32 20 33.6 30.4 44 32 33.6 33.6 32 44 30.4 33.6 20 32 30.4 30.4Z" transform="rotate(45 32 32)"/>
+                    <g class="ag-compass__needle">
+                        <path d="M32 12 36 32H28Z" class="ag-compass__north"/>
+                        <path d="M32 52 28 32H36Z" class="ag-compass__south"/>
+                        <circle cx="32" cy="32" r="2.6" class="ag-compass__pin"/>
+                    </g>
+                </svg>
+                <div class="ag-cover__text">
+                    <h2 id="ag-title" class="ag-cover__title">The Adventurer's Guide</h2>
+                    <p id="ag-cover-sub" class="ag-cover__sub">A field guide to The Great Class Quest</p>
+                </div>
+                <div id="ag-plan-stamp" class="ag-stamp"></div>
+                <button type="button" id="app-info-close-btn" class="ag-close" aria-label="Close the guide">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </header>
 
-            <div class="guide-header-v3 text-white text-center z-10" id="guide-header-shell">
-                <div class="guide-header-sparkles" aria-hidden="true">✨ ✦︎ ✨ ✦︎ ✨</div>
-                <h2 class="font-title text-3xl md:text-4xl mb-0 text-shadow-md leading-tight">📖 The Adventurer's Guide</h2>
-                <p class="guide-header-subtitle-v3 font-title text-lg md:text-xl mt-1">✨ Mastering the Great Class Quest ✨</p>
-                <div id="guide-header-tier-badge" class="guide-header-tier-pill mt-2"></div>
+            <div class="ag-toolbar">
+                <div class="ag-audience" role="group" aria-label="Who is reading">
+                    <button type="button" class="ag-audience__btn is-active" data-ag-audience="teacher" aria-pressed="true">
+                        <i class="fas fa-chalkboard-user" aria-hidden="true"></i> Quest Master
+                    </button>
+                    <button type="button" class="ag-audience__btn" data-ag-audience="class" aria-pressed="false">
+                        <i class="fas fa-children" aria-hidden="true"></i> For the class
+                    </button>
+                </div>
+                <div class="ag-search">
+                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="ag-search-input" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off" enterkeyhint="search">
+                    <button type="button" id="ag-search-clear" class="ag-search__clear" aria-label="Clear the search" hidden>
+                        <i class="fas fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
 
-            <div class="guide-tab-row flex justify-center gap-3 shadow-inner z-10">
-                <button id="info-btn-teachers" class="info-tab-switcher info-tab-teacher active">
-                    🏫 For Teachers
-                </button>
-                <button id="info-btn-students" class="info-tab-switcher info-tab-student">
-                    🧙 For Students
-                </button>
-            </div>
-
-            <div class="guide-body flex-grow overflow-y-auto p-5 md:p-8 custom-scrollbar relative">
-                <div id="info-content-teachers" class="info-section space-y-8 relative z-10">
-                </div>
-
-                <div id="info-content-students" class="info-section hidden space-y-8 relative z-10">
-                </div>
+            <div class="ag-body">
+                <nav id="ag-index" class="ag-index" aria-label="Chapters"></nav>
+                <div id="ag-page" class="ag-page" tabindex="-1"></div>
             </div>
         </div>
     </div>

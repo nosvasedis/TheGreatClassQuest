@@ -126,7 +126,7 @@
 /* 27. Wallpaper enter/exit, celestial day/night, float-card color themes */
 @import url('./styles/wallpaper.css');
 
-/* 28. Dashboard card, stat-value, info-tab-switcher, home stagger animations */
+/* 28. Dashboard card, stat-value, shared close button, home stagger animations */
 @import url('./styles/dashboard.css');
 
 /* 29. Vibrant Horizons home theme: horizons-grid, weather widget, schedule cards */
@@ -263,3 +263,6 @@
 
 /* 50. Family Portal: a warm home for families (postcard, star jar, fridge door, letters) */
 @import url('./styles/family_portal.css');
+
+/* 51. Adventurer's Guide: a field guide with thumb-index chapters (the (i) button) */
+@import url('./styles/adventurers_guide.css');

@@ -1180,50 +1180,7 @@ export function setupHomeListeners() {
             modals.openAppInfoModal();
         });
     }
-
-    const closeBtn = document.getElementById('app-info-close-btn');
-    if (closeBtn) {
-        const newClose = closeBtn.cloneNode(true);
-        closeBtn.parentNode.replaceChild(newClose, closeBtn);
-        newClose.addEventListener('click', () => modals.hideModal('app-info-modal'));
-    }
-
-    const sBtn = document.getElementById('info-btn-students');
-    const tBtn = document.getElementById('info-btn-teachers');
-    const sContent = document.getElementById('info-content-students');
-    const tContent = document.getElementById('info-content-teachers');
-
-    const replayGuideAnimation = (rootEl) => {
-        if (!rootEl) return;
-        const animated = rootEl.querySelectorAll('.guide-stagger-item');
-        animated.forEach(el => {
-            el.style.animation = 'none';
-        });
-        // Force reflow so animation can restart cleanly
-        void rootEl.offsetHeight;
-        animated.forEach(el => {
-            el.style.animation = '';
-        });
-    };
-
-    if (sBtn && tBtn) {
-        const newS = sBtn.cloneNode(true); sBtn.parentNode.replaceChild(newS, sBtn);
-        const newT = tBtn.cloneNode(true); tBtn.parentNode.replaceChild(newT, tBtn);
-
-        newS.addEventListener('click', () => {
-            newS.classList.add('active');
-            newT.classList.remove('active');
-            sContent.classList.remove('hidden'); tContent.classList.add('hidden');
-            replayGuideAnimation(sContent);
-        });
-        newT.addEventListener('click', () => {
-            newT.classList.add('active');
-            newS.classList.remove('active');
-            tContent.classList.remove('hidden'); sContent.classList.add('hidden');
-            replayGuideAnimation(tContent);
-        });
-    }
-
+    // The guide wires its own close, chapter and search controls (ui/modals/adventurersGuide.js).
 }
 
 export async function maybeAutoShowGuideForTeacher(user) {
@@ -1233,7 +1190,7 @@ export async function maybeAutoShowGuideForTeacher(user) {
     if (teacherState.guideShownAt) return;
 
     setTimeout(() => {
-        modals.openAppInfoModal();
+        modals.openAppInfoModal({ audience: 'teacher', chapter: 'start' });
     }, 900);
 
     try {

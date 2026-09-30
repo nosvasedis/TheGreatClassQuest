@@ -936,3 +936,36 @@
     .lc-9 { --mobileDuration: 60s; }
     .lc-10 { --mobileDuration: 56s; }
 }
+
+/* ── Arriving through the Quest Gate ─────────────────────────────────────────
+   The sign-in gate opens into daylight (ui/authGate.js); the loading screen
+   appears inside that light and the veil clears to show the sky. It is the
+   exit's daylight played backwards, so the two screens feel like one place. */
+#loading-screen.loading-screen-from-gate {
+    animation: loading-from-gate-in 480ms ease-out both;
+}
+#loading-screen.loading-screen-from-gate .loading-daylight::after {
+    animation: loading-from-gate-veil 1500ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+#loading-screen.loading-screen-from-gate .loading-daylight::before {
+    animation: loading-from-gate-sunlight 1900ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes loading-from-gate-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes loading-from-gate-veil {
+    0%, 25% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes loading-from-gate-sunlight {
+    0%, 30% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #loading-screen.loading-screen-from-gate,
+    #loading-screen.loading-screen-from-gate .loading-daylight::before,
+    #loading-screen.loading-screen-from-gate .loading-daylight::after {
+        animation: none !important;
+    }
+}

@@ -833,3 +833,188 @@
         animation: none !important;
     }
 }
+
+/* ── Through the gate ────────────────────────────────────────────────────────
+   After a successful sign-in the card turns into a pair of doors, they swing
+   inward, and the view walks through the arch into daylight (ui/authGate.js).
+   Only opacity and transform move, so the whole show stays on the compositor. */
+#auth-screen.is-gate-closing { will-change: transform; }
+#auth-screen.is-gate-closing .auth-gate__keystone { z-index: 6; }
+
+.auth-gate-portal {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+    perspective: 1100px;
+    opacity: 0;
+    transition: opacity 0.26s ease;
+}
+#auth-screen.is-gate-closing .auth-gate-portal { opacity: 1; }
+
+.auth-gate-portal__sky {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 58%, #fffdf3 0%, #fff4d2 16%, rgba(255, 240, 200, 0) 52%),
+        linear-gradient(180deg, #E8F6FF 0%, #BFE8FB 42%, #8FDCEF 68%, #CFF3DC 100%);
+}
+
+.auth-gate-portal__rays {
+    position: absolute;
+    left: 50%;
+    top: 58%;
+    width: 260%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(255, 246, 214, 0.75) 0deg 7deg, rgba(255, 246, 214, 0) 7deg 22deg);
+    -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 22%, transparent 55%);
+    mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 22%, transparent 55%);
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.7);
+    transition: opacity 0.6s ease, transform 2.2s cubic-bezier(0.2, 0, 0.2, 1);
+}
+#auth-screen.is-gate-opening .auth-gate-portal__rays {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(40deg) scale(1);
+}
+
+.auth-gate-portal__bloom {
+    position: absolute;
+    left: 50%;
+    top: 58%;
+    width: 150%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(255, 253, 244, 1) 0%,
+        rgba(255, 250, 232, 0.96) 32%,
+        rgba(255, 246, 220, 0.6) 52%,
+        rgba(255, 246, 220, 0) 70%);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+    transition: opacity 0.7s ease, transform 1s cubic-bezier(0.5, 0, 0.2, 1);
+}
+#auth-screen.is-gate-opening .auth-gate-portal__bloom {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(0.55);
+}
+#auth-screen.is-gate-entering .auth-gate-portal__bloom {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.9);
+}
+
+.auth-gate-portal__door {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    backface-visibility: hidden;
+    background:
+        linear-gradient(180deg,
+            transparent 17%, rgba(217, 164, 65, 0.5) 17%, rgba(217, 164, 65, 0.5) 18.6%, transparent 18.6%,
+            transparent 80%, rgba(217, 164, 65, 0.5) 80%, rgba(217, 164, 65, 0.5) 81.6%, transparent 81.6%),
+        repeating-linear-gradient(90deg, rgba(148, 163, 184, 0) 0 calc(33.33% - 1px), rgba(148, 163, 184, 0.2) calc(33.33% - 1px) 33.33%),
+        radial-gradient(120% 60% at 50% 0%, var(--auth-accent-wash) 0%, rgba(255, 255, 255, 0) 60%),
+        linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+    transition: transform 0.95s cubic-bezier(0.62, 0.02, 0.24, 1);
+}
+.auth-gate-portal__door::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(30, 41, 59, 0.28), rgba(30, 41, 59, 0));
+    opacity: 0;
+    transition: opacity 0.95s ease;
+}
+.auth-gate-portal__door--left {
+    left: 0;
+    transform-origin: left center;
+    box-shadow: inset -1px 0 0 var(--auth-accent-soft), inset -6px 0 12px -8px rgba(15, 23, 42, 0.25);
+}
+.auth-gate-portal__door--right {
+    right: 0;
+    transform-origin: right center;
+    box-shadow: inset 1px 0 0 var(--auth-accent-soft), inset 6px 0 12px -8px rgba(15, 23, 42, 0.25);
+}
+.auth-gate-portal__door--right::before { transform: scaleX(-1); }
+#auth-screen.is-gate-opening .auth-gate-portal__door--left { transform: rotateY(84deg); }
+#auth-screen.is-gate-opening .auth-gate-portal__door--right { transform: rotateY(-84deg); }
+#auth-screen.is-gate-opening .auth-gate-portal__door::before { opacity: 1; }
+
+.auth-gate-portal__ring {
+    position: absolute;
+    top: 52%;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    border: 3px solid #d9a441;
+    box-shadow: 0 2px 3px rgba(120, 72, 10, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+.auth-gate-portal__door--left .auth-gate-portal__ring { right: 0.8rem; }
+.auth-gate-portal__door--right .auth-gate-portal__ring { left: 0.8rem; }
+
+#auth-screen.is-gate-opening #login-form-container.auth-card {
+    box-shadow:
+        0 0 0 7px rgba(255, 255, 255, 0.65),
+        0 0 0 8.5px rgba(251, 191, 36, 0.55),
+        0 0 70px 12px rgba(255, 236, 170, 0.6),
+        0 30px 60px -24px rgba(15, 40, 90, 0.4);
+}
+#auth-screen.is-gate-opening .auth-gate__keystone {
+    animation: auth-gate-keystone-glow 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes auth-gate-keystone-glow {
+    0%   { transform: translateX(-50%) scale(1); }
+    45%  { transform: translateX(-50%) translateY(-3px) scale(1.14); }
+    100% { transform: translateX(-50%) scale(1.05); }
+}
+
+/* Walking through: the whole scene grows around the arch until its light fills the screen. */
+#auth-screen.is-gate-entering {
+    transform-origin: var(--gate-origin-x, 50%) var(--gate-origin-y, 50%);
+    transform: scale(var(--gate-zoom, 4));
+    transition: transform 1s cubic-bezier(0.55, 0, 0.2, 1);
+}
+#auth-screen.is-gate-entering .auth-welcome,
+#auth-screen.is-gate-entering .auth-footnote,
+#auth-screen.is-gate-entering .auth-cloud-layer {
+    opacity: 0;
+    transition: opacity 0.45s ease;
+}
+
+/* ── Arriving at the gate ────────────────────────────────────────────────────
+   On a cold start the loading screen fades out of its daylight; the card rises
+   into place just as the light clears. */
+#auth-screen.auth-screen-arrive .auth-content {
+    animation: auth-content-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) var(--arrive-delay, 0ms) both;
+}
+#auth-screen.auth-screen-arrive #login-form-container.auth-card {
+    animation: auth-gate-rise 1s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--arrive-delay, 0ms) + 80ms) both;
+}
+#auth-screen.auth-screen-arrive .auth-gate__keystone {
+    animation: auth-gate-keystone-drop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--arrive-delay, 0ms) + 520ms) both;
+}
+@keyframes auth-gate-rise {
+    from { opacity: 0; transform: translateY(28px) scale(0.965); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes auth-gate-keystone-drop {
+    from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+    to   { opacity: 1; transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-gate-portal,
+    #auth-screen.is-gate-entering,
+    #auth-screen.auth-screen-arrive .auth-content,
+    #auth-screen.auth-screen-arrive #login-form-container.auth-card,
+    #auth-screen.auth-screen-arrive .auth-gate__keystone {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+/* Keep the zoomed view steady if the app hides the sign-in screen mid-walk. */
+#auth-screen.is-gate-entering.auth-screen-out { animation: none; }

@@ -727,12 +727,21 @@ export function revealStagedLoadingPersonalization() {
  * already dismissed once on cold boot (dataset.exiting = 'true', hidden
  * class applied); this resets that state so the personalized "Welcome"
  * moment can play and crossfade in over the filled-in auth form.
+ * fromGate: the sign-in gate has just opened into daylight (ui/authGate.js).
  */
-export function reopenLoadingScreen() {
+let fromGateTimer = 0;
+
+export function reopenLoadingScreen({ fromGate = false } = {}) {
     const loadingScreen = document.getElementById('loading-screen');
     if (!loadingScreen) return;
     loadingScreen.dataset.exiting = '';
-    loadingScreen.classList.remove('loading-screen-exit', 'loading-final-moment', 'hidden');
+    loadingScreen.classList.remove('loading-screen-exit', 'loading-final-moment', 'loading-screen-from-gate', 'hidden');
+    clearTimeout(fromGateTimer);
+    if (fromGate) {
+        // Arrives inside the gate's daylight, then the veil clears (styles/loading.css).
+        loadingScreen.classList.add('loading-screen-from-gate');
+        fromGateTimer = setTimeout(() => loadingScreen.classList.remove('loading-screen-from-gate'), 2000);
+    }
     document.getElementById('loading-greeting')?.classList.remove('loading-greeting-visible');
     document.querySelector('.loading-stage')?.classList.remove('loading-stage-reveal');
     document.querySelector('.loading-cheer')?.classList.remove('loading-cheer-active');

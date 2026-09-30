@@ -2,6 +2,7 @@
 
 import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen } from './templates/loading.js';
+import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival } from './ui/authGate.js';
 injectHTML();
 
 // Browser DevTools helper (not the npm terminal). Available even before theater auto-starts.
@@ -123,6 +124,7 @@ function showSignupProfileRecovery(user, displayName, originalError) {
     const authScreen = document.getElementById('auth-screen');
     const appScreen = document.getElementById('app-screen');
     const loadingScreen = document.getElementById('loading-screen');
+    cancelAuthGate();
     appScreen?.classList.add('hidden');
     loadingScreen?.classList.add('hidden');
     authScreen?.classList.remove('hidden');
@@ -314,6 +316,7 @@ function animateLoadingScreenOut(loadingScreen) {
 
     const beginExit = () => {
         requestAnimationFrame(() => {
+            loadingScreen.classList.remove('loading-screen-from-gate');
             loadingScreen.classList.add('loading-screen-exit');
         });
 
@@ -1146,7 +1149,10 @@ function setupAuthListeners() {
             // page load) — reopen the loading screen so it can crossfade back in
             // over the filled-in form and play the personalized "Welcome" moment.
             const cameFromAuthScreen = authScreen && !authScreen.classList.contains('hidden');
-            if (cameFromAuthScreen) reopenLoadingScreen();
+            // The sign-in card opens like a gate and the loading screen rises out of its light.
+            const gateHandoff = cameFromAuthScreen
+                ? playAuthGateEntrance({ onHandoff: () => reopenLoadingScreen({ fromGate: true }) })
+                : null;
             try {
                 await loadAuthenticatedRuntime();
                 if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;
@@ -1224,6 +1230,10 @@ function setupAuthListeners() {
                     document.getElementById(screenId)?.addEventListener('pointerdown', onFirstUserGesture, { once: true });
                 });
 
+                if (gateHandoff) {
+                    await gateHandoff;
+                    if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;
+                }
                 rememberAuthRole(profile.role);
                 initializeHeaderQuote();
                 state.setCurrentUserProfile(profile);
@@ -1281,10 +1291,12 @@ function setupAuthListeners() {
                     });
                 }
             } catch (error) {
+                if (gateHandoff) await gateHandoff;
                 if (sessionId === authSessionId) showInitializationRecovery(error);
             }
 
         } else {
+            cancelAuthGate();
             resetAuthSubmitState();
             if (state) state.resetState();
             if (audioModulePromise) {
@@ -1313,6 +1325,11 @@ function setupAuthListeners() {
                 setAuthMode('login');
                 void initializeAuthAvailability();
             }
+            // Cold start: the card rises just as the loading screen's daylight clears.
+            const loadingStillShowing = loadingScreen
+                && !loadingScreen.classList.contains('hidden')
+                && loadingScreen.dataset.exiting !== 'true';
+            playAuthGateArrival({ delayMs: loadingStillShowing ? 480 : 0 });
             animateLoadingScreenOut(loadingScreen);
         }
     });

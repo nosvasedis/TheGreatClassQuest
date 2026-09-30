@@ -110,7 +110,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'guild-hall', icon: 'fa-shield-halved', name: 'Guild Hall', tier: 'pro',
                     where: 'Guild Hall tab', go: 'tab:guilds-tab',
-                    text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Houses are ranked by Guild Power, which is mostly Glory per member, so a small busy house can beat a big sleepy one. Tap an emblem for the house banner, or the note for its anthem.`,
+                    text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Houses are ranked by Guild Power: the Glory each member earned this school year, on average, so a small busy house can beat a big one. Tap an emblem for the house banner, or the note for its anthem.`,
                     why: 'Belonging across ages. A student\'s guild is theirs for life.',
                     keys: 'guilds houses glory guild power dragon flame grizzly might owl wisdom phoenix rising anthem'
                 },

@@ -186,7 +186,7 @@ Weather is not a toy. It ties the classroom to the real morning outside.
 - Weather checks itself again every few minutes while the app is open, so a shower that starts mid-lesson reaches the sky.
 - Location is set school-wide (Secretary → School Details on Elite). If it is missing, the sky still day/night-cycles from the clock.
 
-**Award Stars** also gains an immersive sky after a short moment on that tab — another reminder that this is a place, not a spreadsheet. The sky pours down out of the header while the header's gold thread unwraps from its centre gem out to both edges; when you leave, it wraps back in from the edges until the two ends meet in the gem, which gives a small glimmer. Stars show only as far as the real cloud cover allows, and the moon is drawn in tonight's real phase.
+**Award Stars** also gains an immersive sky after a short moment on that tab — another reminder that this is a place, not a spreadsheet. The sky pours down out of the header while the header's gold thread unwraps from its centre gem out to both edges and the gem vanishes; when you leave, it wraps back in from the edges until the two ends meet in the middle, where the gem reappears with a small glimmer. Stars show only as far as the real cloud cover allows, and the moon is drawn in tonight's real phase.
 
 ## Sounds and small treats
 

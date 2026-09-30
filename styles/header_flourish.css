@@ -334,7 +334,7 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
     animation: gcq-bead-out calc(var(--award-sky-reveal-duration) * 0.16) ease-out calc(var(--award-sky-reveal-duration) * var(--pass-out, 0.2)) both;
 }
 #app-screen.award-sky-active:not(.award-sky-leaving) :is(.gcq-header-trim__gem, .m-header__gem) {
-    animation: gcq-gem-rest calc(var(--award-sky-reveal-duration) * 0.4) ease-out both;
+    animation: gcq-gem-rest calc(var(--award-sky-reveal-duration) * 0.34) ease-in both;
 }
 
 /* Leaving: wrap back from the edges inwards, and glimmer when whole */
@@ -350,9 +350,9 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
 #app-screen.award-sky-leaving :is(.gcq-header-trim__bead, .m-header__bead) {
     animation: gcq-bead-in calc(var(--award-sky-reveal-duration) * 0.2) cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--award-sky-reveal-duration) * var(--pass-in, 0.6)) both;
 }
+/* The gem stays gone until the two ends meet in it again. */
 #app-screen.award-sky-leaving :is(.gcq-header-trim__gem, .m-header__gem) {
-    opacity: 0.8;
-    scale: 0.92;
+    opacity: 0;
 }
 /* The two ends have met: the gem glimmers (ui/tabs/navigation.js adds this for a moment). */
 #app-screen.gcq-trim-rejoin :is(.gcq-header-trim__gem, .m-header__gem) {
@@ -398,24 +398,25 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
     94% { opacity: 1; }
     100% { opacity: 0; translate: 0 0; rotate: 0deg; }
 }
+/* Full transforms keep translate(-50%, 50%) first, so scaling stays centred on the line. */
 @keyframes gcq-bead-out {
-    from { opacity: 1; scale: 1; }
-    to { opacity: 0; scale: 0.2; }
+    from { opacity: 1; transform: translate(-50%, 50%) scale(1); }
+    to { opacity: 0; transform: translate(-50%, 50%) scale(0.2); }
 }
 @keyframes gcq-bead-in {
-    from { opacity: 0; scale: 0.2; }
-    to { opacity: 1; scale: 1; }
+    from { opacity: 0; transform: translate(-50%, 50%) scale(0.2); }
+    to { opacity: 1; transform: translate(-50%, 50%) scale(1); }
 }
-/* The gem stays as the anchor while the sky is open, just a touch quieter. */
+/* The gem flares as the thread lets go, then is gone while the sky is open. */
 @keyframes gcq-gem-rest {
-    0% { opacity: 1; scale: 1; }
-    25% { opacity: 1; scale: 1.18; }
-    100% { opacity: 0.8; scale: 0.92; }
+    0% { opacity: 1; transform: translate(-50%, 50%) scale(1); }
+    22% { opacity: 1; transform: translate(-50%, 50%) scale(1.16); }
+    100% { opacity: 0; transform: translate(-50%, 50%) scale(0.3); }
 }
 @keyframes gcq-gem-glimmer {
-    0% { opacity: 0.8; scale: 0.92; }
-    22% { opacity: 1; scale: 1.28; }
-    100% { opacity: 1; scale: 1; }
+    0% { opacity: 0; transform: translate(-50%, 50%) scale(0.3); }
+    26% { opacity: 1; transform: translate(-50%, 50%) scale(1.22); }
+    100% { opacity: 1; transform: translate(-50%, 50%) scale(1); }
 }
 @keyframes gcq-glimmer {
     0% { opacity: 0; scale: 0.2; rotate: 0deg; }

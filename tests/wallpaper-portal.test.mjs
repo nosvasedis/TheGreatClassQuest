@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const portal = readFileSync(new URL('../ui/wallpaperPortal.js', import.meta.url), 'utf8');
-const wallpaper = readFileSync(new URL('../ui/wallpaper.js', import.meta.url), 'utf8');
-const css = readFileSync(new URL('../styles/wallpaper_sky.css', import.meta.url), 'utf8');
+// Normalise line endings: a Windows checkout (core.autocrlf) turns \n into \r\n, and the
+// multi-line source checks below are written with \n.
+const readSource = (path) => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const portal = readSource('../ui/wallpaperPortal.js');
+const wallpaper = readSource('../ui/wallpaper.js');
+const css = readSource('../styles/wallpaper_sky.css');
 
 const openBody = portal.slice(portal.indexOf('export async function playPortalOpen'), portal.indexOf('export async function playPortalClose'));
 const closeBody = portal.slice(portal.indexOf('export async function playPortalClose'));

@@ -100,10 +100,23 @@ The **Former students** lane lists everyone who has left, newest first, with a s
 
 - **Notes** — the student's office file. Pin a note tagged **Family**, **Health**, **Fees & forms**, or **General**; edit or delete it later. Below, **From the classroom** shows the teachers' notes to read. **Office notes are private to the Office: teachers never see them.**
 - **Move class** — pick any class this year, grouped by league with the student's own league first. Stars, gold, guild, and notes go with them; the family app and messages follow to the new teacher. **Undo** is offered. For a student waiting for a class, the button reads **Seat in a class**.
+- **Family login** — opens this student's key tag from Family Logins below (create one, give a new password, and so on).
 - **Grades** — opens the Grades tab already searched for this student.
 - **Leaves school** — the leaving dialog above.
 
 Portraits, the skill tree, hero ceremonies, certificates, and the teacher's chronicle stay in the classroom. The guild is shown but never changed here: a sorted student reads **Member for life. Guilds never change.**; an unsorted one is sorted by their teacher in class. The **Notes** button on a School → Students card opens the same office file.
+
+## Admin → Family Logins (Pro and Elite)
+
+The office **key cabinet**: every enrolled student hangs a key tag, grouped in one drawer per class. A green tag means the family **can sign in**, a grey one is **switched off**, a dashed one has **no login yet**. The top shows how many families can sign in, with a search (student, username or class) and filters: **Everyone**, **No login yet**, **Can sign in**, **Switched off**.
+
+- **Tap a tag** with no login to create one. A username is suggested from the child's name (Greek names are written in Latin letters, e.g. *maria.p*) and an easy password such as *sunny-otter-47*; the dice makes a new one. Brothers and sisters each get their own login.
+- **Tap a tag** that has a login to give a **new password**, change the **username**, **Switch off** the login, or **Delete** it. A switched-off login comes back with **Switch back on** and a new password.
+- **Create N missing** on a class drawer makes logins for every student in that class who has none, in one go.
+- After saving, the dialog shows the details once, with **Copy** and **Print slip(s)**: each slip has the username, password and the sign-in QR, two to an A4 page. Passwords are not shown again after you close it.
+- **Parent sign-in QR**: **Print poster** gives an A4 poster for the notice board; **Copy link** copies the address that opens the Parent sign-in.
+
+Teachers keep their own **Family Access** sheet for their students; both work on the same logins.
 
 ## Admin → School Year
 

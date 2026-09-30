@@ -148,7 +148,7 @@ Only the **last lesson day** for the class in the header. A tear-off calendar le
 
 ## Family Access
 
-One parent login per student. Pick the student; a key tag shows whether a login exists and its username. **Save Parent Account**, then **Reset Password**, **Disable** or **Delete** when needed. Families see progress, homework (from Quest Assignment), celebrations, and notes you **published** (such as an Oracle parent summary) — not your private Chronicle. Pro and Elite.
+One parent login per student. Pick the student; a key tag shows whether a login exists and its username (a username is suggested for a new one). **Easy password** makes a password families can type from paper. **Save Parent Account**, then **Reset Password**, **Disable** or **Delete** when needed; a disabled login returns with **Switch back on**. After saving, **Print family slip** prints the details with the Parent sign-in QR. The School Office can manage every family login from Admin → Family Logins. Families see progress, homework (from Quest Assignment), celebrations, and notes you **published** (such as an Oracle parent summary) — not your private Chronicle. Pro and Elite.
 
 ## Quiz (Elite)
 

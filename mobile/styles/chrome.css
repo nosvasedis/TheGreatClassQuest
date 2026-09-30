@@ -214,10 +214,6 @@
     display: none;
 }
 
-.m-header__update-mount.has-update {
-    display: block;
-}
-
 .m-class-pill {
     display: flex;
     align-items: center;
@@ -584,6 +580,51 @@
     gap: 0.35rem;
 }
 
+/* Update ready: on phones it is a violet orb with a gold spark that takes the
+   Game Guide's seat until the update is applied (the guide stays in More), so
+   the class pill and clock never get squeezed. Its aria-label still says
+   "Update ready". */
+.m-header__update-mount.has-update {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.m-header__actions--update #m-app-info-btn {
+    display: none;
+}
+
+.m-header__update-mount .gcq-update-ready-button {
+    width: 2.3rem;
+    height: 2.3rem;
+    min-width: 2.3rem;
+    min-height: 2.3rem;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    overflow: visible;
+    border: 1.5px solid rgba(255, 246, 214, 0.85);
+    background: radial-gradient(circle at 35% 25%, rgba(196, 181, 253, 0.98), rgba(124, 58, 237, 0.96) 62%, rgba(192, 38, 211, 0.94));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -3px rgba(76, 29, 149, 0.45), 0 0 12px rgba(250, 204, 21, 0.4);
+    animation: none;
+}
+
+.m-header__update-mount .gcq-update-ready-button::before,
+.m-header__update-mount .gcq-update-ready-label {
+    display: none;
+}
+
+.m-header__update-mount .gcq-update-ready-icon {
+    font-size: 0.92rem;
+}
+
+.m-header__update-mount .gcq-update-ready-sparkle {
+    position: absolute;
+    top: -0.28rem;
+    right: -0.2rem;
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
 .m-header-btn.m-header-btn--mini.m-header-btn--danger {
     background: radial-gradient(circle at 35% 25%, rgba(254, 205, 211, 0.75), rgba(225, 29, 72, 0.7) 75%);
 }
@@ -640,7 +681,8 @@ body.night-mode .m-header__clouds {
         padding-right: 0.5rem;
     }
 
-    .m-header-btn.m-header-btn--mini {
+    .m-header-btn.m-header-btn--mini,
+    .m-header__update-mount .gcq-update-ready-button {
         width: 2.15rem;
         height: 2.15rem;
         min-width: 2.15rem;

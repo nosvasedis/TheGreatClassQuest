@@ -438,7 +438,11 @@ function mirrorUpdateReady() {
             target.appendChild(clone);
         });
         target.classList.toggle('hidden', source.classList.contains('hidden'));
-        target.classList.toggle('has-update', source.childNodes.length > 0);
+        const hasUpdate = source.childNodes.length > 0;
+        target.classList.toggle('has-update', hasUpdate);
+        // The update orb takes the Game Guide's seat (the guide is still in More),
+        // so the class pill and clock keep their room.
+        target.closest('.m-header__actions')?.classList.toggle('m-header__actions--update', hasUpdate);
     };
 
     copy();

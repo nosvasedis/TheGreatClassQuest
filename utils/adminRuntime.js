@@ -1,13 +1,28 @@
 import { functions, httpsCallable } from '../firebase.js';
+import { friendlyActionError, looksTechnical } from './friendlyErrors.js';
 
 function callable(name) {
     return httpsCallable(functions, name);
 }
 
+// Server messages written for people pass through; raw codes like "internal" become plain sentences.
+function humanizeCallableError(error) {
+    if (!error || !looksTechnical(error.message)) return error;
+    const friendly = new Error(friendlyActionError(error));
+    friendly.code = error.code;
+    friendly.details = error.details;
+    friendly.cause = error;
+    return friendly;
+}
+
 async function callAdmin(name, payload = {}) {
     const fn = callable(name);
-    const result = await fn(payload);
-    return result?.data || null;
+    try {
+        const result = await fn(payload);
+        return result?.data || null;
+    } catch (error) {
+        throw humanizeCallableError(error);
+    }
 }
 
 export function createParentAccess(payload) {

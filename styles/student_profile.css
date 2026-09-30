@@ -654,6 +654,7 @@
 .sp-tool--move { --tool: #0f766e; --tool-soft: #ccfbf1; }
 .sp-tool--notes { --tool: #1e3a5f; --tool-soft: #e0ecf8; }
 .sp-tool--leave { --tool: #b91c1c; --tool-soft: #fee2e2; }
+.sp-tool--family { --tool: #b45309; --tool-soft: #fef3c7; }
 
 .sp-tool__count {
     margin-left: auto;

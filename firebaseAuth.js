@@ -4,6 +4,7 @@ import {
     getAuth,
     onAuthStateChanged,
     reauthenticateWithCredential,
+    sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut,
     updateProfile
@@ -16,6 +17,7 @@ export {
     EmailAuthProvider,
     onAuthStateChanged,
     reauthenticateWithCredential,
+    sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut,
     updateProfile

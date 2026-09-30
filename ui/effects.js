@@ -1,4 +1,5 @@
 import * as state from '../state.js';
+import { friendlyActionError, looksTechnical } from '../utils/friendlyErrors.js';
 
 // ─── Herald notifications ────────────────────────────────────────────────────
 // Every notification in the app is one of these: a gem medallion, a kicker,
@@ -133,6 +134,8 @@ export function notify(options = {}) {
 }
 
 export function showToast(message, type = 'info', duration = 3000) {
+    // Last safety net: a raw Firebase code never reaches a teacher, parent or secretary.
+    if (type === 'error' && looksTechnical(message)) message = friendlyActionError(message);
     return notify({ message, type, duration });
 }
 

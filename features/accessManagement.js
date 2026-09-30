@@ -8,10 +8,14 @@ import { canUseFeature } from '../utils/subscription.js';
 import { createParentAccess, deleteParentAccess, disableParentAccess, resetParentAccessPassword } from '../utils/adminRuntime.js';
 import { showToast } from '../ui/effects.js';
 import { showModal } from '../ui/modals.js';
+import { friendlyActionError } from '../utils/friendlyErrors.js';
+import { generateFamilyPassword, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 let selectedStudentId = '';
+// The details just saved, kept only so the teacher can print the family's slip; never stored.
+let lastIssued = null;
 let accessData = {
     parentLinksByStudent: {}
 };
@@ -83,7 +87,11 @@ export function renderParentAccessCard(data = accessData) {
 
     const status = link ? String(link.status || 'active') : '';
     const statusTone = !link ? 'none' : status === 'active' ? 'active' : 'off';
-    const statusLabel = !link ? 'No login yet' : status === 'active' ? 'Active' : status.charAt(0).toUpperCase() + status.slice(1);
+    const statusLabel = !link ? 'No login yet' : status === 'active' ? 'Active' : 'Switched off';
+    const suggested = !link && selectedStudent
+        ? suggestFamilyUsername(selectedStudent.name, Object.values(data.parentLinksByStudent || {}).map((item) => item.username))
+        : '';
+    const issued = lastIssued && selectedStudent && lastIssued.studentId === selectedStudent.id ? lastIssued : null;
 
     return `
         <article class="ts-access">
@@ -113,17 +121,23 @@ export function renderParentAccessCard(data = accessData) {
                     <div class="ts-row ts-row--2">
                         <label class="ts-field" for="options-parent-username">
                             <span class="ts-label">Parent username</span>
-                            <input id="options-parent-username" type="text" class="ts-input" value="${escapeHtml(link?.username || '')}" placeholder="e.g. maria.parent" autocomplete="off">
+                            <input id="options-parent-username" type="text" class="ts-input" value="${escapeHtml(link?.username || suggested)}" placeholder="e.g. maria.p" autocomplete="off">
                         </label>
                         <label class="ts-field" for="options-parent-password">
                             <span class="ts-label">Password</span>
-                            <input id="options-parent-password" type="password" class="ts-input" placeholder="${link ? 'Enter a new password to reset' : 'Create a password'}" autocomplete="new-password">
+                            <input id="options-parent-password" type="text" class="ts-input" placeholder="${link ? 'Type a new password' : 'At least 6 characters'}" autocomplete="off" autocapitalize="off" spellcheck="false">
                         </label>
                     </div>
+                    ${issued ? `
+                        <div class="ts-access__issued" role="status">
+                            <span><i class="fas fa-circle-check" aria-hidden="true"></i> Ready: <code>${escapeHtml(issued.username)}</code> / <code>${escapeHtml(issued.password)}</code></span>
+                            <button type="button" id="options-parent-print-btn" class="ts-btn ts-btn--quiet bubbly-button"><i class="fas fa-print"></i> Print family slip</button>
+                        </div>` : ''}
                     <div class="ts-actions">
+                        <button type="button" id="options-parent-suggest-btn" class="ts-btn ts-btn--quiet bubbly-button" title="Make an easy password"><i class="fas fa-dice"></i> Easy password</button>
                         <button type="button" id="options-parent-create-btn" class="ts-btn bubbly-button"><i class="fas fa-save"></i> Save Parent Account</button>
-                        <button type="button" id="options-parent-reset-btn" class="ts-btn ts-btn--quiet bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-rotate"></i> Reset Password</button>
-                        <button type="button" id="options-parent-disable-btn" class="ts-btn ts-btn--quiet bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-ban"></i> Disable</button>
+                        <button type="button" id="options-parent-reset-btn" class="ts-btn ts-btn--quiet bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-rotate"></i> ${status === 'active' ? 'Reset Password' : 'Switch back on'}</button>
+                        <button type="button" id="options-parent-disable-btn" class="ts-btn ts-btn--quiet bubbly-button ${link && status === 'active' ? '' : 'hidden'}"><i class="fas fa-ban"></i> Disable</button>
                         <button type="button" id="options-parent-delete-btn" class="ts-btn ts-btn--danger bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-trash"></i> Delete</button>
                     </div>
                 </div>
@@ -154,6 +168,7 @@ export function wireAccessCenterEvents() {
     document.getElementById('options-tab')?.addEventListener('change', (event) => {
         if (event.target.id === 'options-access-student-select') {
             selectedStudentId = event.target.value;
+            lastIssued = null;
             renderAccessCenterUi().catch((error) => console.error('Could not refresh access center:', error));
         }
     });
@@ -161,6 +176,26 @@ export function wireAccessCenterEvents() {
     document.getElementById('options-tab')?.addEventListener('click', async (event) => {
         const selectedStudent = getSelectedStudent();
         const currentLink = selectedStudent ? accessData.parentLinksByStudent[selectedStudent.id] : null;
+
+        if (event.target.closest('#options-parent-suggest-btn')) {
+            const input = document.getElementById('options-parent-password');
+            if (input) {
+                input.value = generateFamilyPassword();
+                input.focus();
+                input.select();
+            }
+            return;
+        }
+
+        if (event.target.closest('#options-parent-print-btn')) {
+            if (!lastIssued || lastIssued.studentId !== selectedStudent?.id) return;
+            const classData = (state.get('allSchoolClasses') || state.get('allTeachersClasses') || []).find((item) => item.id === selectedStudent.classId);
+            printFamilySlips({
+                schoolName: state.get('schoolName') || '',
+                slips: [{ studentName: selectedStudent.name, className: classData?.name || '', username: lastIssued.username, password: lastIssued.password }]
+            }).catch(() => showToast('Could not open printing. Try again.', 'error'));
+            return;
+        }
 
         if (event.target.closest('#options-parent-create-btn')) {
             const button = event.target.closest('#options-parent-create-btn');
@@ -171,7 +206,11 @@ export function wireAccessCenterEvents() {
             const username = document.getElementById('options-parent-username')?.value?.trim();
             const password = document.getElementById('options-parent-password')?.value?.trim();
             if (!username || !password) {
-                showToast('Username and password are required.', 'error');
+                showToast('Type a username and a password first.', 'error');
+                return;
+            }
+            if (password.length < 6) {
+                showToast('Passwords need at least 6 characters.', 'error');
                 return;
             }
             try {
@@ -183,11 +222,12 @@ export function wireAccessCenterEvents() {
                     username,
                     password
                 });
-                showToast('Parent account saved.', 'success');
+                lastIssued = { studentId: selectedStudent.id, username: username.toLowerCase().replace(/[^a-z0-9._-]/g, ''), password };
+                showToast('Parent account saved. You can print the family slip now.', 'success');
                 await renderAccessCenterUi();
             } catch (error) {
                 console.error('Could not save parent access:', error);
-                showToast(error?.message || 'Could not save the parent account.', 'error');
+                showToast(friendlyActionError(error, 'Could not save the parent account.'), 'error');
             } finally {
                 setBusyState(button, false);
             }
@@ -199,17 +239,34 @@ export function wireAccessCenterEvents() {
             if (!selectedStudent || !currentLink) return;
             const password = document.getElementById('options-parent-password')?.value?.trim();
             if (!password) {
-                showToast('Enter the new password first.', 'info');
+                showToast('Type the new password first, or press Easy password.', 'info');
+                return;
+            }
+            if (password.length < 6) {
+                showToast('Passwords need at least 6 characters.', 'error');
                 return;
             }
             try {
-                setBusyState(button, true, 'Resetting Password...');
-                await resetParentAccessPassword({ studentId: selectedStudent.id, password });
-                showToast('Parent password reset.', 'success');
-                document.getElementById('options-parent-password').value = '';
+                const isOff = String(currentLink.status || 'active') !== 'active';
+                setBusyState(button, true, isOff ? 'Switching on...' : 'Resetting Password...');
+                if (isOff) {
+                    // Switching back on goes through the same call as creating, which reactivates the family's profile too.
+                    await createParentAccess({
+                        studentId: selectedStudent.id,
+                        classId: selectedStudent.classId,
+                        studentName: selectedStudent.name,
+                        username: currentLink.username,
+                        password
+                    });
+                } else {
+                    await resetParentAccessPassword({ studentId: selectedStudent.id, password });
+                }
+                lastIssued = { studentId: selectedStudent.id, username: currentLink.username, password };
+                showToast(isOff ? 'Parent access is back on.' : 'Parent password reset.', 'success');
+                await renderAccessCenterUi();
             } catch (error) {
                 console.error('Could not reset parent password:', error);
-                showToast(error?.message || 'Could not reset the parent password.', 'error');
+                showToast(friendlyActionError(error, 'Could not reset the parent password.'), 'error');
             } finally {
                 setBusyState(button, false);
             }
@@ -222,11 +279,12 @@ export function wireAccessCenterEvents() {
             try {
                 setBusyState(button, true, 'Disabling Parent Access...');
                 await disableParentAccess({ studentId: selectedStudent.id });
+                lastIssued = null;
                 showToast('Parent access disabled.', 'success');
                 await renderAccessCenterUi();
             } catch (error) {
                 console.error('Could not disable parent access:', error);
-                showToast(error?.message || 'Could not disable parent access.', 'error');
+                showToast(friendlyActionError(error, 'Could not disable parent access.'), 'error');
             } finally {
                 setBusyState(button, false);
             }
@@ -247,7 +305,7 @@ export function wireAccessCenterEvents() {
                         await renderAccessCenterUi();
                     } catch (error) {
                         console.error('Could not delete parent access:', error);
-                        showToast(error?.message || 'Could not delete parent access.', 'error');
+                        showToast(friendlyActionError(error, 'Could not delete parent access.'), 'error');
                     } finally {
                         setBusyState(button, false);
                     }

@@ -46,6 +46,7 @@ import {
     openReturnDialog,
     setFormerStudentsListener
 } from './secretary/formerStudents.js';
+import { handleFamilyLoginsClick, setFamilyLoginsListener } from './secretary/familyLogins.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -342,6 +343,10 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         if (tab === 'admin' || tab === 'school' || tab === 'home') renderSecretaryTab(tab);
         import('./placementWizard.js').then(({ refreshPlacementWizardIfOpen }) => refreshPlacementWizardIfOpen());
     });
+    setFamilyLoginsListener(() => {
+        const view = state.get('secretaryView') || {};
+        if (getActiveTabKey() === 'admin' && view.adminSubTab === 'families') renderSecretaryTab('admin');
+    });
     if (listenersWired) return;
     listenersWired = true;
 
@@ -350,6 +355,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
 
     document.getElementById('secretary-screen')?.addEventListener('click', async (event) => {
         if (handleSchoolYearConsoleClick(event)) return;
+        if (handleFamilyLoginsClick(event)) return;
 
         const navBtn = event.target.closest('.nav-button[data-secretary-tab]');
         if (navBtn) {
@@ -725,6 +731,11 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         if (event.target.id === 'secretary-student-filter') {
             state.setSecretaryView({ studentFilter: event.target.value, schoolSubTab: 'students' });
             refreshSecretarySearch('school');
+            return;
+        }
+        if (event.target.id === 'secretary-family-search') {
+            state.setSecretaryView({ familySearch: event.target.value });
+            refreshSecretarySearch('admin');
             return;
         }
         if (event.target.id === 'secretary-registry-search') {

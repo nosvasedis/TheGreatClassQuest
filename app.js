@@ -21,13 +21,29 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     onAuthStateChanged,
+    sendPasswordResetEmail,
     updateProfile,
     signOut
 } from './firebaseAuth.js';
 import { firebaseConfig, BILLING_BASE_URL, BILLING_SCHOOL_ID } from './constants.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
 import * as utils from './utils.js';
-import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, getRoleLabel, getRoleLoginDescription, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
+import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
+import {
+    clearAuthError,
+    consumeAuthDeepLinkRole,
+    hideForgotPanel,
+    paintAuthRoleCopy,
+    readRememberedAuthRole,
+    readRememberedUsername,
+    rememberAuthRole,
+    rememberAuthUsername,
+    renderForgotPanel,
+    resetPasswordPeeks,
+    showAuthError,
+    updateUsernameHint,
+    wireAuthFieldHelpers
+} from './ui/authScreen.js';
 import { clearLocalAppData, getDeviceCacheChoice, offerDeviceCacheChoice } from './utils/deviceCache.js';
 import { recordModuleLoaded } from './utils/runtimeMetrics.js';
 
@@ -141,8 +157,11 @@ function showSignupProfileRecovery(user, displayName, originalError) {
             console.error('Teacher profile recovery failed:', error);
             button.disabled = false;
             button.textContent = 'Retry safely';
-            const errorEl = document.getElementById('auth-error');
-            if (errorEl) errorEl.innerText = error?.message || 'Could not finish teacher account setup.';
+            showAuthError({
+                title: 'We couldn’t finish setting up your account',
+                text: 'Check the internet connection, then press “Retry safely” again.',
+                field: ''
+            }, { role: ROLE_TEACHER, form: 'signup' });
         }
     });
     panel.querySelector('[data-cancel-profile]')?.addEventListener('click', async () => {
@@ -205,6 +224,8 @@ async function loadAuthenticatedRuntime() {
 
 let activeAuthRole = ROLE_TEACHER;
 let activeAuthMode = 'login';
+// Set when a QR code or link opened a specific door (e.g. ?login=parent).
+let authArrivedByLink = false;
 
 const INITIALIZATION_TIMEOUT_MS = 8000;
 let subscribeGraceTicker = null;
@@ -412,11 +433,11 @@ function setAuthSubmitLoading(mode, isLoading) {
     submitBtn.disabled = isLoading;
     if (toggleBtn) toggleBtn.disabled = isLoading;
     const loadingLabel = mode === 'activation'
-        ? 'Activating the school...'
+        ? 'Activating the school…'
         : mode === 'signup'
-            ? 'Creating your account...'
-            : 'Signing you in...';
-    const idleLabel = mode === 'activation' ? 'Activate Secretary / Admin' : mode === 'signup' ? 'Sign Up' : 'Login';
+            ? 'Creating your account…'
+            : 'Opening the gate…';
+    const idleLabel = mode === 'activation' ? 'Activate Secretary / Admin' : mode === 'signup' ? 'Create my account' : 'Sign in';
     submitBtn.innerHTML = isLoading
         ? `<i class="fas fa-spinner fa-spin"></i><span>${loadingLabel}</span>`
         : `<span class="auth-submit-label">${idleLabel}</span>`;
@@ -804,6 +825,7 @@ function syncAuthRoleUi() {
         card?.classList.add('auth-card--activation');
         if (title) title.innerText = 'Activate Secretary / Admin';
         if (subtitle) subtitle.innerText = 'This secure one-time link creates the school’s sole administrator account.';
+        paintAuthRoleCopy(ROLE_SECRETARY, { activation: true });
         return;
     }
 
@@ -813,6 +835,7 @@ function syncAuthRoleUi() {
     if (schoolAuthState !== 'active') {
         interactive?.classList.add('hidden');
         card?.classList.add('auth-card--gated');
+        paintAuthRoleCopy(activeAuthRole, { mode: 'login' });
         renderAuthAvailabilityPanel(schoolAuthState);
         return;
     }
@@ -826,12 +849,10 @@ function syncAuthRoleUi() {
         btn.classList.toggle('auth-role-btn-active', btn.dataset.authRole === activeAuthRole);
     });
 
-    if (title) {
-        title.innerText = `${getRoleLabel(activeAuthRole)} ${activeAuthMode === 'signup' ? 'Sign Up' : 'Login'}`;
-    }
-    if (subtitle) {
-        subtitle.innerText = getRoleLoginDescription(activeAuthRole);
-    }
+    if (activeAuthRole !== ROLE_TEACHER) activeAuthMode = 'login';
+    const heading = paintAuthRoleCopy(activeAuthRole, { mode: activeAuthMode, arrivedByLink: authArrivedByLink });
+    if (title && heading) title.innerText = heading.title;
+    if (subtitle && heading) subtitle.innerText = heading.subtitle;
 
     const roleUsesUsername = isRoleLogin(activeAuthRole);
     loginEmailWrap?.classList.toggle('hidden', roleUsesUsername);
@@ -850,7 +871,7 @@ function syncAuthRoleUi() {
         loginForm?.classList.toggle('hidden', isSignup);
         signupForm?.classList.toggle('hidden', !isSignup);
         if (toggleBtn) {
-            toggleBtn.innerText = isSignup ? 'Already have an account? Login' : 'Need an account? Sign Up';
+            toggleBtn.innerText = isSignup ? 'Already have an account? Sign in' : 'New teacher? Create an account';
             toggleBtn.disabled = false;
             toggleBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
@@ -908,18 +929,91 @@ async function initializeAuthAvailability() {
 }
 
 function setAuthRole(role) {
-    activeAuthRole = role || ROLE_TEACHER;
+    const nextRole = role || ROLE_TEACHER;
+    const changed = nextRole !== activeAuthRole;
+    activeAuthRole = nextRole;
+    if (changed) {
+        clearAuthError();
+        hideForgotPanel();
+        prefillRememberedUsername();
+    }
     syncAuthRoleUi();
 }
 
 function setAuthMode(mode) {
-    activeAuthMode = mode === 'signup' ? 'signup' : 'login';
+    const nextMode = mode === 'signup' ? 'signup' : 'login';
+    if (nextMode !== activeAuthMode) {
+        clearAuthError();
+        hideForgotPanel();
+    }
+    activeAuthMode = nextMode;
     syncAuthRoleUi();
 }
 
+function prefillRememberedUsername() {
+    const input = document.getElementById('login-username');
+    if (!input || input.value.trim() || !isRoleLogin(activeAuthRole)) return;
+    input.value = readRememberedUsername(activeAuthRole);
+    updateUsernameHint();
+}
+
+// The door the sign-in screen opens on: a QR code or link first, then the role this device used last.
+function resolveStartingAuthRole() {
+    const linked = consumeAuthDeepLinkRole();
+    if (linked) {
+        authArrivedByLink = true;
+        rememberAuthRole(linked);
+        return linked;
+    }
+    return readRememberedAuthRole() || ROLE_TEACHER;
+}
+
+function looksLikeEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || '').trim());
+}
+
+async function sendTeacherPasswordReset(button) {
+    const email = document.getElementById('login-email')?.value?.trim() || '';
+    if (!looksLikeEmail(email)) {
+        showAuthError({ title: 'Type your email first', text: 'We’ll send the reset link there.', field: 'email' }, { role: ROLE_TEACHER });
+        return;
+    }
+    try {
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Sending…';
+        }
+        await sendPasswordResetEmail(auth, email);
+        hideForgotPanel();
+        showAuthError({
+            title: 'Check your inbox',
+            text: ` If ${email} has an account, a reset link is on its way. Look in spam too.`,
+            field: ''
+        }, { role: ROLE_TEACHER, tone: 'notice' });
+    } catch (error) {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Send reset link';
+        }
+        showAuthError(error, { role: ROLE_TEACHER });
+    }
+}
+
 function setupAuthListeners() {
+    wireAuthFieldHelpers();
     document.querySelectorAll('.auth-role-btn').forEach((btn) => {
-        btn.addEventListener('click', () => setAuthRole(btn.dataset.authRole || ROLE_TEACHER));
+        btn.addEventListener('click', () => {
+            authArrivedByLink = false;
+            setAuthRole(btn.dataset.authRole || ROLE_TEACHER);
+        });
+    });
+
+    document.getElementById('auth-forgot-btn')?.addEventListener('click', () => {
+        clearAuthError();
+        renderForgotPanel(activeAuthRole, {
+            email: looksLikeEmail(document.getElementById('login-email')?.value) ? document.getElementById('login-email').value.trim() : '',
+            onSendReset: sendTeacherPasswordReset
+        });
     });
 
     document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
@@ -934,14 +1028,17 @@ function setupAuthListeners() {
 
     document.getElementById('secretary-activation-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const errorEl = document.getElementById('auth-error');
         const username = normalizeUsername(document.getElementById('activation-username')?.value || '');
         const password = document.getElementById('activation-password')?.value || '';
         const displayName = document.getElementById('activation-display-name')?.value?.trim() || '';
         const schoolName = document.getElementById('activation-school-name')?.value?.trim() || '';
+        const activationOptions = { role: ROLE_SECRETARY, form: 'activation' };
+        if (!displayName) return showAuthError({ title: 'Please enter the administrator’s name', text: '', field: 'name' }, activationOptions);
+        if (!username) return showAuthError({ title: 'Choose a username', text: 'Use English letters, numbers, dots or dashes.', field: 'id' }, activationOptions);
+        if (password.length < 6) return showAuthError({ title: 'Choose a longer password', text: 'Use at least 6 characters.', field: 'password' }, activationOptions);
         try {
             beginAuthSubmit('activation');
-            errorEl.innerText = '';
+            clearAuthError();
             const { activateSecretaryAdmin } = await loadSecretaryAdminRuntime();
             await activateSecretaryAdmin({ token: secretarySetupToken, username, password, displayName, schoolName });
             const identifier = buildSyntheticRoleEmail(ROLE_SECRETARY, username);
@@ -951,7 +1048,7 @@ function setupAuthListeners() {
             await signInWithEmailAndPassword(auth, identifier, password);
         } catch (error) {
             resetAuthSubmitState();
-            errorEl.innerText = String(error?.message || error).replace('Firebase: ', '');
+            showAuthError(error, activationOptions);
         }
     });
 
@@ -959,29 +1056,52 @@ function setupAuthListeners() {
         e.preventDefault();
         const { identifier, rawUsername } = getRoleAwareLoginIdentifier();
         const password = document.getElementById('login-password').value;
-        const errorEl = document.getElementById('auth-error');
+        const role = activeAuthRole;
+        const options = { role, form: 'login' };
+        hideForgotPanel();
+        if (!isSchoolAuthOpen()) {
+            showAuthError({ title: 'Sign-in isn’t open yet', text: 'It opens once the school office activates this school.', field: '' }, options);
+            return;
+        }
+        if (isRoleLogin(role) ? !rawUsername : !identifier) {
+            showAuthError({ title: isRoleLogin(role) ? 'Please enter your username' : 'Please enter your email', text: '', field: 'id' }, options);
+            return;
+        }
+        if (!isRoleLogin(role) && !looksLikeEmail(identifier)) {
+            showAuthError({ title: 'That email address doesn’t look right', text: 'It should look like name@example.com.', field: 'id' }, options);
+            return;
+        }
+        if (!password) {
+            showAuthError({ title: 'Please enter your password', text: '', field: 'password' }, options);
+            document.getElementById('login-password')?.focus();
+            return;
+        }
         try {
-            if (!isSchoolAuthOpen()) {
-                throw new Error('Login opens after the school Secretary/admin activates this school.');
-            }
             beginAuthSubmit('login');
-            errorEl.innerText = '';
-            if (isRoleLogin(activeAuthRole) && !rawUsername) {
-                throw new Error('Please enter your username.');
-            }
+            clearAuthError();
+            resetPasswordPeeks();
             await signInWithEmailAndPassword(auth, identifier, password);
+            rememberAuthRole(role);
+            rememberAuthUsername(role, rawUsername, { trustedDevice: getDeviceCacheChoice() === 'trusted' });
         } catch (error) {
             resetAuthSubmitState();
-            errorEl.innerText = error.message.replace('Firebase: ', '');
+            showAuthError(error, options);
         }
     });
 
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('signup-name').value;
-        const email = document.getElementById('signup-email').value;
+        const name = document.getElementById('signup-name').value.trim();
+        const email = document.getElementById('signup-email').value.trim();
         const password = document.getElementById('signup-password').value;
-        const errorEl = document.getElementById('auth-error');
+        const signupOptions = { role: ROLE_TEACHER, form: 'signup' };
+        if (!isSchoolAuthOpen()) {
+            showAuthError({ title: 'Sign-up isn’t open yet', text: 'It opens once the school office activates this school.', field: '' }, signupOptions);
+            return;
+        }
+        if (!name) return showAuthError({ title: 'Please tell us your name', text: 'Students will see it as their teacher’s name.', field: 'name' }, signupOptions);
+        if (!looksLikeEmail(email)) return showAuthError({ title: 'That email address doesn’t look right', text: 'It should look like name@example.com.', field: 'email' }, signupOptions);
+        if (password.length < 6) return showAuthError({ title: 'Choose a longer password', text: 'Use at least 6 characters.', field: 'password' }, signupOptions);
         let resolveBootstrap;
         const bootstrapPromise = new Promise((resolve) => {
             resolveBootstrap = resolve;
@@ -989,22 +1109,21 @@ function setupAuthListeners() {
         pendingSignupBootstrap = bootstrapPromise;
         let createdUser = null;
         try {
-            if (!isSchoolAuthOpen()) {
-                throw new Error('Login and signup open after the school Secretary/admin activates this school.');
-            }
             beginAuthSubmit('signup');
-            errorEl.innerText = '';
+            clearAuthError();
+            resetPasswordPeeks();
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             createdUser = userCredential.user;
             await updateProfile(userCredential.user, { displayName: name });
             await loadAuthenticatedRuntime();
             const profile = await ensureTeacherUserProfile(userCredential.user);
+            rememberAuthRole(ROLE_TEACHER);
             resolveBootstrap(profile);
         } catch (error) {
             resolveBootstrap(null);
             pendingSignupBootstrap = null;
             resetAuthSubmitState();
-            errorEl.innerText = error.message.replace('Firebase: ', '');
+            showAuthError(error, signupOptions);
             if (createdUser && auth.currentUser?.uid === createdUser.uid) {
                 signupRecoveryContext = { uid: createdUser.uid, displayName: name, error };
                 showSignupProfileRecovery(createdUser, name, error);
@@ -1074,14 +1193,25 @@ function setupAuthListeners() {
                 const validRoles = new Set([ROLE_TEACHER, ROLE_SECRETARY, ROLE_PARENT]);
                 if (!profile || profile.status !== 'active' || !validRoles.has(profile.role)) {
                     const inferredRole = getRoleFromSyntheticEmail(user.email);
+                    const problemRole = inferredRole || profile?.role || activeAuthRole;
                     const message = !profile
-                        ? (inferredRole
-                            ? `This ${getRoleLabel(inferredRole).toLowerCase()} account is missing its access profile. Recreate it from the teacher access screen.`
-                            : 'This account is missing its required access profile. No school data was loaded; contact the school administrator.')
-                        : 'This account is inactive or has an invalid role. No school data was loaded.';
+                        ? {
+                            title: 'This login isn’t set up completely',
+                            text: inferredRole === ROLE_PARENT
+                                ? ' Ask your child’s teacher or the school office to save the family login again.'
+                                : ' Please contact the school office.',
+                            field: ''
+                        }
+                        : {
+                            title: 'This login is switched off',
+                            text: profile.role === ROLE_PARENT || problemRole === ROLE_PARENT
+                                ? ' The school has paused this family login. Contact your child’s teacher or the school office to turn it back on.'
+                                : ' Please contact the school office.',
+                            field: ''
+                        };
                     resetAuthSubmitState();
-                    document.getElementById('auth-error').innerText = message;
                     await signOut(auth);
+                    showAuthError(message, { role: problemRole });
                     return;
                 }
 
@@ -1094,6 +1224,7 @@ function setupAuthListeners() {
                     document.getElementById(screenId)?.addEventListener('pointerdown', onFirstUserGesture, { once: true });
                 });
 
+                rememberAuthRole(profile.role);
                 initializeHeaderQuote();
                 state.setCurrentUserProfile(profile);
                 state.setCurrentUserRole(profile.role);
@@ -1113,11 +1244,12 @@ function setupAuthListeners() {
                                     : 'missing';
                                 if (!studentSnap.exists() || enrollmentStatus === 'inactive') {
                                     resetAuthSubmitState();
-                                    const authError = document.getElementById('auth-error');
-                                    if (authError) {
-                                        authError.innerText = 'This family login is no longer active. Contact the school if you need help.';
-                                    }
                                     await signOut(auth);
+                                    showAuthError({
+                                        title: 'This family login is no longer active',
+                                        text: ' Contact the school office if you need help.',
+                                        field: ''
+                                    }, { role: ROLE_PARENT });
                                     return;
                                 }
                             } catch (studentCheckError) {
@@ -1174,7 +1306,10 @@ function setupAuthListeners() {
                 syncAuthRoleUi();
             } else {
                 schoolAuthState = 'checking';
-                setAuthRole(ROLE_TEACHER);
+                resetPasswordPeeks();
+                const passwordInput = document.getElementById('login-password');
+                if (passwordInput) passwordInput.value = '';
+                setAuthRole(activeAuthRole || readRememberedAuthRole() || ROLE_TEACHER);
                 setAuthMode('login');
                 void initializeAuthAvailability();
             }
@@ -1241,6 +1376,7 @@ async function initApp() {
     }
 }
 
-setAuthRole(ROLE_TEACHER);
+activeAuthRole = '';
+setAuthRole(resolveStartingAuthRole());
 setAuthMode('login');
 initApp();

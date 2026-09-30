@@ -1899,3 +1899,22 @@ body.gcq-mobile #m-options-subtab-dropdown .m-subtab-dropdown__trigger {
     #options-tab .options-tier-locked,
     .options-subtab-select__trigger { transition: none; }
 }
+
+/* A just-saved family login, with its printable slip */
+#options-tab .ts-access__issued {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin: 0.2rem 0 0.8rem;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px dashed #f5b94a;
+    border-radius: 0.9rem;
+    background: #fffaf0;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #7c4a03;
+}
+#options-tab .ts-access__issued i { color: #059669; }
+#options-tab .ts-access__issued code { padding: 0.05rem 0.4rem; border-radius: 0.35rem; background: #fff; font-weight: 800; color: #1f2a44; }

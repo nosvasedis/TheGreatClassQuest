@@ -132,6 +132,10 @@ export const studentModalsHTML = `
                                 <span class="sp-tool__icon"><i class="fas fa-people-arrows"></i></span>
                                 <span id="edit-student-office-move-label" class="sp-tool__label">Move class</span>
                             </button>
+                            <button type="button" id="edit-student-office-family-btn" class="sp-tool sp-tool--family bubbly-button" title="See or create this student's family login">
+                                <span class="sp-tool__icon"><i class="fas fa-key"></i></span>
+                                <span class="sp-tool__label">Family login</span>
+                            </button>
                             <button type="button" id="edit-student-office-grades-btn" class="sp-tool sp-tool--analytics bubbly-button" title="See this student's grades">
                                 <span class="sp-tool__icon"><i class="fas fa-scroll"></i></span>
                                 <span class="sp-tool__label">Grades</span>

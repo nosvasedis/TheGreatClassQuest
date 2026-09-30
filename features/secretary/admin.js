@@ -13,6 +13,7 @@ import {
 import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { renderOfficeSign } from './signs.js';
 import { renderRegistry, renderLeagueTag } from './registry.js';
+import { renderFamilyLogins } from './familyLogins.js';
 
 const ADMIN_AREAS = [
     {
@@ -21,6 +22,13 @@ const ADMIN_AREAS = [
         description: 'Enrol, seat, classes, former students',
         icon: 'fa-folder-open',
         accent: 'sky'
+    },
+    {
+        key: 'families',
+        label: 'Family Logins',
+        description: 'Parent sign-ins and QR poster',
+        icon: 'fa-key',
+        accent: 'rose'
     },
     {
         key: 'year',
@@ -46,9 +54,11 @@ const ADMIN_AREAS = [
 ];
 
 function getAdminAreas() {
-    return canUseFeature('secretaryAccess')
-        ? ADMIN_AREAS
-        : ADMIN_AREAS.filter((area) => area.key !== 'grading');
+    return ADMIN_AREAS.filter((area) => {
+        if (area.key === 'grading') return canUseFeature('secretaryAccess');
+        if (area.key === 'families') return canUseFeature('parentAccess');
+        return true;
+    });
 }
 
 function renderAdminHero() {
@@ -436,7 +446,10 @@ const ADMIN_KEYS = new Set(ADMIN_AREAS.map((area) => area.key));
 export function renderSecretaryAdmin() {
     const requested = state.get('secretaryView')?.adminSubTab;
     const requestedSubTab = ADMIN_KEYS.has(requested) ? requested : 'registry';
-    const subTab = requestedSubTab === 'grading' && !canUseFeature('secretaryAccess') ? 'settings' : requestedSubTab;
+    const subTab = (requestedSubTab === 'grading' && !canUseFeature('secretaryAccess'))
+        || (requestedSubTab === 'families' && !canUseFeature('parentAccess'))
+        ? 'settings'
+        : requestedSubTab;
     const panel = (key, render) => `<div id="secretary-admin-panel-${key}" data-secretary-admin-panel="${key}" class="office-admin__panel${subTab === key ? '' : ' hidden'}" role="tabpanel">${subTab === key ? render() : ''}</div>`;
 
     return `
@@ -445,6 +458,7 @@ export function renderSecretaryAdmin() {
             ${renderAdminNav(subTab)}
             <div class="secretary-admin-panels office-admin__panels">
                 ${panel('registry', renderRegistry)}
+                ${canUseFeature('parentAccess') ? panel('families', renderFamilyLogins) : ''}
                 ${panel('year', renderSchoolYearSection)}
                 ${panel('settings', renderSchoolSettings)}
                 ${canUseFeature('secretaryAccess') ? panel('grading', renderGradingSetup) : ''}

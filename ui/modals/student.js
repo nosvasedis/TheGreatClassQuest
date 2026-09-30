@@ -522,6 +522,14 @@ export function openEditStudentModal(studentId, options = {}) {
         officeNotesCount.textContent = String(noteCount);
         officeNotesCount.classList.toggle('hidden', !noteCount);
     }
+    const officeFamilyBtn = document.getElementById('edit-student-office-family-btn');
+    if (officeFamilyBtn) {
+        officeFamilyBtn.classList.toggle('hidden', !canUseFeature('parentAccess'));
+        officeFamilyBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            import('../../features/secretary/familyLogins.js').then(f => f.openFamilyLogin(studentId));
+        };
+    }
     const officeGradesBtn = document.getElementById('edit-student-office-grades-btn');
     if (officeGradesBtn) {
         officeGradesBtn.onclick = () => {

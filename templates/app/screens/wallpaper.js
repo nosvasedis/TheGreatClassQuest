@@ -34,25 +34,9 @@ export const wallpaperHTML = `
             </div>
         </div>
 
-        <!-- Parallax cloud art lanes -->
-        <div id="wall-parallax-clouds" class="absolute inset-0 pointer-events-none z-[3] overflow-hidden" aria-hidden="true">
-            <div class="wall-parallax-lane" style="--lane-duration:140s; --lane-top:8%; --lane-scale:1.2;"><i class="fas fa-cloud"></i></div>
-            <div class="wall-parallax-lane" style="--lane-duration:110s; --lane-top:22%; --lane-scale:0.9;"><i class="fas fa-cloud"></i></div>
-            <div class="wall-parallax-lane" style="--lane-duration:160s; --lane-top:38%; --lane-scale:1.5;"><i class="fas fa-cloud"></i></div>
-            <div class="wall-parallax-lane" style="--lane-duration:95s; --lane-top:55%; --lane-scale:0.7;"><i class="fas fa-cloud"></i></div>
-            <div class="wall-parallax-lane" style="--lane-duration:130s; --lane-top:68%; --lane-scale:1.1;"><i class="fas fa-cloud"></i></div>
-            <div class="wall-parallax-lane" style="--lane-duration:180s; --lane-top:82%; --lane-scale:1.3;"><i class="fas fa-cloud"></i></div>
-        </div>
-
-        <!-- Weather overlay planes -->
-        <div id="wall-weather-fx" class="absolute inset-0 pointer-events-none z-[5] overflow-hidden" aria-hidden="true">
-            <div id="wall-rain-fx" class="wall-weather-plane"></div>
-            <div id="wall-snow-fx" class="wall-weather-plane"></div>
-            <div id="wall-cloudy-fx" class="wall-weather-plane"></div>
-            <div id="wall-storm-flash" class="wall-weather-plane"></div>
-            <div id="wall-fog-fx" class="wall-weather-plane"></div>
-            <div id="wall-hail-fx" class="wall-weather-plane"></div>
-        </div>
+        <!-- Storybook clouds and weather layers (features/skyWeatherStage.js paints them from the live sky) -->
+        <div id="wall-parallax-clouds" class="wx-clouds absolute inset-0 pointer-events-none z-[3] overflow-hidden" aria-hidden="true"></div>
+        <div id="wall-weather-fx" class="wx-stage wx-stage--wall absolute inset-0 pointer-events-none z-[5] overflow-hidden" aria-hidden="true"></div>
 
         <!-- The realm on the horizon: rolling hills and a little castle, lit by day or by the moon -->
         <div id="wall-horizon" class="wall-horizon" aria-hidden="true">
@@ -72,19 +56,6 @@ export const wallpaperHTML = `
             <svg viewBox="0 0 1600 260" preserveAspectRatio="none" class="wall-horizon__near">
                 <path d="M0 190 C 180 150 320 176 470 168 C 640 158 760 128 930 150 C 1100 172 1220 188 1380 164 C 1480 150 1540 150 1600 158 L1600 260 L0 260 Z" />
             </svg>
-        </div>
-
-        <div class="absolute inset-0 pointer-events-none z-10">
-            <i class="fas fa-cloud text-white/40 absolute text-[18rem]"
-                style="top: 5%; left: -10%; animation: float-clouds-right 80s linear infinite;"></i>
-            <i class="fas fa-cloud text-white/30 absolute text-[22rem]"
-                style="bottom: 15%; right: -20%; animation: float-clouds-left 100s linear infinite;"></i>
-            <i class="fas fa-cloud text-white/20 absolute text-[12rem]"
-                style="top: 30%; left: 85%; animation: float-clouds-right 90s linear infinite;"></i>
-            <i class="fas fa-cloud text-white/15 absolute text-[10rem]"
-                style="top: 60%; left: 10%; animation: float-clouds-right 120s linear infinite; animation-delay: -20s;"></i>
-            <i class="fas fa-cloud text-white/25 absolute text-[16rem]"
-                style="top: 15%; right: 30%; animation: float-clouds-left 110s linear infinite; animation-delay: -40s;"></i>
         </div>
 
         <div id="wall-center-hub"

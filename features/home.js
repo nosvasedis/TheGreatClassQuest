@@ -27,11 +27,11 @@ import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from '.
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import {
-    HEADER_WEATHER_CLASSES,
-    headerClassesForTheme,
     resolveWeatherTheme,
     withNightWeatherText
 } from './weatherTheme.js';
+import { fetchLiveWeather, applyLiveSky } from './liveWeather.js';
+import { getWeatherCardHtml, getClockHandAngles, formatClockTime } from './weatherCard.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -218,8 +218,8 @@ async function executeRenderHome() {
     const teacherName = state.get('currentTeacherName') || "Quest Master";
     const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
 
-    // Dynamic Weather/Theme
-    const weatherData = await fetchWeatherData();
+    // Dynamic Weather/Theme (the same live reading paints the header, Award sky and Projector)
+    const weatherData = await fetchLiveWeather();
 
     // One shared day/night source, so the greeting and the weather card never disagree.
     const dayPartInfo = utils.getCurrentDayPart();
@@ -249,54 +249,10 @@ async function executeRenderHome() {
         }
     }
 
-    // --- STEP 2: APPLY HEADER THEME ---
-    const header = document.querySelector('#award-header-atmosphere header')
-        || document.querySelector('header');
-    const awardHeaderAtmosphere = document.getElementById('award-header-atmosphere');
-    if (header) {
-        // 1. Clean old classes
-        header.classList.remove(...HEADER_WEATHER_CLASSES);
-
-        // 2. Reset Background
-        header.style.background = '';
-        /* Match templates/app/header.js — overflow-visible keeps FA header clouds + Award expansion visible */
-        header.className =
-            'relative z-[1] flex w-full min-w-0 items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible transition-all duration-1000';
-
-        // Night layer (`header-night`) stacks with concrete weather classes for header + Award sky.
-        const headerWeather = headerClassesForTheme(theme, theme.isNight);
-        if (headerWeather.length) header.classList.add(...headerWeather);
-
-        const sunny = 'linear-gradient(to right, #89f7fe 0%, #66a6ff 100%)';
-        const nightBar = 'linear-gradient(to right, #1e3a8a 0%, #312e81 100%)';
-        const hasWeatherSkin = HEADER_WEATHER_CLASSES.some((name) => header.classList.contains(name));
-
-        if (awardHeaderAtmosphere) {
-            if (hasWeatherSkin) {
-                const cs = getComputedStyle(header);
-                const bi = cs.backgroundImage;
-                const bc = cs.backgroundColor;
-                if (bi && bi !== 'none') {
-                    awardHeaderAtmosphere.style.background =
-                        bc && bc !== 'rgba(0, 0, 0, 0)' ? `${bi}, ${bc}` : bi;
-                } else if (bc && bc !== 'rgba(0, 0, 0, 0)') {
-                    awardHeaderAtmosphere.style.background = bc;
-                } else {
-                    awardHeaderAtmosphere.style.background = theme.isNight ? nightBar : sunny;
-                }
-            } else if (theme.isNight) {
-                awardHeaderAtmosphere.style.background = nightBar;
-            } else {
-                awardHeaderAtmosphere.style.background = sunny;
-            }
-        } else if (!hasWeatherSkin && !theme.isNight) {
-            header.style.background = sunny;
-        }
-
-        utils.syncAwardSkyWeather(header);
-    } else {
-        utils.syncAwardSkyWeather();
-    }
+    // --- STEP 2: PAINT THE SKY (header band, Award sky, phone header, Projector) ---
+    theme.reading = weatherData;
+    theme.sky = applyLiveSky(weatherData);
+    theme.sun = utils.getSolarTimes();
 
     // --- STEP 3: GREETING (same day/night source as the weather card) ---
     theme.greeting = dayPartInfo.greeting;
@@ -641,47 +597,6 @@ function getActiveDashboard(classData, name, theme, spice) {
     );
 }
 
-function formatClockTime(date = new Date()) {
-    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-
-/**
- * Hand angles for the weather-card analogue clock. Angles grow through the day
- * (not modulo 360) so the CSS tick transition never spins a hand backwards.
- */
-function getClockHandAngles(date = new Date()) {
-    const secs = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
-    return { h: secs / 120, m: secs / 10, s: secs * 6 };
-}
-
-/** Small glassy analogue clock that lives on the weather card. */
-function getWeatherClockHtml() {
-    const { h, m, s } = getClockHandAngles();
-    const ticks = Array.from({ length: 12 }, (_, i) => {
-        const major = i % 3 === 0;
-        return `<line class="weather-clock__tick${major ? ' is-major' : ''}" x1="32" y1="${major ? 6.5 : 7.5}" x2="32" y2="${major ? 12 : 10.5}" transform="rotate(${i * 30} 32 32)"/>`;
-    }).join('');
-    return `
-        <svg class="weather-clock" viewBox="0 0 64 64" role="img" aria-label="Time ${formatClockTime()}" data-home-clock>
-            <defs>
-                <radialGradient id="weather-clock-face" cx="34%" cy="28%" r="80%">
-                    <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
-                    <stop offset="0.6" stop-color="#fff" stop-opacity="0.18"/>
-                    <stop offset="1" stop-color="#fff" stop-opacity="0.08"/>
-                </radialGradient>
-            </defs>
-            <circle class="weather-clock__halo" cx="32" cy="32" r="31"/>
-            <circle class="weather-clock__face" cx="32" cy="32" r="28" fill="url(#weather-clock-face)"/>
-            <path class="weather-clock__gloss" d="M12 24 A22 22 0 0 1 40 10.5 A26 26 0 0 0 12 24 Z"/>
-            ${ticks}
-            <g class="weather-clock__hand weather-clock__hand--h" data-clock-hand="h" style="transform: rotate(${h}deg)"><line x1="32" y1="35" x2="32" y2="19"/></g>
-            <g class="weather-clock__hand weather-clock__hand--m" data-clock-hand="m" style="transform: rotate(${m}deg)"><line x1="32" y1="36" x2="32" y2="11.5"/></g>
-            <g class="weather-clock__hand weather-clock__hand--s" data-clock-hand="s" style="transform: rotate(${s}deg)"><line x1="32" y1="39" x2="32" y2="9"/><circle cx="32" cy="9" r="1.6"/></g>
-            <circle class="weather-clock__pin" cx="32" cy="32" r="2.7"/>
-            <circle class="weather-clock__pin-dot" cx="32" cy="32" r="1.1"/>
-        </svg>`;
-}
-
 /** Chips under the greeting: school · today's context (class or school-wide). The header already shows the date. */
 function getGreetingChipsHtml() {
     const selectedId = state.get('globalSelectedClassId');
@@ -708,21 +623,11 @@ function getGreetingChipsHtml() {
     return chips.join('');
 }
 
-function getWeatherMetaHtml(theme) {
-    const chips = [];
-    if (theme.hi != null && theme.lo != null) {
-        chips.push(`<span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>${theme.hi}°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>${theme.lo}°</span>`);
-    }
-    return chips.join('');
-}
-
 function getLayout(name, theme, selector, row2, row3) {
     const heroEmoji = state.get('globalSelectedClassId')
         ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
         : '🏫';
     const dayPart = theme.dayPart || 'afternoon';
-    const weatherIconMotion = theme.weatherIcon === 'fa-sun' ? 'weather-sun--spin'
-        : theme.weatherIcon === 'fa-moon' ? 'weather-sun--sway' : 'weather-sun--float';
 
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
@@ -757,29 +662,7 @@ function getLayout(name, theme, selector, row2, row3) {
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-4 weather-card weather-card--v2 ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}${theme.intensity ? ` weather-${theme.intensity}` : ''}">
-                <div class="weather-deco" aria-hidden="true">
-                    <span class="weather-glow"></span>
-                    <i class="fas fa-cloud weather-cloud"></i>
-                    <i class="fas fa-cloud weather-cloud weather-cloud--b"></i>
-                </div>
-                <i class="fas ${theme.weatherIcon} weather-sun ${weatherIconMotion}" aria-hidden="true"></i>
-
-                <div class="weather-top">
-                    ${getWeatherClockHtml()}
-                    <div class="weather-meta">${getWeatherMetaHtml(theme)}</div>
-                </div>
-
-                <div class="weather-info">
-                    <div class="weather-temp font-title">${theme.temp}</div>
-                    <div class="weather-cond">${escapeHtml(theme.weatherText)}</div>
-                </div>
-
-                <div class="weather-bottom">
-                    <div id="weather-card-footer" class="weather-card-footer" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
-                    </div>
-                </div>
-            </div>
+            ${getWeatherCardHtml(theme, theme.sky, { reading: theme.reading, sun: theme.sun, quizClassId: state.get('globalSelectedClassId') || '' })}
 
             ${row2}
             ${row3}
@@ -1555,61 +1438,6 @@ async function getAICachedContent(type) {
     return requestPromise;
 }
 
-async function fetchWeatherData() {
-    const location = utils.getActiveWeatherLocation();
-    const storageKey = utils.getWeatherCacheKey('gcq_weather_data_open_meteo', location);
-    const now = Date.now();
-
-    let cached = null;
-    try {
-        cached = localStorage.getItem(storageKey);
-    } catch (_) {
-        // Storage may be unavailable in hardened/private browser profiles.
-    }
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            if (now - data.timestamp < 3600000) {
-                return data.weather;
-            }
-        } catch (e) { localStorage.removeItem(storageKey); }
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-    try {
-        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto`, {
-            signal: controller.signal
-        });
-        if (!response.ok) throw new Error('Weather API failed');
-        const data = await response.json();
-
-        const hi = Number(data.daily?.temperature_2m_max?.[0]);
-        const lo = Number(data.daily?.temperature_2m_min?.[0]);
-        const weather = {
-            temp: Math.round(data.current.temperature_2m),
-            code: data.current.weather_code,
-            hi: Number.isFinite(hi) ? Math.round(hi) : null,
-            lo: Number.isFinite(lo) ? Math.round(lo) : null
-        };
-
-        try {
-            localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
-        } catch (_) {
-            // Weather is optional; a blocked local cache must not break home.
-        }
-        return weather;
-    } catch (e) {
-        if (e?.name === 'AbortError') {
-            console.warn('Open-Meteo timed out; continuing without the optional weather card.');
-        } else {
-            console.error("Open-Meteo fetch failed:", e);
-        }
-        return null;
-    } finally {
-        clearTimeout(timeoutId);
-    }
-}
 
 /**
  * SOURCE OF TRUTH: This function implements the EXACT math from the Team Quest (tabs.js).

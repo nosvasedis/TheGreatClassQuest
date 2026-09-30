@@ -99,7 +99,7 @@ test('authenticated home readiness cannot fail on optional decoration or browser
   assert.match(home, /announceHomeRendered\(\{ degraded: true \}\)/);
   assert.match(home, /setAttribute\('data-gcq-home-ready', 'true'\)/);
   assert.match(home, /The coherent dashboard is now visible/);
-  assert.match(home, /Storage may be unavailable in hardened\/private browser profiles/);
+  assert.match(read('features/liveWeather.js'), /Storage may be unavailable in hardened\/private browser profiles/);
 });
 
 test('device cache choice uses role-appropriate wording and never forces a disruptive reload', () => {

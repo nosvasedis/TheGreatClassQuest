@@ -1,6 +1,8 @@
 /** Live Market, Fortune's Wheel, Skill Tree, and related chrome for guidebook capture. */
 
 import { quizLaunchButtonHtml } from '../../../../ui/modals/quizStageMarkup.js';
+import { getWeatherCardHtml } from '../../../../features/weatherCard.js';
+import { resolveSkyScene } from '../../../../features/skyWeather.mjs';
 import { shopTabHTML } from '../../../../templates/app/tabs/shop.js';
 import { logTabHTML } from '../../../../templates/app/tabs/log.js';
 import { skillTreeModalHTML } from '../../../../templates/modals/skillTree.js';
@@ -161,13 +163,7 @@ function hallModalHtml() {
 function quizHostHtml() {
   return `
     <div id="capture-quiz-host" class="hidden capture-quiz-host">
-      <div class="vibrant-card weather-card weather-card--v2 w-day weather-card--capture">
-        <div class="weather-deco" aria-hidden="true"><span class="weather-glow"></span><i class="fas fa-cloud weather-cloud"></i><i class="fas fa-cloud weather-cloud weather-cloud--b"></i></div>
-        <i class="fas fa-sun weather-sun" aria-hidden="true"></i>
-        <div class="weather-top"><span></span><div class="weather-meta"><span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>21°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>12°</span></div></div>
-        <div class="weather-info"><div class="weather-temp font-title">18°</div><div class="weather-cond">Sunny</div></div>
-        <div class="weather-bottom"><div id="weather-card-footer" class="weather-card-footer">${quizLaunchButtonHtml({ questionCount: 8 })}</div></div>
-      </div>
+      ${captureWeatherCardHtml({ extraClass: 'weather-card--capture' })}
     </div>`;
 }
 
@@ -450,4 +446,16 @@ export function hideQuiz() {
   const host = document.getElementById('capture-quiz-host');
   host?.classList.add('hidden');
   host?.classList.remove('capture-quiz');
+}
+
+/** The real Home weather card on a fair mid-morning, for guidebook shots. */
+export function captureWeatherCardHtml({ extraClass = '' } = {}) {
+  const now = new Date(2026, 8, 30, 10, 30);
+  const at = (h, m) => new Date(2026, 8, 30, h, m).getTime();
+  const sun = { now: now.getTime(), sunrise: at(7, 20), sunset: at(19, 10) };
+  const hours = [11, 12, 13, 14].map((h, i) => ({ time: new Date(2026, 8, 30, h).toISOString(), code: i === 2 ? 3 : 1, temp: 18 + i, pop: i === 3 ? 20 : 0 }));
+  const reading = { code: 1, temp: 18, hi: 21, lo: 12, cloudCover: 30, windSpeed: 11, windDirection: 300, hours };
+  const scene = resolveSkyScene(reading, sun);
+  const theme = { weatherBg: 'w-day', temp: '18°', weatherText: 'Mainly Sunny', hi: 21, lo: 12 };
+  return getWeatherCardHtml(theme, scene, { reading, sun, now, extraClass, footerHtml: quizLaunchButtonHtml({ questionCount: 8 }) });
 }

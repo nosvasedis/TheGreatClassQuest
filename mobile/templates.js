@@ -1,12 +1,11 @@
+import { DEFAULT_SKY_SCENE } from '../templates/app/header.js';
+import { buildCloudsHtml } from '../features/skyWeatherArt.js';
 const APP_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 const HEADER_CLOUDS = `
     <div class="m-header__glow" aria-hidden="true"></div>
-    <div class="m-header__clouds" aria-hidden="true">
-        <i class="fas fa-cloud cloud" style="left: 8%; animation-delay: -5s; font-size: 5rem;"></i>
-        <i class="fas fa-cloud cloud cloud-fast" style="left: 55%; animation-delay: -15s; font-size: 3.5rem;"></i>
-        <i class="fas fa-cloud cloud" style="left: 78%; animation-delay: -2s; font-size: 6rem;"></i>
-    </div>
+    <div class="m-header__clouds wx-clouds" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'mobile')}</div>
+    <div class="wx-stage wx-stage--mobile" aria-hidden="true"></div>
     <div class="sky-theater-sky m-sky-theater-sky" aria-hidden="true"></div>`;
 
 // Same gilded thread as the desktop header (styles/header_flourish.css), sized for a phone.

@@ -266,3 +266,6 @@
 
 /* 51. Adventurer's Guide: a field guide with thumb-index chapters (the (i) button) */
 @import url('./styles/adventurers_guide.css');
+
+/* 52. Sky weather: one palette, storybook clouds and weather layers for every sky (features/skyWeather*.js) */
+@import url('./styles/sky_weather.css');

@@ -24,7 +24,7 @@ Left to right:
 | **Settings** (cog) | **Teacher Settings** (classes, roster tools, Family Access, Quiz setup, and more). |
 | **Log out** | Signs you out of this device. |
 
-Behind the header, **clouds** drift by day. At night the header darkens and stars appear. Rain, snow, and storm skins follow live weather when the school location is set.
+Behind the header, hand-drawn **clouds** of many shapes (puffs, towers, long banks, thin wisps) drift with the real wind: how many there are follows the real cloud cover, and they drift faster and in the wind's direction on a windy day. The sky colour follows the light: pink at dawn, blue by day, gold before sunset, violet at twilight, starry at night. With live weather it rains (slanted by the wind), snows, fogs, hails, or storms with lightning; after a shower a rainbow can appear, and freezing rain hangs icicles on the header. On a slower laptop the sky draws fewer clouds and layers so the lesson stays smooth.
 
 **Sky Theater** is a quiet extra: on a schedule, small emoji “acts” fly across the header (a rocket on Monday, an owl on Wednesday, a dragon on Saturday, and so on). They are decorative. They pause if the device asks for reduced motion.
 
@@ -66,7 +66,7 @@ Leave with **Esc** or the **power** button on the remote at the top-right of the
 
 ### What the room sees
 
-- **Sky.** Follows **real sunrise and sunset** for the school’s weather location. Day: sun and a bright sky. Night: moon and a starfield. Clouds drift. Rain, snow, cloud, and storm skins follow live weather when the location is set.
+- **Sky.** Follows **real sunrise and sunset** for the school’s weather location. Day: sun and a bright sky. Night: moon and a starfield. The same drifting clouds, rain, snow, fog, hail and lightning as the header, sized to the big screen, follow live weather when the location is set.
 - **The realm on the horizon.** Rolling hills and a small castle with a waving flag. At night its windows glow; in snow the hills turn white.
 - **Season.** Leaves, snow, and similar atmosphere can appear with the calendar.
 - **The clock hub.** A glass panel with the **day arc** on top (the sun travels from sunrise to sunset, the moon from sunset to sunrise), the **huge digital clock**, the **date**, and a **ticking analogue clock**.
@@ -181,8 +181,9 @@ Do not try to award stars *on* the wallpaper. Come back to Award Stars for that.
 
 Weather is not a toy. It ties the classroom to the real morning outside.
 
-- The **Home** weather card shows temperature and conditions.
-- The **header** and **Projector** sky pick matching skins (sunny, cloudy, rainy, snowy, storm).
+- The **Home** weather card is a small window onto the same sky: its own clouds and rain or snow, an illustrated weather icon (with tonight’s real moon phase at night), temperature and conditions, today’s high / low, the **wind** (speed and where it blows from), and the **next hours** with a chance of rain.
+- The **header**, the **Award Stars** sky and the **Projector** share one sky: the number of clouds follows the real cloud cover, the wind sets their speed, direction and the slant of the rain, and the light changes through dawn, day, golden hour, twilight and night.
+- Weather checks itself again every few minutes while the app is open, so a shower that starts mid-lesson reaches the sky.
 - Location is set school-wide (Secretary → School Details on Elite). If it is missing, the sky still day/night-cycles from the clock.
 
 **Award Stars** also gains an immersive sky after a short moment on that tab — another reminder that this is a place, not a spreadsheet.

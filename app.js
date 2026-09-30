@@ -1223,6 +1223,13 @@ async function initApp() {
         } catch (e) {
             console.warn('Sky Theater failed to start', e);
         }
+        try {
+            // Keeps the header, Award sky and Projector weather live (free Open-Meteo, every 20 min).
+            const { startLiveSky } = await import('./features/liveWeather.js');
+            startLiveSky();
+        } catch (e) {
+            console.warn('Live sky failed to start', e);
+        }
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
         // Solar sync should wait for school settings so we do not

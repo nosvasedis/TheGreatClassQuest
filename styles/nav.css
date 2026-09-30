@@ -211,25 +211,6 @@
 .nav-color-pink { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #be185d; --tw-gradient-to: #db2777; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #831843; }
 .nav-color-pink.active { --tw-gradient-from: #db2777; --tw-gradient-to: #ec4899; }
 
-/* New Header with Swirling Clouds */
-@keyframes swirl {
-    0% { transform: translateX(-100%) translateY(-20px) rotate(-10deg); opacity: 0; }
-    10% { opacity: 0.7; }
-    90% { opacity: 0.7; }
-    100% { transform: translateX(100vw) translateY(20px) rotate(10deg); opacity: 0; }
-}
-.cloud {
-    position: absolute;
-    font-size: 8rem;
-    color: rgba(255, 255, 255, 0.5);
-    animation: swirl 30s linear infinite;
-    z-index: 1;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5), 2px 2px 5px rgba(100, 150, 255, 0.5);
-}
-.cloud-fast {
-    animation-duration: 35s;
-}
-
 /* Shared timing: sky unfolds from top — header clouds + sun stay in sync */
 #app-screen.award-sky-active {
     --award-sky-reveal-duration: 920ms;
@@ -540,18 +521,6 @@ body:not(.gcq-mobile) #app-screen > main {
     }
 }
 
-/*
- * Cloudy/overcast paints a large drifting ☁️ on `header.header-cloudy::after` (`weather_effects.css`).
- * `header` stays overflow-visible class-wise for tooling, but glyphs must stay inside the chrome
- * whenever we are not immersed (Award). Class picker teleport uses `fixed` while open.
- */
-#award-header-atmosphere > header.header-cloudy,
-#award-header-atmosphere > header.header-foggy,
-#award-header-atmosphere > header.header-icy,
-#award-header-atmosphere > header.header-hail {
-    overflow: hidden;
-}
-
 /* --- Award tab: immersive sky (cinematic unfold from header + sun bloom) --- */
 /*
  * Fixed layer behind main while Award sky is active (`main` is z-56; bottom-nav z-60).
@@ -799,24 +768,7 @@ body.projector-mode #award-immersive-sky {
 }
 
 .award-immersive-sky-parallax {
-    position: relative;
     z-index: 3;
-    perspective: 1200px;
-    perspective-origin: 50% 14%;
-    transform-style: preserve-3d;
-}
-
-/* Atmospheric lanes — softer than loading screen so student cards stay focal */
-#award-immersive-sky .loading-cloud-art {
-    opacity: 0.48;
-    filter:
-        blur(0.15px)
-        drop-shadow(0 12px 22px rgba(14, 116, 144, 0.12))
-        saturate(0.94);
-}
-
-#app-screen:not(.award-sky-active) #award-immersive-sky .loading-cloud-art {
-    animation-play-state: paused;
 }
 
 /*
@@ -852,8 +804,8 @@ body.projector-mode #award-immersive-sky {
 }
 
 /*
- * Exit: clip immediately so FA clouds stop “bleeding” past the header while the strip collapses;
- * pause swirl so transforms don’t carry them outside the bar mid-fold.
+ * Exit: clip immediately so clouds stop “bleeding” past the header while the strip collapses;
+ * pause the drift so transforms don’t carry them outside the bar mid-fold.
  */
 #app-screen.award-sky-active.award-sky-leaving .header-sky-clouds {
     overflow: hidden;
@@ -867,13 +819,7 @@ body.projector-mode #award-immersive-sky {
     filter: brightness(1);
 }
 
-#app-screen.award-sky-active.award-sky-leaving .header-sky-clouds .cloud,
-#app-screen.award-sky-active.award-sky-leaving .header-sky-clouds .cloud-fast {
-    animation-play-state: paused;
-}
-
-/* Header weather motifs (☁ overlay, etc.) must not keep drifting outside the collapsing bar */
-#app-screen.award-sky-active.award-sky-leaving header.header-cloudy::after {
+#app-screen.award-sky-active.award-sky-leaving .header-sky-clouds .wx-cloud {
     animation-play-state: paused;
 }
 
@@ -968,10 +914,6 @@ body.projector-mode #award-immersive-sky {
     .award-immersive-sun::after {
         animation: none;
         opacity: 0.22;
-    }
-
-    #award-immersive-sky .award-immersive-sky-parallax .loading-cloud-art {
-        display: none;
     }
 
     #app-screen.award-sky-active:not(.award-sky-leaving) .header-sky-clouds {

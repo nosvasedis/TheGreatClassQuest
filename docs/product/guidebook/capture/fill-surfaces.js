@@ -1,6 +1,5 @@
 /** Live Home tab, Projector wallpaper, certificates, and Hero Path assignment. */
 
-import { quizLaunchButtonHtml } from '../../../../ui/modals/quizStageMarkup.js';
 import { homeTabHTML } from '../../../../templates/app/tabs/home.js';
 import { wallpaperHTML } from '../../../../templates/app/screens/wallpaper.js';
 import { reportsModalsHTML } from '../../../../templates/modals/reports.js';
@@ -10,7 +9,7 @@ import { HERO_CLASSES } from '../../../../features/heroClasses.js';
 import { HERO_SKILL_TREE, getReasonDisplayName } from '../../../../features/heroSkillTree.js';
 import { GUILDS, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CERTIFICATE_WIDTH } from '../../../../features/certificateCore.mjs';
-import { hideAppScreen, hideExtras } from './fill-extras.js';
+import { hideAppScreen, hideExtras, captureWeatherCardHtml } from './fill-extras.js';
 import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features/homeGreetingScene.js';
 import { buildHomePartyCardHtml } from '../../../../features/homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from '../../../../features/homeQuestRoadCard.mjs';
@@ -127,13 +126,7 @@ function homeDashboardHtml() {
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-4 weather-card weather-card--v2 w-day">
-              <div class="weather-deco" aria-hidden="true"><span class="weather-glow"></span><i class="fas fa-cloud weather-cloud"></i><i class="fas fa-cloud weather-cloud weather-cloud--b"></i></div>
-              <i class="fas fa-sun weather-sun" aria-hidden="true"></i>
-              <div class="weather-top"><span></span><div class="weather-meta"><span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>21°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>12°</span></div></div>
-              <div class="weather-info"><div class="weather-temp font-title">18°</div><div class="weather-cond">Sunny</div></div>
-              <div class="weather-bottom"><div id="weather-card-footer" class="weather-card-footer">${quizLaunchButtonHtml({ questionCount: 8 })}</div></div>
-            </div>
+            ${captureWeatherCardHtml()}
 
             ${buildHomeQuestRoadCardHtml({ stars: 86, goal: 138, logo: '📚' })}
 

@@ -1,6 +1,7 @@
 // templates/app/index.js
 
-import { headerHTML, svgFiltersHTML } from './header.js';
+import { headerHTML, svgFiltersHTML, DEFAULT_SKY_SCENE } from './header.js';
+import { buildCloudsHtml } from '../../features/skyWeatherArt.js';
 import { mainContentHTML } from './tabs/index.js';
 import { navHTML } from './nav.js';
 import { ceremonyHTML } from './screens/ceremony.js';
@@ -11,30 +12,16 @@ export const awardImmersiveSkyHTML = `
         <div id="award-immersive-sky" class="award-immersive-sky" aria-hidden="true">
             <div class="award-immersive-sky-gradient" aria-hidden="true"></div>
             <div class="award-immersive-stars" aria-hidden="true"></div>
-            <div class="award-immersive-rain-fx" aria-hidden="true"></div>
-            <div class="award-immersive-snow-fx" aria-hidden="true"></div>
-            <div class="award-immersive-cloudy-fx" aria-hidden="true"></div>
-            <div class="award-immersive-fog-fx" aria-hidden="true"></div>
-            <div class="award-immersive-hail-fx" aria-hidden="true"></div>
             <div class="award-immersive-sun" aria-hidden="true"></div>
             <div class="award-immersive-moon gcq-moon" aria-hidden="true">${celestialMoonHTML()}</div>
-            <div class="award-immersive-sky-parallax loading-cloud-art-layer" aria-hidden="true">
-                <div class="loading-cloud-art lca-1"></div>
-                <div class="loading-cloud-art lca-2"></div>
-                <div class="loading-cloud-art lca-3"></div>
-                <div class="loading-cloud-art lca-4"></div>
-                <div class="loading-cloud-art lca-5"></div>
-                <div class="loading-cloud-art lca-6"></div>
-                <div class="loading-cloud-art lca-7"></div>
-                <div class="loading-cloud-art lca-8"></div>
-            </div>
+            <div class="award-immersive-sky-parallax wx-clouds wx-clouds--sky" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'sky')}</div>
+            <div class="wx-stage wx-stage--sky" aria-hidden="true"></div>
         </div>`;
 
 export const appHTML = `
     ${svgFiltersHTML}
     <div id="app-screen" class="hidden flex-1 flex flex-col h-full overflow-hidden">
-        <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
-             style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
+        <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md">
         ${headerHTML}
         </div>
         ${awardImmersiveSkyHTML}

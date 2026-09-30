@@ -2,6 +2,7 @@ import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow
 import { getAwardLogMonthlyStarCredit } from './features/awardLogReasonMeta.js';
 import { getQuestLeagueDefinition } from './constants.js';
 import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
+import { refreshSkyLight } from './features/skyWeatherStage.js';
 import {
     defaultSolarTimes,
     isNightTime,
@@ -209,6 +210,8 @@ export function getCurrentDayPart(nowTime = Date.now()) {
     };
 }
 
+let lastSkyLightMinute = -1;
+
 export function updateDateTime() {
     const now = new Date();
     const dateEl = document.getElementById('current-date');
@@ -236,6 +239,13 @@ export function updateDateTime() {
         if (wallScreen) wallScreen.classList.remove('is-night');
     }
     syncAwardSkyWeather(header);
+
+    // Sky light (dawn, golden hour, twilight, night) moves once a minute.
+    const minute = Math.floor(nowTime / 60000);
+    if (minute !== lastSkyLightMinute) {
+        lastSkyLightMinute = minute;
+        refreshSkyLight({ now: nowTime, sunrise, sunset });
+    }
 
     if (dateEl && timeEl) {
         const dateText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });

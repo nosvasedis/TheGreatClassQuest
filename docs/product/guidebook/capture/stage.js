@@ -144,13 +144,15 @@ function fillHeader(night) {
 
   document.body.classList.toggle('night-mode', night);
   header?.classList.toggle('header-night', night);
+  // The shared sky palette (styles/sky_weather.css) reads the light from <html>.
+  document.documentElement.dataset.wxLight = night ? 'night' : 'day';
+  document.documentElement.dataset.wxNight = night ? '1' : '0';
 }
 
 document.body.insertAdjacentHTML('afterbegin', svgFiltersHTML);
 document.getElementById('app-root').innerHTML = `
   <div id="app-screen" class="capture-still flex flex-1 flex-col overflow-hidden">
-    <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
-         style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
+    <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md">
       ${headerHTML}
     </div>
     <div id="capture-cloud-stage">${awardCloudHtml()}</div>

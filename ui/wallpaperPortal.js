@@ -57,7 +57,7 @@ const MEADOW_PARTS = {
 };
 
 /** The realm's weather and big clouds (they float above the hills). */
-const SKY_EXTRAS = ['#wall-weather-fx', ':scope > .z-10'];
+const SKY_EXTRAS = ['#wall-weather-fx', '#wall-parallax-clouds'];
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const nextFrames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));

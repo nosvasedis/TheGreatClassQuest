@@ -1,3 +1,6 @@
+import { DEFAULT_SKY_SCENE } from './app/header.js';
+import { buildCloudsHtml } from '../features/skyWeatherArt.js';
+
 const secretaryHeaderActions = `
     <button type="button" id="secretary-open-teacher-app-btn"
         class="role-header-icon-btn bubbly-button" title="Open Teacher App" aria-label="Open Teacher App">
@@ -8,11 +11,7 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
     <div class="role-header-atmosphere role-header-atmosphere--${role} relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
          style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
         <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
-            <div class="header-sky-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none">
-                <i class="fas fa-cloud cloud" style="left: 10%; animation-delay: -5s;"></i>
-                <i class="fas fa-cloud cloud cloud-fast" style="left: 30%; animation-delay: -15s; font-size: 6rem;"></i>
-                <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
-            </div>
+            <div class="header-sky-clouds wx-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'header', { count: 4 })}</div>
             <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3 overflow-visible">
                 <div class="min-w-0 overflow-visible">
                     <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">School Office</p>

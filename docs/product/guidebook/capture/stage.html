@@ -37,6 +37,12 @@
       padding: 2rem 1.5rem 2.5rem;
       overflow: visible;
     }
+    /* Sky clouds and weather hold still mid-drift so shots stay stable. */
+    .wx-cloud,
+    .wx-stage *,
+    .wx-glyph__layer {
+      animation-play-state: paused !important;
+    }
     .capture-still .cloud,
     .capture-still .aw-card,
     .capture-still .student-cloud-card,

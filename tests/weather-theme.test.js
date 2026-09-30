@@ -114,8 +114,12 @@ test('home, utils, and wallpaper consume the shared weather theme module', () =>
   const utils = read('utils.js');
   const wallpaper = read('ui/wallpaper.js');
 
+  const live = read('features/liveWeather.js');
+
   assert.match(home, /resolveWeatherTheme/);
-  assert.match(home, /headerClassesForTheme/);
+  assert.match(home, /applyLiveSky/);
+  assert.match(live, /headerClassesForTheme/);
+  assert.match(live, /syncAwardSkyWeather/);
   assert.match(utils, /HEADER_WEATHER_CLASSES/);
   assert.match(wallpaper, /wallpaperClassesForCode/);
   assert.match(wallpaper, /WALLPAPER_WEATHER_CLASSES/);

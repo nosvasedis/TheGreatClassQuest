@@ -12,6 +12,8 @@ import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '..
 import { fetchDailySpice } from '../features/home.js';
 import { PATHFINDER_AWARD_REASON, PATHFINDER_CLASS_QUEST_BONUS_STARS, resolveWallpaperFloatStyle, getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 import { WALLPAPER_WEATHER_CLASSES, wallpaperClassesForCode } from '../features/weatherTheme.js';
+import { fetchLiveWeather, applyLiveSky, LIVE_WEATHER_TTL_MS } from '../features/liveWeather.js';
+import { paintSkySurface } from '../features/skyWeatherStage.js';
 import { getLiveYearGoldFromAppState, sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { chooseCardPlacement } from '../utils/wallpaperLayout.mjs';
 import { getGuildLeaderboardData } from '../features/guildScoring.js';
@@ -3538,120 +3540,42 @@ export async function initSeasonalAtmosphere() {
     const existingEffects = document.getElementById('seasonal-effects-layer');
     if (existingEffects) existingEffects.remove();
 
-    const existingFog = document.getElementById('wall-fog-overlay');
-    if (existingFog) existingFog.remove();
-
     wall.classList.remove(...WALLPAPER_WEATHER_CLASSES);
 
     const layer = document.createElement('div');
     layer.id = 'seasonal-effects-layer';
     layer.className = 'absolute inset-0 pointer-events-none z-0 overflow-hidden';
 
-    let weatherCode = null;
-    const location = utils.getActiveWeatherLocation();
+    // The same live reading as the header and Home (features/liveWeather.js).
+    const weather = await fetchLiveWeather({ maxAgeMs: LIVE_WEATHER_TTL_MS });
+    if (weather) rememberSkyWeather(weather);
 
-    const cacheKey = utils.getWeatherCacheKey('gcq_weather_data_open_meteo', location);
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            if (Date.now() - data.timestamp < 3 * 60 * 60 * 1000) {
-                weatherCode = data.weather.code;
-                rememberSkyWeather(data.weather);
-            }
-        } catch (e) { }
-    }
-
-    if (weatherCode === null) {
-        try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto`);
-            const d = await res.json();
-            weatherCode = d.current.weather_code;
-            const hi = Number(d.daily?.temperature_2m_max?.[0]);
-            const lo = Number(d.daily?.temperature_2m_min?.[0]);
-            rememberSkyWeather({
-                code: weatherCode,
-                temp: Math.round(Number(d.current.temperature_2m)),
-                hi: Number.isFinite(hi) ? Math.round(hi) : null,
-                lo: Number.isFinite(lo) ? Math.round(lo) : null
-            });
-        } catch (_) { /* Seasonal fallback is expected when weather is unavailable. */ }
-    }
+    // Clouds, rain, snow, fog and lightning come from the shared sky scene,
+    // with cloud count from the real cloud cover and drift from the real wind.
+    applyLiveSky(weather);
+    paintSkySurface('wall');
 
     let effectHTML = '';
-    let usedRealWeather = false;
-
-    // Helper to generate "A LOT" of clouds
-    const generateHeavyClouds = (count = 15, opacity = 0.8) => {
-        let clouds = '';
-        for (let i = 0; i < count; i++) {
-            const top = Math.random() * 60; // Top half of screen
-            const left = Math.random() * 100;
-            const size = 10 + Math.random() * 20; // Massive clouds
-            const duration = 120 + Math.random() * 60; // Slow drift
-            const delay = -Math.random() * 100;
-            // Use existing font-awesome cloud class logic from CSS (color changes by weather type)
-            clouds += `<i class="fas fa-cloud absolute" style="font-size:${size}rem; top:${top}%; left:${left}%; opacity:${opacity}; animation: float-clouds-right ${duration}s linear infinite; animation-delay:${delay}s;"></i>`;
-        }
-        return clouds;
-    };
-
-    if (weatherCode !== null) {
-        usedRealWeather = true;
-
-        const weatherClasses = wallpaperClassesForCode(weatherCode);
+    if (weather && weather.code !== undefined && weather.code !== null) {
+        const weatherClasses = wallpaperClassesForCode(weather.code);
         wall.classList.add(...weatherClasses);
-        const wallSkin = weatherClasses[0];
-
-        if (wallSkin === 'weather-clear') {
-            if (weatherCode === 0) layer.classList.add('summer-glow');
-            else effectHTML += generateHeavyClouds(8, 0.5);
-        } else if (wallSkin === 'weather-cloudy') {
-            effectHTML += generateHeavyClouds(12, 0.6);
-        } else if (wallSkin === 'weather-foggy') {
-            effectHTML += generateHeavyClouds(10, 0.45);
-            const fog = document.createElement('div');
-            fog.id = 'wall-fog-overlay';
-            fog.className = 'wall-fog-layer';
-            wall.appendChild(fog);
-        } else if (wallSkin === 'weather-rainy' || wallSkin === 'weather-icy') {
-            effectHTML += generateHeavyClouds(15, 0.7);
-        } else if (wallSkin === 'weather-snowy') {
-            effectHTML += generateHeavyClouds(15, 0.7);
-        } else if (wallSkin === 'weather-stormy' || wallSkin === 'weather-hail') {
-            effectHTML += generateHeavyClouds(20, 0.9);
-        }
-    }
-
-    // Seasonal Fallback (Slowed)
-    if (!usedRealWeather) {
+        if (Number(weather.code) === 0) layer.classList.add('summer-glow');
+    } else {
+        // Seasonal fallback when the weather is unavailable.
         const month = new Date().getMonth();
-        if (month === 11 || month <= 1) {
-            effectHTML += generateHeavyClouds(10, 0.6); // Winter clouds
-            for (let i = 0; i < 30; i++) {
+        const particles = (count, cls, glyph, base, spread) => {
+            for (let i = 0; i < count; i++) {
                 const left = Math.random() * 100;
                 const delay = Math.random() * 5;
-                const duration = 10 + Math.random() * 8;
-                effectHTML += `<div class="seasonal-particle snow" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">❄️</div>`;
+                const duration = base + Math.random() * spread;
+                effectHTML += `<div class="seasonal-particle ${cls}" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">${glyph}</div>`;
             }
-        } else if (month >= 8 && month <= 10) {
-            for (let i = 0; i < 15; i++) {
-                const left = Math.random() * 100;
-                const delay = Math.random() * 5;
-                const duration = 12 + Math.random() * 5;
-                effectHTML += `<div class="seasonal-particle leaf" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">🍂</div>`;
-            }
-        } else if (month >= 2 && month <= 4) {
-            for (let i = 0; i < 15; i++) {
-                const left = Math.random() * 100;
-                const delay = Math.random() * 5;
-                const duration = 15 + Math.random() * 5;
-                effectHTML += `<div class="seasonal-particle petal" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">🌸</div>`;
-            }
-        } else {
-            wall.classList.add('weather-clear');
-            layer.classList.add('summer-glow');
-        }
+        };
+        if (month === 11 || month <= 1) particles(30, 'snow', '❄️', 10, 8);
+        else if (month >= 8 && month <= 10) particles(15, 'leaf', '🍂', 12, 5);
+        else if (month >= 2 && month <= 4) particles(15, 'petal', '🌸', 15, 5);
+        else layer.classList.add('summer-glow');
+        wall.classList.add('weather-clear');
     }
 
     layer.innerHTML = effectHTML;

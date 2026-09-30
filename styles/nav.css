@@ -580,10 +580,10 @@ body.projector-mode #award-immersive-sky {
     to { opacity: 1; }
 }
 
+/* Stays opaque to the end: it lands exactly on the bar, which takes over in the same frame. */
 @keyframes awardImmersiveSkyFoldUp {
-    0% { opacity: 1; }
-    88% { opacity: 1; }
-    100% { opacity: 0; }
+    from { opacity: 1; }
+    to { opacity: 1; }
 }
 
 @keyframes awardImmersiveSkyFoldRm {
@@ -864,10 +864,10 @@ body.projector-mode #award-immersive-sky {
 }
 
 /*
- * Seamless sky: strip chrome only while fully immersed (gradient/shadow live on `#award-header-atmosphere`).
- * On exit the atmosphere gradient returns immediately while sky folds underneath the header row.
+ * Seamless sky: strip the bar's own fill while the sky is open and while it folds back, so the
+ * folding sky is the only sky; the bar takes over again the moment the fold lands on it.
  */
-#app-screen.award-sky-active:not(.award-sky-leaving) #award-header-atmosphere {
+#app-screen.award-sky-active #award-header-atmosphere {
     background: transparent !important;
     box-shadow: none !important;
 }

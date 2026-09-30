@@ -10,14 +10,14 @@
  * Full-sky Award: keep everything continuous at the chrome / sky seam. Strip the
  * bar's fill so the expanded sky is one atmosphere behind the title.
  */
-#app-screen.award-sky-active:not(.award-sky-leaving) #award-header-atmosphere > header {
+#app-screen.award-sky-active #award-header-atmosphere > header {
     overflow: visible !important;
     background: transparent !important;
     border-bottom-color: transparent !important;
     box-shadow: none !important;
 }
 
-#app-screen.award-sky-active:not(.award-sky-leaving) #m-teacher-header {
+#app-screen.award-sky-active #m-teacher-header {
     background: transparent !important;
     border-bottom-color: transparent !important;
     box-shadow: none !important;

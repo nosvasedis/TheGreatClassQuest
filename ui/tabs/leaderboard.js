@@ -303,7 +303,8 @@ async function getReigningProdigies() {
     return _prodigyCache;
 }
 
-function syncHeroChallengeFabs() {
+/** Hall of Prodigies + Trophy Room open for the selected class. */
+function syncHeroChallengeHalls() {
     const enable = Boolean(state.get('globalSelectedClassId'));
     const prodigyBtn = document.getElementById('open-prodigy-btn');
     const trophyBtn = document.getElementById('open-trophy-room-btn');
@@ -754,7 +755,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
 
-    syncHeroChallengeFabs();
+    syncHeroChallengeHalls();
     syncHeroStandingsSwitches();
 
     const heroProgressionEnabled = canUseFeature('heroProgression');

@@ -209,6 +209,82 @@ function renderDiaryMonthTabs(monthKeys, currentMonth) {
     }
 }
 
+function startOfLocalDay(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function describeDaysAgo(date) {
+    const days = Math.round((startOfLocalDay(new Date()) - startOfLocalDay(date)) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+/** Latest Quest Board entry this teacher set for the class (same pick as the Quest Board modal). */
+function getLatestQuestAssignment(classId) {
+    const me = state.get('currentUserId');
+    return (state.get('allQuestAssignments') || [])
+        .filter((item) => item.classId === classId && (!item.createdBy?.uid || item.createdBy.uid === me))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0] || null;
+}
+
+function questBoardStatusHtml(classId) {
+    if (!classId) return 'Choose a class to set its next quest';
+    const latest = getLatestQuestAssignment(classId);
+    if (!latest) return 'Nothing on the board yet. Set the next lesson\'s quest';
+
+    const parts = [];
+    const setAt = latest.createdAt?.seconds ? new Date(latest.createdAt.seconds * 1000) : null;
+    const text = String(latest.text || '').replace(/\s+/g, ' ').trim();
+    if (text) parts.push(`<span class="al-tool__quote">“${escapeDiaryHtml(text.length > 60 ? `${text.slice(0, 57)}…` : text)}”</span>`);
+    if (setAt) parts.push(`set ${escapeDiaryHtml(describeDaysAgo(setAt))}`);
+
+    const testDate = latest.testData?.date ? utils.parseFlexibleDate(latest.testData.date) : null;
+    const chip = testDate instanceof Date && !Number.isNaN(testDate.getTime()) && startOfLocalDay(testDate) >= startOfLocalDay(new Date())
+        ? `<span class="al-tool__chip" title="${escapeDiaryHtml(latest.testData.title || 'Test')}">📝 Test ${escapeDiaryHtml(testDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</span>`
+        : '';
+    return `${chip}${parts.join(' · ') || 'Homework and tests for the next lesson'}`;
+}
+
+function attendanceStatusText(classId) {
+    if (!classId) return 'Choose a class to open its register';
+    const today = utils.getTodayDateString();
+    const away = (state.get('allAttendanceRecords') || []).filter((record) => record.classId === classId && utils.datesMatch(record.date, today)).length;
+    if (away > 0) return `${away} ${away === 1 ? 'hero is' : 'heroes are'} away today`;
+    return 'No one marked away today';
+}
+
+/** Refresh just the class tools (live Quest Board / attendance changes) without re-rendering the diary. */
+export function refreshAdventureLogClassTools() {
+    const tab = document.getElementById('adventure-log-tab');
+    if (!tab || tab.classList.contains('hidden')) return;
+    renderClassTools(state.get('globalSelectedClassId'), canUseFeature('advancedAttendance'));
+}
+
+/** Quest Board + Attendance: in-page class tools under the diary desk. */
+function renderClassTools(classId, hasAdvancedAttendance) {
+    const toolsEl = document.querySelector('#adventure-log-tab .al-tools');
+    const boardBtn = document.getElementById('quest-assignment-btn');
+    const registerBtn = document.getElementById('attendance-chronicle-btn');
+    if (!toolsEl) return;
+
+    if (boardBtn) {
+        boardBtn.disabled = !classId;
+        const status = document.getElementById('quest-assignment-btn-status');
+        if (status) status.innerHTML = questBoardStatusHtml(classId);
+    }
+    if (registerBtn) {
+        registerBtn.hidden = !hasAdvancedAttendance;
+        registerBtn.disabled = !classId;
+        const status = document.getElementById('attendance-chronicle-btn-status');
+        if (status) status.textContent = attendanceStatusText(classId);
+    }
+    toolsEl.classList.toggle('al-tools--single', !hasAdvancedAttendance);
+}
+
 function getTodayHint(classVal) {
     if (!classVal) return 'Choose a class in the header to open its diary.';
     const todayLog = (state.get('allAdventureLogs') || []).find((log) => log.classId === classVal && log.date === utils.getTodayDateString());
@@ -257,17 +333,7 @@ export async function renderAdventureLogTab() {
     if (monthFilter) monthFilter.style.display = hasAdventureLog ? '' : 'none';
     if (hintEl) hintEl.textContent = hasAdventureLog ? getTodayHint(classVal) : '';
     
-    // ─── FAB BUTTON STATES ────────────────────────────────────────────────────
-    const questAssignmentFab = document.getElementById('quest-assignment-fab');
-    if (questAssignmentFab) {
-        questAssignmentFab.disabled = !classVal;
-    }
-    
-    const attendanceFab = document.getElementById('attendance-fab');
-    if (attendanceFab) {
-        attendanceFab.style.display = hasAdvancedAttendance ? '' : 'none';
-        attendanceFab.disabled = !classVal;
-    }
+    renderClassTools(classVal, hasAdvancedAttendance);
 
     const monthVal = monthFilter.value;
 

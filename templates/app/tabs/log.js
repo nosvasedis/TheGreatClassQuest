@@ -2,31 +2,6 @@
 
 export const logTabHTML = `
             <div id="adventure-log-tab" class="app-tab hidden">
-                <!-- ═════════════════════════════════════════════════════════════════
-                     FLOATING ACTION BUTTONS (Left & Right)
-                     ═════════════════════════════════════════════════════════════════ -->
-                <!-- FAB — LEFT CORNER (Quest Assignment) -->
-                <div class="al-fab-cluster tab-fab-cluster tab-fab-cluster--left">
-                    <button id="quest-assignment-fab"
-                        class="al-fab tab-fab bubbly-button tab-fab--left"
-                        style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 55%, #06b6d4 100%); border: 2px solid rgba(94, 234, 212, 0.75); color: white;"
-                        title="Quest Assignment">
-                        <i class="fas fa-clipboard-list al-fab-icon tab-fab-icon"></i>
-                        <span class="al-fab-label tab-fab-label">Quest Assignment</span>
-                    </button>
-                </div>
-
-                <!-- FAB — RIGHT CORNER (Attendance) -->
-                <div class="al-fab-cluster tab-fab-cluster tab-fab-cluster--right">
-                    <button id="attendance-fab"
-                        class="al-fab tab-fab bubbly-button tab-fab--right"
-                        style="background: linear-gradient(135deg, #f97316 0%, #fb923c 55%, #f59e0b 100%); border: 2px solid rgba(253, 186, 116, 0.75); color: white;"
-                        title="Attendance">
-                        <i class="fas fa-user-check al-fab-icon tab-fab-icon"></i>
-                        <span class="al-fab-label tab-fab-label">Attendance</span>
-                    </button>
-                </div>
-
                 <div class="max-w-4xl mx-auto">
                     <!-- ═══════════════════════════════════════════════════════════════
                          HERO TITLE SECTION
@@ -81,6 +56,29 @@ export const logTabHTML = `
                             </div>
                         </div>
                     </section>
+
+                    <!-- ═══════════════════════════════════════════════════════════════
+                         CLASS TOOLS: the Quest Board and the register, clipped to the desk.
+                         Kept outside .al-desk so they stay available when the diary is locked.
+                         ═══════════════════════════════════════════════════════════════ -->
+                    <nav class="al-tools" aria-label="Class tools">
+                        <button id="quest-assignment-btn" type="button" class="al-tool al-tool--board" disabled>
+                            <span class="al-tool__icon" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
+                            <span class="al-tool__text">
+                                <span class="al-tool__title">Quest Assignment</span>
+                                <span id="quest-assignment-btn-status" class="al-tool__status">Homework and tests for the next lesson</span>
+                            </span>
+                            <i class="fas fa-chevron-right al-tool__go" aria-hidden="true"></i>
+                        </button>
+                        <button id="attendance-chronicle-btn" type="button" class="al-tool al-tool--register" disabled>
+                            <span class="al-tool__icon" aria-hidden="true"><i class="fas fa-user-check"></i></span>
+                            <span class="al-tool__text">
+                                <span class="al-tool__title">Attendance</span>
+                                <span id="attendance-chronicle-btn-status" class="al-tool__status">Who was there, lesson by lesson</span>
+                            </span>
+                            <i class="fas fa-chevron-right al-tool__go" aria-hidden="true"></i>
+                        </button>
+                    </nav>
 
                     <!-- ═══════════════════════════════════════════════════════════════
                          DIARY PAGES (newest first)

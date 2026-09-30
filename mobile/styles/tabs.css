@@ -551,15 +551,5 @@ body.gcq-mobile .quest-banner-side {
 
 /* 5. Hero's Challenge standings style themselves for phones (styles/hero_standings.css). */
 
-/* FABs on Hero's Challenge: refine label display for mobile touch */
-body.gcq-mobile #student-leaderboard-tab .tab-fab {
-    padding: 0.55rem 0.85rem !important;
-    min-height: 2.6rem !important;
-}
-
-body.gcq-mobile #student-leaderboard-tab .tab-fab-label {
-    font-size: 0.75rem !important;
-    font-weight: 800 !important;
-}
 
 

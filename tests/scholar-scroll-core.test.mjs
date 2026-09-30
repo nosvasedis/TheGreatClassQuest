@@ -63,7 +63,7 @@ test('markup helpers escape and draw', () => {
 test('Scholar\'s Scroll keeps its hooks for listeners and the title header', () => {
     const tab = readFileSync(new URL('../templates/app/tabs/scroll.js', import.meta.url), 'utf8');
     assert.match(tab, /tab-sign tab-sign--scroll ss-hero/);
-    ['scroll-dashboard-queues', 'scroll-dashboard-inner', 'scroll-performance-chart', 'view-trial-history-fab', 'log-trial-fab']
+    ['scroll-dashboard-queues', 'scroll-dashboard-inner', 'scroll-performance-chart']
         .forEach((id) => assert.match(tab, new RegExp(`id="${id}"`)));
     const modal = readFileSync(new URL('../templates/modals/attendance.js', import.meta.url), 'utf8');
     ['trial-history-modal', 'trial-history-close-btn', 'trial-history-view-toggle', 'trial-history-content', 'trial-history-search']

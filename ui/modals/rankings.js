@@ -49,286 +49,444 @@ function getLatestViewableArchiveMonth(ref = new Date()) {
     });
 }
 
-// --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
-export async function openStudentRankingsModal(resetDate = true) {
-    const modalId = 'global-leaderboard-modal';
-    const titleEl = document.getElementById('global-leaderboard-title');
-    const subtitleEl = document.getElementById('global-leaderboard-subtitle');
-    const controlsEl = document.getElementById('global-leaderboard-controls');
-    const contentEl = document.getElementById('global-leaderboard-content');
+// --- STUDENT RANKINGS MODAL (HERO LOGS: MONTHLY RANKS ARCHIVE) ---
 
-    // 1. Archives never include the in-progress month, and never last year's months.
-    if (resetDate) {
-        rankingsViewDate = getLatestViewableArchiveMonth();
+// What the teacher is looking at; kept while stepping through months.
+const heroLogsView = { view: 'global', league: null, classId: null, query: '' };
+let heroLogsData = null; // { monthKey, logs, scores }
+let heroLogsToken = 0;
+// Loaded lazily from constants.js the first time the modal opens.
+let heroLogsLeagues = [];
+const heroLogsLeagueHelpers = {};
+
+function escapeHl(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatHlStars(value) {
+    return String(Math.round((Number(value) || 0) * 4) / 4);
+}
+
+/** Every sealed month of this school year, oldest first. */
+function listSealedMonths() {
+    const start = getArchiveStartMonth();
+    const ceiling = getLatestViewableArchiveMonth(new Date());
+    if (!start || !ceiling) return [];
+    const months = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= ceiling && months.length < 24) {
+        months.push(new Date(cursor));
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return months;
+}
+
+function getMyClassesSorted() {
+    return [...(state.get('allTeachersClasses') || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+}
+
+function getLeaguesWithClasses(allLeagues) {
+    const used = new Set((state.get('allSchoolClasses') || []).map((c) => c.questLevel).filter(Boolean));
+    const withClasses = allLeagues.filter((league) => used.has(league));
+    return withClasses.length ? withClasses : allLeagues;
+}
+
+function resolveHeroLogsFilters(allLeagues) {
+    const leagues = getLeaguesWithClasses(allLeagues);
+    if (!leagues.includes(heroLogsView.league)) {
+        const preferred = state.get('globalSelectedLeague');
+        heroLogsView.league = leagues.includes(preferred) ? preferred : leagues[0] || null;
+    }
+    const mine = getMyClassesSorted();
+    if (!mine.some((c) => c.id === heroLogsView.classId)) {
+        const selected = state.get('globalSelectedClassId');
+        heroLogsView.classId = mine.some((c) => c.id === selected) ? selected : (mine[0]?.id || null);
+    }
+    return { leagues, mine };
+}
+
+function heroLogsControlsHtml(allLeagues) {
+    const months = listSealedMonths();
+    const activeKey = utils.getMonthKey(rankingsViewDate);
+    const index = months.findIndex((m) => utils.getMonthKey(m) === activeKey);
+    const monthDisplay = rankingsViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    const { leagues, mine } = resolveHeroLogsFilters(allLeagues);
+    const { getQuestLeagueDefinition } = heroLogsLeagueHelpers;
+
+    const pips = months.map((m) => {
+        const key = utils.getMonthKey(m);
+        const on = key === activeKey;
+        return `<button type="button" class="hl-pip${on ? ' is-active' : ''}" data-hl-month="${key}" aria-pressed="${on}" title="${escapeHl(m.toLocaleString('en-GB', { month: 'long', year: 'numeric' }))}">${escapeHl(m.toLocaleString('en-GB', { month: 'short' }))}</button>`;
+    }).join('');
+
+    const isGlobal = heroLogsView.view === 'global';
+    const picks = isGlobal
+        ? leagues.map((league) => {
+            const icon = getQuestLeagueDefinition?.(league)?.pickerIcon || 'fa-shield-halved';
+            const on = league === heroLogsView.league;
+            return `<button type="button" class="hl-pick${on ? ' is-active' : ''}" data-hl-league="${escapeHl(league)}" aria-pressed="${on}"><i class="fas ${escapeHl(icon)}" aria-hidden="true"></i><span>${escapeHl(league)}</span></button>`;
+        }).join('')
+        : (mine.length
+            ? mine.map((c) => {
+                const on = c.id === heroLogsView.classId;
+                return `<button type="button" class="hl-pick${on ? ' is-active' : ''}" data-hl-class="${escapeHl(c.id)}" aria-pressed="${on}"><span aria-hidden="true">${escapeHl(c.logo || '🏫')}</span><span>${escapeHl(c.name)}</span></button>`;
+            }).join('')
+            : '<span class="hl-picks__none">You have no classes yet.</span>');
+
+    return `
+        <div class="hl-rail">
+            <button type="button" class="hl-rail__step" data-hl-step="-1" aria-label="Earlier month" ${index <= 0 ? 'disabled' : ''}><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+            <div class="hl-rail__center">
+                <span class="hl-rail__seal" aria-hidden="true"><i class="fas fa-stamp"></i></span>
+                <div class="hl-rail__label">
+                    <span class="hl-rail__kicker">Sealed month</span>
+                    <span class="hl-rail__month font-title">${escapeHl(monthDisplay)}</span>
+                </div>
+            </div>
+            <button type="button" class="hl-rail__step" data-hl-step="1" aria-label="Later month" ${index < 0 || index >= months.length - 1 ? 'disabled' : ''}><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            ${months.length > 1 ? `<div class="hl-pips" role="group" aria-label="Jump to a month">${pips}</div>` : ''}
+        </div>
+        <div class="hl-scope">
+            <div class="hl-seg" role="group" aria-label="Which heroes" style="--seg-i:${isGlobal ? 0 : 1}">
+                <span class="hl-seg__thumb" aria-hidden="true"></span>
+                <button type="button" class="hl-seg__btn${isGlobal ? ' is-active' : ''}" data-hl-view="global" aria-pressed="${isGlobal}"><i class="fas fa-globe" aria-hidden="true"></i><span>Whole league</span></button>
+                <button type="button" class="hl-seg__btn${isGlobal ? '' : ' is-active'}" data-hl-view="class" aria-pressed="${!isGlobal}"><i class="fas fa-chalkboard-user" aria-hidden="true"></i><span>My classes</span></button>
+            </div>
+            <label class="hl-search">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" class="hl-search__input" placeholder="Find a hero…" aria-label="Find a hero" autocomplete="off" value="${escapeHl(heroLogsView.query)}">
+            </label>
+        </div>
+        <div class="hl-picks" role="group" aria-label="${isGlobal ? 'League' : 'Class'}">${picks}</div>`;
+}
+
+
+/** Rank exactly like the Ceremony (stars, then 3★ / 2★ awards, variety, academic average). */
+function rankHeroesForMonth(students, scores, logs, monthKey) {
+    const allWrittenScores = state.get('allWrittenScores') || [];
+    const allClasses = state.get('allSchoolClasses') || [];
+    const [year, month] = monthKey.split('-').map(Number);
+
+    const ranked = students.map((s) => {
+        const cls = allClasses.find((c) => c.id === s.classId);
+        const sLogs = logs.filter((l) => l.studentId === s.id);
+        const score = scores[s.id] || 0;
+
+        let count3 = 0, count2 = 0;
+        const reasons = new Set();
+        sLogs.forEach((l) => {
+            const cred = getAwardLogMonthlyStarCredit(l);
+            if (cred >= 3) count3++;
+            else if (cred >= 2) count2++;
+            if (l.reason) reasons.add(l.reason);
+        });
+
+        const sScores = allWrittenScores.filter((sc) => {
+            if (sc.studentId !== s.id || !sc.date) return false;
+            const d = utils.parseFlexibleDate(sc.date);
+            return d && d.getMonth() === (month - 1) && d.getFullYear() === year;
+        });
+        let acadSum = 0;
+        sScores.forEach((sc) => {
+            const normalized = getNormalizedPercentForScore(sc);
+            if (Number.isFinite(normalized)) acadSum += normalized;
+        });
+        const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
+
+        return {
+            ...s,
+            stars: score,
+            className: cls?.name,
+            classLogo: cls?.logo,
+            stats: { count3, count2, academicAvg, uniqueReasons: reasons.size, awards: sLogs.length }
+        };
+    }).sort((a, b) => {
+        if (b.stars !== a.stars) return b.stars - a.stars;
+        if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
+        if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
+        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
+        return b.stats.academicAvg - a.stats.academicAvg;
+    });
+
+    let currentRank = 1;
+    return ranked.map((s, i) => {
+        let tiedWithPrev = false;
+        if (i > 0) {
+            const prev = ranked[i - 1];
+            let isTie = s.stars === prev.stars &&
+                s.stats.count3 === prev.stats.count3 &&
+                s.stats.count2 === prev.stats.count2 &&
+                s.stats.uniqueReasons === prev.stats.uniqueReasons;
+            // Academic average only breaks ties after the Top 3
+            if (currentRank > 3) {
+                isTie = isTie && (Math.abs(s.stats.academicAvg - prev.stats.academicAvg) < 0.1);
+            }
+            if (!isTie) currentRank = i + 1;
+            tiedWithPrev = isTie;
+        }
+        return { ...s, ceremonyRank: currentRank, tiedWithPrev };
+    });
+}
+
+function hlPortrait(s, size = '') {
+    return s.avatar
+        ? `<img src="${escapeHl(s.avatar)}" alt="" loading="lazy" decoding="async" class="hl-portrait${size}">`
+        : `<span class="hl-portrait${size} hl-portrait--initial" aria-hidden="true">${escapeHl((s.name || '?').charAt(0))}</span>`;
+}
+
+function hlPodiumHtml(top, showClass) {
+    const metal = ['gold', 'silver', 'bronze'];
+    const order = [1, 0, 2].filter((i) => top[i]);
+    return `
+        <section class="hl-podium" aria-label="Top heroes">
+            ${order.map((i) => {
+                const s = top[i];
+                const tone = metal[Math.min(s.ceremonyRank, 3) - 1] || 'bronze';
+                return `
+                <figure class="hl-spot hl-spot--${tone}">
+                    ${tone === 'gold' ? '<span class="hl-spot__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}
+                    <div class="hl-spot__frame">${hlPortrait(s, ' hl-portrait--lg')}</div>
+                    <figcaption>
+                        <span class="hl-spot__name">${escapeHl(s.name)}</span>
+                        ${showClass ? `<span class="hl-spot__class">${escapeHl(s.classLogo || '')} ${escapeHl(s.className || '')}</span>` : ''}
+                        <span class="hl-spot__stars"><i class="fas fa-star" aria-hidden="true"></i>${formatHlStars(s.stars)}</span>
+                    </figcaption>
+                    <div class="hl-spot__plinth"><span class="font-title">${s.ceremonyRank}</span></div>
+                </figure>`;
+            }).join('')}
+        </section>`;
+}
+
+function hlRowHtml(s, topStars, showClass, myClassIds, index) {
+    const width = topStars > 0 ? Math.max(4, Math.round((s.stars / topStars) * 100)) : 0;
+    const tone = s.ceremonyRank <= 3 ? ` hl-row--top${s.ceremonyRank}` : '';
+    const chips = [
+        showClass && s.className ? `<span class="hl-chip hl-chip--class">${escapeHl(s.classLogo || '')} ${escapeHl(s.className)}</span>` : '',
+        showClass && myClassIds.has(s.classId) ? '<span class="hl-chip hl-chip--mine">Your class</span>' : '',
+        s.tiedWithPrev ? '<span class="hl-chip hl-chip--tie">Tied</span>' : '',
+        s.stats.count3 > 0 ? `<span class="hl-chip hl-chip--big" title="Awards worth 3 stars or more">${s.stats.count3}× big award${s.stats.count3 === 1 ? '' : 's'}</span>` : '',
+    ].filter(Boolean).join('');
+    return `
+        <li class="hl-row${tone}" style="--i:${Math.min(index, 14)}">
+            <span class="hl-shield"><span class="hl-shield__num font-title">${s.ceremonyRank}</span></span>
+            ${hlPortrait(s)}
+            <div class="hl-row__body">
+                <p class="hl-row__name">${escapeHl(s.name)}</p>
+                ${chips ? `<div class="hl-row__chips">${chips}</div>` : ''}
+                <span class="hl-row__bar" aria-hidden="true"><span style="width:${width}%"></span></span>
+            </div>
+            <span class="hl-row__stars"><span class="font-title">${formatHlStars(s.stars)}</span><i class="fas fa-star" aria-hidden="true"></i></span>
+        </li>`;
+}
+
+function renderHeroLogsList() {
+    const contentEl = document.getElementById('global-leaderboard-content');
+    if (!contentEl || !heroLogsData) return;
+    const { monthKey, logs, scores } = heroLogsData;
+    const allStudents = state.get('allStudents') || [];
+    const allClasses = state.get('allSchoolClasses') || [];
+    const isGlobal = heroLogsView.view === 'global';
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
+
+    let students;
+    let scopeLabel;
+    if (isGlobal) {
+        const classIds = new Set(allClasses.filter((c) => c.questLevel === heroLogsView.league).map((c) => c.id));
+        students = allStudents.filter((s) => classIds.has(s.classId));
+        scopeLabel = `${heroLogsView.league || ''} League`;
+    } else {
+        students = allStudents.filter((s) => s.classId === heroLogsView.classId);
+        const cls = allClasses.find((c) => c.id === heroLogsView.classId);
+        scopeLabel = cls ? `${cls.logo || ''} ${cls.name}` : 'My class';
     }
 
-    titleEl.innerHTML = `Hero Logs`;
-    if (subtitleEl) subtitleEl.innerText = 'Monthly ranks (completed months only)';
+    if (!students.length) {
+        contentEl.innerHTML = `
+            <div class="hl-empty">
+                <span class="hl-empty__art" aria-hidden="true"><i class="fas fa-feather-pointed"></i></span>
+                <p class="hl-empty__title font-title">No heroes here yet</p>
+                <p class="hl-empty__text">${isGlobal ? 'No classes play in this league.' : 'This class has no students on its roll.'}</p>
+            </div>`;
+        return;
+    }
+
+    const ranked = rankHeroesForMonth(students, scores, logs, monthKey);
+    const shining = ranked.filter((s) => s.stars > 0);
+    const waiting = ranked.filter((s) => !(s.stars > 0));
+    const totalStars = shining.reduce((sum, s) => sum + s.stars, 0);
+    const topStars = shining[0]?.stars || 0;
+    const query = heroLogsView.query.trim().toLowerCase();
+
+    const summary = `
+        <div class="hl-summary">
+            <span class="hl-summary__scope">${escapeHl(scopeLabel)}</span>
+            <span class="hl-summary__stat"><i class="fas fa-user-shield" aria-hidden="true"></i><strong>${shining.length}</strong> of ${ranked.length} heroes ranked</span>
+            <span class="hl-summary__stat"><i class="fas fa-star" aria-hidden="true"></i><strong>${formatHlStars(totalStars)}</strong> stars</span>
+        </div>`;
+
+    if (query) {
+        const hits = ranked.filter((s) => (s.name || '').toLowerCase().includes(query));
+        contentEl.innerHTML = summary + (hits.length
+            ? `<ol class="hl-ranks">${hits.map((s, i) => hlRowHtml(s, topStars, isGlobal, myClassIds, i)).join('')}</ol>`
+            : `<p class="hl-noresults">No hero called “${escapeHl(heroLogsView.query.trim())}” in ${escapeHl(scopeLabel)}.</p>`);
+        return;
+    }
+
+    if (!shining.length) {
+        contentEl.innerHTML = summary + `
+            <div class="hl-empty">
+                <span class="hl-empty__art" aria-hidden="true"><i class="fas fa-moon"></i></span>
+                <p class="hl-empty__title font-title">A quiet month</p>
+                <p class="hl-empty__text">No stars were recorded for these heroes this month.</p>
+            </div>`;
+        return;
+    }
+
+    const podium = shining.slice(0, 3);
+    const rest = shining.slice(3);
+    const waitingHtml = waiting.length ? `
+        <details class="hl-waiting">
+            <summary><i class="fas fa-seedling" aria-hidden="true"></i> Still to shine <span>${waiting.length}</span><i class="fas fa-chevron-down hl-waiting__caret" aria-hidden="true"></i></summary>
+            <ul class="hl-waiting__list">${waiting.map((s) => `<li>${hlPortrait(s, ' hl-portrait--sm')}<span>${escapeHl(s.name)}</span></li>`).join('')}</ul>
+        </details>` : '';
+
+    contentEl.innerHTML = summary
+        + hlPodiumHtml(podium, isGlobal)
+        + (rest.length ? `<ol class="hl-ranks">${rest.map((s, i) => hlRowHtml(s, topStars, isGlobal, myClassIds, i)).join('')}</ol>` : '')
+        + waitingHtml;
+}
+
+function bindHeroLogsControls(controlsEl) {
+    if (!controlsEl || controlsEl.dataset.bound) return;
+    controlsEl.dataset.bound = '1';
+    controlsEl.addEventListener('click', (e) => {
+        const step = e.target.closest('[data-hl-step]');
+        if (step && !step.disabled) {
+            const months = listSealedMonths();
+            const index = months.findIndex((m) => utils.getMonthKey(m) === utils.getMonthKey(rankingsViewDate));
+            const next = months[index + Number(step.dataset.hlStep)];
+            if (next) {
+                rankingsViewDate = new Date(next);
+                openStudentRankingsModal(false);
+            }
+            return;
+        }
+        const pip = e.target.closest('[data-hl-month]');
+        if (pip && !pip.classList.contains('is-active')) {
+            const [y, m] = pip.dataset.hlMonth.split('-').map(Number);
+            rankingsViewDate = new Date(y, m - 1, 1);
+            openStudentRankingsModal(false);
+            return;
+        }
+        const viewBtn = e.target.closest('[data-hl-view]');
+        if (viewBtn && viewBtn.dataset.hlView !== heroLogsView.view) {
+            heroLogsView.view = viewBtn.dataset.hlView;
+            refreshHeroLogsControls();
+            renderHeroLogsList();
+            return;
+        }
+        const leagueBtn = e.target.closest('[data-hl-league]');
+        if (leagueBtn) {
+            heroLogsView.league = leagueBtn.dataset.hlLeague;
+            state.setGlobalSelectedLeague(heroLogsView.league, false);
+            refreshHeroLogsControls();
+            renderHeroLogsList();
+            return;
+        }
+        const classBtn = e.target.closest('[data-hl-class]');
+        if (classBtn) {
+            heroLogsView.classId = classBtn.dataset.hlClass;
+            refreshHeroLogsControls();
+            renderHeroLogsList();
+        }
+    });
+    controlsEl.addEventListener('input', (e) => {
+        if (!e.target.closest('.hl-search__input')) return;
+        heroLogsView.query = e.target.value;
+        renderHeroLogsList();
+    });
+}
+
+
+function refreshHeroLogsControls() {
+    const controlsEl = document.getElementById('global-leaderboard-controls');
+    if (!controlsEl || !rankingsViewDate) return;
+    const focusedSearch = document.activeElement?.classList?.contains('hl-search__input');
+    controlsEl.innerHTML = heroLogsControlsHtml(heroLogsLeagues);
+    controlsEl.querySelector('.hl-pip.is-active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    if (focusedSearch) controlsEl.querySelector('.hl-search__input')?.focus();
+}
+
+export async function openStudentRankingsModal(resetDate = true) {
+    const modalId = 'global-leaderboard-modal';
+    const controlsEl = document.getElementById('global-leaderboard-controls');
+    const contentEl = document.getElementById('global-leaderboard-content');
+    const token = ++heroLogsToken;
+
+    // Archives never include the in-progress month, and never last year's months.
+    if (resetDate) {
+        rankingsViewDate = getLatestViewableArchiveMonth();
+        heroLogsView.query = '';
+        heroLogsView.league = null;
+        heroLogsView.classId = null;
+    }
 
     if (!rankingsViewDate) {
         if (controlsEl) controlsEl.innerHTML = '';
-        contentEl.innerHTML = `<div class="text-center py-10 px-6 max-w-md mx-auto">
-            <p class="font-title text-2xl text-indigo-900 mb-2">A new year</p>
-            <p class="text-slate-500 font-semibold">This year's monthly ranks open after the first school month closes. Last year's logs stay in last year's archive.</p>
-        </div>`;
+        contentEl.innerHTML = `
+            <div class="hl-empty hl-empty--year">
+                <span class="hl-empty__art" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span>
+                <p class="hl-empty__title font-title">A new year of legends</p>
+                <p class="hl-empty__text">This year's monthly ranks open after the first school month closes. Last year's logs stay in last year's archive.</p>
+            </div>`;
         if (resetDate) showAnimatedModal(modalId);
         return;
     }
 
-    const activeMonthKey = utils.getMonthKey(rankingsViewDate);
-    const monthDisplay = rankingsViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-    if (controlsEl) controlsEl.innerHTML = '';
-    contentEl.innerHTML = `<div class="text-center py-10"><i class="fas fa-circle-notch fa-spin text-3xl text-indigo-500"></i><p class="mt-3 text-slate-500 font-semibold">Loading archives for ${monthDisplay}...</p></div>`;
-
-    // 2. Show Modal (Only animate the first time it opens)
-    if (resetDate) {
-        showAnimatedModal(modalId);
+    if (!heroLogsLeagues.length) {
+        const constants = await import('../../constants.js');
+        heroLogsLeagues = constants.questLeagues;
+        heroLogsLeagueHelpers.getQuestLeagueDefinition = constants.getQuestLeagueDefinition;
     }
 
-    // 3. Fetch Data (Logs & History)
-    let monthlyScores = {};
-    let logs = [];
+    bindHeroLogsControls(controlsEl);
+    refreshHeroLogsControls();
 
+    const activeMonthKey = utils.getMonthKey(rankingsViewDate);
+    contentEl.innerHTML = `
+        <div class="hl-loading" aria-live="polite">
+            <p><i class="fas fa-book-open" aria-hidden="true"></i> Opening the ${escapeHl(rankingsViewDate.toLocaleString('en-GB', { month: 'long' }))} pages…</p>
+            ${'<div class="hl-skeleton"><span></span><span></span><span></span></div>'.repeat(4)}
+        </div>`;
+
+    if (resetDate) showAnimatedModal(modalId);
+
+    // Fetch the month's logs (for tie-breakers) and its archived totals.
+    let scores = {};
+    let logs = [];
     try {
         const { fetchLogsForMonth } = await import('../../db/queries.js');
         const { fetchMonthlyHistory } = await import('../../state.js');
         const [year, month] = activeMonthKey.split('-').map(Number);
-
-        // Try fetching detailed logs first (for tie-breakers)
-        const logsPromise = fetchLogsForMonth(year, month);
-        const archivedPromise = fetchMonthlyHistory(activeMonthKey);
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-
         const [logsResult, archivedRows] = await Promise.all([
-            Promise.race([logsPromise, timeoutPromise]).catch(() => []),
-            archivedPromise.catch(() => ({}))
+            Promise.race([fetchLogsForMonth(year, month), timeoutPromise]).catch(() => []),
+            fetchMonthlyHistory(activeMonthKey).catch(() => ({}))
         ]);
         logs = logsResult || [];
-        const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs);
-        monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archivedRows || {});
+        scores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(sumMonthlyStarCreditsByStudentFromAwardLogs(logs), archivedRows || {});
     } catch (e) { console.error(e); }
 
-    // 4. Prepare Data
-    const allLeagues = (await import('../../constants.js')).questLeagues;
-    const myClasses = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
+    // A later month was chosen while this one loaded.
+    if (token !== heroLogsToken) return;
 
-    // 5. Render UI Structure with Navigation
-    if (controlsEl) {
-        controlsEl.innerHTML = `
-            <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between bg-white p-2 rounded-[1.25rem] border border-indigo-100 shadow-sm">
-                    <button id="rank-prev-month" class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-center">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="text-center min-w-0 px-2">
-                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Archive Month</div>
-                        <div class="font-title text-2xl text-indigo-900 truncate">${monthDisplay}</div>
-                    </div>
-                    <button id="rank-next-month" class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-center">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-
-                <div class="flex flex-wrap justify-center gap-3">
-                    <button id="rank-tab-global" class="px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-md">
-                        <i class="fas fa-globe mr-2"></i>Global League
-                    </button>
-                    <button id="rank-tab-class" class="px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 shadow-sm">
-                        <i class="fas fa-chalkboard-teacher mr-2"></i>My Class
-                    </button>
-                </div>
-
-                <div id="rank-filter-container"></div>
-            </div>
-        `;
-    }
-
-    contentEl.innerHTML = `<div id="ranks-list-container" class="space-y-3"></div>`;
-
-    // --- NAVIGATION LISTENERS ---
-    const prevBtn = document.getElementById('rank-prev-month');
-    const nextBtn = document.getElementById('rank-next-month');
-    if (prevBtn) {
-        prevBtn.onclick = () => {
-            const archiveStart = getArchiveStartMonth();
-            const previous = new Date(rankingsViewDate.getFullYear(), rankingsViewDate.getMonth() - 1, 1);
-            if (previous < archiveStart) return;
-            rankingsViewDate = previous;
-            openStudentRankingsModal(false);
-        };
-    }
-    if (nextBtn) {
-        nextBtn.onclick = () => {
-            const ceiling = getLatestViewableArchiveMonth(new Date());
-            if (!ceiling) return;
-            if (
-                rankingsViewDate.getFullYear() === ceiling.getFullYear()
-                && rankingsViewDate.getMonth() === ceiling.getMonth()
-            ) {
-                return;
-            }
-            rankingsViewDate.setMonth(rankingsViewDate.getMonth() + 1);
-            openStudentRankingsModal(false);
-        };
-    }
-
-    // --- INTERNAL RENDER LOGIC ---
-    const renderContent = (view, filterValue) => {
-        const filterContainer = document.getElementById('rank-filter-container');
-        const listContainer = document.getElementById('ranks-list-container');
-        const allStudents = state.get('allStudents');
-        const allClasses = state.get('allSchoolClasses');
-
-        if (view === 'global') {
-            const preferredLeague = state.get('globalSelectedLeague');
-            const currentLeague = allLeagues.includes(filterValue)
-                ? filterValue
-                : allLeagues.includes(preferredLeague)
-                    ? preferredLeague
-                    : allLeagues[0];
-            const options = allLeagues.map(l => `<option value="${l}" ${l === currentLeague ? 'selected' : ''}>${l} League</option>`).join('');
-            filterContainer.innerHTML = `<select id="rank-league-select" class="w-full p-3 border-2 border-indigo-100 rounded-xl bg-indigo-50 font-bold text-indigo-900 outline-none">${options}</select>`;
-            const classesInLeague = allClasses.filter(c => c.questLevel === currentLeague);
-            const classIds = classesInLeague.map(c => c.id);
-            renderStudentList(allStudents.filter(s => classIds.includes(s.classId)), listContainer, monthlyScores);
-            document.getElementById('rank-league-select').onchange = (e) => {
-                state.setGlobalSelectedLeague(e.target.value, false);
-                renderContent('global', e.target.value);
-            };
-        } else {
-            if (myClasses.length === 0) {
-                listContainer.innerHTML = `<p class="text-center text-gray-500">No classes found.</p>`;
-                return;
-            }
-            const currentClassId = filterValue || myClasses[0].id;
-            const options = myClasses.map(c => `<option value="${c.id}" ${c.id === currentClassId ? 'selected' : ''}>${c.logo} ${c.name}</option>`).join('');
-            filterContainer.innerHTML = `<select id="rank-class-select" class="w-full p-3 border-2 border-purple-100 rounded-xl bg-purple-50 font-bold text-purple-900 outline-none">${options}</select>`;
-            renderStudentList(allStudents.filter(s => s.classId === currentClassId), listContainer, monthlyScores);
-            document.getElementById('rank-class-select').onchange = (e) => renderContent('class', e.target.value);
-        }
-    };
-
-    const renderStudentList = (students, container, scores) => {
-        if (students.length === 0) {
-            container.innerHTML = `<p class="text-center text-gray-400 py-4">No students found in this category.</p>`;
-            return;
-        }
-
-        const allWrittenScores = state.get('allWrittenScores');
-        const [year, month] = activeMonthKey.split('-').map(Number);
-
-        // 1. Calculate Stats EXACTLY like ceremony.js
-        const ranked = students.map(s => {
-            const cls = state.get('allSchoolClasses').find(c => c.id === s.classId);
-            const sLogs = logs.filter(l => l.studentId === s.id);
-            const score = scores[s.id] || 0;
-
-            let count3 = 0, count2 = 0;
-            const reasons = new Set();
-            sLogs.forEach(l => {
-                const cred = getAwardLogMonthlyStarCredit(l);
-                if (cred >= 3) count3++;
-                else if (cred >= 2) count2++;
-                if (l.reason) reasons.add(l.reason);
-            });
-
-            const sScores = allWrittenScores.filter(sc => {
-                if (sc.studentId !== s.id || !sc.date) return false;
-                const d = utils.parseFlexibleDate(sc.date);
-                return d && d.getMonth() === (month - 1) && d.getFullYear() === year;
-            });
-
-            let acadSum = 0;
-            sScores.forEach(sc => {
-                const normalized = getNormalizedPercentForScore(sc);
-                if (Number.isFinite(normalized)) acadSum += normalized;
-            });
-            const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
-
-            return {
-                ...s,
-                stars: score,
-                className: cls?.name,
-                classLogo: cls?.logo,
-                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size }
-            };
-        }).sort((a, b) => {
-            // 2. Sort EXACTLY like ceremony.js
-            if (b.stars !== a.stars) return b.stars - a.stars;
-            if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
-            if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
-            if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-            return b.stats.academicAvg - a.stats.academicAvg;
-        });
-
-        // 3. Assign Ranks EXACTLY like ceremony.js (handling visual ties)
-        let currentRank = 1;
-        const finalizedList = ranked.map((s, i) => {
-            if (i > 0) {
-                const prev = ranked[i - 1];
-                let isTie = s.stars === prev.stars &&
-                    s.stats.count3 === prev.stats.count3 &&
-                    s.stats.count2 === prev.stats.count2 &&
-                    s.stats.uniqueReasons === prev.stats.uniqueReasons;
-
-                // Academic average only breaks ties after the Top 3
-                if (currentRank > 3) {
-                    isTie = isTie && (Math.abs(s.stats.academicAvg - prev.stats.academicAvg) < 0.1);
-                }
-
-                if (!isTie) currentRank = i + 1;
-            }
-            return { ...s, ceremonyRank: currentRank };
-        });
-
-        // 4. Render the UI
-        container.innerHTML = finalizedList.map((s) => {
-            const rank = s.ceremonyRank;
-            let icon = `<span class="text-gray-400 font-bold w-6 text-right">${rank}.</span>`;
-            let bgClass = "bg-white";
-
-            if (rank === 1) { icon = "🥇"; bgClass = "bg-amber-50 border border-amber-200"; }
-            else if (rank === 2) { icon = "🥈"; bgClass = "bg-gray-50 border border-gray-200"; }
-            else if (rank === 3) { icon = "🥉"; bgClass = "bg-orange-50 border border-orange-200"; }
-
-            return `
-                <div class="flex items-center justify-between p-3 rounded-xl ${bgClass} hover:shadow-sm transition-all mb-2">
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="text-xl w-8 text-center shrink-0">${icon}</div>
-                        ${s.avatar ? `<img src="${s.avatar}" loading="lazy" decoding="async" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">${s.name.charAt(0)}</div>`}
-                        <div class="min-w-0">
-                            <div class="font-bold text-gray-800 truncate">${s.name}</div>
-                            <div class="text-[10px] text-gray-500 truncate">${s.classLogo || ''} ${s.className || ''}</div>
-                        </div>
-                    </div>
-                    <div class="font-title text-xl text-indigo-600 shrink-0">${s.stars} ⭐</div>
-                </div>
-            `;
-        }).join('');
-    };
-
-    // Tab Listeners
-    const btnGlobal = document.getElementById('rank-tab-global');
-    const btnClass = document.getElementById('rank-tab-class');
-
-    const activeTabClass = "px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-md";
-    const inactiveTabClass = "px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 shadow-sm";
-
-    if (btnGlobal && btnClass) {
-        btnGlobal.onclick = () => {
-            btnGlobal.className = activeTabClass;
-            btnClass.className = inactiveTabClass;
-            renderContent('global');
-        };
-
-        btnClass.onclick = () => {
-            btnClass.className = activeTabClass;
-            btnGlobal.className = inactiveTabClass;
-            renderContent('class');
-        };
-    }
-
-    renderContent('global');
+    heroLogsData = { monthKey: activeMonthKey, logs, scores };
+    renderHeroLogsList();
 }
 
 export async function openHallOfHeroes() {

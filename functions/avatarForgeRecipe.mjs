@@ -45,7 +45,15 @@ export const FORGE_CREATURES = [
     { value: 'Rock Star', icon: '🎤', look: 'young rock star with spiky hair, a star-shaped badge and a microphone' },
     { value: 'Detective', icon: '🔍', look: 'young detective with a checked deerstalker cap and a magnifying glass' },
     { value: 'Chef', icon: '🧑‍🍳', look: 'young chef with a puffy white chef hat and an apron' },
-    { value: 'Penguin', icon: '🐧', look: 'chubby little penguin chick with fluffy feathers' }
+    { value: 'Penguin', icon: '🐧', look: 'chubby little penguin chick with fluffy feathers' },
+    { value: 'Dog', icon: '🐶', look: 'happy puppy with floppy ears, a wet nose and a wagging tail' },
+    { value: 'Horse', icon: '🐴', look: 'friendly pony with a flowing mane and a glossy coat' },
+    { value: 'Dolphin', icon: '🐬', look: 'cheerful dolphin with a smooth body and a happy smile' },
+    { value: 'Butterfly', icon: '🦋', look: 'colourful butterfly with big patterned wings' },
+    { value: 'Dinosaur', icon: '🦖', look: 'friendly little T-rex dinosaur with tiny arms and big feet' },
+    { value: 'Hedgehog', icon: '🦔', look: 'small round hedgehog with soft spines and a snuffly nose' },
+    { value: 'Otter', icon: '🦦', look: 'playful otter with smooth fur and a long tail' },
+    { value: 'Squirrel', icon: '🐿️', look: 'bushy-tailed squirrel with tufty ears and a nut in its paws' }
 ];
 
 export const FORGE_COLORS = [
@@ -67,7 +75,16 @@ export const FORGE_COLORS = [
     { value: 'Mint', hex: '#6ee7b7', look: 'fresh mint green' },
     { value: 'Lavender', hex: '#c4b5fd', look: 'soft lavender' },
     { value: 'Coral', hex: '#fb7185', look: 'warm coral' },
-    { value: 'Brown', hex: '#92400e', look: 'warm chestnut brown' }
+    { value: 'Brown', hex: '#92400e', look: 'warm chestnut brown' },
+    { value: 'Teal', hex: '#0d9488', look: 'deep teal' },
+    { value: 'Lime', hex: '#a3e635', look: 'zesty lime green' },
+    { value: 'Sky', hex: '#38bdf8', look: 'light sky blue' },
+    { value: 'Peach', hex: '#ffb07c', look: 'soft peach' },
+    { value: 'Rose', hex: '#f43f5e', look: 'deep rose pink' },
+    { value: 'Indigo', hex: '#6366f1', look: 'deep indigo' },
+    { value: 'Bronze', hex: '#a16207', look: 'antique bronze' },
+    { value: 'Copper', hex: '#b45309', look: 'shiny copper' },
+    { value: 'Crimson', hex: '#dc2626', look: 'rich crimson' }
 ];
 
 export const FORGE_ACCESSORIES = [
@@ -95,7 +112,15 @@ export const FORGE_ACCESSORIES = [
     { value: 'Pet Companion', icon: '🐾', look: 'with a tiny pet companion on the shoulder' },
     { value: 'Microphone', icon: '🎤', look: 'holding a shiny microphone' },
     { value: 'Skateboard', icon: '🛹', look: 'holding a colourful skateboard' },
-    { value: 'Ballet Slippers', icon: '🩰', look: 'wearing pink satin ballet slippers with ribbons' }
+    { value: 'Ballet Slippers', icon: '🩰', look: 'wearing pink satin ballet slippers with ribbons' },
+    { value: 'Fairy Wings', icon: '🦋', look: 'with delicate sparkly fairy wings on their back' },
+    { value: 'Basketball', icon: '🏀', look: 'holding a round orange basketball' },
+    { value: 'Tennis Racket', icon: '🎾', look: 'holding a tennis racket with a tennis ball' },
+    { value: 'Balloon', icon: '🎈', look: 'holding a bright balloon on a string' },
+    { value: 'Treasure Map', icon: '🗺️', look: 'holding an unfolded treasure map' },
+    { value: 'Ice Cream', icon: '🍦', look: 'holding a dripping ice cream cone' },
+    { value: 'Kite', icon: '🪁', look: 'holding a colourful kite on a string' },
+    { value: 'Compass', icon: '🧭', look: 'holding a small brass compass' }
 ];
 
 export const FORGE_MOODS = [
@@ -105,7 +130,10 @@ export const FORGE_MOODS = [
     { value: 'Silly', icon: '😜', look: 'playful silly grin with tongue out' },
     { value: 'Calm', icon: '😌', look: 'calm gentle smile' },
     { value: 'Proud', icon: '😎', look: 'proud cheerful grin, chin up' },
-    { value: 'Excited', icon: '🤩', look: 'excited sparkling eyes, open joyful smile' }
+    { value: 'Excited', icon: '🤩', look: 'excited sparkling eyes, open joyful smile' },
+    { value: 'Sleepy', icon: '😴', look: 'sleepy half-closed eyes and a gentle smile' },
+    { value: 'Surprised', icon: '😲', look: 'surprised wide eyes and a small open mouth' },
+    { value: 'Thoughtful', icon: '💭', look: 'thoughtful gentle expression, eyes gazing upward' }
 ];
 
 // `lead` opens the prompt (the image model weighs the first words most) and
@@ -117,7 +145,8 @@ export const FORGE_STYLES = [
     { value: 'Pixel', icon: '👾', label: 'Pixel Art', lead: 'cute 16-bit pixel art character portrait', tail: 'crisp pixels, limited vibrant palette, retro video game style' },
     { value: 'Anime', icon: '🌸', label: 'Anime', lead: 'kawaii anime chibi illustration', tail: 'clean line art, cel shading, big sparkling eyes' },
     { value: 'Comic', icon: '💥', label: 'Comic Book', lead: 'bold comic book cartoon character', tail: 'thick ink lines, halftone shading, punchy vibrant colours' },
-    { value: 'Clay', icon: '🏺', label: 'Clay', lead: 'handmade claymation chibi character', tail: 'soft clay texture, visible fingerprints, warm studio light' }
+    { value: 'Clay', icon: '🏺', label: 'Clay', lead: 'handmade claymation chibi character', tail: 'soft clay texture, visible fingerprints, warm studio light' },
+    { value: 'Crayon', icon: '🖍️', label: 'Crayon Drawing', lead: 'cheerful child crayon drawing of a chibi character', tail: 'waxy crayon strokes, visible paper texture, bright colours' }
 ];
 
 export const FORGE_BACKDROPS = [
@@ -128,12 +157,16 @@ export const FORGE_BACKDROPS = [
     { value: 'Night', icon: '🌙', label: 'Starry Night', look: 'starry night sky background' },
     { value: 'Castle', icon: '🏰', label: 'Castle', look: 'fairytale castle background' },
     { value: 'Ocean', icon: '🌊', label: 'Ocean', look: 'sunny ocean background' },
-    { value: 'Space', icon: '🪐', label: 'Outer Space', look: 'outer space background with planets' }
+    { value: 'Space', icon: '🪐', label: 'Outer Space', look: 'outer space background with planets' },
+    { value: 'Beach', icon: '🏖️', label: 'Beach', look: 'sunny beach background' },
+    { value: 'Snow', icon: '❄️', label: 'Snowy Day', look: 'snowy winter background' },
+    { value: 'Rainbow', icon: '🌈', label: 'Rainbow Sky', look: 'rainbow sky background' }
 ];
 
 export const FORGE_FRAMINGS = [
     { value: 'Portrait', icon: '🖼️', label: 'Portrait', look: 'head and shoulders portrait, facing viewer' },
-    { value: 'Full', icon: '🧍', label: 'Full Hero', look: 'full body, centred, whole character visible' }
+    { value: 'Full', icon: '🧍', label: 'Full Hero', look: 'full body, centred, whole character visible' },
+    { value: 'Action', icon: '🏃', label: 'Action Pose', look: 'dynamic action pose, full body, mid-motion' }
 ];
 
 export const FORGE_SPECIAL_MAX = 60;

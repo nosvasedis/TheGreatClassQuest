@@ -11,22 +11,19 @@ export const wallpaperHTML = `
     <div id="dynamic-wallpaper-screen"
         class="hidden fixed inset-0 z-[100] overflow-hidden transition-colors duration-[3000ms] ease-in-out flex flex-col items-center justify-center font-sans">
 
-        <div id="wall-bg-day"
-            class="absolute inset-0 bg-gradient-to-b from-sky-400 via-blue-300 to-indigo-100 transition-opacity duration-[3000ms]">
-        </div>
-
-        <div id="wall-bg-night"
-            class="absolute inset-0 bg-gradient-to-b from-indigo-950 via-purple-900 to-slate-800 opacity-0 transition-opacity duration-[3000ms]">
-        </div>
+        <!-- The sky itself: the shared live palette (styles/sky_weather.css), melting between
+             dawn, day, golden hour, twilight and night, and greying with the weather. -->
+        <div id="wall-sky" class="wall-sky" aria-hidden="true"></div>
 
         <!-- Starfield (night only) -->
         <div id="wall-stars" class="absolute inset-0 pointer-events-none z-[1] overflow-hidden opacity-0 transition-opacity duration-[3000ms]"></div>
 
         <!-- Celestial bodies -->
         <div class="absolute inset-0 pointer-events-none z-[2] overflow-hidden">
-            <div id="wall-sun"
-                class="absolute w-64 h-64 rounded-full bg-yellow-300 blur-2xl opacity-80 transition-all duration-[3000ms] ease-in-out"
-                style="top: -5%; right: -5%;"></div>
+            <div id="wall-sunlight" class="wall-sun" aria-hidden="true">
+                <span class="wall-sun__halo"></span>
+                <span class="wall-sun__disc"></span>
+            </div>
 
             <div id="wall-moon"
                 class="gcq-moon absolute transition-all duration-[3000ms] ease-in-out"

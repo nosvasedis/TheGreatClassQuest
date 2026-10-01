@@ -624,6 +624,26 @@ function resyncCurrentCardClock() {
 
 // ─── Clock hub: digital time, day arc, analogue dial with the lesson ring ──
 
+/**
+ * Put the Sky Window's sun (and the sky's glow, which follows it) where the real
+ * sun is: low in the east at sunrise, high at noon, low in the west by evening.
+ * At night the inline position is cleared and styles/sky_weather.css takes over.
+ */
+function placeSkySun(progress) {
+    const wall = document.getElementById('dynamic-wallpaper-screen');
+    if (!wall) return;
+    if (progress == null) {
+        wall.style.removeProperty('--sun-x');
+        wall.style.removeProperty('--sun-y');
+        return;
+    }
+    const x = 10 + 80 * progress;
+    // Around midday the sun climbs over the clock hub instead of sitting behind it.
+    const y = 64 - 50 * Math.sin(Math.PI * progress) - 14 * Math.exp(-(((x - 50) / 14) ** 2));
+    wall.style.setProperty('--sun-x', `${x.toFixed(1)}vw`);
+    wall.style.setProperty('--sun-y', `${y.toFixed(1)}vh`);
+}
+
 function updateDayArc(nowMs) {
     const marker = document.getElementById('wall-day-marker');
     const done = document.getElementById('wall-day-done');
@@ -635,6 +655,7 @@ function updateDayArc(nowMs) {
     if (!Number.isFinite(sunrise) || !Number.isFinite(sunset) || sunset <= sunrise) return;
     let progress = getSunProgress(nowMs, sunrise, sunset);
     const night = progress < 0 || progress > 1;
+    placeSkySun(night ? null : progress);
     if (night) {
         // Across the night the moon travels the same arc, sunset to the next sunrise.
         const nightLen = 86400000 - (sunset - sunrise);

@@ -997,8 +997,146 @@ body.projector-mode #award-immersive-sky .wx-stage * { animation-play-state: pau
     .wx-rainbow-wrap { animation: none; opacity: 0.4; }
 }
 
-/* Projector: hide the sun or moon when the live sky is too cloudy to see it. */
-html[data-wx-sun="0"] #dynamic-wallpaper-screen:not(.is-night) #wall-sun,
+/* Projector: hide the moon when the live sky is too cloudy to see it (the sun: see the Sky Window below). */
 html[data-wx-moon="0"] #dynamic-wallpaper-screen.is-night #wall-moon {
     opacity: 0 !important;
+}
+
+/* ============================================================
+   9. PROJECTOR SKY WINDOW: the wallpaper's own sky
+   The whole window is painted from the shared live palette, so it is the
+   same sky as the header, Award sky and Home card: dawn, day, golden hour,
+   twilight and night, greyed by the real weather. The palette colours are
+   registered so the sky melts from one light to the next instead of
+   switching. Only gradients and transforms: nothing filters or blurs.
+   ============================================================ */
+@property --wx-sky-1 { syntax: '<color>'; inherits: true; initial-value: #89f7fe; }
+@property --wx-sky-2 { syntax: '<color>'; inherits: true; initial-value: #79cffd; }
+@property --wx-sky-3 { syntax: '<color>'; inherits: true; initial-value: #66a6ff; }
+@property --wx-zenith { syntax: '<color>'; inherits: true; initial-value: rgba(37, 99, 235, 0.16); }
+@property --wx-horizon { syntax: '<color>'; inherits: true; initial-value: rgba(224, 242, 254, 0.62); }
+@property --wx-glow { syntax: '<color>'; inherits: true; initial-value: rgba(255, 250, 214, 0.6); }
+
+#dynamic-wallpaper-screen {
+    /* Where the light comes from (the sun by day, the moon by night). ui/wallpaper.js
+       follows the real sun along its arc; these are the resting places per light. */
+    --sun-x: 80vw;
+    --sun-y: 16vh;
+    --glow-x: var(--sun-x);
+    --glow-y: var(--sun-y);
+    /* Top to bottom of the window. */
+    --wall-top: var(--wx-sky-3);
+    --wall-mid: var(--wx-sky-2);
+    --wall-low: var(--wx-sky-1);
+    /* The sun disc and its halo. */
+    --sun-hi: #fffbe6;
+    --sun-core: #fde68a;
+    --sun-rim: #fbbf24;
+    --sun-halo: rgba(255, 236, 160, 0.55);
+}
+html[data-wx-light="dawn"] #dynamic-wallpaper-screen {
+    --sun-x: 18vw;
+    --sun-y: 60vh;
+    --sun-hi: #fff4ea;
+    --sun-core: #ffd3b0;
+    --sun-rim: #fb9f7c;
+    --sun-halo: rgba(255, 190, 160, 0.55);
+}
+html[data-wx-light="golden"] #dynamic-wallpaper-screen {
+    --sun-x: 78vw;
+    --sun-y: 58vh;
+    --sun-hi: #fff1d6;
+    --sun-core: #fdba74;
+    --sun-rim: #f97316;
+    --sun-halo: rgba(253, 160, 90, 0.6);
+}
+/* Twilight: the light lies along the horizon, so the deep colour sits on top. */
+html[data-wx-light="twilight"] #dynamic-wallpaper-screen {
+    --wall-top: var(--wx-sky-1);
+    --wall-mid: var(--wx-sky-2);
+    --wall-low: var(--wx-sky-3);
+    --glow-x: 74vw;
+    --glow-y: 84vh;
+}
+html[data-wx-light="night"] #dynamic-wallpaper-screen {
+    --glow-x: 84vw;
+    --glow-y: 20vh;
+}
+
+.wall-sky {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 58vmax 46vmax at var(--glow-x) var(--glow-y), var(--wx-glow) 0%, transparent 62%),
+        linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 46%),
+        linear-gradient(to top, var(--wx-horizon) 0%, transparent 52%),
+        linear-gradient(to bottom, var(--wall-top) 0%, var(--wall-mid) 52%, var(--wall-low) 100%);
+    transition:
+        --wx-sky-1 6s ease, --wx-sky-2 6s ease, --wx-sky-3 6s ease,
+        --wx-zenith 6s ease, --wx-horizon 6s ease, --wx-glow 6s ease;
+}
+
+/* The sun: a painted disc in a soft halo, coloured by the light and moving with it. */
+.wall-sun {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: clamp(6.5rem, 12vw, 11rem);
+    aspect-ratio: 1;
+    margin: calc(clamp(6.5rem, 12vw, 11rem) / -2) 0 0 calc(clamp(6.5rem, 12vw, 11rem) / -2);
+    translate: var(--sun-x) var(--sun-y);
+    transition: translate 8s cubic-bezier(0.4, 0, 0.2, 1), opacity 3s ease;
+}
+.wall-sun__halo,
+.wall-sun__disc {
+    position: absolute;
+    border-radius: 50%;
+}
+.wall-sun__halo {
+    inset: -120%;
+    background: radial-gradient(circle, var(--sun-halo) 0%, transparent 62%);
+    animation: wall-sun-breathe 7s ease-in-out infinite alternate;
+}
+.wall-sun__disc {
+    inset: 0;
+    background: radial-gradient(circle at 40% 36%, var(--sun-hi) 0%, var(--sun-core) 48%, var(--sun-rim) 100%);
+    box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--sun-core) 35%, transparent), 0 0 3.5rem 1.2rem var(--sun-halo);
+}
+@keyframes wall-sun-breathe {
+    from { transform: scale(0.94); opacity: 0.85; }
+    to { transform: scale(1.06); opacity: 1; }
+}
+/* Behind cloud cover, or once the sun has set, it fades away. */
+#dynamic-wallpaper-screen.is-night .wall-sun,
+html[data-wx-sun="0"] .wall-sun {
+    opacity: 0;
+}
+html[data-wx-sun="0"] #dynamic-wallpaper-screen:not(.is-night) .wall-sun { translate: var(--sun-x) calc(var(--sun-y) - 4vh); }
+
+/* The hills and castle take the light of the hour. */
+html[data-wx-light="dawn"][data-wx-tone="fair"] .wall-horizon {
+    --hill-far: rgba(178, 168, 200, 0.62);
+    --hill-near: rgba(122, 164, 140, 0.82);
+    --castle: rgba(150, 140, 176, 0.78);
+}
+html[data-wx-light="golden"][data-wx-tone="fair"] .wall-horizon {
+    --hill-far: rgba(196, 154, 134, 0.62);
+    --hill-near: rgba(126, 146, 96, 0.84);
+    --castle: rgba(160, 120, 112, 0.78);
+    --castle-window: #fde68a;
+}
+html[data-wx-light="twilight"] .wall-horizon {
+    --hill-far: rgba(94, 70, 132, 0.86);
+    --hill-near: rgba(56, 44, 98, 0.94);
+    --castle: rgba(66, 52, 108, 0.94);
+    --castle-window: #fcd34d;
+    --flag: #fbbf24;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wall-sky { transition: none; }
+    .wall-sun { transition: opacity 0.4s ease; }
+    .wall-sun__halo { animation: none; }
 }

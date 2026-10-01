@@ -100,6 +100,16 @@ function render() {
     wall.classList.remove(...WALLPAPER_WEATHER_CLASSES);
     wall.classList.add(...wallpaperClassesForCode(state.code));
     wall.classList.toggle('is-night', isNight);
+    // Same sun placement as ui/wallpaper.js#placeSkySun.
+    const p = (sun.now - sun.sunrise) / (sun.sunset - sun.sunrise);
+    if (p >= 0 && p <= 1) {
+        const x = 10 + 80 * p;
+        wall.style.setProperty('--sun-x', `${x.toFixed(1)}vw`);
+        wall.style.setProperty('--sun-y', `${(64 - 50 * Math.sin(Math.PI * p) - 14 * Math.exp(-(((x - 50) / 14) ** 2))).toFixed(1)}vh`);
+    } else {
+        wall.style.removeProperty('--sun-x');
+        wall.style.removeProperty('--sun-y');
+    }
     paintSkySurface('wall');
 }
 

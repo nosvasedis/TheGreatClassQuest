@@ -2,7 +2,7 @@
 
 import * as state from '../../state.js';
 import { HERO_CLASSES, heroClassChangesRemaining, heroClassLockApplies } from '../../features/heroClasses.js';
-import { getReasonDisplayName } from '../../features/heroSkillTree.js';
+import { getReasonDisplayName, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
@@ -18,6 +18,7 @@ let previewClass = null;
 let restoreEditStudentId = null;
 let listenersWired = false;
 let ceremonyMode = 'pick';
+let heldClass = null;
 
 function escapeHtml(value) {
     return String(value || '')
@@ -31,10 +32,47 @@ function getStudent(studentId) {
     return (state.get('allStudents') || []).find((s) => s.id === studentId) || null;
 }
 
+const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+const CLASS_MOTTOS = {
+    Guardian: 'Stands tall and keeps every friend safe.',
+    Sage: 'Dreams up ideas nobody has seen before.',
+    Paladin: 'Leads the guild, shoulder to shoulder.',
+    Artificer: 'Builds greatness one careful step at a time.',
+    Scholar: 'Turns every trial into treasure.',
+    Weaver: 'Spins stories that light up the room.',
+    Nomad: 'Always finds the way back to the quest.',
+    Patron: 'Grows stronger by giving to others.'
+};
+
+function numeralFor(className) {
+    return NUMERALS[CLASS_NAMES.indexOf(className)] || '';
+}
+
+function cardStyle(info, index = 0) {
+    return `--card-accent:${info.theme.accent};--card-accent-rgb:${info.theme.rgb};--i:${index};`;
+}
+
+function cardFaceHTML(className) {
+    const info = HERO_CLASSES[className];
+    const virtue = getReasonDisplayName(info.reason);
+    return `<span class="hcs-card-face">
+            <span class="hcs-card-numeral">${numeralFor(className)}</span>
+            <span class="hcs-card-art"><span class="hcs-card-sigil">${info.icon}</span></span>
+            <span class="hcs-card-name">${escapeHtml(className)}</span>
+            <span class="hcs-card-virtue">${escapeHtml(virtue)}</span>
+        </span>`;
+}
+
+function ranksHTML(className) {
+    const titles = HERO_SKILL_TREE[className]?.titles || [];
+    if (!titles.length) return '';
+    return `<p class="hcs-pathranks-label">Ranks on this path</p>
+        <ol class="hcs-pathranks-list">${titles.map((title, i) => `<li><span class="hcs-rank-step">${i + 1}</span>${escapeHtml(title)}</li>`).join('')}</ol>`;
+}
+
 function applyShellTheme(className) {
     const shell = document.getElementById('hcs-shell');
-    const watermark = document.getElementById('hcs-watermark');
-    const headerEmoji = document.getElementById('hcs-header-emoji');
     if (!shell) return;
 
     const info = HERO_CLASSES[className];
@@ -42,16 +80,12 @@ function applyShellTheme(className) {
         shell.removeAttribute('data-theme');
         shell.style.removeProperty('--hcs-accent');
         shell.style.removeProperty('--hcs-accent-rgb');
-        if (watermark) watermark.textContent = '⚔️';
-        if (headerEmoji) headerEmoji.textContent = '⚔️';
         return;
     }
 
     shell.dataset.theme = className;
     shell.style.setProperty('--hcs-accent', info.theme.accent);
     shell.style.setProperty('--hcs-accent-rgb', info.theme.rgb);
-    if (watermark) watermark.textContent = info.icon;
-    if (headerEmoji) headerEmoji.textContent = info.icon;
 }
 
 function setMode(mode) {
@@ -66,24 +100,67 @@ function renderCards() {
 
     mount.innerHTML = CLASS_NAMES.map((name, index) => {
         const info = HERO_CLASSES[name];
-        const selected = previewClass === name;
         const virtue = getReasonDisplayName(info.reason);
         return `<button type="button"
-            class="hcs-card${selected ? ' is-selected' : ''}"
+            class="hcs-card"
             role="option"
-            aria-selected="${selected ? 'true' : 'false'}"
+            aria-selected="false"
+            aria-label="${escapeHtml(`${name}, ${virtue}`)}"
             data-class="${name}"
             data-index="${index}"
-            style="--card-accent:${info.theme.accent};--card-accent-rgb:${info.theme.rgb};">
-            <div class="hcs-card-top">
-                <span class="hcs-card-icon">${info.icon}</span>
-                <span class="hcs-card-check" aria-hidden="true"><i class="fas fa-check"></i></span>
-            </div>
-            <span class="hcs-card-name">${escapeHtml(name)}</span>
-            <span class="hcs-card-virtue">${escapeHtml(virtue)}</span>
-            <span class="hcs-card-perk">${escapeHtml(info.desc)}</span>
+            style="${cardStyle(info, index)}">
+            ${cardFaceHTML(name)}
+            ${name === heldClass ? '<span class="hcs-card-current">Your path</span>' : ''}
+            <span class="hcs-card-check" aria-hidden="true"><i class="fas fa-check"></i></span>
         </button>`;
     }).join('');
+
+    // Deal the cards onto the cloth once per opening.
+    mount.classList.remove('is-dealing', 'has-choice');
+    void mount.offsetWidth;
+    mount.classList.add('is-dealing');
+    window.setTimeout(() => mount.classList.remove('is-dealing'), 1100);
+}
+
+function syncSelection() {
+    const mount = document.getElementById('hcs-cards');
+    if (!mount) return;
+    mount.classList.toggle('has-choice', Boolean(previewClass));
+    mount.querySelectorAll('.hcs-card').forEach((card) => {
+        const selected = card.dataset.class === previewClass;
+        card.classList.toggle('is-selected', selected);
+        card.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
+}
+
+function renderReading() {
+    const mount = document.getElementById('hcs-reading');
+    if (!mount) return;
+    const info = HERO_CLASSES[previewClass];
+    if (!info) {
+        mount.classList.remove('has-reading');
+        mount.style.cssText = '';
+        mount.innerHTML = `<div class="hcs-reading-empty">
+                <div class="hcs-cardback" aria-hidden="true"><span>✦</span></div>
+                <div>
+                    <p class="hcs-reading-prompt">Every hero walks one path.</p>
+                    <p class="hcs-reading-hint">Tap a card to read its fortune.</p>
+                </div>
+            </div>`;
+        return;
+    }
+    mount.classList.add('has-reading');
+    mount.style.cssText = cardStyle(info);
+    mount.innerHTML = `<div class="hcs-reading-card">
+            <p class="hcs-reading-numeral">${numeralFor(previewClass)}</p>
+            <h3 class="hcs-reading-name"><span aria-hidden="true">${info.icon}</span> The ${escapeHtml(previewClass)}</h3>
+            <p class="hcs-reading-motto">${escapeHtml(CLASS_MOTTOS[previewClass] || '')}</p>
+            <dl class="hcs-reading-facts">
+                <div><dt>Virtue</dt><dd><span class="hcs-virtue-chip">${escapeHtml(getReasonDisplayName(info.reason))}</span></dd></div>
+                <div><dt>Reward</dt><dd class="hcs-reward"><span class="hcs-coin" aria-hidden="true"></span>${escapeHtml(info.desc)}</dd></div>
+            </dl>
+            <div class="hcs-pathranks">${ranksHTML(previewClass)}</div>
+        </div>`;
 }
 
 function updateSwearButton() {
@@ -96,14 +173,13 @@ function preview(className) {
     if (!HERO_CLASSES[className]) return;
     previewClass = className;
     applyShellTheme(className);
-    const subtitle = document.getElementById('hcs-subtitle');
-    if (subtitle) subtitle.textContent = `The path of the ${className}`;
-    renderCards();
+    syncSelection();
+    renderReading();
     updateSwearButton();
     playSound('click');
 }
 
-function fillResult(className, { shrine = false } = {}) {
+function fillResult(className, { shrine = false, studentName = '' } = {}) {
     const info = HERO_CLASSES[className];
     if (!info) return;
     applyShellTheme(className);
@@ -113,15 +189,23 @@ function fillResult(className, { shrine = false } = {}) {
     const virtueEl = document.getElementById('hcs-result-virtue');
     const perkEl = document.getElementById('hcs-result-perk');
     const emblemEl = document.getElementById('hcs-result-emblem');
+    const ranksEl = document.getElementById('hcs-result-ranks');
     const doneBtn = document.getElementById('hcs-done-btn');
     const kickerEl = document.getElementById('hcs-result-kicker');
+    const name = studentName || getStudent(currentStudentId)?.name || '';
 
-    if (titleEl) titleEl.textContent = shrine ? 'Your Path' : `You are ${article} ${className}!`;
-    if (nameEl) nameEl.textContent = `${info.icon} ${className}`;
-    if (virtueEl) virtueEl.textContent = getReasonDisplayName(info.reason);
+    if (titleEl) titleEl.textContent = shrine ? `The path of the ${className}` : `You are ${article} ${className}!`;
+    if (nameEl) {
+        nameEl.textContent = name || className;
+    }
+    if (virtueEl) virtueEl.textContent = `Virtue of ${getReasonDisplayName(info.reason)}`;
     if (perkEl) perkEl.textContent = info.desc;
-    if (emblemEl) emblemEl.textContent = info.icon;
-    if (kickerEl) kickerEl.textContent = shrine ? 'Locked this school year' : 'Hero Path';
+    if (emblemEl) {
+        emblemEl.style.cssText = cardStyle(info);
+        emblemEl.innerHTML = `<div class="hcs-card hcs-card--hero" style="${cardStyle(info)}">${cardFaceHTML(className)}</div>`;
+    }
+    if (ranksEl) ranksEl.innerHTML = ranksHTML(className);
+    if (kickerEl) kickerEl.textContent = shrine ? 'Sworn for this school year' : 'Your card is drawn';
     if (doneBtn) doneBtn.textContent = shrine ? 'Close' : "Let's Go!";
 }
 
@@ -177,7 +261,8 @@ async function swearPath() {
 function focusCardByOffset(offset) {
     const cards = [...document.querySelectorAll('#hcs-cards .hcs-card')];
     if (!cards.length) return;
-    const currentIndex = cards.findIndex((card) => card.classList.contains('is-selected') || card === document.activeElement);
+    const focused = cards.indexOf(document.activeElement);
+    const currentIndex = focused >= 0 ? focused : cards.findIndex((card) => card.classList.contains('is-selected'));
     const nextIndex = currentIndex < 0
         ? 0
         : (currentIndex + offset + cards.length) % cards.length;
@@ -254,12 +339,12 @@ export function openHeroClassSelectModal(studentId, options = {}) {
     currentStudentId = studentId;
     restoreEditStudentId = options.restoreEditStudent ? studentId : null;
     previewClass = null;
+    heldClass = HERO_CLASSES[student.heroClass] ? student.heroClass : null;
 
     const nameEl = document.getElementById('hcs-student-name');
     if (nameEl) nameEl.textContent = student.name || '';
 
     const banner = document.getElementById('hcs-lock-banner');
-    const subtitle = document.getElementById('hcs-subtitle');
     const swearBtn = document.getElementById('hcs-swear-btn');
     if (swearBtn) swearBtn.textContent = 'Swear this Path';
 
@@ -276,12 +361,11 @@ export function openHeroClassSelectModal(studentId, options = {}) {
 
     const pathLocked = heroClassLockApplies(student, state.getActiveSchoolYearKey());
     if (pathLocked && student.heroClass && HERO_CLASSES[student.heroClass]) {
-        fillResult(student.heroClass, { shrine: true });
+        fillResult(student.heroClass, { shrine: true, studentName: student.name });
         setMode('shrine');
         if (banner) banner.classList.add('hidden');
     } else {
         applyShellTheme(null);
-        if (subtitle) subtitle.textContent = 'Who will you become?';
         if (banner) {
             const showWarn = Boolean(student.heroClass && !pathLocked);
             banner.classList.toggle('hidden', !showWarn);
@@ -293,6 +377,7 @@ export function openHeroClassSelectModal(studentId, options = {}) {
             }
         }
         renderCards();
+        renderReading();
         updateSwearButton();
         setMode('pick');
     }

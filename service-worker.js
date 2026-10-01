@@ -46,11 +46,17 @@ async function networkFirst(request, fallbackUrl) {
   }
 }
 
+// Pages hosts answer a missing hashed file (a chunk from an older deploy) with
+// index.html and a 200. Never cache that page under a script or style URL.
+function isHtmlResponse(response) {
+  return String(response.headers.get('content-type') || '').includes('text/html');
+}
+
 async function cacheFirst(request) {
   const cached = await caches.match(request);
-  if (cached) return cached;
+  if (cached && !isHtmlResponse(cached)) return cached;
   const response = await fetch(request);
-  if (response.ok) {
+  if (response.ok && !isHtmlResponse(response)) {
     const cache = await caches.open(RUNTIME_CACHE);
     await cache.put(request, response.clone());
   }

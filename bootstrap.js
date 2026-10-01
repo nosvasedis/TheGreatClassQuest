@@ -23,7 +23,66 @@ window.addEventListener('error', (event) => {
 });
 
 window.addEventListener('unhandledrejection', (event) => {
+    if (isChunkLoadError(event.reason)) recoverFromStaleBuild();
     logRuntimeFailure('GCQ unhandled promise rejection', event.reason);
+});
+
+// --- Stale tab after a deploy ---
+// A tab opened before a deploy still asks for the old hashed chunks, which no longer
+// exist; the host answers with index.html and the import fails. Reload once onto the
+// new build, unless the teacher is mid-entry, where a reload would lose typed work.
+const CHUNK_ERROR_PATTERN = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/i;
+const STALE_RELOAD_KEY = 'gcq-stale-build-reload';
+
+function isChunkLoadError(error) {
+    return CHUNK_ERROR_PATTERN.test(String(error?.message || error || ''));
+}
+
+function isTeacherBusy() {
+    if (document.visibilityState === 'hidden') return false;
+    const active = document.activeElement;
+    if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return true;
+    return Array.from(document.querySelectorAll('[role="dialog"], [aria-modal="true"]'))
+        .some((el) => !el.classList.contains('hidden') && el.getClientRects().length > 0);
+}
+
+function showStaleBuildReload() {
+    if (document.getElementById('gcq-update-ready')) return;
+    const button = document.createElement('button');
+    button.id = 'gcq-update-ready';
+    button.type = 'button';
+    button.className = 'gcq-update-ready-button font-title';
+    button.setAttribute('aria-label', 'A new version is out. Reload the app.');
+    button.title = 'A new version is out. Reload when you are done here.';
+    button.innerHTML = '<span class="gcq-update-ready-sparkle" aria-hidden="true">✦</span><i class="fas fa-rotate gcq-update-ready-icon" aria-hidden="true"></i><span class="gcq-update-ready-label">Update ready</span>';
+    button.addEventListener('click', () => window.location.reload());
+    const mount = document.getElementById('gcq-update-ready-mount');
+    if (mount) {
+        mount.classList.remove('hidden');
+        mount.appendChild(button);
+    } else {
+        button.classList.add('gcq-update-ready-button--fallback');
+        document.body.appendChild(button);
+    }
+}
+
+function recoverFromStaleBuild() {
+    let alreadyTried = false;
+    try {
+        alreadyTried = sessionStorage.getItem(STALE_RELOAD_KEY) === window.__GCQ_BUILD_ID__;
+    } catch { /* storage blocked: fall back to the button */ alreadyTried = true; }
+    if (alreadyTried || isTeacherBusy()) {
+        showStaleBuildReload();
+        return;
+    }
+    try { sessionStorage.setItem(STALE_RELOAD_KEY, window.__GCQ_BUILD_ID__); } catch { /* ignore */ }
+    window.location.reload();
+}
+
+// Vite fires this when a lazy chunk or its preloads fail. The error still reaches the
+// caller, so each feature keeps its own fallback; this only gets the tab onto the new build.
+window.addEventListener('vite:preloadError', (event) => {
+    if (isChunkLoadError(event.payload)) recoverFromStaleBuild();
 });
 
 function isLocalHost() {

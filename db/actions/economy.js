@@ -262,6 +262,90 @@ export async function handleEnsureShopStock() {
     return runShopStockJob('ensure', { toast: false });
 }
 
+async function celebrateBulkTrialSave({ savedScoresData, potentialStarfallStudents, classData, date }) {
+    // --- PERSONAL BEST CHECK ---
+    savedScoresData.forEach(savedScore => {
+        if (savedScore.type === 'test') {
+            const studentId = savedScore.studentId;
+            const student = state.get('allStudents').find(s => s.id === studentId);
+            const newScorePercent = getNormalizedPercentForScore(savedScore, classData) || 0;
+
+            const previousScores = state.get('allWrittenScores')
+                .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id);
+
+            const maxPreviousScore = previousScores.length > 0
+                ? Math.max(...previousScores.map(s => getNormalizedPercentForScore(s, classData) || 0))
+                : 0;
+
+            if (newScorePercent > maxPreviousScore && maxPreviousScore > 0) {
+                setTimeout(() => {
+                    showPraiseToast(`${student.name} just set a new Personal Best on their test!`, '🏆');
+                }, 700);
+            }
+        }
+    });
+
+    // --- PROCESS STARFALL FOR BATCH ---
+    const finalEligibleStudents = [];
+
+    // Test Bonuses
+    const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
+    testWinners.forEach(w => {
+        const s = state.get('allStudents').find(st => st.id === w.studentId);
+        if (s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
+    });
+
+    // Dictation Bonuses
+    const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
+    if (dictationCandidates.length > 0) {
+        const refDate = parseFlexibleDate(date);
+        const refYear = refDate ? refDate.getFullYear() : 0;
+        const refMonth = refDate ? refDate.getMonth() : -1;
+
+        dictationCandidates.forEach(cand => {
+            const studentScoresThisMonth = state.get('allWrittenScores').filter(s => {
+                const d = parseFlexibleDate(s.date);
+                return s.studentId === cand.studentId && s.type === 'dictation' && d && d.getFullYear() === refYear && d.getMonth() === refMonth;
+            });
+
+            let highCount = 1; // Current one counts
+            highCount += studentScoresThisMonth.filter(s => qualifiesForHighScore(s, 'dictation', classData)).length;
+
+            if (highCount >= 3) {
+                const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => {
+                    const d = parseFlexibleDate(log.date);
+                    return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation') && !isGrowthStarfallNote(log.note);
+                }).length;
+
+                if (bonusLogsThisMonth < 2) {
+                    const s = state.get('allStudents').find(st => st.id === cand.studentId);
+                    if (s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
+                }
+            }
+        });
+    }
+
+    // Growth Starfall: a clear jump above the student's own recent average (see growthStarfallCore).
+    // Optional: if its chunk cannot load, the regular Starfall proposals still show.
+    try {
+        const { findGrowthStarfallStudents } = await import('../../features/growthStarfall.js');
+        finalEligibleStudents.push(...findGrowthStarfallStudents({
+            savedScoresData,
+            classData,
+            trialDate: date,
+            alreadyProposedIds: new Set(finalEligibleStudents.map((entry) => entry.studentId))
+        }));
+    } catch (error) {
+        console.warn('Growth Starfall skipped:', error);
+    }
+
+    if (finalEligibleStudents.length > 0) {
+        setTimeout(() => {
+            import('../../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
+        }, 500);
+    }
+}
+
 export async function handleBulkSaveTrial() {
     const modal = document.getElementById('bulk-trial-modal');
     const classId = modal.dataset.classId;
@@ -416,81 +500,12 @@ export async function handleBulkSaveTrial() {
             // Dynamic import to avoid circular dependency issues
             import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
 
-            // --- PERSONAL BEST CHECK ---
-            savedScoresData.forEach(savedScore => {
-                if (savedScore.type === 'test') {
-                    const studentId = savedScore.studentId;
-                    const student = state.get('allStudents').find(s => s.id === studentId);
-                    const newScorePercent = getNormalizedPercentForScore(savedScore, classData) || 0;
-
-                    const previousScores = state.get('allWrittenScores')
-                        .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id);
-
-                    const maxPreviousScore = previousScores.length > 0
-                        ? Math.max(...previousScores.map(s => getNormalizedPercentForScore(s, classData) || 0))
-                        : 0;
-
-                    if (newScorePercent > maxPreviousScore && maxPreviousScore > 0) {
-                        setTimeout(() => {
-                            showPraiseToast(`${student.name} just set a new Personal Best on their test!`, '🏆');
-                        }, 700);
-                    }
-                }
-            });
-
-            // --- PROCESS STARFALL FOR BATCH ---
-            const finalEligibleStudents = [];
-
-            // Test Bonuses
-            const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
-            testWinners.forEach(w => {
-                const s = state.get('allStudents').find(st => st.id === w.studentId);
-                if (s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
-            });
-
-            // Dictation Bonuses
-            const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
-            if (dictationCandidates.length > 0) {
-                const refDate = parseFlexibleDate(date);
-                const refYear = refDate ? refDate.getFullYear() : 0;
-                const refMonth = refDate ? refDate.getMonth() : -1;
-
-                dictationCandidates.forEach(cand => {
-                    const studentScoresThisMonth = state.get('allWrittenScores').filter(s => {
-                        const d = parseFlexibleDate(s.date);
-                        return s.studentId === cand.studentId && s.type === 'dictation' && d && d.getFullYear() === refYear && d.getMonth() === refMonth;
-                    });
-
-                    let highCount = 1; // Current one counts
-                    highCount += studentScoresThisMonth.filter(s => qualifiesForHighScore(s, 'dictation', classData)).length;
-
-                    if (highCount >= 3) {
-                        const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => {
-                            const d = parseFlexibleDate(log.date);
-                            return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation') && !isGrowthStarfallNote(log.note);
-                        }).length;
-
-                        if (bonusLogsThisMonth < 2) {
-                            const s = state.get('allStudents').find(st => st.id === cand.studentId);
-                            if (s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
-                        }
-                    }
-                });
-            }
-
-            // Growth Starfall: a clear jump above the student's own recent average (see growthStarfallCore).
-            const { findGrowthStarfallStudents } = await import('../../features/growthStarfall.js');
-            finalEligibleStudents.push(...findGrowthStarfallStudents({
-                savedScoresData,
-                classData,
-                trialDate: date,
-                alreadyProposedIds: new Set(finalEligibleStudents.map((entry) => entry.studentId))
-            }));
-
-            if (finalEligibleStudents.length > 0) {
-                setTimeout(() => {
-                    import('../../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
-                }, 500);
+            // Everything below is celebration only. The grades are already in Firestore,
+            // so a missing chunk (e.g. a stale tab after a deploy) must never report a failed save.
+            try {
+                await celebrateBulkTrialSave({ savedScoresData, potentialStarfallStudents, classData, date });
+            } catch (celebrationError) {
+                console.warn('Trial saved; celebrations skipped:', celebrationError);
             }
 
         } else if (absentStudentIds.length > 0) {

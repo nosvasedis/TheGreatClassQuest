@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 const root = new URL('../', import.meta.url);
 
@@ -9,6 +10,123 @@ async function importWorker(relativePath) {
   const encoded = Buffer.from(source).toString('base64');
   return { source, worker: (await import(`data:text/javascript;base64,${encoded}`)).default };
 }
+
+async function importIsolatedAiWorker(transform = (source) => source) {
+  const source = transform(await readFile(new URL('scratch/ai-proxy-worker/src/worker.js', root), 'utf8'));
+  return (await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${crypto.randomUUID()}`)).default;
+}
+
+function textRequest(requestId, origin = cloudflareStableOrigin, content = 'Write a short classroom adventure.') {
+  return new Request('https://worker.example/', {
+    method: 'POST',
+    headers: { Origin: origin, 'Content-Type': 'application/json', 'X-GCQ-Service-Key': 'test-service-key', 'X-GCQ-Request-ID': requestId },
+    body: JSON.stringify({ model: 'deepseek-flash', messages: [{ role: 'user', content }] }),
+  });
+}
+
+function textEnv(ai = { async run() { return { response: 'Backup story.' }; } }) {
+  const values = new Map();
+  return {
+    GCQ_AI_SERVICE_KEY: 'test-service-key', FIREBASE_PROJECT_ID: 'the-great-class-quest', DEEPSEEK_API_KEY: 'test-primary-key', AI: ai,
+    QUOTE_CACHE: { async get(key) { return values.get(key) ?? null; }, async put(key, value) { values.set(key, value); } },
+  };
+}
+
+test('overlapping text retries share only data and return fresh readable responses with their own origin', async (t) => {
+  const contexts = new AsyncLocalStorage();
+  const NativeResponse = globalThis.Response;
+  // Model workerd's invocation ownership: Node alone permits foreign streams.
+  class OwnedResponse extends NativeResponse {
+    constructor(...args) { super(...args); this.owner = contexts.getStore(); }
+    checkOwner() { assert.equal(contexts.getStore(), this.owner, 'foreign request response I/O'); }
+    get body() { this.checkOwner(); return super.body; }
+    clone() { this.checkOwner(); return super.clone(); }
+    text() { this.checkOwner(); return super.text(); }
+  }
+  t.mock.method(globalThis, 'Response', OwnedResponse);
+  const worker = await importIsolatedAiWorker();
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  let started;
+  const providerStarted = new Promise((resolve) => { started = resolve; });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    calls += 1; started(); await gate;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'One story.' } }] }));
+  });
+  const env = textEnv();
+  const ctx = { waitUntil() {} };
+  const invoke = (name, origin) => contexts.run(name, async () => {
+    const response = await worker.fetch(textRequest('overlapping-retry', origin), env, ctx);
+    return { status: response.status, origin: response.headers.get('Access-Control-Allow-Origin'), body: await response.text() };
+  });
+  const first = invoke('first', cloudflareStableOrigin);
+  await providerStarted;
+  const second = invoke('retry', 'http://127.0.0.1:3000');
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  release();
+  const [a, b] = await Promise.all([first, second]);
+  const c = await invoke('completed-replay', cloudflareStableOrigin);
+  assert.equal(calls, 1);
+  assert.equal(a.status, 200); assert.equal(b.status, 200); assert.equal(c.status, 200);
+  assert.equal(a.origin, cloudflareStableOrigin); assert.equal(b.origin, 'http://127.0.0.1:3000');
+  assert.equal(a.body, b.body); assert.equal(a.body, c.body);
+});
+
+test('request ID reuse with a different text payload cannot replay the old story', async (t) => {
+  const worker = await importIsolatedAiWorker();
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ text: `story ${++calls}` })));
+  const env = textEnv();
+  const first = await worker.fetch(textRequest('same-id-new-payload', cloudflareStableOrigin, 'First class.'), env, { waitUntil() {} });
+  const second = await worker.fetch(textRequest('same-id-new-payload', cloudflareStableOrigin, 'Second class.'), env, { waitUntil() {} });
+  assert.equal(calls, 2);
+  assert.notEqual(await first.text(), await second.text());
+});
+
+test('primary transport and body-read timeouts both invoke the text backup', async (t) => {
+  for (const stage of ['fetch', 'body']) {
+    const worker = await importIsolatedAiWorker();
+    let backupCalls = 0;
+    const fail = () => { throw new DOMException('Primary deadline exceeded.', 'TimeoutError'); };
+    t.mock.method(globalThis, 'fetch', async () => stage === 'fetch' ? fail() : { text: fail });
+    const env = textEnv({ async run() { backupCalls += 1; return { response: 'Backup story.' }; } });
+    const response = await worker.fetch(textRequest(`primary-timeout-${stage}`), env, { waitUntil() {} });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), cloudflareStableOrigin);
+    assert.equal(response.headers.get('X-GCQ-AI-Provider'), 'workers-ai-fallback');
+    assert.equal((await response.json()).choices[0].message.content, 'Backup story.');
+    assert.equal(backupCalls, 1);
+    t.mock.restoreAll();
+  }
+});
+
+test('a stalled backup returns a bounded CORS-visible timeout', async (t) => {
+  const worker = await importIsolatedAiWorker((s) => s.replace('const TEXT_FALLBACK_TIMEOUT_MS = 20_000;', 'const TEXT_FALLBACK_TIMEOUT_MS = 10;'));
+  t.mock.method(globalThis, 'fetch', async () => { throw new DOMException('Timeout', 'TimeoutError'); });
+  const response = await worker.fetch(textRequest('backup-timeout'), textEnv({ run() { return new Promise(() => {}); } }), { waitUntil() {} });
+  assert.equal(response.status, 504);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), cloudflareStableOrigin);
+  assert.equal(response.headers.get('X-GCQ-Request-ID'), 'backup-timeout');
+  assert.equal(response.headers.get('X-GCQ-Error-Source'), 'ai-upstream');
+});
+
+test('failed text attempts do not poison retries and all errors retain CORS', async (t) => {
+  const worker = await importIsolatedAiWorker();
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    if (++calls === 1) throw new TypeError('Network unavailable');
+    return new Response(JSON.stringify({ text: 'Recovered story.' }));
+  });
+  const env = textEnv({ async run() { throw new Error('Backup unavailable'); } });
+  const failed = await worker.fetch(textRequest('failed-then-retry'), env, { waitUntil() {} });
+  assert.equal(failed.status, 502);
+  assert.equal(failed.headers.get('Access-Control-Allow-Origin'), cloudflareStableOrigin);
+  const recovered = await worker.fetch(textRequest('failed-then-retry'), env, { waitUntil() {} });
+  assert.equal(recovered.status, 200);
+  assert.equal((await recovered.json()).text, 'Recovered story.');
+  assert.equal(calls, 2);
+});
 
 const allowedOrigin = 'https://nosvasedis.github.io';
 const cloudflareStableOrigin = 'https://great-class-quest-school.pages.dev';

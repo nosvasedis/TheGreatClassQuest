@@ -9,6 +9,11 @@ const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
 const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
 const TEXT_FALLBACK_DAILY_LIMIT = 12;
+const TEXT_UPSTREAM_TIMEOUT_MS = 25_000;
+const TEXT_FALLBACK_TIMEOUT_MS = 20_000;
+const TEXT_REPLAY_PENDING_MS = 60_000;
+const TEXT_REPLAY_TTL_MS = 30_000;
+const MAX_TEXT_REPLAYS = 128;
 const DEFAULT_ORIGINS = [
   'https://nosvasedis.github.io',
   'https://great-class-quest-school.pages.dev',
@@ -27,7 +32,8 @@ const SERVICE_RATE_LIMITS = { chat: 30, image: 40, speech: 8 };
 const MAX_RATE_BUCKETS = 2_000;
 const PROFILE_CACHE_SECONDS = 300;
 const rateBuckets = new Map();
-const inFlightRequests = new Map();
+// Only plain data belongs here: never a Response, stream, or request-owned promise.
+const textReplays = new Map();
 const jwksCaches = new Map();
 
 function json(body, status, corsHeaders = {}, extraHeaders = {}) {
@@ -334,12 +340,18 @@ async function handleWorkersAiTextFallback(outbound, env, corsHeaders) {
     );
   }
 
-  const result = await env.AI.run(TEXT_FALLBACK_MODEL, {
-    messages: outbound.messages,
-    temperature: outbound.temperature,
-    top_p: outbound.top_p,
-    max_tokens: outbound.max_tokens,
-  });
+  let timer;
+  const result = await Promise.race([
+    env.AI.run(TEXT_FALLBACK_MODEL, {
+      messages: outbound.messages,
+      temperature: outbound.temperature,
+      top_p: outbound.top_p,
+      max_tokens: outbound.max_tokens,
+    }),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new DOMException('Backup AI timed out.', 'TimeoutError')), TEXT_FALLBACK_TIMEOUT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer));
   const content = extractWorkersAiText(result);
   if (!content) throw new Error('Workers AI returned no text.');
   return json(
@@ -380,16 +392,28 @@ async function handleChat(payload, env, ctx, corsHeaders) {
     return fallback;
   }
 
-  const response = await fetchNoRedirect(DEEPSEEK_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(outbound),
-    signal: AbortSignal.timeout(55_000),
-  });
-  const responseText = await response.text();
+  let response;
+  let responseText;
+  try {
+    response = await fetchNoRedirect(DEEPSEEK_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(outbound),
+      signal: AbortSignal.timeout(TEXT_UPSTREAM_TIMEOUT_MS),
+    });
+    responseText = await response.text();
+  } catch (error) {
+    // Transport failures and timeouts need the same backup as HTTP failures.
+    console.warn(JSON.stringify({ event: 'gcq_text_fallback', reason: error?.name || 'Error' }));
+    const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+    if (quoteKey && fallback.ok && env.QUOTE_CACHE) {
+      ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));
+    }
+    return fallback.ok ? fallback : proxyFailure(error, corsHeaders);
+  }
   if (!response.ok) {
     // Any DeepSeek upstream failure (auth, billing, rate limit, 5xx) should try
     // Workers AI before hard-failing the client. Quote UX depends on this path.
@@ -503,6 +527,67 @@ async function processRequest(request, env, ctx, corsHeaders, identity, payload,
   return json({ error: 'Invalid payload.' }, 400, corsHeaders, { 'X-GCQ-Request-ID': requestId });
 }
 
+function proxyFailure(error, corsHeaders, requestId = '') {
+  const timedOut = error?.name === 'TimeoutError';
+  console.error(JSON.stringify({ event: 'gcq_proxy_failed', requestId, reason: error?.name || 'Error' }));
+  return json({ error: timedOut ? 'Upstream service timed out.' : 'Upstream service failed.' }, timedOut ? 504 : 502, corsHeaders, {
+    'X-GCQ-Error-Source': 'ai-upstream',
+    ...(requestId ? { 'X-GCQ-Request-ID': requestId } : {}),
+  });
+}
+
+function replayTextResponse(result, corsHeaders, requestId) {
+  const headers = new Headers(result.headers);
+  for (const [name, value] of Object.entries(corsHeaders)) headers.set(name, value);
+  headers.set('X-GCQ-Request-ID', requestId);
+  return new Response(result.body, {
+    status: result.status,
+    headers,
+  });
+}
+
+async function processTextWithReplay(key, run, ctx, corsHeaders, requestId) {
+  const now = Date.now();
+  for (const [cachedKey, entry] of textReplays) {
+    if (entry.expiresAt <= now) textReplays.delete(cachedKey);
+  }
+  const existing = textReplays.get(key);
+  if (existing) {
+    // Each waiter uses its own timer, never another invocation's I/O promise.
+    while (!existing.result && Date.now() < existing.expiresAt) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return existing.result
+      ? replayTextResponse(existing.result, corsHeaders, requestId)
+      : proxyFailure(new DOMException('Pending AI request timed out.', 'TimeoutError'), corsHeaders, requestId);
+  }
+  if (textReplays.size >= MAX_TEXT_REPLAYS) {
+    return json({ error: 'AI service is busy. Please retry shortly.' }, 503, corsHeaders, { 'Retry-After': '2', 'X-GCQ-Request-ID': requestId });
+  }
+  const entry = { result: null, expiresAt: now + TEXT_REPLAY_PENDING_MS };
+  textReplays.set(key, entry);
+  const task = (async () => {
+    let result;
+    try {
+      const response = await run();
+      const body = await response.text();
+      if (body.length > MAX_REQUEST_BYTES) throw new Error('AI response is too large to replay.');
+      result = { body, status: response.status, headers: Object.fromEntries(response.headers) };
+    } catch (error) {
+      const response = proxyFailure(error, corsHeaders, requestId);
+      result = { body: await response.text(), status: response.status, headers: Object.fromEntries(response.headers) };
+    }
+    entry.result = result;
+    entry.expiresAt = Date.now() + TEXT_REPLAY_TTL_MS;
+    // An exhausted attempt must not poison subsequent retries with its error.
+    if (result.status >= 400 && textReplays.get(key) === entry) textReplays.delete(key);
+    return result;
+  })();
+  // Complete the plain-data replay if an older client disconnects at 35 seconds.
+  ctx.waitUntil(task.then(() => {}));
+  return replayTextResponse(await task, corsHeaders, requestId);
+}
+
 async function digestSha256(value) {
   return crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value || '')));
 }
@@ -598,17 +683,20 @@ export default {
 
     const suppliedRequestId = String(request.headers.get('X-GCQ-Request-ID') || '').trim();
     const requestId = /^[A-Za-z0-9._:-]{8,128}$/.test(suppliedRequestId) ? suppliedRequestId : crypto.randomUUID();
-    const inFlightKey = `${identity.uid}:${requestId}`;
-    if (inFlightRequests.has(inFlightKey)) return (await inFlightRequests.get(inFlightKey)).clone();
-    const task = processRequest(request, env, ctx, corsHeaders, identity, payload, route, requestId)
-      .catch((error) => json({ error: error?.name === 'TimeoutError' ? 'Upstream service timed out.' : 'Upstream service failed.' }, error?.name === 'TimeoutError' ? 504 : 502, corsHeaders))
-      .then((response) => {
-        const headers = new Headers(response.headers);
-        headers.set('X-GCQ-Request-ID', requestId);
-        return new Response(response.body, { status: response.status, headers });
-      })
-      .finally(() => setTimeout(() => inFlightRequests.delete(inFlightKey), 30_000));
-    inFlightRequests.set(inFlightKey, task);
-    return (await task).clone();
+    try {
+      const run = () => processRequest(request, env, ctx, corsHeaders, identity, payload, route, requestId);
+      if (route === 'chat') {
+        // Bind replay to both the authenticated identity and exact payload.
+        const key = `${identity.projectId}:${identity.uid}:${requestId}:${await sha256Hex(rawBody)}`;
+        return await processTextWithReplay(key, run, ctx, corsHeaders, requestId);
+      }
+      // Images and speech keep their streams inside the current invocation.
+      const response = await run();
+      const headers = new Headers(response.headers);
+      headers.set('X-GCQ-Request-ID', requestId);
+      return new Response(response.body, { status: response.status, headers });
+    } catch (error) {
+      return proxyFailure(error, corsHeaders, requestId);
+    }
   },
 };

@@ -343,7 +343,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'settings', icon: 'fa-gear', name: 'Teacher Settings', tier: 'starter',
                     where: 'The cog in the header', go: 'options:classes',
-                    text: `My Classes (create and edit classes, open the roster), Student Tools (repair stars or Gold), Profile (your Quest Master name), and on Pro and Elite My Planning, Class Grading, Family Access, Quiz and Market. Switch jumps between sheets.`,
+                    text: `My Classes (create and edit classes, open the roster), Student Tools (repair stars or Gold), Profile (your Quest Master name and this browser's Quest cursor switch), and on Pro and Elite My Planning, Class Grading, Family Access, Quiz and Market. Switch jumps between sheets.`,
                     keys: 'settings my classes student tools profile roster class grading'
                 },
                 {

@@ -396,7 +396,7 @@ Opened from the header **cog**. Pick a section from the **dropdown** at the top.
 | **Student Tools** | Star Manager (historical award or direct override), Coin Purse, Familiar sprite forge (Elite). |
 | **My Classes** | Create/edit classes and **Manage Students**. |
 | **My Planning** | Per-class **final lesson day** (Pro). Holidays = School Office. |
-| **Profile** | Display name. |
+| **Profile** | Display name and this browser's Quest cursor preference. |
 | **Class Grading** | Pick a class, then Tests or Dictations; school picture is read-only (Pro). |
 | **Family Access** | Parent username/password per student (Pro). |
 | **Quiz** | Build Quiz of the Week; play on Home (Elite). |

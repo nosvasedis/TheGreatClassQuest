@@ -190,6 +190,8 @@ Weather is not a toy. It ties the classroom to the real morning outside.
 
 ## Sounds and small treats
 
+With a mouse, a small sky-blue and gold **Quest cursor** follows you across the app. Its shape changes for buttons and links, text entry and selection, dragging, help, zoom and unavailable controls. A loading control shows a small hourglass or progress pointer with a turning ring; a click on an available action gives a brief three-star twinkle. Text carets and resize handles keep their normal behaviour. These decorations stop when your device requests reduced motion; touch screens and high-contrast mode use the system pointer. **Teacher Settings → Profile Settings → Quest cursor** switches the custom pointer on or off for this browser, immediately and without Save.
+
 Stars, Gold, the Market, Familiar hatch/evolve, Quiz, and ceremonies each have their own sounds. Use them; children read the room through audio as much as through the screen.
 
 Other quiet treats you will meet elsewhere in this handbook:

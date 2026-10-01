@@ -17,6 +17,9 @@
 /* 1b. Global fluffy scrollbars (Firefox + WebKit); light default + dark-panel variants */
 @import url('./styles/scrollbars.css');
 
+/* App-wide native Quest cursor and decorative interaction effects. */
+@import url('./styles/quest_cursor.css');
+
 /* 2. Navigation bar, nav-button, nav-color-* classes, cloud swirl header */
 @import url('./styles/nav.css');
 

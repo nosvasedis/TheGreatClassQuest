@@ -298,6 +298,10 @@ export const optionsTabHTML = `
                                         <button id="save-teacher-name-btn" class="ts-btn ts-btn--block bubbly-button">
                                             <i class="fas fa-save"></i> Save Name
                                         </button>
+                                        <label class="quest-cursor-preference" for="quest-cursor-toggle">
+                                            <input type="checkbox" id="quest-cursor-toggle" checked>
+                                            <span>Quest cursor</span>
+                                        </label>
                                     </div>
                                 </div>
                             </section>

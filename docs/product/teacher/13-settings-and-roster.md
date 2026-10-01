@@ -15,7 +15,7 @@ Under the chalkboard title, a **section picker** shows where you are, with a one
 | **My Classes** | Opens first. Create/edit classes and open the roster |
 | **Student Tools** | Repair stars, Gold or a Familiar without pretending it was today’s lesson |
 | **My Planning** | Each class’s **final lesson day** (Pro) |
-| **Profile** | Your **display name** (Quest Master name on logs) |
+| **Profile** | Your **display name** (Quest Master name on logs) and the browser-local **Quest cursor** switch |
 | **Class Grading** | Override secretary assessment defaults for *your* class (Pro) |
 | **Family Access** | Parent username and password per child (Pro) |
 | **Quiz** | Build Quiz of the Week (Elite) — play it on **Home** |
@@ -65,6 +65,8 @@ Each class is a card: emblem, name, Quest League, days and times. The buttons al
 For Nursery and Pre-Junior classes the report leaves out per-hero star counts and trial averages.
 
 ## Profile
+
+**Quest cursor** turns the sky-blue and gold mouse pointer on or off immediately for this browser. It follows links, actions, text fields, drag and loading states. Choose off to use your system pointer. Touch and high-contrast mode use the system pointer automatically; reduced motion stops its click twinkles and loading orbit.
 
 Your **display name** — the Quest Master name on logs, ceremonies, and the Adventurer’s Guide greeting. A staff badge beside the box shows the name as you type. **Save Name**.
 

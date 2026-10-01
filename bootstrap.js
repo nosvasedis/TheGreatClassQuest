@@ -5,6 +5,9 @@
  * wrong Firebase project by accident.
  */
 
+import { setupQuestCursor } from './ui/questCursor.js';
+
+setupQuestCursor();
 window.__GCQ_BUILD_ID__ = typeof __GCQ_BUILD_ID__ === 'string' ? __GCQ_BUILD_ID__ : 'development';
 
 function logRuntimeFailure(label, error) {

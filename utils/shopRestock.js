@@ -117,6 +117,21 @@ export function remainingShopTiers(existingItems, neededTotal, tierTargets = MON
     return remaining;
 }
 
+/**
+ * True when an item belongs to the stall a league sees right now: this month's
+ * Seasonal Treasures, or the active festival's stall. Festival windows can cross
+ * a month boundary (Orthodox Easter, some Carnivals), so festival items follow
+ * their festivalId, not the month they were made in.
+ */
+export function isCurrentStallItem(item, { league, monthKey, festivalId } = {}) {
+    if (text(item?.league) !== text(league)) return false;
+    if (text(item?.monthKey) === text(monthKey)) return true;
+    const activeFestivalId = text(festivalId);
+    return Boolean(activeFestivalId)
+        && shopItemShelf(item) === 'festival'
+        && text(item?.festivalId) === activeFestivalId;
+}
+
 export function itemsForShelf(items = [], shelf = 'seasonal') {
     return (Array.isArray(items) ? items : []).filter((item) => shopItemShelf(item) === shelf);
 }
@@ -133,8 +148,11 @@ export function planShopRestock(items = [], options = {}) {
     const incomingIncomplete = incomplete.filter((item) => item.incoming);
     const fillIncomplete = incomplete.filter((item) => !item.incoming);
     const namesOf = (rows) => rows.map((item) => text(item.name)).filter(Boolean);
+    // A replacement already under way keeps going even if a student buys out a
+    // treasure meanwhile; otherwise the half-made new stall would be thrown away.
+    const replacing = incomingComplete.length + incomingIncomplete.length > 0;
 
-    if (active.length >= targetCount) {
+    if (active.length >= targetCount || replacing) {
         const incomingSlots = [...incomingComplete, ...incomingIncomplete];
         const needed = Math.max(0, targetCount - incomingSlots.length);
         const readyToSwap = incomingComplete.length >= targetCount;

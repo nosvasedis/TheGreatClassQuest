@@ -67,13 +67,26 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   const restockP = import('./restock.mjs');
   const ai = require('./ai');
 
-  async function loadStock(teacherId, league, monthKey) {
-    const snap = await db.collection(`${publicDataPath}/shop_items`)
+  // This month's items plus the active festival's items. A festival window can start in the
+  // month before its feast, so its stall is found by festivalId rather than by month.
+  async function loadStock(teacherId, league, monthKey, festivalId = '') {
+    const monthQuery = db.collection(`${publicDataPath}/shop_items`)
       .where('league', '==', league)
       .where('monthKey', '==', monthKey)
       .where('teacherId', '==', teacherId)
       .get();
-    return snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    const festivalQuery = festivalId
+      ? db.collection(`${publicDataPath}/shop_items`).where('festivalId', '==', festivalId).get()
+      : Promise.resolve(null);
+    const [monthSnap, festivalSnap] = await Promise.all([monthQuery, festivalQuery]);
+    const byId = new Map();
+    monthSnap.docs.forEach((docSnap) => byId.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
+    (festivalSnap?.docs || []).forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      if (data.teacherId !== teacherId || data.league !== league) return;
+      if (!byId.has(docSnap.id)) byId.set(docSnap.id, { id: docSnap.id, ...data });
+    });
+    return [...byId.values()];
   }
 
   async function deleteIds(ids) {
@@ -221,7 +234,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       : [...plan.retireIds, ...plan.removeIds];
     await deleteIds(idsToClear);
     let items = currentItems;
-    if (idsToClear.length) items = await loadStock(context.teacherId, context.league, context.monthKey);
+    if (idsToClear.length) items = await loadStock(context.teacherId, context.league, context.monthKey, context.activeFestivalId);
     let nextPlan = idsToClear.length ? restock.planShopRestock(items, { shelf: context.shelf }) : plan;
 
     if (nextPlan.mode === 'swap') {
@@ -247,7 +260,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     });
     savedThisRun += await produceItems(catalog, { ...context, incoming: nextPlan.incoming });
 
-    const latest = await loadStock(context.teacherId, context.league, context.monthKey);
+    const latest = await loadStock(context.teacherId, context.league, context.monthKey, context.activeFestivalId);
     const latestPlan = restock.planShopRestock(latest, { shelf: context.shelf });
     if (latestPlan.mode === 'swap') {
       const batch = db.batch();
@@ -321,10 +334,12 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     const festival = calendar.getActiveFestival();
     const lockId = `${teacherId}_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
 
+    const activeFestivalId = festival?.festivalId || '';
+
     return withLock(lockId, async () => {
-      let items = await loadStock(teacherId, league, monthKey);
+      let items = await loadStock(teacherId, league, monthKey, activeFestivalId);
       const expired = await expireStaleFestivals(items, festival);
-      if (expired) items = await loadStock(teacherId, league, monthKey);
+      if (expired) items = await loadStock(teacherId, league, monthKey, activeFestivalId);
 
       const result = { expired, monthly: null, festival: null };
       const monthlyPlan = restock.planShopRestock(items, { shelf: 'seasonal' });
@@ -340,9 +355,10 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
           yearKey,
           monthKey,
           shelf: 'seasonal',
+          activeFestivalId,
           themePrompt: calendar.monthlyShelfPrompt()
         });
-        items = await loadStock(teacherId, league, monthKey);
+        items = await loadStock(teacherId, league, monthKey, activeFestivalId);
       }
 
       if (festival) {
@@ -357,6 +373,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             monthKey,
             shelf: 'festival',
             festivalId: festival.festivalId,
+            activeFestivalId,
             themePrompt: calendar.festivalShelfPrompt(festival)
           });
         }
@@ -411,8 +428,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
           return { ok: true, action, itemId, image: imageUrl };
         }
         if (action === 'replace') {
-          const stall = await loadStock(teacherId, league, monthKey);
           const festival = calendar.getActiveFestival();
+          const stall = await loadStock(teacherId, league, monthKey, festival?.festivalId || '');
           const avoidNames = stall
             .filter((row) => row.id !== latest.id && restock.shopItemShelf(row) === shelf)
             .map((row) => row.name)

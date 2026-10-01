@@ -3074,7 +3074,9 @@ exports.ensureShopStock = callable(async (request) => {
 
 exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
   .runWith({ timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] })
-  .pubsub.schedule('0 21 * * *')
+  // Just after midnight, Athens time, so a new month's stall and a festival's opening day are
+  // stocked before the first lesson (the Market itself switches months at Athens midnight).
+  .pubsub.schedule('10 0 * * *')
   .timeZone('Europe/Athens')
   .onRun(async () => {
     const yearSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
@@ -3096,19 +3098,27 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
     }
     const stalls = await listShopStalls(yearKey);
     const results = [];
-    for (const stall of stalls) {
-      try {
-        const result = await shopEngine.ensureStall({
-          ...stall,
-          yearKey,
-          mode: 'ensure'
-        });
-        results.push({ teacherId: stall.teacherId, league: stall.league, ok: true, result });
-      } catch (error) {
-        console.error(`maintainShopStock failed for ${stall.teacherId} ${stall.league}:`, error);
-        results.push({ teacherId: stall.teacherId, league: stall.league, ok: false, message: error?.message || String(error) });
+    // On the 1st every stall needs a whole new month of pictures, which does not fit in one
+    // run if stalls go one by one. Two at a time halves the wait; anything unfinished is
+    // picked up by the next nightly run or when a teacher opens the Market.
+    const queue = [...stalls];
+    const runNext = async () => {
+      while (queue.length) {
+        const stall = queue.shift();
+        try {
+          const result = await shopEngine.ensureStall({
+            ...stall,
+            yearKey,
+            mode: 'ensure'
+          });
+          results.push({ teacherId: stall.teacherId, league: stall.league, ok: true, result });
+        } catch (error) {
+          console.error(`maintainShopStock failed for ${stall.teacherId} ${stall.league}:`, error);
+          results.push({ teacherId: stall.teacherId, league: stall.league, ok: false, message: error?.message || String(error) });
+        }
       }
-    }
+    };
+    await Promise.all([runNext(), runNext()]);
     console.log(JSON.stringify({ event: 'maintainShopStock', stallCount: stalls.length, results }));
     return null;
   });

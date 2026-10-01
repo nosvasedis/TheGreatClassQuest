@@ -272,7 +272,6 @@ test('shop restock does not wipe a live stall and runs in the background', async
   assert.match(functions, /exports\.ensureShopStock/);
   assert.match(functions, /exports\.maintainShopStock/);
   assert.match(functions, /exports\.manageShopItem/);
-  assert.match(functions, /0 21 \* \* \*/);
   assert.match(functions, /GCQ_AI_SERVICE_KEY/);
   assert.doesNotMatch(shop, /Restock weaves/);
   assert.doesNotMatch(shop, /Festival Stall weaves itself/);
@@ -280,4 +279,44 @@ test('shop restock does not wipe a live stall and runs in the background', async
   assert.match(manager, /New picture/);
   assert.match(manager, /Replace this treasure/);
   assert.match(fs.readFileSync(path.join(root, 'templates/app/tabs/options.js'), 'utf8'), /data-options-tab="market"/);
+});
+
+test('a Restock under way survives a student buying out a treasure', async () => {
+  const { planShopRestock, shopStallNeedsWork, SHOP_RESTOCK_ITEM_COUNT } = await loadShopRestock();
+  const live = Array.from({ length: SHOP_RESTOCK_ITEM_COUNT - 1 }, (_, index) => complete({
+    id: `old-${index}`,
+    name: `Old ${index}`
+  }));
+  const incoming = Array.from({ length: 6 }, (_, index) => complete({
+    id: `new-${index}`,
+    name: `New ${index}`,
+    incoming: true
+  }));
+  const plan = planShopRestock([...live, ...incoming]);
+  assert.equal(plan.mode, 'replace');
+  assert.deepEqual(plan.retireIds, []);
+  assert.equal(plan.needed, SHOP_RESTOCK_ITEM_COUNT - 6);
+  assert.equal(shopStallNeedsWork(plan), true);
+});
+
+test('festival treasures stay on the stall when the festival crosses into a new month', async () => {
+  const app = await loadShopRestock();
+  const fn = await import('../functions/shop/restock.mjs');
+  const easterItem = complete({ league: 'A', monthKey: '2027-03', shelf: 'festival', festivalId: 'easter-2027' });
+  const scope = { league: 'A', monthKey: '2027-04', festivalId: 'easter-2027' };
+  for (const lib of [app, fn]) {
+    assert.equal(lib.isCurrentStallItem(easterItem, scope), true);
+    assert.equal(lib.isCurrentStallItem(easterItem, { ...scope, festivalId: '' }), false);
+    assert.equal(lib.isCurrentStallItem(easterItem, { ...scope, league: 'B' }), false);
+    assert.equal(lib.isCurrentStallItem(complete({ league: 'A', monthKey: '2027-03' }), scope), false);
+    assert.equal(lib.isCurrentStallItem(complete({ league: 'A', monthKey: '2027-04' }), scope), true);
+  }
+  const monthly = Array.from({ length: app.SHOP_RESTOCK_ITEM_COUNT }, (_, index) => complete({ id: `m-${index}`, league: 'A', monthKey: '2027-04' }));
+  const festival = Array.from({ length: app.FESTIVAL_STALL_ITEM_COUNT }, (_, index) => ({ ...easterItem, id: `f-${index}`, name: `Egg ${index}` }));
+  assert.equal(app.shopInventoryNeedsEnsure([...monthly, ...festival], { activeFestivalId: 'easter-2027' }), false);
+});
+
+test('the nightly Market restock runs just after Athens midnight', () => {
+  const functions = fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8');
+  assert.match(functions, /schedule\('10 0 \* \* \*'\)\s*\.timeZone\('Europe\/Athens'\)/);
 });

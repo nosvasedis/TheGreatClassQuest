@@ -598,6 +598,12 @@ export async function handleBuyItem(studentId, itemId) {
 
             if (currentDbGold < calculatedPrice) throw "Not enough gold!";
 
+            // Legendary Artifacts: 2 per student per month (checked here too, not only on the button)
+            if (isLegendary) {
+                const legendariesThisMonth = currentInventory.filter(i => i.id && i.id.startsWith('leg_') && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)).length;
+                if (legendariesThisMonth >= 2) throw "Only 2 Legendary Artifacts per month!";
+            }
+
             // Mask of the Protagonist: 1 per student per month
             if (itemId === 'leg_protagonist') {
                 const alreadyBoughtThisMonth = data.lastProtagonistPurchaseMonth === currentMonthKey || currentInventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
@@ -617,7 +623,9 @@ export async function handleBuyItem(studentId, itemId) {
             newGoldBalance = currentDbGold - calculatedPrice; // Calculate for UI
 
             const nextUpdate = {
-                gold: increment(-calculatedPrice),
+                // Exact balance from the doc read in this transaction: a score without a gold field
+                // (legacy, gold = stars) would go negative with increment().
+                gold: newGoldBalance,
                 inventory: [...currentInventory, {
                     id: item.id,
                     name: item.name,
@@ -989,7 +997,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId);
 
             const scoreUpdate = {
-                gold: increment(-finalPrice),
+                gold: newGoldBalance,
                 familiar: familiarData
             };
 

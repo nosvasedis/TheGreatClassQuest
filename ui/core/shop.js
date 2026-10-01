@@ -10,6 +10,7 @@ import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.j
 import {
     isVisibleSeasonalShopItem,
     isVisibleFestivalShopItem,
+    isCurrentStallItem,
     shopInventoryNeedsEnsure
 } from '../../utils/shopRestock.js';
 import { shopMonthKey, getMonthlyShopTheme, getActiveFestival } from '../../utils/shopCalendar.js';
@@ -538,12 +539,10 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     populateShopStudentPicker(validStudents);
 
     renderShopUI();
-    const currentMonthKey = shopMonthKey();
-    const currentLeagueItems = (state.get('currentShopItems') || []).filter((item) => (
-        item.monthKey === currentMonthKey && item.league === league
-    ));
+    const stallScope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId };
+    const currentLeagueItems = (state.get('currentShopItems') || []).filter((item) => isCurrentStallItem(item, stallScope));
     const stockNeedsEnsure = shopInventoryNeedsEnsure(currentLeagueItems, {
-        activeFestivalId: getActiveFestival()?.festivalId
+        activeFestivalId: stallScope.festivalId
     });
     if (allowAutoEnsure && canUseFeature('eliteAI') && stockNeedsEnsure) {
         import('../../db/actions.js').then((actions) => actions.handleEnsureShopStock?.()).catch((error) => {
@@ -584,9 +583,12 @@ export function renderShopUI() {
     const seasonalItems = shopItems
         .filter(i => i.monthKey === currentMonthKey && i.league === league && isVisibleSeasonalShopItem(i))
         .sort((a,b) => a.price - b.price);
-    const festivalItems = shopItems
-        .filter(i => i.monthKey === currentMonthKey && i.league === league && isVisibleFestivalShopItem(i))
-        .sort((a,b) => a.price - b.price);
+    // Festival treasures follow the festival, not the month: Easter's stall opens in the month before.
+    const festivalItems = activeFestival
+        ? shopItems
+            .filter(i => i.league === league && i.festivalId === activeFestival.festivalId && isVisibleFestivalShopItem(i))
+            .sort((a,b) => a.price - b.price)
+        : [];
 
     // 2. Get Legendary Artifacts (from our new file)
     import('../../features/powerUps.js').then(m => {

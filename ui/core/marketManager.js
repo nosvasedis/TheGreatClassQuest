@@ -5,6 +5,7 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { shopMonthKey, getMonthlyShopTheme, getActiveFestival } from '../../utils/shopCalendar.js';
 import {
+    isCurrentStallItem,
     isManagedShopShelf,
     shopItemShelf,
     shopItemStock,
@@ -39,14 +40,13 @@ function classLabel() {
 }
 
 function stallItems() {
-    const league = resolveLeague();
-    const monthKey = shopMonthKey();
+    const scope = { league: resolveLeague(), monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId };
     const teacherId = state.get('currentUserId');
     return (state.get('currentShopItems') || []).filter((item) => (
         isManagedShopShelf(item)
         && item.teacherId === teacherId
-        && String(item.league || '') === league
-        && String(item.monthKey || '') === monthKey
+        && isCurrentStallItem(item, scope)
+        && (shopItemShelf(item) !== 'festival' || item.festivalId === scope.festivalId)
     ));
 }
 

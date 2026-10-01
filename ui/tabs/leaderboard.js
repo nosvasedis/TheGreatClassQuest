@@ -23,8 +23,13 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
 import {
+    buildHeroTieStats,
+    currentMonthStarsFromScore,
+    pickProdigyWinners,
+    rankHeroes
+} from '../../features/heroRanking.js';
+import {
     annotateStandingsChanges,
-    assignHeroRanks,
     buildStandingsSnapshot,
     playStandingsChanges,
     playStandingsEntrance,
@@ -247,50 +252,21 @@ async function getReigningProdigies() {
             const fromLogsTotals = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
             const mergedTotals = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogsTotals, archived || {});
 
-            // Compute per-student stats using same algorithm as renderProdigyHistory
-            const studentStats = students.map(s => {
-                const sLogs = classLogs.filter(l => l.studentId === s.id);
-                const monthlyStars = Number(mergedTotals[s.id]) || 0;
-                let count3 = 0, count2 = 0;
-                const reasons = new Set();
-                sLogs.forEach(l => {
-                    const cred = getAwardLogMonthlyStarCredit(l);
-                    if (cred >= 3) count3++;
-                    else if (cred >= 2) count2++;
-                    if (l.reason) reasons.add(l.reason);
-                });
+            // Same rules as the Ceremony and the Hall of Prodigies (features/heroRanking.js).
+            const ranked = rankHeroes(students.map(s => {
                 const sScores = allScores.filter(sc => {
                     const scDate = utils.parseFlexibleDate(sc.date);
                     return sc.studentId === s.id && scDate && scDate.getMonth() === vm && scDate.getFullYear() === vy;
                 });
-                let acadSum = 0;
-                sScores.forEach(sc => {
-                    const normalized = getNormalizedPercentForScore(sc);
-                    if (Number.isFinite(normalized)) acadSum += normalized;
-                });
-                const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
-                return { id: s.id, monthlyStars, count3, count2, uniqueReasons: reasons.size, academicAvg };
-            }).filter(s => s.monthlyStars > 0);
-
-            if (studentStats.length === 0) return;
-
-            // Sort: same order as renderProdigyHistory
-            studentStats.sort((a, b) => {
-                if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
-                if (b.count3 !== a.count3) return b.count3 - a.count3;
-                if (b.count2 !== a.count2) return b.count2 - a.count2;
-                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
-                return b.academicAvg - a.academicAvg;
-            });
-
-            const top = studentStats[0];
-            // Collect all tied winners (co-prodigies)
-            const winners = studentStats.filter(s =>
-                s.monthlyStars === top.monthlyStars &&
-                s.count3 === top.count3 &&
-                s.count2 === top.count2 &&
-                s.uniqueReasons === top.uniqueReasons
-            );
+                return {
+                    id: s.id,
+                    name: s.name,
+                    stars: Number(mergedTotals[s.id]) || 0,
+                    stats: buildHeroTieStats(classLogs.filter(l => l.studentId === s.id), sScores, getNormalizedPercentForScore)
+                };
+            }));
+            const winners = pickProdigyWinners(ranked);
+            if (winners.length === 0) return;
 
             result[classId] = new Set(winners.map(w => w.id));
         });
@@ -458,7 +434,7 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
                 return {
                     name: s.name,
                     avatar: s.avatar,
-                    stars: scoreData ? (Number(scoreData.monthlyStars) || 0) : 0
+                    stars: currentMonthStarsFromScore(scoreData, utils.getStartOfMonthString())
                 };
             })
             .sort((a, b) => b.stars - a.stars)
@@ -797,7 +773,6 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     });
 
     // 1. HELPER: Calculate Stats & Tie-Breakers
-    // 1. HELPER: Calculate Stats & Tie-Breakers
     const getStudentStats = (studentId) => {
         const studentLogs = allLogs.filter(log => log.studentId === studentId);
         const studentScores = allScores.filter(s => s.studentId === studentId);
@@ -841,57 +816,38 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
 
         // C. Top Reason of the Month
         const reasonCounts = {};
-        let count3Star = 0; // Total 3-stars (kept for tie-breaking)
-        let count2Star = 0;
-
         monthlyLogs.forEach(log => {
-            const cred = getAwardLogMonthlyStarCredit(log);
             if (log.reason) {
-                if (!reasonCounts[log.reason]) reasonCounts[log.reason] = 0;
-                reasonCounts[log.reason] += cred;
+                reasonCounts[log.reason] = (reasonCounts[log.reason] || 0) + getAwardLogMonthlyStarCredit(log);
             }
-            if (cred >= 3) count3Star++;
-            else if (cred >= 2) count2Star++;
         });
 
         // Sort reasons by highest star count
         const topReasonEntry = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
         const topSkill = topReasonEntry ? topReasonEntry[0] : null;
 
-        // D. Academic Avg
-            let acadSum = 0;
-            let acadCount = 0;
-            studentScores.forEach(s => {
-            if (!s.date) return;
-            const sDate = utils.parseFlexibleDate(s.date);
-            if (!sDate || (sDate.getMonth() !== currentMonthIndex || sDate.getFullYear() !== currentYear)) return;
-            {
-                const val = getNormalizedPercentForScore(s) || 0;
-                if (val > 0) { acadSum += val; acadCount++; }
-            }
-        });
-        const academicAvg = acadCount > 0 ? (acadSum / acadCount) : 0;
-
-        // Use the centralized helper for the tie-breaker specific stats
-        const tieBreakerStats = utils.calculateStudentStats(studentId, monthlyLogs, studentScores.filter(s => {
+        // D. Tie-breakers, by the same rules as the Ceremony (features/heroRanking.js)
+        const monthlyScores = studentScores.filter(s => {
             if (!s.date) return false;
             const sDate = utils.parseFlexibleDate(s.date);
             return sDate && sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear;
-        }));
+        });
 
         return {
             weeklyStars, topSkill, streak,
-            academicAvg,
-            ...tieBreakerStats // Brings in count3, count2, uniqueReasons, and recalculates academicAvg strictly for tie-breaking
+            ...buildHeroTieStats(monthlyLogs, monthlyScores, getNormalizedPercentForScore)
         };
     };
 
+    const monthStart = utils.getStartOfMonthString();
     let studentsInLeague = allStudents
         .filter(s => classesInLeague.some(c => c.id === s.classId))
         .map(s => {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
             const scoreData = allStudentScores.find(sc => sc.id === s.id) || {};
-            const score = state.get('studentStarMetric') === 'monthly' ? (scoreData.monthlyStars || 0) : (scoreData.totalStars || 0);
+            const score = state.get('studentStarMetric') === 'monthly'
+                ? currentMonthStarsFromScore(scoreData, monthStart)
+                : (Number(scoreData.totalStars) || 0);
             const totalStars = scoreData.totalStars || 0;
 
             // NEW: Get Gold
@@ -1031,11 +987,13 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         showClass
     });
 
-    const rankGroup = (students, opts) => {
-        const sorted = students.map((s) => ({ ...s, stars: s.score })).sort(utils.sortStudentsByTieBreaker);
-        const ranks = assignHeroRanks(sorted);
-        return sorted.map((s, i) => toEntry(s, ranks[i], opts));
-    };
+    // This month: the Ceremony's rules, so the board crowns whoever the
+    // Ceremony will. All-time: only this month's awards are loaded, so they
+    // can't fairly split a year of stars; equal stars share the place.
+    const rankGroup = (students, opts) => rankHeroes(
+        students.map((s) => ({ ...s, stars: s.score })),
+        { starsOnly: starMetric !== 'monthly' }
+    ).map((s) => toEntry(s, s.rank, opts));
 
     const sumStars = (students) => students.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
     const starFact = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${n} ${starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${escapeLeaderboardHtml(monthName)}` : `star${n === 1 ? '' : 's'} all-time`}`;

@@ -19,32 +19,8 @@ export function escapeStandingsHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-/**
- * Ranks for a list already sorted by utils.sortStudentsByTieBreaker (items carry
- * `stars` and `stats`). Podium places share a rank on a behaviour tie; lower
- * places also need the same academic average to share.
- */
-export function assignHeroRanks(sorted) {
-    const ranks = [];
-    let lastRank = 0;
-    sorted.forEach((s, index) => {
-        if (index === 0) {
-            lastRank = 1;
-        } else {
-            const prev = sorted[index - 1];
-            const behaviourTie = s.stars === prev.stars
-                && s.stats.count3 === prev.stats.count3
-                && s.stats.count2 === prev.stats.count2
-                && s.stats.uniqueReasons === prev.stats.uniqueReasons;
-            const tie = lastRank <= 3
-                ? behaviourTie
-                : behaviourTie && s.stats.academicAvg === prev.stats.academicAvg;
-            lastRank = tie ? lastRank : index + 1;
-        }
-        ranks.push(lastRank);
-    });
-    return ranks;
-}
+// Ranks come from the shared hero ranking rules (same as the Ceremony).
+export { assignHeroRanks } from '../../features/heroRanking.js';
 
 // --- Snapshots (what this device last showed, per board) ---------------------
 
@@ -164,13 +140,39 @@ function goldChipHtml(e) {
 
 const PLACE_NAMES = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 
-function podiumFigureHtml(e, place, leadBy) {
-    const crown = place === 1
+function ordinal(n) {
+    const tens = n % 100;
+    if (tens >= 11 && tens <= 13) return `${n}th`;
+    return `${n}${{ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'}`;
+}
+
+/** Who shares this hero's place, as the tie rules decided it. */
+function sharesPlace(e, entries) {
+    return entries.some((other) => other !== e && other.rank === e.rank);
+}
+
+/**
+ * The podium line under a hero's chips: how far 1st is ahead, or that the
+ * place is shared, or that equal stars were split by the tie-breakers.
+ */
+function podiumNoteHtml(e, spots) {
+    if (sharesPlace(e, spots)) {
+        return `<span class="hcs-figure__lead hcs-figure__lead--tie" title="Same stars and the same tie-breakers">Tied for ${ordinal(e.rank)}</span>`;
+    }
+    if (e.rank !== 1) return '';
+    const next = spots.find((other) => other.rank > 1);
+    if (!next) return '';
+    const leadBy = e.score - next.score;
+    return leadBy > 0
+        ? `<span class="hcs-figure__lead">Leads by ${leadBy}</span>`
+        : '<span class="hcs-figure__lead" title="Level on stars: more 3-star and 2-star awards, more kinds of awards, then the better test average decide">Wins the tie-break</span>';
+}
+
+function podiumFigureHtml(e, spots) {
+    const crown = e.rank === 1
         ? '<span class="hcs-figure__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
         : '';
-    const lead = place === 1 && leadBy > 0
-        ? `<span class="hcs-figure__lead">Leads by ${leadBy}</span>`
-        : '';
+    const lead = podiumNoteHtml(e, spots);
     return `
         <div class="hcs-figure" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}">
             ${crown}
@@ -193,15 +195,15 @@ function podiumFigureHtml(e, place, leadBy) {
 
 function podiumHtml(entries) {
     const spots = entries.slice(0, PODIUM_SIZE);
-    const leadBy = spots.length > 1 ? spots[0].score - spots[1].score : 0;
-    // Classic stage order: silver, gold, bronze.
+    // Classic stage order: silver, gold, bronze. The metal follows the hero's
+    // rank, so heroes who share a place stand on the same metal.
     const order = [1, 0, 2].filter((i) => spots[i]);
     const spotsHtml = order.map((i) => {
-        const place = i + 1;
         const e = spots[i];
+        const metal = PLACE_NAMES[e.rank] || PLACE_NAMES[PODIUM_SIZE];
         return `
-            <div class="hcs-spot hcs-spot--${PLACE_NAMES[place]}">
-                ${podiumFigureHtml(e, place, leadBy)}
+            <div class="hcs-spot hcs-spot--${metal}">
+                ${podiumFigureHtml(e, spots)}
                 <div class="hcs-pedestal" aria-hidden="true">
                     <span class="hcs-pedestal__cap"></span>
                     <span class="hcs-pedestal__num font-title">${e.rank}</span>
@@ -224,9 +226,13 @@ function rowHtml(e, above) {
     let gapHtml = '';
     if (above) {
         const gap = above.score - e.score;
-        gapHtml = gap > 0
-            ? `<span class="hcs-row__gap">${gap} to catch ${escapeStandingsHtml(above.name)}</span>`
-            : `<span class="hcs-row__gap hcs-row__gap--tie">Level on stars</span>`;
+        if (gap > 0) {
+            gapHtml = `<span class="hcs-row__gap">${gap} to catch ${escapeStandingsHtml(above.name)}</span>`;
+        } else if (above.rank === e.rank) {
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="Same stars and the same tie-breakers">Tied for ${ordinal(e.rank)}</span>`;
+        } else {
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="${escapeStandingsHtml(above.name)} has more 3-star or 2-star awards, more kinds of awards, or a better test average">Behind on tie-break</span>`;
+        }
     }
     return `
         <li class="hcs-row" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--hcs-power:${e.power.toFixed(3)};--hcs-power-from:${(e.powerFrom ?? e.power).toFixed(3)};--hcs-i:${e.slot}">

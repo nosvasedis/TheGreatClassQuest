@@ -25,6 +25,7 @@ import * as utils from '../utils.js';
 import { showToast } from '../ui/effects.js';
 import { createCeremonyFx } from '../ui/ceremonyFx.js';
 import { getNormalizedPercentForScore } from './assessmentConfig.js';
+import { buildHeroTieStats, rankHeroes } from './heroRanking.js';
 import { formatTeacherBoonReason, getTeacherBoonForMonth } from './boons.js';
 import {
     getAwardLogMonthlyStarCredit,
@@ -261,21 +262,15 @@ async function loadCeremonyResults() {
         const monthlyTeacherBoon = getTeacherBoonForMonth(ceremonyClass, ceremonyData.monthKey);
         const allWrittenScores = state.get('allWrittenScores') || []; 
 
-        let studentStats = studentsInClass.map(s => {
+        // Ranked by the shared hero rules (features/heroRanking.js), so the
+        // Hero's Challenge, the Hall of Prodigies and this ceremony agree.
+        const studentStats = rankHeroes(studentsInClass.map(s => {
             const sLogs = logs.filter(l => l.studentId === s.id);
             const score = monthlyScores[s.id] || 0;
-            let count3 = 0, count2 = 0;
-            const reasons = new Set();
             const reasonCounts = {};
             sLogs.forEach(l => {
-                if (l.reason === 'special_quest') return;
-                const cred = getAwardLogMonthlyStarCredit(l);
-                if (cred >= 3) count3++;
-                else if (cred >= 2) count2++;
-                if (l.reason) {
-                    reasons.add(l.reason);
-                    reasonCounts[l.reason] = (reasonCounts[l.reason] || 0) + cred;
-                }
+                if (l.reason === 'special_quest' || !l.reason) return;
+                reasonCounts[l.reason] = (reasonCounts[l.reason] || 0) + getAwardLogMonthlyStarCredit(l);
             });
             const topSkill = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
@@ -284,48 +279,21 @@ async function loadCeremonyResults() {
                 const d = utils.parseFlexibleDate(sc.date);
                 return d && d.getMonth() === (month - 1) && d.getFullYear() === year;
             });
-            let acadSum = 0;
-            sScores.forEach(sc => {
-                const normalized = getNormalizedPercentForScore(sc);
-                if (Number.isFinite(normalized)) acadSum += normalized;
-            });
-            const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
 
             return {
                 id: s.id,
                 name: s.name,
                 avatar: s.avatar,
                 score,
+                stars: score,
                 className: ceremonyClass?.name || '',
                 classLogo: ceremonyClass?.logo || '📚',
-                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size, topSkill },
+                stats: { ...buildHeroTieStats(sLogs, sScores, getNormalizedPercentForScore), topSkill },
                 teacherBoon: monthlyTeacherBoon?.studentId === s.id
                     ? { ...monthlyTeacherBoon, reasonText: formatTeacherBoonReason(monthlyTeacherBoon) }
                     : null
             };
-        });
-
-        studentStats.sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
-            if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
-            if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-            return b.stats.academicAvg - a.stats.academicAvg;
-        });
-
-        let sRank = 1;
-        studentStats = studentStats.map((s, i) => {
-            if (i > 0) {
-                const prev = studentStats[i-1];
-                let isTie = s.score === prev.score && 
-                            s.stats.count3 === prev.stats.count3 && 
-                            s.stats.count2 === prev.stats.count2 &&
-                            s.stats.uniqueReasons === prev.stats.uniqueReasons;
-                if (sRank > 3) isTie = isTie && (Math.abs(s.stats.academicAvg - prev.stats.academicAvg) < 0.1);
-                if (!isTie) sRank = i + 1;
-            }
-            return { ...s, rank: sRank };
-        });
+        })).map(({ stars, ...rest }) => rest);
 
         ceremonyData.studentQueue = studentStats.reverse();
         ceremonyData.phase = 'class_reveal';

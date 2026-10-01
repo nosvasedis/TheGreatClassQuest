@@ -953,6 +953,10 @@
     color: #fde68a;
 }
 
+.hcs-figure__lead--tie {
+    color: #fef3c7;
+}
+
 .hcs-figure__pills {
     display: flex;
     flex-wrap: wrap;
@@ -1583,6 +1587,11 @@
     .hcs-figure__lead,
     .hcs-figure .hcs-chip--class {
         display: none;
+    }
+
+    /* A shared place still needs saying on a phone. */
+    .hcs-figure__lead.hcs-figure__lead--tie {
+        display: inline;
     }
 
     .hcs-pedestal__num {

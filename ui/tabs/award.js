@@ -23,10 +23,10 @@ import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js
 import { getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import {
-    getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
+import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -66,45 +66,22 @@ async function getReigningProdigyForClass(classId) {
                 const fromLogsTotals = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
                 const mergedTotals = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogsTotals, archived || {});
 
-                const stats = students.map(s => {
-                    const sLogs = classLogs.filter(l => l.studentId === s.id);
-                    const monthlyStars = Number(mergedTotals[s.id]) || 0;
-                    let count3 = 0, count2 = 0;
-                    const reasons = new Set();
-                    sLogs.forEach(l => {
-                        const cred = getAwardLogMonthlyStarCredit(l);
-                        if (cred >= 3) count3++;
-                        else if (cred >= 2) count2++;
-                        if (l.reason) reasons.add(l.reason);
-                    });
+                // Same rules as the Ceremony and the Hall of Prodigies (features/heroRanking.js).
+                const ranked = rankHeroes(students.map(s => {
                     const sScores = allScores.filter(sc => {
                         const d = utils.parseFlexibleDate(sc.date);
                         return sc.studentId === s.id && d && d.getMonth() === vm && d.getFullYear() === vy;
                     });
-                    let acadSum = 0;
-                    sScores.forEach(sc => {
-                        const normalized = getNormalizedPercentForScore(sc);
-                        if (Number.isFinite(normalized)) acadSum += normalized;
-                    });
-                    return { id: s.id, monthlyStars, count3, count2, uniqueReasons: reasons.size, academicAvg: sScores.length > 0 ? acadSum / sScores.length : 0 };
-                }).filter(s => s.monthlyStars > 0);
-
-                if (!stats.length) return;
-                stats.sort((a, b) => {
-                    if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
-                    if (b.count3 !== a.count3) return b.count3 - a.count3;
-                    if (b.count2 !== a.count2) return b.count2 - a.count2;
-                    if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
-                    return b.academicAvg - a.academicAvg;
-                });
-                const top = stats[0];
-                result[cId] = new Set(
-                    stats.filter(s =>
-                        s.monthlyStars === top.monthlyStars && s.count3 === top.count3 &&
-                        s.count2 === top.count2 && s.uniqueReasons === top.uniqueReasons &&
-                        Math.abs(s.academicAvg - top.academicAvg) <= 0.5
-                    ).map(s => s.id)
-                );
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        stars: Number(mergedTotals[s.id]) || 0,
+                        stats: buildHeroTieStats(classLogs.filter(l => l.studentId === s.id), sScores, getNormalizedPercentForScore)
+                    };
+                }));
+                const winners = pickProdigyWinners(ranked);
+                if (!winners.length) return;
+                result[cId] = new Set(winners.map(s => s.id));
             });
 
             _awardProdigyCacheKey = cacheKey;

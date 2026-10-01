@@ -2,6 +2,7 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
+import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { showAnimatedModal } from './base.js';
 import {
     buildProdigyEmptyHtml,
@@ -166,71 +167,34 @@ function heroLogsControlsHtml(allLeagues) {
 }
 
 
-/** Rank exactly like the Ceremony (stars, then 3★ / 2★ awards, variety, academic average). */
+/** Rank exactly like the Ceremony (features/heroRanking.js: stars, then 3★ / 2★ awards, variety, academic average). */
 function rankHeroesForMonth(students, scores, logs, monthKey) {
     const allWrittenScores = state.get('allWrittenScores') || [];
     const allClasses = state.get('allSchoolClasses') || [];
     const [year, month] = monthKey.split('-').map(Number);
 
-    const ranked = students.map((s) => {
+    const ranked = rankHeroes(students.map((s) => {
         const cls = allClasses.find((c) => c.id === s.classId);
         const sLogs = logs.filter((l) => l.studentId === s.id);
-        const score = scores[s.id] || 0;
-
-        let count3 = 0, count2 = 0;
-        const reasons = new Set();
-        sLogs.forEach((l) => {
-            const cred = getAwardLogMonthlyStarCredit(l);
-            if (cred >= 3) count3++;
-            else if (cred >= 2) count2++;
-            if (l.reason) reasons.add(l.reason);
-        });
-
         const sScores = allWrittenScores.filter((sc) => {
             if (sc.studentId !== s.id || !sc.date) return false;
             const d = utils.parseFlexibleDate(sc.date);
             return d && d.getMonth() === (month - 1) && d.getFullYear() === year;
         });
-        let acadSum = 0;
-        sScores.forEach((sc) => {
-            const normalized = getNormalizedPercentForScore(sc);
-            if (Number.isFinite(normalized)) acadSum += normalized;
-        });
-        const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
-
         return {
             ...s,
-            stars: score,
+            stars: scores[s.id] || 0,
             className: cls?.name,
             classLogo: cls?.logo,
-            stats: { count3, count2, academicAvg, uniqueReasons: reasons.size, awards: sLogs.length }
+            stats: { ...buildHeroTieStats(sLogs, sScores, getNormalizedPercentForScore), awards: sLogs.length }
         };
-    }).sort((a, b) => {
-        if (b.stars !== a.stars) return b.stars - a.stars;
-        if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
-        if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
-        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-        return b.stats.academicAvg - a.stats.academicAvg;
-    });
+    }));
 
-    let currentRank = 1;
-    return ranked.map((s, i) => {
-        let tiedWithPrev = false;
-        if (i > 0) {
-            const prev = ranked[i - 1];
-            let isTie = s.stars === prev.stars &&
-                s.stats.count3 === prev.stats.count3 &&
-                s.stats.count2 === prev.stats.count2 &&
-                s.stats.uniqueReasons === prev.stats.uniqueReasons;
-            // Academic average only breaks ties after the Top 3
-            if (currentRank > 3) {
-                isTie = isTie && (Math.abs(s.stats.academicAvg - prev.stats.academicAvg) < 0.1);
-            }
-            if (!isTie) currentRank = i + 1;
-            tiedWithPrev = isTie;
-        }
-        return { ...s, ceremonyRank: currentRank, tiedWithPrev };
-    });
+    return ranked.map((s, i) => ({
+        ...s,
+        ceremonyRank: s.rank,
+        tiedWithPrev: i > 0 && ranked[i - 1].rank === s.rank
+    }));
 }
 
 function hlPortrait(s, size = '') {
@@ -1126,25 +1090,13 @@ function getLatestViewableProdigyMonth(ref = new Date()) {
 let prodigyViewDate = null;
 
 export function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudentId = {}) {
-    const studentStats = students.map((student) => {
+    // Same rules as the Ceremony and the Hero's Challenge (features/heroRanking.js).
+    const ranked = rankHeroes(students.map((student) => {
         const studentLogs = monthlyLogs.filter((log) => log.studentId === student.id);
         const fromLogs = studentLogs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
-        const archivedVal = archivedByStudentId[student.id];
         const totalStars = Object.prototype.hasOwnProperty.call(archivedByStudentId, student.id)
-            ? (Number(archivedVal) || 0)
+            ? (Number(archivedByStudentId[student.id]) || 0)
             : fromLogs;
-
-        let count3 = 0;
-        let count2 = 0;
-        const reasons = new Set();
-
-        studentLogs.forEach((log) => {
-            const cred = getAwardLogMonthlyStarCredit(log);
-            if (cred >= 3) count3++;
-            else if (cred >= 2) count2++;
-            if (log.reason) reasons.add(log.reason);
-        });
-
         const studentScores = allScores.filter((score) => {
             const scoreDate = utils.parseFlexibleDate(score.date);
             return score.studentId === student.id
@@ -1152,44 +1104,16 @@ export function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewY
                 && scoreDate.getMonth() === viewMonthIndex
                 && scoreDate.getFullYear() === viewYear;
         });
-
-        let academicSum = 0;
-        studentScores.forEach((score) => {
-            const normalized = getNormalizedPercentForScore(score);
-            if (Number.isFinite(normalized)) academicSum += normalized;
-        });
-
         return {
             ...student,
+            stars: totalStars,
             monthlyStars: totalStars,
-            stats: {
-                count3,
-                count2,
-                academicAvg: studentScores.length > 0 ? (academicSum / studentScores.length) : 0,
-                uniqueReasons: reasons.size
-            }
+            stats: buildHeroTieStats(studentLogs, studentScores, getNormalizedPercentForScore)
         };
-    });
+    }));
 
-    studentStats.sort((a, b) => utils.sortStudentsByTieBreaker(
-        { stars: a.monthlyStars, name: a.name, stats: a.stats },
-        { stars: b.monthlyStars, name: b.name, stats: b.stats }
-    ));
-
-    const topStudent = studentStats[0];
-    if (!topStudent || topStudent.monthlyStars === 0) {
-        return { studentStats, winners: [], topStudent: null };
-    }
-
-    const winners = studentStats.filter((student) => {
-        if (student.monthlyStars !== topStudent.monthlyStars) return false;
-        if (student.stats.count3 !== topStudent.stats.count3) return false;
-        if (student.stats.count2 !== topStudent.stats.count2) return false;
-        if (student.stats.uniqueReasons !== topStudent.stats.uniqueReasons) return false;
-        return true;
-    });
-
-    return { studentStats, winners, topStudent };
+    const winners = pickProdigyWinners(ranked);
+    return { studentStats: ranked, winners, topStudent: winners.length ? ranked[0] : null };
 }
 
 export async function getProdigyCountsForClass(classId) {

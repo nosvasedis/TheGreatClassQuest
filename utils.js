@@ -1,5 +1,4 @@
 import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow.mjs';
-import { getAwardLogMonthlyStarCredit } from './features/awardLogReasonMeta.js';
 import { getQuestLeagueDefinition } from './constants.js';
 import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
 import { refreshSkyLight } from './features/skyWeatherStage.js';
@@ -1084,80 +1083,4 @@ export function assignUniqueTeamQuestRanks(entries = []) {
         .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
-/**
- * SOURCE OF TRUTH: Centralized formula for extracting tie-breaker stats for a given student
- * Returns an object containing { count3, count2, academicAvg, uniqueReasons }
- */
-export function calculateStudentStats(studentId, relevantLogs, relevantScores) {
-    let count3 = 0;
-    let count2 = 0;
-    const reasons = new Set();
-
-    // Process behavioral logs
-    (relevantLogs || []).forEach(l => {
-        if (l.studentId === studentId) {
-            const cred = getAwardLogMonthlyStarCredit(l);
-            if (cred >= 3) count3++;
-            else if (cred >= 2) count2++;
-            if (l.reason) reasons.add(l.reason);
-        }
-    });
-
-    // Process academic scores
-    const sScores = (relevantScores || []).filter(sc => sc.studentId === studentId);
-    let acadSum = 0;
-    sScores.forEach(sc => {
-        if (Number.isFinite(Number(sc.normalizedPercent))) {
-            acadSum += Number(sc.normalizedPercent);
-        } else if (sc.scoreNumeric !== null && sc.maxScore) {
-            acadSum += (Number(sc.scoreNumeric) / Number(sc.maxScore)) * 100;
-        } else if (sc.scoreQualitative) {
-            const snapshotScale = Array.isArray(sc.gradingSnapshot?.scale) ? sc.gradingSnapshot.scale : [];
-            const match = snapshotScale.find((entry) => entry?.label === sc.scoreQualitative);
-            if (match && Number.isFinite(Number(match.normalizedPercent))) {
-                acadSum += Number(match.normalizedPercent);
-            } else if (sc.scoreQualitative === 'Great!!!') {
-                acadSum += 100;
-            } else if (sc.scoreQualitative === 'Great!!') {
-                acadSum += 75;
-            } else if (sc.scoreQualitative === 'Great!') {
-                acadSum += 50;
-            } else if (sc.scoreQualitative === 'Nice Try!') {
-                acadSum += 25;
-            }
-        }
-    });
-    const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
-
-    return {
-        count3,
-        count2,
-        academicAvg,
-        uniqueReasons: reasons.size
-    };
-}
-
-/**
- * SOURCE OF TRUTH: Standard sorting algorithm for leaderboards and ceremonies.
- * Expects objects with: { name, stars, stats: { count3, count2, uniqueReasons, academicAvg } }
- */
-export function sortStudentsByTieBreaker(a, b) {
-    // 1. Primary Sort: Total Stars
-    if (b.stars !== a.stars) return b.stars - a.stars;
-
-    // --- The Tie-Breaker Cascade ---
-    // 2. Number of 3-star (or more) awards
-    if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
-
-    // 3. Number of 2-star awards
-    if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
-
-    // 4. Number of distinct reasons awarded (Breadth of skill)
-    if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-
-    // 5. Academic Average Comparison
-    if (b.stats.academicAvg !== a.stats.academicAvg) return (b.stats.academicAvg || 0) - (a.stats.academicAvg || 0);
-
-    // 6. Alphabetical Backup (to prevent random jumping of equivalent scores)
-    return (a.name || '').localeCompare(b.name || '');
-}
+// Hero ranking and tie-break rules live in features/heroRanking.js.

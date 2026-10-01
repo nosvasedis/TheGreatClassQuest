@@ -23,6 +23,9 @@
 /* 3. Modal shells, league picker, award toolbar */
 @import url('./styles/modals.css');
 
+/* 3-hod. Hero of the Day: the herald's banner (hod-*) */
+@import url('./styles/hero_of_the_day.css');
+
 /* 3a. Herald notifications — the single notification style (ui/effects.js notify) */
 @import url('./styles/notifications.css');
 

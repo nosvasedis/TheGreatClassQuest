@@ -1137,6 +1137,9 @@ export function setupUIListeners() {
     if (heroCelebrationCloseBtn) {
         heroCelebrationCloseBtn.addEventListener('click', () => {
             modals.hideModal('hero-celebration-modal');
+            Promise.all([import('../modals/heroOfDayReveal.js'), import('../../audio.js')])
+                .then(([reveal, audio]) => reveal.stopHeroOfDayReveal(audio))
+                .catch(() => {});
             const modal = document.getElementById('hero-celebration-modal');
             const detail = modal?._campfireDetail;
             if (modal) modal._campfireDetail = null;

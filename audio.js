@@ -362,15 +362,97 @@ export function stopDrumRoll() {
     }
 }
 
+// ── Hero of the Day ──────────────────────────────────────────────
+// Every voice is synthesised (no files) and built once, on first use.
+// The draw and the crowning each have their own bus, so a skipped draw or a
+// closed reveal can fade out what is still scheduled without touching the rest.
+let heroVoices = null;
+function getHeroVoices() {
+    if (heroVoices || !Tone) return heroVoices;
+    const reverb = new Tone.Reverb({ decay: 2.4, wet: 0.26 }).toDestination();
+    const bus = new Tone.Gain(1).connect(reverb);
+    const drawBus = new Tone.Gain(1).connect(reverb);
+    const quillFilter = new Tone.Filter({ type: 'bandpass', frequency: 3200, Q: 1.4 }).connect(bus);
+    const quill = new Tone.NoiseSynth({
+        noise: { type: 'pink' },
+        envelope: { attack: 0.004, decay: 0.07, sustain: 0, release: 0.03 },
+        volume: -24
+    }).connect(quillFilter);
+    const harp = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 },
+        volume: -13
+    }).connect(drawBus);
+    harp.maxPolyphony = 16;
+    const roll = new Tone.MembraneSynth({
+        pitchDecay: 0.04,
+        octaves: 2.2,
+        envelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.2 },
+        volume: -11
+    }).connect(drawBus);
+    const timpani = new Tone.MembraneSynth({
+        pitchDecay: 0.04,
+        octaves: 2.2,
+        envelope: { attack: 0.002, decay: 0.45, sustain: 0, release: 0.3 },
+        volume: -9
+    }).connect(bus);
+    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 1900, Q: 0.8 }).connect(bus);
+    const brass = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 2, spread: 14 },
+        envelope: { attack: 0.035, decay: 0.2, sustain: 0.7, release: 0.55 },
+        volume: -17
+    }).connect(brassFilter);
+    brass.maxPolyphony = 14;
+    const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 5200 }).connect(bus);
+    const cymbal = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.004, decay: 2.2, sustain: 0, release: 0.4 },
+        volume: -25
+    }).connect(cymbalFilter);
+    const bell = new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 3.01,
+        modulationIndex: 6,
+        envelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 1.1 },
+        modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0, release: 0.4 },
+        volume: -19
+    }).connect(bus);
+    bell.maxPolyphony = 10;
+    heroVoices = { bus, drawBus, quill, quillFilter, harp, roll, timpani, brass, cymbal, bell };
+    return heroVoices;
+}
+
+function heroBusUp(busName = 'bus') {
+    const v = getHeroVoices();
+    if (!v) return null;
+    const gain = v[busName].gain;
+    gain.cancelScheduledValues(Tone.now());
+    gain.setValueAtTime(1, Tone.now());
+    return v;
+}
+
+function fadeHeroBus(busName) {
+    const gain = heroVoices?.[busName]?.gain;
+    if (!gain) return;
+    const now = Tone.now();
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(0, now + 0.2);
+}
+
+/** Soft quill scratches while the Chronicler writes the page and picks the hero. */
 let writingLoop;
 export function playWritingLoop() {
     if (!soundsReady) return;
-    // Play a gentle writing sound every quarter note
+    const v = heroBusUp();
+    if (!v) return;
+    stopWritingLoop();
     writingLoop = new Tone.Loop(time => {
-        // Randomize playback rate slightly for realism
-        sounds.writing.noise.playbackRate = 0.5 + (Math.random() * 0.2); 
-        sounds.writing.triggerAttackRelease("16n", time);
-    }, "8n").start(0);
+        v.quillFilter.frequency.setValueAtTime(2600 + Math.random() * 1400, time);
+        v.quill.triggerAttackRelease(0.03 + Math.random() * 0.05, time);
+    }, '16n');
+    writingLoop.probability = 0.55;
+    writingLoop.humanize = 0.02;
+    writingLoop.start(0);
     Tone.Transport.start();
 }
 
@@ -382,6 +464,65 @@ export function stopWritingLoop() {
             Tone.Transport.stop();
         }
     }
+}
+
+const HERO_DRAW_LADDER = ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5', 'A5', 'B5'];
+
+/**
+ * The drawing of lots: a harp note for every hop of the glint (climbing a
+ * D-major pentatonic ladder) over a timpani roll that swells to the landing.
+ * @param {number[]} hopTimes seconds from now, one per hop; the last is the landing.
+ */
+export function playHeroDrawSound(hopTimes = []) {
+    if (ceremonyMuted || !isAudioReady() || !hopTimes.length) return;
+    const v = heroBusUp('drawBus');
+    if (!v) return;
+    const now = Tone.now() + 0.02;
+    const end = hopTimes[hopTimes.length - 1];
+    hopTimes.forEach((t, i) => {
+        const note = HERO_DRAW_LADDER[i % HERO_DRAW_LADDER.length];
+        v.harp.triggerAttackRelease(note, 0.18, now + t, 0.55 + 0.4 * (t / (end || 1)));
+    });
+    // Timpani roll: quiet and sparse at first, then dense and loud before the landing.
+    for (let t = 0, step = 0.11; t < end - 0.05; t += step) {
+        const k = t / end;
+        v.roll.triggerAttackRelease('D2', 0.08, now + t, 0.12 + 0.6 * k * k);
+        step = Math.max(0.05, 0.11 - 0.07 * k);
+    }
+    v.harp.triggerAttackRelease(['D5', 'A5', 'D6'], 0.5, now + end, 0.8);
+}
+
+/** Build the reveal voices ahead of time so the reverb is ready when the draw starts. */
+export function primeHeroRevealSound() {
+    if (soundsReady && Tone) getHeroVoices();
+}
+
+/** Cut the draw short (the teacher tapped to reveal now). */
+export function stopHeroDrawSound() {
+    fadeHeroBus('drawBus');
+}
+
+/** The crowning: timpani boom, herald trumpets, a cymbal wash and a bell sparkle as the crown lands. */
+export function playHeroCrowningSound() {
+    if (ceremonyMuted || !isAudioReady()) return;
+    const v = heroBusUp();
+    if (!v) return;
+    const t0 = Tone.now() + 0.03;
+    v.timpani.triggerAttackRelease('D2', 0.5, t0, 1);
+    v.timpani.triggerAttackRelease('A1', 0.5, t0 + 0.72, 0.9);
+    [[0, 'A3', 0.09], [0.12, 'A3', 0.09], [0.24, 'A3', 0.09], [0.36, 'D4', 0.3]].forEach(([dt, note, dur]) => {
+        v.brass.triggerAttackRelease([note, Tone.Frequency(note).transpose(7).toNote()], dur, t0 + dt, 0.8);
+    });
+    v.brass.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], 1.5, t0 + 0.72, 0.9);
+    v.cymbal.triggerAttackRelease(1.8, t0 + 0.72, 0.9);
+    ['D6', 'F#6', 'A6', 'D7'].forEach((note, i) => v.bell.triggerAttackRelease(note, 0.8, t0 + 0.78 + i * 0.09, 0.6));
+}
+
+/** Fade out whatever the Hero of the Day reveal still has scheduled. */
+export function stopHeroRevealSound() {
+    if (!heroVoices || !Tone) return;
+    fadeHeroBus('drawBus');
+    fadeHeroBus('bus');
 }
 
 export function playHeroFanfare() {

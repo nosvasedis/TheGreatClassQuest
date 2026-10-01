@@ -2,83 +2,96 @@
 // Hero celebration, hero stats, hero chronicle, prodigy
 import { PRODIGY_HALL_DEFS_SVG, PRODIGY_ROSE_WINDOW_SVG } from '../../ui/modals/prodigyHallView.js';
 
+/** Two laurel branches around the Hero of the Day medallion. */
+const HOD_LAUREL = (() => {
+    const leaves = [];
+    for (let i = 0; i < 8; i++) {
+        for (const side of [-1, 1]) {
+            // Left branch climbs from the bottom (112°) to the upper left; the right mirrors it.
+            const deg = side < 0 ? 112 + i * 16 : 68 - i * 16;
+            for (const [r, lean] of [[83, 24], [95, -24]]) {
+                const rad = deg * Math.PI / 180;
+                const x = (100 + Math.cos(rad) * r).toFixed(1);
+                const y = (100 + Math.sin(rad) * r).toFixed(1);
+                const tilt = (deg + lean * side * -1).toFixed(0);
+                leaves.push(`<ellipse cx="${x}" cy="${y}" rx="5" ry="12" transform="rotate(${tilt} ${x} ${y})"/>`);
+            }
+        }
+    }
+    return `<g fill="#8cc06f" stroke="#3f6b2d" stroke-width="1.5">${leaves.join('')}</g>`;
+})();
+
+/** Gold petals that fall once when the crown lands. */
+const HOD_PETALS = Array.from({ length: 14 }, (_, i) => `<i class="hod-petal" style="--i:${i}"></i>`).join('');
+
 export const heroModalsHTML = `
-    <div id="hero-celebration-modal"
-        class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden"
-        style="background: radial-gradient(ellipse at 40% 25%, rgba(109,40,217,0.97) 0%, rgba(10,4,42,0.99) 100%);">
-
-        <!-- Floating star particles -->
-        <div class="hcd-particles" aria-hidden="true">
-            <span class="hcd-p hcd-p1">⭐</span>
-            <span class="hcd-p hcd-p2">✨</span>
-            <span class="hcd-p hcd-p3">⭐</span>
-            <span class="hcd-p hcd-p4">✨</span>
-            <span class="hcd-p hcd-p5">🌟</span>
-            <span class="hcd-p hcd-p6">✨</span>
-            <span class="hcd-p hcd-p7">⭐</span>
-            <span class="hcd-p hcd-p8">✨</span>
-            <span class="hcd-p hcd-p9">🌟</span>
-            <span class="hcd-p hcd-p10">⭐</span>
-            <span class="hcd-p hcd-p11">✨</span>
-            <span class="hcd-p hcd-p12">⭐</span>
+    <div id="hero-celebration-modal" class="hod-modal fixed inset-0 z-[95] hidden" role="dialog" aria-modal="true" aria-labelledby="hero-celebration-name">
+        <!-- Tournament pavilion: striped canvas, scalloped valance, bunting -->
+        <div class="hod-pavilion" aria-hidden="true">
+            <div class="hod-pavilion__stripes"></div>
+            <div class="hod-pavilion__light"></div>
+            <div class="hod-pavilion__valance"></div>
+            <div class="hod-pavilion__bunting"></div>
         </div>
+        <div class="hod-petals" aria-hidden="true">${HOD_PETALS}</div>
 
-        <!-- Rotating golden light-ray burst -->
-        <div class="hcd-rays-wrap" aria-hidden="true">
-            <div class="hcd-rays"></div>
-        </div>
-
-        <!-- Main card -->
-        <div class="hcd-card pop-in">
-            <!-- Card shimmer sweep overlay -->
-            <div class="hcd-card-shimmer" aria-hidden="true"></div>
-
-            <!-- Crown -->
-            <div class="hcd-crown-section" aria-hidden="true">
-                <span class="hcd-crown-glow"></span>
-                <span class="hcd-crown">👑</span>
+        <div class="hod-stage pop-in">
+            <!-- The herald's banner hangs from a gilded rod -->
+            <div class="hod-rod" aria-hidden="true">
+                <span class="hod-rod__finial hod-rod__finial--l"></span>
+                <span class="hod-rod__bar"></span>
+                <span class="hod-rod__finial hod-rod__finial--r"></span>
+                <span class="hod-rod__tassel hod-rod__tassel--l"></span>
+                <span class="hod-rod__tassel hod-rod__tassel--r"></span>
             </div>
+            <div class="hod-banner">
+                <div class="hod-banner__cloth">
+                    <p class="hod-kicker"><span class="hod-kicker__line"></span><span id="hero-celebration-kicker">Hear ye, hear ye!</span><span class="hod-kicker__line"></span></p>
+                    <p class="hod-title">Hero of the Day</p>
 
-            <!-- "Hero of the Day" badge -->
-            <div class="hcd-badge">
-                <i class="fas fa-star hcd-badge-star"></i>
-                <span>Hero of the Day</span>
-                <i class="fas fa-star hcd-badge-star"></i>
+                    <div class="hod-crest">
+                        <!-- Drawing of lots: the class's shields in a ring -->
+                        <div id="hero-celebration-draw" class="hod-draw" aria-hidden="true"></div>
+                        <div class="hod-medallion">
+                            <svg class="hod-crown" viewBox="0 0 120 84" aria-hidden="true">
+                                <defs>
+                                    <linearGradient id="hod-crown-gold" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0" stop-color="#fff2b8"/><stop offset=".45" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9781f"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M10 70 L6 22 L32 44 L60 8 L88 44 L114 22 L110 70 Z" fill="url(#hod-crown-gold)" stroke="#8a5512" stroke-width="3" stroke-linejoin="round"/>
+                                <rect x="9" y="64" width="102" height="14" rx="4" fill="url(#hod-crown-gold)" stroke="#8a5512" stroke-width="3"/>
+                                <circle cx="6" cy="20" r="6" fill="#fff2b8" stroke="#8a5512" stroke-width="2.5"/>
+                                <circle cx="60" cy="7" r="7" fill="#fff2b8" stroke="#8a5512" stroke-width="2.5"/>
+                                <circle cx="114" cy="20" r="6" fill="#fff2b8" stroke="#8a5512" stroke-width="2.5"/>
+                                <circle cx="60" cy="71" r="5" fill="#d23a4a" stroke="#7a1724" stroke-width="2"/>
+                                <circle cx="34" cy="71" r="4" fill="#2f7fd6" stroke="#173f7a" stroke-width="2"/>
+                                <circle cx="86" cy="71" r="4" fill="#2f9a6a" stroke="#14553a" stroke-width="2"/>
+                                <path d="M60 30 L66 44 L60 52 L54 44 Z" fill="#d23a4a" stroke="#7a1724" stroke-width="2"/>
+                            </svg>
+                            <svg class="hod-laurel" viewBox="0 0 200 200" aria-hidden="true">${HOD_LAUREL}</svg>
+                            <div id="hero-celebration-avatar" class="hod-avatar"></div>
+                        </div>
+                    </div>
+
+                    <div class="hod-ribbon">
+                        <svg class="hod-ribbon__tails" viewBox="0 0 320 60" preserveAspectRatio="none" aria-hidden="true">
+                            <path d="M0 18 H44 V54 H0 L14 36 Z" fill="#a8242f"/>
+                            <path d="M320 18 H276 V54 H320 L306 36 Z" fill="#a8242f"/>
+                            <path d="M44 54 L58 44 V54 Z M276 54 L262 44 V54 Z" fill="#6e1219"/>
+                        </svg>
+                        <h2 id="hero-celebration-name" class="hod-name">Student Name</h2>
+                    </div>
+                    <p id="hero-celebration-reason" class="hod-reason">The Class Hero!</p>
+                    <p id="hero-celebration-date" class="hod-date"></p>
+
+                    <button id="hero-celebration-close-btn" type="button" class="hod-btn bubbly-button">
+                        <svg class="hod-btn__horn" viewBox="0 0 48 24" aria-hidden="true"><path d="M2 9 H18 L40 2 V22 L18 15 H2 Z" fill="currentColor"/><rect x="40" y="0" width="5" height="24" rx="2" fill="currentColor"/></svg>
+                        <span>Huzzah!</span>
+                    </button>
+                </div>
             </div>
-
-            <!-- Avatar with spinning golden rings -->
-            <div class="hcd-avatar-wrap">
-                <div class="hcd-ring-spinner" aria-hidden="true"></div>
-                <div class="hcd-ring-pulse-el" aria-hidden="true"></div>
-                <div id="hero-celebration-avatar" class="hcd-avatar"></div>
-            </div>
-
-            <!-- Student name with shimmer -->
-            <h2 id="hero-celebration-name" class="hcd-name font-title">Student Name</h2>
-
-            <!-- Gem divider -->
-            <div class="hcd-divider" aria-hidden="true">
-                <span class="hcd-div-line"></span>
-                <span class="hcd-div-gems">◆◆◆</span>
-                <span class="hcd-div-line"></span>
-            </div>
-
-            <!-- Reason text -->
-            <p id="hero-celebration-reason" class="hcd-reason">For Outstanding Courage</p>
-
-            <!-- Huzzah button -->
-            <button id="hero-celebration-close-btn" class="hcd-btn bubbly-button">
-                <i class="fas fa-crown"></i>
-                <span>Huzzah!</span>
-                <span class="hcd-btn-shine" aria-hidden="true"></span>
-            </button>
-
-            <!-- Bottom decorative line -->
-            <div class="hcd-bottom-deco" aria-hidden="true">
-                <span>⚔️</span>
-                <span class="hcd-scrollwork">— ✦ ✦ ✦ —</span>
-                <span>🛡️</span>
-            </div>
+            <p class="hod-skip" id="hero-celebration-skip">Tap to reveal now</p>
         </div>
     </div>
 

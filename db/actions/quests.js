@@ -663,20 +663,18 @@ async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Her
     state.setReigningHero(heroStudent);
     import('../../features/home.js').then(m => m.renderHomeTab()).catch(() => {});
 
-    document.getElementById('hero-celebration-name').innerText = heroStudent.name;
-    document.getElementById('hero-celebration-reason').innerText = reasonText;
-    const avatarEl = document.getElementById('hero-celebration-avatar');
-    avatarEl.innerHTML = heroStudent.avatar
-        ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">`
-        : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
+    const classId = campfireDetail?.classId || heroStudent.classId;
+    const contenders = classId ? getPresentStudentsForClass(classId) : [];
 
-    const [{ showAnimatedModal }, audio] = await Promise.all([
+    const [{ showAnimatedModal }, audio, { startHeroOfDayReveal }] = await Promise.all([
         import('../../ui/modals.js'),
-        import('../../audio.js')
+        import('../../audio.js'),
+        import('../../ui/modals/heroOfDayReveal.js')
     ]);
+    audio.ensureAudioReady?.().then(() => audio.primeHeroRevealSound?.()).catch(() => {});
+    startHeroOfDayReveal({ hero: heroStudent, contenders, reasonText, audio });
     showAnimatedModal('hero-celebration-modal');
     document.getElementById('hero-celebration-modal')._campfireDetail = campfireDetail;
-    audio.playHeroFanfare();
 }
 
 async function handleAILogAdventure(classId, classData) {

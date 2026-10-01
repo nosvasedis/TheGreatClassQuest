@@ -215,7 +215,6 @@
     grid-row: 1;
     overflow-x: hidden;
     overflow-y: auto;
-    scrollbar-width: none;
     min-height: 0;
     padding: 1.25rem 1.5rem 2rem 2rem;
     display: flex;
@@ -241,8 +240,23 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.42));
 }
 
+/* A slim ember scrollbar on the workbench: soot track, faint copper thumb that
+   warms when the pointer finds it. Firefox reads the two standard properties. */
+.af-bench, .af-body, .af-pool--scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(214, 128, 60, 0.38) transparent;
+}
+.af-bench::-webkit-scrollbar, .af-body::-webkit-scrollbar, .af-pool--scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.af-bench::-webkit-scrollbar-track, .af-body::-webkit-scrollbar-track, .af-pool--scroll::-webkit-scrollbar-track { background: transparent; margin: 0.75rem 0; }
+.af-bench::-webkit-scrollbar-thumb, .af-body::-webkit-scrollbar-thumb, .af-pool--scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(240, 150, 70, 0.42), rgba(170, 80, 30, 0.42));
+    border-radius: 999px;
+}
+.af-bench::-webkit-scrollbar-thumb:hover, .af-body::-webkit-scrollbar-thumb:hover, .af-pool--scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(255, 176, 96, 0.8), rgba(220, 100, 40, 0.8));
+}
+
 /* Heat bar: three segments that fill as required steps are chosen */
-.af-bench::-webkit-scrollbar { display: none; }
 .af-progress { display: flex; align-items: center; gap: 0.75rem; }
 .af-progress__label { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.28em; text-transform: uppercase; color: var(--af-dim); }
 .af-progress__bar { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
@@ -322,6 +336,17 @@
 
 /* ── Option tokens ────────────────────────────────────────────── */
 .af-pool { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+/* The long lists (creature, colour, relic) show three and a half rows and scroll
+   inside their step, so the later steps stay close. The padding leaves room for
+   the lift on hover and the selected token's glow. */
+.af-pool--scroll {
+    position: relative;
+    max-height: 10.6rem;
+    overflow-y: auto;
+    align-content: flex-start;
+    margin: -0.35rem -0.6rem -0.35rem -0.35rem;
+    padding: 0.35rem 0.6rem 0.5rem 0.35rem;
+}
 .avatar-maker-option-btn {
     position: relative;
     display: inline-flex;
@@ -653,6 +678,7 @@
     .af-anvil__stage { order: 1; --af-stage-pad: 1.2rem; --af-portrait: 12rem; }
     .af-recipe { order: 2; padding: 0.4rem 1.25rem 0; }
     .af-bench { order: 3; overflow: visible; flex-shrink: 0; padding: 0.75rem 0.9rem 0.5rem; }
+    .af-pool--scroll { max-height: 13.6rem; }
     .af-anvil__stage, .af-recipe, .af-actions { flex-shrink: 0; }
     .af-actions {
         order: 4;

@@ -39,7 +39,13 @@ export const FORGE_CREATURES = [
     { value: 'Lion', icon: '🦁', look: 'lion cub with a fluffy little mane' },
     { value: 'Bunny', icon: '🐰', look: 'bunny with long floppy ears and a cotton tail' },
     { value: 'Yeti', icon: '❄️', look: 'fluffy friendly baby yeti with snowy fur' },
-    { value: 'Ghost', icon: '👻', look: 'cute friendly little ghost with a happy face, not scary' }
+    { value: 'Ghost', icon: '👻', look: 'cute friendly little ghost with a happy face, not scary' },
+    { value: 'Ballerina', icon: '🩰', look: 'graceful young ballerina in a tutu and satin ballet slippers, on tiptoe' },
+    { value: 'Footballer', icon: '⚽', look: 'young soccer player in a team kit and shin pads, with a round black-and-white soccer ball' },
+    { value: 'Rock Star', icon: '🎤', look: 'young rock star with spiky hair, a star-shaped badge and a microphone' },
+    { value: 'Detective', icon: '🔍', look: 'young detective with a checked deerstalker cap and a magnifying glass' },
+    { value: 'Chef', icon: '🧑‍🍳', look: 'young chef with a puffy white chef hat and an apron' },
+    { value: 'Penguin', icon: '🐧', look: 'chubby little penguin chick with fluffy feathers' }
 ];
 
 export const FORGE_COLORS = [
@@ -80,12 +86,16 @@ export const FORGE_ACCESSORIES = [
     { value: 'Telescope', icon: '🔭', look: 'holding a brass telescope' },
     { value: 'Paintbrush', icon: '🖌️', look: 'holding a big paintbrush with a drop of paint' },
     { value: 'Guitar', icon: '🎸', look: 'holding a little guitar' },
-    { value: 'Football', icon: '⚽', look: 'holding a football under one arm' },
+    // 'Football' means the round one: the image models paint an American football otherwise.
+    { value: 'Football', icon: '⚽', look: 'holding a round black-and-white soccer ball under one arm' },
     { value: 'Lantern', icon: '🏮', look: 'holding a warm glowing lantern' },
     { value: 'Potion', icon: '🧪', look: 'holding a bubbling potion bottle' },
     { value: 'Crystal Ball', icon: '🔮', look: 'holding a glowing crystal ball' },
     { value: 'Cosy Scarf', icon: '🧣', look: 'wearing a long cosy striped scarf' },
-    { value: 'Pet Companion', icon: '🐾', look: 'with a tiny pet companion on the shoulder' }
+    { value: 'Pet Companion', icon: '🐾', look: 'with a tiny pet companion on the shoulder' },
+    { value: 'Microphone', icon: '🎤', look: 'holding a shiny microphone' },
+    { value: 'Skateboard', icon: '🛹', look: 'holding a colourful skateboard' },
+    { value: 'Ballet Slippers', icon: '🩰', look: 'wearing pink satin ballet slippers with ribbons' }
 ];
 
 export const FORGE_MOODS = [
@@ -145,7 +155,7 @@ export const FORGE_NEGATIVE_PROMPT = [
     'blurry', 'lowres', 'jpeg artifacts', 'noisy', 'deformed', 'disfigured', 'bad anatomy',
     'extra limbs', 'extra fingers', 'missing eyes', 'cross-eyed', 'cropped head',
     'multiple characters', 'duplicate', 'scary', 'creepy', 'horror', 'angry', 'blood', 'gore',
-    'realistic photo', 'photorealistic', 'nsfw'
+    'realistic photo', 'photorealistic', 'nsfw', 'american football', 'rugby ball'
 ].join(', ');
 
 export class ForgeRecipeError extends Error {}

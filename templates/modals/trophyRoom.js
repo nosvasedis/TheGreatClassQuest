@@ -222,7 +222,7 @@ export const trophyRoomModalsHTML = `
                             </div>
                             <span id="step-creature-check" class="af-step__check" aria-hidden="true"><i class="fas fa-check"></i></span>
                         </div>
-                        <div id="avatar-creature-pool" class="af-pool" role="group" aria-label="Creature"></div>
+                        <div id="avatar-creature-pool" class="af-pool af-pool--scroll" role="group" aria-label="Creature"></div>
                     </section>
 
                     <section class="af-step" aria-labelledby="af-step-color">
@@ -234,7 +234,7 @@ export const trophyRoomModalsHTML = `
                             </div>
                             <span id="step-color-check" class="af-step__check" aria-hidden="true"><i class="fas fa-check"></i></span>
                         </div>
-                        <div id="avatar-color-pool" class="af-pool af-pool--colors" role="group" aria-label="Colour"></div>
+                        <div id="avatar-color-pool" class="af-pool af-pool--colors af-pool--scroll" role="group" aria-label="Colour"></div>
                     </section>
 
                     <section class="af-step" aria-labelledby="af-step-accessory">
@@ -246,7 +246,7 @@ export const trophyRoomModalsHTML = `
                             </div>
                             <span id="step-accessory-check" class="af-step__check" aria-hidden="true"><i class="fas fa-check"></i></span>
                         </div>
-                        <div id="avatar-accessory-pool" class="af-pool" role="group" aria-label="Relic"></div>
+                        <div id="avatar-accessory-pool" class="af-pool af-pool--scroll" role="group" aria-label="Relic"></div>
                     </section>
 
                     <section class="af-step af-step--temper" aria-labelledby="af-step-temper">

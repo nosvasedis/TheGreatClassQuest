@@ -76,6 +76,20 @@ function markSelected(pool, value) {
         btn.classList.toggle('selected', on);
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+    revealInPool(container);
+}
+
+/** Scrolls a long list (only that list, never the bench) so its chosen token shows. */
+function revealInPool(container) {
+    const chosen = container.querySelector('.selected');
+    if (!chosen || container.scrollHeight <= container.clientHeight) return;
+    const top = chosen.offsetTop; // the list is positioned, so this is inside it
+    const pad = 8;
+    if (top < container.scrollTop + pad) {
+        container.scrollTo({ top: Math.max(0, top - pad), behavior: 'smooth' });
+    } else if (top + chosen.offsetHeight > container.scrollTop + container.clientHeight - pad) {
+        container.scrollTo({ top: top + chosen.offsetHeight - container.clientHeight + pad, behavior: 'smooth' });
+    }
 }
 
 function labelFor(pool, value) {

@@ -186,6 +186,13 @@ rulesTest('the real keep transaction (auto evidence, flame check-in, reflection,
     summary: 'Cambridge Primary Path 2 · Unit 4 · pp. 78–80', theme: '', bigQuestion: 'Why do we celebrate?', grammar: 'past simple' } } };
   await assertSucceeds(setDoc(doc(db, DATA + '/campfire_sessions/camp-class_2026-09-27'), session));
   await assertFails(setDoc(doc(db, DATA + '/campfire_sessions/wrong-id'), session));
+  // The AI-polished script carries word examples and a grammar pattern (seen in production).
+  const polished = { ...session, source: 'ai', script: { ...session.script,
+    embellishments: [{ word: 'eagle', example: 'An eagle can fly.', depict: true }, { word: 'hop', example: '', depict: true }],
+    pattern: { label: 'can/cannot', example: 'I can hop.' } } };
+  await assertSucceeds(setDoc(doc(db, DATA + '/campfire_sessions/camp-class_2026-09-27'), polished));
+  await assertFails(setDoc(doc(db, DATA + '/campfire_sessions/camp-class_2026-09-27'), { ...polished, script: { ...polished.script, embellishments: Array(9).fill({ word: 'x' }) } }));
+  await assertFails(setDoc(doc(db, DATA + '/campfire_sessions/camp-class_2026-09-27'), { ...polished, script: { ...polished.script, pattern: { label: 'x', other: 1 } } }));
 });
 
 rulesTest('missing and inactive profiles cannot read protected school data', async () => {

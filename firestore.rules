@@ -419,13 +419,17 @@ service cloud.firestore {
         data.status in ['kindled','lit','completed','skipped'] && data.source in ['bank','ai'] &&
         data.selfCheck in [null,'flame','candle','moon'] && data.checkedInIds is list && data.checkedInIds.size() <= 100 &&
         data.keptOathIds is list && data.keptOathIds.size() <= 100 && data.script is map &&
-        data.script.keys().hasOnly(['question','followUp','starters','words','circle','rotation','readyOathIds','lessonTarget','fireTale','closingLine','tomorrowSpark','classPromise']) &&
+        data.script.keys().hasOnly(['question','followUp','starters','words','embellishments','pattern','circle','rotation','readyOathIds','lessonTarget','fireTale','closingLine','tomorrowSpark','classPromise']) &&
         shortText(data.script.question,220) && shortText(data.script.followUp,220) &&
         shortText(data.script.fireTale,220) && shortText(data.script.closingLine,220) && shortText(data.script.tomorrowSpark,220) &&
         data.script.starters is list && data.script.starters.size() <= 3 && data.script.words is list && data.script.words.size() <= 8 &&
         data.script.circle is list && data.script.circle.size() <= 4 && data.script.readyOathIds is list && data.script.readyOathIds.size() <= 100 &&
         shortText(data.script.classPromise,240) && data.script.rotation is map &&
-        (data.script.lessonTarget == null || data.script.lessonTarget is map);
+        (data.script.lessonTarget == null || data.script.lessonTarget is map) &&
+        (!('embellishments' in data.script) || (data.script.embellishments is list && data.script.embellishments.size() <= 8)) &&
+        (!('pattern' in data.script) || data.script.pattern == null ||
+          (data.script.pattern is map && data.script.pattern.keys().hasOnly(['label','example']) &&
+           shortText(data.script.pattern.label, 60) && shortText(data.script.pattern.example, 140)));
     }
     match /artifacts/great-class-quest/public/data/ember_oaths/{id} {
       allow read: if isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey();

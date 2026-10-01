@@ -584,7 +584,7 @@ async function generateAdventureLogArtwork(logId, diary, heroOfTheDay) {
         imagePrompt,
         '',
         {},
-        { retries: 0, timeoutMs: 12000, baseDelay: 600 }
+        { retries: 0, timeoutMs: 45000, baseDelay: 600 }
     );
     const compressed = await compressImageBase64(imageBase64);
 

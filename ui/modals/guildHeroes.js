@@ -97,7 +97,7 @@ function _renderOverviewCards(payload) {
                 <div class="guild-heroes-overview-body">
                     ${_heroAvatar(champ, g.colors.primary)}
                     <div class="guild-heroes-overview-meta">
-                        <div class="guild-heroes-overview-line"><strong>${Math.round(g.totals.guildPower)}</strong> power · <strong>${_fmtOne(g.totals.perCapitaGlory)}</strong> season ${GLORY_EMOJI}/hero</div>
+                        <div class="guild-heroes-overview-line"><strong>${_fmtOne(g.totals.guildPower)}</strong> Guild Power (season ${GLORY_EMOJI} per hero)</div>
                         <div class="guild-heroes-overview-line">${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐ this month` : 'Pick your guild above'}</div>
                     </div>
                 </div>
@@ -206,7 +206,7 @@ function _renderGlanceView(payload, guild) {
             <div class="gh-stat-grid">
                 <div class="gh-stat-tile">
                     <span class="gh-stat-tile__label">Guild Power</span>
-                    <span class="gh-stat-tile__value">${Math.round(t.guildPower)}</span>
+                    <span class="gh-stat-tile__value">${_fmtOne(t.guildPower)}</span>
                     <span class="gh-stat-tile__hint">Season-fair ledger score</span>
                 </div>
                 <div class="gh-stat-tile">

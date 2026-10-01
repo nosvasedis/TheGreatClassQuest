@@ -723,6 +723,29 @@ function _guildTrendRow(delta, isFirstRender, index, rankLabels, placeIndex = in
         : ''}</div>`;
 }
 
+/** Guild Power as shown: one decimal while small (0.4, 7.5), whole numbers from 10. */
+function _fmtPower(n) {
+    const v = Math.max(0, Number(n) || 0);
+    return v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+}
+
+/**
+ * The crystal tubes share one fixed scale: the next round mark above the leader (10, 20, 25,
+ * 50, 100, ...), never less than 10 Power. So a tiny early lead (0.4) is a sliver, not a full
+ * tube, and a tube is never full just because its guild is first.
+ */
+function _crystalTubeScale(displayData) {
+    const top = Math.max(0, ...displayData.map(_exactPower));
+    const marks = [10, 20, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000];
+    const mark = marks.find((m) => m >= top * 1.1);
+    return mark || Math.ceil((top * 1.1) / 500) * 500;
+}
+
+function _crystalFillPct(power, scale) {
+    if (!(power > 0.005)) return 0;
+    return Math.max(3, Math.min(92, Math.round((power / scale) * 92)));
+}
+
 /** Rolls each changed Guild Power number from its previous value (skipped for reduced motion). */
 let _powerCountToken = 0;
 function _animateGuildPowerCounters(root) {
@@ -740,7 +763,7 @@ function _animateGuildPowerCounters(root) {
         if (token !== _powerCountToken) return;
         const t = Math.min(1, (now - start) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
-        jobs.forEach((j) => { j.el.textContent = String(Math.round(j.from + (j.to - j.from) * eased)); });
+        jobs.forEach((j) => { j.el.textContent = _fmtPower(j.from + (j.to - j.from) * eased); });
         if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -824,6 +847,7 @@ export function renderGuildsTab() {
 
     const rankLabels = ['1st', '2nd', '3rd', '4th'];
     const standing = _guildPlaces(displayData);
+    const tubeScale = _crystalTubeScale(displayData);
 
     const columns = displayData.map((g, index) => {
         const guild = getGuildById(g.guildId);
@@ -832,10 +856,7 @@ export function renderGuildsTab() {
         const secondary = guild?.secondary || '#9ca3af';
         const glow = guild?.glow || primary;
         const initial = String(g.guildName || g.guildId || '?').trim().charAt(0).toUpperCase() || '?';
-        const maxPower = Math.max(...displayData.map((row) => row.guildPower)) || 1;
-        const fillPct = seasonLive
-            ? Math.max(5, Math.round((g.guildPower / maxPower) * 90))
-            : 0;
+        const fillPct = seasonLive ? _crystalFillPct(_exactPower(g), tubeScale) : 0;
 
         const emblemHtml = emblemUrl
             ? `<img src="${emblemUrl}" alt="${g.guildName}" class="guild-crystal-emblem"
@@ -949,9 +970,9 @@ export function renderGuildsTab() {
                 <div class="guild-crystal-effects-panel__chips">${modsChipsInner}</div>
             </section>`;
 
-        const powerNow = Math.round(Number(g.guildPower) || 0);
+        const powerNow = _fmtPower(Number(g.guildPower) || 0);
         const prevPowerEntry = _prevGuildPower.get(g.guildId);
-        const powerFrom = prevPowerEntry ? Math.round(Number(prevPowerEntry.power) || 0) : 0;
+        const powerFrom = prevPowerEntry ? _fmtPower(Number(prevPowerEntry.power) || 0) : '0';
         const chase = seasonLive ? _guildChaseLine(displayData, index, rankLabels, standing) : null;
 
         const countBlock = seasonLive
@@ -1082,7 +1103,7 @@ export function renderGuildsTab() {
                         ${seasonLive ? `
                         <div class="guild-crystal-fill"
                              data-fill-target="${fillPct}"
-                             style="height:5%;
+                             style="height:0%;
                                     background:linear-gradient(to top,${primary} 0%,${secondary} 60%,${glow} 100%);
                                     box-shadow:0 -6px 28px ${glow}cc;">
                             <div class="guild-crystal-shimmer"></div>

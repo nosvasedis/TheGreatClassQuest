@@ -1461,21 +1461,21 @@ function getGuildLeaderboardCard() {
     // Same standings as the Guild Hall, so the projector never shows a different order.
     const guilds = getGuildLeaderboardData().map((row) => {
         const meta = guildMeta[row.guildId] || { name: row.guildName || row.guildId, emoji: '⚔️', color: '#9ca3af' };
-        return { gid: row.guildId, name: meta.name, emoji: meta.emoji, color: meta.color, power: Math.round(Number(row.guildPower) || 0) };
+        return { gid: row.guildId, name: meta.name, emoji: meta.emoji, color: meta.color, power: Number(row.guildPower) || 0 };
     });
 
     const maxPower = Math.max(...guilds.map(g => g.power)) || 1;
     const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
 
     const rows = guilds.map((g, i) => {
-        const barWidth = Math.max(8, Math.round((g.power / maxPower) * 100));
+        const barWidth = g.power > 0 ? Math.max(4, Math.round((g.power / Math.max(maxPower, 10)) * 100)) : 0;
         return `<div class="flex items-center gap-3 mb-2">
             <span class="text-xl w-7 text-center">${rankEmoji[i]}</span>
             <span class="text-2xl">${g.emoji}</span>
             <div class="flex-1">
                 <div class="flex justify-between items-center mb-0.5">
                     <span class="font-bold text-sm" style="color:${g.color}">${g.name}</span>
-                    <span class="text-xs font-bold opacity-70">⚡ ${g.power} Power</span>
+                    <span class="text-xs font-bold opacity-70">⚡ ${g.power >= 10 ? Math.round(g.power) : Math.round(g.power * 10) / 10} Power</span>
                 </div>
                 <div class="h-2 rounded-full bg-white/10 overflow-hidden">
                     <div class="h-full rounded-full" style="width:${barWidth}%;background:${g.color};"></div>

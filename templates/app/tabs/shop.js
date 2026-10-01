@@ -150,5 +150,26 @@ export const shopTabHTML = `
                         </div>
                     </div>
                 </div>
+
+                <!-- The Market Keeper follows shoppers down the shelves (ui/core/marketKeeperFloat.js) -->
+                <div id="shop-keeper-float" class="mm-keeper-float" role="complementary" aria-label="The Market Keeper">
+                    <div class="mm-keeper-float__bubble" aria-hidden="true">
+                        <span class="mm-keeper__name">The Market Keeper</span>
+                        <span class="mm-keeper-float__line"></span>
+                    </div>
+                    <button type="button" class="mm-keeper-float__keeper" aria-label="Hush the Market Keeper">
+                        <span class="mm-keeper-float__art" aria-hidden="true"></span>
+                    </button>
+                    <div class="mm-keeper-float__ledge">
+                        <button type="button" class="mm-keeper-float__back" aria-label="Back to the counter" title="Back to the counter">
+                            <span class="mm-keeper-float__purse">
+                                <span class="mm-keeper-float__shopper"></span>
+                                <span class="mm-keeper-float__coin" aria-hidden="true">🪙</span>
+                                <span class="mm-keeper-float__gold"></span>
+                            </span>
+                            <span class="mm-keeper-float__up" aria-hidden="true"><i class="fas fa-arrow-up"></i></span>
+                        </button>
+                    </div>
+                </div>
             </div>
 `;

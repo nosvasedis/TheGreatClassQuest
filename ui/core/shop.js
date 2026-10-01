@@ -36,6 +36,7 @@ import {
     renderShelf,
     renderMarketAisle
 } from './marketView.mjs';
+import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
 
 // --- SHOP UI HELPERS ---
 
@@ -51,7 +52,7 @@ function setShopBuyBtn(btn, variant, label, { disabled = true, title = '' } = {}
 let keeperContextLine = '';
 let keeperRevertTimer = null;
 
-function keeperSay(text, { mood = '', sticky = false } = {}) {
+function keeperSay(text, { mood = '', sticky = false, revert = false } = {}) {
     const lineEl = document.getElementById('shop-keeper-line');
     const keeper = document.getElementById('shop-keeper');
     if (!lineEl || !keeper || !text) return;
@@ -63,10 +64,11 @@ function keeperSay(text, { mood = '', sticky = false } = {}) {
         keeper.classList.add('is-speaking');
     }
     keeper.dataset.mood = mood;
+    keeperFloatSay(text, { mood, revert });
     clearTimeout(keeperRevertTimer);
     if (!sticky) {
         keeperRevertTimer = setTimeout(() => {
-            if (keeperContextLine) keeperSay(keeperContextLine, { sticky: true });
+            if (keeperContextLine) keeperSay(keeperContextLine, { sticky: true, revert: true });
         }, mood === 'celebrate' || mood === 'sad' ? 6000 : 4200);
     }
 }
@@ -376,6 +378,7 @@ function ensureShopStudentDropdownListeners() {
 
 function bindShopStorefrontListeners() {
     readShopSortPreference();
+    initMarketKeeperFloat();
 
     document.getElementById('shop-aisle-chips')?.addEventListener('click', (e) => {
         const chip = e.target.closest('.mm-aisle-chip');

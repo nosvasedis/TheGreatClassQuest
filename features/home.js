@@ -42,7 +42,8 @@ import {
     withNightWeatherText
 } from './weatherTheme.js';
 import { fetchLiveWeather, applyLiveSky } from './liveWeather.js';
-import { getWeatherCardHtml, getClockHandAngles, formatClockTime } from './weatherCard.js';
+import { getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
+import { getWeatherCardHtml, getClockHandAngles, formatClockTime, refreshWeatherCardInPlace } from './weatherCard.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -205,6 +206,47 @@ function announceHomeRendered(detail) {
     document.dispatchEvent(new CustomEvent('home:rendered', { detail }));
 }
 
+/** The weather card's words and colours for a reading, by day or by night. */
+function weatherThemeForReading(weatherData, isNight) {
+    const theme = { isNight };
+    if (weatherData) {
+        theme.temp = `${weatherData.temp}°C`;
+        theme.hi = Number.isFinite(weatherData.hi) ? weatherData.hi : null;
+        theme.lo = Number.isFinite(weatherData.lo) ? weatherData.lo : null;
+        Object.assign(theme, resolveWeatherTheme(weatherData.code));
+
+        if (theme.isNight) {
+            if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
+            if (theme.weatherIcon === 'fa-cloud-sun') theme.weatherIcon = 'fa-cloud-moon';
+            theme.weatherText = withNightWeatherText(theme.weatherText);
+        }
+    } else {
+        // Fallback
+        theme.temp = '--°C';
+        theme.weatherBg = 'w-day';
+        theme.weatherIcon = 'fa-cloud-sun';
+        theme.weatherText = 'Clear';
+        if (theme.isNight) {
+            theme.weatherIcon = 'fa-moon';
+            theme.weatherText = 'Clear Night';
+        }
+    }
+    return theme;
+}
+
+// While Home is open, its weather card follows the sky in place: new weather or
+// nightfall changes the words and glyph, and the stage melts the card's sky.
+if (typeof window !== 'undefined') {
+    window.addEventListener('gcq:sky-scene', (event) => {
+        const card = document.querySelector('#home-tab .weather-card--v3, #home-dashboard-container .weather-card--v3');
+        const scene = event.detail?.scene;
+        if (!card || !scene) return;
+        const reading = event.detail.reading || null;
+        const theme = weatherThemeForReading(reading, utils.getCurrentDayPart().isNight);
+        refreshWeatherCardInPlace(card, theme, scene, { reading, sun: utils.getSolarTimes() });
+    });
+}
+
 export function renderHomeTab() {
     const container = document.getElementById('home-dashboard-container');
     if (!container) return;
@@ -234,40 +276,19 @@ async function executeRenderHome() {
     const teacherName = state.get('currentTeacherName') || "Quest Master";
     const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
 
-    // Dynamic Weather/Theme (the same live reading paints the header, Award sky and Projector)
-    const weatherData = await fetchLiveWeather();
+    // Dynamic Weather/Theme. The sky already on screen is the source: opening Home
+    // never repaints it (new weather arrives on the live timer and melts in, see
+    // features/liveWeather.js). Only the very first visit, before any reading, fetches.
+    const skyReading = getSkyScene() ? getLastSkyReading() : null;
+    const weatherData = skyReading || await fetchLiveWeather();
 
     // One shared day/night source, so the greeting and the weather card never disagree.
     const dayPartInfo = utils.getCurrentDayPart();
-    let theme = { isNight: dayPartInfo.isNight };
-
-    // --- STEP 1: CALCULATE WEATHER STATE ---
-    if (weatherData) {
-        theme.temp = `${weatherData.temp}°C`;
-        theme.hi = Number.isFinite(weatherData.hi) ? weatherData.hi : null;
-        theme.lo = Number.isFinite(weatherData.lo) ? weatherData.lo : null;
-        Object.assign(theme, resolveWeatherTheme(weatherData.code));
-
-        if (theme.isNight) {
-            if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
-            if (theme.weatherIcon === 'fa-cloud-sun') theme.weatherIcon = 'fa-cloud-moon';
-            theme.weatherText = withNightWeatherText(theme.weatherText);
-        }
-    } else {
-        // Fallback
-        theme.temp = '--°C';
-        theme.weatherBg = 'w-day';
-        theme.weatherIcon = 'fa-cloud-sun';
-        theme.weatherText = 'Clear';
-        if (theme.isNight) {
-            theme.weatherIcon = 'fa-moon';
-            theme.weatherText = 'Clear Night';
-        }
-    }
+    let theme = weatherThemeForReading(weatherData, dayPartInfo.isNight);
 
     // --- STEP 2: PAINT THE SKY (header band, Award sky, phone header, Projector) ---
     theme.reading = weatherData;
-    theme.sky = applyLiveSky(weatherData);
+    theme.sky = skyReading ? getSkyScene() : applyLiveSky(weatherData);
     theme.sun = utils.getSolarTimes();
 
     // --- STEP 3: GREETING (same day/night source as the weather card) ---

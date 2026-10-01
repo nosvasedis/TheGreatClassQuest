@@ -251,13 +251,76 @@ html[data-wx-night="1"][data-wx-tone="ice"] {
 html[data-wx-dir="w"] { --wx-gust-flip: -1; }
 
 /* ============================================================
+   1b. THE SKY MELTS
+   The palette colours are registered, so when the light (dawn, day, golden
+   hour, twilight, night) or the weather changes, every sky surface blends to
+   the new colours on its own over several seconds instead of switching.
+   The transition sits on each surface's root only: its clouds, glow and
+   weather layers inherit the in-between colours, and the rest of the page is
+   untouched. (Cloud and rain layers cross-fade in features/skyWeatherStage.js.)
+   ============================================================ */
+@property --wx-sky-1 { syntax: '<color>'; inherits: true; initial-value: #89f7fe; }
+@property --wx-sky-2 { syntax: '<color>'; inherits: true; initial-value: #79cffd; }
+@property --wx-sky-3 { syntax: '<color>'; inherits: true; initial-value: #66a6ff; }
+@property --wx-zenith { syntax: '<color>'; inherits: true; initial-value: rgba(37, 99, 235, 0.16); }
+@property --wx-horizon { syntax: '<color>'; inherits: true; initial-value: rgba(224, 242, 254, 0.62); }
+@property --wx-glow { syntax: '<color>'; inherits: true; initial-value: rgba(255, 250, 214, 0.6); }
+@property --wx-cloud-shade { syntax: '<color>'; inherits: true; initial-value: #afc6e9; }
+@property --wx-cloud-body { syntax: '<color>'; inherits: true; initial-value: #e4eefb; }
+@property --wx-cloud-lit { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+@property --wx-cloud-glint { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+@property --wx-cloud-alpha { syntax: '<number>'; inherits: true; initial-value: 0.96; }
+@property --wx-card-ink { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+
+#award-header-atmosphere,
+#award-immersive-sky,
+.weather-card--v3,
+.m-header,
+#dynamic-wallpaper-screen {
+    --wx-melt: 8s;
+    transition:
+        --wx-sky-1 var(--wx-melt) ease-in-out, --wx-sky-2 var(--wx-melt) ease-in-out, --wx-sky-3 var(--wx-melt) ease-in-out,
+        --wx-zenith var(--wx-melt) ease-in-out, --wx-horizon var(--wx-melt) ease-in-out, --wx-glow var(--wx-melt) ease-in-out,
+        --wx-cloud-shade var(--wx-melt) ease-in-out, --wx-cloud-body var(--wx-melt) ease-in-out,
+        --wx-cloud-lit var(--wx-melt) ease-in-out, --wx-cloud-glint var(--wx-melt) ease-in-out,
+        --wx-cloud-alpha var(--wx-melt) ease-in-out, --wx-card-ink var(--wx-melt) ease-in-out;
+}
+/* The Home card keeps its own hover lift (home.css .vibrant-card) alongside the melt. */
+.weather-card--v3 {
+    transition:
+        --wx-sky-1 var(--wx-melt) ease-in-out, --wx-sky-2 var(--wx-melt) ease-in-out, --wx-sky-3 var(--wx-melt) ease-in-out,
+        --wx-zenith var(--wx-melt) ease-in-out, --wx-horizon var(--wx-melt) ease-in-out, --wx-glow var(--wx-melt) ease-in-out,
+        --wx-cloud-shade var(--wx-melt) ease-in-out, --wx-cloud-body var(--wx-melt) ease-in-out,
+        --wx-cloud-lit var(--wx-melt) ease-in-out, --wx-cloud-glint var(--wx-melt) ease-in-out,
+        --wx-cloud-alpha var(--wx-melt) ease-in-out, --wx-card-ink var(--wx-melt) ease-in-out,
+        transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 0.4s ease;
+}
+
+/* Cloud and weather layers cross-fade when the weather changes (skyWeatherStage.js#paint). */
+.wx-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: wx-layer-in 4s ease-in-out both;
+}
+.wx-fading-out {
+    opacity: 0 !important;
+    transition: opacity 4s ease-in-out !important;
+    pointer-events: none;
+}
+@keyframes wx-layer-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ============================================================
    2. SURFACE BACKDROPS
    ============================================================ */
 #award-header-atmosphere {
     background:
         radial-gradient(ellipse 42% 160% at 88% 0%, var(--wx-glow) 0%, transparent 70%),
         linear-gradient(to right, var(--wx-sky-1) 0%, var(--wx-sky-2) 55%, var(--wx-sky-3) 100%);
-    transition: background-color 1.2s ease;
 }
 
 /* The bar paints nothing itself; the atmosphere wrapper carries the sky. */
@@ -756,7 +819,11 @@ html[data-wx-stars="dim"] #award-immersive-sky .award-immersive-stars,
 html[data-wx-stars="dim"] #wall-stars { opacity: 0.4 !important; }
 html[data-wx-stars="0"] header .header-night-stars,
 html[data-wx-stars="0"] #award-immersive-sky .award-immersive-stars,
-html[data-wx-stars="0"] #wall-stars { opacity: 0 !important; visibility: hidden !important; }
+html[data-wx-stars="0"] #wall-stars { opacity: 0 !important; visibility: hidden !important; transition: opacity 4s ease, visibility 0s linear 4s !important; }
+/* Clouds closing in or clearing fade the stars rather than switching them. */
+html:not([data-wx-stars="0"]) header .header-night-stars,
+html:not([data-wx-stars="0"]) #award-immersive-sky .award-immersive-stars,
+html:not([data-wx-stars="0"]) #wall-stars { transition: opacity 4s ease, visibility 0s !important; }
 
 /* ============================================================
    6. AWARD SKY: sun and moon follow the scene
@@ -843,6 +910,12 @@ html[data-wx-night="1"]:not([data-wx-tone="fair"]) .wx-card-sky::before { opacit
     pointer-events: none;
 }
 .weather-card--v3 .weather-glyph .wx-glyph { animation: wx-glyph-float 6s ease-in-out infinite; }
+/* A new glyph (sun to cloud, day to moon) rises in softly instead of popping. */
+.weather-card--v3 .weather-glyph__swap { display: block; animation: wx-glyph-swap 2.4s ease-in-out both; }
+@keyframes wx-glyph-swap {
+    from { opacity: 0; transform: scale(0.86) translateY(6%); filter: blur(3px); }
+    to { opacity: 1; transform: none; filter: none; }
+}
 
 /* The glyph is a stack of same-size <svg> layers; only whole layers move. */
 .wx-glyph { position: relative; display: block; width: 100%; aspect-ratio: 1; }
@@ -1010,12 +1083,6 @@ html[data-wx-moon="0"] #dynamic-wallpaper-screen.is-night #wall-moon {
    registered so the sky melts from one light to the next instead of
    switching. Only gradients and transforms: nothing filters or blurs.
    ============================================================ */
-@property --wx-sky-1 { syntax: '<color>'; inherits: true; initial-value: #89f7fe; }
-@property --wx-sky-2 { syntax: '<color>'; inherits: true; initial-value: #79cffd; }
-@property --wx-sky-3 { syntax: '<color>'; inherits: true; initial-value: #66a6ff; }
-@property --wx-zenith { syntax: '<color>'; inherits: true; initial-value: rgba(37, 99, 235, 0.16); }
-@property --wx-horizon { syntax: '<color>'; inherits: true; initial-value: rgba(224, 242, 254, 0.62); }
-@property --wx-glow { syntax: '<color>'; inherits: true; initial-value: rgba(255, 250, 214, 0.6); }
 
 #dynamic-wallpaper-screen {
     /* Where the light comes from (the sun by day, the moon by night). ui/wallpaper.js
@@ -1050,11 +1117,9 @@ html[data-wx-light="golden"] #dynamic-wallpaper-screen {
     --sun-rim: #f97316;
     --sun-halo: rgba(253, 160, 90, 0.6);
 }
-/* Twilight: the light lies along the horizon, so the deep colour sits on top. */
+/* Twilight: the light lies along the horizon, so the deep colour sits on top
+   (the .wall-sky::before overlay fades in, so the flip never snaps). */
 html[data-wx-light="twilight"] #dynamic-wallpaper-screen {
-    --wall-top: var(--wx-sky-1);
-    --wall-mid: var(--wx-sky-2);
-    --wall-low: var(--wx-sky-3);
     --glow-x: 74vw;
     --glow-y: 84vh;
 }
@@ -1063,20 +1128,44 @@ html[data-wx-light="night"] #dynamic-wallpaper-screen {
     --glow-y: 20vh;
 }
 
+/* The glow drifts to its new place with the light instead of jumping. */
+@property --glow-x { syntax: '<length-percentage>'; inherits: true; initial-value: 80vw; }
+@property --glow-y { syntax: '<length-percentage>'; inherits: true; initial-value: 16vh; }
+#dynamic-wallpaper-screen {
+    transition:
+        --wx-sky-1 var(--wx-melt) ease-in-out, --wx-sky-2 var(--wx-melt) ease-in-out, --wx-sky-3 var(--wx-melt) ease-in-out,
+        --wx-zenith var(--wx-melt) ease-in-out, --wx-horizon var(--wx-melt) ease-in-out, --wx-glow var(--wx-melt) ease-in-out,
+        --wx-cloud-shade var(--wx-melt) ease-in-out, --wx-cloud-body var(--wx-melt) ease-in-out,
+        --wx-cloud-lit var(--wx-melt) ease-in-out, --wx-cloud-glint var(--wx-melt) ease-in-out,
+        --wx-cloud-alpha var(--wx-melt) ease-in-out, --wx-card-ink var(--wx-melt) ease-in-out,
+        --glow-x var(--wx-melt) ease-in-out, --glow-y var(--wx-melt) ease-in-out;
+}
+
 .wall-sky {
     position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
+    background: linear-gradient(to bottom, var(--wall-top) 0%, var(--wall-mid) 52%, var(--wall-low) 100%);
+}
+.wall-sky::before,
+.wall-sky::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+}
+.wall-sky::before {
+    background: linear-gradient(to bottom, var(--wx-sky-1) 0%, var(--wx-sky-2) 52%, var(--wx-sky-3) 100%);
+    opacity: 0;
+    transition: opacity var(--wx-melt, 8s) ease-in-out;
+}
+.wall-sky::after {
     background:
         radial-gradient(ellipse 58vmax 46vmax at var(--glow-x) var(--glow-y), var(--wx-glow) 0%, transparent 62%),
         linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 46%),
-        linear-gradient(to top, var(--wx-horizon) 0%, transparent 52%),
-        linear-gradient(to bottom, var(--wall-top) 0%, var(--wall-mid) 52%, var(--wall-low) 100%);
-    transition:
-        --wx-sky-1 6s ease, --wx-sky-2 6s ease, --wx-sky-3 6s ease,
-        --wx-zenith 6s ease, --wx-horizon 6s ease, --wx-glow 6s ease;
+        linear-gradient(to top, var(--wx-horizon) 0%, transparent 52%);
 }
+html[data-wx-light="twilight"] .wall-sky::before { opacity: 1; }
 
 /* The sun: a painted disc in a soft halo, coloured by the light and moving with it. */
 .wall-sun {
@@ -1115,6 +1204,36 @@ html[data-wx-sun="0"] .wall-sun {
 }
 html[data-wx-sun="0"] #dynamic-wallpaper-screen:not(.is-night) .wall-sun { translate: var(--sun-x) calc(var(--sun-y) - 4vh); }
 
+/* Nightfall and daybreak on the Projector face: the moon climbs slowly, and the
+   clock hub, banner and clock dial melt between their day and night looks
+   (registered colours, so the gradients blend instead of switching). */
+@property --hub-top { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.36); }
+@property --hub-bot { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.12); }
+@property --banner-top { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+@property --banner-bot { syntax: '<color>'; inherits: true; initial-value: #eef2ff; }
+#dynamic-wallpaper-screen #wall-moon {
+    transition: top 9s cubic-bezier(0.4, 0, 0.2, 1), right 9s cubic-bezier(0.4, 0, 0.2, 1), opacity 5s ease-in-out !important;
+}
+#dynamic-wallpaper-screen .sky-hub,
+#dynamic-wallpaper-screen.is-night .sky-hub {
+    background: linear-gradient(180deg, var(--hub-top) 0%, var(--hub-bot) 100%) !important;
+    transition: --hub-top 6s ease-in-out, --hub-bot 6s ease-in-out, border-color 6s ease-in-out, box-shadow 6s ease-in-out;
+}
+#dynamic-wallpaper-screen.is-night .sky-hub { --hub-top: rgba(30, 27, 75, 0.55); --hub-bot: rgba(15, 23, 42, 0.42); }
+#dynamic-wallpaper-screen .sky-hub__banner,
+#dynamic-wallpaper-screen.is-night .sky-hub__banner {
+    background: linear-gradient(180deg, var(--banner-top) 0%, var(--banner-bot) 100%) !important;
+    transition: --banner-top 6s ease-in-out, --banner-bot 6s ease-in-out, box-shadow 6s ease-in-out, color 6s ease-in-out;
+}
+#dynamic-wallpaper-screen.is-night .sky-hub__banner { --banner-top: #312e81; --banner-bot: #1e1b4b; }
+#dynamic-wallpaper-screen .sky-hub__banner *,
+#dynamic-wallpaper-screen .sky-hub__time,
+#dynamic-wallpaper-screen .sky-hub__date { transition: color 6s ease-in-out, text-shadow 6s ease-in-out; }
+#dynamic-wallpaper-screen :is(.clock-face, .clock-outer-ring, .clock-ticks-major line, .clock-ticks-minor line, .clock-number, .clock-center-cap) {
+    transition: fill 6s ease-in-out, stroke 6s ease-in-out;
+}
+#dynamic-wallpaper-screen .wall-horizon path { transition-duration: 8s; transition-timing-function: ease-in-out; }
+
 /* The hills and castle take the light of the hour. */
 html[data-wx-light="dawn"][data-wx-tone="fair"] .wall-horizon {
     --hill-far: rgba(178, 168, 200, 0.62);
@@ -1136,7 +1255,6 @@ html[data-wx-light="twilight"] .wall-horizon {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .wall-sky { transition: none; }
     .wall-sun { transition: opacity 0.4s ease; }
     .wall-sun__halo { animation: none; }
 }

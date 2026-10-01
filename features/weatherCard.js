@@ -87,6 +87,48 @@ export function hoursStripHtml(reading, sun = {}) {
 }
 
 /**
+ * Bring an open card up to date with a new sky (new reading, or the light moving
+ * into night) without re-rendering it: its clouds and weather layers are painted
+ * by the sky stage, so only the words, the glyph, the chips and the hours change.
+ * The glyph cross-fades.
+ */
+/** Short stable key for a chunk of markup, so an unchanged glyph is never swapped. */
+function hashText(text) {
+    let h = 0;
+    for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+}
+
+export function refreshWeatherCardInPlace(card, theme, scene, { reading = null, sun = {}, now = new Date() } = {}) {
+    if (!card || !scene) return;
+    const setText = (sel, text) => {
+        const el = card.querySelector(sel);
+        if (el && el.textContent !== text) el.textContent = text;
+    };
+    setText('.weather-temp', theme.temp || '--°C');
+    setText('.weather-cond', theme.weatherText || '');
+    card.classList.toggle('weather-night', !!theme.isNight);
+    const glyphEl = card.querySelector('.weather-glyph');
+    const glyph = weatherGlyphSvg(scene, { moonPhase: moonPhase(now.getTime()) });
+    const glyphKey = hashText(glyph);
+    if (glyphEl && glyphEl.dataset.glyphKey !== glyphKey) {
+        const hadGlyph = glyphEl.children.length > 0;
+        glyphEl.dataset.glyphKey = glyphKey;
+        glyphEl.innerHTML = hadGlyph ? `<span class="weather-glyph__swap">${glyph}</span>` : glyph;
+    }
+    const meta = card.querySelector('.weather-meta');
+    const chips = metaChipsHtml(theme, reading);
+    if (meta && meta.innerHTML !== chips) meta.innerHTML = chips;
+    const info = card.querySelector('.weather-info');
+    if (info) {
+        const hours = hoursStripHtml(reading, sun);
+        const old = info.querySelector('.wx-hours');
+        if (old && old.outerHTML !== hours) old.outerHTML = hours;
+        else if (!old && hours) info.insertAdjacentHTML('beforeend', hours);
+    }
+}
+
+/**
  * Full card markup. `theme` is the Home weather theme (temp, hi/lo, text,
  * legacy w-* class); `scene` is the live sky scene; `reading` the raw reading.
  */
@@ -100,7 +142,7 @@ export function getWeatherCardHtml(theme, scene, { reading = null, sun = {}, qui
                     <div class="wx-clouds wx-clouds--card" data-wx-key="c:${key}">${buildCloudsHtml(sky, 'card')}</div>
                     <div class="wx-stage wx-stage--card" data-wx-key="f:${key}">${buildWeatherFxHtml(sky, 'card')}</div>
                 </div>
-                <div class="weather-glyph" aria-hidden="true">${glyph}</div>
+                <div class="weather-glyph" data-glyph-key="${hashText(glyph)}" aria-hidden="true">${glyph}</div>
 
                 <div class="weather-top">
                     ${getWeatherClockHtml(now)}

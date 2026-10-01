@@ -55,10 +55,36 @@ const SURFACES = [
     { surface: 'wall', clouds: '#wall-parallax-clouds', fx: '#wall-weather-fx' }
 ];
 
+const FADE_MS = 4000;
+
+function prefersReducedMotion() {
+    return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * Swap a surface's clouds or weather layer. A surface on screen cross-fades:
+ * whatever is there now fades out in place (never moved, so its clouds keep
+ * drifting) while the new layer fades in on top, then the old one is dropped.
+ * Hidden or freshly rendered surfaces just swap.
+ */
 function paint(el, key, build) {
     if (!el || el.dataset.wxKey === key) return;
-    el.innerHTML = build();
+    const live = [...el.children].filter((child) => !child.classList.contains('wx-fading-out'));
+    const fade = !!el.dataset.wxKey && live.length > 0 && isShown(el) && !prefersReducedMotion();
     el.dataset.wxKey = key;
+    if (!fade) {
+        el.innerHTML = build();
+        return;
+    }
+    live.forEach((child) => child.classList.add('wx-fading-out'));
+    const html = build();
+    if (html) {
+        const layer = document.createElement('div');
+        layer.className = 'wx-layer';
+        layer.innerHTML = html;
+        el.appendChild(layer);
+    }
+    setTimeout(() => live.forEach((child) => child.remove()), FADE_MS + 200);
 }
 
 /** (Re)paint one surface. Safe to call for freshly rendered markup (e.g. the Home card). */
@@ -105,6 +131,8 @@ export function applySkyScene(scene) {
     paintMoonPhase(scene.now);
     for (const { surface } of SURFACES) paintSkySurface(surface);
     setLightning(scene.lightning);
+    // Lets open views (the Home weather card) follow the sky in place, with no re-render.
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('gcq:sky-scene', { detail: { scene, reading: lastReading } }));
 }
 
 /** Paint a reading (live weather) with the given sun times. */

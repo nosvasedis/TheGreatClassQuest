@@ -410,7 +410,7 @@ Opened from the header **cog**. Pick a section from the **dropdown** at the top.
 |-------|------------|
 | **Frontend** | Vanilla JS (ES modules), HTML, CSS (Tailwind-style utilities, custom themes) |
 | **Backend / DB** | **Firebase** (Firestore: classes, students, scores, award_log, bounties, schedule overrides, holidays, story data, etc.) |
-| **AI** | **DeepSeek V4.1 Flash** (diary, reports, certificates, nameday, Story Weaver text); Cloudflare Workers AI (image generation) |
+| **AI** | **DeepSeek V4.1 Flash** (diary, reports, certificates, nameday, Story Weaver text), with automatic **Gemini 3.1 Flash Lite via OpenRouter** backup and a final Cloudflare text fallback; Cloudflare Workers AI (image generation). API keys stay in Worker secrets. |
 
 **Run locally:** From the project root, run `npx serve -l 3000` (or any static server). Configure Firebase in your project for full functionality.
 

@@ -214,6 +214,10 @@ function buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions
     if (Number.isFinite(requestOptions.maxTokens) && requestOptions.maxTokens > 0) {
         base.max_tokens = Math.min(1200, Math.floor(requestOptions.maxTokens));
     }
+    if (requestOptions.jsonMode === true) base.json_mode = true;
+    if (Number.isFinite(requestOptions.timeoutMs) && requestOptions.timeoutMs > 0) {
+        base.timeout_ms = Math.floor(requestOptions.timeoutMs);
+    }
     return base;
 }
 
@@ -263,9 +267,14 @@ async function requestTextFromProvider(provider, systemPrompt, userPrompt, reque
     }
 
     const result = await response.json();
+    const actualProvider = response.headers.get('X-GCQ-AI-Provider');
+    const fallback = actualProvider === 'openrouter-fallback'
+        ? { providerId: 'openrouter-gemini-3.1-flash-lite', providerLabel: 'Gemini 3.1 Flash Lite (OpenRouter)' }
+        : actualProvider === 'workers-ai-fallback'
+            ? { providerId: 'workers-ai-glm-4.7-flash', providerLabel: 'GLM 4.7 Flash (Cloudflare)' }
+            : { providerId: provider.id, providerLabel: provider.label };
     return {
-        providerId: provider.id,
-        providerLabel: provider.label,
+        ...fallback,
         content: extractProviderText(result)
     };
 }

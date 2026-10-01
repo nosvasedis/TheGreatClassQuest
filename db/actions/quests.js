@@ -447,7 +447,7 @@ async function finalizeAdventureLogGeneration({
     const aiResult = await callGeminiApiDetailed(aiPrompts.systemPrompt, aiPrompts.userPrompt, {
         retries: 1,
         baseDelay: 700,
-        // Allow the proxy's 25s primary + 20s backup deadlines and auth overhead
+        // Allow the proxy's 25s primary + 20s OpenRouter + 10s final backup deadlines
         // to finish before starting another attempt.
         timeoutMs: 65000,
         jsonMode: true
@@ -488,7 +488,7 @@ async function finalizeAdventureLogGeneration({
             const repairResult = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, {
                 retries: 0,
                 baseDelay: 0,
-                timeoutMs: 35000,
+                timeoutMs: 65000,
                 jsonMode: true
             });
             lastRaw = repairResult.content;

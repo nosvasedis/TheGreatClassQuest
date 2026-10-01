@@ -2,6 +2,9 @@ const FIREBASE_ID_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk
 const APP_CHECK_JWKS_URL = 'https://firebaseappcheck.googleapis.com/v1/jwks';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-flash';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_FALLBACK_MODEL = 'google/gemini-3.1-flash-lite';
+const OPENROUTER_TIMEOUT_MS = 20_000;
 const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2';
 // FLUX.2 [klein] 4B paints every image; SDXL (free, unmetered beta) takes over when
 // FLUX fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
@@ -10,7 +13,7 @@ const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
 const TEXT_FALLBACK_DAILY_LIMIT = 12;
 const TEXT_UPSTREAM_TIMEOUT_MS = 25_000;
-const TEXT_FALLBACK_TIMEOUT_MS = 20_000;
+const TEXT_FALLBACK_TIMEOUT_MS = 10_000;
 const TEXT_REPLAY_PENDING_MS = 60_000;
 const TEXT_REPLAY_TTL_MS = 30_000;
 const MAX_TEXT_REPLAYS = 128;
@@ -330,7 +333,7 @@ function extractWorkersAiText(result) {
   return typeof content === 'string' ? content.trim() : '';
 }
 
-async function handleWorkersAiTextFallback(outbound, env, corsHeaders) {
+async function handleWorkersAiTextFallback(outbound, env, corsHeaders, timeoutMs = TEXT_FALLBACK_TIMEOUT_MS) {
   if (!env.AI || !(await reserveTextFallback(env))) {
     return json(
       { error: 'The backup AI service is temporarily unavailable.' },
@@ -349,7 +352,7 @@ async function handleWorkersAiTextFallback(outbound, env, corsHeaders) {
       max_tokens: outbound.max_tokens,
     }),
     new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new DOMException('Backup AI timed out.', 'TimeoutError')), TEXT_FALLBACK_TIMEOUT_MS);
+      timer = setTimeout(() => reject(new DOMException('Backup AI timed out.', 'TimeoutError')), timeoutMs);
     }),
   ]).finally(() => clearTimeout(timer));
   const content = extractWorkersAiText(result);
@@ -362,8 +365,80 @@ async function handleWorkersAiTextFallback(outbound, env, corsHeaders) {
   );
 }
 
+function textTimeouts(payload) {
+  const defaults = { primary: TEXT_UPSTREAM_TIMEOUT_MS, router: OPENROUTER_TIMEOUT_MS, final: TEXT_FALLBACK_TIMEOUT_MS };
+  // Short-lived callers (quotes, Campfire, analytics) must reach the backup
+  // before their own deadline. Keep five seconds for auth/network overhead.
+  if (!Number.isFinite(payload.timeout_ms) || payload.timeout_ms >= 60_000) return defaults;
+  const budget = boundedNumber(payload.timeout_ms - 5000, 55_000, 3000, 55_000);
+  return {
+    primary: Math.min(defaults.primary, Math.floor(budget * 0.45)),
+    router: Math.min(defaults.router, Math.floor(budget * 0.4)),
+    final: Math.min(defaults.final, Math.floor(budget * 0.15)),
+  };
+}
+
+async function handleTextFallback(outbound, env, corsHeaders, jsonMode = false, timeouts = textTimeouts({})) {
+  if (env.OPENROUTER_API_KEY) {
+    try {
+      // Pin the model and price ceiling on the server; client model IDs cannot
+      // select an expensive backup. Never forward DeepSeek-specific parameters.
+      const body = {
+        model: OPENROUTER_FALLBACK_MODEL,
+        messages: outbound.messages,
+        temperature: outbound.temperature,
+        top_p: outbound.top_p,
+        max_tokens: outbound.max_tokens,
+        reasoning: { effort: 'minimal', exclude: true },
+        provider: {
+          allow_fallbacks: true,
+          require_parameters: true,
+          sort: 'latency',
+          max_price: { prompt: 0.25, completion: 1.5 },
+        },
+      };
+      if (jsonMode) body.response_format = { type: 'json_object' };
+      const response = await fetchNoRedirect(OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://great-class-quest-school.pages.dev',
+          'X-Title': 'The Great Class Quest',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeouts.router),
+      });
+      // The deadline also covers reading a stalled response body.
+      const result = await response.json();
+      const content = result?.choices?.[0]?.message?.content;
+      if (!response.ok || result?.error || typeof content !== 'string' || !content.trim()
+          || result?.choices?.[0]?.finish_reason === 'length') {
+        throw new Error('OpenRouter returned no complete answer.');
+      }
+      if (jsonMode) {
+        const parsed = JSON.parse(content);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('OpenRouter returned an invalid JSON object.');
+        }
+      }
+      return json(
+        { model: OPENROUTER_FALLBACK_MODEL, choices: [{ message: { role: 'assistant', content: content.trim() } }] },
+        200,
+        corsHeaders,
+        { 'X-GCQ-AI-Provider': 'openrouter-fallback' },
+      );
+    } catch (error) {
+      // Log only the category: provider bodies may contain sensitive details.
+      console.warn(JSON.stringify({ event: 'gcq_openrouter_fallback_failed', reason: error?.name || 'Error' }));
+    }
+  }
+  return handleWorkersAiTextFallback(outbound, env, corsHeaders, timeouts.final);
+}
+
 async function handleChat(payload, env, ctx, corsHeaders) {
   const safe = validatedChatPayload(payload, env);
+  const timeouts = textTimeouts(payload);
   const isQuote = isLikelyDailyQuoteRequest(safe);
   const outbound = {
     ...safe,
@@ -385,7 +460,7 @@ async function handleChat(payload, env, ctx, corsHeaders) {
   }
 
   if (!env.DEEPSEEK_API_KEY) {
-    const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+    const fallback = await handleTextFallback(outbound, env, corsHeaders, payload.json_mode === true, timeouts);
     if (quoteKey && fallback.ok && env.QUOTE_CACHE) {
       ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));
     }
@@ -402,13 +477,13 @@ async function handleChat(payload, env, ctx, corsHeaders) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(outbound),
-      signal: AbortSignal.timeout(TEXT_UPSTREAM_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeouts.primary),
     });
     responseText = await response.text();
   } catch (error) {
     // Transport failures and timeouts need the same backup as HTTP failures.
     console.warn(JSON.stringify({ event: 'gcq_text_fallback', reason: error?.name || 'Error' }));
-    const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+    const fallback = await handleTextFallback(outbound, env, corsHeaders, payload.json_mode === true, timeouts);
     if (quoteKey && fallback.ok && env.QUOTE_CACHE) {
       ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));
     }
@@ -416,8 +491,8 @@ async function handleChat(payload, env, ctx, corsHeaders) {
   }
   if (!response.ok) {
     // Any DeepSeek upstream failure (auth, billing, rate limit, 5xx) should try
-    // Workers AI before hard-failing the client. Quote UX depends on this path.
-    const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+    // OpenRouter, then Workers AI before hard-failing the client.
+    const fallback = await handleTextFallback(outbound, env, corsHeaders, payload.json_mode === true, timeouts);
     if (fallback.ok) {
       if (quoteKey && env.QUOTE_CACHE) {
         ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));

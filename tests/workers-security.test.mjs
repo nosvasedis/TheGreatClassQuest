@@ -101,8 +101,144 @@ test('primary transport and body-read timeouts both invoke the text backup', asy
   }
 });
 
+test('DeepSeek failures route to the pinned OpenRouter model and retries replay without extra charges', async (t) => {
+  for (const failure of ['timeout', 'http']) {
+    const worker = await importIsolatedAiWorker();
+    const calls = [];
+    const env = { ...textEnv({ run() { assert.fail('Cloudflare should not run after OpenRouter succeeds'); } }), OPENROUTER_API_KEY: 'test-router-key' };
+    t.mock.method(globalThis, 'fetch', async (url, init) => {
+      calls.push(url);
+      if (url.includes('deepseek.com')) {
+        if (failure === 'timeout') throw new DOMException('Timeout', 'TimeoutError');
+        return new Response('{}', { status: 503 });
+      }
+      assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
+      assert.equal(init.headers.Authorization, 'Bearer test-router-key');
+      assert.equal(init.redirect, 'manual');
+      const body = JSON.parse(init.body);
+      assert.equal(body.model, 'google/gemini-3.1-flash-lite');
+      assert.equal(body.max_tokens, 1200);
+      assert.equal(body.thinking, undefined);
+      assert.deepEqual(body.provider.max_price, { prompt: 0.25, completion: 1.5 });
+      assert.deepEqual(body.reasoning, { effort: 'minimal', exclude: true });
+      assert.equal(body.provider.require_parameters, true);
+      return Response.json({ choices: [{ message: { content: 'A kind classroom story.' }, finish_reason: 'stop' }] });
+    });
+    const first = await worker.fetch(textRequest(`openrouter-${failure}`), env, { waitUntil() {} });
+    const replay = await worker.fetch(textRequest(`openrouter-${failure}`, 'http://127.0.0.1:3000'), env, { waitUntil() {} });
+    assert.equal(first.status, 200);
+    assert.equal(first.headers.get('X-GCQ-AI-Provider'), 'openrouter-fallback');
+    assert.equal(replay.headers.get('Access-Control-Allow-Origin'), 'http://127.0.0.1:3000');
+    assert.equal(await first.text(), await replay.text());
+    assert.equal(calls.length, 2);
+    t.mock.restoreAll();
+  }
+});
+
+test('healthy DeepSeek requests never call or charge OpenRouter', async (t) => {
+  const worker = await importIsolatedAiWorker();
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    calls += 1;
+    assert.ok(url.includes('deepseek.com'));
+    return Response.json({ choices: [{ message: { content: 'Primary story.' } }] });
+  });
+  const response = await worker.fetch(textRequest('healthy-primary'), { ...textEnv(), OPENROUTER_API_KEY: 'test-router-key' }, { waitUntil() {} });
+  assert.equal(response.status, 200);
+  assert.equal(calls, 1);
+});
+
+test('OpenRouter enforces explicit JSON mode, including missing primary configuration', async (t) => {
+  const worker = await importIsolatedAiWorker();
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    assert.ok(url.includes('openrouter.ai'));
+    const body = JSON.parse(init.body);
+    assert.deepEqual(body.response_format, { type: 'json_object' });
+    assert.equal(body.max_tokens, 80);
+    return Response.json({ choices: [{ message: { content: '{"title":"Το μονοπάτι","entry":"Μαζί προχωρήσαμε."}' } }] });
+  });
+  const request = textRequest('router-json');
+  const payload = await request.json();
+  const jsonRequest = new Request(request, { body: JSON.stringify({ ...payload, json_mode: true, max_tokens: 80 }) });
+  const response = await worker.fetch(jsonRequest, { ...textEnv(), DEEPSEEK_API_KEY: '', OPENROUTER_API_KEY: 'test-router-key' }, { waitUntil() {} });
+  assert.equal(response.status, 200);
+  assert.equal(JSON.parse((await response.json()).choices[0].message.content).title, 'Το μονοπάτι');
+});
+
+test('OpenRouter failures, incomplete answers and invalid JSON use the final Cloudflare backup', async (t) => {
+  for (const failure of ['fetch-timeout', 'body-timeout', 'http', 'empty', 'embedded-error', 'truncated', 'invalid-json']) {
+    const worker = await importIsolatedAiWorker();
+    let backupCalls = 0;
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      if (url.includes('deepseek.com')) return new Response('{}', { status: 500 });
+      if (failure === 'fetch-timeout') throw new DOMException('Timeout', 'TimeoutError');
+      if (failure === 'body-timeout') return { json() { throw new DOMException('Timeout', 'TimeoutError'); } };
+      if (failure === 'http') return Response.json({ error: 'Provider error' }, { status: 402 });
+      return Response.json({
+        ...(failure === 'embedded-error' ? { error: { message: 'Failed' } } : {}),
+        choices: [{ message: { content: failure === 'empty' ? '' : 'Incomplete story' }, finish_reason: failure === 'truncated' ? 'length' : 'stop' }],
+      });
+    });
+    const request = textRequest(`router-failure-${failure}`);
+    const payload = await request.json();
+    const response = await worker.fetch(new Request(request, { body: JSON.stringify({ ...payload, json_mode: failure === 'invalid-json' }) }), {
+      ...textEnv({ async run() { backupCalls += 1; return { response: 'Final backup.' }; } }), OPENROUTER_API_KEY: 'test-router-key',
+    }, { waitUntil() {} });
+    assert.equal(response.status, 200, failure);
+    assert.equal(response.headers.get('X-GCQ-AI-Provider'), 'workers-ai-fallback');
+    assert.equal(backupCalls, 1);
+    t.mock.restoreAll();
+  }
+});
+
+test('all three text services timing out still returns a bounded CORS-visible error', async (t) => {
+  const worker = await importIsolatedAiWorker((s) => s.replace('const TEXT_FALLBACK_TIMEOUT_MS = 10_000;', 'const TEXT_FALLBACK_TIMEOUT_MS = 10;'));
+  t.mock.method(globalThis, 'fetch', async () => { throw new DOMException('Timeout', 'TimeoutError'); });
+  const response = await worker.fetch(textRequest('all-three-timeout'), {
+    ...textEnv({ run() { return new Promise(() => {}); } }), OPENROUTER_API_KEY: 'test-router-key',
+  }, { waitUntil() {} });
+  assert.equal(response.status, 504);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), cloudflareStableOrigin);
+  assert.equal(response.headers.get('X-GCQ-Request-ID'), 'all-three-timeout');
+});
+
+test('short client deadlines reserve time for OpenRouter instead of waiting for DeepSeek until the client aborts', async (t) => {
+  const worker = await importIsolatedAiWorker();
+  const deadlines = [];
+  const nativeTimeout = AbortSignal.timeout;
+  t.mock.method(AbortSignal, 'timeout', (ms) => { deadlines.push(ms); return nativeTimeout(ms); });
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    const body = JSON.parse(init.body);
+    assert.equal(body.timeout_ms, undefined);
+    if (url.includes('deepseek.com')) throw new DOMException('Timeout', 'TimeoutError');
+    return Response.json({ choices: [{ message: { content: 'A short backup quote.' } }] });
+  });
+  const request = textRequest('short-client-budget');
+  const payload = await request.json();
+  const response = await worker.fetch(new Request(request, { body: JSON.stringify({ ...payload, timeout_ms: 20000 }) }), { ...textEnv(), OPENROUTER_API_KEY: 'test-router-key' }, { waitUntil() {} });
+  assert.equal(response.status, 200);
+  assert.deepEqual(deadlines, [6750, 6000]);
+});
+
+test('the client sends JSON mode and records the actual fallback provider', async () => {
+  const source = await readFile(new URL('api.js', root), 'utf8');
+  const functions = source.slice(source.indexOf('function resolveModelId('), source.indexOf('export async function callGeminiApiDetailed('));
+  const create = new Function('DEEPSEEK_MODEL_ID', 'enqueueGeminiRequest', 'fetchAuthenticatedProxy', `${functions}; return requestTextFromProvider;`);
+  for (const [header, expectedId] of [['openrouter-fallback', 'openrouter-gemini-3.1-flash-lite'], ['workers-ai-fallback', 'workers-ai-glm-4.7-flash'], ['', 'primary']]) {
+    const request = create('deepseek-flash', (task) => task(), async (url, payload) => {
+      assert.equal(payload.json_mode, true);
+      assert.equal(payload.max_tokens, 1200);
+      assert.equal(payload.timeout_ms, 20000);
+      return Response.json({ choices: [{ message: { content: '{"entry":"Story"}' } }] }, { headers: { 'X-GCQ-AI-Provider': header } });
+    });
+    const result = await request({ id: 'primary', label: 'Primary', model: 'deepseek-flash', url: 'https://worker.example/' }, 'Return JSON.', 'Write a story.', { jsonMode: true, maxTokens: 99999, timeoutMs: 20000 });
+    assert.equal(result.providerId, expectedId);
+    assert.equal(result.content, '{"entry":"Story"}');
+  }
+});
+
 test('a stalled backup returns a bounded CORS-visible timeout', async (t) => {
-  const worker = await importIsolatedAiWorker((s) => s.replace('const TEXT_FALLBACK_TIMEOUT_MS = 20_000;', 'const TEXT_FALLBACK_TIMEOUT_MS = 10;'));
+  const worker = await importIsolatedAiWorker((s) => s.replace('const TEXT_FALLBACK_TIMEOUT_MS = 10_000;', 'const TEXT_FALLBACK_TIMEOUT_MS = 10;'));
   t.mock.method(globalThis, 'fetch', async () => { throw new DOMException('Timeout', 'TimeoutError'); });
   const response = await worker.fetch(textRequest('backup-timeout'), textEnv({ run() { return new Promise(() => {}); } }), { waitUntil() {} });
   assert.equal(response.status, 504);
@@ -164,7 +300,7 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /TEXT_FALLBACK_MODEL = '@cf\/zai-org\/glm-4\.7-flash'/);
   assert.match(source, /TEXT_FALLBACK_DAILY_LIMIT = 12/);
   assert.match(source, /Any DeepSeek upstream failure/);
-  assert.match(source, /handleWorkersAiTextFallback\(outbound, env, corsHeaders\)/);
+  assert.match(source, /handleWorkersAiTextFallback\(outbound, env, corsHeaders, timeouts\.final\)/);
   assert.match(source, /X-GCQ-Error-Source': 'workers-ai-budget'/);
   assert.match(source, /stage: 'token'/);
   assert.match(source, /stage: 'app-check'/);

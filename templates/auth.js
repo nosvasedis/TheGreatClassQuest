@@ -2,6 +2,8 @@
 // A dawn valley whose path climbs to a castle gate; the card is that gate's arch,
 // and its colour follows who is signing in (teacher = sky, parent = amber, secretary = violet).
 
+import { cloudSvg } from '../features/skyWeatherArt.js';
+
 const AUTH_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 // One illustrated valley shared by every width. It anchors to the bottom so phones keep the path and hills.
@@ -74,7 +76,6 @@ const AUTH_SCENE_SVG = `
     </g>
 </svg>`;
 
-const AUTH_CLOUD_SVG = '<svg viewBox="0 0 120 56" aria-hidden="true" focusable="false"><path d="M20 50 C 4 50 2 30 18 28 C 18 12 40 6 50 20 C 58 4 88 6 88 26 C 104 22 116 36 106 48 C 104 50 102 50 100 50 Z" fill="currentColor"/></svg>';
 
 export const authHTML = `
     <div id="auth-screen" class="fixed inset-0 z-50 auth-screen-sky transition-opacity duration-500 hidden" data-auth-role="teacher">
@@ -82,9 +83,9 @@ export const authHTML = `
         ${AUTH_SCENE_SVG}
 
         <div class="auth-cloud-layer" aria-hidden="true">
-            <span class="auth-cloud auth-cloud-1">${AUTH_CLOUD_SVG}</span>
-            <span class="auth-cloud auth-cloud-2">${AUTH_CLOUD_SVG}</span>
-            <span class="auth-cloud auth-cloud-3">${AUTH_CLOUD_SVG}</span>
+            <span class="auth-cloud auth-cloud-1">${cloudSvg('cumulus', 2)}</span>
+            <span class="auth-cloud auth-cloud-2">${cloudSvg('puff', 1)}</span>
+            <span class="auth-cloud auth-cloud-3">${cloudSvg('long', 3)}</span>
         </div>
 
         <div class="auth-stage">

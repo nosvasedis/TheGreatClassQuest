@@ -99,6 +99,11 @@
     animation: auth-cloud-drift linear infinite;
 }
 .auth-cloud svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* The app's storybook cloud shapes (features/skyWeatherArt.js) in dawn colours. */
+.auth-cloud .wx-cs { fill: #d9c6e6; }
+.auth-cloud .wx-cb { fill: #f6f0fb; }
+.auth-cloud .wx-cl { fill: #ffffff; }
+.auth-cloud .wx-cg { fill: #ffffff; opacity: 0.7; }
 .auth-cloud-1 { top: 9%;  width: 11rem; opacity: 0.9;  animation-duration: 90s; animation-delay: -20s; }
 .auth-cloud-2 { top: 24%; width: 7rem;  opacity: 0.75; animation-duration: 120s; animation-delay: -70s; }
 .auth-cloud-3 { top: 4%;  width: 8.5rem; opacity: 0.8; animation-duration: 105s; animation-delay: -45s; }

@@ -347,14 +347,15 @@
 .lc-9 { top: 89%; font-size: clamp(6rem, 10.5vw, 9.8rem);  --offset: -12vw; --scale: 1.18; --depth: 4px;    --fromY: 1px;  --toY: -6px; animation-duration: 84s;  animation-delay: -50s; }
 .lc-10 { top: 95%; font-size: clamp(5.6rem, 9.9vw, 9.1rem); --offset: 45vw;  --scale: 1.08; --depth: 16px;   --fromY: -2px; --toY: 6px;  animation-duration: 78s;  animation-delay: -31s; }
 
-/* Painted cloud assets are used as the far atmospheric lane */
+/* Storybook clouds: the same generated shapes as the app's sky (features/skyWeatherArt.js),
+   in fair-day colours. Flat SVG fills, no filters. */
 .loading-cloud-art {
     width: clamp(220px, 27vw, 470px);
-    aspect-ratio: 1.75 / 1;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
     opacity: 0.8;
+    --wx-cloud-shade: #b9cdea;
+    --wx-cloud-body: #e8f1fc;
+    --wx-cloud-lit: #ffffff;
+    --wx-cloud-glint: #ffffff;
     /* No filter: a drop-shadow on 30-odd drifting layers made the GPU
        re-filter every cloud on every frame. */
     backface-visibility: hidden;
@@ -362,28 +363,12 @@
     animation-iteration-count: infinite;
 }
 
-.lca-1,
-.lca-3,
-.lca-5,
-.lca-7 {
-    animation-name: loading-cloud-right;
-}
-
-.lca-2,
-.lca-4,
-.lca-6,
-.lca-8 {
-    animation-name: loading-cloud-left;
-}
-
-.lca-1 { top: 2%;  --offset: -28vw; --scale: 0.94; --depth: -300px; --fromY: 0px;  --toY: -4px; animation-duration: 188s; animation-delay: -71s; background-image: url('../assets/award-clouds/cloud-a.png'); }
-.lca-2 { top: 9%;  --offset: 17vw;  --scale: 0.98; --depth: -280px; --fromY: -1px; --toY: 4px;  animation-duration: 180s; animation-delay: -44s; background-image: url('../assets/award-clouds/cloud-b.png'); }
-.lca-3 { top: 26%; --offset: -12vw; --scale: 0.98; --depth: -250px; --fromY: 1px;  --toY: -3px; animation-duration: 170s; animation-delay: -96s; background-image: url('../assets/award-clouds/cloud-c.png'); }
-.lca-4 { top: 36%; --offset: 34vw;  --scale: 1.04; --depth: -220px; --fromY: -2px; --toY: 4px;  animation-duration: 164s; animation-delay: -59s; background-image: url('../assets/award-clouds/cloud-d.png'); }
-.lca-5 { top: 51%; --offset: -33vw; --scale: 1.08; --depth: -190px; --fromY: 1px;  --toY: -4px; animation-duration: 156s; animation-delay: -88s; background-image: url('../assets/award-clouds/cloud-e.png'); }
-.lca-6 { top: 63%; --offset: 11vw;  --scale: 1.1;  --depth: -160px; --fromY: -1px; --toY: 3px;  animation-duration: 150s; animation-delay: -63s; background-image: url('../assets/award-clouds/cloud-f.png'); }
-.lca-7 { top: 74%; --offset: -7vw;  --scale: 1.06; --depth: -130px; --fromY: 2px;  --toY: -3px; animation-duration: 144s; animation-delay: -36s; background-image: url('../assets/award-clouds/cloud-g.png'); }
-.lca-8 { top: 84%; --offset: 26vw;  --scale: 0.98; --depth: -110px; --fromY: -2px; --toY: 3px;  animation-duration: 138s; animation-delay: -74s; background-image: url('../assets/award-clouds/cloud-h.png'); }
+.loading-cloud-art svg { display: block; width: 100%; height: auto; overflow: visible; }
+.loading-cloud-art .wx-cs { fill: var(--wx-cloud-shade); }
+.loading-cloud-art .wx-cb { fill: var(--wx-cloud-body); }
+.loading-cloud-art .wx-cl { fill: var(--wx-cloud-lit); }
+.loading-cloud-art .wx-cg { fill: var(--wx-cloud-glint); opacity: 0.7; }
+.loading-cloud-art--wisp .wx-cb { opacity: 0.7; }
 
 /* ── Sunbeams ───────────────────────────────────────────────────
    Long soft shafts falling from the sun. The box's top-right corner sits on

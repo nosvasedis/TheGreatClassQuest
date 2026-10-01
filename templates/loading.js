@@ -1,4 +1,5 @@
 import { detectLowPowerTier as sharedLowPowerTier } from '../utils/devicePerformance.mjs';
+import { cloudSvg, cloudVariantCount } from '../features/skyWeatherArt.js';
 // templates/loading.js
 
 const LOADING_TIPS = [
@@ -338,21 +339,8 @@ export const loadingHTML = `
         <div class="loading-sky-glow" aria-hidden="true"></div>
         ${LOADING_SUN_HTML}
 
-        <!-- Giant painted cloud assets for a true sky-world feel -->
-        <div class="loading-cloud-art-layer" aria-hidden="true">
-            <span class="loading-cloud-art lca-1"></span>
-            <span class="loading-cloud-art lca-2"></span>
-            <span class="loading-cloud-art lca-3"></span>
-            <span class="loading-cloud-art lca-4"></span>
-            <span class="loading-cloud-art lca-5"></span>
-            <span class="loading-cloud-art lca-6"></span>
-            <span class="loading-cloud-art lca-7"></span>
-            <span class="loading-cloud-art lca-8"></span>
-            <span class="loading-cloud-art lca-9"></span>
-            <span class="loading-cloud-art lca-10"></span>
-            <span class="loading-cloud-art lca-11"></span>
-            <span class="loading-cloud-art lca-12"></span>
-        </div>
+        <!-- Storybook clouds, the same shapes as the app's sky (built in initLoadingAtmosphere) -->
+        <div class="loading-cloud-art-layer" aria-hidden="true"></div>
 
         <!-- Light falling from the sun -->
         <div class="loading-sunbeams" aria-hidden="true">
@@ -448,18 +436,11 @@ export function initLoadingAtmosphere() {
         revealLoadingTextWhenFontsReady(loadingScreen);
     }
 
-    const cloudArt = Array.from(document.querySelectorAll('.loading-cloud-art'));
     const cloudArtLayer = document.querySelector('.loading-cloud-art-layer');
-    const cloudAssets = [
-        new URL('../assets/award-clouds/cloud-a.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-b.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-c.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-d.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-e.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-f.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-g.png', import.meta.url).href,
-        new URL('../assets/award-clouds/cloud-h.png', import.meta.url).href
-    ];
+    // Far clouds are banks, streaks and small puffs; near ones are the big domes and towers.
+    const farFamilies = ['long', 'puff', 'wisp', 'long', 'puff', 'cumulus'];
+    const nearFamilies = ['cumulus', 'twin', 'cumulus', 'tower', 'puff', 'twin', 'cumulus'];
+    const nextVariant = {};
 
     if (cloudArtLayer) {
         cloudArtLayer.innerHTML = '';
@@ -475,9 +456,6 @@ export function initLoadingAtmosphere() {
         for (let index = 0; index < cloudCount; index += 1) {
             const cloud = document.createElement('span');
 
-            // Cycle through all 8 cloud assets so every image appears at least
-            // 4 times but no two consecutive clouds share the same image.
-            const asset = cloudAssets[(index * 3 + randomInt(3)) % cloudAssets.length];
             const isRightward = index % 2 === 0;
 
             // Vertical placement — three weighted zones:
@@ -501,6 +479,10 @@ export function initLoadingAtmosphere() {
             // Depth impression: clouds higher up are farther away
             // (smaller, more transparent, slower drift).
             const depthT = topPercent / 90;   // 0 = top horizon, 1 = bottom
+            const families = depthT < 0.45 ? farFamilies : nearFamilies;
+            const family = families[(index + randomInt(families.length)) % families.length];
+            // Walk each family's variants so the same cloud rarely shows twice.
+            nextVariant[family] = (nextVariant[family] ?? randomInt(cloudVariantCount(family))) + 1;
             const sizePx = mobile
                 ? Math.round(120 + depthT * 200 + randomRange(-20, 20))
                 : Math.round(140 + depthT * 440 + randomRange(-30, 30));
@@ -516,8 +498,8 @@ export function initLoadingAtmosphere() {
             // giving an instant sky feel instead of all clouds starting from the edge.
             const delayS = randomRange(0, parseFloat(durationS)).toFixed(1);
 
-            cloud.className = 'loading-cloud-art';
-            cloud.style.backgroundImage = `url('${asset}')`;
+            cloud.className = `loading-cloud-art loading-cloud-art--${family}`;
+            cloud.innerHTML = cloudSvg(family, nextVariant[family]);
             cloud.style.top = `${topPercent.toFixed(1)}%`;
             // Spread left across the full width so clouds don't bunch on entry.
             cloud.style.left = `${randomRange(0, 75).toFixed(1)}%`;

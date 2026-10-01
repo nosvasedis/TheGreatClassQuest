@@ -837,8 +837,10 @@ const debouncedCheckAndRecordQuestCompletion = debounce(
 export async function handleDeleteAwardLog(logId) {
     const publicDataPath = "artifacts/great-class-quest/public/data";
     let deletedGuildEvent = null;
+    let deletedLogMonthKey = null;
     try {
         await runTransaction(db, async (transaction) => {
+            deletedLogMonthKey = null;
             const logRef = doc(db, `${publicDataPath}/award_log`, logId);
 
             const logDoc = await transaction.get(logRef);
@@ -870,18 +872,28 @@ export async function handleDeleteAwardLog(logId) {
                 studentId,
             );
             const scoreDoc = await transaction.get(scoreRef);
+            const logDate = parseDDMMYYYY(logData.date);
+            const today = new Date();
+            const isCurrentMonth =
+                logDate.getMonth() === today.getMonth() &&
+                logDate.getFullYear() === today.getFullYear();
+            deletedLogMonthKey = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, "0")}`;
+            // A finished month was archived at rollover; take the stars back
+            // there too so undone stars never reach that month's ceremony.
+            const historyRef = !isCurrentMonth && starCredit
+                ? doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${deletedLogMonthKey}`)
+                : null;
+            const historyDoc = historyRef ? await transaction.get(historyRef) : null;
             if (scoreDoc.exists()) {
-                const logDate = parseDDMMYYYY(logData.date);
-                const today = new Date();
-                const isCurrentMonth =
-                    logDate.getMonth() === today.getMonth() &&
-                    logDate.getFullYear() === today.getFullYear();
-
                 const updates = { totalStars: increment(-starCredit) };
                 if (isCurrentMonth) {
                     updates.monthlyStars = increment(-starCredit);
                 }
                 transaction.update(scoreRef, updates);
+            }
+            if (historyDoc?.exists()) {
+                const archived = Number(historyDoc.data().stars) || 0;
+                transaction.update(historyRef, { stars: Math.max(0, archived - starCredit) });
             }
 
             transaction.delete(logRef);
@@ -911,6 +923,9 @@ export async function handleDeleteAwardLog(logId) {
             }).catch((error) => console.warn("Guild Glory delete adjustment failed:", error));
         }
 
+        if (deletedLogMonthKey) {
+            import("../../features/ceremonyStarCheck.js").then((m) => m.forgetCeremonyStarVerdict(deletedLogMonthKey));
+        }
         showToast("Log entry deleted successfully!", "success");
 
         const logElement = document.getElementById(`log-entry-${logId}`);

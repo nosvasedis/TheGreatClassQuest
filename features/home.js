@@ -1,6 +1,7 @@
 import { db, doc, getDoc } from '../firebase.js';
 import * as ceremony from '../features/ceremony.js';
 import { resolvePendingCeremonyMonth } from './ceremonyDomain.js';
+import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
 import * as state from '../state.js';
 import { normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
 import { isSpecialQuestType } from './specialQuestEngine.js';
@@ -1119,6 +1120,39 @@ function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', 
         </${tagName}>`;
 }
 
+function ceremonyPillHtml(cls, pending) {
+    const isGrowth = cls.questLevel === 'Nursery' || cls.questLevel === 'Pre-Junior';
+    const ceremonyClass = isGrowth ? 'date-pill--ceremony-growth' : '';
+    const pillIcon = isGrowth ? 'fa-seedling' : 'fa-trophy';
+    const kicker = isGrowth ? 'Growth Festival' : 'Ceremony of the Month';
+    return `
+        <button type="button" id="trigger-ceremony-btn" class="date-pill date-pill--ceremony ${ceremonyClass}" data-class-id="${cls.id}" aria-label="Start the ${pending.monthName} ${kicker}">
+            <span class="date-pill--ceremony__aurora" aria-hidden="true"></span>
+            <span class="date-pill--ceremony__sheen" aria-hidden="true"></span>
+            <span class="date-pill--ceremony__spark date-pill--ceremony__spark--a" aria-hidden="true">✦</span>
+            <span class="date-pill--ceremony__spark date-pill--ceremony__spark--b" aria-hidden="true">✧</span>
+            <span class="date-pill--ceremony__icon" aria-hidden="true"><i class="fas ${pillIcon}"></i></span>
+            <span class="date-pill--ceremony__copy">
+                <span class="date-pill--ceremony__kicker">${kicker}</span>
+                <span class="date-pill--ceremony__title">${pending.monthName}</span>
+            </span>
+        </button>
+    `;
+}
+
+function wireCeremonyPill(classId) {
+    const btn = document.getElementById('trigger-ceremony-btn');
+    if (!btn) return;
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        import('./ceremony.js').then(m => {
+            m.checkAndInitCeremony(classId).then(params => {
+                if (params) m.startCeremony(params);
+            });
+        });
+    };
+}
+
 function getReminderPills(classId) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -1164,46 +1198,25 @@ function getReminderPills(classId) {
         });
     }
 
-    // 2. CEREMONY REMINDER — previous instructional month only (never August)
+    // 2. CEREMONY REMINDER — previous instructional month only (never August),
+    // and only when the class really earned stars that month (undone test stars count as nothing).
     if (classId) {
         const cls = state.get('allSchoolClasses').find(c => c.id === classId);
         const pending = resolvePendingCeremonyMonth(now);
-        if (cls && pending) {
-            const isDone = cls.ceremonyHistory && cls.ceremonyHistory[pending.monthKey] && cls.ceremonyHistory[pending.monthKey].complete;
-
-            if (!isDone) {
-                const isGrowth = cls.questLevel === 'Nursery' || cls.questLevel === 'Pre-Junior';
-                const ceremonyClass = isGrowth ? 'date-pill--ceremony-growth' : '';
-                const pillIcon = isGrowth ? 'fa-seedling' : 'fa-trophy';
-                const kicker = isGrowth ? 'Growth Festival' : 'Ceremony of the Month';
-
-                pills.push(`
-                    <button type="button" id="trigger-ceremony-btn" class="date-pill date-pill--ceremony ${ceremonyClass}" data-class-id="${classId}" aria-label="Start the ${pending.monthName} ${kicker}">
-                        <span class="date-pill--ceremony__aurora" aria-hidden="true"></span>
-                        <span class="date-pill--ceremony__sheen" aria-hidden="true"></span>
-                        <span class="date-pill--ceremony__spark date-pill--ceremony__spark--a" aria-hidden="true">✦</span>
-                        <span class="date-pill--ceremony__spark date-pill--ceremony__spark--b" aria-hidden="true">✧</span>
-                        <span class="date-pill--ceremony__icon" aria-hidden="true"><i class="fas ${pillIcon}"></i></span>
-                        <span class="date-pill--ceremony__copy">
-                            <span class="date-pill--ceremony__kicker">${kicker}</span>
-                            <span class="date-pill--ceremony__title">${pending.monthName}</span>
-                        </span>
-                    </button>
-                `);
-
-                setTimeout(() => {
-                    const btn = document.getElementById('trigger-ceremony-btn');
-                    if (btn) {
-                        btn.onclick = (e) => {
-                            e.stopPropagation();
-                            import('./ceremony.js').then(m => {
-                                m.checkAndInitCeremony(classId).then(params => {
-                                    if (params) m.startCeremony(params);
-                                });
-                            });
-                        };
-                    }
-                }, 100);
+        const isDone = cls && pending && cls.ceremonyHistory?.[pending.monthKey]?.complete;
+        if (cls && pending && !isDone) {
+            const verdict = getCeremonyStarVerdict(classId, pending.monthKey);
+            if (verdict === true) {
+                pills.push(ceremonyPillHtml(cls, pending));
+                setTimeout(() => wireCeremonyPill(classId), 100);
+            } else if (verdict === undefined) {
+                ensureCeremonyStarVerdict(classId, pending.monthKey).then((hasStars) => {
+                    if (!hasStars || state.get('globalSelectedClassId') !== classId) return;
+                    const container = document.getElementById('home-reminders-container');
+                    if (!container || document.getElementById('trigger-ceremony-btn')) return;
+                    container.insertAdjacentHTML('afterbegin', ceremonyPillHtml(cls, pending));
+                    wireCeremonyPill(classId);
+                });
             }
         }
     }

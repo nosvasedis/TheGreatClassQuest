@@ -33,6 +33,7 @@ import {
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
 import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle, seededHash, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
+import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
 import {
     arenaBackdropHtml,
@@ -128,8 +129,15 @@ export function updateCeremonyStatus() {
     const history = classData.ceremonyHistory || {};
     const isComplete = history[pending.monthKey] && history[pending.monthKey].complete;
     
-    if (!isComplete && existedByMonthEnd(classData, pending.monthKey)) {
+    if (isComplete || !existedByMonthEnd(classData, pending.monthKey)) return;
+    // No stars that month (undone test stars included) means no ceremony to call for.
+    const verdict = getCeremonyStarVerdict(currentClassId, pending.monthKey);
+    if (verdict === true) {
         homeBtn.classList.add('ceremony-star-ring');
+    } else if (verdict === undefined) {
+        ensureCeremonyStarVerdict(currentClassId, pending.monthKey).then((hasStars) => {
+            if (hasStars && state.get('globalSelectedClassId') === currentClassId) updateCeremonyStatus();
+        });
     }
 }
 
@@ -147,6 +155,7 @@ export async function checkAndInitCeremony(classId, { replay = false } = {}) {
     if (history[monthKey] && history[monthKey].complete && !replay) return null;
 
     if (!existedByMonthEnd(classData, monthKey)) return null;
+    if (!replay && !['locked', 'completed'].includes(snapshot?.status) && !(await ensureCeremonyStarVerdict(classId, monthKey))) return null;
 
     const modeResult = resolveCeremonyMode(classData.questLevel);
     if (!modeResult.ok) return { blocked: true, reason: modeResult.reason, classId: classData.id, monthKey, monthName };

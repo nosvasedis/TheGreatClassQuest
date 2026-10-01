@@ -517,45 +517,77 @@ export function getGuildSizeScale(guildId) {
 
 // ─── Per-member Glory ledger (so leavers' Glory leaves with them) ─────────────
 
-let _memberGloryBackfillStarted = false;
+let _ledgerSyncRunning = false;
+let _ledgerSyncAttempts = 0;
+// Bump the suffix to re-run the sync once on every guild (e.g. after fixing a write path).
+const LEDGER_SYNC_VERSION = 2;
+const _ledgerSyncKey = (schoolYearKey) => `${schoolYearKey}#${LEDGER_SYNC_VERSION}`;
+
+function _millis(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (Number.isFinite(Number(value.seconds))) return Number(value.seconds) * 1000;
+    return 0;
+}
 
 /**
- * Builds guild_scores.memberGlory (Glory each member earned for the guild this year) from
- * the Glory ledger, once per school year. Runs from the guild listener when a guild's map is
- * missing or belongs to an earlier year; afterwards every Glory event keeps it current.
+ * The Glory ledger is the single source of truth for a guild's year. Once per school year
+ * (and once per LEDGER_SYNC_VERSION) a teacher's app rebuilds each guild's totalGlory,
+ * totalStars and memberGlory (each member's share) from the ledger, so Glory that reached
+ * the totals without a ledger entry (older joins, older code paths) cannot linger.
+ * A guild is only rewritten if nothing touched it while the ledger was being read.
  */
 export async function backfillGuildMemberGloryIfNeeded() {
-    if (_memberGloryBackfillStarted) return;
+    if (_ledgerSyncRunning || _ledgerSyncAttempts >= 3) return;
     if ((state.get('currentUserRole') || 'teacher') !== 'teacher') return;
     const schoolYearKey = state.getActiveSchoolYearKey();
     const allGuildScores = state.get('allGuildScores') || {};
     const stale = GUILD_IDS.filter((gid) => {
         const data = allGuildScores[gid];
-        return data && data.activeSchoolYearKey === schoolYearKey && data.memberGloryYear !== schoolYearKey;
+        return data && data.activeSchoolYearKey === schoolYearKey && data.ledgerSyncKey !== _ledgerSyncKey(schoolYearKey);
     });
     if (!schoolYearKey || !stale.length) return;
-    _memberGloryBackfillStarted = true;
+    _ledgerSyncRunning = true;
+    _ledgerSyncAttempts += 1; // each attempt reads the year's ledger, so a few per visit at most
     try {
-        const byGuild = Object.fromEntries(stale.map((gid) => [gid, {}]));
+        const before = {};
+        for (const gid of stale) {
+            const snap = await getDoc(doc(db, `${publicDataPath}/guild_scores`, gid));
+            before[gid] = _millis(snap.data()?.lastUpdated);
+        }
+        const sums = Object.fromEntries(stale.map((gid) => [gid, { totalGlory: 0, totalStars: 0, memberGlory: {} }]));
         const eventsSnap = await getDocs(query(
             collection(db, `${publicDataPath}/guild_glory_events`),
             where('schoolYearKey', '==', schoolYearKey),
         ));
+        const r2 = (n) => Math.round(n * 100) / 100;
         eventsSnap.forEach((eventDoc) => {
             const e = eventDoc.data() || {};
-            const map = byGuild[e.guildId];
-            if (!map || !e.studentId) return;
-            map[e.studentId] = Math.round(((map[e.studentId] || 0) + (Number(e.totalGloryDelta) || 0)) * 100) / 100;
+            const sum = sums[e.guildId];
+            if (!sum) return;
+            const glory = Number(e.totalGloryDelta) || 0;
+            sum.totalGlory = r2(sum.totalGlory + glory);
+            sum.totalStars = r2(sum.totalStars + (Number(e.starDelta) || 0));
+            if (e.studentId) sum.memberGlory[e.studentId] = r2((sum.memberGlory[e.studentId] || 0) + glory);
         });
         for (const gid of stale) {
-            await updateDoc(doc(db, `${publicDataPath}/guild_scores`, gid), {
-                memberGlory: byGuild[gid],
-                memberGloryYear: schoolYearKey,
+            const ref = doc(db, `${publicDataPath}/guild_scores`, gid);
+            await runTransaction(db, async (transaction) => {
+                const snap = await transaction.get(ref);
+                if (!snap.exists() || _millis(snap.data()?.lastUpdated) !== before[gid]) return; // busy: next time
+                transaction.update(ref, {
+                    totalGlory: sums[gid].totalGlory,
+                    totalStars: sums[gid].totalStars,
+                    memberGlory: sums[gid].memberGlory,
+                    memberGloryYear: schoolYearKey,
+                    ledgerSyncKey: _ledgerSyncKey(schoolYearKey),
+                });
             });
         }
     } catch (err) {
-        _memberGloryBackfillStarted = false;
-        console.warn('Guild member Glory backfill skipped:', err);
+        console.warn('Guild ledger sync skipped:', err);
+    } finally {
+        _ledgerSyncRunning = false;
     }
 }
 
@@ -585,6 +617,8 @@ export async function correctOrphanMemberGlory() {
     for (const guildId of GUILD_IDS) {
         const data = allGuildScores[guildId];
         if (!data || data.activeSchoolYearKey !== state.getActiveSchoolYearKey()) continue;
+        // Corrections only make sense once the totals match the ledger.
+        if (data.ledgerSyncKey !== _ledgerSyncKey(data.activeSchoolYearKey)) continue;
         // Only once the guild has been quiet for a while: a star taken back writes the
         // student's score first and the guild's Glory a moment later.
         const lastUpdatedMs = typeof data.lastUpdated?.toMillis === 'function' ? data.lastUpdated.toMillis() : 0;

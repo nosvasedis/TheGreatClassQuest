@@ -47,27 +47,18 @@ export async function assignStudentToGuild(studentId, guildId) {
 
     const guildSnap = await getDoc(guildRef);
     if (guildSnap.exists()) {
-        const updates = {
+        await updateDoc(guildRef, {
             memberIds: arrayUnion(studentId),
             memberCount: increment(1),
             lastUpdated: serverTimestamp(),
-        };
-        // Add student's existing Glory when joining
-        if (studentGloryContribution > 0) {
-            updates.totalGlory = increment(studentGloryContribution);
-            const data = guildSnap.data() || {};
-            if (data.memberGloryYear && data.memberGloryYear === data.activeSchoolYearKey) {
-                updates[`memberGlory.${studentId}`] = increment(studentGloryContribution);
-            }
-        }
-        await updateDoc(guildRef, updates);
+        });
     } else {
         await setDoc(guildRef, {
             guildId,
             guildName,
             activeSchoolYearKey: state.getActiveSchoolYearKey(),
             totalStars: 0,
-            totalGlory: studentGloryContribution,
+            totalGlory: 0,
             monthlyGlory: 0,
             weeklyGlory: 0,
             previousWeekGlory: 0,
@@ -79,10 +70,22 @@ export async function assignStudentToGuild(studentId, guildId) {
             lastWeeklyReset: getLocalIsoDateString(),
             memberCount: 1,
             memberIds: [studentId],
-            memberGlory: studentGloryContribution > 0 ? { [studentId]: studentGloryContribution } : {},
+            memberGlory: {},
             memberGloryYear: state.getActiveSchoolYearKey(),
             createdAt: serverTimestamp(),
             lastUpdated: serverTimestamp(),
+        });
+    }
+    // Stars the student already earned this year come with them, written to the Glory
+    // ledger like every other Glory change (so it can be checked and taken back).
+    if (studentGloryContribution > 0) {
+        await recordGuildGloryEvent({
+            guildId,
+            studentId,
+            source: 'guild_join',
+            exactGlory: studentGloryContribution,
+            affectsWeek: false,
+            note: 'Stars earned before joining the guild',
         });
     }
 

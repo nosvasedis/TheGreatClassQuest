@@ -21,7 +21,7 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     // FIX: Only consider classes that belong to the current teacher
     const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
 
-    const activeClass = utils.findCurrentLessonClass(myClassesToday);
+    const activeClass = utils.findLessonClassWithGrace(myClassesToday);
     if (activeClass) {
         state.setGlobalSelectedClass(activeClass.id);
     }

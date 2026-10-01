@@ -66,3 +66,29 @@ test('home schedule sync applies the follow-schedule target including General', 
   assert.match(home, /resolveFollowScheduleClassId/);
   assert.match(home, /setGlobalSelectedClass\(nextId/);
 });
+test('a finished lesson stays selected for 15 minutes, then General', async () => {
+  const { findLessonClassWithGrace, resolveFollowScheduleClassId } = await loadModule();
+  const classes = [{ id: 'alpha', timeStart: '9:00', timeEnd: '9:45' }];
+  const at = (h, m) => { const d = new Date(2026, 9, 1, h, m); return d; };
+  assert.equal(findLessonClassWithGrace(classes, at(9, 45))?.id, 'alpha');
+  assert.equal(findLessonClassWithGrace(classes, at(9, 50))?.id, 'alpha');
+  assert.equal(findLessonClassWithGrace(classes, at(10, 0))?.id, 'alpha');
+  assert.equal(findLessonClassWithGrace(classes, at(10, 1)), null);
+  assert.equal(resolveFollowScheduleClassId(true, findLessonClassWithGrace(classes, at(10, 1)), 'alpha'), null);
+});
+
+test('a lesson starting during the grace window takes over at once', async () => {
+  const { findLessonClassWithGrace } = await loadModule();
+  const classes = [
+    { id: 'alpha', timeStart: '9:00', timeEnd: '9:45' },
+    { id: 'beta', timeStart: '9:50', timeEnd: '10:35' },
+  ];
+  assert.equal(findLessonClassWithGrace(classes, new Date(2026, 9, 1, 9, 48))?.id, 'alpha');
+  assert.equal(findLessonClassWithGrace(classes, new Date(2026, 9, 1, 9, 50))?.id, 'beta');
+});
+
+test('every follow-schedule selector uses the grace window', () => {
+  for (const file of ['features/home.js', 'ui/tabs/selectors.js', 'ui/core/misc.js', 'state.js']) {
+    assert.match(read(file), /findLessonClassWithGrace/, file);
+  }
+});

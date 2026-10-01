@@ -984,7 +984,7 @@ function applyScheduleBasedClassSync() {
     const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     const myClasses = state.get('allTeachersClasses') || [];
     const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
-    const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
+    const currentActiveLesson = utils.findLessonClassWithGrace(myTodaysClasses);
     const currentSelectedId = state.get('globalSelectedClassId');
     const nextId = utils.resolveFollowScheduleClassId(
         state.get('classFollowSchedule'),

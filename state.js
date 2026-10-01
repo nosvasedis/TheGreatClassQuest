@@ -1,4 +1,4 @@
-import { getTodayDateString, getClassesOnDay } from "./utils.js";
+import { getTodayDateString, getClassesOnDay, findLessonClassWithGrace } from "./utils.js";
 import {
     getDefaultSchoolYearState,
     getDefaultSchoolYears,
@@ -555,7 +555,7 @@ export function setGlobalSelectedLeague(league, isManual = false) {
                 state.allTeachersClasses.some((tc) => tc.id === c.id),
         );
         // Prefer the class that's currently in session; fall back to the first one in the league
-        const activeClass = findCurrentLessonClass(myLeagueClasses);
+        const activeClass = findLessonClassWithGrace(myLeagueClasses);
         const bestClass = activeClass || myLeagueClasses[0] || null;
 
         if (bestClass) {

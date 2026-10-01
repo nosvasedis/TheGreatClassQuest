@@ -366,8 +366,35 @@ export function findCurrentLessonClass(classes = [], now = new Date()) {
     ) || null;
 }
 
+/** Minutes a finished lesson stays selected before follow-schedule falls back to General. */
+export const LESSON_END_GRACE_MINUTES = 15;
+
 /**
- * Follow today's schedule: the class in session, or General (null) when none is.
+ * The class in session, or else the lesson that ended within the grace window
+ * (latest-ending wins). A lesson in session always takes over from one in grace.
+ */
+export function findLessonClassWithGrace(classes = [], now = new Date(), graceMinutes = LESSON_END_GRACE_MINUTES) {
+    const live = findCurrentLessonClass(classes, now);
+    if (live) return live;
+    const n = (now.getHours() * 60) + now.getMinutes();
+    let best = null;
+    let bestEnd = -1;
+    for (const classData of classes || []) {
+        const s = parseClockToMinutes(classData?.timeStart);
+        const e = parseClockToMinutes(classData?.timeEnd);
+        if (s == null || e == null) continue;
+        const since = n - e;
+        if (since > 0 && since <= graceMinutes && e > bestEnd) {
+            best = classData;
+            bestEnd = e;
+        }
+    }
+    return best;
+}
+
+/**
+ * Follow today's schedule: the class in session (or just finished, see
+ * findLessonClassWithGrace), or General (null) when none is.
  * When follow is off, keep the teacher's pinned class (including General).
  */
 export function resolveFollowScheduleClassId(followEnabled, activeLesson, currentClassId = null) {

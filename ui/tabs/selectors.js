@@ -19,7 +19,7 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
 
-    const activeClass = utils.findCurrentLessonClass(myClassesToday);
+    const activeClass = utils.findLessonClassWithGrace(myClassesToday);
     if (activeClass) {
         state.setGlobalSelectedClass(activeClass.id);
     }

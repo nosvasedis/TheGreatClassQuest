@@ -37,6 +37,7 @@ import {
     renderMarketAisle
 } from './marketView.mjs';
 import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
+import { closeMarketCurtains, openMarketCurtains, shopStageIsLive } from './marketCurtains.js';
 
 // --- SHOP UI HELPERS ---
 
@@ -469,11 +470,32 @@ function spillShopCoins() {
 
 // --- SHOP UI LOGIC ---
 
+let shopScopeKey = null;
+
+/** What the curtains' plaque says while the market changes hands. */
+function shopCurtainPlaque() {
+    if (!isShopSeasonLive()) return { kicker: 'The season is over', title: 'Closed for the summer' };
+    const classId = state.get('globalSelectedClassId');
+    const cls = classId ? (state.get('allTeachersClasses') || []).find(c => c.id === classId) : null;
+    if (!cls) return { kicker: 'Closing up shop', title: 'Pick a class to trade' };
+    return { kicker: 'Now opening for', title: `${cls.logo ? `${cls.logo} ` : ''}${cls.name || 'your class'}` };
+}
+
 export async function initializeShopTab() {
     ensureShopStudentDropdownListeners();
-    const { ensureShopItemsListener } = await import('../../db/listeners.js');
-    const shopItemsReady = await ensureShopItemsListener();
-    initializeShopTabContent({ allowAutoEnsure: shopItemsReady });
+    // Switching class (or to no class) while the market is on screen: draw the curtains,
+    // restock the shelves behind them, then part them again.
+    const scopeKey = `${isShopSeasonLive() ? 'live' : 'sealed'}|${state.get('globalSelectedClassId') || ''}`;
+    const curtainCall = shopScopeKey !== null && scopeKey !== shopScopeKey && shopStageIsLive();
+    shopScopeKey = scopeKey;
+    if (curtainCall) await closeMarketCurtains(shopCurtainPlaque());
+    try {
+        const { ensureShopItemsListener } = await import('../../db/listeners.js');
+        const shopItemsReady = await ensureShopItemsListener();
+        initializeShopTabContent({ allowAutoEnsure: shopItemsReady });
+    } finally {
+        if (curtainCall) openMarketCurtains();
+    }
 }
 
 function initializeShopTabContent({ allowAutoEnsure = false } = {}) {

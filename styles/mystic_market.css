@@ -1676,6 +1676,195 @@
     }
 }
 
+/* ── 7c. Stage curtains: the market changes hands between classes ──────── */
+/* ui/core/marketCurtains.js adds .is-active, then .is-closing → .is-closed → .is-opening. */
+
+.mm-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 40; /* over the counter and shelves, under the awning (45) */
+    display: none;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.mm-stage.is-active {
+    display: block;
+    pointer-events: auto; /* no buying through the curtain */
+}
+
+.mm-stage__drape {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 51%;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 18%, transparent 75%, rgba(0, 0, 0, 0.35) 100%),
+        repeating-linear-gradient(90deg,
+            #2a0a5c 0, #4c1d95 18px, #6d28d9 32px, #8b5cf6 38px, #6d28d9 46px, #4c1d95 60px, #2a0a5c 76px);
+    transform: scaleX(0.04);
+    will-change: transform;
+}
+
+.mm-stage__drape--l {
+    left: 0;
+    transform-origin: 0 50%;
+    box-shadow: inset -5px 0 0 var(--mm-brass), inset -8px 0 0 var(--mm-brass-dark), 12px 0 24px rgba(0, 0, 0, 0.45);
+}
+
+.mm-stage__drape--r {
+    right: 0;
+    transform-origin: 100% 50%;
+    box-shadow: inset 5px 0 0 var(--mm-brass), inset 8px 0 0 var(--mm-brass-dark), -12px 0 24px rgba(0, 0, 0, 0.45);
+}
+
+.mm-stage.is-closing .mm-stage__drape {
+    animation: mm-stage-draw 560ms cubic-bezier(0.3, 0.7, 0.3, 1) both;
+}
+
+.mm-stage.is-closing .mm-stage__drape--r { animation-delay: 30ms; }
+
+.mm-stage.is-closed .mm-stage__drape { transform: scaleX(1); }
+
+.mm-stage.is-opening .mm-stage__drape {
+    animation: mm-stage-part 760ms cubic-bezier(0.6, 0, 0.25, 1) both;
+}
+
+@keyframes mm-stage-draw {
+    0% { transform: scaleX(0.04); }
+    72% { transform: scaleX(1.025); }
+    88% { transform: scaleX(0.992); }
+    100% { transform: scaleX(1); }
+}
+
+@keyframes mm-stage-part {
+    0% { transform: scaleX(1); opacity: 1; }
+    12% { transform: scaleX(1.015); }
+    80% { opacity: 1; }
+    100% { transform: scaleX(0.05); opacity: 0; }
+}
+
+/* velvet pelmet with a gold fringe, tucked under the awning */
+.mm-stage__valance {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2.8rem;
+    background:
+        linear-gradient(180deg, #4c1d95, #2e0b63);
+    -webkit-mask: radial-gradient(circle at 50% 100%, transparent 0.9rem, #000 0.95rem) 0 0 / 2.4rem 100% repeat-x;
+    mask: radial-gradient(circle at 50% 100%, transparent 0.9rem, #000 0.95rem) 0 0 / 2.4rem 100% repeat-x;
+    border-bottom: 3px solid var(--mm-brass);
+    transform: translateY(-110%);
+    transition: transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.mm-stage.is-closing .mm-stage__valance,
+.mm-stage.is-closed .mm-stage__valance {
+    transform: none;
+}
+
+.mm-stage.is-opening .mm-stage__valance {
+    transform: translateY(-110%);
+    transition: transform 420ms cubic-bezier(0.55, 0, 0.8, 0.2) 300ms;
+}
+
+/* the little sign hung between the drapes */
+.mm-stage__plaque {
+    position: absolute;
+    top: 8.5rem;
+    left: 50%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    width: max-content;
+    max-width: min(26rem, 82%);
+    padding: 0.75rem 1.6rem 0.85rem;
+    border-radius: 0.7rem;
+    background:
+        var(--mm-grain),
+        linear-gradient(180deg, var(--mm-wood-600), var(--mm-wood-800));
+    border: 3px solid var(--mm-brass);
+    box-shadow: 0 0 0 2px var(--mm-wood-900), 0 16px 30px rgba(0, 0, 0, 0.55);
+    text-align: center;
+    transform-origin: 50% -2.4rem;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-2.5rem) rotate(-8deg);
+}
+
+.mm-stage__plaque::before,
+.mm-stage__plaque::after { /* cords up to the curtain rod */
+    content: '';
+    position: absolute;
+    top: -2.5rem;
+    width: 2px;
+    height: 2.5rem;
+    background: linear-gradient(180deg, transparent, var(--mm-brass-light));
+}
+
+.mm-stage__plaque::before { left: 22%; }
+.mm-stage__plaque::after { right: 22%; }
+
+.mm-stage.is-closed .mm-stage__plaque {
+    animation: mm-stage-sign-in 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.mm-stage.is-opening .mm-stage__plaque {
+    animation: mm-stage-sign-out 260ms ease-in both;
+}
+
+@keyframes mm-stage-sign-in {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-2.5rem) rotate(-8deg); }
+    60% { opacity: 1; transform: translateX(-50%) translateY(0.3rem) rotate(3deg); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0) rotate(-1deg); }
+}
+
+@keyframes mm-stage-sign-out {
+    0% { opacity: 1; transform: translateX(-50%) rotate(-1deg); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-1.5rem) rotate(4deg); }
+}
+
+.mm-stage__plaque-kicker {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--mm-brass-light);
+}
+
+.mm-stage__plaque-title {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.45rem;
+    line-height: 1.15;
+    color: var(--mm-parchment);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+    .mm-stage__plaque { top: 6.5rem; padding: 0.6rem 1.1rem 0.7rem; }
+    .mm-stage__plaque-title { font-size: 1.15rem; }
+    .mm-stage__valance { height: 2.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-stage.is-closing .mm-stage__drape,
+    .mm-stage.is-opening .mm-stage__drape,
+    .mm-stage.is-closed .mm-stage__plaque,
+    .mm-stage.is-opening .mm-stage__plaque {
+        animation: none;
+    }
+
+    .mm-stage__drape { transform: scaleX(1); transition: opacity 160ms ease; }
+    .mm-stage.is-opening .mm-stage__drape { opacity: 0; }
+    .mm-stage.is-closed .mm-stage__plaque { opacity: 1; transform: translateX(-50%); }
+    .mm-stage__valance { transition: none; }
+}
+
 /* ── 8. Sealed year + phones + reduced motion ───────────────────────────── */
 
 #shop-tab.is-season-sealed .mm-facade { margin-bottom: 2.6rem; }

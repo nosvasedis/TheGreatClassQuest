@@ -20,9 +20,8 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
-import { getTodayDateString, getAgeGroupForLeague, getAgeTierForLeague, compressImageBase64 } from '../../utils.js';
-import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '../../api.js';
-import { getGuildLeaderboardData, getGuildLeaderboardForClass } from '../../features/guildScoring.js';
+import { getTodayDateString, getAgeTierForLeague } from '../../utils.js';
+import { callGeminiApiDetailed } from '../../api.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { nextHeroOfDayWinWrite, getYearLegendContextFromState } from '../../utils/yearLegend.js';
@@ -212,12 +211,13 @@ function buildAdventureLogPlaceholder({
     heroOfTheDay,
     totalStars,
     topReasonsStr,
-    reasonLabels
+    reasonLabels,
+    early = false
 }) {
     const title = `${className} Chronicle`;
-    const entry = `${className}'s chronicle is being woven by the Chronicler. Hero of the Day: ${heroOfTheDay}. ${totalStars} stars were earned through ${topReasonsStr}.`;
+    const entry = `${className}'s chronicle is being woven by the Chronicler. Hero of the Day: ${heroOfTheDay}. ${early ? `We shared a lesson full of ${topReasonsStr}.` : `${totalStars} stars were earned through ${topReasonsStr}.`}`;
     const highlights = [
-        `${totalStars} stars earned`,
+        early ? 'A day of shared effort' : `${totalStars} stars earned`,
         `Skills shown: ${topReasonsStr}`,
         `Hero of the Day: ${heroOfTheDay}`
     ].slice(0, 3);
@@ -255,115 +255,40 @@ function describeAdventureLogGenerationStatus(status) {
     }
 }
 
-async function updateAdventureLogGenerationState(logId, updates) {
+async function updateAdventureLogGenerationState(logId, updates, expectedRequestId = null) {
     const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
-    await updateDoc(logRef, updates);
+    return runTransaction(db, async tx => {
+        const snap = await tx.get(logRef);
+        if (!snap.exists() || (expectedRequestId && snap.data().generationRequestId !== expectedRequestId)) return false;
+        if (snap.data().createdBy?.uid !== state.get('currentUserId') || snap.data().schoolYearKey !== state.getActiveSchoolYearKey()) return false;
+        tx.update(logRef, updates);
+        return true;
+    });
 }
 
-function buildAdventureLogAiPrompts({
-    ageGroup,
-    ageTier,
-    classData,
-    totalStars,
-    topReasonsStr,
-    heroOfTheDay,
-    attendanceText,
-    storyContext,
-    assignmentContext,
-    powerUpContext,
-    guildContext,
-    wheelContext,
-    boonContext,
-    learnedContext = ''
-}) {
-    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
-
-JSON STRUCTURE (copy exactly, fill in values):
-{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
-
-STRICT RULES:
-- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
-- ALL four keys must be present: title, entry, highlights, keywords.
-- Every string value MUST be wrapped in double-quotes.
-- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
-- "title": max 8 words.
-- "highlights": exactly 3 short strings.
-- "keywords": 3-5 lowercase single-word strings.
-- Audience age group: ${ageGroup}.
-- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
-- Mention the Hero of the Day naturally in the entry.
-- Weave in attendance, skills, and events from the context provided.
-- If "Today we learned" is given, recycle that English: use 2-3 of its target words or topics naturally in the entry (correct, age-appropriate usage) and put up to 2 of the target words in "keywords".`;
-
-    const userPrompt = `Tier: ${ageTier}
-Class: ${classData.name}
-Stars earned today: ${totalStars}
-Skills shown: ${topReasonsStr}
-Hero of the day: ${heroOfTheDay}
-Attendance: ${attendanceText}
-Story context: ${storyContext || 'none'}
-Assignment/Test context: ${assignmentContext || 'none'}
-Power-up context: ${powerUpContext || 'none'}
-Guild standings: ${guildContext || 'none'}
-Fortune's Wheel: ${wheelContext || 'none'}
-Boon awarded: ${boonContext || 'none'}
-Today we learned: ${learnedContext || 'none'}`;
-
-    return { systemPrompt, userPrompt };
-}
-
-function buildAdventureLogRetryPromptsFromLog(log, classData) {
-    const ageTier = String(log?.ageTier || '').trim() || _getAgeTierFromLeague(classData?.questLevel || '');
-    const heroOfTheDay = String(log?.hero || '').trim() || 'The Class Team';
-    const totalStars = Number(log?.totalStars) || 0;
-    const keywords = Array.isArray(log?.keywords) ? log.keywords.join(', ') : '';
-    const highlights = Array.isArray(log?.highlights) ? log.highlights.join(', ') : '';
-    const previousText = String(log?.text || '').trim();
-    const previousTitle = String(log?.title || '').trim();
-    const lastError = String(log?.generationError || '').trim();
-
-    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
-
-JSON STRUCTURE (copy exactly, fill in values):
-{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
-
-STRICT RULES:
-- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
-- ALL four keys must be present: title, entry, highlights, keywords.
-- Every string value MUST be wrapped in double-quotes.
-- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
-- "title": max 8 words.
-- "highlights": exactly 3 short strings.
-- "keywords": 3-5 lowercase single-word strings.
-- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
-- Mention the Hero of the Day naturally in the entry.
-- If prior text exists, rewrite it into a cleaner diary entry rather than inventing a totally new day.
-- If "Today we learned" is given, use 2-3 of its target words or topics naturally in the entry.`;
-
-    const userPrompt = `Retry request for an Adventure Log entry.
-Tier: ${ageTier}
-Class: ${classData?.name || 'Unknown Class'}
-Date: ${String(log?.date || '')}
-Stars earned: ${totalStars}
-Hero of the day: ${heroOfTheDay}
-Known keywords: ${keywords || 'none'}
-Known highlights: ${highlights || 'none'}
-Previous title: ${previousTitle || 'none'}
-Previous text: ${previousText || 'none'}
-Today we learned: ${String(log?.learnedToday?.summary || '').trim() || 'none'}
-Last error (if any): ${lastError || 'none'}`;
-
-    return { systemPrompt, userPrompt, ageTier, heroOfTheDay, totalStars };
+async function buildAdventureLogRetryPromptsFromLog(log, classData, options = {}) {
+    const { buildChroniclerPrompts } = await import('../../features/adventureLogContextCore.mjs');
+    let context = log.chroniclerContext;
+    if (!context?.version) {
+        const { gatherAdventureLogContext } = await import('../../features/adventureLogContext.js');
+        context = (await gatherAdventureLogContext(log.classId, { date: log.date, hero: log.hero })).context;
+        await updateAdventureLogGenerationState(log.id, { chroniclerContext: context });
+    }
+    return { ...buildChroniclerPrompts(context, { previousText: options.previousText ?? log.text }), context,
+        ageTier: log.ageTier || _getAgeTierFromLeague(classData.questLevel),
+        heroOfTheDay: log.hero || 'The Class Team', totalStars: Number(log.totalStars) || 0 };
 }
 
 export async function retryAdventureLogGeneration(logId, options = {}) {
     const { allowArtwork = true } = options || {};
     if (!logId) return;
+    const { canUseFeature } = await import('../../utils/subscription.js');
+    if (!canUseFeature('eliteAI')) throw new Error('The AI Chronicler requires Elite.');
 
     const existing = (state.get('allAdventureLogs') || []).find((l) => l.id === logId) || null;
     const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
     let resolvedLog = existing;
-    if (!resolvedLog) {
+    {
         const snap = await getDoc(logRef);
         if (!snap.exists()) {
             showToast('Could not find that Adventure Log entry.', 'error');
@@ -391,10 +316,16 @@ export async function retryAdventureLogGeneration(logId, options = {}) {
         return;
     }
 
-    const retryMeta = buildAdventureLogRetryPromptsFromLog(resolvedLog, classData);
+    if (resolvedLog.createdBy?.uid !== state.get('currentUserId') || resolvedLog.schoolYearKey !== state.getActiveSchoolYearKey()) {
+        throw new Error('This diary belongs to another teacher or school year.');
+    }
+    resolvedLog.id = logId;
+    const retryMeta = await buildAdventureLogRetryPromptsFromLog(resolvedLog, classData, options);
+    const requestId = crypto.randomUUID();
 
     await updateAdventureLogGenerationState(logId, {
         generationStatus: 'retrying',
+        generationRequestId: requestId,
         pendingRetryAt: null,
         generationError: '',
         generationUpdatedAt: serverTimestamp(),
@@ -406,9 +337,11 @@ export async function retryAdventureLogGeneration(logId, options = {}) {
         const alreadyHasArtwork = !!resolvedLog.imageUrl;
         const shouldAllowArtwork = allowArtwork && !alreadyHasArtwork;
 
-        await finalizeAdventureLogGeneration({
+        const result = await finalizeAdventureLogGeneration({
             logId,
             aiPrompts: { systemPrompt: retryMeta.systemPrompt, userPrompt: retryMeta.userPrompt },
+            context: retryMeta.context,
+            requestId,
             classData,
             heroOfTheDay: retryMeta.heroOfTheDay,
             ageTier: retryMeta.ageTier,
@@ -418,7 +351,7 @@ export async function retryAdventureLogGeneration(logId, options = {}) {
             allowArtwork: shouldAllowArtwork
         });
 
-        showToast('Retry succeeded — the Chronicler updated this entry.', 'success');
+        if (!result.superseded) showToast('The Chronicler finished reviewing this entry.', 'success');
     } catch (error) {
         console.error('Manual chronicler retry failed:', error);
         await updateAdventureLogGenerationState(logId, {
@@ -428,7 +361,7 @@ export async function retryAdventureLogGeneration(logId, options = {}) {
             pendingRetryAt: null,
             generationUpdatedAt: serverTimestamp(),
             generationSummary: describeAdventureLogGenerationStatus('failed')
-        });
+        }, requestId);
         showToast('Retry failed. Please try again later.', 'error');
     }
 }
@@ -442,6 +375,8 @@ async function finalizeAdventureLogGeneration({
     reasonLabels,
     totalStars,
     attemptNumber = 1,
+    context,
+    requestId,
     allowArtwork = true
 }) {
     const aiResult = await callGeminiApiDetailed(aiPrompts.systemPrompt, aiPrompts.userPrompt, {
@@ -453,78 +388,34 @@ async function finalizeAdventureLogGeneration({
         jsonMode: true
     });
 
-    // Never persist raw model output as the diary entry (prevents "thoughts"/instructions leakage).
-    // If the model fails to produce valid JSON, fall back to a safe placeholder entry.
-    const placeholder = buildAdventureLogPlaceholder({
-        className: classData.name,
-        heroOfTheDay,
-        totalStars,
-        topReasonsStr: (reasonLabels || []).join(', ') || 'general excellence',
-        reasonLabels: reasonLabels || []
-    });
-
-    const diary = _parseDiaryJson(aiResult.content, {
-        defaultTitle: placeholder.title,
-        defaultEntry: placeholder.entry,
-        fallbackHighlights: placeholder.highlights,
-        fallbackKeywords: placeholder.keywords
-    });
-    let finalDiary = diary;
-
-    // If the model leaked thoughts/instructions or broke JSON, do one immediate "repair" retry.
-    if (!_looksLikeValidDiary(finalDiary)) {
-        const date = getTodayDateString();
-        let lastRaw = aiResult.content;
-
-        for (let i = 0; i < 2; i += 1) {
-            const repair = _buildDiaryRepairPrompts({
-                rawModelOutput: lastRaw,
-                ageTier,
-                className: classData.name,
-                date,
-                heroOfTheDay
-            });
-
-            const repairResult = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, {
-                retries: 0,
-                baseDelay: 0,
-                timeoutMs: 65000,
-                jsonMode: true
-            });
-            lastRaw = repairResult.content;
-
-            const repairedDiary = _parseDiaryJson(repairResult.content, {
-                defaultTitle: placeholder.title,
-                defaultEntry: placeholder.entry,
-                fallbackHighlights: placeholder.highlights,
-                fallbackKeywords: placeholder.keywords
-            });
-
-            if (_looksLikeValidDiary(repairedDiary)) {
-                finalDiary = repairedDiary;
-                break;
-            }
-        }
+    const { parseChroniclerDiary, buildChroniclerPrompts } = await import('../../features/adventureLogContextCore.mjs');
+    let finalDiary = parseChroniclerDiary(aiResult.content, context);
+    let finalProvider = aiResult.providerId;
+    if (!finalDiary) {
+        const repair = buildChroniclerPrompts(context, { repairOutput: aiResult.content });
+        const repaired = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, { retries: 0, timeoutMs: 65000, jsonMode: true });
+        finalDiary = parseChroniclerDiary(repaired.content, context);
+        finalProvider = repaired.providerId;
     }
-
-    await updateAdventureLogGenerationState(logId, {
-        title: finalDiary.title,
-        text: finalDiary.entry,
-        highlights: finalDiary.highlights,
-        keywords: finalDiary.keywords,
-        ageTier,
-        totalStars,
-        generationStatus: 'ready',
-        generationProvider: aiResult.providerId || 'unknown',
-        generationAttempts: attemptNumber,
-        pendingRetryAt: null,
-        generationError: '',
-        generationUpdatedAt: serverTimestamp(),
-        generationSummary: describeAdventureLogGenerationStatus('ready')
+    if (!finalDiary) throw new Error('The Chronicler returned an incomplete diary. The saved lesson will be retried.');
+    const applied = await runTransaction(db, async tx => {
+        const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+        const snap = await tx.get(logRef);
+        if (!snap.exists() || snap.data().generationRequestId !== requestId) return false;
+        if (snap.data().createdBy?.uid !== state.get('currentUserId') || snap.data().schoolYearKey !== state.getActiveSchoolYearKey()) return false;
+        tx.update(logRef, {
+            title: finalDiary.title, text: finalDiary.entry, highlights: finalDiary.highlights,
+            keywords: finalDiary.keywords, coveredSections: finalDiary.coveredSections,
+            ageTier, totalStars, generationStatus: 'ready', generationProvider: finalProvider || 'unknown',
+            generationAttempts: attemptNumber, pendingRetryAt: null, generationError: '',
+            generationUpdatedAt: serverTimestamp(), generationSummary: describeAdventureLogGenerationStatus('ready')
+        });
+        return true;
     });
+    if (!applied) return { superseded: true };
 
     if (allowArtwork) {
-        generateAdventureLogArtwork(logId, finalDiary, heroOfTheDay).catch((error) => {
+        import('../../features/adventureLogArtwork.js').then(m => m.generateAdventureLogArtwork(logId)).catch((error) => {
             console.error('Chronicler artwork generation/upload failed:', error);
         });
     }
@@ -535,33 +426,35 @@ async function finalizeAdventureLogGeneration({
 function scheduleAdventureLogRetry(payload, delayMs, retryIndex) {
     window.setTimeout(async () => {
         try {
-            await updateAdventureLogGenerationState(payload.logId, {
+            const claimed = await updateAdventureLogGenerationState(payload.logId, {
                 generationStatus: 'retrying',
                 pendingRetryAt: null,
                 generationUpdatedAt: serverTimestamp(),
                 generationSummary: describeAdventureLogGenerationStatus('retrying')
-            });
+            }, payload.requestId);
+            if (!claimed) return;
 
-            await finalizeAdventureLogGeneration({
+            const result = await finalizeAdventureLogGeneration({
                 ...payload,
                 attemptNumber: payload.initialAttemptNumber + retryIndex + 1,
                 allowArtwork: true
             });
 
-            showToast('The Chronicler finished a pending adventure log.', 'success');
+            if (!result.superseded) showToast('The Chronicler finished a pending adventure log.', 'success');
         } catch (error) {
             console.error(`Chronicler retry ${retryIndex + 1} failed:`, error);
             const nextDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[retryIndex + 1];
             if (nextDelay) {
                 const pendingUntil = new Date(Date.now() + nextDelay).toISOString();
-                await updateAdventureLogGenerationState(payload.logId, {
+                const queued = await updateAdventureLogGenerationState(payload.logId, {
                     generationStatus: 'pending',
                     pendingRetryAt: pendingUntil,
                     generationAttempts: payload.initialAttemptNumber + retryIndex + 1,
                     generationError: String(error?.message || 'AI generation is still unavailable.'),
                     generationUpdatedAt: serverTimestamp(),
                     generationSummary: describeAdventureLogGenerationStatus('pending')
-                });
+                }, payload.requestId);
+                if (!queued) return;
                 scheduleAdventureLogRetry(payload, nextDelay, retryIndex + 1);
                 return;
             }
@@ -573,31 +466,9 @@ function scheduleAdventureLogRetry(payload, delayMs, retryIndex) {
                 pendingRetryAt: null,
                 generationUpdatedAt: serverTimestamp(),
                 generationSummary: describeAdventureLogGenerationStatus('failed')
-            });
+            }, payload.requestId);
         }
     }, delayMs);
-}
-
-async function generateAdventureLogArtwork(logId, diary, heroOfTheDay) {
-    const imagePrompt = `Whimsical storybook illustration for classroom diary. Title: "${diary.title}". Scene: ${diary.entry}. Hero focus: ${heroOfTheDay}. Watercolor, magical, uplifting, no text.`;
-    const imageBase64 = await callCloudflareAiImageApi(
-        imagePrompt,
-        '',
-        {},
-        { retries: 0, timeoutMs: 45000, baseDelay: 600 }
-    );
-    const compressed = await compressImageBase64(imageBase64);
-
-    const { uploadImageToStorage } = await import('../../utils.js');
-    const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${logId}.jpg`);
-
-    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
-    await updateDoc(logRef, {
-        imageUrl,
-        artworkUpdatedAt: serverTimestamp()
-    });
-
-    return imageUrl;
 }
 
 async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
@@ -684,130 +555,39 @@ async function handleAILogAdventure(classId, classData) {
 
     import('../../audio.js').then(m => m.playWritingLoop());
 
-    // Kick off the hero-rotation DB read immediately so it runs in parallel
-    // with all the synchronous state data collection below.
-    const _heroClassRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
-    const _heroClassDocPromise = getDoc(_heroClassRef);
-    // "What we learned today" is collected automatically from today's quiz, story, quests, trials and homework.
-    const _learnedTodayPromise = import('../../features/learnedToday.js')
-        .then(({ gatherLearnedToday }) => gatherLearnedToday(classId))
-        .catch(() => ({ items: [], words: [], summary: '' }));
-
-    const nowObj = new Date();
-    const league = classData.questLevel;
-    const ageGroup = getAgeGroupForLeague(league);
-    const ageTier = _getAgeTierFromLeague(league);
-
-    const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === getTodayDateString());
-    const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    const classPathfinderBonus = Number(classData.teamQuestBonuses?.[monthKey]) || 0;
-    const pathfinderUsedToday = classData.lastPathfinderDate === getTodayDateString();
-    const todaysPathfinderBonus = pathfinderUsedToday ? Math.max(10, classPathfinderBonus > 0 ? 10 : 0) : 0;
-    const totalStars = todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0) + todaysPathfinderBonus;
-    const uniqueReasons = [...new Set(todaysAwards.map(a => a.reason).filter(r => r && r !== 'marked_present'))];
-    const reasonLabels = uniqueReasons.map(r => r.replace(/_/g, ' '));
-    const topReasonsStr = reasonLabels.length > 0 ? reasonLabels.join(', ') : 'general excellence';
-
-    const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === getTodayDateString());
-    const absentStudentIds = new Set(attendanceRecords.map(r => r.studentId));
-    const classStudentsForAttendance = state.get('allStudents').filter(s => s.classId === classId);
-    const presentStudents = classStudentsForAttendance.filter(s => !absentStudentIds.has(s.id));
-    const absentNames = classStudentsForAttendance.filter(s => absentStudentIds.has(s.id)).map(s => s.name.split(' ')[0]).join(', ');
-    const attendanceText = absentNames ? `We missed our friends: ${absentNames}.` : 'The entire party was present!';
-
-    const heroSelection = await _selectHeroOfTheDay(classId, presentStudents, _heroClassRef, _heroClassDocPromise);
-    const heroOfTheDay = heroSelection.heroName;
-    const heroStudentId = heroSelection.heroStudentId;
-
-    const currentStory = state.get('currentStoryData')?.[classId];
-    const isStoryActive = todaysAwards.some(l => l.reason === 'story_weaver') || (currentStory?.updatedAt?.toDate?.().toDateString() === nowObj.toDateString());
-    const storyContext = isStoryActive ? `Story Weavers continued with the word "${currentStory?.currentWord || 'mystery'}".` : '';
-
-    const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId)
-        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-    const latestAssignment = assignments[0];
-    let assignmentContext = '';
-    if (latestAssignment?.testData && utils.datesMatch(latestAssignment.testData.date, getTodayDateString())) {
-        assignmentContext = `Today the class took the test "${latestAssignment.testData.title}".`;
-    } else if (latestAssignment?.createdAt?.toDate && utils.datesMatch(utils.getDDMMYYYY(latestAssignment.createdAt.toDate()), getTodayDateString())) {
-        assignmentContext = `Next lesson quest assignment: "${latestAssignment.text}".`;
-    }
-
-    const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
-
-    // Guild standings — find the leading guild among guilds present in this class
-    // Use class-scoped leaderboard so rankings match what the Guild Hall shows for this class
-    const classGuildScores = getGuildLeaderboardForClass(classId);
-    // Already sorted by guildPower desc from getGuildLeaderboardForClass()
-    let guildContext = '';
-    if (classGuildScores.length >= 2) {
-        const leader = classGuildScores[0];
-        const runnerUp = classGuildScores[1];
-        const gap = Math.round((leader.guildPower || 0) - (runnerUp.guildPower || 0));
-        guildContext = `${leader.guildName} leads the guild standings (Guild Power ${leader.guildPower || 0}, ${gap} ahead of ${runnerUp.guildName}).`;
-    } else if (classGuildScores.length === 1) {
-        guildContext = `${classGuildScores[0].guildName} is the only guild active this month.`;
-    }
-
-    // Fortune's Wheel — if spun today for this class
-    const wheelLog = state.get('fortuneWheelLog') || [];
-    const todayWheelSpins = wheelLog.filter(entry => {
-        if (entry.classId !== classId) return false;
-        const spunAt = entry.spunAt?.toDate ? entry.spunAt.toDate() : (entry.spunAt ? new Date(entry.spunAt) : null);
-        return spunAt && spunAt.toDateString() === nowObj.toDateString();
-    });
-    let wheelContext = '';
-    if (todayWheelSpins.length > 0) {
-        const outcomes = todayWheelSpins.flatMap(s => s.results || []);
-        const labels = [...new Set(outcomes.map(r => r.segmentLabel).filter(Boolean))];
-        wheelContext = labels.length > 0
-            ? `Fortune's Wheel was spun today. Outcomes: ${labels.join(', ')}.`
-            : "Fortune's Wheel was spun today.";
-    }
-
-    // Boons — Teacher's Boon or Peer Boon awarded today
-    const todaysBoons = todaysAwards.filter(l => l.reason === 'teacher_boon' || l.reason === 'peer_boon');
-    let boonContext = '';
-    if (todaysBoons.length > 0) {
-        const recipients = [...new Set(todaysBoons.map(b => b.studentName?.split(' ')[0]).filter(Boolean))];
-        const hasPeer = todaysBoons.some(b => b.reason === 'peer_boon');
-        const hasTeacher = todaysBoons.some(b => b.reason === 'teacher_boon');
-        const boonType = hasTeacher && hasPeer ? "Teacher's Boon and Peer Boon" : hasTeacher ? "Teacher's Boon" : 'Peer Boon';
-        boonContext = recipients.length > 0
-            ? `${boonType} was bestowed on ${recipients.join(', ')}.`
-            : `${boonType} was bestowed today.`;
-    }
-
-    const learnedToday = await _learnedTodayPromise;
-
-    const aiPrompts = buildAdventureLogAiPrompts({
-        ageGroup,
-        ageTier,
-        classData,
-        totalStars,
-        topReasonsStr,
-        heroOfTheDay,
-        attendanceText,
-        storyContext,
-        assignmentContext,
-        powerUpContext,
-        guildContext,
-        wheelContext,
-        boonContext,
-        learnedContext: learnedToday.summary
-    });
-    const placeholderDiary = buildAdventureLogPlaceholder({
-        className: classData.name,
-        heroOfTheDay,
-        totalStars,
-        topReasonsStr,
-        reasonLabels
-    });
-
     try {
+        const { gatherAdventureLogContext } = await import('../../features/adventureLogContext.js');
+        const { buildChroniclerPrompts } = await import('../../features/adventureLogContextCore.mjs');
+        const lessonDate = getTodayDateString();
+        const gathered = await gatherAdventureLogContext(classId, { date: lessonDate });
+        classData = gathered.classData;
+        const ageTier = _getAgeTierFromLeague(classData.questLevel);
+        const todaysAwards = gathered.awards.filter(a => a.classId === classId && utils.datesMatch(a.date, lessonDate));
+        const { getAwardLogMonthlyStarCredit, getClassQuestBonusStarsFromAwardLog } = await import('../../features/awardLogReasonMeta.js');
+        const totalStars = todaysAwards.reduce((sum, a) => sum + getAwardLogMonthlyStarCredit(a) + getClassQuestBonusStarsFromAwardLog(a), 0);
+        const reasonLabels = [...new Set(todaysAwards.filter(a => a.reason !== 'marked_present').map(a => a.reason?.replaceAll('_', ' ')).filter(Boolean))];
+        const topReasonsStr = reasonLabels.join(', ') || 'shared effort';
+        const absent = new Set(gathered.attendance.filter(a => a.classId === classId && utils.datesMatch(a.date, lessonDate) && a.status !== 'present').map(a => a.studentId));
+        const presentStudents = gathered.students.filter(s => s.enrollmentStatus !== 'inactive' && !absent.has(s.id));
+        const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
+        const heroSelection = await _selectHeroOfTheDay(classId, presentStudents, classRef, getDoc(classRef));
+        const heroOfTheDay = heroSelection.heroName, heroStudentId = heroSelection.heroStudentId;
+        const context = { ...gathered.context, hero: heroOfTheDay };
+        const learnedToday = gathered.learnedToday;
+        const aiPrompts = buildChroniclerPrompts(context);
+        const requestId = crypto.randomUUID();
+        const placeholderDiary = buildAdventureLogPlaceholder({
+            className: classData.name,
+            heroOfTheDay,
+            totalStars,
+            topReasonsStr,
+            reasonLabels,
+            early: context.early
+        });
+
         const logId = await saveAdventureLogWithHeroWin({
             classId,
-            date: getTodayDateString(),
+            date: lessonDate,
             title: placeholderDiary.title,
             text: placeholderDiary.entry,
             highlights: placeholderDiary.highlights,
@@ -820,6 +600,8 @@ async function handleAILogAdventure(classId, classData) {
             topReason: reasonLabels[0] || 'excellence',
             totalStars,
             learnedToday,
+            chroniclerContext: context,
+            generationRequestId: requestId,
             generationStatus: 'generating',
             generationProvider: '',
             generationAttempts: 0,
@@ -845,6 +627,8 @@ async function handleAILogAdventure(classId, classData) {
         finalizeAdventureLogGeneration({
             logId,
             aiPrompts,
+            context,
+            requestId,
             classData,
             heroOfTheDay,
             ageTier,
@@ -852,24 +636,27 @@ async function handleAILogAdventure(classId, classData) {
             totalStars,
             attemptNumber: 1,
             allowArtwork: true
-        }).then(() => {
-            showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
+        }).then(result => {
+            if (!result.superseded) showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
         }).catch(async (error) => {
             console.error('Chronicler text generation failed:', error);
             const firstRetryDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[0] || null;
-            await updateAdventureLogGenerationState(logId, {
+            const queued = await updateAdventureLogGenerationState(logId, {
                 generationStatus: firstRetryDelay ? 'pending' : 'failed',
                 generationAttempts: 1,
                 generationError: String(error?.message || 'AI generation failed.'),
                 pendingRetryAt: firstRetryDelay ? new Date(Date.now() + firstRetryDelay).toISOString() : null,
                 generationUpdatedAt: serverTimestamp(),
                 generationSummary: describeAdventureLogGenerationStatus(firstRetryDelay ? 'pending' : 'failed')
-            });
+            }, requestId);
+            if (!queued) return;
 
             if (firstRetryDelay) {
                 scheduleAdventureLogRetry({
                     logId,
                     aiPrompts,
+                    context,
+                    requestId,
                     classData,
                     heroOfTheDay,
                     ageTier,
@@ -1045,119 +832,6 @@ async function saveManualLogEntry(classId, classData, learnedToday = null) {
 
 function _getAgeTierFromLeague(league) {
     return getAgeTierForLeague(league);
-}
-
-function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackHighlights = [], fallbackKeywords = [] }) {
-    const safeEntry = String(defaultEntry || '').replace(/```/g, '').trim();
-    const result = {
-        title: defaultTitle,
-        entry: safeEntry || 'Today was a bright step forward on our class quest.',
-        highlights: Array.isArray(fallbackHighlights)
-            ? fallbackHighlights.map(h => String(h).trim()).filter(Boolean).slice(0, 3)
-            : [],
-        keywords: fallbackKeywords
-            .map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_'))
-            .filter(Boolean)
-            .slice(0, 5)
-    };
-
-    try {
-        const cleaned = String(raw || '').trim();
-        const firstBrace = cleaned.indexOf('{');
-        const lastBrace = cleaned.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return result;
-        const jsonSlice = cleaned.slice(firstBrace, lastBrace + 1);
-
-        let parsed = null;
-
-        // Attempt 1: direct parse
-        try { parsed = JSON.parse(jsonSlice); } catch (_) {}
-
-        // Attempt 2: replace literal newlines inside the slice (Gemma sometimes emits them)
-        if (!parsed) {
-            try { parsed = JSON.parse(jsonSlice.replace(/\n/g, ' ').replace(/\r/g, '')); } catch (_) {}
-        }
-
-        // Attempt 3: quote any unquoted entry value
-        // Handles:  "entry": Some text here, "highlights"
-        if (!parsed) {
-            try {
-                const repaired = jsonSlice.replace(
-                    /"entry"\s*:\s*([^"\[{\n][^}]*?)(?=\s*,\s*"(?:highlights|keywords)")/s,
-                    (_m, val) => `"entry": "${val.trim().replace(/"/g, '\\"')}"`
-                );
-                parsed = JSON.parse(repaired);
-            } catch (_) {}
-        }
-
-        if (parsed) {
-            if (typeof parsed.title === 'string' && parsed.title.trim()) result.title = parsed.title.trim().slice(0, 90);
-            if (typeof parsed.entry === 'string' && parsed.entry.trim()) result.entry = parsed.entry.trim();
-            if (Array.isArray(parsed.highlights)) {
-                result.highlights = parsed.highlights.map(h => String(h).trim()).filter(Boolean).slice(0, 3);
-            }
-            if (Array.isArray(parsed.keywords)) {
-                result.keywords = parsed.keywords
-                    .map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_'))
-                    .filter(Boolean)
-                    .slice(0, 5);
-            }
-        }
-    } catch (_) {
-        // Keep safe fallback.
-    }
-    return result;
-}
-
-function _looksLikeValidDiary(diary) {
-    if (!diary || typeof diary !== 'object') return false;
-    const titleOk = typeof diary.title === 'string' && diary.title.trim().length > 0;
-    const entry = typeof diary.entry === 'string' ? diary.entry.trim() : '';
-    const entryOkBasic = entry.length >= 80 && !/\n|\r/.test(entry);
-    // Count sentence-ish endings. This is heuristic but catches "...." and ultra-short junk.
-    const sentenceCount = entry ? (entry.match(/[.!?](\s|$)/g) || []).length : 0;
-    const entryOk = entryOkBasic && sentenceCount >= 3;
-    const highlightsOk =
-        Array.isArray(diary.highlights) &&
-        diary.highlights.length === 3 &&
-        diary.highlights.every((h) => typeof h === 'string' && h.trim().length > 0);
-    const keywordsOk =
-        Array.isArray(diary.keywords) &&
-        diary.keywords.length >= 3 &&
-        diary.keywords.length <= 5 &&
-        diary.keywords.every((k) => typeof k === 'string' && /^[a-z0-9_]+$/.test(k));
-    return titleOk && entryOk && highlightsOk && keywordsOk;
-}
-
-function _buildDiaryRepairPrompts({ rawModelOutput, ageTier, className, date, heroOfTheDay }) {
-    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
-
-JSON STRUCTURE (copy exactly, fill in values):
-{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
-
-STRICT RULES:
-- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
-- ALL four keys must be present: title, entry, highlights, keywords.
-- Every string value MUST be wrapped in double-quotes.
-- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
-- "title": max 8 words.
-- "highlights": exactly 3 short strings.
-- "keywords": 3-5 lowercase single-word strings (use underscores for multi-word concepts).
-- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
-- Mention the Hero of the Day naturally in the entry.`;
-
-    const userPrompt = `Your previous output was INVALID because it contained extra text or invalid JSON.
-Fix it now and return ONLY the corrected JSON object.
-
-Context:
-Class: ${className}
-Date: ${date}
-Hero of the Day: ${heroOfTheDay}
-
-Invalid output to fix:
-${String(rawModelOutput || '').slice(0, 6000)}`;
-
-    return { systemPrompt, userPrompt };
 }
 
 // classRef and classDocPromise are pre-created by the caller so the DB read

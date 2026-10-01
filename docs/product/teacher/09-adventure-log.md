@@ -27,11 +27,32 @@ Each day becomes a **diary page**, newest first: a date stamp, the title, a **He
 Buttons at the foot of each page:
 
 - **Retry**: only on an Elite page that did not finish; asks the Chronicler to try again.
-- **Edit**: opens **Edit this page** (title, story, highlights, what we learned) and **Save changes**. On Pro you can edit pages you wrote by hand; on Elite you can edit every page.
+- **Edit**: opens **Edit this page** (title, story, highlights, picture, what we learned) and **Save changes**. On Pro you can edit your manual pages; on Elite you can edit all your pages in the active school year, including older months.
 - **Add note** / **Note**: **A note for this page**, a sticky note signed with your name. **Stick it on** saves it; leave it empty to remove it.
 - **Remove**: deletes the page.
 
 **Mask of the Protagonist**, Pathfinder, tests, and bounties can colour the story the AI (or you) tells.
+
+### A Chronicler that remembers the whole lesson (Elite)
+
+The Chronicler gathers a **dated class snapshot** when you log the adventure, including sources whose tabs you have not opened. It writes several connected paragraphs, with a theme drawn from this class's actual English, observed actions and story details, rather than a generic summary of stars.
+
+- **Learning:** recorded tests **and dictations** (titles and participation, never individual grades), Quiz of the Week topics and words, Story Weavers sentences and completed stories, Book Atlas work, What we learned today and Quest Assignment.
+- **The calendar:** today's, ongoing and upcoming Special Quests, school-wide 2x Star Day / Reason Bonus Day, current or upcoming school holidays and recent returns, birthdays and namedays, and the active Festival Stall occasion. The stall is seasonal context, not evidence of a classroom celebration. Upcoming school-calendar context covers the next **14 days**; recent breaks cover the previous **7 days**. Scheduled tests and quests are described as scheduled unless completion is recorded. Work set today is for the next lesson.
+- **The shared adventure:** attendance, Award Stars and observed actions, Hero's Boon and Teacher Boon, class Bounties, Fortune's Wheel, Guild Hall and Team Quest, current Hero Path identities and skills, Familiars, Market items acquired today, Pathfinder's Map, Hero Campfire, Ember Oaths and recorded ceremony activity. Current identities are not presented as achievements newly earned today. A recent cached classroom sky can add atmosphere.
+- **Continuity:** recent diary titles and highlights help vary the voice and connect the journey; they are never retold as today's events.
+
+The AI must cover every relevant collected section. Empty or unavailable sources do not become invented activities. Reads can fall back to known cached class data. Private family messages, account details, individual academic grades and private student notes are excluded. Ember Oaths contribute only anonymous activity: their owners, promise text, evidence and private reflections stay private. Nursery / Pre-Junior stories avoid numeric stars, scores and comparisons. Later retries and **Ask the Chronicler** use the original saved snapshot and lesson date; a teacher review of What we learned today updates that part of the snapshot. Invalid or incomplete AI output stays retryable instead of being labelled a finished entry.
+
+### Picture controls in Edit
+
+**Picture** shows a preview and these controls:
+
+- **Upload your picture:** choose JPG, PNG or WebP up to **8 MB**. The app compresses it for the diary. Available for manual pages on Pro and all your pages on Elite.
+- **Delete picture:** removes the picture from the page when you save, including legacy embedded pictures.
+- **Retry AI picture** (Elite): paints a new picture inspired by the title and story currently in the editor, without rewriting the diary text. A failed attempt keeps the existing preview.
+
+Picture changes apply with **Save changes**. **Cancel** leaves the saved picture as it was. Picture failures have their own status, with a reminder to retry or upload in Edit. A late automatic AI result cannot overwrite your saved upload, deletion or text edit.
 
 ### What we learned today
 

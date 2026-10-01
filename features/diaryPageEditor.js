@@ -26,6 +26,7 @@ export function diaryPageEditorHtml({
     storyTool = '',
     heroHtml = '',
     learnedHtml = '',
+    pictureHtml = '',
     saveLabel = 'Save page',
     saveIcon = 'fa-feather-alt'
 }) {
@@ -73,6 +74,8 @@ export function diaryPageEditorHtml({
                         <ul class="adventure-log-editor-washi" data-highlight-preview aria-hidden="true"></ul>
                     </div>
                 </div>
+
+                ${pictureHtml}
 
                 <div class="adventure-log-editor-field adventure-log-editor-field--learned">
                     <span class="adventure-log-editor-label"><i class="fas fa-graduation-cap" aria-hidden="true"></i> What we learned today <span class="adventure-log-editor-optional">(optional)</span></span>

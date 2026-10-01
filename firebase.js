@@ -41,7 +41,8 @@ import {
     getStorage, 
     ref, 
     uploadString, 
-    getDownloadURL
+    getDownloadURL,
+    deleteObject
 } from "firebase/storage";
 import {
     getFunctions,
@@ -183,7 +184,8 @@ export {
     // NEW: Storage functions
     ref,
     uploadString,
-    getDownloadURL
+    getDownloadURL,
+    deleteObject
     ,
     // Functions
     httpsCallable

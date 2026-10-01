@@ -24,6 +24,7 @@ const {
   ref,
   uploadBytes,
   getBytes,
+  deleteObject,
 } = require('firebase/storage');
 
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -394,4 +395,26 @@ rulesTest('storage preserves legacy reads while enforcing profile, ownership, MI
   ));
   await assertSucceeds(getBytes(ref(teacherStorage, 'avatars/legacy-avatar.png')));
   await assertFails(getBytes(ref(missingStorage, 'avatars/legacy-avatar.png')));
+});
+
+rulesTest('diary snapshots and picture edits remain restricted to the owning teacher and active year', async () => {
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  const parentDb = env.authenticatedContext('parent').firestore();
+  const page = doc(teacherDb, `${DATA}/adventure_logs/diary-page`);
+  const payload = { classId: 'camp-class', date: '02-10-2026', createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027', entryMode: 'ai', chroniclerContext: { version: 2, date: '2026-10-02', sections: { assessments: { items: [{ kind: 'Dictation', title: 'Autumn' }] } } }, generationRequestId: 'generation-1' };
+  await assertSucceeds(setDoc(page, payload));
+  await assertSucceeds(updateDoc(page, { imageUrl: 'https://example.test/my-picture', imageBase64: null, artworkStoragePath: 'adventure_logs/teacher/diary-page/image-1.jpg', artworkRequestId: 'image-1', artworkStatus: 'ready', artworkSource: 'upload' }));
+  await assertFails(updateDoc(doc(parentDb, `${DATA}/adventure_logs/diary-page`), { imageUrl: null }));
+  await assertSucceeds(updateDoc(page, { imageUrl: null, artworkStatus: 'removed', artworkRequestId: 'remove-1' }));
+  await env.withSecurityRulesDisabled(context => setDoc(doc(context.firestore(), `${DATA}/adventure_logs/archived-page`), { ...payload, schoolYearKey: '2025-2026' }));
+  await assertFails(updateDoc(doc(teacherDb, `${DATA}/adventure_logs/archived-page`), { artworkStatus: 'removed' }));
+});
+
+rulesTest('diary picture objects allow owner upload and cleanup while blocking other owners and oversized images', async () => {
+  const teacherStorage = env.authenticatedContext('teacher').storage();
+  const picture = ref(teacherStorage, 'adventure_logs/teacher/diary-page/image-1.jpg');
+  await assertSucceeds(uploadBytes(picture, new Uint8Array([255, 216, 255]), { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(teacherStorage, 'adventure_logs/another-teacher/diary-page/image-1.jpg'), new Uint8Array([255]), { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(teacherStorage, 'adventure_logs/teacher/diary-page/large.jpg'), new Uint8Array(1024 * 1024 + 1), { contentType: 'image/jpeg' }));
+  await assertSucceeds(deleteObject(picture));
 });

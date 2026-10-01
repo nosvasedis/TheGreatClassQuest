@@ -223,8 +223,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'adventure-log', icon: 'fa-feather-pointed', name: 'Adventure Log', tier: 'pro',
                     where: 'Adventure Log tab', go: 'tab:adventure-log-tab',
-                    text: `Log Today's Adventure once stars have been awarded. On Pro you write the diary page yourself; on Elite the Chronicler writes it and paints a picture, and you can edit every page. What we learned today fills itself in from the quiz, stories, quests, trials and homework.`,
-                    keys: 'diary log today chronicler ai story what we learned'
+                    text: `Log Today's Adventure once stars have been awarded. On Pro you write the page yourself; on Elite the Chronicler weaves a personal diary from recorded lesson activity across the class: tests and dictations, homework and book work, quiz and stories, calendar events and holidays, birthdays, awards and boons, bounties, guilds, Hero Paths, Familiars, Market finds, Campfire and Ember Oaths. Upcoming plans stay distinct from things completed today; individual grades and private messages stay private. Edit lets you polish your page, upload or delete a picture, and on Elite retry just the AI picture. Picture changes take effect with Save changes; Cancel discards them. What we learned today fills itself in, and later AI rewrites use the saved lesson snapshot.`,
+                    keys: 'diary log today chronicler ai story what we learned picture upload delete retry tests dictations holidays'
                 },
                 {
                     id: 'hero-of-the-day', icon: 'fa-crown', name: 'Hero of the Day', tier: 'pro',

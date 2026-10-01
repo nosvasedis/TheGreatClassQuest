@@ -573,7 +573,7 @@ export const miscModalsHTML = `
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📅 Quest Calendar & Day Planner</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🗓️ My Planning (class end dates)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📜 Scholar's Scroll (tests/dictations)</span></li>
-                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📓 Adventure Log (manual entries)</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📓 Adventure Log (manual entries and your own pictures)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔥 Hero Campfire & Ember Oaths</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📋 Attendance Chronicle</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔄 Pending Makeups (missing test grades)</span></li>
@@ -594,7 +594,7 @@ export const miscModalsHTML = `
                             <h4 class="font-semibold text-gray-700 mb-3">All Pro +:</h4>
                             <ul class="space-y-2 text-sm">
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 AI-powered Quiz of the Week</span></li>
-                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🤖 AI-powered Adventure Log</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🤖 Personalised Adventure Log from your class activity, with AI pictures</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>✏️ Edit AI-generated entries</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📖 Story Weavers (collaborative)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔤 Word of the Day</span></li>

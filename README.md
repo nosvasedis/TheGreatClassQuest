@@ -128,7 +128,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 
 ### 3. The End-of-Day Ritual (**Adventure Log**)
 - **"Log Today's Adventure"** (once per class per day, after stars). Crowns **Hero of the Day**.
-- **Pro:** you write the diary. **Elite:** AI writes a whimsical entry and a **storybook-style** illustration.
+- **Pro:** you write the diary and can add your own picture. **Elite:** AI writes a personal diary across the class's recorded activities and a **storybook-style** illustration. It includes tests and dictations, learning and homework, calendar events and holidays, and the class's other rituals when relevant. Upcoming plans stay distinct from completed activities; individual grades and private messages are excluded.
 - Entry is stored and can be revisited; **Pathfinder's Map** and **Mask of the Protagonist** can be reflected in the narrative.
 - **Hero Campfire (Pro, optional):** after Hero of the Day, **Gather at the Campfire** opens a 2-minute projector reflection: the words the class practised (from the last Quest Assignment and its book unit), one reflection question, a class glow check, and check-ins on **Ember Oaths** (small personal promises). Kept oaths become stars in the class sky and a **Star-Ember** keepsake, never stars or Gold.
 
@@ -265,7 +265,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 📜 Adventure Log
 
-- **Log Today's Adventure:** Needs stars awarded today; one log per class per day. **Pro:** you write the diary. **Elite:** AI story + storybook image. Each log **automatically** crowns **Hero of the Day** (Mask of the Protagonist wins if pending; otherwise fair rotation among present students). You do not pick the name by hand.
+- **Log Today's Adventure:** Needs stars awarded today; one log per class per day. **Pro:** you write the diary. **Elite:** AI gathers a dated class snapshot and writes a personal diary plus a storybook image; rewrites retain that lesson's evidence. **Edit** includes picture preview, upload, delete and (Elite) AI picture retry; picture changes apply when you save. Each log **automatically** crowns **Hero of the Day** (Mask of the Protagonist wins if pending; otherwise fair rotation among present students). You do not pick the name by hand.
 - **Hall of Heroes:** Hero of the Day win tallies and legend tiers — **not** the Prodigy archive. Open it from the log.
 - **Quest Assignment:** Schedule or view **Quest Assignments** (special tasks linked to the log).
 - **Attendance:** Opens **Attendance Chronicle** (month × students matrix, mark present/absent, monthly %).

@@ -26,7 +26,8 @@ function inferAdventureLogEntryMode(log) {
 
 function canEditAdventureLog(log) {
     const entryMode = inferAdventureLogEntryMode(log);
-    return canUseFeature('eliteAI') || (entryMode === 'manual' && canUseFeature('adventureLog'));
+    return log?.createdBy?.uid === state.get('currentUserId') && log.schoolYearKey === state.getActiveSchoolYearKey()
+        && (canUseFeature('eliteAI') || (entryMode === 'manual' && canUseFeature('adventureLog')));
 }
 
 function escapeDiaryHtml(value) {
@@ -107,7 +108,14 @@ function renderDiaryArtwork(log, entryMode) {
             : status === 'failed'
                 ? 'fa-hourglass-end'
                 : 'fa-paintbrush';
-    const helperCopy = entryMode === 'manual'
+    const artworkStatus = String(log.artworkStatus || '');
+    const helperCopy = artworkStatus === 'removed'
+        ? 'This page has no picture. Add one in Edit.'
+        : artworkStatus === 'failed'
+            ? 'The picture did not finish. Retry it or upload your own in Edit.'
+        : artworkStatus === 'generating'
+            ? 'A picture is being painted for this page.'
+        : entryMode === 'manual'
         ? 'Written by hand by the teacher.'
         : status === 'retrying'
             ? 'The Chronicler is trying another route now.'
@@ -374,7 +382,8 @@ function renderDiaryEntry(log, animationClass) {
     const entryMode = inferAdventureLogEntryMode(log);
     const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${escapeDiaryHtml(kw)}</span>`).join('');
     const highlightsHtml = (log.highlights || []).slice(0, 4).map((h, i) => `<li class="diary-highlight-chip diary-highlight-chip--${i % 4}">${escapeDiaryHtml(h)}</li>`).join('');
-    const totalStars = Number(log.totalStars) || 0;
+    const league = (state.get('allTeachersClasses') || []).find(c => c.id === log.classId)?.questLevel;
+    const totalStars = ['Nursery', 'Pre-Junior'].includes(league) ? 0 : Number(log.totalStars) || 0;
 
     const noteHtml = log.note ? `
         <aside class="diary-note" aria-label="Teacher's note">

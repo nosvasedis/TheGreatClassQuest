@@ -1528,6 +1528,15 @@ body.adventure-log-editor-open { overflow: hidden; }
 
 .adventure-log-editor-hero-pill > span:last-child { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
 .adventure-log-editor-hero-pill strong { font-family: var(--dl-round); font-weight: 600; font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.diary-picture-editor { margin: 1.25rem 0; padding: 1rem; border: 1px dashed #c4b5a2; border-radius: 1rem; background: rgba(255, 255, 255, .45); }
+.diary-picture-preview { display: grid; place-items: center; min-height: 7rem; margin: .75rem 0; padding: .5rem; background: #f1e7d6; border-radius: .75rem; overflow: hidden; }
+.diary-picture-preview img { width: 100%; max-height: 19rem; object-fit: contain; border-radius: .5rem; }
+.diary-picture-preview p { color: #756354; font-family: var(--dl-round); text-align: center; padding: 1rem; }
+.diary-picture-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.diary-picture-actions .adventure-log-editor-btn { flex: 1 1 10rem; min-height: 44px; justify-content: center; font-size: .88rem; }
+.diary-picture-actions input[hidden] { display: none; }
+.diary-picture-actions button:disabled { opacity: .55; cursor: wait; }
 .adventure-log-editor-hero-pill small { font-size: 0.72rem; color: #7c4a03; }
 
 .adventure-log-editor-hero-seal {

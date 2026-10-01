@@ -343,7 +343,13 @@ export async function saveAdventureLogNote() {
 }
 
 export async function editAdventureLogEntry(logId) {
-    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+    let log = state.get('allAdventureLogs').find(l => l.id === logId);
+    if (!log) {
+        try {
+            const snap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId));
+            if (snap.exists()) log = { id: snap.id, ...snap.data() };
+        } catch { showToast('This diary page could not be opened. Please try again.', 'error'); return; }
+    }
     if (!log) return;
     const entryMode = inferAdventureLogEntryMode(log);
 
@@ -357,8 +363,8 @@ export async function editAdventureLogEntry(logId) {
         return;
     }
 
-    const learnedModule = await import('../../features/learnedToday.js');
-    openAdventureLogEditor(logId, log, learnedModule);
+    const [learnedModule, artwork] = await Promise.all([import('../../features/learnedToday.js'), import('../../features/adventureLogArtwork.js')]);
+    openAdventureLogEditor(logId, log, learnedModule, artwork);
 }
 
 function escapeHtml(value) {
@@ -377,7 +383,8 @@ function inferAdventureLogEntryMode(log) {
 }
 
 function canEditAdventureLog(log) {
-    return canUseFeature('eliteAI') || (inferAdventureLogEntryMode(log) === 'manual' && canUseFeature('adventureLog'));
+    return log?.createdBy?.uid === state.get('currentUserId') && log.schoolYearKey === state.getActiveSchoolYearKey()
+        && (canUseFeature('eliteAI') || (inferAdventureLogEntryMode(log) === 'manual' && canUseFeature('adventureLog')));
 }
 
 function formatAdventureLogEditorDateChip(log) {
@@ -402,9 +409,9 @@ function syncHeroLine(text, heroName) {
     return `${storyText}\n\n${heroLine}`;
 }
 
-function openAdventureLogEditor(logId, log, learnedModule) {
+function openAdventureLogEditor(logId, log, learnedModule, artwork) {
     const existing = document.getElementById('adventure-log-editor-modal');
-    if (existing) existing.remove();
+    if (existing) { existing._cleanup?.(); existing.remove(); }
     const entryMode = inferAdventureLogEntryMode(log);
     const dateChipHtml = formatAdventureLogEditorDateChip(log);
     const subtitle = entryMode === 'manual'
@@ -439,6 +446,7 @@ function openAdventureLogEditor(logId, log, learnedModule) {
         storyValue: log.text || '',
         highlightsValue: (log.highlights || []).join(', '),
         storyTool: aiRewriteControl,
+        pictureHtml: artwork.diaryPictureControlsHtml({ canGenerate: canUseFeature('eliteAI') }),
         heroHtml: diaryEditorHeroHtml(log.hero || 'The Class Team'),
         learnedHtml: `
             ${learnedPicks || '<p class="adventure-log-editor-hint">Nothing was collected for this lesson.</p>'}
@@ -461,6 +469,19 @@ function openAdventureLogEditor(logId, log, learnedModule) {
     const aiRewriteBtn = overlay.querySelector('#adventure-log-ai-rewrite-btn');
 
     let aiRewriteBusy = false;
+    let pictureBusy = false;
+    let saving = false;
+    const pictureControls = artwork.bindDiaryPictureControls(overlay, log, {
+        getStory: () => ({ title: titleInput.value, text: storyInput.value }),
+        onBusy: value => {
+            pictureBusy = value;
+            saveBtn.disabled = value;
+            if (aiRewriteBtn) aiRewriteBtn.disabled = value;
+        }
+    });
+    overlay._log = log;
+    overlay._pictureControls = pictureControls;
+    overlay._cleanup = () => { document.removeEventListener('keydown', onEscape); pictureControls.dispose(); };
 
     const updateCounter = () => {
         const len = titleInput.value.length;
@@ -469,13 +490,14 @@ function openAdventureLogEditor(logId, log, learnedModule) {
     };
 
     const closeEditor = () => {
-        document.removeEventListener('keydown', onEscape);
+        if (aiRewriteBusy || saving) return;
+        overlay._cleanup();
         document.body.classList.remove('adventure-log-editor-open');
         overlay.remove();
     };
 
     const onEscape = (event) => {
-        if (aiRewriteBusy) return;
+        if (aiRewriteBusy || saving) return;
         if (event.key === 'Escape') {
             event.preventDefault();
             closeEditor();
@@ -487,20 +509,32 @@ function openAdventureLogEditor(logId, log, learnedModule) {
     };
 
     overlay.addEventListener('click', (event) => {
-        if (event.target === overlay && !aiRewriteBusy) closeEditor();
+        if (event.target === overlay) closeEditor();
     });
     closeBtn.addEventListener('click', closeEditor);
     cancelBtn.addEventListener('click', closeEditor);
     saveBtn.addEventListener('click', async () => {
+        if (aiRewriteBusy || pictureBusy || saving) return;
+        saving = true;
         saveBtn.disabled = true;
+        closeBtn.disabled = true; cancelBtn.disabled = true;
+        if (aiRewriteBtn) aiRewriteBtn.disabled = true;
+        pictureControls.setDisabled(true);
         await saveEditedLogEntry(logId, overlay);
-        if (document.body.contains(overlay)) saveBtn.disabled = false;
+        saving = false;
+        if (document.body.contains(overlay)) {
+            saveBtn.disabled = false; closeBtn.disabled = false; cancelBtn.disabled = false;
+            if (aiRewriteBtn) aiRewriteBtn.disabled = false;
+            pictureControls.setDisabled(false);
+        }
     });
 
     if (aiRewriteBtn) {
         const iconEl = aiRewriteBtn.querySelector('.adventure-log-editor-ai-icon');
         aiRewriteBtn.addEventListener('click', async () => {
+            if (pictureBusy || saving || aiRewriteBusy) return;
             aiRewriteBusy = true;
+            pictureControls.setDisabled(true);
             aiRewriteBtn.disabled = true;
             saveBtn.disabled = true;
             cancelBtn.disabled = true;
@@ -510,7 +544,7 @@ function openAdventureLogEditor(logId, log, learnedModule) {
                 iconEl.className = 'fas fa-spinner fa-spin adventure-log-editor-ai-icon';
             }
             try {
-                await retryAdventureLogGeneration(logId);
+                await retryAdventureLogGeneration(logId, { allowArtwork: false, previousText: storyInput.value });
                 const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
                 const snap = await getDoc(logRef);
                 if (snap.exists()) {
@@ -532,6 +566,7 @@ function openAdventureLogEditor(logId, log, learnedModule) {
                 console.error('AI rewrite from adventure log editor failed:', err);
             } finally {
                 aiRewriteBusy = false;
+                pictureControls.setDisabled(false);
                 aiRewriteBtn.disabled = false;
                 saveBtn.disabled = false;
                 cancelBtn.disabled = false;
@@ -553,7 +588,7 @@ function openAdventureLogEditor(logId, log, learnedModule) {
 }
 
 async function saveEditedLogEntry(logId, rootEl = document) {
-    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+    const log = rootEl._log || state.get('allAdventureLogs').find(l => l.id === logId);
     if (!log) return;
 
     const title = rootEl.querySelector('#edit-log-title').value.trim();
@@ -570,37 +605,60 @@ async function saveEditedLogEntry(logId, rootEl = document) {
         return;
     }
     
+    let pictureUpdate = {};
+    let artwork;
+    let persisted = false;
     try {
+        artwork = await import('../../features/adventureLogArtwork.js');
+        pictureUpdate = await artwork.prepareAdventurePictureSave(log, rootEl._pictureControls?.getDraft());
         const learnedModule = await import('../../features/learnedToday.js');
         const entryMode = inferAdventureLogEntryMode(log);
         const finalText = entryMode === 'manual' ? syncHeroLine(text, log.hero || 'The Class Team') : text;
         const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
         const keywords = finalText.toLowerCase().split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}_-]/gu, '')).filter(w => w.length > 3).slice(0, 6);
         
-        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId), {
+        const learnedToday = learnedModule.readLearnedTodayPicks(rootEl, log.learnedToday, 'edit-learned', '#edit-log-learned-extra');
+        const updates = {
             title: title.slice(0, 90),
             text: finalText,
             highlights: highlights.slice(0, 4),
             keywords: keywords.slice(0, 6),
             entryMode,
-            learnedToday: learnedModule.readLearnedTodayPicks(rootEl, log.learnedToday, 'edit-learned', '#edit-log-learned-extra'),
+            learnedToday,
+            ...pictureUpdate,
+            generationRequestId: artwork.newAdventureRequestId(),
+            generationStatus: 'ready',
+            generationSummary: 'This page was edited by the teacher.',
+            pendingRetryAt: null,
+            generationError: '',
+            ...(log.chroniclerContext ? { chroniclerContext: { ...log.chroniclerContext, sections: { ...log.chroniclerContext.sections, learning: { label: 'What we learned today (teacher reviewed)', items: learnedToday.summary ? [{ collected: learnedToday.summary, words: learnedToday.words }] : [] } } } } : {}),
             editedAt: serverTimestamp(),
             editedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        };
+        await runTransaction(db, async tx => {
+            const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+            const snap = await tx.get(logRef);
+            if (!snap.exists() || !canEditAdventureLog(snap.data())) throw new Error('This diary page can no longer be edited.');
+            tx.update(logRef, updates);
         });
+        persisted = true;
 
         const overlay = document.getElementById('adventure-log-editor-modal');
         if (overlay) {
+            overlay._cleanup?.();
             document.body.classList.remove('adventure-log-editor-open');
             overlay.remove();
         }
         showToast('Adventure log entry updated!', 'success');
+        if (pictureUpdate.artworkRequestId && log.artworkStoragePath) artwork.discardAdventurePictureObject(log.artworkStoragePath, log);
         
         // Refresh the log display
         const { renderAdventureLog } = await import('../../ui/tabs/log.js');
         await renderAdventureLog();
     } catch (error) {
+        if (!persisted && pictureUpdate.artworkStoragePath) await artwork.discardAdventurePictureObject(pictureUpdate.artworkStoragePath, log);
         console.error("Error saving edited log:", error);
-        showToast('Failed to save changes. Please try again.', 'error');
+        showToast(persisted ? 'Your changes were saved. Reopen the diary to see them.' : 'Failed to save changes. Please try again.', persisted ? 'info' : 'error');
     }
 }
 

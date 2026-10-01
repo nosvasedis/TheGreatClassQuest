@@ -42,7 +42,7 @@ export const FEATURE_DEFINITIONS = {
     adventureLog: {
         name: 'Adventure Log',
         emoji: '📓',
-        description: 'Manual diary entries, Hero of the Day, Hall of Heroes, teacher notes',
+        description: 'Manual diary entries, your own pictures, Hero of the Day, Hall of Heroes, teacher notes',
         tier: 'Pro',
     },
     schoolYearPlanner: {
@@ -140,7 +140,7 @@ export const UPGRADE_MESSAGES = {
     },
     Elite: {
         default: 'AI-powered features unlock on the Elite plan. Contact me to upgrade.',
-        adventureLog: 'The AI-powered diary and storybook image are on the Elite plan. Pro still has the full manual log and Hero of the Day.',
+        adventureLog: 'The personalised AI diary and generated storybook image are on Elite. Pro has the full manual log, your own uploaded pictures, and Hero of the Day.',
         storyWeavers: 'Story Weavers and Word of the Day are available on the Elite plan. Contact me to upgrade.',
         familiars: 'Familiars — one companion egg that hatches and evolves — are available on the Elite plan. Contact me to upgrade.',
         quizOfTheWeek: 'Quiz of the Week is available on the Elite plan. Configure it in Teacher Settings → Quiz and play from Home.',

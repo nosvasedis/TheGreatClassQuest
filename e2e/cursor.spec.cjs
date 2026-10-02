@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('loading uses one animated hourglass and restores every native cursor state', async ({ page }, testInfo) => {
+test('loading uses one animated hourglass and smoothly restores every cursor state', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile', 'Native cursor states require a mouse');
   const surface = page.locator('#cursor-test-surface');
   const hourglass = page.locator('.gcq-cursor-hourglass');
@@ -31,6 +31,8 @@ test('loading uses one animated hourglass and restores every native cursor state
     await surface.evaluate((element, cursor) => { element.style.cursor = cursor; }, state);
     await expect(surface).toHaveAttribute('data-gcq-cursor', state);
     await expect(hourglass).toBeVisible();
+    await expect(hourglass).toHaveClass(/is-active/);
+    await expect(hourglass).toHaveCSS('opacity', '1');
     await expect(surface).toHaveCSS('cursor', 'none');
     const rect = await hourglass.boundingBox();
     expect(rect.x).toBe(404);
@@ -48,8 +50,9 @@ test('loading uses one animated hourglass and restores every native cursor state
   for (const state of ['default', 'pointer', 'text', 'grab', 'grabbing', 'move', 'help', 'crosshair', 'zoom-in', 'zoom-out', 'not-allowed']) {
     await surface.evaluate((element, cursor) => { element.style.cursor = cursor; }, state);
     await expect(surface).toHaveAttribute('data-gcq-cursor', state === 'not-allowed' ? 'blocked' : state);
-    await expect(hourglass).toBeHidden();
-    await expect(surface).not.toHaveCSS('cursor', 'none');
+    await expect(hourglass).not.toHaveClass(/is-active/);
+    await expect(page.locator(`.gcq-cursor-glyph[data-cursor-art="${state === 'not-allowed' ? 'blocked' : state}"]`)).toHaveClass(/is-active/);
+    await expect(surface).toHaveCSS('cursor', 'none');
   }
   await surface.evaluate(element => { element.style.cursor = 'ew-resize'; });
   await expect(surface).not.toHaveAttribute('data-gcq-cursor');
@@ -93,6 +96,35 @@ test('touch input never hides the system cursor or shows the animated hourglass'
   await surface.evaluate(element => { element.setAttribute('aria-busy', 'true'); });
   await surface.tap();
   await expect(page.locator('.gcq-cursor-hourglass')).toBeHidden();
-  await expect(page.locator('html')).not.toHaveClass(/gcq-cursor-loading/);
+  await expect(page.locator('html')).not.toHaveClass(/gcq-cursor-overlay/);
   await expect(surface).not.toHaveCSS('cursor', 'none');
+});
+
+test('rapid state transitions retain visible artwork on every frame', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Continuous mouse transitions require a mouse');
+  await page.mouse.move(420, 320);
+  await expect(page.locator('.gcq-cursor-glyph.is-active')).toHaveCSS('opacity', '1');
+  const samples = await page.evaluate(async () => {
+    const surface = document.getElementById('cursor-test-surface');
+    const visual = document.querySelector('.gcq-cursor-visual');
+    const frames = [];
+    for (const state of ['wait', 'pointer', 'text', 'progress', 'grab', 'not-allowed', 'wait', 'progress', 'pointer']) {
+      surface.style.cursor = state;
+      for (let i = 0; i < 4; i++) {
+        await new Promise(requestAnimationFrame);
+        frames.push({
+          visible: !visual.hidden,
+          nativeCursor: getComputedStyle(surface).cursor,
+          opacity: [...visual.children].reduce((sum, glyph) => sum + Number(getComputedStyle(glyph).opacity), 0),
+        });
+      }
+    }
+    return frames;
+  });
+  for (const frame of samples) {
+    expect(frame.visible).toBe(true);
+    expect(frame.nativeCursor).toBe('none');
+    // Incoming and outgoing artwork overlap; rapid changes must never leave a gap.
+    expect(frame.opacity).toBeGreaterThanOrEqual(.95);
+  }
 });

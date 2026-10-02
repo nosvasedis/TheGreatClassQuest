@@ -1,4 +1,4 @@
-/* Native cursor images keep their exact hotspot, including on slow classroom PCs. */
+/* Native artwork remains the fallback for reduced motion and before decoding. */
 @media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) {
     html.gcq-quest-cursor { cursor: var(--gcq-cursor-default); }
     .gcq-quest-cursor [data-gcq-cursor="default"] { cursor: var(--gcq-cursor-default) !important; }
@@ -18,8 +18,7 @@
 }
 
 @media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) and (prefers-reduced-motion: no-preference) {
-    .gcq-quest-cursor.gcq-cursor-loading [data-gcq-cursor="wait"],
-    .gcq-quest-cursor.gcq-cursor-loading [data-gcq-cursor="progress"] { cursor: none !important; }
+    .gcq-quest-cursor.gcq-cursor-overlay [data-gcq-cursor] { cursor: none !important; }
 }
 
 .gcq-cursor-effects {
@@ -30,8 +29,18 @@
     overflow: hidden;
     contain: strict;
 }
-.gcq-cursor-hourglass { position: absolute; top: 0; left: 0; width: 32px; height: 32px; }
-.gcq-cursor-hourglass[hidden] { display: none; }
+.gcq-cursor-visual { position: absolute; top: 0; left: 0; }
+.gcq-cursor-visual[hidden] { display: none; }
+.gcq-cursor-glyph {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    opacity: 0;
+    transform: scale(.96);
+    transition: transform 160ms cubic-bezier(.22, 1, .36, 1);
+}
+.gcq-cursor-glyph.is-active { opacity: 1; transform: scale(1); }
+.gcq-cursor-glyph svg { display: block; }
 .gcq-cursor-hourglass svg {
     display: block;
     transform-origin: center;
@@ -45,6 +54,10 @@
 }
 .gcq-cursor-hourglass .gcq-hourglass-sand-bottom { animation-name: gcq-hourglass-fill; }
 .gcq-cursor-hourglass .gcq-hourglass-stream { animation: gcq-hourglass-stream 2600ms linear infinite; }
+.gcq-cursor-hourglass:not(.is-active) svg,
+.gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-sand-top,
+.gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-sand-bottom,
+.gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-stream { animation-play-state: paused; }
 @keyframes gcq-hourglass-turn {
     0%, 76% { transform: rotate(0deg); }
     94%, 100% { transform: rotate(180deg); }

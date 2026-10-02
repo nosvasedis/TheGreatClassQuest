@@ -26,7 +26,7 @@ export function getQuestCursorAssets() {
     return Object.fromEntries(Object.entries(artwork).map(([mode, [drawing, x, y, fallback]]) => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" id="gcq-quest-cursor" width="32" height="32" viewBox="0 0 32 32"><g stroke="#fff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">${drawing}</g><g stroke="#164e63" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">${drawing}</g></svg>`;
         const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-        return [mode, { url, css: `url("${url}") ${x} ${y}, ${fallback}` }];
+        return [mode, { url, x, y, css: `url("${url}") ${x} ${y}, ${fallback}` }];
     }));
 }
 

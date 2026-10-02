@@ -566,3 +566,42 @@ test('AI Worker gives up on a hung image model and moves to the next one', async
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/stabilityai/stable-diffusion-xl-base-1.0');
 });
+
+test('AI Worker accepts every FLUX result shape instead of discarding a finished picture', async () => {
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 9)]);
+  const b64 = jpeg.toString('base64');
+  const shapes = {
+    'base64 object': () => ({ image: b64 }),
+    'wrapped result': () => ({ result: { image: b64 } }),
+    'data URL': () => ({ image: `data:image/jpeg;base64,${b64}` }),
+    'JSON stream': () => new Response(JSON.stringify({ result: { image: b64 } })).body,
+    'raw byte stream': () => new Response(jpeg).body,
+    'Response object': () => new Response(jpeg),
+    'raw bytes': () => new Uint8Array(jpeg),
+  };
+  for (const [name, make] of Object.entries(shapes)) {
+    const worker = await importIsolatedAiWorker();
+    const calls = [];
+    const response = await serviceImageRequest(worker, { async run(model) { calls.push(model); return make(); } });
+    assert.equal(response.status, 200, name);
+    assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b'], name);
+    assert.equal(response.headers.get('Content-Type'), 'image/jpeg', name);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg, name);
+  }
+});
+
+test('AI Worker treats a JSON error body or non-image bytes as a model failure', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const worker = await importIsolatedAiWorker();
+  const calls = [];
+  const response = await serviceImageRequest(worker, {
+    async run(model) {
+      calls.push(model);
+      if (model.includes('flux')) return new Response(JSON.stringify({ success: false, errors: [{ code: 5006, message: 'bad input' }] })).body;
+      return new Response('not an image at all, just some text').body;
+    },
+  });
+  assert.equal(calls.length, 3);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('X-GCQ-Error-Source'), 'workers-ai-image');
+});

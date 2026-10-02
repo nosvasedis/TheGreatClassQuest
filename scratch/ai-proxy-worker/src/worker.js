@@ -525,7 +525,51 @@ function sniffImageType(bytes) {
   if (bytes[0] === 0x89 && bytes[1] === 0x50) return 'image/png';
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return 'image/jpeg';
   if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57 && bytes[9] === 0x45) return 'image/webp';
-  return 'image/png';
+  return '';
+}
+
+function decodeBase64Image(value) {
+  const base64 = String(value).replace(/^data:image\/[a-z+]+;base64,/i, '').replace(/\s+/g, '');
+  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+}
+
+// Workers AI has returned images as { image: base64 }, { result: { image } }, raw
+// bytes, a ReadableStream, or a Response whose body is either bytes or that JSON.
+// Accept every shape so a runtime change cannot turn a paid, finished picture
+// into a failure.
+async function imageBytesFrom(result, model, depth = 0) {
+  if (depth > 3 || result == null) throw new Error(`${model} returned no image.`);
+  if (typeof result === 'string') return decodeBase64Image(result);
+  const nested = result.image ?? result.result?.image ?? result.images?.[0] ?? result.data?.[0]?.b64_json;
+  if (typeof nested === 'string') return decodeBase64Image(nested);
+  const isBinary = result instanceof ArrayBuffer || ArrayBuffer.isView(result)
+    || result instanceof ReadableStream || result instanceof Response || result instanceof Blob;
+  if (!isBinary) {
+    throw new Error(`${model} returned an unexpected result (${Object.keys(result).slice(0, 8).join(',') || typeof result}).`);
+  }
+  const bytes = new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
+  if (bytes[0] === 0x7b) {
+    // A JSON body: either the base64 wrapper or a Workers AI error object.
+    const text = new TextDecoder().decode(bytes);
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (_) {
+      throw new Error(`${model} returned unreadable JSON.`);
+    }
+    if (parsed?.errors?.length || parsed?.success === false) {
+      throw new Error(`${model} error: ${JSON.stringify(parsed.errors || parsed).slice(0, 200)}`);
+    }
+    return imageBytesFrom(parsed, model, depth + 1);
+  }
+  return bytes;
+}
+
+async function toImage(result, model) {
+  const bytes = await imageBytesFrom(result, model);
+  const contentType = sniffImageType(bytes);
+  if (bytes.length < 32 || !contentType) throw new Error(`${model} returned ${bytes.length} bytes that are not an image.`);
+  return { body: bytes, contentType, model };
 }
 
 // FLUX takes multipart input, has no negative prompt and a fixed 4 steps; sizes must be
@@ -540,14 +584,10 @@ async function runFluxImage(env, { prompt, width, height, seed }) {
   const result = await env.AI.run(IMAGE_MODEL, {
     multipart: { body: encoded.body, contentType: encoded.headers.get('content-type') },
   });
-  const base64 = typeof result?.image === 'string' ? result.image : '';
-  if (!base64) throw new Error('FLUX returned no image.');
-  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
-  if (bytes.length < 32) throw new Error('FLUX returned an empty image.');
-  return { body: bytes, contentType: sniffImageType(bytes), model: IMAGE_MODEL };
+  return toImage(result, IMAGE_MODEL);
 }
 
-// The SDXL betas return a PNG stream (or bytes); read it fully so an empty or
+// The SDXL betas usually return a PNG stream; it is read fully so an empty or
 // failed stream counts as a model failure instead of a broken 200 response.
 async function runSdxlImage(env, model, inputs) {
   const sdxlInputs = {
@@ -559,10 +599,7 @@ async function runSdxlImage(env, model, inputs) {
     height: inputs.height,
   };
   if (Number.isFinite(inputs.seed)) sdxlInputs.seed = inputs.seed;
-  const result = await env.AI.run(model, sdxlInputs);
-  const bytes = new Uint8Array(await new Response(result).arrayBuffer());
-  if (bytes.length < 32) throw new Error(`${model} returned an empty image.`);
-  return { body: bytes, contentType: sniffImageType(bytes), model };
+  return toImage(await env.AI.run(model, sdxlInputs), model);
 }
 
 function withDeadline(promise, timeoutMs, label) {

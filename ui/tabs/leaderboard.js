@@ -31,13 +31,17 @@ import {
 import {
     annotateStandingsChanges,
     buildStandingsSnapshot,
+    playReseal,
     playStandingsChanges,
     playStandingsEntrance,
+    playUnseal,
     readStandingsSnapshot,
     renderStandingsHeraldHtml,
     renderStandingsSectionHtml,
     writeStandingsSnapshot
 } from './heroStandings.js';
+import { getMonthFinaleClassIds } from '../../features/monthFinale.js';
+import { playSound } from '../../audio.js';
 
 const TEAM_QUEST_ANALYTICS_ASSETS = {
     bronze: new URL('../../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
@@ -702,6 +706,35 @@ function bindTeamQuestBoard(board) {
 // (drives the ▲/+N chips), and what was last drawn (drives the motion).
 const _heroVisitBaselines = new Map();
 const _heroLastShown = new Map();
+// Boards the teacher peeked behind on a class's month finale ("day|section").
+// Cleared on every fresh visit, so the seal is back when the tab reopens.
+const _heroPeeked = new Set();
+
+function heroPeekKey(sectionId) {
+    return `${utils.getTodayDateString()}|${sectionId}`;
+}
+
+function bindHeroSealControls(list) {
+    if (list.__hcsSealBound) return;
+    list.__hcsSealBound = true;
+    list.addEventListener('click', (event) => {
+        const unseal = event.target.closest('[data-hcs-unseal]');
+        const reseal = event.target.closest('[data-hcs-reseal]');
+        const sectionEl = (unseal || reseal)?.closest('[data-hcs-section]');
+        if (!sectionEl || !list.contains(sectionEl)) return;
+        // The DOM now differs from the last render: let the next one redraw.
+        list.__hcsHtml = '';
+        if (unseal) {
+            _heroPeeked.add(heroPeekKey(sectionEl.dataset.hcsSection));
+            playSound('star3');
+            playUnseal(sectionEl);
+        } else {
+            _heroPeeked.delete(heroPeekKey(sectionEl.dataset.hcsSection));
+            playSound('click');
+            playReseal(sectionEl, new Date().toLocaleString('en-US', { month: 'long' }));
+        }
+    });
+}
 
 function syncHeroStandingsSwitches() {
     const view = state.get('studentLeaderboardView') === 'league' ? 'league' : 'class';
@@ -730,6 +763,8 @@ function clearHeroStandingsList(list, html) {
 export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
+    bindHeroSealControls(list);
+    if (freshVisit) _heroPeeked.clear();
 
     syncHeroChallengeHalls();
     syncHeroStandingsSwitches();
@@ -999,12 +1034,33 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const starFact = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${n} ${starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${escapeLeaderboardHtml(monthName)}` : `star${n === 1 ? '' : 's'} all-time`}`;
     const heroFact = (n) => `<i class="fas fa-users" aria-hidden="true"></i>${n} hero${n === 1 ? '' : 'es'}`;
 
+    // A class's last lesson of the month: its standings stay sealed so the
+    // Ceremony at the next lesson keeps its surprise (the teacher can peek).
+    const finaleClassIds = getMonthFinaleClassIds(classesInLeague.map((c) => c.id), {
+        allSchoolClasses: state.get('allSchoolClasses') || [],
+        allScheduleOverrides: state.get('allScheduleOverrides') || [],
+        schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
+        classEndDates: state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
+        now
+    });
+    const sealFor = (sectionId, isFinale) => {
+        if (!isFinale) return null;
+        return _heroPeeked.has(heroPeekKey(sectionId)) ? 'open' : 'sealed';
+    };
+
     const sections = [];
     if (view === 'league') {
         // === GLOBAL VIEW === (top 50 across the league)
         const entries = rankGroup(studentsInLeague, { showClass: true }).slice(0, 50);
+        // The whole league board names every class's leaders, so it seals when
+        // one of the teacher's own classes (or, for a teacher with none here,
+        // any class) is in its final lesson of the month.
+        const myFinale = [...finaleClassIds].some((id) => myClassIdSet.has(id));
+        const ownsNoneHere = !classesInLeague.some((c) => myClassIdSet.has(c.id));
+        const leagueSectionId = `league:${league}`;
         sections.push({
-            id: `league:${league}`,
+            id: leagueSectionId,
+            seal: sealFor(leagueSectionId, myFinale || (ownsNoneHere && finaleClassIds.size > 0)),
             title: `${league} League`,
             logo: '',
             facts: [heroFact(studentsInLeague.length), `<i class="fas fa-flag" aria-hidden="true"></i>${classesInLeague.length} class${classesInLeague.length === 1 ? '' : 'es'}`, starFact(sumStars(studentsInLeague))],
@@ -1030,6 +1086,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
                 logo: classData.logo,
                 facts: [heroFact(classData.students.length), starFact(sumStars(classData.students))],
                 mine: myClassIdSet.has(classId),
+                seal: sealFor(classId, finaleClassIds.has(classId)),
                 entries: rankGroup(classData.students, { showClass: false })
             });
         });

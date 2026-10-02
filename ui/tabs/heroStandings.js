@@ -274,7 +274,49 @@ function openRaceHtml(monthName, metric) {
 }
 
 /**
- * section: { id, title, logo, facts: [html], mine, entries }
+ * The curtain drawn over a class's standings on its last lesson of the month,
+ * so the Ceremony at the next lesson keeps its surprise. The small eye lets
+ * the teacher peek on their own.
+ */
+function sealHtml(monthName) {
+    const month = escapeStandingsHtml(monthName);
+    const motes = Array.from({ length: 9 }, (_, i) => `<i style="--m:${i}"></i>`).join('');
+    return `
+        <div class="hcs-seal" data-hcs-seal>
+            <div class="hcs-seal__stage" aria-hidden="true">
+                <span class="hcs-seal__glow"></span>
+                <span class="hcs-seal__motes">${motes}</span>
+            </div>
+            <span class="hcs-seal__curtain hcs-seal__curtain--l" aria-hidden="true"></span>
+            <span class="hcs-seal__curtain hcs-seal__curtain--r" aria-hidden="true"></span>
+            <span class="hcs-seal__valance" aria-hidden="true"></span>
+            <div class="hcs-seal__card" role="status">
+                <span class="hcs-seal__wax" aria-hidden="true">
+                    <span class="hcs-seal__wax-drip"></span>
+                    <i class="fas fa-crown"></i>
+                </span>
+                <span class="hcs-seal__kicker">Final lesson of ${month}</span>
+                <h4 class="hcs-seal__title font-title">The standings are sealed</h4>
+                <p class="hcs-seal__text">Who will wear the crown of ${month}? Every star is counted&hellip; all will be revealed at the <b>Ceremony</b> next lesson!</p>
+                <span class="hcs-seal__hint" aria-hidden="true">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                </span>
+            </div>
+            <button type="button" class="hcs-seal__peek" data-hcs-unseal title="Teacher peek: reveal the standings" aria-label="Reveal the sealed standings">
+                <i class="fas fa-eye" aria-hidden="true"></i>
+            </button>
+        </div>`;
+}
+
+function resealButtonHtml() {
+    return `<button type="button" class="hcs-reseal" data-hcs-reseal title="Seal the standings again until the Ceremony" aria-label="Seal the standings again">
+        <i class="fas fa-eye-slash" aria-hidden="true"></i><span>Seal again</span>
+    </button>`;
+}
+
+/**
+ * section: { id, title, logo, facts: [html], mine, entries, seal }
+ * seal: null, or 'sealed' (curtain drawn) / 'open' (finale day, peeked at)
  * entry: { id, name, rank, score, gold, heroIcon, avatarHtml, avatarLargeHtml,
  *          familiarHtml, guildBadgeHtml, titleBadgeHtml, roleBadgesHtml, pillsHtml,
  *          className, classLogo, showClass, slot, fromSlot, fromScore, gain, climb }
@@ -298,17 +340,20 @@ export function renderStandingsSectionHtml(section, { monthName = '', metric = '
     const logo = section.logo
         ? `<span class="hcs-section__crest" aria-hidden="true"><span class="hcs-section__logo">${section.logo}</span></span>`
         : '<span class="hcs-section__crest hcs-section__crest--league" aria-hidden="true"><i class="fas fa-globe"></i></span>';
+    const sealed = section.seal === 'sealed';
+    const sealClass = sealed ? ' hcs-section--sealed' : (section.seal === 'open' ? ' hcs-section--peeked' : '');
+    const board = `${podium}${rows ? `<ol class="hcs-ranks">${rows}</ol>` : ''}`;
     return `
-        <section class="hcs-section${section.mine ? ' hcs-section--mine' : ''}" data-hcs-section="${escapeStandingsHtml(section.id)}" style="--hcs-d:${delayIndex}">
+        <section class="hcs-section${section.mine ? ' hcs-section--mine' : ''}${sealClass}" data-hcs-section="${escapeStandingsHtml(section.id)}" style="--hcs-d:${delayIndex}">
             <header class="hcs-section__head">
                 ${logo}
                 <div class="hcs-section__copy">
                     <h3 class="hcs-section__name font-title">${escapeStandingsHtml(section.title)}</h3>
                     <div class="hcs-section__facts">${mine}${facts}</div>
                 </div>
+                ${section.seal === 'open' ? resealButtonHtml() : ''}
             </header>
-            ${podium}
-            ${rows ? `<ol class="hcs-ranks">${rows}</ol>` : ''}
+            ${sealed ? `${sealHtml(monthName)}<div class="hcs-section__board" data-hcs-sealed-board hidden>${board}</div>` : board}
         </section>`;
 }
 
@@ -319,6 +364,7 @@ export function renderStandingsHeraldHtml(sections, { byClass = true } = {}) {
     let bestClimb = null;
     const newLeaders = [];
     sections.forEach((section) => {
+        if (section.seal === 'sealed') return;
         section.entries.forEach((e) => {
             if (e.gain > 0) {
                 gainers += 1;
@@ -416,6 +462,7 @@ export function playStandingsChanges(list, sections) {
     list.classList.add('hcs-list--replay');
     const moving = [];
     list.querySelectorAll('[data-hcs-section]').forEach((sectionEl) => {
+        if (sectionEl.classList.contains('hcs-section--sealed')) return;
         const movers = [...sectionEl.querySelectorAll('[data-hcs-mover]')];
         const bySlot = [];
         movers.forEach((m) => { bySlot[Number(m.dataset.hcsSlot)] = m; });
@@ -480,6 +527,7 @@ export function playStandingsChanges(list, sections) {
             const top = section.entries[0];
             if (!top || !(top.score > 0) || !section.previousLeaderId || section.previousLeaderId === top.id) return;
             const sectionEl = [...list.querySelectorAll('[data-hcs-section]')].find((el) => el.dataset.hcsSection === section.id);
+            if (!sectionEl || sectionEl.classList.contains('hcs-section--sealed')) return;
             const fig = sectionEl?.querySelector(`.hcs-spot--gold .hcs-figure[data-hcs-id="${CSS.escape(top.id)}"]`);
             if (fig) {
                 fig.classList.add('hcs-crowned');
@@ -489,4 +537,96 @@ export function playStandingsChanges(list, sections) {
         list.classList.add('hcs-list--settled');
         list.classList.remove('hcs-list--replay', 'hcs-list--counting');
     }, 2500);
+}
+
+// --- The month-finale seal --------------------------------------------------
+
+const UNSEAL_REVEAL_MS = 650;
+const UNSEAL_DONE_MS = 1500;
+const RESEAL_DONE_MS = 1100;
+
+/**
+ * The teacher's peek: the wax seal breaks, the curtains part, and the
+ * standings rise in behind them.
+ */
+export function playUnseal(sectionEl, { onDone } = {}) {
+    const seal = sectionEl?.querySelector('[data-hcs-seal]');
+    const board = sectionEl?.querySelector('[data-hcs-sealed-board]');
+    if (!seal || !board || sectionEl.classList.contains('hcs-section--unsealing')) return;
+
+    const finish = () => {
+        seal.remove();
+        board.hidden = false;
+        sectionEl.classList.remove('hcs-section--sealed', 'hcs-section--unsealing');
+        sectionEl.classList.add('hcs-section--peeked');
+        const head = sectionEl.querySelector('.hcs-section__head');
+        if (head && !head.querySelector('[data-hcs-reseal]')) {
+            head.insertAdjacentHTML('beforeend', resealButtonHtml());
+            head.querySelector('[data-hcs-reseal]')?.classList.add('hcs-reseal--arrive');
+        }
+        onDone?.();
+    };
+
+    if (reducedMotion()) {
+        finish();
+        return;
+    }
+    sectionEl.classList.add('hcs-section--unsealing');
+    seal.querySelector('[data-hcs-unseal]')?.setAttribute('disabled', '');
+    setTimeout(() => {
+        if (!sectionEl.isConnected) return;
+        // The seal lifts off the page and floats over the stage while its
+        // curtains finish parting, so the standings rise in right behind them.
+        seal.style.top = `${seal.offsetTop}px`;
+        seal.style.height = `${seal.offsetHeight}px`;
+        seal.classList.add('hcs-seal--floating');
+        board.hidden = false;
+        sectionEl.classList.add('hcs-section--reveal');
+    }, UNSEAL_REVEAL_MS);
+    setTimeout(() => {
+        if (sectionEl.isConnected) finish();
+    }, UNSEAL_DONE_MS);
+
+}
+
+/** The standings slip away, then the curtains draw shut and a fresh seal stamps down. */
+export function playReseal(sectionEl, monthName, { onDone } = {}) {
+    if (!sectionEl || sectionEl.querySelector('[data-hcs-seal]')) return;
+    const head = sectionEl.querySelector('.hcs-section__head');
+    head?.querySelector('[data-hcs-reseal]')?.remove();
+    // After a peek the board is already wrapped; a board drawn open (peeked
+    // before this render) gets its wrapper now.
+    let board = sectionEl.querySelector(':scope > [data-hcs-sealed-board]');
+    if (!board) {
+        board = document.createElement('div');
+        board.className = 'hcs-section__board';
+        board.setAttribute('data-hcs-sealed-board', '');
+        [...sectionEl.children].filter((el) => el !== head).forEach((el) => board.appendChild(el));
+        sectionEl.appendChild(board);
+    }
+    board.insertAdjacentHTML('beforebegin', sealHtml(monthName));
+    const seal = sectionEl.querySelector('[data-hcs-seal]');
+
+    const close = () => {
+        board.hidden = true;
+        sectionEl.classList.remove('hcs-section--peeked', 'hcs-section--resealing');
+        sectionEl.classList.add('hcs-section--sealed');
+        if (seal) seal.hidden = false;
+    };
+    if (reducedMotion() || !seal) {
+        close();
+        onDone?.();
+        return;
+    }
+    seal.hidden = true;
+    seal.classList.add('hcs-seal--closing');
+    sectionEl.classList.add('hcs-section--resealing');
+    setTimeout(() => {
+        if (!sectionEl.isConnected) return;
+        close();
+        setTimeout(() => {
+            seal.classList.remove('hcs-seal--closing');
+            onDone?.();
+        }, RESEAL_DONE_MS);
+    }, 320);
 }

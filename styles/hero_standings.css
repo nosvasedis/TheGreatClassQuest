@@ -1675,3 +1675,556 @@ body.projector-mode .hcs-row {
         translate: none;
     }
 }
+
+/* ─── Month finale: the sealed standings ──────────────────────────────────────
+   On a class's last lesson of the month its board hides behind a velvet
+   curtain and a wax seal, so the Ceremony next lesson keeps its surprise.
+   A small eye lets the teacher peek; "Seal again" draws the curtain back.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.hcs-section--sealed,
+.hcs-section--unsealing,
+.hcs-section--resealing {
+    position: relative;
+}
+
+.hcs-seal {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    min-height: clamp(19rem, 40vw, 24rem);
+    padding: 3.2rem 1.25rem 2.6rem;
+    overflow: hidden;
+    border-radius: 2rem;
+    background:
+        radial-gradient(ellipse 60% 55% at 50% 45%, rgba(250, 204, 21, 0.2), transparent 70%),
+        radial-gradient(ellipse 120% 95% at 50% 0%, #6d28d9 0%, #4c1d95 46%, #2e1065 100%);
+    box-shadow:
+        0 0 0 2px rgba(251, 191, 36, 0.6),
+        0 0 0 6px rgba(237, 233, 254, 0.8),
+        0 0 0 7px rgba(124, 58, 237, 0.25),
+        0 26px 50px -20px rgba(46, 16, 101, 0.6);
+    transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.hcs-seal[hidden] {
+    display: none;
+}
+
+.hcs-seal__stage {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.hcs-seal__glow {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 30rem;
+    height: 30rem;
+    margin: -15rem 0 0 -15rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(253, 230, 138, 0.42), rgba(253, 230, 138, 0.08) 42%, transparent 66%);
+    animation: hcs-seal-breathe 4.6s ease-in-out infinite;
+}
+
+.hcs-seal__motes i {
+    position: absolute;
+    bottom: -8px;
+    left: calc(var(--m) * 10.5% + 4%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fde68a;
+    box-shadow: 0 0 8px 2px rgba(253, 224, 71, 0.55);
+    opacity: 0;
+    z-index: 2;
+    animation: hcs-mote calc(6.5s + var(--m) * 0.37s) linear infinite;
+    animation-delay: calc(var(--m) * -0.9s);
+}
+
+/* Velvet curtains, drawn shut over the stage */
+.hcs-seal__curtain {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 51%;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent 30%, rgba(0, 0, 0, 0.32)),
+        repeating-linear-gradient(90deg,
+            #4c1d95 0, #6d28d9 1.1rem, #7c3aed 1.6rem, #5b21b6 2.3rem, #3b0764 3.1rem);
+    box-shadow: inset 0 -6px 0 rgba(251, 191, 36, 0.65), inset 0 -9px 0 rgba(120, 53, 15, 0.35);
+}
+
+.hcs-seal__curtain--l {
+    left: 0;
+    border-radius: 2rem 0 0 2rem;
+    transform-origin: left center;
+}
+
+.hcs-seal__curtain--r {
+    right: 0;
+    border-radius: 0 2rem 2rem 0;
+    transform-origin: right center;
+}
+
+/* Where the two curtains meet: a soft seam of light */
+.hcs-seal__curtain--l::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -1px;
+    width: 3px;
+    background: linear-gradient(180deg, transparent, rgba(253, 230, 138, 0.55) 30%, rgba(253, 230, 138, 0.55) 70%, transparent);
+    filter: blur(1.5px);
+    animation: hcs-seal-seam 3.4s ease-in-out infinite;
+}
+
+.hcs-seal__valance {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    height: 28px;
+    background-image: radial-gradient(circle at 21px 0, #8b5cf6 0 18px, #fbbf24 18px 21px, transparent 21.5px);
+    background-size: 42px 28px;
+    background-repeat: repeat-x;
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
+}
+
+.hcs-seal__card {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 27rem;
+    padding: 2.4rem 1.6rem 1.25rem;
+    margin-top: 1.4rem;
+    text-align: center;
+    color: #fef3c7;
+    border-radius: 1.6rem;
+    background: linear-gradient(180deg, rgba(46, 16, 101, 0.78), rgba(30, 9, 66, 0.86));
+    box-shadow:
+        0 0 0 1.5px rgba(251, 191, 36, 0.55),
+        0 0 0 5px rgba(46, 16, 101, 0.35),
+        0 22px 40px -18px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+}
+
+/* The wax seal sits on the card's top edge */
+.hcs-seal__wax {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 4.4rem;
+    height: 4.4rem;
+    margin: -2.4rem 0 0 -2.2rem;
+    border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+    font-size: 1.45rem;
+    color: #fde68a;
+    background: radial-gradient(circle at 35% 30%, #f87171, #dc2626 38%, #991b1b 70%, #7f1d1d);
+    box-shadow:
+        inset 0 0 0 4px rgba(127, 29, 29, 0.55),
+        inset 0 0 0 6px rgba(248, 113, 113, 0.35),
+        0 0 0 3px rgba(185, 28, 28, 0.35),
+        0 10px 18px -6px rgba(0, 0, 0, 0.55),
+        0 0 26px rgba(251, 191, 36, 0.28);
+    animation: hcs-seal-wax-glow 3.2s ease-in-out infinite;
+}
+
+.hcs-seal__wax i {
+    filter: drop-shadow(0 1px 0 rgba(127, 29, 29, 0.9)) drop-shadow(0 0 6px rgba(253, 224, 71, 0.45));
+}
+
+.hcs-seal__wax-drip {
+    position: absolute;
+    bottom: -0.45rem;
+    left: 58%;
+    width: 0.7rem;
+    height: 0.9rem;
+    border-radius: 0 0 50% 50% / 0 0 70% 70%;
+    background: linear-gradient(180deg, #b91c1c, #7f1d1d);
+}
+
+/* The flash when the seal breaks */
+.hcs-seal__wax::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 3px solid rgba(253, 230, 138, 0.9);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hcs-seal__kicker {
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fbbf24;
+}
+
+.hcs-seal__title {
+    margin: 0;
+    font-size: clamp(1.4rem, 3.4vw, 1.95rem);
+    line-height: 1.1;
+    color: #fde68a;
+    text-shadow: 0 2px 0 rgba(76, 29, 149, 0.9), 0 0 18px rgba(251, 191, 36, 0.35);
+}
+
+.hcs-seal__text {
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: rgba(254, 243, 199, 0.86);
+}
+
+.hcs-seal__text b {
+    color: #fde68a;
+}
+
+.hcs-seal__hint {
+    display: flex;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+    font-size: 0.75rem;
+    color: #fbbf24;
+}
+
+.hcs-seal__hint i {
+    animation: hcs-seal-star 1.8s ease-in-out infinite;
+}
+
+.hcs-seal__hint i:nth-child(2) { animation-delay: 0.3s; font-size: 0.95rem; }
+.hcs-seal__hint i:nth-child(3) { animation-delay: 0.6s; }
+
+/* The teacher's peek: small, quiet, in the corner */
+.hcs-seal__peek {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.7rem;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(254, 243, 199, 0.45);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hcs-seal__peek:hover,
+.hcs-seal__peek:focus-visible {
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.7);
+    background: rgba(251, 191, 36, 0.16);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.35);
+    transform: scale(1.1);
+}
+
+.hcs-seal__peek:hover i,
+.hcs-seal__peek:focus-visible i {
+    animation: hcs-seal-blink 1.6s ease-in-out infinite;
+}
+
+.hcs-seal__peek:focus-visible {
+    outline: 2px solid #fde68a;
+    outline-offset: 2px;
+}
+
+.hcs-seal__peek:disabled {
+    pointer-events: none;
+}
+
+/* "Seal again", tucked into the class's name plate after a peek */
+.hcs-reseal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+    margin-left: 0.2rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    border: 1px dashed rgba(124, 58, 237, 0.4);
+    background: rgba(245, 243, 255, 0.8);
+    color: rgba(91, 33, 182, 0.7);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.hcs-reseal:hover,
+.hcs-reseal:focus-visible {
+    color: #5b21b6;
+    border-style: solid;
+    border-color: rgba(124, 58, 237, 0.65);
+    background: #ede9fe;
+    transform: translateY(-1px);
+}
+
+.hcs-reseal:focus-visible {
+    outline: 2px solid #7c3aed;
+    outline-offset: 2px;
+}
+
+.hcs-reseal--arrive {
+    animation: hcs-reseal-arrive 0.5s cubic-bezier(0.22, 1.25, 0.36, 1) both;
+}
+
+/* ─── Unsealing: the seal breaks, the curtains part ─────────────────────── */
+/* (.hcs-section doubled so these win over the entrance animations) */
+
+.hcs-section.hcs-section--unsealing .hcs-seal__wax {
+    animation: hcs-seal-wax-break 0.55s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__wax::after {
+    animation: hcs-seal-flash 0.6s ease-out both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__card {
+    animation: hcs-seal-card-out 0.45s ease-in 0.12s both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__peek {
+    animation: hcs-fade-out 0.2s ease-out both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__curtain--l {
+    animation: hcs-seal-part-l 0.95s cubic-bezier(0.7, 0, 0.2, 1) 0.25s both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__curtain--r {
+    animation: hcs-seal-part-r 0.95s cubic-bezier(0.7, 0, 0.2, 1) 0.25s both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__valance {
+    animation: hcs-seal-valance-lift 0.55s cubic-bezier(0.7, 0, 0.2, 1) 0.85s both;
+}
+
+.hcs-section.hcs-section--unsealing .hcs-seal__glow {
+    animation: hcs-seal-burst 0.9s ease-out 0.2s both;
+}
+
+@keyframes hcs-seal-part-l {
+    from { transform: none; }
+    to { transform: translateX(-102%) scaleX(0.55); }
+}
+
+@keyframes hcs-seal-part-r {
+    from { transform: none; }
+    to { transform: translateX(102%) scaleX(0.55); }
+}
+
+@keyframes hcs-seal-valance-lift {
+    to { transform: translateY(-110%); }
+}
+
+/* Floating over the stage while the standings rise in behind the curtains */
+.hcs-seal.hcs-seal--floating {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    min-height: 0;
+    pointer-events: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+.hcs-seal--floating .hcs-seal__stage {
+    animation: hcs-fade-out 0.4s ease-out both;
+}
+
+.hcs-section--reveal .hcs-section__board .hcs-podium {
+    animation: hcs-fade-in 0.6s ease-out both;
+}
+
+.hcs-section--reveal .hcs-section__board .hcs-pedestal {
+    animation: hcs-ped-grow 0.7s cubic-bezier(0.22, 1.2, 0.36, 1) 0.1s both;
+}
+
+.hcs-section--reveal .hcs-section__board .hcs-figure {
+    animation: hcs-figure-rise 0.8s cubic-bezier(0.22, 1.25, 0.36, 1) 0.32s both;
+}
+
+.hcs-section--reveal .hcs-section__board .hcs-spot--gold .hcs-figure { animation-delay: 0.55s; }
+.hcs-section--reveal .hcs-section__board .hcs-spot--bronze .hcs-figure { animation-delay: 0.2s; }
+
+.hcs-section--reveal .hcs-section__board .hcs-row {
+    animation: hcs-rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.45s + min(var(--hcs-i, 0), 16) * 45ms);
+}
+
+.hcs-section--reveal .hcs-section__board .hcs-row__power-fill {
+    animation: hcs-power-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.7s + min(var(--hcs-i, 0), 16) * 45ms);
+}
+
+.hcs-section--reveal .hcs-section__board .hcs-open-race {
+    animation: hcs-rise-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+/* ─── Sealing: the curtains sweep shut, the wax stamps down ──────────────── */
+
+.hcs-section--resealing .hcs-section__board {
+    animation: hcs-seal-board-out 0.32s ease-in both;
+}
+
+.hcs-list--enter .hcs-seal__curtain--l,
+.hcs-seal--closing .hcs-seal__curtain--l {
+    animation: hcs-seal-close-l 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hcs-list--enter .hcs-seal__curtain--r,
+.hcs-seal--closing .hcs-seal__curtain--r {
+    animation: hcs-seal-close-r 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hcs-list--enter .hcs-seal__valance,
+.hcs-seal--closing .hcs-seal__valance {
+    animation: hcs-seal-valance-drop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hcs-list--enter .hcs-seal__card,
+.hcs-seal--closing .hcs-seal__card {
+    animation: hcs-rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+
+.hcs-list--enter .hcs-seal__wax,
+.hcs-seal--closing .hcs-seal__wax {
+    animation: hcs-seal-stamp 0.6s cubic-bezier(0.34, 1.5, 0.64, 1) 0.8s both, hcs-seal-wax-glow 3.2s ease-in-out 1.4s infinite;
+}
+
+.hcs-list--enter .hcs-seal__peek,
+.hcs-seal--closing .hcs-seal__peek {
+    animation: hcs-fade-in 0.4s ease-out 1.2s both;
+}
+
+@keyframes hcs-seal-breathe {
+    0%, 100% { opacity: 0.75; transform: scale(0.94); }
+    50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes hcs-seal-seam {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+@keyframes hcs-seal-wax-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.12) drop-shadow(0 0 10px rgba(251, 191, 36, 0.45)); }
+}
+
+@keyframes hcs-seal-star {
+    0%, 100% { opacity: 0.35; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes hcs-seal-blink {
+    0%, 88%, 100% { transform: scaleY(1); }
+    94% { transform: scaleY(0.1); }
+}
+
+@keyframes hcs-seal-wax-break {
+    0% { transform: scale(1) rotate(0); opacity: 1; }
+    35% { transform: scale(1.22) rotate(-8deg); opacity: 1; filter: brightness(1.4); }
+    100% { transform: scale(0.2) rotate(40deg); opacity: 0; }
+}
+
+@keyframes hcs-seal-flash {
+    0% { opacity: 0; transform: scale(0.6); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: scale(3.2); }
+}
+
+@keyframes hcs-seal-card-out {
+    to { opacity: 0; transform: translateY(-14px) scale(0.94); }
+}
+
+@keyframes hcs-seal-burst {
+    0% { opacity: 1; transform: scale(1); }
+    40% { opacity: 1; transform: scale(1.6); filter: brightness(1.6); }
+    100% { opacity: 0; transform: scale(2.2); }
+}
+
+@keyframes hcs-fade-out {
+    to { opacity: 0; }
+}
+
+@keyframes hcs-seal-board-out {
+    to { opacity: 0; transform: translateY(10px) scale(0.98); }
+}
+
+@keyframes hcs-seal-close-l {
+    from { transform: translateX(-102%) scaleX(0.55); }
+    to { transform: none; }
+}
+
+@keyframes hcs-seal-close-r {
+    from { transform: translateX(102%) scaleX(0.55); }
+    to { transform: none; }
+}
+
+@keyframes hcs-seal-valance-drop {
+    from { transform: translateY(-110%); }
+    to { transform: none; }
+}
+
+@keyframes hcs-seal-stamp {
+    0% { opacity: 0; transform: scale(2.4) rotate(-18deg); }
+    60% { opacity: 1; }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes hcs-reseal-arrive {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 639px) {
+    .hcs-seal {
+        padding: 2.8rem 0.85rem 3.1rem;
+        border-radius: 1.5rem;
+    }
+    .hcs-seal__curtain--l { border-radius: 1.5rem 0 0 1.5rem; }
+    .hcs-seal__curtain--r { border-radius: 0 1.5rem 1.5rem 0; }
+    .hcs-seal__card { padding: 2.2rem 1.1rem 1.1rem; }
+    .hcs-seal__text { font-size: 0.82rem; }
+    .hcs-seal__peek { right: 0.55rem; bottom: 0.55rem; }
+    .hcs-reseal span { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hcs-seal *,
+    .hcs-seal__curtain--l::after,
+    .hcs-seal__wax::after,
+    .hcs-reseal--arrive,
+    .hcs-section--reveal *,
+    .hcs-section--resealing * {
+        animation: none !important;
+        transition: none !important;
+    }
+    .hcs-seal__motes {
+        display: none;
+    }
+}

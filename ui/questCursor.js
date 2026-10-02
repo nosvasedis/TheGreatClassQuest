@@ -49,6 +49,9 @@ export function setupQuestCursor() {
     let dragging = false;
     let activeGlyph = null;
     const fades = new Map();
+    const morphs = new Map();
+    let settleTimer = 0;
+    let pointerHit = null;
     const allowed = () => assetsReady && enabled && fine.matches && !contrast.matches && pointer !== 'touch';
     function clearTarget() {
         target?.removeAttribute('data-gcq-cursor');
@@ -57,24 +60,45 @@ export function setupQuestCursor() {
     function showVisual(state) {
         const next = state && glyphs.get(state);
         if (!next) {
+            clearTimeout(settleTimer);
             visual.hidden = true;
             root.classList.remove('gcq-cursor-overlay');
             for (const fade of fades.values()) fade.cancel();
             fades.clear();
+            for (const morph of morphs.values()) morph.cancel();
+            morphs.clear();
             activeGlyph?.classList.remove('is-active');
             activeGlyph = null;
             return;
         }
         visual.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`;
+        const busy = state === 'wait' || state === 'progress';
+        if (next === activeGlyph) {
+            if (busy) {
+                visual.hidden = false;
+                root.classList.add('gcq-cursor-overlay');
+            }
+            return;
+        }
         if (next !== activeGlyph) {
+            clearTimeout(settleTimer);
             const layers = [...visual.children];
-            const weights = layers.map(glyph => Number(getComputedStyle(glyph).opacity));
+            const styles = layers.map(glyph => getComputedStyle(glyph));
+            const weights = styles.map(style => Number(style.opacity));
+            const transforms = styles.map(style => style.transform);
             const total = weights.reduce((sum, weight) => sum + weight, 0);
-            const animate = !visual.hidden && total > 0;
+            const animate = Boolean(activeGlyph) && total > 0;
+            // Measure only on state changes. Movement never reads layout or styles.
+            visual.hidden = false;
+            const sourceBounds = activeGlyph?.querySelector('svg').getBBox();
+            const nextBounds = next.querySelector('svg').getBBox();
+            const ratio = (value, base) => Math.max(.72, Math.min(1.35, value / (base || value || 1)));
             const startTime = document.timeline.currentTime;
             for (const [index, glyph] of layers.entries()) {
                 fades.get(glyph)?.cancel();
                 fades.delete(glyph);
+                morphs.get(glyph)?.cancel();
+                morphs.delete(glyph);
                 const opacity = glyph === next ? 1 : 0;
                 glyph.classList.toggle('is-active', glyph === next);
                 if (!animate) continue;
@@ -82,18 +106,45 @@ export function setupQuestCursor() {
                 // weights sum to one throughout, even when states change rapidly.
                 const from = weights[index] / total;
                 if (from === opacity) continue;
-                const fade = glyph.animate([{ opacity: from }, { opacity }], { duration: 160, easing: 'linear' });
+                const fade = glyph.animate([{ opacity: from }, { opacity }], { duration: 220, easing: 'linear' });
                 fade.startTime = startTime;
                 fades.set(glyph, fade);
                 fade.onfinish = () => { if (fades.get(glyph) === fade) fades.delete(glyph); };
+                const bounds = glyph.querySelector('svg').getBBox();
+                const incoming = glyph === next;
+                const initial = incoming && from === 0
+                    ? `scale(${ratio(sourceBounds.width, bounds.width)}, ${ratio(sourceBounds.height, bounds.height)})`
+                    : transforms[index];
+                const destination = incoming ? 'scale(1)' : `scale(${ratio(nextBounds.width, bounds.width)}, ${ratio(nextBounds.height, bounds.height)})`;
+                const keyframes = incoming
+                    ? [{ transform: initial }, { transform: 'scale(1.015, 1.01)', offset: .78 }, { transform: destination }]
+                    : [{ transform: initial }, { transform: destination }];
+                const morph = glyph.animate(keyframes, { duration: 220, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+                morph.startTime = startTime;
+                morphs.set(glyph, morph);
+                morph.onfinish = () => { if (morphs.get(glyph) === morph) morphs.delete(glyph); };
             }
             activeGlyph = next;
+            if (!busy) {
+                if (!animate) {
+                    visual.hidden = true;
+                    root.classList.remove('gcq-cursor-overlay');
+                    return;
+                }
+                // At rest the OS draws the identical artwork with its exact hotspot.
+                settleTimer = setTimeout(() => {
+                    if (activeGlyph !== next) return;
+                    visual.hidden = true;
+                    root.classList.remove('gcq-cursor-overlay');
+                }, 240);
+            }
         }
         visual.hidden = false;
         root.classList.add('gcq-cursor-overlay');
     }
     function hide() {
         pointer = null;
+        pointerHit = null;
         clearTarget();
         showVisual(null);
         effects.querySelectorAll('.gcq-cursor-twinkle').forEach(el => el.remove());
@@ -103,14 +154,15 @@ export function setupQuestCursor() {
         if (toggle) toggle.checked = enabled;
         root.classList.toggle('gcq-quest-cursor', allowed());
     }
-    function refresh() {
+    function refresh(hit = null) {
         if (frame) cancelAnimationFrame(frame);
         frame = 0;
         syncPreference();
         clearTarget();
         if (!allowed() || !pointer || document.hidden) { showVisual(null); return; }
-        const el = document.elementFromPoint(pointer.x, pointer.y);
+        const el = hit instanceof Element ? hit : document.elementFromPoint(pointer.x, pointer.y);
         if (!el || el.closest('.gcq-cursor-effects')) { showVisual(null); return; }
+        pointerHit = el;
         const style = getComputedStyle(el);
         const control = el.closest(INTERACTIVE);
         const field = el.closest(TEXT_INPUT);
@@ -130,7 +182,7 @@ export function setupQuestCursor() {
         showVisual(!motion.matches && mode !== 'native' ? mode : null);
     }
     function schedule() {
-        if (!frame) frame = requestAnimationFrame(refresh);
+        if (!frame) frame = requestAnimationFrame(() => refresh());
     }
     function move(event) {
         if (event.pointerType !== 'mouse') {
@@ -145,8 +197,7 @@ export function setupQuestCursor() {
         // Position tracks the mouse directly; only changes of shape are eased.
         if (!visual.hidden) visual.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`;
         // Update semantics synchronously when crossing a control boundary.
-        if (event.type === 'pointerover') refresh();
-        else schedule();
+        if (event.type === 'pointerover' || !pointerHit) refresh(event.target);
     }
     function press(event) {
         move(event);
@@ -193,11 +244,21 @@ export function setupQuestCursor() {
     for (const query of [fine, contrast, motion]) on(query, 'change', environmentChanged);
     // Only observed UI changes trigger refreshes while the mouse is stationary.
     const observer = new MutationObserver(records => {
-        if (!pointer) { syncPreference(); return; }
-        if (records.some(record => !effects.contains(record.target) &&
-            !(record.type === 'attributes' && record.attributeName === 'style' && target && !record.target.contains(target)))) schedule();
+        if (!pointer || pointer === 'touch') { syncPreference(); return; }
+        const changes = records.filter(record => !effects.contains(record.target) &&
+            !(record.type === 'attributes' && record.oldValue === record.target.getAttribute(record.attributeName)));
+        if (!changes.length) return;
+        const affected = target || pointerHit;
+        if (changes.some(record => affected &&
+            (record.target.contains(affected) || affected.contains(record.target)))) {
+            schedule();
+            return;
+        }
+        // Background animations must not recalculate the cursor. Recheck only
+        // when an unrelated UI change actually puts another element under it.
+        if (document.elementFromPoint(pointer.x, pointer.y) !== pointerHit) schedule();
     });
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true,
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeOldValue: true,
         attributeFilter: ['class', 'style', 'disabled', 'readonly', 'aria-disabled', 'aria-busy', 'hidden', 'inert', 'data-cursor-busy'] });
 
     // Do not replace the OS cursor until the browser has decoded the artwork.
@@ -216,8 +277,11 @@ export function setupQuestCursor() {
         observer.disconnect();
         cancelAnimationFrame(frame);
         clearTarget();
+        clearTimeout(settleTimer);
         for (const fade of fades.values()) fade.cancel();
         fades.clear();
+        for (const morph of morphs.values()) morph.cancel();
+        morphs.clear();
         effects.remove();
         root.classList.remove('gcq-quest-cursor', 'gcq-cursor-overlay');
         for (const key of Object.keys(assets)) root.style.removeProperty(`--gcq-cursor-${key}`);

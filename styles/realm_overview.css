@@ -1,0 +1,892 @@
+/* ============================================================
+   REALM OVERVIEW — Team Quest map → tap a realm crest
+   Markup: ui/modals/realmOverview.js (inside #milestone-details-modal,
+   data-modal-mode="zone-overview").
+   ============================================================ */
+
+/* —— Modal shell overrides —— */
+#milestone-details-modal[data-modal-mode="zone-overview"] {
+    background: rgba(20, 14, 8, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 52rem;
+    max-height: min(92vh, 960px);
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 1.75rem;
+    background: #fbf5e8;
+    box-shadow:
+        0 0 0 1px rgba(92, 64, 36, 0.28),
+        0 0 0 6px rgba(255, 248, 232, 0.16),
+        0 32px 70px rgba(20, 12, 4, 0.45);
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-header {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 6;
+    margin: 0;
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(28, 18, 8, 0.38);
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn:hover {
+    background: rgba(28, 18, 8, 0.6);
+    transform: rotate(90deg);
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    text-align: left;
+}
+
+/* —— Realm palette —— */
+.ro {
+    --ro-accent: 22, 163, 74;
+    --ro-deep: 20, 83, 45;
+    --ro-soft: #e8f7ec;
+    --ro-ink: #3b2a1a;
+    --ro-muted: #7a6550;
+    --ro-paper: #fffaf0;
+    --ro-line: rgba(92, 64, 36, 0.16);
+    --ro-badge: url('../assets/team-quest-map/living-atlas/badge-bronze.webp');
+    --ro-art-pos: 3% 96%;
+    --ro-title-font: 'Fredoka One', 'Fredoka', sans-serif;
+    color: var(--ro-ink);
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    background:
+        radial-gradient(120% 60% at 50% 0%, rgba(var(--ro-accent), 0.08), transparent 60%),
+        linear-gradient(180deg, #fffaf0 0%, #f8efdc 100%);
+    min-height: 100%;
+}
+
+.ro--silver {
+    --ro-accent: 2, 132, 199;
+    --ro-deep: 12, 54, 92;
+    --ro-soft: #e3f3fc;
+    --ro-badge: url('../assets/team-quest-map/living-atlas/badge-silver.webp');
+    --ro-art-pos: 33% 6%;
+    --ro-title-font: 'Lora', Georgia, serif;
+}
+
+.ro--gold {
+    --ro-accent: 217, 119, 6;
+    --ro-deep: 110, 52, 10;
+    --ro-soft: #fdf1d6;
+    --ro-badge: url('../assets/team-quest-map/living-atlas/badge-gold.webp');
+    --ro-art-pos: 66% 48%;
+    --ro-title-font: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+}
+
+.ro--crystal {
+    --ro-accent: 147, 51, 234;
+    --ro-deep: 59, 21, 110;
+    --ro-soft: #f3e8ff;
+    --ro-badge: url('../assets/team-quest-map/living-atlas/badge-crystal.webp');
+    --ro-art-pos: 94% 8%;
+    --ro-title-font: 'Uncial Antiqua', 'Cinzel Decorative', Georgia, serif;
+}
+
+/* —— Hero —— */
+.ro-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    color: #fff;
+    min-height: 13.5rem;
+}
+
+.ro-hero__art {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-image: url('../assets/team-quest-map/living-atlas/map-background-v2.webp');
+    background-size: 300% auto;
+    background-position: var(--ro-art-pos);
+    background-repeat: no-repeat;
+    background-color: rgb(var(--ro-deep));
+    transform: scale(1.04);
+    animation: ro-art-drift 22s ease-in-out infinite alternate;
+}
+
+.ro-hero__veil {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(90deg, rgba(var(--ro-deep), 0.94) 0%, rgba(var(--ro-deep), 0.78) 42%, rgba(var(--ro-deep), 0.2) 100%),
+        linear-gradient(0deg, rgba(var(--ro-deep), 0.55) 0%, transparent 45%);
+}
+
+.ro-hero__inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.75rem 4rem 1.6rem 1.6rem;
+}
+
+.ro-hero__crest {
+    display: block;
+    width: 7.25rem;
+    height: 7.25rem;
+    background: var(--ro-badge) center / contain no-repeat;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+    animation: ro-crest-float 4.5s ease-in-out infinite;
+}
+
+.ro-hero__copy {
+    min-width: 0;
+}
+
+.ro-hero__eyebrow {
+    margin: 0 0 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.ro-hero__title {
+    margin: 0;
+    font-family: var(--ro-title-font);
+    font-size: clamp(1.7rem, 4.2vw, 2.5rem);
+    font-weight: 400;
+    line-height: 1.08;
+    text-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+}
+
+.ro--silver .ro-hero__title { font-style: italic; font-weight: 700; }
+.ro--gold .ro-hero__title { font-size: clamp(1.45rem, 3.6vw, 2.15rem); }
+
+.ro-hero__lore {
+    margin: 0.5rem 0 0;
+    max-width: 30rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.ro-hero__range {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.8rem 0 0;
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 0.74rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Census ring: how many parties have reached this realm */
+.ro-census {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    width: 5.6rem;
+    align-self: end;
+}
+
+.ro-census svg {
+    width: 5.2rem;
+    height: 5.2rem;
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+
+.ro-census__track {
+    fill: rgba(0, 0, 0, 0.25);
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 6;
+}
+
+.ro-census__fill {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ro-census__value {
+    position: absolute;
+    top: 2.6rem;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    white-space: nowrap;
+}
+
+.ro-census__value strong { font-size: 1.45rem; font-weight: 400; }
+.ro-census__value small { font-size: 0.85rem; opacity: 0.75; }
+
+.ro-census__label {
+    margin-top: 0.2rem;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+/* —— Realm trail (switch realms without closing) —— */
+.ro-trail {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    margin: -1.35rem 1.25rem 0;
+    padding: 0.55rem;
+    border-radius: 1.25rem;
+    background: var(--ro-paper);
+    border: 1px solid var(--ro-line);
+    box-shadow: 0 10px 26px rgba(60, 40, 20, 0.14);
+}
+
+.ro-trail__step {
+    position: relative;
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+    border-radius: 0.95rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ro-muted);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ro-trail__step:hover {
+    background: rgba(92, 64, 36, 0.06);
+    color: var(--ro-ink);
+}
+
+.ro-trail__step:focus-visible {
+    outline: 3px solid rgba(var(--ro-accent), 0.55);
+    outline-offset: 2px;
+}
+
+.ro-trail__step.is-active {
+    background: var(--ro-soft);
+    border-color: rgba(var(--ro-accent), 0.35);
+    color: rgb(var(--ro-deep));
+    box-shadow: 0 4px 12px rgba(var(--ro-accent), 0.18);
+}
+
+.ro-trail__crest {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: center / contain no-repeat;
+    filter: saturate(0.55) brightness(0.98);
+    opacity: 0.8;
+    transition: filter 0.2s ease, opacity 0.2s ease, transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.ro-trail__step:hover .ro-trail__crest,
+.ro-trail__step.is-active .ro-trail__crest {
+    filter: none;
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+.ro-trail__step--bronze .ro-trail__crest { background-image: url('../assets/team-quest-map/living-atlas/badge-bronze.webp'); }
+.ro-trail__step--silver .ro-trail__crest { background-image: url('../assets/team-quest-map/living-atlas/badge-silver.webp'); }
+.ro-trail__step--gold .ro-trail__crest { background-image: url('../assets/team-quest-map/living-atlas/badge-gold.webp'); }
+.ro-trail__step--crystal .ro-trail__crest { background-image: url('../assets/team-quest-map/living-atlas/badge-crystal.webp'); }
+
+.ro-trail__text {
+    display: grid;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.ro-trail__text small {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.ro-trail__text span {
+    overflow: hidden;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ro-trail__count {
+    position: absolute;
+    top: 0.05rem;
+    left: 2.15rem;
+    display: grid;
+    place-items: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    background: var(--ro-ink);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    box-shadow: 0 0 0 2px var(--ro-paper);
+}
+
+.ro-trail__step.is-active .ro-trail__count {
+    background: rgb(var(--ro-accent));
+}
+
+.ro-trail__link {
+    flex: 1 1 0.75rem;
+    min-width: 0.5rem;
+    height: 0;
+    margin: 0 0.15rem;
+    border-top: 2px dashed rgba(92, 64, 36, 0.25);
+}
+
+/* —— Stat tiles —— */
+.ro-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 1.1rem 1.25rem 0.25rem;
+}
+
+.ro-stat {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.65rem;
+    align-items: center;
+    padding: 0.7rem 0.85rem;
+    border-radius: 1rem;
+    border: 1px solid var(--ro-line);
+    background: var(--ro-paper);
+}
+
+.ro-stat i {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.ro-stat strong {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.ro-stat span {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ro-muted);
+}
+
+.ro-stat--here { background: var(--ro-soft); border-color: rgba(var(--ro-accent), 0.3); }
+.ro-stat--here i { background: rgb(var(--ro-accent)); color: #fff; }
+.ro-stat--here strong { color: rgb(var(--ro-deep)); }
+.ro-stat--road i { background: rgba(92, 64, 36, 0.1); color: var(--ro-muted); }
+.ro-stat--beyond i { background: #dcfce7; color: #15803d; }
+
+/* —— Party list —— */
+.ro-parties {
+    padding: 0.5rem 1.25rem 0.25rem;
+}
+
+.ro-group {
+    margin-top: 1rem;
+}
+
+.ro-group__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.6rem 0.2rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ro-muted);
+}
+
+.ro-group--here .ro-group__title { color: rgb(var(--ro-deep)); }
+.ro-group--beyond .ro-group__title { color: #15803d; }
+
+.ro-group__title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--ro-line);
+}
+
+.ro-group__count {
+    display: grid;
+    place-items: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: rgba(92, 64, 36, 0.1);
+    font-size: 0.68rem;
+    letter-spacing: 0;
+}
+
+.ro-group--here .ro-group__count { background: rgb(var(--ro-accent)); color: #fff; }
+
+.ro-group__list {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ro-party {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "rank seal body status";
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 1rem 0.8rem 0.8rem;
+    border-radius: 1.1rem;
+    border: 1px solid var(--ro-line);
+    background: var(--ro-paper);
+    box-shadow: 0 2px 6px rgba(60, 40, 20, 0.05);
+    animation: ro-row-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ro-party:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(60, 40, 20, 0.1);
+}
+
+.ro-group__list .ro-party:nth-child(2) { animation-delay: 40ms; }
+.ro-group__list .ro-party:nth-child(3) { animation-delay: 80ms; }
+.ro-group__list .ro-party:nth-child(4) { animation-delay: 120ms; }
+.ro-group__list .ro-party:nth-child(5) { animation-delay: 160ms; }
+.ro-group__list .ro-party:nth-child(n + 6) { animation-delay: 200ms; }
+
+.ro-party--here {
+    border-color: rgba(var(--ro-accent), 0.32);
+    background: linear-gradient(100deg, var(--ro-soft) 0%, var(--ro-paper) 70%);
+}
+
+.ro-party--here::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0.9rem;
+    bottom: 0.9rem;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: rgb(var(--ro-accent));
+}
+
+.ro-party--beyond {
+    background: linear-gradient(100deg, #f0fbf3 0%, var(--ro-paper) 70%);
+}
+
+.ro-party.is-mine {
+    box-shadow: 0 0 0 2px rgba(var(--ro-accent), 0.55), 0 8px 20px rgba(var(--ro-accent), 0.16);
+}
+
+.ro-party__rank {
+    grid-area: rank;
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    background: rgba(92, 64, 36, 0.08);
+    color: var(--ro-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.ro-party__rank--1 { background: linear-gradient(145deg, #fde68a, #d97706); color: #fff; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35); }
+.ro-party__rank--2 { background: linear-gradient(145deg, #e5e7eb, #94a3b8); color: #fff; }
+.ro-party__rank--3 { background: linear-gradient(145deg, #fed7aa, #b45309); color: #fff; }
+
+.ro-party__seal {
+    grid-area: seal;
+    display: grid;
+    place-items: center;
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: 50%;
+    font-size: 1.7rem;
+    line-height: 1;
+    background:
+        radial-gradient(circle at 35% 30%, #fff 0%, var(--ro-soft) 70%);
+    box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 5px rgba(var(--ro-accent), 0.35),
+        0 6px 14px rgba(60, 40, 20, 0.14);
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.ro-party:hover .ro-party__seal {
+    transform: rotate(-6deg) scale(1.06);
+}
+
+.ro-party__body {
+    grid-area: body;
+    min-width: 0;
+}
+
+.ro-party__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin-bottom: 0.45rem;
+}
+
+.ro-party__name {
+    min-width: 0;
+    overflow: hidden;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.08rem;
+    font-weight: 400;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--ro-ink);
+}
+
+.ro-party__mine,
+.ro-party__level {
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ro-party__mine {
+    background: rgb(var(--ro-accent));
+    color: #fff;
+}
+
+.ro-party__level {
+    background: rgba(92, 64, 36, 0.08);
+    color: var(--ro-muted);
+}
+
+/* Route bar: whole quest road, with this realm's stretch marked */
+.ro-route {
+    position: relative;
+    display: block;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: rgba(92, 64, 36, 0.1);
+    box-shadow: inset 0 1px 2px rgba(60, 40, 20, 0.12);
+}
+
+.ro-route__realm {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    border-radius: 999px;
+    background: rgba(var(--ro-accent), 0.1);
+    border: 1px dashed rgba(var(--ro-deep), 0.45);
+    pointer-events: none;
+}
+
+.ro-route__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(var(--ro-accent), 0.55), rgb(var(--ro-accent)));
+    transform-origin: left center;
+    animation: ro-fill-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ro-route__stop {
+    z-index: 1;
+    position: absolute;
+    top: 50%;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: rgba(92, 64, 36, 0.35);
+    transform: translate(-50%, -50%);
+}
+
+.ro-route__stop.is-reached {
+    background: #fff;
+}
+
+.ro-route__marker {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: rgb(var(--ro-accent));
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(var(--ro-deep), 0.45);
+    transform: translate(-50%, -50%);
+}
+
+.ro-party__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin-top: 0.45rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ro-muted);
+}
+
+.ro-party__meta .fa-star { color: #f59e0b; }
+
+.ro-party__bonus { color: #4f46e5; }
+
+.ro-party__pct {
+    margin-left: auto;
+    font-weight: 700;
+    color: rgb(var(--ro-deep));
+}
+
+.ro-party__status {
+    grid-area: status;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12.75rem;
+    gap: 0.4rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+    background: rgba(92, 64, 36, 0.08);
+    color: var(--ro-muted);
+}
+
+.ro-party--here .ro-party__status {
+    background: rgb(var(--ro-accent));
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(var(--ro-accent), 0.3);
+}
+
+.ro-party--beyond .ro-party__status {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+/* —— Empty state & footer —— */
+.ro-empty {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    margin: 1.25rem 0 0.5rem;
+    padding: 2rem 1rem;
+    border-radius: 1.25rem;
+    border: 2px dashed var(--ro-line);
+    color: var(--ro-muted);
+    text-align: center;
+}
+
+.ro-empty__icon { font-size: 2.4rem; }
+.ro-empty p { margin: 0; font-weight: 600; }
+
+.ro-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin: 1.25rem 1.25rem 1.4rem;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    background: rgba(92, 64, 36, 0.06);
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--ro-muted);
+}
+
+.ro-foot i { color: rgb(var(--ro-accent)); }
+
+.ro-foot em {
+    flex-basis: 100%;
+    font-family: 'Caveat', cursive;
+    font-size: 1.15rem;
+    font-style: normal;
+    font-weight: 600;
+    color: rgb(var(--ro-deep));
+}
+
+/* —— Motion —— */
+@keyframes ro-crest-float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-0.3rem) rotate(2deg); }
+}
+
+@keyframes ro-art-drift {
+    from { transform: scale(1.04) translateX(0); }
+    to { transform: scale(1.1) translateX(-1.5%); }
+}
+
+@keyframes ro-row-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes ro-fill-in {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+/* —— Small screens —— */
+@media (max-width: 640px) {
+    #milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-panel {
+        border-radius: 1.35rem;
+        max-height: 94vh;
+    }
+
+    .ro-hero__inner {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.9rem;
+        padding: 1.4rem 1.1rem 2.1rem;
+    }
+
+    .ro-hero__crest {
+        width: 4.6rem;
+        height: 4.6rem;
+        align-self: start;
+    }
+
+    .ro-hero__copy { padding-right: 2.4rem; }
+    .ro-hero__lore { font-size: 0.84rem; }
+
+    .ro-census {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: auto;
+        justify-self: start;
+    }
+
+    .ro-census svg { width: 2.6rem; height: 2.6rem; }
+
+    .ro-census__value {
+        position: static;
+        transform: none;
+    }
+
+    .ro-census__value strong { font-size: 1.15rem; }
+
+    .ro-census__label { margin: 0; }
+
+    .ro-trail {
+        margin: -1.2rem 0.75rem 0;
+        padding: 0.4rem;
+    }
+
+    .ro-trail__step {
+        flex-direction: column;
+        gap: 0.2rem;
+        padding: 0.35rem 0.25rem;
+        text-align: center;
+    }
+
+    .ro-trail__text small { display: none; }
+    .ro-trail__text span { font-size: 0.66rem; white-space: normal; }
+    .ro-trail__count { left: calc(50% + 0.75rem); }
+    .ro-trail__link { margin: 0 0 1.2rem; }
+
+    .ro-stats {
+        gap: 0.45rem;
+        padding: 0.9rem 0.75rem 0.25rem;
+    }
+
+    .ro-stat {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        row-gap: 0.25rem;
+        padding: 0.6rem 0.4rem;
+        text-align: center;
+    }
+
+    .ro-stat i { grid-row: auto; width: 1.9rem; height: 1.9rem; }
+
+    .ro-parties { padding: 0.25rem 0.75rem; }
+
+    .ro-party {
+        grid-template-columns: auto auto minmax(0, 1fr);
+        grid-template-areas:
+            "rank seal body"
+            "status status status";
+        gap: 0.6rem 0.65rem;
+        padding: 0.75rem;
+    }
+
+    .ro-party__seal { width: 2.7rem; height: 2.7rem; font-size: 1.4rem; }
+    .ro-party__status { width: auto; justify-self: start; margin-left: 2.3rem; padding: 0.35rem 0.7rem; }
+
+    .ro-foot { margin: 1rem 0.75rem 1.1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ro-hero__art,
+    .ro-hero__crest,
+    .ro-party,
+    .ro-route__fill { animation: none !important; }
+
+    .ro-party:hover,
+    .ro-party:hover .ro-party__seal,
+    #milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn:hover { transform: none; }
+}

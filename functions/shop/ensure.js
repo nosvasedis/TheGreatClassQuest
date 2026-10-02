@@ -119,7 +119,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     for (let attempt = 0; attempt < 4; attempt += 1) {
       try {
         const prompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
-        return await ai.shopAiImage(prompt, negativePrompt);
+        // Shop icons are shown small; 512 is one FLUX tile instead of four.
+        return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512 });
       } catch (error) {
         lastError = error;
         await sleep(Math.min(2500 * (attempt + 1), 20000));

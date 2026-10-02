@@ -329,4 +329,6 @@ export function composeForgeImagePrompt(recipe, subject) {
 }
 
 /** Square output: SDXL is trained at 1024px and loses detail when asked for 512. */
-export const FORGE_IMAGE_OPTIONS = Object.freeze({ width: 1024, height: 1024, num_steps: 20, guidance: 7 });
+// Portraits are saved at 256x256, so 512 keeps full detail at a quarter of the
+// Workers AI cost of 1024 (FLUX bills per 512x512 tile).
+export const FORGE_IMAGE_OPTIONS = Object.freeze({ width: 512, height: 512, num_steps: 20, guidance: 7 });

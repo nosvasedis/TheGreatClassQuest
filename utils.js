@@ -129,11 +129,12 @@ let activeWeatherLocation = { ...DEFAULT_WEATHER_LOCATION };
 
 export function normalizeWeatherLocation(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    const latitude = Number(raw.latitude);
-    const longitude = Number(raw.longitude);
+    const latitude = raw.latitude == null || raw.latitude === '' ? NaN : Number(raw.latitude);
+    const longitude = raw.longitude == null || raw.longitude === '' ? NaN : Number(raw.longitude);
     const name = typeof raw.name === 'string' ? raw.name.trim() : '';
 
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !name) {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !name
+        || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
         return null;
     }
 
@@ -157,8 +158,12 @@ export function getActiveWeatherLocation() {
 }
 
 export function setWeatherCoordinates(location) {
+    const previousKey = getWeatherCacheKey('location', activeWeatherLocation);
     const normalized = normalizeWeatherLocation(location);
     activeWeatherLocation = normalized ? normalized : { ...DEFAULT_WEATHER_LOCATION };
+    if (previousKey !== getWeatherCacheKey('location', activeWeatherLocation) && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gcq:weather-location'));
+    }
     return getActiveWeatherLocation();
 }
 

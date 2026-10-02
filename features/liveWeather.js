@@ -1,118 +1,125 @@
 /**
- * Live weather for the whole app (free Open-Meteo, no key).
+ * Live weather for the whole app (Open-Meteo Best Match + MET Norway fallback).
  *
  * One cached reading drives the header band, the Award sky, the Home card,
  * the phone header and the Projector Sky Window. The app refreshes it every
- * 20 minutes while visible, so the sky outside the window and the sky in the
+ * 15 minutes while visible, so the sky outside the window and the sky in the
  * app stay in step even when nobody opens Home.
  */
 
 import * as utils from '../utils.js';
 import { HEADER_WEATHER_CLASSES, resolveWeatherTheme, headerClassesForTheme } from './weatherTheme.js';
-import { applySkyReading } from './skyWeatherStage.js';
+import { applySkyReading, getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
+import { isValidWeatherReading, readingFromOpenMeteo, readingFromMetNorway, openMeteoUrl, metNorwayUrl } from './weatherProviders.mjs';
+export { pickUpcomingHours, readingFromOpenMeteo } from './weatherProviders.mjs';
 
-const CACHE_PREFIX = 'gcq_weather_data_open_meteo';
-export const LIVE_WEATHER_TTL_MS = 20 * 60 * 1000;
+// Versioned: older entries may contain null-as-zero values or wrong-location data.
+const CACHE_PREFIX = 'gcq_weather_data_v2';
+export const LIVE_WEATHER_TTL_MS = 15 * 60 * 1000;
 const REFRESH_CHECK_MS = 5 * 60 * 1000;
-const HOURS_AHEAD = 4;
+const STALE_LIMIT_MS = 90 * 60 * 1000;
+const MET_CACHE_MS = 60 * 60 * 1000;
+const RETRY_MS = 5 * 60 * 1000;
 
 let refreshTimer = null;
-let inflight = null;
+const inflight = new Map();
+const memoryCache = new Map();
+const retryAfter = new Map();
 
-function cacheKey() {
-    return utils.getWeatherCacheKey(CACHE_PREFIX, utils.getActiveWeatherLocation());
+function cacheKey(location = utils.getActiveWeatherLocation()) {
+    return utils.getWeatherCacheKey(CACHE_PREFIX, location);
 }
 
-/** Last cached reading if it is younger than maxAgeMs (any age with Infinity). */
-export function getCachedWeather(maxAgeMs = LIVE_WEATHER_TTL_MS) {
+export function isWeatherForActiveLocation(reading) {
+    return !!reading?.location && cacheKey(reading.location) === cacheKey();
+}
+
+function cachedWeather(location, maxAgeMs) {
+    const key = cacheKey(location);
+    let data = memoryCache.get(key);
     try {
-        const raw = localStorage.getItem(cacheKey());
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        if (!data?.weather || !Number.isFinite(data.timestamp)) return null;
-        if (Date.now() - data.timestamp > maxAgeMs) return null;
-        return data.weather;
+        const raw = localStorage.getItem(key);
+        if (raw) data = JSON.parse(raw);
     } catch (_) {
         // Storage may be unavailable in hardened/private browser profiles.
-        return null;
+    }
+    if (!data || !Number.isFinite(data.timestamp) || !isValidWeatherReading(data.weather)) return null;
+    const age = Date.now() - data.timestamp;
+    if (age < 0 || !data.weather.location || cacheKey(data.weather.location) !== key) return null;
+    if (!Number.isFinite(data.weather.observedAt) || Date.now() - data.weather.observedAt > STALE_LIMIT_MS) return null;
+    // MET asks clients to respect Expires; retain its forecast until revalidation.
+    if (maxAgeMs === LIVE_WEATHER_TTL_MS && data.weather.provider === 'met-norway'
+        && Date.now() < data.expiresAt) return data.weather;
+    if (age > maxAgeMs) return null;
+    return data.weather;
+}
+
+/** Last validated reading for this school; stale reads are explicitly age-bounded. */
+export function getCachedWeather(maxAgeMs = LIVE_WEATHER_TTL_MS) {
+    return cachedWeather(utils.getActiveWeatherLocation(), maxAgeMs);
+}
+
+async function requestWeather(url, parse) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    try {
+        // Simple CORS request: the browser supplies Origin for MET identification.
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Weather API HTTP ${response.status}`);
+        const weather = parse(await response.json());
+        if (!weather) throw new Error('Weather API returned incomplete or outdated data');
+        return { weather, expiresAt: Date.parse(response.headers?.get('expires') || '') };
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
-/** Next few whole hours from Open-Meteo's hourly arrays (local time strings). */
-export function pickUpcomingHours(hourly, nowMs = Date.now(), count = HOURS_AHEAD) {
-    const times = hourly?.time || [];
-    const out = [];
-    for (let i = 0; i < times.length && out.length < count; i++) {
-        const t = new Date(times[i]).getTime();
-        if (!Number.isFinite(t) || t <= nowMs) continue;
-        out.push({
-            time: times[i],
-            code: hourly.weather_code?.[i],
-            temp: Math.round(Number(hourly.temperature_2m?.[i])),
-            pop: Number.isFinite(Number(hourly.precipitation_probability?.[i])) ? Math.round(Number(hourly.precipitation_probability[i])) : null
-        });
-    }
-    return out;
-}
-
-/** Map Open-Meteo's JSON to the reading the app stores. */
-export function readingFromOpenMeteo(data, nowMs = Date.now()) {
-    const cur = data?.current || {};
-    const hi = Number(data?.daily?.temperature_2m_max?.[0]);
-    const lo = Number(data?.daily?.temperature_2m_min?.[0]);
-    const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
-    return {
-        temp: Math.round(Number(cur.temperature_2m)),
-        code: cur.weather_code,
-        hi: Number.isFinite(hi) ? Math.round(hi) : null,
-        lo: Number.isFinite(lo) ? Math.round(lo) : null,
-        cloudCover: num(cur.cloud_cover),
-        windSpeed: num(cur.wind_speed_10m),
-        windDirection: num(cur.wind_direction_10m),
-        isDay: cur.is_day === undefined ? null : cur.is_day === 1,
-        hours: pickUpcomingHours(data?.hourly, nowMs)
-    };
-}
-
-/** Fetch (or reuse) the live reading. Returns null when offline or blocked. */
+/** Fetch one reading per location. Optional weather must never break the app. */
 export async function fetchLiveWeather({ maxAgeMs = LIVE_WEATHER_TTL_MS } = {}) {
-    const cached = getCachedWeather(maxAgeMs);
-    // Readings saved before the sky revamp have no cloud cover; refresh them once.
-    if (cached && cached.cloudCover !== undefined) return cached;
-    if (inflight) return inflight;
-
     const location = utils.getActiveWeatherLocation();
-    const url = 'https://api.open-meteo.com/v1/forecast'
-        + `?latitude=${location.latitude}&longitude=${location.longitude}`
-        + '&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,is_day'
-        + '&hourly=temperature_2m,weather_code,precipitation_probability'
-        + '&daily=temperature_2m_max,temperature_2m_min'
-        + '&forecast_days=2&timezone=auto';
+    const key = cacheKey(location);
+    const cached = cachedWeather(location, maxAgeMs);
+    if (cached) return cached;
+    if (inflight.has(key)) return inflight.get(key);
+    if (Date.now() < (retryAfter.get(key) || 0)) return cachedWeather(location, STALE_LIMIT_MS);
 
-    inflight = (async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const task = (async () => {
+        let result;
         try {
-            const response = await fetch(url, { signal: controller.signal });
-            if (!response.ok) throw new Error('Weather API failed');
-            const weather = readingFromOpenMeteo(await response.json());
+            result = await requestWeather(openMeteoUrl(location), readingFromOpenMeteo);
+        } catch (error) {
+            console.warn('Open-Meteo unavailable; trying MET Norway:', error?.message || error);
             try {
-                localStorage.setItem(cacheKey(), JSON.stringify({ timestamp: Date.now(), weather }));
-            } catch (_) {
-                // Weather is optional; a blocked local cache must not break the app.
+                result = await requestWeather(metNorwayUrl(location), data => readingFromMetNorway(
+                    data, Date.now(), location.timezone === 'auto' ? undefined : location.timezone
+                ));
+            } catch (fallbackError) {
+                console.warn('Live weather unavailable:', fallbackError?.message || fallbackError);
+                retryAfter.set(key, Date.now() + RETRY_MS);
+                return key === cacheKey() ? cachedWeather(location, STALE_LIMIT_MS) : null;
             }
-            return weather;
-        } catch (e) {
-            if (e?.name === 'AbortError') console.warn('Open-Meteo timed out; the sky keeps its last look.');
-            else console.warn('Open-Meteo fetch failed:', e?.message || e);
-            // An older reading still beats a blank sky.
-            return getCachedWeather(6 * 60 * 60 * 1000);
-        } finally {
-            clearTimeout(timeoutId);
-            inflight = null;
         }
+        const timestamp = Date.now();
+        const weather = { ...result.weather, location };
+        const expiresAt = Number.isFinite(result.expiresAt) ? result.expiresAt : timestamp + MET_CACHE_MS;
+        const entry = { timestamp, weather, expiresAt };
+        memoryCache.set(key, entry);
+        if (memoryCache.size > 8) memoryCache.delete(memoryCache.keys().next().value);
+        retryAfter.delete(key);
+        try {
+            // Always write under the captured location, even if the school changed.
+            localStorage.setItem(key, JSON.stringify(entry));
+        } catch (_) {
+            // A blocked cache must not break the app or trigger repeated requests.
+        }
+        return key === cacheKey() ? weather : null;
     })();
-    return inflight;
+    inflight.set(key, task);
+    try {
+        return await task;
+    } finally {
+        inflight.delete(key);
+    }
 }
 
 /**
@@ -120,8 +127,12 @@ export async function fetchLiveWeather({ maxAgeMs = LIVE_WEATHER_TTL_MS } = {}) 
  * key off them), the Award sky mirror, and the sky weather scene.
  */
 export function applyLiveSky(reading) {
+    if (reading?.location && !isWeatherForActiveLocation(reading)) return getSkyScene();
+    // An outage can keep this school's artwork, but must not reuse another school.
+    const previous = getLastSkyReading();
+    reading = reading || (isWeatherForActiveLocation(previous) ? previous : null);
     const sun = { now: Date.now(), ...utils.getSolarTimes() };
-    const scene = applySkyReading(reading, sun);
+    const scene = applySkyReading(reading, sun, { reset: !reading });
     const header = document.querySelector('#award-header-atmosphere header') || document.querySelector('header');
     if (header) {
         header.classList.remove(...HEADER_WEATHER_CLASSES);
@@ -139,13 +150,16 @@ export function applyLiveSky(reading) {
 async function refreshNow() {
     if (typeof document !== 'undefined' && document.hidden) return;
     const reading = await fetchLiveWeather();
-    if (reading) applyLiveSky(reading);
+    const previous = getLastSkyReading();
+    if (reading || (previous && !isWeatherForActiveLocation(previous))) applyLiveSky(reading);
 }
 
 /** Keep the sky live while the app is open. Idempotent. */
 export function startLiveSky() {
     if (refreshTimer || typeof window === 'undefined') return;
     refreshTimer = setInterval(refreshNow, REFRESH_CHECK_MS);
+    window.addEventListener('gcq:weather-location', refreshNow);
+    void refreshNow();
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) refreshNow();
     });

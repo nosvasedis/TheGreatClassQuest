@@ -232,7 +232,13 @@ export function setupQuestCursor() {
     on(document, 'change', preference);
     on(root, 'pointerleave', hide);
     on(window, 'blur', hide);
-    on(window, 'resize', () => { prepareNativeResolution(); schedule(); }, { passive: true });
+    on(window, 'resize', () => {
+        // Resize/zoom invalidates cached client coordinates; keep the OS cursor
+        // until the next pointer event supplies its actual position.
+        hide();
+        prepareNativeResolution();
+        schedule();
+    }, { passive: true });
     on(document, 'visibilitychange', environmentChanged);
     on(document, 'dragstart', () => { dragging = true; clearTarget(); showVisual(null); });
     on(document, 'dragend', () => { dragging = false; schedule(); });

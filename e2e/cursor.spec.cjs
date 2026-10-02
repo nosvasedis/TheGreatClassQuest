@@ -281,6 +281,9 @@ test('idle artwork is opaque and native images match regular and high-DPI displa
       document.body.append(surface);
     });
     await check(retina, 2);
+    await retina.setViewportSize({ width: 1000, height: 700 });
+    await expect(retina.locator('.gcq-cursor-visual')).toBeHidden();
+    await check(retina, 2);
   } finally {
     await context.close();
   }

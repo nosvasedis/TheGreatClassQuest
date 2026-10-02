@@ -913,7 +913,7 @@ export const BOOK_ATLAS = [
     "publisher": "National Geographic Learning",
     "kind": "coursebook",
     "defaultLeagues": [
-      "E"
+      "D"
     ],
     "prevBookId": "close-up-b1",
     "nextBookId": null,
@@ -4229,7 +4229,7 @@ export const BOOK_ATLAS = [
     "publisher": "Super Course",
     "kind": "grammar",
     "defaultLeagues": [
-      "Lower"
+      "D"
     ],
     "prevBookId": null,
     "nextBookId": null,

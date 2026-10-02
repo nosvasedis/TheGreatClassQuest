@@ -73,7 +73,7 @@ const closeup = [
         titles: ['Perfect for the job', 'Delicious!', 'It’s natural', 'That’s the fashion', 'Where we live', 'Go for it!', 'Have a great trip!', 'My own time', 'Digital world', 'Show time!', 'Life lessons', 'Body and mind'],
         themes: ['jobs and personality', 'food and cooking', 'nature and the environment', 'clothes and shopping', 'homes and household objects', 'sports', 'travel and holidays', 'free time', 'computers and technology', 'film and television', 'education', 'health and the body'],
         grammar: ['present simple/continuous; stative verbs; countable/uncountable nouns; quantifiers', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; articles', 'relative clauses; clauses with time expressions', 'will; going to; future plans and predictions', 'zero, first and second conditional; unless', 'question tags; subject/object questions; past perfect simple/continuous', 'modals and semi-modals', 'passive voice; passive with modals; by/with', 'reported statements, questions and requests', 'causative; gerunds and infinitives', 'adjectives/adverbs; so/such; comparison'] },
-    { ref: 'b1plus', id: 'close-up-b1-plus', level: 'B1+', league: 'E',
+    { ref: 'b1plus', id: 'close-up-b1-plus', level: 'B1+', league: 'D',
         titles: ['Your world', 'Mysterious world', 'Fit as a fiddle', 'Technological wonders', 'Going places', 'Living history', 'Wild world', 'Media matters', 'Making a living', 'See the world', 'Crime time', 'You are what you wear'],
         themes: ['feelings and people', 'mysteries', 'health and fitness', 'technology', 'ambition and success', 'history', 'natural disasters', 'the media', 'work', 'holidays and travel', 'crime', 'fashion and shopping'],
         grammar: ['present simple/continuous; articles', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; quantifiers', 'will/going to; future continuous/perfect', 'modals, semi-modals and perfect modals', 'past perfect simple/continuous; question tags; pronouns', 'gerunds/infinitives; comparison; too/enough/so/such', 'passive voice including gerunds, infinitives and modals', 'reported statements/questions/commands/requests; reporting verbs', 'zero, first, second, third and mixed conditionals', 'defining/non-defining/reduced relative clauses', 'causative; inversion'] }
@@ -153,7 +153,7 @@ for (const level of ['b1', 'b2']) {
         units.push({ n: +m[1], title: m[2], theme: m[2], grammar: m[2], vocabulary: m[4], pageRange: [+m[3], +m[5]] });
     }
     if (units.length !== (level === 'b1' ? 20 : 36)) throw Error('Incomplete Grammalysis ' + level + ': ' + units.length);
-    const item = book('grammalysis-' + level, 'Grammalysis ' + level.toUpperCase(), 'grammar', [level === 'b1' ? 'D' : 'Lower'],
+    const item = book('grammalysis-' + level, 'Grammalysis ' + level.toUpperCase(), 'grammar', ['D'],
         ['grammalysis ' + level, 'grammalysis ' + (level === 'b1' ? '1' : '2'), 'grammalysis for all ' + level],
         { kind: 'publisher-contents', file: 'grammalysis-' + level + '-sample.pdf' }, { publisher: 'Super Course' });
     item.units = units.map(u => ({ ...u, pages: { grammar: u.pageRange } }));

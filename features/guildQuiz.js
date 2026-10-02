@@ -1269,7 +1269,7 @@ export function getQuestionsForLevel(questLevel) {
     if (level === 'Junior B') return POOL_JUNIOR_B;
     if (level === 'A') return POOL_LEVEL_A;
     if (level === 'B') return POOL_LEVEL_B;
-    if (['C', 'D', 'E', 'Lower', 'Proficiency'].includes(level)) return POOL_LEVEL_CD;
+    if (['C', 'D'].includes(level)) return POOL_LEVEL_CD;
     return POOL_LEVEL_A;
 }
 

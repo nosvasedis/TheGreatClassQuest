@@ -6,8 +6,7 @@
  *   early  = Nursery, Pre-Junior        (pre-A1, mostly oral)
  *   junior = Junior A, Junior B          (pre-A1 → A1)
  *   mid    = A, B                        (A1 → A2)
- *   upper  = C, D, E                     (A2 → B1+)
- *   exam   = Lower, Proficiency          (B2 / C2 exam classes)
+ *   upper  = C, D                        (A2 → B1)
  */
 
 const LEAGUE_BANDS = Object.freeze({
@@ -18,10 +17,7 @@ const LEAGUE_BANDS = Object.freeze({
     'A': 'mid',
     'B': 'mid',
     'C': 'upper',
-    'D': 'upper',
-    'E': 'upper',
-    'Lower': 'exam',
-    'Proficiency': 'exam'
+    'D': 'upper'
 });
 
 export function getLeagueBand(league) {
@@ -33,8 +29,7 @@ export const SENTENCE_STARTERS = Object.freeze({
     early: ['I see a…', 'It is…', 'The cat…', 'Look! A…', 'I like…', 'It can…', 'Hello,…', 'The big…'],
     junior: ['One day,…', 'Suddenly,…', 'Then the…', 'The little…', 'Look! There is…', 'At night,…', 'She can…', 'He has got…', 'They are happy because…'],
     mid: ['Once upon a time,…', 'Suddenly,…', 'After that,…', 'While they were…', 'The next morning,…', 'Luckily,…', 'Unfortunately,…', 'In the end,…', 'Everyone was surprised when…'],
-    upper: ['Without warning,…', 'Meanwhile,…', 'Although they were scared,…', 'By the time they arrived,…', 'If only they had…', 'Just as the sun set,…', 'Little did they know that…', 'Despite the storm,…', 'It was the first time that…'],
-    exam: ['No sooner had they…', 'Not until the lights went out did…', 'Had they known,…', 'Little did anyone suspect that…', 'Were it not for…', 'Only when…', 'What nobody expected was…', 'Hardly had the door closed when…', 'It was not until dawn that…']
+    upper: ['Without warning,…', 'Meanwhile,…', 'Although they were scared,…', 'By the time they arrived,…', 'If only they had…', 'Just as the sun set,…', 'Little did they know that…', 'Despite the storm,…', 'It was the first time that…']
 });
 
 // ─── Story Weavers: structure hints (one pattern per line, per league) ──────
@@ -77,21 +72,6 @@ export const STRUCTURE_HINTS = Object.freeze({
         { label: 'Past perfect', pattern: 'had + past participle', example: 'The ship had already left when they arrived.' },
         { label: '2nd conditional', pattern: 'If + past, … would + verb', example: 'If I had wings, I would fly over the wall.' },
         { label: 'Passive voice', pattern: 'was/were + past participle', example: 'The castle was built by giants.' }
-    ],
-    'E': [
-        { label: '3rd conditional', pattern: 'If + had + p.p., … would have + p.p.', example: 'If they had listened, they would have escaped.' },
-        { label: 'Wish / if only', pattern: 'wish + past / past perfect', example: 'She wished she had brought a lantern.' },
-        { label: 'Reported speech', pattern: 'said (that) + backshift', example: 'The guard said that the gate was locked.' }
-    ],
-    'Lower': [
-        { label: 'Participle clauses', pattern: 'Having + p.p., … / -ing, …', example: 'Having crossed the desert, they rested at last.' },
-        { label: 'Modals of deduction', pattern: 'must / might / can\'t have + p.p.', example: 'Someone must have opened the vault.' },
-        { label: 'Causative', pattern: 'have/get + object + p.p.', example: 'The queen had the map redrawn.' }
-    ],
-    'Proficiency': [
-        { label: 'Inversion', pattern: 'Never / Rarely / Not only + auxiliary + subject', example: 'Never had the valley seemed so silent.' },
-        { label: 'Cleft sentences', pattern: 'It was … that / What … was …', example: 'What frightened them most was the silence.' },
-        { label: 'Mixed conditionals', pattern: 'If + past perfect, … would + verb', example: 'Had she kept the ring, she would be queen today.' }
     ]
 });
 
@@ -133,13 +113,6 @@ export const DIALOGIC_PROMPTS = Object.freeze({
         open: ['Predict the ending. What clues support your idea?', 'Describe the scene for someone who cannot see it.'],
         wh: ['Why do you think the author chose this setting?', 'How has the main character changed?'],
         distancing: ['Would you trust this character? Why or why not?', 'Have you ever had to make a choice like this?']
-    },
-    exam: {
-        completion: ['Rewrite the last line starting with "Never…" or "Hardly…".', 'Use "{word}" in a sentence with a conditional.'],
-        recall: ['What is the turning point so far?', 'Which detail foreshadows the ending?'],
-        open: ['Argue for two different endings. Which is more convincing?', 'What theme is the story exploring?'],
-        wh: ['What is the tone, and which words create it?', 'Why might a reader sympathise with the antagonist?'],
-        distancing: ['How would this story change if it were set today?', 'Which character\'s values are closest to yours?']
     }
 });
 
@@ -163,11 +136,6 @@ export const GRAMMAR_NUGGETS = Object.freeze({
         { title: 'Present perfect', rule: 'have/has + past participle for experience', example: 'I have never seen snow.' },
         { title: 'Used to', rule: 'past habits that stopped', example: 'I used to hate spinach.' },
         { title: 'Zero vs 1st conditional', rule: 'facts vs real future possibility', example: 'If it rains, we will stay in.' }
-    ],
-    exam: [
-        { title: 'Inversion', rule: 'negative adverbial + auxiliary + subject', example: 'Rarely have I seen such courage.' },
-        { title: 'Wish + would', rule: 'annoyance with someone else\'s habit', example: 'I wish you would stop tapping.' },
-        { title: 'Mixed conditional', rule: 'past cause → present result', example: 'If I had studied, I would be ready now.' }
     ]
 });
 
@@ -201,8 +169,7 @@ export const CLASSROOM_LANGUAGE = Object.freeze({
     early: ['Hello, teacher!', 'Thank you!', 'Can I have…, please?', 'My turn!', 'Look!'],
     junior: ['Can you help me, please?', 'How do you say … in English?', 'Can I go to the toilet, please?', 'I don\'t understand.', 'Can you repeat, please?'],
     mid: ['Could you say that again, please?', 'What does … mean?', 'Can I work with…?', 'I think the answer is… because…', 'Sorry, I\'m late.'],
-    upper: ['I\'m not sure, but I think…', 'Could you explain that in another way?', 'I agree with … because…', 'Can I add something?', 'How do you spell…?'],
-    exam: ['Would you mind clarifying…?', 'To build on what … said,…', 'I see your point, but…', 'Could I just check that I\'ve understood?', 'What would be a more formal way to say…?']
+    upper: ['I\'m not sure, but I think…', 'Could you explain that in another way?', 'I agree with … because…', 'Can I add something?', 'How do you spell…?']
 });
 
 // ─── Projector: think–pair–share questions ───────────────────────────────────
@@ -210,8 +177,7 @@ export const THINK_PAIR_SHARE = Object.freeze({
     early: ['What is your favourite colour?', 'Which animal can jump?', 'What do you eat for breakfast?'],
     junior: ['What is your favourite animal? Why?', 'What can you do after school?', 'Which is better: summer or winter?'],
     mid: ['What would you take to a desert island?', 'What makes a good friend?', 'Which superpower would you choose? Why?'],
-    upper: ['Should homework be optional? Give two reasons.', 'What invention changed the world the most?', 'Is it better to live in a city or a village?'],
-    exam: ['Does technology make us more or less creative?', 'Should voting be compulsory?', 'Is failure necessary for success?']
+    upper: ['Should homework be optional? Give two reasons.', 'What invention changed the world the most?', 'Is it better to live in a city or a village?']
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -265,7 +231,7 @@ export function getGrammarNugget(league, random = Math.random) {
 export function getMinimalPair(league, random = Math.random) {
     const band = getLeagueBand(league);
     if (band === 'early') return null; // sound games stay oral and teacher-led for the youngest
-    const table = MINIMAL_PAIRS[band === 'exam' ? 'upper' : band] || MINIMAL_PAIRS.mid;
+    const table = MINIMAL_PAIRS[band] || MINIMAL_PAIRS.mid;
     return pickOne(table, random);
 }
 

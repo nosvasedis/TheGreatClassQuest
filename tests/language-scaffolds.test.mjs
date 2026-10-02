@@ -13,11 +13,11 @@ import {
     STRUCTURE_HINTS
 } from '../features/languageScaffolds.mjs';
 
-const LEAGUES = ['Nursery', 'Pre-Junior', 'Junior A', 'Junior B', 'A', 'B', 'C', 'D', 'E', 'Lower', 'Proficiency'];
+const LEAGUES = ['Nursery', 'Pre-Junior', 'Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
 
 test('every Quest League maps to a band and has structure hints', () => {
     for (const league of LEAGUES) {
-        assert.ok(['early', 'junior', 'mid', 'upper', 'exam'].includes(getLeagueBand(league)), league);
+        assert.ok(['early', 'junior', 'mid', 'upper'].includes(getLeagueBand(league)), league);
         assert.ok(STRUCTURE_HINTS[league]?.length >= 2, `${league} has hints`);
         assert.ok(getSentenceStarters(league).length >= 6, `${league} has starters`);
         for (const hint of getStructureHints(league)) {
@@ -38,7 +38,7 @@ test('dialogic prompts come in three kinds and fill the Word of the Day', () => 
 
 test('projector language banks answer for each band', () => {
     assert.equal(getMinimalPair('Nursery'), null, 'youngest classes get no minimal-pair card');
-    for (const league of ['Junior B', 'A', 'D', 'Lower']) {
+    for (const league of ['Junior B', 'A', 'C', 'D']) {
         assert.ok(getMinimalPair(league)?.a);
     }
     for (const league of LEAGUES) {

@@ -6,8 +6,7 @@ const TEXT = {
     early: ['I try a little word.', 'I show a new word.', 'I draw my idea.', 'I listen to a story.', 'I get ready with a friend.', 'I help with kind hands.'],
     junior: ['I try an English sentence.', 'I use three new words.', 'I write a little sentence.', 'I share one thing from a story.', 'I bring what I need.', 'I help someone take a turn.'],
     mid: ['I share an idea in English.', 'I use five lesson words in context.', 'I improve one piece of writing.', 'I explain an idea I read or heard.', 'I practise a little between lessons.', 'I help our group listen to everyone.'],
-    upper: ['I explain my opinion and give a reason.', 'I use new vocabulary in a short response.', 'I revise my writing after feedback.', 'I support an interpretation with evidence.', 'I use a practice strategy consistently.', 'I invite another perspective into our discussion.'],
-    exam: ['I develop a spoken response with reasons and examples.', 'I use precise vocabulary in a response.', 'I revise a response against a clear criterion.', 'I explain how evidence supports an inference.', 'I reflect on and adapt my practice strategy.', 'I help our group build on different perspectives.']
+    upper: ['I explain my opinion and give a reason.', 'I use new vocabulary in a short response.', 'I revise my writing after feedback.', 'I support an interpretation with evidence.', 'I use a practice strategy consistently.', 'I invite another perspective into our discussion.']
 };
 export function oathTemplates(league) {
     const band = getLeagueBand(league);

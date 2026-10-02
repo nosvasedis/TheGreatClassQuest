@@ -162,27 +162,6 @@ export const QUEST_LEAGUE_DEFINITIONS = [
         aiAudience: 'students aged 12-13 (advanced vocabulary, challenging content is welcome)',
         aiVisualStyle: 'high quality illustration for students aged 12-13, sophisticated and nuanced visual style, no text',
         pickerTheme: 'd', pickerMotion: 'scroll', pickerIcon: 'fa-scroll'
-    },
-    {
-        name: 'E', ageGroup: '13-14', ageCategory: 'senior', ageTier: 'senior',
-        curriculumTier: 'e', isYoungLearner: false,
-        aiAudience: 'teen learners aged 13-14 (advanced intermediate language, thoughtful and motivating content)',
-        aiVisualStyle: 'polished contemporary illustration for teen learners aged 13-14, intelligent and engaging, no text',
-        pickerTheme: 'e', pickerMotion: 'rise', pickerIcon: 'fa-mountain-sun'
-    },
-    {
-        name: 'Lower', ageGroup: '14-15', ageCategory: 'senior', ageTier: 'senior',
-        curriculumTier: 'lower', isYoungLearner: false,
-        aiAudience: 'B2-level teen learners aged 14-15 (confident vocabulary, mature themes, exam-ready clarity)',
-        aiVisualStyle: 'editorial-quality illustration for B2 teen learners aged 14-15, mature, focused, visually sophisticated, no text',
-        pickerTheme: 'lower', pickerMotion: 'medal', pickerIcon: 'fa-medal'
-    },
-    {
-        name: 'Proficiency', ageGroup: '15+', ageCategory: 'senior', ageTier: 'senior',
-        curriculumTier: 'proficiency', isYoungLearner: false,
-        aiAudience: 'C1-C2 advanced learners aged 15+ (nuanced vocabulary, sophisticated ideas, precise and inspiring language)',
-        aiVisualStyle: 'refined conceptual illustration for C1-C2 learners aged 15+, nuanced, elegant, intellectually mature, no text',
-        pickerTheme: 'proficiency', pickerMotion: 'crown', pickerIcon: 'fa-crown'
     }
 ];
 

@@ -249,8 +249,8 @@ export const TERMS = [
     names: { en: 'Quest League', el: 'Quest League' },
     aliases: ['quest league', 'junior b', 'difficulty band'],
     def: {
-      en: 'Age / curriculum band (Nursery through Proficiency). Team Quest races happen inside one league. Not a guild. Not a Hero Path class.',
-      el: 'Ζώνη ηλικίας / προγράμματος (Nursery έως Proficiency). Το Team Quest τρέχει μέσα σε μία league. Δεν είναι guild ούτε Hero Path.'
+      en: 'Age / curriculum band (Nursery through D). Team Quest races happen inside one league. Not a guild. Not a Hero Path class.',
+      el: 'Ζώνη ηλικίας / προγράμματος (Nursery έως D). Το Team Quest τρέχει μέσα σε μία league. Δεν είναι guild ούτε Hero Path.'
     },
     confuse: { en: 'Guild, Hero Path / Hero Class, quest difficulty level', el: 'Guild, Hero Path, επίπεδο δυσκολίας χάρτη' }
   },

@@ -9,7 +9,7 @@ test('kindling only happens in a visible, enabled active lesson near its end', (
     assert.equal(shouldKindleCampfire({ remainingMinutes: 25, elapsedMinutes: 35, lessonMinutes: 60, stars: 0 }), false);
 });
 test('each band has a complete offline script; early years have no public names', () => {
-    for (const league of ['Nursery', 'Junior A', 'A', 'D', 'Lower']) {
+    for (const league of ['Nursery', 'Junior A', 'A', 'C', 'D']) {
         const script = buildCampfireScript({ league, date: '2026-09-27', presentIds: ['a','b','c','d','e'], random: () => 0,
             words: ['cat','cat', ...Array.from({ length: 20 }, (_, i) => 'word' + String.fromCharCode(97 + i))] });
         assert.equal(script.words.length, { Nursery: 4, 'Junior A': 5 }[league] || 6);
@@ -47,7 +47,7 @@ test('the question is anchored in the lesson: today’s test first, then the Big
     assert.equal(theme.kind, 'theme'); assert.match(theme.question, /jobs and personality/);
     const words = pickReflectionQuestion({ band: 'junior', words: ['aunt', 'brother', 'dad', 'friend'], seed: 'x' });
     assert.equal(words.kind, 'words'); assert.ok(!/\{|\}/.test(words.question));
-    const generic = pickReflectionQuestion({ band: 'exam', seed: 'x' });
+    const generic = pickReflectionQuestion({ band: 'upper', seed: 'x' });
     assert.equal(generic.kind, 'generic');
 });
 test('recently used questions are skipped until every option has been heard', () => {
@@ -87,7 +87,7 @@ test('the homework set before today is what was practised; today’s assignment 
     assert.match(buildTomorrowSpark({ band: 'mid', nextBigQuestion: 'What is food for?' }), /^Our next big question: “What is food for\?”/);
     assert.match(buildTomorrowSpark({ band: 'early', nextTheme: 'animals' }), /animals/);
     // The projector never shows book codes, units or pages.
-    for (const line of [buildTomorrowSpark({ band: 'upper', nextTheme: 'mysteries' }), buildTomorrowSpark({ band: 'exam' }), buildTomorrowSpark({ band: 'mid', seed: 'x' })])
+    for (const line of [buildTomorrowSpark({ band: 'upper', nextTheme: 'mysteries' }), buildTomorrowSpark({ band: 'upper' }), buildTomorrowSpark({ band: 'mid', seed: 'x' })])
         assert.ok(!/\bunit\b|\bp\.|\bWB\b|\bSB\b/i.test(line), line);
 });
 test('an unconfirmed guess never becomes the class book when carrying a page-only assignment', () => {
@@ -101,7 +101,7 @@ test('Firestore payloads never contain undefined, and the kindling spark count i
     assert.equal(kindlingSparkCount(0), 6); assert.equal(kindlingSparkCount(12), 12); assert.equal(kindlingSparkCount(500), 30);
 });
 test('every band and question pool fills all of its slots', () => {
-    for (const band of ['early', 'junior', 'mid', 'upper', 'exam']) {
+    for (const band of ['early', 'junior', 'mid', 'upper']) {
         for (const extra of [{}, { theme: 'the sea' }, { bigQuestion: 'Why do we celebrate?' }, { words: ['wave', 'shell'] }, { grammar: 'past simple' }, { sources: ['quiz', 'story', 'trial'] }]) {
             const q = pickReflectionQuestion({ band, seed: band, ...extra });
             assert.ok(q.question.length > 5 && !/[{}]/.test(q.question + q.followUp + q.starters.join('')), band + ' ' + JSON.stringify(extra));

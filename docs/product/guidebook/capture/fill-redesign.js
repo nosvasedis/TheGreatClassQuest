@@ -333,7 +333,7 @@ export async function showHeroBoon() {
 
 const FORMER = [
   { id: 'guide-lina', name: 'Lina', enrollmentStatus: 'inactive', leftReason: 'moved', leftSchoolAt: '2026-06-20', formerClassName: 'Junior A Foxes', formerTeacher: { name: 'Mr Karras' }, leftNote: 'Family moved to Thessaloniki.' },
-  { id: 'guide-marios', name: 'Marios', enrollmentStatus: 'inactive', leftReason: 'graduated', leftSchoolAt: '2026-06-12', formerClassName: 'Proficiency', formerTeacher: { name: 'Ms Eleftheriou' } },
+  { id: 'guide-marios', name: 'Marios', enrollmentStatus: 'inactive', leftReason: 'graduated', leftSchoolAt: '2026-06-12', formerClassName: 'D Voyagers', formerTeacher: { name: 'Ms Eleftheriou' } },
   { id: 'guide-zoe', name: 'Zoe', enrollmentStatus: 'inactive', leftReason: 'other', leftSchoolAt: '2026-05-30', formerClassName: 'B Explorers' }
 ];
 

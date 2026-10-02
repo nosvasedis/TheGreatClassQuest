@@ -55,6 +55,7 @@ const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
 /** "NE" style label for the direction the wind blows FROM. */
 export function compassFrom(degrees) {
+    if (degrees == null || degrees === '') return '';
     const d = Number(degrees);
     if (!Number.isFinite(d)) return '';
     return COMPASS[Math.round((((d % 360) + 360) % 360) / 45) % 8];
@@ -65,10 +66,14 @@ function metaChipsHtml(theme, reading) {
     if (theme.hi != null && theme.lo != null) {
         chips.push(`<span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>${theme.hi}°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>${theme.lo}°</span>`);
     }
-    const wind = Number(reading?.windSpeed);
+    const wind = reading?.windSpeed == null ? NaN : Number(reading.windSpeed);
     if (Number.isFinite(wind)) {
         const from = compassFrom(reading.windDirection);
         chips.push(`<span class="weather-chip weather-chip--wind" title="Wind${from ? ` from the ${from}` : ''}"><i class="fas fa-wind"></i>${Math.round(wind)}<small>km/h</small></span>`);
+    }
+    if (reading?.provider === 'open-meteo' || reading?.provider === 'met-norway') {
+        const met = reading.provider === 'met-norway';
+        chips.push(`<span class="weather-chip" title="Weather forecast · ${met ? 'MET Norway / ECMWF' : 'Open-Meteo Best Match'}"><a href="${met ? 'https://www.met.no/en' : 'https://open-meteo.com/'}" target="_blank" rel="noopener noreferrer">${met ? 'MET Norway' : 'Open-Meteo'}</a><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" aria-label="Weather data license: Creative Commons Attribution 4.0" title="CC BY 4.0">ⓘ</a></span>`);
     }
     return chips.join('');
 }
@@ -80,7 +85,12 @@ export function hoursStripHtml(reading, sun = {}) {
     return `<div class="wx-hours" aria-label="Next hours">${hours.map((h) => {
         const t = new Date(h.time);
         const scene = resolveSkyScene({ code: h.code }, { now: t.getTime(), sunrise: sun.sunrise, sunset: sun.sunset });
-        const label = `${String(t.getHours()).padStart(2, '0')}:00`;
+        let label = `${String(t.getHours()).padStart(2, '0')}:00`;
+        if (reading.timezone && reading.timezone !== 'auto') {
+            try {
+                label = new Intl.DateTimeFormat('en-GB', { timeZone: reading.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
+            } catch (_) { /* Invalid stored timezone: keep the usable local label. */ }
+        }
         const pop = Number.isFinite(h.pop) && h.pop >= 20 ? `<span class="wx-hour__pop">${h.pop}%</span>` : '';
         return `<div class="wx-hour" title="${label}: ${Number.isFinite(h.temp) ? `${h.temp}°` : ''}"><span class="wx-hour__t">${label}</span><span class="wx-hour__g">${weatherGlyphSvg(scene, { moonPhase: moonPhase(t.getTime()) })}</span><span class="wx-hour__deg">${Number.isFinite(h.temp) ? `${h.temp}°` : '–'}</span>${pop}</div>`;
     }).join('')}</div>`;

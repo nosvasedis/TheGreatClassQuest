@@ -77,8 +77,8 @@ export function resolveSkyLight(nowTime, sunrise, sunset) {
 
 /** Wind (km/h and the direction it comes FROM) → drift speed factor, drift direction and rain slant. */
 export function windForReading(speedKmh, fromDegrees) {
-    const speed = Number.isFinite(Number(speedKmh)) ? clamp(Number(speedKmh), 0, 120) : 9;
-    const deg = Number(fromDegrees);
+    const speed = speedKmh != null && Number.isFinite(Number(speedKmh)) ? clamp(Number(speedKmh), 0, 120) : 9;
+    const deg = fromDegrees == null ? NaN : Number(fromDegrees);
     // Wind from the east half pushes clouds to the left (west); otherwise to the right.
     const dir = Number.isFinite(deg) && Math.sin((deg * Math.PI) / 180) > 0.2 ? -1 : 1;
     const factor = Math.round(clamp(0.6 + speed / 20, 0.6, 2.6) * 100) / 100;
@@ -111,7 +111,7 @@ export function resolveSkyScene(weather = {}, sun = {}, { lite = false } = {}) {
     const hasReading = weather && weather.code !== undefined && weather.code !== null;
     const { condition, intensity } = hasReading ? conditionForCode(weather.code) : { condition: 'partly', intensity: 'light' };
     const [lo, hi] = COVER_RANGE[condition];
-    const rawCover = Number(weather?.cloudCover);
+    const rawCover = weather?.cloudCover == null ? NaN : Number(weather.cloudCover);
     const cover = Math.round(clamp(Number.isFinite(rawCover) ? rawCover : DEFAULT_COVER[condition], lo, hi));
 
     const now = sun.now ?? Date.now();

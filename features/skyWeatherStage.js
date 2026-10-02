@@ -136,7 +136,8 @@ export function applySkyScene(scene) {
 }
 
 /** Paint a reading (live weather) with the given sun times. */
-export function applySkyReading(reading, sun) {
+export function applySkyReading(reading, sun, { reset = false } = {}) {
+    if (reset) lastReading = null;
     if (reading) lastReading = reading;
     applySkyScene(computeSkyScene(lastReading, sun));
     return currentScene;

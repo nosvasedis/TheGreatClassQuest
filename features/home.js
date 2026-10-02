@@ -41,7 +41,7 @@ import {
     resolveWeatherTheme,
     withNightWeatherText
 } from './weatherTheme.js';
-import { fetchLiveWeather, applyLiveSky } from './liveWeather.js';
+import { fetchLiveWeather, applyLiveSky, isWeatherForActiveLocation } from './liveWeather.js';
 import { getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
 import { getWeatherCardHtml, getClockHandAngles, formatClockTime, refreshWeatherCardInPlace } from './weatherCard.js';
 
@@ -279,7 +279,8 @@ async function executeRenderHome() {
     // Dynamic Weather/Theme. The sky already on screen is the source: opening Home
     // never repaints it (new weather arrives on the live timer and melts in, see
     // features/liveWeather.js). Only the very first visit, before any reading, fetches.
-    const skyReading = getSkyScene() ? getLastSkyReading() : null;
+    const lastReading = getSkyScene() ? getLastSkyReading() : null;
+    const skyReading = isWeatherForActiveLocation(lastReading) ? lastReading : null;
     const weatherData = skyReading || await fetchLiveWeather();
 
     // One shared day/night source, so the greeting and the weather card never disagree.

@@ -431,9 +431,10 @@ async function fetchWithBackoff(url, options, config = {}) {
                 error.status = response.status;
                 error.errorSource = errorSource;
                 error.authReason = response.headers?.get?.('X-GCQ-Auth-Reason') || '';
+                error.aiReason = response.headers?.get?.('X-GCQ-AI-Reason') || '';
                 error.retryable = false;
                 if (error.errorSource) {
-                    error.message = `API failed with status ${response.status} (${error.errorSource}${error.authReason ? `: ${error.authReason}` : ''})`;
+                    error.message = `API failed with status ${response.status} (${error.errorSource}${error.authReason ? `: ${error.authReason}` : ''})${error.aiReason ? ` — ${error.aiReason}` : ''}`;
                 }
                 throw error;
             }

@@ -48,7 +48,10 @@ const rateBuckets = new Map();
 const textReplays = new Map();
 const jwksCaches = new Map();
 // Set when every image model reports the daily Workers AI allocation is spent.
+// Kept short so a plan upgrade or a dashboard reset is picked up within minutes.
+const IMAGE_QUOTA_MEMO_MS = 10 * 60_000;
 let imageQuotaExhaustedUntil = 0;
+let imageQuotaReason = '';
 
 function json(body, status, corsHeaders = {}, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
@@ -86,7 +89,7 @@ function corsFor(request, env) {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Firebase-AppCheck,X-GCQ-Request-ID,X-GCQ-Service-Key',
-    'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider,X-GCQ-Auth-Reason',
+    'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider,X-GCQ-Auth-Reason,X-GCQ-AI-Reason',
     'Access-Control-Max-Age': '600',
     'Cross-Origin-Resource-Policy': 'cross-origin',
     Vary: 'Origin',
@@ -627,20 +630,27 @@ function secondsUntilUtcMidnight(now = Date.now()) {
   return Math.max(60, Math.ceil((next.getTime() - now) / 1000));
 }
 
-function imageUnavailable(corsHeaders, quotaSpent) {
+// Workers AI's own wording (codes and model names only) so the browser console
+// shows the real cause instead of a guess.
+function aiReasonHeader(reason) {
+  const safe = String(reason || '').replace(/[^\x20-\x7e]/g, '').slice(0, 200);
+  return safe ? { 'X-GCQ-AI-Reason': safe } : {};
+}
+
+function imageUnavailable(corsHeaders, quotaSpent, reason = '') {
   if (quotaSpent) {
     return json(
-      { error: "Today's free image allowance is used up. Pictures will work again after the daily reset (midnight UTC)." },
+      { error: "Today's free image allowance is used up. Pictures will work again after the daily reset (midnight UTC).", detail: reason },
       503,
       corsHeaders,
-      { 'X-GCQ-Error-Source': 'workers-ai-quota', 'Retry-After': String(secondsUntilUtcMidnight()) },
+      { 'X-GCQ-Error-Source': 'workers-ai-quota', 'Retry-After': String(secondsUntilUtcMidnight()), ...aiReasonHeader(reason) },
     );
   }
   return json(
-    { error: 'The picture painter is busy right now. Please try again in a minute.' },
+    { error: 'The picture painter is busy right now. Please try again in a minute.', detail: reason },
     503,
     corsHeaders,
-    { 'X-GCQ-Error-Source': 'workers-ai-image', 'Retry-After': '30' },
+    { 'X-GCQ-Error-Source': 'workers-ai-image', 'Retry-After': '30', ...aiReasonHeader(reason) },
   );
 }
 
@@ -651,7 +661,7 @@ async function handleImage(payload, env, corsHeaders) {
   if (!prompt || prompt.length > 5_000 || negativePrompt.length > 2_000) {
     return json({ error: 'Invalid image prompt.' }, 400, corsHeaders);
   }
-  if (Date.now() < imageQuotaExhaustedUntil) return imageUnavailable(corsHeaders, true);
+  if (Date.now() < imageQuotaExhaustedUntil) return imageUnavailable(corsHeaders, true, imageQuotaReason);
   const isSprite = String(payload.mode || '').toLowerCase() === 'sprite' || /sprite sheet|4 frames|single horizontal row/i.test(prompt);
   const inputs = {
     prompt,
@@ -688,9 +698,13 @@ async function handleImage(payload, env, corsHeaders) {
     }
   }
   const quotaSpent = failures.length > 0 && failures.every((failure) => failure.quota);
-  if (quotaSpent) imageQuotaExhaustedUntil = Date.now() + secondsUntilUtcMidnight() * 1000;
+  const reason = failures.map((failure) => `${failure.model.split('/').pop()}: ${failure.reason}`).join(' | ');
+  if (quotaSpent) {
+    imageQuotaExhaustedUntil = Date.now() + IMAGE_QUOTA_MEMO_MS;
+    imageQuotaReason = reason;
+  }
   console.error(JSON.stringify({ event: 'gcq_image_failed', quotaSpent, failures }));
-  return imageUnavailable(corsHeaders, quotaSpent);
+  return imageUnavailable(corsHeaders, quotaSpent, reason);
 }
 
 async function handleSpeech(payload, env, corsHeaders) {

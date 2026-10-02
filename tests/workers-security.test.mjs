@@ -540,6 +540,7 @@ test('AI Worker reports a spent daily allocation as a final workers-ai-quota err
   assert.equal(first.status, 503);
   assert.equal(first.headers.get('X-GCQ-Error-Source'), 'workers-ai-quota');
   assert.ok(Number(first.headers.get('Retry-After')) >= 60);
+  assert.match(first.headers.get('X-GCQ-AI-Reason'), /flux-2-klein-4b: 3036: You have used up your daily free allocation/);
   assert.equal(calls, 3);
   // Later requests in the same isolate fail fast instead of waiting on every model again.
   const second = await serviceImageRequest(worker, ai);

@@ -1323,55 +1323,6 @@
 .tq-waypoint.is-celebrating .tq-waypoint__burst { animation: tq-waypoint-burst 1.6s ease-out; }
 .tq-waypoint.is-celebrating .tq-waypoint__badge { animation: tq-waypoint-cheer 900ms cubic-bezier(0.3, 1.6, 0.5, 1); }
 
-/* The same station crest anchors the expanded region modal. */
-.zone-overview-hero__icon-ring {
-    position: relative;
-    width: 6.2rem;
-    height: 6.2rem;
-    overflow: visible;
-    border: 0;
-    background-color: transparent;
-    background-image: var(--zone-badge-image);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: contain;
-    box-shadow: none;
-    animation: tq-waypoint-breathe 4.2s ease-in-out infinite;
-}
-
-.zone-overview-hero__row {
-    gap: 1.15rem;
-}
-
-.zone-overview-hero__icon {
-    opacity: 0;
-}
-
-.zone-overview-hero__deco--bg {
-    right: -1.5rem;
-    bottom: -2.4rem;
-    width: 10rem;
-    height: 10rem;
-    font-size: 0;
-    background-image: var(--zone-badge-image);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: contain;
-    opacity: 0.13;
-    filter: none;
-    transform: rotate(10deg);
-}
-
-.zone-overview-hero--bronze { --zone-badge-image: url('../assets/team-quest-map/living-atlas/badge-bronze.webp'); }
-.zone-overview-hero--silver { --zone-badge-image: url('../assets/team-quest-map/living-atlas/badge-silver.webp'); }
-.zone-overview-hero--gold { --zone-badge-image: url('../assets/team-quest-map/living-atlas/badge-gold.webp'); }
-.zone-overview-hero--diamond { --zone-badge-image: url('../assets/team-quest-map/living-atlas/badge-crystal.webp'); }
-
-.zone-overview-hero--bronze .zone-overview-hero__title { font-family: 'Fredoka One', 'Fredoka', sans-serif; }
-.zone-overview-hero--silver .zone-overview-hero__title { font-family: 'Lora', Georgia, serif; font-style: italic; }
-.zone-overview-hero--gold .zone-overview-hero__title { font-family: 'Cinzel Decorative', Georgia, serif; font-size: clamp(1.55rem, 3vw, 2.35rem); }
-.zone-overview-hero--diamond .zone-overview-hero__title { font-family: 'Uncial Antiqua', 'Cinzel Decorative', Georgia, serif; }
-
 .tq-living-map.is-motion-paused .tq-living-map__crystal-aura,
 .tq-living-map.is-motion-paused .tq-living-map__mist,
 .tq-living-map.is-motion-paused .tq-token__aura,
@@ -1435,14 +1386,6 @@
     .tq-map-replay { width: 2.3rem; height: 2.3rem; }
 }
 
-@media (max-width: 520px) {
-    .zone-overview-hero__icon-ring {
-        width: 4.8rem;
-        height: 4.8rem;
-    }
-
-}
-
 @media (prefers-reduced-motion: reduce) {
     .tq-living-map__crystal-aura,
     .tq-living-map__mist,
@@ -1459,8 +1402,7 @@
     .tq-route-finish,
     .tq-route-finish__glow,
     .tq-portal-vortex,
-    .tq-ambient,
-    .zone-overview-hero__icon-ring { animation: none !important; }
+    .tq-ambient { animation: none !important; }
 
     .tq-waypoint,
     .tq-waypoint__badge,

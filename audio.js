@@ -369,7 +369,7 @@ export function stopDrumRoll() {
 let heroVoices = null;
 function getHeroVoices() {
     if (heroVoices || !Tone) return heroVoices;
-    const reverb = new Tone.Reverb({ decay: 2.4, wet: 0.26 }).toDestination();
+    const reverb = new Tone.Reverb({ decay: 3.2, wet: 0.3 }).toDestination();
     const bus = new Tone.Gain(1).connect(reverb);
     const drawBus = new Tone.Gain(1).connect(reverb);
     const quillFilter = new Tone.Filter({ type: 'bandpass', frequency: 3200, Q: 1.4 }).connect(bus);
@@ -390,24 +390,58 @@ function getHeroVoices() {
         envelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.2 },
         volume: -11
     }).connect(drawBus);
+    // The held breath before the crown: a dominant string swell and a rising hiss.
+    const tensionFilter = new Tone.Filter({ type: 'lowpass', frequency: 500, Q: 1.2 }).connect(drawBus);
+    const tension = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 3, spread: 22 },
+        envelope: { attack: 1.2, decay: 0.1, sustain: 1, release: 0.25 },
+        volume: -22
+    }).connect(tensionFilter);
+    tension.maxPolyphony = 8;
+    const riserFilter = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.9 }).connect(drawBus);
+    const riser = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 1, decay: 0.05, sustain: 1, release: 0.06 },
+        volume: -24
+    }).connect(riserFilter);
+    const heartbeat = new Tone.MembraneSynth({
+        pitchDecay: 0.06,
+        octaves: 3,
+        envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.2 },
+        volume: -6
+    }).connect(drawBus);
     const timpani = new Tone.MembraneSynth({
         pitchDecay: 0.04,
         octaves: 2.2,
         envelope: { attack: 0.002, decay: 0.45, sustain: 0, release: 0.3 },
         volume: -9
     }).connect(bus);
-    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 1900, Q: 0.8 }).connect(bus);
+    const sub = new Tone.MembraneSynth({
+        pitchDecay: 0.12,
+        octaves: 4,
+        envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 0.6 },
+        volume: -4
+    }).connect(bus);
+    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 2300, Q: 0.8 }).connect(bus);
     const brass = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 2, spread: 14 },
-        envelope: { attack: 0.035, decay: 0.2, sustain: 0.7, release: 0.55 },
+        oscillator: { type: 'fatsawtooth', count: 3, spread: 16 },
+        envelope: { attack: 0.03, decay: 0.2, sustain: 0.75, release: 0.6 },
         volume: -17
     }).connect(brassFilter);
-    brass.maxPolyphony = 14;
-    const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 5200 }).connect(bus);
+    brass.maxPolyphony = 20;
+    // A choir-like "aah" under the fanfare: slow sawtooth pad through a vowel-ish band.
+    const choirFilter = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }).connect(bus);
+    const choir = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 3, spread: 30 },
+        envelope: { attack: 0.35, decay: 0.3, sustain: 0.85, release: 1.6 },
+        volume: -21
+    }).connect(choirFilter);
+    choir.maxPolyphony = 10;
+    const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 4200 }).connect(bus);
     const cymbal = new Tone.NoiseSynth({
         noise: { type: 'white' },
-        envelope: { attack: 0.004, decay: 2.2, sustain: 0, release: 0.4 },
-        volume: -25
+        envelope: { attack: 0.003, decay: 3, sustain: 0, release: 0.5 },
+        volume: -22
     }).connect(cymbalFilter);
     const bell = new Tone.PolySynth(Tone.FMSynth, {
         harmonicity: 3.01,
@@ -416,8 +450,11 @@ function getHeroVoices() {
         modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0, release: 0.4 },
         volume: -19
     }).connect(bus);
-    bell.maxPolyphony = 10;
-    heroVoices = { bus, drawBus, quill, quillFilter, harp, roll, timpani, brass, cymbal, bell };
+    bell.maxPolyphony = 16;
+    heroVoices = {
+        bus, drawBus, quill, quillFilter, harp, roll, tension, tensionFilter, riser, riserFilter,
+        heartbeat, timpani, sub, brass, choir, cymbal, bell
+    };
     return heroVoices;
 }
 
@@ -437,6 +474,11 @@ function fadeHeroBus(busName) {
     gain.cancelScheduledValues(now);
     gain.setValueAtTime(gain.value, now);
     gain.linearRampToValueAtTime(0, now + 0.2);
+    if (busName === 'drawBus') {
+        // Held voices would otherwise sustain under the next draw.
+        heroVoices.tension.releaseAll(now + 0.2);
+        heroVoices.riser.triggerRelease(now + 0.2);
+    }
 }
 
 /** Soft quill scratches while the Chronicler writes the page and picks the hero. */
@@ -471,9 +513,12 @@ const HERO_DRAW_LADDER = ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5', 'A5'
 /**
  * The drawing of lots: a harp note for every hop of the glint (climbing a
  * D-major pentatonic ladder) over a timpani roll that swells to the landing.
+ * Then the hush: the roll thins to a heartbeat while a dominant string chord
+ * and a rising hiss climb until the crown comes down.
  * @param {number[]} hopTimes seconds from now, one per hop; the last is the landing.
+ * @param {number} hushSeconds the held breath between the landing and the crowning.
  */
-export function playHeroDrawSound(hopTimes = []) {
+export function playHeroDrawSound(hopTimes = [], hushSeconds = 0) {
     if (ceremonyMuted || !isAudioReady() || !hopTimes.length) return;
     const v = heroBusUp('drawBus');
     if (!v) return;
@@ -489,7 +534,48 @@ export function playHeroDrawSound(hopTimes = []) {
         v.roll.triggerAttackRelease('D2', 0.08, now + t, 0.12 + 0.6 * k * k);
         step = Math.max(0.05, 0.11 - 0.07 * k);
     }
-    v.harp.triggerAttackRelease(['D5', 'A5', 'D6'], 0.5, now + end, 0.8);
+    // Low strings creep in under the last stretch of the draw.
+    const swellAt = now + end * 0.55;
+    v.tensionFilter.frequency.cancelScheduledValues(now);
+    v.tensionFilter.frequency.setValueAtTime(380, now);
+    v.tensionFilter.frequency.setValueAtTime(380, swellAt);
+    v.tensionFilter.frequency.exponentialRampToValueAtTime(900, now + end);
+    v.tension.triggerAttack(['D2', 'A2', 'D3'], swellAt, 0.5);
+
+    // The landing: one bright strike, then everything holds its breath.
+    v.harp.triggerAttackRelease(['D5', 'A5', 'D6'], 0.5, now + end, 0.85);
+    v.roll.triggerAttackRelease('A1', 0.3, now + end, 0.9);
+    if (hushSeconds <= 0) {
+        v.tension.releaseAll(now + end + 0.3);
+        return;
+    }
+    const hushEnd = now + end + hushSeconds;
+    // Strings move to the dominant (A7) and open up: the chord that begs for the crown.
+    v.tension.releaseAll(now + end + 0.02);
+    v.tension.triggerAttack(['A1', 'E2', 'A2', 'C#3', 'G3'], now + end + 0.04, 0.75);
+    v.tensionFilter.frequency.setValueAtTime(700, now + end + 0.04);
+    v.tensionFilter.frequency.exponentialRampToValueAtTime(3600, hushEnd);
+    v.tension.releaseAll(hushEnd);
+    // Heartbeat: lub-dub, faster and louder as the hush runs out.
+    for (let t = end + 0.3, gap = 0.5; t < end + hushSeconds - 0.2; t += gap) {
+        const k = (t - end) / hushSeconds;
+        v.heartbeat.triggerAttackRelease('D1', 0.2, now + t, 0.55 + 0.4 * k);
+        v.heartbeat.triggerAttackRelease('D1', 0.15, now + t + 0.14, 0.35 + 0.3 * k);
+        gap = Math.max(0.32, gap - 0.06);
+    }
+    // A snare-tight roll in the final stretch, piling into the crown.
+    const rollFrom = end + hushSeconds * 0.45;
+    for (let t = rollFrom; t < end + hushSeconds - 0.03; t += 0.045) {
+        const k = (t - rollFrom) / (hushSeconds * 0.55);
+        v.roll.triggerAttackRelease('A2', 0.05, now + t, 0.15 + 0.8 * k * k);
+    }
+    // Rising hiss (a reversed cymbal) that peaks exactly as the crown lands.
+    v.riser.envelope.attack = Math.max(0.2, hushSeconds - 0.05);
+    v.riserFilter.frequency.cancelScheduledValues(now);
+    v.riserFilter.frequency.setValueAtTime(500, now + end);
+    v.riserFilter.frequency.exponentialRampToValueAtTime(7000, hushEnd);
+    v.riser.triggerAttack(now + end + 0.05, 0.9);
+    v.riser.triggerRelease(hushEnd);
 }
 
 /** Build the reveal voices ahead of time so the reverb is ready when the draw starts. */
@@ -502,20 +588,47 @@ export function stopHeroDrawSound() {
     fadeHeroBus('drawBus');
 }
 
-/** The crowning: timpani boom, herald trumpets, a cymbal wash and a bell sparkle as the crown lands. */
+/**
+ * The crowning: a ground-shaking boom and a blazing D-major chord as the crown
+ * lands, a herald fanfare, a timpani roll into a full final chord, a cymbal
+ * wash, a choir swell and a cascade of bells.
+ */
 export function playHeroCrowningSound() {
     if (ceremonyMuted || !isAudioReady()) return;
     const v = heroBusUp();
     if (!v) return;
     const t0 = Tone.now() + 0.03;
-    v.timpani.triggerAttackRelease('D2', 0.5, t0, 1);
-    v.timpani.triggerAttackRelease('A1', 0.5, t0 + 0.72, 0.9);
-    [[0, 'A3', 0.09], [0.12, 'A3', 0.09], [0.24, 'A3', 0.09], [0.36, 'D4', 0.3]].forEach(([dt, note, dur]) => {
-        v.brass.triggerAttackRelease([note, Tone.Frequency(note).transpose(7).toNote()], dur, t0 + dt, 0.8);
-    });
-    v.brass.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], 1.5, t0 + 0.72, 0.9);
-    v.cymbal.triggerAttackRelease(1.8, t0 + 0.72, 0.9);
-    ['D6', 'F#6', 'A6', 'D7'].forEach((note, i) => v.bell.triggerAttackRelease(note, 0.8, t0 + 0.78 + i * 0.09, 0.6));
+    const fifth = note => Tone.Frequency(note).transpose(7).toNote();
+
+    // Impact.
+    v.sub.triggerAttackRelease('D1', 1.2, t0, 1);
+    v.timpani.triggerAttackRelease('D2', 0.6, t0, 1);
+    v.cymbal.triggerAttackRelease(2.6, t0, 1);
+    v.brass.triggerAttackRelease(['D3', 'A3', 'D4', 'F#4', 'A4'], 0.5, t0, 0.95);
+    v.choir.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], 3.6, t0, 0.7);
+    ['A5', 'D6', 'F#6', 'A6', 'D7'].forEach((note, i) => v.bell.triggerAttackRelease(note, 0.9, t0 + 0.05 + i * 0.06, 0.55));
+
+    // Herald call: ta-ta-ta TAAA, ta-ta-ta TAAA, climbing.
+    const call = [
+        [0.62, 'A4', 0.09], [0.74, 'A4', 0.09], [0.86, 'A4', 0.09], [0.98, 'D5', 0.3],
+        [1.34, 'A4', 0.09], [1.46, 'B4', 0.09], [1.58, 'C#5', 0.09], [1.7, 'E5', 0.3]
+    ];
+    call.forEach(([dt, note, dur]) => v.brass.triggerAttackRelease([note, fifth(note)], dur, t0 + dt, 0.82));
+    v.timpani.triggerAttackRelease('A1', 0.5, t0 + 0.98, 0.85);
+    v.timpani.triggerAttackRelease('A1', 0.5, t0 + 1.7, 0.85);
+
+    // Roll into the final chord.
+    for (let t = 2.0, i = 0; t < 2.38; t += 0.04, i++) {
+        v.timpani.triggerAttackRelease(i % 2 ? 'A1' : 'D2', 0.1, t0 + t, 0.35 + i * 0.06);
+    }
+    const fin = t0 + 2.4;
+    v.sub.triggerAttackRelease('D1', 1.4, fin, 0.95);
+    v.timpani.triggerAttackRelease('D2', 0.8, fin, 1);
+    v.cymbal.triggerAttackRelease(3, fin, 0.95);
+    v.brass.triggerAttackRelease(['D3', 'A3', 'D4', 'F#4', 'A4', 'D5'], 2.2, fin, 0.95);
+    v.choir.triggerAttackRelease(['A3', 'D4', 'F#4', 'A4', 'D5', 'F#5'], 3, fin, 0.8);
+    ['D6', 'F#6', 'A6', 'D7', 'F#7', 'A7', 'D7', 'A6'].forEach((note, i) =>
+        v.bell.triggerAttackRelease(note, 1, fin + 0.08 + i * 0.08, 0.6 - i * 0.03));
 }
 
 /** Fade out whatever the Hero of the Day reveal still has scheduled. */

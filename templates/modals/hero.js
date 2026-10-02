@@ -21,8 +21,13 @@ const HOD_LAUREL = (() => {
     return `<g fill="#8cc06f" stroke="#3f6b2d" stroke-width="1.5">${leaves.join('')}</g>`;
 })();
 
-/** Gold petals that fall once when the crown lands. */
-const HOD_PETALS = Array.from({ length: 14 }, (_, i) => `<i class="hod-petal" style="--i:${i}"></i>`).join('');
+/** Gold petals that fall when the crown lands, and again on the final chord. */
+const HOD_PETALS = Array.from({ length: 28 }, (_, i) =>
+    `<i class="hod-petal" style="--i:${i % 14};--x:${(i * 37) % 96 + 2}%;--wave:${i < 14 ? 0 : 1}"></i>`).join('');
+
+/** Sparks that burst out of the medallion as the crown lands. */
+const HOD_SPARKS = Array.from({ length: 16 }, (_, i) =>
+    `<i class="hod-spark" style="--a:${i * 22.5}deg;--d:${i % 2 ? 118 : 150}px"></i>`).join('');
 
 export const heroModalsHTML = `
     <div id="hero-celebration-modal" class="hod-modal fixed inset-0 z-[95] hidden" role="dialog" aria-modal="true" aria-labelledby="hero-celebration-name">
@@ -32,8 +37,10 @@ export const heroModalsHTML = `
             <div class="hod-pavilion__light"></div>
             <div class="hod-pavilion__valance"></div>
             <div class="hod-pavilion__bunting"></div>
+            <div class="hod-pavilion__dim"></div>
         </div>
         <div class="hod-petals" aria-hidden="true">${HOD_PETALS}</div>
+        <div class="hod-flash" aria-hidden="true"></div>
 
         <div class="hod-stage pop-in">
             <!-- The herald's banner hangs from a gilded rod -->
@@ -52,6 +59,9 @@ export const heroModalsHTML = `
                     <div class="hod-crest">
                         <!-- Drawing of lots: the class's shields in a ring -->
                         <div id="hero-celebration-draw" class="hod-draw" aria-hidden="true"></div>
+                        <div class="hod-rays" aria-hidden="true"></div>
+                        <div class="hod-shock" aria-hidden="true"></div>
+                        <div class="hod-sparks" aria-hidden="true">${HOD_SPARKS}</div>
                         <div class="hod-medallion">
                             <svg class="hod-crown" viewBox="0 0 120 84" aria-hidden="true">
                                 <defs>

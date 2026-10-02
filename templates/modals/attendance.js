@@ -1,5 +1,6 @@
 // templates/modals/attendance.js
 // Log New Trial marking board, attendance chronicle, trial history, hidden print templates
+import { TRIAL_TYPES } from '../../features/trialTypesCore.mjs';
 
 export const attendanceModalsHTML = `
     <div id="bulk-trial-modal"
@@ -15,7 +16,7 @@ export const attendanceModalsHTML = `
 
             <div id="bulk-trial-type-switch" class="tl-tabs hidden" role="tablist" aria-label="Kind of trial">
                 <button type="button" class="tl-tab tl-tab--dictation" data-trial-type="dictation" role="tab" aria-selected="false">
-                    <i class="fas fa-microphone-alt" aria-hidden="true"></i><span>Dictation</span>
+                    <i class="fas ${TRIAL_TYPES.dictation.icon}" aria-hidden="true"></i><span>Dictation</span>
                 </button>
                 <button type="button" class="tl-tab tl-tab--test" data-trial-type="test" role="tab" aria-selected="false">
                     <i class="fas fa-file-signature" aria-hidden="true"></i><span>Test</span>

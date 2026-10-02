@@ -984,6 +984,16 @@ export function setupUIListeners() {
         const noteBtn = e.target.closest('.log-note-btn');
         const editBtn = e.target.closest('.log-edit-btn');
         const retryBtn = e.target.closest('.log-retry-btn');
+        const writeBtn = e.target.closest('.log-write-btn');
+        if (writeBtn) {
+            const { logId, writeMode } = writeBtn.dataset;
+            if (writeMode === 'manual') {
+                import('../../features/adventurePageWriter.js').then(m => m.openAdventurePageWriter(logId));
+            } else {
+                import('../modals/diaryChooser.js').then(m => m.openDiaryChooser(logId));
+            }
+            return;
+        }
         if (deleteBtn) {
             deleteAdventureLog(deleteBtn.dataset.logId);
         }
@@ -1142,8 +1152,22 @@ export function setupUIListeners() {
                 .catch(() => {});
             const modal = document.getElementById('hero-celebration-modal');
             const detail = modal?._campfireDetail;
-            if (modal) modal._campfireDetail = null;
-            if (detail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail }));
+            const diaryLogId = modal?._diaryLogId;
+            if (modal) { modal._campfireDetail = null; modal._diaryLogId = null; }
+            const announceCrowning = () => {
+                if (detail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail }));
+            };
+            if (!diaryLogId) {
+                announceCrowning();
+                return;
+            }
+            // Crown first, then the page: let the reveal fade before the chooser rises. The Campfire
+            // hears about the crowning once a path is chosen, so its AI prep queues behind the Chronicler.
+            setTimeout(() => {
+                import('../modals/diaryChooser.js')
+                    .then(m => m.openDiaryChooser(diaryLogId, { onSettled: announceCrowning }))
+                    .catch(announceCrowning);
+            }, 260);
         });
     }
 

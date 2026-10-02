@@ -15,7 +15,8 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Prodigy of the Month** | Monthly student crown in that class | Hero of the Day |
 | **Co-Prodigy** | Shared monthly crown after tie-breakers | Two Heroes of the Day |
 | **Hall of Prodigies** | This year's archive of monthly Prodigies. Last year's plaques stay last year. | Hall of Heroes |
-| **Hero of the Day** | Automatic when you log today’s adventure | Prodigy |
+| **Hero of the Day** | Automatic when you press **Crown Today’s Hero** in the Adventure Log | Prodigy |
+| **Today’s Page** | Card after **Huzzah!**: write the crowned diary page with **Auto** (Elite AI Chronicler), **Manual** (your words) or **Later** (blank page waits in the diary) | Hall of Heroes; Quest Assignment |
 | **Hall of Heroes** | This year's portrait gallery of Hero of the Day crowns: top three framed, legend ranks at 3 / 5 / 10 crowns, who is still waiting. Legend discounts restart each year. | Hall of Prodigies |
 | **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars. Patron Hero Path: one path point per calendar week you give. | Teacher Boon; Hero of the Day +1; Patron (the vocation, not the gift) |
 | **Includes Hero’s Boon (+1)** | Automatic extra star on the reigning hero’s **first** award | Peer gift |
@@ -30,7 +31,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Festival Stall** | Timed holiday shelf (Halloween, Christmas, Orthodox Easter, Carnival) | Seasonal Treasures (the monthly classroom stall) |
 | **Market Manager** | Teacher Settings repair for Seasonal Treasures and Festival Stall (new picture, copies, text) | Restock (fresh monthly stall); Coin Purse |
 | **Legendary Artifacts** | Fixed power-ups, 2 buys/student/month | Seasonal “legendary” treasures |
-| **The Mask of the Protagonist** | 75 Gold; next Adventure Log is **Hero of the Day** (1 buy per student per month) | Picking Hero of the Day by hand |
+| **The Mask of the Protagonist** | 75 Gold; next crowning is **Hero of the Day** (1 buy per student per month) | Picking Hero of the Day by hand |
 | **Familiar** | One companion egg that hatches and evolves | Avatar |
 | **Guild Power** | Fair house score: the Glory each member earned this school year, on average. This week’s form is a badge only | Raw Total Stars |
 | **Guild Glory** | Ledger from stars (2 Glory per star) plus Wheel / Quiz / artifacts | Gold |

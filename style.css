@@ -238,6 +238,8 @@
 
 /* Adventure Log: the class diary (tab, pages, page editors, sticky note) */
 @import url('./styles/adventure_diary.css');
+/* Crown first, then the page: Today's Page chooser, blank crowned page, Manual writer helpers */
+@import url('./styles/diary_chooser.css');
 @import url('./styles/hall_of_heroes.css');
 /* Hall of Prodigies: sunlit marble hall (templates/modals/hero.js, ui/modals/prodigyHallView.js) */
 @import url('./styles/prodigy_hall.css');

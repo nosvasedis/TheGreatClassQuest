@@ -1043,11 +1043,17 @@ export function getClassQuestBonusForMonth(classData, date = new Date()) {
 }
 
 export function getClassMonthlyQuestStars(classData, studentsInClass, allStudentScores, date = new Date(), scoresByStudentId = null) {
+    const ref = date instanceof Date ? date : new Date();
+    const monthStart = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}-01`;
     const studentStars = (studentsInClass || []).reduce((sum, student) => {
         const scoreData = scoresByStudentId
             ? scoresByStudentId.get(student.id)
             : (allStudentScores || []).find(score => score.id === student.id);
-        return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
+        if (!scoreData) return sum;
+        // monthlyStars is reset lazily by the first award of a new month, so until
+        // then it still holds last month's total and must not count toward this one.
+        if (scoreData.lastMonthlyResetDate && scoreData.lastMonthlyResetDate !== monthStart) return sum;
+        return sum + (Number(scoreData.monthlyStars) || 0);
     }, 0);
     const classBonus = getClassQuestBonusForMonth(classData, date);
     return {

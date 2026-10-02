@@ -40,3 +40,24 @@ test('heroes keep the Hero Stage hooks, the level-up arrow and a gold star for t
   assert.ok(!html.includes('<x>'), 'names are escaped');
   assert.match(html, /home-party__hero is-lead[^>]*>.*?data-student-id="b"/s);
 });
+
+test('away heroes are greyed out with an away badge and counted', async () => {
+  const { buildHomePartyCardHtml } = await load();
+  const html = buildHomePartyCardHtml({
+    students: [hero('a', 'Anna'), hero('b', 'Ben')],
+    virtueStars: {},
+    absentIds: ['b']
+  });
+  assert.equal((html.match(/is-absent/g) || []).length, 1, 'only the absent hero is marked');
+  assert.match(html, /home-party__hero is-absent[^>]*>.*?data-student-id="b"/s);
+  assert.match(html, /home-party__away/);
+  assert.match(html, /home-party__count--away/);
+  assert.match(html, /<b>away<\/b>/);
+});
+
+test('with everyone present the card shows no away markings', async () => {
+  const { buildHomePartyCardHtml } = await load();
+  const html = buildHomePartyCardHtml({ students: [hero('a', 'Anna')], virtueStars: {}, absentIds: new Set() });
+  assert.ok(!html.includes('home-party__count--away'));
+  assert.ok(!html.includes('is-absent'));
+});

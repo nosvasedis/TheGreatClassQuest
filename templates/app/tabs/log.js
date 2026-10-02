@@ -42,8 +42,8 @@ export const logTabHTML = `
                                     <button id="log-adventure-btn"
                                         class="al-primary-btn al-primary-btn--log bubbly-button"
                                         disabled>
-                                        <i class="fas fa-feather-alt"></i>
-                                        <span>Log Today's Adventure</span>
+                                        <i class="fas fa-crown" aria-hidden="true"></i>
+                                        <span>Crown Today's Hero</span>
                                     </button>
                                     <button id="hall-of-heroes-btn"
                                         class="al-primary-btn al-primary-btn--heroes bubbly-button"

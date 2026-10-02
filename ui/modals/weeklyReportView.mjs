@@ -159,7 +159,7 @@ function trialsCard(model) {
     const rows = model.trials.map((t) => `
         <li class="wr-trial">
             <span class="wr-trial__icon"><i class="fas ${/dict/i.test(t.type) ? 'fa-feather-pointed' : 'fa-file-signature'}"></i></span>
-            <span class="wr-trial__name">${esc(t.title)}<small>${t.count} ${t.count === 1 ? 'hero' : 'heroes'}${t.type ? ` · ${esc(t.type)}` : ''}</small></span>
+            <span class="wr-trial__name">${esc(t.title)}<small>${t.count} ${t.count === 1 ? 'hero' : 'heroes'}${t.typeLabel && t.typeLabel !== t.title ? ` · ${esc(t.typeLabel)}` : ''}</small></span>
             ${t.average === null
                 ? `<span class="wr-trial__value">${esc(t.sampleLabel || 'logged')}</span>`
                 : `<span class="wr-trial__track"><span style="--w:${t.average}%"></span></span><span class="wr-trial__value">${t.average}%<small>best ${t.best}%</small></span>`}

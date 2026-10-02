@@ -141,3 +141,17 @@ test('plain-text export includes the numbers and the reading', () => {
     assert.match(text, /Mini-Quest: Q/);
     assert.equal(formatStars(2.25), '2.25');
 });
+
+test('an untitled dictation is named and framed as written vocabulary work', () => {
+    const f = fixture();
+    f.writtenScores.push({ classId: 'k', studentId: 'a', date: '25-09-2026', type: 'dictation', title: null, normalizedPercent: 88 });
+    const m = buildWeeklyReportModel(f);
+    const dictation = m.trials.find((t) => t.type === 'dictation');
+    assert.equal(dictation.title, 'Dictation');
+    assert.equal(dictation.typeLabel, 'Dictation');
+    assert.match(buildWeeklyReportText(m), /Dictation: class average 88%/);
+    const { system, user } = buildWeeklyReportPrompt(m);
+    assert.match(system, /dictation is a written vocabulary check/i);
+    assert.match(system, /never a listening, speaking or oral task/i);
+    assert.match(user, /"type":"dictation"/);
+});

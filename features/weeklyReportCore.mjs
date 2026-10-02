@@ -3,6 +3,8 @@
 // class did in it (stars by day and virtue, heroes, attendance, trials, crowns), compares it with
 // the week before, and builds / parses the compact Oracle prompt. No DOM, no Firebase.
 
+import { TRIAL_TYPE_GUIDE, getTrialTypeMeta } from './trialTypesCore.mjs';
+
 export const VIRTUES = [
     { id: 'teamwork', label: 'Teamwork', icon: 'fa-users', color: '#7c3aed' },
     { id: 'creativity', label: 'Creativity', icon: 'fa-lightbulb', color: '#db2777' },
@@ -230,9 +232,10 @@ export function buildWeeklyReportModel(input = {}) {
     // Trials (tests / dictations)
     const groups = new Map();
     for (const score of weekScores) {
-        const title = String(score.title || score.type || 'Trial').trim();
+        const typeMeta = getTrialTypeMeta(score.type);
+        const title = String(score.title || '').trim() || typeMeta.label;
         const key = `${title}|${score.type || ''}`;
-        const g = groups.get(key) || { title, type: String(score.type || ''), date: score.date, percents: [], count: 0, labels: [] };
+        const g = groups.get(key) || { title, type: String(score.type || ''), typeLabel: typeMeta.label, date: score.date, percents: [], count: 0, labels: [] };
         g.count += 1;
         const pct = scorePercent(score);
         if (Number.isFinite(pct)) g.percents.push(pct);
@@ -243,6 +246,7 @@ export function buildWeeklyReportModel(input = {}) {
     const trials = [...groups.values()].map((g) => ({
         title: g.title,
         type: g.type,
+        typeLabel: g.typeLabel,
         date: g.date,
         count: g.count,
         average: g.percents.length ? Math.round(g.percents.reduce((a, b) => a + b, 0) / g.percents.length) : null,
@@ -320,6 +324,7 @@ export function buildWeeklyReportPrompt(model, { audience = 'young learners' } =
         "You are the Quest Master, a warm, practical coach for a teacher of English as a foreign language at a private school in Greece.",
         'You read one class\'s week and reply with ONLY a JSON object, no markdown fences.',
         'Stars reward observable actions (Teamwork, Creativity, Respect, Focus); they are not grades.',
+        TRIAL_TYPE_GUIDE,
         'Be specific, kind and brief. Never invent facts or names that are not in the data. Use first names only.',
     ].join(' ');
     const data = {

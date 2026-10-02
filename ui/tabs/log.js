@@ -9,6 +9,7 @@ import { syncHeaderClassSelector } from '../headerClassSelector.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';
 import { renderLearnedTodayHtml } from '../../features/learnedToday.js';
 import { mountCampfireEntry } from '../../features/campfireEntry.js';
+import { getCrownControlState, isAwaitingAdventurePage } from '../../features/adventurePageCore.mjs';
 
 function classHasAwardedStarsToday(classId) {
     if (!classId) return false;
@@ -293,12 +294,49 @@ function renderClassTools(classId, hasAdvancedAttendance) {
     toolsEl.classList.toggle('al-tools--single', !hasAdvancedAttendance);
 }
 
-function getTodayHint(classVal) {
-    if (!classVal) return 'Choose a class in the header to open its diary.';
-    const todayLog = (state.get('allAdventureLogs') || []).find((log) => log.classId === classVal && log.date === utils.getTodayDateString());
-    if (todayLog) return `Today's page is written. Hero of the Day: ${todayLog.hero || 'The Class Team'}.`;
-    if (!classHasAwardedStarsToday(classVal)) return 'Award some stars first, then write today\'s page.';
-    return 'Ready to write. Saving the page crowns today\'s Hero.';
+function isOwnActiveLog(log) {
+    return log?.createdBy?.uid === state.get('currentUserId') && log.schoolYearKey === state.getActiveSchoolYearKey();
+}
+
+/**
+ * The diary's main button + hint: Crown Today's Hero → Write Today's Page → Open Today's Page.
+ * Runs on every tab render and every adventure_logs snapshot.
+ */
+export function syncAdventureLogTodayControls() {
+    const logBtn = document.getElementById('log-adventure-btn');
+    const hintEl = document.getElementById('adventure-log-today-hint');
+    const hasAdventureLog = canUseFeature('adventureLog');
+    const classVal = state.get('globalSelectedClassId');
+    const todayLog = classVal
+        ? (state.get('allAdventureLogs') || []).find((log) => log.classId === classVal && log.date === utils.getTodayDateString()) || null
+        : null;
+    const control = getCrownControlState({
+        classId: classVal,
+        hasStarsToday: classHasAwardedStarsToday(classVal),
+        todayLog,
+        canWrite: !todayLog || isOwnActiveLog(todayLog)
+    });
+    if (logBtn) {
+        logBtn.style.display = hasAdventureLog ? '' : 'none';
+        if (logBtn.dataset.busy !== '1') {
+            logBtn.disabled = control.disabled;
+            logBtn.dataset.mode = control.mode;
+            logBtn.innerHTML = `<i class="fas ${control.icon}" aria-hidden="true"></i><span>${control.label}</span>`;
+        }
+    }
+    if (hintEl) hintEl.textContent = hasAdventureLog ? control.hint : '';
+}
+
+/** Scrolls the diary to a page and lets it glow for a moment (used after crowning / writing). */
+export function focusDiaryPage(logId) {
+    const page = logId ? document.querySelector(`#adventure-log-feed .diary-page[data-log-id="${CSS.escape(logId)}"]`) : null;
+    if (!page) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    page.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    page.classList.remove('is-spotlit');
+    void page.offsetWidth;
+    page.classList.add('is-spotlit');
+    setTimeout(() => page.classList.remove('is-spotlit'), 2200);
 }
 
 export async function renderAdventureLogTab() {
@@ -321,17 +359,11 @@ export async function renderAdventureLogTab() {
         if (upsellTitle) upsellTitle.textContent = logCopy.upsellTitle;
         if (upsellBody) upsellBody.textContent = logCopy.upsellBody;
     }
-    const logBtn = document.getElementById('log-adventure-btn');
     const hallBtn = document.getElementById('hall-of-heroes-btn');
     const feedEl = document.getElementById('adventure-log-feed');
     const deskEl = document.querySelector('#adventure-log-tab .al-desk');
-    const hintEl = document.getElementById('adventure-log-today-hint');
     const hasAdvancedAttendance = canUseFeature('advancedAttendance');
     
-    if (logBtn) {
-        logBtn.style.display = hasAdventureLog ? '' : 'none';
-        logBtn.disabled = !classVal || !classHasAwardedStarsToday(classVal);
-    }
     if (hallBtn) {
         hallBtn.style.display = hasAdventureLog ? '' : 'none';
         hallBtn.disabled = !classVal;
@@ -339,7 +371,7 @@ export async function renderAdventureLogTab() {
     if (feedEl) feedEl.style.display = hasAdventureLog ? '' : 'none';
     if (deskEl) deskEl.classList.toggle('is-locked', !hasAdventureLog);
     if (monthFilter) monthFilter.style.display = hasAdventureLog ? '' : 'none';
-    if (hintEl) hintEl.textContent = hasAdventureLog ? getTodayHint(classVal) : '';
+    syncAdventureLogTodayControls();
     
     renderClassTools(classVal, hasAdvancedAttendance);
 
@@ -373,7 +405,51 @@ export async function renderAdventureLogTab() {
     await renderAdventureLog();
 }
 
+/** A crowned page with no story yet: the hero sticker, a blank page and the ways to write it. */
+function renderAwaitingDiaryEntry(log, animationClass) {
+    const dateObj = utils.parseFlexibleDate(log.date);
+    const validDate = dateObj && !isNaN(dateObj.getTime());
+    const displayDate = validDate ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : escapeDiaryHtml(log.date);
+    const isToday = log.date === utils.getTodayDateString();
+    const hero = escapeDiaryHtml(log.hero || 'The Class Team');
+    const canWrite = isOwnActiveLog(log) && canUseFeature('adventureLog');
+    const writeButtons = canWrite ? `
+        <div class="diary-awaiting__actions">
+            ${canUseFeature('eliteAI') ? `<button type="button" class="log-write-btn diary-awaiting__btn diary-awaiting__btn--auto" data-log-id="${log.id}" data-write-mode="choose"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>Auto or Manual</span></button>` : ''}
+            <button type="button" class="log-write-btn diary-awaiting__btn diary-awaiting__btn--manual" data-log-id="${log.id}" data-write-mode="manual"><i class="fas fa-feather-alt" aria-hidden="true"></i><span>Write it myself</span></button>
+        </div>` : '';
+    return `
+        <article class="${animationClass} diary-page--awaiting${isToday ? ' is-today' : ''}" data-log-id="${log.id}" data-entry-mode="awaiting">
+            <span class="diary-page__binding" aria-hidden="true"></span>
+            <header class="diary-header">
+                <div class="diary-datestamp" aria-hidden="true">
+                    <span class="diary-datestamp__wd">${validDate ? dateObj.toLocaleDateString('en-GB', { weekday: 'short' }) : ''}</span>
+                    <span class="diary-datestamp__day">${validDate ? dateObj.getDate() : '?'}</span>
+                    <span class="diary-datestamp__mon">${validDate ? dateObj.toLocaleDateString('en-GB', { month: 'short' }) : ''}</span>
+                </div>
+                <div class="diary-heading">
+                    <p class="diary-date">${isToday ? 'Today · ' : ''}${displayDate}</p>
+                    <h3 class="diary-title">${isToday ? 'A page waiting for its story' : 'This page was never written'}</h3>
+                    <div class="diary-meta"><span class="diary-stamp diary-stamp--amber"><i class="fas fa-bookmark" aria-hidden="true"></i>Blank page</span></div>
+                </div>
+                ${renderHeroSticker(log)}
+            </header>
+            <div class="diary-awaiting">
+                <span class="diary-awaiting__quill" aria-hidden="true"><i class="fas fa-feather-alt"></i></span>
+                <p class="diary-awaiting__text">${hero} wears the crown${isToday ? ' today' : ''}. ${canWrite ? 'How shall this page be written?' : 'The story has not been written yet.'}</p>
+                ${writeButtons}
+            </div>
+            <footer class="diary-footer">
+                <div class="diary-keywords"></div>
+                <div class="diary-actions">
+                    <button type="button" class="log-delete-btn diary-action bubbly-button" data-log-id="${log.id}" title="Remove this page"><i class="fas fa-trash-alt" aria-hidden="true"></i><span>Remove</span></button>
+                </div>
+            </footer>
+        </article>`;
+}
+
 function renderDiaryEntry(log, animationClass) {
+    if (isAwaitingAdventurePage(log)) return renderAwaitingDiaryEntry(log, animationClass);
     const dateObj = utils.parseFlexibleDate(log.date);
     const validDate = dateObj && !isNaN(dateObj.getTime());
     const displayDate = validDate ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : escapeDiaryHtml(log.date);
@@ -454,6 +530,7 @@ export async function renderAdventureLog() {
 
     const currentLogFilter = state.get('currentLogFilter');
     syncDiaryMonthTabs();
+    syncAdventureLogTodayControls();
 
     if (!currentLogFilter.classId) {
         renderDiaryMonthStats([]);
@@ -493,7 +570,7 @@ export async function renderAdventureLog() {
 
     if (logsForClass.length === 0) {
         const selectedMonthDisplay = formatMonthKey(currentLogFilter.month, 'long');
-        feed.innerHTML = renderDiaryEmptyPage('fa-feather-alt', `No pages yet for ${selectedMonthDisplay}`, 'Award some stars in a lesson, then press Log Today\'s Adventure to write the first page.');
+        feed.innerHTML = renderDiaryEmptyPage('fa-feather-alt', `No pages yet for ${selectedMonthDisplay}`, 'Award some stars in a lesson, then press Crown Today\'s Hero to begin the first page.');
         return;
     }
 

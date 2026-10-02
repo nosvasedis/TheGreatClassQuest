@@ -299,7 +299,7 @@ export async function openCampfire(classId) {
     if (!c || c.campfireEnabled === false) return;
     const log = (state.get('allAdventureLogs') || []).find(l => l.classId === classId && oathDate(l.date) === getTodayDateString());
     const cached = getCachedCampfire(classId);
-    if (!log && !cached?.logId) throw new Error('Record today’s Adventure Log and crown the hero first.');
+    if (!log && !cached?.logId) throw new Error('Crown today’s Hero in the Adventure Log first.');
     let session = await kindleCampfire(classId, { refresh: true, ai: true, learnedToday: log?.learnedToday, logId: log?.id || cached?.logId, heroStudentId: log?.heroStudentId || cached?.heroStudentId });
     if (!session) return;
     ensureEmberOathsListener();

@@ -1,5 +1,5 @@
 // Hero Campfire entry points: the hearth button in the Adventure Log (under Log / Hall of Heroes),
-// a small Home pill, and the Oath Board shortcut. The heavy scene and service load only on click.
+// a small Home reminder badge, and the Oath Board shortcut. The heavy scene and service load only on click.
 import * as state from '../state.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { getTodayDateString, getLocalIsoDateString } from '../utils.js';
@@ -15,17 +15,28 @@ const dismissKey = classId => 'gcq_campfire_dismissed_' + classId + '_' + getLoc
 const isDismissed = classId => { try { return localStorage.getItem(dismissKey(classId)) === '1'; } catch { return false; } };
 
 /** Pure markup (also used by the preview harness). */
-export function campfireChipMarkup({ held = false, igniting: ignite = false, compact = false, oaths = true, ready = 0 } = {}) {
+export function campfireChipMarkup({ held = false, igniting: ignite = false, oaths = true, ready = 0 } = {}) {
     const sparks = ignite ? '<span class="campfire-chip__sparks" aria-hidden="true">' + Array.from({ length: 12 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' : '';
     const badge = ready ? '<span class="campfire-oaths-badge">' + ready + ' ready</span>' : '';
-    return '<div class="campfire-hearth' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + (compact ? ' is-compact' : '') + '">' + sparks +
+    return '<div class="campfire-hearth' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + '">' + sparks +
         '<button type="button" class="campfire-chip" data-campfire-open>' +
         '<span class="campfire-chip__hearth" aria-hidden="true">' + FLAME + '<span class="campfire-chip__logs"></span></span>' +
         '<span class="campfire-chip__text"><strong>' + (held ? 'Campfire held · Relight' : 'Gather at the Campfire') + '</strong>' +
         '<small>' + (held ? 'The embers are resting' : 'Ready · 2 minutes · words, a question, promises') + '</small></span>' +
         (held ? '' : '<span class="campfire-chip__cta" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>') + '</button>' +
         (oaths ? '<button type="button" class="campfire-hearth__oaths" data-campfire-oaths title="Ember Oaths"><i class="fas fa-fire-alt" aria-hidden="true"></i><span>Oaths</span>' + badge + '</button>' : '') +
-        (!held && !compact ? '<button type="button" class="campfire-hearth__later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times"></i></button>' : '') + '</div>';
+        (!held ? '<button type="button" class="campfire-hearth__later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times"></i></button>' : '') + '</div>';
+}
+
+/** Home greeting-card reminder badge (same family as the other `home-pill`s), with the same "Not today" ✕. */
+export function campfireHomePillMarkup({ held = false, igniting: ignite = false } = {}) {
+    return '<div class="date-pill home-pill home-pill--campfire home-pill--action campfire-home-pill' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + '">' +
+        '<span class="home-pill__shine" aria-hidden="true"></span>' +
+        '<button type="button" class="campfire-home-pill__open" data-campfire-open>' +
+        '<span class="home-pill__icon campfire-home-pill__icon" aria-hidden="true">' + FLAME + '</span>' +
+        '<span class="home-pill__body"><span class="home-pill__eyebrow">' + (held ? 'Campfire held' : 'Hero Campfire') + '</span>' +
+        '<span class="home-pill__title">' + (held ? 'Relight the embers' : 'Gather at the Campfire') + '</span></span></button>' +
+        '<button type="button" class="campfire-home-pill__later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times" aria-hidden="true"></i></button></div>';
 }
 
 /** The Oaths button when the Campfire is not lit: same family as Log / Hall of Heroes. */
@@ -63,7 +74,9 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     const entry = document.createElement('div');
     entry.className = 'campfire-entry' + (home ? ' campfire-entry--home' : '') + (oathsOnly ? ' campfire-entry--class' : '');
     if (ready) {
-        entry.insertAdjacentHTML('beforeend', campfireChipMarkup({ held, igniting: igniting.has(key), compact: home, oaths: !home, ready: readyCount(classId) }));
+        entry.insertAdjacentHTML('beforeend', home
+            ? campfireHomePillMarkup({ held, igniting: igniting.has(key) })
+            : campfireChipMarkup({ held, igniting: igniting.has(key), ready: readyCount(classId) }));
         igniting.delete(key);
         const button = entry.querySelector('[data-campfire-open]');
         button.onclick = async () => {
@@ -81,7 +94,7 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     if (oaths) oaths.onclick = () => import('../ui/modals/emberOaths.js').then(m => m.openOathBoard(classId)).catch(e => showToast(e.message, 'error'));
     // On a My Classes card the trash can stays the last button, so Oaths sits just left of it.
     const trash = oathsOnly ? host.querySelector(':scope > .delete-class-btn') : null;
-    if (trash) host.insertBefore(entry, trash); else host.append(entry);
+    if (trash) host.insertBefore(entry, trash); else if (home) host.prepend(entry); else host.append(entry);
 }
 
 /** No header class selected: Ember Oaths stays visible but greyed out, like Log / Hall of Heroes. */
@@ -95,7 +108,7 @@ function mountDisabledOathsButton(host) {
 function refreshEntries() {
     const classId = state.get('globalSelectedClassId');
     mountCampfireEntry(document.querySelector('.al-primary-actions'), classId);
-    const home = document.getElementById('home-campfire-entry');
+    const home = document.getElementById('home-reminders-container');
     if (home) mountCampfireEntry(home, classId, { home: true });
 }
 
@@ -114,9 +127,7 @@ window.addEventListener('gcq:hero-crowned', event => {
 window.addEventListener('gcq:campfire-reset', () => { completed.clear(); igniting.clear(); document.querySelectorAll('.campfire-entry').forEach(e => e.remove()); });
 window.addEventListener('gcq:campfire-error', e => showToast(e.detail, 'error'));
 document.addEventListener('home:rendered', () => {
-    const container = document.getElementById('home-dashboard-container');
-    if (!container || !canUseFeature('heroCampfire')) return;
-    let host = document.getElementById('home-campfire-entry');
-    if (!host) { host = document.createElement('div'); host.id = 'home-campfire-entry'; container.prepend(host); }
-    mountCampfireEntry(host, state.get('globalSelectedClassId'), { home: true });
+    // The badge sits first among the greeting card's reminder badges.
+    const host = document.getElementById('home-reminders-container');
+    if (host) mountCampfireEntry(host, state.get('globalSelectedClassId'), { home: true });
 });

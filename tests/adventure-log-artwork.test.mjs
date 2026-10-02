@@ -67,3 +67,11 @@ test('upload rejects unsupported types and oversized files before reading them',
     assert.doesNotMatch(h.diaryPictureControlsHtml(), /data-picture-retry/);
     assert.match(h.diaryPictureControlsHtml({ canGenerate: true }), /data-picture-retry/);
 });
+
+test('the Manual writer labels painting from the teacher\'s words', () => {
+    const h = harness();
+    const html = h.diaryPictureControlsHtml({ canGenerate: true, generateLabel: 'Paint it from my words', generateIcon: 'fa-palette', hint: 'Optional picture.' });
+    assert.match(html, /fa-palette[^>]*><\/i> Paint it from my words/);
+    assert.match(html, /Optional picture\./);
+    assert.match(h.diaryPictureControlsHtml({ canGenerate: true }), /Retry AI picture/);
+});

@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
+import { TRIAL_TYPE_GUIDE, getTrialTypeMeta } from '../../features/trialTypesCore.mjs';
 import { showAnimatedModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
 import { showToast } from '../effects.js';
@@ -294,7 +295,7 @@ function collectStudentInsightData(studentId) {
     const academicScores = state.get('allWrittenScores')
         .filter(s => s.studentId === studentId)
         .sort((a, b) => (utils.parseFlexibleDate(a.date) || 0) - (utils.parseFlexibleDate(b.date) || 0))
-        .map(s => `[${s.date}] Scored ${s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`} on a ${s.type} titled "${s.title || 'Dictation'}". Note: ${s.notes || 'N/A'}`)
+        .map(s => `[${s.date}] Scored ${s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`} on a ${getTrialTypeMeta(s.type).label.toLowerCase()} titled "${s.title || getTrialTypeMeta(s.type).label}". Note: ${s.notes || 'N/A'}`)
         .join('\n');
 
     const behavioralAwards = state.get('allAwardLogs')
@@ -320,7 +321,7 @@ async function requestAIInsight(studentId, insightType) {
     const { student, notes, academicScores, behavioralAwards } = insightData;
     const prompts = buildInsightPrompts(student.name);
     const prompt = prompts[insightType];
-    const systemPrompt = `${prompt.persona} Your task is to analyze a comprehensive record for a student named ${student.name} and generate a specific type of summary. ${prompt.task}`;
+    const systemPrompt = `${prompt.persona} ${TRIAL_TYPE_GUIDE} Your task is to analyze a comprehensive record for a student named ${student.name} and generate a specific type of summary. ${prompt.task}`;
     const userPrompt = `Here is the complete record for ${student.name}:
     
     --- TEACHER'S PRIVATE NOTES ---

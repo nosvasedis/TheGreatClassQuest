@@ -221,7 +221,7 @@ export function getLogTabCopy(hasAdventureLog) {
     return {
         tagline: 'Quest Assignment & Attendance — manage your class here.',
         upsellTitle: 'Unlock the full Adventure Log',
-        upsellBody: "On Pro and above you'll see the full diary feed, Hall of Heroes, and 'Log Today's Adventure'. Upgrade to get the full experience."
+        upsellBody: "On Pro and above you'll see the full diary feed, Hall of Heroes, and 'Crown Today's Hero'. Upgrade to get the full experience."
     };
 }
 

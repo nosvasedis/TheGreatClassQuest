@@ -351,6 +351,12 @@ export async function editAdventureLogEntry(logId) {
         } catch { showToast('This diary page could not be opened. Please try again.', 'error'); return; }
     }
     if (!log) return;
+    if (String(log.pageStatus || '').toLowerCase() === 'awaiting') {
+        // A crowned page with no story yet is written, not edited.
+        const { openAdventurePageWriter } = await import('../../features/adventurePageWriter.js');
+        await openAdventurePageWriter(logId);
+        return;
+    }
     const entryMode = inferAdventureLogEntryMode(log);
 
     if (!canEditAdventureLog(log)) {

@@ -24,6 +24,8 @@ export function diaryPageEditorHtml({
     storyValue = '',
     highlightsValue = '',
     storyTool = '',
+    titleAssist = '',
+    storyAssist = '',
     heroHtml = '',
     learnedHtml = '',
     pictureHtml = '',
@@ -52,6 +54,7 @@ export function diaryPageEditorHtml({
                     <label for="${ids.title}">Title</label>
                     <input type="text" id="${ids.title}" maxlength="90" value="${escapeDiaryEditorHtml(titleValue)}" placeholder="Give today a name, e.g. A Day of Discovery" autocomplete="off">
                     <p id="${ids.counter}" class="adventure-log-editor-hint adventure-log-editor-counter">0 / 90</p>
+                    ${titleAssist}
                 </div>
 
                 <div class="adventure-log-editor-field adventure-log-editor-field--story">
@@ -60,6 +63,7 @@ export function diaryPageEditorHtml({
                         ${storyTool}
                     </div>
                     <textarea id="${ids.story}" rows="8" placeholder="What happened in the lesson? Who was brave, funny, kind? What did we discover?">${escapeDiaryEditorHtml(storyValue)}</textarea>
+                    ${storyAssist}
                     <p class="adventure-log-editor-hint">Tip: Ctrl + Enter (Cmd + Enter on Mac) saves the page.</p>
                 </div>
 
@@ -96,15 +100,8 @@ export function diaryPageEditorHtml({
     `;
 }
 
-/** Hero sticker for the editor: a known hero, or a mystery seal crowned on save. */
-export function diaryEditorHeroHtml(heroName, { pending = false } = {}) {
-    if (pending) {
-        return `
-            <div class="adventure-log-editor-hero-pill is-pending">
-                <span class="adventure-log-editor-hero-seal" aria-hidden="true">?</span>
-                <span><strong>Crowned when you save</strong><small>The app picks today's Hero from the students present.</small></span>
-            </div>`;
-    }
+/** Hero sticker for the editor: the hero crowned for this page (crowning always comes first). */
+export function diaryEditorHeroHtml(heroName) {
     return `
         <div class="adventure-log-editor-hero-pill">
             <span class="adventure-log-editor-hero-seal" aria-hidden="true"><i class="fas fa-crown"></i></span>

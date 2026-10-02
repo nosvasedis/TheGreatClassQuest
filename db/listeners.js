@@ -1437,6 +1437,7 @@ export async function setupDataListeners(
                         ),
                 );
                 refreshAdventureLogClassTools();
+                scheduleHomeRender();
 
                 snapshot.docChanges().forEach((change) => {
                     const attendanceData = change.doc.data();

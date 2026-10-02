@@ -135,6 +135,7 @@ import {
     tierForPercent,
     trendFor
 } from './scholarScrollCore.mjs';
+import { TRIAL_TYPES } from './trialTypesCore.mjs';
 
 function formatYmdFromAnyDateString(dateStr) {
     const d = utils.parseFlexibleDate(dateStr);
@@ -653,7 +654,7 @@ function segHtml(name, options, active, label, extraClass = '') {
 
 function toolbarHtml(bothKinds, metric) {
     const metricSeg = bothKinds
-        ? segHtml('metric', [['overall', 'Overall', 'fa-layer-group'], ['test', 'Tests', 'fa-file-alt'], ['dictation', 'Dictations', 'fa-microphone-alt']], metric, 'Rank by')
+        ? segHtml('metric', [['overall', 'Overall', 'fa-layer-group'], ['test', 'Tests', 'fa-file-alt'], ['dictation', 'Dictations', TRIAL_TYPES.dictation.icon]], metric, 'Rank by')
         : '';
     const sortSeg = segHtml('sort', [['rank', 'Rank', 'fa-trophy'], ['name', 'A–Z', 'fa-sort-alpha-down']], rollPrefs.sort, 'Order', 'ss-seg--quiet');
     return `${metricSeg}${sortSeg}`;
@@ -763,7 +764,7 @@ function ledgerHtml(classData, model, rows, metric) {
         const tag = bothKinds ? 'button' : 'div';
         return `
             <${tag} ${bothKinds ? `type="button" data-ss-metric="${type}" aria-pressed="${active}" title="Rank the roll by ${isTest ? 'tests' : 'dictations'}"` : ''} class="ss-tile ss-tile--${type}${active ? ' is-active' : ''}">
-                <span class="ss-tile__icon" aria-hidden="true"><i class="fas ${isTest ? 'fa-file-alt' : 'fa-microphone-alt'}"></i></span>
+                <span class="ss-tile__icon" aria-hidden="true"><i class="fas ${isTest ? 'fa-file-alt' : TRIAL_TYPES.dictation.icon}"></i></span>
                 <span class="ss-tile__label">${isTest ? 'Tests' : 'Dictations'}</span>
                 <span class="ss-tile__value">${avg === null ? '--' : formatPct(avg, 0)}${qual ? `<small>${esc(qual)}</small>` : ''}</span>
                 <span class="ss-tile__note">${sessions.size ? `${sessions.size} ${isTest ? 'test' : 'dictation'}${sessions.size === 1 ? '' : 's'} · ${entries.length} results` : 'None logged yet'}</span>
@@ -1227,7 +1228,7 @@ export function openTrialHistoryModal(classId) {
             class="toggle-btn th-seg__btn th-seg__btn--${view}${initialView === view ? ' active-toggle' : ''}">
             <i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span><b class="th-seg__count" data-count-for="${view}"></b>
         </button>`;
-    viewToggle.innerHTML = `${showTests ? kindBtn('test', 'fa-file-alt', 'Tests') : ''}${showDictations ? kindBtn('dictation', 'fa-microphone-alt', 'Dictations') : ''}`;
+    viewToggle.innerHTML = `${showTests ? kindBtn('test', 'fa-file-alt', 'Tests') : ''}${showDictations ? kindBtn('dictation', TRIAL_TYPES.dictation.icon, 'Dictations') : ''}`;
     viewToggle.classList.toggle('hidden', !showTests || !showDictations);
     viewToggle.onclick = (e) => {
         const btn = e.target.closest('.toggle-btn');
@@ -1440,7 +1441,7 @@ export function renderTrialHistoryContent(classId, view) {
 
     if (ofView.length === 0) {
         contentEl.innerHTML = historyEmptyHtml({
-            icon: view === 'dictation' ? 'fa-microphone-alt' : 'fa-file-alt',
+            icon: view === 'dictation' ? TRIAL_TYPES.dictation.icon : 'fa-file-alt',
             title: `No ${view === 'dictation' ? 'dictations' : 'tests'} recorded`,
             text: thState.fullLoaded ? 'The archive has nothing of this kind for this class yet.' : 'Nothing in the last 3 months. Older records may be waiting in the archive.',
             action: thState.fullLoaded ? '' : '<button type="button" class="th-btn" data-th-load-full><i class="fas fa-box-archive" aria-hidden="true"></i><span>Open the full archive</span></button>'

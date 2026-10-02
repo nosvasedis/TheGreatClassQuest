@@ -96,7 +96,6 @@ docs/product/guidebook/*
 !docs/product/guidebook/guidebook.js
 !docs/product/guidebook/i18n.mjs
 !docs/product/guidebook/print.css
-!docs/product/guidebook/print-pdf.mjs
 !docs/product/guidebook/stars.mjs
 !docs/product/guidebook/stage-site.mjs
 !docs/product/guidebook/terms.mjs

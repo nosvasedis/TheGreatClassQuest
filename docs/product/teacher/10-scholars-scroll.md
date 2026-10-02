@@ -2,6 +2,8 @@
 
 Scholar’s Scroll is the **academic ledger**: tests, dictations, charts, make-ups, and **Starfall** (bonus stars for outstanding scores). It does not replace Award Stars. It sits beside them: character on the clouds, English accuracy here.
 
+Both tests and dictations are **written work**. A **dictation** is a written vocabulary check: learners write the words they have been given, so it shows how well they understand and spell the unit vocabulary — never how well they listen or speak.
+
 ## Purpose
 
 Give every trial a calm home so you never lose a mark-book, and so excellence can still feed the Quest (Starfall) without turning every spelling test into a public humiliation.

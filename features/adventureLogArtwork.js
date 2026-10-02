@@ -93,21 +93,26 @@ export async function generateAdventureLogArtwork(logId) {
     }
 }
 
-export function diaryPictureControlsHtml({ canGenerate = false } = {}) {
+export function diaryPictureControlsHtml({
+    canGenerate = false,
+    generateLabel = 'Retry AI picture',
+    generateIcon = 'fa-rotate-right',
+    hint = 'JPG, PNG or WebP, up to 8 MB. Cancel leaves the saved picture as it is.'
+} = {}) {
     return `<section class="diary-picture-editor" aria-label="Diary picture">
         <div class="adventure-log-editor-label-row"><span class="adventure-log-editor-label"><i class="fas fa-image" aria-hidden="true"></i> Picture</span><span class="adventure-log-editor-optional">Saved with your page</span></div>
         <div class="diary-picture-preview" data-picture-preview></div>
         <div class="diary-picture-actions">
-            ${canGenerate ? '<button type="button" data-picture-retry class="adventure-log-editor-btn secondary"><i class="fas fa-rotate-right" aria-hidden="true"></i> Retry AI picture</button>' : ''}
+            ${canGenerate ? `<button type="button" data-picture-retry class="adventure-log-editor-btn secondary"><i class="fas ${generateIcon}" aria-hidden="true"></i> ${generateLabel}</button>` : ''}
             <button type="button" data-picture-upload class="adventure-log-editor-btn secondary"><i class="fas fa-upload" aria-hidden="true"></i> Upload your picture</button>
             <button type="button" data-picture-delete class="adventure-log-editor-btn secondary"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete picture</button>
             <input type="file" data-picture-file accept="image/jpeg,image/png,image/webp" hidden aria-label="Choose a diary picture">
         </div>
-        <p class="adventure-log-editor-hint" data-picture-status role="status" aria-live="polite">JPG, PNG or WebP, up to 8 MB. Cancel leaves the saved picture as it is.</p>
+        <p class="adventure-log-editor-hint" data-picture-status role="status" aria-live="polite">${hint}</p>
     </section>`;
 }
 
-export function bindDiaryPictureControls(root, log, { getStory, onBusy } = {}) {
+export function bindDiaryPictureControls(root, log, { getStory, onBusy, beforePaint, readyText = 'Picture ready. Save changes to keep it.' } = {}) {
     let draft = { kind: 'keep' }, busy = false, disposed = false;
     const preview = root.querySelector('[data-picture-preview]');
     const status = root.querySelector('[data-picture-status]');
@@ -122,17 +127,17 @@ export function bindDiaryPictureControls(root, log, { getStory, onBusy } = {}) {
         } else { const empty = document.createElement('p'); empty.textContent = 'A picture can bring this page to life.'; preview.append(empty); }
         root.querySelector('[data-picture-delete]').disabled = busy || (!image && draft.kind !== 'keep');
     };
-    const run = async operation => {
+    const run = async (operation, busyText = 'Preparing your picture…') => {
         if (busy) return;
         busy = true; buttons.forEach(b => b.disabled = true); onBusy?.(true);
-        status.textContent = 'Preparing your picture…';
+        status.textContent = busyText;
         try {
             const next = await operation();
             if (disposed) return;
             draft = next;
-            status.textContent = 'Picture ready. Save changes to keep it.';
+            status.textContent = readyText;
         } catch (error) {
-            if (!disposed) status.textContent = /^(Choose a |This picture could not be read)/.test(error.message || '')
+            if (!disposed) status.textContent = (error.friendly || /^(Choose a |This picture could not be read)/.test(error.message || ''))
                 ? error.message : 'The picture could not be prepared. Try again or upload a different picture.';
         }
         finally { busy = false; if (!disposed) { buttons.forEach(b => b.disabled = false); render(); onBusy?.(false); } }
@@ -142,7 +147,10 @@ export function bindDiaryPictureControls(root, log, { getStory, onBusy } = {}) {
         const file = fileInput.files?.[0]; fileInput.value = '';
         if (file) run(async () => ({ kind: 'replace', source: 'upload', dataUrl: await readAdventurePicture(file) }));
     });
-    root.querySelector('[data-picture-retry]')?.addEventListener('click', () => run(async () => ({ kind: 'replace', source: 'ai', dataUrl: await createAdventurePictureDraft(log, getStory?.()) })));
+    root.querySelector('[data-picture-retry]')?.addEventListener('click', () => run(async () => {
+        beforePaint?.(); // may throw a friendly error (e.g. nothing written yet to paint from)
+        return { kind: 'replace', source: 'ai', dataUrl: await createAdventurePictureDraft(log, getStory?.()) };
+    }, beforePaint ? 'Painting a picture from your words…' : 'Preparing your picture…'));
     root.querySelector('[data-picture-delete]').addEventListener('click', () => { if (busy) return; draft = { kind: 'remove' }; status.textContent = 'Picture will be removed when you save.'; render(); });
     render();
     return { getDraft: () => draft, setDisabled(value) { buttons.forEach(b => b.disabled = value); if (!value) render(); }, dispose() { disposed = true; } };

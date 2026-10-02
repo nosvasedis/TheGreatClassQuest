@@ -26,6 +26,7 @@ import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { nextHeroOfDayWinWrite, getYearLegendContextFromState } from '../../utils/yearLegend.js';
 import { classUsesTests } from '../../features/assessmentConfig.js';
+import { PAGE_AWAITING, PAGE_WRITTEN, buildAwaitingPagePayload, isAwaitingAdventurePage } from '../../features/adventurePageCore.mjs';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
@@ -141,17 +142,18 @@ export async function handleSaveQuestAssignment() {
     }
 }
 
+/**
+ * The Adventure Log's main button. Crown first: one press picks and reveals Hero of the Day
+ * and saves today's page blank (`pageStatus: 'awaiting'`); after Huzzah! the "Today's Page"
+ * chooser offers Auto (AI Chronicler) or Manual. Pressed again later it reopens that chooser,
+ * and once the page is written it turns to the page.
+ */
 export async function handleLogAdventure() {
     const classId = state.get('currentLogFilter').classId;
     if (!classId) return;
-    // Local bank only: this must never queue an AI request in front of the Chronicler.
-    import('../../features/campfire/campfireService.js').then(m => m.kindleCampfire(classId)).catch(() => {});
 
     const { canUseFeature } = await import('../../utils/subscription.js');
-    const hasEliteAI = canUseFeature('eliteAI');
-    const hasAdventureLog = canUseFeature('adventureLog');
-
-    if (!hasAdventureLog) {
+    if (!canUseFeature('adventureLog')) {
         const { showUpgradePrompt } = await import('../../utils/upgradePrompt.js');
         const { getUpgradeMessage } = await import('../../config/tiers/features.js');
         showUpgradePrompt({ feature: 'Adventure Log', tier: 'Pro', message: getUpgradeMessage('Pro', 'adventureLog') });
@@ -162,48 +164,224 @@ export async function handleLogAdventure() {
     if (!classData) return;
 
     const today = getTodayDateString();
+    // Until the snapshot brings a page we just crowned, remember it so a second press cannot crown twice.
+    const justCrowned = recentlyCrowned.get(classId);
+    const existingLog = state.get('allAdventureLogs').find(log => log.classId === classId && log.date === today)
+        || (justCrowned?.date === today && Date.now() - justCrowned.at < 15000 ? { id: justCrowned.logId, pageStatus: PAGE_AWAITING } : null);
+    if (crowningClassIds.has(classId)) return;
+    if (existingLog) {
+        if (isAwaitingAdventurePage(existingLog)) {
+            import('../../ui/modals/diaryChooser.js').then(m => m.openDiaryChooser(existingLog.id)).catch(() => {});
+        } else {
+            import('../../ui/tabs/log.js').then(m => m.focusDiaryPage(existingLog.id)).catch(() => {});
+        }
+        return;
+    }
+
     const classStudents = state.get('allStudents').filter(s => s.classId === classId);
     const todaysStars = state.get('todaysStars') || {};
     const hasAwardedStarsToday = classStudents.some(s => (Number(todaysStars[s.id]?.stars) || 0) > 0);
     if (!hasAwardedStarsToday) {
-        showToast("Award stars to this class first, then log today's adventure.", "info");
-        return;
-    }
-    const existingLog = state.get('allAdventureLogs').find(log => log.classId === classId && log.date === today);
-    if (existingLog) {
-        showToast("Today's adventure is already recorded!", 'info');
+        showToast("Award stars to this class first, then crown today's Hero.", "info");
         return;
     }
 
-    if (hasEliteAI) {
-        // Elite: Use AI generation (current implementation)
-        await handleAILogAdventure(classId, classData);
-    } else {
-        // Pro: Use manual entry
-        await handleManualLogAdventure(classId, classData);
+    // Local bank only: this must never queue an AI request in front of the Chronicler.
+    import('../../features/campfire/campfireService.js').then(m => m.kindleCampfire(classId)).catch(() => {});
+    await crownHeroOfTheDay(classId, classData);
+}
+
+const crowningClassIds = new Set();
+const recentlyCrowned = new Map();
+
+function setCrownButtonBusy(busy) {
+    const btn = document.getElementById('log-adventure-btn');
+    if (!btn) return;
+    if (busy) {
+        btn.dataset.busy = '1';
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Summoning the crown…</span>`;
+        return;
+    }
+    delete btn.dataset.busy;
+    import('../../ui/tabs/log.js').then(m => m.syncAdventureLogTodayControls()).catch(() => {});
+}
+
+async function crownHeroOfTheDay(classId, classData) {
+    if (crowningClassIds.has(classId)) return;
+    crowningClassIds.add(classId);
+    setCrownButtonBusy(true);
+    try {
+        const lessonDate = getTodayDateString();
+        const presentStudents = getPresentStudentsForClass(classId);
+        const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
+        const [learnedModule, reasonMeta] = await Promise.all([
+            import('../../features/learnedToday.js'),
+            import('../../features/awardLogReasonMeta.js')
+        ]);
+        const [heroSelection, learnedToday] = await Promise.all([
+            _selectHeroOfTheDay(classId, presentStudents, classRef, getDoc(classRef)),
+            learnedModule.gatherLearnedToday(classId)
+        ]);
+        const todaysAwards = (state.get('allAwardLogs') || []).filter(a => a.classId === classId && utils.datesMatch(a.date, lessonDate));
+        const totalStars = todaysAwards.reduce((sum, a) => sum + reasonMeta.getAwardLogMonthlyStarCredit(a) + reasonMeta.getClassQuestBonusStarsFromAwardLog(a), 0);
+        const reasonLabels = [...new Set(todaysAwards.filter(a => a.reason !== 'marked_present').map(a => a.reason?.replaceAll('_', ' ')).filter(Boolean))];
+
+        const logId = await saveAdventureLogWithHeroWin({
+            classId,
+            date: lessonDate,
+            ...buildAwaitingPagePayload({ heroName: heroSelection.heroName }),
+            hero: heroSelection.heroName,
+            heroStudentId: heroSelection.heroStudentId || null,
+            pageStatus: PAGE_AWAITING,
+            entryMode: '',
+            ageTier: _getAgeTierFromLeague(classData.questLevel),
+            imageUrl: null,
+            topReason: reasonLabels[0] || 'excellence',
+            totalStars,
+            learnedToday,
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+            createdAt: serverTimestamp()
+        }, heroSelection.heroStudentId);
+        recentlyCrowned.set(classId, { date: lessonDate, logId, at: Date.now() });
+
+        await showHeroOfTheDayReveal(
+            heroSelection.heroStudentId,
+            'The Class Hero!',
+            { classId, logId, studentId: heroSelection.heroStudentId, learnedToday },
+            { diaryLogId: logId }
+        );
+    } catch (error) {
+        console.error('Crowning Hero of the Day failed:', error);
+        showToast('The crown could not be placed. Please try again.', 'error');
+    } finally {
+        crowningClassIds.delete(classId);
+        setCrownButtonBusy(false);
     }
 }
 
-function buildAdventureLogKeywords(text) {
-    return String(text || '')
-        .toLowerCase()
-        .split(/\s+/)
-        .map(word => word.replace(/[^\p{L}\p{N}_-]/gu, ''))
-        .filter(word => word.length > 3)
-        .slice(0, 6);
+/**
+ * Auto: hands a crowned, still-blank page to the AI Chronicler. Resolves once the page is
+ * claimed (status "Being written"); the text and artwork finish in the background with the
+ * usual retries. Throws a teacher-readable message when the page cannot be started.
+ */
+export async function writeAdventurePageWithChronicler(logId, { onStatus } = {}) {
+    const { canUseFeature } = await import('../../utils/subscription.js');
+    if (!canUseFeature('eliteAI')) throw new Error('The AI Chronicler is part of the Elite plan.');
+
+    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    const snap = await getDoc(logRef);
+    if (!snap.exists()) throw new Error('This diary page could not be found.');
+    const log = { id: snap.id, ...snap.data() };
+    if (log.createdBy?.uid !== state.get('currentUserId') || log.schoolYearKey !== state.getActiveSchoolYearKey()) {
+        throw new Error('This diary page belongs to another teacher or school year.');
+    }
+    if (!isAwaitingAdventurePage(log)) throw new Error('This page has already been written.');
+    const classData = state.get('allTeachersClasses').find(c => c.id === log.classId);
+    if (!classData) throw new Error('Could not load this class.');
+
+    onStatus?.("Gathering today's stars, words and moments.");
+    const [{ gatherAdventureLogContext }, { buildChroniclerPrompts }, reasonMeta] = await Promise.all([
+        import('../../features/adventureLogContext.js'),
+        import('../../features/adventureLogContextCore.mjs'),
+        import('../../features/awardLogReasonMeta.js')
+    ]);
+    const heroOfTheDay = log.hero || 'The Class Team';
+    const gathered = await gatherAdventureLogContext(log.classId, { date: log.date, hero: heroOfTheDay });
+    const lessonDate = log.date;
+    const ageTier = _getAgeTierFromLeague(gathered.classData?.questLevel || classData.questLevel);
+    const todaysAwards = gathered.awards.filter(a => a.classId === log.classId && utils.datesMatch(a.date, lessonDate));
+    const totalStars = todaysAwards.reduce((sum, a) => sum + reasonMeta.getAwardLogMonthlyStarCredit(a) + reasonMeta.getClassQuestBonusStarsFromAwardLog(a), 0);
+    const reasonLabels = [...new Set(todaysAwards.filter(a => a.reason !== 'marked_present').map(a => a.reason?.replaceAll('_', ' ')).filter(Boolean))];
+    const context = { ...gathered.context, hero: heroOfTheDay };
+    const learnedToday = (gathered.learnedToday?.items?.length || gathered.learnedToday?.words?.length)
+        ? gathered.learnedToday
+        : (log.learnedToday || gathered.learnedToday || { items: [], words: [], summary: '' });
+    const aiPrompts = buildChroniclerPrompts(context);
+    const requestId = crypto.randomUUID();
+    const placeholderDiary = buildAdventureLogPlaceholder({
+        className: gathered.classData?.name || classData.name,
+        heroOfTheDay,
+        totalStars,
+        topReasonsStr: reasonLabels.join(', ') || 'shared effort',
+        reasonLabels,
+        early: context.early
+    });
+
+    onStatus?.('The Chronicler takes up the quill.');
+    const claimed = await runTransaction(db, async tx => {
+        const fresh = await tx.get(logRef);
+        if (!fresh.exists()) throw new Error('This diary page could not be found.');
+        const data = fresh.data();
+        if (data.createdBy?.uid !== state.get('currentUserId') || data.schoolYearKey !== state.getActiveSchoolYearKey()) {
+            throw new Error('This diary page belongs to another teacher or school year.');
+        }
+        if (!isAwaitingAdventurePage(data)) return false;
+        tx.update(logRef, {
+            pageStatus: PAGE_WRITTEN,
+            entryMode: 'ai',
+            title: placeholderDiary.title,
+            text: placeholderDiary.entry,
+            highlights: placeholderDiary.highlights,
+            keywords: placeholderDiary.keywords,
+            ageTier,
+            topReason: reasonLabels[0] || data.topReason || 'excellence',
+            totalStars,
+            learnedToday,
+            chroniclerContext: context,
+            generationRequestId: requestId,
+            generationStatus: 'generating',
+            generationProvider: '',
+            generationAttempts: 0,
+            pendingRetryAt: null,
+            generationError: '',
+            generationSummary: describeAdventureLogGenerationStatus('generating'),
+            generationUpdatedAt: serverTimestamp(),
+            writtenAt: serverTimestamp()
+        });
+        return true;
+    });
+    if (!claimed) throw new Error('This page has already been written.');
+
+    runChroniclerInBackground({
+        logId,
+        aiPrompts,
+        context,
+        requestId,
+        classData: gathered.classData || classData,
+        heroOfTheDay,
+        ageTier,
+        reasonLabels,
+        totalStars
+    });
+    return { logId };
 }
 
-function syncHeroLine(text, heroName) {
-    const storyText = String(text || '').trim();
-    const normalizedHeroName = String(heroName || 'The Class Team').trim() || 'The Class Team';
-    const heroLine = `Hero of the Day: ${normalizedHeroName}.`;
-    const heroLinePattern = /(^|\n{1,2})Hero of the Day:\s*[^\n]+/im;
+/** Fire-and-forget: AI text + artwork, then the automatic retry ladder if the first attempt fails. */
+function runChroniclerInBackground(payload) {
+    const { logId, requestId } = payload;
+    finalizeAdventureLogGeneration({ ...payload, attemptNumber: 1, allowArtwork: true }).then(result => {
+        if (!result.superseded) showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
+    }).catch(async (error) => {
+        console.error('Chronicler text generation failed:', error);
+        const firstRetryDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[0] || null;
+        const queued = await updateAdventureLogGenerationState(logId, {
+            generationStatus: firstRetryDelay ? 'pending' : 'failed',
+            generationAttempts: 1,
+            generationError: String(error?.message || 'AI generation failed.'),
+            pendingRetryAt: firstRetryDelay ? new Date(Date.now() + firstRetryDelay).toISOString() : null,
+            generationUpdatedAt: serverTimestamp(),
+            generationSummary: describeAdventureLogGenerationStatus(firstRetryDelay ? 'pending' : 'failed')
+        }, requestId);
+        if (!queued) return;
 
-    if (!storyText) return heroLine;
-    if (heroLinePattern.test(storyText)) {
-        return storyText.replace(heroLinePattern, (match, prefix = '') => `${prefix}${heroLine}`);
-    }
-    return `${storyText}\n\n${heroLine}`;
+        if (firstRetryDelay) {
+            scheduleAdventureLogRetry({ ...payload, initialAttemptNumber: 1 }, firstRetryDelay, 0);
+            showToast('Chronicler AI is busy. The entry is saved and will retry automatically.', 'info');
+        } else {
+            showToast('Chronicler AI could not finish this entry yet.', 'error');
+        }
+    });
 }
 
 function buildAdventureLogPlaceholder({
@@ -516,18 +694,20 @@ async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
 function getPresentStudentsForClass(classId) {
     const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === getTodayDateString());
     const absentStudentIds = new Set(attendanceRecords.map(r => r.studentId));
-    return state.get('allStudents').filter(s => s.classId === classId && !absentStudentIds.has(s.id));
+    return state.get('allStudents').filter(s => s.classId === classId && s.enrollmentStatus !== 'inactive' && !absentStudentIds.has(s.id));
 }
 
-async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!', campfireDetail = null) {
-    if (!heroStudentId) {
-        if (campfireDetail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail: campfireDetail }));
-        return;
-    }
+/** Opens the Today's Page chooser straight away when there is no crowning to watch first. */
+function openDiaryChooserNow(diaryLogId) {
+    if (!diaryLogId) return;
+    import('../../ui/modals/diaryChooser.js').then(m => m.openDiaryChooser(diaryLogId)).catch(() => {});
+}
 
-    const heroStudent = state.get('allStudents').find(s => s.id === heroStudentId);
+async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!', campfireDetail = null, { diaryLogId = null } = {}) {
+    const heroStudent = heroStudentId ? state.get('allStudents').find(s => s.id === heroStudentId) : null;
     if (!heroStudent) {
         if (campfireDetail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail: campfireDetail }));
+        openDiaryChooserNow(diaryLogId);
         return;
     }
 
@@ -545,289 +725,10 @@ async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Her
     audio.ensureAudioReady?.().then(() => audio.primeHeroRevealSound?.()).catch(() => {});
     startHeroOfDayReveal({ hero: heroStudent, contenders, reasonText, audio });
     showAnimatedModal('hero-celebration-modal');
-    document.getElementById('hero-celebration-modal')._campfireDetail = campfireDetail;
-}
-
-async function handleAILogAdventure(classId, classData) {
-    const btn = document.getElementById('log-adventure-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
-
-    import('../../audio.js').then(m => m.playWritingLoop());
-
-    try {
-        const { gatherAdventureLogContext } = await import('../../features/adventureLogContext.js');
-        const { buildChroniclerPrompts } = await import('../../features/adventureLogContextCore.mjs');
-        const lessonDate = getTodayDateString();
-        const gathered = await gatherAdventureLogContext(classId, { date: lessonDate });
-        classData = gathered.classData;
-        const ageTier = _getAgeTierFromLeague(classData.questLevel);
-        const todaysAwards = gathered.awards.filter(a => a.classId === classId && utils.datesMatch(a.date, lessonDate));
-        const { getAwardLogMonthlyStarCredit, getClassQuestBonusStarsFromAwardLog } = await import('../../features/awardLogReasonMeta.js');
-        const totalStars = todaysAwards.reduce((sum, a) => sum + getAwardLogMonthlyStarCredit(a) + getClassQuestBonusStarsFromAwardLog(a), 0);
-        const reasonLabels = [...new Set(todaysAwards.filter(a => a.reason !== 'marked_present').map(a => a.reason?.replaceAll('_', ' ')).filter(Boolean))];
-        const topReasonsStr = reasonLabels.join(', ') || 'shared effort';
-        const absent = new Set(gathered.attendance.filter(a => a.classId === classId && utils.datesMatch(a.date, lessonDate) && a.status !== 'present').map(a => a.studentId));
-        const presentStudents = gathered.students.filter(s => s.enrollmentStatus !== 'inactive' && !absent.has(s.id));
-        const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
-        const heroSelection = await _selectHeroOfTheDay(classId, presentStudents, classRef, getDoc(classRef));
-        const heroOfTheDay = heroSelection.heroName, heroStudentId = heroSelection.heroStudentId;
-        const context = { ...gathered.context, hero: heroOfTheDay };
-        const learnedToday = gathered.learnedToday;
-        const aiPrompts = buildChroniclerPrompts(context);
-        const requestId = crypto.randomUUID();
-        const placeholderDiary = buildAdventureLogPlaceholder({
-            className: classData.name,
-            heroOfTheDay,
-            totalStars,
-            topReasonsStr,
-            reasonLabels,
-            early: context.early
-        });
-
-        const logId = await saveAdventureLogWithHeroWin({
-            classId,
-            date: lessonDate,
-            title: placeholderDiary.title,
-            text: placeholderDiary.entry,
-            highlights: placeholderDiary.highlights,
-            keywords: placeholderDiary.keywords,
-            hero: heroOfTheDay,
-            heroStudentId: heroStudentId || null,
-            entryMode: 'ai',
-            ageTier,
-            imageUrl: null,
-            topReason: reasonLabels[0] || 'excellence',
-            totalStars,
-            learnedToday,
-            chroniclerContext: context,
-            generationRequestId: requestId,
-            generationStatus: 'generating',
-            generationProvider: '',
-            generationAttempts: 0,
-            pendingRetryAt: null,
-            generationError: '',
-            generationSummary: describeAdventureLogGenerationStatus('generating'),
-            generationUpdatedAt: serverTimestamp(),
-            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-            createdAt: serverTimestamp()
-        }, heroStudentId);
-
-        // Stop the writing loop before the hero reveal so the fanfare
-        // always plays cleanly on a silent audio context.
-        const _audio = await import('../../audio.js');
-        _audio.stopWritingLoop();
-
-        await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!', { classId, logId, studentId: heroStudentId, learnedToday });
-
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
-
-        // Fire-and-forget: AI text + artwork generation runs in the background.
-        finalizeAdventureLogGeneration({
-            logId,
-            aiPrompts,
-            context,
-            requestId,
-            classData,
-            heroOfTheDay,
-            ageTier,
-            reasonLabels,
-            totalStars,
-            attemptNumber: 1,
-            allowArtwork: true
-        }).then(result => {
-            if (!result.superseded) showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
-        }).catch(async (error) => {
-            console.error('Chronicler text generation failed:', error);
-            const firstRetryDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[0] || null;
-            const queued = await updateAdventureLogGenerationState(logId, {
-                generationStatus: firstRetryDelay ? 'pending' : 'failed',
-                generationAttempts: 1,
-                generationError: String(error?.message || 'AI generation failed.'),
-                pendingRetryAt: firstRetryDelay ? new Date(Date.now() + firstRetryDelay).toISOString() : null,
-                generationUpdatedAt: serverTimestamp(),
-                generationSummary: describeAdventureLogGenerationStatus(firstRetryDelay ? 'pending' : 'failed')
-            }, requestId);
-            if (!queued) return;
-
-            if (firstRetryDelay) {
-                scheduleAdventureLogRetry({
-                    logId,
-                    aiPrompts,
-                    context,
-                    requestId,
-                    classData,
-                    heroOfTheDay,
-                    ageTier,
-                    reasonLabels,
-                    totalStars,
-                    initialAttemptNumber: 1
-                }, firstRetryDelay, 0);
-                showToast('Chronicler AI is busy. The entry is saved and will retry automatically.', 'info');
-            } else {
-                showToast('Chronicler AI could not finish this entry yet.', 'error');
-            }
-        });
-    } catch (error) {
-        console.error('Chronicler log adventure failed:', error);
-        showToast('Something went wrong. Please try again.', 'error');
-        import('../../audio.js').then(m => m.stopWritingLoop());
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
-    }
-}
-
-/** Optional, pre-filled "What we learned today" block for the manual log page. */
-function buildManualLearnedTodayHtml(learned, learnedModule) {
-    const picks = learnedModule.renderLearnedTodayPicksHtml(learned, 'learned');
-    const collected = picks
-        ? `${picks}<p class="adventure-log-editor-hint">Collected from today's lesson. Untick anything that does not fit.</p>`
-        : '<p class="adventure-log-editor-hint">Nothing collected yet today (no quiz, story, quest or trial). You can leave this empty.</p>';
-    return `
-        <div class="learned-today-box">
-            ${collected}
-            <input type="text" id="manual-log-learned-extra" maxlength="160" placeholder="Add your own line (optional), e.g. Describing people with adjectives" autocomplete="off">
-        </div>`;
-}
-
-function closeManualLogEditor() {
-    const overlay = document.getElementById('adventure-log-new-modal');
-    if (!overlay) return;
-    overlay._cleanup?.();
-    overlay.remove();
-    if (!document.getElementById('adventure-log-editor-modal')) {
-        document.body.classList.remove('adventure-log-editor-open');
-    }
-}
-
-async function handleManualLogAdventure(classId, classData) {
-    // Loaded on demand to keep it out of the shared actions chunk.
-    const [learnedModule, editor] = await Promise.all([
-        import('../../features/learnedToday.js'),
-        import('../../features/diaryPageEditor.js')
-    ]);
-    const learnedToday = await learnedModule.gatherLearnedToday(classId);
-
-    closeManualLogEditor();
-    const overlay = document.createElement('div');
-    overlay.id = 'adventure-log-new-modal';
-    overlay.className = 'adventure-log-editor-overlay adventure-log-editor-overlay--new';
-    overlay.innerHTML = editor.diaryPageEditorHtml({
-        ids: {
-            heading: 'adventure-log-new-title',
-            close: 'close-manual-log-btn',
-            title: 'manual-log-title',
-            counter: 'manual-log-title-counter',
-            story: 'manual-log-text',
-            highlights: 'manual-log-highlights',
-            cancel: 'cancel-manual-log-btn',
-            save: 'save-manual-log-btn'
-        },
-        heading: "Write today's page",
-        subtitle: `${editor.escapeDiaryEditorHtml(classData.name || 'Your class')}'s diary`,
-        dateLabel: editor.formatDiaryEditorDate(new Date()),
-        heroHtml: editor.diaryEditorHeroHtml('', { pending: true }),
-        learnedHtml: buildManualLearnedTodayHtml(learnedToday, learnedModule),
-        saveLabel: 'Save page & crown the Hero',
-        saveIcon: 'fa-crown'
-    });
-    document.body.appendChild(overlay);
-    document.body.classList.add('adventure-log-editor-open');
-
-    const titleInput = overlay.querySelector('#manual-log-title');
-    const counter = overlay.querySelector('#manual-log-title-counter');
-    const saveBtn = overlay.querySelector('#save-manual-log-btn');
-    const updateCounter = () => {
-        counter.textContent = `${titleInput.value.length} / 90`;
-        counter.classList.toggle('limit', titleInput.value.length > 80);
-    };
-    const onKey = (event) => {
-        if (saveBtn.disabled) return;
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            closeManualLogEditor();
-        }
-        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-            event.preventDefault();
-            saveBtn.click();
-        }
-    };
-    overlay._cleanup = () => document.removeEventListener('keydown', onKey);
-    document.addEventListener('keydown', onKey);
-    titleInput.addEventListener('input', updateCounter);
-    updateCounter();
-    editor.bindDiaryHighlightPreview(overlay.querySelector('#manual-log-highlights'), overlay);
-
-    overlay.addEventListener('click', (event) => {
-        if (event.target === overlay && !saveBtn.disabled) closeManualLogEditor();
-    });
-    overlay.querySelector('#close-manual-log-btn').addEventListener('click', closeManualLogEditor);
-    overlay.querySelector('#cancel-manual-log-btn').addEventListener('click', closeManualLogEditor);
-    saveBtn.addEventListener('click', async () => await saveManualLogEntry(classId, classData, learnedModule.readLearnedTodayPicks(overlay, learnedToday, 'learned', '#manual-log-learned-extra')));
-    requestAnimationFrame(() => titleInput.focus());
-}
-
-async function saveManualLogEntry(classId, classData, learnedToday = null) {
-    const title = document.getElementById('manual-log-title').value.trim();
-    const text = document.getElementById('manual-log-text').value.trim();
-    const highlightsText = document.getElementById('manual-log-highlights').value.trim();
-    
-    if (!title || !text) {
-        showToast('Please fill in both title and story.', 'error');
-        return;
-    }
-    
-    const logBtn = document.getElementById('log-adventure-btn');
-    const saveBtn = document.getElementById('save-manual-log-btn');
-    logBtn.disabled = true;
-    logBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Crowning the Hero…</span>`;
-
-    try {
-        const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
-        const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === getTodayDateString());
-        const presentStudents = getPresentStudentsForClass(classId);
-        const _manualClassRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
-        const heroSelection = await _selectHeroOfTheDay(classId, presentStudents, _manualClassRef, getDoc(_manualClassRef));
-        const storyText = syncHeroLine(text, heroSelection.heroName);
-        const keywords = buildAdventureLogKeywords(storyText);
-        
-        const logId = await saveAdventureLogWithHeroWin({
-            classId,
-            date: getTodayDateString(),
-            title: title.slice(0, 90),
-            text: storyText,
-            highlights: highlights.slice(0, 4),
-            keywords,
-            hero: heroSelection.heroName,
-            heroStudentId: heroSelection.heroStudentId || null,
-            entryMode: 'manual',
-            ageTier: _getAgeTierFromLeague(classData.questLevel),
-            imageUrl: null,
-            topReason: highlights[0] || 'excellence',
-            totalStars: todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0),
-            learnedToday: learnedToday || { items: [], words: [], summary: '' },
-            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-            createdAt: serverTimestamp()
-        }, heroSelection.heroStudentId);
-        
-        closeManualLogEditor();
-        showToast('Your adventure has been recorded!', 'success');
-
-        await showHeroOfTheDayReveal(heroSelection.heroStudentId, 'Crowned in today\'s chronicle!', { classId, logId, studentId: heroSelection.heroStudentId, learnedToday });
-    } catch (error) {
-        console.error("Error saving manual log:", error);
-        showToast('Failed to save your entry. Please try again.', 'error');
-    } finally {
-        logBtn.disabled = false;
-        logBtn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
-        if (saveBtn && document.body.contains(saveBtn)) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = `<i class="fas fa-crown" aria-hidden="true"></i><span>Save page &amp; crown the Hero</span>`;
-        }
-    }
+    const modal = document.getElementById('hero-celebration-modal');
+    modal._campfireDetail = campfireDetail;
+    // Huzzah! (ui/core/listeners.js) opens the Today's Page chooser for this page.
+    modal._diaryLogId = diaryLogId;
 }
 
 function _getAgeTierFromLeague(league) {

@@ -19,4 +19,3 @@ function run(file) {
 
 await run('capture-ui.mjs');
 await run('build.mjs');
-await run('print-pdf.mjs');

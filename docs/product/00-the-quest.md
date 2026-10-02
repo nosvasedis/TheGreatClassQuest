@@ -23,7 +23,7 @@ On a classroom PC:
 1. **Follow today’s schedule** (already on when you open the app) so the app switches to the class that has a lesson *now*, or **General view** when none is. You can always pick a class by hand; that pauses follow until you tap it again.
 2. **Award Stars** — Teamwork, Creativity, Respect, or Focus, one to three stars. Welcome a returning student. Notice a birthday. Let a classmate gift a Hero’s Boon when the heart is offered.
 3. Near the end: **Quest Assignment** (homework for next time) and **Attendance** if you have not already marked absences.
-4. **Log Today’s Adventure** — the Quest **automatically** crowns **Hero of the Day** as part of saving the diary (AI on Elite, your own words on Pro). You do not pick the hero in a separate step. After you close **Huzzah!**, **Gather at the Campfire** (Pro, optional) is a two-minute projector reflection on the words and Ember Oaths.
+4. **Crown Today’s Hero** — one press, and the Quest **automatically** crowns **Hero of the Day** (you never pick the name). After **Huzzah!**, **Today’s Page** asks how to write the diary: **Auto** (Elite, the AI Chronicler) or **Manual** (your own words), or **Later**. Once you choose, **Gather at the Campfire** (Pro, optional) is a two-minute projector reflection on the words and Ember Oaths.
 5. When it is the right week: **Quiz of the Week** (Home, Elite), **Fortune’s Wheel** (Guild Hall, last lesson of the week), or **Story Weavers**.
 
 **Anytime during the lesson** you may tap **TV** for **Projector Mode**. It is a **wallpaper** for the classroom display (sky, clocks, remaining time, rotating story cards) — open it when it helps, leave it running while you keep teaching on your usual tabs. It is not a step you must do before Award Stars.

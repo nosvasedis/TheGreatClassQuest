@@ -105,7 +105,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Festival Stall**, Elite **Familiar** eggs. |
 | **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
-| **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day** and records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment** (recognises the book, unit and pages), **Attendance Chronicle**. **Gather at the Campfire** (Pro) lights up after the crowning. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
+| **Adventure Log** | **Crown Today's Hero**, then write today's page: **Auto** (AI + image, Elite) or **Manual** (Pro). Records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment** (recognises the book, unit and pages), **Attendance Chronicle**. **Gather at the Campfire** (Pro) lights up after the crowning. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
 | **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |
 | **Quest Calendar** | Month grid, Day Planner, Quest Events. School-wide holidays are set in the **School Office**. **Pro.** |
 | **Story Weavers** | Collaborative story, Word of the Day, AI art, PDF print. **Elite.** |
@@ -127,7 +127,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 - Data (timestamp, reason, value) is written to Firestore; on **Pro**, **Hero Path** can grant **+10 Gold** for a matching reason and extra Gold or stars from that hero’s **Skill Tree**.
 
 ### 3. The End-of-Day Ritual (**Adventure Log**)
-- **"Log Today's Adventure"** (once per class per day, after stars). Crowns **Hero of the Day**.
+- **"Crown Today's Hero"** (once per class per day, after stars). One press crowns **Hero of the Day**; after **Huzzah!** a **Today's Page** card offers **Auto** (Elite: the Chronicler writes it) or **Manual** (you write the whole page, with an uploaded picture or, on Elite, one painted from your words). **Later** keeps the crowned page blank in the diary until you write it.
 - **Pro:** you write the diary and can add your own picture. **Elite:** AI writes a personal diary across the class's recorded activities and a **storybook-style** illustration. It includes tests and dictations, learning and homework, calendar events and holidays, and the class's other rituals when relevant. Upcoming plans stay distinct from completed activities; individual grades and private messages are excluded.
 - Entry is stored and can be revisited; **Pathfinder's Map** and **Mask of the Protagonist** can be reflected in the narrative.
 - **Hero Campfire (Pro, optional):** after Hero of the Day, **Gather at the Campfire** opens a 2-minute projector reflection: the words the class practised (from the last Quest Assignment and its book unit), one reflection question, a class glow check, and check-ins on **Ember Oaths** (small personal promises). Kept oaths become stars in the class sky and a **Star-Ember** keepsake, never stars or Gold.
@@ -265,7 +265,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 📜 Adventure Log
 
-- **Log Today's Adventure:** Needs stars awarded today; one log per class per day. **Pro:** you write the diary. **Elite:** AI gathers a dated class snapshot and writes a personal diary plus a storybook image; rewrites retain that lesson's evidence. **Edit** includes picture preview, upload, delete and (Elite) AI picture retry; picture changes apply when you save. Each log **automatically** crowns **Hero of the Day** (Mask of the Protagonist wins if pending; otherwise fair rotation among present students). You do not pick the name by hand.
+- **Crown Today's Hero:** Needs stars awarded today; one page per class per day. The crown comes first, then **Today's Page**: **Auto**, **Manual** or **Later** (a blank crowned page waits in the diary with *Write it myself*). **Pro:** you write the diary (Manual), with title ideas, story starters and today's words to tap in; your words are kept on this device until you save. **Elite:** AI gathers a dated class snapshot and writes a personal diary plus a storybook image; rewrites retain that lesson's evidence. **Edit** includes picture preview, upload, delete and (Elite) AI picture retry; picture changes apply when you save. The crowning picks **Hero of the Day** automatically (Mask of the Protagonist wins if pending; otherwise fair rotation among present students). You do not pick the name by hand.
 - **Hall of Heroes:** Hero of the Day win tallies and legend tiers — **not** the Prodigy archive. Open it from the log.
 - **Quest Assignment:** Schedule or view **Quest Assignments** (special tasks linked to the log).
 - **Attendance:** Opens **Attendance Chronicle** (month × students matrix, mark present/absent, monthly %).

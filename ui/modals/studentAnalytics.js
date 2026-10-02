@@ -2,6 +2,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { callGeminiApi } from '../../api.js';
 import { getAssessmentValueLabel, getClassAssessmentUsage, getNormalizedPercentForScore, getWeightedAcademicAverage } from '../../features/assessmentConfig.js';
+import { TRIAL_TYPE_GUIDE } from '../../features/trialTypesCore.mjs';
 import { showToast } from '../effects.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
@@ -891,7 +892,7 @@ function buildAiSummaryPrompt(data) {
     const areas = data.areasForGrowth.map((item) => `${item.label} (${item.average}%)`).join(', ') || 'No major weak areas';
     const alerts = data.alerts.map((item) => `${item.title}: ${item.message}`).join(' | ');
     return {
-        systemPrompt: 'You are an educational performance analyst. Produce concise, teacher-facing insight using plain English and short bullet points.',
+        systemPrompt: `You are an educational performance analyst. ${TRIAL_TYPE_GUIDE} Produce concise, teacher-facing insight using plain English and short bullet points.`,
         userPrompt: `Student: ${data.student.name}
 Class: ${data.classData?.name || 'Unknown'}
 Current grade band: ${data.currentGrade}
@@ -949,6 +950,7 @@ Prediction: ${data.prediction.predictedScore || 'N/A'}%
 Strengths: ${strengths}
 Weak topics: ${weakTopics}
 Alerts: ${data.alerts.map((item) => item.title).join(', ') || 'None'}
+Trial types: ${TRIAL_TYPE_GUIDE}
 Recent assessments:
 ${data.scores.slice(-6).map((entry) => `- ${entry.date}: ${entry.title || entry.type} => ${entry.normalizedPercent}%`).join('\n')}`;
 

@@ -575,6 +575,12 @@ function getActiveDashboard(classData, name, theme, spice) {
     const lastLogText = logs.length > 0 ? logs[0].text : "No adventures chronicled yet.";
     const lastLogDate = logs.length > 0 ? new Date(utils.parseDDMMYYYY(logs[0].date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
 
+    const absentTodayIds = new Set(
+        (state.get('allAttendanceRecords') || [])
+            .filter(r => r.classId === classId && r.date === today)
+            .map(r => r.studentId)
+    );
+
     const partyHeroes = students.map(s => {
         const scoreData = scores.find(sc => sc.id === s.id);
         return { id: s.id, name: s.name, avatar: s.avatar, monthlyStars: scoreData?.monthlyStars || 0, pendingSkillChoice: !!scoreData?.pendingSkillChoice };
@@ -598,7 +604,7 @@ function getActiveDashboard(classData, name, theme, spice) {
         `
         ${buildHomeQuestRoadCardHtml({ stars: monthlyStarsWithBonus, goal, bonus: classBonus, logo: classData.logo || '📚' })}
         
-        ${buildHomePartyCardHtml({ students: partyHeroes, virtueStars })}
+        ${buildHomePartyCardHtml({ students: partyHeroes, virtueStars, absentIds: absentTodayIds })}
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day for this class) -->
         <div id="grand-guild-ceremony-btn-class" class="hidden h-span-4">

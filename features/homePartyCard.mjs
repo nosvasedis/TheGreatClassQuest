@@ -40,11 +40,12 @@ export function arrangePartyRows(count) {
     return sizes;
 }
 
-function heroHtml(s, index, { leadId }) {
+function heroHtml(s, index, { leadId, absent }) {
     const name = String(s.name || '');
     const first = name.split(' ')[0] || name;
     const stars = formatStars(s.monthlyStars);
-    const label = `${name} (${stars} ⭐)`;
+    const isAbsent = absent.has(s.id);
+    const label = isAbsent ? `${name} — away today` : `${name} (${stars} ⭐)`;
     const inner = s.avatar
         ? `<img src="${esc(s.avatar)}" alt="${esc(name)}" loading="lazy" decoding="async" class="home-party__avatar enlargeable-avatar" data-student-id="${esc(s.id)}" title="${esc(label)}">`
         : `<div class="home-party__avatar home-party__avatar--initial enlargeable-avatar" data-student-id="${esc(s.id)}" title="${esc(label)}">${esc(name.charAt(0))}</div>`;
@@ -55,7 +56,15 @@ function heroHtml(s, index, { leadId }) {
     const lead = s.id === leadId
         ? '<span class="home-party__lead" title="Most stars this month" aria-hidden="true"><i class="fas fa-star"></i></span>'
         : '';
-    return `<div class="home-party__hero${s.id === leadId ? ' is-lead' : ''}" style="--i:${index}">${lead}${avatar}<span class="home-party__tag" aria-hidden="true">${esc(first)} <b>${stars}★</b></span></div>`;
+    // Away today: a small grey cloud, the same language the Award Stars card uses.
+    const away = isAbsent
+        ? '<span class="home-party__away" title="Away today" aria-hidden="true"><i class="fas fa-cloud-rain"></i></span>'
+        : '';
+    const tag = isAbsent
+        ? `<span class="home-party__tag home-party__tag--away" aria-hidden="true">${esc(first)} <b>away</b></span>`
+        : `<span class="home-party__tag" aria-hidden="true">${esc(first)} <b>${stars}★</b></span>`;
+    const classes = `home-party__hero${s.id === leadId ? ' is-lead' : ''}${isAbsent ? ' is-absent' : ''}`;
+    return `<div class="${classes}" style="--i:${index}">${lead}${away}${avatar}${tag}</div>`;
 }
 
 function meadowSvg() {
@@ -70,8 +79,10 @@ function meadowSvg() {
  * @param {object} p
  * @param {{id:string,name:string,avatar?:string,monthlyStars?:number,pendingSkillChoice?:boolean}[]} p.students
  * @param {Record<string, number>} p.virtueStars stars per award reason for this class
+ * @param {(string[]|Set<string>)} [p.absentIds] students away today, shown greyed out
  */
-export function buildHomePartyCardHtml({ students = [], virtueStars = {} } = {}) {
+export function buildHomePartyCardHtml({ students = [], virtueStars = {}, absentIds = [] } = {}) {
+    const absent = absentIds instanceof Set ? absentIds : new Set(absentIds);
     const heroes = [...students].sort((a, b) => String(a.name).localeCompare(String(b.name)));
     const ranked = Object.entries(virtueStars || {})
         .filter(([key, n]) => key && Number(n) > 0)
@@ -113,7 +124,7 @@ export function buildHomePartyCardHtml({ students = [], virtueStars = {} } = {})
         const widest = Math.max(...sizes);
         let at = 0;
         const rows = sizes.map((n, r) => {
-            const row = heroes.slice(at, at + n).map((s, k) => heroHtml(s, at + k, { leadId })).join('');
+            const row = heroes.slice(at, at + n).map((s, k) => heroHtml(s, at + k, { leadId, absent })).join('');
             at += n;
             // Equal rows would hide the back row behind the front one: shift it half a portrait.
             const stagger = r < sizes.length - 1 && sizes[r + 1] === n ? ' is-staggered' : '';
@@ -125,12 +136,17 @@ export function buildHomePartyCardHtml({ students = [], virtueStars = {} } = {})
     }
 
     const count = heroes.length;
+    const awayCount = heroes.filter(s => absent.has(s.id)).length;
+    const awayPill = awayCount > 0
+        ? `<span class="home-party__count home-party__count--away" title="${awayCount} away today"><i class="fas fa-cloud-rain"></i>${awayCount}<span class="home-party__count-label">away</span></span>`
+        : '';
     return `
         <div class="vibrant-card h-span-4 home-party" data-virtue="${top ? top.tone : 'meadow'}">
             <div class="home-party__sky" aria-hidden="true"><span class="home-party__sun"></span></div>
             <div class="home-party__head">
                 ${crest}
                 <span class="home-party__count" title="Heroes on the roster"><i class="fas fa-user-friends"></i>${count}<span class="home-party__count-label">${count === 1 ? 'hero' : 'heroes'}</span></span>
+                ${awayPill}
             </div>
             ${ribbon}
             <div class="home-party__stage">

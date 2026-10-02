@@ -223,8 +223,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'adventure-log', icon: 'fa-feather-pointed', name: 'Adventure Log', tier: 'pro',
                     where: 'Adventure Log tab', go: 'tab:adventure-log-tab',
-                    text: `Log Today's Adventure once stars have been awarded. On Pro you write the page yourself; on Elite the Chronicler weaves a personal diary from recorded lesson activity across the class: tests and dictations, homework and book work, quiz and stories, calendar events and holidays, birthdays, awards and boons, bounties, guilds, Hero Paths, Familiars, Market finds, Campfire and Ember Oaths. Upcoming plans stay distinct from things completed today; individual grades and private messages stay private. Edit lets you polish your page, upload or delete a picture, and on Elite retry just the AI picture. Picture changes take effect with Save changes; Cancel discards them. What we learned today fills itself in, and later AI rewrites use the saved lesson snapshot.`,
-                    keys: 'diary log today chronicler ai story what we learned picture upload delete retry tests dictations holidays'
+                    text: `Crown Today's Hero once stars have been awarded: one press reveals the Hero of the Day. After Huzzah!, choose how to write today's page: Auto (Elite) or Manual, where you write the whole page and upload a picture or, on Elite, paint one from your words. Later keeps the page blank in the diary until you return. On Elite the Chronicler weaves a personal diary from recorded lesson activity across the class: tests and dictations, homework and book work, quiz and stories, calendar events and holidays, birthdays, awards and boons, bounties, guilds, Hero Paths, Familiars, Market finds, Campfire and Ember Oaths. Upcoming plans stay distinct from things completed today; individual grades and private messages stay private. Edit lets you polish your page, upload or delete a picture, and on Elite retry just the AI picture. Picture changes take effect with Save changes; Cancel discards them. What we learned today fills itself in, and later AI rewrites use the saved lesson snapshot.`,
+                    keys: 'diary log today crown hero auto manual chronicler ai story what we learned picture upload paint delete retry tests dictations holidays'
                 },
                 {
                     id: 'hero-of-the-day', icon: 'fa-crown', name: 'Hero of the Day', tier: 'pro',
@@ -268,7 +268,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'scholars-scroll', icon: 'fa-scroll', name: "Scholar's Scroll", tier: 'pro',
                     where: "Scholar's Scroll tab", go: 'tab:scholars-scroll-tab',
-                    text: `Log New Trial opens a marking board with the whole class on one sheet: tap a grade stamp or type a score and press Enter, and stamp anyone absent. View History to edit a trial. Pending make-ups stay listed until you log or dismiss them.`,
+                    text: `Log New Trial opens a marking board with the whole class on one sheet: tap a grade stamp or type a score and press Enter, and stamp anyone absent. View History to edit a trial. Pending make-ups stay listed until you log or dismiss them. A dictation is a written vocabulary check: children write the words they have learned, so it is never a listening or speaking task.`,
                     keys: 'tests dictations grades trial marking board make-ups history'
                 },
                 {
@@ -577,8 +577,8 @@ export const LESSON_ROUTE = [
     },
     {
         icon: 'fa-feather-pointed',
-        title: "Log today's adventure",
-        text: `Saving the diary page crowns the Hero of the Day by itself (Pro). Then, if you like, gather at the Campfire for two minutes.`
+        title: "Crown today's Hero",
+        text: `One press crowns the Hero of the Day (Pro). After Huzzah!, write today's page with Auto (Elite) or Manual, or keep it for later. Then, if you like, gather at the Campfire for two minutes.`
     },
     {
         icon: 'fa-calendar-week',

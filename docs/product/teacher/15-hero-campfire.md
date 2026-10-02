@@ -9,8 +9,8 @@ Stars recognise actions. The Campfire adds the two habits the rest of the Quest 
 ## When it appears
 
 - The Campfire is prepared **quietly**: writing the Quest Assignment (for next time) starts the pack in the background, and the last 15 minutes of a lesson (or after half the lesson once stars have been awarded) finishes today’s script. It needs no waiting. On **Elite**, AI may polish the reflection question and closing lines, and may reorder or trim the word list — it never invents a word.
-- When you close the Hero of the Day celebration (**Huzzah!**), **Gather at the Campfire** lights up in the Adventure Log, under Log Today’s Adventure and Hall of Heroes, where the Ember Oaths button usually sits. A small pill also appears on Home. The hearth sits in the same bubbly family as **🔥 Ember Oaths**; the Oaths chip on it is that same rose-ember button, with a **ready** badge when promises can be kept.
-- It never opens by itself. The small **×** on it means “not today”. It is on for every class; there is nothing to switch on.
+- When you close the Hero of the Day celebration (**Huzzah!**) and choose how to write today’s page (Auto, Manual or Later), **Gather at the Campfire** lights up in the Adventure Log, under Crown Today’s Hero and Hall of Heroes, where the Ember Oaths button usually sits. A small **Hero Campfire** badge also appears first among the reminder badges in the Home greeting card; tap it to gather there. The hearth sits in the same bubbly family as **🔥 Ember Oaths**; the Oaths chip on it is that same rose-ember button, with a **ready** badge when promises can be kept.
+- It never opens by itself. The small **×** on it (in the Adventure Log and on the Home badge) means “not today” and hides both until tomorrow. It is on for every class; there is nothing to switch on.
 - After the ritual the button rests as **Campfire held · Relight**.
 
 ## What the class sees (seven moments)

@@ -66,7 +66,7 @@ For Nursery and Pre-Junior classes the report leaves out per-hero star counts an
 
 ## Profile
 
-**Quest cursor** turns the sky-blue and gold mouse pointer on or off immediately for this browser. It follows links, actions, text fields, drag and loading states. Choose off to use your system pointer. Touch and high-contrast mode use the system pointer automatically; reduced motion stops its click twinkles and loading orbit.
+**Quest cursor** turns the sky-blue and gold mouse pointer on or off immediately for this browser. It follows links, actions, text fields, drag and loading states. Choose off to use your system pointer. Touch and high-contrast mode use the system pointer automatically; reduced motion keeps the shapes but stops their pops, click sparkles and the turning hourglass.
 
 Your **display name** — the Quest Master name on logs, ceremonies, and the Adventurer’s Guide greeting. A staff badge beside the box shows the name as you type. **Save Name**.
 

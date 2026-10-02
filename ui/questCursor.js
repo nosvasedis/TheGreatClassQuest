@@ -1,10 +1,42 @@
-// Continuous cursor artwork, with native fallbacks and short click twinkles.
-import { getQuestCursorAssets, resolveQuestCursor } from './questCursorCore.mjs';
+// Quest cursors are always real OS cursors: they move with zero lag and never blur.
+// Life comes from swapping pre-built frames on the hovered element: a quick pop when the
+// state changes, a press while the button is held, and a calmly turning hourglass.
+import { ANIMATED_STATES, HOURGLASS_FRAMES, getQuestCursorFrameSet, resolveQuestCursor } from './questCursorCore.mjs';
 
 const STORAGE_KEY = 'gcq-quest-cursor-enabled';
 const INTERACTIVE = 'button, a[href], select, summary, label[for], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="button"], input[type="submit"], input[type="reset"], input[type="color"], input[type="file"], [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], .cursor-pointer';
 const TEXT_INPUT = 'textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="color"]):not([type="file"]):not([type="hidden"]), [contenteditable=""], [contenteditable="true"], [role="textbox"]';
+const WAITING = '#loading-screen:not(.hidden), [data-cursor-busy="wait"]';
+const BUSY = '[aria-busy="true"], [data-cursor-busy="true"]';
+const MEDIA = '(any-hover: hover) and (any-pointer: fine) and (forced-colors: none)';
+// A state change pops in: slightly small, a touch of overshoot, then at rest.
+const POP = [['enter', 0], ['settle', 55], [null, 125]];
+const RELEASE = [['settle', 0], [null, 80]];
+// Leaving and re-entering a busy state quickly keeps the hourglass where it was.
+const HOURGLASS_MEMORY = 1500;
+const HOURGLASS_CYCLE = HOURGLASS_FRAMES.reduce((sum, frame) => sum + frame.duration, 0);
 let teardown;
+
+function hourglassFrameAt(elapsed) {
+    let t = ((elapsed % HOURGLASS_CYCLE) + HOURGLASS_CYCLE) % HOURGLASS_CYCLE;
+    for (let i = 0; i < HOURGLASS_FRAMES.length; i++) {
+        if (t < HOURGLASS_FRAMES[i].duration) return { index: i, remaining: HOURGLASS_FRAMES[i].duration - t };
+        t -= HOURGLASS_FRAMES[i].duration;
+    }
+    return { index: 0, remaining: HOURGLASS_FRAMES[0].duration };
+}
+
+function cursorRules(frameSet, supported) {
+    const css = asset => supported ? asset.css : asset.fallbackCss;
+    const select = (mode, frame) => `:is(.gcq-quest-cursor, .gcq-quest-cursor *)[data-gcq-cursor="${mode}"]` +
+        (frame ? `[data-gcq-frame="${frame}"]` : '');
+    const rules = [`html.gcq-quest-cursor { cursor: ${css(frameSet.default.rest)}; }`];
+    for (const [mode, { rest, frames }] of Object.entries(frameSet)) {
+        rules.push(`${select(mode)} { cursor: ${css(rest)} !important; }`);
+        for (const [frame, asset] of Object.entries(frames)) rules.push(`${select(mode, frame)} { cursor: ${css(asset)} !important; }`);
+    }
+    return `@media ${MEDIA} {\n${rules.join('\n')}\n}`;
+}
 
 export function setupQuestCursor() {
     if (teardown) return teardown;
@@ -15,127 +47,113 @@ export function setupQuestCursor() {
     const abort = new AbortController();
     let enabled = true;
     try { enabled = localStorage.getItem(STORAGE_KEY) !== 'false'; } catch { /* private browsing */ }
-    const assets = getQuestCursorAssets();
-    for (const [mode, asset] of Object.entries(assets)) root.style.setProperty(`--gcq-cursor-${mode}`, asset.css);
 
+    const sheet = document.createElement('style');
+    sheet.id = 'gcq-quest-cursor-frames';
+    document.head.append(sheet);
     const effects = document.createElement('div');
     effects.className = 'gcq-cursor-effects';
     effects.setAttribute('aria-hidden', 'true');
-    const visual = document.createElement('span');
-    visual.className = 'gcq-cursor-visual';
-    visual.hidden = true;
-    const glyphs = new Map();
-    for (const [state, asset] of Object.entries(assets)) {
-        // Both busy semantics share one animation, so it never restarts between them.
-        if (state === 'progress') { glyphs.set(state, glyphs.get('wait')); continue; }
-        const glyph = document.createElement('span');
-        glyph.className = `gcq-cursor-glyph${state === 'wait' ? ' gcq-cursor-hourglass' : ''}`;
-        glyph.dataset.cursorArt = state;
-        glyph.innerHTML = decodeURIComponent(asset.url.split(',')[1]);
-        glyph.firstElementChild.style.left = `${16 - asset.x}px`;
-        glyph.firstElementChild.style.top = `${16 - asset.y}px`;
-        visual.append(glyph);
-        glyphs.set(state, glyph);
-    }
-    effects.append(visual);
     document.body.append(effects);
 
     let target = null;
     let mode = 'native';
+    let frame = null;
     let pointer = null;
-    let frame = 0;
+    let pointerHit = null;
+    let raf = 0;
     let assetsReady = false;
     let nativePixelRatio = 0;
     let nativeRevision = 0;
     let dragging = false;
-    let activeGlyph = null;
-    const swaps = new Map();
-    let idleTimer = 0;
-    let moving = false;
-    let pointerHit = null;
+    let pressed = false;
+    let poseTimers = [];
+    let hourglassTimer = 0;
+    let hourglassEpoch = 0;
+    let hourglassLeft = -Infinity;
     const allowed = () => assetsReady && enabled && fine.matches && !contrast.matches && pointer !== 'touch';
+    const animate = () => !motion.matches && !document.hidden;
+
+    function setFrame(next) {
+        frame = next;
+        if (!target) return;
+        if (next === null) target.removeAttribute('data-gcq-frame');
+        else target.setAttribute('data-gcq-frame', next);
+    }
     function clearTarget() {
         target?.removeAttribute('data-gcq-cursor');
+        target?.removeAttribute('data-gcq-frame');
         target = null;
     }
-    function positionVisual() {
-        const dpr = window.devicePixelRatio || 1;
-        visual.style.left = `${Math.round(pointer.x * dpr) / dpr}px`;
-        visual.style.top = `${Math.round(pointer.y * dpr) / dpr}px`;
+    function stopPose() {
+        poseTimers.forEach(clearTimeout);
+        poseTimers = [];
     }
-    function finishSwap() {
-        if (!swaps.size) return;
-        for (const swap of swaps.values()) swap.cancel();
-        swaps.clear();
-        for (const glyph of visual.children) glyph.classList.remove('is-leaving');
+    function playPose(steps) {
+        stopPose();
+        if (!animate() || ANIMATED_STATES.has(mode)) { setFrame(null); return; }
+        for (const [pose, delay] of steps) {
+            if (!delay) setFrame(pose);
+            else poseTimers.push(setTimeout(() => setFrame(pose), delay));
+        }
     }
-    function parkVisual() {
-        finishSwap();
-        if (visual.hidden) return;
-        visual.hidden = true;
-        root.classList.remove('gcq-cursor-overlay');
+    function stopHourglass() {
+        if (!hourglassTimer) return;
+        clearTimeout(hourglassTimer);
+        hourglassTimer = 0;
+        hourglassLeft = performance.now();
     }
-    function showVisual(state) {
-        const next = state && glyphs.get(state);
-        if (!next) {
-            parkVisual();
-            activeGlyph?.classList.remove('is-active');
-            activeGlyph = null;
+    function tickHourglass() {
+        hourglassTimer = 0;
+        if (!ANIMATED_STATES.has(mode) || !animate()) { setFrame(null); return; }
+        const now = performance.now();
+        const { index, remaining } = hourglassFrameAt(now - hourglassEpoch);
+        if (frame !== String(index)) setFrame(String(index));
+        hourglassTimer = setTimeout(tickHourglass, Math.max(16, remaining));
+    }
+    function startHourglass() {
+        if (hourglassTimer) return;
+        const now = performance.now();
+        if (now - hourglassLeft > HOURGLASS_MEMORY) hourglassEpoch = now;
+        tickHourglass();
+    }
+    function apply(nextTarget, nextMode) {
+        const previousMode = mode;
+        if (nextTarget !== target) {
+            clearTarget();
+            target = nextTarget;
+        }
+        mode = nextMode;
+        if (!target) {
+            stopPose();
+            stopHourglass();
+            frame = null;
             return;
         }
-        positionVisual();
-        const busy = state === 'wait' || state === 'progress';
-        if (next === activeGlyph) {
-            if (busy && !moving) {
-                visual.hidden = false;
-                root.classList.add('gcq-cursor-overlay');
-            }
+        target.setAttribute('data-gcq-cursor', mode);
+        if (ANIMATED_STATES.has(mode)) {
+            stopPose();
+            if (animate()) startHourglass();
+            else stopHourglass();
+            // A new element under the same busy cursor takes over the current frame instantly.
+            setFrame(animate() && hourglassTimer ? String(hourglassFrameAt(performance.now() - hourglassEpoch).index) : null);
             return;
         }
-        const previous = activeGlyph;
-        finishSwap();
-        previous?.classList.remove('is-active');
-        next.classList.add('is-active');
-        activeGlyph = next;
-        // Movement always belongs to the OS cursor. Never stretch, blend or
-        // chase the pointer with a composited bitmap during mouse movement.
-        if (moving || !previous) {
-            if (busy && !moving) {
-                visual.hidden = false;
-                root.classList.add('gcq-cursor-overlay');
-            } else parkVisual();
-            return;
+        stopHourglass();
+        if (mode !== previousMode) {
+            pressed = false;
+            playPose(POP);
+        } else {
+            // Same state on a new element: carry the pose over without restarting it.
+            setFrame(pressed && animate() ? 'press' : frame);
         }
-        previous.classList.add('is-leaving');
-        visual.hidden = false;
-        root.classList.add('gcq-cursor-overlay');
-        // One opaque silhouette on each side of a shared reveal boundary.
-        // No crossfade, fractional scaling or double exposure of the artwork.
-        const timing = { duration: 90, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'forwards' };
-        const startTime = document.timeline.currentTime;
-        const outgoing = previous.animate([
-            { clipPath: 'inset(0 0px 0 0)' }, { clipPath: 'inset(0 48px 0 0)' },
-        ], timing);
-        const incoming = next.animate([
-            { clipPath: 'inset(0 0 0 48px)' }, { clipPath: 'inset(0 0 0 0px)' },
-        ], timing);
-        outgoing.startTime = incoming.startTime = startTime;
-        swaps.set(previous, outgoing);
-        swaps.set(next, incoming);
-        incoming.onfinish = () => {
-            if (activeGlyph !== next || swaps.get(next) !== incoming) return;
-            finishSwap();
-            if (!busy) parkVisual();
-        };
     }
     function hide() {
-        clearTimeout(idleTimer);
-        moving = false;
         pointer = null;
         pointerHit = null;
-        clearTarget();
-        showVisual(null);
-        effects.querySelectorAll('.gcq-cursor-twinkle').forEach(el => el.remove());
+        pressed = false;
+        apply(null, 'native');
+        effects.replaceChildren();
     }
     function syncPreference() {
         const toggle = document.getElementById('quest-cursor-toggle');
@@ -143,34 +161,36 @@ export function setupQuestCursor() {
         root.classList.toggle('gcq-quest-cursor', allowed());
     }
     function refresh(hit = null) {
-        if (frame) cancelAnimationFrame(frame);
-        frame = 0;
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
         syncPreference();
-        clearTarget();
-        if (!allowed() || !pointer || document.hidden) { showVisual(null); return; }
+        if (!allowed() || !pointer || pointer === 'touch' || document.hidden) { apply(null, 'native'); return; }
         const el = hit instanceof Element ? hit : document.elementFromPoint(pointer.x, pointer.y);
-        if (!el || el.closest('.gcq-cursor-effects')) { showVisual(null); return; }
+        if (!el || el.closest('.gcq-cursor-effects')) { apply(null, 'native'); return; }
         pointerHit = el;
+        // Read the page's own cursor, not ours: lift our marker for this synchronous read only,
+        // so no frame is ever painted without it.
+        const marked = el === target;
+        if (marked) el.removeAttribute('data-gcq-cursor');
         const style = getComputedStyle(el);
+        const cursor = style.cursor;
+        if (marked) el.setAttribute('data-gcq-cursor', mode);
         const control = el.closest(INTERACTIVE);
         const field = el.closest(TEXT_INPUT);
         const disabled = Boolean(el.closest(':disabled, [aria-disabled="true"], [inert]'));
-        const busy = Boolean(el.closest('[aria-busy="true"], [data-cursor-busy="true"], #loading-screen:not(.hidden)')) ||
+        const waiting = Boolean(el.closest(WAITING));
+        const busy = waiting ? 'wait' : Boolean(el.closest(BUSY)) ||
             Boolean(disabled && control?.querySelector('.fa-spinner.fa-spin, .fa-circle-notch.fa-spin, .animate-spin, [role="progressbar"]'));
         const ownText = Array.from(el.childNodes).some(node => node.nodeType === 3 && node.textContent.trim());
-        mode = resolveQuestCursor({ cursor: style.cursor, busy, disabled,
+        let next = resolveQuestCursor({ cursor, busy, disabled,
             interactive: Boolean(control),
             text: Boolean(field) || (!control && ownText && style.userSelect !== 'none' && style.webkitUserSelect !== 'none'),
             native: Boolean(el.closest('[data-gcq-native-cursor], iframe')) });
-        if (dragging) mode = 'native';
-        if (mode !== 'native') {
-            target = el;
-            target.setAttribute('data-gcq-cursor', mode);
-        }
-        showVisual(!motion.matches && mode !== 'native' ? mode : null);
+        if (dragging) next = 'native';
+        apply(next === 'native' ? null : el, next);
     }
     function schedule() {
-        if (!frame) frame = requestAnimationFrame(() => refresh());
+        if (!raf) raf = requestAnimationFrame(() => refresh());
     }
     function move(event) {
         if (event.pointerType !== 'mouse') {
@@ -182,65 +202,76 @@ export function setupQuestCursor() {
             return;
         }
         pointer = { x: event.clientX, y: event.clientY };
-        moving = true;
-        parkVisual();
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(() => {
-            moving = false;
-            if (pointer && allowed() && !motion.matches && !dragging && !document.hidden) {
-                showVisual(mode !== 'native' ? mode : null);
-            }
-        }, 90);
-        // Update semantics synchronously when crossing a control boundary.
+        // Movement itself never touches styles; only crossing into another element does.
         if (event.type === 'pointerover' || !pointerHit) refresh(event.target);
     }
     function press(event) {
         move(event);
-        if (!allowed() || event.pointerType !== 'mouse' || event.button !== 0 || motion.matches) return;
+        if (!allowed() || event.pointerType !== 'mouse' || event.button !== 0) return;
         refresh();
-        if (mode !== 'pointer') return;
+        if (!target || ANIMATED_STATES.has(mode) || mode === 'text' || !animate()) return;
+        pressed = true;
+        stopPose();
+        setFrame('press');
+        if (mode === 'pointer') twinkle(event.clientX, event.clientY);
+    }
+    function release(event) {
+        if (pressed) {
+            pressed = false;
+            if (target && !ANIMATED_STATES.has(mode)) playPose(RELEASE);
+        }
+        if (event.type === 'pointerup') schedule();
+    }
+    function twinkle(x, y) {
         const spark = document.createElement('span');
         spark.className = 'gcq-cursor-twinkle';
-        spark.style.left = `${event.clientX}px`;
-        spark.style.top = `${event.clientY}px`;
-        spark.innerHTML = '<i></i><i></i><i></i>';
-        // Rapid clicking has a bounded number of decorative elements.
-        while (effects.children.length > 5) effects.lastElementChild.remove();
+        spark.style.left = `${x}px`;
+        spark.style.top = `${y}px`;
+        spark.innerHTML = '<b></b><i></i><i></i><i></i><i></i>';
+        // Rapid clicking keeps a bounded number of decorative elements.
+        while (effects.children.length > 4) effects.firstElementChild.remove();
         effects.append(spark);
         spark.addEventListener('animationend', () => spark.remove(), { once: true });
-        setTimeout(() => spark.remove(), 500);
+        setTimeout(() => spark.remove(), 700);
     }
     function preference(event) {
         if (event.target.id !== 'quest-cursor-toggle') return;
         enabled = event.target.checked;
         try { localStorage.setItem(STORAGE_KEY, String(enabled)); } catch { /* session preference still works */ }
-        if (!enabled) effects.querySelectorAll('.gcq-cursor-twinkle').forEach(el => el.remove());
+        if (!enabled) effects.replaceChildren();
         schedule();
     }
     function environmentChanged() {
         if (!fine.matches || contrast.matches || document.hidden) hide();
-        if (motion.matches) effects.querySelectorAll('.gcq-cursor-twinkle').forEach(el => el.remove());
-        schedule();
+        if (!animate()) {
+            effects.replaceChildren();
+            stopPose();
+            stopHourglass();
+            setFrame(null);
+        }
+        // Force a fresh evaluation so a resumed hourglass starts ticking again.
+        const hit = pointerHit;
+        pointerHit = null;
+        if (pointer && pointer !== 'touch' && hit) refresh();
+        else schedule();
     }
     const on = (node, name, callback, options = {}) => node.addEventListener(name, callback, { ...options, signal: abort.signal });
     on(document, 'pointerover', move, { passive: true });
     on(document, 'pointermove', move, { passive: true });
     on(document, 'pointerdown', press, { capture: true, passive: true });
-    on(document, 'pointerup', schedule, { passive: true });
-    on(document, 'pointercancel', hide, { passive: true });
+    on(document, 'pointerup', release, { capture: true, passive: true });
+    on(document, 'pointercancel', event => { release(event); hide(); }, { passive: true });
     on(document, 'scroll', schedule, { capture: true, passive: true });
     on(document, 'change', preference);
     on(root, 'pointerleave', hide);
     on(window, 'blur', hide);
     on(window, 'resize', () => {
-        // Resize/zoom invalidates cached client coordinates; keep the OS cursor
-        // until the next pointer event supplies its actual position.
+        // Resize/zoom invalidates cached client coordinates; wait for the next real pointer event.
         hide();
         prepareNativeResolution();
-        schedule();
     }, { passive: true });
     on(document, 'visibilitychange', environmentChanged);
-    on(document, 'dragstart', () => { dragging = true; clearTarget(); showVisual(null); });
+    on(document, 'dragstart', () => { dragging = true; apply(null, 'native'); });
     on(document, 'dragend', () => { dragging = false; schedule(); });
     for (const query of [fine, contrast, motion]) on(query, 'change', environmentChanged);
     // Only observed UI changes trigger refreshes while the mouse is stationary.
@@ -267,19 +298,19 @@ export function setupQuestCursor() {
         if (ratio === nativePixelRatio) return;
         nativePixelRatio = ratio;
         const revision = ++nativeRevision;
-        const bindings = Object.entries(getQuestCursorAssets(ratio)).map(([state, asset]) => {
-            const supported = CSS.supports('cursor', asset.css);
-            return { state, css: supported ? asset.css : asset.fallbackCss, url: supported ? asset.nativeUrl : asset.url };
-        });
-        // Decode the device-resolution images before replacing native artwork.
-        Promise.all(bindings.map(binding => new Promise(resolve => {
+        const frameSet = getQuestCursorFrameSet(ratio);
+        const supported = CSS.supports('cursor', frameSet.default.rest.css);
+        const urls = Object.values(frameSet).flatMap(({ rest, frames }) =>
+            [rest, ...Object.values(frames)].map(asset => supported ? asset.nativeUrl : asset.url));
+        // Decode every frame before switching, so no frame can ever fall back to a system cursor.
+        Promise.all(urls.map(url => new Promise(resolve => {
             const img = new Image();
-            img.onload = () => resolve(true);
+            img.onload = () => (img.decode ? img.decode().then(() => resolve(true), () => resolve(true)) : resolve(true));
             img.onerror = () => resolve(false);
-            img.src = binding.url;
+            img.src = url;
         }))).then(results => {
             if (abort.signal.aborted || revision !== nativeRevision || !results.every(Boolean)) return;
-            for (const binding of bindings) root.style.setProperty(`--gcq-cursor-${binding.state}`, binding.css);
+            sheet.textContent = cursorRules(frameSet, supported);
             assetsReady = true;
             schedule();
         });
@@ -288,13 +319,13 @@ export function setupQuestCursor() {
     teardown = () => {
         abort.abort();
         observer.disconnect();
-        cancelAnimationFrame(frame);
+        cancelAnimationFrame(raf);
+        stopPose();
+        stopHourglass();
         clearTarget();
-        clearTimeout(idleTimer);
-        finishSwap();
         effects.remove();
-        root.classList.remove('gcq-quest-cursor', 'gcq-cursor-overlay');
-        for (const key of Object.keys(assets)) root.style.removeProperty(`--gcq-cursor-${key}`);
+        sheet.remove();
+        root.classList.remove('gcq-quest-cursor');
         teardown = undefined;
     };
     if (import.meta.hot) import.meta.hot.dispose(teardown);

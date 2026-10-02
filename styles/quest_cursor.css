@@ -1,25 +1,6 @@
-/* Native artwork remains the fallback for reduced motion and before decoding. */
-@media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) {
-    html.gcq-quest-cursor { cursor: var(--gcq-cursor-default); }
-    .gcq-quest-cursor [data-gcq-cursor="default"] { cursor: var(--gcq-cursor-default) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="pointer"] { cursor: var(--gcq-cursor-pointer) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="text"] { cursor: var(--gcq-cursor-text) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="wait"] { cursor: var(--gcq-cursor-wait) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="progress"] { cursor: var(--gcq-cursor-progress) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="grab"] { cursor: var(--gcq-cursor-grab) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="grabbing"] { cursor: var(--gcq-cursor-grabbing) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="blocked"] { cursor: var(--gcq-cursor-blocked) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="help"] { cursor: var(--gcq-cursor-help) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="crosshair"] { cursor: var(--gcq-cursor-crosshair) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="move"] { cursor: var(--gcq-cursor-move) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="zoom-in"] { cursor: var(--gcq-cursor-zoom-in) !important; }
-    .gcq-quest-cursor [data-gcq-cursor="zoom-out"] { cursor: var(--gcq-cursor-zoom-out) !important; }
-    :where(.gcq-quest-cursor [data-gcq-native-cursor]) { cursor: auto; }
-}
-
-@media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) and (prefers-reduced-motion: no-preference) {
-    .gcq-quest-cursor.gcq-cursor-overlay [data-gcq-cursor] { cursor: none !important; }
-}
+/* Quest cursor artwork and frames are injected by ui/questCursor.js as native cursor rules
+   (#gcq-quest-cursor-frames). This file only styles the decorative click twinkle. */
+:where(.gcq-quest-cursor [data-gcq-native-cursor]) { cursor: auto; }
 
 .gcq-cursor-effects {
     position: fixed;
@@ -29,68 +10,45 @@
     overflow: hidden;
     contain: strict;
 }
-.gcq-cursor-visual { position: absolute; top: 0; left: 0; }
-.gcq-cursor-visual[hidden] { display: none; }
-.gcq-cursor-glyph {
+.gcq-cursor-twinkle { position: absolute; width: 0; height: 0; }
+.gcq-cursor-twinkle b {
     position: absolute;
-    left: -16px;
-    top: -16px;
-    width: 48px;
-    height: 48px;
-    opacity: 0;
+    left: -9px;
+    top: -9px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .85);
+    animation: gcq-cursor-ring 460ms cubic-bezier(.22, 1, .36, 1) both;
 }
-.gcq-cursor-glyph.is-active, .gcq-cursor-glyph.is-leaving { opacity: 1; }
-.gcq-cursor-glyph svg { position: absolute; display: block; width: 32px; height: 32px; }
-.gcq-cursor-hourglass svg {
-    display: block;
-    transform-origin: center;
-    animation: gcq-hourglass-turn 2600ms step-end infinite;
-}
-.gcq-cursor-hourglass .gcq-hourglass-sand-top,
-.gcq-cursor-hourglass .gcq-hourglass-sand-bottom {
-    animation: gcq-hourglass-drain 2600ms linear infinite;
-}
-.gcq-cursor-hourglass .gcq-hourglass-sand-bottom { animation-name: gcq-hourglass-fill; }
-.gcq-cursor-hourglass .gcq-hourglass-stream { animation: gcq-hourglass-stream 2600ms linear infinite; }
-.gcq-cursor-hourglass:not(.is-active) svg,
-.gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-sand-top,
-.gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-sand-bottom,
-.gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-stream { animation-play-state: paused; }
-@keyframes gcq-hourglass-turn {
-    0%, 88% { transform: rotate(0deg); }
-    89%, 100% { transform: rotate(180deg); }
-}
-@keyframes gcq-hourglass-drain {
-    0% { clip-path: inset(0 0 0 0); }
-    72%, 100% { clip-path: inset(100% 0 0 0); }
-}
-@keyframes gcq-hourglass-fill {
-    0% { clip-path: inset(100% 0 0 0); }
-    72%, 100% { clip-path: inset(0 0 0 0); }
-}
-@keyframes gcq-hourglass-stream {
-    0%, 72% { opacity: 1; }
-    76%, 100% { opacity: 0; }
-}
-.gcq-cursor-twinkle { position: absolute; width: 0; height: 0; animation: gcq-cursor-fade 420ms ease-out both; }
 .gcq-cursor-twinkle i {
     position: absolute;
-    width: 7px;
-    height: 7px;
+    left: -4px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
     background: #fbbf24;
-    clip-path: polygon(50% 0, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0 50%, 37% 37%);
-    animation: gcq-cursor-spark 420ms ease-out both;
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    animation: gcq-cursor-spark 520ms cubic-bezier(.22, 1, .36, 1) both;
 }
-.gcq-cursor-twinkle i:nth-child(1) { --spark-x: -12px; --spark-y: -14px; }
-.gcq-cursor-twinkle i:nth-child(2) { --spark-x: 16px; --spark-y: -9px; background: #0ea5e9; }
-.gcq-cursor-twinkle i:nth-child(3) { --spark-x: 8px; --spark-y: 16px; background: #fb7185; }
+.gcq-cursor-twinkle i:nth-child(2) { --spark-x: -13px; --spark-y: -15px; }
+.gcq-cursor-twinkle i:nth-child(3) { --spark-x: 17px; --spark-y: -10px; background: #7dd3fc; }
+.gcq-cursor-twinkle i:nth-child(4) { --spark-x: 10px; --spark-y: 17px; background: #fde68a; }
+.gcq-cursor-twinkle i:nth-child(5) { --spark-x: -15px; --spark-y: 9px; background: #bae6fd; }
+@keyframes gcq-cursor-ring {
+    from { transform: scale(.3); opacity: .95; }
+    to { transform: scale(1.6); opacity: 0; }
+}
+@keyframes gcq-cursor-spark {
+    0% { transform: translate(0, 0) scale(.3) rotate(0deg); opacity: 1; }
+    65% { opacity: 1; }
+    100% { transform: translate(var(--spark-x), var(--spark-y)) scale(.85) rotate(90deg); opacity: 0; }
+}
+
 .quest-cursor-preference { display: flex; align-items: center; gap: 10px; margin-top: 20px; color: #164e63; font-weight: 600; }
 .quest-cursor-preference input { width: 18px; height: 18px; accent-color: #0284c7; }
-@keyframes gcq-cursor-fade { 0%, 60% { opacity: 1; } to { opacity: 0; } }
-@keyframes gcq-cursor-spark {
-    from { transform: translate(-3px, -3px) scale(.35); }
-    to { transform: translate(var(--spark-x), var(--spark-y)) scale(.8); }
-}
+
 @media (prefers-reduced-motion: reduce), (forced-colors: active), (any-hover: none) {
     .gcq-cursor-effects { display: none; }
 }

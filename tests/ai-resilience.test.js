@@ -22,6 +22,16 @@ test('rate limits do not trip the AI circuit breaker', async () => {
   assert.equal(isRetryableHttpStatus(400), false);
 });
 
+test('a spent Workers AI image allowance is final and does not trip the breaker', async () => {
+  const { shouldCountAsCircuitFailure, isFinalAiErrorSource } = await loadResilience();
+
+  assert.equal(isFinalAiErrorSource('workers-ai-quota'), true);
+  assert.equal(isFinalAiErrorSource('workers-ai-image'), false);
+  assert.equal(isFinalAiErrorSource(''), false);
+  assert.equal(shouldCountAsCircuitFailure({ status: 503, errorSource: 'workers-ai-quota' }), false);
+  assert.equal(shouldCountAsCircuitFailure({ status: 503, errorSource: 'workers-ai-image' }), true);
+});
+
 test('concurrency queue never runs more tasks than the limit', async () => {
   const { createConcurrencyQueue } = await loadQueue();
   const run = createConcurrencyQueue(2);

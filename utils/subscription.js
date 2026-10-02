@@ -3,6 +3,7 @@
 // If doc is missing, defaults to Starter (safe fallback).
 
 import { db, doc, getDoc, onSnapshot } from '../firebase.js';
+import { auth } from '../firebaseAuth.js';
 
 const SUBSCRIPTION_PATH = 'appConfig/subscription';
 
@@ -207,30 +208,64 @@ function getRuntimeSubscriptionConfig() {
     };
 }
 
+/** Detach the live plan listener; called on sign-out so it is not rejected mid-logout. */
+export function stopSubscription() {
+    if (subscriptionUnsubscribe) {
+        subscriptionUnsubscribe();
+        subscriptionUnsubscribe = null;
+    }
+    subscriptionConfig = null;
+}
+
+function listenToSubscription(ref, { onFirstResult, allowRetry }) {
+    const uid = auth.currentUser?.uid || null;
+    let settled = false;
+    const settle = () => {
+        if (settled) return;
+        settled = true;
+        onFirstResult();
+    };
+    const unsubscribe = onSnapshot(ref, (snap) => {
+        applySubscriptionSnapshot(snap);
+        settle();
+    }, async (err) => {
+        if (subscriptionUnsubscribe === unsubscribe) subscriptionUnsubscribe = null;
+        // Signing out (or switching account) revokes access by design: not an error.
+        if (!auth.currentUser || auth.currentUser.uid !== uid) {
+            settle();
+            return;
+        }
+        // Right after sign-in Firestore can still send the previous credential.
+        // Refresh the ID token and listen once more before falling back.
+        if (err?.code === 'permission-denied' && allowRetry) {
+            try {
+                await auth.currentUser.getIdToken(true);
+            } catch (_) { /* the retry below reports the real outcome */ }
+            if (auth.currentUser?.uid === uid && !subscriptionUnsubscribe) {
+                subscriptionUnsubscribe = listenToSubscription(ref, { onFirstResult: settle, allowRetry: false });
+                return;
+            }
+        }
+        console.warn('GCQ: Subscription listener failed:', err?.code || err?.message || err);
+        // Keep the plan already loaded this session; only an unknown plan becomes Starter.
+        if (!subscriptionConfig) subscriptionConfig = getStarterDefaults();
+        settle();
+    });
+    return unsubscribe;
+}
+
 export async function loadSubscription() {
     if (subscriptionUnsubscribe) {
         subscriptionUnsubscribe();
         subscriptionUnsubscribe = null;
     }
+    subscriptionConfig = null;
     try {
         const ref = doc(db, SUBSCRIPTION_PATH);
         await new Promise((resolve) => {
-            let resolved = false;
-            subscriptionUnsubscribe = onSnapshot(ref, (snap) => {
-                applySubscriptionSnapshot(snap);
-                if (!resolved) {
-                    resolved = true;
-                    resolve();
-                }
-            }, (err) => {
-                console.warn('GCQ: Subscription listener failed:', err?.code || err?.message || err);
-                subscriptionConfig = getStarterDefaults();
-                if (!resolved) {
-                    resolved = true;
-                    resolve();
-                }
-            });
+            subscriptionUnsubscribe = listenToSubscription(ref, { onFirstResult: resolve, allowRetry: true });
         });
+        if (!subscriptionConfig) subscriptionConfig = getStarterDefaults();
         return subscriptionConfig;
     } catch (e) {
         console.warn('GCQ: Subscription load failed:', e?.code || e?.message || e);

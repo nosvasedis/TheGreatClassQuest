@@ -491,3 +491,78 @@ test('AI Worker falls back to SDXL when FLUX fails', async () => {
   assert.equal(response.headers.get('Content-Type'), 'image/png');
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
 });
+
+test('AI Worker caps SDXL fallback steps at the model maximum of 20', async () => {
+  const worker = await importIsolatedAiWorker();
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 1)]);
+  const response = await worker.fetch(new Request('https://worker.example/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-GCQ-Service-Key': 'shop-secret' },
+    body: JSON.stringify({ prompt: 'sprite sheet of a fox', mode: 'sprite', num_steps: 30, strength: 0.5 }),
+  }), { GCQ_AI_SERVICE_KEY: 'shop-secret', FIREBASE_PROJECT_ID: 'the-great-class-quest', AI: {
+    async run(model, inputs) {
+      if (model.includes('flux')) throw new Error('3040: Capacity temporarily exceeded');
+      assert.equal(inputs.num_steps, 20);
+      assert.equal('strength' in inputs, false);
+      return png;
+    },
+  } }, { waitUntil() {} });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/stabilityai/stable-diffusion-xl-base-1.0');
+});
+
+test('AI Worker tries SDXL Lightning when FLUX and SDXL both fail', async () => {
+  const worker = await importIsolatedAiWorker();
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 2)]);
+  const calls = [];
+  const response = await serviceImageRequest(worker, {
+    async run(model) {
+      calls.push(model);
+      if (!model.includes('lightning')) throw new Error('3040: Capacity temporarily exceeded');
+      return new Response(png).body;
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [
+    '@cf/black-forest-labs/flux-2-klein-4b',
+    '@cf/stabilityai/stable-diffusion-xl-base-1.0',
+    '@cf/bytedance/stable-diffusion-xl-lightning',
+  ]);
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+});
+
+test('AI Worker reports a spent daily allocation as a final workers-ai-quota error', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const worker = await importIsolatedAiWorker();
+  let calls = 0;
+  const ai = { async run() { calls += 1; throw new Error('3036: You have used up your daily free allocation of 10,000 neurons.'); } };
+  const first = await serviceImageRequest(worker, ai);
+  assert.equal(first.status, 503);
+  assert.equal(first.headers.get('X-GCQ-Error-Source'), 'workers-ai-quota');
+  assert.ok(Number(first.headers.get('Retry-After')) >= 60);
+  assert.equal(calls, 3);
+  // Later requests in the same isolate fail fast instead of waiting on every model again.
+  const second = await serviceImageRequest(worker, ai);
+  assert.equal(second.headers.get('X-GCQ-Error-Source'), 'workers-ai-quota');
+  assert.equal(calls, 3);
+});
+
+test('AI Worker returns a retryable image error when models fail for other reasons', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const worker = await importIsolatedAiWorker();
+  const response = await serviceImageRequest(worker, { async run() { throw new Error('3040: Capacity temporarily exceeded'); } });
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('X-GCQ-Error-Source'), 'workers-ai-image');
+});
+
+test('AI Worker gives up on a hung image model and moves to the next one', async () => {
+  const worker = await importIsolatedAiWorker((source) => source
+    .replace('IMAGE_MODEL_TIMEOUT_MS = 15_000', 'IMAGE_MODEL_TIMEOUT_MS = 20')
+    .replace('IMAGE_MIN_ATTEMPT_MS = 4_000', 'IMAGE_MIN_ATTEMPT_MS = 1'));
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 3)]);
+  const response = await serviceImageRequest(worker, {
+    run(model) { return model.includes('flux') ? new Promise(() => {}) : Promise.resolve(png); },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/stabilityai/stable-diffusion-xl-base-1.0');
+});

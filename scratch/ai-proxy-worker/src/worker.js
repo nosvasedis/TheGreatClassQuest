@@ -6,10 +6,19 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_FALLBACK_MODEL = 'google/gemini-3.1-flash-lite';
 const OPENROUTER_TIMEOUT_MS = 20_000;
 const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2';
-// FLUX.2 [klein] 4B paints every image; SDXL (free, unmetered beta) takes over when
-// FLUX fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
+// FLUX.2 [klein] 4B paints every image; the unmetered SDXL betas take over when FLUX
+// fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
 const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
+const IMAGE_LAST_RESORT_MODEL = '@cf/bytedance/stable-diffusion-xl-lightning';
+// SDXL rejects the whole request above 20 steps.
+const SDXL_MAX_STEPS = 20;
+// Browsers give up on artwork after 30-45 seconds, so every model gets its own
+// deadline and the whole chain finishes before the slowest caller stops waiting.
+const IMAGE_MODEL_TIMEOUT_MS = 15_000;
+const IMAGE_FALLBACK_TIMEOUT_MS = 18_000;
+const IMAGE_CHAIN_BUDGET_MS = 40_000;
+const IMAGE_MIN_ATTEMPT_MS = 4_000;
 const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
 const TEXT_FALLBACK_DAILY_LIMIT = 12;
 const TEXT_UPSTREAM_TIMEOUT_MS = 25_000;
@@ -38,6 +47,8 @@ const rateBuckets = new Map();
 // Only plain data belongs here: never a Response, stream, or request-owned promise.
 const textReplays = new Map();
 const jwksCaches = new Map();
+// Set when every image model reports the daily Workers AI allocation is spent.
+let imageQuotaExhaustedUntil = 0;
 
 function json(body, status, corsHeaders = {}, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
@@ -536,6 +547,66 @@ async function runFluxImage(env, { prompt, width, height, seed }) {
   return { body: bytes, contentType: sniffImageType(bytes), model: IMAGE_MODEL };
 }
 
+// The SDXL betas return a PNG stream (or bytes); read it fully so an empty or
+// failed stream counts as a model failure instead of a broken 200 response.
+async function runSdxlImage(env, model, inputs) {
+  const sdxlInputs = {
+    prompt: inputs.prompt,
+    negative_prompt: inputs.negative_prompt,
+    num_steps: Math.min(SDXL_MAX_STEPS, inputs.num_steps),
+    guidance: inputs.guidance,
+    width: inputs.width,
+    height: inputs.height,
+  };
+  if (Number.isFinite(inputs.seed)) sdxlInputs.seed = inputs.seed;
+  const result = await env.AI.run(model, sdxlInputs);
+  const bytes = new Uint8Array(await new Response(result).arrayBuffer());
+  if (bytes.length < 32) throw new Error(`${model} returned an empty image.`);
+  return { body: bytes, contentType: sniffImageType(bytes), model };
+}
+
+function withDeadline(promise, timeoutMs, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new DOMException(`${label} timed out.`, 'TimeoutError')), timeoutMs);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+function describeAiError(error) {
+  return String(error?.message || error || 'Error').replace(/\s+/g, ' ').slice(0, 300);
+}
+
+// Workers AI reports a spent daily allocation as 3036 (or 4006 on older runtimes).
+function isWorkersAiQuotaError(error) {
+  return /\b(3036|4006)\b|daily free allocation|neurons? (limit|allocation)|upgrade to cloudflare's workers paid/i.test(describeAiError(error));
+}
+
+function secondsUntilUtcMidnight(now = Date.now()) {
+  const next = new Date(now);
+  next.setUTCHours(24, 0, 0, 0);
+  return Math.max(60, Math.ceil((next.getTime() - now) / 1000));
+}
+
+function imageUnavailable(corsHeaders, quotaSpent) {
+  if (quotaSpent) {
+    return json(
+      { error: "Today's free image allowance is used up. Pictures will work again after the daily reset (midnight UTC)." },
+      503,
+      corsHeaders,
+      { 'X-GCQ-Error-Source': 'workers-ai-quota', 'Retry-After': String(secondsUntilUtcMidnight()) },
+    );
+  }
+  return json(
+    { error: 'The picture painter is busy right now. Please try again in a minute.' },
+    503,
+    corsHeaders,
+    { 'X-GCQ-Error-Source': 'workers-ai-image', 'Retry-After': '30' },
+  );
+}
+
 async function handleImage(payload, env, corsHeaders) {
   if (!env.AI) return json({ error: 'Image generation is unavailable.' }, 503, corsHeaders);
   const prompt = String(payload.prompt || '').trim();
@@ -543,29 +614,46 @@ async function handleImage(payload, env, corsHeaders) {
   if (!prompt || prompt.length > 5_000 || negativePrompt.length > 2_000) {
     return json({ error: 'Invalid image prompt.' }, 400, corsHeaders);
   }
+  if (Date.now() < imageQuotaExhaustedUntil) return imageUnavailable(corsHeaders, true);
   const isSprite = String(payload.mode || '').toLowerCase() === 'sprite' || /sprite sheet|4 frames|single horizontal row/i.test(prompt);
   const inputs = {
     prompt,
     negative_prompt: negativePrompt,
-    num_steps: Math.round(boundedNumber(payload.num_steps, isSprite ? 30 : 20, 1, 30)),
+    num_steps: Math.round(boundedNumber(payload.num_steps, SDXL_MAX_STEPS, 1, SDXL_MAX_STEPS)),
     guidance: boundedNumber(payload.guidance, isSprite ? 8 : 7.5, 1, 10),
     width: Math.round(boundedNumber(payload.width, 1024, 256, 1024)),
     height: Math.round(boundedNumber(payload.height, isSprite ? 256 : 1024, 256, 1024)),
   };
   if (Number.isFinite(payload.seed)) inputs.seed = Math.trunc(payload.seed);
-  if (Number.isFinite(payload.strength)) inputs.strength = boundedNumber(payload.strength, undefined, 0, 1);
 
-  let image;
-  try {
-    image = await runFluxImage(env, inputs);
-  } catch (error) {
-    console.warn(JSON.stringify({ event: 'gcq_image_fallback', reason: String(error?.message || error).slice(0, 200) }));
-    image = { body: await env.AI.run(IMAGE_FALLBACK_MODEL, inputs), contentType: 'image/png', model: IMAGE_FALLBACK_MODEL };
+  const attempts = [
+    { model: IMAGE_MODEL, timeoutMs: IMAGE_MODEL_TIMEOUT_MS, run: () => runFluxImage(env, inputs) },
+    { model: IMAGE_FALLBACK_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: () => runSdxlImage(env, IMAGE_FALLBACK_MODEL, inputs) },
+    { model: IMAGE_LAST_RESORT_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: () => runSdxlImage(env, IMAGE_LAST_RESORT_MODEL, inputs) },
+  ];
+  const startedAt = Date.now();
+  const failures = [];
+  for (const attempt of attempts) {
+    const remainingMs = IMAGE_CHAIN_BUDGET_MS - (Date.now() - startedAt);
+    if (remainingMs < IMAGE_MIN_ATTEMPT_MS) break;
+    try {
+      const image = await withDeadline(attempt.run(), Math.min(attempt.timeoutMs, remainingMs), attempt.model);
+      if (failures.length) {
+        console.warn(JSON.stringify({ event: 'gcq_image_fallback', model: image.model, failures }));
+      }
+      return new Response(image.body, {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': image.contentType, 'Cache-Control': 'no-store', 'X-GCQ-AI-Provider': image.model },
+      });
+    } catch (error) {
+      // Workers AI errors carry only codes and model names, never user data.
+      failures.push({ model: attempt.model, name: error?.name || 'Error', reason: describeAiError(error), quota: isWorkersAiQuotaError(error) });
+    }
   }
-  return new Response(image.body, {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': image.contentType, 'Cache-Control': 'no-store', 'X-GCQ-AI-Provider': image.model },
-  });
+  const quotaSpent = failures.length > 0 && failures.every((failure) => failure.quota);
+  if (quotaSpent) imageQuotaExhaustedUntil = Date.now() + secondsUntilUtcMidnight() * 1000;
+  console.error(JSON.stringify({ event: 'gcq_image_failed', quotaSpent, failures }));
+  return imageUnavailable(corsHeaders, quotaSpent);
 }
 
 async function handleSpeech(payload, env, corsHeaders) {

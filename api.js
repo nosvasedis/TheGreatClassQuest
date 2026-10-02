@@ -1,7 +1,7 @@
 import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, DEEPSEEK_MODEL_ID, cloudflareWorkerUrl } from './constants.js';
 import { createConcurrencyQueue } from './utils/asyncQueue.js';
-import { isRetryableHttpStatus, shouldCountAsCircuitFailure } from './utils/aiResilience.js';
+import { isFinalAiErrorSource, isRetryableHttpStatus, shouldCountAsCircuitFailure } from './utils/aiResilience.js';
 
 const GEMINI_REQUEST_SPACING_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 60000;
@@ -424,11 +424,12 @@ async function fetchWithBackoff(url, options, config = {}) {
                 throw createRateLimitError(retryAfterMs);
             }
 
-            const isRetryableStatus = isRetryableHttpStatus(response.status);
+            const errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
+            const isRetryableStatus = isRetryableHttpStatus(response.status) && !isFinalAiErrorSource(errorSource);
             if (!isRetryableStatus || !hasRetriesLeft) {
                 const error = new Error(`API failed with status ${response.status}`);
                 error.status = response.status;
-                error.errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
+                error.errorSource = errorSource;
                 error.authReason = response.headers?.get?.('X-GCQ-Auth-Reason') || '';
                 error.retryable = false;
                 if (error.errorSource) {

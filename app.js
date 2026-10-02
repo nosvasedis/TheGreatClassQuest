@@ -58,6 +58,7 @@ let toggleWallpaperMode;
 let initializeHeaderQuote;
 let maybeAutoShowGuideForTeacher;
 let loadSubscription;
+let stopSubscription;
 let hasActiveSubscription;
 let canUseFeature;
 let getTier;
@@ -208,7 +209,7 @@ async function loadAuthenticatedRuntime() {
         ({ setupUIListeners } = coreModule);
         ({ toggleWallpaperMode } = wallpaperModule);
         ({ initializeHeaderQuote, maybeAutoShowGuideForTeacher } = homeModule);
-        ({ loadSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } = subscriptionModule);
+        ({ loadSubscription, stopSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } = subscriptionModule);
         ({ showSetupScreen } = schoolSetupModule);
         ({ loadTeacherJourneyState, startSchoolGracePeriod } = teacherJourneyModule);
         ({ requestCheckoutSession } = billingModule);
@@ -1298,6 +1299,7 @@ function setupAuthListeners() {
         } else {
             cancelAuthGate();
             resetAuthSubmitState();
+            stopSubscription?.();
             if (state) state.resetState();
             if (audioModulePromise) {
                 audioModulePromise.then((audio) => {

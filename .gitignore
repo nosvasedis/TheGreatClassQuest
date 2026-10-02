@@ -44,6 +44,8 @@ reasonix/
 CLAUDE.md
 CLAUDE.local.md
 AGENTS.md
+# Share the repository owner's delivery instructions with every agent.
+!/AGENTS.md
 
 # IDEs
 .vscode/

@@ -81,10 +81,9 @@ test('MET maps forecast families and thunder without fabricating hail or freezin
     assert.equal(reading.hours[0].pop, null);
 });
 
-test('weather card identifies the source and omits missing wind', () => {
+test('weather card omits missing wind', () => {
     const reading = readingFromMetNorway(makeMet('rain'), NOW);
     reading.windSpeed = null;
     const html = getWeatherCardHtml({ ...resolveWeatherTheme(reading.code), temp: '21°C' }, resolveSkyScene(reading), { reading });
-    assert.match(html, /href="https:\/\/www.met.no\/en"/);
     assert.doesNotMatch(html, /weather-chip--wind/);
 });

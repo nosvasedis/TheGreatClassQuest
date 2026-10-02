@@ -71,10 +71,6 @@ function metaChipsHtml(theme, reading) {
         const from = compassFrom(reading.windDirection);
         chips.push(`<span class="weather-chip weather-chip--wind" title="Wind${from ? ` from the ${from}` : ''}"><i class="fas fa-wind"></i>${Math.round(wind)}<small>km/h</small></span>`);
     }
-    if (reading?.provider === 'open-meteo' || reading?.provider === 'met-norway') {
-        const met = reading.provider === 'met-norway';
-        chips.push(`<span class="weather-chip" title="Weather forecast · ${met ? 'MET Norway / ECMWF' : 'Open-Meteo Best Match'}"><a href="${met ? 'https://www.met.no/en' : 'https://open-meteo.com/'}" target="_blank" rel="noopener noreferrer">${met ? 'MET Norway' : 'Open-Meteo'}</a><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" aria-label="Weather data license: Creative Commons Attribution 4.0" title="CC BY 4.0">ⓘ</a></span>`);
-    }
     return chips.join('');
 }
 

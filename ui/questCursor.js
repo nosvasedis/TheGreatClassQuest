@@ -1,4 +1,4 @@
-// App-wide native cursors, with a decorative busy orbit and short click twinkles.
+// Native cursors, with an animated loading hourglass and short click twinkles.
 import { getQuestCursorAssets, resolveQuestCursor } from './questCursorCore.mjs';
 
 const STORAGE_KEY = 'gcq-quest-cursor-enabled';
@@ -21,10 +21,12 @@ export function setupQuestCursor() {
     const effects = document.createElement('div');
     effects.className = 'gcq-cursor-effects';
     effects.setAttribute('aria-hidden', 'true');
-    const orbit = document.createElement('span');
-    orbit.className = 'gcq-cursor-orbit';
-    orbit.hidden = true;
-    effects.append(orbit);
+    const hourglass = document.createElement('span');
+    hourglass.className = 'gcq-cursor-hourglass';
+    hourglass.hidden = true;
+    // CSS cursor images cannot animate reliably; use the same artwork in the overlay.
+    hourglass.innerHTML = decodeURIComponent(assets.wait.url.split(',')[1]);
+    effects.append(hourglass);
     document.body.append(effects);
 
     let target = null;
@@ -38,10 +40,14 @@ export function setupQuestCursor() {
         target?.removeAttribute('data-gcq-cursor');
         target = null;
     }
+    function showLoading(visible) {
+        hourglass.hidden = !visible;
+        root.classList.toggle('gcq-cursor-loading', visible);
+    }
     function hide() {
         pointer = null;
         clearTarget();
-        orbit.hidden = true;
+        showLoading(false);
         effects.querySelectorAll('.gcq-cursor-twinkle').forEach(el => el.remove());
     }
     function syncPreference() {
@@ -54,10 +60,9 @@ export function setupQuestCursor() {
         frame = 0;
         syncPreference();
         clearTarget();
-        orbit.hidden = true;
-        if (!allowed() || !pointer || document.hidden) return;
+        if (!allowed() || !pointer || document.hidden) { showLoading(false); return; }
         const el = document.elementFromPoint(pointer.x, pointer.y);
-        if (!el || el.closest('.gcq-cursor-effects')) return;
+        if (!el || el.closest('.gcq-cursor-effects')) { showLoading(false); return; }
         const style = getComputedStyle(el);
         const control = el.closest(INTERACTIVE);
         const field = el.closest(TEXT_INPUT);
@@ -74,8 +79,9 @@ export function setupQuestCursor() {
             target = el;
             target.setAttribute('data-gcq-cursor', mode);
         }
-        orbit.hidden = motion.matches || !['wait', 'progress'].includes(mode);
-        orbit.style.transform = `translate3d(${pointer.x + 23}px, ${pointer.y + 23}px, 0)`;
+        const loading = !motion.matches && ['wait', 'progress'].includes(mode);
+        if (loading) hourglass.style.transform = `translate3d(${pointer.x - 16}px, ${pointer.y - 16}px, 0)`;
+        showLoading(loading);
     }
     function schedule() {
         if (!frame) frame = requestAnimationFrame(refresh);
@@ -130,12 +136,11 @@ export function setupQuestCursor() {
     on(document, 'pointercancel', hide, { passive: true });
     on(document, 'scroll', schedule, { capture: true, passive: true });
     on(document, 'change', preference);
-    on(document, 'keydown', () => { orbit.hidden = true; });
     on(root, 'pointerleave', hide);
     on(window, 'blur', hide);
     on(window, 'resize', schedule, { passive: true });
     on(document, 'visibilitychange', environmentChanged);
-    on(document, 'dragstart', () => { dragging = true; clearTarget(); orbit.hidden = true; });
+    on(document, 'dragstart', () => { dragging = true; clearTarget(); showLoading(false); });
     on(document, 'dragend', () => { dragging = false; schedule(); });
     for (const query of [fine, contrast, motion]) on(query, 'change', environmentChanged);
     // Only observed UI changes trigger refreshes while the mouse is stationary.
@@ -164,7 +169,7 @@ export function setupQuestCursor() {
         cancelAnimationFrame(frame);
         clearTarget();
         effects.remove();
-        root.classList.remove('gcq-quest-cursor');
+        root.classList.remove('gcq-quest-cursor', 'gcq-cursor-loading');
         for (const key of Object.keys(assets)) root.style.removeProperty(`--gcq-cursor-${key}`);
         teardown = undefined;
     };

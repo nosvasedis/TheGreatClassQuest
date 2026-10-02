@@ -17,6 +17,11 @@
     :where(.gcq-quest-cursor [data-gcq-native-cursor]) { cursor: auto; }
 }
 
+@media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) and (prefers-reduced-motion: no-preference) {
+    .gcq-quest-cursor.gcq-cursor-loading [data-gcq-cursor="wait"],
+    .gcq-quest-cursor.gcq-cursor-loading [data-gcq-cursor="progress"] { cursor: none !important; }
+}
+
 .gcq-cursor-effects {
     position: fixed;
     inset: 0;
@@ -25,18 +30,36 @@
     overflow: hidden;
     contain: strict;
 }
-.gcq-cursor-orbit { position: absolute; top: 0; left: 0; width: 15px; height: 15px; }
-.gcq-cursor-orbit[hidden] { display: none; }
-.gcq-cursor-orbit::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 2px solid #fff;
-    border-top-color: #fbbf24;
-    border-right-color: #0ea5e9;
-    border-radius: 50%;
-    box-shadow: 0 0 0 1px #164e63;
-    animation: gcq-cursor-orbit 1100ms linear infinite;
+.gcq-cursor-hourglass { position: absolute; top: 0; left: 0; width: 32px; height: 32px; }
+.gcq-cursor-hourglass[hidden] { display: none; }
+.gcq-cursor-hourglass svg {
+    display: block;
+    transform-origin: center;
+    animation: gcq-hourglass-turn 2600ms ease-in-out infinite;
+}
+.gcq-cursor-hourglass .gcq-hourglass-sand-top,
+.gcq-cursor-hourglass .gcq-hourglass-sand-bottom {
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: gcq-hourglass-drain 2600ms linear infinite;
+}
+.gcq-cursor-hourglass .gcq-hourglass-sand-bottom { animation-name: gcq-hourglass-fill; }
+.gcq-cursor-hourglass .gcq-hourglass-stream { animation: gcq-hourglass-stream 2600ms linear infinite; }
+@keyframes gcq-hourglass-turn {
+    0%, 76% { transform: rotate(0deg); }
+    94%, 100% { transform: rotate(180deg); }
+}
+@keyframes gcq-hourglass-drain {
+    0% { transform: scaleY(1); }
+    72%, 100% { transform: scaleY(0); }
+}
+@keyframes gcq-hourglass-fill {
+    0% { transform: scaleY(0); }
+    72%, 100% { transform: scaleY(1); }
+}
+@keyframes gcq-hourglass-stream {
+    0%, 72% { opacity: 1; }
+    76%, 100% { opacity: 0; }
 }
 .gcq-cursor-twinkle { position: absolute; width: 0; height: 0; animation: gcq-cursor-fade 420ms ease-out both; }
 .gcq-cursor-twinkle i {
@@ -52,7 +75,6 @@
 .gcq-cursor-twinkle i:nth-child(3) { --spark-x: 8px; --spark-y: 16px; background: #fb7185; }
 .quest-cursor-preference { display: flex; align-items: center; gap: 10px; margin-top: 20px; color: #164e63; font-weight: 600; }
 .quest-cursor-preference input { width: 18px; height: 18px; accent-color: #0284c7; }
-@keyframes gcq-cursor-orbit { to { rotate: 360deg; } }
 @keyframes gcq-cursor-fade { 0%, 60% { opacity: 1; } to { opacity: 0; } }
 @keyframes gcq-cursor-spark {
     from { transform: translate(-3px, -3px) scale(.35); }

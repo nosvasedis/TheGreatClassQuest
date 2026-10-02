@@ -29,26 +29,25 @@
     overflow: hidden;
     contain: strict;
 }
-.gcq-cursor-visual { position: absolute; top: 0; left: 0; will-change: transform; }
+.gcq-cursor-visual { position: absolute; top: 0; left: 0; }
 .gcq-cursor-visual[hidden] { display: none; }
 .gcq-cursor-glyph {
     position: absolute;
-    width: 32px;
-    height: 32px;
+    left: -16px;
+    top: -16px;
+    width: 48px;
+    height: 48px;
     opacity: 0;
-    transform: scale(1);
 }
-.gcq-cursor-glyph.is-active { opacity: 1; transform: scale(1); }
-.gcq-cursor-glyph svg { display: block; }
+.gcq-cursor-glyph.is-active, .gcq-cursor-glyph.is-leaving { opacity: 1; }
+.gcq-cursor-glyph svg { position: absolute; display: block; width: 32px; height: 32px; }
 .gcq-cursor-hourglass svg {
     display: block;
     transform-origin: center;
-    animation: gcq-hourglass-turn 2600ms ease-in-out infinite;
+    animation: gcq-hourglass-turn 2600ms step-end infinite;
 }
 .gcq-cursor-hourglass .gcq-hourglass-sand-top,
 .gcq-cursor-hourglass .gcq-hourglass-sand-bottom {
-    transform-box: fill-box;
-    transform-origin: center bottom;
     animation: gcq-hourglass-drain 2600ms linear infinite;
 }
 .gcq-cursor-hourglass .gcq-hourglass-sand-bottom { animation-name: gcq-hourglass-fill; }
@@ -58,16 +57,16 @@
 .gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-sand-bottom,
 .gcq-cursor-hourglass:not(.is-active) .gcq-hourglass-stream { animation-play-state: paused; }
 @keyframes gcq-hourglass-turn {
-    0%, 76% { transform: rotate(0deg); }
-    94%, 100% { transform: rotate(180deg); }
+    0%, 88% { transform: rotate(0deg); }
+    89%, 100% { transform: rotate(180deg); }
 }
 @keyframes gcq-hourglass-drain {
-    0% { transform: scaleY(1); }
-    72%, 100% { transform: scaleY(0); }
+    0% { clip-path: inset(0 0 0 0); }
+    72%, 100% { clip-path: inset(100% 0 0 0); }
 }
 @keyframes gcq-hourglass-fill {
-    0% { transform: scaleY(0); }
-    72%, 100% { transform: scaleY(1); }
+    0% { clip-path: inset(100% 0 0 0); }
+    72%, 100% { clip-path: inset(0 0 0 0); }
 }
 @keyframes gcq-hourglass-stream {
     0%, 72% { opacity: 1; }

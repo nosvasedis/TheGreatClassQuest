@@ -31,10 +31,9 @@ export function setupQuestCursor() {
         const glyph = document.createElement('span');
         glyph.className = `gcq-cursor-glyph${state === 'wait' ? ' gcq-cursor-hourglass' : ''}`;
         glyph.dataset.cursorArt = state;
-        glyph.style.left = `${-asset.x}px`;
-        glyph.style.top = `${-asset.y}px`;
-        glyph.style.transformOrigin = `${asset.x}px ${asset.y}px`;
         glyph.innerHTML = decodeURIComponent(asset.url.split(',')[1]);
+        glyph.firstElementChild.style.left = `${16 - asset.x}px`;
+        glyph.firstElementChild.style.top = `${16 - asset.y}px`;
         visual.append(glyph);
         glyphs.set(state, glyph);
     }
@@ -46,103 +45,92 @@ export function setupQuestCursor() {
     let pointer = null;
     let frame = 0;
     let assetsReady = false;
+    let nativePixelRatio = 0;
+    let nativeRevision = 0;
     let dragging = false;
     let activeGlyph = null;
-    const fades = new Map();
-    const morphs = new Map();
-    let settleTimer = 0;
+    const swaps = new Map();
+    let idleTimer = 0;
+    let moving = false;
     let pointerHit = null;
     const allowed = () => assetsReady && enabled && fine.matches && !contrast.matches && pointer !== 'touch';
     function clearTarget() {
         target?.removeAttribute('data-gcq-cursor');
         target = null;
     }
+    function positionVisual() {
+        const dpr = window.devicePixelRatio || 1;
+        visual.style.left = `${Math.round(pointer.x * dpr) / dpr}px`;
+        visual.style.top = `${Math.round(pointer.y * dpr) / dpr}px`;
+    }
+    function finishSwap() {
+        if (!swaps.size) return;
+        for (const swap of swaps.values()) swap.cancel();
+        swaps.clear();
+        for (const glyph of visual.children) glyph.classList.remove('is-leaving');
+    }
+    function parkVisual() {
+        finishSwap();
+        if (visual.hidden) return;
+        visual.hidden = true;
+        root.classList.remove('gcq-cursor-overlay');
+    }
     function showVisual(state) {
         const next = state && glyphs.get(state);
         if (!next) {
-            clearTimeout(settleTimer);
-            visual.hidden = true;
-            root.classList.remove('gcq-cursor-overlay');
-            for (const fade of fades.values()) fade.cancel();
-            fades.clear();
-            for (const morph of morphs.values()) morph.cancel();
-            morphs.clear();
+            parkVisual();
             activeGlyph?.classList.remove('is-active');
             activeGlyph = null;
             return;
         }
-        visual.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`;
+        positionVisual();
         const busy = state === 'wait' || state === 'progress';
         if (next === activeGlyph) {
-            if (busy) {
+            if (busy && !moving) {
                 visual.hidden = false;
                 root.classList.add('gcq-cursor-overlay');
             }
             return;
         }
-        if (next !== activeGlyph) {
-            clearTimeout(settleTimer);
-            const layers = [...visual.children];
-            const styles = layers.map(glyph => getComputedStyle(glyph));
-            const weights = styles.map(style => Number(style.opacity));
-            const transforms = styles.map(style => style.transform);
-            const total = weights.reduce((sum, weight) => sum + weight, 0);
-            const animate = Boolean(activeGlyph) && total > 0;
-            // Measure only on state changes. Movement never reads layout or styles.
-            visual.hidden = false;
-            const sourceBounds = activeGlyph?.querySelector('svg').getBBox();
-            const nextBounds = next.querySelector('svg').getBBox();
-            const ratio = (value, base) => Math.max(.72, Math.min(1.35, value / (base || value || 1)));
-            const startTime = document.timeline.currentTime;
-            for (const [index, glyph] of layers.entries()) {
-                fades.get(glyph)?.cancel();
-                fades.delete(glyph);
-                morphs.get(glyph)?.cancel();
-                morphs.delete(glyph);
-                const opacity = glyph === next ? 1 : 0;
-                glyph.classList.toggle('is-active', glyph === next);
-                if (!animate) continue;
-                // Restart every fade from its current weight on interruption. All
-                // weights sum to one throughout, even when states change rapidly.
-                const from = weights[index] / total;
-                if (from === opacity) continue;
-                const fade = glyph.animate([{ opacity: from }, { opacity }], { duration: 220, easing: 'linear' });
-                fade.startTime = startTime;
-                fades.set(glyph, fade);
-                fade.onfinish = () => { if (fades.get(glyph) === fade) fades.delete(glyph); };
-                const bounds = glyph.querySelector('svg').getBBox();
-                const incoming = glyph === next;
-                const initial = incoming && from === 0
-                    ? `scale(${ratio(sourceBounds.width, bounds.width)}, ${ratio(sourceBounds.height, bounds.height)})`
-                    : transforms[index];
-                const destination = incoming ? 'scale(1)' : `scale(${ratio(nextBounds.width, bounds.width)}, ${ratio(nextBounds.height, bounds.height)})`;
-                const keyframes = incoming
-                    ? [{ transform: initial }, { transform: 'scale(1.015, 1.01)', offset: .78 }, { transform: destination }]
-                    : [{ transform: initial }, { transform: destination }];
-                const morph = glyph.animate(keyframes, { duration: 220, easing: 'cubic-bezier(.22, 1, .36, 1)' });
-                morph.startTime = startTime;
-                morphs.set(glyph, morph);
-                morph.onfinish = () => { if (morphs.get(glyph) === morph) morphs.delete(glyph); };
-            }
-            activeGlyph = next;
-            if (!busy) {
-                if (!animate) {
-                    visual.hidden = true;
-                    root.classList.remove('gcq-cursor-overlay');
-                    return;
-                }
-                // At rest the OS draws the identical artwork with its exact hotspot.
-                settleTimer = setTimeout(() => {
-                    if (activeGlyph !== next) return;
-                    visual.hidden = true;
-                    root.classList.remove('gcq-cursor-overlay');
-                }, 240);
-            }
+        const previous = activeGlyph;
+        finishSwap();
+        previous?.classList.remove('is-active');
+        next.classList.add('is-active');
+        activeGlyph = next;
+        // Movement always belongs to the OS cursor. Never stretch, blend or
+        // chase the pointer with a composited bitmap during mouse movement.
+        if (moving || !previous) {
+            if (busy && !moving) {
+                visual.hidden = false;
+                root.classList.add('gcq-cursor-overlay');
+            } else parkVisual();
+            return;
         }
+        previous.classList.add('is-leaving');
         visual.hidden = false;
         root.classList.add('gcq-cursor-overlay');
+        // One opaque silhouette on each side of a shared reveal boundary.
+        // No crossfade, fractional scaling or double exposure of the artwork.
+        const timing = { duration: 90, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'forwards' };
+        const startTime = document.timeline.currentTime;
+        const outgoing = previous.animate([
+            { clipPath: 'inset(0 0px 0 0)' }, { clipPath: 'inset(0 48px 0 0)' },
+        ], timing);
+        const incoming = next.animate([
+            { clipPath: 'inset(0 0 0 48px)' }, { clipPath: 'inset(0 0 0 0px)' },
+        ], timing);
+        outgoing.startTime = incoming.startTime = startTime;
+        swaps.set(previous, outgoing);
+        swaps.set(next, incoming);
+        incoming.onfinish = () => {
+            if (activeGlyph !== next || swaps.get(next) !== incoming) return;
+            finishSwap();
+            if (!busy) parkVisual();
+        };
     }
     function hide() {
+        clearTimeout(idleTimer);
+        moving = false;
         pointer = null;
         pointerHit = null;
         clearTarget();
@@ -194,8 +182,15 @@ export function setupQuestCursor() {
             return;
         }
         pointer = { x: event.clientX, y: event.clientY };
-        // Position tracks the mouse directly; only changes of shape are eased.
-        if (!visual.hidden) visual.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`;
+        moving = true;
+        parkVisual();
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+            moving = false;
+            if (pointer && allowed() && !motion.matches && !dragging && !document.hidden) {
+                showVisual(mode !== 'native' ? mode : null);
+            }
+        }, 90);
         // Update semantics synchronously when crossing a control boundary.
         if (event.type === 'pointerover' || !pointerHit) refresh(event.target);
     }
@@ -237,7 +232,7 @@ export function setupQuestCursor() {
     on(document, 'change', preference);
     on(root, 'pointerleave', hide);
     on(window, 'blur', hide);
-    on(window, 'resize', schedule, { passive: true });
+    on(window, 'resize', () => { prepareNativeResolution(); schedule(); }, { passive: true });
     on(document, 'visibilitychange', environmentChanged);
     on(document, 'dragstart', () => { dragging = true; clearTarget(); showVisual(null); });
     on(document, 'dragend', () => { dragging = false; schedule(); });
@@ -261,27 +256,36 @@ export function setupQuestCursor() {
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeOldValue: true,
         attributeFilter: ['class', 'style', 'disabled', 'readonly', 'aria-disabled', 'aria-busy', 'hidden', 'inert', 'data-cursor-busy'] });
 
-    // Do not replace the OS cursor until the browser has decoded the artwork.
-    Promise.all(Object.values(assets).map(asset => new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = asset.url;
-    }))).then(results => {
-        if (abort.signal.aborted) return;
-        assetsReady = results.every(Boolean);
-        schedule();
-    });
+    function prepareNativeResolution() {
+        const ratio = window.devicePixelRatio || 1;
+        if (ratio === nativePixelRatio) return;
+        nativePixelRatio = ratio;
+        const revision = ++nativeRevision;
+        const bindings = Object.entries(getQuestCursorAssets(ratio)).map(([state, asset]) => {
+            const supported = CSS.supports('cursor', asset.css);
+            return { state, css: supported ? asset.css : asset.fallbackCss, url: supported ? asset.nativeUrl : asset.url };
+        });
+        // Decode the device-resolution images before replacing native artwork.
+        Promise.all(bindings.map(binding => new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
+            img.src = binding.url;
+        }))).then(results => {
+            if (abort.signal.aborted || revision !== nativeRevision || !results.every(Boolean)) return;
+            for (const binding of bindings) root.style.setProperty(`--gcq-cursor-${binding.state}`, binding.css);
+            assetsReady = true;
+            schedule();
+        });
+    }
+    prepareNativeResolution();
     teardown = () => {
         abort.abort();
         observer.disconnect();
         cancelAnimationFrame(frame);
         clearTarget();
-        clearTimeout(settleTimer);
-        for (const fade of fades.values()) fade.cancel();
-        fades.clear();
-        for (const morph of morphs.values()) morph.cancel();
-        morphs.clear();
+        clearTimeout(idleTimer);
+        finishSwap();
         effects.remove();
         root.classList.remove('gcq-quest-cursor', 'gcq-cursor-overlay');
         for (const key of Object.keys(assets)) root.style.removeProperty(`--gcq-cursor-${key}`);

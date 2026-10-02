@@ -36,3 +36,15 @@ test('our native cursor fallback can be read again without changing its meaning'
         assert.match(asset.css, /\) \d+ \d+, [a-z-]+$/);
     }
 });
+
+test('high-DPI native artwork increases resolution while preserving logical size and hotspots', () => {
+    for (const ratio of [1.25, 2, 3]) {
+        for (const [mode, asset] of Object.entries(getQuestCursorAssets(ratio))) {
+            const nativeSvg = decodeURIComponent(asset.nativeUrl.split(',')[1]);
+            assert.match(nativeSvg, new RegExp(`width="${32 * ratio}" height="${32 * ratio}"`));
+            assert.match(nativeSvg, /viewBox="0 0 32 32"/);
+            assert.match(asset.css, new RegExp(`\\) ${ratio}x\\) ${asset.x} ${asset.y},`));
+            assert.equal(resolveQuestCursor({ cursor: asset.css }), mode);
+        }
+    }
+});

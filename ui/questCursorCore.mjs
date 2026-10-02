@@ -22,11 +22,17 @@ const artwork = {
     'zoom-out': [lens, 13, 13, 'zoom-out']
 };
 
-export function getQuestCursorAssets() {
+export function getQuestCursorAssets(pixelRatio = 1) {
+    const nativeSize = Math.max(32, Math.min(128, Math.ceil(32 * (Number(pixelRatio) || 1))));
+    const density = nativeSize / 32;
     return Object.fromEntries(Object.entries(artwork).map(([mode, [drawing, x, y, fallback]]) => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" id="gcq-quest-cursor" width="32" height="32" viewBox="0 0 32 32"><g stroke="#fff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">${drawing}</g><g stroke="#164e63" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">${drawing}</g></svg>`;
         const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-        return [mode, { url, x, y, css: `url("${url}") ${x} ${y}, ${fallback}` }];
+        const nativeSvg = svg.replace('width="32" height="32"', `width="${nativeSize}" height="${nativeSize}"`);
+        const nativeUrl = `data:image/svg+xml,${encodeURIComponent(nativeSvg)}`;
+        const fallbackCss = `url("${url}") ${x} ${y}, ${fallback}`;
+        const css = density === 1 ? fallbackCss : `image-set(url("${nativeUrl}") ${density}x) ${x} ${y}, ${fallback}`;
+        return [mode, { url, nativeUrl, x, y, css, fallbackCss }];
     }));
 }
 

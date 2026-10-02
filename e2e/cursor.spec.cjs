@@ -128,33 +128,49 @@ test('rapid state transitions retain visible artwork on every frame', async ({ p
   }
 });
 
-test('morphing changes proportions while preserving the click hotspot', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === 'mobile', 'Morphing is used for mouse cursors');
+test('stationary state changes use a short opaque reveal without scaling or ghosting', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Mouse cursor reveals require a mouse');
   await page.mouse.move(420, 320);
+  await page.waitForTimeout(110); // Let the pointer become stationary.
   const samples = await page.evaluate(async () => {
     const surface = document.getElementById('cursor-test-surface');
     surface.style.cursor = 'text';
     const frames = [];
+    const insets = value => {
+      const parts = (value.match(/[\d.]+px/g) || []).map(parseFloat);
+      return { right: parts[1] ?? parts[0] ?? 0, left: parts[3] ?? parts[1] ?? parts[0] ?? 0 };
+    };
     for (let i = 0; i < 10; i++) {
       await new Promise(requestAnimationFrame);
       if (document.querySelector('.gcq-cursor-visual').hidden) continue;
-      for (const glyph of document.querySelectorAll('.gcq-cursor-glyph')) {
-        const style = getComputedStyle(glyph);
-        const opacity = Number(style.opacity);
-        if (opacity <= .01) continue;
-        const matrix = new DOMMatrix(style.transform);
-        const [x, y] = style.transformOrigin.split(' ').map(parseFloat);
-        const rect = glyph.getBoundingClientRect();
-        frames.push({ opacity, scaleX: matrix.a, scaleY: matrix.d, x: rect.left + matrix.a * x, y: rect.top + matrix.d * y });
-      }
+      const next = document.querySelector('.gcq-cursor-glyph.is-active');
+      const previous = document.querySelector('.gcq-cursor-glyph.is-leaving');
+      if (!previous) continue;
+      const incoming = getComputedStyle(next);
+      const outgoing = getComputedStyle(previous);
+      const rect = next.getBoundingClientRect();
+      frames.push({
+        opacity: [incoming.opacity, outgoing.opacity],
+        transform: [incoming.transform, outgoing.transform],
+        filter: [incoming.filter, outgoing.filter],
+        boundary: insets(incoming.clipPath).left + insets(outgoing.clipPath).right,
+        reveal: insets(incoming.clipPath).left,
+        x: rect.left + 16, y: rect.top + 16,
+      });
     }
     return frames;
   });
-  expect(samples.some(frame => frame.opacity > .05 && frame.opacity < .95 && Math.abs(frame.scaleX - 1) > .02)).toBe(true);
+  expect(samples.some(frame => frame.reveal > 0 && frame.reveal < 48)).toBe(true);
   for (const frame of samples) {
-    expect(frame.x).toBeCloseTo(420, 2);
-    expect(frame.y).toBeCloseTo(320, 2);
+    expect(frame.opacity).toEqual(['1', '1']);
+    expect(frame.transform).toEqual(['none', 'none']);
+    expect(frame.filter).toEqual(['none', 'none']);
+    expect(frame.boundary).toBeCloseTo(48, 2);
+    expect(frame.x).toBe(420);
+    expect(frame.y).toBe(320);
   }
+  await expect(page.locator('.gcq-cursor-visual')).toBeHidden();
+  await expect(page.locator('#cursor-test-surface')).toHaveCSS('cursor', /, text$/);
 });
 
 test('steady pointer movement uses the native cursor without style lookups', async ({ page }, testInfo) => {
@@ -164,7 +180,7 @@ test('steady pointer movement uses the native cursor without style lookups', asy
   for (const state of ['default', 'wait']) {
     await page.locator('#cursor-test-surface').evaluate((element, cursor) => { element.style.cursor = cursor; }, state);
     if (state === 'default') await expect(page.locator('#cursor-test-surface')).toHaveCSS('cursor', /, pointer$/);
-    else await expect(page.locator('.gcq-cursor-hourglass')).toHaveCSS('opacity', '1');
+    else await expect(page.locator('.gcq-cursor-hourglass')).toBeVisible();
     await page.evaluate(() => new Promise(requestAnimationFrame));
     await page.evaluate(() => {
       window.cursorQueryCount = 0;
@@ -181,9 +197,91 @@ test('steady pointer movement uses the native cursor without style lookups', asy
       await expect(page.locator('.gcq-cursor-visual')).toBeHidden();
       await expect(page.locator('#cursor-test-surface')).not.toHaveCSS('cursor', 'none');
     } else {
+      await expect(page.locator('.gcq-cursor-hourglass')).toBeVisible();
       const rect = await page.locator('.gcq-cursor-hourglass').boundingBox();
       expect(rect.x).toBe(179);
       expect(rect.y).toBe(141);
     }
+  }
+});
+
+test('continuous movement across states never uses a scaled or translucent overlay', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Native cursor movement requires a mouse');
+  await page.locator('#cursor-test-surface').evaluate(button => {
+    const panel = document.createElement('div');
+    panel.id = button.id;
+    panel.style.cssText = button.style.cssText + ';display:grid;grid-template-columns:repeat(6,1fr)';
+    for (const state of ['default', 'pointer', 'text', 'grab', 'wait', 'progress']) {
+      const cell = document.createElement('div');
+      cell.style.cursor = state;
+      cell.textContent = state;
+      panel.append(cell);
+    }
+    button.replaceWith(panel);
+  });
+  for (let i = 0; i < 24; i++) {
+    const state = i % 6;
+    const width = page.viewportSize().width;
+    await page.mouse.move(width * (state + .5) / 6, 100 + i);
+    const frame = await page.evaluate(() => {
+      const target = document.querySelector('[data-gcq-cursor]');
+      return {
+        cursor: getComputedStyle(target).cursor,
+        overlay: !document.querySelector('.gcq-cursor-visual').hidden,
+      };
+    });
+    expect(frame.cursor).not.toBe('none');
+    expect(frame.overlay).toBe(false);
+  }
+});
+
+test('idle artwork is opaque and native images match regular and high-DPI displays', async ({ page, browser }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Mouse artwork is checked at desktop DPI scales');
+  const check = async (candidate, expectedDpr) => {
+    await candidate.locator('#cursor-test-surface').evaluate(element => { element.style.cursor = 'wait'; });
+    await candidate.mouse.move(420.25, 320.75);
+    await expect(candidate.locator('.gcq-cursor-hourglass')).toBeVisible();
+    const frame = await candidate.evaluate(() => {
+      const visual = document.querySelector('.gcq-cursor-visual');
+      const glyph = document.querySelector('.gcq-cursor-hourglass');
+      const style = getComputedStyle(glyph);
+      const native = document.documentElement.style.getPropertyValue('--gcq-cursor-wait');
+      const svg = decodeURIComponent(native.match(/data:image\/svg\+xml,([^"]*)/)[1]);
+      return {
+        dpr: devicePixelRatio,
+        x: parseFloat(visual.style.left) * devicePixelRatio,
+        y: parseFloat(visual.style.top) * devicePixelRatio,
+        transform: style.transform, filter: style.filter, opacity: style.opacity,
+        promote: getComputedStyle(visual).willChange,
+        native, width: Number(svg.match(/width="(\d+)"/)[1]),
+      };
+    });
+    expect(frame.dpr).toBe(expectedDpr);
+    expect(frame.x).toBe(Math.round(frame.x));
+    expect(frame.y).toBe(Math.round(frame.y));
+    expect(frame.transform).toBe('none');
+    expect(frame.filter).toBe('none');
+    expect(frame.opacity).toBe('1');
+    expect(frame.promote).toBe('auto');
+    expect(frame.width).toBe(32 * expectedDpr);
+    if (expectedDpr > 1) expect(frame.native).toMatch(/^image-set\(/);
+  };
+  await check(page, 1);
+  const context = await browser.newContext({ deviceScaleFactor: 2 });
+  try {
+    const retina = await context.newPage();
+    await retina.route(/cloudfunctions\.net\/getSecretaryBootstrapStatus$/, route =>
+      route.fulfill({ json: { data: { state: 'active', requiresToken: false } } }));
+    await retina.goto(page.url(), { waitUntil: 'networkidle' });
+    await expect(retina.locator('#login-form')).toBeVisible();
+    await retina.evaluate(() => {
+      const surface = document.createElement('div');
+      surface.id = 'cursor-test-surface';
+      surface.style.cssText = 'position:fixed;inset:0;z-index:2000000000;cursor:wait';
+      document.body.append(surface);
+    });
+    await check(retina, 2);
+  } finally {
+    await context.close();
   }
 });

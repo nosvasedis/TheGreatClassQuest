@@ -27,18 +27,25 @@ export const baseModalsHTML = `
     </div>
 
     <div id="league-picker-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
-        <div class="league-picker-shell bg-white p-5 sm:p-8 rounded-3xl shadow-2xl max-w-5xl w-full pop-in border-4 border-amber-300 max-h-[92vh] overflow-y-auto">
-            <div class="league-picker-heading" aria-hidden="true">
-                <i class="fas fa-star"></i><i class="fas fa-crown"></i><i class="fas fa-star"></i>
-            </div>
-            <h2 class="font-title text-3xl text-amber-700 mb-1 text-center">Choose a League</h2>
-            <p class="league-picker-subtitle">Every path has its own kind of magic.</p>
-            <div id="league-picker-list" class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4"></div>
-            <button id="league-picker-close-btn"
-                class="w-full mt-6 bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 rounded-xl bubbly-button">
-                Close
-            </button>
+        class="lp-backdrop fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 hidden">
+        <div class="league-picker-shell lp-shell pop-in w-full max-w-5xl flex flex-col max-h-[92vh] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="league-picker-title" aria-describedby="league-picker-subtitle">
+            <!-- Header: a heraldic plaque with a gold-hemmed banner -->
+            <header class="lp-head">
+                <span class="lp-head__banner" aria-hidden="true"></span>
+                <span class="lp-head__crest" aria-hidden="true">
+                    <i class="fas fa-shield-halved lp-head__shield"></i>
+                    <i class="fas fa-crown lp-head__crown"></i>
+                </span>
+                <div class="lp-head__titles">
+                    <p class="lp-head__kicker">Quest Leagues</p>
+                    <h2 id="league-picker-title" class="lp-head__title font-title">Choose a League</h2>
+                    <p id="league-picker-subtitle" class="lp-head__sub">Classes race only against their own league. Pick whose race to watch.</p>
+                </div>
+                <button id="league-picker-close-btn" type="button" class="lp-close" aria-label="Close the league picker">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </header>
+            <div id="league-picker-list" class="lp-body flex-1 overflow-y-auto custom-scrollbar"></div>
         </div>
     </div>
 

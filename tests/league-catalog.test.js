@@ -89,18 +89,35 @@ test('sorting quiz uses dedicated early pools and senior content for advanced le
   assert.equal(getQuestionsForLevel('Proficiency'), senior);
 });
 
-test('league picker is themed, repeatable, silent, and uses a wide desktop grid', () => {
+test('league picker is themed, grouped by age stage, repeatable, and silent', async () => {
+  const { QUEST_LEAGUE_DEFINITIONS } = await import('../constants.js');
   const picker = read('ui/modals/base.js');
   const pickerFunction = picker.slice(
     picker.indexOf('export function showLeaguePicker'),
     picker.indexOf('export function showLogoPicker'),
   );
   assert.match(pickerFunction, /QUEST_LEAGUE_DEFINITIONS/);
-  assert.match(pickerFunction, /definition\.name === 'Proficiency'/);
-  assert.match(pickerFunction, /league-picker-option--wide col-span-2/);
-  assert.match(pickerFunction, /league-match-active-btn w-full col-span-2 md:col-span-4/);
-  assert.match(pickerFunction, /league-picker-option__watermark/);
+  assert.match(pickerFunction, /LEAGUE_PICKER_STAGES/);
+  assert.match(pickerFunction, /ageCategory === stage\.key/);
+  assert.match(pickerFunction, /leaguePickerFollowHtml/);
   assert.match(pickerFunction, /is-selected/);
+  const cardFunction = picker.slice(
+    picker.indexOf('function leaguePickerCardHtml'),
+    picker.indexOf('export function showLeaguePicker'),
+  );
+  assert.match(cardFunction, /league-picker-option--\$\{definition\.pickerTheme\}/);
+  assert.match(cardFunction, /league-picker-option__watermark/);
+  assert.match(cardFunction, /is-current/);
+  const followFunction = picker.slice(
+    picker.indexOf('function leaguePickerFollowHtml'),
+    picker.indexOf('function leaguePickerCardHtml'),
+  );
+  assert.match(followFunction, /league-match-active-btn/);
+  // Every league lands in exactly one stage.
+  const stageKeys = ['early', 'junior', 'mid', 'senior'];
+  for (const definition of QUEST_LEAGUE_DEFINITIONS) {
+    assert.ok(stageKeys.includes(definition.ageCategory), `${definition.name} has a picker stage`);
+  }
   const unlockIndex = pickerFunction.indexOf("list.classList.remove('is-selecting')");
   const rebuildIndex = pickerFunction.indexOf("list.innerHTML = chunks.join('')");
   assert.ok(unlockIndex >= 0, 'reopening must clear the prior selection lock');
@@ -109,7 +126,8 @@ test('league picker is themed, repeatable, silent, and uses a wide desktop grid'
 
   const template = read('templates/modals/base.js');
   assert.match(template, /league-picker-shell[^\n]+max-w-5xl/);
-  assert.match(template, /league-picker-list[^\n]+grid-cols-2 md:grid-cols-4/);
+  assert.match(template, /id="league-picker-list"/);
+  assert.match(template, /id="league-picker-close-btn"/);
 
   const css = read('styles/modals.css');
   for (const theme of [

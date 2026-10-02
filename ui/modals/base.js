@@ -338,6 +338,110 @@ export function hideModal(modalId) {
 
 // --- PICKER MODALS ---
 
+// The picker walks the leagues in age order, grouped into the four stages of
+// a hero's journey (QUEST_LEAGUE_DEFINITIONS' ageCategory).
+const LEAGUE_PICKER_STAGES = [
+    { key: 'early', title: 'Little Explorers', icon: 'fa-shapes' },
+    { key: 'junior', title: 'Junior Adventurers', icon: 'fa-seedling' },
+    { key: 'mid', title: 'Pathfinders', icon: 'fa-compass' },
+    { key: 'senior', title: 'Champions', icon: 'fa-crown' }
+];
+
+function escapeLeaguePickerText(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function leagueAgeLabel(ageGroup) {
+    return String(ageGroup || '').replace('-', '–');
+}
+
+function leagueStageAgeLabel(definitions) {
+    const first = String(definitions[0]?.ageGroup || '');
+    const last = String(definitions[definitions.length - 1]?.ageGroup || '');
+    const min = first.split('-')[0].replace('+', '');
+    if (last.endsWith('+')) return `Ages ${min}+`;
+    const max = last.split('-').pop();
+    return min === max ? `Age ${min}` : `Ages ${min}–${max}`;
+}
+
+function leaguePickerFollowHtml(scope, currentLeague) {
+    if (scope !== 'leaderboard') return '';
+    const classId = state.get('globalSelectedClassId');
+    const activeClass = classId
+        ? ((state.get('allSchoolClasses') || []).find((c) => c.id === classId)
+            || (state.get('allTeachersClasses') || []).find((c) => c.id === classId))
+        : null;
+    const peeking = Boolean(state.get('leaderboardLeagueOverride'));
+    if (!activeClass && !peeking) return '';
+
+    const action = peeking
+        ? `<button type="button" class="league-match-active-btn lp-follow__btn">
+                <i class="fas fa-link" aria-hidden="true"></i><span>${activeClass ? 'Follow my class' : 'Back to my league'}</span>
+            </button>`
+        : `<span class="lp-follow__state"><i class="fas fa-circle-check" aria-hidden="true"></i>Following</span>`;
+    const logo = activeClass?.logo
+        ? `<span class="lp-follow__logo" aria-hidden="true">${activeClass.logo}</span>`
+        : '<span class="lp-follow__logo lp-follow__logo--icon" aria-hidden="true"><i class="fas fa-chalkboard-teacher"></i></span>';
+    const name = activeClass ? escapeLeaguePickerText(activeClass.name) : 'Your league';
+    const league = activeClass?.questLevel
+        ? `${escapeLeaguePickerText(activeClass.questLevel)} League`
+        : 'Your selected class sets the league';
+    const note = peeking && currentLeague
+        ? `<span class="lp-follow__peek"><i class="fas fa-eye" aria-hidden="true"></i>Peeking at ${escapeLeaguePickerText(currentLeague)}</span>`
+        : '';
+    return `
+        <div class="lp-follow${peeking ? ' is-peeking' : ''}">
+            ${logo}
+            <div class="lp-follow__copy">
+                <span class="lp-follow__kicker">Active class</span>
+                <span class="lp-follow__name font-title">${name}</span>
+                <span class="lp-follow__league"><i class="fas fa-shield-halved" aria-hidden="true"></i>${league}${note}</span>
+            </div>
+            ${action}
+        </div>`;
+}
+
+function leaguePickerCardHtml(definition, index, { currentLeague, classCounts, myCounts }) {
+    const ageLabel = leagueAgeLabel(definition.ageGroup);
+    const count = classCounts.get(definition.name) || 0;
+    const mine = myCounts.get(definition.name) || 0;
+    const isCurrent = definition.name === currentLeague;
+    const countHtml = count
+        ? `<span class="lp-card__count"><i class="fas fa-flag" aria-hidden="true"></i>${count} class${count === 1 ? '' : 'es'}</span>`
+        : '<span class="lp-card__count lp-card__count--none">No classes yet</span>';
+    const mineHtml = mine
+        ? `<span class="lp-card__mine" title="${mine} of your classes race here"><i class="fas fa-star" aria-hidden="true"></i>${mine === 1 ? 'Your class' : `${mine} yours`}</span>`
+        : '';
+    const nowHtml = isCurrent
+        ? '<span class="lp-card__now"><i class="fas fa-eye" aria-hidden="true"></i>Watching</span>'
+        : '';
+    const label = `${definition.name} league, ages ${ageLabel}, ${count || 'no'} class${count === 1 ? '' : 'es'}${mine ? `, ${mine} yours` : ''}${isCurrent ? ', currently shown' : ''}`;
+    return `<button
+            type="button"
+            class="league-select-btn league-picker-option league-picker-option--${definition.pickerTheme} league-picker-motion--${definition.pickerMotion}${isCurrent ? ' is-current' : ''}${count ? '' : ' is-empty'}"
+            style="--league-order:${index}"
+            data-league="${escapeLeaguePickerText(definition.name)}"
+            aria-pressed="${isCurrent ? 'true' : 'false'}"
+            aria-label="${escapeLeaguePickerText(label)}"
+        >
+            <span class="league-picker-option__watermark" aria-hidden="true"><i class="fas ${definition.pickerIcon}"></i></span>
+            <span class="league-picker-option__shine" aria-hidden="true"></span>
+            ${nowHtml}
+            <span class="lp-card__medal" aria-hidden="true"><i class="fas ${definition.pickerIcon}"></i></span>
+            <span class="league-picker-option__label">${escapeLeaguePickerText(definition.name)}</span>
+            <span class="league-picker-option__age">Ages ${ageLabel}</span>
+            <span class="lp-card__meta">${countHtml}${mineHtml}</span>
+            <span class="league-picker-option__spark league-picker-option__spark--one" aria-hidden="true"></span>
+            <span class="league-picker-option__spark league-picker-option__spark--two" aria-hidden="true"></span>
+            <span class="league-picker-option__spark league-picker-option__spark--three" aria-hidden="true"></span>
+        </button>`;
+}
+
 export function showLeaguePicker(options = {}) {
     const scope = options.scope ?? 'leaderboard';
     const list = document.getElementById('league-picker-list');
@@ -347,33 +451,39 @@ export function showLeaguePicker(options = {}) {
     // The list element itself survives modal closes, so always clear that lock
     // before rebuilding its buttons for a new picker session.
     list.classList.remove('is-selecting');
-    const chunks = [];
-    if (scope === 'leaderboard') {
-        chunks.push(`<button type="button" class="league-match-active-btn w-full col-span-2 md:col-span-4 p-3 font-title text-base text-emerald-900 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow border-2 border-emerald-200 transition hover:from-emerald-100 hover:to-teal-100 bubbly-button">
-            <i class="fas fa-link text-emerald-600 mr-2"></i>Use active class&rsquo;s league
-        </button>`);
-    }
-    chunks.push(...constants.QUEST_LEAGUE_DEFINITIONS.map((definition, index) => {
-        const isWide = definition.name === 'Proficiency';
-        const ageLabel = definition.ageGroup.includes('-')
-            ? definition.ageGroup.replace('-', '–')
-            : definition.ageGroup;
-        return `<button
-            type="button"
-            class="league-select-btn league-picker-option league-picker-option--${definition.pickerTheme} league-picker-motion--${definition.pickerMotion}${isWide ? ' league-picker-option--wide col-span-2' : ''}"
-            style="--league-order:${index}"
-            data-league="${definition.name}"
-            aria-label="Choose ${definition.name} league, ages ${ageLabel}"
-        >
-            <span class="league-picker-option__watermark" aria-hidden="true"><i class="fas ${definition.pickerIcon}"></i></span>
-            <span class="league-picker-option__shine" aria-hidden="true"></span>
-            <span class="league-picker-option__label">${definition.name}</span>
-            <span class="league-picker-option__age">Ages ${ageLabel}</span>
-            <span class="league-picker-option__spark league-picker-option__spark--one" aria-hidden="true"></span>
-            <span class="league-picker-option__spark league-picker-option__spark--two" aria-hidden="true"></span>
-            <span class="league-picker-option__spark league-picker-option__spark--three" aria-hidden="true"></span>
-        </button>`;
-    }));
+
+    const currentLeague = scope === 'leaderboard'
+        ? state.getLeaderboardEffectiveLeague()
+        : state.get('globalSelectedLeague');
+    const classCounts = new Map();
+    (state.get('allSchoolClasses') || []).forEach((c) => {
+        if (c?.questLevel) classCounts.set(c.questLevel, (classCounts.get(c.questLevel) || 0) + 1);
+    });
+    const myCounts = new Map();
+    (state.get('allTeachersClasses') || []).forEach((c) => {
+        if (c?.questLevel) myCounts.set(c.questLevel, (myCounts.get(c.questLevel) || 0) + 1);
+    });
+
+    const chunks = [leaguePickerFollowHtml(scope, currentLeague)];
+    let order = 0;
+    LEAGUE_PICKER_STAGES.forEach((stage, stageIndex) => {
+        const definitions = constants.QUEST_LEAGUE_DEFINITIONS.filter((d) => d.ageCategory === stage.key);
+        if (!definitions.length) return;
+        const cards = definitions
+            .map((definition) => leaguePickerCardHtml(definition, order++, { currentLeague, classCounts, myCounts }))
+            .join('');
+        chunks.push(`
+            <section class="lp-stage lp-stage--${stage.key}" style="--stage-i:${stageIndex}" aria-label="${escapeLeaguePickerText(stage.title)}">
+                <div class="lp-stage__label">
+                    <span class="lp-stage__icon" aria-hidden="true"><i class="fas ${stage.icon}"></i></span>
+                    <span class="lp-stage__copy">
+                        <span class="lp-stage__title font-title">${escapeLeaguePickerText(stage.title)}</span>
+                        <span class="lp-stage__ages">${leagueStageAgeLabel(definitions)}</span>
+                    </span>
+                </div>
+                <div class="lp-stage__grid">${cards}</div>
+            </section>`);
+    });
     list.innerHTML = chunks.join('');
     // Sound: bubbly-button global handler already plays click; avoid doubling.
     list.querySelector('.league-match-active-btn')?.addEventListener('click', () => {
@@ -397,6 +507,11 @@ export function showLeaguePicker(options = {}) {
         }, 360);
     }));
     showAnimatedModal('league-picker-modal');
+    list.scrollTop = 0;
+    // Land keyboard focus on the league being shown, so arrows/Tab start there.
+    window.requestAnimationFrame(() => {
+        list.querySelector('.league-select-btn.is-current')?.focus({ preventScroll: true });
+    });
 }
 
 export function showLogoPicker(target) {

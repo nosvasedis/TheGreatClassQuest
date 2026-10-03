@@ -195,3 +195,10 @@ test('the hero class emblem explains rank, level, perk and next rank', async () 
     assert.match(html, /tabindex="0"/);
     assert.equal(heroEmblemHtml(null), '');
 });
+
+test('podium heroes carry their longest word so long names shrink instead of splitting', () => {
+    const e = (id, rank, score, name) => ({ ...entry(id, rank, score), name });
+    const html = renderStandingsSectionHtml({ id: 's', title: 'C', entries: [e('a', 1, 3, 'Abd Ulla'), e('b', 1, 3, 'Alexandros Kougioumtzoglou')] });
+    assert.match(html, /data-hcs-id="b"[^>]*--lw:15/);
+    assert.match(html, /data-hcs-id="a"[^>]*--lw:4/);
+});

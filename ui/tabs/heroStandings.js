@@ -227,6 +227,11 @@ function podiumNoteHtml(e, group, entries) {
         : '<span class="hcs-figure__lead" title="Level on stars: more 3-star and 2-star awards, more kinds of awards, then the better test average decide">Wins the tie-break</span>';
 }
 
+/** Letters in the name's longest word: the podium shrinks a name to fit it whole. */
+function longestWord(name) {
+    return String(name || '').split(/[\s-]+/).reduce((n, w) => Math.max(n, w.length), 0);
+}
+
 function podiumFigureHtml(e, group, entries, k, packed) {
     const crown = e.rank === 1
         ? '<span class="hcs-figure__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
@@ -235,7 +240,7 @@ function podiumFigureHtml(e, group, entries, k, packed) {
     // A packed hero keeps the guild badge; titles and pills wait for the rows' room.
     const badges = packed ? (e.guildBadgeHtml || '') : `${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}`;
     return `
-        <div class="hcs-figure${packed ? ' hcs-figure--packed' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--k:${k}">
+        <div class="hcs-figure${packed ? ' hcs-figure--packed' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--k:${k};--lw:${Math.max(4, longestWord(e.name))}">
             ${crown}
             <div class="hcs-figure__portrait hero-challenge-avatar-wrap">
                 <span class="hcs-figure__ring" aria-hidden="true"></span>

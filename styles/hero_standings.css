@@ -836,6 +836,9 @@
 
 .hcs-spot__heroes > .hcs-figure {
     flex: 1 1 0;
+    /* Never narrower than the hero's longest word, so a name only breaks
+       between words. */
+    min-width: min-content;
 }
 
 /* Heroes sharing a classic pedestal stand closer together. */
@@ -954,9 +957,35 @@
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+    /* Break only between words; a word wider than the whole stage (very
+       rare) is the one case allowed to split. */
     overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: manual;
     text-wrap: balance;
 }
+
+/* A long word shrinks a little so it always fits whole on its line: each
+   pedestal is a size container, and the name's font is capped at the width a
+   hero has (pedestal / heroes on it) over the letters in its longest word
+   (--lw, set in markup; ~0.7em per letter covers the app's title font). */
+.hcs-spot {
+    container-type: inline-size;
+}
+
+.hcs-spot:hover,
+.hcs-spot:focus-within {
+    z-index: 2;
+}
+
+.hcs-figure__name .hcs-name__text {
+    font-size: min(1em, calc(100cqi / var(--n, 1) / var(--lw, 8) / 0.7));
+}
+
+.hcs-podium--tiers .hcs-figure__name .hcs-name__text {
+    font-size: min(1em, calc(100cqi / var(--lw, 8) / 0.7));
+}
+
 
 /* ─── Hero class emblem: a round badge left of the name, with a tooltip ───── */
 
@@ -1356,8 +1385,12 @@
 }
 
 .hcs-podium--tiers .hcs-spot__heroes > .hcs-figure {
-    flex: 0 0 8.25rem;
-    width: 8.25rem;
+    /* As wide as the longest word in the name, at least 8.25rem: a long
+       surname widens its hero instead of losing its last letters. */
+    flex: 0 0 auto;
+    width: min-content;
+    min-width: 8.25rem;
+    max-width: 15rem;
 }
 
 .hcs-podium--tiers .hcs-pedestal {
@@ -2258,8 +2291,12 @@
     }
 
     .hcs-podium--wide .hcs-spot__heroes > .hcs-figure {
-        flex: 0 0 8.25rem;
-        width: 8.25rem;
+        /* As wide as the longest word in the name, at least 8.25rem: a long
+           surname widens its hero instead of losing its last letters. */
+        flex: 0 0 auto;
+        width: min-content;
+        min-width: 8.25rem;
+        max-width: 15rem;
     }
 
     .hcs-podium--wide .hcs-pedestal {
@@ -2292,8 +2329,12 @@
     }
     .hcs-podium--tiers .hcs-spot__heroes > .hcs-figure,
     .hcs-podium--wide .hcs-spot__heroes > .hcs-figure {
-        flex-basis: 6.4rem;
-        width: 6.4rem;
+        min-width: 6.4rem;
+        max-width: calc(100vw - 3rem);
+    }
+
+    .hcs-podium--wide .hcs-figure__name .hcs-name__text {
+        font-size: min(1em, calc(100cqi / var(--lw, 8) / 0.7));
     }
 
     .hcs-podium--tiers .hcs-pedestal__tag b,

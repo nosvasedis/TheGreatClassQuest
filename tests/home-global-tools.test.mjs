@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getHomeGlobalTools, HOME_GLOBAL_TOOL_LIMIT } from '../features/homeGlobalTools.mjs';
+import { getHomeGlobalTools, getHomeClassActions, HOME_GLOBAL_TOOL_LIMIT } from '../features/homeGlobalTools.mjs';
 
 const all = () => true;
 const none = () => false;
@@ -32,4 +32,23 @@ test('gated tools drop out and settings shortcuts fill the space', () => {
     assert.deepEqual(tools.map(t => t.id), ['new-class', 'hero-archive', 'team-archive', 'student-fixes', 'last-lessons']);
     assert.equal(tools.find(t => t.id === 'student-fixes').subtab, 'manage');
     assert.equal(tools.find(t => t.id === 'last-lessons').subtab, 'planning');
+});
+
+test('class actions skip bottom-nav tabs and carry the class id', () => {
+    const tools = getHomeClassActions({ classId: 'c1', heroCount: 12, absentToday: 2 });
+    assert.deepEqual(tools.map(t => t.id), ['roll-call', 'roster', 'report', 'edit', 'prodigies']);
+    assert.ok(tools.every(t => t.classId === 'c1' && !t.tab));
+    assert.equal(tools[0].hint, '2 away today');
+    assert.equal(tools[1].hint, '12 heroes');
+    assert.equal(getHomeClassActions({ classId: 'c1', absentToday: 1 })[0].hint, '1 away today');
+    assert.equal(getHomeClassActions({ classId: 'c1' })[0].hint, 'Mark who is away');
+});
+
+test('Teacher Boon leads during its window and says who received it', () => {
+    const open = getHomeClassActions({ classId: 'c1', boonWindow: true });
+    assert.equal(open[0].id, 'teacher-boon');
+    assert.equal(open[0].hint, 'Open this week');
+    assert.equal(open.length, HOME_GLOBAL_TOOL_LIMIT);
+    const given = getHomeClassActions({ classId: 'c1', boonWindow: true, boonGivenTo: 'Maria' });
+    assert.equal(given[0].hint, 'Given to Maria');
 });

@@ -13,6 +13,7 @@ import { hideAppScreen, hideExtras, captureWeatherCardHtml } from './fill-extras
 import { getGreetingHillsHtml, getDayRingEmblemHtml } from '../../../../features/homeGreetingScene.js';
 import { buildHomePartyCardHtml } from '../../../../features/homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from '../../../../features/homeQuestRoadCard.mjs';
+import { getHomeClassActions } from '../../../../features/homeGlobalTools.mjs';
 import { buildSkyCardInner, describeArc, getLessonDialArc } from '../../../../ui/wallpaperDeck.mjs';
 import { getWouldYouRatherCard } from '../../../../ui/wallpaperSkyCards.js';
 import { hydrateAtlasCard } from '../../../../ui/wallpaperAtlasCards.js';
@@ -86,14 +87,7 @@ function greetingRingHtml() {
 }
 
 function homeDashboardHtml() {
-  const tools = [
-    { icon: 'fa-clipboard-check', label: 'Roll Call', extra: 'data-action="open-attendance" class="tool-btn-pop shortcut-action-btn"' },
-    { icon: 'fa-magic', label: 'Report', extra: 'data-action="open-report" class="tool-btn-pop shortcut-action-btn"' },
-    { icon: 'fa-feather-alt', label: 'Story', extra: 'data-target="reward-ideas-tab" class="tool-btn-pop shortcut-tab-btn"' },
-    { icon: 'fa-scroll', label: 'Trials', extra: 'data-target="scholars-scroll-tab" class="tool-btn-pop shortcut-tab-btn"' },
-    { icon: 'fa-star', label: 'Stars', extra: 'data-target="award-stars-tab" class="tool-btn-pop shortcut-tab-btn"' },
-    { icon: 'fa-pencil-alt', label: 'Edit', extra: 'data-action="edit-class" class="tool-btn-pop shortcut-action-btn"' }
-  ];
+  const tools = getHomeClassActions({ classId: 'capture', heroCount: 14, absentToday: 2 });
   return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
@@ -164,8 +158,8 @@ function homeDashboardHtml() {
 
             <div class="vibrant-card h-span-4 card-glass-white">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Class Actions</h3>
-                <div class="grid grid-cols-3 gap-3 p-4 pt-3">
-                    ${tools.map((t) => `<div ${t.extra} style="aspect-ratio: 1/0.8"><i class="fas ${t.icon} text-xl mb-1"></i><span style="font-size: 0.65rem">${t.label}</span></div>`).join('')}
+                <div class="gt-grid">
+                    ${tools.map((t, i) => `<button type="button" class="gt-tile gt-tile--${t.tone}" style="--gt-i:${i}"><span class="gt-tile__icon" aria-hidden="true"><i class="fas ${t.icon}"></i></span><span class="gt-tile__text"><span class="gt-tile__label">${t.label}</span><span class="gt-tile__hint">${t.hint}</span></span><i class="fas fa-chevron-right gt-tile__go" aria-hidden="true"></i></button>`).join('')}
                 </div>
             </div>
         </div>

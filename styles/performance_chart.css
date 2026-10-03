@@ -576,9 +576,11 @@ button.ss-tile:hover { transform: translateY(-2px); border-color: color-mix(in s
 .ss-momentum[data-dir="up"] { color: #047857; background: rgba(16, 185, 129, 0.13); }
 .ss-momentum[data-dir="down"] { color: #b42335; background: rgba(225, 29, 72, 0.1); }
 
-.ss-star { display: flex; align-items: center; gap: 0.6rem; min-width: 0; margin-top: 0.15rem; }
-.ss-star__avs { display: flex; flex-shrink: 0; }
+/* One row per scholar (avatar + name) so a three-way tie still fits the tile. */
+.ss-star { display: flex; flex-direction: column; gap: 0.35rem; align-self: stretch; min-width: 0; margin-top: 0.2rem; }
+.ss-star__row { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
 .ss-star__av {
+    flex-shrink: 0;
     width: 2.4rem;
     height: 2.4rem;
     border-radius: 999px;
@@ -586,9 +588,8 @@ button.ss-tile:hover { transform: translateY(-2px); border-color: color-mix(in s
     border: 2px solid var(--ss-gold-2);
     box-shadow: 0 0 0 2px #fff, 0 3px 8px rgba(184, 134, 47, 0.4);
 }
-.ss-star__av + .ss-star__av { margin-left: -0.7rem; }
-.ss-star__names { display: flex; flex-direction: column; min-width: 0; }
 .ss-star__name {
+    min-width: 0;
     padding: 0;
     border: 0;
     background: none;
@@ -597,11 +598,18 @@ button.ss-tile:hover { transform: translateY(-2px); border-color: color-mix(in s
     font-size: 1.02rem;
     line-height: 1.2;
     color: var(--ss-ink);
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     cursor: pointer;
 }
+.ss-star--tied { gap: 0.3rem; }
+.ss-star--tied .ss-star__av { width: 1.75rem; height: 1.75rem; border-width: 1.5px; box-shadow: 0 0 0 1.5px #fff, 0 2px 5px rgba(184, 134, 47, 0.35); }
+.ss-star--tied .ss-star__av--initial { font-size: 0.8rem; }
+.ss-star--tied .ss-star__name { font-size: 0.9rem; line-height: 1.15; }
 .ss-star__name:hover { color: var(--ss-seal); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 
 /* ---------- The Honour Roll (class performance chart) ---------- */

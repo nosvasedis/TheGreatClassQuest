@@ -780,9 +780,8 @@ function ledgerHtml(classData, model, rows, metric) {
             <span class="ss-tile__icon" aria-hidden="true"><i class="fas fa-crown"></i></span>
             <span class="ss-tile__label">Top scholar${leaders.length > 1 ? 's' : ''}</span>
             ${leaders.length ? `
-                <span class="ss-star">
-                    <span class="ss-star__avs">${leaders.map((r) => avatarMarkup(r.student, 'ss-star__av')).join('')}</span>
-                    <span class="ss-star__names">${leaders.map((r) => `<button type="button" class="ss-star__name chart-label-button" data-student-id="${esc(r.student.id)}">${esc(r.student.name)}</button>`).join('')}</span>
+                <span class="ss-star${leaders.length > 1 ? ' ss-star--tied' : ''}">
+                    ${leaders.map((r) => `<span class="ss-star__row">${avatarMarkup(r.student, 'ss-star__av')}<button type="button" class="ss-star__name chart-label-button" data-student-id="${esc(r.student.id)}" title="${esc(r.student.name)}">${esc(r.student.name)}</button></span>`).join('')}
                 </span>
                 <span class="ss-tile__note">${formatPct(topVal)} overall average</span>`
         : '<span class="ss-tile__note">Crowned after the first graded trial</span>'}

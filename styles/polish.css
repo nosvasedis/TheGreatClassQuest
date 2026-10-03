@@ -29,11 +29,6 @@ body:not(.gcq-mobile) {
     text-rendering: optimizeLegibility;
 }
 
-body:not(.gcq-mobile) ::selection {
-    background: rgba(56, 189, 248, 0.32);
-    color: inherit;
-}
-
 /* ── Keyboard focus ring ────────────────────────────────────────
  * :where() keeps specificity at zero, so any component that already
  * styles its own focus state (or opts out) still wins. Only shows for

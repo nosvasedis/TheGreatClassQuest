@@ -1,0 +1,99 @@
+/*
+ * text_selection.css — where text can be selected, and how a selection looks.
+ *
+ * The Quest is a game board, not a document: dragging across cards, buttons,
+ * tabs or headings (or double-clicking a button quickly) should never paint a
+ * highlight. So the app shell is unselectable, and selection is switched back
+ * on only where a teacher (or parent) would actually want to quote or copy:
+ *   - anything they type into (fields, editors);
+ *   - prose the app writes for them (diary entries, reports, stories,
+ *     chronicle notes, the guidebook, analysis, messages);
+ *   - data workspaces (the Secretary's Office, the family portal).
+ * The quest cursor reads --gcq-select so the text cursor only appears where a
+ * drag really selects something.
+ *
+ * Every rule is wrapped in :where() (zero specificity), so a component that
+ * sets its own user-select (e.g. a code meant to select as one block) wins.
+ * Loaded right after polish.css.
+ */
+
+/* ── Default: the app shell does not select ─────────────────── */
+:where(body) {
+    --gcq-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ── Opt back in: things you type into ──────────────────────── */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="color"]):not([type="file"]),
+       textarea, [contenteditable=""], [contenteditable="true"], [role="textbox"]) {
+    --gcq-select: text;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* ── Opt back in: things worth reading, quoting or copying ──── */
+:where(
+    [data-selectable],
+    pre, code, kbd, samp,
+    /* Adventure Log diary pages */
+    .diary-text,
+    /* Weekly report (and its copy / PDF source) */
+    #report-modal-content, .wr-body,
+    /* Story Weavers: the chapter text, reveals, history and storybooks */
+    #story-weavers-text, .story-weavers-story-text, #story-reveal-text,
+    #story-history-content, #storybook-viewer-content,
+    /* Hero Chronicle notes and the Oracle's write-up */
+    .hc-page, #hero-chronicle-notes-feed, #hero-chronicle-ai-output,
+    /* Logbooks, history, assignments and planner notes */
+    #logbook-modal-content, #history-modal-content, #previous-assignment-text,
+    #day-planner-past-note, #narrative-text-container,
+    /* Student analytics: written analysis and the assistant */
+    #analytics-analysis-content, #analytics-assistant-content,
+    /* Record tables a teacher may paste elsewhere */
+    #trial-history-content, #attendance-chronicle-content,
+    /* Adventurer's Guide pages */
+    .ag-body,
+    /* Office and family portal workspaces */
+    .secretary-role-main, #parent-screen .fp-main
+) {
+    --gcq-select: text;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* ── …but controls and artwork inside those areas still don't ── */
+:where(button, [role="button"], [role="tab"], [role="menuitem"], [role="option"],
+       select, summary, label, .cursor-pointer, .bubbly-button,
+       img, svg, video, canvas, i.fas, i.far, i.fab, i.fa-solid, i.fa-regular) {
+    --gcq-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ── The highlight ───────────────────────────────────────────────
+ * Reading surfaces get a honey-gold highlighter — the same gold as the quest
+ * cursor's click sparkle, like a marker pen on a parchment page. It is nearly
+ * opaque with dark ink so it stays crisp on night-sky and violet panels too.
+ * Fields get the sky-blue of the focus ring they're wearing while you edit,
+ * so "I'm editing this" and "I'm quoting this" read differently. */
+::selection {
+    background-color: rgba(252, 211, 77, 0.82);
+    color: #2a1a05;
+    -webkit-text-fill-color: #2a1a05;
+    text-shadow: none;
+}
+
+:where(input, textarea, [contenteditable=""], [contenteditable="true"], [role="textbox"])::selection,
+:where([contenteditable=""], [contenteditable="true"], [role="textbox"]) ::selection {
+    background-color: rgba(56, 189, 248, 0.36);
+    color: inherit;
+    -webkit-text-fill-color: currentColor;
+}
+
+@media (forced-colors: active) {
+    ::selection {
+        background-color: Highlight;
+        color: HighlightText;
+    }
+}

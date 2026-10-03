@@ -26,6 +26,13 @@ function hourglassFrameAt(elapsed) {
     return { index: 0, remaining: HOURGLASS_FRAMES[0].duration };
 }
 
+// text_selection.css marks selectable regions with --gcq-select because Firefox reports a
+// child of an unselectable parent as user-select: auto even though it can't be selected.
+function selectable(style) {
+    return style.userSelect !== 'none' && style.webkitUserSelect !== 'none' &&
+        style.getPropertyValue('--gcq-select').trim() !== 'none';
+}
+
 function cursorRules(frameSet, supported) {
     const css = asset => supported ? asset.css : asset.fallbackCss;
     const select = (mode, frame) => `:is(.gcq-quest-cursor, .gcq-quest-cursor *)[data-gcq-cursor="${mode}"]` +
@@ -184,7 +191,7 @@ export function setupQuestCursor() {
         const ownText = Array.from(el.childNodes).some(node => node.nodeType === 3 && node.textContent.trim());
         let next = resolveQuestCursor({ cursor, busy, disabled,
             interactive: Boolean(control),
-            text: Boolean(field) || (!control && ownText && style.userSelect !== 'none' && style.webkitUserSelect !== 'none'),
+            text: Boolean(field) || (!control && ownText && selectable(style)),
             native: Boolean(el.closest('[data-gcq-native-cursor], iframe')) });
         if (dragging) next = 'native';
         apply(next === 'native' ? null : el, next);

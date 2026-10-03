@@ -255,6 +255,7 @@
 /* Guild Sorting Ceremony (templates/modals/sortingQuiz.js) */
 @import url('./styles/sorting_ceremony.css');
 @import url('./styles/polish.css');
+@import url('./styles/text_selection.css');
 @import url('./styles/wallpaper_sky.css');
 
 /* 47. Teacher Settings: the teacher's desk (pages, stationery, picker) */

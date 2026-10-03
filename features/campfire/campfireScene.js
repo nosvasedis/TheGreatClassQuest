@@ -48,6 +48,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
     const wait = ms => new Promise(resolve => later(resolve, ms));
     const checkedInIds = new Set(session.checkedInIds || []), keptOathIds = new Set(session.keptOathIds || []);
     let selfCheck = session.selfCheck || null, localOaths = [...oaths], wordsBurnt = 0;
+    const burntWords = new Set(); // stays burnt when the teacher steps back to Word Embers
     const early = session.band === 'early', script = session.script;
     const circle = (script.circle || []).map(id => students.find(s => s.id === id)).filter(Boolean).slice(0, 4);
     const starCount = Math.max(6, Math.min(30, Number(session.stars) || 18));
@@ -385,7 +386,8 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
                 const meta = extras[String(w).toLowerCase()] || {};
                 const example = extra.example || meta.example || '';
                 const cameo = meta.depict ? '<span class="cf-ember-word__cameo"><img data-word-art="' + esc(w) + '" alt=""></span>' : '';
-                return '<button class="cf-ember-word' + (example ? ' has-example' : '') + (extra.pattern ? ' is-pattern' : '') + '" data-word style="--i:' + i + ';--lift:' + (Math.abs(i - (Math.max(words.length, 1) - 1) / 2) * 14).toFixed(0) + 'px">' +
+                const gone = burntWords.has(String(w).toLowerCase());
+                return '<button class="cf-ember-word' + (example ? ' has-example' : '') + (extra.pattern ? ' is-pattern' : '') + (gone ? ' is-burnt' : '') + '" data-word' + (gone ? ' disabled' : '') + ' style="--i:' + i + ';--lift:' + (Math.abs(i - (Math.max(words.length, 1) - 1) / 2) * 14).toFixed(0) + 'px">' +
                     cameo + '<span class="cf-ember-word__text">' + esc(w) + '</span><small><span aria-hidden="true">' + icon + '</span> ' + label + '</small>' +
                     (example ? '<em class="cf-ember-word__ex">' + esc(example) + '</em>' : '') + '</button>';
             };
@@ -394,7 +396,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
                 : (pattern?.label ? ember(pattern.label, 0, { example: pattern.example, pattern: true }) : '');
             content.innerHTML = heading('WORD EMBERS', early ? 'Can we say these words?' : (pattern && !words.length ? 'Tonight’s pattern' : 'Which words did we bring tonight?'),
                 words.length || pattern ? (early ? 'Say it together, then throw it into the fire!' : 'Look, say it, act it out or use it in a sentence. Then it joins the fire.') : 'Share one new word from today.') +
-                (chips ? '<div class="cf-word-arc">' + chips + '</div><p class="cf-word-count" aria-live="polite">' + (wordsBurnt ? '🔥 ' + wordsBurnt + ' of ' + (words.length || 1) + ' words in the fire' : '') + '</p>' : '');
+                (chips ? '<div class="cf-word-arc">' + chips + '</div><p class="cf-word-count" aria-live="polite">' + (!wordsBurnt ? '' : wordsBurnt >= (words.length || 1) ? '✨ All our words are in the fire!' : '🔥 ' + wordsBurnt + ' of ' + (words.length || 1) + ' words in the fire') + '</p>' : '');
             hydrateWordArt();
         } else if (step === 2) {
             setFire(0.9);
@@ -436,6 +438,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         if (disposed || moving) return;
         const previous = step;
         step = nextStep;
+        if (previous !== nextStep) fx.querySelectorAll('.cf-star-name').forEach(tag => tag.remove());
         const shouldAnimate = animate && !reducedMotion && (force || previous !== nextStep);
         if (!shouldAnimate) {
             content.classList.remove('is-leaving', 'is-entering');
@@ -480,7 +483,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         if (step === 0 && kindle === 'dark') return lightTheFire();
         if (step === 0 && kindle === 'falling') return ignite();
         if (step < 6) return showStage(step + 1);
-        await guard(async () => { await onComplete({ selfCheck, checkedInIds: [...checkedInIds], keptOathIds: [...keptOathIds] }); close(); });
+        await guard(async () => { await Promise.all(checkInQueue.values()); await onComplete({ selfCheck, checkedInIds: [...checkedInIds], keptOathIds: [...keptOathIds] }); close(); });
     }
 
     root.addEventListener('click', async event => {
@@ -502,44 +505,22 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             flying.className = 'cf-flying-word'; flying.textContent = b.querySelector('.cf-ember-word__text')?.textContent || '';
             audio?.whoosh();
             const word = flying.textContent;
+            if (burntWords.has(word.toLowerCase())) return;
+            burntWords.add(word.toLowerCase());
             await fly(flying, { x: r.left + r.width / 2, y: r.top + r.height / 2 }, coalPoint(), 900, { arc: -70, endScale: 0.3 });
             if (disposed) return;
             feedTheFire(word);
             return;
         }
         if (b.hasAttribute('data-hands')) { b.disabled = true; setFire(1.4); fire.flare('#ffe6a8', 0.8); audio?.ignite(); later(() => setFire(1), 2500); return; }
+        if (b.dataset.mood && b.dataset.oath) return checkIn(b);
         if (b.dataset.mood) return guard(async () => {
             const mood = b.dataset.mood;
-            if (b.dataset.oath) {
-                // Feel instant: react first, then save. A failed save puts the seat back.
-                const before = localOaths.find(o => o.id === b.dataset.oath);
-                const previousMood = before?.checkIns?.find(ci => ci.date === session.date)?.mood || '';
-                const student = students.find(st => st.id === before?.studentId);
-                reactSeat(b, mood);
-                fire.flare(mood === 'flame' ? getGuildById(student?.guildId)?.primary || '#ffc777' : mood === 'moon' ? '#b9ccff' : '#ffe0a8', mood === 'flame' ? 0.45 : 0.18);
-                if (mood === 'flame') audio?.whoosh(); else if (mood === 'moon') audio?.twinkle(); else audio?.glow();
-                try {
-                    const oath = preview ? { ...before, checkIns: [{ date: session.date, mood }] } : await checkInEmberOath(b.dataset.oath, mood);
-                    localOaths = localOaths.map(o => o.id === oath.id ? oath : o); checkedInIds.add(oath.studentId);
-                    if (!preview && mood === 'flame') {
-                        const facts = await getOathFacts(oath);
-                        if (evaluateOathEvidence(oath, facts).ready) script.readyOathIds = [...new Set([...(script.readyOathIds || []), oath.id])];
-                    }
-                    if (!preview) await onSave({ checkedInIds: [...checkedInIds], script });
-                } catch (e) {
-                    const seatEl = b.closest('.cf-seat');
-                    seatEl?.classList.remove('is-flame', 'is-candle', 'is-moon');
-                    if (previousMood) seatEl?.classList.add('is-' + previousMood);
-                    seatEl?.querySelectorAll('.cf-orb').forEach(o => o.setAttribute('aria-pressed', String(o.dataset.mood === previousMood)));
-                    throw e;
-                }
-            } else {
-                selfCheck = mood; root.dataset.glow = mood;
-                setFire((early ? EARLY_MOODS : MOODS).find(m => m[0] === mood)?.[3] || 1);
-                if (mood === 'flame') fire.flare('#ffe6a8', 0.5);
-                content.querySelectorAll('.cf-glow-orb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mood === mood)));
-                if (!preview) await onSave({ selfCheck });
-            }
+            selfCheck = mood; root.dataset.glow = mood;
+            setFire((early ? EARLY_MOODS : MOODS).find(m => m[0] === mood)?.[3] || 1);
+            if (mood === 'flame') fire.flare('#ffe6a8', 0.5);
+            content.querySelectorAll('.cf-glow-orb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mood === mood)));
+            if (!preview) await onSave({ selfCheck });
         });
         if (b.dataset.keep) return guard(async () => {
             const kept = preview ? { ...localOaths.find(o => o.id === b.dataset.keep), status: 'kept', keptAt: { seconds: Date.now() / 1000 } } : await keepEmberOath(b.dataset.keep, { confirmed: true });
@@ -549,6 +530,47 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             await keptMoment(kept);
         });
     });
+    // Oath circle check-ins never wait for each other: the teacher can go round all four seats at once.
+    // Taps on the same seat queue, so the last mood tapped is the one saved.
+    const checkInQueue = new Map(), latestTap = new Map();
+    function checkIn(b) {
+        const oathId = b.dataset.oath, mood = b.dataset.mood;
+        const before = localOaths.find(o => o.id === oathId);
+        const savedMood = before?.checkIns?.find(ci => ci.date === session.date)?.mood || '';
+        const student = students.find(st => st.id === before?.studentId);
+        // Feel instant: react first, then save. A failed save puts the seat back.
+        reactSeat(b, mood);
+        fire.flare(mood === 'flame' ? getGuildById(student?.guildId)?.primary || '#ffc777' : mood === 'moon' ? '#b9ccff' : '#ffe0a8', mood === 'flame' ? 0.45 : 0.18);
+        if (mood === 'flame') audio?.whoosh(); else if (mood === 'moon') audio?.twinkle(); else audio?.glow();
+        const tap = {}; latestTap.set(oathId, tap); error.hidden = true;
+        const save = async () => {
+            const current = localOaths.find(o => o.id === oathId);
+            const oath = preview ? { ...current, checkIns: [{ date: session.date, mood }] } : await checkInEmberOath(oathId, mood);
+            if (disposed) return;
+            localOaths = localOaths.map(o => o.id === oath.id ? oath : o); checkedInIds.add(oath.studentId);
+            if (preview) return;
+            const wasReady = script.readyOathIds?.includes(oath.id);
+            if (mood === 'flame' || wasReady) {
+                const ready = evaluateOathEvidence(oath, await getOathFacts(oath)).ready;
+                if (disposed) return;
+                script.readyOathIds = ready ? [...new Set([...(script.readyOathIds || []), oath.id])] : (script.readyOathIds || []).filter(id => id !== oath.id);
+                if (ready !== Boolean(wasReady) && step === 5 && moment.hidden && !moving) showStage(5, { animate: false });
+            }
+            await onSave({ checkedInIds: [...checkedInIds], script });
+        };
+        const run = (checkInQueue.get(oathId) || Promise.resolve()).then(save).catch(e => {
+            if (disposed || latestTap.get(oathId) !== tap) return;
+            const seatEl = root.querySelector('.cf-orb[data-oath="' + CSS.escape(oathId) + '"]')?.closest('.cf-seat');
+            seatEl?.classList.remove('is-flame', 'is-candle', 'is-moon');
+            if (savedMood) seatEl?.classList.add('is-' + savedMood);
+            seatEl?.querySelectorAll('.cf-orb').forEach(o => o.setAttribute('aria-pressed', String(o.dataset.mood === savedMood)));
+            const badge = seatEl?.querySelector('.cf-seat-mood');
+            if (badge && savedMood) badge.textContent = MOODS.find(m => m[0] === savedMood)[1]; else badge?.remove();
+            error.textContent = e?.message || 'That check-in could not be saved. Please try again.'; error.hidden = false;
+        });
+        checkInQueue.set(oathId, run);
+        run.finally(() => { if (checkInQueue.get(oathId) === run) checkInQueue.delete(oathId); });
+    }
     function keydown(event) {
         if (disposed) return;
         if (event.key === 'Escape') {

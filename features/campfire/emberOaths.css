@@ -222,7 +222,18 @@
 @keyframes eo-lit{40%{transform:translateY(-8px) scale(1.04);box-shadow:0 0 0 10px #fde68a,0 0 50px #f97316aa}100%{transform:translateY(-4px) scale(1);box-shadow:0 0 0 5px #fde68a,0 0 30px #f9731666}}
 @keyframes eo-star{from{opacity:0;transform:scale(.2) rotate(-60deg)}}
 @keyframes eo-burst{0%{opacity:1;transform:rotate(var(--a)) translateY(0)}100%{opacity:0;transform:rotate(var(--a)) translateY(-120px)}}
-@media(max-width:640px){.eo-head{padding:1rem}.eo-head-icon{width:2.8rem;height:2.8rem;font-size:1.5rem}.eo-view{padding:1rem}.eo-shell{border-radius:1.6rem}.eo-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.eo-head{padding:1rem 4rem 1rem 1rem;gap:.7rem}.eo-head-icon{width:2.8rem;height:2.8rem;font-size:1.5rem}.eo-view{padding:1rem}.eo-shell{border-radius:1.6rem}.eo-grid{grid-template-columns:1fr}
+  /* Phone: the close button keeps its corner, the counts sit on one quiet row, and the filters never wrap. */
+  .eo-head-sub{font-size:.68rem;letter-spacing:.04em}
+  .eo-head-side{position:static;width:100%}
+  .eo-head-side .eo-icon-btn{position:absolute;top:1rem;right:1rem}
+  .eo-stats{flex-wrap:nowrap;gap:.3rem}
+  .eo-stat{padding:.28rem .6rem;font-size:.7rem}.eo-stat b{font-size:.85rem}
+  .eo-toolbar{gap:.6rem}
+  .eo-tabs{max-width:100%;overflow-x:auto;scrollbar-width:none}.eo-tabs::-webkit-scrollbar{display:none}
+  .eo-tabs button{white-space:nowrap;padding:.42rem .7rem;font-size:.76rem}
+  .eo-choose-actions{bottom:-1rem;margin:1rem -1rem -1rem;padding:.8rem 1rem 1rem}
+  .eo-choose-actions button{white-space:nowrap}}
 @media(prefers-reduced-motion:reduce){.eo-shell *,.eo-shell *::before,.eo-shell *::after{animation:none!important;transition:none!important}}
 
 /* Choosing ceremony progress: the class as a row of little avatars */

@@ -123,3 +123,10 @@ test('the Oracle sees the child and refuses to repeat what is already on screen'
     const fresh = acceptOracleIdea({ text: 'I show my group one habitat fact I found.', why: 'Builds on our habitat word.' }, shown, 'mid');
     assert.ok(fresh && fresh.text.startsWith('I') && fresh.why && fresh.target.count >= 1);
 });
+test('a quoted classroom phrase never ends with a doubled full stop', () => {
+    for (const league of ['Junior B', 'A', 'D']) for (let i = 0; i < 40; i++) {
+        for (const s of buildOathSuggestions({ league, seed: 'kid' + i, day: '2026-10-0' + (i % 9 + 1) })) {
+            assert.doesNotMatch(s.text, /[?!.…]”\./, s.text);
+        }
+    }
+});

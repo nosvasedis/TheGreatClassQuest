@@ -4,6 +4,7 @@ import * as state from '../state.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { getTodayDateString, getLocalIsoDateString } from '../utils.js';
 import { showToast } from '../ui/effects.js';
+import { evaluateOathEvidence } from './emberOathEvidence.mjs';
 
 const FLAME = '<svg class="campfire-flame" viewBox="0 0 48 64" aria-hidden="true">' +
     '<path class="campfire-flame__outer" fill="#fa7844" d="M25 1C38 20 47 29 43 43 39 60 13 65 5 47-2 30 16 23 16 12c6 5 8 9 7 14C30 17 30 9 25 1Z"/>' +
@@ -56,8 +57,9 @@ function todaysLog(classId) {
 }
 function readyCount(classId) {
     if (!state.get('hasLoadedEmberOaths')) return 0;
-    const today = getLocalIsoDateString();
-    return (state.get('allEmberOaths') || []).filter(o => o.classId === classId && o.status === 'active' && (o.checkIns || []).some(c => c.mood === 'flame') && (o.evidence || []).length >= (o.target?.count || 99) && o.startDate <= today).length;
+    // Same rule as the Oath Board, so a virtue promise filled by stars counts here too.
+    const facts = { awards: state.get('allAwardLogs') || [], writtenScores: state.get('allWrittenScores') || [], today: getLocalIsoDateString() };
+    return (state.get('allEmberOaths') || []).filter(o => o.classId === classId && o.status === 'active' && evaluateOathEvidence(o, facts).ready).length;
 }
 
 export function mountCampfireEntry(host, classId, { oathsOnly = false, home = false } = {}) {
@@ -69,6 +71,7 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
         return;
     }
     const c = state.get('allTeachersClasses').find(item => item.id === classId); if (!c) return;
+    watchOaths();
     const log = todaysLog(classId);
     const celebrationClosed = document.getElementById('hero-celebration-modal')?.classList.contains('hidden') !== false;
     const key = classId + '_' + getTodayDateString();
@@ -77,6 +80,7 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     if (home && !ready) return;
     const entry = document.createElement('div');
     entry.className = 'campfire-entry' + (home ? ' campfire-entry--home' : '') + (oathsOnly ? ' campfire-entry--class' : '');
+    entry.dataset.classId = classId;
     if (ready) {
         entry.insertAdjacentHTML('beforeend', home
             ? campfireHomePillMarkup({ held, igniting: igniting.has(key) })
@@ -115,6 +119,26 @@ function refreshEntries() {
     const home = document.getElementById('home-reminders-container');
     if (home) mountCampfireEntry(home, classId, { home: true });
 }
+
+/** The "N ready" badges need the year's promises; start that one small listener once, off the critical path. */
+let watching = false;
+function watchOaths() {
+    if (watching || state.get('hasLoadedEmberOaths') || state.get('currentUserRole') !== 'teacher') return;
+    watching = true;
+    setTimeout(() => import('../db/actions/emberOaths.js').then(m => m.ensureEmberOathsListener()).catch(() => {}).finally(() => { watching = false; }), 1500);
+}
+
+/** Keep every "N ready" badge true while promises change (check-ins, moments, keeping one). */
+function refreshReadyBadges() {
+    document.querySelectorAll('.campfire-entry[data-class-id] [data-campfire-oaths]').forEach(button => {
+        const ready = readyCount(button.closest('.campfire-entry').dataset.classId);
+        let badge = button.querySelector('.campfire-oaths-badge');
+        if (!ready) { badge?.remove(); return; }
+        if (!badge) { badge = document.createElement('span'); badge.className = 'campfire-oaths-badge'; button.append(badge); }
+        badge.textContent = ready + ' ready';
+    });
+}
+state.subscribe(['allEmberOaths', 'allAwardLogs'], refreshReadyBadges);
 
 window.addEventListener('gcq:campfire-updated', async event => {
     const m = await import('./campfire/campfireService.js');

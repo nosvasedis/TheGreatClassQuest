@@ -43,6 +43,8 @@
 .cf-scene.is-sky-gaze .cf-star-lines{opacity:1;transition:opacity .45s}
 .cf-scene.is-sky-gaze .cf-star-lines path{stroke-dashoffset:0;animation:none}
 .cf-scene[data-stage=kept] .cf-content{margin-top:clamp(28px,8vh,64px)}
+/* Our sky of promises: the words sit under the constellations, never on top of them. */
+.cf-scene[data-stage=kept].is-sky-featured:not(.is-sky-gaze) .cf-content{margin-top:clamp(40px,19vh,190px)}
 .cf-star--speak .cf-star-mark{filter:drop-shadow(0 0 2px #38bdf888)}
 .cf-star--words .cf-star-mark{filter:drop-shadow(0 0 2px #8b5cf688)}
 .cf-star--write .cf-star-mark{filter:drop-shadow(0 0 2px #fb718588)}
@@ -306,7 +308,7 @@
 @keyframes cf-burst{0%{opacity:1;transform:rotate(var(--a)) translateY(0) scale(1)}100%{opacity:0;transform:rotate(var(--a)) translateY(-190px) scale(.3)}}
 
 @media(max-height:760px){.cf-content h2{font-size:clamp(26px,3.2vw,44px)}.cf-subtitle{margin-top:10px}.cf-word-arc{margin-top:16px}.cf-glow{margin-top:18px}.cf-seats{bottom:80px}.cf-seat-bubble{padding:9px 11px}}
-@media(max-width:1100px){.cf-seat{width:clamp(150px,19vw,200px)}.cf-seat-gap{width:calc(230px * var(--cf-scale))}}
+@media(max-width:1100px){.cf-seat{width:clamp(140px,17vw,200px)}.cf-seat-gap{width:min(calc(230px * var(--cf-scale)),21vw)}}
 .cf-scene.cf-still .cf-aurora,.cf-scene.cf-still .cf-layer-1,.cf-scene.cf-still .cf-layer-2{animation:none}
 .cf-scene.cf-still .cf-star-mark{animation:none;opacity:1}
 .cf-scene.cf-still .cf-star-lines{opacity:1}

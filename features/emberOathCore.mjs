@@ -1,6 +1,9 @@
 import { getLeagueBand } from './languageScaffolds.mjs';
 import { cleanCampfireText } from './heroCampfireCore.mjs';
 import { buildOathSuggestions, pickDiverseOaths } from './oathSuggestCore.mjs';
+// Evidence and readiness live in a tiny module so always-loaded entry points can share them.
+export { oathDate, dedupeEvidence, evaluateOathEvidence } from './emberOathEvidence.mjs';
+import { oathDate } from './emberOathEvidence.mjs';
 export const OATH_CATEGORIES = ['speak', 'words', 'write', 'read/listen', 'habit', 'virtue'];
 const TEXT = {
     early: ['I try a little word.', 'I show a new word.', 'I draw my idea.', 'I listen to a story.', 'I get ready with a friend.', 'I help with kind hands.'],
@@ -62,54 +65,15 @@ export function nextChildWithoutOath(studentIds = [], oaths = [], afterId = null
     return ordered.find(id => !busy.has(id) && id !== afterId) || null;
 }
 
-export function oathDate(value) {
-    if (typeof value === 'string') {
-        if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-        const local = value.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
-        return local ? local[3] + '-' + local[2] + '-' + local[1] : '';
-    }
-    const d = value?.toDate?.() || (value?.seconds ? new Date(value.seconds * 1000) : value instanceof Date ? value : null);
-    return d && !Number.isNaN(d.getTime()) ? [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-') : '';
-}
-export function dedupeEvidence(evidence) {
-    const seen = new Set();
-    return evidence.filter(e => {
-        const key = [e.kind, e.refId || e.label, e.date].join('|');
-        if (seen.has(key)) return false;
-        seen.add(key); return true;
-    }).sort((a, b) => a.date.localeCompare(b.date)).slice(-12);
-}
-export function evaluateOathEvidence(oath, { awards = [], writtenScores = [], quizzes = [], today = '9999-12-31' } = {}) {
-    const inWindow = item => (!item.studentId || item.studentId === oath.studentId) &&
-        (!item.schoolYearKey || item.schoolYearKey === oath.schoolYearKey) &&
-        (!item.classId || item.classId === oath.classId) &&
-        oathDate(item.date || item.createdAt) >= oath.startDate &&
-        oathDate(item.date || item.createdAt) <= today;
-    const evidence = [...(oath.evidence || []).filter(inWindow)];
-    if (oath.evidenceRule === 'virtue') for (const a of awards.filter(inWindow)) {
-        if (Number(a.stars) > 0 && String(a.reason).toLowerCase() === String(oath.target.reason).toLowerCase())
-            evidence.push({ kind: 'virtue', date: oathDate(a.date), refId: a.id, label: oath.target.reason + ' observed' });
-    }
-    if (oath.evidenceRule === 'practice') for (const s of writtenScores.filter(inWindow))
-        evidence.push({ kind: 'practice', date: oathDate(s.date || s.createdAt), refId: s.id, label: 'Practice recorded' });
-    if (oath.evidenceRule === 'quiz') for (const q of quizzes.filter(inWindow)) {
-        const p = q.results?.studentPerformance?.[oath.studentId];
-        if (p?.attemptedCount > 0) evidence.push({ kind: 'quiz', date: oathDate(q.date || q.createdAt), refId: q.id, label: 'Quiz participation' });
-    }
-    const unique = dedupeEvidence(evidence);
-    const count = unique.length, target = Math.max(1, Number(oath.target?.count) || 1);
-    const hasFlame = (oath.checkIns || []).some(c => c.mood === 'flame' && c.date >= oath.startDate && c.date <= today);
-    return { evidence: unique, count, target, progress: Math.min(1, count / target), ready: oath.status === 'active' && count >= target && hasFlame, hasFlame };
-}
 export function addOathCheckIn(oath, mood, date) {
     if (!['flame', 'candle', 'moon'].includes(mood) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid check-in.');
-    if (oath.status !== 'active') throw new Error('This oath is no longer active.');
+    if (oath.status !== 'active') throw new Error('This promise is no longer active.');
     return [...(oath.checkIns || []).filter(c => c.date !== date), { date, mood }].sort((a, b) => a.date.localeCompare(b.date)).slice(-12);
 }
 export function createOathDraft(template, { studentId, classId, teacherId, schoolYearKey, date, text, private: isPrivate = false }) {
     const due = new Date(date + 'T12:00:00'); due.setDate(due.getDate() + Math.min(8, template.weeks || 2) * 7);
     const body = cleanCampfireText(text || template.text, 240);
-    if (!body || !studentId || !classId || !teacherId || !schoolYearKey || Number.isNaN(due.getTime())) throw new Error('Complete the oath before saving.');
+    if (!body || !studentId || !classId || !teacherId || !schoolYearKey || Number.isNaN(due.getTime())) throw new Error('Complete the promise before saving.');
     return { studentId, classId, teacherId, schoolYearKey, templateId: template.id || 'custom', text: body,
         projectorText: isPrivate ? 'A secret oath' : body, category: template.category || 'habit', band: template.band || 'mid',
         target: template.target || { kind: 'manual', count: 2 }, evidenceRule: template.evidenceRule || 'manual',

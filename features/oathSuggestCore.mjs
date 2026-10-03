@@ -25,6 +25,8 @@ const hash = text => [...String(text)].reduce((h, c) => (h * 31 + c.charCodeAt(0
 /** Deterministic small RNG, so the shared scaffold helpers stay stable for the same child/day. */
 const rngFrom = key => { let s = (hash(key) || 1) & 0x7fffffff; return () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }; };
 const avg = list => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : null);
+/** A quoted phrase that already ends a sentence (“Can you help me, please?”) takes no extra full stop. */
+const quotedPhrase = phrase => '“' + phrase + '”' + (/[.!?…]$/.test(String(phrase).trim()) ? '' : '.');
 // Band phrasing: early → junior → mid → upper, falling back to the nearest simpler/harder text.
 function say(band, t) {
     if (typeof t === 'string') return t; // already resolved (some families phrase themselves)
@@ -110,7 +112,7 @@ const BANK = [
     fam('speak_up', 'speak', s => say(s.band, TEMPLATES.speakUp), s => (s.quiet ? 'Fewer stars than most this month. A small, safe step to be seen.' : 'Speaking up in English builds confidence.'), s => (s.quiet ? 3.3 : 1.8)),
     fam('quiz_helper', 'speak', s => say(s.band, TEMPLATES.quizHelper), s => (s.quizRate != null && s.quizRate >= 0.9 ? 'Quiz of the Week: ' + s.quiz.correctCount + ' of ' + s.quiz.attemptedCount + ' correct. Let them teach.' : ''), s => (s.quizRate != null && s.quizRate >= 0.9 && !s.early ? 2.5 : 0)),
     fam('helper', 'speak', s => say(s.band, TEMPLATES.helper), s => (s.shining ? 'One of the class’s brightest this month. Now they lift others.' : ''), s => (s.shining && !s.early ? 2.9 : 0)),
-    fam('speak_english', 'speak', s => ({ early: 'I say “' + s.phrase + '” in class. 🗣️', junior: 'I use a classroom phrase in English: “' + s.phrase + '”.', mid: 'I use one classroom phrase today: “' + s.phrase + '”.', upper: 'I use two classroom phrases naturally: “' + s.phrase + '”.' }),
+    fam('speak_english', 'speak', s => ({ early: 'I say “' + s.phrase + '” in class. 🗣️', junior: 'I use a classroom phrase in English: ' + quotedPhrase(s.phrase), mid: 'I use one classroom phrase today: ' + quotedPhrase(s.phrase), upper: 'I use two classroom phrases naturally: ' + quotedPhrase(s.phrase) }),
         () => 'Real classroom English they can use tomorrow.', () => 2.35),
     fam('speak_sounds', 'speak', s => (s.pair ? { junior: 'I practise the sounds in ' + s.pair.a + ' / ' + s.pair.b + '. 👂', mid: 'I say ' + s.pair.a + ' and ' + s.pair.b + ' clearly — ' + s.pair.sound + '.', upper: 'I drill ' + s.pair.a + ' vs ' + s.pair.b + ' (' + s.pair.sound + ') and record myself.' } : {}),
         s => (s.pair ? 'Greek-speaker friendly pair: ' + s.pair.sound + '.' : ''), s => (s.pair ? 2.2 : 0)),

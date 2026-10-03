@@ -84,6 +84,16 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     const activeFor = id => local.find(o => o.studentId === id && o.status === 'active');
     const keptFor = id => local.filter(o => o.studentId === id && o.status === 'kept');
     const resultFor = oath => evaluateOathEvidence(oath, facts.get(oath.id) || { awards: state.get('allAwardLogs'), writtenScores: state.get('allWrittenScores'), today: isoToday() });
+    // The live award listener only holds this month's stars. A virtue promise begun last month (or a quiz
+    // promise) reads its full window once, so the board, the story and the Campfire agree on "ready".
+    const monthStart = isoToday().slice(0, 8) + '01';
+    async function hydrateFacts() {
+        const stale = local.filter(o => o.status === 'active' && !facts.has(o.id) && (o.evidenceRule === 'quiz' || (o.evidenceRule === 'virtue' && o.startDate < monthStart)));
+        if (!stale.length) return;
+        await Promise.all(stale.map(o => api.getOathFacts(o).then(f => { facts.set(o.id, f); }).catch(() => {})));
+        if (closed) return;
+        if (!busy && screen === 'board') renderBoard(); else renderStats();
+    }
     const campfire = () => import('../../features/campfire/campfireService.js').then(m => m.getCachedCampfire(classId)).catch(() => null);
 
     function renderStats() {
@@ -127,7 +137,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             '<button type="button" class="eo-card-open" data-open="' + esc(oath.id) + '" aria-label="Open ' + esc(student.name) + '’s promise"></button>' +
             '<div class="eo-card-top"><span class="eo-avatar-wrap">' + avatarHtml(student) + keptBadge + '</span>' + '<div class="eo-card-name"><h3>' + esc(student.name) + '</h3>' + categoryChip(oath.category) + '</div></div>' +
             '<p class="eo-card-oath">' + (oath.private ? '<span class="eo-lock" title="Secret promise: the words never appear on the projector">🔒</span>' : '') + esc(oath.text) + '</p>' +
-            '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + r.count + '/' + r.target + '</span></div>' +
+            '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + '/' + r.target + '</span></div>' +
             moodButtons(oath) + '</article>';
     }
     function classPromiseBlock() {
@@ -401,6 +411,11 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function onInput(event) { if (event.target.closest('.eo-own')) refreshCommit(); }
     function onKey(event) {
         if (modal.classList.contains('hidden')) return;
+        // "Let this promise go?" sits on top: Escape belongs to it, not to the board.
+        if (document.getElementById('confirmation-modal')?.classList.contains('hidden') === false) {
+            if (event.key === 'Escape') { event.stopPropagation(); hideModal('confirmation-modal'); }
+            return;
+        }
         if (event.key === 'Escape') { event.stopPropagation(); if (screen !== 'board') { choosing = null; focusId = null; renderBoard(); } else close(); }
         if (event.key === 'Enter' && screen === 'choose' && event.target.closest('.eo-own')) { event.preventDefault(); if (!busy && selectedTemplate()) work(commitChoice); }
     }
@@ -438,6 +453,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         if (studentId && !activeFor(studentId) && !checkInOnly) return choose(studentId);
         if (studentId && activeFor(studentId)) return openOath(activeFor(studentId).id);
         renderBoard();
+        hydrateFacts();
     });
 }
 
@@ -453,15 +469,19 @@ export async function renderChronicleOaths(studentId) {
             .sort((a, b) => (a.status === 'active' ? -1 : b.status === 'active' ? 1 : 0) || String(b.startDate).localeCompare(String(a.startDate)));
         if (document.getElementById('hero-chronicle-modal')?.dataset.studentId !== studentId) return;
         const active = oaths.find(o => o.status === 'active');
+        const liveFacts = { awards: state.get('allAwardLogs'), writtenScores: state.get('allWrittenScores'), today: isoToday() };
+        const needsWindow = active && (active.evidenceRule === 'quiz' || (active.evidenceRule === 'virtue' && active.startDate < isoToday().slice(0, 8) + '01'));
+        const activeFacts = needsWindow ? await oathActions.getOathFacts(active).catch(() => liveFacts) : liveFacts;
+        if (document.getElementById('hero-chronicle-modal')?.dataset.studentId !== studentId) return;
         host.innerHTML = '<div class="eo-chron">' +
             '<div class="eo-chron-head"><div><p class="eo-chron-eyebrow">EMBER OATHS</p><h3 class="font-title">Small promises, steady growth</h3><p class="eo-muted">Personal goals ' + esc(student.name) + ' chose. Separate from grades and stars.</p></div>' +
             '<button type="button" class="eo-primary" data-open-board><span aria-hidden="true">' + (active ? '🔥' : '✨') + '</span> ' + (active ? 'Open this promise' : 'Choose a promise') + '</button></div>' +
             (oaths.length ? '<div class="eo-chron-list">' + oaths.map((o, i) => {
-                const r = o.status === 'active' ? evaluateOathEvidence(o, { awards: state.get('allAwardLogs'), writtenScores: state.get('allWrittenScores'), today: isoToday() }) : null;
+                const r = o.status === 'active' ? evaluateOathEvidence(o, activeFacts) : null;
                 const status = o.status === 'kept' ? '<span class="eo-status is-kept">⭐ Kept</span>' : o.status === 'released' ? '<span class="eo-status is-released">🍃 Released</span>' : '<span class="eo-status is-active">🔥 Growing</span>';
                 return '<article class="eo-chron-item is-' + o.status + '" style="--i:' + i + '"><div class="eo-chron-item-top">' + categoryChip(o.category) + status + '</div>' +
                     '<p class="eo-chron-text">' + (o.private ? '🔒 ' : '') + esc(o.text) + '</p>' +
-                    (r ? '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + r.count + '/' + r.target + ' · until ' + esc(prettyDate(o.dueDate)) + '</span></div>' : '') +
+                    (r ? '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + '/' + r.target + ' · until ' + esc(prettyDate(o.dueDate)) + '</span></div>' : '') +
                     (o.status === 'kept' && (o.reflection?.helped || o.reflection?.emoji) ? '<p class="eo-chron-reflection">' + esc(o.reflection.emoji || '') + ' ' + esc(o.reflection.helped || '') + '</p>' : '') + '</article>';
             }).join('') + '</div>'
                 : '<div class="eo-empty-state is-light"><span aria-hidden="true">🌱</span><p>No promise yet. A small one is the best start.</p></div>') + '</div>';

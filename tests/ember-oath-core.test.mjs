@@ -50,3 +50,10 @@ test('family publication whitelists content and retry replaces the same note', (
     assert.throws(()=>publicEmberNote({oathId:'../private',summary:'text'}));
     assert.throws(()=>publicEmberNote({oathId:'valid',summary:'x'.repeat(501)}));
 });
+test('the light evidence module is the same rule the Oath Board uses', async () => {
+    const light = await import('../features/emberOathEvidence.mjs');
+    assert.equal(light.evaluateOathEvidence, evaluateOathEvidence);
+    const oath = { ...draft(), checkIns: [{ date: '2026-09-22', mood: 'flame' }] };
+    // A virtue promise fills from stars alone: the entry badge must see it as ready too.
+    assert.equal(light.evaluateOathEvidence(oath, { awards: [award('a1', '21-09-2026'), award('a2', '22-09-2026')], today: '2026-09-23' }).ready, true);
+});

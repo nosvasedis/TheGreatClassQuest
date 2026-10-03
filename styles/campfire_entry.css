@@ -1,6 +1,6 @@
 /* Hero Campfire entry in the Adventure Log (initial bundle; keep it small).
    The Oaths button joins the Log / Hall of Heroes family; the lit hearth spans the row. */
-.campfire-entry{grid-column:1/-1;display:flex}
+.campfire-entry{grid-column:1/-1;display:flex;min-width:0}
 .campfire-entry:not(.campfire-entry--home)>*{flex:1}
 .campfire-entry--class{display:contents}
 .al-primary-btn--oaths{position:relative;width:100%;color:#fff;border:2px solid #e8465a;border-bottom:4px solid #9f1239;
@@ -29,7 +29,7 @@
 .campfire-flame__core{transform-origin:50% 100%;animation:campfire-lick 2.1s ease-in-out infinite}
 
 /* ---------- Adventure Log: the lit hearth, a little night scene under Log / Hall of Heroes ---------- */
-.campfire-hearth{position:relative;display:flex;align-items:center;gap:.65rem;padding:.6rem .95rem .6rem .6rem;border-radius:1.15rem;isolation:isolate;color:#fff1d2;
+.campfire-hearth{position:relative;flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:.65rem;padding:.6rem .95rem .6rem .6rem;border-radius:1.15rem;isolation:isolate;color:#fff1d2;
   background:linear-gradient(135deg,#1b1530 0%,#2b1a3c 42%,#4c1d2f 74%,#7a2a12 100%);
   border:1px solid rgba(251,191,36,.5);border-bottom:3px solid #2a0f1c;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 16px 30px -16px rgba(76,29,47,.85),0 0 0 4px rgba(251,191,36,.08)}

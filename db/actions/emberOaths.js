@@ -12,7 +12,7 @@ export function oathContext() {
     return { teacherId, schoolYearKey };
 }
 function ownedOath(oath, context) {
-    if (!oath || oath.teacherId !== context.teacherId || oath.schoolYearKey !== context.schoolYearKey) throw new Error('This oath belongs to another teacher or school year.');
+    if (!oath || oath.teacherId !== context.teacherId || oath.schoolYearKey !== context.schoolYearKey) throw new Error('This promise belongs to another teacher or school year.');
 }
 export function ensureEmberOathsListener() {
     const context = oathContext();
@@ -54,7 +54,7 @@ export async function addEmberEvidence(id, label) {
     const text = cleanCampfireText(label, 160); if (!text) throw new Error('Describe the observed action.');
     return runTransaction(db, async tx => {
         const snap = await tx.get(ref), oath = snap.data(); ownedOath(oath, c);
-        if (oath.status !== 'active') throw new Error('This oath is no longer active.');
+        if (oath.status !== 'active') throw new Error('This promise is no longer active.');
         const evidence = dedupeEvidence([...(oath.evidence || []), { kind: 'manual', label: text, date, refId: date + ':' + text }]);
         tx.update(ref, { evidence, updatedAt: serverTimestamp() });
     });
@@ -80,7 +80,7 @@ export async function keepEmberOath(id, { confirmed = false, reflection = {} } =
         const fresh = await tx.get(ref), current = { id, ...fresh.data() }; ownedOath(current, c);
         if (current.status === 'kept') return current; // deterministic note and inventory receipt
         const result = evaluateOathEvidence(current, facts);
-        if (!result.ready) throw new Error('This oath needs enough evidence and a flame check-in before it can be kept.');
+        if (!result.ready) throw new Error('This promise needs all its moments and one 🔥 check-in before it can be kept.');
         const scoreRef = doc(db, ROOT + 'student_scores', current.studentId);
         const score = await tx.get(scoreRef);
         if (!score.exists() || score.data().activeSchoolYearKey !== c.schoolYearKey) throw new Error('The active-year student record is unavailable.');
@@ -103,7 +103,7 @@ export async function releaseEmberOath(id) {
     const c = oathContext(), ref = doc(db, ROOT + 'ember_oaths', id);
     await runTransaction(db, async tx => {
         const s = await tx.get(ref), oath = s.data(); ownedOath(oath, c);
-        if (oath.status !== 'active') throw new Error('Only an active oath can be released.');
+        if (oath.status !== 'active') throw new Error('Only a growing promise can be let go.');
         tx.update(ref, { status: 'released', updatedAt: serverTimestamp() });
     });
 }

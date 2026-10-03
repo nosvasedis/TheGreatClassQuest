@@ -519,7 +519,7 @@ function widgets(id, print = false) {
         <div class="loop">
           <article class="step"><div class="n">1</div><h4><i class="fas fa-compass" aria-hidden="true"></i> Orient</h4><p>Follow today’s schedule (or pick a class). Projector Mode is a wallpaper you can open any time during the lesson.</p></article>
           <article class="step"><div class="n">2–3</div><h4><i class="fas fa-star" aria-hidden="true"></i> Teach</h4><p>Award Stars for four life skills. Welcome someone back. Quest Assignment and attendance near the end.</p></article>
-          <article class="step"><div class="n">4–5</div><h4><i class="fas fa-feather-alt" aria-hidden="true"></i> Close</h4><p>Log Today's Adventure automatically crowns Hero of the Day. On the right week: Quiz, Wheel, or Story Weavers.</p></article>
+          <article class="step"><div class="n">4–5</div><h4><i class="fas fa-feather-alt" aria-hidden="true"></i> Close</h4><p>Crown Today's Hero picks the Hero of the Day for you, then you write the diary page. On the right week: Quiz, Wheel, or Story Weavers.</p></article>
         </div>
       </div>
       <div class="panel">
@@ -715,15 +715,15 @@ function headingWidgets(id) {
   }
   if (id === 'market') {
     return [
-      { match: ['Legendary Artifacts'], html: uiShot('market-legendaries.png', 'Mystic Market — Legendary Artifacts. These relics use the coded emoji icons (not PNG files). Two legendary buys per student per month. Pick a shopper, then buy.') },
-      { match: ['Seasonal treasures', 'εποχιακοί θησαυροί'], html: uiShot('market-seasonal.png', 'Seasonal Treasures after Elite Restock. Live months generate new titles and AI pictures; this stall shows the pictured-card layout with sample plates, not a frozen Restock.') },
+      { match: ['Legendary Artifacts'], html: uiShot('market-legendaries.png', 'Mystic Market — Legendary Artifacts. Two legendary buys per student per month. Pick a shopper, then buy.') },
+      { match: ['Seasonal treasures', 'εποχιακοί θησαυροί'], html: uiShot('market-seasonal.png', 'Seasonal Treasures after an Elite Restock. Each month brings new treasures with AI-made pictures; this shows how the pictured cards look.') },
       { match: ['Familiars'], html: uiShot('market-eggs.png', 'Familiar eggs on the Elite shelf. Buy with Gold, hatch after 20 stars, then evolve at +60 and +140 stars after hatch.') }
     ];
   }
   if (id === 'guild-hall') {
     return [
       { match: ['The four guilds', 'Τα τέσσερα σπίτια'], html: `${housesHtml()}${uiShot('guild-banner.png', 'Tap a guild’s emblem and its banner unfurls: crest, motto, traits, Guild Power and Glory.')}${uiShot('guild-anthem.png', 'The music-note button sings the guild’s anthem in a torch-lit alcove, verse by verse.')}` },
-      { match: ['Guild Placement', 'Guild Sorting', 'Τοποθέτηση'], html: uiShot('guild-sorting-quiz.png', 'Guild Sorting Ceremony: seven story-style questions, one tap each, while the orb takes on the colours the answers lean toward. The pool matches the league — Nursery language is not Proficiency language. Weighted answers assign a house for life.') },
+      { match: ['Guild Placement', 'Guild Sorting', 'Τοποθέτηση'], html: uiShot('guild-sorting-quiz.png', 'Guild Sorting Ceremony: seven story-style questions, one tap each, while the orb takes on the colours the answers lean toward. The questions match the league — Nursery language is not Proficiency language. The answers decide a house for life.') },
       { match: ['Glory and Guild Power', 'Glory και Guild Power'], html: uiShot('guild-power.png', 'How Guild Power works: the Glory each member earned this year, on average. This week’s form never moves the ranking, Fortune’s Wheel Glory is sized to every guild, and leavers take their Glory with them.') },
       { match: ['What you see', 'Τι βλέπεις στην καρτέλα'], html: uiShot('guild-hall.png', 'Guild Hall crystal columns, ranked by Guild Power. Tap an emblem to unfurl the guild’s banner; the music-note button plays the anthem.') },
       { match: ["Fortune’s Wheel", "Fortune's Wheel"], html: uiShot('fortunes-wheel.png', "Fortune’s Wheel, the celestial Wheel of Fate: each guild takes its turn on its own 20-wedge wheel. Last lesson of a Monday–Friday week, once per class.") },
@@ -733,8 +733,8 @@ function headingWidgets(id) {
   }
   if (id === 'adventure-log') {
     return [
-      { match: ["Log Today’s Adventure", "Log Today's Adventure"], html: uiShot('adventure-log.png', 'Adventure Log as the class diary: month tabs and This month in the diary on the desk, Log Today’s Adventure, Hall of Heroes and Ember Oaths, then today’s diary page. Quest Assignment and Attendance sit in the corners. Saving the page crowns Hero of the Day automatically.') },
-      { match: ['Hero of the Day'], html: uiShot('hero-of-the-day.png', 'The Hero of the Day celebration after you Log Today’s Adventure. The crown is automatic — you do not pick a name by hand.', 'ui-shot-portrait') },
+      { match: ['Crown Today’s Hero, then write', 'Crown Today’s Hero και μετά', 'Log Today’s Adventure', "Log Today's Adventure"], html: uiShot('adventure-log.png', 'Adventure Log as the class diary: month tabs and This month in the diary on the desk, Crown Today’s Hero, Hall of Heroes and Ember Oaths, then today’s diary page. Quest Assignment and Attendance sit in the corners. Pressing Crown Today’s Hero chooses the Hero of the Day automatically.') },
+      { match: ['Hero of the Day'], html: uiShot('hero-of-the-day.png', 'The Hero of the Day celebration after you press Crown Today’s Hero. The crown is automatic — you do not pick a name by hand.', 'ui-shot-portrait') },
       { match: ['Gather at the Campfire'], html: uiShot('campfire-entry.png', 'After you close Huzzah!, Gather at the Campfire lights up under the diary buttons. Optional: Not today hides it until the next lesson.') },
       { match: ['Hall of Heroes'], html: uiShot('hall-of-heroes.png', 'Hall of Heroes: a portrait gallery of this year’s Hero of the Day crowns — plaques, the top three in large frames, legend ranks with their Market discount, and who is still waiting for a first crown. Not the Hall of Prodigies.') },
       { match: ['Attendance Chronicle'], html: uiShot('attendance-chronicle.png', 'Attendance Chronicle: the class register — month at a glance, summary, and tick / cross marks you can tap in the live month.') }

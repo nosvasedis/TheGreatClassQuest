@@ -1,6 +1,6 @@
 # School Office (Secretary)
 
-The School Office is the **school-year cockpit**. It is not a second classroom. Teachers still award stars; the secretary keeps time, holidays, classes, students, grading defaults, and family messages aligned.
+The School Office is the **control desk for the school year**. It is not a second classroom. Teachers still award stars; the secretary keeps time, holidays, classes, students, grading defaults, and family messages aligned.
 
 **Elite.** Teachers may open it from the header shield when this school has Secretary access. Mobile uses the same five tabs in a compact dock.
 
@@ -16,9 +16,9 @@ Header: **School Office** title, **Open Teacher App**, log out. Each tab title s
 | **Messages** | Inbox and replies with families and teachers |
 | **Admin** | **Students & Classes** (opens first), **School Year**, **School Details**, **Grading** |
 
-Without full Elite Secretary, Grades and Messages are hidden, the Edit buttons are hidden, and Admin → Grading is not shown. Admin still has Students & Classes (seating returning students and former students), School Year, and School Details. **Open a new class** and **Enrol a new student** carry an Elite lock.
+On plans without the full Elite School Office, Grades and Messages are hidden, the Edit buttons are hidden, and Admin → Grading is not shown. Admin still has Students & Classes (seating returning students and former students), School Year and School Details, but **Open a new class** and **Enrol a new student** carry an Elite lock.
 
-There is **no** separate “invite teachers” screen here. Teacher accounts are a school-setup / billing concern. The Office **opens the Teacher App** when the secretary also teaches. Create classes for teachers who already have a Quest Master account.
+Teacher accounts are created when the school is first set up (together with billing), not in the School Office. The Office **opens the Teacher App** when the secretary also teaches. Create classes here for teachers who already have a Quest Master account.
 
 ## Home — the front desk
 
@@ -57,7 +57,7 @@ The **class teacher** owns the student, exactly as if they had tapped **New Stud
 
 ### Open and edit classes
 
-**Open a new class** (the first desk, or the dashed card in the Classes lane) opens the class desk, a wizard (not the teacher Add New Class modal):
+**Open a new class** (the first desk, or the dashed card in the Classes lane) opens the class desk, a step-by-step wizard (not the teacher’s Add New Class window):
 
 1. Chip tracker (**Teacher**, **Name**, **League**, **Schedule**, **Review**; finished chips jump back). Pick the teacher, then name + logo, **Quest League** chips, schedule days and times, review, create. The teacher owns the class in their Teacher App
 2. Once the class is open, two next steps sit side by side: **Enrol its students** (opens the student desk on the new class) and **Open another class** (keeps the same teacher picked)
@@ -74,7 +74,7 @@ The School tab does **not** create or edit classes. Use the Classes lane for tha
 2. **New class** — choose this year’s class from tiles (logo, teacher, league chip, how many already seated). The best match is highlighted using last year’s league: natural next league first, then the same teacher, then the smaller roster. If no classes exist yet, open one from here.
 3. **Review** — avatars, previous class, league chips, and guild emblems with house names. Uncheck anyone who should wait, or use **Select all** / **Unselect all**. **Seat** the rest. **Leaves school** opens the same leaving dialog as the Students lane.
 
-The wizard stays open until everyone is seated or you tap **Done**. When the last returning student is seated, guild membership is synced quietly; every hero keeps the guild they already have. Teachers can still place returning students from **Student setup** on their own class roster.
+The wizard stays open until everyone is seated or you tap **Done**. Every hero keeps the guild they already have. Teachers can still place returning students from **Student setup** on their own class roster.
 
 ### When a student leaves
 
@@ -132,11 +132,11 @@ Two **School calendar** cards, each with a calendar leaf, carry the year's dates
 
 ### Finish the school year
 
-Three numbered steps: **Set the last school day**, **Check readiness** (opens a preview), then type the confirmation phrase and **Finish school year**. The button stays locked until the last school day arrives. This stores the finished year, archives last year's Gold, keeps guild houses, keeps that year's Fortune Ledger with the closed year, resets live progress (stars, Gold, Golden Legend, and this year's Prodigy counts), and moves returning students into placement. Treasury starts at 0 in the new year; last year's Gold, last year's crowns, and last year's Wheel history stay in the finished year and do not affect the next year's Market, Hall of Heroes, Hall of Prodigies, or Fortune Ledger.
+Three numbered steps: **Set the last school day**, **Check readiness** (opens a preview), then type the confirmation phrase and **Finish school year**. The button stays locked until the last school day arrives. Finishing the year saves it as a closed year, archives that year’s Gold, keeps every guild membership, keeps that year’s Fortune Ledger with it, resets live progress (stars, Gold, Golden Legend and this year’s Prodigy counts), and moves returning students into placement. The Treasury starts at 0 in the new year. The old year’s Gold, crowns and Wheel history stay in that year and do not affect the new year’s Market, Hall of Heroes, Hall of Prodigies or Fortune Ledger.
 
-Closing a year **archives** it. Do not close until grades, reports, and certificates the school still needs are done. Emergency print tools exist outside this handbook for recovery; they are not day-to-day teaching.
+Finishing a year **archives** it, so wait until the grades, reports and certificates the school still needs are done. If something is missed, emergency printing tools exist outside this guidebook; they are for recovery, not for daily use.
 
-Guild Power, Hero Path, and Familiars are **year-scoped stories**. Finishing the year is a liturgical act, like the Grand Guild Ceremony.
+Guild Power, Hero Path progress and Familiars belong to one school year at a time. Finishing the year closes that chapter, the way the Grand Guild Ceremony does for the guilds.
 
 ## Admin → School Details
 
@@ -168,7 +168,7 @@ Parents reply with a smaller set (General, Meeting request, Question). Keep tone
 
 ## How this feeds the teacher Quest
 
-Wrong holidays = unfair Team Quest goals. Wrong weather city = a sunny header in a thunderstorm. Wrong grading defaults = empty Scholar’s Scrolls or unexpected Starfall. Classes created here are the rooms teachers actually teach. Students added or moved here appear on that teacher’s roster. A student marked as left disappears from the classroom but keeps every record. The Office is quiet power.
+Wrong holidays = unfair Team Quest goals. Wrong weather city = a sunny header in a thunderstorm. Wrong grading defaults = empty Scholar’s Scrolls or unexpected Starfall. Classes created here are the rooms teachers actually teach. Students added or moved here appear on that teacher’s roster. A student marked as left disappears from the classroom but keeps every record. The Office works behind the scenes, but everything in the classroom depends on it.
 
 ## Plan notes
 

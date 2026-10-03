@@ -445,14 +445,17 @@ async function updateAdventureLogGenerationState(logId, updates, expectedRequest
 }
 
 async function buildAdventureLogRetryPromptsFromLog(log, classData, options = {}) {
-    const { buildChroniclerPrompts } = await import('../../features/adventureLogContextCore.mjs');
+    const { buildChroniclerPrompts, ADVENTURE_CONTEXT_VERSION } = await import('../../features/adventureLogContextCore.mjs');
     let context = log.chroniclerContext;
-    if (!context?.version) {
+    // Older snapshots mixed background into "today" (e.g. a prepared Campfire and its next question): rebuild them.
+    if (!context?.version || context.version < ADVENTURE_CONTEXT_VERSION) {
         const { gatherAdventureLogContext } = await import('../../features/adventureLogContext.js');
         context = (await gatherAdventureLogContext(log.classId, { date: log.date, hero: log.hero })).context;
         await updateAdventureLogGenerationState(log.id, { chroniclerContext: context });
     }
-    return { ...buildChroniclerPrompts(context, { previousText: options.previousText ?? log.text }), context,
+    // Only a draft the teacher typed is a draft. The saved text of an AI page is the Chronicler's
+    // own earlier output, and feeding it back would carry its mistakes into the retry.
+    return { ...buildChroniclerPrompts(context, { previousText: options.previousText || '' }), context,
         ageTier: log.ageTier || _getAgeTierFromLeague(classData.questLevel),
         heroOfTheDay: log.hero || 'The Class Team', totalStars: Number(log.totalStars) || 0 };
 }

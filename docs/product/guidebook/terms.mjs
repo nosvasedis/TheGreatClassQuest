@@ -93,8 +93,8 @@ export const TERMS = [
     names: { en: 'Co-Prodigy', el: 'Co-Prodigy' },
     aliases: ['co-prodigy', 'coprodigy', 'shared prodigy'],
     def: {
-      en: 'A shared monthly crown when stars and the 3-star / 2-star / unique-reason picture truly match. Name both children out loud.',
-      el: 'Κοινό μηνιαίο στέμμα όταν τα αστέρια και η εικόνα 3-άστρων / 2-άστρων / διαφορετικών λόγων ταιριάζουν αληθινά.'
+      en: 'A shared monthly crown when two children truly match on stars, on their 3-star and 2-star awards, and on how many different reasons they were recognised for. Name both children out loud.',
+      el: 'Κοινό μηνιαίο στέμμα όταν δύο παιδιά ταιριάζουν αληθινά στα αστέρια, στις απονομές 3 και 2 αστεριών και στο πόσους διαφορετικούς λόγους αναγνώρισης έχουν.'
     },
     confuse: { en: 'Two Heroes of the Day', el: 'Δύο Hero of the Day' }
   },
@@ -117,8 +117,8 @@ export const TERMS = [
     names: { en: 'Hero of the Day', el: 'Hero of the Day' },
     aliases: ['hero of the day', 'daily hero', 'reigning hero'],
     def: {
-      en: 'Crowned automatically when you Log Today’s Adventure. You do not pick the name by hand. While they reign, their first star award includes an automatic +1 (“Includes Hero’s Boon”). Shop discounts stack with Hall of Heroes wins.',
-      el: 'Στέφεται αυτόματα όταν καταγράφεις το Today’s Adventure. Δεν διαλέγεις το όνομα στο χέρι. Όσο βασιλεύει, το πρώτο του βραβείο αστεριών περιλαμβάνει αυτόματο +1.'
+      en: 'Crowned automatically when you press Crown Today’s Hero. You do not pick the name by hand. While they reign, their first star award includes an automatic +1 (“Includes Hero’s Boon”). Shop discounts stack with Hall of Heroes wins.',
+      el: 'Στέφεται αυτόματα όταν πατάς Crown Today’s Hero. Δεν διαλέγεις το όνομα στο χέρι. Όσο βασιλεύει, το πρώτο του βραβείο αστεριών περιλαμβάνει αυτόματο +1.'
     },
     confuse: { en: 'Prodigy of the Month', el: 'Prodigy of the Month' }
   },
@@ -141,8 +141,8 @@ export const TERMS = [
     names: { en: "Hero's Boon", el: "Hero's Boon" },
     aliases: ["hero's boon", 'heros boon', 'hero boon', 'peer boon', 'heart button', 'bestow'],
     def: {
-      en: 'The heart on a student cloud. A classmate spends 15 Gold to give +0.5 stars (free with Compassion Token). Max 4 per class per day. Receiver must be in the bottom 3 monthly stars or a tie group. No self; not the same classmate twice in a row. A pink heart with +½ means eligible; a faded heart means not eligible. On Pro, a Patron earns one path point from the first gift each calendar week; extra gifts that week still help the receiver.',
-      el: 'Η καρδιά στο σύννεφο. Ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Μέχρι 4 ανά τμήμα ανά μέρα. Ο δέκτης στα 3 χαμηλότερα μηνιαία αστέρια ή σε ισοπαλία. Όχι στον εαυτό· όχι δύο φορές στον ίδιο στη σειρά. Ροζ καρδιά με +½ σημαίνει ότι δικαιούται· αχνή καρδιά ότι όχι. Στο Pro, το Patron παίρνει ένα path point από το πρώτο δώρο κάθε ημερολογιακής εβδομάδας· τα επιπλέον δώρα εκείνη την εβδομάδα συνεχίζουν να βοηθούν τον δέκτη.'
+      en: 'The heart on a student cloud. A classmate spends 15 Gold to give +0.5 stars (free with Compassion Token). At most 4 per class per day. The receiver must be among the bottom 3 on this month’s stars, or tied with someone. Never to yourself, and never to the same classmate twice in a row. A pink heart with +½ means eligible; a faded heart means not eligible. On Pro, a Patron earns one path point from the first gift each calendar week; extra gifts that week still help the receiver.',
+      el: 'Η καρδιά στο σύννεφο. Ένας συμμαθητής ξοδεύει 15 Gold για +0,5 αστέρια (δωρεάν με Compassion Token). Το πολύ 4 ανά τμήμα ανά μέρα. Ο δέκτης πρέπει να είναι ανάμεσα στους 3 τελευταίους στα αστέρια του μήνα ή ισόπαλος με κάποιον. Ποτέ στον εαυτό σου και ποτέ στον ίδιο συμμαθητή δύο φορές στη σειρά. Ροζ καρδιά με +½ σημαίνει ότι δικαιούται· αχνή καρδιά ότι όχι. Στο Pro, το Patron παίρνει ένα path point από το πρώτο δώρο κάθε ημερολογιακής εβδομάδας· τα επιπλέον δώρα εκείνη την εβδομάδα συνεχίζουν να βοηθούν τον δέκτη.'
     },
     confuse: { en: 'Teacher Boon; the automatic +1 on the reigning Hero of the Day’s first award; Patron (the Hero Path class)', el: 'Teacher Boon· το αυτόματο +1 στον reigning Hero of the Day· Patron (η κλάση)' }
   },
@@ -261,8 +261,8 @@ export const TERMS = [
     names: { en: 'Quest difficulty', el: 'Επίπεδο δυσκολίας' },
     aliases: ['quest difficulty', 'difficulty level', 'map level', 'level 1', 'difficulty'],
     def: {
-      en: 'Stored per class, starts at 0, shown as Level 1. Completing the monthly map adds 1. The goal adds 2.5 stars per student per difficulty step, then applies the holiday / June modifier. Ceremony chips show Levels 1–6.',
-      el: 'Αποθηκεύεται ανά τμήμα, ξεκινά από 0, φαίνεται ως Level 1. Η ολοκλήρωση του χάρτη προσθέτει 1. Ο στόχος προσθέτει 2,5 αστέρια ανά μαθητή ανά βήμα, μετά ο τροποποιητής αργιών / Ιουνίου.'
+      en: 'Every class starts at Level 1, and each month it reaches its goal moves it up one level. Each level above Level 1 adds 2.5 stars per student to the goal, which is then adjusted for holidays (and halved in June). Ceremony chips show Levels 1–6.',
+      el: 'Κάθε τμήμα ξεκινά από Level 1 και ανεβαίνει ένα επίπεδο κάθε μήνα που πιάνει τον στόχο του. Κάθε επίπεδο πάνω από το Level 1 προσθέτει 2,5 αστέρια ανά μαθητή στον στόχο, που μετά προσαρμόζεται για τις αργίες (και μισώνει τον Ιούνιο).'
     },
     confuse: { en: 'Quest League (who you race)', el: 'Quest League (με ποιον τρέχεις)' }
   },
@@ -273,7 +273,7 @@ export const TERMS = [
     names: { en: 'Projector Mode', el: 'Projector Mode' },
     aliases: ['projector mode', 'projector', 'classroom tv', 'the director', 'wallpaper mode', 'projector wallpaper', 'sky cards', 'sky deck'],
     def: {
-      en: 'The TV button on the classroom PC. A living wallpaper you can open whenever it helps the lesson: sky over the realm’s hills, day arc, huge clock, analogue dial with the lesson ring, class banner, wisdom ribbon, rotating Sky Cards (about 160 kinds, from the class’s own star trail to word games and wonders) in nine colour families, and — when they are real — remaining times (lesson ring, Timekeeper, next lesson, bounty countdown). A remote (move the mouse) pins, skips or brings back cards; the Sky Deck chooses families and card length. Not on the teacher phone. Sky Theater is a different toy.',
+      en: 'The TV button on the classroom PC. A living wallpaper you can open whenever it helps the lesson: a sky over the realm’s hills, a huge clock, an analogue dial with the lesson ring, the class banner, a wisdom ribbon, and rotating Sky Cards (about 160 kinds in nine colour families, from the class’s own star trail to word games and wonders). When the times are real, it also shows how long things last: the lesson ring, the Timekeeper, the next lesson and any bounty countdown. A small remote (move the mouse) pins, skips or brings back cards, and the Sky Deck chooses which card families appear and how long each stays. Not available on the teacher phone. Sky Theater is something different.',
       el: 'Το κουμπί TV στον υπολογιστή τάξης. Ζωντανή ταπετσαρία που ανοίγεις όποτε βοηθά το μάθημα: ουρανός, τόξο της μέρας, ρολόι με δαχτυλίδι μαθήματος, Sky Cards (περίπου 160 είδη, από το star trail του τμήματος ως παιχνίδια λέξεων και θαύματα) σε εννέα οικογένειες, και χρόνοι που απομένουν όταν ισχύουν. Το τηλεχειριστήριο καρφιτσώνει ή αλλάζει καρτέλες· το Sky Deck διαλέγει οικογένειες και διάρκεια. Όχι στο κινητό. Το Sky Theater είναι άλλο πράγμα.'
     },
     confuse: { en: 'Sky Theater', el: 'Sky Theater' }
@@ -285,8 +285,8 @@ export const TERMS = [
     names: { en: 'Quiz of the Week', el: 'Quiz of the Week' },
     aliases: ['quiz of the week', 'weekly quiz', 'qotw'],
     def: {
-      en: 'Elite game-show review on Home, first lesson day of the week during lesson time. Question count scales with enrolment (about 0.75×, minimum 5, maximum 15) — not a fixed 7.',
-      el: 'Elite παιχνίδι επανάληψης στο Home. Ο αριθμός ερωτήσεων κλιμακώνεται (περίπου 0,75× εγγραφές, ελάχιστο 5, μέγιστο 15) — όχι σταθερά 7.'
+      en: 'Elite game-show review on Home, first lesson day of the week during lesson time. The number of questions grows with class size (about three-quarters of the class, at least 5 and at most 15).',
+      el: 'Elite παιχνίδι επανάληψης στο Home. Ο αριθμός των ερωτήσεων μεγαλώνει με το μέγεθος του τμήματος (περίπου τα τρία τέταρτα της τάξης, τουλάχιστον 5, το πολύ 15).'
     },
     confuse: { en: "Scholar's Scroll test", el: 'Διαγώνισμα Scholar’s Scroll' }
   },
@@ -369,8 +369,8 @@ export const TERMS = [
     names: { en: 'Starfall', el: 'Starfall' },
     aliases: ['starfall bonus'],
     def: {
-      en: 'Bonus stars you confirm after a high test (≥ 95% → +1) or a strong dictation streak (> 85%, with rules). It writes Scholar’s Bonus — not a fifth Award Stars virtue. Lives on Scholar’s Scroll.',
-      el: 'Έξτρα αστέρια που επιβεβαιώνεις μετά από υψηλό διαγώνισμα (≥ 95% → +1) ή ισχυρή υπαγόρευση. Είναι Scholar’s Bonus — όχι πέμπτη αρετή στο Award Stars. Ζει στο Scholar’s Scroll.'
+      en: 'Bonus stars you confirm after a very high test (95% or more → +1) or a run of strong dictations (above 85%, with a few conditions). They are recorded as Scholar’s Bonus, not as a fifth Award Stars virtue. Lives on Scholar’s Scroll.',
+      el: 'Έξτρα αστέρια που επιβεβαιώνεις μετά από πολύ υψηλό διαγώνισμα (95% ή περισσότερο → +1) ή σειρά δυνατών υπαγορεύσεων. Καταγράφονται ως Scholar’s Bonus — όχι πέμπτη αρετή στο Award Stars. Ζει στο Scholar’s Scroll.'
     },
     confuse: { en: 'Award Stars virtue buttons', el: 'Κουμπιά αρετών στο Award Stars' }
   },
@@ -394,7 +394,7 @@ export const TERMS = [
     aliases: ['mask of the protagonist', 'the mask of the protagonist'],
     def: {
       en: 'A Market artifact. 75 Gold. Guarantees Hero of the Day on the next Adventure Log. One buy per student per month. You still do not pick the crown by hand.',
-      el: 'Artifact του Market. 75 Gold. Εγγυάται Hero of the Day στο επόμενο Adventure Log. Μία αγορά ανά μαθητή ανά μήνα. Δεν διαλέγεις το στέμμα με το χέρι.'
+      el: 'Artifact του Market. 75 Gold. Εγγυάται Hero of the Day στο επόμενο στέψιμο. Μία αγορά ανά μαθητή ανά μήνα. Δεν διαλέγεις το στέμμα με το χέρι.'
     },
     confuse: { en: 'Picking Hero of the Day, Prodigy of the Month', el: 'Επιλογή Hero of the Day, Prodigy of the Month' }
   },
@@ -561,8 +561,8 @@ export const TERMS = [
     names: { en: "The Scribe's Sketch", el: "The Scribe's Sketch" },
     aliases: ["scribe's sketch", 'scribes sketch', 'the scribes sketch'],
     def: {
-      en: 'Special Quest. Four buttons: Step 1: Listen, Step 2: Sketch, Step 3: Add details, Step 4: Reveal & describe. Optional projector prompt, at most 160 characters, shown only if you opt in.',
-      el: 'Special Quest. Τέσσερα κουμπιά: Step 1: Listen, Step 2: Sketch, Step 3: Add details, Step 4: Reveal & describe. Προαιρετικό prompt στον projector, έως 160 χαρακτήρες, μόνο με opt-in.'
+      en: 'Special Quest. Four buttons: Step 1: Listen, Step 2: Sketch, Step 3: Add details, Step 4: Reveal & describe. An optional listening prompt (up to 160 characters) appears on the projector only if you choose to show it.',
+      el: 'Special Quest. Τέσσερα κουμπιά: Step 1: Listen, Step 2: Sketch, Step 3: Add details, Step 4: Reveal & describe. Προαιρετικό prompt ακρόασης (έως 160 χαρακτήρες) που φαίνεται στον projector μόνο αν το επιλέξεις.'
     },
     confuse: { en: 'Story Weavers, Five-Sentence Saga', el: 'Story Weavers, Five-Sentence Saga' }
   },
@@ -573,8 +573,8 @@ export const TERMS = [
     names: { en: 'Five-Sentence Saga', el: 'Five-Sentence Saga' },
     aliases: ['five-sentence saga', 'five sentence saga'],
     def: {
-      en: 'Special Quest. Exactly five sentence slots. Submit Sentence locks the previous slot. Each sentence is optional and at most 240 characters.',
-      el: 'Special Quest. Ακριβώς πέντε θέσεις πρότασης. Το Submit Sentence κλειδώνει την προηγούμενη. Κάθε πρόταση είναι προαιρετική, έως 240 χαρακτήρες.'
+      en: 'Special Quest. Exactly five sentence slots. Submit Sentence closes the previous sentence. Each one is optional and can be up to 240 characters.',
+      el: 'Special Quest. Ακριβώς πέντε θέσεις πρότασης. Το Submit Sentence κλείνει την προηγούμενη πρόταση. Κάθε πρόταση είναι προαιρετική, έως 240 χαρακτήρες.'
     },
     confuse: { en: 'Story Weavers class tale', el: 'Το ομαδικό παραμύθι στο Story Weavers' }
   },

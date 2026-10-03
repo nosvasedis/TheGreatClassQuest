@@ -12,7 +12,7 @@ Needs a class selected and **stars awarded today**. One page per class per day. 
 
 | Button | When | What it does |
 |--------|------|--------------|
-| **Crown Today’s Hero** | Stars awarded, nobody crowned yet | One press: the Hero of the Day reveal plays (the shields, the glint, the crown). The page is saved straight away as a **blank crowned page**, so the crown, the +1 and the Market blessing apply at once. |
+| **Crown Today’s Hero** | Stars awarded, nobody crowned yet | One press: the Hero of the Day reveal plays (the shields, the glint, the crown). The page is saved straight away as a **blank crowned page**, so the crown, the +1 and the Market discount apply at once. |
 | **Write Today’s Page** | Crowned, page still blank | Reopens **Today’s Page** (below). |
 | **Open Today’s Page** | Page written | Scrolls the diary to today’s page and lights it up. |
 
@@ -22,15 +22,15 @@ Needs a class selected and **stars awarded today**. One page per class per day. 
 - **Manual** (key **M**): opens **Write today’s page**, where you write everything yourself (see below).
 - **Later: keep the page blank for now** (or Esc): the crowned page waits in the diary as **A page waiting for its story**, with a **Blank page** stamp, the hero sticker, **Write it myself** and (Elite) **Auto or Manual**. A page left blank on an earlier day reads **This page was never written** and can still be written.
 
-The Campfire lights up once you have chosen a path, so the Chronicler always starts first.
+The Campfire lights up only after you have chosen how to write the page, so the Chronicler always starts first.
 
-**Write today’s page (Manual).** A diary page with **Title**, **Today’s story**, **Highlights** (up to four, split with commas), the crowned **Hero of the Day** sticker, **Picture** and **What we learned today**. Helpers you can tap:
+**Write today’s page (Manual).** A diary page with **Title**, **Today’s story**, **Highlights** (up to four, separated by commas), the crowned **Hero of the Day** sticker, **Picture** and **What we learned today**. Helpers you can tap:
 
 - **Ideas** under the title: three title ideas led by today’s strongest virtue (for example *Stronger Together* for Teamwork).
 - **Need a spark?** under the story: sentence starters (*Today our quest began with…*, *The bravest moment was when…*, *[Hero] wore the crown today because…*, *Next time, we will…*) and **Today’s words** chips that drop a collected word into the story. A word count runs underneath.
 - **Picture:** **Upload your picture** (JPG, PNG or WebP up to **8 MB**) or, on Elite, **Paint it from my words**, which paints a picture from the title and story you have written so far (write a few lines first).
 
-**Save today’s page** writes it (Ctrl + Enter works too). If you close the page before saving, your title, story and highlights are kept **on this device** and come back the next time you open it. If the page was meanwhile written another way (for example Auto on another computer), saving stops and your words stay as a draft.
+**Save today’s page** puts it in the diary (Ctrl + Enter works too). If you close the page before saving, your title, story and highlights are kept **on this device** and come back the next time you open it. If the page was meanwhile written another way (for example Auto on another computer), saving stops and your words stay as a draft.
 
 At the top of the tab sits the diary desk:
 
@@ -40,7 +40,7 @@ At the top of the tab sits the diary desk:
 
 | Plan | What happens |
 |------|----------------|
-| **Starter** | The Adventure Log is not in this plan. Quest Assignment and basic attendance ideas still exist elsewhere. |
+| **Starter** | The diary is not included. Quest Assignment and attendance marking on the Award Stars clouds still work. |
 | **Pro** | **Crown Today’s Hero**, then **Manual**: you write the whole page (title, story, highlights, an uploaded picture, what we learned). You are the chronicler. |
 | **Elite** | After the crowning, **Auto** lets the **AI Chronicler** write the page and paint a storybook illustration (see the stamps below while it works), or **Manual** with **Paint it from my words**. You can edit every page. |
 
@@ -57,14 +57,14 @@ Buttons at the foot of each page:
 
 ### A Chronicler that remembers the whole lesson (Elite)
 
-The Chronicler gathers a **dated class snapshot** when you choose **Auto**, including sources whose tabs you have not opened. It writes several connected paragraphs, with a theme drawn from this class's actual English, observed actions and story details, rather than a generic summary of stars.
+When you choose **Auto**, the Chronicler first gathers a dated picture of the class’s day, including things from tabs you did not open. It sorts that picture into two piles:
 
-- **Learning:** recorded tests **and dictations** (titles and participation, never individual grades), Quiz of the Week topics and words, Story Weavers sentences and completed stories, Book Atlas work, What we learned today and Quest Assignment.
-- **The calendar:** today's, ongoing and upcoming Special Quests, school-wide 2x Star Day / Reason Bonus Day, current or upcoming school holidays and recent returns, birthdays and namedays, and the active Festival Stall occasion. The stall is seasonal context, not evidence of a classroom celebration. Upcoming school-calendar context covers the next **14 days**; recent breaks cover the previous **7 days**. Scheduled tests and quests are described as scheduled unless completion is recorded. Work set today is for the next lesson.
-- **The shared adventure:** attendance, Award Stars and observed actions, Hero's Boon and Teacher Boon, class Bounties, Fortune's Wheel, Guild Hall and Team Quest, current Hero Path identities and skills, Familiars, Market items acquired today, Pathfinder's Map, Hero Campfire, Ember Oaths and recorded ceremony activity. Current identities are not presented as achievements newly earned today. A recent cached classroom sky can add atmosphere.
-- **Continuity:** recent diary titles and highlights help vary the voice and connect the journey; they are never retold as today's events. Pages left blank are skipped.
+- **What happened today** (always on the page): the stars and the actions you recognised, grouped by the virtue you actually gave (it never mentions a virtue nobody received today), Hero’s Boon and Teacher Boon, tests and dictations recorded today (the topic only: no marks, no counts), Quiz of the Week played today, Story Weavers lines, Bounties posted or won, Fortune’s Wheel, Market items, Special Quests running or finished today, a birthday or nameday today, coming back from a holiday, the homework you set today, and the Hero Campfire and Ember Oaths **only if the Campfire was actually finished today**.
+- **Background** (used only when it adds something): the unit the class is working through (its theme and words, never claimed as today’s pages), who was missing, the Team Quest realm, Hero Paths and Familiars, coming days (holidays, tests, Special Quests, birthdays in the next **14 days**) for the closing line, any Festival Stall season, the classroom sky, and recent diary pages so the wording stays fresh.
 
-The AI must cover every relevant collected section. Empty or unavailable sources do not become invented activities. Reads can fall back to known cached class data. Private family messages, account details, individual academic grades and private student notes are excluded. Ember Oaths contribute only anonymous activity: their owners, promise text, evidence and private reflections stay private. Nursery / Pre-Junior stories avoid numeric stars, scores and comparisons. Later retries and **Ask the Chronicler** use the original saved snapshot and lesson date; a teacher review of What we learned today updates that part of the snapshot. Invalid or incomplete AI output stays retryable instead of being labelled a finished entry.
+The page length follows the day: a quiet lesson gets a short page (about 170–250 words), a busy one up to about 440. It opens with a real moment, not the date or a list of names; it uses first names and the children’s own words (stars, homework, our dictation), not menu names; the Hero of the Day is celebrated without a made-up reason (the crown goes round fairly); homework is mentioned once, as something for the next lesson. A prepared Campfire, the next lesson’s Campfire question and anything you did not record never appear.
+
+The Chronicler does not invent activities to fill an empty section. It leaves out private family messages, account details, individual grades, corrections and your private notes. Ember Oaths appear only as anonymous activity: who made them, what they promised, the evidence and the private reflections all stay private. Stories for Nursery and Pre-Junior avoid numbers, scores and comparisons. **Retry** starts from a clean picture of the day and does not reuse the earlier attempt; **Ask the Chronicler** in Edit uses your text as a draft only if you changed it. Pages written before this update that show stray `\n` marks are displayed with proper paragraphs. If the AI’s answer is incomplete or unusable, the page stays marked for retry instead of looking finished.
 
 ### Picture controls in Edit
 
@@ -74,7 +74,7 @@ The AI must cover every relevant collected section. Empty or unavailable sources
 - **Delete picture:** removes the picture from the page when you save, including legacy embedded pictures.
 - **Retry AI picture** (Elite): paints a new picture inspired by the title and story currently in the editor, without rewriting the diary text. A failed attempt keeps the existing preview.
 
-Picture changes apply with **Save changes**. **Cancel** leaves the saved picture as it was. Picture failures have their own status, with a reminder to retry or upload in Edit. A late automatic AI result cannot overwrite your saved upload, deletion or text edit.
+Picture changes apply with **Save changes**. **Cancel** leaves the saved picture as it was. Picture failures have their own status, with a reminder to retry or upload in Edit. Your own upload, deletion or edit always wins: a picture the AI finishes late will not overwrite it.
 
 ### What we learned today
 
@@ -94,12 +94,12 @@ You do not pick the hero by hand. When you press **Crown Today’s Hero**, the Q
 
 **Who is chosen**
 
-1. If a present student holds **Mask of the Protagonist** (`pending` hero status), they are guaranteed the crown.
+1. If a student who is present has bought the **Mask of the Protagonist**, they are guaranteed the crown.
 2. Otherwise the class uses a **fair rotation**: everyone present gets a turn before the cycle repeats; the same child is not immediately repeated when others are still waiting.
 
 If nobody is present, the log can honour “The Class Team.”
 
-**Perks (app-wide while they reign, plus this school year's legend)**
+**Perks (while they reign, plus this school year’s legend)**
 
 | Perk | Detail |
 |------|--------|
@@ -111,7 +111,7 @@ If nobody is present, the log can honour “The Class Team.”
 | Home / Projector | Spotlight cards |
 | Hall of Heroes | This year's win count |
 
-Hero of the Day does **not** by itself dump free stars except that **+1 on first award**. The honour is the spotlight and the shop blessing.
+Hero of the Day does **not** hand out free stars beyond the **+1 on the first award**. The reward is the spotlight and the Market discount.
 
 This is **not** Prodigy of the Month.
 
@@ -138,7 +138,13 @@ Opens the **Quest Board**, a cork noticeboard. **Pinned last time** shows the pr
 
 Saving can sync a homework line into the **Family Portal** so parents see the same quest without seeing your private notes.
 
-**Book recognition (Pro).** As you type, a small chip under the text recognises the book, its **part** (Student’s Book, Activity book, Companion / Language booster, Grammar book, Test book, Reader), the unit and the pages, for example `PP2 un.4 pp.78-80`, `SB p.42, GB unit 5`, `PP2 activity book p.15`, `yeti 2 language booster p.108`, `CU B1+ u.2 p.17`, `σελ. 110-112` or `Yeti 2 unit 13`. **A class may use more than one book the same day** — the chip lists every one it found, and **Choose the books** opens a row per book (Book + Part + Unit + Pages) with **＋ Add another book** for a grammar book, activity book or companion. Typing pages fills the unit automatically whenever that part has a page map (the Student’s Book, Activity book and Language booster of the books we know, and the grammar books); a part we have no map for simply leaves the unit for you to type. For a **senior course**, choosing a unit shows its **Vocabulary pages** as chips — tap the page set you actually taught so the Campfire uses just those words (junior courses are taught as one whole lesson, so they need no narrowing). Tap **Yes, that’s it** to confirm, or **Another book…** with a short theme. When the app is unsure it asks “Is this the right lesson?” in amber. A page-only or component-only line (`p.40`, `G.B. unit 5`) carries the class’s current book. Words written after `words:`, `φωτοτυπία:`, `worksheet:` or `elab:` are kept as the homework words, even when the book is unsure. Nothing here changes the homework families see; it only tells the **Hero Campfire** what the children practised.
+**Book recognition (Pro).** As you type, a small chip under the text recognises the book, its **part** (Student’s Book, Activity book, Companion / Language booster, Grammar book, Test book, Reader), the unit and the pages. It understands lines such as `PP2 un.4 pp.78-80`, `SB p.42, GB unit 5`, `PP2 activity book p.15`, `yeti 2 language booster p.108`, `CU B1+ u.2 p.17`, `σελ. 110-112` or `Yeti 2 unit 13`. This only tells the **Hero Campfire** what the children practised; it never changes the homework that families see.
+
+- **Confirming.** Tap **Yes, that’s it**, or **Another book…** and add a short theme. When the app is not sure, it asks “Is this the right lesson?” in amber.
+- **More than one book.** A class may use several books on the same day. The chip lists every book it found, and **Choose the books** opens a row per book (Book, Part, Unit, Pages) with **＋ Add another book** for a grammar book, activity book or companion.
+- **Pages fill in the unit.** When you type pages, the unit is filled in for you wherever the app has a page map for that part (the Student’s Book, Activity book and Language booster of the books it knows, and the grammar books). Where it has no map, you type the unit yourself.
+- **Senior courses.** Choosing a unit shows its **Vocabulary pages** as chips. Tap the page set you actually taught, so the Campfire uses just those words. Junior courses are taught as one whole lesson, so they need no narrowing.
+- **Shortcuts.** A line with only a page or a part (`p.40`, `G.B. unit 5`) uses the class’s current book. Words written after `words:`, `φωτοτυπία:`, `worksheet:` or `elab:` are kept as the homework words, even when the book is unsure.
 
 Use it every lesson if you can. Continuity is the hidden curriculum.
 
@@ -156,10 +162,10 @@ In the Chronicle:
 - Holiday banners; **Month at a glance** day rail
 - Summary: **monthly attendance %**, lessons held, total absences, **Perfect Attendees**
 - Grid: tap a mark to switch present / absent
-- Delete a column → **No Lesson** day, with a checkbox **Is this a School Holiday?** (school-wide vs this class)
-- Insights: school holiday, cancelled, before lessons began, after term end, lesson, no weekly class
+- Delete a column to turn that date into a **No Lesson** day; the checkbox **Is this a School Holiday?** chooses whether it counts for the whole school or only this class
+- A small note explains each day: school holiday, cancelled, before lessons began, after term end, lesson, or no weekly class
 
-School-wide holiday *ranges* are owned by the **Secretary**. This modal is for a single day and this class’s truth.
+School-wide holiday *ranges* are owned by the **Secretary**. This window is for a single day and this class only.
 
 Starter teachers still mark presence on Award Stars clouds; they do not get this month matrix until Pro.
 
@@ -170,7 +176,7 @@ Starter teachers still mark presence on Award Stars clouds; they do not get this
 - Attendance patterns inform Welcome Back and parent Progress.
 - The diary sentence appears on Home’s Chronicle and can appear on Projector cards.
 - Each crown is hung in the Hall of Heroes and counts towards the child's legend rank.
-- Mask of the Protagonist is consumed by the next crowning.
+- Mask of the Protagonist is used up by the next crowning.
 
 ## Dignity
 

@@ -20,12 +20,12 @@ Hero Path is **not** a tenth tab. You assign it on the roster, as a **ceremony**
 
 1. Open **Teacher Settings → My Classes → Manage Students** (or the roster shortcut).
 2. Each row groups its buttons as **Hero path** (Guild, Class, Skills), **Records** and **Manage**. If they have **no Hero Class** yet, tap the **Class** shield in the **Hero path** group (**Choose Hero Class**). Once they have one, that slot shows their class emblem instead. To choose or change it from the profile, tap **Edit** (the pencil in the **Manage** group) → the **Hero path** section → **Choose Hero Class** (or **Change Hero Class** if they already have one).
-3. The ceremony opens on the board. They tap a class to **preview** it (the hall morphs to that vocation’s colour). **Swear this Path** writes the class immediately. **Not yet** / close does not save.
+3. The ceremony opens on the board. They tap a class to **preview** it (the hall morphs to that vocation’s colour). **Swear this Path** saves the class at once. **Not yet** / close does not save.
 4. A short result beat follows: **You are a Guardian!** (or Sage, Paladin, Artificer, Scholar, Weaver, Nomad, Patron). **Let's Go!** closes it.
-5. **No Class** is still a real choice: do **not** run the ceremony. A child may stay unassigned all year. The ceremony itself does not offer No Class.
+5. **No Class** is still a real choice: simply do **not** run the ceremony. A child may stay unassigned all year; the ceremony itself does not offer No Class.
 6. **Skills** (the sitemap button in the row's **Hero path** group, or **Skill tree** in the profile's Hero path section) opens their vocation tree. The roster button pulses when a new branch is waiting.
 
-**Lock rule:** the class they already have stays. Each school year they may swear a **different** class **twice**. The first change leaves the path open. The second change **locks** it for the rest of that school year. After lock, **Your Path** opens a read-only shrine of the current class. A new school year does not remove the class; it restores two changes. Saving profile details (name, dates) never writes Hero Class. The first assignment, when they have no class yet, does not use up a change.
+**Lock rule:** the class they already have stays. Each school year they may swear a **different** class **twice**. The first change leaves the path open. The second change **locks** it for the rest of that school year. After lock, **Your Path** opens a read-only shrine of the current class. A new school year does not remove the class; it restores two changes. Saving other profile details (name, dates) never changes the Hero Class. The first assignment, when they have no class yet, does not use up a change.
 
 Help them pick how they **already shine**. Do not switch to chase Gold.
 
@@ -53,8 +53,6 @@ Open it from **Manage Students** (the **Skills** sitemap button), from the enlar
 At each new level the Skill Tree button **pulses** on the roster until they pick **one of two** permanent branches (A or B). On the path, that seal glows with **Level up! Choose one** and both skills float and shimmer. Tapping one opens a short rite (**Awaken this skill** / **Reconsider**). When they awaken it, the skill bursts into light and stays lit. The other branch dims to **Path not taken**. If an earlier seal still needs a choice, later unlocked seals wait for it. Help them read both cards aloud: extra Gold for themselves, bonus stars (these *do* move ranks), Gold to classmates who earned the same reason today, Gold to guildmates, a gift to a random classmate, or a **first time this calendar month** gift to the whole guild.
 
 Effects only fire when the **matching reason** is awarded (Respect for a Guardian, Story Weaver stars for a Weaver, Welcome Back for a Nomad, a Hero's Boon **gift** for a Patron, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
-
-A child may remain **No Class**. They keep the Hero Class they already have. Each school year they may change it twice; the second change locks the path until the next school year.
 
 ### Kinds of gift
 
@@ -149,7 +147,7 @@ Levels from **Welcome Back**. Three tiers. Random gifts appear early.
 
 ## 💝 Patron (Hero's Boon) — the giver
 
-Levels from **giving** Hero's Boon, not from receiving it. Three tiers. The first successful gift each **calendar week** (Monday–Sunday, same clock as Fortune's Wheel) = one path point. Extra gifts that week still cost Gold (or use Compassion Token), still give the receiver **+0.5** stars (Overflowing Heart can enlarge that gift), and still pay the Patron's **+10 Gold** and skills. They do not buy another Giver / Benefactor / Grand Patron point. The Patron's totals do not rise from the path.
+Levels from **giving** Hero's Boon, not from receiving it. Three tiers. The first successful gift each **calendar week** (Monday–Sunday, same clock as Fortune's Wheel) = one path point. Extra gifts that week still cost Gold (or use Compassion Token), still give the receiver **+0.5** stars (Overflowing Heart can enlarge that gift), and still pay the Patron's **+10 Gold** and skills. They do not buy another Giver / Benefactor / Grand Patron point.
 
 | Level | Branch A | Branch B |
 |-------|----------|----------|
@@ -157,17 +155,17 @@ Levels from **giving** Hero's Boon, not from receiving it. Three tiers. The firs
 | 2 (20) | **Guild Alms** — +3 Gold to your guildmates when you give | **First Mercy** — first gift this month: guildmates +7 Gold |
 | 3 (30) | **Grand Patron's Purse** — +5 Gold to you (net cost **0** with the class +10) and +3 Gold to the receiver | **Overflowing Heart** — the gift is **+1 bonus star** to the receiver (1.5 instead of 0.5) |
 
-Self-gold on this tree never exceeds +5, so a paid gift never **profits**. Compassion Token free gifts still count for the path when they are the first gift that calendar week.
+The skills on this path return at most +5 Gold to the giver, so a gift never makes a **profit**. Compassion Token free gifts still count for the path when they are the first gift that calendar week.
 
 ## Locking and teaching advice
 
 - Help the child choose a path that matches how they **already shine**, then invite growth in that virtue — not a costume they cannot wear.
-- Do not switch class to chase Gold. The lock exists so identity stays sacred.
+- Do not switch class to chase Gold. The lock is there so a child’s identity stays meaningful.
 - Bonus **stars** from skills affect Prodigy races. Bonus **Gold** does not. Say that clearly if a parent asks why ranks moved after a Respect lesson. Patron's Overflowing Heart moves the **receiver's** ranks, never the giver's.
 
 ## How this feeds the rest of the Quest
 
-Matching awards write extra Gold into the Market. Star bonuses write extra Team Quest and Glory. Guild-first skills make Guild Hall feel like a family. Auras make Hero’s Challenge readable from the back of the room.
+Matching awards add extra Gold to spend in the Market. Star bonuses add to Team Quest and Glory. Guild-first skills make Guild Hall feel like a family. Auras make Hero’s Challenge readable from the back of the room.
 
 ## Plan notes
 

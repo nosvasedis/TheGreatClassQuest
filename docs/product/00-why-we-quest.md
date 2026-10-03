@@ -8,9 +8,9 @@ A classroom contains more kinds of success than a test score can show. Academic 
 
 The Great Class Quest was created to widen that lens. It gives the teacher a consistent way to notice and reward **observable behaviour, life skills, effort, growth, and belonging** alongside academic learning. It is not an anti-academic system and it is not a promise that every child will respond in the same way. It is a classroom layer designed to make more meaningful moments visible and worth talking about.
 
-## A gameful world around the lesson
+## A game-like world around the lesson
 
-The Quest is an engaging, year-round ecosystem rather than a collection of disconnected buttons. Clouds, maps, houses, rituals, stories, progression, choice, and a small economy give everyday English a shared continuity. A lesson can feed a class journey, a student’s personal path, a guild identity, a story, and the next adventure.
+The Quest is a world that lasts all year, not a collection of separate buttons. Clouds, maps, houses, rituals, stories, levelling up, choices and a small economy give everyday English a shared thread from lesson to lesson. A lesson can feed a class journey, a student’s personal path, a guild identity, a story, and the next adventure.
 
 The goal is not for children to sit and play the application by themselves. Students do not log in. They see the Quest on the classroom screen — clouds, map, houses, celebrations, and stories — while you run it from the classroom PC. The gameful layer serves the lesson; the lesson never becomes an excuse to press buttons.
 
@@ -22,7 +22,7 @@ On every plan, **you** decide who earns stars. On Elite, AI may write the day’
 
 ## More than one way to be seen
 
-The four Award Stars reasons are **soft skills / life skills** that the English lesson can name *as they happen*. They are not grammar marks and not labels such as “good child”.
+The four reasons on Award Stars are **life skills** that you can name *as they happen* in an English lesson. They are not grammar marks and not labels such as “good child”.
 
 | Life skill | What you are naming |
 |------------|---------------------|
@@ -37,7 +37,7 @@ The wider Quest creates other legitimate routes to recognition. **Welcome Back**
 
 ## Academic learning still belongs here
 
-GCQ broadens recognition; it does not remove academic purpose. The English classroom still teaches language, literacy, knowledge, and confidence. **Scholar’s Scroll** supports tests and dictations, **Quiz of the Week** supports retrieval and review, **Story Weavers** makes writing communal, and **Quest Assignment** carries learning into the next lesson.
+GCQ broadens recognition; it does not remove academic purpose. The English classroom still teaches language, literacy, knowledge, and confidence. **Scholar’s Scroll** supports tests and dictations, **Quiz of the Week** supports recall and review, **Story Weavers** makes writing communal, and **Quest Assignment** carries learning into the next lesson.
 
 The distinction matters: a child does not need to be the highest-scoring student to be a valuable member of the class, and a life-skill star is not a substitute for academic feedback. The two strands can strengthen one another when the teacher keeps each one honest.
 
@@ -57,7 +57,7 @@ Self-Determination Theory identifies autonomy, competence, and relatedness as ba
 
 Gamification can support cognitive, motivational, and behavioural outcomes, but effects vary by design and context. That is why GCQ combines competition with cooperation, progression with reflection, and spectacle with teacher judgement; it does not treat points or prizes as a universal solution ([Sailer & Homner, 2020](https://doi.org/10.1007/s10648-019-09498-w)).
 
-## How the ecosystem works together
+## How the pieces fit together
 
 | Layer | Features | What the layer is for |
 |-------|----------|-----------------------|
@@ -71,9 +71,9 @@ One Award Star can feed several parts of the world, but each feature has a diffe
 
 ## The teacher’s Chronicle starts on day one
 
-**Hero’s Chronicle** is the teacher’s private notebook from the first day of September. It sits alongside the roster and the daily classroom routine. Use it to record observations, patterns, goals, strategies, and meaningful moments; publish only what you deliberately choose to share. It is not a new student-facing feature and it is not the public Adventure Log.
+**Hero’s Chronicle** is the teacher’s private notebook from the first day of September. It sits alongside the roster and the daily classroom routine. Use it to record observations, patterns, goals, strategies, and meaningful moments; publish only what you deliberately choose to share. Students never see it, and it is not the Adventure Log that the class reads together.
 
-The daily classroom backbone is simple: teach, notice, award when appropriate, keep the next task visible, and close the lesson with the Adventure Log when the plan includes it. The rest of the ecosystem adds depth gradually; it should never make a good lesson harder to run.
+The daily classroom backbone is simple: teach, notice, award when appropriate, keep the next task visible, and close the lesson with the Adventure Log when the plan includes it. The rest of the Quest adds depth gradually; it should never make a good lesson harder to run.
 
 ## A year with peaks, not a flat scoreboard
 
@@ -93,9 +93,9 @@ This is why the suggested staff-training timeline introduces one new layer at a 
 - Gold is separate from rank. Children can spend it, but they cannot buy a higher place on a leaderboard.
 - Class Bounties and Guild Power reward shared participation, not only the child who is already ahead.
 - Hero’s Boon has eligibility and repeat-use rules so generosity does not become popularity pressure.
-- Fair rotation, co-recognition, and Teacher Boon help prevent one narrow definition of success from owning every celebration.
+- Fair rotation, shared crowns and the Teacher Boon stop one narrow idea of success from dominating every celebration.
 - Hero’s Chronicle remains private unless the teacher chooses to publish a page. AI suggestions remain editable and optional.
-- If the gameful layer distracts from learning, simplify it. The teacher can always return to the honest core of the lesson.
+- If the game-like layer distracts from learning, simplify it. The teacher can always return to the honest core of the lesson.
 
 ## What success looks like in practice
 
@@ -110,7 +110,7 @@ Success is not “everyone wins every leaderboard”. It looks more like this:
 
 ## What to read next
 
-This chapter explains the purpose. **Orientation** is the map: who uses which interface, what a typical lesson looks like, where the tabs live, and which names must stay distinct. The detailed feature chapters then explain exactly what to tap, when it happens, how it feeds the Quest, and what each plan includes. When in doubt, use the full Guidebook as the reference for operation, rules, and examples.
+This chapter explains the purpose. **Orientation** is the map: who uses which screen, what a typical lesson looks like, where the tabs live, and which names must stay distinct. The chapters after it explain each feature in turn: what to tap, when it happens, how it feeds the rest of the Quest, and what each plan includes.
 
 ### Evidence note
 

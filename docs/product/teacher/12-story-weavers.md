@@ -4,7 +4,7 @@ Story Weavers is **collaborative creative writing**. The class builds **one stor
 
 ## Purpose
 
-Make writing **communal**. Shy children still belong to the book. Vocabulary sticks because it has to live in the next sentence. Weaver Hero Path levels from Story Weaver stars (Pro).
+Make writing **communal**. Shy children still belong to the book. Vocabulary sticks because it has to live in the next sentence. On Pro, Story Weaver stars level up the **Weaver** Hero Path.
 
 ## What you see
 
@@ -15,12 +15,12 @@ Select the class in the header. The tab opens as a **storybook**: the latest ill
 - **Structure focus**: two or three sentence patterns for this league (for example past continuous with *when* in B, the 1st conditional in C, inversion in Proficiency), each with an example. Tap one to make it the focus for the next page; tap again to clear it. The focus is shown in the sentence box.
 - **Sentence starters**: tap one to open the next page with it already started (lock in the Word of the Day first). The sentence box also shows today's word and a short row of starters to tap.
 
-Placeholder until a class is chosen.
+Until you choose a class, the tab shows a placeholder.
 
 ## What you can do
 
 1. **Word of the Day** — type it and lock it in (the tick), or **Suggest** (Elite AI). Clear when you need a fresh hook.
-2. **Start Story…** / **Continue…** — add the next sentence. Elite generates an image and stores a chapter in history.
+2. **Start Story…** / **Continue…** — add the next sentence. Elite also creates an illustration and saves the page to the story’s history.
 3. Every **second** addition, the Quest asks whether to give the **whole class +0.5 Creativity / Story Weaver stars**. Say yes when the writing earned it. **Archivist’s Quill** makes that student’s next class bonus **1.0 instead of 0.5**.
 4. **Reveal to class** — the latest page as a big storybook spread (picture and text), with **Let's talk about it**: three questions to ask aloud (remember, imagine or ask *why*, and connect to your own life or use the Word of the Day). **New questions** shuffles them. This is dialogic reading: children talk about the story, not only listen.
 5. **Current Story** — the running book so far.
@@ -45,4 +45,4 @@ Story Weaver stars are real stars: map, ranks, Glory, Gold, Weaver levels. Home�
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Story Weavers is not on this plan | Story Weavers is not on this plan | The tab, Word of the Day, illustrations. Class writing bonuses still write stars into the same economy |
+| Story Weavers is not on this plan | Story Weavers is not on this plan | The tab, Word of the Day, illustrations. Class writing bonuses still add stars to the same totals |

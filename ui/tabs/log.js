@@ -9,7 +9,7 @@ import { syncHeaderClassSelector } from '../headerClassSelector.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';
 import { renderLearnedTodayHtml } from '../../features/learnedToday.js';
 import { mountCampfireEntry } from '../../features/campfireEntry.js';
-import { getCrownControlState, isAwaitingAdventurePage } from '../../features/adventurePageCore.mjs';
+import { getCrownControlState, isAwaitingAdventurePage, normalizeChroniclerText } from '../../features/adventurePageCore.mjs';
 
 function classHasAwardedStarsToday(classId) {
     if (!classId) return false;
@@ -494,7 +494,7 @@ function renderDiaryEntry(log, animationClass) {
             <div class="diary-body">
                 ${renderDiaryArtwork(log, entryMode)}
                 <div class="diary-text-content">
-                    <p class="diary-text">${escapeDiaryHtml(log.text)}</p>
+                    <p class="diary-text">${escapeDiaryHtml(normalizeChroniclerText(log.text))}</p>
                     ${highlightsHtml ? `<ul class="diary-highlights" aria-label="Highlights">${highlightsHtml}</ul>` : ''}
                     ${renderLearnedTodayHtml(log.learnedToday)}
                     ${noteHtml}

@@ -6,7 +6,7 @@ The tab opens under its title, a **night-sky star medal**, and is built as **flo
 
 ## Purpose
 
-Name **virtue in action**, in the moment it happens — Teamwork, Creativity, Respect, Focus. The four reasons are the moral vocabulary of the year. Keep them visible. Scholar’s Bonus and Story Weaver stars arrive from their own rituals, not from extra gems on this cloud.
+Name **virtue in action**, in the moment it happens — Teamwork, Creativity, Respect, Focus. The four reasons give the class a shared language for good behaviour all year, so keep them visible. Scholar’s Bonus and Story Weaver stars arrive from their own rituals, not from extra gems on this cloud.
 
 ## What you see
 
@@ -51,7 +51,7 @@ Welcome Back stars scale with consecutive missed scheduled lessons (looking back
 
 Welcome Back **does not lock** the card. You can still award a virtue star in the same lesson. That is the pedagogy: returning is honoured, then the child still gets to *play* today.
 
-Nomad Hero Path levels from Welcome Back stars (Pro).
+On Pro, Welcome Back stars also level up the **Nomad** Hero Path.
 
 ## Birthdays and namedays
 
@@ -60,7 +60,7 @@ On the **first star click** of that student’s special day (when it matches the
 - **Happy Birthday!** → **+2.5** stars  
 - **Happy Nameday!** → **+1.5** stars  
 
-Logged as a scholar-style bonus with the occasion name. Set dates on the student profile (AI Nameday Lookup on Elite for the Greek Orthodox calendar). Home reminder pills and Projector cards also announce the day.
+These are recorded as a bonus named after the occasion. Set dates on the student profile (AI Nameday Lookup on Elite for the Greek Orthodox calendar). Home reminder pills and Projector cards also announce the day.
 
 ## Hero’s Boon (peer gift)
 
@@ -68,7 +68,7 @@ The heart button on a cloud: **Bestow Hero’s Boon**.
 
 This is **student → student generosity**, paid in Gold.
 
-| Rule | Exact |
+| Rule | Detail |
 |------|--------|
 | Gift | Receiver **+0.5** Total and Monthly stars (feeds Guild Glory) |
 | Cost | **15 Gold** from the giver |
@@ -80,7 +80,7 @@ This is **student → student generosity**, paid in Gold.
 
 The heart sits in the cloud's top-left corner. When the student may receive a boon, it glows pink with a **+½** tag. When they may not (or the class has used its 4 boons today), it rests faded. Explain the rules once; children will police fairness better than a lecture.
 
-On **Pro**, a **Patron** Hero Path levels from **giving** this gift (10 / 20 / 30 weeks with at least one gift). The first gift each calendar week earns the path point; extra gifts that week still work as boons. The giver gets **+10 Gold** on the gift (net cost 5 unless Compassion Token made it free) and no extra rank stars. Overflowing Heart can enlarge the receiver's stars.
+On **Pro**, giving boons levels up the **Patron** Hero Path (see the Hero Path chapter): the first gift each calendar week earns a path point, and the giver gets **+10 Gold** back, so a paid gift costs 5 Gold in the end (nothing, if Compassion Token made it free). The giver never gains rank stars.
 
 Do not confuse this with:
 
@@ -125,7 +125,7 @@ One tap can:
 
 - Move Team Quest along the map  
 - Change Hero’s Challenge order  
-- Write Guild Glory  
+- Add Guild Glory  
 - Add Gold (and Hero Path Gold)  
 - Hatch or evolve a Familiar  
 - Count toward Prodigy tie-breakers (3-star vs 2-star vs unique reasons)  

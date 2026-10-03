@@ -10,9 +10,9 @@ Give every trial a calm home so you never lose a mark-book, and so excellence ca
 
 ## What you see
 
-- Class stats and a **performance chart** (about three months of weighted academic average)
+- Class stats and a **performance chart** (about three months of the class’s average results)
 - Queues: **pending grading** (scheduled Quest Board tests) and **pending make-ups**
-- Empty state if this class does not use tests or dictations — the copy points to the secretary’s Grading setup (teachers can still override in Settings → Class Grading)
+- If this class does not use tests or dictations, the tab says so and points to the School Office’s Grading setup (you can still override it in Settings → Class Grading)
 
 ## What you can do
 
@@ -26,7 +26,7 @@ Flying buttons: **Log New Trial** and **View History**.
 2. Check the date stamp (it reads **Today** by default; tap it to change). Tests need a **Title**.
 3. Grade each student: tap a stamp (tap it again to clear it), or type the score and press **Enter** to jump to the next student.
 4. Tap **Present** to mark someone absent in the same pass. The tally at the bottom shows how many are marked.
-5. **Save results**. Personal-best toasts may fire for tests.
+5. **Save results**. A small “personal best” message may pop up for tests.
 
 **Grading language** follows school defaults (by league) unless you overrode them:
 
@@ -42,7 +42,7 @@ Secretary sets the school picture. **Class Grading** is your override when this 
 
 ### Make-ups
 
-**Pending Makeups** (tests): if a large share of the class sat a paper and someone has no mark, they stay on the list (recent months). Log a result or dismiss locally. Separate from the **pending grading** queue for advertised Quest Board tests.
+**Pending Makeups** (tests): if a large share of the class sat a paper and someone has no mark, they appear on the list (recent months only). Log a result, or dismiss the entry on this device. Separate from the **pending grading** queue for advertised Quest Board tests.
 
 ## Starfall
 
@@ -50,20 +50,20 @@ After a bulk save, the Quest may offer bonus stars:
 
 | Trial | Bar | Gift |
 |-------|-----|------|
-| **Test** | Normalised score **≥ 95%** | Propose **+1** Scholar’s Bonus |
-| **Dictation** | **> 85%**, and this student already has **at least 3** high dictations this month, and fewer than **2** dictation Scholar bonuses this month | Propose **+0.5** |
-| **🌱 Growth Starfall** (test or dictation) | At least **15 points above the student's own average** of their last (up to) **5** earlier trials of the same type, with **at least 3** earlier trials; not when the classic bar above already applies; **once per student per month** | Propose **+0.5** |
+| **Test** | A score of **95% or more** (whatever the marking scale) | Suggests **+1** Scholar’s Bonus |
+| **Dictation** | **Above 85%**, once the student already has **at least 3** high dictation scores this month, and has had fewer than **2** dictation Scholar’s Bonuses this month | Suggests **+0.5** |
+| **🌱 Growth Starfall** (test or dictation) | **15 or more points above the student's own recent average** (their last up to **5** trials of the same type, with **at least 3** earlier trials needed). Not offered when the standard bar above already applies; **once per student per month** | Suggests **+0.5** |
 
-You **confirm** in a batch modal. Nothing is forced. Growth Starfall rows carry a 🌱 **Growth** chip, and the modal names no scores. Growth Starfall rewards climbing, not only being at the top: a child who moves from around 50% to 70% is exactly who should hear it. It is logged as Scholar's Bonus (so it counts for the Scholar Hero Path) and does not use up the monthly dictation Starfall allowance.
+You **confirm** the suggestions together in one window; nothing is given automatically. Growth Starfall rows carry a 🌱 **Growth** chip, and the window shows no scores. Growth Starfall rewards climbing, not only being at the top: a child who moves from around 50% to 70% is exactly who should hear it. It is logged as Scholar's Bonus (so it counts for the Scholar Hero Path) and does not use up the monthly dictation Starfall allowance.
 
 **Starfall Catalyst** (Market) doubles that student’s next high-test bonus, then clears.
 
-Scholar’s Bonus is the reason **Scholar** Hero Path levels from (Pro). Birthday/nameday also reuse that reason internally — Starfall is the academic path.
+Scholar’s Bonus is what levels up the **Scholar** Hero Path (Pro). Birthday and nameday bonuses use the same label in the award log, but Starfall is the academic route.
 
 ## How this feeds the rest of the Quest
 
-- Chart and the Scholar's Scroll panel on the hero page (Hero stats) use these scores (including Prodigy tie-break academic average).
-- Starfall writes real stars (Team Quest, Glory, Gold).
+- These scores feed the chart here, the Scholar's Scroll panel on a hero’s page (Hero stats), and the academic average used as the last Prodigy tie-breaker.
+- Starfall adds real stars, which count for Team Quest, Glory and Gold.
 - Scheduled tests appear on Home pills, Calendar, Quest Assignment, and Projector countdown/luck cards.
 - Family Portal shows latest results **only** if this class records assessments.
 

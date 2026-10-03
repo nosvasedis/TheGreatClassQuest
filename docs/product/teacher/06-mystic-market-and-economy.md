@@ -1,6 +1,6 @@
 # Mystic Market and the Gold economy
 
-Mystic Market is its **own tab** — not a corner of Hero’s Challenge. Choose a shopper, see their Gold, and buy from four shelves: **Legendary Artifacts** (always the same), **Festival Stall** (timed holidays), **seasonal treasures** (monthly classroom flavor), and **Familiar eggs** (Elite).
+Mystic Market is its **own tab** — not a corner of Hero’s Challenge. Choose a shopper, see their Gold, and buy from four shelves: **Legendary Artifacts** (always the same), **Festival Stall** (timed holidays), **seasonal treasures** (monthly classroom flavour), and **Familiar eggs** (Elite).
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Teach **delayed gratification**. Stars become purchasing power. Rank on Hero’s
 
 ## How Gold is earned
 
-Base rule: **1 Gold per star** awarded (Gold is stored separately from rank).
+Every star you award also gives **1 Gold**. Gold is kept separate from rank.
 
 Extra Gold can arrive from:
 
@@ -21,9 +21,9 @@ Extra Gold can arrive from:
 | **Fortune’s Wheel** | Gold showers, rushes, and similar segments |
 | **Birthday / nameday** | Stars (and Gold) on the special occasion |
 | **Quiz of the Week** | Gold per correct answer by tier |
-| **Coin Purse** (Teacher Settings) | Manual repair of a balance |
+| **Coin Purse** (Teacher Settings) | Fixing a balance by hand |
 
-Teachers should not “pay” Gold instead of stars. Stars are the pedagogical act; Gold is the consequence.
+Do not hand out Gold instead of stars. The star is the act of recognition; Gold simply follows it.
 
 ## How Gold is spent
 
@@ -32,22 +32,22 @@ Teachers should not “pay” Gold instead of stars. Stars are the pedagogical a
 
 ## Legendary Artifacts (power-ups)
 
-Always in stock. **Two legendary buys per student per month.** Use them from the Trophy Room / enlarged avatar. Using consumes the item.
+Always in stock. **Two legendary buys per student per month.** Use them from the Trophy Room, or by tapping the hero’s portrait. Using an artifact uses it up.
 
 | Artifact | Gold | Effect | Extra limit |
 |----------|------|--------|-------------|
-| **Crystal of Clarity** | 15 | Hint-pass glow on the student’s card | — |
+| **Crystal of Clarity** | 15 | A glowing gem on the student’s card showing they hold a hint pass | — |
 | **Scroll of the Gilded Star** | 20 | Next star → **3× Gold**, then clears | — |
-| **Time Warp Hourglass** | 25 | **+5 minutes** on every live **Race the Clock** bounty in the class (fails if none) | — |
-| **Elixir of Luck** | 30 | Next lesson: **50%** chance of **+1 star** on the first positive award (skipped if Hero of the Day’s +1 already applied on that award) | — |
+| **Time Warp Hourglass** | 25 | **+5 minutes** on every live **Race the Clock** bounty in the class (it cannot be used when no bounty is running) | — |
+| **Elixir of Luck** | 30 | Next lesson: **50%** chance of **+1 star** on the first positive award (not used if the Hero of the Day’s +1 already applies to that award) | — |
 | **Aurum Satchel** | 32 | **50% off** the next Market purchase this month | — |
-| **Banner of Glory** | 35 | Next **3** stars each write **+1 bonus Guild Glory** | Needs a guild |
-| **The Herald’s Banner** | 40 | School-wide celebration toast | — |
-| **Bulwark Crest** | 48 | Guild **Glory Shield** for **7 days** (blocks negative Wheel Glory hits) | Needs a guild |
+| **Banner of Glory** | 35 | Next **3** stars each add **+1 bonus Guild Glory** | Needs a guild |
+| **The Herald’s Banner** | 40 | A school-wide celebration message | — |
+| **Bulwark Crest** | 48 | Guild **Glory Shield** for **7 days** (blocks Glory losses from the Wheel) | Needs a guild |
 | **The Starfall Catalyst** | 50 | Doubles the next high-test **Starfall** bonus | — |
-| **Chalice of Radiance** | 55 | Guild: +1 bonus Glory on qualifying stars for **24 hours** | Needs a guild |
+| **Chalice of Radiance** | 55 | Guildmates’ stars each earn +1 bonus Glory for **24 hours** | Needs a guild |
 | **Compassion Token** | 55 | Hero’s Boon costs **0 Gold** for the rest of this month | — |
-| **The Pathfinder’s Map** | 60 | Instant **+10 Team Quest stars** for the class | **1 use per class per month** (also blocked if someone still holds an unused Pathfinder bought this month) |
+| **The Pathfinder’s Map** | 60 | Instant **+10 Team Quest stars** for the class | **1 use per class per month** (and not while a classmate still holds an unused Pathfinder’s Map bought this month) |
 | **Archivist’s Quill** | 62 | Next Story Weaver class bonus is **1 star instead of 0.5** for that student | — |
 | **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next Adventure Log | **1 buy per student per month** |
 | **Crown of the Eternal** | 90 | Guild: **2×** star-earned Glory until **midnight** | Needs a guild |
@@ -62,17 +62,17 @@ Each kind has copies: Common **5**, Rare **2**, Legendary seasonal **1**. Buying
 - 5 Rare kinds (about 35–50)
 - 5 Legendary seasonal trophies (about 80–120)
 
-Junior language and art stay toy-like; senior items read as RPG relics. There is **no** coded “two seasonal items per month” cap — Gold, copies, and good judgement are the limit.
+Junior language and art stay toy-like; senior items read as RPG relics. There is **no** limit on seasonal items per month: Gold, copies in stock and your own judgement are the only limits.
 
 ## Festival Stall (Elite)
 
-A small extra shelf for **Halloween** (31 Oct), **Christmas** (25 Dec), **Orthodox Easter**, and Greek **Carnival / Apokries**. It appears about **22 days** before the feast, only once stock exists, and is deleted the day after the celebration. The Market shows a banner (and a one-time toast) when limited festival treasures have arrived.
+A small extra shelf for **Halloween** (31 Oct), **Christmas** (25 Dec), **Orthodox Easter**, and Greek **Carnival / Apokries**. It appears about **22 days** before the feast, once its stock is ready, and is removed the day after the celebration. The Market shows a banner (and a one-time toast) when limited festival treasures have arrived.
 
-Festival kinds: 2 Common, 2 Rare, 1 Legendary, with the same copy rules. If the Festival Stall sells out, a **new** holiday batch is woven at the end of that day. School Office holiday ranges do **not** drive this shelf.
+Festival kinds: 2 Common, 2 Rare, 1 Legendary, with the same copy rules. If the Festival Stall sells out, a **new** holiday batch is made at the end of that day. School Office holiday ranges do **not** drive this shelf.
 
 ### Shop discounts (seasonal shelf)
 
-These stack, then cap:
+These add together, up to a limit:
 
 - **Reigning Hero of the Day:** **25%** off
 - This school year's Hero of the Day wins: Rising Legend (3+) **+5%**, Golden (5+) **+10%**, Mythic (10+) **+15%**. A new year starts at Future Legend. Last year's crowns stay in last year's Hall of Heroes.
@@ -83,7 +83,7 @@ Legendary Artifacts on the evergreen shelf follow their own two-per-month rule; 
 
 ## Familiars (Elite)
 
-One Familiar **per student**. Buying a second egg is not the design — the companion is a year-long bond.
+Each student has **one** Familiar, a companion for the whole year.
 
 | Egg | Gold | Personality | Forms (hatch → mid → late) |
 |-----|------|-------------|----------------------------|
@@ -95,11 +95,11 @@ One Familiar **per student**. Buying a second egg is not the design — the comp
 
 **Growth** (stars earned *after* the relevant moment):
 
-1. Egg until **20** stars since purchase → hatches (Level 1), named, animated sprite
+1. Egg: after **20** stars earned since you bought it, it hatches (Level 1) and gets a name and an animated picture
 2. **60** stars since hatch → Level 2
 3. **140** stars since hatch → Level 3
 
-They sit beside the avatar on boards and large in the overlay. Tap for stats (“stars together,” progress to next form). Hatch and evolve play dedicated sounds. Elite generates the sprite sheets.
+A Familiar sits beside its student’s portrait on the boards, and larger when you open its stats (“stars together” and progress to the next form). Hatching and evolving have their own sounds. On Elite, AI draws each Familiar’s pictures.
 
 ## What you can do in the tab
 
@@ -112,10 +112,10 @@ They sit beside the avatar on boards and large in the overlay. Tap for stats (�
 
 ## How this feeds the rest of the Quest
 
-Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (Glory tools, Wheel shield). Familiars make every future star visible. Compassion Token changes Award Stars social behaviour for a month.
+Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (Glory tools, Wheel shield). Familiars make every future star visible. Compassion Token makes Hero’s Boons free for a month.
 
 ## Plan notes
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Gold, evergreen Legendary Artifacts, two legendary buys per student per month | Same shop. Hero Path Gold bonuses live on the Path | AI monthly stall, Festival Stall, Restock, Market Manager, Familiar eggs and sprites |
+| Gold, the always-available Legendary Artifacts, two legendary buys per student per month | Same shop. Hero Path Gold bonuses live on the Path | AI monthly stall, Festival Stall, Restock, Market Manager, Familiar eggs and sprites |

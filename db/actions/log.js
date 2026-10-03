@@ -30,6 +30,7 @@ import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.
 import { retryAdventureLogGeneration } from './quests.js';
 import { bindDiaryHighlightPreview, diaryEditorHeroHtml, diaryPageEditorHtml, formatDiaryEditorDate } from '../../features/diaryPageEditor.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { normalizeChroniclerText } from '../../features/adventurePageCore.mjs';
 import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
 import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSchoolWideModifierType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
@@ -449,7 +450,7 @@ function openAdventureLogEditor(logId, log, learnedModule, artwork) {
         subtitle,
         dateLabel: dateChipHtml,
         titleValue: log.title || '',
-        storyValue: log.text || '',
+        storyValue: normalizeChroniclerText(log.text),
         highlightsValue: (log.highlights || []).join(', '),
         storyTool: aiRewriteControl,
         pictureHtml: artwork.diaryPictureControlsHtml({ canGenerate: canUseFeature('eliteAI') }),
@@ -467,6 +468,7 @@ function openAdventureLogEditor(logId, log, learnedModule, artwork) {
 
     const titleInput = overlay.querySelector('#edit-log-title');
     const storyInput = overlay.querySelector('#edit-log-text');
+    const loadedStory = storyInput.value;
     const counter = overlay.querySelector('#edit-log-title-counter');
     const closeBtn = overlay.querySelector('#adventure-log-editor-close-btn');
     const cancelBtn = overlay.querySelector('#cancel-edit-log-btn');
@@ -550,7 +552,8 @@ function openAdventureLogEditor(logId, log, learnedModule, artwork) {
                 iconEl.className = 'fas fa-spinner fa-spin adventure-log-editor-ai-icon';
             }
             try {
-                await retryAdventureLogGeneration(logId, { allowArtwork: false, previousText: storyInput.value });
+                // Only the teacher's own changes count as a draft; untouched text is the Chronicler's earlier output.
+                await retryAdventureLogGeneration(logId, { allowArtwork: false, previousText: storyInput.value.trim() !== loadedStory.trim() ? storyInput.value : '' });
                 const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
                 const snap = await getDoc(logRef);
                 if (snap.exists()) {

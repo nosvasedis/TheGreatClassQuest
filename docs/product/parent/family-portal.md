@@ -32,7 +32,7 @@ A conversation a family starts reaches the child’s teacher and the **School Of
 
 ## Dignity
 
-The portal is **parent-safe by design**. Do not publish notes you would not read aloud at a desk with the child present. Star moments and kept promises belong here; Skill Tree tactics do not. Corrections never appear as star moments.
+The portal is **parent-safe by design**. Do not publish notes you would not read aloud at a desk with the child present. Star moments and kept promises belong here; Skill Tree tactics do not. Corrections you make, such as repairing a score, never appear as star moments.
 
 ## Plan notes
 

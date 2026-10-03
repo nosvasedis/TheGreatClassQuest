@@ -14,29 +14,33 @@ const igniting = new Set();
 const dismissKey = classId => 'gcq_campfire_dismissed_' + classId + '_' + getLocalIsoDateString();
 const isDismissed = classId => { try { return localStorage.getItem(dismissKey(classId)) === '1'; } catch { return false; } };
 
-/** Pure markup (also used by the preview harness). */
+/** The hearth medallion: an ember disc with a glow, the flame and two crossed logs. */
+const hearthMedallion = cls => '<span class="campfire-medallion ' + cls + '" aria-hidden="true"><span class="campfire-medallion__halo"></span>' + FLAME + '<span class="campfire-medallion__logs"></span></span>';
+const LATER_BUTTON = '<button type="button" class="campfire-later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times" aria-hidden="true"></i></button>';
+
+/** Adventure Log hearth: a little night scene under Log / Hall of Heroes. Pure markup (also used by the preview harness). */
 export function campfireChipMarkup({ held = false, igniting: ignite = false, oaths = true, ready = 0 } = {}) {
     const sparks = ignite ? '<span class="campfire-chip__sparks" aria-hidden="true">' + Array.from({ length: 12 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' : '';
     const badge = ready ? '<span class="campfire-oaths-badge">' + ready + ' ready</span>' : '';
-    return '<div class="campfire-hearth' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + '">' + sparks +
-        '<button type="button" class="campfire-chip" data-campfire-open>' +
-        '<span class="campfire-chip__hearth" aria-hidden="true">' + FLAME + '<span class="campfire-chip__logs"></span></span>' +
-        '<span class="campfire-chip__text"><strong>' + (held ? 'Campfire held · Relight' : 'Gather at the Campfire') + '</strong>' +
-        '<small>' + (held ? 'The embers are resting' : 'Ready · 2 minutes · words, a question, promises') + '</small></span>' +
-        (held ? '' : '<span class="campfire-chip__cta" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>') + '</button>' +
-        (oaths ? '<button type="button" class="campfire-hearth__oaths" data-campfire-oaths title="Ember Oaths"><i class="fas fa-fire-alt" aria-hidden="true"></i><span>Oaths</span>' + badge + '</button>' : '') +
-        (!held ? '<button type="button" class="campfire-hearth__later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times"></i></button>' : '') + '</div>';
+    return '<div class="campfire-hearth' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + '">' +
+        '<span class="campfire-hearth__sky" aria-hidden="true"><span class="campfire-hearth__stars"></span><span class="campfire-hearth__hills"></span></span>' + sparks +
+        '<button type="button" class="campfire-chip" data-campfire-open>' + hearthMedallion('campfire-chip__hearth') +
+        '<span class="campfire-chip__text"><span class="campfire-chip__eyebrow">' + (held ? 'Embers resting' : 'Hero Campfire') + '</span>' +
+        '<strong>' + (held ? 'Campfire held' : 'Gather at the Campfire') + '</strong>' +
+        '<small>' + (held ? 'Tap to relight it' : '2 minutes · words · a question · promises') + '</small></span>' +
+        '<span class="campfire-chip__cta" aria-hidden="true">' + (held ? '<i class="fas fa-redo-alt"></i><span>Relight</span>' : '<span>Gather</span><i class="fas fa-arrow-right"></i>') + '</span></button>' +
+        (oaths ? '<button type="button" class="campfire-hearth__oaths" data-campfire-oaths title="Ember Oaths"><span class="campfire-hearth__oaths-icon" aria-hidden="true"><i class="fas fa-fire-alt"></i></span><span class="campfire-hearth__oaths-label">Oaths</span>' + badge + '</button>' : '') +
+        (held ? '' : LATER_BUTTON) + '</div>';
 }
 
 /** Home greeting-card reminder badge (same family as the other `home-pill`s), with the same "Not today" ✕. */
 export function campfireHomePillMarkup({ held = false, igniting: ignite = false } = {}) {
-    return '<div class="date-pill home-pill home-pill--campfire home-pill--action campfire-home-pill' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + '">' +
+    return '<div class="date-pill home-pill home-pill--campfire campfire-home-pill' + (held ? ' is-held' : '') + (ignite ? ' is-igniting' : '') + '">' +
         '<span class="home-pill__shine" aria-hidden="true"></span>' +
-        '<button type="button" class="campfire-home-pill__open" data-campfire-open>' +
-        '<span class="home-pill__icon campfire-home-pill__icon" aria-hidden="true">' + FLAME + '</span>' +
+        '<button type="button" class="campfire-home-pill__open" data-campfire-open>' + hearthMedallion('campfire-home-pill__icon') +
         '<span class="home-pill__body"><span class="home-pill__eyebrow">' + (held ? 'Campfire held' : 'Hero Campfire') + '</span>' +
-        '<span class="home-pill__title">' + (held ? 'Relight the embers' : 'Gather at the Campfire') + '</span></span></button>' +
-        '<button type="button" class="campfire-home-pill__later" data-campfire-later aria-label="Not today: hide the Campfire until tomorrow" title="Not today"><i class="fas fa-times" aria-hidden="true"></i></button></div>';
+        '<span class="home-pill__title">' + (held ? 'Relight the embers' : 'Gather round') + '</span></span></button>' +
+        LATER_BUTTON + '</div>';
 }
 
 /** The Oaths button when the Campfire is not lit: same family as Log / Hall of Heroes. */

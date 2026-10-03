@@ -10,6 +10,19 @@ export const PAGE_WRITTEN = 'written';
 
 const GROWTH_LEAGUES = new Set(['Nursery', 'Pre-Junior']);
 
+/**
+ * Models sometimes double-escape newlines inside JSON, so a page arrives with literal "\n" text.
+ * Turn those back into real paragraph breaks. Also used when rendering pages saved before this fix.
+ */
+export function normalizeChroniclerText(value) {
+    return String(value ?? '')
+        .replace(/\\r\\n|\\n|\\r/g, '\n')
+        .replace(/\r\n?/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
 /** A crowned page that has no story yet. Pages saved before this flow have no pageStatus and count as written. */
 export function isAwaitingAdventurePage(log) {
     return String(log?.pageStatus || '').toLowerCase() === PAGE_AWAITING;

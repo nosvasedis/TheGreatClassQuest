@@ -1,10 +1,10 @@
 # Plans and features
 
-The school’s plan is **Starter**, **Pro**, or **Elite**. Caps below are the default product picture. A school’s live flags may be custom; if a button is locked, the upgrade prompt is the truth.
+The school’s plan is **Starter**, **Pro**, or **Elite**. The limits below are the usual ones. Your school’s plan may be set up slightly differently, so if a button is locked in the app, the upgrade message on it tells you what your plan includes.
 
 ## At a glance
 
-Typical caps: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 classes. **Elite** unlimited. A school’s live flags may differ; a locked button is the truth.
+Typical limits: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 classes. **Elite** unlimited.
 
 **On every plan:** Award Stars, Team Quest, Hero’s Challenge, Ceremony of the Month, Quest Assignment and attendance tools, bounties, Mystic Market artifacts, Hero’s Boon, Teacher Boon, Projector Mode.
 
@@ -12,9 +12,7 @@ Typical caps: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 classe
 
 **From Elite:** Story Weavers, Familiars, Quiz of the Week, School Office, and AI (chronicler, images, Avatar Forge, Oracle, Restock, nameday, certificates and reports).
 
-(The HTML guidebook shows this as three plan tabs with arrows, not one giant grid.)
-
-## What to tell a teacher in one sentence
+## Each plan in one sentence
 
 - **Starter:** You can run a beautiful star classroom, a monthly map race, a student race, a shop of power-ups, and Projector Mode.  
 - **Pro:** You also get houses, a calendar that respects holidays, academic scroll, a diary with Hero of the Day, Hero Campfire and Ember Oaths, parent logins, and Hero Path.  
@@ -22,15 +20,15 @@ Typical caps: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 classe
 
 ## Tabs locked on the bottom bar
 
-| Tab | Opens from | Minimum plan |
+| Tab | Where to find it | Minimum plan |
 |-----|------------|----------------|
-| Guild Hall | Nav | Pro |
-| Scholar’s Scroll | Nav | Pro |
-| Quest Calendar | Nav | Pro |
-| Story Weavers | Nav | Elite |
+| Guild Hall | Cloud dock | Pro |
+| Scholar’s Scroll | Cloud dock | Pro |
+| Quest Calendar | Cloud dock | Pro |
+| Story Weavers | Cloud dock | Elite |
 
-Adventure Log stays visible but the **diary** is not in Starter — the Adventure Log is not in this plan. Market **Restock** and eggs are Elite even though the tab is always there.
+The Adventure Log tab stays visible on Starter, but the diary itself starts at Pro. The Market’s **Restock** and the Familiar eggs are Elite even though the tab is always there.
 
-## Guidebooks
+## If you are unsure
 
-When a slide lists a feature, check this table first, then the chapter. Do not promise Familiars on Pro or Secretary on Starter.
+Check this table before you tell a colleague or a parent what a plan includes. Familiars are not on Pro, and the School Office is not on Starter.

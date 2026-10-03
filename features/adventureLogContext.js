@@ -1,7 +1,7 @@
 // On-demand reads: the diary must not depend on which feature tabs were opened.
 import { db, doc, getDoc, collection, query, where, getDocs } from '../firebase.js';
 import * as state from '../state.js';
-import { getDDMMYYYY, getNextLessonDate } from '../utils.js';
+import { getDDMMYYYY, getNextLessonDate, getLeagueAiAudience } from '../utils.js';
 import { buildAdventureLogContext, adventureDateKey } from './adventureLogContextCore.mjs';
 import { collectLearnedToday } from './learnedTodayCore.mjs';
 import { QUEST_TYPE_LABELS, normalizeQuestType } from './specialQuestEngine.js';
@@ -98,9 +98,8 @@ export async function gatherAdventureLogContext(classId, { date = new Date(), he
         const reading = getCachedWeather();
         if (reading) weather = { description: resolveWeatherTheme(reading.code)?.weatherText || '' };
     }
-    const context = buildAdventureLogContext({ ...data, date: dateKey, schoolYearKey, hero, students, scores, events, weather, festival, learnedToday, weekKey: getISOWeekKey(day), questProgress: getClassQuestProgressData(data.classData, students, scores), sourceHealth: health });
-    const nextLesson = getNextLessonDate(classId, [data.classData], cached('allScheduleOverrides'), data.holidays, state.get('teacherSettings')?.classEndDates || {}, day);
-    if (nextLesson) context.nextLessonDate = adventureDateKey(nextLesson);
+    const nextLesson = getNextLessonDate(classId, [data.classData], cached('allScheduleOverrides'), data.holidays, state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}, day);
+    const context = buildAdventureLogContext({ ...data, date: dateKey, schoolYearKey, hero, students, scores, events, weather, festival, learnedToday, weekKey: getISOWeekKey(day), questProgress: getClassQuestProgressData(data.classData, students, scores), nextLessonDate: nextLesson ? adventureDateKey(nextLesson) : '', audience: getLeagueAiAudience(data.classData.questLevel), sourceHealth: health });
     if (!stillCurrent()) throw new Error('The teacher or school year changed while gathering the lesson.');
     return { context, learnedToday, classData: data.classData, students, attendance: data.attendance || [], awards: data.awards || [] };
 }

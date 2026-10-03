@@ -8,25 +8,39 @@ See the school (or this class) at a glance, catch reminders before the bell, jum
 
 ## What you see
 
-The greeting follows the real sun, from the same sunrise and sunset as the weather card and the header: **Good Morning** until noon, **Good Afternoon** until 5 pm, **Good Evening** from 5 pm until sunset, and **Good Night** from sunset until sunrise. Each has a matching sky wash (stars in the evening and at night) over a landscape of rolling hills, cypresses and a little cottage that change colour through the day (its window lights up in the evening). The class logo (or 🏫 in General view) sits inside a **day/night ring**: a gold-rimmed 24-hour sky dial with a small sun engraved at noon (top) and a crescent at midnight (bottom). Daylight, with a few clouds, is painted between today's real sunrise and sunset, with dawn and dusk colours at each end; the night side is a starry sky. The sun rides the ring at the current time with a glowing tail (orange when it is low). After sunset the moon takes its place, drawn in tonight's real phase. Each time you open Home the dial puts on a short show: the logo pops in, the gold rim draws itself, the sky unfolds from midnight round the day, the stars come out, and the sun (or moon) rises at sunrise (or sunset) and travels to the current time, finishing with a flash of light round the rim. After that it keeps moving with the clock. Hover the ring for today's sunrise and sunset times. The greeting and the weather card never disagree about whether it is night. Chips under the greeting show the school and either the selected class and league or how many classes meet today (and how many are yours). Reminder badges share one style: an icon bubble, a small label, the title, and a “when” tag. The weather card is a small window onto the real sky: its own drifting clouds with rain, snow or lightning when the weather has them, an illustrated weather icon (the moon in its real phase at night), a small analogue clock (frosted face, ticking second hand tinted to the weather), the temperature and conditions, today's high / low, the wind, and the next four hours with the chance of rain. The date and digital time stay in the header, and nothing spills outside the card.
+The greeting follows the real sun: **Good Morning** until noon, **Good Afternoon** until 5 pm, **Good Evening** from 5 pm until sunset, and **Good Night** from sunset until sunrise. Behind it, a painted landscape of rolling hills, cypresses and a little cottage changes colour through the day, with stars in the evening and at night.
+
+The class logo (or 🏫 in General view) sits inside a **day/night ring**, a 24-hour dial with noon at the top and midnight at the bottom. Daylight is painted between today’s real sunrise and sunset, and the night side is a starry sky. The sun (or, after sunset, the moon in tonight’s real phase) travels round the ring to show the time now. Each time you open Home the ring plays a short show as it settles on the current time. Hover over it to see today’s sunrise and sunset times.
+
+Chips under the greeting show the school and either the selected class and league, or how many classes meet today (and how many are yours). Reminder badges next to them all look alike: an icon, a small label, a title and a “when” tag.
+
+The **weather card** is a small window onto the real sky: drifting clouds with rain, snow or lightning when the weather has them, an icon (the moon in its real phase at night), a small analogue clock, the temperature and conditions, today’s high and low, the wind, and the next four hours with the chance of rain.
 
 ### General view (no class selected)
 
 You are looking at the **whole school**:
 
-- **School Stars** — monthly stars across students
+- **School Stars** — this month’s stars across all students
 - **Heroes** — how many students are on the roster
 - **Treasury** — this year's Gold held by students. Last year's Gold is archived when the school year is finished, so a new year starts at 0.
 - **Global Tools** — Hero Ranks, New (class), Team History, My Classes, Plan (Pro calendar), Setup (Teacher Settings)
-- **Today’s school schedule** — every class meeting today; a crown marks yours, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class (yours or a colleague’s) to open its **class roster**: league, teacher, time and days, heroes, stars this month and all year, Gold, Team Quest progress, next lesson, latest Hero of the Day, latest Quest Assignment and Adventure Log, today’s birthdays and name days, guild mix, a top-3 “Stars of the month” podium (never for Nursery / Pre-Junior), and every student with Hero Path title, guild, stars, and Gold (search + A–Z / Stars sort). Tapping any student opens their hero view inside the roster: stars this month and all year, Gold, Hero Path title, guild, this month’s stars by virtue (Teamwork / Creativity / Respect / Focus) plus other sources, the latest five awards, and an accurate **Boons** card. The Teacher Boon is +2★ for one hero per class per month, and only in the last 7 days of the month, so the card shows when it opens, that it is open, who received it, or that this student received it. The card also counts any Hero’s Boons (classmate gifts, +0.5★) received this month. For your own classes it adds a Scholar’s Scroll summary when trial data is loaded, plus **Give Teacher Boon** while the window is open. Your own classes also add **Enter class**, **Award Stars**, and **Edit class**. A colleague’s class is view-only. Escape steps back from a hero to the roster. On phones, your own class rows still open the class directly; a colleague’s row opens the view-only roster.
+- **Today’s school schedule** — every class that meets today. A crown marks your own classes, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class to open its **class roster**, which shows:
+  - the league, teacher, time and days, and how many heroes there are;
+  - stars this month and all year, Gold, Team Quest progress and the next lesson;
+  - the latest Hero of the Day, Quest Assignment and Adventure Log;
+  - today’s birthdays and name days, and the guild mix;
+  - a top-3 “Stars of the month” podium (never shown for Nursery / Pre-Junior);
+  - every student with their Hero Path title, guild, stars and Gold (search, or sort A–Z / by stars).
 - **Grand Guild Ceremony** — appears when it is time to crown the year’s winning guild (see Guild Hall)
+
+**Tap a student** in a roster to open their hero view: stars this month and all year, Gold, Hero Path title, guild, this month’s stars by virtue (Teamwork / Creativity / Respect / Focus), their latest five awards, and a **Boons** card. The Boons card tells you whether the Teacher Boon (+2★, one hero per class per month, only in the last 7 days of the month) is not open yet, open now, or already given (and to whom). It also counts any Hero’s Boons (classmate gifts, +0.5★) the student received this month. On your own classes the hero view adds a Scholar’s Scroll summary and a **Give Teacher Boon** button while the window is open, and the roster has **Enter class**, **Award Stars** and **Edit class** buttons. A colleague’s class is view-only. Press Esc to step back from a hero to the roster. On a phone, tapping one of your own classes opens that class directly; a colleague’s class opens the view-only roster.
 
 ### Class view (a class selected)
 
 You are looking at **this group**:
 
 - **Bounty** button in the greeting panel: opens the **Post a Bounty** poster for this class (below)
-- **Reminder pills** along the top: birthdays, namedays, scheduled tests, a glowing pending **Ceremony of the Month** (never for August — school is closed), active bounty, Pathfinder bonus, and similar “do this today” notes
+- **Reminder pills** along the top: birthdays, namedays, scheduled tests, a glowing **Ceremony of the Month** waiting to be run (never for August — school is closed), active bounty, Pathfinder bonus, and similar “do this today” notes
 - **Quest progress**: this class’s monthly stars versus the Team Quest goal (the goal already allows for holidays and cancelled lessons), drawn as a road through the four Team Quest realms (Bronze Meadows, Silver Peaks, Golden Citadel, Crystal Realm) to the goal flag. The class emblem stands where the class is now, realms already reached light up, and a line says how many stars remain to the next realm. Any Pathfinder bonus is counted and shown under the goal.
 - **Class virtue and class photo**: a crest for the virtue that has earned the class the most stars (or **Ready to Quest!** before the first stars), a ribbon showing how the stars split between virtues, and every hero standing on the meadow for a class photo. Hover a hero for their first name and stars this month; tap to open their Hero Stage. A small arrow marks a Hero Path skill waiting, and a gold star marks who has the most stars this month.
 - **The Chronicle** — latest homework, Story Weavers line, or Adventure Log sentence
@@ -49,7 +63,7 @@ A bounty is a **whole-class** challenge, never “which student is first”. Tap
 - **Star Hunt** — earn stars together to win a reward. Name the quest (or tap one of the quest ideas; titles and rewards you used before with this class come back first, marked with a small return arrow). For **Stars to earn**, tap **Quick win**, **Fair fight** (picked for you), or **Heroic**: the numbers come from how many stars this class usually earns in one lesson, and you can still nudge the number up or down. Then write or tap **The reward** (for example 5 min free time or a class game). Stars count from the moment the bounty is pinned, for two hours.
 - **Race the Clock** — finish a task before time runs out. Name the task, then pick **5, 10, 15, 20, or 30 min**, type your own minutes, or set an **Ends at** time. When the class has a scheduled end time today, an **Until the bell** chip sets the countdown to the end of the lesson.
 
-A one-line summary at the bottom reads the bounty back in plain words (for example “When 4A earns 12 stars for English Only, they win 5 min free time.”), and the poster tells you if a bounty is already on the board (a new one runs alongside it). Missing lines are highlighted instead of the poster refusing silently. Finish with **Pin it to the board** (Star Hunt) or **Start the clock** (Race the Clock), or **Not now** to close.
+A one-line summary at the bottom reads the bounty back in plain words (for example “When 4A earns 12 stars for English Only, they win 5 min free time.”), and the poster tells you if a bounty is already on the board (a new one runs alongside it). If something is missing, the poster highlights it for you. Finish with **Pin it to the board** (Star Hunt) or **Start the clock** (Race the Clock), or **Not now** to close.
 
 Live bounties sit on the bounty board at the top of the screen and on the Projector wallpaper; **Time Warp Hourglass** adds five minutes to running countdowns.
 
@@ -60,11 +74,11 @@ Quiz of the Week is a **live game-show review**, not a paper test. It does not r
 ### Before the lesson (Teacher Settings → Quiz)
 
 1. Select the class in the header.
-2. If Quest Assignments have been writing the class book, Step 2 already shows **this week’s lessons** — the units, grammar, and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the multiple-choice questions from that list: the AI must not invent extra vocabulary.
+2. If you have been saving Quest Assignments for this class, Step 2 already shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch between Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the multiple-choice questions from that list, and the AI keeps to those words.
 3. If there is no book history yet, you still pick **grammar**, **vocabulary**, or a **mix**, plus topic chips and optional keywords, then Generate.
 4. The number of questions scales with class size (about three-quarters of the roster, at least 5, at most 15).
 5. You can reset and generate again if the set is wrong for this week.
-6. **Different focus** opens the old topic chips when you need a true override.
+6. **Different focus** opens the general topic chips (grammar, vocabulary and mix) for when you want to choose the focus yourself.
 7. **Optional extras** (Step 3, both off unless you tick them; the app remembers your choice per class):
    - **Review the questions before they go live.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
    - **Bring back questions the class missed last week.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. This is spaced review of real weak spots.
@@ -98,7 +112,7 @@ First-try accuracy of the class decides a **performance tier**, and rewards land
 
 | First-try accuracy | Tier | Feel of the reward |
 |--------------------|------|--------------------|
-| 100% | Legendary | Strongest stars, Gold, Team Quest bonus, Guild Glory, chance of a treasure artifact, 24h Glory flourish for the leading guild |
+| 100% | Legendary | Strongest stars, Gold, Team Quest bonus, Guild Glory, chance of a treasure artifact, a 24-hour Glory boost for the leading guild |
 | 80%+ | Epic | Solid stars and Gold, Team Quest bonus, smaller artifact chance |
 | 60%+ | Rare | Modest stars and Gold |
 | 40%+ | Common | Light stars and Gold |
@@ -112,7 +126,7 @@ Configure in Settings; **play on Home**. Do not hunt for a Quiz tab in the cloud
 
 ## How this feeds the rest of the Quest
 
-Home does not award stars itself. It **points** you: Award Stars, Adventure Log, Scholar’s Scroll, Calendar, Story Weavers, ceremonies. Quiz rewards *do* write stars, Gold, Team Quest bonus, and Glory — they are a real economy event, just not a substitute for the four virtues on Award Stars.
+Home does not award stars itself. It **points** you: Award Stars, Adventure Log, Scholar’s Scroll, Calendar, Story Weavers, ceremonies. Quiz rewards *do* add stars, Gold, Team Quest bonus and Glory, so they count for real. They just do not replace the four virtues on Award Stars.
 
 ## Plan notes
 

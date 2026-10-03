@@ -2,6 +2,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { escapeHtml } from '../features/roles/shared.js';
+import { normalizeChroniclerText } from '../features/adventurePageCore.mjs';
 import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReasonMeta.js';
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
@@ -206,7 +207,7 @@ function getChronicleHtml(classId) {
             <span class="m-home-chronicle__icon m-home-chronicle__icon--emerald"><i class="fas fa-compass"></i></span>
             <span class="m-home-chronicle__body">
                 <strong>${lastLog ? `${escapeHtml(new Date(utils.parseDDMMYYYY(lastLog.date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }))} log` : 'Adventure Log'}</strong>
-                <small>${lastLog ? escapeHtml(lastLog.text) : 'No adventures chronicled yet.'}</small>
+                <small>${lastLog ? escapeHtml(normalizeChroniclerText(lastLog.text)) : 'No adventures chronicled yet.'}</small>
             </span>
             <i class="fas fa-chevron-down m-home-chronicle__chev" aria-hidden="true"></i>
         </button>`;

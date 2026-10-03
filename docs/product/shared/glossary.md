@@ -1,6 +1,6 @@
 # Glossary
 
-Use these names exactly in guidebooks and in the room. Mixing them confuses children and parents.
+Use these names exactly, in the classroom and when you talk to parents. Mixing them up confuses children and parents alike.
 
 | Say this | Means this | Do not confuse with |
 |----------|------------|---------------------|
@@ -43,7 +43,7 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron | Quest League (Junior B, etc.) |
 | **Quest League** | Age/difficulty band that races together on Team Quest | Guild |
 | **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, lesson ring, remaining times, rotating Sky Cards, a remote to pin or skip cards | Sky Theater (header emoji acts) |
-| **The Director** | Rotating Projector cards (about 160 kinds, in nine families) | The teacher |
+| **The Director** | The part of Projector Mode that chooses which Sky Cards appear (about 160 kinds, in nine families) | The teacher |
 | **Sky Theater** | Decorative header flights | Projector |
 | **Quest Assignment** | Next-lesson homework on the Quest Board (+ optional scheduled test) | Quest Event |
 | **Quest Event** | Calendar event: 2×/Reason modifier or one of five Special Quests (Vault, Guardians, Chain, Sketch, Saga) | Quiz of the Week |
@@ -64,14 +64,14 @@ Use these names exactly in guidebooks and in the room. Mixing them confuses chil
 | **Teacher Settings** | Cog: sheets on the teacher’s desk for classes, tools, Family Access, Quiz setup | School Office Admin |
 | **Cloud dock** | The ten classroom tabs as clouds along the bottom; on a mouse PC they sink away when idle | Header tools (Settings is the cog) |
 | **Bounty** | Whole-class challenge from the Bounty poster on Home: **Star Hunt** (star target) or **Race the Clock** (countdown) | Hero’s Challenge ranks |
-| **Adventurer’s Guide** | The (i) field guide in the app: chapter tabs, search, Take me there, and a For the class view | This product handbook |
+| **Adventurer’s Guide** | The (i) field guide in the app: chapter tabs, search, Take me there, and a For the class view | This guidebook |
 | **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |
 | **Star-Ember** | Keepsake in the Trophy Room for a kept oath; worth no stars or Gold | Stars; Starfall; Growth Starfall |
 | **Class constellation** | The Campfire sky: one star per oath kept this year. The telescope zooms those same stars; each promise kind has its own figure | Team Quest map; Hall of Heroes |
 | **Book atlas** | The built-in list of the school’s books, units, pages and words the Campfire reads from Quest Assignment | Scholar’s Scroll tests; Quiz syllabus chips |
 
-## Three races (keep on one slide)
+## The three races at a glance
 
 1. **Team Quest** — month, class vs class, map.  
 2. **Hero’s Challenge** — month, student vs student, Prodigy.  

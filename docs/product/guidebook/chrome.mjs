@@ -289,8 +289,8 @@ export function adventureLogHtml() {
       </button>
     </div>
     <div class="al-primary-row">
-      <button type="button" class="log-today-btn" data-term="hero-of-the-day" title="Log Today's Adventure">
-        <i class="fas fa-feather-alt"></i> Log Today's Adventure
+      <button type="button" class="log-today-btn" data-term="hero-of-the-day" title="Crown Today's Hero">
+        <i class="fas fa-crown"></i> Crown Today's Hero
       </button>
       <button type="button" class="al-heroes-btn" data-term="hall-of-heroes" title="Hall of Heroes">
         <i class="fas fa-crown"></i> Hall of Heroes
@@ -298,13 +298,13 @@ export function adventureLogHtml() {
     </div>
     <aside class="hcd-auto">
       <strong>Automatic crown</strong>
-      <p>You do not pick Hero of the Day by hand. Saving the log crowns a present student, then the class sees the celebration. Mask of the Protagonist wins if it is pending; otherwise a fair rotation.</p>
+      <p>You do not pick Hero of the Day by hand. Pressing the button crowns a present student, and the class sees the celebration. A student who bought the Mask of the Protagonist is crowned first; otherwise it is a fair rotation.</p>
     </aside>
     <div class="hcd-mini hcd-mini--wide">
       <span>👑</span>
       <div>
         <strong>Hero of the Day</strong>
-        <p>Crowned when you Log Today’s Adventure. Archived in the Hall of Heroes.</p>
+        <p>Crowned when you press Crown Today’s Hero. Kept in the Hall of Heroes.</p>
       </div>
     </div>
     ${hallOfHeroesHtml()}
@@ -452,7 +452,7 @@ export function housesHtml() {
 
 export function namesDistinctHtml() {
   return `<div class="names-grid">
-    <article class="name-card name-card--day"><i class="fas fa-crown"></i><h4>Hero of the Day</h4><p>Automatic when you log the lesson. Archived in the Hall of Heroes.</p></article>
+    <article class="name-card name-card--day"><i class="fas fa-crown"></i><h4>Hero of the Day</h4><p>Crowned automatically when you press Crown Today’s Hero. Kept in the Hall of Heroes.</p></article>
     <article class="name-card name-card--month"><i class="fas fa-trophy"></i><h4>Prodigy of the Month</h4><p>Ceremony of the Month. Archived in the Hall of Prodigies.</p></article>
     <article class="name-card name-card--june"><i class="fas fa-shield-alt"></i><h4>Grand Guild Ceremony</h4><p>June. Houses. The Guild Hall crowning — not the monthly ritual.</p></article>
     <article class="name-card name-card--peer"><i class="fas fa-heart"></i><h4>Hero's Boon</h4><p>A classmate spends <span class="gold-amt"><i class="fas fa-coins" aria-hidden="true"></i> Gold</span> for +0.5 <span class="star-amt" aria-hidden="true"><i class="fas fa-star"></i></span>. Not Teacher Boon.</p></article>

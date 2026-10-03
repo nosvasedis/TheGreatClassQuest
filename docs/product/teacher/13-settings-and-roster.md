@@ -1,6 +1,6 @@
 # Teacher Settings, roster, Family Access, and Quiz setup
 
-The cog in the header opens **Teacher Settings** on **My Classes**. My Classes is **here**, not on the ten-tab bar. The hidden Student Roster is the same world, reached from a class’s **Students** button.
+The cog in the header opens **Teacher Settings** on **My Classes**. My Classes is **here**, not on the ten-tab bar. The Student Roster is not a tab; you reach it from a class’s **Students** button.
 
 ## Purpose
 
@@ -8,12 +8,12 @@ Build the school-year stage: classes, people, dates, parent doors, and (on Elite
 
 ## Subtabs
 
-Under the chalkboard title, a **section picker** shows where you are, with a one-line hint (for example *My Classes · Your classes and rosters*). Tap **Switch** to open a menu of every section, each with its hint (no sideways scroll). On a phone the same names open from a **sheet**. Each section then lies on the teacher’s desk as its own taped paper sheet.
+Under the chalkboard title, a **section picker** shows where you are, with a one-line hint (for example *My Classes · Your classes and rosters*). Tap **Switch** to open a menu of every section, each with its hint. On a phone the same names open from a **sheet**. Each section then lies on the teacher’s desk as its own taped paper sheet.
 
 | Subtab | What it is |
 |--------|------------|
 | **My Classes** | Opens first. Create/edit classes and open the roster |
-| **Student Tools** | Repair stars, Gold or a Familiar without pretending it was today’s lesson |
+| **Student Tools** | Fix stars, Gold or a Familiar by hand, without it looking like part of today’s lesson |
 | **My Planning** | Each class’s **final lesson day** (Pro) |
 | **Profile** | Your **display name** (Quest Master name on logs) and the browser-local **Quest cursor** switch |
 | **Class Grading** | Override secretary assessment defaults for *your* class (Pro) |
@@ -25,9 +25,9 @@ Under the chalkboard title, a **section picker** shows where you are, with a one
 
 Three index cards side by side:
 
-- **Student Star Manager** — pick a student. **Add Historical Award** (date, stars, reason including Welcome Back Bonus and Manual Correction) writes a real log. **Direct Score Override** (Today / Monthly / Total) changes the number **without** a log — use only to repair accidents.
+- **Student Star Manager** — pick a student. **Add Historical Award** adds an award for a past date (choose the date, stars and reason, including Welcome Back Bonus and Manual Correction) and records it in the award log like any other. **Direct Score Override** (Today / Monthly / Total) changes the number **without** a log entry, so use it only to repair accidents.
 - **Coin Purse Manager** — set current Gold.
-- **Familiar Sprite Forge** (Elite) — regenerate a Familiar sprite if art failed.
+- **Familiar Sprite Forge** (Elite) — redraw a Familiar’s picture if the art failed.
 
 ### My Classes
 
@@ -47,7 +47,7 @@ Each class is a card: emblem, name, Quest League, days and times. The buttons al
 - **Length** — 45 min, 1 h, 1 h 30 or 2 h sets **To** from **From**.
 - **On the charter** — one live line, for example *Meets Mon & Wed · 17:00–18:30 (1 h 30 min)*.
 - Changing the **league** shows a note first: the class moves to that league's Team Quest map and rivals, and quiz topics, ceremony style and Oracle tone can change. Stars, heroes and history stay.
-- The save button counts your changes (*Save 2 changes*) and stays off while nothing has changed. A lesson that ends before it starts, or only one time filled in, is flagged before saving.
+- The save button counts your changes (*Save 2 changes*) and stays greyed out while nothing has changed. A lesson that ends before it starts, or only one time filled in, is flagged before saving.
 
 ### Weekly report (Elite)
 
@@ -66,7 +66,7 @@ For Nursery and Pre-Junior classes the report leaves out per-hero star counts an
 
 ## Profile
 
-**Quest cursor** turns the sky-blue and gold mouse pointer on or off immediately for this browser. It follows links, actions, text fields, drag and loading states. Choose off to use your system pointer. Touch and high-contrast mode use the system pointer automatically; reduced motion keeps the shapes but stops their pops, click sparkles and the turning hourglass.
+**Quest cursor** switches the sky-blue and gold mouse pointer on or off straight away, for this browser only. Choose off to use your computer’s normal pointer. Touch screens and high-contrast mode use the normal pointer automatically.
 
 Your **display name** — the Quest Master name on logs, ceremonies, and the Adventurer’s Guide greeting. A staff badge beside the box shows the name as you type. **Save Name**.
 
@@ -82,7 +82,7 @@ Each row shows the avatar, name, Hero Class or title, and a guild chip, then **t
 
 | Group | Button | What it does |
 |-------|--------|----------------|
-| **Hero path** | **Sort** (wizard hat) | Only for a student with no guild yet: opens the **Guild Sorting Quiz** (Pro; locked on Starter). Once sorted, the slot shows the guild emblem and is no longer a button — guilds are for life. |
+| **Hero path** | **Sort** (wizard hat) | Only for a student with no guild yet: opens the **Sorting Ceremony**, the guild placement quiz (Pro; locked on Starter). Once sorted, the slot shows the guild emblem and is no longer a button — guilds are for life. |
 | | **Class** (shield) | Only if they have no Hero Class yet: opens the **Hero Class** ceremony (Pro). Once chosen, the slot shows the class; changing it stays behind **Edit → Hero path**. |
 | | **Skills** (sitemap) | Opens the Skill Tree (Pro). **Pulses** when a new branch is waiting. See the Hero Path chapter. |
 | **Records** | **Chronicle** (book) | Hero’s Chronicle, your private notebook for this child (below). |
@@ -91,11 +91,11 @@ Each row shows the avatar, name, Hero Class or title, and a guild chip, then **t
 | | **Certificate** (award) | Praise PDF. |
 | **Manage** | **Move** | Send the child to another class you teach. |
 | | **Edit** | Opens the student’s **Adventurer’s Passport** (below). |
-| | **Delete** | Asks you to confirm, then removes the student for good. Recovery, not a weekly habit. |
+| | **Delete** | Asks you to confirm, then removes the student for good. Use it rarely. |
 
 **Students who leave the school:** the School Office records it, not you. The child drops off your roster and their parent login is paused; their records are kept. If the Office brings them back to your class, they return with their stars and the parent login wakes up again.
 
-AI tools (Forge, Oracle, nameday, reports, certificates, Restock) are **one family**: they read the same roster identity. A name change in the Passport is the name on logs, ceremonies, and the Family Portal.
+Whatever you change in a student’s Passport, such as their name, is what appears everywhere: on logs and ceremonies, in the AI tools (Avatar Forge, Oracle, reports, certificates) and in the Family Portal.
 
 ## Adventurer’s Passport
 
@@ -105,7 +105,7 @@ AI tools (Forge, Oracle, nameday, reports, certificates, Restock) are **one fami
 
 **Right page — Special days:** **Birthday** and **Nameday** as postage stamps (pick day and month; **Clear** empties one). **Find from name** is the **AI Nameday Lookup** (Greek Orthodox εορτολόγιο) on Elite. On their day the class sees a celebration banner and they get bonus stars.
 
-**Right page — Hero path:** a visa with the current class (or No Class) plus **Choose Hero Class** / **Change Hero Class** / **Your Path**. That opens the ceremony on the board — preview, then **Swear this Path**. Leave them unassigned for No Class. **Skill tree** sits on the same visa. They keep the class they have. Each school year they may change it twice; the second change locks the path until the next school year. The Hero Path chapter shows the screen.
+**Right page — Hero path:** a visa with the current class (or No Class) plus **Choose Hero Class** / **Change Hero Class** / **Your Path**. That opens the ceremony on the board — preview, then **Swear this Path**. **Skill tree** sits on the same visa. They keep the class they have. Each school year they may change it twice; the second change locks the path until the next school year. The Hero Path chapter shows the screen.
 
 The footer says **Unsaved changes** when something is waiting. **Save Changes** or **Cancel**.
 
@@ -113,7 +113,7 @@ The footer says **Unsaved changes** when something is waiting. **Save Changes** 
 
 Elite. Open it from **Avatar** on the roster, or from the Passport. The forge makes a portrait used on rosters, clouds, certificates and the Family Portal.
 
-1. Choose **The Creature**, **The Colour** and **The Relic** (something to hold or wear). All three heat the metal.
+1. Choose **The Creature**, **The Colour** and **The Relic** (something to hold or wear). Make all three choices first: **Strike the Anvil** stays off until you do.
 2. **Tempering** is optional and already set to good defaults: **Art style**, **Mood**, **Backdrop**, **Framing**, and **A special touch** (a few words, such as *freckles and a star-shaped badge*).
 3. **Surprise me** picks a random recipe. **Strike the Anvil** paints the portrait.
 4. **Keep this portrait**, or **Strike again**. This session’s strikes stay in a row under the anvil — tap one to keep it instead.
@@ -146,7 +146,7 @@ Only the **last lesson day** for the class in the header. A tear-off calendar le
 
 ## Class Grading
 
-**My classes** first: pick a class, then **Tests** or **Dictations**. Leave **Use school defaults** on unless this group should sit different papers; the sheet says in words when a class follows the school defaults. **School picture** is the Secretary’s read-only league setup. **Save My Class Grading**.
+**My classes** first: pick a class, then **Tests** or **Dictations**. Leave **Use school defaults** on unless this group should sit different papers; the sheet says in words when a class follows the school defaults. **School picture** shows the School Office’s setup for your league (read-only). **Save My Class Grading**.
 
 ## Family Access
 
@@ -158,7 +158,7 @@ When Quest Assignments have been filling the class book, **Generate from this we
 
 ## Market (Elite)
 
-This class’s Seasonal Treasures and Festival Stall (header class), each as a repair ticket. **New picture** keeps the piece and redraws art. **Replace this treasure** invents a new piece of the same rarity. **Save** name, description, Gold, and remaining copies. **Remove** takes it off the stall. Incoming Restock pieces appear under **Coming in**.
+This class’s Seasonal Treasures and Festival Stall (header class), each as a repair ticket. **New picture** keeps the piece and redraws art. **Replace this treasure** creates a new piece of the same rarity. **Save** name, description, Gold, and remaining copies. **Remove** takes it off the stall. Incoming Restock pieces appear under **Coming in**.
 
 ## How this feeds the rest of the Quest
 

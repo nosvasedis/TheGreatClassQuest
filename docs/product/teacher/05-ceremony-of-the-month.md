@@ -16,65 +16,34 @@ It is not the Grand Guild Ceremony (that is June, for houses). It is not Hero of
 
 A public, musical, fair closing of the month. Children need an ending. The dual structure says: *we won together* and *someone among us shone*. Both truths can be true at once.
 
-Ceremony mode is automatic. Nursery and Pre-Junior open **Growth Festival**;
-every other valid Quest League opens **Classic Arena**. There is no mode picker,
-and a missing/invalid league stops the ceremony with a clear message. Before the
-show starts, the app quietly prepares the month’s results and keeps that same
-result throughout the ceremony, even if someone later edits a score.
+The style is chosen for you: Nursery and Pre-Junior classes open **Growth Festival**, and every other class opens **Classic Arena**. There is no mode picker. If a class has no valid league, the ceremony will not start and tells you why.
 
-Growth Festival keeps the monthly winner private until the right moment. The
-children’s screen never shows ranks, Stars, academic numbers, or silver/bronze
-podiums. The projector shows a sunny storybook garden, not the torchlit Classic Arena. It shows a gentle League Garden, a warm Parade of
-Blooms, and a Golden Bloom or Whole Class Garden finale. Every learner appears
-in the final class garden, including children who do not receive an individual
-bloom card.
+Before the show begins, the app quietly works out the month’s results and saves them. Nothing has to be chosen or typed. The saved results stay the same throughout the ceremony, even if someone edits a score afterwards.
 
-### Prepare, lock, resume
+Growth Festival keeps the monthly winner private until the right moment. The children’s screen never shows ranks, stars, academic numbers or silver/bronze podiums. Instead of the torchlit arena, the projector shows a sunny storybook garden: a League Garden, a Parade of Blooms, and a finale that is either a Golden Bloom or a Whole Class Garden. Every child appears in the final class garden, including children who do not receive an individual bloom card.
 
-When the ceremony opens, the app quietly works out the month’s results and saves
-them. Nothing has to be chosen or typed for the ceremony to work, and Growth
-Festival creates the bloom cards automatically. The saved result is locked: if
-the page is refreshed or you exit halfway, opening the ceremony again from Home
-continues where you stopped, with the same result. Once you press **Finish
-Ceremony**, the month is closed for this class and the reminder disappears.
+### If you stop halfway
+
+If you refresh the page or exit halfway, opening the ceremony again from Home picks up where you stopped, with the same results. Once you press **Finish Ceremony**, the month is closed for this class and the reminder disappears.
 
 ### Growth Festival (Nursery and Pre-Junior)
 
-The first phase is **Our League Garden**. The app brings the classes onto the
-screen in a calm, fair order and gives each one its emblem, a simple progress
-description and a shared strength — never a rank number or score. The class
-that led the month is revealed last as **League Pathfinder** (or **Our League
-Pathfinder** when it is the only class). There is no duel. The transition says
-**Every Garden Grows Together**. Then the app presents the **Parade of Blooms**:
-one kind, automatically chosen card for each learner, including the eventual
-Prodigy. The final reveal is **Golden Bloom — Prodigy of the Month**, with
-Co-Prodigies shown together. If the month has no positive recognition, the finale
-is **Whole Class Garden**, not a made-up winner. All learners surround the class
-emblem in the closing garden.
+The first phase is **Our League Garden**. The classes appear on screen in a calm, fair order, each with its emblem, a simple description of its progress and a shared strength — never a rank or score. The class that led the month is revealed last as **League Pathfinder** (or **Our League Pathfinder** when it is the only class). There is no duel: the transition says **Every Garden Grows Together**.
 
-Growth cards never show rank, Stars, academic averages, silver/bronze labels,
-warnings about other children, or the teacher’s notes. Parents see no leaderboard
-or private ceremony notes.
+Next comes the **Parade of Blooms**: one kind card for each child, chosen automatically, including the child who will be named Prodigy. The final reveal is the **Golden Bloom — Prodigy of the Month**, with Co-Prodigies shown together. If nobody earned any positive recognition that month, the finale is the **Whole Class Garden** rather than an invented winner. All the children gather around the class emblem in the closing garden.
 
-Growth spotlights use no assessments. The ordered candidate rules are:
+Growth cards never show ranks, stars, academic averages, silver/bronze labels, comparisons with other children, or your private notes. Parents see no leaderboard and no ceremony notes.
 
-1. Teacher’s Special Bloom (a real Teacher Boon).
-2. Growing Stronger (two attended lessons across current/previous month,
-   +20% and +0.25 positive Stars per lesson, evidence on two current dates).
-3. Rainbow of Strengths (at least three of Teamwork, Creativity, Respect,
-   Focus).
-4. Steady Little Light (positive core award on at least 60% of three or more
-   attended lessons).
-5. The strongest core reason with at least two positive events; ties use
-   credit, distinct dates, earliest evidence, then fixed reason order.
-6. A Special Part of Our Garden, a neutral inclusion card when evidence is
-   insufficient — never presented as an achievement award.
+**How each child’s bloom card is chosen.** Growth Festival never uses test or dictation results. For each child the app picks the first of these that fits:
 
-The app checks the lessons each child attended and leaves out recorded absences.
-If a learner changed class, the recognition stays with the class where it was
-earned; a tie follows the child’s current class at month end. If attendance
-records are too incomplete to tell a fair growth story, the app simply chooses
-another warm card.
+1. **Teacher’s Special Bloom** — the child received a Teacher Boon.
+2. **Growing Stronger** — the child attended at least two lessons across this and last month, and is now earning clearly more positive stars per lesson than before (at least 20% and 0.25 stars more), with evidence on two dates this month.
+3. **Rainbow of Strengths** — the child was recognised for at least three of Teamwork, Creativity, Respect and Focus.
+4. **Steady Little Light** — the child earned a positive award in at least 60% of three or more lessons they attended.
+5. **Their strongest virtue** — the virtue they were recognised for most often, with at least two positive moments. If two virtues are level, the app picks one fairly.
+6. **A Special Part of Our Garden** — a warm card that simply includes the child when there is not enough evidence for the others. It is never presented as an achievement.
+
+Only the lessons a child attended count, and recorded absences are left out. If a child changed class, their recognition stays with the class where it was earned. If attendance records are too incomplete to tell a fair story, the app simply chooses another warm card.
 
 ## When it appears
 
@@ -88,7 +57,7 @@ Run it once per class per month, early in the new month, with the projector on i
 
 ## What you see
 
-This is a **full-screen** ritual (not a small modal) built for the projector. The top bar has **Exit Ceremony** (Esc) and a **sound** toggle; on a wide screen a **Space** Next hint sits beside the sound button. **Space**, **Enter** or the right arrow press the big button. Pressing it while a reveal is still playing skips straight to the end of that reveal.
+This is a **full-screen** ritual (not a small pop-up) built for the projector. The top bar has **Exit Ceremony** (Esc) and a **sound** toggle; on a wide screen a **Space** Next hint sits beside the sound button. **Space**, **Enter** or the right arrow press the big button. Pressing it while a reveal is still playing skips straight to the end of that reveal.
 
 ### Classic Arena
 
@@ -134,16 +103,13 @@ The ceremony checks how fast the computer is. On a slower laptop it keeps the sc
 6. In Growth Festival, pace with the garden buttons: **Enter the Garden 🌸**, **Explore Our Blooms 🌸**, then **Begin the Bloom Parade 🌺**, then **Next Bloom 🌸** (or **Reveal Our Golden Bloom ✨** on the last card). Chevrons beside **Bloom X of Y** step through cards; the last card’s next chevron stays off so **Reveal Our Golden Bloom ✨** opens the finale. In Classic Arena, continue with **Hero’s Challenge**.
 7. **Finish Ceremony**. Before that, a refresh or an exit simply continues the saved ceremony next time you open it.
 
-You only control the pacing. Press **Start Ceremony** or **Enter the Garden 🌸**, then the labelled next button when the class is ready. You never choose the flowers, write a
-reason, or prepare the awards yourself. Commentary should sound like a stadium,
-not a grade meeting. AI-flavoured lines are richer on Elite; the ceremony itself
-is on every plan.
+You only control the pacing. Press **Start Ceremony** or **Enter the Garden 🌸**, then the labelled next button when the class is ready. You never choose the flowers, write a reason, or prepare the awards yourself. The commentary is meant to sound like a stadium, not a grade meeting. On Elite, AI helps write richer lines; the ceremony itself is on every plan.
 
 ## How winners are decided
 
 ### Phase 1 — Class (Team Quest)
 
-Score = students’ monthly stars + class Team Quest bonuses, compared with that month’s goal (including historical difficulty and holidays). Unique ranks; a drumroll for the top two.
+A class’s score is its students’ stars for the month plus any Team Quest bonuses, measured against that month’s goal (with that month’s level and holidays taken into account). Every class gets its own place, and the top two get a drumroll.
 
 ### Phase 2 — Prodigy (this class)
 
@@ -159,7 +125,7 @@ Sort by:
 
 The **Teacher Boon** ribbon is honour: it does **not** add a secret rank, and it does **not** break a Prodigy tie by itself. The 2 stars were already in the month’s totals when they were gifted on Award Stars.
 
-Winners are stored in **Hall of Prodigies** and show as **Prodigy of the Month** (or **Co-Prodigy** after a tie) on a mint cloud on Award Stars, and as **Reigning Prodigy** on Hero’s Challenge, until the next month’s ceremony. Finishing the ceremony does **not** wipe stars. Monthly stars reset with the new calendar month as they always do.
+Winners are kept in the **Hall of Prodigies** and show as **Prodigy of the Month** (or **Co-Prodigy** after a tie) on a mint cloud on Award Stars, and as **Reigning Prodigy** on Hero’s Challenge, until the next month’s ceremony.
 
 This ritual is **not**:
 
@@ -175,7 +141,7 @@ This ritual is **not**:
 
 ## How this feeds the rest of the Quest
 
-Finishing the ceremony does not wipe stars. Monthly stars reset with the new month as they always do; Total Stars and Guild Glory continue. The emotional payload is identity: Reigning Prodigy, archive, stories you can retell in June at the Grand Guild Ceremony (which looks back at prodigies, heroes of the day, and the map).
+Finishing the ceremony does not wipe stars: monthly stars reset with the new month as they always do, while Total Stars and Guild Glory carry on. What the ceremony leaves behind is identity: the Reigning Prodigy crown, the archive, and stories you can retell in June at the Grand Guild Ceremony (which looks back at prodigies, heroes of the day and the map).
 
 ## Plan notes
 

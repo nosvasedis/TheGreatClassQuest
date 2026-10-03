@@ -1,7 +1,7 @@
 /* Hero Campfire entry in the Adventure Log (initial bundle; keep it small).
    The Oaths button joins the Log / Hall of Heroes family; the lit hearth spans the row. */
 .campfire-entry{grid-column:1/-1;display:flex}
-.campfire-entry>*{flex:1}
+.campfire-entry:not(.campfire-entry--home)>*{flex:1}
 .campfire-entry--class{display:contents}
 .al-primary-btn--oaths{position:relative;width:100%;color:#fff;border:2px solid #e8465a;border-bottom:4px solid #9f1239;
   background:linear-gradient(120deg,#f59e0b 0%,#f97316 40%,#e8465a 80%,#db2777 100%)}
@@ -14,63 +14,101 @@
 .campfire-oaths-badge{margin-left:.35rem;padding:.1rem .55rem;border-radius:999px;background:#fff;color:#be123c;font-family:'Open Sans',sans-serif;font-size:.72rem;font-weight:800;text-shadow:none;animation:campfire-badge 1.8s ease-in-out infinite}
 .campfire-class-oaths .campfire-oaths-badge{background:#f97316;color:#fff}
 
-/* The lit hearth — same bubbly family as Ember Oaths, night-ember colours so the fire still feels like a hearth. */
-.campfire-hearth{position:relative;display:flex;align-items:stretch;gap:.55rem;padding:.4rem;border-radius:1.1rem;overflow:hidden;isolation:isolate;
-  background:
-    radial-gradient(ellipse 42% 140% at 7% 100%,#ff9d4a66,transparent 62%),
-    linear-gradient(118deg,#1f1528 0%,#3d1e2c 38%,#9a3412 82%,#ea580c 100%);
-  border:2px solid #fbbf24;border-bottom:4px solid #9a3412;box-shadow:0 6px 16px rgba(0,0,0,.15),0 10px 26px rgba(154,52,18,.28)}
-.campfire-hearth::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(160deg,rgba(255,255,255,.18) 0%,transparent 55%),radial-gradient(ellipse 28% 130% at 5% 100%,#ffb45c66,transparent 70%);animation:campfire-breath 3.2s ease-in-out infinite;pointer-events:none}
-.campfire-hearth::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.55;pointer-events:none;background-image:radial-gradient(1px 1px at 22% 28%,#fff8 50%,transparent),radial-gradient(1px 1px at 46% 16%,#fff6 50%,transparent),radial-gradient(1.4px 1.4px at 64% 34%,#fff9 50%,transparent),radial-gradient(1px 1px at 78% 20%,#fff6 50%,transparent),radial-gradient(1px 1px at 58% 72%,#fff4 50%,transparent)}
-.campfire-chip{flex:1;display:flex;align-items:center;gap:1rem;min-height:3.8rem;padding:.35rem .9rem .35rem .5rem;border:0;border-radius:.9rem;background:transparent;color:#fff1d2;text-align:left;cursor:pointer;transition:background .2s}
-.campfire-chip:hover{background:#ffffff12}.campfire-chip:disabled{opacity:.7;cursor:wait}
-.campfire-chip:focus-visible,.campfire-hearth button:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
-.campfire-chip__hearth{position:relative;flex:none;width:3rem;height:3.3rem;display:grid;place-items:end center}
-.campfire-flame{width:2.3rem;height:3rem;overflow:visible;filter:drop-shadow(0 0 10px #ffab5599);transform-origin:50% 100%}
+/* ---------- Shared: the hearth medallion (ember disc, glow, flame, crossed logs) ---------- */
+.campfire-medallion{position:relative;flex:none;display:grid;place-items:end center;border-radius:50%;
+  background:radial-gradient(circle at 50% 84%,rgba(255,180,92,.62),transparent 58%),radial-gradient(circle at 50% 38%,#3d2140,#1a1024 76%);
+  box-shadow:0 0 0 2px rgba(251,191,36,.72),0 0 0 5px rgba(251,191,36,.13),0 0 22px rgba(249,115,22,.55),inset 0 -6px 10px rgba(0,0,0,.38);
+  transition:box-shadow .3s}
+.campfire-medallion__halo{position:absolute;inset:20% 18% 6%;border-radius:50%;background:radial-gradient(circle,rgba(255,200,110,.8),transparent 70%);filter:blur(4px);animation:campfire-breath 2.8s ease-in-out infinite}
+.campfire-medallion .campfire-flame{position:relative;width:46%;height:60%;margin-bottom:22%;overflow:visible;filter:drop-shadow(0 0 6px #ffab55cc);transform-origin:50% 100%}
+.campfire-medallion__logs{position:absolute;bottom:16%;left:50%;width:58%;height:13%;transform:translateX(-50%);
+  background:linear-gradient(10deg,transparent 38%,#7a5240 38% 68%,transparent 68%),linear-gradient(-10deg,transparent 38%,#a0704f 38% 68%,transparent 68%)}
+.campfire-flame{overflow:visible;transform-origin:50% 100%}
 .campfire-flame__outer{transform-origin:50% 100%;animation:campfire-lick 1.3s ease-in-out infinite}
 .campfire-flame__mid{transform-origin:50% 100%;animation:campfire-lick 1.7s ease-in-out infinite reverse}
 .campfire-flame__core{transform-origin:50% 100%;animation:campfire-lick 2.1s ease-in-out infinite}
-.campfire-chip__logs{position:absolute;bottom:0;left:50%;width:2.6rem;height:.5rem;transform:translateX(-50%);border-radius:.3rem;background:linear-gradient(8deg,transparent 40%,#6d4a3a 40% 70%,transparent 70%),linear-gradient(-8deg,transparent 40%,#8a5c44 40% 70%,transparent 70%)}
-.campfire-chip__text{flex:1;min-width:0}
-.campfire-chip strong{display:block;font-family:'Fredoka One','Fredoka',sans-serif;font-weight:400;font-size:1.15rem;letter-spacing:.01em;text-shadow:0 1px 3px rgba(0,0,0,.25),0 0 18px #ffb45c66}
-.campfire-chip small{display:block;margin-top:.1rem;color:#f3dcb4;font-size:.76rem;font-weight:600}
-.campfire-chip__cta{display:grid;place-items:center;width:2.2rem;height:2.2rem;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f97316);color:#3b1d0e;box-shadow:0 0 16px #f9731680;transition:transform .25s}
-.campfire-chip:hover .campfire-chip__cta{transform:translateX(3px) scale(1.06)}
-.campfire-hearth__oaths{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:.45rem;padding:.55rem 1.05rem;flex:none!important;
-  border:2px solid #e8465a;border-bottom:4px solid #9f1239;border-radius:1rem;color:#fff;
-  background:linear-gradient(120deg,#f59e0b 0%,#f97316 40%,#e8465a 80%,#db2777 100%);
-  font-family:'Fredoka One','Fredoka',sans-serif;font-size:.95rem;letter-spacing:.02em;text-shadow:0 1px 3px rgba(0,0,0,.2);
-  box-shadow:0 6px 16px rgba(232,70,90,.22);transition:transform .2s cubic-bezier(.34,1.56,.64,1),filter .2s,border-bottom-width .1s}
-.campfire-hearth__oaths .fa-fire-alt{animation:campfire-lick 1.6s ease-in-out infinite;transform-origin:50% 100%;font-size:1.05rem}
-.campfire-hearth__oaths:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 10px 24px rgba(232,70,90,.3)}
-.campfire-hearth__oaths:active{transform:translateY(0);border-bottom-width:2px}
-.campfire-hearth__oaths .campfire-oaths-badge{margin-left:.15rem;background:#fff;color:#be123c}
-.campfire-hearth__later{position:relative;top:auto;right:auto;align-self:flex-start;margin-top:.28rem;display:grid;place-items:center;width:1.45rem;height:1.45rem;border:0;border-radius:50%;background:#ffffff14;color:#ffffff90;font-size:.7rem;flex:none!important;transition:background .2s,color .2s}
-.campfire-hearth__later:hover{background:#ffffff1f;color:#fff}
+
+/* ---------- Adventure Log: the lit hearth, a little night scene under Log / Hall of Heroes ---------- */
+.campfire-hearth{position:relative;display:flex;align-items:center;gap:.65rem;padding:.6rem .95rem .6rem .6rem;border-radius:1.15rem;isolation:isolate;color:#fff1d2;
+  background:linear-gradient(135deg,#1b1530 0%,#2b1a3c 42%,#4c1d2f 74%,#7a2a12 100%);
+  border:1px solid rgba(251,191,36,.5);border-bottom:3px solid #2a0f1c;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 16px 30px -16px rgba(76,29,47,.85),0 0 0 4px rgba(251,191,36,.08)}
+.campfire-hearth__sky{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden;pointer-events:none;
+  background:radial-gradient(55% 150% at 6% 100%,rgba(249,115,22,.55),transparent 62%),radial-gradient(50% 120% at 100% 0%,rgba(129,140,248,.22),transparent 65%)}
+.campfire-hearth__stars{position:absolute;inset:0;opacity:.8;animation:campfire-twinkle 4.5s ease-in-out infinite;
+  background-image:radial-gradient(1px 1px at 22% 20%,#fff 50%,transparent),radial-gradient(1px 1px at 36% 10%,#ffffffb0 50%,transparent),radial-gradient(1.5px 1.5px at 51% 26%,#fff 50%,transparent),radial-gradient(1px 1px at 61% 12%,#ffffffa0 50%,transparent),radial-gradient(1px 1px at 72% 30%,#ffffffc0 50%,transparent),radial-gradient(1.3px 1.3px at 84% 14%,#fff 50%,transparent),radial-gradient(1px 1px at 94% 40%,#ffffff90 50%,transparent),radial-gradient(1px 1px at 43% 48%,#ffffff60 50%,transparent)}
+.campfire-hearth__hills{position:absolute;left:-4%;right:-4%;bottom:-2px;height:38%;opacity:.7;
+  background:radial-gradient(45% 100% at 32% 100%,#170b1b 62%,transparent 63%),radial-gradient(50% 85% at 82% 100%,#1f0e21 62%,transparent 63%)}
+.campfire-chip{flex:1;min-width:0;display:flex;align-items:center;gap:.9rem;padding:.15rem .25rem .15rem .1rem;border:0;border-radius:.9rem;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.campfire-chip:disabled{opacity:.7;cursor:wait}
+.campfire-hearth button:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
+.campfire-chip__hearth{width:3.3rem;height:3.3rem}
+.campfire-chip:hover .campfire-chip__hearth{box-shadow:0 0 0 2px #fbbf24,0 0 0 6px rgba(251,191,36,.2),0 0 30px rgba(249,115,22,.8),inset 0 -6px 10px rgba(0,0,0,.38)}
+.campfire-chip__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:.1rem}
+.campfire-chip__eyebrow{font-size:.6rem;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:#fcd34d}
+.campfire-chip strong{font-family:'Fredoka One','Fredoka',sans-serif;font-weight:400;font-size:1.2rem;line-height:1.1;letter-spacing:.01em;color:#fff4dc;
+  text-shadow:0 1px 2px rgba(0,0,0,.35),0 0 16px rgba(255,180,92,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.campfire-chip small{font-size:.74rem;font-weight:600;color:#f1d9b5;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.campfire-chip__cta{flex:none;display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border-radius:999px;
+  background:linear-gradient(135deg,#fde68a 0%,#fbbf24 45%,#f97316 100%);color:#431407;font-family:'Fredoka','Fredoka One',sans-serif;font-weight:700;font-size:.88rem;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 16px -6px rgba(249,115,22,.9);transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s}
+.campfire-chip__cta i{font-size:.72rem;transition:transform .25s}
+.campfire-chip:hover .campfire-chip__cta{transform:translateY(-1px) scale(1.04);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 9px 22px -6px #f97316}
+.campfire-chip:hover .campfire-chip__cta .fa-arrow-right{transform:translateX(3px)}
+.campfire-hearth__oaths{flex:none;display:inline-flex;align-items:center;gap:.45rem;padding:.28rem .8rem .28rem .28rem;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(253,164,175,.45);background:rgba(255,255,255,.08);color:#ffe4e6;font-family:'Fredoka','Fredoka One',sans-serif;font-weight:700;font-size:.86rem;
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);transition:background .2s,border-color .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.campfire-hearth__oaths:hover{background:rgba(255,255,255,.15);border-color:rgba(253,164,175,.85);transform:translateY(-1px)}
+.campfire-hearth__oaths-icon{display:grid;place-items:center;width:1.8rem;height:1.8rem;border-radius:50%;color:#fff;font-size:.8rem;
+  background:linear-gradient(135deg,#f59e0b,#e8465a 60%,#db2777);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px -3px rgba(219,39,119,.85)}
+.campfire-hearth__oaths-icon i{animation:campfire-lick 1.6s ease-in-out infinite;transform-origin:50% 100%}
+.campfire-hearth__oaths .campfire-oaths-badge{margin-left:0;padding:.08rem .45rem;font-size:.62rem;background:#fb7185;color:#fff}
+/* "Not today": a small paper-white disc pinned to the hearth's top-right corner */
+.campfire-later{position:absolute;top:-.55rem;right:-.55rem;z-index:3;display:grid;place-items:center;width:1.5rem;height:1.5rem;padding:0;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(124,45,18,.22);background:#fffaf0;color:#9a3412;font-size:.66rem;box-shadow:0 3px 8px -2px rgba(60,20,10,.45);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),color .2s,background .2s}
+.campfire-later:hover{transform:rotate(90deg) scale(1.08);background:#fff;color:#be123c}
 .campfire-hearth.is-igniting{animation:campfire-ignite .9s cubic-bezier(.2,.8,.3,1.2) both}
-.campfire-chip__sparks{position:absolute;left:2.2rem;bottom:1.6rem;pointer-events:none;z-index:2}
+.campfire-chip__sparks{position:absolute;left:2.25rem;bottom:2.5rem;pointer-events:none;z-index:2}
 .campfire-chip__sparks i{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffe3a0;box-shadow:0 0 6px #ffb45c;opacity:0;animation:campfire-spark 1.2s ease-out forwards;animation-delay:calc(var(--i) * 45ms);--a:calc(var(--i) * 30deg)}
-.campfire-hearth.is-held{background:linear-gradient(115deg,#26233b,#302a40);border-color:#9c8463;border-bottom-color:#4b3a2a}
-.campfire-hearth.is-held::before{opacity:.35;animation:none}
-.campfire-hearth.is-held .campfire-flame{transform:scale(.62);filter:saturate(.6) drop-shadow(0 0 6px #ff8a3a55)}
-.campfire-hearth.is-held strong{color:#ead8ba;text-shadow:none}
+.campfire-hearth.is-held{background:linear-gradient(135deg,#1e1b2e 0%,#2c2640 60%,#3b2f3f 100%);border-color:rgba(156,132,99,.55);border-bottom-color:#15121f;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 26px -16px rgba(30,27,46,.8)}
+.campfire-hearth.is-held .campfire-hearth__sky{background:radial-gradient(55% 150% at 6% 100%,rgba(249,115,22,.16),transparent 62%)}
+.campfire-hearth.is-held .campfire-medallion{box-shadow:0 0 0 2px rgba(156,132,99,.6),0 0 0 5px rgba(156,132,99,.1),inset 0 -6px 10px rgba(0,0,0,.38)}
+.campfire-hearth.is-held .campfire-medallion .campfire-flame{transform:scale(.62);filter:saturate(.5) drop-shadow(0 0 4px #ff8a3a66)}
+.campfire-hearth.is-held .campfire-medallion__halo{opacity:.3;animation:none}
+.campfire-hearth.is-held .campfire-chip__eyebrow{color:#c9b28a}
+.campfire-hearth.is-held .campfire-chip strong{color:#ead8ba;text-shadow:none}
+.campfire-hearth.is-held .campfire-chip__cta{background:rgba(255,255,255,.1);color:#ead8ba;box-shadow:inset 0 0 0 1px rgba(234,216,186,.35)}
+
+/* ---------- Home: a reminder badge in the greeting card (base from .home-pill in home_roster.css) ---------- */
 .campfire-entry--home{display:contents}
-/* Home: a reminder badge in the greeting card (base look from .home-pill in home_roster.css), night-ember tone + "Not today" ✕. */
-.date-pill.home-pill.home-pill--campfire{--pill-bg:linear-gradient(120deg,#2a1830 0%,#7c2d12 58%,#ea580c 100%);--pill-fg:#fff1d2;--pill-icon-bg:radial-gradient(circle at 50% 75%,#ffb45c55,#ffffff1f 70%);--pill-border:#fbbf24aa;--pill-shadow:rgba(234,88,12,.55);
-  gap:.3rem;padding:.32rem;text-shadow:0 1px 2px rgba(15,23,42,.25)}
-.campfire-home-pill__open{display:inline-flex;align-items:center;gap:.55rem;min-width:0;padding:0 .2rem 0 0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.campfire-home-pill__icon{overflow:visible}
-.campfire-home-pill__icon .campfire-flame{width:1.05rem;height:1.4rem;filter:drop-shadow(0 0 5px #ffab55aa)}
-.campfire-home-pill__later{flex:none;display:grid;place-items:center;width:1.3rem;height:1.3rem;margin-left:.15rem;border:0;border-radius:50%;background:#ffffff1f;color:#ffffffb0;font-size:.62rem;cursor:pointer;transition:background .2s,color .2s}
-.campfire-home-pill__later:hover{background:#ffffff38;color:#fff}
-.campfire-home-pill__open:focus-visible,.campfire-home-pill__later:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;border-radius:999px}
+.date-pill.home-pill.home-pill--campfire{flex:0 0 auto;gap:.2rem;padding:.26rem .3rem .26rem .26rem;
+  --pill-bg:linear-gradient(120deg,#1f1630 0%,#4c1d2f 55%,#9a3412 100%);--pill-fg:#fff1d2;--pill-border:rgba(251,191,36,.55);--pill-shadow:rgba(234,88,12,.6);
+  text-shadow:0 1px 2px rgba(15,23,42,.3)}
+.campfire-home-pill::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:.7;
+  background-image:radial-gradient(1px 1px at 46% 24%,#fff 50%,transparent),radial-gradient(1px 1px at 63% 70%,#ffffffa0 50%,transparent),radial-gradient(1.2px 1.2px at 78% 28%,#fff 50%,transparent),radial-gradient(1px 1px at 90% 64%,#ffffff80 50%,transparent)}
+.campfire-home-pill__open{display:inline-flex;align-items:center;gap:.5rem;min-width:0;padding:0 .3rem 0 0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.campfire-home-pill__icon{width:1.95rem;height:1.95rem;box-shadow:0 0 0 1.5px rgba(251,191,36,.8),0 0 12px rgba(249,115,22,.65),inset 0 -4px 6px rgba(0,0,0,.35)}
+.campfire-home-pill .home-pill__eyebrow{color:#fcd34d;opacity:.95}
+.campfire-home-pill .home-pill__title{color:#fff4dc}
+.campfire-home-pill .campfire-later{position:static;width:1.2rem;height:1.2rem;border:0;background:rgba(255,255,255,.14);color:rgba(255,241,210,.75);font-size:.55rem;box-shadow:none}
+.campfire-home-pill .campfire-later:hover{background:rgba(255,255,255,.3);color:#fff;transform:rotate(90deg)}
+.campfire-home-pill__open:focus-visible,.campfire-home-pill .campfire-later:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;border-radius:999px}
 .campfire-home-pill.is-igniting{animation:campfire-ignite .9s cubic-bezier(.2,.8,.3,1.2) both}
-.date-pill.home-pill.campfire-home-pill.is-held{--pill-bg:linear-gradient(115deg,#26233b,#3a3048);--pill-border:#9c846399;--pill-shadow:rgba(38,35,59,.45);--pill-fg:#ead8ba}
-.campfire-home-pill.is-held .campfire-flame{transform:scale(.7);filter:saturate(.6) drop-shadow(0 0 4px #ff8a3a55)}
+.date-pill.home-pill.campfire-home-pill.is-held{--pill-bg:linear-gradient(115deg,#26233b,#3a3048);--pill-border:rgba(156,132,99,.6);--pill-shadow:rgba(38,35,59,.45);--pill-fg:#ead8ba}
+.campfire-home-pill.is-held .campfire-medallion{box-shadow:0 0 0 1.5px rgba(156,132,99,.7),inset 0 -4px 6px rgba(0,0,0,.35)}
+.campfire-home-pill.is-held .campfire-flame{transform:scale(.62);filter:saturate(.5) drop-shadow(0 0 3px #ff8a3a66)}
+.campfire-home-pill.is-held .campfire-medallion__halo{opacity:.3;animation:none}
+.campfire-home-pill.is-held .home-pill__eyebrow{color:#c9b28a}
+.campfire-home-pill.is-held .home-pill__title{color:#ead8ba}
+
 @keyframes campfire-lick{0%,100%{transform:scale(1,1) skewX(0)}30%{transform:scale(.95,1.07) skewX(-3deg)}65%{transform:scale(1.04,.95) skewX(2deg)}}
 @keyframes campfire-breath{50%{opacity:.55}}
+@keyframes campfire-twinkle{50%{opacity:.45}}
 @keyframes campfire-badge{50%{transform:scale(1.08)}}
 @keyframes campfire-ignite{0%{opacity:0;transform:scale(.94) translateY(8px);filter:brightness(2)}60%{opacity:1;filter:brightness(1.25)}100%{transform:none;filter:none}}
 @keyframes campfire-spark{0%{opacity:1;transform:rotate(var(--a)) translateY(0)}100%{opacity:0;transform:rotate(var(--a)) translateY(-46px)}}
-@media(max-width:640px){.campfire-hearth__oaths > span:not(.campfire-oaths-badge){display:none}}
-@media(prefers-reduced-motion:reduce){.campfire-hearth,.campfire-hearth *,.campfire-home-pill,.campfire-home-pill *,.campfire-hearth::before,.al-primary-btn--oaths .fa-fire-alt{animation:none!important;transition:none!important}.campfire-chip__sparks{display:none}}
+@media(max-width:640px){.campfire-hearth__oaths-label{display:none}.campfire-hearth__oaths{padding-right:.28rem}.campfire-chip small{display:none}}
+@media(max-width:420px){.campfire-chip__cta span{display:none}.campfire-chip__cta{padding:.5rem}}
+@media(prefers-reduced-motion:reduce){.campfire-hearth,.campfire-hearth *,.campfire-home-pill,.campfire-home-pill *,.al-primary-btn--oaths .fa-fire-alt{animation:none!important;transition:none!important}.campfire-chip__sparks{display:none}}

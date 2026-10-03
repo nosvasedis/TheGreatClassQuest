@@ -2,7 +2,7 @@
 
 You have the **why** (the previous chapter). This chapter is the **map**: who uses which screen, what a typical lesson looks like, where the ten tabs live, and which names must never be mixed.
 
-Numbers, prices, and plan gates in later chapters match the live classroom. Do not invent extras.
+The numbers, prices and plan limits in the chapters that follow match what you see in the app.
 
 ## Who uses the Quest
 
@@ -63,7 +63,7 @@ Full lookup: the Starter · Pro · Elite chapter at the end of this book. Each c
 
 | Name | What it actually is |
 |------|---------------------|
-| **Hero of the Day** | Automatic when you log today’s adventure. Daily spotlight. |
+| **Hero of the Day** | Crowned automatically when you press **Crown Today’s Hero**. The daily spotlight. |
 | **Hall of Heroes** | This year's archive of Hero of the Day wins. |
 | **Prodigy of the Month** | Monthly student winner inside the Ceremony of the Month. |
 | **Hall of Prodigies** | Archive of monthly Prodigies. |
@@ -76,7 +76,7 @@ The glossary chapter is the full list. **Includes Hero’s Boon (+1)** on the re
 
 ## Mobile, briefly
 
-The teacher phone is a dock of five. Details live at the end of **The classroom screen** — not here.
+On a phone, the tabs sit in a bank of five clouds. The details are at the end of **The classroom screen**, not here.
 
 ## Where to go next
 

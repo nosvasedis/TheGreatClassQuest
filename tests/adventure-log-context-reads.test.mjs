@@ -30,7 +30,7 @@ function harness({ unavailable = '', owner = 'teacher', changeYear = false } = {
             return { docs: rows.map((r, i) => snapshot(r, r.id || String(i))) };
         },
         state: { get: key => values[key], getActiveSchoolYearKey: () => year },
-        getDDMMYYYY: d => `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`, getNextLessonDate: () => null,
+        getDDMMYYYY: d => `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`, getNextLessonDate: () => null, getLeagueAiAudience: () => '10-12 year olds',
         buildAdventureLogContext, adventureDateKey, collectLearnedToday, QUEST_TYPE_LABELS, normalizeQuestType, getISOWeekKey: () => '2026-W40', modules,
         console: { warn() {} }
     };
@@ -44,7 +44,8 @@ test('collects assessment and story sources even when no tab has populated live 
     const result = await h.gather('class-1', { date: '02-10-2026' });
     assert.equal(result.context.sections.assessments.items[0].kind, 'Dictation');
     assert.equal(result.context.sections.stories.items[0].sentence, 'Our river sparkles.');
-    assert.equal(result.context.sections.holidays.items[0].timing, 'upcoming');
+    assert.deepEqual(result.context.sections.upcoming.items.map(i => [i.kind, i.date]), [['School holiday', '2026-10-03']]);
+    assert.equal(result.context.audience, '10-12 year olds');
     assert.match(result.learnedToday.summary, /Weather words/);
     for (const source of ['quiz_of_the_week', 'quest_event_runs', 'fortune_wheel_log', 'quest_bounties', 'ceremony_snapshots', 'ember_oaths', 'completed_stories', 'adventure_logs']) assert.ok(h.calls.includes(ROOT + source), source);
     assert.ok(h.calls.includes(ROOT + 'campfire_sessions/class-1_2026-10-02'));

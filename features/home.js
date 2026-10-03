@@ -10,6 +10,7 @@ import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { buildHomePartyCardHtml } from './homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
+import { normalizeChroniclerText } from './adventurePageCore.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import {
@@ -572,7 +573,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     }
 
     const logs = state.get('allAdventureLogs').filter(l => l.classId === classId).sort((a, b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
-    const lastLogText = logs.length > 0 ? logs[0].text : "No adventures chronicled yet.";
+    const lastLogText = logs.length > 0 ? normalizeChroniclerText(logs[0].text) : "No adventures chronicled yet.";
     const lastLogDate = logs.length > 0 ? new Date(utils.parseDDMMYYYY(logs[0].date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
 
     const absentTodayIds = new Set(

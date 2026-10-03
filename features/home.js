@@ -1151,7 +1151,7 @@ function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', 
 }
 
 function ceremonyPillHtml(cls, pending) {
-    const isGrowth = cls.questLevel === 'Nursery' || cls.questLevel === 'Pre-Junior';
+    const isGrowth = cls.questLevel === 'Pre-Junior';
     const ceremonyClass = isGrowth ? 'date-pill--ceremony-growth' : '';
     const pillIcon = isGrowth ? 'fa-seedling' : 'fa-trophy';
     const kicker = isGrowth ? 'Growth Festival' : 'Ceremony of the Month';

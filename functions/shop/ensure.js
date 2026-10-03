@@ -1,9 +1,8 @@
 'use strict';
 
-const YOUNG_LEARNER_LEAGUES = new Set(['Nursery', 'Pre-Junior', 'Junior A', 'Junior B']);
+const YOUNG_LEARNER_LEAGUES = new Set(['Pre-Junior', 'Junior A', 'Junior B']);
 const AGE_GROUP_BY_LEAGUE = {
-  Nursery: '5-6',
-  'Pre-Junior': '6-7',
+  'Pre-Junior': '5-7',
   'Junior A': '7-8',
   'Junior B': '8-9',
   A: '9-10',

@@ -62,7 +62,7 @@ Each class is a card: emblem, name, Quest League, days and times. The buttons al
 - **The Oracle's reading** — a short story of the week, wins, things to watch, a **Mini-Quest** for next week (goal, how to win, reward) and a **note for families** with its own Copy button. **Write a new reading** asks again. If the Oracle is resting, the numbers are still complete.
 - **Copy text** puts the whole report on the clipboard; **Save PDF** saves an A4 copy.
 
-For Nursery and Pre-Junior classes the report leaves out per-hero star counts and trial averages.
+For Pre-Junior classes the report leaves out per-hero star counts and trial averages.
 
 ## Profile
 

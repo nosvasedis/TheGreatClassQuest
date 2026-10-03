@@ -9,7 +9,13 @@ export const PLACEMENT_GROUP_MODES = Object.freeze({
 const UNKNOWN_CLASS_TITLE = 'Previous class unknown';
 const UNKNOWN_LEAGUE_TITLE = 'League not recorded';
 
+// Retired leagues whose students still have a natural next league.
+const RETIRED_LEAGUE_NEXT = Object.freeze({
+    Nursery: 'Pre-Junior'
+});
+
 export function getNaturalProgressionLeague(previousLeague) {
+    if (RETIRED_LEAGUE_NEXT[previousLeague]) return RETIRED_LEAGUE_NEXT[previousLeague];
     const idx = questLeagues.indexOf(previousLeague);
     if (idx < 0 || idx + 1 >= questLeagues.length) return null;
     return questLeagues[idx + 1];

@@ -108,17 +108,10 @@ export const APP_CHECK_SITE_KEY = (typeof window !== 'undefined' && window.__GCQ
  */
 export const QUEST_LEAGUE_DEFINITIONS = [
     {
-        name: 'Nursery', ageGroup: '5-6', ageCategory: 'early', ageTier: 'junior',
-        curriculumTier: 'nursery', isYoungLearner: true,
-        aiAudience: 'very young beginners aged 5-6 (single ideas, very short words, playful repetition, warm and concrete language)',
-        aiVisualStyle: 'soft colorful storybook art for ages 5-6, large friendly shapes, playful, gentle, uncluttered, no text',
-        pickerTheme: 'nursery', pickerMotion: 'bounce', pickerIcon: 'fa-shapes'
-    },
-    {
-        name: 'Pre-Junior', ageGroup: '6-7', ageCategory: 'early', ageTier: 'junior',
+        name: 'Pre-Junior', ageGroup: '5-7', ageCategory: 'early', ageTier: 'junior',
         curriculumTier: 'pre-junior', isYoungLearner: true,
-        aiAudience: 'young beginners aged 6-7 (short sentences, familiar words, playful and encouraging language)',
-        aiVisualStyle: 'bright storybook illustration for ages 6-7, friendly characters, clear simple scene, playful, no text',
+        aiAudience: 'young beginners aged 5-7 (single ideas, short sentences, familiar words, playful repetition, warm and encouraging language)',
+        aiVisualStyle: 'bright storybook illustration for ages 5-7, large friendly shapes and characters, clear simple scene, playful, no text',
         pickerTheme: 'pre-junior', pickerMotion: 'flutter', pickerIcon: 'fa-paper-plane'
     },
     {
@@ -176,7 +169,7 @@ export const JUNIOR_LEAGUES = QUEST_LEAGUE_DEFINITIONS
     .filter((league) => league.isYoungLearner)
     .map((league) => league.name);
 
-/** Nursery and Pre-Junior: default to no tests or dictations. */
+/** Pre-Junior: defaults to no tests or dictations. */
 export const EARLY_LEAGUES = QUEST_LEAGUE_DEFINITIONS
     .filter((league) => league.ageCategory === 'early')
     .map((league) => league.name);

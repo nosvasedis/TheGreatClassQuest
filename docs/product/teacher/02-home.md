@@ -29,7 +29,7 @@ You are looking at the **whole school**:
   - stars this month and all year, Gold, Team Quest progress and the next lesson;
   - the latest Hero of the Day, Quest Assignment and Adventure Log;
   - today’s birthdays and name days, and the guild mix;
-  - a top-3 “Stars of the month” podium (never shown for Nursery / Pre-Junior);
+  - a top-3 “Stars of the month” podium (never shown for Pre-Junior);
   - every student with their Hero Path title, guild, stars and Gold (search, or sort A–Z / by stars).
 - **Grand Guild Ceremony** — appears when it is time to crown the year’s winning guild (see Guild Hall)
 

@@ -45,8 +45,8 @@ export const TERMS = [
     names: { en: 'Ceremony of the Month', el: 'Ceremony of the Month' },
     aliases: ['ceremony of the month', 'monthly ceremony', 'monthly ritual', 'dual ceremony'],
     def: {
-      en: 'The monthly ceremony chooses its gentle or competitive style automatically: Nursery and Pre-Junior use Growth Festival (Enter the Garden); every other valid league uses Classic Arena (Start Ceremony). Then move through it with the labelled next button. Run it once per class per month.',
-      el: 'Η μηνιαία τελετή διαλέγει μόνη της το ήρεμο ή το ανταγωνιστικό της ύφος: Nursery και Pre-Junior χρησιμοποιούν Growth Festival (Enter the Garden)· οι υπόλοιπες έγκυρες leagues Classic Arena (Start Ceremony). Μετά προχώρα με το επώνυμο επόμενο κουμπί. Μία φορά ανά τμήμα τον μήνα.'
+      en: 'The monthly ceremony chooses its gentle or competitive style automatically: Pre-Junior uses Growth Festival (Enter the Garden); every other valid league uses Classic Arena (Start Ceremony). Then move through it with the labelled next button. Run it once per class per month.',
+      el: 'Η μηνιαία τελετή διαλέγει μόνη της το ήρεμο ή το ανταγωνιστικό της ύφος: το Pre-Junior χρησιμοποιεί Growth Festival (Enter the Garden)· οι υπόλοιπες έγκυρες leagues Classic Arena (Start Ceremony). Μετά προχώρα με το επώνυμο επόμενο κουμπί. Μία φορά ανά τμήμα τον μήνα.'
     },
     confuse: { en: 'Grand Guild Ceremony (June, houses), Hero of the Day (each logged lesson)', el: 'Grand Guild Ceremony (Ιούνιος, σπίτια), Hero of the Day (κάθε καταγεγραμμένο μάθημα)' }
   },
@@ -57,8 +57,8 @@ export const TERMS = [
     names: { en: 'Classic Arena', el: 'Classic Arena' },
     aliases: ['classic arena'],
     def: {
-      en: 'The automatic Ceremony of the Month for every valid league except Nursery and Pre-Junior: Team Quest class ranks, a League Duel, then Hero’s Challenge and Prodigy of the Month.',
-      el: 'Η αυτόματη Ceremony of the Month για κάθε έγκυρη league εκτός Nursery και Pre-Junior: κατάταξη τάξεων στο Team Quest, League Duel, μετά Hero’s Challenge και Prodigy of the Month.'
+      en: 'The automatic Ceremony of the Month for every valid league except Pre-Junior: Team Quest class ranks, a League Duel, then Hero’s Challenge and Prodigy of the Month.',
+      el: 'Η αυτόματη Ceremony of the Month για κάθε έγκυρη league εκτός Pre-Junior: κατάταξη τάξεων στο Team Quest, League Duel, μετά Hero’s Challenge και Prodigy of the Month.'
     },
     confuse: { en: 'Growth Festival, Grand Guild Ceremony', el: 'Growth Festival, Grand Guild Ceremony' }
   },
@@ -249,8 +249,8 @@ export const TERMS = [
     names: { en: 'Quest League', el: 'Quest League' },
     aliases: ['quest league', 'junior b', 'difficulty band'],
     def: {
-      en: 'Age / curriculum band (Nursery through D). Team Quest races happen inside one league. Not a guild. Not a Hero Path class.',
-      el: 'Ζώνη ηλικίας / προγράμματος (Nursery έως D). Το Team Quest τρέχει μέσα σε μία league. Δεν είναι guild ούτε Hero Path.'
+      en: 'Age / curriculum band (Pre-Junior through D). Team Quest races happen inside one league. Not a guild. Not a Hero Path class.',
+      el: 'Ζώνη ηλικίας / προγράμματος (Pre-Junior έως D). Το Team Quest τρέχει μέσα σε μία league. Δεν είναι guild ούτε Hero Path.'
     },
     confuse: { en: 'Guild, Hero Path / Hero Class, quest difficulty level', el: 'Guild, Hero Path, επίπεδο δυσκολίας χάρτη' }
   },
@@ -585,8 +585,8 @@ export const TERMS = [
     names: { en: 'Growth Festival', el: 'Growth Festival' },
     aliases: ['growth festival', 'golden bloom', 'parade of blooms', 'league garden', 'our league garden', 'whole class garden'],
     def: {
-      en: 'The automatic Ceremony of the Month for Nursery and Pre-Junior: a gentle, non-competitive garden celebration with no public ranks, scores, or podium.',
-      el: 'Η αυτόματη Ceremony of the Month για Nursery και Pre-Junior: μια ήπια, μη ανταγωνιστική γιορτή κήπου χωρίς δημόσιες θέσεις, σκορ ή podium.'
+      en: 'The automatic Ceremony of the Month for Pre-Junior: a gentle, non-competitive garden celebration with no public ranks, scores, or podium.',
+      el: 'Η αυτόματη Ceremony of the Month για Pre-Junior: μια ήπια, μη ανταγωνιστική γιορτή κήπου χωρίς δημόσιες θέσεις, σκορ ή podium.'
     },
     confuse: { en: 'Classic Arena, Grand Guild Ceremony', el: 'Classic Arena, Grand Guild Ceremony' }
   },

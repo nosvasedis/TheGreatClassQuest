@@ -629,7 +629,7 @@ async function getSchoolSettings() {
 }
 
 function isEarlyLeagueName(league) {
-  return league === 'Nursery' || league === 'Pre-Junior';
+  return league === 'Pre-Junior';
 }
 
 function schemeIsEnabled(scheme, league) {

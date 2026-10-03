@@ -8,9 +8,9 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Gold** | Spendable this school year; **Treasury** is the live total. Finishing the year archives last year's Gold. | Stars (rank never drops when they shop) |
 | **Team Quest** | Class vs class **this month** on the map | Guild Hall (year-long houses) |
 | **Hero’s Challenge** | Student vs student ranks | Guild ranking |
-| **Ceremony of the Month** | Automatic **Growth Festival** for Nursery/Pre-Junior; **Classic Arena** for every other valid league. Never held for **August** (schools closed). | Grand Guild Ceremony |
+| **Ceremony of the Month** | Automatic **Growth Festival** for Pre-Junior; **Classic Arena** for every other valid league. Never held for **August** (schools closed). | Grand Guild Ceremony |
 | **Classic Arena** | Competitive monthly ceremony: Team Quest class ranks, Hero’s Challenge student ranks, Prodigy/Co-Prodigy | Growth Festival |
-| **Growth Festival** | Gentle Nursery/Pre-Junior ceremony: League Garden, Parade of Blooms, Golden Bloom; no public ranks/scores/podium | Classic Arena |
+| **Growth Festival** | Gentle Pre-Junior ceremony: League Garden, Parade of Blooms, Golden Bloom; no public ranks/scores/podium | Classic Arena |
 | **League Pathfinder** | Growth Festival class honour for the class that led the month | Pathfinder’s Map (Market) |
 | **Prodigy of the Month** | Monthly student crown in that class | Hero of the Day |
 | **Co-Prodigy** | Shared monthly crown after tie-breakers | Two Heroes of the Day |

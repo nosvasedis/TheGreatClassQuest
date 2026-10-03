@@ -856,7 +856,7 @@ async function runSuggestNames(button) {
         setBusyState(button, true, '');
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         const league = wizardState.questLevel;
-        const ageGroup = league ? getAgeGroupForLeague(league) : '6-14';
+        const ageGroup = league ? getAgeGroupForLeague(league) : '5-13';
         const systemPrompt = `You are a creative assistant helping a teacher name their class team. Generate 3 short, catchy, fantasy/adventure themed class names suitable for children aged ${ageGroup}. Do not use numbers. Return only the names separated by commas (e.g. 'Star Seekers, Dragon Riders, Time Travelers').`;
         const userPrompt = league
             ? `Generate names for a class in the "${league}" league.`

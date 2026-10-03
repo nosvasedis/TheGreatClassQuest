@@ -2,7 +2,7 @@
 
 The Ceremony of the Month chooses its style automatically:
 
-- **Nursery and Pre-Junior:** **Growth Festival**, a gentle garden celebration.
+- **Pre-Junior:** **Growth Festival**, a gentle garden celebration.
 - **Every other class:** **Classic Arena**, the usual two-part ceremony.
 
 In Classic Arena the class watches:
@@ -16,7 +16,7 @@ It is not the Grand Guild Ceremony (that is June, for houses). It is not Hero of
 
 A public, musical, fair closing of the month. Children need an ending. The dual structure says: *we won together* and *someone among us shone*. Both truths can be true at once.
 
-The style is chosen for you: Nursery and Pre-Junior classes open **Growth Festival**, and every other class opens **Classic Arena**. There is no mode picker. If a class has no valid league, the ceremony will not start and tells you why.
+The style is chosen for you: Pre-Junior classes open **Growth Festival**, and every other class opens **Classic Arena**. There is no mode picker. If a class has no valid league, the ceremony will not start and tells you why.
 
 Before the show begins, the app quietly works out the month’s results and saves them. Nothing has to be chosen or typed. The saved results stay the same throughout the ceremony, even if someone edits a score afterwards.
 
@@ -26,7 +26,7 @@ Growth Festival keeps the monthly winner private until the right moment. The chi
 
 If you refresh the page or exit halfway, opening the ceremony again from Home picks up where you stopped, with the same results. Once you press **Finish Ceremony**, the month is closed for this class and the reminder disappears.
 
-### Growth Festival (Nursery and Pre-Junior)
+### Growth Festival (Pre-Junior)
 
 The first phase is **Our League Garden**. The classes appear on screen in a calm, fair order, each with its emblem, a simple description of its progress and a shared strength — never a rank or score. The class that led the month is revealed last as **League Pathfinder** (or **Our League Pathfinder** when it is the only class). There is no duel: the transition says **Every Garden Grows Together**.
 

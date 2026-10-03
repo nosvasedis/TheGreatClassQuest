@@ -98,7 +98,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'ceremony', icon: 'fa-trophy', name: 'Ceremony of the Month', tier: 'starter',
                     where: 'Home glows when a new month begins', go: 'tab:about-tab',
-                    text: `Run it once per class, early in the new month, on the projector. Nursery and Pre-Junior get the Growth Festival garden with no ranks. Every other league gets the Classic Arena: Team Quest places first, then the Hero's Challenge, ending with the Prodigy of the Month (or two Co-Prodigies). There is no ceremony for August. If you stop halfway, it picks up where you left off.`,
+                    text: `Run it once per class, early in the new month, on the projector. Pre-Junior gets the Growth Festival garden with no ranks. Every other league gets the Classic Arena: Team Quest places first, then the Hero's Challenge, ending with the Prodigy of the Month (or two Co-Prodigies). There is no ceremony for August. If you stop halfway, it picks up where you left off.`,
                     keys: 'prodigy of the month co-prodigy classic arena growth festival monthly ceremony'
                 },
                 {

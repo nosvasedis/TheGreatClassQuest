@@ -706,19 +706,13 @@ export async function showTab(tabName) {
 
 // Categories organised by quest level so suggestions are age-appropriate.
 const GRAMMAR_CATEGORIES = {
-    'Nursery': [
-        'Alphabet Sounds',
+    'Pre-Junior': [
         'Hello / Goodbye',
         'My Name Is…',
-        'One and Many (spoken)',
-        'Big / Small',
-        'This Is…',
-        'Action Words with Movement'
-    ],
-    'Pre-Junior': [
         'Alphabet & Phonics',
         'I Am / You Are',
         'This Is / That Is',
+        'Big / Small',
         'Have Got (basic)',
         'Can / Can\'t (basic)',
         'Singular & Plural (basic)',
@@ -800,17 +794,6 @@ const GRAMMAR_CATEGORIES = {
 };
 
 const VOCABULARY_CATEGORIES = {
-    'Nursery': [
-        'Colors',
-        'Numbers (1–10)',
-        'Toys',
-        'Animals',
-        'Family',
-        'Body Parts',
-        'Classroom Objects',
-        'Food (very basic)',
-        'Happy / Sad / Tired'
-    ],
     'Pre-Junior': [
         'Colors & Shapes',
         'Numbers (1–20)',
@@ -821,7 +804,8 @@ const VOCABULARY_CATEGORIES = {
         'Food & Drinks',
         'Clothes',
         'Classroom Objects',
-        'Weather (basic)'
+        'Weather (basic)',
+        'Happy / Sad / Tired'
     ],
     'Junior A': [
         'Animals',
@@ -903,16 +887,6 @@ const VOCABULARY_CATEGORIES = {
 };
 
 const MIX_CATEGORIES = {
-    'Nursery': [
-        'Colors & Shapes',
-        'Animals',
-        'Numbers (1–10)',
-        'Hello / Goodbye',
-        'My Family',
-        'Toys',
-        'Body Parts',
-        'Action Words'
-    ],
     'Pre-Junior': [
         'Alphabet & Phonics',
         'Animals & Pets',
@@ -922,7 +896,9 @@ const MIX_CATEGORIES = {
         'Family & Friends',
         'Can / Can\'t',
         'Food & Drinks',
-        'In / On / Under'
+        'In / On / Under',
+        'Hello / Goodbye',
+        'Action Words'
     ],
     'Junior A': [
         'Animals',

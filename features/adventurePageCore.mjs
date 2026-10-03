@@ -8,7 +8,7 @@
 export const PAGE_AWAITING = 'awaiting';
 export const PAGE_WRITTEN = 'written';
 
-const GROWTH_LEAGUES = new Set(['Nursery', 'Pre-Junior']);
+const GROWTH_LEAGUES = new Set(['Pre-Junior']);
 
 /**
  * Models sometimes double-escape newlines inside JSON, so a page arrives with literal "\n" text.

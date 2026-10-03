@@ -7,16 +7,15 @@ global.localStorage = global.localStorage || {
   removeItem: () => {},
 };
 
-test('early leagues exist as Nursery and Pre-Junior', async () => {
+test('Pre-Junior is the only early league', async () => {
   const constants = await import('../constants.js');
-  assert.deepEqual(constants.EARLY_LEAGUES, ['Nursery', 'Pre-Junior']);
+  assert.deepEqual(constants.EARLY_LEAGUES, ['Pre-Junior']);
 });
 
-test('unsaved assessment defaults turn tests and dictations off for Nursery and Pre-Junior', async () => {
+test('unsaved assessment defaults turn tests and dictations off for Pre-Junior', async () => {
   const { normalizeAssessmentDefaultsByLeague } = await import('../features/assessmentConfig.js');
   const defaults = normalizeAssessmentDefaultsByLeague({});
-  assert.equal(defaults.Nursery.tests.mode, 'none');
-  assert.equal(defaults.Nursery.dictations.mode, 'none');
+  assert.equal(defaults.Nursery, undefined);
   assert.equal(defaults['Pre-Junior'].tests.mode, 'none');
   assert.equal(defaults['Pre-Junior'].dictations.mode, 'none');
   assert.equal(defaults['Junior A'].tests.mode, 'numeric');
@@ -37,34 +36,34 @@ test('none mode is preserved and keeps the previous scale for later restore', as
   assert.equal(scheme.scale[0].label, 'Great');
 });
 
-test('forceEarlyLeagueNone overlays saved Nursery tests until migration is complete', async () => {
+test('forceEarlyLeagueNone overlays saved Pre-Junior tests until migration is complete', async () => {
   const { normalizeAssessmentDefaultsByLeague } = await import('../features/assessmentConfig.js');
   const saved = {
-    Nursery: {
+    'Pre-Junior': {
       tests: { mode: 'numeric', maxScore: 40 },
       dictations: { mode: 'qualitative', scale: [{ label: 'Great', normalizedPercent: 100 }] }
     }
   };
   const forced = normalizeAssessmentDefaultsByLeague(saved, { forceEarlyLeagueNone: true });
-  assert.equal(forced.Nursery.tests.mode, 'none');
-  assert.equal(forced.Nursery.tests.maxScore, 40);
-  assert.equal(forced.Nursery.dictations.mode, 'none');
+  assert.equal(forced['Pre-Junior'].tests.mode, 'none');
+  assert.equal(forced['Pre-Junior'].tests.maxScore, 40);
+  assert.equal(forced['Pre-Junior'].dictations.mode, 'none');
 
   const afterMigration = normalizeAssessmentDefaultsByLeague(saved, { forceEarlyLeagueNone: false });
-  assert.equal(afterMigration.Nursery.tests.mode, 'numeric');
-  assert.equal(afterMigration.Nursery.tests.maxScore, 40);
+  assert.equal(afterMigration['Pre-Junior'].tests.mode, 'numeric');
+  assert.equal(afterMigration['Pre-Junior'].tests.maxScore, 40);
 });
 
 test('class overrides for early leagues are forced off until the none-migration flag is set', async () => {
   const { resolveAssessmentConfig, classUsesTests, classUsesDictations, classUsesAnyAssessments } = await import('../features/assessmentConfig.js');
   const schoolDefaults = {
-    Nursery: {
+    'Pre-Junior': {
       tests: { mode: 'numeric', maxScore: 40 },
       dictations: { mode: 'numeric', maxScore: 20 }
     }
   };
   const classData = {
-    questLevel: 'Nursery',
+    questLevel: 'Pre-Junior',
     assessmentConfig: {
       inheritSchoolDefaults: false,
       tests: { mode: 'numeric', maxScore: 20 },
@@ -116,7 +115,7 @@ test('weighted average ignores a disabled type and is null when both are unused'
   assert.equal(avg, 50);
 
   const noneClass = {
-    questLevel: 'Nursery',
+    questLevel: 'Pre-Junior',
     assessmentConfig: {
       inheritSchoolDefaults: false,
       tests: { mode: 'none' },
@@ -127,7 +126,7 @@ test('weighted average ignores a disabled type and is null when both are unused'
     [{ type: 'test', scoreNumeric: 100, maxScore: 40, gradingSnapshot: { mode: 'numeric', maxScore: 40 } }],
     [{ type: 'dictation', scoreNumeric: 100, maxScore: 100, gradingSnapshot: { mode: 'numeric', maxScore: 100 } }],
     noneClass,
-    { Nursery: { tests: { mode: 'none' }, dictations: { mode: 'none' } } },
+    { 'Pre-Junior': { tests: { mode: 'none' }, dictations: { mode: 'none' } } },
     { earlyLeagueNoneMigrationComplete: true }
   );
   assert.equal(noneAvg, null);
@@ -137,7 +136,7 @@ test('createAssessmentScorePayload refuses a disabled assessment type', async ()
   const { createAssessmentScorePayload } = await import('../features/assessmentConfig.js');
   const classData = {
     id: 'class-1',
-    questLevel: 'Nursery',
+    questLevel: 'Pre-Junior',
     assessmentConfig: {
       inheritSchoolDefaults: false,
       tests: { mode: 'none' },
@@ -153,7 +152,7 @@ test('createAssessmentScorePayload refuses a disabled assessment type', async ()
     date: '2026-08-30',
     value: 10,
     classData,
-    schoolDefaults: { Nursery: { tests: { mode: 'none' }, dictations: { mode: 'none' } } },
+    schoolDefaults: { 'Pre-Junior': { tests: { mode: 'none' }, dictations: { mode: 'none' } } },
     earlyLeagueNoneMigrationComplete: true
   }), /does not use/i);
 });
@@ -166,7 +165,7 @@ test('scheduled test status is omitted when the class does not use tests', async
   };
   const classData = {
     id: 'class-1',
-    questLevel: 'Nursery',
+    questLevel: 'Pre-Junior',
     timeStart: '10:00',
     timeEnd: '11:00',
     assessmentConfig: {
@@ -177,7 +176,7 @@ test('scheduled test status is omitted when the class does not use tests', async
   };
   const status = getScheduledAssessmentStatus(assignment, {
     classData,
-    schoolDefaults: { Nursery: { tests: { mode: 'none' }, dictations: { mode: 'none' } } },
+    schoolDefaults: { 'Pre-Junior': { tests: { mode: 'none' }, dictations: { mode: 'none' } } },
     earlyLeagueNoneMigrationComplete: true
   });
   assert.equal(status, null);
@@ -187,8 +186,8 @@ test('assessment editor offers Not used for tests and dictations', async () => {
   const { getAssessmentConfigCardHtml } = await import('../ui/assessmentEditor.js');
   const html = getAssessmentConfigCardHtml(
     { tests: { mode: 'none' }, dictations: { mode: 'none' } },
-    'league-Nursery',
-    { questLevel: 'Nursery', title: 'Nursery defaults' }
+    'league-Pre-Junior',
+    { questLevel: 'Pre-Junior', title: 'Pre-Junior defaults' }
   );
   assert.match(html, /value="none"/);
   assert.match(html, /Not used/);

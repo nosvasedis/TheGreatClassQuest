@@ -9,13 +9,13 @@ test('kindling only happens in a visible, enabled active lesson near its end', (
     assert.equal(shouldKindleCampfire({ remainingMinutes: 25, elapsedMinutes: 35, lessonMinutes: 60, stars: 0 }), false);
 });
 test('each band has a complete offline script; early years have no public names', () => {
-    for (const league of ['Nursery', 'Junior A', 'A', 'C', 'D']) {
+    for (const league of ['Pre-Junior', 'Junior A', 'A', 'C', 'D']) {
         const script = buildCampfireScript({ league, date: '2026-09-27', presentIds: ['a','b','c','d','e'], random: () => 0,
             words: ['cat','cat', ...Array.from({ length: 20 }, (_, i) => 'word' + String.fromCharCode(97 + i))] });
-        assert.equal(script.words.length, { Nursery: 4, 'Junior A': 5 }[league] || 6);
+        assert.equal(script.words.length, { 'Pre-Junior': 4, 'Junior A': 5 }[league] || 6);
         assert.equal(new Set(script.words.map(w => w.toLowerCase())).size, script.words.length);
         assert.ok(script.question && script.closingLine && script.fireTale && script.tomorrowSpark);
-        assert.equal(script.circle.length, league === 'Nursery' ? 0 : 4);
+        assert.equal(script.circle.length, league === 'Pre-Junior' ? 0 : 4);
         assert.equal(new Set(script.circle).size, script.circle.length);
     }
 });

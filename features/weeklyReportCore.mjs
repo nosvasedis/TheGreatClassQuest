@@ -120,7 +120,7 @@ function pctChange(now, before) {
  * @param {(log:object)=>number} [input.starCredit]  award credit (defaults to log.stars)
  * @param {(score:object)=>number|null} [input.scorePercent]
  * @param {(score:object)=>string} [input.scoreLabel]
- * @param {boolean} [input.youngLearners] Nursery / Pre-Junior: no rankings or averages
+ * @param {boolean} [input.youngLearners] Pre-Junior: no rankings or averages
  */
 export function buildWeeklyReportModel(input = {}) {
     const {

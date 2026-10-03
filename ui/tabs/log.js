@@ -459,7 +459,7 @@ function renderDiaryEntry(log, animationClass) {
     const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${escapeDiaryHtml(kw)}</span>`).join('');
     const highlightsHtml = (log.highlights || []).slice(0, 4).map((h, i) => `<li class="diary-highlight-chip diary-highlight-chip--${i % 4}">${escapeDiaryHtml(h)}</li>`).join('');
     const league = (state.get('allTeachersClasses') || []).find(c => c.id === log.classId)?.questLevel;
-    const totalStars = ['Nursery', 'Pre-Junior'].includes(league) ? 0 : Number(log.totalStars) || 0;
+    const totalStars = league === 'Pre-Junior' ? 0 : Number(log.totalStars) || 0;
 
     const noteHtml = log.note ? `
         <aside class="diary-note" aria-label="Teacher's note">

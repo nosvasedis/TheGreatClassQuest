@@ -307,7 +307,7 @@
     box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.6);
 }
 
-/* One stage of the journey: its name on top, its two leagues below.
+/* One stage of the journey: its name on top, its leagues below.
    Four stages walk left to right on wide screens, joined by a road. */
 .lp-stage {
     --stage-ink: #92400e;
@@ -399,6 +399,11 @@
     gap: 0.6rem;
 }
 
+/* A stage with a single league (Little Explorers: Pre-Junior) gives it the full width */
+.lp-stage__grid > :only-child {
+    grid-column: 1 / -1;
+}
+
 /* The road to the next stage */
 .lp-stage__road {
     position: absolute;
@@ -416,7 +421,7 @@
     animation-delay: calc(var(--stage-i, 0) * 0.3s);
 }
 
-/* Phones: one stage per row, its two leagues side by side */
+/* Phones: one stage per row, its leagues side by side */
 @media (min-width: 600px) {
     .lp-body {
         display: grid;
@@ -436,6 +441,10 @@
     }
     .lp-stage__grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+    /* A lone league fills its stage so the four stages stay level */
+    .lp-stage__grid:has(> :only-child) {
+        flex: 1 1 auto;
     }
     .lp-stage__road {
         display: grid;
@@ -730,7 +739,6 @@
 .league-picker-option.is-selected .league-picker-option__spark--three { animation-delay: 70ms; }
 
 /* Individual league palettes: playful pastels mature into jewel tones. */
-.league-picker-option--nursery { --league-start:#ffe4f1; --league-end:#fecddf; --league-ink:#9d174d; --league-border:#ec4899; --league-glow:rgba(236,72,153,.38); }
 .league-picker-option--pre-junior { --league-start:#e0f2fe; --league-end:#bae6fd; --league-ink:#075985; --league-border:#0ea5e9; --league-glow:rgba(14,165,233,.36); }
 .league-picker-option--junior-a { --league-start:#ecfccb; --league-end:#bef264; --league-ink:#3f6212; --league-border:#65a30d; --league-glow:rgba(101,163,13,.34); }
 .league-picker-option--junior-b { --league-start:#ccfbf1; --league-end:#99f6e4; --league-ink:#115e59; --league-border:#14b8a6; --league-glow:rgba(20,184,166,.35); }
@@ -740,7 +748,6 @@
 .league-picker-option--d { --league-start:#e0e7ff; --league-end:#c7d2fe; --league-ink:#3730a3; --league-border:#6366f1; --league-glow:rgba(99,102,241,.38); }
 
 /* Each league's watermark has its own little life. */
-.league-picker-motion--bounce .league-picker-option__watermark { animation: league-watermark-bounce 2.2s ease-in-out infinite; }
 .league-picker-motion--flutter .league-picker-option__watermark { animation: league-watermark-flutter 3s ease-in-out infinite; }
 .league-picker-motion--sprout .league-picker-option__watermark { animation: league-watermark-sprout 2.8s ease-in-out infinite; }
 .league-picker-motion--float .league-picker-option__watermark { animation: league-watermark-float 3.4s ease-in-out infinite; }
@@ -762,7 +769,6 @@
 @keyframes league-option-shine { from { left:-48%; } to { left:128%; } }
 @keyframes league-option-spark { 0% { opacity:0; transform:scale(.2); } 38% { opacity:1; } 100% { opacity:0; transform:scale(3.8); } }
 @keyframes league-watermark-selected { 0% { transform:scale(1) rotate(0); } 60% { transform:scale(1.35) rotate(12deg); } 100% { transform:scale(1.18) rotate(0); } }
-@keyframes league-watermark-bounce { 0%,100% { transform:translateY(0) rotate(-5deg); } 45% { transform:translateY(-7px) rotate(5deg) scale(1.05); } 60% { transform:translateY(-2px) rotate(-2deg); } }
 @keyframes league-watermark-flutter { 0%,100% { transform:translate(0,0) rotate(-8deg); } 50% { transform:translate(-5px,-7px) rotate(7deg); } }
 @keyframes league-watermark-sprout { 0%,100% { transform:scale(.94) rotate(-3deg); } 50% { transform:scale(1.08) rotate(3deg); } }
 @keyframes league-watermark-float { 0%,100% { transform:translateY(1px) rotate(-2deg); } 50% { transform:translateY(-6px) rotate(4deg); } }

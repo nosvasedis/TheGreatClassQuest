@@ -102,7 +102,7 @@ test('a picture is painted only from a few written lines', () => {
 test('chooser model hides star numbers for Growth Festival leagues', () => {
     const junior = buildDiaryChooserModel({ heroName: 'Leo', league: 'Junior A', totalStars: 12, reasons: ['Teamwork'], learned: { words: ['cat', 'dog'], items: [{}] }, canAuto: true });
     assert.deepEqual(junior.ink.map(i => i.label), ['12 stars earned', 'Teamwork', '2 new words', '1 learning moment']);
-    const nursery = buildDiaryChooserModel({ heroName: 'Leo', league: 'Nursery', totalStars: 12 });
+    const nursery = buildDiaryChooserModel({ heroName: 'Leo', league: 'Pre-Junior', totalStars: 12 });
     assert.equal(nursery.ink.some(i => /star/.test(i.label)), false);
     assert.equal(buildDiaryChooserModel({ isToday: false }).heading, 'Shall we write this page?');
 });

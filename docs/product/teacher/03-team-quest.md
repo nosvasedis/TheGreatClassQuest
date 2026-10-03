@@ -21,7 +21,7 @@ Only classes that share the same **Quest League** race each other. Junior B does
 
 The league is the class’s age / curriculum band, set when you create the class. It is **not** a guild and **not** a Hero Path class.
 
-Nursery (5–6) · Pre-Junior (6–7) · Junior A (7–8) · Junior B (8–9) · A (9–10) · B (10–11) · C (11–12) · D (12–13).
+Pre-Junior (5–7) · Junior A (7–8) · Junior B (8–9) · A (9–10) · B (10–11) · C (11–12) · D (12–13).
 
 A class’s progress is its stars this month (including Team Quest bonuses such as Pathfinder’s Map or Quiz bonuses) divided by this month’s goal. The four lands sit on the map above, as they do in the classroom: **Bronze Meadows** from 0%, **Silver Peaks** from 30%, **Golden Citadel** from 60%, **Crystal Realm** from 85%.
 

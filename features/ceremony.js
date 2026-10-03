@@ -1,6 +1,6 @@
 // /features/ceremony.js — Ceremony of the Month.
 // Classic Arena (torchlit arena, Team Quest then Hero's Challenge) and the
-// Growth Festival (storybook garden for Nursery and Pre-Junior). Results are
+// Growth Festival (storybook garden for Pre-Junior). Results are
 // prepared and locked once (ceremonySnapshots); markup lives in
 // ceremonyArenaView.js / ceremonyGardenView.js; effects in ui/ceremonyFx.js;
 // sound in ceremonyAudio.js.

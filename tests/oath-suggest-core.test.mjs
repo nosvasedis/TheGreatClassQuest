@@ -46,7 +46,7 @@ test('Other ideas can reach every Oath Board kind', () => {
 test('children in the same class get varied suggestions, and everything fits the rules', () => {
     const tops = new Set(['alex', 'maya', 'sam', 'robin', 'eleni', 'nikos'].map(seed => suggestOaths({ league: 'Junior B', seed }).map(s => s.key).join('|')));
     assert.ok(tops.size >= 3);
-    for (const league of ['Nursery', 'Junior A', 'B', 'C', 'D']) {
+    for (const league of ['Pre-Junior', 'Junior A', 'B', 'C', 'D']) {
         for (const s of buildOathSuggestions({ league, seed: 'x', awards: star('focus', 5), words: ['a word'], quiz: { attemptedCount: 5, correctCount: 5 }, studentStars: 30, classStarMedian: 10, absences: 2, heroClass: 'Guardian', theme: 'our town' })) {
             assert.ok(RULE_CATEGORIES.includes(s.category), s.key);
             assert.ok(s.text && s.text.length <= 240 && s.why, s.key);

@@ -42,7 +42,7 @@ export function buildAdventureLogContext(input = {}) {
     const date = adventureDateKey(input.date);
     const year = input.schoolYearKey;
     if (!classId || !date || !year) throw new Error('A class, lesson date and school year are required.');
-    const early = ['Nursery', 'Pre-Junior'].includes(classroom.questLevel);
+    const early = classroom.questLevel === 'Pre-Junior';
     const inYear = item => !item.schoolYearKey || item.schoolYearKey === year;
     const scoped = items => list(items).filter(item => item.classId === classId && inYear(item));
     const today = value => adventureDateKey(value) === date;

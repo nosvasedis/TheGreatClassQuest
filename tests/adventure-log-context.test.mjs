@@ -46,7 +46,7 @@ test('retains all classroom domains and labels ongoing identities separately fro
 });
 
 test('early leagues remove academic and star numbers from evidence', () => {
-    const context = buildAdventureLogContext(base({ classData: { id: 'class-1', questLevel: 'Nursery' }, awards: [row({ studentId: 'a', date: '02-10-2026', reason: 'focus', stars: 5 })], trials: [row({ date: '02-10-2026', title: 'Listening', score: 40 })], questProgress: { pct: 60 } }));
+    const context = buildAdventureLogContext(base({ classData: { id: 'class-1', questLevel: 'Pre-Junior' }, awards: [row({ studentId: 'a', date: '02-10-2026', reason: 'focus', stars: 5 })], trials: [row({ date: '02-10-2026', title: 'Listening', score: 40 })], questProgress: { pct: 60 } }));
     assert.doesNotMatch(JSON.stringify(context.sections), /"stars"|"score"|"participants"|progressPercent/);
     assert.match(buildChroniclerPrompts(context).systemPrompt, /Never mention stars, scores, ranks/);
 });

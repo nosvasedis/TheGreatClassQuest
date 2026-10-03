@@ -1,5 +1,5 @@
 // features/ceremonyGardenView.js — pure markup for the Growth Festival
-// (Nursery and Pre-Junior Ceremony of the Month): a storybook garden where
+// (Pre-Junior Ceremony of the Month): a storybook garden where
 // every child's flower is planted in the class bed. No ranks, no Stars, no
 // numbers about children are ever drawn here.
 

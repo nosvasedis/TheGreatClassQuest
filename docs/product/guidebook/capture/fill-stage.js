@@ -278,7 +278,7 @@ export function showCeremony(mode) {
   if (mode === 'growth-intro') {
     const stage = mountGarden('gate');
     plantBed(0);
-    stage.innerHTML = gardenIntroHtml({ monthName: 'May', className: 'Nursery Bees', classLogo: '🐝' });
+    stage.innerHTML = gardenIntroHtml({ monthName: 'May', className: 'Pre-Junior Bees', classLogo: '🐝' });
     setCeremonyChrome({ herald: 'Welcome to the garden! Every bloom has a story…', action: 'Enter the Garden 🌸' });
     return;
   }
@@ -286,9 +286,9 @@ export function showCeremony(mode) {
     const stage = mountGarden('league');
     plantBed(0);
     stage.innerHTML = gardenLeagueHtml([
-      { id: 'c-nu2', className: 'Nursery Ducklings', logo: '🐥', progressLabel: 'Growing steadily', topSkill: 'creativity' },
-      { id: 'c-nu3', className: 'Nursery Ladybirds', logo: '🐞', progressLabel: 'Blooming brightly', topSkill: 'respect' },
-      { id: 'c-nu', className: 'Nursery Bees', logo: '🐝', progressLabel: 'Reaching for the sun', topSkill: 'teamwork' }
+      { id: 'c-nu2', className: 'Pre-Junior Ducklings', logo: '🐥', progressLabel: 'Growing steadily', topSkill: 'creativity' },
+      { id: 'c-nu3', className: 'Pre-Junior Ladybirds', logo: '🐞', progressLabel: 'Blooming brightly', topSkill: 'respect' },
+      { id: 'c-nu', className: 'Pre-Junior Bees', logo: '🐝', progressLabel: 'Reaching for the sun', topSkill: 'teamwork' }
     ], { pathfinderId: 'c-nu', myClassId: 'c-nu' });
     stage.querySelectorAll('.gdn-planter').forEach((el) => el.classList.add('is-grown'));
     setCeremonyChrome({ kicker: 'Our League Garden', title: 'Every class grows in its own way', herald: 'Look how our league garden is blossoming together! 🌸', action: 'Explore Our Blooms 🌸' });
@@ -307,7 +307,7 @@ export function showCeremony(mode) {
   if (mode === 'growth-finale') {
     const stage = mountGarden('finale');
     plantBed(10);
-    stage.innerHTML = gardenFinaleHtml([{ id: 'mia', name: 'Mia' }], { classLogo: '🐝', className: 'Nursery Bees' });
+    stage.innerHTML = gardenFinaleHtml([{ id: 'mia', name: 'Mia' }], { classLogo: '🐝', className: 'Pre-Junior Bees' });
     const finale = stage.querySelector('.gdn-finale');
     finale?.classList.add('is-growing', 'is-glowing', 'is-open');
     finale?.querySelectorAll('.gdn-bloom').forEach((b) => b.classList.add('is-open'));
@@ -355,7 +355,7 @@ export function showGrandCeremony(mode) {
     const stage = setGrandChrome({ scene: 'opening', realm: 'dusk', herald: 'The lanterns are lit. Welcome to the end-of-year festival!', action: 'Begin the Festival' });
     stage.innerHTML = grandOpeningHtml({
       yearLabel: '2025–26',
-      classes: [{ name: 'Junior B Owls', logo: '🦉' }, { name: 'Junior B Comets', logo: '☄️' }, { name: 'Nursery Bees', logo: '🐝' }, { name: 'Class C Dragons', logo: '🐲' }],
+      classes: [{ name: 'Junior B Owls', logo: '🦉' }, { name: 'Junior B Comets', logo: '☄️' }, { name: 'Pre-Junior Bees', logo: '🐝' }, { name: 'Class C Dragons', logo: '🐲' }],
       guilds: GUILD_IDS.map(getGuildById)
     });
     return;

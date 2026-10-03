@@ -5,7 +5,7 @@ import { CEREMONY_MODES, resolveCeremonyMode, seededShuffle, buildGrowthSpotligh
 import { QUEST_LEAGUE_DEFINITIONS } from '../constants.js';
 
 test('ceremony mode is automatic for every league and blocks invalid values', () => {
-  assert.equal(resolveCeremonyMode('Nursery').mode, CEREMONY_MODES.GROWTH);
+  assert.equal(resolveCeremonyMode('Pre-Junior').mode, CEREMONY_MODES.GROWTH);
   assert.equal(resolveCeremonyMode('Pre-Junior').mode, CEREMONY_MODES.GROWTH);
   for (const league of QUEST_LEAGUE_DEFINITIONS.filter((item) => item.ageCategory !== 'early')) assert.equal(resolveCeremonyMode(league.name).mode, CEREMONY_MODES.CLASSIC);
   assert.equal(resolveCeremonyMode('Not a league').ok, false);
@@ -53,7 +53,7 @@ test('growth spotlight is dignity-first and seeded order is stable', () => {
 
 test('growth garden keeps class scores private and reveals the pathfinder without ranks', () => {
   const sequence = buildGrowthPublicSequence({
-    classes: [{ id: 'class-a', name: 'Nursery A', score: 42, rank: 1, progress: 88, topSkill: 'teamwork' }],
+    classes: [{ id: 'class-a', name: 'Pre-Junior A', score: 42, rank: 1, progress: 88, topSkill: 'teamwork' }],
     pathfinderId: 'class-a',
     classId: 'class-a',
     monthKey: '2026-08'

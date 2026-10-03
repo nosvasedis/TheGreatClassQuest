@@ -383,7 +383,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Generate Certificate** → AI paragraph + PDF download (avatar, themed border/icon by age).
 
 ### Ceremony of the Month
-- Home **glows** when last month’s ceremony is pending. **August never has a ceremony** (schools are closed), so September does not offer an August ritual. Nursery/Pre-Junior automatically use the inclusive **Growth Festival** (garden, Bloom Parade, Golden Bloom); every other league uses **Classic Arena**. Results are frozen in versioned snapshots; Growth’s public DOM never contains ranks or scores.
+- Home **glows** when last month’s ceremony is pending. **August never has a ceremony** (schools are closed), so September does not offer an August ritual. Pre-Junior classes automatically use the inclusive **Growth Festival** (garden, Bloom Parade, Golden Bloom); every other league uses **Classic Arena**. Results are frozen in versioned snapshots; Growth’s public DOM never contains ranks or scores.
 
 ---
 

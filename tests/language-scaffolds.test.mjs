@@ -13,7 +13,7 @@ import {
     STRUCTURE_HINTS
 } from '../features/languageScaffolds.mjs';
 
-const LEAGUES = ['Nursery', 'Pre-Junior', 'Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
+const LEAGUES = ['Pre-Junior', 'Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
 
 test('every Quest League maps to a band and has structure hints', () => {
     for (const league of LEAGUES) {
@@ -37,7 +37,7 @@ test('dialogic prompts come in three kinds and fill the Word of the Day', () => 
 });
 
 test('projector language banks answer for each band', () => {
-    assert.equal(getMinimalPair('Nursery'), null, 'youngest classes get no minimal-pair card');
+    assert.equal(getMinimalPair('Pre-Junior'), null, 'youngest classes get no minimal-pair card');
     for (const league of ['Junior B', 'A', 'C', 'D']) {
         assert.ok(getMinimalPair(league)?.a);
     }

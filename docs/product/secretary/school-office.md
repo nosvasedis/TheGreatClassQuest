@@ -156,7 +156,7 @@ Teachers’ **My Planning** only sets a class finale date. **You** own the break
 
 Each league gets a small report card for tests and dictations: **Marks out of 100**, a number of **word labels**, or **Turned off**. Open a league to change it. **Choose a class** to give one class a different style. **Save grading setup** saves both. Teachers may still override a single class in Teacher Settings if that group is different.
 
-Nursery and Pre-Junior start with both turned off until the school is ready for paper.
+Pre-Junior starts with both turned off until the school is ready for paper.
 
 ## Messages
 

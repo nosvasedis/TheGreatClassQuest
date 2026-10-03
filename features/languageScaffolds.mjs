@@ -3,14 +3,13 @@
  * Pure data + helpers (no DOM, no Firestore); covered by tests/language-scaffolds.test.mjs.
  *
  * Bands follow the Quest Leagues:
- *   early  = Nursery, Pre-Junior        (pre-A1, mostly oral)
+ *   early  = Pre-Junior                  (pre-A1, mostly oral)
  *   junior = Junior A, Junior B          (pre-A1 → A1)
  *   mid    = A, B                        (A1 → A2)
  *   upper  = C, D                        (A2 → B1)
  */
 
 const LEAGUE_BANDS = Object.freeze({
-    'Nursery': 'early',
     'Pre-Junior': 'early',
     'Junior A': 'junior',
     'Junior B': 'junior',
@@ -34,11 +33,8 @@ export const SENTENCE_STARTERS = Object.freeze({
 
 // ─── Story Weavers: structure hints (one pattern per line, per league) ──────
 export const STRUCTURE_HINTS = Object.freeze({
-    'Nursery': [
-        { label: 'Colours + things', pattern: 'a + colour + thing', example: 'a red apple' },
-        { label: 'Big and small', pattern: 'It is big / It is small', example: 'The dragon is big!' }
-    ],
     'Pre-Junior': [
+        { label: 'Colours + things', pattern: 'a + colour + thing', example: 'a red apple' },
         { label: 'This is…', pattern: 'This is + a/an + thing', example: 'This is a magic box.' },
         { label: 'Can / can\'t', pattern: 'It can + verb', example: 'The bird can fly.' },
         { label: 'In / on / under', pattern: 'in / on / under the + place', example: 'The key is under the bed.' }

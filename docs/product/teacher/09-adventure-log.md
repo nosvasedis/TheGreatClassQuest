@@ -16,7 +16,7 @@ Needs a class selected and **stars awarded today**. One page per class per day. 
 | **Write Today’s Page** | Crowned, page still blank | Reopens **Today’s Page** (below). |
 | **Open Today’s Page** | Page written | Scrolls the diary to today’s page and lights it up. |
 
-**Today’s Page.** When you press **Huzzah!**, a card rises with the hero’s portrait on a ribbon, what today holds (stars earned (not for Nursery / Pre-Junior), the virtues shown most, new words, learning moments) and the question *Shall we write today’s page?*
+**Today’s Page.** When you press **Huzzah!**, a card rises with the hero’s portrait on a ribbon, what today holds (stars earned (not for Pre-Junior), the virtues shown most, new words, learning moments) and the question *Shall we write today’s page?*
 
 - **Auto** (Elite, key **A**): the AI Chronicler writes the whole page and paints a picture. The card shows *The Chronicler dips the quill…* for a moment, then the page appears in the diary with a **Being written** stamp until it is finished. You can edit it afterwards. On Pro the card is marked **Elite** and explains the plan.
 - **Manual** (key **M**): opens **Write today’s page**, where you write everything yourself (see below).
@@ -64,7 +64,7 @@ When you choose **Auto**, the Chronicler first gathers a dated picture of the cl
 
 The page length follows the day: a quiet lesson gets a short page (about 170–250 words), a busy one up to about 440. It opens with a real moment, not the date or a list of names; it uses first names and the children’s own words (stars, homework, our dictation), not menu names; the Hero of the Day is celebrated without a made-up reason (the crown goes round fairly); homework is mentioned once, as something for the next lesson. A prepared Campfire, the next lesson’s Campfire question and anything you did not record never appear.
 
-The Chronicler does not invent activities to fill an empty section. It leaves out private family messages, account details, individual grades, corrections and your private notes. Ember Oaths appear only as anonymous activity: who made them, what they promised, the evidence and the private reflections all stay private. Stories for Nursery and Pre-Junior avoid numbers, scores and comparisons. **Retry** starts from a clean picture of the day and does not reuse the earlier attempt; **Ask the Chronicler** in Edit uses your text as a draft only if you changed it. Pages written before this update that show stray `\n` marks are displayed with proper paragraphs. If the AI’s answer is incomplete or unusable, the page stays marked for retry instead of looking finished.
+The Chronicler does not invent activities to fill an empty section. It leaves out private family messages, account details, individual grades, corrections and your private notes. Ember Oaths appear only as anonymous activity: who made them, what they promised, the evidence and the private reflections all stay private. Stories for Pre-Junior avoid numbers, scores and comparisons. **Retry** starts from a clean picture of the day and does not reuse the earlier attempt; **Ask the Chronicler** in Edit uses your text as a draft only if you changed it. Pages written before this update that show stray `\n` marks are displayed with proper paragraphs. If the AI’s answer is incomplete or unusable, the page stays marked for retry instead of looking finished.
 
 ### Picture controls in Edit
 

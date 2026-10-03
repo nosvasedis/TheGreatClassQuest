@@ -36,7 +36,7 @@ export function occasionSuffix(date = new Date()) {
  * @param {(score:object)=>number} [opts.goldFor] live year gold for a score doc
  * @param {Date} [opts.today]
  * @param {string|null} [opts.heroStudentId] latest Hero of the Day
- * @param {boolean} [opts.gentle] Growth mode (Nursery / Pre-Junior): no ranks, no podium
+ * @param {boolean} [opts.gentle] Growth mode (Pre-Junior): no ranks, no podium
  */
 export function buildClassRosterView({
     students = [],

@@ -159,7 +159,7 @@ Cards rotate. The Director avoids showing the same *kind* of card twice in a row
 - **Word games** on every plan, matched to the league: **Opposites**, **Rhyme time**, **Word maths** (two words make a new one), **One… two…** (plurals that do not just add -s), **Say what?** (an idiom to guess), **Emoji translator** (say the emoji sentence in English), and **Words inside words**
 - **Puzzles** on every plan: **What comes next?**, **Quick count**, **Code breaker** (A = 1, B = 2 …), **Who am I?**, and **Simon says**
 - **Wonders and calm breaks** on every plan: an **animal**, a **country where English is spoken**, a **space wonder**, **Who invented it?**, **Bubble breathing**, a **Thankful moment**, **Today’s kindness quest**, and a **Stretch break**
-- On every plan, matched to the league: **Finish the sentence**, **Think · Pair · Share**, **Grammar nugget**, **Say it right** (minimal pairs such as *ship/sheep*, not for Nursery/Pre-Junior), and **Classroom English**
+- On every plan, matched to the league: **Finish the sentence**, **Think · Pair · Share**, **Grammar nugget**, **Say it right** (minimal pairs such as *ship/sheep*, not for Pre-Junior), and **Classroom English**
 
 Cards float in the free space around the clock. They never cover the clock, the class banner, the wisdom ribbon or the top controls, and they shrink rather than slide off a smaller projector screen.
 

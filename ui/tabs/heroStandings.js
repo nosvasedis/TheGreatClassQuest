@@ -124,9 +124,37 @@ function countHtml(e) {
     return `<span class="hcs-count" data-hcs-count data-from="${e.fromScore ?? e.score}" data-to="${e.score}">${e.score}</span>`;
 }
 
-function nameHtml(e) {
-    const icon = e.heroIcon ? `<span class="hcs-name__icon" aria-hidden="true">${e.heroIcon}</span>` : '';
-    return `${icon}<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+/**
+ * The hero class emblem left of a name: a round badge in the class's aura
+ * colour, with a card on hover or focus naming the rank, level and perk.
+ * heroClass: { cls, icon, aura, title, level, maxLevel, perk, next }
+ */
+export function heroEmblemHtml(hc) {
+    if (!hc?.icon) return '';
+    const level = Number(hc.level) || 0;
+    const levelLine = level > 0
+        ? `${escapeStandingsHtml(hc.cls)} · Level ${level}${hc.maxLevel >= level ? ` of ${hc.maxLevel}` : ''}`
+        : `${escapeStandingsHtml(hc.cls)} · Not ranked up yet`;
+    const next = hc.next ? `<span class="hcs-emblem__next">Next rank: <b>${escapeStandingsHtml(hc.next)}</b></span>` : '';
+    const perk = hc.perk ? `<span class="hcs-emblem__perk"><i class="fas fa-coins" aria-hidden="true"></i>${escapeStandingsHtml(hc.perk)}</span>` : '';
+    const label = `${hc.title || hc.cls}, ${hc.cls}${level > 0 ? ` level ${level}` : ''}`;
+    return `<span class="hcs-emblem" style="--aura:${escapeStandingsHtml(hc.aura || '#7c3aed')}" tabindex="0" role="img" aria-label="${escapeStandingsHtml(label)}">
+            <span class="hcs-emblem__icon" aria-hidden="true">${hc.icon}</span>
+            ${level > 0 ? `<span class="hcs-emblem__lvl" aria-hidden="true">${level}</span>` : ''}
+            <span class="hcs-emblem__tip" aria-hidden="true">
+                <span class="hcs-emblem__head"><span class="hcs-emblem__tip-icon">${hc.icon}</span><b>${escapeStandingsHtml(hc.title || hc.cls)}</b></span>
+                <span class="hcs-emblem__lvlline">${levelLine}</span>
+                ${perk}${next}
+            </span>
+        </span>`;
+}
+
+function nameHtml(e, { emblem: withEmblem = true } = {}) {
+    if (!withEmblem) return `<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+    const emblem = e.heroClass
+        ? heroEmblemHtml(e.heroClass)
+        : (e.heroIcon ? `<span class="hcs-name__icon" aria-hidden="true">${e.heroIcon}</span>` : '');
+    return `${emblem}<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
 }
 
 function classChipHtml(e) {
@@ -213,8 +241,9 @@ function podiumFigureHtml(e, group, entries, k, packed) {
                 <span class="hcs-figure__ring" aria-hidden="true"></span>
                 ${e.avatarLargeHtml}
                 ${e.familiarHtml || ''}
+                ${e.heroClass ? heroEmblemHtml(e.heroClass) : ''}
             </div>
-            <h3 class="hcs-figure__name font-title" title="${escapeStandingsHtml(e.name)}">${nameHtml(e)}</h3>
+            <h3 class="hcs-figure__name font-title">${nameHtml(e, { emblem: !e.heroClass })}</h3>
             <div class="hcs-figure__badges">${badges}</div>
             <div class="hcs-figure__stars">
                 <i class="fas fa-star hcs-figure__star" aria-hidden="true"></i>
@@ -452,7 +481,7 @@ function resealButtonHtml() {
 /**
  * section: { id, title, logo, facts: [html], mine, entries, seal }
  * seal: null, or 'sealed' (curtain drawn) / 'open' (finale day, peeked at)
- * entry: { id, name, rank, score, gold, heroIcon, avatarHtml, avatarLargeHtml,
+ * entry: { id, name, rank, score, gold, heroIcon, heroClass, accent, avatarHtml, avatarLargeHtml,
  *          familiarHtml, guildBadgeHtml, titleBadgeHtml, roleBadgesHtml, pillsHtml,
  *          className, classLogo, showClass, slot, fromSlot, fromScore, gain, climb }
  */

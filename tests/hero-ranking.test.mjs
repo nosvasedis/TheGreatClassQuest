@@ -185,3 +185,13 @@ test('trait chips and role badges share one look', async () => {
     assert.equal(renderHeroTraitsHtml(), '');
     assert.match(renderHeroRoleBadgesHtml({ champion: true, color: '#f00' }), /--badge:#f00/);
 });
+
+test('the hero class emblem explains rank, level, perk and next rank', async () => {
+    const { heroEmblemHtml } = await import('../ui/tabs/heroStandings.js');
+    const html = heroEmblemHtml({ cls: 'Sage', icon: '🔮', aura: '#9333ea', title: 'Scholar', level: 2, maxLevel: 5, perk: '+10 Gold for Creativity', next: 'Mystic' });
+    assert.match(html, /Sage · Level 2 of 5/);
+    assert.match(html, /\+10 Gold for Creativity/);
+    assert.match(html, /Next rank: <b>Mystic<\/b>/);
+    assert.match(html, /tabindex="0"/);
+    assert.equal(heroEmblemHtml(null), '');
+});

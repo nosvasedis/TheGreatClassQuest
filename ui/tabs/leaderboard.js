@@ -948,15 +948,22 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         });
     };
 
-    /** Hero rank title (e.g. Tinkerer, Sentinel) in the hero class's aura colour. */
-    const getHeroTitleBadgeHtml = (s) => {
-        if (!heroProgressionEnabled) return '';
-        if (!s.heroClass) return '';
+    /** Hero class emblem data: rank title, level and perk for the tooltip. */
+    const getHeroClassInfo = (s) => {
+        if (!heroProgressionEnabled || !s.heroClass || !HERO_CLASSES[s.heroClass]) return null;
         const level = s.heroLevel || 0;
-        const title = level > 0 ? getHeroTitle(s.heroClass, level) : (s.heroClass || 'Novice');
-        const auraColor = HERO_SKILL_TREE[s.heroClass]?.auraColor || '#7c3aed';
-        const icon = HERO_CLASSES[s.heroClass]?.icon || '';
-        return `<span class="hcs-herotitle" style="--aura:${auraColor}" title="Hero rank">${icon ? `<span class="hcs-herotitle__icon" aria-hidden="true">${icon}</span>` : ''}<span>${escapeLeaderboardHtml(title)}</span></span>`;
+        const tree = HERO_SKILL_TREE[s.heroClass];
+        const titles = tree?.titles || [];
+        return {
+            cls: s.heroClass,
+            icon: HERO_CLASSES[s.heroClass].icon,
+            aura: tree?.auraColor || '#7c3aed',
+            title: level > 0 ? getHeroTitle(s.heroClass, level) : s.heroClass,
+            level,
+            maxLevel: titles.length,
+            perk: HERO_CLASSES[s.heroClass].desc || '',
+            next: titles[level] || ''
+        };
     };
 
     const getPillsHtml = (s) => {
@@ -984,13 +991,13 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         score: s.score,
         gold: s.gold,
         heroIcon: heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : '',
-        avatarHtml: getAvatarHtml(s, 'w-12 h-12 sm:w-14 sm:h-14'),
+        heroClass: getHeroClassInfo(s),
+        avatarHtml: getAvatarHtml(s, 'w-14 h-14 sm:w-16 sm:h-16'),
         avatarLargeHtml: getAvatarHtml(s, rank === 1 ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16 sm:w-20 sm:h-20'),
         familiarHtml: s.familiar
             ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>`
             : '',
         guildBadgeHtml: s.guildId ? `<span class="hcs-guild">${getGuildBadgeHtml(s.guildId, 'w-6 h-6')}</span>` : '',
-        titleBadgeHtml: getHeroTitleBadgeHtml(s),
         roleBadgesHtml: getGuildRoleBadgesHtml(s),
         pillsHtml: getPillsHtml(s),
         accent: s.guildId ? getGuildById(s.guildId)?.primary || '' : '',

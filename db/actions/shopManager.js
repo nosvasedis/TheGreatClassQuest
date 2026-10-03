@@ -36,14 +36,28 @@ function ownedManagedItem(itemId) {
     return item;
 }
 
-function duplicateName(item, name) {
+// Only the same shelf of the same stall counts. Another league or last month may
+// well carry a treasure with this name, and that must not block a save here.
+function sameStall(entry, item) {
     const shelf = shopItemShelf(item);
+    if (shopItemShelf(entry) !== shelf) return false;
+    if (String(entry.league || '').trim() !== String(item.league || '').trim()) return false;
+    if (String(entry.teacherId || '') !== String(item.teacherId || '')) return false;
+    if (shelf === 'festival') return String(entry.festivalId || '') === String(item.festivalId || '');
+    return String(entry.monthKey || '') === String(item.monthKey || '');
+}
+
+function duplicateName(item, name) {
     const key = String(name || '').trim().toLowerCase();
     return (state.get('currentShopItems') || []).some((entry) => (
         entry.id !== item.id
-        && shopItemShelf(entry) === shelf
+        && sameStall(entry, item)
         && String(entry.name || '').trim().toLowerCase() === key
     ));
+}
+
+function blank(value) {
+    return value === undefined || value === null || String(value).trim() === '';
 }
 
 export async function saveManagedShopItem(itemId, draft = {}) {
@@ -53,7 +67,10 @@ export async function saveManagedShopItem(itemId, draft = {}) {
     if (!item) return null;
     const fields = shopManagerFieldsFromInput({
         ...draft,
-        stock: draft.stock ?? shopItemStock(item)
+        // An emptied number box keeps what the treasure already has, rather than
+        // dropping it to 10 gold or hiding it with 0 copies.
+        price: blank(draft.price) ? item.price : draft.price,
+        stock: blank(draft.stock) ? shopItemStock(item) : draft.stock
     });
     if (!fields.name || !fields.description) {
         showToast('Give this treasure a name and a short description.', 'error');

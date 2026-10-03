@@ -108,6 +108,14 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
   }
 
+  // Every picture gets its own file. Re-using one path per name and month let a second
+  // league with the same treasure name (or a later redraw) overwrite the file and reset
+  // its download token, which broke the picture already saved on the other item.
+  function shopImagePath({ teacherId, yearKey, monthKey, league, name }) {
+    const leagueKey = String(league || 'league').replace(/[^\w-]+/g, '_');
+    return `shop_items/${teacherId}/${yearKey}/${monthKey}_${leagueKey}_${ai.simpleHashCode(name)}_${Date.now()}.png`;
+  }
+
   async function generateImage(item, league) {
     const styleContext = styleForLeague(league);
     const negativePrompt = 'pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap';
@@ -171,7 +179,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       await Promise.all(group.map(async (item) => {
         try {
           const bytes = await generateImage(item, context.league);
-          const path = `shop_items/${context.teacherId}/${context.yearKey}/${context.monthKey}_${ai.simpleHashCode(item.name)}.png`;
+          const path = shopImagePath({ ...context, name: item.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({ ...context, item, imageUrl });
           savedThisRun += 1;
@@ -419,7 +427,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             desc: latest.description || latest.desc,
             price: latest.price
           }, league);
-          const path = `shop_items/${teacherId}/${yearKey}/${monthKey}_${ai.simpleHashCode(latest.name)}_${Date.now()}.png`;
+          const path = shopImagePath({ teacherId, yearKey, monthKey, league, name: latest.name });
           const imageUrl = await uploadPng(bytes, path);
           await ref.update({ image: imageUrl });
           return { ok: true, action, itemId, image: imageUrl };
@@ -451,7 +459,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
           }
           next.price = restock.clampPriceToTier(next.price, keepTier);
           const bytes = await generateImage(next, league);
-          const path = `shop_items/${teacherId}/${yearKey}/${monthKey}_${ai.simpleHashCode(next.name)}_${Date.now()}.png`;
+          const path = shopImagePath({ teacherId, yearKey, monthKey, league, name: next.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({
             item: next,

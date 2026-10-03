@@ -60,6 +60,16 @@ function sortItems(items) {
     });
 }
 
+// Typed but unsaved edits, by treasure. Every Market update (a student buying a copy,
+// a save on another card) re-renders the list, and without this the half-typed name
+// or description on the other cards was wiped.
+const drafts = new Map();
+
+function draftValue(item, field, saved) {
+    const draft = drafts.get(item.id);
+    return draft && Object.prototype.hasOwnProperty.call(draft, field) ? draft[field] : saved;
+}
+
 function renderCard(item) {
     const stock = shopItemStock(item);
     const stockMax = Number(item.stockMax) || stockMaxForTier(shopItemTier(item.price));
@@ -79,17 +89,17 @@ function renderCard(item) {
             <div class="market-manager-card__media">${imageHtml}${incoming}${soldOut}</div>
             <div class="market-manager-card__fields">
                 <label class="market-manager-label">Name
-                    <input type="text" class="market-manager-input" data-field="name" maxlength="48" value="${escapeHtml(item.name || '')}">
+                    <input type="text" class="market-manager-input" data-field="name" maxlength="48" value="${escapeHtml(draftValue(item, 'name', item.name || ''))}">
                 </label>
                 <label class="market-manager-label">Description
-                    <textarea class="market-manager-input market-manager-input--area" data-field="description" maxlength="160" rows="2">${escapeHtml(item.description || item.desc || '')}</textarea>
+                    <textarea class="market-manager-input market-manager-input--area" data-field="description" maxlength="160" rows="2">${escapeHtml(draftValue(item, 'description', item.description || item.desc || ''))}</textarea>
                 </label>
                 <div class="market-manager-grid">
                     <label class="market-manager-label">Gold
-                        <input type="number" class="market-manager-input" data-field="price" min="10" max="120" step="1" value="${escapeHtml(item.price || 10)}">
+                        <input type="number" class="market-manager-input" data-field="price" min="10" max="120" step="1" value="${escapeHtml(draftValue(item, 'price', item.price || 10))}">
                     </label>
                     <label class="market-manager-label">Copies left
-                        <input type="number" class="market-manager-input" data-field="stock" min="0" max="${stockMax}" step="1" value="${stock}">
+                        <input type="number" class="market-manager-input" data-field="stock" min="0" max="${stockMax}" step="1" value="${escapeHtml(draftValue(item, 'stock', stock))}">
                     </label>
                 </div>
             </div>
@@ -177,7 +187,8 @@ async function runAction(action, itemId, card, button) {
     if (action === 'save') {
         setBusy(card, true, button, 'Saving…');
         try {
-            await saveManagedShopItem(itemId, readDraft(card));
+            const saved = await saveManagedShopItem(itemId, readDraft(card));
+            if (saved) drafts.delete(itemId);
         } finally {
             setBusy(card, false, button);
         }
@@ -197,7 +208,8 @@ async function runAction(action, itemId, card, button) {
         if (!window.confirm('Replace this treasure with a new one of the same rarity? The old piece leaves the stall.')) return;
         setBusy(card, true, button, 'Replacing…');
         try {
-            await replaceManagedShopItem(itemId);
+            const result = await replaceManagedShopItem(itemId);
+            if (result?.ok) drafts.delete(itemId);
         } finally {
             setBusy(card, false, button);
         }
@@ -207,11 +219,38 @@ async function runAction(action, itemId, card, button) {
         if (!window.confirm('Take this treasure off the stall? Heroes will not be able to buy it.')) return;
         setBusy(card, true, button, 'Removing…');
         try {
-            await removeManagedShopItem(itemId);
+            const removed = await removeManagedShopItem(itemId);
+            if (removed) drafts.delete(itemId);
         } finally {
             setBusy(card, false, button);
         }
     }
+}
+
+function captureFocus(list) {
+    const active = document.activeElement;
+    if (!active || !list.contains(active) || !active.dataset?.field) return null;
+    const itemId = active.closest('[data-item-id]')?.dataset.itemId;
+    if (!itemId) return null;
+    let start = null;
+    let end = null;
+    try {
+        start = active.selectionStart;
+        end = active.selectionEnd;
+    } catch (_) { /* number inputs have no selection */ }
+    return { itemId, field: active.dataset.field, start, end };
+}
+
+function restoreFocus(list, focus) {
+    if (!focus) return;
+    const card = [...list.querySelectorAll('[data-item-id]')].find((el) => el.dataset.itemId === focus.itemId);
+    const field = card?.querySelector(`[data-field="${focus.field}"]`);
+    if (!field) return;
+    field.focus({ preventScroll: true });
+    if (focus.start === null || focus.start === undefined) return;
+    try {
+        field.setSelectionRange(focus.start, focus.end ?? focus.start);
+    } catch (_) { /* number inputs have no selection */ }
 }
 
 export function renderMarketManagerUi() {
@@ -246,6 +285,9 @@ export function renderMarketManagerUi() {
     }
 
     const items = stallItems();
+    const liveIds = new Set(items.map((item) => item.id));
+    [...drafts.keys()].forEach((id) => { if (!liveIds.has(id)) drafts.delete(id); });
+    const focus = captureFocus(list);
     const liveSeasonal = sortItems(items.filter((item) => shopItemShelf(item) === 'seasonal' && !item.incoming));
     const liveFestival = sortItems(items.filter((item) => shopItemShelf(item) === 'festival' && !item.incoming));
     const incoming = sortItems(items.filter((item) => item.incoming));
@@ -259,6 +301,7 @@ export function renderMarketManagerUi() {
             : '',
         incoming.length ? renderGroup('Coming in', incoming, '') : ''
     ].join('');
+    restoreFocus(list, focus);
 }
 
 export function wireMarketManagerEvents() {
@@ -273,6 +316,14 @@ export function wireMarketManagerEvents() {
     const list = document.getElementById('market-manager-list');
     if (!list || list.dataset.wired === 'true') return;
     list.dataset.wired = 'true';
+    list.addEventListener('input', (event) => {
+        const field = event.target.closest('[data-field]');
+        const itemId = field?.closest('[data-item-id]')?.dataset.itemId;
+        if (!field || !itemId) return;
+        const draft = drafts.get(itemId) || {};
+        draft[field.dataset.field] = field.value;
+        drafts.set(itemId, draft);
+    });
     list.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-market-action]');
         if (!button) return;

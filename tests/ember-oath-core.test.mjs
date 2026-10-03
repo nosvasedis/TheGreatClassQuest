@@ -5,7 +5,7 @@ import { publicEmberNote, mergePublishedEmber } from '../functions/campfireCore.
 const draft = () => ({ id: 'oath', ...createOathDraft(oathTemplates('A')[5], { studentId: 's', classId: 'c', teacherId: 't', schoolYearKey: '2026-2027', date: '2026-09-20' }) });
 const award = (id, date, extra = {}) => ({ id, studentId: 's', classId: 'c', schoolYearKey: '2026-2027', date, stars: 1, reason: 'Teamwork', ...extra });
 test('all five bands provide six editable goal categories', () => {
-    for (const league of ['Nursery','Junior B','A','E','Proficiency']) {
+    for (const league of ['Nursery','Junior B','A','C','D']) {
         const bank = oathTemplates(league); assert.equal(bank.length,6); assert.equal(new Set(bank.map(o=>o.id)).size,6);
         assert.equal(suggestOaths({ league }).length,3);
     }

@@ -36,11 +36,6 @@ const GENERIC = {
         ['Which moment changed how you understood today’s lesson?', 'What will you try differently next time?', ['I used to think…', 'Now I notice…']],
         ['What useful mistake did you make today?', 'Which strategy helped you respond?', ['I realised that…', 'A strategy I could reuse is…']],
         ['How did another perspective improve your thinking?', 'How could you invite more voices next time?', ['I reconsidered…', 'Building on that idea…']]
-    ],
-    exam: [
-        ['Which strategy made your reasoning clearer today?', 'Where could you transfer that strategy?', ['The evidence suggests…', 'I could apply this by…']],
-        ['What would you revise in your first response, and why?', 'Which specific change would have the greatest effect?', ['On reflection…', 'A more precise way to express this is…']],
-        ['What did productive collaboration look like today?', 'How can we make space for a different perspective?', ['One contribution that helped was…', 'A question still worth exploring is…']]
     ]
 };
 const THEMED = {
@@ -56,10 +51,6 @@ const THEMED = {
     upper: [
         ['How has today’s work on {theme} changed what you think?', 'Which detail convinced you?', ['I used to believe…', 'What changed my mind was…']],
         ['What question about {theme} is still open for you?', 'How could we find out more?', ['I still wonder…', 'We could explore…']]
-    ],
-    exam: [
-        ['Which idea about {theme} could you develop in an essay?', 'What evidence would support it?', ['One could argue that…', 'This is illustrated by…']],
-        ['How would you explain {theme} to an examiner in two sentences?', 'Which precise words would you choose?', ['In essence,…', 'A key distinction is…']]
     ]
 };
 // Cambridge Primary Path units are "Big Questions"; they deserve their own phrasing.
@@ -73,8 +64,7 @@ const BIG_QUESTION = {
         ['Remember our big question: “{bq}” How would you answer it today?', 'What helped you find your answer?', ['Today I would say…', 'What helped me was…']],
         ['Has your answer to “{bq}” changed?', 'What made you think again?', ['At first I thought…', 'Now I think…']]
     ],
-    upper: [['How would you answer “{bq}” now, with an example?', 'What would a classmate add?', ['In my view,…', 'For example,…']]],
-    exam: [['How would you answer “{bq}” in a well-argued paragraph?', 'Which counter-argument would you address?', ['It could be argued that…', 'On the other hand,…']]]
+    upper: [['How would you answer “{bq}” now, with an example?', 'What would a classmate add?', ['In my view,…', 'For example,…']]]
 };
 const WORDY = {
     early: [['🔤 Which word can you say with us: {words}?', 'Say it loudly, then quietly!', ['{word}!', 'I can say…']]],
@@ -89,37 +79,29 @@ const WORDY = {
     upper: [
         ['Use “{word}” in a sentence that is true for you.', 'Which other word from today could follow it?', ['Personally,…', 'In my experience,…']],
         ['Which of these words is hardest to use well: {words}?', 'What would help you remember it?', ['The tricky part is…', 'I will remember it by…']]
-    ],
-    exam: [
-        ['Which of today’s words would lift an essay: {words}?', 'Write the collocation you would use.', ['A strong collocation is…', 'I would pair it with…']],
-        ['What is the difference between “{word}” and a simpler synonym?', 'When is the precise word worth it?', ['The nuance is…', 'In formal writing,…']]
     ]
 };
 const GRAMMAR = {
     early: [['👂 Can we say a little {grammar} together?', 'Say it, then try it with your hands!', ['Listen!', 'I can say…']]],
     junior: [['Can you make a sentence with {grammar}?', 'Can a friend make a different one?', ['I have…', 'There is…']]],
     mid: [['When could you use {grammar} outside the classroom?', 'Give one real example.', ['I could use it when…', 'For example,…']]],
-    upper: [['What is the trickiest part of {grammar} for you?', 'Which example helped it click?', ['I often mix up…', 'It clicked when…']]],
-    exam: [['Where does {grammar} usually catch candidates out?', 'How will you check it in your own writing?', ['A common trap is…', 'I will double-check…']]]
+    upper: [['What is the trickiest part of {grammar} for you?', 'Which example helped it click?', ['I often mix up…', 'It clicked when…']]]
 };
 const SOURCE = {
     quiz: {
         junior: ['Which quiz question made you think the most?', 'What helped you find the answer?', ['The question about…', 'I remembered…']],
         mid: ['Which quiz question made you think the most?', 'What would help you next time?', ['The hardest one was…', 'Next time I will…']],
-        upper: ['Which quiz answer surprised you?', 'What does it tell you about how you learn?', ['I was surprised that…', 'It shows I…']],
-        exam: ['Which quiz item exposed a gap you can close this week?', 'What is your plan to close it?', ['The gap is…', 'This week I will…']]
+        upper: ['Which quiz answer surprised you?', 'What does it tell you about how you learn?', ['I was surprised that…', 'It shows I…']]
     },
     story: {
         junior: ['What should happen next in our story?', 'Who will be brave?', ['Next,…', 'Suddenly,…']],
         mid: ['What should happen next in our story, and why?', 'Which word from today could appear in it?', ['I think… because…', 'The next scene…']],
-        upper: ['What should our story’s next chapter reveal?', 'How could it surprise the reader?', ['Little did they know…', 'The twist could be…']],
-        exam: ['How could our story’s next chapter raise the tension?', 'Which structure would you use?', ['No sooner had…', 'Only then did…']]
+        upper: ['What should our story’s next chapter reveal?', 'How could it surprise the reader?', ['Little did they know…', 'The twist could be…']]
     },
     trial: {
         junior: ['What helped you get ready for today’s test?', 'What will you do the same next time?', ['I practised…', 'Next time I will…']],
         mid: ['What helped you prepare for today’s test?', 'What would you change for the next one?', ['The best help was…', 'I will change…']],
-        upper: ['Which preparation strategy paid off today?', 'Which one will you drop?', ['What worked was…', 'I will stop…']],
-        exam: ['Which part of today’s paper would you retake, and how?', 'What is one habit that would raise your score?', ['I would approach it by…', 'One habit is…']]
+        upper: ['Which preparation strategy paid off today?', 'Which one will you drop?', ['What worked was…', 'I will stop…']]
     }
 };
 

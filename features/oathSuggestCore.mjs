@@ -25,18 +25,18 @@ const hash = text => [...String(text)].reduce((h, c) => (h * 31 + c.charCodeAt(0
 /** Deterministic small RNG, so the shared scaffold helpers stay stable for the same child/day. */
 const rngFrom = key => { let s = (hash(key) || 1) & 0x7fffffff; return () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }; };
 const avg = list => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : null);
-// Band phrasing: early → junior → mid → upper → exam, falling back to the nearest simpler/harder text.
+// Band phrasing: early → junior → mid → upper, falling back to the nearest simpler/harder text.
 function say(band, t) {
     if (typeof t === 'string') return t; // already resolved (some families phrase themselves)
-    const order = { early: ['early', 'junior', 'mid'], junior: ['junior', 'mid', 'early'], mid: ['mid', 'junior', 'upper'], upper: ['upper', 'mid', 'exam'], exam: ['exam', 'upper', 'mid'] }[band] || ['mid'];
+    const order = { early: ['early', 'junior', 'mid'], junior: ['junior', 'mid', 'early'], mid: ['mid', 'junior', 'upper'], upper: ['upper', 'mid'] }[band] || ['mid'];
     for (const key of order) if (t[key]) return t[key];
     return Object.values(t)[0];
 }
 const VIRTUE_STRETCH = {
-    Teamwork: { early: 'I play nicely with my friends. 🤝', junior: 'I help my team two times. 🤝', mid: 'I help our group finish together.', upper: 'I help my group share the work fairly.', exam: 'I help my group build a stronger answer together.' },
-    Respect: { early: 'I listen when my friend talks. 👂', junior: 'I listen when a friend speaks. 👂', mid: 'I listen and let everyone have a turn.', upper: 'I disagree kindly and give a reason.', exam: 'I respond to other views respectfully and precisely.' },
-    Focus: { early: 'I look and listen at story time. 👀', junior: 'I finish my task before I chat. 🎯', mid: 'I stay on task until the timer ends.', upper: 'I keep going when a task gets hard.', exam: 'I give one weak area my full attention.' },
-    Creativity: { early: 'I show my idea with my hands. 🎨', junior: 'I try a new idea in English. 🎨', mid: 'I add my own idea in English.', upper: 'I try a new way to say what I mean.', exam: 'I experiment with a new structure in my writing.' }
+    Teamwork: { early: 'I play nicely with my friends. 🤝', junior: 'I help my team two times. 🤝', mid: 'I help our group finish together.', upper: 'I help my group share the work fairly.' },
+    Respect: { early: 'I listen when my friend talks. 👂', junior: 'I listen when a friend speaks. 👂', mid: 'I listen and let everyone have a turn.', upper: 'I disagree kindly and give a reason.' },
+    Focus: { early: 'I look and listen at story time. 👀', junior: 'I finish my task before I chat. 🎯', mid: 'I stay on task until the timer ends.', upper: 'I keep going when a task gets hard.' },
+    Creativity: { early: 'I show my idea with my hands. 🎨', junior: 'I try a new idea in English. 🎨', mid: 'I add my own idea in English.', upper: 'I try a new way to say what I mean.' }
 };
 const VIRTUE_SHARE = {
     Teamwork: { junior: 'I help a new friend join our team. 🤝', mid: 'I invite someone quiet into our group.', upper: 'I make sure everyone in my group has a role.' },
@@ -45,26 +45,26 @@ const VIRTUE_SHARE = {
     Creativity: { junior: 'I help a friend with a fun idea. 🎨', mid: 'I share a creative idea with my group.', upper: 'I help my group see a problem in a new way.' }
 };
 const VIRTUE_TRY = {
-    Teamwork: { early: 'I share my things with a friend. 🤝', junior: 'I take turns without being asked. 🤝', mid: 'I do my share of the group work.', upper: 'I take a role in the group without being asked.', exam: 'I keep the group moving when we get stuck.' },
-    Respect: { early: 'I say “please” and “thank you”. 💛', junior: 'I say something kind to someone new. 💛', mid: 'I thank someone for helping me.', upper: 'I listen to an opinion I disagree with.', exam: 'I acknowledge a point I had not considered.' },
-    Focus: { early: 'I sit and listen for the whole story. 🎯', junior: 'I finish one task before I start another. 🎯', mid: 'I put my hand up instead of calling out.', upper: 'I check my work before I hand it in.', exam: 'I start the hardest task first, while I am fresh.' },
-    Creativity: { early: 'I try a new colour or shape. 🎨', junior: 'I try a new way to say something. 🎨', mid: 'I use a new expression I have just learned.', upper: 'I try a more ambitious word or structure.', exam: 'I redraft one sentence to say it better.' }
+    Teamwork: { early: 'I share my things with a friend. 🤝', junior: 'I take turns without being asked. 🤝', mid: 'I do my share of the group work.', upper: 'I take a role in the group without being asked.' },
+    Respect: { early: 'I say “please” and “thank you”. 💛', junior: 'I say something kind to someone new. 💛', mid: 'I thank someone for helping me.', upper: 'I listen to an opinion I disagree with.' },
+    Focus: { early: 'I sit and listen for the whole story. 🎯', junior: 'I finish one task before I start another. 🎯', mid: 'I put my hand up instead of calling out.', upper: 'I check my work before I hand it in.' },
+    Creativity: { early: 'I try a new colour or shape. 🎨', junior: 'I try a new way to say something. 🎨', mid: 'I use a new expression I have just learned.', upper: 'I try a more ambitious word or structure.' }
 };
 const TEMPLATES = {
     words: (band, words) => words.length
         ? { early: 'I can say: ' + words.slice(0, 2).join(', ') + '. 🔤', junior: 'I use our new words: ' + words.slice(0, 3).join(', ') + '.', mid: 'I use these words in my own sentences: ' + words.slice(0, 4).join(', ') + '.', upper: 'I use ' + words.slice(0, 5).join(', ') + ' in my speaking and writing.' }
-        : { early: 'I learn one new word. 🔤', junior: 'I use three new words.', mid: 'I use five new words in my own sentences.', upper: 'I use new vocabulary in a short response.', exam: 'I use precise vocabulary in a response.' },
-    quizReview: { junior: 'I practise the quiz words I found tricky. ❓', mid: 'I review the quiz questions I missed.', upper: 'I work out why I missed a quiz answer.', exam: 'I analyse the quiz items I missed and fix the gap.' },
+        : { early: 'I learn one new word. 🔤', junior: 'I use three new words.', mid: 'I use five new words in my own sentences.', upper: 'I use new vocabulary in a short response.' },
+    quizReview: { junior: 'I practise the quiz words I found tricky. ❓', mid: 'I review the quiz questions I missed.', upper: 'I work out why I missed a quiz answer.' },
     quizHelper: { junior: 'I help a friend with a quiz word. ❓', mid: 'I explain a quiz answer to a classmate.', upper: 'I explain a tricky quiz answer to my group.' },
-    spelling: { early: 'I trace my new words. ✏️', junior: 'I practise my spelling at home. ✏️', mid: 'I practise my spelling words a little every day.', upper: 'I keep a list of words I misspell and practise them.', exam: 'I track my spelling errors and fix one pattern.' },
-    testPrep: { junior: 'I look at my book a little every day. 📚', mid: 'I review a little every day before our tests.', upper: 'I make a mini revision plan before the next test.', exam: 'I follow a revision plan for my next paper.' },
-    stretchWrite: { junior: 'I write one extra sentence. ✍️', mid: 'I write one extra sentence with a new word.', upper: 'I add a linking word to make my writing flow.', exam: 'I use four linking words in my essay.' },
+    spelling: { early: 'I trace my new words. ✏️', junior: 'I practise my spelling at home. ✏️', mid: 'I practise my spelling words a little every day.', upper: 'I keep a list of words I misspell and practise them.' },
+    testPrep: { junior: 'I look at my book a little every day. 📚', mid: 'I review a little every day before our tests.', upper: 'I make a mini revision plan before the next test.' },
+    stretchWrite: { junior: 'I write one extra sentence. ✍️', mid: 'I write one extra sentence with a new word.', upper: 'I add a linking word to make my writing flow.' },
     welcomeBack: { early: 'I say hello and join in. 👋', junior: 'I catch up on one thing I missed. 👋', mid: 'I ask a friend what I missed and catch up.', upper: 'I catch up on what I missed and ask one question.' },
-    speakUp: { early: 'I say one word in English. 🗣️', junior: 'I put my hand up once in English. 🗣️', mid: 'I share one idea in English.', upper: 'I explain my opinion and give a reason.', exam: 'I develop a spoken answer with reasons and examples.' },
-    helper: { junior: 'I help someone who is stuck. 🌟', mid: 'I help a classmate who is stuck, without giving the answer.', upper: 'I help a classmate by asking a good question.', exam: 'I coach a classmate through a hard question.' },
-    readTheme: theme => ({ junior: 'I tell my family about ' + theme + '. 🏠', mid: 'I tell someone at home what I learned about ' + theme + '.', upper: 'I find one extra fact about ' + theme + '.', exam: 'I read one extra text about ' + theme + '.' }),
-    readStory: { early: 'I listen to a story. 📖', junior: 'I share one thing from a story. 📖', mid: 'I explain an idea I read or heard.', upper: 'I support my answer with the text.', exam: 'I explain how evidence supports an inference.' },
-    ready: { early: 'I get ready with a friend. 🎒', junior: 'I bring what I need to every lesson. 🎒', mid: 'I come ready with my book and homework.', upper: 'I plan my homework time each week.', exam: 'I reflect on and adapt my study routine.' }
+    speakUp: { early: 'I say one word in English. 🗣️', junior: 'I put my hand up once in English. 🗣️', mid: 'I share one idea in English.', upper: 'I explain my opinion and give a reason.' },
+    helper: { junior: 'I help someone who is stuck. 🌟', mid: 'I help a classmate who is stuck, without giving the answer.', upper: 'I help a classmate by asking a good question.' },
+    readTheme: theme => ({ junior: 'I tell my family about ' + theme + '. 🏠', mid: 'I tell someone at home what I learned about ' + theme + '.', upper: 'I find one extra fact about ' + theme + '.' }),
+    readStory: { early: 'I listen to a story. 📖', junior: 'I share one thing from a story. 📖', mid: 'I explain an idea I read or heard.', upper: 'I support my answer with the text.' },
+    ready: { early: 'I get ready with a friend. 🎒', junior: 'I bring what I need to every lesson. 🎒', mid: 'I come ready with my book and homework.', upper: 'I plan my homework time each week.' }
 };
 
 /** One promise family: `text` is a band map (or `(s) => band map`), `why`/`score` read the signals. */
@@ -75,22 +75,22 @@ const BANK = [
     fam('virtue_placeholder', 'virtue', {}, () => '', () => 0), // replaced per weakest virtue below
     // (the four weakest-virtue stretches, the strongest "share it" and the Hero Class virtue are built in code)
 
-    fam('virtue_kindness', 'virtue', { early: 'I use kind hands and kind words. 💛', junior: 'I say something kind to someone new. 💛', mid: 'I say something kind to someone who needs it.', upper: 'I notice someone left out and include them.', exam: 'I make space for a quieter voice in the discussion.' },
+    fam('virtue_kindness', 'virtue', { early: 'I use kind hands and kind words. 💛', junior: 'I say something kind to someone new. 💛', mid: 'I say something kind to someone who needs it.', upper: 'I notice someone left out and include them.' },
         s => (s.counts.Respect < 2 ? 'Almost no Respect stars yet. A kind act is easy to see.' : 'A visible, everyday kind act.'),
         s => (s.totalVirtue ? (s.counts.Respect < 2 ? 2.5 : 1.9) : 0), { target: { kind: 'virtue', reason: 'Respect' }, rule: 'virtue' }),
-    fam('virtue_helper_turn', 'virtue', { early: 'I help tidy up. 🤝', junior: 'I help without being asked. 🤝', mid: 'I help our group before I help myself.', upper: 'I take on a job in the group without being asked.', exam: 'I support the group’s plan even when it is not mine.' },
+    fam('virtue_helper_turn', 'virtue', { early: 'I help tidy up. 🤝', junior: 'I help without being asked. 🤝', mid: 'I help our group before I help myself.', upper: 'I take on a job in the group without being asked.' },
         s => (s.counts.Teamwork < 2 ? 'Teamwork is the quietest virtue this month.' : 'A helping hand is easy to spot.'),
         s => (s.totalVirtue ? (s.counts.Teamwork < 2 ? 2.5 : 1.85) : 0), { target: { kind: 'virtue', reason: 'Teamwork' }, rule: 'virtue' }),
-    fam('virtue_steady_work', 'virtue', { early: 'I keep trying until I finish. 🎯', junior: 'I finish my work without being reminded. 🎯', mid: 'I keep working for the whole task time.', upper: 'I stay with a hard task instead of switching.', exam: 'I protect my focus time from distractions.' },
+    fam('virtue_steady_work', 'virtue', { early: 'I keep trying until I finish. 🎯', junior: 'I finish my work without being reminded. 🎯', mid: 'I keep working for the whole task time.', upper: 'I stay with a hard task instead of switching.' },
         s => (s.counts.Focus < 2 ? 'Focus stars are rare this month — one steady push changes that.' : 'Steady work shows itself.'),
         s => (s.totalVirtue ? (s.counts.Focus < 2 ? 2.45 : 1.8) : 0), { target: { kind: 'virtue', reason: 'Focus' }, rule: 'virtue' }),
-    fam('virtue_new_idea', 'virtue', { early: 'I show my idea to everyone. 🎨', junior: 'I try my own idea in the lesson. 🎨', mid: 'I bring one idea nobody else has said.', upper: 'I offer an original angle in class.', exam: 'I approach one task from an unusual angle.' },
+    fam('virtue_new_idea', 'virtue', { early: 'I show my idea to everyone. 🎨', junior: 'I try my own idea in the lesson. 🎨', mid: 'I bring one idea nobody else has said.', upper: 'I offer an original angle in class.' },
         s => (s.counts.Creativity < 2 ? 'Creativity has been quiet — one small idea is enough.' : 'A small act of imagination.'),
         s => (s.totalVirtue ? (s.counts.Creativity < 2 ? 2.45 : 1.8) : 0), { target: { kind: 'virtue', reason: 'Creativity' }, rule: 'virtue' }),
 
     // ── Language: words ────────────────────────────────────────────────────────
     fam('words', 'words', s => TEMPLATES.words(s.band, s.words), s => (s.words.length ? 'Real words the class is practising now.' : 'New words stick when we use them.'), s => (s.words.length ? 3.2 : 1.6)),
-    fam('words_sentence', 'words', { junior: 'I put one new word in my own sentence. ✍️', mid: 'I use two new words in sentences that are mine.', upper: 'I use three unit words in a paragraph of my own.', exam: 'I weave three precise words into one answer.' },
+    fam('words_sentence', 'words', { junior: 'I put one new word in my own sentence. ✍️', mid: 'I use two new words in sentences that are mine.', upper: 'I use three unit words in a paragraph of my own.' },
         s => (s.words.length >= 2 ? 'Targets ' + s.words.slice(0, 2).join(' and ') + '.' : 'Using a word is what makes it stick.'), () => 2.4),
     fam('words_family', 'words', s => ({ junior: 'I teach ' + (s.words[0] || 'a new word') + ' to someone at home. 🏠', mid: 'I teach someone at home two words: ' + (s.words.slice(0, 2).join(', ') || 'our new words') + '.', upper: 'I explain two unit words to someone at home, with an example each.' }),
         s => (s.words.length ? 'Teaching a word is the strongest test of knowing it.' : 'Explaining a word proves you own it.'), s => (s.words.length ? 2.3 : 1.5)),
@@ -110,13 +110,13 @@ const BANK = [
     fam('speak_up', 'speak', s => say(s.band, TEMPLATES.speakUp), s => (s.quiet ? 'Fewer stars than most this month. A small, safe step to be seen.' : 'Speaking up in English builds confidence.'), s => (s.quiet ? 3.3 : 1.8)),
     fam('quiz_helper', 'speak', s => say(s.band, TEMPLATES.quizHelper), s => (s.quizRate != null && s.quizRate >= 0.9 ? 'Quiz of the Week: ' + s.quiz.correctCount + ' of ' + s.quiz.attemptedCount + ' correct. Let them teach.' : ''), s => (s.quizRate != null && s.quizRate >= 0.9 && !s.early ? 2.5 : 0)),
     fam('helper', 'speak', s => say(s.band, TEMPLATES.helper), s => (s.shining ? 'One of the class’s brightest this month. Now they lift others.' : ''), s => (s.shining && !s.early ? 2.9 : 0)),
-    fam('speak_english', 'speak', s => ({ early: 'I say “' + s.phrase + '” in class. 🗣️', junior: 'I use a classroom phrase in English: “' + s.phrase + '”.', mid: 'I use one classroom phrase today: “' + s.phrase + '”.', upper: 'I use two classroom phrases naturally: “' + s.phrase + '”.', exam: 'I use a formal classroom phrase: “' + s.phrase + '”.' }),
+    fam('speak_english', 'speak', s => ({ early: 'I say “' + s.phrase + '” in class. 🗣️', junior: 'I use a classroom phrase in English: “' + s.phrase + '”.', mid: 'I use one classroom phrase today: “' + s.phrase + '”.', upper: 'I use two classroom phrases naturally: “' + s.phrase + '”.' }),
         () => 'Real classroom English they can use tomorrow.', () => 2.35),
     fam('speak_sounds', 'speak', s => (s.pair ? { junior: 'I practise the sounds in ' + s.pair.a + ' / ' + s.pair.b + '. 👂', mid: 'I say ' + s.pair.a + ' and ' + s.pair.b + ' clearly — ' + s.pair.sound + '.', upper: 'I drill ' + s.pair.a + ' vs ' + s.pair.b + ' (' + s.pair.sound + ') and record myself.' } : {}),
         s => (s.pair ? 'Greek-speaker friendly pair: ' + s.pair.sound + '.' : ''), s => (s.pair ? 2.2 : 0)),
     fam('speak_share', 'speak', s => ({ early: 'I show my idea to a friend. 🗣️', junior: 'I tell my partner one idea.', mid: 'I share my idea with my partner before the class.', upper: 'I share an idea and ask my partner a question about theirs.' }),
         s => (s.tps ? 'Think–Pair–Share is ready: “' + s.tps + '”' : 'A safe first step before speaking to everyone.'), s => (s.tps ? 2.3 : 1.6)),
-    fam('speak_present', 'speak', { junior: 'I say one sentence to the class. 🎤', mid: 'I present one sentence to the class.', upper: 'I present for one minute without reading every word.', exam: 'I present a short, structured answer to the class.' },
+    fam('speak_present', 'speak', { junior: 'I say one sentence to the class. 🎤', mid: 'I present one sentence to the class.', upper: 'I present for one minute without reading every word.' },
         s => (s.presentedRecently ? 'They presented well before — a repeat builds fluency.' : 'Standing up once makes the next time easier.'), () => 1.7),
     fam('speak_describe', 'speak', s => ({ early: 'I say three words about the picture. 🖼️', junior: 'I describe a picture with three words.', mid: 'I describe a picture with a full sentence.', upper: 'I describe a picture with two linked sentences.' }),
         s => (s.words.length >= 3 ? 'Can use today’s words: ' + s.words.slice(0, 3).join(', ') + '.' : 'Picture description needs no preparation.'), s => (s.words.length >= 3 ? 2.45 : 1.7)),
@@ -136,10 +136,10 @@ const BANK = [
         s => (s.words.length ? 'Words available: ' + s.words.slice(0, 2).join(', ') + '.' : 'One sentence is enough to start.'), () => 2.05),
     fam('write_pattern', 'write', s => (s.grammar ? { junior: 'I write one sentence with our new pattern.', mid: 'I write two sentences using “' + s.grammar + '”.', upper: 'I use “' + s.grammar + '” correctly in my own writing.' } : {}),
         s => (s.grammar ? (s.grammarBook ? 'This is our grammar focus: ' + s.grammar : 'Our unit pattern: ' + s.grammar + '.') : ''), s => (s.grammar ? (s.grammarBook ? 3.35 : 2.8) : 0)),
-    fam('write_edit', 'write', { junior: 'I check my sentence for a capital letter and a full stop. ✍️', mid: 'I check my work for capitals and full stops before I hand it in.', upper: 'I proofread my writing for one kind of mistake.', exam: 'I leave two minutes to proofread every piece.' },
+    fam('write_edit', 'write', { junior: 'I check my sentence for a capital letter and a full stop. ✍️', mid: 'I check my work for capitals and full stops before I hand it in.', upper: 'I proofread my writing for one kind of mistake.' },
         s => (s.falling || (s.overall != null && s.overall < 70) ? 'Careless slips cost marks recently.' : 'A habit that pays off in every test.'), s => (s.falling || (s.overall != null && s.overall < 70) ? 2.6 : 1.6)),
-    fam('write_linking', 'write', { mid: 'I use a linking word to join two ideas.', upper: 'I use two linking words in my writing.', exam: 'I use four linking words to structure my essay.' },
-        s => (s.band === 'mid' || s.band === 'upper' || s.band === 'exam' ? 'Cohesion is the next writing step.' : ''), s => (s.band === 'mid' || s.band === 'upper' || s.band === 'exam' ? 2.15 : 0)),
+    fam('write_linking', 'write', { mid: 'I use a linking word to join two ideas.', upper: 'I use two linking words in my writing.' },
+        s => (s.band === 'mid' || s.band === 'upper' ? 'Cohesion is the next writing step.' : ''), s => (s.band === 'mid' || s.band === 'upper' ? 2.15 : 0)),
     fam('write_journal', 'write', { junior: 'I write two lines about my day in English. ✍️', mid: 'I write three lines in English outside school.', upper: 'I write a short entry in English this week.' },
         s => (s.overall != null && s.overall >= 80 ? 'Already strong — this adds fluency, not marks.' : 'Writing a little, often, builds fluency.'), () => 1.75),
     fam('write_dictation_fix', 'write', { junior: 'I practise the words I missed in dictation. ✏️', mid: 'I re-write the words I missed in dictation, twice.', upper: 'I analyse which spelling rule I keep breaking.' },
@@ -159,8 +159,8 @@ const BANK = [
         s => (s.bigQuestion ? 'Our unit question: “' + s.bigQuestion + '”' : ''), s => (s.bigQuestion ? 2.35 : 0)),
     fam('read_words_in_text', 'read/listen', { junior: 'I find two little words I know in my book. 🔎', mid: 'I find three new words in a text and guess their meaning.', upper: 'I find and note three words from a text I read.' },
         s => (s.words.length >= 2 ? 'Start from: ' + s.words.slice(0, 3).join(', ') + '.' : 'Noticing words is half the skill.'), s => (s.words.length >= 2 ? 2.05 : 1.5)),
-    fam('read_summarise', 'read/listen', { mid: 'I say what happened in three sentences.', upper: 'I summarise a text in three sentences.', exam: 'I summarise a text in one sentence with evidence.' },
-        s => (s.band === 'mid' || s.band === 'upper' || s.band === 'exam' ? 'Summarising is a top exam skill.' : ''), s => (s.band === 'mid' || s.band === 'upper' || s.band === 'exam' ? 2.1 : 0)),
+    fam('read_summarise', 'read/listen', { mid: 'I say what happened in three sentences.', upper: 'I summarise a text in three sentences.' },
+        s => (s.band === 'mid' || s.band === 'upper' ? 'Summarising is a key reading skill.' : ''), s => (s.band === 'mid' || s.band === 'upper' ? 2.1 : 0)),
     fam('listen_instructions', 'read/listen', { early: 'I listen to the instruction first. 👂', junior: 'I listen to the whole instruction before I start.', mid: 'I follow a two-step instruction without asking again.', upper: 'I check the task requirements before starting.' },
         s => (s.counts.Focus < 3 ? 'Listening fully is a quick, visible win.' : 'Accuracy starts with listening.'), s => (s.counts.Focus < 3 ? 2.0 : 1.5)),
     fam('read_story_home', 'read/listen', { junior: 'I tell my family one thing from our story. 📖', mid: 'I retell our story at home in two minutes.', upper: 'I explain the message of a text to someone at home.' },
@@ -178,14 +178,14 @@ const BANK = [
         s => (s.overall != null && s.overall < 65 ? 'Scores suggest gaps that a question would close.' : 'Asking early prevents lost weeks.'), s => (s.overall != null && s.overall < 65 ? 2.7 : 1.55)),
     fam('habit_try_first', 'habit', { junior: 'I try by myself before I ask. 💪', mid: 'I try once before asking for help.', upper: 'I attempt the task before seeking support.' },
         s => (s.overall != null && s.overall >= 75 ? 'Already capable — this builds independence.' : ''), s => (s.overall != null && s.overall >= 75 ? 1.95 : 0)),
-    fam('habit_check_work', 'habit', { junior: 'I check my work before I give it to my teacher. ✅', mid: 'I read my answers once before I hand them in.', upper: 'I check my answers against the task.', exam: 'I use the last five minutes of every test to check.' },
+    fam('habit_check_work', 'habit', { junior: 'I check my work before I give it to my teacher. ✅', mid: 'I read my answers once before I hand them in.', upper: 'I check my answers against the task.' },
         s => (s.dictationAvg != null && s.dictationAvg < 85 ? 'Small checks recover easy marks.' : 'A habit that pays in every paper.'), s => (s.dictationAvg != null && s.dictationAvg < 85 ? 2.25 : 1.6)),
     fam('habit_tidy', 'habit', { early: 'I tidy my place. 🧺', junior: 'I keep my desk tidy.', mid: 'I leave my space ready for the next lesson.', upper: 'I keep my notes and materials organised.' },
         s => (s.counts.Respect < 3 ? 'A small, visible act of care for the class.' : 'Order saves time.'), s => (s.counts.Respect < 3 ? 1.9 : 1.35)),
     fam('habit_makeup', 'habit', { junior: 'I catch up on the test I missed. 📝', mid: 'I catch up on the work I missed while I was away.', upper: 'I catch up on missed work and check the gaps.' },
         s => (s.makeUp ? s.makeUp + ' item' + (s.makeUp === 1 ? '' : 's') + ' still to catch up.' : ''), s => (s.makeUp ? 2.9 : 0)),
-    fam('habit_study_plan', 'habit', { upper: 'I make a small study plan for the week.', exam: 'I follow a weekly revision plan and tick it off.' },
-        s => (s.band === 'upper' || s.band === 'exam' ? 'Towards the exam, planning beats cramming.' : ''), s => (s.band === 'upper' || s.band === 'exam' ? 2.3 : 0), { weeks: 3 }),
+    fam('habit_study_plan', 'habit', { upper: 'I make a small study plan for the week.' },
+        s => (s.band === 'upper' ? 'Before a test, planning beats cramming.' : ''), s => (s.band === 'upper' ? 2.3 : 0), { weeks: 3 }),
     fam('habit_breath', 'habit', { junior: 'I take a breath before a hard task. 🌬️', mid: 'I pause and breathe before I start something hard.', upper: 'I take a breath before a task that usually stresses me.' },
         s => (s.falling ? 'A calm start helps after a dip.' : ''), s => (s.falling ? 2.2 : 0))
 ];

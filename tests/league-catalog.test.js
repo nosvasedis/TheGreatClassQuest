@@ -10,7 +10,7 @@ test('quest league catalogue exposes the complete progression and metadata', asy
   const constants = await import('../constants.js');
   assert.deepEqual(constants.questLeagues, [
     'Nursery', 'Pre-Junior', 'Junior A', 'Junior B',
-    'A', 'B', 'C', 'D', 'E', 'Lower', 'Proficiency',
+    'A', 'B', 'C', 'D',
   ]);
   assert.deepEqual(constants.JUNIOR_LEAGUES, [
     'Nursery', 'Pre-Junior', 'Junior A', 'Junior B',
@@ -18,13 +18,17 @@ test('quest league catalogue exposes the complete progression and metadata', asy
 
   const nursery = constants.getQuestLeagueDefinition('Nursery');
   const preJunior = constants.getQuestLeagueDefinition('Pre-Junior');
-  const proficiency = constants.getQuestLeagueDefinition('Proficiency');
+  const d = constants.getQuestLeagueDefinition('D');
   assert.equal(nursery.ageGroup, '5-6');
   assert.equal(nursery.ageCategory, 'early');
   assert.equal(nursery.isYoungLearner, true);
   assert.equal(preJunior.ageGroup, '6-7');
-  assert.equal(proficiency.ageGroup, '15+');
-  assert.equal(proficiency.curriculumTier, 'proficiency');
+  assert.equal(d.ageGroup, '12-13');
+  assert.equal(d.curriculumTier, 'd');
+  // E, Lower and Proficiency were retired: GCQ ends with the D league.
+  for (const retired of ['E', 'Lower', 'Proficiency']) {
+    assert.equal(constants.getQuestLeagueDefinition(retired), null);
+  }
 });
 
 test('league helpers classify early, mid, and senior levels correctly', async () => {
@@ -34,8 +38,9 @@ test('league helpers classify early, mid, and senior levels correctly', async ()
   assert.equal(utils.getAgeTierForLeague('Nursery'), 'junior');
   assert.equal(utils.isYoungLearnerLeague('Junior B'), true);
   assert.equal(utils.isYoungLearnerLeague('A'), false);
-  assert.equal(utils.getAgeGroupForLeague('E'), '13-14');
-  assert.equal(utils.getAgeGroupForLeague('Lower'), '14-15');
+  assert.equal(utils.getAgeGroupForLeague('D'), '12-13');
+  assert.equal(utils.getAgeTierForLeague('D'), 'senior');
+  // A class still recorded in a retired league falls back gracefully.
   assert.equal(utils.getAgeTierForLeague('Proficiency'), 'senior');
 });
 
@@ -44,10 +49,8 @@ test('returning-student progression spans every new league', async () => {
   const pairs = [
     ['Nursery', 'Pre-Junior'],
     ['Pre-Junior', 'Junior A'],
-    ['D', 'E'],
-    ['E', 'Lower'],
-    ['Lower', 'Proficiency'],
-    ['Proficiency', null],
+    ['C', 'D'],
+    ['D', null],
   ];
   for (const [current, next] of pairs) {
     assert.equal(getNaturalProgressionLeague(current), next);
@@ -64,7 +67,7 @@ test('assessment defaults include all leagues and keep young learners gentle', a
   const defaults = normalizeAssessmentDefaultsByLeague({});
   assert.deepEqual(Object.keys(defaults), [
     'Nursery', 'Pre-Junior', 'Junior A', 'Junior B',
-    'A', 'B', 'C', 'D', 'E', 'Lower', 'Proficiency',
+    'A', 'B', 'C', 'D',
   ]);
   assert.equal(defaults.Nursery.tests.mode, 'none');
   assert.equal(defaults.Nursery.dictations.mode, 'none');
@@ -72,7 +75,7 @@ test('assessment defaults include all leagues and keep young learners gentle', a
   assert.equal(defaults['Pre-Junior'].dictations.mode, 'none');
   assert.equal(defaults['Junior A'].tests.maxScore, 40);
   assert.equal(defaults['Junior A'].dictations.mode, 'qualitative');
-  assert.equal(defaults.Proficiency.tests.maxScore, 100);
+  assert.equal(defaults.D.tests.maxScore, 100);
 });
 
 test('sorting quiz uses dedicated early pools and senior content for advanced leagues', async () => {
@@ -84,9 +87,6 @@ test('sorting quiz uses dedicated early pools and senior content for advanced le
   assert.ok(preJunior.length >= 7);
   assert.ok(nursery.every((question) => question.id.startsWith('n')));
   assert.ok(preJunior.every((question) => question.id.startsWith('pj')));
-  assert.equal(getQuestionsForLevel('E'), senior);
-  assert.equal(getQuestionsForLevel('Lower'), senior);
-  assert.equal(getQuestionsForLevel('Proficiency'), senior);
 });
 
 test('league picker is themed, grouped by age stage, repeatable, and silent', async () => {
@@ -132,7 +132,7 @@ test('league picker is themed, grouped by age stage, repeatable, and silent', as
   const css = read('styles/modals.css');
   for (const theme of [
     'nursery', 'pre-junior', 'junior-a', 'junior-b',
-    'a', 'b', 'c', 'd', 'e', 'lower', 'proficiency',
+    'a', 'b', 'c', 'd',
   ]) {
     assert.match(css, new RegExp(`league-picker-option--${theme}\\s*\\{`));
   }
@@ -143,7 +143,7 @@ test('Quiz of the Week has an explicit curriculum for every league', () => {
   const source = read('ui/tabs/navigation.js');
   for (const league of [
     'Nursery', 'Pre-Junior', 'Junior A', 'Junior B',
-    'A', 'B', 'C', 'D', 'E', 'Lower', 'Proficiency',
+    'A', 'B', 'C', 'D',
   ]) {
     const occurrences = source.match(new RegExp(`'${league.replace('-', '\\-')}': \\[`, 'g')) || [];
     assert.equal(occurrences.length, 3, `${league} should have grammar, vocabulary, and mixed curricula`);

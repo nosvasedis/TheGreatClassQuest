@@ -37,7 +37,7 @@ It runs as a full-screen **Sorting Ceremony** built for the projector. It opens 
 
 The house is saved during the reveal. If the save fails, the ceremony says so and **Try again** keeps the answers. **Esc** or ✕ leaves at any point (nothing is saved before the reveal). Reduced motion skips the spin and the sparks.
 
-The question pool **matches the league** — Nursery language is not Proficiency language. Each answer leans toward one of the houses, and the totals decide where the student belongs. Treat it as identity, not a test. Once placed, the house is for the year (and the design is lifelong belonging).
+The question pool **matches the league** — Nursery language is not D language. Each answer leans toward one of the houses, and the totals decide where the student belongs. Treat it as identity, not a test. Once placed, the house is for the year (and the design is lifelong belonging).
 
 Starter schools see a locked hat. **Pro** and **Elite** run the quiz.
 

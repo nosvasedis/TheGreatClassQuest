@@ -234,7 +234,12 @@ export function openEditClassModal(classId) {
     const leagues = constants.questLeagues.includes(original.questLevel) || !original.questLevel
         ? constants.questLeagues
         : [original.questLevel, ...constants.questLeagues];
-    levelSelect.innerHTML = leagues.map((l) => `<option value="${escapeText(l)}" ${l === original.questLevel ? 'selected' : ''}>${escapeText(l)}</option>`).join('');
+    // A league no longer offered stays listed for its own class, so an unrelated
+    // save never moves the class; it is marked so the teacher can choose a new one.
+    levelSelect.innerHTML = leagues.map((l) => {
+        const label = constants.questLeagues.includes(l) ? l : `${l} (retired league)`;
+        return `<option value="${escapeText(l)}" ${l === original.questLevel ? 'selected' : ''}>${escapeText(label)}</option>`;
+    }).join('');
     renderDays(original.scheduleDays);
     renderLengthPresets();
     renderFacts(classData);

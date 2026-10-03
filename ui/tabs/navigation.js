@@ -796,45 +796,6 @@ const GRAMMAR_CATEGORIES = {
         'Question Formation',
         'Conjunctions & Discourse Markers',
         'Emphasis & Inversion'
-    ],
-    'E': [
-        'Advanced Tense Review',
-        'Conditionals (0–3)',
-        'Wish / If Only',
-        'Advanced Passive Voice',
-        'Reported Speech & Reporting Verbs',
-        'Defining & Non-defining Clauses',
-        'Gerunds & Infinitives',
-        'Modal Perfect Forms',
-        'Phrasal Verbs in Context',
-        'Word Formation',
-        'Linking & Cohesion'
-    ],
-    'Lower': [
-        'B2 Key Word Transformations',
-        'Mixed Conditionals',
-        'Causative Have / Get',
-        'Advanced Reported Speech',
-        'Participle Clauses',
-        'Inversion for Emphasis',
-        'Advanced Modals & Deduction',
-        'Dependent Prepositions',
-        'Collocations & Phrasal Verbs',
-        'Register and Formality',
-        'Open Cloze Grammar'
-    ],
-    'Proficiency': [
-        'C1–C2 Key Word Transformations',
-        'Advanced Inversion & Emphasis',
-        'Cleft Sentences',
-        'Subjunctive & Unreal Forms',
-        'Ellipsis and Substitution',
-        'Nominalisation',
-        'Complex Participle Clauses',
-        'Advanced Modality and Hedging',
-        'Discourse Grammar',
-        'Nuance, Register & Style',
-        'Error Correction at C1–C2'
     ]
 };
 
@@ -938,45 +899,6 @@ const VOCABULARY_CATEGORIES = {
         'Idioms & Everyday Expressions',
         'Academic & Formal Vocabulary',
         'Compound Words & Word Formation'
-    ],
-    'E': [
-        'Environment & Sustainability',
-        'Technology and Digital Life',
-        'Education and Learning',
-        'Health and Wellbeing',
-        'Travel and Cultural Exchange',
-        'Media and Advertising',
-        'Relationships and Society',
-        'Work and Ambition',
-        'Common Collocations',
-        'Phrasal Verbs',
-        'Word Formation Families'
-    ],
-    'Lower': [
-        'B2 Collocations',
-        'Dependent Prepositions',
-        'Phrasal Verbs by Topic',
-        'Word Formation for B2 Exams',
-        'Crime and Justice',
-        'Science and Innovation',
-        'Society and Global Issues',
-        'Work, Business and Money',
-        'Arts, Entertainment and Media',
-        'Formal vs Informal Vocabulary',
-        'Easily Confused Words'
-    ],
-    'Proficiency': [
-        'C1–C2 Collocations',
-        'Idiomatic Language and Nuance',
-        'Advanced Phrasal Verbs',
-        'Academic Vocabulary',
-        'Register, Tone and Connotation',
-        'Abstract Ideas and Ethics',
-        'Politics, Society and Institutions',
-        'Science, Research and Innovation',
-        'Literature, Arts and Criticism',
-        'Advanced Word Formation',
-        'Near-synonyms and Precision'
     ]
 };
 
@@ -1075,42 +997,6 @@ const MIX_CATEGORIES = {
         'Media & Society',
         'Academic Vocabulary',
         'Arts & Culture'
-    ],
-    'E': [
-        'Advanced Tenses in Context',
-        'Environment & Sustainability',
-        'Conditionals and Wishes',
-        'Technology and Digital Life',
-        'Reported Speech',
-        'Health and Wellbeing',
-        'Phrasal Verbs & Collocations',
-        'Word Formation',
-        'Travel and Cultural Exchange',
-        'Linking Ideas Clearly'
-    ],
-    'Lower': [
-        'B2 Key Word Transformations',
-        'Mixed Conditionals',
-        'B2 Collocations',
-        'Science and Innovation',
-        'Advanced Passive & Causative',
-        'Society and Global Issues',
-        'Phrasal Verbs',
-        'Word Formation for B2',
-        'Register and Formality',
-        'Open Cloze Challenge'
-    ],
-    'Proficiency': [
-        'C1–C2 Transformations',
-        'Advanced Inversion & Clefts',
-        'Idioms, Collocations and Nuance',
-        'Academic Vocabulary',
-        'Complex Clauses and Cohesion',
-        'Abstract Ideas and Ethics',
-        'Advanced Word Formation',
-        'Register, Tone and Connotation',
-        'Discourse Grammar',
-        'Precision and Error Correction'
     ]
 };
 

@@ -9,10 +9,7 @@ const AGE_GROUP_BY_LEAGUE = {
   A: '9-10',
   B: '10-11',
   C: '11-12',
-  D: '12-13',
-  E: '13-14',
-  Lower: '14-15',
-  Proficiency: '15+'
+  D: '12-13'
 };
 
 function sleep(ms) {

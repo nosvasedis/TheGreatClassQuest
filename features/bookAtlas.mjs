@@ -50,7 +50,12 @@ export function buildAliasIndex(atlas = BOOK_ATLAS) {
 export function detectBooks(text, atlas = BOOK_ATLAS) {
     // Unsupported levels belong to the named series; never reinterpret B1+ as
     // another publisher's book or silently fall back to a broad series match.
-    const normal = normalizeBookText(text).replace(/\bgrammalysis\s+b1\+/g, ' ');
+    // Close-Up B1+ and Grammalysis B2 are not in the atlas: leave them unread
+    // rather than landing on the B1 book of the same series.
+    const normal = normalizeBookText(text)
+        .replace(/\bgrammalysis\s+(?:b1\+|b2)(?![\p{L}\d])/gu, ' ')
+        .replace(/(?:\b(?:new\s*)?(?:close\s*-?\s*up|closeup|n?cu)\s*)?\bb1\s*(?:\+|plus\b)/gu, ' ')
+        .replace(/\bclose\s*-?\s*up\s+plus\b/gu, ' ');
     const found = []; const occupied = [];
     for (const item of buildAliasIndex(atlas)) for (const m of normal.matchAll(item.regex)) {
         const start = m.index + m[1].length, end = start + m[2].length;
@@ -226,7 +231,6 @@ const loaders = {
     'primary-path-2': () => import('./bookAtlas/data/cpp2.json', { with: { type: 'json' } }),
     'primary-path-3': () => import('./bookAtlas/data/cpp3.json', { with: { type: 'json' } }),
     'close-up-b1': () => import('./bookAtlas/data/close-up-b1.json', { with: { type: 'json' } }),
-    'close-up-b1-plus': () => import('./bookAtlas/data/close-up-b1-plus.json', { with: { type: 'json' } }),
     bamboo: () => import('./bookAtlas/data/bamboo1.json', { with: { type: 'json' } }),
     'yeti-2': () => import('./bookAtlas/data/yeti2.json', { with: { type: 'json' } })
 };

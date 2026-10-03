@@ -475,13 +475,14 @@ export function showLeaguePicker(options = {}) {
         chunks.push(`
             <section class="lp-stage lp-stage--${stage.key}" style="--stage-i:${stageIndex}" aria-label="${escapeLeaguePickerText(stage.title)}">
                 <div class="lp-stage__label">
-                    <span class="lp-stage__icon" aria-hidden="true"><i class="fas ${stage.icon}"></i></span>
+                    <span class="lp-stage__icon" aria-hidden="true"><i class="fas ${stage.icon}"></i><b class="lp-stage__step">${stageIndex + 1}</b></span>
                     <span class="lp-stage__copy">
                         <span class="lp-stage__title font-title">${escapeLeaguePickerText(stage.title)}</span>
                         <span class="lp-stage__ages">${leagueStageAgeLabel(definitions)}</span>
                     </span>
                 </div>
                 <div class="lp-stage__grid">${cards}</div>
+                ${stageIndex < LEAGUE_PICKER_STAGES.length - 1 ? '<span class="lp-stage__road" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>' : ''}
             </section>`);
     });
     list.innerHTML = chunks.join('');

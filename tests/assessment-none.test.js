@@ -22,8 +22,8 @@ test('unsaved assessment defaults turn tests and dictations off for Nursery and 
   assert.equal(defaults['Junior A'].tests.mode, 'numeric');
   assert.equal(defaults['Junior A'].tests.maxScore, 40);
   assert.equal(defaults['Junior A'].dictations.mode, 'qualitative');
-  assert.equal(defaults.Proficiency.tests.mode, 'numeric');
-  assert.equal(defaults.Proficiency.tests.maxScore, 100);
+  assert.equal(defaults.D.tests.mode, 'numeric');
+  assert.equal(defaults.D.tests.maxScore, 100);
 });
 
 test('none mode is preserved and keeps the previous scale for later restore', async () => {

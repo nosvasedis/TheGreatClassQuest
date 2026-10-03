@@ -138,7 +138,7 @@ Opens the **Quest Board**, a cork noticeboard. **Pinned last time** shows the pr
 
 Saving can sync a homework line into the **Family Portal** so parents see the same quest without seeing your private notes.
 
-**Book recognition (Pro).** As you type, a small chip under the text recognises the book, its **part** (Student’s Book, Activity book, Companion / Language booster, Grammar book, Test book, Reader), the unit and the pages. It understands lines such as `PP2 un.4 pp.78-80`, `SB p.42, GB unit 5`, `PP2 activity book p.15`, `yeti 2 language booster p.108`, `CU B1+ u.2 p.17`, `σελ. 110-112` or `Yeti 2 unit 13`. This only tells the **Hero Campfire** what the children practised; it never changes the homework that families see.
+**Book recognition (Pro).** As you type, a small chip under the text recognises the book, its **part** (Student’s Book, Activity book, Companion / Language booster, Grammar book, Test book, Reader), the unit and the pages. It understands lines such as `PP2 un.4 pp.78-80`, `SB p.42, GB unit 5`, `PP2 activity book p.15`, `yeti 2 language booster p.108`, `CU B1 u.2 p.17`, `σελ. 110-112` or `Yeti 2 unit 13`. This only tells the **Hero Campfire** what the children practised; it never changes the homework that families see.
 
 - **Confirming.** Tap **Yes, that’s it**, or **Another book…** and add a short theme. When the app is not sure, it asks “Is this the right lesson?” in amber.
 - **More than one book.** A class may use several books on the same day. The chip lists every book it found, and **Choose the books** opens a row per book (Book, Part, Unit, Pages) with **＋ Add another book** for a grammar book, activity book or companion.

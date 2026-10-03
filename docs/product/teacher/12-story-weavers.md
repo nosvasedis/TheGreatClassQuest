@@ -12,7 +12,7 @@ Select the class in the header. The tab opens as a **storybook**: the latest ill
 
 **Writing Helpers** match the class's Quest League:
 
-- **Structure focus**: two or three sentence patterns for this league (for example past continuous with *when* in B, the 1st conditional in C, inversion in Proficiency), each with an example. Tap one to make it the focus for the next page; tap again to clear it. The focus is shown in the sentence box.
+- **Structure focus**: two or three sentence patterns for this league (for example past continuous with *when* in B, the 1st conditional in C, the passive voice in D), each with an example. Tap one to make it the focus for the next page; tap again to clear it. The focus is shown in the sentence box.
 - **Sentence starters**: tap one to open the next page with it already started (lock in the Word of the Day first). The sentence box also shows today's word and a short row of starters to tap.
 
 Until you choose a class, the tab shows a placeholder.

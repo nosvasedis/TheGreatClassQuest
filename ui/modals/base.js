@@ -482,7 +482,6 @@ export function showLeaguePicker(options = {}) {
                     </span>
                 </div>
                 <div class="lp-stage__grid">${cards}</div>
-                ${stageIndex < LEAGUE_PICKER_STAGES.length - 1 ? '<span class="lp-stage__road" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>' : ''}
             </section>`);
     });
     list.innerHTML = chunks.join('');

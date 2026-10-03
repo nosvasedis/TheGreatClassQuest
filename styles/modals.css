@@ -308,7 +308,7 @@
 }
 
 /* One stage of the journey: its name on top, its leagues below.
-   Four stages walk left to right on wide screens, joined by a road. */
+   Four stages walk left to right on wide screens. */
 .lp-stage {
     --stage-ink: #92400e;
     --stage-soft: #fef3c7;
@@ -404,23 +404,6 @@
     grid-column: 1 / -1;
 }
 
-/* The road to the next stage */
-.lp-stage__road {
-    position: absolute;
-    z-index: 3;
-    display: none;
-    place-items: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    font-size: 0.6rem;
-    color: #ffffff;
-    background: linear-gradient(135deg, #fbbf24, #d97706);
-    box-shadow: 0 0 0 2.5px #fffdf6, 0 4px 8px -3px rgba(180, 83, 9, 0.6);
-    animation: lp-road 2.4s ease-in-out infinite;
-    animation-delay: calc(var(--stage-i, 0) * 0.3s);
-}
-
 /* Phones: one stage per row, its leagues side by side */
 @media (min-width: 600px) {
     .lp-body {
@@ -445,11 +428,6 @@
     /* A lone league fills its stage so the four stages stay level */
     .lp-stage__grid:has(> :only-child) {
         flex: 1 1 auto;
-    }
-    .lp-stage__road {
-        display: grid;
-        top: 1.55rem;
-        right: -1.3rem;
     }
     .lp-stage__label {
         flex-direction: column;
@@ -765,7 +743,6 @@
 @keyframes league-option-selected { 0% { transform:scale(1); } 45% { transform:scale(.94); } 78% { transform:scale(1.1); } 100% { transform:scale(1.04); filter:saturate(1.16) brightness(1.05); } }
 @keyframes lp-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes lp-twinkle { from { opacity: 0.25; } to { opacity: 0.6; } }
-@keyframes lp-road { 0%,100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
 @keyframes league-option-shine { from { left:-48%; } to { left:128%; } }
 @keyframes league-option-spark { 0% { opacity:0; transform:scale(.2); } 38% { opacity:1; } 100% { opacity:0; transform:scale(3.8); } }
 @keyframes league-watermark-selected { 0% { transform:scale(1) rotate(0); } 60% { transform:scale(1.35) rotate(12deg); } 100% { transform:scale(1.18) rotate(0); } }
@@ -809,7 +786,6 @@
 @media (prefers-reduced-motion: reduce) {
     .lp-head::before,
     .lp-head__crown,
-    .lp-stage__road,
     .lp-follow,
     .lp-stage,
     .league-picker-option,

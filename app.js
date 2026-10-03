@@ -303,7 +303,7 @@ function updateSubscribeGraceBanner(graceWindow, options = {}) {
 
 // How long the personalized "Welcome, Name!" greeting stays fully legible
 // before the loading screen begins its exit/zoom-out animation.
-const WELCOME_HOLD_MS = 1800;
+const WELCOME_HOLD_MS = 2300;
 
 function animateLoadingScreenOut(loadingScreen) {
     if (!loadingScreen || loadingScreen.dataset.exiting === 'true') return;

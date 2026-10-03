@@ -147,6 +147,9 @@
     font-size: clamp(1.75rem, 8vw, 2.3rem) !important;
     line-height: 1.08;
     text-wrap: balance;
+}
+
+#loading-screen.gcq-loading-mobile .loading-title__ink {
     -webkit-text-stroke-width: 0.5px;
 }
 
@@ -157,8 +160,10 @@
 
 #loading-screen.gcq-loading-mobile.loading-final-moment .loading-title {
     transform: none;
-    -webkit-text-stroke-width: 0.8px;
-    -webkit-text-stroke-color: rgba(0, 0, 0, 0.35);
+}
+
+#loading-screen.gcq-loading-mobile .loading-title__ink--gold {
+    -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.35);
 }
 
 #loading-screen.gcq-loading-mobile .loading-title-flourish {
@@ -200,26 +205,21 @@
 #loading-screen.gcq-loading-mobile #loading-greeting-text,
 #loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text {
     max-width: 100%;
-    padding: 0 0.25rem;
+    /* No padding: the glow and sheen copies must wrap in exactly the same width. */
+    padding: 0;
     font-size: clamp(1.4rem, 6.6vw, 1.85rem);
     line-height: 1.16;
     letter-spacing: 0.01em;
     text-wrap: balance;
 }
 
-#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text .loading-greeting-ink {
-    /* Still colourful, but a single paint: no per-frame shimmer on phones. */
-    animation: none;
-    background-position: 30% 50%;
-}
-
-#loading-screen.gcq-loading-mobile.loading-final-moment #loading-greeting-text {
+#loading-screen.gcq-loading-mobile #loading-greeting-text {
     -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.4);
-    text-shadow: 0 0 16px rgba(255, 255, 255, 0.8);
 }
 
-#loading-screen.gcq-loading-mobile #loading-greeting-text::before {
-    opacity: 0.6;
+/* The phone's finale light is the sunburst below, not the desktop bloom. */
+#loading-screen.gcq-loading-mobile .loading-welcome-bloom {
+    display: none;
 }
 
 /* ── Welcome finale: sunburst + star pop in the hero cell ─── */

@@ -217,7 +217,6 @@ main {
     .loading-title,
     .loading-title::before,
     #loading-greeting-text,
-    #loading-greeting-text::before,
     #home-dashboard-container.home-intro-root.home-intro-visible,
     #home-dashboard-container.home-intro-root.home-intro-visible .horizons-grid > *,
     .app-tab.tab-animate-in,

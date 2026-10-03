@@ -669,11 +669,9 @@
     text-align: center !important;
     margin: 0.5rem 0 0.1rem !important;
     color: transparent !important;
-    /* Longhand (not shorthand) so the final-moment reveal can smoothly
-       transition the width/color into the celebratory border below. */
-    -webkit-text-stroke-width: 0.6px;
-    -webkit-text-stroke-color: rgba(255, 255, 255, 0.55);
-    text-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
+    /* Its own layer from the first frame, so the Welcome's move never has to
+       promote it (and re-raster the words) halfway through. */
+    will-change: transform;
 }
 
 /* Storybook gradient fill — deep sky blue into cyan into gold. It sits on an
@@ -686,7 +684,25 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    -webkit-text-stroke: 0.6px rgba(255, 255, 255, 0.55);
+    text-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
+    transition: opacity 0.6s ease;
 }
+
+/* The Welcome look (dark inner edge, warm halo) is a second copy painted up
+   front. The two crossfade, so nothing about the words is ever restyled, and
+   so repainted, while they move. */
+.loading-title__ink--gold {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.55);
+    text-shadow: 0 3px 10px rgba(15, 23, 42, 0.22), 0 0 26px rgba(253, 224, 71, 0.34);
+}
+
+/* The sky-blue copy stays fully opaque underneath, so the words never go
+   see-through halfway; the golden copy simply fades in over it. */
+#loading-screen.loading-final-moment .loading-title__ink--gold { opacity: 1; }
 
 /* Cheap "glow breathing" — a single blurred duplicate of the title text that
    only ever animates opacity/transform (compositor-only), instead of the
@@ -707,6 +723,30 @@
     opacity: 0.45;
     pointer-events: none;
     will-change: opacity, transform;
+    transition: opacity 0.6s ease;
+}
+
+/* The Welcome's golden glow: its own pre-painted layer that fades in while
+   the sky-blue one fades out. */
+.loading-title::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: inherit;
+    color: transparent;
+    -webkit-text-stroke: 0;
+    text-shadow: 0 0 18px #fde047, 0 0 36px rgba(253, 224, 71, 0.7);
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+    transition: opacity 0.7s ease 0.1s;
+}
+
+#loading-screen.loading-final-moment .loading-title::after {
+    opacity: 0.9;
 }
 
 /* Start breathing only once the words are visible. Chrome decides once, at

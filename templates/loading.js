@@ -222,6 +222,46 @@ const GLINT_SVG = `
         <path d="M0 -11 C0.9 -2.4 2.4 -0.9 11 0 C2.4 0.9 0.9 2.4 0 11 C-0.9 2.4 -2.4 0.9 -11 0 C-2.4 -0.9 -0.9 -2.4 0 -11 Z" fill="url(#lg-glint-star)"/>
     </svg>`;
 
+/**
+ * A band of light that sweeps across a line of words. Only the band and a
+ * copy of the words inside it move, in opposite directions, so the copy stays
+ * locked over the real words while the band slides: two plain translations,
+ * run by the compositor, with nothing repainted (styles/loading2.css).
+ */
+function sheenHTML(innerHTML) {
+    return `<span class="gcq-sheen" aria-hidden="true"><span class="gcq-sheen__band"><span class="gcq-sheen__text">${innerHTML}</span></span></span>`;
+}
+
+const LOADING_TITLE_TEXT = 'The Great Class Quest';
+
+function escapeHTML(text) {
+    return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/**
+ * The Welcome, one letter per span so the letters can rise in a wave. Words
+ * stay unbroken (each is its own inline-block) and wrap at the spaces. The
+ * same markup is used for the ink, its glow and its sheen, so all three lay
+ * out letter for letter on top of each other.
+ */
+function greetingLettersHTML(text, highlight) {
+    const start = highlight ? text.lastIndexOf(highlight) : -1;
+    const end = start >= 0 ? start + highlight.length : -1;
+    let offset = 0;
+    let index = 0;
+    return text.split(' ').map((word) => {
+        const letters = Array.from(word).map((ch) => {
+            const isName = offset >= start && offset < end;
+            offset += ch.length;
+            const html = `<span class="lg-l${isName ? ' lg-l--name' : ''}" style="--i:${index}"><span class="lg-l__ink">${escapeHTML(ch)}</span></span>`;
+            index += 1;
+            return html;
+        }).join('');
+        offset += 1; // the space
+        return `<span class="lg-w">${letters}</span>`;
+    }).join(' ');
+}
+
 function glints(className, count) {
     return Array.from({ length: count }, (_, i) =>
         `<span class="loading-glint ${className}-${i + 1}">${GLINT_SVG}</span>`).join('');
@@ -356,7 +396,11 @@ export const loadingHTML = `
 
         <!-- Center content -->
         <div class="loading-stage">
-            <div class="loading-title" data-text="The Great Class Quest"><span class="loading-title__ink">The Great Class Quest</span></div>
+            <div class="loading-title" data-text="${LOADING_TITLE_TEXT}">
+                <span class="loading-title__ink">${LOADING_TITLE_TEXT}</span>
+                <span class="loading-title__ink loading-title__ink--gold" aria-hidden="true">${LOADING_TITLE_TEXT}</span>
+                ${sheenHTML(LOADING_TITLE_TEXT)}
+            </div>
 
             <div class="loading-title-flourish" aria-hidden="true">
                 <span class="loading-flourish-line"></span>
@@ -378,8 +422,11 @@ export const loadingHTML = `
 
             <div class="loading-sunburst" aria-hidden="true">${SUNBURST_SVG}</div>
 
+            <!-- Welcome finale: a soft bloom of light the greeting rises out of -->
+            <div class="loading-welcome-bloom" aria-hidden="true"></div>
+
             <div id="loading-greeting" class="loading-greeting">
-                <span id="loading-greeting-text"><span class="loading-greeting-ink"></span></span>
+                <span id="loading-greeting-text"></span>
             </div>
 
             <!-- Welcome finale: sparkles pop in a ring around the greeting -->
@@ -625,21 +672,25 @@ function buildPersonalizedCopy(name, role) {
         case 'student':
             return {
                 greeting: firstName ? `Welcome, Hero ${firstName}!` : 'Welcome, Hero!',
+                highlight: firstName,
                 tip: 'Your guild is counting on you - the adventure continues!'
             };
         case 'parent':
             return {
                 greeting: formalLabel ? `Welcome back, ${formalLabel}!` : 'Welcome back!',
+                highlight: formalLabel,
                 tip: "Check in on your hero's progress and adventure log."
             };
         case 'secretary':
             return {
                 greeting: formalLabel ? `Welcome, ${formalLabel}!` : 'Welcome!',
+                highlight: formalLabel,
                 tip: 'The school records and hero roster are ready.'
             };
         default:
             return {
                 greeting: formalLabel ? `Welcome back, ${formalLabel}!` : 'Welcome back!',
+                highlight: formalLabel,
                 tip: "Your class is ready for today's quest. Let's go!"
             };
     }
@@ -671,14 +722,23 @@ export function revealStagedLoadingPersonalization() {
 
     partCloudsForWelcome();
 
-    // The words go in an inner "ink" span that carries the gradient fill;
-    // keeping background-clip:text off the outer span lets its ::before glow
-    // breathe on the compositor instead of repainting the words every frame.
-    const ink = greetingText.querySelector('.loading-greeting-ink') || greetingText;
-    ink.textContent = _stagedPersonalization.greeting;
-    // Kept in sync so the cheap ::before(attr(data-text)) glow layer always
-    // mirrors the visible (per-role, personalized) text.
-    greetingText.dataset.text = _stagedPersonalization.greeting;
+    // Three stacked copies of the same letters: a soft white glow behind, the
+    // coloured ink that rises in letter by letter, and a sheen of light that
+    // sweeps across once they have landed. Every copy is painted once; after
+    // that only transform and opacity move (styles/loading2.css), so the words
+    // never repaint, and never blink, while they grow.
+    const { greeting, highlight } = _stagedPersonalization;
+    const letters = greetingLettersHTML(greeting, highlight);
+    greetingText.innerHTML =
+        `<span class="loading-greeting-glow" aria-hidden="true">${letters}</span>` +
+        `<span class="loading-greeting-ink">${letters}</span>` +
+        sheenHTML(letters);
+    greetingText.setAttribute('aria-label', greeting);
+    const count = Array.from(greeting.replace(/ /g, '')).length;
+    // The whole wave lands within ~0.7s, however long the name is.
+    const step = Math.min(42, 700 / Math.max(1, count - 1));
+    greetingText.style.setProperty('--lg-step', `${step.toFixed(1)}ms`);
+    greetingText.style.setProperty('--lg-landed', `${Math.round(step * (count - 1) + 520)}ms`);
     greetingEl.classList.add('loading-greeting-visible');
     if (stageEl) stageEl.classList.add('loading-stage-reveal');
 

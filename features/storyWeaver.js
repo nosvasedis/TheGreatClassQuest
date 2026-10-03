@@ -14,6 +14,12 @@ import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 import { loadPdfTools } from '../utils/lazyLibraries.js';
+import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
+import { pickStoryWords } from './languageScaffolds.mjs';
+import {
+    countWords, deriveStoryPages, escapeHtml, highlightWord, milestoneHtml, sentenceUsesWord,
+    shelfBookHtml, shelfEmptyHtml, storyThreadHtml
+} from './storyWeaverView.js';
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
 }
@@ -44,102 +50,282 @@ export function renderStoryWritingHelpers(classId = storyWeaverClassId()) {
 
 // --- MAIN UI & STATE MANAGEMENT ---
 
+// What the open book is showing: the live pages of the selected class's story, and which one
+// is open (null = the latest page, which follows new pages as they arrive).
+const sw = {
+    classId: '',
+    history: [],
+    viewIndex: null,
+    shownKey: '',
+    narrating: false,
+    weaving: false,
+    redrawing: false,
+    listenersBound: false
+};
+
+const LOOM_STEPS = ['Writing the page into the book...', 'The Chronicler is illustrating...', 'Painting the colours...', 'Binding it into the story...'];
+
+function storyRef(classId) {
+    return doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
+}
+
+function historyRef(classId) {
+    return collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`);
+}
+
+function currentPages(classId = storyWeaverClassId()) {
+    const story = state.get('currentStoryData')[classId];
+    return deriveStoryPages(story, sw.classId === classId ? sw.history : []);
+}
+
+const swLite = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
+
 export function handleStoryWeaversClassSelect() {
     const classId = storyWeaverClassId();
     const mainContent = document.getElementById('story-weavers-main-content');
     const placeholder = document.getElementById('story-weavers-placeholder');
+    ensureStoryWeaverListeners();
+    const root = document.getElementById('sw-root');
+    root?.classList.toggle('sw--lite', swLite);
+    root?.classList.toggle('is-no-class', !classId);
 
     const unsubscribeStoryData = state.get('unsubscribeStoryData');
-    const currentUnsub = unsubscribeStoryData.current;
-    if (currentUnsub) {
-        currentUnsub();
-        delete unsubscribeStoryData.current;
+    ['current', 'history'].forEach((key) => {
+        if (unsubscribeStoryData[key]) {
+            unsubscribeStoryData[key]();
+            delete unsubscribeStoryData[key];
+        }
+    });
+    stopPageNarration();
+    if (sw.classId !== classId) {
+        sw.history = [];
+        sw.viewIndex = null;
+        sw.shownKey = '';
     }
+    sw.classId = classId;
 
     resetStoryWeaverWordUI();
     renderStoryWritingHelpers(classId);
+    renderClassChip(classId);
 
     if (classId) {
         mainContent.classList.remove('hidden');
         placeholder.classList.add('hidden');
 
-        const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
-        unsubscribeStoryData.current = onSnapshot(storyDocRef, (doc) => {
+        unsubscribeStoryData.current = onSnapshot(storyRef(classId), (doc) => {
             const currentStoryData = state.get('currentStoryData');
             currentStoryData[classId] = doc.exists() ? doc.data() : null;
             renderStoryWeaversUI(classId);
         }, (error) => console.error("Error listening to story data:", error));
+
+        unsubscribeStoryData.history = onSnapshot(query(historyRef(classId), orderBy('createdAt', 'asc')), (snapshot) => {
+            if (sw.classId !== classId) return;
+            sw.history = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            renderStoryWeaversUI(classId);
+        }, (error) => console.error("Error listening to story pages:", error));
     } else {
         mainContent.classList.add('hidden');
         placeholder.classList.remove('hidden');
     }
 
-    renderStoryArchive();
+    import('../db/listeners.js')
+        .then(({ ensureCompletedStoriesListener }) => ensureCompletedStoriesListener())
+        .catch(() => {})
+        .finally(() => renderStoryArchive());
+}
+
+function renderClassChip(classId) {
+    const chip = document.getElementById('sw-class-chip');
+    if (!chip) return;
+    const classData = storyWeaverClassData(classId);
+    chip.classList.toggle('hidden', !classData);
+    chip.innerHTML = classData
+        ? `<span aria-hidden="true">${escapeHtml(classData.logo || '📖')}</span> ${escapeHtml(classData.name || '')}`
+        : '';
 }
 
 function renderStoryWeaversUI(classId) {
+    if (!classId) return;
     const story = state.get('currentStoryData')[classId];
+    const pages = currentPages(classId);
+    const lockInBtn = document.getElementById('story-weavers-lock-in-btn');
+    const endBtn = document.getElementById('story-weavers-end-btn');
+    const wordLocked = Boolean(state.get('storyWeaverLockedWord'));
+
+    if (sw.viewIndex !== null && sw.viewIndex >= pages.length) sw.viewIndex = null;
+    const activeIndex = sw.viewIndex ?? pages.length - 1;
+    const page = pages[activeIndex] || null;
+    const isLatest = activeIndex === pages.length - 1;
+
+    if (!sw.weaving) renderBookPage(page, activeIndex, pages.length, story);
+
+    const nextNumber = pages.length + 1;
+    const weaveLabel = document.getElementById('sw-weave-label');
+    if (weaveLabel && !sw.weaving) weaveLabel.textContent = pages.length ? `Write page ${nextNumber}` : 'Start Story...';
+    if (!sw.weaving) lockInBtn.disabled = !wordLocked;
+    endBtn.disabled = !story?.currentSentence;
+    const hint = document.getElementById('sw-write-hint');
+    if (hint) {
+        hint.textContent = wordLocked
+            ? `The class decides what happens on page ${nextNumber}. Use the word, and try a starter below.`
+            : 'Lock in a word first. Then the class decides what happens next.';
+    }
+    document.getElementById('sw-word-step')?.classList.toggle('is-done', wordLocked);
+    document.getElementById('sw-write-step')?.classList.toggle('is-ready', wordLocked);
+
+    const sub = document.getElementById('sw-stage-sub');
+    if (sub) {
+        sub.textContent = !pages.length
+            ? 'A blank book is waiting for its first page.'
+            : `${pages.length} page${pages.length === 1 ? '' : 's'} woven so far. ${isLatest ? 'The open book shows the latest page.' : `You are looking back at page ${activeIndex + 1}.`}`;
+    }
+
+    const thread = document.getElementById('sw-thread');
+    if (thread) {
+        thread.innerHTML = storyThreadHtml(pages, activeIndex, { canWrite: wordLocked });
+        thread.querySelector('.sw-bead.is-active')?.scrollIntoView?.({ block: 'nearest', inline: 'center', behavior: 'auto' });
+    }
+    const prev = document.getElementById('sw-prev-page');
+    const next = document.getElementById('sw-next-page');
+    if (prev) prev.disabled = activeIndex <= 0;
+    if (next) next.disabled = isLatest || !pages.length;
+
+    const browse = document.getElementById('sw-browse-note');
+    if (browse) {
+        browse.classList.toggle('hidden', isLatest || !pages.length);
+        const text = document.getElementById('sw-browse-text');
+        if (text) text.textContent = `Looking back at page ${activeIndex + 1} of ${pages.length}`;
+    }
+    const milestone = document.getElementById('sw-milestone');
+    if (milestone) milestone.innerHTML = milestoneHtml(pages.length);
+
+    const readBtn = document.getElementById('story-weavers-read-btn');
+    if (readBtn) readBtn.disabled = !page || !isTtsSupported();
+    const redrawBtn = document.getElementById('story-weavers-redraw-btn');
+    if (redrawBtn) redrawBtn.disabled = !page || !isLatest || sw.weaving || sw.redrawing;
+}
+
+/** Puts one page into the open book, turning the leaf when the page changes. */
+function renderBookPage(page, index, total, story) {
     const textEl = document.getElementById('story-weavers-text');
     const imageEl = document.getElementById('story-weavers-image');
     const imagePlaceholder = document.getElementById('story-weavers-image-placeholder');
     const imageLoader = document.getElementById('story-weavers-image-loader');
-    const lockInBtn = document.getElementById('story-weavers-lock-in-btn');
-    const endBtn = document.getElementById('story-weavers-end-btn');
-    renderBookPageMeta(story);
-
-    if (story && story.currentSentence) {
-        lockInBtn.innerHTML = 'Continue...';
-        endBtn.disabled = false;
-        textEl.textContent = story.currentSentence;
-        imageLoader.classList.add('hidden');
-        if (story.currentImageUrl || story.currentImageBase64) {
-            imageEl.src = story.currentImageUrl || story.currentImageBase64;
-            imageEl.classList.remove('hidden');
-            imagePlaceholder.classList.add('hidden');
-        } else {
-            imageEl.classList.add('hidden');
-            imagePlaceholder.classList.remove('hidden');
-        }
-    } else {
-        lockInBtn.innerHTML = 'Start Story...';
-        endBtn.disabled = true;
-        textEl.textContent = "A new story awaits! Suggest and lock in a 'Word of the Day' to begin.";
-        imageEl.classList.add('hidden');
-        imagePlaceholder.classList.remove('hidden');
-        imageLoader.classList.add('hidden');
-    }
-}
-
-/** Page numbers, chapter label and the Word of the Day ribbon on the open book. */
-function renderBookPageMeta(story) {
-    const pageCount = Math.max(0, Number(story?.storyAdditionsCount) || 0);
-    const hasPage = Boolean(story?.currentSentence);
     const chapterLabel = document.getElementById('story-weavers-chapter-label');
     const leftNum = document.getElementById('story-weavers-page-left-num');
     const rightNum = document.getElementById('story-weavers-page-right-num');
     const ribbon = document.getElementById('story-weavers-word-ribbon');
     const ribbonText = document.getElementById('story-weavers-word-ribbon-text');
-    if (chapterLabel) chapterLabel.textContent = hasPage ? (pageCount ? `Page ${pageCount}` : 'Latest page') : 'A blank page';
-    if (leftNum) leftNum.textContent = hasPage && pageCount ? String(pageCount * 2 - 1) : '';
-    if (rightNum) rightNum.textContent = hasPage && pageCount ? String(pageCount * 2) : '';
-    if (ribbon && ribbonText) {
-        const word = hasPage ? String(story?.currentWord || '').trim() : '';
-        ribbonText.textContent = word;
-        ribbon.classList.toggle('hidden', !word);
+    const book = document.getElementById('sw-book');
+
+    const key = page ? `${index}|${page.sentence}|${page.imageUrl}` : 'blank';
+    const previousIndex = Number(sw.shownKey.split('|')[0]);
+    const changed = sw.shownKey !== '' && key !== sw.shownKey;
+    const sameSpot = changed && previousIndex === index;
+    sw.shownKey = key;
+
+    textEl.classList.remove('is-pending');
+    if (!sw.redrawing) imageLoader.classList.add('hidden');
+    if (page) {
+        textEl.innerHTML = highlightWord(page.sentence, page.word);
+        chapterLabel.textContent = index === total - 1 ? `Page ${index + 1} · Latest page` : `Page ${index + 1} of ${total}`;
+        leftNum.textContent = String(index * 2 + 1);
+        rightNum.textContent = String(index * 2 + 2);
+        ribbonText.textContent = page.word || '';
+        ribbon.classList.toggle('hidden', !page.word);
+        if (!sw.redrawing) {
+            if (page.imageUrl) {
+                if (imageEl.getAttribute('src') !== page.imageUrl) imageEl.src = page.imageUrl;
+                imageEl.classList.remove('hidden');
+                imagePlaceholder.classList.add('hidden');
+            } else {
+                imageEl.classList.add('hidden');
+                imagePlaceholder.classList.remove('hidden');
+            }
+        }
+    } else {
+        textEl.textContent = story?.currentSentence === '' || !story
+            ? "A new story awaits! Suggest and lock in a 'Word of the Day' to begin."
+            : story.currentSentence;
+        chapterLabel.textContent = 'A blank page';
+        leftNum.textContent = '';
+        rightNum.textContent = '';
+        ribbon.classList.add('hidden');
+        imageEl.classList.add('hidden');
+        imagePlaceholder.classList.remove('hidden');
     }
+    book?.classList.toggle('is-blank', !page);
+
+    if (changed && book && !sameSpot) {
+        const forward = Number.isNaN(previousIndex) || index > previousIndex;
+        book.classList.remove('is-turning-next', 'is-turning-prev');
+        void book.offsetWidth;
+        book.classList.add(forward ? 'is-turning-next' : 'is-turning-prev');
+        window.clearTimeout(renderBookPage.turnTimer);
+        renderBookPage.turnTimer = window.setTimeout(() => book.classList.remove('is-turning-next', 'is-turning-prev'), 900);
+    }
+}
+
+function showPage(index) {
+    const pages = currentPages();
+    if (!pages.length) return;
+    const target = Math.max(0, Math.min(pages.length - 1, index));
+    stopPageNarration();
+    sw.viewIndex = target === pages.length - 1 ? null : target;
+    renderStoryWeaversUI(storyWeaverClassId());
+}
+
+function activePageIndex() {
+    const pages = currentPages();
+    return sw.viewIndex ?? pages.length - 1;
+}
+
+// --- WORD OF THE DAY ---
+
+function setWordLockedUI(word) {
+    const input = document.getElementById('story-weavers-word-input');
+    const field = input?.closest('.sw-word-field');
+    const seal = document.getElementById('story-weavers-word-seal');
+    const sealText = document.getElementById('story-weavers-word-seal-text');
+    const locked = Boolean(word);
+    field?.classList.toggle('hidden', locked);
+    seal?.classList.toggle('hidden', !locked);
+    if (sealText) sealText.textContent = word || '';
+    document.getElementById('story-weavers-suggest-word-btn').disabled = locked;
+    const lucky = document.getElementById('story-weavers-lucky-btn');
+    if (lucky) lucky.disabled = locked;
+    if (locked) renderWordChoices([]);
 }
 
 export function resetStoryWeaverWordUI() {
     const input = document.getElementById('story-weavers-word-input');
     input.value = '';
-    input.classList.remove('bg-green-100', 'border-green-400', 'font-bold');
     state.set('storyWeaverLockedWord', null);
-    document.getElementById('story-weavers-suggest-word-btn').disabled = false;
+    setWordLockedUI(null);
     document.getElementById('story-weavers-lock-in-btn').disabled = true;
     document.getElementById('story-weavers-end-btn').disabled = true;
     const classId = storyWeaverClassId();
     renderStoryWeaversUI(classId);
     hideWordEditorControls();
+}
+
+/** Seals the Word of the Day (the tick button, Enter, or a picked word card). */
+export function confirmStoryWord(wordOverride = '') {
+    const input = document.getElementById('story-weavers-word-input');
+    const word = String(wordOverride || input.value || '').replace(/\s+/g, ' ').trim();
+    if (!word) return false;
+    input.value = word;
+    state.set('storyWeaverLockedWord', word);
+    setWordLockedUI(word);
+    hideWordEditorControls(true);
+    document.getElementById('story-weavers-clear-word-btn').classList.add('hidden');
+    renderStoryWeaversUI(storyWeaverClassId());
+    playSound('confirm');
+    const seal = document.getElementById('story-weavers-word-seal');
+    seal?.classList.remove('is-stamped');
+    void seal?.offsetWidth;
+    seal?.classList.add('is-stamped');
+    return true;
 }
 
 export function showWordEditorControls() {
@@ -154,12 +340,47 @@ export function hideWordEditorControls(isLocked = false) {
     }
 }
 
+const WORD_KINDS = new Set(['noun', 'verb', 'adjective', 'adverb']);
 
-// --- CORE GAME ACTIONS ---
+function renderWordChoices(choices, { source = '' } = {}) {
+    const box = document.getElementById('story-weavers-word-choices');
+    if (!box) return;
+    if (!choices.length) {
+        box.innerHTML = '';
+        return;
+    }
+    box.innerHTML = `<p class="sw-word-choices__label">${source === 'ai' ? '<i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> The Chronicler suggests' : '<i class="fas fa-dice" aria-hidden="true"></i> From the word bank'} <span>Tap one to seal it</span></p>
+        <div class="sw-word-choices__row">${choices.map((choice, index) => `
+            <button type="button" class="sw-word-card" data-word-choice="${escapeHtml(choice.word)}" style="--i:${index}">
+                <span class="sw-word-card__word">${escapeHtml(choice.word)}</span>
+                ${choice.kind ? `<span class="sw-word-card__kind sw-word-card__kind--${escapeHtml(choice.kind)}">${escapeHtml(choice.kind)}</span>` : ''}
+            </button>`).join('')}</div>`;
+}
+
+/** "lantern - noun" lines from the AI, tolerant of numbering, bullets and stray punctuation. */
+function parseWordChoices(text) {
+    const seen = new Set();
+    return String(text || '')
+        .split(/[\n,;]+/)
+        .map((line) => line.replace(/^[\s\d.)*•-]+/, '').replace(/["'`*.]/g, '').trim())
+        .map((line) => {
+            const [rawWord, rawKind = ''] = line.split(/\s*[-–:|(]\s*/);
+            const word = String(rawWord || '').trim().split(/\s+/).slice(0, 2).join(' ');
+            const kind = String(rawKind || '').replace(/[)]/g, '').trim().toLowerCase();
+            return { word, kind: WORD_KINDS.has(kind) ? kind : '' };
+        })
+        .filter(({ word }) => {
+            const key = word.toLowerCase();
+            if (!word || word.length > 24 || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        })
+        .slice(0, 3);
+}
 
 export async function handleSuggestWord() {
     if (!canUseFeature('eliteAI')) {
-        showToast("AI features require the Elite tier.", "error");
+        showToast("AI features require the Elite tier. Try a Lucky dip instead!", "error");
         return;
     }
     playSound('magic_chime');
@@ -171,19 +392,139 @@ export async function handleSuggestWord() {
     const btn = document.getElementById('story-weavers-suggest-word-btn');
     const input = document.getElementById('story-weavers-word-input');
     btn.disabled = true;
+    btn.classList.add('is-busy');
 
-    const systemPrompt = `You are a creative writing assistant for a teacher. Suggest a single, interesting, and slightly challenging English vocabulary word suitable for a language learner in the ${ageGroup} age group. The word should fit the theme of the ongoing story. Provide only the word, no definitions or extra text. Vary your suggestions; provide a mix of nouns, verbs, and adjectives.`;
-    const userPrompt = `The current story is: "${currentStory}". Suggest one new, creative word to continue the story.`;
+    const systemPrompt = `You are a creative writing assistant for a teacher. Suggest three interesting, slightly challenging English vocabulary words suitable for a language learner in the ${ageGroup} age group. The words should fit the theme of the ongoing story: one noun, one verb and one adjective. Answer with exactly three lines in the form "word - kind" and nothing else.`;
+    const userPrompt = `The current story is: "${currentStory}". Suggest three new, creative words to continue the story.`;
     try {
-        const word = await callGeminiApi(systemPrompt, userPrompt);
-        input.value = word.replace(/[\n."]/g, '').trim();
-        showWordEditorControls();
+        const reply = await callGeminiApi(systemPrompt, userPrompt);
+        const choices = parseWordChoices(reply);
+        if (!choices.length) throw new Error('No words in the reply');
+        input.value = '';
+        renderWordChoices(choices, { source: 'ai' });
     } catch (error) {
         showToast("The AI is busy, please try again!", "error");
     } finally {
-        btn.disabled = false;
+        btn.disabled = Boolean(state.get('storyWeaverLockedWord'));
+        btn.classList.remove('is-busy');
     }
 }
+
+function handleLuckyDip() {
+    const classData = storyWeaverClassData();
+    if (!classData) {
+        showToast('Choose a class from the header first.', 'info');
+        return;
+    }
+    playSound('click');
+    const shown = Array.from(document.querySelectorAll('[data-word-choice]')).map((b) => b.dataset.wordChoice);
+    renderWordChoices(pickStoryWords(classData.questLevel, { exclude: shown }), { source: 'bank' });
+}
+
+// --- READ ALOUD & REDRAW ---
+
+function stopPageNarration() {
+    if (!sw.narrating) return;
+    sw.narrating = false;
+    if (isSpeaking()) stopSpeech();
+    setReadButton(document.getElementById('story-weavers-read-btn'), false);
+    document.getElementById('sw-book')?.classList.remove('is-narrating');
+}
+
+function setReadButton(btn, on) {
+    if (!btn) return;
+    btn.classList.toggle('is-on', on);
+    btn.innerHTML = on
+        ? `<i class="fas fa-stop" aria-hidden="true"></i><span>Stop</span>`
+        : `<i class="fas fa-volume-high" aria-hidden="true"></i><span>Read aloud</span>`;
+}
+
+function readPageAloud(text, btn, { onStop } = {}) {
+    if (sw.narrating) {
+        stopPageNarration();
+        onStop?.();
+        return;
+    }
+    if (!text) return;
+    sw.narrating = true;
+    setReadButton(btn, true);
+    document.getElementById('sw-book')?.classList.add('is-narrating');
+    const done = () => {
+        sw.narrating = false;
+        setReadButton(btn, false);
+        document.getElementById('sw-book')?.classList.remove('is-narrating');
+        onStop?.();
+    };
+    speakText(text, {
+        rate: 0.92,
+        pitch: 1.05,
+        voiceHint: 'en',
+        onEnd: done,
+        onError: () => {
+            done();
+            showToast('Read aloud is not available on this device.', 'error');
+        }
+    });
+}
+
+function setLoomStep(step) {
+    const el = document.getElementById('sw-loom-step');
+    if (el) el.textContent = LOOM_STEPS[step] || LOOM_STEPS[1];
+}
+
+/** Paints a fresh illustration for the latest page and swaps it in, keeping the words. */
+async function handleRedrawIllustration() {
+    if (!canUseFeature('eliteAI')) {
+        showToast("AI image generation requires Elite tier.", "error");
+        return;
+    }
+    const classId = storyWeaverClassId();
+    const pages = currentPages(classId);
+    const page = pages[pages.length - 1];
+    if (!classId || !page || sw.redrawing) return;
+    sw.redrawing = true;
+    playSound('magic_chime');
+    const loader = document.getElementById('story-weavers-image-loader');
+    document.getElementById('story-weavers-image').classList.add('hidden');
+    document.getElementById('story-weavers-image-placeholder').classList.add('hidden');
+    loader.classList.remove('hidden');
+    setLoomStep(2);
+    renderStoryWeaversUI(classId);
+    try {
+        const context = pages.slice(-4, -1).map((p) => p.sentence).join(' ');
+        const imageUrl = await paintStoryPage(classId, page.sentence, context);
+        const batch = writeBatch(db);
+        batch.update(storyRef(classId), { currentImageUrl: imageUrl, updatedAt: serverTimestamp() });
+        if (page.id) batch.update(doc(historyRef(classId), page.id), { imageUrl });
+        await batch.commit();
+        showToast('A fresh illustration is in the book!', 'success');
+    } catch (error) {
+        console.error('Error redrawing illustration:', error);
+        showToast('Could not paint a new picture. Please try again.', 'error');
+    } finally {
+        sw.redrawing = false;
+        sw.shownKey = '';
+        renderStoryWeaversUI(classId);
+    }
+}
+
+/** AI prompt → Cloudflare image → compressed → Storage URL. */
+async function paintStoryPage(classId, sentence, recentHistory, onStep = setLoomStep) {
+    const imagePromptSystemPrompt = "You are an expert AI art prompt engineer. Your task is to convert a story's context into a short, effective, simplified English prompt for an image generator, under 75 tokens. The image type must be a 'whimsical children's storybook illustration'. The style should be 'simple shapes, vibrant and cheerful colors, friendly characters'. Use progressive detailing and relative descriptions. The prompt must be a single, structured paragraph. Conclude with '(Token count: X)'.";
+    const imagePromptUserPrompt = `Refactor the following into a high-quality, short image prompt. Previous context: '${recentHistory}'. The new, most important sentence is: "${sentence}". The image should focus on the new sentence while staying consistent with the previous context.`;
+    const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, imagePromptUserPrompt);
+
+    onStep(2);
+    const rawImageBase64 = await callCloudflareAiImageApi(imagePrompt);
+    const compressedImageBase64 = await compressImageBase64(rawImageBase64);
+
+    onStep(3);
+    const { uploadImageToStorage } = await import('../utils.js');
+    const imagePath = `story_images/${classId}/${Date.now()}.jpg`;
+    return uploadImageToStorage(compressedImageBase64, imagePath);
+}
+
+// --- CORE GAME ACTIONS ---
 
 export function openStoryInputModal(options = {}) {
     const classId = storyWeaverClassId();
@@ -191,15 +532,48 @@ export function openStoryInputModal(options = {}) {
     // Called directly as a click handler too, so ignore Event objects.
     const starter = typeof options?.starter === 'string' ? options.starter : '';
 
+    const pages = currentPages(classId);
+    const eyebrow = document.getElementById('story-input-eyebrow');
+    if (eyebrow) eyebrow.textContent = pages.length ? `Page ${pages.length + 1} of the story` : 'The very first page';
+    const previous = document.getElementById('story-input-previous');
+    if (previous) {
+        const last = pages[pages.length - 1];
+        previous.innerHTML = last ? `<span>So far…</span> ${highlightWord(last.sentence, last.word)}` : '';
+        previous.classList.toggle('hidden', !last);
+    }
+
     const textarea = document.getElementById('story-input-textarea');
     textarea.value = '';
+    updateStoryInputMeta();
     modals.showAnimatedModal('story-input-modal');
     loadStoryHelpers()
         .then((helpers) => {
             helpers.renderStoryInputHelpers(classId);
             if (starter) helpers.insertStarterIntoTextarea(starter);
+            updateStoryInputMeta();
         })
         .catch((error) => console.warn('Story input helpers failed to render:', error));
+}
+
+/** Live word count and a check that the Word of the Day made it into the sentence. */
+function updateStoryInputMeta() {
+    const textarea = document.getElementById('story-input-textarea');
+    const text = textarea?.value || '';
+    const count = document.getElementById('story-input-count');
+    if (count) {
+        const n = countWords(text);
+        count.textContent = `${n} word${n === 1 ? '' : 's'}`;
+    }
+    const check = document.getElementById('story-input-word-check');
+    const word = state.get('storyWeaverLockedWord');
+    if (!check) return;
+    check.classList.toggle('hidden', !word);
+    if (!word) return;
+    const used = sentenceUsesWord(text, word);
+    check.classList.toggle('is-used', used);
+    check.innerHTML = used
+        ? `<i class="fas fa-circle-check" aria-hidden="true"></i> <strong>${escapeHtml(word)}</strong> is in the sentence!`
+        : `<i class="fas fa-gem" aria-hidden="true"></i> Try to use <strong>${escapeHtml(word)}</strong>`;
 }
 
 export async function handleLockInSentence() {
@@ -214,7 +588,7 @@ export async function handleLockInSentence() {
     const storyDocExists = Boolean(storyRecord);
     const currentStory = storyRecord || {};
     const isNewStory = !currentStory.currentSentence;
-    const historyQuery = query(collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`), orderBy("createdAt", "desc"), limit(3));
+    const historyQuery = query(historyRef(classId), orderBy("createdAt", "desc"), limit(3));
     const historySnapshot = await getDocs(historyQuery);
     const recentHistory = historySnapshot.docs.map(d => d.data().sentence).join(' ');
 
@@ -230,35 +604,43 @@ export async function handleLockInSentence() {
 
     modals.hideModal('story-input-modal');
     playSound('writing');
+    stopPageNarration();
 
     const btn = document.getElementById('story-weavers-lock-in-btn');
     btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Chronicling...`;
+    btn.classList.add('is-busy');
+    document.getElementById('sw-weave-label').textContent = 'Chronicling...';
 
+    // The new words go straight onto the page while the Chronicler paints.
+    sw.weaving = true;
+    sw.viewIndex = null;
+    const textEl = document.getElementById('story-weavers-text');
+    textEl.innerHTML = highlightWord(newSentence, wordOfTheDay);
+    textEl.classList.add('is-pending');
+    document.getElementById('story-weavers-chapter-label').textContent = 'Weaving a new page...';
+    const nextPage = currentPages(classId).length + 1;
+    document.getElementById('story-weavers-page-left-num').textContent = String(nextPage * 2 - 1);
+    document.getElementById('story-weavers-page-right-num').textContent = String(nextPage * 2);
+    document.getElementById('story-weavers-word-ribbon-text').textContent = wordOfTheDay || '';
+    document.getElementById('story-weavers-word-ribbon').classList.toggle('hidden', !wordOfTheDay);
+    ['story-weavers-redraw-btn', 'story-weavers-read-btn'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
+    document.getElementById('sw-book')?.classList.add('is-weaving');
     document.getElementById('story-weavers-image-loader').classList.remove('hidden');
     document.getElementById('story-weavers-image').classList.add('hidden');
     document.getElementById('story-weavers-image-placeholder').classList.add('hidden');
+    setLoomStep(1);
 
     try {
-        const imagePromptSystemPrompt = "You are an expert AI art prompt engineer. Your task is to convert a story's context into a short, effective, simplified English prompt for an image generator, under 75 tokens. The image type must be a 'whimsical children's storybook illustration'. The style should be 'simple shapes, vibrant and cheerful colors, friendly characters'. Use progressive detailing and relative descriptions. The prompt must be a single, structured paragraph. Conclude with '(Token count: X)'.";
-        const imagePromptUserPrompt = `Refactor the following into a high-quality, short image prompt. Previous context: '${recentHistory}'. The new, most important sentence is: "${newSentence}". The image should focus on the new sentence while staying consistent with the previous context.`;
-        const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, imagePromptUserPrompt);
+        const imageUrl = await paintStoryPage(classId, newSentence, recentHistory);
 
-        const rawImageBase64 = await callCloudflareAiImageApi(imagePrompt);
-        const compressedImageBase64 = await compressImageBase64(rawImageBase64);
-
-        // --- NEW: UPLOAD TO STORAGE START ---
-        const { uploadImageToStorage } = await import('../utils.js');
-        const imagePath = `story_images/${classId}/${Date.now()}.jpg`;
-        const imageUrl = await uploadImageToStorage(compressedImageBase64, imagePath);
-        // --- NEW: UPLOAD TO STORAGE END ---
-
-        const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
-        const historyCollectionRef = collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`);
-        const newHistoryDoc = doc(historyCollectionRef);
+        const storyDocRef = storyRef(classId);
+        const newHistoryDoc = doc(historyRef(classId));
         const storyDataToSet = {
             currentSentence: newSentence,
-            currentImageUrl: imageUrl, // Saved the URL instead of Base64
+            currentImageUrl: imageUrl,
             currentWord: wordOfTheDay,
             storyAdditionsCount: increment(1),
             updatedAt: serverTimestamp(),
@@ -267,7 +649,7 @@ export async function handleLockInSentence() {
         const historyPayload = {
             sentence: newSentence,
             word: wordOfTheDay,
-            imageUrl: imageUrl, // Saved the URL instead of Base64
+            imageUrl: imageUrl,
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         };
@@ -296,8 +678,11 @@ export async function handleLockInSentence() {
     } catch (error) {
         console.error("Error locking in sentence:", error);
         showToast("Failed to save the story. Please try again.", "error");
-        // renderStoryWeaversUI(classId); // Optional: Refresh UI on error
     } finally {
+        sw.weaving = false;
+        sw.shownKey = sw.shownKey || 'blank';
+        btn.classList.remove('is-busy');
+        document.getElementById('sw-book')?.classList.remove('is-weaving');
         // We rely on the onSnapshot listener to update the UI once the data is saved
         resetStoryWeaverWordUI();
     }
@@ -306,21 +691,39 @@ export async function handleLockInSentence() {
 export function handleRevealStory() {
     const classId = storyWeaverClassId();
     const story = state.get('currentStoryData')[classId];
-    const storyText = story?.currentSentence || "Select a class to see the story.";
-    document.getElementById('story-reveal-text').textContent = storyText;
+    const pages = currentPages(classId);
+    const index = activePageIndex();
+    const page = pages[index] || null;
+    const textEl = document.getElementById('story-reveal-text');
+    if (page) textEl.innerHTML = highlightWord(page.sentence, page.word);
+    else textEl.textContent = story?.currentSentence || "Select a class to see the story.";
+
+    const pageLabel = document.getElementById('story-reveal-page');
+    if (pageLabel) {
+        const classData = storyWeaverClassData(classId);
+        pageLabel.innerHTML = page
+            ? `${escapeHtml(classData?.logo || '📖')} <span>Page ${index + 1}${pages.length > 1 ? ` of ${pages.length}` : ''}</span>`
+            : '';
+    }
 
     const art = document.getElementById('story-reveal-art');
     const image = document.getElementById('story-reveal-image');
-    const imageSrc = story?.currentSentence ? (story.currentImageUrl || story.currentImageBase64 || '') : '';
+    const imageSrc = page?.imageUrl || '';
     if (art && image) {
         image.src = imageSrc;
         art.classList.toggle('hidden', !imageSrc);
     }
     const wordEl = document.getElementById('story-reveal-word');
     if (wordEl) {
-        const word = story?.currentSentence ? String(story.currentWord || '').trim() : '';
+        const word = page ? String(page.word || '').trim() : '';
         wordEl.innerHTML = word ? `<span>Word of the Day</span> ${escapeHtml(word)}` : '';
         wordEl.classList.toggle('hidden', !word);
+    }
+    const readBtn = document.getElementById('story-reveal-read-btn');
+    if (readBtn) {
+        stopPageNarration();
+        setReadButton(readBtn, false);
+        readBtn.classList.toggle('hidden', !page || !isTtsSupported());
     }
 
     modals.showAnimatedModal('story-reveal-modal');
@@ -331,46 +734,32 @@ export function handleRevealStory() {
 
 export async function handleShowStoryHistory() {
     const classId = storyWeaverClassId();
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
+    const classData = storyWeaverClassData(classId);
     if (!classData) return;
-
-    document.getElementById('story-history-title').innerText = `${classData.logo} ${classData.name}'s Current Chronicle`;
-    const contentEl = document.getElementById('story-history-content');
-    contentEl.innerHTML = `<p class="text-center"><i class="fas fa-spinner fa-spin mr-2"></i> Loading chronicle...</p>`;
-    modals.showAnimatedModal('story-history-modal');
-
-    const historyQuery = query(collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`), orderBy("createdAt", "asc"));
-    try {
-        const snapshot = await getDocs(historyQuery);
-        if (snapshot.empty) {
-            contentEl.innerHTML = `<p class="text-center text-gray-500">This story is just beginning!</p>`;
-        } else {
-            contentEl.innerHTML = snapshot.docs.map((doc, index) => {
-                const data = doc.data();
-                const sentence = escapeHtml(data.sentence || '');
-                const word = escapeHtml(data.word || 'N/A');
-                const imgSrc = escapeHtml(data.imageUrl || data.imageBase64 || '');
-                return `<div class="story-history-card">
-                            <img src="${imgSrc}" alt="Chapter ${index + 1} illustration" loading="lazy" decoding="async" width="150" height="150">
-                            <div class="text-content">
-                                <p class="text-xs text-gray-500 font-bold">CHAPTER ${index + 1} (Word: <span class="text-cyan-600">${word}</span>)</p>
-                                <p class="text-gray-800 mt-2 flex-grow">${sentence}</p>
-                            </div>
-                        </div>`;
-            }).join('');
-        }
-    } catch (error) {
-        console.error("Error fetching story history:", error);
-        contentEl.innerHTML = `<p class="text-center text-red-500">Could not load story history.</p>`;
-    }
+    stopPageNarration();
+    const { openStoryReader } = await import('./storyReader.js');
+    const pages = currentPages(classId);
+    openStoryReader({
+        eyebrow: 'Current Chronicle',
+        title: `${classData.logo || ''} ${classData.name}'s story`.trim(),
+        subtitle: pages.length ? `${pages.length} page${pages.length === 1 ? '' : 's'} so far. Still being written!` : 'This story is just beginning!',
+        pages,
+        startAt: 0,
+        mode: 'current'
+    });
 }
 
 export function handleResetStory() {
     const classId = storyWeaverClassId();
     if (!classId) return;
-    modals.showModal('Start a New Story?', "This will reset the current story progress. The old story's history will be kept, but you will start from a blank page. Are you sure?", async () => {
+    const pageCount = currentPages(classId).length;
+    const message = pageCount
+        ? `This clears the ${pageCount} page${pageCount === 1 ? '' : 's'} of the current story and opens a blank book. To keep them as a storybook, press The End instead. Start over?`
+        : 'This opens a blank book for the class. Start over?';
+    modals.showModal('Start a New Story?', message, async () => {
         try {
-            const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
+            stopPageNarration();
+            const storyDocRef = storyRef(classId);
             await setDoc(storyDocRef, {
                 currentSentence: "",
                 currentImageBase64: null,
@@ -379,12 +768,79 @@ export function handleResetStory() {
                 updatedAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             });
+            // Clear the old pages so they cannot slip into the next storybook.
+            const oldPages = await getDocs(historyRef(classId));
+            for (let i = 0; i < oldPages.docs.length; i += 400) {
+                const batch = writeBatch(db);
+                oldPages.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+                await batch.commit();
+            }
+            sw.viewIndex = null;
             resetStoryWeaverWordUI();
             showToast("A new chapter begins!", "success");
         } catch (error) {
             console.error("Error resetting story:", error);
             showToast("Failed to start a new story.", "error");
         }
+    }, 'Start Over');
+}
+
+function ensureStoryWeaverListeners() {
+    if (sw.listenersBound) return;
+    sw.listenersBound = true;
+    const on = (id, type, fn) => document.getElementById(id)?.addEventListener(type, fn);
+
+    on('story-weavers-lucky-btn', 'click', handleLuckyDip);
+    on('story-weavers-change-word-btn', 'click', () => {
+        const word = state.get('storyWeaverLockedWord') || '';
+        resetStoryWeaverWordUI();
+        const input = document.getElementById('story-weavers-word-input');
+        input.value = word;
+        if (word) showWordEditorControls();
+        input.focus();
+    });
+    on('story-weavers-word-input', 'keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            confirmStoryWord();
+        }
+    });
+    on('story-weavers-word-choices', 'click', (event) => {
+        const card = event.target.closest('[data-word-choice]');
+        if (card) confirmStoryWord(card.dataset.wordChoice);
+    });
+    on('sw-thread', 'click', (event) => {
+        const bead = event.target.closest('.sw-bead');
+        if (!bead) return;
+        if (bead.dataset.pageNext) {
+            const lockInBtn = document.getElementById('story-weavers-lock-in-btn');
+            if (lockInBtn.disabled) {
+                showToast('Lock in the Word of the Day first, then write the next page.', 'info');
+                document.getElementById('story-weavers-word-input')?.focus();
+            } else {
+                openStoryInputModal();
+            }
+            return;
+        }
+        showPage(Number(bead.dataset.pageIndex));
+    });
+    on('sw-prev-page', 'click', () => showPage(activePageIndex() - 1));
+    on('sw-next-page', 'click', () => showPage(activePageIndex() + 1));
+    on('sw-back-latest', 'click', () => showPage(Infinity));
+    on('story-weavers-read-btn', 'click', (event) => {
+        const page = currentPages()[activePageIndex()];
+        readPageAloud(page?.sentence, event.currentTarget);
+    });
+    on('story-weavers-redraw-btn', 'click', handleRedrawIllustration);
+    on('story-reveal-read-btn', 'click', (event) => {
+        readPageAloud(document.getElementById('story-reveal-text')?.textContent?.trim(), event.currentTarget);
+    });
+    on('story-reveal-close-btn', 'click', stopPageNarration);
+    on('story-input-textarea', 'input', updateStoryInputMeta);
+    on('story-input-helpers', 'click', () => window.setTimeout(updateStoryInputMeta, 0));
+    on('sw-shelf', 'click', (event) => {
+        const book = event.target.closest('.view-storybook-btn');
+        if (book) openStorybookViewer(book.dataset.storyId);
     });
 }
 
@@ -396,15 +852,6 @@ function debounce(fn, waitMs) {
         window.clearTimeout(timeoutId);
         timeoutId = window.setTimeout(() => fn(...args), waitMs);
     };
-}
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
 }
 
 /** Ensures &lt;img&gt; nodes have finished loading before html2canvas runs (needed for remote URLs). */
@@ -469,6 +916,30 @@ export function renderStoryArchive() {
         stories: allCompletedStories,
         selectedClassId
     });
+    renderStoryShelf(allCompletedStories, selectedClassId);
+}
+
+/** The class's finished storybooks, standing on the shelf under the desk (newest first). */
+function renderStoryShelf(stories, selectedClassId) {
+    const shelf = document.getElementById('sw-shelf');
+    if (!shelf) return;
+    const mine = stories
+        .filter((s) => !selectedClassId || s.classId === selectedClassId)
+        .sort((a, b) => getTimestampMillis(b.completedAt) - getTimestampMillis(a.completedAt));
+    const sub = document.getElementById('sw-shelf-sub');
+    const classData = storyWeaverClassData(selectedClassId);
+    if (sub) {
+        sub.textContent = mine.length
+            ? `${mine.length} storybook${mine.length === 1 ? '' : 's'} ${classData ? `by ${classData.name}` : 'from your classes'}. Tap a book to read it.`
+            : 'Every finished story is bound and kept here.';
+    }
+    const visible = mine.slice(0, 10);
+    visible.forEach((s) => {
+        if (s?.id && !s.coverImageUrl && !s.coverImageBase64) ensureStorybookCover(s.id);
+    });
+    shelf.innerHTML = visible.length
+        ? `<div class="sw-shelf__books">${visible.map(shelfBookHtml).join('')}</div><div class="sw-shelf__plank" aria-hidden="true"></div>`
+        : `${shelfEmptyHtml(Boolean(selectedClassId))}<div class="sw-shelf__plank" aria-hidden="true"></div>`;
 }
 
 function renderArchiveSurface({ listEl, searchEl, sortEl, stories, selectedClassId, limit }) {
@@ -497,14 +968,14 @@ function renderArchiveSurface({ listEl, searchEl, sortEl, stories, selectedClass
     const visibleStories = typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
 
     if (stories.length === 0) {
-        listEl.innerHTML = `<div class="text-center text-slate-500 py-10">You have no completed storybooks yet. Finish a story to see it here!</div>`;
+        listEl.innerHTML = `<div class="sw-library-empty"><i class="fas fa-book" aria-hidden="true"></i><p>You have no completed storybooks yet. Finish a story to see it here!</p></div>`;
         return;
     }
 
     if (visibleStories.length === 0) {
         listEl.innerHTML = selectedClassId
-            ? `<div class="text-center text-slate-500 py-10">No storybooks for this class yet.</div>`
-            : `<div class="text-center text-slate-500 py-10">No matching storybooks.</div>`;
+            ? `<div class="sw-library-empty"><i class="fas fa-book" aria-hidden="true"></i><p>No storybooks for this class yet.</p></div>`
+            : `<div class="sw-library-empty"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><p>No matching storybooks.</p></div>`;
         return;
     }
 
@@ -514,26 +985,28 @@ function renderArchiveSurface({ listEl, searchEl, sortEl, stories, selectedClass
         ensureStorybookCover(s.id);
     });
 
-    listEl.innerHTML = visibleStories.map(story => {
+    listEl.innerHTML = visibleStories.map((story, index) => {
         const title = escapeHtml(story.title || 'Untitled Story');
         const classLine = escapeHtml(`${story.classLogo || ''} ${story.className || ''}`.trim() || 'Unknown class');
         const completedDate = story.completedAt?.toDate?.().toLocaleDateString?.() || '';
         const completedText = completedDate ? `Completed ${escapeHtml(completedDate)}` : 'Completed earlier';
         const coverUrl = story.coverImageUrl || story.coverImageBase64 || '';
+        const hue = [...String(story.title || '')].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 360;
 
         const cover = coverUrl
             ? `<img src="${escapeHtml(coverUrl)}" alt="" loading="lazy" decoding="async" class="story-weavers-archive-cover" />`
             : `<div class="story-weavers-archive-cover story-weavers-archive-cover--placeholder" aria-hidden="true">
-                    <i class="fas fa-feather-alt text-white/85 text-2xl"></i>
+                    <i class="fas fa-feather-pointed"></i>
                </div>`;
 
         return `
             <button type="button"
                 class="story-weavers-archive-tile view-storybook-btn"
-                data-story-id="${escapeHtml(story.id)}"
+                data-story-id="${escapeHtml(story.id)}" style="--hue:${hue};--i:${index}"
                 aria-label="Open storybook: ${title}">
                 <div class="story-weavers-archive-cover-wrap">
                     ${cover}
+                    <span class="story-weavers-archive-open" aria-hidden="true"><i class="fas fa-book-open"></i> Read</span>
                 </div>
                 <div class="story-weavers-archive-body">
                     <div class="story-weavers-archive-title">${title}</div>
@@ -572,23 +1045,18 @@ export async function openStorybookViewer(storyId) {
     modals.hideModal('story-archive-modal');
     const story = state.get('allCompletedStories').find(s => s.id === storyId);
     if (!story) return;
+    stopPageNarration();
+    const { openStoryReader, setReaderPages, showReaderError } = await import('./storyReader.js');
+    const completedDate = story.completedAt?.toDate?.().toLocaleDateString?.() || '';
 
-    document.getElementById('storybook-viewer-title').innerText = story.title;
-    document.getElementById('storybook-viewer-subtitle').innerText = `A Story by ${story.classLogo} ${story.className}`;
-    const contentEl = document.getElementById('storybook-viewer-content');
-    contentEl.innerHTML = `<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Loading chapters...</p>`;
-
-    const playBtn = document.getElementById('storybook-viewer-play-btn');
-    playBtn.onclick = null;
-    playBtn.disabled = true;
-    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
-
-    document.getElementById('storybook-viewer-print-btn').onclick = null;
-    document.getElementById('storybook-viewer-print-btn').disabled = true;
-
-    document.getElementById('storybook-viewer-delete-btn').onclick = () => handleDeleteCompletedStory(story.id);
-
-    modals.showAnimatedModal('storybook-viewer-modal');
+    openStoryReader({
+        eyebrow: completedDate ? `Storybook · finished ${completedDate}` : 'Storybook',
+        title: story.title || 'Untitled Story',
+        subtitle: `A Story by ${story.classLogo || ''} ${story.className || ''}`.replace(/\s+/g, ' ').trim(),
+        pages: null,
+        mode: 'archive',
+        onDelete: () => handleDeleteCompletedStory(story.id)
+    });
 
     try {
         const chaptersQuery = query(collection(db, `artifacts/great-class-quest/public/data/completed_stories/${storyId}/chapters`), orderBy("chapterNumber", "asc"));
@@ -596,65 +1064,19 @@ export async function openStorybookViewer(storyId) {
         const chapters = snapshot.docs.map(doc => doc.data());
 
         if (chapters.length === 0) {
-            contentEl.innerHTML = `<p class="text-center text-red-500 py-8">This storybook has no chapters!</p>`;
+            showReaderError('This storybook has no chapters!');
             return;
         }
 
         story.chapters = chapters;
-
-        contentEl.innerHTML = chapters.map((chapter) => {
-            const chapterNumber = Number(chapter.chapterNumber) || 0;
-            const imgSrc = escapeHtml(chapter.imageUrl || chapter.imageBase64 || '');
-            const sentence = escapeHtml(chapter.sentence || '');
-            return `
-                <div class="story-history-card">
-                    <img src="${imgSrc}" alt="Chapter ${chapterNumber} illustration" loading="lazy" decoding="async" width="150" height="150">
-                    <div class="text-content">
-                        <p class="text-xs text-gray-500 font-bold">CHAPTER ${chapterNumber}</p>
-                        <p class="text-gray-800 mt-2 flex-grow">${sentence}</p>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        document.getElementById('storybook-viewer-print-btn').onclick = () => handlePrintStorybook(storyId);
-        document.getElementById('storybook-viewer-print-btn').disabled = false;
-
-        if (!isTtsSupported()) {
-            playBtn.disabled = true;
-            playBtn.innerHTML = `<i class="fas fa-volume-mute mr-2"></i> TTS Unsupported`;
-            return;
-        }
-
-        playBtn.disabled = false;
-        playBtn.onclick = () => {
-            const chapterText = (story.chapters || []).map(c => c.sentence || '').filter(Boolean).join(' ');
-            if (!chapterText) return;
-            if (isSpeaking()) {
-                stopSpeech();
-                playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
-                return;
-            }
-            speakText(chapterText, {
-                rate: 0.95,
-                pitch: 1.05,
-                voiceHint: 'en',
-                onStart: () => {
-                    playBtn.innerHTML = `<i class="fas fa-stop-circle mr-2"></i> Stop Narration`;
-                },
-                onEnd: () => {
-                    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
-                },
-                onError: () => {
-                    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
-                    showToast('Narration failed on this device/browser.', 'error');
-                }
-            });
-        };
-
+        setReaderPages(chapters.map((chapter) => ({
+            sentence: chapter.sentence || '',
+            word: chapter.word || '',
+            imageUrl: chapter.imageUrl || chapter.imageBase64 || ''
+        })), { onPrint: () => handlePrintStorybook(storyId) });
     } catch (error) {
         console.error("Error loading story chapters:", error);
-        contentEl.innerHTML = `<p class="text-center text-red-500 py-8">Could not load the chapters for this storybook.</p>`;
+        showReaderError('Could not load the chapters for this storybook.');
     }
 }
 

@@ -253,7 +253,7 @@ function _playOverlayClose(overlay, prefix, duration) {
 
 // ─── Karaoke sync ─────────────────────────────────────────────────────────────
 let _karaokeCleanup = null;
-const ANTHEM_LAST_LINE_SECONDS = 3.6; // how long the final line is sung (no next line to measure from)
+const ANTHEM_LAST_LINE_SECONDS = 4.4; // how long the final line is sung (no next line to measure from)
 const KARAOKE_LEAD_SECONDS = 0.08;    // light a line a hair early so eyes reach it as the voice does
 
 function ensureAnthemOverlayRoot() {

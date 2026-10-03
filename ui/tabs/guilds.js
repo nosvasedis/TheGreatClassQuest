@@ -414,7 +414,7 @@ export function fillGuildAnthemCard(guildId) {
                 const i = lineIdx++;
                 const next = times[i + 1];
                 const dur = Math.min(6, Math.max(1.2, (next ?? times[i] + ANTHEM_LAST_LINE_SECONDS) - times[i]));
-                return `<p class="guild-anthem-line karaoke-upcoming" data-time="${times[i]}" style="--line-dur:${dur.toFixed(2)}s"><span class="guild-anthem-line__text">${_escapeHtml(line.text)}</span></p>`;
+                return `<p class="guild-anthem-line karaoke-upcoming" data-time="${times[i]}" style="--line-dur:${dur.toFixed(2)}s"><span class="guild-anthem-line__text"><span class="guild-anthem-line__ink">${_escapeHtml(line.text)}</span></span></p>`;
             }).join('')}
                 </div>`;
         }).join('');

@@ -1,6 +1,6 @@
-// /ui/modals/emberOaths.js — Ember Oaths board (lazy). One animated modal, four quick views:
-// the class board, the choosing ceremony (one tap per child, auto-advance), a promise's story
-// (check-in, one-tap moments, keep), and the kept-promise celebration.
+// /ui/modals/emberOaths.js — Ember Oaths board (lazy). One modal under a night sky, four quick views:
+// the class board (what needs you tonight first), the choosing ceremony (one tap per child, auto-advance),
+// a promise's story (check-in, one-tap moments, keep), and the kept-promise celebration.
 import '../../features/campfire/emberOaths.css';
 import * as state from '../../state.js';
 import { db, doc, updateDoc } from '../../firebase.js';
@@ -15,6 +15,7 @@ import * as oathActions from '../../db/actions/emberOaths.js';
 const { loadEmberOaths } = oathActions;
 import { showAnimatedModal, hideModal, showModal } from './base.js';
 import { showToast } from '../effects.js';
+import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 
 const MODAL_ID = 'ember-oaths-modal';
 const MOODS = [['flame', '🔥', 'Tried it'], ['candle', '🕯️', 'Growing'], ['moon', '🌙', 'Quiet day']];
@@ -23,6 +24,19 @@ const EVIDENCE_ICON = { virtue: '⭐', practice: '📜', quiz: '❓', manual: '�
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const prettyDate = iso => { const d = new Date(String(iso) + 'T12:00:00'); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
 const HUES = ['#f97316', '#8b5cf6', '#0ea5e9', '#10b981', '#ec4899', '#f59e0b', '#6366f1', '#14b8a6'];
+const FLAME = '<svg class="eo-flame" viewBox="0 0 48 64" aria-hidden="true"><path class="eo-flame__outer" d="M25 1C38 20 47 29 43 43 39 60 13 65 5 47-2 30 16 23 16 12c6 5 8 9 7 14C30 17 30 9 25 1Z"/><path class="eo-flame__mid" d="M25 20c10 13 14 20 9 29-5 10-20 9-23-1-3-11 9-17 10-23l4 10c4-5 3-9 0-15Z"/><path class="eo-flame__core" d="M24 37c4 7 10 11 5 16-5 6-13 1-11-5 1-4 5-6 6-11Z"/></svg>';
+
+/** Days between two ISO dates (b − a). */
+const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+/** A promise's time, told gently: never a countdown that shames. */
+function dueLabel(oath) {
+    const d = daysBetween(isoToday(), oath.dueDate);
+    if (!Number.isFinite(d)) return '';
+    if (d > 1) return d + ' days left';
+    if (d === 1) return 'Last day tomorrow';
+    if (d === 0) return 'Last day today';
+    return 'Time to keep it or choose anew';
+}
 
 function avatarHtml(student, size = 'md') {
     const guild = getGuildById(student?.guildId);
@@ -36,8 +50,14 @@ function categoryChip(category) {
 }
 function emberRow(count, target, big = false) {
     const total = Math.max(1, Math.min(12, target));
-    return '<span class="eo-embers' + (big ? ' is-big' : '') + '" role="img" aria-label="' + count + ' of ' + total + ' moments">' +
+    return '<span class="eo-embers' + (big ? ' is-big' : '') + '" role="img" aria-label="' + Math.min(count, total) + ' of ' + total + ' moments">' +
         Array.from({ length: total }, (_, i) => '<i class="' + (i < count ? 'is-lit' : '') + '" style="--i:' + i + '"></i>').join('') + '</span>';
+}
+/** The header's ring: how much of the class is growing a promise. */
+function ringHtml(part, whole) {
+    const r = 21, c = 2 * Math.PI * r, p = whole ? part / whole : 0;
+    return '<span class="eo-ring" role="img" aria-label="' + part + ' of ' + whole + ' heroes have a promise"><svg viewBox="0 0 52 52" aria-hidden="true"><circle class="eo-ring__track" cx="26" cy="26" r="' + r + '"/>' +
+        '<circle class="eo-ring__fill" cx="26" cy="26" r="' + r + '" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - p)).toFixed(1) + '"/></svg><b>' + part + '<small>/' + whole + '</small></b></span>';
 }
 
 // ─── Modal shell (built once, animated like every other app modal) ────────────
@@ -48,9 +68,9 @@ function ensureShell() {
     modal.id = MODAL_ID;
     modal.className = 'fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-3 sm:p-5 hidden backdrop-blur-md';
     modal.innerHTML = '<div class="eo-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="eo-title">' +
-        '<header class="eo-head"><span class="eo-orb eo-orb--a"></span><span class="eo-orb eo-orb--b"></span>' +
+        '<header class="eo-head"><span class="eo-sky" aria-hidden="true"><span class="eo-stars"></span><span class="eo-moon"></span><span class="eo-hills"></span><span class="eo-glow"></span></span>' +
         '<span class="eo-floaters" aria-hidden="true">' + Array.from({ length: 9 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' +
-        '<div class="eo-head-main"><span class="eo-head-icon" aria-hidden="true">🔥</span><div><h2 id="eo-title" class="font-title">Ember Oaths</h2><p class="eo-head-sub"></p></div></div>' +
+        '<div class="eo-head-main"><span class="eo-hearth" aria-hidden="true">' + FLAME + '<span class="eo-hearth__logs"></span></span><div><p class="eo-head-eyebrow">Ember Oaths</p><h2 id="eo-title" class="font-title"></h2><p class="eo-head-sub"></p></div></div>' +
         '<div class="eo-head-side"><div class="eo-stats"></div>' +
         '<button type="button" class="eo-icon-btn" data-close aria-label="Close"><i class="fas fa-times"></i></button></div>' +
         '</header>' +
@@ -78,12 +98,17 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     let local = [], screen = 'board', busy = false, closed = false, focusId = null, choosing = null, filter = 'all';
     const previousFocus = document.activeElement;
 
-    modal.querySelector('.eo-head-sub').textContent = c.name + (checkInOnly ? ' · Campfire check-ins' : ' · small promises, steady growth');
+    modal.querySelector('#eo-title').textContent = c.name;
+    modal.querySelector('.eo-head-sub').textContent = checkInOnly ? 'Campfire check-ins' : 'Small promises, steady growth';
     shell.dataset.band = band;
+    // Weak laptops keep the look and lose the endless loops (flicker, floating embers, glowing pulses).
+    shell.classList.toggle('is-lite', (() => { try { return detectLowPowerTier(); } catch { return false; } })());
 
     const activeFor = id => local.find(o => o.studentId === id && o.status === 'active');
     const keptFor = id => local.filter(o => o.studentId === id && o.status === 'kept');
     const resultFor = oath => evaluateOathEvidence(oath, facts.get(oath.id) || { awards: state.get('allAwardLogs'), writtenScores: state.get('allWrittenScores'), today: isoToday() });
+    const checkedToday = oath => (oath.checkIns || []).some(ci => ci.date === isoToday());
+    const campfire = () => import('../../features/campfire/campfireService.js').then(m => m.getCachedCampfire(classId)).catch(() => null);
     // The live award listener only holds this month's stars. A virtue promise begun last month (or a quiz
     // promise) reads its full window once, so the board, the story and the Campfire agree on "ready".
     const monthStart = isoToday().slice(0, 8) + '01';
@@ -94,20 +119,19 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         if (closed) return;
         if (!busy && screen === 'board') renderBoard(); else renderStats();
     }
-    const campfire = () => import('../../features/campfire/campfireService.js').then(m => m.getCachedCampfire(classId)).catch(() => null);
 
     function renderStats() {
         const growing = roster.filter(s => activeFor(s.id)).length;
         const ready = roster.filter(s => { const o = activeFor(s.id); return o && resultFor(o).ready; }).length;
         const kept = local.filter(o => o.status === 'kept').length;
-        modal.querySelector('.eo-stats').innerHTML =
-            '<span class="eo-stat"><b>' + growing + '</b> growing</span>' +
-            (ready ? '<span class="eo-stat is-ready"><b>' + ready + '</b> ready ✨</span>' : '') +
-            '<span class="eo-stat"><b>' + kept + '</b> kept ⭐</span>';
+        modal.querySelector('.eo-stats').innerHTML = ringHtml(growing, roster.length) +
+            '<span class="eo-stat-stack"><span class="eo-stat"><span aria-hidden="true">⭐</span><b>' + kept + '</b> kept</span>' +
+            (ready ? '<span class="eo-stat is-ready"><span aria-hidden="true">✨</span><b>' + ready + '</b> ready</span>' : '') + '</span>';
     }
     function setView(html, name) {
         screen = name; view.innerHTML = html; view.scrollTop = 0;
         view.classList.remove('is-entering'); void view.offsetWidth; view.classList.add('is-entering');
+        shell.dataset.screen = name;
         renderStats();
     }
     async function work(fn) {
@@ -121,44 +145,64 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     // ─── Board ────────────────────────────────────────────────────────────────
     function moodButtons(oath, big = false) {
         const selected = oath.checkIns?.find(ci => ci.date === isoToday())?.mood;
-        return '<div class="eo-moods' + (big ? ' is-big' : '') + '" role="group" aria-label="Today’s check-in">' + MOODS.map(([m, icon, label]) =>
+        return '<div class="eo-moods' + (big ? ' is-big' : '') + (selected ? ' is-done' : '') + '" role="group" aria-label="Today’s check-in">' + MOODS.map(([m, icon, label]) =>
             '<button type="button" data-check="' + esc(oath.id) + '" data-mood="' + m + '" aria-pressed="' + (selected === m) + '" title="' + label + '"><span aria-hidden="true">' + icon + '</span><small>' + label + '</small></button>').join('') + '</div>';
     }
     function studentCard(student, i) {
         const oath = activeFor(student.id), kept = keptFor(student.id).length;
         const keptBadge = kept ? '<span class="eo-kept-badge" title="' + kept + ' kept">⭐' + (kept > 1 ? kept : '') + '</span>' : '';
         if (!oath) {
-            return '<article class="eo-card is-empty" style="--i:' + i + '"><div class="eo-card-top"><span class="eo-avatar-wrap">' + avatarHtml(student) + keptBadge + '</span><div class="eo-card-name"><h3>' + esc(student.name) + '</h3><span class="eo-muted">No promise yet</span></div></div>' +
+            return '<article class="eo-card is-empty" style="--i:' + i + '"><div class="eo-card-top"><span class="eo-avatar-wrap">' + avatarHtml(student) + keptBadge + '</span><div class="eo-card-name"><h3>' + esc(student.name) + '</h3><span class="eo-muted">' + (kept ? 'Ready for a new promise' : 'No promise yet') + '</span></div></div>' +
                 (checkInOnly ? '' : '<button type="button" class="eo-choose-btn" data-choose="' + esc(student.id) + '"><span aria-hidden="true">✨</span> Choose a promise</button>') + '</article>';
         }
-        const r = resultFor(oath);
-        return '<article class="eo-card' + (r.ready ? ' is-ready' : '') + '" style="--i:' + i + '">' +
-            (r.ready ? '<span class="eo-ready-flag">Ready to keep ✨</span>' : '') +
+        const r = resultFor(oath), meta = CATEGORY_META[oath.category] || CATEGORY_META.virtue;
+        const due = daysBetween(isoToday(), oath.dueDate);
+        return '<article class="eo-card eo-card--' + meta.hue + (r.ready ? ' is-ready' : '') + '" style="--i:' + i + '">' +
+            (r.ready ? '<span class="eo-ready-flag">✨ Ready to keep</span>' : '') +
             '<button type="button" class="eo-card-open" data-open="' + esc(oath.id) + '" aria-label="Open ' + esc(student.name) + '’s promise"></button>' +
             '<div class="eo-card-top"><span class="eo-avatar-wrap">' + avatarHtml(student) + keptBadge + '</span>' + '<div class="eo-card-name"><h3>' + esc(student.name) + '</h3>' + categoryChip(oath.category) + '</div></div>' +
-            '<p class="eo-card-oath">' + (oath.private ? '<span class="eo-lock" title="Secret promise: the words never appear on the projector">🔒</span>' : '') + esc(oath.text) + '</p>' +
-            '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + '/' + r.target + '</span></div>' +
+            '<p class="eo-card-oath">' + esc(oath.text) + '</p>' +
+            '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-card-due' + (due <= 1 ? ' is-soon' : '') + '">' + esc(dueLabel(oath)) + '</span></div>' +
             moodButtons(oath) + '</article>';
     }
     function classPromiseBlock() {
         const current = c.classOath?.text || '';
+        const custom = current && !CLASS_PROMISES.some(p => p.text === current);
         return '<section class="eo-promise"><div class="eo-promise-title"><span aria-hidden="true">🤝</span><div><h3 class="font-title">Our Class Promise</h3><p>Little ones share one promise at the Campfire: no names, no numbers.</p></div></div>' +
             '<div class="eo-promise-options">' + CLASS_PROMISES.map(p => '<button type="button" data-promise="' + esc(p.text) + '" aria-pressed="' + (current === p.text) + '"><span aria-hidden="true">' + p.icon + '</span>' + esc(p.text) + '</button>').join('') +
-            '<button type="button" data-promise-custom aria-pressed="' + (current && !CLASS_PROMISES.some(p => p.text === current)) + '"><span aria-hidden="true">✏️</span>' + esc(current && !CLASS_PROMISES.some(p => p.text === current) ? current : 'Our own words…') + '</button></div>' +
-            '<form class="eo-promise-form" hidden><input maxlength="200" placeholder="We…" aria-label="Our own class promise" value="' + esc(current && !CLASS_PROMISES.some(p => p.text === current) ? current : '') + '"><button class="eo-primary is-small">Save</button></form></section>';
+            '<button type="button" data-promise-custom aria-pressed="' + Boolean(custom) + '"><span aria-hidden="true">✏️</span>' + esc(custom ? current : 'Our own words…') + '</button></div>' +
+            '<form class="eo-promise-form" hidden><input maxlength="200" placeholder="We…" aria-label="Our own class promise" value="' + esc(custom ? current : '') + '"><button class="eo-primary is-small">Save</button></form></section>';
+    }
+    /** Ready first, then promises still waiting for today's check-in, then the rest; children without one last. */
+    function boardOrder(list) {
+        const rank = s => { const o = activeFor(s.id); if (!o) return 3; if (resultFor(o).ready) return 0; return checkedToday(o) ? 2 : 1; };
+        return [...list].sort((a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name)));
+    }
+    /** "Tonight": the next useful thing, one tap away. */
+    function focusBar(waiting, ready, toCheck) {
+        const items = [];
+        if (ready.length) items.push('<button type="button" class="eo-focus eo-focus--ready" data-open="' + esc(activeFor(ready[0].id).id) + '"><span class="eo-focus-icon" aria-hidden="true">⭐</span><span><b>' + (ready.length === 1 ? esc(ready[0].name) + '’s promise is ready' : ready.length + ' promises are ready') + '</b><small>Keep it and a Star-Ember rises</small></span></button>');
+        if (toCheck.length && !early) items.push('<button type="button" class="eo-focus eo-focus--check" data-filter="check"><span class="eo-focus-icon" aria-hidden="true">🔥</span><span><b>' + toCheck.length + ' to check in today</b><small>Tried it, growing or a quiet day</small></span></button>');
+        if (waiting.length && !checkInOnly) items.push('<button type="button" class="eo-focus eo-focus--ceremony" data-ceremony><span class="eo-focus-icon" aria-hidden="true">✨</span><span><b>Choosing ceremony · ' + waiting.length + '</b><small>' + (waiting.length === 1 ? esc(waiting[0].name) + ' needs a promise' : waiting.length + ' heroes need a promise') + '</small></span></button>');
+        if (!items.length && roster.length) items.push('<div class="eo-focus eo-focus--calm"><span class="eo-focus-icon" aria-hidden="true">🌙</span><span><b>All tended for today</b><small>Every promise has its check-in. The embers rest.</small></span></div>');
+        return items.length ? '<div class="eo-focus-row">' + items.join('') + '</div>' : '';
     }
     function renderBoard() {
         if (closed) return;
         const waiting = roster.filter(s => !activeFor(s.id));
         const ready = roster.filter(s => { const o = activeFor(s.id); return o && resultFor(o).ready; });
-        const shown = filter === 'waiting' ? waiting : filter === 'ready' ? ready : roster;
-        const tabs = [['all', 'Everyone', roster.length], ['waiting', 'Need a promise', waiting.length], ['ready', 'Ready to keep', ready.length]];
+        const toCheck = roster.filter(s => { const o = activeFor(s.id); return o && !checkedToday(o); });
+        if (filter === 'check' && !toCheck.length) filter = 'all';
+        const shown = boardOrder(filter === 'waiting' ? waiting : filter === 'ready' ? ready : filter === 'check' ? toCheck : roster);
+        const tabs = [['all', 'Everyone', roster.length], ['check', 'Check in', toCheck.length], ['waiting', 'Need a promise', waiting.length], ['ready', 'Ready to keep', ready.length]]
+            .filter(([key, , n]) => key === 'all' || n || filter === key);
+        const empty = filter === 'ready' ? ['🌙', 'No promise is ready yet. Embers grow with every moment.'] : filter === 'waiting' ? ['🌟', 'Every hero has a promise.'] : ['🌱', 'No students in this class yet.'];
         setView((early && !studentId ? classPromiseBlock() + '<h3 class="eo-section-title font-title">Personal promises <small>optional · never shown on the projector</small></h3>' : '') +
+            focusBar(waiting, ready, toCheck) +
             '<div class="eo-toolbar"><div class="eo-tabs" role="tablist">' + tabs.map(([key, label, n]) =>
-                '<button type="button" role="tab" data-filter="' + key + '" aria-selected="' + (filter === key) + '">' + label + ' <b>' + n + '</b></button>').join('') + '</div>' +
-            (!checkInOnly && waiting.length ? '<button type="button" class="eo-cta" data-ceremony><span aria-hidden="true">✨</span> Choosing ceremony · ' + waiting.length + '</button>' : '') + '</div>' +
+                '<button type="button" role="tab" data-filter="' + key + '" aria-selected="' + (filter === key) + '">' + label + ' <b>' + n + '</b></button>').join('') + '</div></div>' +
             (shown.length ? '<div class="eo-grid">' + shown.map(studentCard).join('') + '</div>'
-                : '<div class="eo-empty-state"><span aria-hidden="true">' + (filter === 'ready' ? '🌙' : '🌟') + '</span><p>' + (filter === 'ready' ? 'No promise is ready yet. Embers grow with every moment.' : filter === 'waiting' ? 'Every hero has a promise. ✨' : 'No students in this class yet.') + '</p></div>'), 'board');
+                : '<div class="eo-empty-state"><span aria-hidden="true">' + empty[0] + '</span><p>' + empty[1] + '</p></div>'), 'board');
     }
 
     // ─── Choosing ceremony ──────────────────────────────────────────────────────
@@ -204,10 +248,11 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             '<span class="eo-option-text font-title">Something else…</span><span class="eo-option-why">Write exactly what the child says.</span><span class="eo-option-check" aria-hidden="true">✓</span></button>';
     }
     function ceremonyStrip(currentId) {
-        return '<div class="eo-strip" aria-label="Choosing ceremony progress">' + roster.map(r => {
-            const done = Boolean(activeFor(r.id)), current = r.id === currentId;
-            return '<span class="eo-strip-item' + (done ? ' is-done' : '') + (current ? ' is-current' : '') + '" title="' + esc(r.name) + (done ? ' · promise chosen' : '') + '">' + avatarHtml(r, 'sm') + (done ? '<i aria-hidden="true">🔥</i>' : '') + '</span>';
-        }).join('') + '</div>';
+        const done = roster.filter(r => activeFor(r.id)).length;
+        return '<div class="eo-strip-wrap"><span class="eo-strip-count">' + done + ' of ' + roster.length + ' lit</span><div class="eo-strip" aria-label="Choosing ceremony progress">' + roster.map(r => {
+            const lit = Boolean(activeFor(r.id)), current = r.id === currentId;
+            return '<span class="eo-strip-item' + (lit ? ' is-done' : '') + (current ? ' is-current' : '') + '" title="' + esc(r.name) + (lit ? ' · promise chosen' : '') + '">' + avatarHtml(r, 'sm') + (lit ? '<i aria-hidden="true">🔥</i>' : '') + '</span>';
+        }).join('') + '</div></div>';
     }
     async function choose(id, { fromCeremony = ceremony } = {}) {
         const student = roster.find(r => r.id === id); if (!student) return;
@@ -217,15 +262,14 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             campfire()
         ]);
         const profile = profileFor(student, quiz, fire);
-        choosing = { id, profile, offset: 0, suggestions: suggestOaths(profile), selected: null, secret: false };
+        choosing = { id, profile, offset: 0, suggestions: suggestOaths(profile), selected: null };
         setView('<div class="eo-choose">' +
             '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button>' + (ceremony ? ceremonyStrip(id) : '') + '</div>' +
-            '<div class="eo-choose-hero">' + avatarHtml(student, 'xl') + '<h3 class="font-title">Which promise will ' + esc(student.name) + ' choose?</h3><p class="eo-muted">Read them aloud. Let the child pick.</p></div>' +
+            '<div class="eo-choose-hero"><span class="eo-choose-halo" aria-hidden="true"></span>' + avatarHtml(student, 'xl') + '<h3 class="font-title">Which promise will ' + esc(student.name) + ' choose?</h3><p class="eo-muted">Read them aloud. Let the child pick.</p></div>' +
             '<div class="eo-options">' + optionsHtml() + '</div>' +
             '<label class="eo-own" hidden><span>Their promise</span><input type="text" maxlength="200" placeholder="I will…"></label>' +
             '<div class="eo-choose-more"><button type="button" class="eo-more" data-more><span aria-hidden="true">🔄</span> Other ideas</button>' +
             (canUseFeature('eliteAI') ? '<button type="button" class="eo-oracle" data-oracle><span aria-hidden="true">🔮</span> Ask the Oracle</button>' : '') + '</div>' +
-            '<div class="eo-choose-options"><button type="button" class="eo-switch" data-secret role="switch" aria-checked="false"><span class="eo-switch-track"><span></span></span><span><b>🔒 Secret promise</b><small>At the Campfire, the class sees “a secret promise” instead of the words</small></span></button></div>' +
             '<div class="eo-choose-actions"><button type="button" class="eo-quiet" data-skip-child>' + (ceremony ? 'Skip for now' : 'Cancel') + '</button><button type="button" class="eo-primary" data-commit disabled><span aria-hidden="true">🔥</span> Light this promise</button></div></div>', 'choose');
     }
     function selectedTemplate() {
@@ -244,7 +288,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     async function commitChoice() {
         const template = selectedTemplate(); if (!template) return;
         const studentIdNow = choosing.id;
-        const oath = await api.createEmberOath(template, { studentId: studentIdNow, classId, text: template.text, private: choosing.secret });
+        const oath = await api.createEmberOath(template, { studentId: studentIdNow, classId, text: template.text });
         local = [...local.filter(o => o.id !== oath.id), oath];
         view.querySelector('.eo-choose')?.classList.add('is-lit');
         await new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650));
@@ -268,33 +312,38 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function renderOath() {
         const oath = local.find(o => o.id === focusId); if (!oath) return renderBoard();
         const student = roster.find(s => s.id === oath.studentId);
-        const r = resultFor(oath);
+        const r = resultFor(oath), meta = CATEGORY_META[oath.category] || CATEGORY_META.virtue;
         const missing = r.count < r.target ? (r.target - r.count) + ' more moment' + (r.target - r.count > 1 ? 's' : '') : '';
         const needsFlame = !r.hasFlame;
         const moments = QUICK_MOMENTS[oath.category] || QUICK_MOMENTS.habit;
-        setView('<div class="eo-story">' +
-            '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button><span class="eo-muted">Until ' + esc(prettyDate(oath.dueDate)) + '</span></div>' +
-            '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">' + esc(student?.name) + '</h3>' + categoryChip(oath.category) + '</div></div>' +
-            '<blockquote class="eo-story-oath font-title">' + (oath.private ? '<span class="eo-lock" title="Secret promise">🔒</span>' : '') + esc(oath.text) + '</blockquote>' +
-            '<div class="eo-story-progress">' + emberRow(r.count, r.target, true) + '<p>' + (r.ready ? '<b>Ready to keep!</b> Every ember is glowing.' : 'Growing: ' + [missing, needsFlame ? 'one 🔥 check-in' : ''].filter(Boolean).join(' and ') + ' to go.') + '</p></div>' +
-            '<section class="eo-panel"><h4>Today</h4>' + moodButtons(oath, true) + '</section>' +
-            '<section class="eo-panel"><h4>Moments</h4><div class="eo-quick">' + moments.map(m => '<button type="button" data-moment="' + esc(m) + '"><span aria-hidden="true">＋</span>' + esc(m) + '</button>').join('') +
-            '<button type="button" data-moment-own><span aria-hidden="true">✏️</span>Something else…</button></div>' +
-            '<form class="eo-moment-form" hidden><input maxlength="160" placeholder="What did you notice?" aria-label="Describe the moment"><button class="eo-primary is-small">Add</button></form>' +
-            '<ol class="eo-timeline">' + (r.evidence.length ? [...r.evidence].reverse().map(e => '<li><span class="eo-tl-icon" aria-hidden="true">' + (EVIDENCE_ICON[e.kind] || '✨') + '</span><span class="eo-tl-text">' + esc(e.label) + '</span><time>' + esc(prettyDate(e.date)) + '</time></li>').join('')
-                : '<li class="eo-tl-empty">Moments appear here, some by themselves' + (oath.evidenceRule === 'virtue' ? ' as you award ' + esc(oath.target?.reason || '') + ' stars' : '') + '.</li>') + '</ol>' +
-            ((oath.checkIns || []).length ? '<div class="eo-checkin-strip" aria-label="Recent check-ins">' + oath.checkIns.slice(-8).map(ci => '<span title="' + esc(prettyDate(ci.date)) + '">' + (MOODS.find(m => m[0] === ci.mood)?.[1] || '·') + '</span>').join('') + '</div>' : '') + '</section>' +
-            (r.ready ? '<section class="eo-keep"><h4 class="font-title">✨ Keep the Ember</h4><p>How does ' + esc(student?.name) + ' feel about it?</p><div class="eo-feelings">' +
-                FEELINGS.map(([e, label], i) => '<button type="button" data-feeling="' + e + '" aria-pressed="' + (i === 0) + '"><span aria-hidden="true">' + e + '</span><small>' + label + '</small></button>').join('') + '</div>' +
-                '<input class="eo-helped" maxlength="200" placeholder="What helped? (optional)" aria-label="What helped">' +
-                '<button type="button" class="eo-primary is-wide" data-keep><span aria-hidden="true">⭐</span> Keep the promise</button></section>' : '') +
-            '<button type="button" class="eo-release" data-release>Let this promise go</button></div>', 'story');
+        const kept = keptFor(oath.studentId).length;
+        setView('<div class="eo-story eo-story--' + meta.hue + (r.ready ? ' is-ready' : '') + '">' +
+            '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button><span class="eo-pill">🗓️ ' + esc(dueLabel(oath)) + ' · until ' + esc(prettyDate(oath.dueDate)) + '</span></div>' +
+            '<div class="eo-story-grid"><section class="eo-scroll">' +
+                '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">' + esc(student?.name) + '</h3><div class="eo-story-tags">' + categoryChip(oath.category) + (kept ? '<span class="eo-chip eo-chip--gold">⭐ ' + kept + ' kept before</span>' : '') + '</div></div></div>' +
+                '<blockquote class="eo-story-oath font-title"><span class="eo-quote" aria-hidden="true">“</span>' + esc(oath.text) + '</blockquote>' +
+                '<div class="eo-story-progress">' + emberRow(r.count, r.target, true) + '<p>' + (r.ready ? '<b>Ready to keep!</b> Every ember is glowing.' : 'Growing: ' + [missing, needsFlame ? 'one 🔥 check-in' : ''].filter(Boolean).join(' and ') + ' to go.') + '</p></div>' +
+                (r.ready ? '<section class="eo-keep"><h4 class="font-title">✨ Keep the Ember</h4><p>How does ' + esc(student?.name) + ' feel about it?</p><div class="eo-feelings">' +
+                    FEELINGS.map(([e, label], i) => '<button type="button" data-feeling="' + e + '" aria-pressed="' + (i === 0) + '"><span aria-hidden="true">' + e + '</span><small>' + label + '</small></button>').join('') + '</div>' +
+                    '<input class="eo-helped" maxlength="200" placeholder="What helped? (optional)" aria-label="What helped">' +
+                    '<button type="button" class="eo-primary is-wide is-gold" data-keep><span aria-hidden="true">⭐</span> Keep the promise</button></section>' : '') +
+            '</section><div class="eo-story-side">' +
+                '<section class="eo-panel"><h4>Today</h4>' + moodButtons(oath, true) +
+                    ((oath.checkIns || []).length ? '<div class="eo-checkin-strip" aria-label="Recent check-ins">' + oath.checkIns.slice(-8).map(ci => '<span title="' + esc(prettyDate(ci.date)) + '">' + (MOODS.find(m => m[0] === ci.mood)?.[1] || '·') + '<small>' + esc(prettyDate(ci.date)) + '</small></span>').join('') + '</div>' : '') + '</section>' +
+                '<section class="eo-panel"><h4>Moments</h4><div class="eo-quick">' + moments.map(m => '<button type="button" data-moment="' + esc(m) + '"><span aria-hidden="true">＋</span>' + esc(m) + '</button>').join('') +
+                    '<button type="button" data-moment-own><span aria-hidden="true">✏️</span>Something else…</button></div>' +
+                    '<form class="eo-moment-form" hidden><input maxlength="160" placeholder="What did you notice?" aria-label="Describe the moment"><button class="eo-primary is-small">Add</button></form>' +
+                    '<ol class="eo-timeline">' + (r.evidence.length ? [...r.evidence].reverse().map(e => '<li><span class="eo-tl-icon" aria-hidden="true">' + (EVIDENCE_ICON[e.kind] || '✨') + '</span><span class="eo-tl-text">' + esc(e.label) + '</span><time>' + esc(prettyDate(e.date)) + '</time></li>').join('')
+                        : '<li class="eo-tl-empty">Moments appear here, some by themselves' + (oath.evidenceRule === 'virtue' ? ' as you award ' + esc(oath.target?.reason || '') + ' stars' : '') + '.</li>') + '</ol></section>' +
+                '<button type="button" class="eo-release" data-release>Let this promise go</button>' +
+            '</div></div></div>', 'story');
     }
     function renderKept(oath) {
         const student = roster.find(s => s.id === oath.studentId);
-        setView('<div class="eo-kept"><div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
-            '<div class="eo-kept-star" aria-hidden="true">⭐</div>' + avatarHtml(student, 'lg') +
-            '<h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-muted">A Star-Ember is in their Trophy Room, and a new star shines in the Campfire sky.</p>' +
+        setView('<div class="eo-kept"><div class="eo-kept-rays" aria-hidden="true"></div><div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
+            '<div class="eo-kept-star" aria-hidden="true">🌟</div>' + avatarHtml(student, 'lg') +
+            '<p class="eo-kept-eyebrow">A promise kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
+            '<p class="eo-muted">A Star-Ember is in their Trophy Room, and a new star shines in the Campfire sky.</p>' +
             '<div class="eo-kept-actions">' + (canUseFeature('parentAccess') ? '<button type="button" class="eo-secondary" data-share="' + esc(oath.id) + '"><span aria-hidden="true">💌</span> Share with family</button>' : '') +
             '<button type="button" class="eo-secondary" data-new-for="' + esc(oath.studentId) + '"><span aria-hidden="true">✨</span> Choose the next promise</button>' +
             '<button type="button" class="eo-primary" data-back>Back to the board</button></div></div>', 'kept');
@@ -303,7 +352,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const student = roster.find(s => s.id === oath.studentId);
         setView('<div class="eo-share"><div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button></div>' +
             '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">A note for ' + esc(student?.name) + '’s family</h3><p class="eo-muted">Only this message is shared. Moments and reflections stay with you.</p></div></div>' +
-            '<form data-publish="' + esc(oath.id) + '"><textarea maxlength="500" required>' + esc(oath.private ? student?.name + ' kept a personal learning promise with care. 🌟' : student?.name + ' kept a promise: “' + oath.text + '” 🌟') + '</textarea>' +
+            '<form data-publish="' + esc(oath.id) + '"><textarea maxlength="500" required>' + esc(student?.name + ' kept a promise: “' + oath.text + '” 🌟') + '</textarea>' +
             '<button class="eo-primary is-wide"><span aria-hidden="true">💌</span> Send to Family Portal</button></form></div>', 'share');
     }
 
@@ -335,7 +384,6 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             if (!own.hidden) own.querySelector('input')?.focus();
             return refreshCommit();
         }
-        if (b.hasAttribute('data-secret')) { if (!choosing) return; choosing.secret = !choosing.secret; b.setAttribute('aria-checked', String(choosing.secret)); return; }
         if (b.hasAttribute('data-skip-child')) {
             const next = ceremony ? nextChildWithoutOath(roster.map(r => r.id), local, choosing?.id) : null;
             if (next && next !== choosing?.id) return work(() => choose(next));
@@ -362,7 +410,9 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         if (b.dataset.check) return work(async () => {
             const updated = await api.checkInEmberOath(b.dataset.check, b.dataset.mood);
             local = local.map(o => o.id === updated.id ? updated : o);
-            b.closest('.eo-moods')?.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+            const group = b.closest('.eo-moods');
+            group?.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+            group?.classList.add('is-done');
             b.classList.remove('is-popping'); void b.offsetWidth; b.classList.add('is-popping');
             if (screen === 'story') renderOath(); else renderStats();
         });
@@ -438,7 +488,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     window.addEventListener('gcq:campfire-close', close); window.addEventListener('gcq:campfire-reset', close);
     session = { dispose };
     error.hidden = true;
-    view.innerHTML = '<div class="eo-loading"><span aria-hidden="true">🔥</span><p>Gathering promises…</p></div>';
+    view.innerHTML = '<div class="eo-loading">' + FLAME + '<p>Gathering promises…</p></div>';
     modal.querySelector('.eo-stats').innerHTML = '';
     showAnimatedModal(MODAL_ID);
     requestAnimationFrame(() => modal.querySelector('[data-close]')?.focus({ preventScroll: true }));
@@ -480,7 +530,7 @@ export async function renderChronicleOaths(studentId) {
                 const r = o.status === 'active' ? evaluateOathEvidence(o, activeFacts) : null;
                 const status = o.status === 'kept' ? '<span class="eo-status is-kept">⭐ Kept</span>' : o.status === 'released' ? '<span class="eo-status is-released">🍃 Released</span>' : '<span class="eo-status is-active">🔥 Growing</span>';
                 return '<article class="eo-chron-item is-' + o.status + '" style="--i:' + i + '"><div class="eo-chron-item-top">' + categoryChip(o.category) + status + '</div>' +
-                    '<p class="eo-chron-text">' + (o.private ? '🔒 ' : '') + esc(o.text) + '</p>' +
+                    '<p class="eo-chron-text">' + esc(o.text) + '</p>' +
                     (r ? '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + '/' + r.target + ' · until ' + esc(prettyDate(o.dueDate)) + '</span></div>' : '') +
                     (o.status === 'kept' && (o.reflection?.helped || o.reflection?.emoji) ? '<p class="eo-chron-reflection">' + esc(o.reflection.emoji || '') + ' ' + esc(o.reflection.helped || '') + '</p>' : '') + '</article>';
             }).join('') + '</div>'

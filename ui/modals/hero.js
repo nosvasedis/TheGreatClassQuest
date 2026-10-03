@@ -312,7 +312,7 @@ async function requestAIInsight(studentId, insightType) {
     if (canUseFeature('heroCampfire')) {
         try {
             const { loadEmberOaths } = await import('../../db/actions/emberOaths.js');
-            const oaths = (await loadEmberOaths()).filter(o => o.studentId === studentId && (insightType !== 'parent' || !o.private));
+            const oaths = (await loadEmberOaths()).filter(o => o.studentId === studentId);
             emberContext = JSON.stringify(oaths.map(o => ({ text: o.text, status: o.status, ...(insightType === 'parent' ? {} : { reflection: o.reflection }) })));
         } catch { /* optional context; the original insight remains available */ }
     }

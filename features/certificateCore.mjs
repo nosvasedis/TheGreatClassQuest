@@ -238,7 +238,7 @@ export function buildCertificateModel(input) {
     const keptOaths = oaths.filter((o) => o && o.studentId === student.id && o.status === 'kept' && inScope(o.keptAt || o.updatedAt || o.dueDate));
     const oath = keptOaths.length ? {
         count: keptOaths.length,
-        text: keptOaths[keptOaths.length - 1].private ? '' : String(keptOaths[keptOaths.length - 1].text || '').trim(),
+        text: String(keptOaths[keptOaths.length - 1].text || '').trim(),
     } : null;
 
     // Trophy Room treasures gathered in the period (usable relics included; they are still loot)

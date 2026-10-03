@@ -102,7 +102,7 @@ async function seedCampfire(tier = 'pro') {
 }
 function validEmber() {
   return { studentId: 'student-1', classId: 'camp-class', teacherId: 'teacher', createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027',
-    templateId: 'mid_virtue', text: 'I help someone take a turn.', projectorText: 'A secret oath', category: 'virtue', band: 'mid',
+    templateId: 'mid_virtue', text: 'I help someone take a turn.', projectorText: 'I help someone take a turn.', category: 'virtue', band: 'mid',
     target: { kind: 'virtue', count: 1, reason: 'Teamwork' }, evidenceRule: 'virtue', startDate: '2026-09-20', dueDate: '2026-10-04',
     status: 'active', private: true, checkIns: [], evidence: [], reflection: { helped: '', next: '', emoji: '' }, legendLine: '', keptAt: null,
     createdAt: serverTimestamp(), updatedAt: serverTimestamp() };

@@ -1,7 +1,6 @@
 /**
  * Class-sky constellation: one compact pointed star per kept Ember Oath.
  * Each promise kind has its own organic figure and way of joining (same kind only).
- * Secret promises stay a quiet gold spark so the type is not read aloud.
  * Covered by tests/campfire-constellation.test.mjs.
  */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -63,14 +62,14 @@ function starBody(kind) {
 }
 
 export function oathStarCategory(oath) {
-    if (!oath || oath.private) return 'virtue';
+    if (!oath) return 'virtue';
     return STAR_MARK[oath.category] ? oath.category : 'virtue';
 }
 
 export function constellationPeek(oath, student) {
     const name = student?.name || '';
-    if (!oath || oath.private) return { name, line: 'A promise kept', kind: 'virtue' };
-    return { name, line: oath.legendLine || oath.projectorText || oath.text || 'A promise kept', kind: oathStarCategory(oath) };
+    if (!oath) return { name, line: 'A promise kept', kind: 'virtue' };
+    return { name, line: oath.legendLine || oath.text || oath.projectorText || 'A promise kept', kind: oathStarCategory(oath) };
 }
 
 export function constellationKinds(oaths) {

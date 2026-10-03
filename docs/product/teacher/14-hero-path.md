@@ -6,7 +6,7 @@ Hero Path is how a student **chooses a vocation** and grows by practising one vi
 
 ## Purpose
 
-Children invest in **who they are becoming**. A Guardian is invited to practise Respect; a Weaver is invited to feed the class story; a Patron is invited to give Hero's Boon. Skill branches let them choose *self gold* or *gifts to others* — the same economy, two moral flavours.
+Children invest in **who they are becoming**. A Guardian is invited to practise Respect; a Weaver is invited to shine in every Training Grounds game; a Patron is invited to give Hero's Boon. Skill branches let them choose *self gold* or *gifts to others* — the same economy, two moral flavours.
 
 Base perk for every class: **+10 Gold** when the award reason matches their vocation (on top of 1 Gold per star). A Patron's +10 Gold lands on the **giver** of a Hero's Boon (so a paid gift costs 5 Gold unless Compassion Token has made boons free).
 
@@ -37,12 +37,12 @@ Help them pick how they **already shine**. Do not switch to chase Gold.
 | 🔮 **Sage** | Creativity | Apprentice → Scholar → Mystic → Archmage → Elder Sage | 20 / 45 / 70 / 95 / 120 |
 | ⚔️ **Paladin** | Teamwork | Squire → Knight → Crusader → Marshal → High Paladin | 20 / 45 / 70 / 95 / 120 |
 | ⚙️ **Artificer** | Focus | Tinkerer → Engineer → Inventor → Mastermind → Grand Artificer | 20 / 45 / 70 / 95 / 120 |
-| ✒️ **Weaver** | Story Weaver | Bard → Storyteller → Lorekeeper → Chronicler → Grand Weaver | 20 / 45 / 70 / 95 / 120 |
+| ✒️ **Weaver** | Training Grounds (all four games) | Trainee → Spellweaver → Thread Warden → Loom Master → Grand Weaver | **2 / 4 / 7 / 11 / 16** |
 | 📜 **Scholar** | Scholar’s Bonus | Scribe → Research Mentor → Grand Scholar | **10 / 20 / 30** (three tiers) |
 | 👟 **Nomad** | Welcome Back | Wanderer → Pathfinder → Legendary Nomad | **10 / 20 / 30** (three tiers) |
 | 💝 **Patron** | Hero's Boon (**giving**) | Giver → Benefactor → Grand Patron | **10 / 20 / 30** (three tiers; one path point per calendar week you give) |
 
-Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift. Extra Hero's Boon gifts in the same week still help classmates; they do not buy another path point.
+The Weaver's thresholds are small because Training Grounds stars come half a star at a time, to the whole class at once. Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift. Extra Hero's Boon gifts in the same week still help classmates; they do not buy another path point.
 
 Thresholds assume a long September–June year, not a sprint.
 
@@ -52,7 +52,7 @@ Open it from **Manage Students** (the **Skills** sitemap button), from the enlar
 
 At each new level the Skill Tree button **pulses** on the roster until they pick **one of two** permanent branches (A or B). On the path, that seal glows with **Level up! Choose one** and both skills float and shimmer. Tapping one opens a short rite (**Awaken this skill** / **Reconsider**). When they awaken it, the skill bursts into light and stays lit. The other branch dims to **Path not taken**. If an earlier seal still needs a choice, later unlocked seals wait for it. Help them read both cards aloud: extra Gold for themselves, bonus stars (these *do* move ranks), Gold to classmates who earned the same reason today, Gold to guildmates, a gift to a random classmate, or a **first time this calendar month** gift to the whole guild.
 
-Effects only fire when the **matching reason** is awarded (Respect for a Guardian, Story Weaver stars for a Weaver, Welcome Back for a Nomad, a Hero's Boon **gift** for a Patron, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
+Effects only fire when the **matching reason** is awarded (Respect for a Guardian, a star from any Training Grounds game for a Weaver, Welcome Back for a Nomad, a Hero's Boon **gift** for a Patron, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
 
 ### Kinds of gift
 
@@ -113,17 +113,17 @@ Highest **self Gold** path.
 | 4 (95) | **Clockwork Aura** — +3 Gold to a random classmate | **Mana Battery** — +3 Gold to guildmates earning Focus today |
 | 5 (120) | **Grand Contraption** — +10 Gold to you and +2 to guildmates | **Perpetual Engine** — +2 bonus stars on Focus |
 
-## ✒️ Weaver (Story Weaver) — the storyteller
+## ✒️ Weaver (Training Grounds) — the weaver of the four arts
 
-Levels from **Story Weavers** class bonuses, not from Award Stars buttons.
+Levels from **every Training Grounds game**: Story Weavers, The Vanishing Hoard, The Torn Map and The Round Table. Those stars come as class bonuses, never from Award Stars buttons, and every one of them pays the Weaver's +10 Gold.
 
 | Level | Branch A | Branch B |
 |-------|----------|----------|
-| 1 (20) | **Word Craft** — +3 Gold on Story Weaver | **Tale Share** — +2 Gold to classmates who also earn it today |
-| 2 (45) | **Narrative Power** — +2 Gold to guildmates earning it today | **Lore Keeper** — first this month: guildmates +5 Gold |
-| 3 (70) | **Epic Prose** — +4 Gold to you and +2 to classmates | **Chronicle** — +1 bonus star |
-| 4 (95) | **Master Storyteller** — +3 Gold to a random classmate | **Saga Warden** — +3 Gold to guildmates |
-| 5 (120) | **Grand Chronicler** — +6 Gold to you and +3 to guildmates | **Weaver’s Web** — +2 bonus stars |
+| 1 (2) | **Four Threads** — +6 Gold per Training Grounds star | **Shared Loom** — +2 Gold to every classmate when the class wins one |
+| 2 (4) | **Guild Tapestry** — +2 Gold to guildmates | **First Thread** — first this month: guildmates +5 Gold |
+| 3 (7) | **Woven Together** — +8 Gold to you and +2 to every classmate | **Chronicle** — +0.5 bonus star |
+| 4 (11) | **Master of the Arts** — +3 Gold to a random classmate | **Saga Warden** — +3 Gold to guildmates |
+| 5 (16) | **Grand Weaver's Mark** — +12 Gold to you and +3 to guildmates | **Weaver's Web** — +1 bonus star |
 
 ## 📜 Scholar (Scholar’s Bonus) — the academic
 

@@ -40,7 +40,7 @@ const CLASS_MOTTOS = {
     Paladin: 'Leads the guild, shoulder to shoulder.',
     Artificer: 'Builds greatness one careful step at a time.',
     Scholar: 'Turns every trial into treasure.',
-    Weaver: 'Spins stories that light up the room.',
+    Weaver: 'Masters every game in the Training Grounds.',
     Nomad: 'Always finds the way back to the quest.',
     Patron: 'Grows stronger by giving to others.'
 };

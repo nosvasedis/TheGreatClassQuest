@@ -202,7 +202,7 @@ const MORE_SHORT_LABELS = {
     'adventure-log-tab': 'Log',
     'scholars-scroll-tab': 'Scroll',
     'calendar-tab': 'Calendar',
-    'reward-ideas-tab': 'Stories',
+    'reward-ideas-tab': 'Training',
     'manage-students-tab': 'Roster',
     'options-tab': 'Settings'
 };

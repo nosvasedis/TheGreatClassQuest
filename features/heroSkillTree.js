@@ -8,6 +8,8 @@
 //                                  all guildmates get +`amount` gold automatically (tracked via lastGuildBonusMonth)
 //   random_classmate_gold        — add `amount` gold to a randomly chosen classmate in the same class
 
+import { TRAINING_PATH_KEY, TRAINING_REASONS, TRAINING_REASON_LABELS } from './trainingGroundsCore.mjs';
+
 export const HERO_SKILL_TREE = {
 
     // ─── GUARDIAN (Respect) — The Protector ──────────────────────────────────
@@ -319,67 +321,70 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── WEAVER (Story Weaver) — The Storyteller ────────────────────────────
-    // Identity: Benefits spread to many allies. Combined classmate+self at L3.
+    // ─── WEAVER (Training Grounds) — The Weaver of the Four Arts ─────────────
+    // Identity: levels on every Training Grounds game (Story Weavers, Vanishing Hoard,
+    // Torn Map, Round Table). Those stars come to the whole class at once, half a star
+    // at a time, so the path is short and the gifts spread to many allies.
     Weaver: {
-        reason: 'story_weaver',
+        reason: TRAINING_PATH_KEY,
+        reasons: TRAINING_REASONS,
         auraColor: '#0d9488',
         auraGlow: '0 0 18px 6px #0d948888',
-        titles: ['Bard', 'Storyteller', 'Lorekeeper', 'Chronicler', 'Grand Weaver'],
+        titles: ['Trainee', 'Spellweaver', 'Thread Warden', 'Loom Master', 'Grand Weaver'],
         levels: [
             {
-                threshold: 20,
+                threshold: 2,
                 branches: [
-                    { id: 'weaver_1a', name: 'Word Craft', icon: '✒️',
-                      desc: 'Earn +3 Gold whenever you receive a Story Weaver star.',
-                      effect: { type: 'self_gold_on_reason', amount: 3 } },
-                    { id: 'weaver_1b', name: 'Tale Share', icon: '📜',
-                      desc: '+2 Gold to every classmate who also earns a Story Weaver star on the same day.',
+                    { id: 'weaver_1a', name: 'Four Threads', icon: '🧵',
+                      desc: '+6 Gold for every Training Grounds star you earn (+3 for each half-star moment).',
+                      effect: { type: 'self_gold_on_reason', amount: 6 } },
+                    { id: 'weaver_1b', name: 'Shared Loom', icon: '🤝',
+                      desc: '+2 Gold to every classmate each time your class wins a Training Grounds star.',
                       effect: { type: 'classmate_gold_on_reason', amount: 2 } }
                 ]
             },
             {
-                threshold: 45,
+                threshold: 4,
                 branches: [
-                    { id: 'weaver_2a', name: 'Narrative Power', icon: '🌊',
-                      desc: '+2 Gold to every guildmate who earns a Story Weaver star today.',
+                    { id: 'weaver_2a', name: 'Guild Tapestry', icon: '🌊',
+                      desc: '+2 Gold to every guildmate each time you earn a Training Grounds star.',
                       effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
-                    { id: 'weaver_2b', name: 'Lore Keeper', icon: '📕',
-                      desc: 'The first time you earn a Story Weaver star each month, all your guildmates receive +5 Gold automatically.',
+                    { id: 'weaver_2b', name: 'First Thread', icon: '📕',
+                      desc: 'The first Training Grounds star you earn each month gives all your guildmates +5 Gold.',
                       effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
                 ]
             },
             {
-                threshold: 70,
+                threshold: 7,
                 branches: [
-                    { id: 'weaver_3a', name: 'Epic Prose', icon: '🏛️',
-                      desc: '+4 Gold when you earn Story Weaver AND +2 Gold to every classmate who also earns it today.',
-                      effect: { type: 'self_gold_on_reason', amount: 4 }, secondaryEffect: { type: 'classmate_gold_on_reason', amount: 2 } },
+                    { id: 'weaver_3a', name: 'Woven Together', icon: '🏛️',
+                      desc: '+8 Gold per Training Grounds star you earn AND +2 Gold to every classmate when the class wins one.',
+                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'classmate_gold_on_reason', amount: 2 } },
                     { id: 'weaver_3b', name: 'Chronicle', icon: '📰',
-                      desc: '+1 bonus star added to your total whenever you earn a Story Weaver star.',
-                      effect: { type: 'star_bonus_on_reason', amount: 1 } }
+                      desc: '+0.5 extra star added to your total whenever you earn a Training Grounds star.',
+                      effect: { type: 'star_bonus_on_reason', amount: 0.5 } }
                 ]
             },
             {
-                threshold: 95,
+                threshold: 11,
                 branches: [
-                    { id: 'weaver_4a', name: 'Master Storyteller', icon: '🎭',
-                      desc: '+3 Gold to a random classmate every time you earn a Story Weaver star.',
+                    { id: 'weaver_4a', name: 'Master of the Arts', icon: '🎭',
+                      desc: '+3 Gold to a random classmate every time you earn a Training Grounds star.',
                       effect: { type: 'random_classmate_gold', amount: 3 } },
                     { id: 'weaver_4b', name: 'Saga Warden', icon: '🗝️',
-                      desc: '+3 Gold to every guildmate who earns a Story Weaver star today.',
+                      desc: '+3 Gold to every guildmate each time you earn a Training Grounds star.',
                       effect: { type: 'guildmate_gold_on_reason', amount: 3 } }
                 ]
             },
             {
-                threshold: 120,
+                threshold: 16,
                 branches: [
-                    { id: 'weaver_5a', name: 'Grand Chronicler', icon: '🌟',
-                      desc: "+6 Gold when you earn Story Weaver AND +3 Gold to all guildmates earning it.",
-                      effect: { type: 'self_gold_on_reason', amount: 6 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 3 } },
+                    { id: 'weaver_5a', name: 'Grand Weaver\'s Mark', icon: '🌟',
+                      desc: '+12 Gold per Training Grounds star you earn AND +3 Gold to all your guildmates.',
+                      effect: { type: 'self_gold_on_reason', amount: 12 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 3 } },
                     { id: 'weaver_5b', name: "Weaver's Web", icon: '👑',
-                      desc: '+2 bonus stars added to your total whenever you earn a Story Weaver star.',
-                      effect: { type: 'star_bonus_on_reason', amount: 2 } }
+                      desc: '+1 bonus star added to your total whenever you earn a Training Grounds star.',
+                      effect: { type: 'star_bonus_on_reason', amount: 1 } }
                 ]
             }
         ]
@@ -487,6 +492,8 @@ export const REASON_DISPLAY_NAMES = {
     focus:           'Focus',
     scholar_s_bonus: "Scholar's Bonus",
     story_weaver:    'Story Weaver',
+    ...TRAINING_REASON_LABELS,
+    [TRAINING_PATH_KEY]: 'Training Grounds',
     welcome_back:    'Welcome Back',
     peer_boon:       "Hero's Boon",
     marked_present:  'Attendance',
@@ -507,9 +514,22 @@ export function getHeroTitle(heroClass, heroLevel) {
     return tree.titles[heroLevel - 1] || heroClass;
 }
 
-/** Returns the reason key for a hero class. */
+/** Returns the Hero Path key for a hero class (the starsByReason key its levels count). */
 export function getHeroReason(heroClass) {
     return HERO_SKILL_TREE[heroClass]?.reason || null;
+}
+
+/** Every award reason a class levels on. Most classes have one; the Weaver has the four Training Grounds games. */
+export function getHeroReasons(heroClass) {
+    const tree = HERO_SKILL_TREE[heroClass];
+    if (!tree) return [];
+    return tree.reasons ? [...tree.reasons] : [tree.reason];
+}
+
+/** True when an award with this reason feeds this class's Hero Path, Gold bonus and skills. */
+export function heroClassEarnsFrom(heroClass, reason) {
+    const key = String(reason || '').trim();
+    return Boolean(key) && getHeroReasons(heroClass).includes(key);
 }
 
 /** Returns all chosen skill branch objects for a student (from heroSkills array). */
@@ -558,7 +578,7 @@ export function starsToNextLevel(heroClass, heroLevel, starsInReason) {
 export function calculateSkillBonus(heroClass, heroSkills, reason, difference) {
     if (!heroClass || !heroSkills?.length || !reason || difference === 0) return { extraGold: 0, extraStars: 0 };
     const tree = HERO_SKILL_TREE[heroClass];
-    if (!tree || tree.reason !== reason) return { extraGold: 0, extraStars: 0 };
+    if (!tree || !heroClassEarnsFrom(heroClass, reason)) return { extraGold: 0, extraStars: 0 };
 
     let extraGold = 0;
     let extraStars = 0;
@@ -589,7 +609,7 @@ export function calculateSkillBonus(heroClass, heroSkills, reason, difference) {
 export function getOutwardEffects(heroClass, heroSkills, reason, difference) {
     if (!heroClass || !heroSkills?.length || !reason || difference <= 0) return [];
     const tree = HERO_SKILL_TREE[heroClass];
-    if (!tree || tree.reason !== reason) return [];
+    if (!tree || !heroClassEarnsFrom(heroClass, reason)) return [];
 
     const results = [];
     const activeSkills = getActiveSkills(heroClass, heroSkills);

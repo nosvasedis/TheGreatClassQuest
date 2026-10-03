@@ -41,7 +41,7 @@ const CHAPTERS = [
   { id: 'hero-campfire', file: 'teacher/15-hero-campfire.md', icon: 'fa-fire', color: 'amber', group: 'The classroom', kicker: 'Hero Campfire' },
   { id: 'scholars-scroll', file: 'teacher/10-scholars-scroll.md', icon: 'fa-scroll', color: 'pink', group: 'The classroom', kicker: "Tab · Scholar's Scroll" },
   { id: 'quest-calendar', file: 'teacher/11-quest-calendar.md', icon: 'fa-calendar-alt', color: 'blue', group: 'The classroom', kicker: 'Tab · Quest Calendar' },
-  { id: 'story-weavers', file: 'teacher/12-story-weavers.md', icon: 'fa-feather-alt', color: 'indigo', group: 'The classroom', kicker: 'Tab · Story Weavers' },
+  { id: 'story-weavers', file: 'teacher/12-story-weavers.md', icon: 'fa-shield-halved', color: 'indigo', group: 'The classroom', kicker: 'Tab · Training Grounds' },
   { id: 'settings', file: 'teacher/13-settings-and-roster.md', icon: 'fa-cog', color: 'slate', group: 'The classroom', kicker: 'Teacher Settings' },
   { id: 'hero-path', file: 'teacher/14-hero-path.md', icon: 'fa-hat-wizard', color: 'violet', group: 'The classroom', kicker: 'Hero Path' },
   { id: 'school-office', file: 'secretary/school-office.md', icon: 'fa-building-shield', color: 'emerald', group: 'The rest of the school', kicker: 'School Office' },
@@ -598,7 +598,7 @@ function widgets(id, print = false) {
       <div class="plans">
         <article class="plan"><h4>Starter</h4><p>Stars, both monthly races, Market artifacts, bounties, Projector, ceremonies.</p></article>
         <article class="plan"><h4>Pro</h4><p>Guilds, calendar, Scholar's Scroll, manual Adventure Log, Hero Path, Family Access.</p></article>
-        <article class="plan elite"><h4>Elite</h4><p>AI chronicler, Story Weavers, Familiars, Quiz of the Week, School Office.</p></article>
+        <article class="plan elite"><h4>Elite</h4><p>AI chronicler, Training Grounds, Familiars, Quiz of the Week, School Office.</p></article>
       </div>`
       : planExplorerHtml();
   }
@@ -748,7 +748,7 @@ function headingWidgets(id) {
   }
   if (id === 'story-weavers') {
     return [
-      { match: ['What you see', 'Τι βλέπεις'], html: uiShot('story-weavers.png', 'Story Weavers: Current Chronicle, Word of the Day, and Game Master controls. Lock the word, then continue the tale.') }
+      { match: ['What you see', 'Τι βλέπεις'], html: uiShot('story-weavers.png', 'Story Weavers, the Creativity game of the Training Grounds: Current Chronicle, Word of the Day, and Game Master controls. Lock the word, then continue the tale.') }
     ];
   }
   if (id === 'quest-calendar') {

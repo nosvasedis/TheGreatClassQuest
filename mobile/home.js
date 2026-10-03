@@ -32,6 +32,9 @@ const REASON_META = {
     focus: { icon: 'fa-brain', name: 'Focus' },
     welcome_back: { icon: 'fa-hand-sparkles', name: 'Welcome' },
     story_weaver: { icon: 'fa-feather-alt', name: 'Story' },
+    vanishing_hoard: { icon: 'fa-eye', name: 'Hoard' },
+    torn_map: { icon: 'fa-compass', name: 'Map' },
+    round_table: { icon: 'fa-shield-heart', name: 'Council' },
     scholar_s_bonus: { icon: 'fa-graduation-cap', name: 'Scholar' }
 };
 

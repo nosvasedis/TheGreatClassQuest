@@ -177,7 +177,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'hero-classes', icon: 'fa-shield', name: 'Hero Classes', tier: 'pro',
                     where: 'The Class shield on the roster', go: 'options:classes',
-                    text: `Eight vocations, each tied to one way of earning stars: Guardian (Respect), Sage (Creativity), Paladin (Teamwork), Artificer (Focus), Weaver (Story Weaver stars), Scholar (Starfall), Nomad (Welcome Back) and Patron (giving a Hero's Boon). A matching star pays +10 Gold. The class can change twice a school year, and No Class is a fine choice too.`,
+                    text: `Eight vocations, each tied to one way of earning stars: Guardian (Respect), Sage (Creativity), Paladin (Teamwork), Artificer (Focus), Weaver (every Training Grounds game), Scholar (Starfall), Nomad (Welcome Back) and Patron (giving a Hero's Boon). A matching star pays +10 Gold. The class can change twice a school year, and No Class is a fine choice too.`,
                     why: 'Help each child choose how they already shine, not the path with the most Gold.',
                     keys: 'hero path vocation guardian sage paladin artificer weaver scholar nomad patron'
                 },
@@ -284,10 +284,10 @@ export const GUIDE_CHAPTERS = {
                     keys: 'quiz game show weekly review questions'
                 },
                 {
-                    id: 'story-weavers', icon: 'fa-book', name: 'Story Weavers', tier: 'elite',
-                    where: 'Story Weavers tab', go: 'tab:reward-ideas-tab',
-                    text: `The class writes one storybook a sentence at a time, around a Word of the Day, and Elite paints each page. Every second sentence can give the whole class +0.5 stars. Reveal to class adds three talk questions. Finished books can be narrated or printed.`,
-                    keys: 'story word of the day creative writing storybook pdf'
+                    id: 'training-grounds', icon: 'fa-shield-halved', name: 'Training Grounds', tier: 'elite',
+                    where: 'Training Grounds tab', go: 'tab:reward-ideas-tab',
+                    text: `Four class games, one for each hero skill, matched to the class's Quest League. Story Weavers (Creativity): the class writes a storybook a sentence at a time around a Word of the Day, and Elite paints each page. The Vanishing Hoard (Focus): watch the dragon's treasures, then spot what vanished. The Torn Map (Teamwork): every group holds one clue, and only by sharing them can the class find the answer. The Round Table (Respect): pass the Speaking Stone, echo the last speaker and let nobody interrupt. One round per lesson counts, and every second round won can give the whole class +0.5 stars of that skill.`,
+                    keys: 'training grounds story weavers word of the day creative writing storybook pdf vanishing hoard memory focus torn map clues groups teamwork round table speaking stone respect listening'
                 },
                 {
                     id: 'calendar', icon: 'fa-calendar-days', name: 'Quest Calendar', tier: 'pro',
@@ -500,7 +500,7 @@ export const GUIDE_CHAPTERS = {
             entries: [
                 {
                     id: 'hero-class', icon: 'fa-shield', name: 'Your Hero Class', tier: 'pro',
-                    text: `Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad or Patron. Each class grows from one kind of star, and every matching star gives you 10 extra Gold.`,
+                    text: `Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad or Patron. Each class grows from one kind of star, and every matching star gives you 10 extra Gold. The Weaver grows from all four Training Grounds games.`,
                     keys: 'hero class vocation'
                 },
                 {
@@ -538,9 +538,9 @@ export const GUIDE_CHAPTERS = {
                     keys: 'quiz game show'
                 },
                 {
-                    id: 'story-weavers', icon: 'fa-book', name: 'Story Weavers', tier: 'elite',
-                    text: `Together we write a storybook, one sentence at a time, and each sentence has to use the Word of the Day. Then we see the picture for our page!`,
-                    keys: 'story word of the day'
+                    id: 'training-grounds', icon: 'fa-shield-halved', name: 'Training Grounds', tier: 'elite',
+                    text: `Four class games: write a storybook together, spot the treasure that vanished from the dragon's hoard, share your group's clue to mend the torn map, and pass the Speaking Stone at the Round Table. Win two rounds and the whole class earns a star!`,
+                    keys: 'training grounds story word of the day hoard map round table'
                 },
                 {
                     id: 'special-quests', icon: 'fa-dungeon', name: 'Special Quests', tier: 'pro',
@@ -583,7 +583,7 @@ export const LESSON_ROUTE = [
     {
         icon: 'fa-calendar-week',
         title: 'When the week calls for it',
-        text: `Quiz of the Week on the first lesson (Elite), Fortune's Wheel on the last (Pro), and Story Weavers whenever the class is ready to write (Elite).`
+        text: `Quiz of the Week on the first lesson (Elite), Fortune's Wheel on the last (Pro), and a Training Grounds game whenever the class is ready to play (Elite).`
     }
 ];
 
@@ -631,6 +631,6 @@ export const PLAN_TIERS = [
         tier: 'elite',
         name: 'Elite',
         line: 'The Quest writes and paints with you.',
-        items: ['Quiz of the Week', 'Story Weavers', 'Familiars and seasonal stalls', 'School Office', 'AI diary and pictures', 'Avatar Forge', 'The Oracle, reports and certificates']
+        items: ['Quiz of the Week', 'Training Grounds', 'Familiars and seasonal stalls', 'School Office', 'AI diary and pictures', 'Avatar Forge', 'The Oracle, reports and certificates']
     }
 ];

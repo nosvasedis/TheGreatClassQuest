@@ -40,7 +40,10 @@ const SKILLS = {
     scholar_s_bonus: { icon: 'fa-scroll', name: 'Scholarship' },
     welcome_back: { icon: 'fa-door-open', name: 'Welcome back' },
     teacher_boon: { icon: 'fa-wand-magic-sparkles', name: 'Teacher boon' },
-    story_weaver: { icon: 'fa-feather-pointed', name: 'Storytelling' }
+    story_weaver: { icon: 'fa-feather-pointed', name: 'Storytelling' },
+    vanishing_hoard: { icon: 'fa-eye', name: 'Vanishing Hoard' },
+    torn_map: { icon: 'fa-compass', name: 'Torn Map' },
+    round_table: { icon: 'fa-shield-heart', name: 'Round Table' }
 };
 
 const TIERS = ['gold', 'silver', 'bronze'];

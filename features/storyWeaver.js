@@ -20,6 +20,7 @@ import {
     countWords, deriveStoryPages, escapeHtml, highlightWord, milestoneHtml, sentenceUsesWord,
     shelfBookHtml, shelfEmptyHtml, storyThreadHtml
 } from './storyWeaverView.js';
+import { knotsHtml } from './trainingGroundsView.mjs';
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
 }
@@ -198,6 +199,11 @@ function renderStoryWeaversUI(classId) {
     }
     const milestone = document.getElementById('sw-milestone');
     if (milestone) milestone.innerHTML = milestoneHtml(pages.length);
+    const tabKnots = document.querySelector('#tg-tabs [data-tg-knots="story"]');
+    if (tabKnots) {
+        tabKnots.innerHTML = knotsHtml(pages.length);
+        tabKnots.closest('.tg-tab')?.classList.toggle('is-star-next', pages.length % 2 === 1);
+    }
 
     const readBtn = document.getElementById('story-weavers-read-btn');
     if (readBtn) readBtn.disabled = !page || !isTtsSupported();

@@ -1,9 +1,11 @@
 // /ui/tabs/ideas.js
 import * as state from '../../state.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
+import { renderTrainingGrounds } from '../../features/trainingGrounds.js';
 
 export function renderIdeasTabSelects() {
     storyWeaver.handleStoryWeaversClassSelect();
+    renderTrainingGrounds();
 }
 
 export function renderStarManagerStudentSelect() {

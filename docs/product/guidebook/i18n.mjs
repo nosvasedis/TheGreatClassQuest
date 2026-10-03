@@ -90,7 +90,7 @@ export const KICKERS = {
   'hero-campfire': { en: 'Hero Campfire', el: 'Hero Campfire' },
   'scholars-scroll': { en: "Tab · Scholar's Scroll", el: "Καρτέλα · Scholar's Scroll" },
   'quest-calendar': { en: 'Tab · Quest Calendar', el: 'Καρτέλα · Quest Calendar' },
-  'story-weavers': { en: 'Tab · Story Weavers', el: 'Καρτέλα · Story Weavers' },
+  'story-weavers': { en: 'Tab · Training Grounds', el: 'Καρτέλα · Training Grounds' },
   settings: { en: 'Teacher Settings', el: 'Ρυθμίσεις δασκάλου' },
   'hero-path': { en: 'Hero Path', el: 'Hero Path' },
   'school-office': { en: 'School Office', el: 'School Office' },

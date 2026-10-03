@@ -26,7 +26,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Scholar’s Bonus** | Usually Starfall after a high trial | Award Stars reason button (there isn’t one) |
 | **Growth Starfall** | Scholar’s Bonus (+0.5) for a jump of 15+ points above a student’s own recent average; once a month | Classic Starfall (≥ 95% tests) |
 | **What we learned today** | Adventure Log strip gathered automatically from the day’s quiz, story, quests, trials and homework | Quest Assignment (next lesson’s homework) |
-| **Story Weaver stars** | Class bonus from Story Weavers milestones | Five-Sentence Saga (calendar event) |
+| **Training Grounds stars** | Class bonus from a Training Grounds milestone (Story Weavers, Vanishing Hoard, Torn Map, Round Table) | Five-Sentence Saga (calendar event) |
 | **Mystic Market** | Own tab: artifacts, Festival Stall, seasonal shelf, eggs | A panel inside Hero’s Challenge |
 | **Festival Stall** | Timed holiday shelf (Halloween, Christmas, Orthodox Easter, Carnival) | Seasonal Treasures (the monthly classroom stall) |
 | **Market Manager** | Teacher Settings repair for Seasonal Treasures and Festival Stall (new picture, copies, text) | Restock (fresh monthly stall); Coin Purse |

@@ -1,22 +1,107 @@
 // templates/app/tabs/ideas.js
 
+const TG_TAB_DEFS = [
+    { key: 'story', name: 'Story Weavers', skill: 'Creativity', icon: 'fa-feather-pointed' },
+    { key: 'hoard', name: 'The Vanishing Hoard', skill: 'Focus', icon: 'fa-eye' },
+    { key: 'map', name: 'The Torn Map', skill: 'Teamwork', icon: 'fa-compass' },
+    { key: 'council', name: 'The Round Table', skill: 'Respect', icon: 'fa-shield-heart' }
+];
+
+const TG_TABS = TG_TAB_DEFS.map((t, i) => `                        <button type="button" id="tg-tab-${t.key}" class="tg-tab tg-tab--${t.key}${i === 0 ? ' is-active' : ''}" role="tab" data-tg-game="${t.key}" aria-selected="${i === 0}" aria-controls="tg-panel-${t.key}" style="--i:${i}">
+                            <span class="tg-tab__medal" aria-hidden="true"><i class="fas ${t.icon}"></i></span>
+                            <span class="tg-tab__text"><span class="tg-tab__skill">${t.skill}</span><span class="tg-tab__name">${t.name}</span></span>
+                            <span class="tg-tab__knots" data-tg-knots="${t.key}" aria-hidden="true"><span class="sw-knot"></span><span class="sw-knot"></span></span>
+                        </button>`).join('\n');
+
+const TG_GAME_PANELS = [
+    { key: 'hoard', heading: 'The Vanishing Hoard', sub: 'A dragon guards a hoard of treasures. Watch closely: some of them are about to vanish.', icon: 'fa-dragon', guide: 'How the hoard works' },
+    { key: 'map', heading: 'The Torn Map', sub: 'A treasure map lies torn in pieces. Each group holds one scrap of every riddle.', icon: 'fa-compass', guide: 'How the map works' },
+    { key: 'council', heading: 'The Round Table', sub: 'The kingdom’s council meets. Hold the Speaking Stone, echo, listen, and honour every voice.', icon: 'fa-shield-heart', guide: 'How the council works' }
+];
+
+const TG_PANELS = TG_GAME_PANELS.map((g) => `
+                    <section id="tg-panel-${g.key}" class="tg-panel hidden" data-tg-panel="${g.key}" role="tabpanel" aria-labelledby="tg-tab-${g.key}">
+                        <div class="sw-layout tg-layout tg-layout--${g.key}">
+                            <section class="sw-stage tg-stage tg-stage--${g.key}" aria-labelledby="tg-${g.key}-heading" data-tg-stage="${g.key}">
+                                <div class="sw-stage__motes" aria-hidden="true">
+                                    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                                </div>
+                                <div class="sw-stage__bar">
+                                    <div class="sw-stage__title">
+                                        <span class="sw-class-chip hidden" data-tg-class-chip></span>
+                                        <h3 id="tg-${g.key}-heading" class="sw-stage__heading">${g.heading}</h3>
+                                        <p class="sw-stage__sub">${g.sub}</p>
+                                    </div>
+                                    <div class="sw-stage__tools">
+                                        <button type="button" class="sw-reveal-btn" data-tg-action="fullscreen" title="Show the game full screen on the board">
+                                            <i class="fas fa-expand" aria-hidden="true"></i><span>Full screen</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="tg-arena" data-tg-slot="stage" aria-live="polite"></div>
+                                <div class="sw-milestone" data-tg-slot="milestone"></div>
+                            </section>
+
+                            <div class="sw-desk">
+                                <section class="sw-card" aria-labelledby="tg-${g.key}-controls-heading">
+                                    <header class="sw-card__head">
+                                        <span class="sw-card__icon" aria-hidden="true"><i class="fas ${g.icon}"></i></span>
+                                        <div>
+                                            <h3 id="tg-${g.key}-controls-heading" class="sw-card__title">Game Master Controls</h3>
+                                            <p class="sw-card__sub">Run each round from here or straight from the board.</p>
+                                        </div>
+                                    </header>
+                                    <div data-tg-slot="controls"></div>
+                                </section>
+                                <section class="sw-card sw-helpers-card" aria-labelledby="tg-${g.key}-guide-heading">
+                                    <header class="sw-card__head">
+                                        <span class="sw-card__icon sw-card__icon--gold" aria-hidden="true"><i class="fas fa-lightbulb"></i></span>
+                                        <div>
+                                            <h3 id="tg-${g.key}-guide-heading" class="sw-card__title">${g.guide}</h3>
+                                            <p class="sw-card__sub">Matched to the class's Quest League.</p>
+                                        </div>
+                                    </header>
+                                    <div data-tg-slot="guide"></div>
+                                </section>
+                            </div>
+
+                            <section class="sw-library tg-library" aria-labelledby="tg-${g.key}-shelf-heading">
+                                <header class="sw-library__head">
+                                    <div>
+                                        <h3 id="tg-${g.key}-shelf-heading" class="sw-card__title">${g.key === 'hoard' ? 'Sealed Vaults' : g.key === 'map' ? 'The Map Chest' : 'Hall of Banners'}</h3>
+                                        <p class="sw-card__sub">${g.key === 'hoard' ? 'Every vault the class seals is kept here.' : g.key === 'map' ? 'Every map the class makes whole is kept here.' : 'Every banner the council raises hangs here.'}</p>
+                                    </div>
+                                </header>
+                                <div data-tg-slot="shelf"></div>
+                                <div class="sw-shelf__plank" aria-hidden="true"></div>
+                            </section>
+                        </div>
+                    </section>`).join('');
+
 export const ideasTabHTML = `
             <div id="reward-ideas-tab" class="app-tab hidden">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-                    <!-- Tab title: Story Weavers -->
+                    <!-- Tab title: Training Grounds -->
                     <header class="tab-sign tab-sign--weave">
                         <div class="tab-sign__piece">
                             <span class="tab-sign__rod" aria-hidden="true"></span>
                             <div class="tab-sign__board">
-                                <span class="tab-sign__kicker">Words · Worlds · Wonder</span>
-                                <h2 class="font-title tab-sign__title">Story Weavers</h2>
+                                <span class="tab-sign__kicker">Create · Focus · Unite · Honour</span>
+                                <h2 class="font-title tab-sign__title">Training Grounds</h2>
                             </div>
                             <span class="tab-sign__fringe" aria-hidden="true"></span>
                             <span class="tab-sign__tassel tab-sign__tassel--l" aria-hidden="true"></span>
                             <span class="tab-sign__tassel tab-sign__tassel--r" aria-hidden="true"></span>
                         </div>
-                        <p class="tab-sign__tagline">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
+                        <p class="tab-sign__tagline">Four class games, one for each hero skill. Win two rounds to earn a skill star.</p>
                     </header>
+
+                    <!-- The four games, one banner each -->
+                    <nav id="tg-tabs" class="tg-tabs" role="tablist" aria-label="Training Grounds games">
+${TG_TABS}
+                    </nav>
+
+                    <section id="tg-panel-story" class="tg-panel" data-tg-panel="story" role="tabpanel" aria-labelledby="tg-tab-story">
                     <div id="sw-root" class="sw-layout">
                         <!-- The stage: the class storybook lying open on a woven tapestry -->
                         <section class="sw-stage" aria-labelledby="sw-book-heading">
@@ -209,6 +294,8 @@ export const ideasTabHTML = `
                             <div id="sw-shelf" class="sw-shelf"></div>
                         </section>
                     </div>
+                    </section>
+${TG_PANELS}
                 </div>
             </div>
 `;

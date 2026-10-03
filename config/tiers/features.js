@@ -24,9 +24,9 @@ export const FEATURE_DEFINITIONS = {
         tier: 'Pro',
     },
     storyWeavers: {
-        name: 'Story Weavers',
-        emoji: '📖',
-        description: 'Collaborative story and Word of the Day',
+        name: 'Training Grounds',
+        emoji: '🛡️',
+        description: 'Story Weavers, The Vanishing Hoard, The Torn Map and The Round Table',
         tier: 'Elite',
     },
     heroProgression: {
@@ -115,7 +115,7 @@ export const GATED_TABS = {
     'reward-ideas-tab': {
         feature: FEATURE_DEFINITIONS.storyWeavers.name,
         tier: 'Elite',
-        message: 'Collaborative story writing and Word of the Day — available on the Elite plan.'
+        message: 'Four class games, one for each hero skill, including Story Weavers — available on the Elite plan.'
     }
 };
 
@@ -141,7 +141,7 @@ export const UPGRADE_MESSAGES = {
     Elite: {
         default: 'AI-powered features unlock on the Elite plan. Contact me to upgrade.',
         adventureLog: 'The personalised AI diary and generated storybook image are on Elite. Pro has the full manual log, your own uploaded pictures, and Hero of the Day.',
-        storyWeavers: 'Story Weavers and Word of the Day are available on the Elite plan. Contact me to upgrade.',
+        storyWeavers: 'The Training Grounds (Story Weavers and three more class games) are available on the Elite plan. Contact me to upgrade.',
         familiars: 'Familiars — one companion egg that hatches and evolves — are available on the Elite plan. Contact me to upgrade.',
         quizOfTheWeek: 'Quiz of the Week is available on the Elite plan. Configure it in Teacher Settings → Quiz and play from Home.',
         eliteAI: 'Market Manager and Restock are Elite. Repair Seasonal Treasures and the Festival Stall from Teacher Settings → Market.'
@@ -168,7 +168,7 @@ export function getTierSummary(rawTier) {
             badge: 'Pro Power',
             title: 'Pro unlocks guilds, planners and advanced logs.',
             body: "You have Guild Hall, Hero Path & Skill Tree, Quest Calendar, My Planning (class end dates), Scholar's Scroll, Family Access, Attendance Chronicle, and the full Adventure Log with manual diary, Hero of the Day, and Hall of Heroes.",
-            cta: 'Upgrade to Elite for Story Weavers, Familiars, Quiz of the Week, AI chronicler and images, the School Office, and early-access experiments.',
+            cta: 'Upgrade to Elite for the Training Grounds, Familiars, Quiz of the Week, AI chronicler and images, the School Office, and early-access experiments.',
             isTopTier: false
         };
     }
@@ -200,7 +200,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus Quiz of the Week, Story Weavers & Word of the Day, Familiars, School Office, and AI: Oracle, Avatar Forge, reports & certificates, story images, Adventure Log writer, Market Restock, Festival Stall, Nameday Lookup.'
+            bullets: 'Everything in Pro plus Quiz of the Week, the Training Grounds (Story Weavers & three more class games), Familiars, School Office, and AI: Oracle, Avatar Forge, reports & certificates, story images, Adventure Log writer, Market Restock, Festival Stall, Nameday Lookup.'
         }
     ];
 }

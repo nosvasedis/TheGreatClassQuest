@@ -1,5 +1,6 @@
 // /features/heroClasses.js
-import { calculateSkillBonus, computeHeroLevel, HERO_SKILL_TREE } from './heroSkillTree.js';
+import { calculateSkillBonus, computeHeroLevel, heroClassEarnsFrom, HERO_SKILL_TREE } from './heroSkillTree.js';
+import { TRAINING_PATH_KEY, TRAINING_REASONS } from './trainingGroundsCore.mjs';
 
 function hexToRgbChannels(hex) {
     const raw = String(hex || '').replace('#', '');
@@ -20,7 +21,7 @@ export const HERO_CLASSES = {
     'Paladin': { reason: 'teamwork', icon: '⚔️', bonus: 10, desc: '+10 Gold for Teamwork', theme: themeFromAura('Paladin') },
     'Artificer': { reason: 'focus', icon: '⚙️', bonus: 10, desc: '+10 Gold for Focus', theme: themeFromAura('Artificer') },
     'Scholar': { reason: 'scholar_s_bonus', icon: '📜', bonus: 10, desc: '+10 Gold for Trial Results', theme: themeFromAura('Scholar') },
-    'Weaver': { reason: 'story_weaver', icon: '✒️', bonus: 10, desc: '+10 Gold for Story Weaver', theme: themeFromAura('Weaver') },
+    'Weaver': { reason: TRAINING_PATH_KEY, reasons: TRAINING_REASONS, icon: '✒️', bonus: 10, desc: '+10 Gold for every Training Grounds star', theme: themeFromAura('Weaver') },
     'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back', theme: themeFromAura('Nomad') },
     'Patron': { reason: 'peer_boon', icon: '💝', bonus: 10, desc: "+10 Gold when you give a Hero's Boon", theme: themeFromAura('Patron') }
 };
@@ -206,7 +207,7 @@ export function calculateHeroGold(studentData, reason, starDifference, scoreData
     // 1. Base class bonus (+10 when reason matches) — positive awards only
     if (starDifference > 0 && heroClass && HERO_CLASSES[heroClass]) {
         const classInfo = HERO_CLASSES[heroClass];
-        if (classInfo.reason === reason || classInfo.reason === reason.trim()) {
+        if (heroClassEarnsFrom(heroClass, reason)) {
             goldChange += classInfo.bonus;
         }
     }

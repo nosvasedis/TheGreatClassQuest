@@ -44,7 +44,7 @@ A field guide bound in green cloth, with a brass compass on the cover and a tag 
 
 ## The cloud dock (bottom navigation)
 
-The ten tabs live in a **cloud dock** along the bottom edge of the screen: one soft, coloured cloud per tab, overlapping into one continuous bank. Each cloud carries its tab’s icon — **Home** is the first cloud on the left, then Team Quest, Hero’s Challenge, Mystic Market, Guild Hall, Award Stars, Adventure Log, Scholar’s Scroll, Quest Calendar, and Story Weavers. The cloud you are on glows, lifts its icon, and shows the tab’s name; point at any other cloud to see its name. **Settings** is not a cloud: it stays the **cog** in the header.
+The ten tabs live in a **cloud dock** along the bottom edge of the screen: one soft, coloured cloud per tab, overlapping into one continuous bank. Each cloud carries its tab’s icon — **Home** is the first cloud on the left, then Team Quest, Hero’s Challenge, Mystic Market, Guild Hall, Award Stars, Adventure Log, Scholar’s Scroll, Quest Calendar, and Training Grounds. The cloud you are on glows, lifts its icon, and shows the tab’s name; point at any other cloud to see its name. **Settings** is not a cloud: it stays the **cog** in the header.
 
 On a PC with a mouse, the clouds **sink out of sight** a few seconds after the pointer leaves the bottom of the screen, so the lesson has the whole display. Move the pointer to the **bottom edge** and they float back up. On a touch screen they never hide, and a touch near the bottom or keyboard focus on a cloud always brings them back. Projector Mode uses the same dock.
 
@@ -52,7 +52,7 @@ Whichever tab you open, it always starts **at the top** — never halfway down w
 
 ## Tab titles
 
-Each tab opens with a title drawn as **its own object** rather than a plain heading: a folded quest map for Team Quest, a royal banner for Hero’s Challenge, a stone archway for Guild Hall, a night-sky star medal for Award Stars, a stitched leather journal for Adventure Log, a parchment scroll for Scholar’s Scroll, a ringed desk calendar for Quest Calendar, a tapestry for Story Weavers, and a chalkboard for Teacher Settings. Only the **Mystic Market** keeps a shop sign. Team Quest and Hero’s Challenge also have a gilded month ribbon that names *this month’s race* or *this month’s challenge*. The titles are decoration; nothing to tap.
+Each tab opens with a title drawn as **its own object** rather than a plain heading: a folded quest map for Team Quest, a royal banner for Hero’s Challenge, a stone archway for Guild Hall, a night-sky star medal for Award Stars, a stitched leather journal for Adventure Log, a parchment scroll for Scholar’s Scroll, a ringed desk calendar for Quest Calendar, a tapestry for Training Grounds, and a chalkboard for Teacher Settings. Only the **Mystic Market** keeps a shop sign. Team Quest and Hero’s Challenge also have a gilded month ribbon that names *this month’s race* or *this month’s challenge*. The titles are decoration; nothing to tap.
 
 ## Projector Mode (classroom wallpaper)
 
@@ -213,17 +213,17 @@ Other quiet treats you will meet elsewhere in this guidebook:
 | Settings cog in the header; section **dropdown** inside Settings | Game Guide (i) and Settings cog in the phone header; Settings sections chosen from a **sheet**, each with its one-line hint |
 | Log out in the header | **Log out** sits at the bottom of the **More** sheet, next to **Game Guide**, so it is never tapped by accident |
 
-**More** opens a sheet of cloud tiles: Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Story Weavers, Student Roster, School Office (if allowed), and Settings. While one of those tabs is open, the **More** cloud takes its colour, icon and short name (for example *Market*), with three small dots to say it still opens the sheet.
+**More** opens a sheet of cloud tiles: Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Training Grounds, Student Roster, School Office (if allowed), and Settings. While one of those tabs is open, the **More** cloud takes its colour, icon and short name (for example *Market*), with three small dots to say it still opens the sheet.
 
 The **class picker** shows each of your classes with its days and time, a **Today** tag when it meets today and an **In session** tag while the lesson is on. **Follow today’s schedule** is a switch at the top; a tick marks the class you are viewing.
 
 Every phone sheet (More, class picker, Settings sections) closes with ✕, a tap outside it, or by dragging its handle down.
 
-The phone is the same Quest. Prefer the PC whenever the class should *see* the world: Projector, ceremonies, Guild Hall banners, Story Weavers reveal.
+The phone is the same Quest. Prefer the PC whenever the class should *see* the world: Projector, ceremonies, Guild Hall banners, Story Weavers reveal, the Training Grounds games.
 
 ## How this feeds the rest of the Quest
 
-The **class in the header** decides which children you see on Award Stars, in the Market, at the Fortune’s Wheel, in the Adventure Log, Scholar’s Scroll, the Calendar, Story Weavers and Home. If the wrong class is selected, you will see the wrong children. **Follow today’s schedule** is the default when you open the app: the class in session, or General view between lessons.
+The **class in the header** decides which children you see on Award Stars, in the Market, at the Fortune’s Wheel, in the Adventure Log, Scholar’s Scroll, the Calendar, the Training Grounds and Home. If the wrong class is selected, you will see the wrong children. **Follow today’s schedule** is the default when you open the app: the class in session, or General view between lessons.
 
 ## Plan notes
 

@@ -51,8 +51,11 @@ import { recordGuildGloryEvent, updateGuildScores } from "../../features/guildSc
 import {
     computeHeroLevel,
     getHeroReason,
+    getHeroReasons,
     getOutwardEffects,
+    heroClassEarnsFrom,
 } from "../../features/heroSkillTree.js";
+import { TRAINING_REASONS } from "../../features/trainingGroundsCore.mjs";
 import { reconcileFamiliarLifecycle } from "../../features/familiars.js";
 import { canUseFeature } from "../../utils/subscription.js";
 import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.js";
@@ -319,7 +322,7 @@ export async function setStudentStarsForToday(
                         heroProgressionEnabled &&
                         heroClass &&
                         classReason &&
-                        reason === classReason &&
+                        heroClassEarnsFrom(heroClass, reason) &&
                         difference > 0
                     ) {
                         const currentReasonStars =
@@ -390,8 +393,8 @@ export async function setStudentStarsForToday(
                     ![
                         "welcome_back",
                         "scholar_s_bonus",
-                        "story_weaver",
                         "peer_boon",
+                        ...TRAINING_REASONS,
                     ].includes(l.reason),
             );
             // Prefer the transactionally-read deterministic row: local state can
@@ -575,7 +578,7 @@ export function applyReasonAwardScoreTransaction(
         heroProgressionEnabled &&
         heroClass &&
         classReason &&
-        reason === classReason &&
+        heroClassEarnsFrom(heroClass, reason) &&
         awardedStars > 0
     ) {
         const newReasonStars =
@@ -648,7 +651,7 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
 
     const targetStudents = state
         .get("allStudents")
-        .filter((student) => ["Scholar", "Nomad", "Patron"].includes(student.heroClass));
+        .filter((student) => ["Scholar", "Nomad", "Patron", "Weaver"].includes(student.heroClass));
     if (targetStudents.length === 0) return;
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
@@ -674,7 +677,10 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
             query(
                 collection(db, `${publicDataPath}/award_log`),
                 where(isPatronGiverPath ? "giverId" : "studentId", "==", student.id),
-                where("reason", "==", reason),
+                // The Weaver's path sums every Training Grounds reason.
+                student.heroClass === "Weaver"
+                    ? where("reason", "in", getHeroReasons(student.heroClass))
+                    : where("reason", "==", reason),
                 ...yearScopeClauses(
                     enforceActiveYearQueries,
                     activeYearKey,
@@ -1240,6 +1246,11 @@ async function _applyOutwardSkillEffects(
             if (giftReceiverId) {
                 const receiver = allStudents.find((s) => s.id === giftReceiverId);
                 targets = receiver && receiver.id !== awardedStudentId ? [receiver] : [];
+            } else if (options.wholeClass) {
+                // Class-wide awards (Training Grounds): every classmate earned it too.
+                targets = allStudents.filter(
+                    (s) => s.id !== awardedStudentId && s.classId === classId,
+                );
             } else {
                 const todaysStars = state.get("todaysStars");
                 targets = allStudents.filter(

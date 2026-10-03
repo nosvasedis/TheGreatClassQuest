@@ -15,6 +15,9 @@ export const ARENA_REASON_INFO = {
     focus: { icon: 'fa-brain', tone: 'focus', name: 'Focus' },
     welcome_back: { icon: 'fa-hand-sparkles', tone: 'welcome', name: 'Welcome back' },
     story_weaver: { icon: 'fa-feather-alt', tone: 'story', name: 'Story' },
+    vanishing_hoard: { icon: 'fa-eye', tone: 'focus', name: 'Hoard' },
+    torn_map: { icon: 'fa-compass', tone: 'teamwork', name: 'Map' },
+    round_table: { icon: 'fa-shield-heart', tone: 'respect', name: 'Council' },
     scholar_s_bonus: { icon: 'fa-graduation-cap', tone: 'scholar', name: 'Scholar' },
     teacher_boon: { icon: 'fa-wand-magic-sparkles', tone: 'boon', name: 'Teacher Boon' },
     pathfinder_map: { icon: 'fa-map', tone: 'pathfinder', name: 'Pathfinder' }

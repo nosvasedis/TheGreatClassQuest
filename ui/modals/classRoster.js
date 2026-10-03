@@ -53,7 +53,7 @@ const CLASS_TONES = [
 
 const REASON_LABELS = {
     teamwork: 'Teamwork', creativity: 'Creativity', respect: 'Respect', focus: 'Focus',
-    welcome_back: 'Welcome Back', story_weaver: 'Story Weavers', scholar_s_bonus: 'Scholar’s Bonus',
+    welcome_back: 'Welcome Back', story_weaver: 'Story Weavers', vanishing_hoard: 'Vanishing Hoard', torn_map: 'Torn Map', round_table: 'Round Table', scholar_s_bonus: 'Scholar’s Bonus',
     teacher_boon: 'Teacher Boon', peer_boon: 'Hero’s Boon', pathfinder_map: 'Pathfinder’s Map',
     quiz_of_the_week: 'Quiz of the Week', wheel_fortune: 'Fortune’s Wheel', wheel_curse: 'Fortune’s Wheel',
     marked_present: 'Present', excellence: 'Excellence', special_quest: 'Special Quest', correction: 'Correction'

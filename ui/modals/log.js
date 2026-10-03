@@ -266,7 +266,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
                 const gradientClass = reasonColors[log.reason] || 'from-gray-400 to-gray-600';
                 const reasonIcon = reasonIcons[log.reason] || 'fa-star';
                 const isMine = log.teacherId === currentUserId;
-                const canDelete = isMine && log.reason !== 'story_weaver' && log.reason !== 'scholar_s_bonus';
+                const canDelete = isMine && !['story_weaver', 'vanishing_hoard', 'torn_map', 'round_table', 'scholar_s_bonus'].includes(log.reason);
                 const noteHtml = log.note ? `<p class="qc-log-entry__note"><i class="fas fa-quote-left" aria-hidden="true"></i>${escapeLogText(log.note)}</p>` : '';
 
                 detailsHtml += `

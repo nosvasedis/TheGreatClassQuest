@@ -447,7 +447,7 @@ export const PLANETS = Object.freeze([
 
 export const REASON_LABELS = Object.freeze({
     teamwork: ['🤝', 'Teamwork'], creativity: ['💡', 'Creativity'], respect: ['🙏', 'Respect'], focus: ['🎯', 'Focus'],
-    welcome_back: ['🚪', 'Welcome back'], story_weaver: ['📖', 'Story Weavers'], scholar_s_bonus: ['🎓', 'Scholar’s bonus'],
+    welcome_back: ['🚪', 'Welcome back'], story_weaver: ['📖', 'Story Weavers'], vanishing_hoard: ['🐉', 'Vanishing Hoard'], torn_map: ['🗺️', 'Torn Map'], round_table: ['🕯️', 'Round Table'], scholar_s_bonus: ['🎓', 'Scholar’s bonus'],
     teacher_boon: ['🎁', 'Teacher Boon'], peer_boon: ['💖', 'Hero’s Boon'], pathfinder_map: ['🗺️', 'Pathfinder'],
     quiz_of_the_week: ['📜', 'Quiz of the Week'], wheel_fortune: ['🎡', 'Wheel of Fortune'], marked_present: ['✅', 'Present'],
     excellence: ['🌟', 'Excellence'], special_quest: ['✨', 'Special quest']

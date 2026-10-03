@@ -5,7 +5,6 @@ import {
     collection,
     runTransaction,
     serverTimestamp,
-    increment,
     deleteField
 } from '../firebase.js';
 import * as state from '../state.js';
@@ -23,12 +22,34 @@ import {
     withSchoolYear,
 } from '../utils/schoolYear.js';
 import { updateGuildScores } from '../features/guildScoring.js';
+import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './actions/stars.js';
+import { heroClassEarnsFrom } from '../features/heroSkillTree.js';
+import { TRAINING_BONUS_STARS, TRAINING_GAMES } from '../features/trainingGroundsCore.mjs';
 
 export * from './actions/index.js';
 
-const storyWeaverBonusInFlight = new Set();
+const trainingBonusInFlight = new Set();
 
-export async function awardStoryWeaverBonusStarToClass(classId) {
+const TRAINING_PRAISE = {
+    story: { emoji: '✒️', fallback: 'Another chapter in your story — well done!', moment: 'A class just successfully added to their story.' },
+    hoard: { emoji: '🐉', fallback: 'Sharp eyes! The dragon could not fool you.', moment: 'A class just won a memory game by spotting every treasure a dragon stole.' },
+    map: { emoji: '🗺️', fallback: 'Together you read the torn map. Brilliant teamwork!', moment: 'A class just solved a riddle by sharing clues between groups.' },
+    council: { emoji: '🕯️', fallback: 'A council of true respect. Every voice was heard.', moment: 'A class just held a respectful discussion where everyone listened and took turns.' }
+};
+
+/** Story Weavers keeps its own entry point; it is the Creativity game of the Training Grounds. */
+export function awardStoryWeaverBonusStarToClass(classId) {
+    return awardTrainingBonusToClass(classId, 'story');
+}
+
+/**
+ * Gives every student in the class the Training Grounds bonus for one game: +0.5 stars
+ * (+1 for Story Weavers with an Archivist's Quill), logged under the game's own reason so it
+ * never touches the daily skill award. Weavers also get their Gold, skills and Hero Path.
+ */
+export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
+    const game = TRAINING_GAMES[gameKey];
+    if (!game) return;
     playSound('star2');
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     if (studentsInClass.length === 0) {
@@ -36,36 +57,38 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
         return;
     }
 
-    if (storyWeaverBonusInFlight.has(classId)) return;
-    storyWeaverBonusInFlight.add(classId);
+    const flightKey = `${classId}:${gameKey}`;
+    if (trainingBonusInFlight.has(flightKey)) return;
+    trainingBonusInFlight.add(flightKey);
 
     try {
         const publicDataPath = "artifacts/great-class-quest/public/data";
-        let guildAwards = [];
+        let awards = [];
 
         // A transaction (not read-then-batch) so a concurrent award cannot make
         // us consume storyWeaverDoubleNext twice or from a stale read.
         await runTransaction(db, async (transaction) => {
-            guildAwards = [];
+            awards = [];
             const scoreRefs = studentsInClass.map((student) => doc(db, `${publicDataPath}/student_scores`, student.id));
             const scoreSnaps = [];
             for (const scoreRef of scoreRefs) scoreSnaps.push(await transaction.get(scoreRef));
 
             studentsInClass.forEach((student, index) => {
                 const scoreRef = scoreRefs[index];
-                const scoreData = scoreSnaps[index].exists() ? scoreSnaps[index].data() : {};
-                const doubleNext = scoreData.storyWeaverDoubleNext === true;
-                const starAmount = doubleNext ? 1 : 0.5;
-                guildAwards.push({ studentId: student.id, starAmount });
+                const scoreData = scoreSnaps[index].exists() ? scoreSnaps[index].data() : null;
+                const doubleNext = gameKey === 'story' && scoreData?.storyWeaverDoubleNext === true;
+                const starAmount = doubleNext ? TRAINING_BONUS_STARS * 2 : TRAINING_BONUS_STARS;
 
-                const scoreUpdate = {
-                    monthlyStars: increment(starAmount),
-                    totalStars: increment(starAmount)
-                };
-                if (doubleNext) {
-                    scoreUpdate.storyWeaverDoubleNext = deleteField();
-                }
-                transaction.update(scoreRef, scoreUpdate);
+                const { levelUpInfo, totalStarsDelta } = applyReasonAwardScoreTransaction(transaction, {
+                    scoreRef,
+                    studentId: student.id,
+                    studentData: student,
+                    scoreData,
+                    reason: game.reason,
+                    awardedStars: starAmount
+                });
+                if (doubleNext) transaction.update(scoreRef, { storyWeaverDoubleNext: deleteField() });
+                awards.push({ student, starAmount, totalStarsDelta, levelUpInfo });
 
                 const logRef = doc(collection(db, `${publicDataPath}/award_log`));
                 transaction.set(logRef, withSchoolYear({
@@ -73,8 +96,8 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
                     classId: classId,
                     teacherId: state.get('currentUserId'),
                     stars: starAmount,
-                    appliedStarCredit: starAmount,
-                    reason: "story_weaver",
+                    appliedStarCredit: totalStarsDelta,
+                    reason: game.reason,
                     date: getTodayDateString(),
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
@@ -82,28 +105,41 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
             });
         });
 
-        guildAwards.forEach(({ studentId, starAmount }) => {
-            updateGuildScores(studentId, starAmount, 'story_weaver').catch((e) => console.warn('Story Weaver Guild Glory update failed:', e));
+        awards.forEach(({ student, totalStarsDelta }) => {
+            updateGuildScores(student.id, totalStarsDelta, game.reason).catch((e) => console.warn('Training Grounds Guild Glory update failed:', e));
+            reconcileFamiliarLifecycle(student.id, { announce: true, source: 'training-grounds' }).catch((e) => console.warn('Training Grounds familiar reconciliation failed:', e));
         });
-        studentsInClass.forEach((student) => {
-            reconcileFamiliarLifecycle(student.id, { announce: true, source: 'story-weaver' }).catch((e) => console.warn('Story Weaver familiar reconciliation failed:', e));
-        });
-        showToast("Story Weaver bonus stars awarded!", "success");
+        showToast(`${game.skillLabel} bonus stars awarded!`, "success");
 
+        // Weavers spread their gifts one at a time, so two Weavers never race on a classmate's Gold.
+        (async () => {
+            for (const { student, starAmount } of awards) {
+                if (!heroClassEarnsFrom(student.heroClass, game.reason)) continue;
+                await applyAwardOutwardSkillEffects(student.id, classId, game.reason, starAmount, { wholeClass: true })
+                    .catch((e) => console.warn('Weaver skill effect failed:', e));
+            }
+        })();
+        const levelUps = awards.map((a) => a.levelUpInfo).filter(Boolean);
+        if (levelUps.length) showHeroLevelUpCelebration(levelUps[0]);
+        if (levelUps.length > 1) showToast(`${levelUps.length - 1} more Weaver${levelUps.length > 2 ? 's' : ''} levelled up too!`, 'success');
+
+        const praise = TRAINING_PRAISE[gameKey] || TRAINING_PRAISE.story;
         if (canUseFeature('eliteAI')) {
-            const word = state.get('currentStoryData')[classId]?.currentWord || "a new idea";
-            const systemPrompt = "You are the 'Quest Master's Assistant'. A class just successfully added to their story. Write a very short, single-sentence, celebratory message for the whole class. Do not use markdown.";
-            const userPrompt = `The new part of their story involves the word "${word}". Write the celebratory message.`;
-            callGeminiApi(systemPrompt, userPrompt).then(comment => showPraiseToast(comment, '✒️')).catch(console.error);
+            const word = gameKey === 'story' ? (state.get('currentStoryData')[classId]?.currentWord || "a new idea") : '';
+            const systemPrompt = "You are the 'Quest Master's Assistant'. Write a very short, single-sentence, celebratory message for the whole class. Do not use markdown.";
+            const userPrompt = word
+                ? `${praise.moment} The new part of their story involves the word "${word}". Write the celebratory message.`
+                : `${praise.moment} Celebrate their ${game.skillLabel.toLowerCase()}.`;
+            callGeminiApi(systemPrompt, userPrompt).then(comment => showPraiseToast(comment, praise.emoji)).catch(console.error);
         } else {
-            showPraiseToast("Another chapter in your story — well done!", '✒️');
+            showPraiseToast(praise.fallback, praise.emoji);
         }
 
     } catch (error) {
         console.error("Error awarding bonus stars:", error);
         showToast("Failed to award bonus stars.", "error");
     } finally {
-        storyWeaverBonusInFlight.delete(classId);
+        trainingBonusInFlight.delete(flightKey);
     }
 }
 

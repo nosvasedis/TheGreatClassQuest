@@ -140,7 +140,7 @@ export function showModal(title, message, onConfirm, confirmText = 'Confirm', ca
         iconContainer.innerHTML = '';
         
         // Specific theme: Story Milestone
-        if (title === 'Story Milestone!') {
+        if (title.endsWith('Milestone!')) {
             iconContainer.classList.remove('hidden');
             iconContainer.innerHTML = '⭐';
             // Enhance buttons for this theme

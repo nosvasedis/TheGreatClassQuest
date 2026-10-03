@@ -24,7 +24,7 @@ On a classroom PC:
 2. **Award Stars** — Teamwork, Creativity, Respect, or Focus, one to three stars. Welcome a returning student. Notice a birthday. Let a classmate gift a Hero’s Boon when the heart is offered.
 3. Near the end: **Quest Assignment** (homework for next time) and **Attendance** if you have not already marked absences.
 4. **Crown Today’s Hero** — one press, and the Quest **automatically** crowns **Hero of the Day** (you never pick the name). After **Huzzah!**, **Today’s Page** asks how to write the diary: **Auto** (Elite, the AI Chronicler) or **Manual** (your own words), or **Later**. Once you choose, **Gather at the Campfire** (Pro, optional) is a two-minute projector reflection on the words and Ember Oaths.
-5. When it is the right week: **Quiz of the Week** (Home, Elite), **Fortune’s Wheel** (Guild Hall, last lesson of the week), or **Story Weavers**.
+5. When it is the right week: **Quiz of the Week** (Home, Elite), **Fortune’s Wheel** (Guild Hall, last lesson of the week), or a **Training Grounds** game.
 
 **Anytime during the lesson** you may tap **TV** for **Projector Mode**. It is a **wallpaper** for the classroom display (sky, clocks, remaining time, rotating story cards) — open it when it helps, leave it running while you keep teaching on your usual tabs. It is not a step you must do before Award Stars.
 
@@ -45,7 +45,7 @@ These are the ten clouds of the **cloud dock** along the bottom of the teacher s
 | **Adventure Log** | End-of-lesson diary, Hero of the Day, Hero Campfire, attendance, homework |
 | **Scholar’s Scroll** | Tests and dictations |
 | **Quest Calendar** | Lessons, holidays, Quest Events |
-| **Story Weavers** | Collaborative creative writing |
+| **Training Grounds** | Four class games, one per skill (including Story Weavers) |
 
 **My Classes**, Family Access, Quiz setup, Hero Path, and grading overrides live under **Teacher Settings**.
 
@@ -55,7 +55,7 @@ These are the ten clouds of the **cloud dock** along the bottom of the teacher s
 |------|----------------|
 | **Starter** | Stars, both monthly races, Market power-ups, bounties, Projector, ceremonies |
 | **Pro** | Guilds, calendar, Scholar’s Scroll, Adventure Log (manual), Hero Campfire and Ember Oaths, Hero Path, Family Access, Attendance Chronicle |
-| **Elite** | AI chronicler and images, Story Weavers, Familiars, Quiz of the Week, Secretary / School Office |
+| **Elite** | AI chronicler and images, Training Grounds, Familiars, Quiz of the Week, Secretary / School Office |
 
 Full lookup: the Starter · Pro · Elite chapter at the end of this book. Each classroom chapter ends with the same three plans, in that chapter’s own words.
 

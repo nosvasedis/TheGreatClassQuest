@@ -49,8 +49,8 @@ export const navHTML = `
             </button>
             <button class="nav-button nav-color-indigo" data-tab="reward-ideas-tab">
                 <span class="nav-cloud" aria-hidden="true"></span>
-                <i class="fas fa-feather-alt icon"></i>
-                <span class="text">Story Weavers</span>
+                <i class="fas fa-shield-halved icon"></i>
+                <span class="text">Training Grounds</span>
             </button>
 
             <button class="nav-tab hidden" data-tab="manage-students-tab"></button>

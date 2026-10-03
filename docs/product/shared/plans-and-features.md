@@ -10,7 +10,7 @@ Typical limits: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 clas
 
 **From Pro:** Guild Hall (Wheel, Ledger, sorting quiz), Hero Path, Quest Calendar / Day Planner (including all five Special Quests), Scholar’s Scroll and Starfall / make-ups, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes), Hero Campfire and Ember Oaths, Attendance Chronicle, Family Access, My Planning (class end dates), class grading override.
 
-**From Elite:** Story Weavers, Familiars, Quiz of the Week, School Office, and AI (chronicler, images, Avatar Forge, Oracle, Restock, nameday, certificates and reports).
+**From Elite:** Training Grounds (Story Weavers and three more class games), Familiars, Quiz of the Week, School Office, and AI (chronicler, images, Avatar Forge, Oracle, Restock, nameday, certificates and reports).
 
 ## Each plan in one sentence
 
@@ -25,7 +25,7 @@ Typical limits: **Starter** 3 teachers / 6 classes. **Pro** 6 teachers / 10 clas
 | Guild Hall | Cloud dock | Pro |
 | Scholar’s Scroll | Cloud dock | Pro |
 | Quest Calendar | Cloud dock | Pro |
-| Story Weavers | Cloud dock | Elite |
+| Training Grounds | Cloud dock | Elite |
 
 The Adventure Log tab stays visible on Starter, but the diary itself starts at Pro. The Market’s **Restock** and the Familiar eggs are Elite even though the tab is always there.
 

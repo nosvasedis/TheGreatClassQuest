@@ -147,6 +147,9 @@ const REASONS = {
     excellence: { label: 'Great work', icon: 'fa-star', tone: 'amber' },
     welcome_back: { label: 'Welcome back', icon: 'fa-door-open', tone: 'sky' },
     story_weaver: { label: 'Story writing', icon: 'fa-book-open', tone: 'violet' },
+    vanishing_hoard: { label: 'Focus game', icon: 'fa-eye', tone: 'amber' },
+    torn_map: { label: 'Teamwork game', icon: 'fa-compass', tone: 'violet' },
+    round_table: { label: 'Respect game', icon: 'fa-shield-heart', tone: 'sage' },
     scholar_s_bonus: { label: 'Test result bonus', icon: 'fa-graduation-cap', tone: 'amber' },
     teacher_boon: { label: "A gift from the teacher", icon: 'fa-gift', tone: 'rose' },
     peer_boon: { label: 'A gift from a classmate', icon: 'fa-heart', tone: 'rose' },
@@ -167,7 +170,7 @@ const HERO_CLASSES = {
     Paladin: { icon: '⚔️', gift: 'shines at teamwork' },
     Artificer: { icon: '⚙️', gift: 'shines at focus' },
     Scholar: { icon: '📜', gift: 'shines in tests' },
-    Weaver: { icon: '✒️', gift: 'shines at story writing' },
+    Weaver: { icon: '✒️', gift: 'shines in the class training games' },
     Nomad: { icon: '👟', gift: 'always comes back stronger' },
     Patron: { icon: '💝', gift: 'shines at kindness to classmates' }
 };

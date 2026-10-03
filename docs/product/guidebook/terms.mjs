@@ -11,7 +11,7 @@ export const TERMS = [
       en: 'The lesson tab of floating clouds. Pick a virtue gem (Teamwork, Creativity, Respect, or Focus), then Spark (1), Shine (2), or Supernova (3) stars. This is the heart of the Quest.',
       el: 'Η καρτέλα του μαθήματος με τα σύννεφα. Διαλέγεις πετράδι αρετής (Teamwork, Creativity, Respect ή Focus) και μετά Spark (1), Shine (2) ή Supernova (3) αστέρια. Είναι η καρδιά του Quest.'
     },
-    confuse: { en: "Scholar's Scroll (tests), Story Weavers (writing stars)", el: "Scholar's Scroll (διαγωνίσματα), Story Weavers (αστέρια γραφής)" }
+    confuse: { en: "Scholar's Scroll (tests), Training Grounds (class game stars)", el: "Scholar's Scroll (διαγωνίσματα), Training Grounds (αστέρια ομαδικών παιχνιδιών)" }
   },
   {
     id: 'team-quest',
@@ -342,11 +342,11 @@ export const TERMS = [
     id: 'story-weavers',
     chapter: 'story-weavers',
     widget: 'story-weavers',
-    names: { en: 'Story Weavers', el: 'Story Weavers' },
-    aliases: ['story weavers', 'story weaver'],
+    names: { en: 'Training Grounds', el: 'Training Grounds' },
+    aliases: ['training grounds', 'story weavers', 'story weaver', 'vanishing hoard', 'torn map', 'round table'],
     def: {
-      en: 'Elite collaborative writing tab. Milestone stars arrive from this tab — there is no Story Weaver button on Award Stars.',
-      el: 'Elite καρτέλα συνεργατικής γραφής. Τα αστέρια οροσήμου έρχονται από εδώ — όχι από κουμπί στο Award Stars.'
+      en: 'Elite tab of four class games, one per skill: Story Weavers (Creativity), The Vanishing Hoard (Focus), The Torn Map (Teamwork) and The Round Table (Respect). Milestone stars arrive from this tab — there is no button for them on Award Stars.',
+      el: 'Elite καρτέλα με τέσσερα ομαδικά παιχνίδια, ένα ανά δεξιότητα: Story Weavers (Creativity), The Vanishing Hoard (Focus), The Torn Map (Teamwork) και The Round Table (Respect). Τα αστέρια οροσήμου έρχονται από εδώ — όχι από κουμπί στο Award Stars.'
     },
     confuse: { en: 'Five-Sentence Saga (calendar event)', el: 'Five-Sentence Saga (γεγονός ημερολογίου)' }
   },

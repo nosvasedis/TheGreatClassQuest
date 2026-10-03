@@ -6,6 +6,8 @@ import { normalizeChroniclerText } from '../features/adventurePageCore.mjs';
 import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReasonMeta.js';
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
+import { canUseFeature } from '../utils/subscription.js';
+import { getHomeGlobalTools } from '../features/homeGlobalTools.mjs';
 import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
@@ -213,6 +215,22 @@ function getChronicleHtml(classId) {
         </button>`;
 }
 
+/** Same Global Tools as desktop Home: only what the dock does not reach in one tap. */
+function getMobileGlobalTools() {
+    const today = utils.getTodayDateString();
+    const myClasses = state.get('allTeachersClasses') || [];
+    const myClassIds = new Set(myClasses.map((c) => c.id));
+    const myLessonsToday = isSchoolYearAwaitingOpen(state.get('schoolYearState'))
+        ? 0
+        : utils.getClassesOnDay(
+            today,
+            state.get('allSchoolClasses') || [],
+            state.get('allScheduleOverrides') || [],
+            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+        ).filter((c) => myClassIds.has(c.id)).length;
+    return getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
+}
+
 function getQuickActionHtml(classId) {
     const tools = classId
         ? [
@@ -223,19 +241,13 @@ function getQuickActionHtml(classId) {
             { icon: 'fa-file-lines', label: 'Report', action: 'report', tone: 'emerald' },
             { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', tone: 'rose' }
         ]
-        : [
-            { icon: 'fa-trophy', label: 'Hero Ranks', action: 'ranks', tone: 'amber' },
-            { icon: 'fa-plus-circle', label: 'New Class', action: 'create-class', tone: 'emerald' },
-            { icon: 'fa-globe', label: 'Team History', action: 'team-history', tone: 'sky' },
-            { icon: 'fa-chalkboard-teacher', label: 'My Classes', action: 'my-classes', tone: 'indigo' },
-            { icon: 'fa-calendar-alt', label: 'Plan', action: 'plan', tone: 'rose' },
-            { icon: 'fa-cog', label: 'Setup', action: 'settings', tone: 'gray' }
-        ];
+        : getMobileGlobalTools();
 
     return tools.map((tool, i) => `
         <button type="button"
             class="m-home-action m-home-action--${tool.tone} m-pressable bubbly-button card-appear-m"
             ${tool.tab ? `data-m-quick-tab="${tool.tab}"` : `data-m-quick-action="${tool.action}"`}
+            ${tool.subtab ? `data-m-quick-subtab="${tool.subtab}"` : ''}
             style="--stagger:${i + 2}"
             aria-label="${escapeHtml(tool.label)}">
             <i class="fas ${tool.icon}" aria-hidden="true"></i>
@@ -447,7 +459,7 @@ function attachHomeListeners() {
 
         const quickAction = event.target.closest('[data-m-quick-action]');
         if (quickAction) {
-            handleQuickAction(quickAction.dataset.mQuickAction);
+            handleQuickAction(quickAction.dataset.mQuickAction, quickAction.dataset.mQuickSubtab);
             return;
         }
 
@@ -459,7 +471,7 @@ function attachHomeListeners() {
     });
 }
 
-async function handleQuickAction(action) {
+async function handleQuickAction(action, subtab) {
     playSound('click');
     const classId = state.get('globalSelectedClassId');
 
@@ -472,20 +484,19 @@ async function handleQuickAction(action) {
     } else if (action === 'edit-class') {
         const modals = await import('../ui/modals.js');
         if (classId) modals.openEditClassModal(classId);
-    } else if (action === 'ranks') {
+    } else if (action === 'open-student-ranks') {
         const modals = await import('../ui/modals.js');
         modals.openStudentRankingsModal();
     } else if (action === 'create-class') {
         const modals = await import('../ui/modals.js');
         modals.openCreateClassModal();
-    } else if (action === 'team-history') {
+    } else if (action === 'open-team-history') {
         const modals = await import('../ui/modals.js');
         modals.openHistoryModal('team', { league: null });
-    } else if (action === 'my-classes' || action === 'settings') {
+    } else if (action === 'open-options') {
         const tabs = await import('../ui/tabs.js');
-        await tabs.showTab('options-tab');
-        if (action === 'my-classes') tabs.showOptionsSubtab('classes');
-    } else if (action === 'plan') {
+        await tabs.showOptionsSubtab(subtab || 'classes');
+    } else if (action === 'open-day-planner') {
         const modals = await import('../ui/modals.js');
         modals.openDayPlannerModal(utils.getTodayDateString(), document.body);
     }

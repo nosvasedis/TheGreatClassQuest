@@ -388,6 +388,9 @@
 .m-home-action--emerald { background: linear-gradient(to top, #059669, #34d399); border-bottom-color: #047857; }
 .m-home-action--rose { background: linear-gradient(to top, #e11d48, #fb7185); border-bottom-color: #9f1239; }
 .m-home-action--gray { background: linear-gradient(to top, #64748b, #94a3b8); border-bottom-color: #475569; }
+.m-home-action--violet { background: linear-gradient(to top, #7c3aed, #a78bfa); border-bottom-color: #5b21b6; }
+.m-home-action--teal { background: linear-gradient(to top, #0d9488, #2dd4bf); border-bottom-color: #115e59; }
+.m-home-action--slate { background: linear-gradient(to top, #475569, #94a3b8); border-bottom-color: #334155; }
 
 .m-home-chronicle-list {
     display: grid;

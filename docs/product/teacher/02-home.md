@@ -23,7 +23,7 @@ You are looking at the **whole school**:
 - **School Stars** — this month’s stars across all students
 - **Heroes** — how many students are on the roster
 - **Treasury** — this year's Gold held by students. Last year's Gold is archived when the school year is finished, so a new year starts at 0.
-- **Global Tools** — Hero Ranks, New (class), Team History, My Classes, Plan (Pro calendar), Setup (Teacher Settings)
+- **Global Tools** — shortcuts the bottom bar and the gear do not already reach in one click, each with a live hint: **Plan Today** (Pro calendar; shows how many of your lessons are today), **New Class** (shows how many classes you run), **Quiz of the Week** (Elite), **Family Access** (parent logins), **Hero Archive** and **Team Archive** (past months' rankings). On plans without some of these, **Student Fixes** (adjust stars or gold) and **Last Lessons** (end-of-year days) take their place.
 - **Today’s school schedule** — every class that meets today. A crown marks your own classes, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class to open its **class roster**, which shows:
   - the league, teacher, time and days, and how many heroes there are;
   - stars this month and all year, Gold, Team Quest progress and the next lesson;

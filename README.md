@@ -205,7 +205,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Header:** AI-generated **inspirational quote** (cached daily); background shifts with **weather** (sunny, cloudy, rainy, snowy, stormy) and **day/night** (sunrise/sunset from your location).
 - **Time-based greeting:** Good Morning / Afternoon / Evening / Night with matching gradient.
 - **View modes:**
-  - **No class selected:** School-wide stats (School Stars, Heroes count, Treasury), **Global Tools** (Hero Ranks, New Class, **Team History**, My Classes, **Plan**, Setup), and **School Schedule** for today.
+  - **No class selected:** School-wide stats (School Stars, Heroes count, Treasury), **Global Tools** (only shortcuts the bottom bar does not reach in one click: **Plan Today**, **New Class**, **Quiz of the Week**, **Family Access**, **Hero Archive**, **Team Archive**, with live hints), and **School Schedule** for today.
   - **Class selected:** That class’s monthly stars, goal (holiday/cancellation-adjusted), progress bar, **last story sentence**, quick actions (**Report**, **Award Stars**, **Adventure Log**, etc.), **today’s schedule**, and class-specific widgets.
 - **Shortcuts:** Open **Team History**, **Day Planner**, **Report** (class), **Settings**. School-wide **holidays** are edited in the **School Office**, not Teacher Settings.
 

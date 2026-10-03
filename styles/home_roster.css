@@ -134,12 +134,6 @@
     border: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow: 0 3px 10px -4px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
-.tool-btn-pop[data-action="open-student-ranks"] i { color: #f59e0b; }
-.tool-btn-pop[data-action="create-class"] i { color: #10b981; }
-.tool-btn-pop[data-action="open-team-history"] i { color: #0ea5e9; }
-.tool-btn-pop[data-action="open-my-classes"] i { color: #6366f1; }
-.tool-btn-pop[data-action="open-day-planner"] i { color: #ec4899; }
-.tool-btn-pop[data-action="open-settings"] i { color: #64748b; }
 .tool-btn-pop[data-action="open-attendance"] i { color: #e11d48; }
 .tool-btn-pop[data-action="open-report"] i { color: #8b5cf6; }
 .tool-btn-pop[data-target="reward-ideas-tab"] i { color: #06b6d4; }

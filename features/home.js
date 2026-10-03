@@ -13,6 +13,7 @@ import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
+import { getHomeGlobalTools } from './homeGlobalTools.mjs';
 import {
     DAILY_QUOTE_SYSTEM_PROMPT,
     buildDailyQuoteUserPrompt,
@@ -425,23 +426,18 @@ function getGeneralDashboard(name, theme, spice) {
     const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
 
     const totalGold = sumLiveYearGoldFromAppState(allScores, state);
-    const todaysClassCount = isSchoolYearAwaitingOpen(state.get('schoolYearState'))
-        ? 0
+    const todaysClasses = isSchoolYearAwaitingOpen(state.get('schoolYearState'))
+        ? []
         : utils.getClassesOnDay(
             today,
             state.get('allSchoolClasses') || [],
             state.get('allScheduleOverrides') || [],
             state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
-        ).length;
-
-    const tools = [
-        { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
-        { icon: 'fa-plus-circle', label: 'New', action: 'create-class', league: activeLeague },
-        { icon: 'fa-globe', label: 'Team History', action: 'open-team-history', league: activeLeague },
-        { icon: 'fa-chalkboard-teacher', label: 'My Classes', action: 'open-my-classes' },
-        { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner', featureFlag: 'calendar' },
-        { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
-    ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
+        );
+    const todaysClassCount = todaysClasses.length;
+    const myClassIds = new Set(myClasses.map(c => c.id));
+    const myLessonsToday = todaysClasses.filter(c => myClassIds.has(c.id)).length;
+    const tools = getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
 
     return getLayout(
         name, theme, '',
@@ -480,16 +476,22 @@ function getGeneralDashboard(name, theme, spice) {
             <div class="home-section-head">
                 <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-toolbox"></i></span>Global Tools</h3>
             </div>
-            <div class="tools-grid-v2">
-                ${tools.map(t => `
-                    <div
-                        class="tool-btn-pop shortcut-action-btn"
+            <div class="gt-grid">
+                ${tools.map((t, i) => `
+                    <button type="button"
+                        class="gt-tile gt-tile--${t.tone} shortcut-action-btn"
+                        style="--gt-i:${i}"
                         data-action="${t.action}"
-                        data-league="${t.league || ''}"
-                        title="${t.league ? `${t.label} for ${t.league} League` : t.label}">
-                        <i class="fas ${t.icon}"></i>
-                        <span>${t.label}</span>
-                    </div>
+                        data-subtab="${t.subtab || ''}"
+                        data-league="${t.scoped ? (activeLeague || '') : ''}"
+                        title="${t.scoped && activeLeague ? `${t.label} for ${activeLeague} League` : t.label}">
+                        <span class="gt-tile__icon" aria-hidden="true"><i class="fas ${t.icon}"></i></span>
+                        <span class="gt-tile__text">
+                            <span class="gt-tile__label">${t.label}</span>
+                            <span class="gt-tile__hint">${escapeHtml(t.hint)}</span>
+                        </span>
+                        <i class="fas fa-chevron-right gt-tile__go" aria-hidden="true"></i>
+                    </button>
                 `).join('')}
             </div>
         </div>
@@ -998,9 +1000,8 @@ async function handleAction(action, data) {
         if (id) modals.openAttendanceChronicle(id); else tabs.showTab('adventure-log-tab');
     }
     else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
-    else if (action === 'open-settings') await activateOptionsSubtab('classes');
     else if (action === 'open-holidays') await activateOptionsSubtab('planning');
-    else if (action === 'open-my-classes') await activateOptionsSubtab('classes');
+    else if (action === 'open-options') await activateOptionsSubtab(data?.subtab || 'classes');
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
     else if (action === 'create-class') await openCreateClassForm(scopedLeague);
     else if (action === 'edit-class') modals.openEditClassModal(data.id);

@@ -156,6 +156,25 @@ const RANK_WORDS = ['Quest leader', '2nd place', '3rd place'];
 const LITE_FX_STORAGE_KEY = 'gcq-team-quest-map-fx';
 
 let activeLivingMapController = null;
+// How long the map takes to unroll, and to roll up before unrolling again.
+const SCROLL_UNROLL_MS = 1150;
+const SCROLL_FURL_MS = 380;
+const easeInCubic = (t) => t * t * t;
+function cubicBezier(x1, y1, x2, y2) {
+    const axis = (a, b, t) => ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t;
+    return (x) => {
+        let lo = 0;
+        let hi = 1;
+        for (let i = 0; i < 24; i += 1) {
+            const mid = (lo + hi) / 2;
+            if (axis(x1, x2, mid) < x) lo = mid;
+            else hi = mid;
+        }
+        return axis(y1, y2, (lo + hi) / 2);
+    };
+}
+// A quick flick off the rods that slows as the paper flattens out.
+const easeUnroll = cubicBezier(0.3, 0.02, 0.16, 1);
 // Where each party was last drawn, so live updates walk tokens forward from
 // there instead of replaying the whole journey from the start of the road.
 const mapMemory = { leagueKey: null, tokens: new Map(), pinnedKey: null };
@@ -419,7 +438,7 @@ export function generateLeagueMapHtml(classes, options = {}) {
     )).join('');
 
     return `
-    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${shouldUseLiteMapFx() ? 'lite' : 'full'}">
+    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${shouldUseLiteMapFx() ? 'lite' : 'full'}" data-scroll="rolled">
         <img class="tq-living-map__parchment-backing" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async" aria-hidden="true">
         <div class="tq-living-map__frame">
             <img class="tq-living-map__background" src="${LIVING_MAP_ASSETS.background}" alt="" draggable="false" decoding="async" fetchpriority="high">
@@ -499,6 +518,15 @@ export function generateLeagueMapHtml(classes, options = {}) {
                 </button>
                 ${renderChronicleButton(parts.count)}
             </div>
+        </div>
+        <div class="tq-unroll" aria-hidden="true">
+            <span class="tq-unroll__side tq-unroll__side--left">
+                <img class="tq-unroll__roll" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async">
+            </span>
+            <span class="tq-unroll__side tq-unroll__side--right">
+                <img class="tq-unroll__roll" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async">
+            </span>
+            <span class="tq-unroll__seal"><span class="tq-unroll__seal-mark">✦</span></span>
         </div>
         <div class="tq-popover" data-map-popover role="dialog" aria-label="Quest party details" hidden>
             <div class="tq-popover__inner" data-map-popover-body></div>
@@ -659,6 +687,66 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         const s = tokenState(token);
         return [s.key, { progress: s.progress, stars: s.stars, lane: s.lane }];
     }));
+
+    // --- The scroll: the map unrolls from its two rods whenever it is shown afresh ---
+    // One custom property drives every moving part (see team_quest_map_living.css),
+    // written once per frame so the rods and the map edge stay locked together.
+    let scrollFrame = 0;
+    let scrollMotion = Promise.resolve();
+    let revealPromise = null;
+    const scrollOpenness = () => {
+        if (root.dataset.scroll === 'open') return 1;
+        if (root.dataset.scroll === 'rolled') return 0;
+        return Math.min(1, Math.max(0, Number.parseFloat(root.style.getPropertyValue('--tq-open')) || 0));
+    };
+    const setScrollPose = (pose) => {
+        cancelAnimationFrame(scrollFrame);
+        root.style.removeProperty('--tq-open');
+        root.dataset.scroll = pose;
+    };
+    const moveScroll = (to, duration, ease) => {
+        cancelAnimationFrame(scrollFrame);
+        const from = scrollOpenness();
+        return new Promise((resolve) => {
+            if (Math.abs(to - from) < 0.001) { resolve(); return; }
+            root.style.setProperty('--tq-open', from.toFixed(4));
+            root.dataset.scroll = 'moving';
+            const span = duration * Math.abs(to - from);
+            let start = 0;
+            const step = (now) => {
+                if (destroyed) { resolve(); return; }
+                start ||= now;
+                const t = Math.min(1, (now - start) / span);
+                root.style.setProperty('--tq-open', (from + (to - from) * ease(t)).toFixed(4));
+                if (t < 1) scrollFrame = requestAnimationFrame(step);
+                else resolve();
+            };
+            scrollFrame = requestAnimationFrame(step);
+        });
+    };
+
+    if (reducedMotionQuery.matches) setScrollPose('open');
+    else if (replay && root.dataset.scroll === 'open') {
+        // An open map in view rolls itself up first; one out of sight simply waits rolled.
+        const rect = root.getBoundingClientRect();
+        const inView = !document.hidden && rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+        if (inView) scrollMotion = moveScroll(0, SCROLL_FURL_MS, easeInCubic).then(() => { if (!destroyed) setScrollPose('rolled'); });
+        else setScrollPose('rolled');
+    }
+
+    /** Unrolls the map; resolves once enough of it is open for the parties to set off. */
+    const unrollScroll = () => {
+        revealPromise ||= scrollMotion.then(() => new Promise((resolve) => {
+            if (destroyed || root.dataset.scroll === 'open') { resolve(); return; }
+            if (reducedMotionQuery.matches) { setScrollPose('open'); resolve(); return; }
+            later(resolve, SCROLL_UNROLL_MS * 0.5);
+            moveScroll(1, SCROLL_UNROLL_MS, easeUnroll).then(() => {
+                if (!destroyed) setScrollPose('open');
+                resolve();
+            });
+        }));
+        return revealPromise;
+    };
 
     const leaderProgress = () => Math.max(0, ...tokens.map((token) => tokenState(token).progress));
 
@@ -874,6 +962,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     let restoringFocus = false;
     let showTimer = 0;
     let hideTimer = 0;
+    let collapseTimer = 0;
 
     const positionPopover = () => {
         if (!openToken || !popover || popover.hidden) return;
@@ -906,7 +995,10 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         pinned = false;
         mapMemory.pinnedKey = null;
         popover.dataset.state = 'closed';
-        hideTimer = later(() => {
+        popover.dataset.pinned = 'false';
+        // Its own timer: a later hover-out must not cancel the card actually going away.
+        clearTimeout(collapseTimer);
+        collapseTimer = later(() => {
             if (!openToken) popover.hidden = true;
         }, 180);
         if (restoreFocus) {
@@ -920,6 +1012,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         if (!popover || !popoverBody) return;
         clearTimeout(hideTimer);
         clearTimeout(showTimer);
+        clearTimeout(collapseTimer);
         if (openToken !== token) {
             const template = root.querySelector(`template[data-card-for="${CSS.escape(token.dataset.tokenKey)}"]`);
             if (!template) return;
@@ -942,7 +1035,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     };
 
     const scheduleClose = () => {
-        if (pinned) return;
+        if (pinned || !openToken) return;
         clearTimeout(hideTimer);
         hideTimer = later(() => { if (!pinned) closePopover(); }, 170);
     };
@@ -1044,9 +1137,17 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     });
 
     const intersectionObserver = new IntersectionObserver((entries) => {
-        offscreen = !entries[0]?.isIntersecting;
+        const entry = entries[0];
+        offscreen = !entry?.isIntersecting;
+        // Leaving the tab rolls the map back up, so the next visit opens it again.
+        if (offscreen && entry && !entry.boundingClientRect.width && !reducedMotionQuery.matches) {
+            closePopover();
+            setScrollPose('rolled');
+            scrollMotion = Promise.resolve();
+            revealPromise = null;
+        }
         updateMotionState();
-        if (!offscreen) artReady.then(startJourney);
+        if (!offscreen) artReady.then(unrollScroll).then(startJourney);
     }, { threshold: 0.08 });
     intersectionObserver.observe(root);
 
@@ -1098,6 +1199,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             timers.forEach((id) => clearTimeout(id));
             timers.clear();
             cancelAnimationFrame(resizeFrame);
+            cancelAnimationFrame(scrollFrame);
             listeners.abort();
             intersectionObserver.disconnect();
             resizeObserver.disconnect();

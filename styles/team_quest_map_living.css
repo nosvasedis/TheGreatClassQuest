@@ -95,6 +95,129 @@
 
 .tq-living-map:not(.is-art-ready) .tq-map-title { animation: tq-title-wait 1.4s ease-in-out infinite; }
 
+/* ── The scroll ────────────────────────────────────────────────────────
+   Shown afresh (a new tab visit, another class or league) the map opens like a
+   scroll: the two rolled ends of the parchment start together at the centre,
+   sealed, and travel out to their places while the map unfurls between them.
+   One number, --tq-open (0 rolled → 1 open, set each frame by worldMap.js),
+   drives the rods, the parchment and the map edge, so they can never drift
+   apart however busy the page is. Each part uses percentages of its own box,
+   which line up at any size.
+   Poses: rolled → moving → open (the ordinary resting map). */
+.tq-living-map { --tq-open: 1; }
+.tq-living-map[data-scroll='rolled'] { --tq-open: 0; }
+
+.tq-unroll {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: none;
+    pointer-events: none;
+}
+
+.tq-living-map:not([data-scroll='open']) .tq-unroll { display: block; }
+
+/* Each side carries a full-size copy of the backing, cropped to its rolled end. */
+.tq-unroll__side {
+    position: absolute;
+    top: -7.4%;
+    left: -5.35%;
+    width: 110.7%;
+    height: 114.8%;
+}
+
+.tq-unroll__side--left { transform: translate3d(calc(45.17% * (1 - var(--tq-open))), 0, 0); }
+.tq-unroll__side--right { transform: translate3d(calc(-45.17% * (1 - var(--tq-open))), 0, 0); }
+
+.tq-unroll__side::after {
+    /* The paper darkens a little where it curls off each rod. */
+    content: '';
+    position: absolute;
+    top: 6.45%;
+    bottom: 6.45%;
+    width: 2.6%;
+    opacity: min(1, calc(var(--tq-open) * 6), calc((1 - var(--tq-open)) * 3));
+}
+
+.tq-unroll__side--left::after {
+    left: 4.83%;
+    background: linear-gradient(90deg, rgba(62, 36, 12, 0.4), rgba(62, 36, 12, 0));
+}
+
+.tq-unroll__side--right::after {
+    right: 4.83%;
+    background: linear-gradient(270deg, rgba(62, 36, 12, 0.4), rgba(62, 36, 12, 0));
+}
+
+.tq-unroll__roll {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    object-fit: fill;
+    user-select: none;
+    filter: drop-shadow(0 1.2rem 1.25rem rgba(74, 42, 13, 0.3));
+}
+
+.tq-unroll__side--left .tq-unroll__roll { clip-path: inset(0 95.17% 0 0); }
+.tq-unroll__side--right .tq-unroll__roll { clip-path: inset(0 0 0 95.17%); }
+
+.tq-living-map:not([data-scroll='open']) .tq-living-map__frame {
+    /* Reaching a little under each rod keeps the map's shadow from ending in a hard edge. */
+    clip-path: inset(-4rem calc(50% - 52.5% * var(--tq-open)) -4rem calc(50% - 52.5% * var(--tq-open)));
+}
+
+.tq-living-map:not([data-scroll='open']) .tq-living-map__parchment-backing {
+    clip-path: inset(-8% calc(50% - 45.16% * var(--tq-open)) -8% calc(50% - 45.16% * var(--tq-open)));
+}
+
+.tq-living-map[data-scroll='rolled'] .tq-living-map__frame,
+.tq-living-map[data-scroll='rolled'] .tq-living-map__parchment-backing { visibility: hidden; }
+
+.tq-unroll__seal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: clamp(2.4rem, 4.4vw, 3.6rem);
+    aspect-ratio: 1;
+    margin: calc(clamp(2.4rem, 4.4vw, 3.6rem) / -2) 0 0 calc(clamp(2.4rem, 4.4vw, 3.6rem) / -2);
+    border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%;
+    background: radial-gradient(circle at 36% 30%, #e46a62 0%, #b3262f 42%, #7c121b 100%);
+    box-shadow:
+        0 0.35rem 0.6rem rgba(58, 12, 14, 0.42),
+        inset 0 0 0 0.2rem rgba(120, 18, 26, 0.85),
+        inset 0 0 0 0.32rem rgba(240, 140, 128, 0.32);
+    opacity: 0;
+    transform: scale(1.5) rotate(10deg);
+    transition: opacity 260ms ease-out, transform 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.tq-unroll__seal-mark {
+    color: #ffd9b8;
+    font-size: clamp(1rem, 1.9vw, 1.5rem);
+    line-height: 1;
+    text-shadow: 0 1px 0 rgba(90, 10, 16, 0.75);
+}
+
+/* Sealed while rolled; the seal breaks as the scroll starts to open. */
+.tq-living-map[data-scroll='rolled'] .tq-unroll__seal {
+    opacity: 1;
+    transform: none;
+    transition-delay: 0ms;
+}
+
+/* While the art is still on its way the sealed scroll waits with a soft glint. */
+.tq-living-map[data-scroll='rolled']:not(.is-art-ready) .tq-unroll__seal { animation: tq-seal-wait 1.6s ease-in-out infinite; }
+
+@keyframes tq-seal-wait {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.18); }
+}
+
 /* Lite effects: modest laptops keep the map, road and parties but skip the
    big drifting art layers. Chosen from device hints or a slow first second. */
 .tq-living-map[data-fx='lite'] .tq-fx-heavy { display: none; }
@@ -802,6 +925,9 @@
 
 .tq-popover[hidden] { display: none; }
 
+/* A card on its way out must never sit invisibly over the parties beneath it. */
+.tq-popover:not([data-state='open']) { pointer-events: none; }
+
 .tq-popover__inner {
     opacity: 0;
     transform: translateY(0.5rem) scale(0.94);
@@ -1412,6 +1538,10 @@
     .tq-living-map__background,
     .tq-chronicle-btn,
     .tq-map-replay { transition-duration: 0.01ms !important; }
+
+    .tq-unroll { display: none !important; }
+    .tq-living-map .tq-living-map__frame,
+    .tq-living-map .tq-living-map__parchment-backing { clip-path: none !important; }
 }
 
 .tq-card__next strong::first-letter { text-transform: uppercase; }

@@ -47,7 +47,7 @@ body.gcq-mobile .gh-chapter__text { flex: 1; }
 body.gcq-mobile .gh-action,
 body.gcq-mobile .gh-info,
 body.gcq-mobile .gh-banner__anthem,
-body.gcq-mobile .gh-details__spotlight { min-height: 0 !important; }
+body.gcq-mobile .gh-ds__spotlight { min-height: 0 !important; }
 body.gcq-mobile .gh-action { min-height: 2.8rem !important; padding-right: 0.7rem; }
 body.gcq-mobile .gh-action__title { font-size: 0.8rem; }
 body.gcq-mobile .gh-banners { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem 0.7rem; }
@@ -62,36 +62,7 @@ body.gcq-mobile .gh-race__track { grid-area: track; }
 body.gcq-mobile .gh-race__total { grid-area: total; }
 body.gcq-mobile .gh-race__row--head { display: none; }
 
-/* Fortune ledger */
-body.gcq-mobile .guild-fortune-ledger-section {
-    max-width: 100% !important;
-    margin: 0 0 1rem !important;
-    border-radius: 1.35rem !important;
-}
-
-body.gcq-mobile .guild-fortune-ledger-section__toggle {
-    padding: 0.85rem 1rem !important;
-    gap: 0.75rem !important;
-}
-
-body.gcq-mobile .guild-fortune-ledger-section__toggle-icon {
-    width: 2.4rem !important;
-    height: 2.4rem !important;
-    font-size: 0.95rem !important;
-}
-
-body.gcq-mobile .guild-fortune-ledger-section__title--toggle {
-    font-size: 1.2rem !important;
-}
-
-body.gcq-mobile .guild-fortune-ledger-section__expandable-body {
-    padding: 0.85rem 1rem 1.1rem !important;
-}
-
-body.gcq-mobile .guild-fortune-ledger-section__lede {
-    font-size: 0.78rem !important;
-    line-height: 1.35 !important;
-}
+/* Fortune Ledger: phone layout lives in styles/fortune_ledger.css */
 
 /* The banner hangs free (rod, tassels and tail sit outside the card box);
    the overlay scrolls instead of the card when a phone is short. */

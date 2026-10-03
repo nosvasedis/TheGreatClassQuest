@@ -38,62 +38,37 @@ export const guildsTabHTML = `
                     <div id="guilds-leaderboard-list" class="guild-hall-scene-content"></div>
                 </div>
 
-                <!-- Fortune ledger (collapsed by default; wheel control stays beside Standings) -->
-                <section id="fortunes-wheel-section" class="guild-fortune-ledger-section mt-6" data-ledger-expanded="false" aria-labelledby="fortune-ledger-heading">
-                    <div class="guild-fortune-ledger-section__glow" aria-hidden="true"></div>
-                    <div class="guild-fortune-ledger-section__inner">
-                        <button type="button"
-                                id="fortune-ledger-toggle"
-                                class="guild-fortune-ledger-section__toggle"
-                                aria-expanded="false"
-                                aria-controls="fortune-ledger-panel"
-                                aria-label="Show Fortune Ledger">
-                            <span class="guild-fortune-ledger-section__toggle-icon" aria-hidden="true">
-                                <i class="fa-solid fa-scroll"></i>
-                            </span>
-                            <span class="guild-fortune-ledger-section__toggle-text">
-                                <h3 id="fortune-ledger-heading" class="guild-fortune-ledger-section__title guild-fortune-ledger-section__title--toggle font-title">Fortune Ledger</h3>
-                            </span>
-                            <span class="guild-fortune-ledger-section__toggle-chev" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
-                        </button>
+                <!-- Fortune Ledger: the year's Wheel finds, a closed book until opened (built by ui/tabs/guilds.js) -->
+                <section id="fortunes-wheel-section" class="fl" data-ledger-expanded="false" aria-labelledby="fortune-ledger-heading">
+                    <button type="button"
+                            id="fortune-ledger-toggle"
+                            class="fl-toggle"
+                            aria-expanded="false"
+                            aria-controls="fortune-ledger-panel"
+                            aria-label="Open the Fortune Ledger">
+                        <span class="fl-toggle__book" aria-hidden="true"><i class="fa-solid fa-book"></i><span class="fl-toggle__clasp"></span></span>
+                        <span class="fl-toggle__text">
+                            <span class="fl-toggle__kicker">Every treasure the Wheel gave this year</span>
+                            <h3 id="fortune-ledger-heading" class="fl-toggle__title font-title">Fortune Ledger</h3>
+                            <span id="fortune-ledger-summary" class="fl-toggle__summary">No spins yet this year</span>
+                        </span>
+                        <span id="fortune-ledger-peek" class="fl-peek" aria-hidden="true"></span>
+                        <span class="fl-toggle__chev" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                    </button>
 
-                        <div id="fortune-ledger-panel"
-                             class="guild-fortune-ledger-section__expandable"
-                             role="region"
-                             aria-labelledby="fortune-ledger-heading"
-                             aria-hidden="true"
-                             inert>
-                            <div class="guild-fortune-ledger-section__expandable-inner">
-                                <div class="guild-fortune-ledger-section__expandable-body">
-                                    <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
-                                        <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">
-                                            <p class="guild-fortune-ledger-section__lede">
-                                                The treasures and Glory each class found at the wheel appear below. Use the Fortune's Wheel button above when the ritual window is open.
-                                            </p>
-                                        </div>
-                                        <div class="guild-fortune-ledger-section__context">
-                                            <div id="fortunes-wheel-class" class="guild-fortune-ledger-section__class-chip">No class selected</div>
-                                            <p id="fortunes-wheel-status" class="guild-fortune-ledger-section__hint"></p>
-                                        </div>
-                                    </header>
-
-                                    <div id="fortunes-log-section" class="guild-fortune-ledger guild-fortune-ledger--raised">
-                                        <div class="guild-fortune-ledger__header">
-                                            <div class="guild-fortune-ledger__title-block">
-                                                <span class="guild-fortune-ledger__eyebrow">Latest ceremonies</span>
-                                                <div class="guild-fortune-ledger__title">Wheel history</div>
-                                            </div>
-                                            <div class="guild-fortune-ledger__controls" role="group" aria-label="Ledger pages">
-                                                <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
-                                                    <i class="fa-solid fa-chevron-up"></i>
-                                                </button>
-                                                <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
-                                                    <i class="fa-solid fa-chevron-down"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
-                                    </div>
+                    <div id="fortune-ledger-panel" class="fl-panel" role="region" aria-labelledby="fortune-ledger-heading" aria-hidden="true" inert>
+                        <div class="fl-panel__clip">
+                            <div class="fl-panel__body">
+                                <div class="fl-status">
+                                    <span class="fl-status__icon" aria-hidden="true"><i class="fa-solid fa-dharmachakra"></i></span>
+                                    <span id="fortunes-wheel-class" class="fl-status__class">No class selected</span>
+                                    <p id="fortunes-wheel-status" class="fl-status__text"></p>
+                                </div>
+                                <div id="fortune-ledger-tally" class="fl-tally"></div>
+                                <div id="fortune-ledger-filter" class="fl-filter" role="group" aria-label="Show one guild"></div>
+                                <div id="fortunes-log-section" class="fl-book">
+                                    <ol id="fortunes-log-list" class="fl-list"></ol>
+                                    <button type="button" id="fortune-ledger-more" class="fl-more" hidden><i class="fa-solid fa-angles-down" aria-hidden="true"></i><span>Show older spins</span></button>
                                 </div>
                             </div>
                         </div>

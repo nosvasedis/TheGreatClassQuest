@@ -1,0 +1,403 @@
+/*
+ * styles/fortune_ledger.css — the Fortune Ledger under the Guild Hall (ui/tabs/guilds.js).
+ *
+ * Closed, it is a leather-bound book with this year's treasure count on its cover.
+ * Open, its parchment pages show each guild's tally and every spin as four fortune cards.
+ * Only transforms and opacity animate; .is-opening plays once when the book is opened.
+ */
+
+.fl {
+    --fl-gold: #f5c95a;
+    --fl-gold-2: #b7791f;
+    --fl-ink: #3b2412;
+    --fl-ink-2: rgba(59, 36, 18, 0.72);
+    --fl-ink-3: rgba(59, 36, 18, 0.52);
+    --fl-paper: #f7ecd0;
+    --fl-paper-2: #ecdab0;
+    --fl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    max-width: min(1180px, calc(100% - 1rem));
+    margin: 1.5rem auto 0;
+    border-radius: 1.4rem;
+    background: linear-gradient(160deg, #5a2121 0%, #3d1418 55%, #2a0d12 100%);
+    box-shadow:
+        0 0 0 1px rgba(245, 201, 90, 0.55),
+        inset 0 0 0 6px #3a1216,
+        inset 0 0 0 7px rgba(245, 201, 90, 0.45),
+        0 18px 40px rgba(20, 6, 10, 0.35);
+    color: #fdf3d8;
+}
+
+/* ═══ The cover (toggle) ═════════════════════════════════════════════════════ */
+
+.fl-toggle {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1.05rem 1.4rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.fl-toggle__book {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 3.2rem;
+    height: 3.6rem;
+    border-radius: 0.35rem 0.7rem 0.7rem 0.35rem;
+    background: linear-gradient(90deg, #2a0d12 0 18%, #7a2a2a 18% 100%);
+    box-shadow: inset 0 0 0 2px rgba(245, 201, 90, 0.7), 0 6px 14px rgba(0, 0, 0, 0.35);
+    color: var(--fl-gold);
+    font-size: 1.2rem;
+    transition: transform 0.4s var(--fl-ease);
+}
+.fl-toggle__clasp {
+    position: absolute;
+    right: -0.3rem;
+    top: 50%;
+    width: 0.7rem;
+    height: 1rem;
+    margin-top: -0.5rem;
+    border-radius: 0.2rem;
+    background: linear-gradient(180deg, #fde68a, var(--fl-gold-2));
+    transition: transform 0.4s var(--fl-ease), opacity 0.3s;
+}
+.fl-toggle:hover .fl-toggle__book { transform: rotate(-6deg) translateY(-2px); }
+.fl[data-ledger-expanded="true"] .fl-toggle__clasp { transform: translateX(0.5rem); opacity: 0; }
+.fl-toggle__text { display: grid; min-width: 0; }
+.fl-toggle__kicker { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fl-gold); }
+.fl-toggle__title {
+    margin: 0.05rem 0 0;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    line-height: 1.1;
+    color: #fff4d6;
+    text-shadow: 0 2px 0 #2a0d12;
+}
+.fl-toggle__summary { font-size: 0.82rem; font-weight: 700; color: rgba(253, 243, 216, 0.72); }
+.fl-peek { display: flex; gap: 0.35rem; }
+.fl-peek:empty { display: none; }
+.fl-peek__g {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    min-width: 3.1rem;
+    padding: 0.35rem 0.4rem;
+    border-radius: 0.8rem;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(245, 201, 90, 0.25);
+}
+.fl-peek__g b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.78rem; color: #fde68a; }
+.fl-peek__g.is-lucky { border-color: var(--fl-gold); background: rgba(245, 201, 90, 0.16); }
+.fl-peek__emblem, .fl-chest__emblem, .fl-card__emblem, .fl-chip__emblem {
+    flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--g2);
+    background: var(--g1);
+}
+.fl-peek__emblem { width: 1.7rem; height: 1.7rem; }
+.fl-peek__emblem--initial, .fl-chest__emblem--initial, .fl-card__emblem--initial, .fl-chip__emblem--initial {
+    display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 0.7rem;
+}
+.fl-toggle__chev {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    border: 1px solid rgba(245, 201, 90, 0.55);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--fl-gold);
+    transition: transform 0.4s var(--fl-ease);
+}
+.fl[data-ledger-expanded="true"] .fl-toggle__chev { transform: rotate(180deg); }
+
+/* ═══ The pages ══════════════════════════════════════════════════════════════ */
+
+.fl-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.55s var(--fl-ease); }
+.fl-panel.is-open { grid-template-rows: 1fr; }
+.fl-panel__clip { min-height: 0; overflow: hidden; }
+.fl-panel__body {
+    margin: 0 0.75rem 0.75rem;
+    padding: 1.2rem 1.3rem 1.3rem;
+    border-radius: 0.6rem 0.6rem 1rem 1rem;
+    color: var(--fl-ink);
+    background:
+        radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+        repeating-linear-gradient(180deg, transparent 0 31px, rgba(120, 80, 30, 0.08) 31px 32px),
+        linear-gradient(180deg, var(--fl-paper), var(--fl-paper-2));
+    box-shadow: inset 0 0 0 1px rgba(120, 80, 30, 0.25), inset 0 0 40px rgba(150, 100, 40, 0.18);
+}
+
+/* The wheel's window for the chosen class */
+.fl-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.7rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px dashed rgba(120, 80, 30, 0.35);
+}
+.fl-status__icon { color: #9a5b12; }
+.fl-status__class {
+    padding: 0.15rem 0.65rem;
+    border-radius: 999px;
+    background: #3d1418;
+    color: #fde68a;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+.fl-status__text { flex: 1; min-width: 12rem; margin: 0; font-size: 0.82rem; color: var(--fl-ink-2); }
+.fl[data-state="ready"] .fl-status { background: rgba(187, 247, 208, 0.55); border-color: #16a34a; }
+
+/* Treasure count: one chest per guild */
+.fl-tally:empty { display: none; }
+.fl-tally__title, .fl-filter::before {
+    display: block;
+    margin: 1.1rem 0 0.55rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #9a5b12;
+}
+.fl-tally__list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; margin: 0; padding: 0; list-style: none; }
+.fl-chest {
+    position: relative;
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.75rem 0.8rem 0.8rem;
+    border-radius: 1rem;
+    background: linear-gradient(160deg, #fffaf0, #f3e3bd);
+    border: 1px solid rgba(120, 80, 30, 0.22);
+    border-top: 4px solid var(--g1);
+    box-shadow: 0 4px 10px rgba(120, 80, 30, 0.12);
+}
+.fl-chest.is-lucky { border-color: var(--fl-gold-2); border-top-color: var(--fl-gold); box-shadow: 0 0 0 2px rgba(245, 201, 90, 0.6), 0 6px 16px rgba(183, 121, 31, 0.25); }
+.fl-chest__ribbon {
+    position: absolute;
+    top: -0.75rem;
+    right: 0.7rem;
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fde68a, var(--fl-gold-2));
+    color: #3b2412;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.fl-chest__head { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+.fl-chest__emblem { width: 2rem; height: 2rem; }
+.fl-chest__name { font-weight: 800; font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-chest__glory { font-size: 0.8rem; font-weight: 700; color: var(--fl-ink-2); }
+.fl-chest__glory b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.45rem; color: #8a4b0b; }
+.fl-chest__more { font-size: 0.7rem; font-weight: 700; color: var(--fl-ink-3); }
+.fl-chest__best {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    justify-self: start;
+    max-width: 100%;
+    padding: 0.12rem 0.55rem 0.12rem 0.35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--r) 18%, #fff);
+    border: 1px solid color-mix(in srgb, var(--r) 60%, transparent);
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: color-mix(in srgb, var(--r) 55%, #2a1a05);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Guild filter */
+.fl-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.fl-filter:empty { display: none; }
+.fl-filter::before { content: 'Show'; flex-basis: 100%; margin-bottom: 0.1rem; }
+.fl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.75rem 0.28rem 0.35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(120, 80, 30, 0.3);
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--fl-ink);
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.2s var(--fl-ease), background 0.2s;
+}
+.fl-chip:first-child { padding-left: 0.75rem; }
+.fl-chip:hover { transform: translateY(-1px); background: #fff; }
+.fl-chip.is-active { background: #3d1418; border-color: #3d1418; color: #fde68a; }
+.fl-chip.is-active[style] { background: linear-gradient(135deg, var(--g1), color-mix(in srgb, var(--g2) 70%, #000)); border-color: var(--g1); color: #fff; }
+.fl-chip__emblem { width: 1.4rem; height: 1.4rem; border-width: 1.5px; }
+
+/* The pages: one spin per line */
+.fl-book { margin-top: 0.9rem; }
+.fl-list { display: grid; gap: 0.8rem; margin: 0; padding: 0; list-style: none; }
+.fl-entry {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.9rem;
+    padding: 0.85rem;
+    border-radius: 1.1rem;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(120, 80, 30, 0.2);
+}
+.fl-entry__date {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    width: 3.6rem;
+    height: 4rem;
+    border-radius: 0.8rem;
+    background: linear-gradient(180deg, #7a2a2a 0 32%, #fffaf0 32%);
+    box-shadow: inset 0 0 0 1px rgba(120, 80, 30, 0.3), 0 3px 8px rgba(120, 80, 30, 0.18);
+    text-align: center;
+    line-height: 1.05;
+}
+.fl-entry__date small:first-child { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #fde68a; margin-top: -0.35rem; margin-bottom: 0.35rem; }
+.fl-entry__date b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.35rem; color: var(--fl-ink); }
+.fl-entry__date small:last-child { font-size: 0.62rem; font-weight: 800; color: var(--fl-ink-3); text-transform: uppercase; }
+.fl-entry__main { min-width: 0; }
+.fl-entry__head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.7rem; margin-bottom: 0.55rem; }
+.fl-entry__class { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 800; font-size: 0.9rem; }
+.fl-entry__class i { color: #9a5b12; font-size: 0.8rem; }
+.fl-entry__by { font-size: 0.76rem; font-weight: 600; font-style: italic; color: var(--fl-ink-3); }
+.fl-entry__total {
+    margin-left: auto;
+    padding: 0.15rem 0.7rem;
+    border-radius: 999px;
+    background: #3d1418;
+    color: #fde68a;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* Fortune cards, one per guild */
+.fl-r--common { --r: #94a3b8; }
+.fl-r--uncommon { --r: #22c55e; }
+.fl-r--rare { --r: #3b82f6; }
+.fl-r--epic { --r: #a855f7; }
+.fl-r--legendary { --r: #f59e0b; }
+.fl-r--mythic { --r: #ec4899; }
+.fl-r--cursed { --r: #78716c; }
+.fl-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
+.fl-cards--one { grid-template-columns: minmax(0, 18rem); }
+.fl-card {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 0.2rem;
+    padding: 0 0.55rem 0.6rem;
+    border-radius: 0.9rem;
+    overflow: hidden;
+    text-align: center;
+    color: #fff;
+    background:
+        radial-gradient(90% 60% at 50% 35%, color-mix(in srgb, var(--r) 40%, transparent), transparent 70%),
+        linear-gradient(180deg, #221641, #140d2b);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--r) 70%, transparent), 0 6px 14px rgba(40, 20, 10, 0.25);
+    transition: transform 0.25s var(--fl-ease);
+}
+.fl-card:hover { transform: translateY(-3px) rotate(-0.6deg); }
+.fl-card__guild {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    justify-self: stretch;
+    margin: 0 -0.55rem 0.2rem;
+    padding: 0.3rem 0.4rem;
+    background: linear-gradient(90deg, var(--g1), color-mix(in srgb, var(--g2) 70%, #000));
+    font-size: 0.68rem;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.fl-card__guild > span { overflow: hidden; text-overflow: ellipsis; }
+.fl-card__emblem { width: 1.2rem; height: 1.2rem; border-width: 1.5px; border-color: rgba(255, 255, 255, 0.8); }
+.fl-card__icon { font-size: 1.9rem; line-height: 1.2; }
+.fl-card__name { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.86rem; line-height: 1.15; }
+.fl-card__rarity { font-size: 0.56rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in srgb, var(--r) 70%, #fff); }
+.fl-card__gifts { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem; margin-top: 0.2rem; }
+.fl-gift { padding: 0.08rem 0.45rem; border-radius: 999px; background: rgba(255, 255, 255, 0.12); font-size: 0.66rem; font-weight: 800; white-space: nowrap; }
+.fl-gift--glory { background: rgba(245, 201, 90, 0.25); color: #fde68a; }
+.fl-gift--quiet { color: rgba(255, 255, 255, 0.6); font-weight: 700; }
+.fl-r--mythic.fl-card::after, .fl-r--legendary.fl-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
+    transform: translateX(-100%);
+    animation: fl-sheen 5s ease-in-out 1s infinite;
+    pointer-events: none;
+}
+@keyframes fl-sheen { 0%, 65% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+.fl-empty { display: grid; justify-items: center; gap: 0.3rem; padding: 1.6rem 1rem; text-align: center; border-radius: 1rem; border: 1px dashed rgba(120, 80, 30, 0.35); }
+.fl-empty b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.05rem; }
+.fl-empty p { max-width: 26rem; margin: 0; font-size: 0.84rem; color: var(--fl-ink-2); }
+.fl-empty__wheel { font-size: 2.2rem; }
+
+.fl-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin: 0.9rem auto 0;
+    padding: 0.5rem 1.2rem;
+    border-radius: 999px;
+    border: 1px solid #3d1418;
+    background: #3d1418;
+    color: #fde68a;
+    font-weight: 800;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: transform 0.2s var(--fl-ease);
+}
+.fl-more:hover { transform: translateY(-2px); }
+.fl-more[hidden] { display: none; }
+
+/* Opening the book: chests, then pages, then each page's cards */
+.fl.is-opening .fl-chest { animation: fl-in 0.5s var(--fl-ease) both; animation-delay: calc(var(--i, 0) * 70ms + 200ms); }
+.fl.is-opening .fl-entry { animation: fl-in 0.55s var(--fl-ease) both; animation-delay: calc(var(--i, 0) * 110ms + 420ms); }
+.fl.is-opening .fl-card { animation: fl-flip 0.6s var(--fl-ease) both; animation-delay: calc(var(--i, 0) * 110ms + var(--k, 0) * 70ms + 560ms); }
+@keyframes fl-in { from { transform: translate3d(0, 12px, 0); opacity: 0; } }
+@keyframes fl-flip { from { transform: perspective(600px) rotateY(80deg); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .fl *, .fl *::before, .fl *::after { animation: none !important; transition: none !important; }
+    .fl-panel { transition: none; }
+}
+
+/* ═══ Smaller screens ════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    .fl-peek { display: none; }
+    .fl-toggle { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .fl-tally__list, .fl-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+    .fl { max-width: 100%; margin-top: 1rem; }
+    .fl-toggle { gap: 0.7rem; padding: 0.85rem 1rem; }
+    .fl-toggle__book { width: 2.5rem; height: 2.9rem; font-size: 1rem; }
+    .fl-panel__body { margin: 0 0.45rem 0.45rem; padding: 0.9rem 0.8rem 1rem; }
+    .fl-entry { grid-template-columns: minmax(0, 1fr); padding: 0.7rem; }
+    .fl-entry__date { grid-auto-flow: column; width: auto; height: auto; justify-self: start; gap: 0.35rem; padding: 0.25rem 0.6rem; background: #fffaf0; }
+    .fl-entry__date small:first-child { color: #7a2a2a; margin: 0; }
+    .fl-entry__date b { font-size: 1rem; }
+}

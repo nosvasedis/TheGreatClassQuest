@@ -44,7 +44,7 @@ function _getCurrentMonthKey() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function _toHeroRow(student, score, guildTotal, className) {
+function _toHeroRow(student, score, guildTotal, className, glory = {}) {
     const totalStars = Number(score?.totalStars) || 0;
     const monthlyStars = Number(score?.monthlyStars) || 0;
     const contributionPct = guildTotal > 0 ? Math.round((totalStars / guildTotal) * 1000) / 10 : 0;
@@ -57,7 +57,9 @@ function _toHeroRow(student, score, guildTotal, className) {
         className: className || 'Unassigned Class',
         totalStars,
         monthlyStars,
-        contributionPct
+        contributionPct,
+        chapterGlory: Number(glory.chapter) || 0,
+        yearGlory: Number(glory.year) || 0
     };
 }
 
@@ -123,7 +125,10 @@ export function getGuildHeroAnalytics() {
         const heroRows = members.map((student) => {
             const score = scoreById.get(student.id);
             const className = classById.get(student.classId)?.name || 'Unassigned Class';
-            return _toHeroRow(student, score, lb.totalStars, className);
+            return _toHeroRow(student, score, lb.totalStars, className, {
+                chapter: lb.liveMemberGlory?.[student.id],
+                year: lb.yearMemberGlory?.[student.id] ?? (Number(score?.totalStars) || 0) * 2
+            });
         });
 
         const heroesByTotal = [...heroRows].sort((a, b) =>
@@ -194,6 +199,8 @@ export function getGuildHeroAnalytics() {
                 monthlyChampion: _pickMonthlyChampion(guildChampions[guildId], heroesByMonthly),
                 allTimeChampion: heroesByTotal[0] || null
             },
+            // The guild's full Crown Race row: sealed Chapters, the live Chapter, per-member Glory.
+            race: lb,
             heroesTop: heroesByTotal.slice(0, 5),
             heroesAll: heroesByTotal,
             breakdown: {

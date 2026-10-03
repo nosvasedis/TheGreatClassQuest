@@ -664,6 +664,11 @@ export function getGuildLeaderboardData(now = new Date()) {
             chapterTop,
             topContributors,
             standards,
+            // Per-member Glory, for the Guild Spotlight (this Chapter and the year).
+            liveMemberGlory: Object.fromEntries(memberIds.map((id) => [id, roundTo(Number(liveMembers[id]) || 0, 1)])),
+            yearMemberGlory: Object.fromEntries(memberIds.map((id) => [id, memberGlory
+                ? roundTo(Number(memberGlory[id]) || 0, 1)
+                : (Number(scoreById.get(id)?.totalStars) || 0) * GLORY_PER_STAR])),
         };
     });
 

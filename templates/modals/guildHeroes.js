@@ -1,19 +1,15 @@
-// templates/modals/guildHeroes.js
+// templates/modals/guildHeroes.js — the Guild Spotlight (filled by ui/modals/guildHeroes.js)
 
 export const guildHeroesModalHTML = `
-    <div id="guild-heroes-modal" class="guild-heroes-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guild-heroes-title">
-        <div id="guild-heroes-overlay-bg" class="guild-heroes-overlay-bg"></div>
-        <div class="guild-heroes-card pop-in" id="guild-heroes-card">
-            <button id="guild-heroes-close-btn" class="guild-heroes-close-btn" aria-label="Close">✕</button>
-
-            <div class="guild-heroes-header">
-                <h3 id="guild-heroes-title" class="font-title guild-heroes-title">Guild spotlight</h3>
-                <p id="guild-heroes-subtitle" class="guild-heroes-subtitle"></p>
-            </div>
-
-            <div id="guild-heroes-overview" class="guild-heroes-overview"></div>
-            <div id="guild-heroes-view-tabs" class="guild-heroes-view-tabs" role="tablist" aria-label="Guild spotlight sections"></div>
-            <div id="guild-heroes-content" class="guild-heroes-content"></div>
+    <div id="guild-heroes-modal" class="gsp-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="gsp-title">
+        <div id="guild-heroes-overlay-bg" class="gsp-overlay__bg"></div>
+        <div class="gsp-card pop-in" id="guild-heroes-card">
+            <div class="gsp-card__wash" aria-hidden="true"></div>
+            <button id="guild-heroes-close-btn" class="gsp-close" type="button" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            <nav id="gsp-guilds" class="gsp-guilds" aria-label="Choose a guild"></nav>
+            <header id="gsp-hero" class="gsp-hero"></header>
+            <div id="gsp-tabs" class="gsp-tabs" role="tablist" aria-label="Spotlight sections"></div>
+            <div id="gsp-body" class="gsp-body" role="tabpanel" aria-live="polite"></div>
         </div>
     </div>
 `;

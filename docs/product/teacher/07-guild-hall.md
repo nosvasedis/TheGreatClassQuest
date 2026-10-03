@@ -71,7 +71,7 @@ The Hall stays still until the school year has begun and class schedules exist, 
 
 The Hall is one night-time great hall with three parts, top to bottom.
 
-- **The top bar.** **Fortune’s Wheel** on the left, **Magical Analytics** on the right, and in the middle **this month’s Chapter**: a dial with the days left, the month’s name and what it pays (🥇 5 · 🥈 3 · 🥉 2 · 4th 1, plus 1 for the Unity Seal). The **?** opens How the Crown Race works
+- **The top bar.** **Fortune’s Wheel** on the left, **Guild Stats** on the right, and in the middle **this month’s Chapter**: a dial with the days left, the month’s name and what it pays (🥇 5 · 🥈 3 · 🥉 2 · 4th 1, plus 1 for the Unity Seal). The **?** opens How the Crown Race works
 - **Four guild banners**, always in the same order so every child finds their house in the same place. Each banner has:
   - its **place this month** as a medal in the corner (gold, silver, bronze, iron); the leader’s banner has a gold edge
   - the crest (tap it for the full banner) and the **music-note** button for the anthem
@@ -80,14 +80,21 @@ The Hall is one night-time great hall with three parts, top to bottom.
   - the **Unity Seal** ring: how many members have earned their 6 Glory this month, against how many are needed. When the ring closes the seal turns gold: **Sealed! +1 Crown**
   - any **Guild Standards** raised this Chapter (students who bought one in the Mystic Market)
 - **The Crown Race board**, one row per guild in Crown order, with a medal for the place, one stone per month from September to June and the Crowns total. Sealed months show the Crowns won (gold, silver, bronze or iron, with a green dot for a Unity Seal); the running month is a dashed stone with the Crowns it would pay today. The title line says who leads and by how much. When the order changes, the rows glide into their new places
-- **Magical Analytics** opens a details panel under every banner: this month’s Glory, how many members are earning this month, the year’s Glory per member, the months won, the **Stars of the month** and the **Legends of the year** (top three each), and **Guild spotlight** for the guild’s heroes
-- **Fortune Ledger** (collapsible, paged history of spins)
+- **Guild Stats** opens a stats card under every banner: this month’s Glory, how many members are earning (with a small green bar), the year’s Glory per member, the months won, a little podium for the **Stars of the month**, the **Legends of the year** (top three each), and a button that opens that guild’s **Spotlight**
+- **Fortune Ledger**: a leather book under the Hall. Its cover shows the year’s spins, the Glory found and each guild’s Wheel Glory; open it for the pages
 
 The Hall waits for the guild scores before it shows a number: until they arrive it shows soft shimmering placeholders, never a row of zeros. After that it only changes what changed, so it never flashes or redraws while you teach. On a slower laptop (and when the computer asks for reduced motion) the Hall keeps every number and colour but drops the looping effects.
 
-## Magical Analytics
+## Guild Stats and the Guild Spotlight
 
-Not for grading. For **coaching**: which classes feed which house, who the quiet contributors are, whether one hero is carrying a banner. Celebrate contribution percentage as teamwork, not as a league table of children.
+Not for grading. For **coaching**: which classes feed which house, who the quiet contributors are, whether one hero is carrying a banner. Celebrate teamwork, not a league table of children.
+
+The **Guild Spotlight** opens from a guild’s Stats card. Pick any of the four guilds at the top; the crest, motto, traits and its Crown Race medal change with it. It has four pages:
+
+- **This month**: a ring with the guild’s Glory per member next to the other three guilds, what the month would pay if it ended now, and a tip such as “To pass Owl Wisdom: about 3 more stars across the guild”. The **Unity Seal** card shows every member as a small ring that fills towards 6 Glory, and an **Almost there** row names the members who are a star or two away. **Stars of the month** stand on a podium
+- **Heroes**: the **Legends of the year** podium, where the stars come from by class, and every hero, searchable and sortable by this month, this year, name or class. A thin green mark on each bar is the Unity Seal line
+- **Crown Road**: one stone per month from September to June with the place and Crowns won (🤝 for a Unity Seal), the running month glowing, then the guild’s Crowns, months won, Unity Seals and year Glory per member, and the Crown Race bars for all four guilds
+- **Wheel finds**: the guild’s recent spins, the Glory, stars and gold found, and its **best find**
 
 ## Grand Guild Ceremony
 
@@ -136,7 +143,7 @@ Spin **with the class watching**. Read the Ledger afterward so the story is reme
 
 ## Fortune Ledger
 
-History of what the Wheel actually did **this school year**: who gained Glory, who found an artifact, which class got a Quest bonus. Use it in the Grand Guild Ceremony narrative and in parent conversations (“the house had a hard Wheel week, then recovered”). When the year is finished, those entries stay with that year — the new year’s Ledger starts empty.
+History of what the Wheel actually did **this school year**: who gained Glory, who found an artifact, which class got a Quest bonus. Opening the book shows the Wheel’s window for the chosen class, a **Treasure count** per guild (Glory, finds, stars, gold and the best find, with a **Luckiest guild** ribbon), guild chips to show one guild only, and one page per spin: its date, class and teacher, the Glory it gave, and four fortune cards edged in their rarity colour. **Show older spins** turns more pages. Use it in the Grand Guild Ceremony narrative and in parent conversations (“the house had a hard Wheel week, then recovered”). When the year is finished, those entries stay with that year — the new year’s Ledger starts empty.
 
 ## How this feeds the rest of the Quest
 

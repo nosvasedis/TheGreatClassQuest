@@ -1,7 +1,8 @@
 /** Hero's Challenge, Award Stars tab, Team Quest, Fortune Ledger, Trophy Room, Hall of Prodigies. */
 
 import { awardTabHTML } from '../../../../templates/app/tabs/award.js';
-import { guildPowerExplainerCardHtml } from '../../../../ui/tabs/guilds.js';
+import { guildPowerExplainerCardHtml, renderFortuneLedger } from '../../../../ui/tabs/guilds.js';
+import * as state from '../../../../state.js';
 import { leaderboardTabHTML } from '../../../../templates/app/tabs/leaderboard.js';
 import { renderQuestChroniclesHtml } from '../../../../ui/tabs/teamQuestChronicles.js';
 import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js';
@@ -289,32 +290,18 @@ export function hideTeamQuest() {
   tab?.classList.remove('capture-tq');
 }
 
-function ledgerResult(guildId, label, delta) {
-  const names = {
-    dragon_flame: 'Dragon Flame',
-    owl_wisdom: 'Owl Wisdom',
-    grizzly_might: 'Grizzly Might',
-    phoenix_rising: 'Phoenix Rising'
-  };
-  const palettes = {
-    dragon_flame: { p: '#dc2626', s: '#f97316' },
-    owl_wisdom: { p: '#7c3aed', s: '#a78bfa' },
-    grizzly_might: { p: '#92400e', s: '#d97706' },
-    phoenix_rising: { p: '#be185d', s: '#fb7185' }
-  };
-  const pal = palettes[guildId];
-  const neg = delta < 0;
-  return `
-                            <div class="guild-fortune-ledger__result" style="--guild-primary:${pal.p};--guild-secondary:${pal.s};">
-                                <div class="guild-fortune-ledger__result-badge">${badge(guildId, 'w-8 h-8')}</div>
-                                <div class="guild-fortune-ledger__result-copy">
-                                    <div class="guild-fortune-ledger__result-guild">${names[guildId]}</div>
-                                    <div class="guild-fortune-ledger__result-label">${label}</div>
-                                </div>
-                                <div class="guild-fortune-ledger__result-impact${neg ? ' guild-fortune-ledger__result-impact--negative' : ''}">
-                                    ${delta >= 0 ? '+' : ''}${delta} ⚜️
-                                </div>
-                            </div>`;
+let _ledgerRestore = null;
+
+/** Four weeks of spins for Junior B, in the shape fortunesWheel.js writes them. */
+function captureWheelLog() {
+  const r = (guildId, segmentLabel, rarity, gifts = {}) => ({ guildId, segmentLabel, rarity, gloryDelta: 0, starsDelta: 0, goldDelta: 0, ...gifts });
+  const day = (d) => new Date(2026, 8, d, 13, 30);
+  const spin = (id, d, weekKey, results) => ({ id, classId: 'capture-junior-b', weekKey, spunAt: day(d), spunBy: { name: 'Ms. Eleni' }, results });
+  return [
+    spin('cap-w4', 25, '2026-W39', [r('dragon_flame', '⚜️ Glory Storm', 'epic', { gloryDelta: 20 }), r('owl_wisdom', '🎭 Trickster', 'cursed'), r('grizzly_might', '⚜️ Glory Surge', 'uncommon', { gloryDelta: 12 }), r('phoenix_rising', '🎆 Celebration!', 'common', { gloryDelta: 8 })]),
+    spin('cap-w3', 18, '2026-W38', [r('grizzly_might', '🌠 Star Cascade', 'rare', { starsDelta: 4, goldDelta: 40 }), r('phoenix_rising', '⚜️ Spark of Glory', 'common', { gloryDelta: 4 }), r('dragon_flame', '🎵 Anthem Power', 'common', { gloryDelta: 4 }), r('owl_wisdom', '👑 Glory Miracle', 'mythic', { gloryDelta: 25, goldDelta: 100 })]),
+    spin('cap-w2', 11, '2026-W37', [r('owl_wisdom', '🌟 Spotlight', 'uncommon', { artifactsGranted: 1 }), r('dragon_flame', '🪙 Gold Rush', 'common', { goldDelta: 45 }), r('phoenix_rising', '⚜️ Glory Fountain', 'rare', { gloryDelta: 15 }), r('grizzly_might', '📚 Scholar’s Blessing', 'uncommon', { classQuestDelta: 5 })]),
+  ];
 }
 
 export function showFortuneLedger() {
@@ -332,44 +319,14 @@ export function showFortuneLedger() {
   panel?.removeAttribute('inert');
   panel?.setAttribute('aria-hidden', 'false');
   toggle?.setAttribute('aria-expanded', 'true');
+  if (!_ledgerRestore) _ledgerRestore = { log: state.get('fortuneWheelLog'), classes: state.get('allSchoolClasses') };
+  state.set('allSchoolClasses', [...(state.get('allSchoolClasses') || []), { id: 'capture-junior-b', name: 'Junior B' }]);
+  state.setFortuneWheelLog(captureWheelLog());
+  renderFortuneLedger();
   const cls = document.getElementById('fortunes-wheel-class');
   if (cls) cls.textContent = 'Junior B';
   const status = document.getElementById('fortunes-wheel-status');
-  if (status) status.textContent = 'Last spin Friday 29 Aug · next window is this class’s last lesson of the week.';
-  const list = document.getElementById('fortunes-log-list');
-  if (list) {
-    list.innerHTML = `
-            <article class="guild-fortune-ledger__entry">
-                <div class="guild-fortune-ledger__entry-topline">
-                    <div>
-                        <div class="guild-fortune-ledger__entry-date">29 Aug</div>
-                        <div class="guild-fortune-ledger__entry-week">Week 2026-W35</div>
-                    </div>
-                    <div class="guild-fortune-ledger__entry-swing">+40 ⚜️</div>
-                </div>
-                <div class="guild-fortune-ledger__entry-results">
-                    ${ledgerResult('dragon_flame', 'Glory Storm', 20)}
-                    ${ledgerResult('owl_wisdom', 'Trickster', 0)}
-                    ${ledgerResult('grizzly_might', 'Glory Surge', 12)}
-                    ${ledgerResult('phoenix_rising', 'Celebration!', 8)}
-                </div>
-            </article>
-            <article class="guild-fortune-ledger__entry">
-                <div class="guild-fortune-ledger__entry-topline">
-                    <div>
-                        <div class="guild-fortune-ledger__entry-date">22 Aug</div>
-                        <div class="guild-fortune-ledger__entry-week">Week 2026-W34</div>
-                    </div>
-                    <div class="guild-fortune-ledger__entry-swing">+16 ⚜️</div>
-                </div>
-                <div class="guild-fortune-ledger__entry-results">
-                    ${ledgerResult('grizzly_might', 'Glory Surge', 8)}
-                    ${ledgerResult('phoenix_rising', 'Spark of Glory', 4)}
-                    ${ledgerResult('dragon_flame', 'Anthem Power', 4)}
-                    ${ledgerResult('owl_wisdom', 'Trickster', 0)}
-                </div>
-            </article>`;
-  }
+  if (status) status.textContent = 'Last spin Friday 25 Sep · the next window is this class’s last lesson of the week.';
 }
 
 export function hideFortuneLedger() {
@@ -379,6 +336,12 @@ export function hideFortuneLedger() {
   const section = document.getElementById('fortunes-wheel-section');
   if (section) section.dataset.ledgerExpanded = 'false';
   document.getElementById('fortune-ledger-panel')?.classList.remove('is-open');
+  if (_ledgerRestore) {
+    state.set('allSchoolClasses', _ledgerRestore.classes);
+    state.setFortuneWheelLog(_ledgerRestore.log || []);
+    renderFortuneLedger();
+    _ledgerRestore = null;
+  }
   if (!tab?.classList.contains('capture-guilds')) tab?.classList.add('hidden');
 }
 

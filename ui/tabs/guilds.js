@@ -2,7 +2,7 @@
 
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces } from '../../features/guildScoringCore.js';
-import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
+import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
@@ -709,11 +709,11 @@ function _statsButtonHtml(seasonLive) {
     return `
             <button type="button" id="guild-stats-expand-toggle" class="gh-action gh-action--stats${seasonLive ? '' : ' is-season-frozen'}"
                     ${seasonLive ? '' : 'disabled'} aria-expanded="${open ? 'true' : 'false'}"
-                    aria-label="${seasonLive ? (open ? 'Hide' : 'Show') + ' guild details' : 'Guild details wake with the school year.'}">
-                <span class="gh-action__icon" aria-hidden="true"><i class="fas ${seasonLive ? 'fa-chart-pie' : 'fa-snowflake'}"></i></span>
+                    aria-label="${seasonLive ? (open ? 'Hide' : 'Show') + ' Guild Stats' : 'Guild Stats wake with the school year.'}">
+                <span class="gh-action__icon" aria-hidden="true"><i class="fas ${seasonLive ? 'fa-ranking-star' : 'fa-snowflake'}"></i></span>
                 <span class="gh-action__text">
-                    <span class="gh-action__title">Magical Analytics</span>
-                    <span class="gh-action__sub" data-gh="statsSub">${seasonLive ? (open ? 'Hide the details' : 'Show the details') : 'Season frozen'}</span>
+                    <span class="gh-action__title">Guild Stats</span>
+                    <span class="gh-action__sub" data-gh="statsSub">${seasonLive ? (open ? 'Fold them away' : 'Heroes and numbers') : 'Season frozen'}</span>
                 </span>
                 <span class="gh-action__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
             </button>`;
@@ -759,7 +759,7 @@ function _bannerShellHtml(guildId, i, seasonLive) {
                     <div class="gh-banner__standards" data-gh="standards"></div>
                 </div>
                 <div class="gh-banner__details${_guildHallStatsExpanded && seasonLive ? ' is-open' : ''}" data-gh="details">
-                    <div class="gh-banner__details-clip"><div class="gh-details" data-gh="detailsInner"></div></div>
+                    <div class="gh-banner__details-clip"><div class="gh-ds" data-gh="detailsInner"></div></div>
                 </div>
             </article>`;
 }
@@ -858,28 +858,45 @@ function _prizeHtml(model, live, tied) {
 function _detailsHtml(row) {
     const live = row.live || {};
     const g = getGuildById(row.guildId) || {};
-    const wins = (row.chapterWins || []).map(chapterName);
-    const person = (p, i, hint) => {
+    const month = chapterName(live.key) || 'this month';
+    const wins = (row.chapterWins || []).map(chapterShortName);
+    const earning = Number(live.contributors) || 0;
+    const members = Number(row.memberCount) || 0;
+    const face = (p, cls) => {
         const initial = String(p.name || '?').trim().charAt(0).toUpperCase() || '?';
-        const face = p.avatar
-            ? `<img src="${p.avatar}" alt="" loading="lazy" decoding="async" width="32" height="32">`
-            : `<span>${_escapeHtml(initial)}</span>`;
-        return `<li class="gh-hero"><span class="gh-hero__face">${face}</span><span class="gh-hero__name">${_escapeHtml(p.name)}</span><span class="gh-hero__glory">${_fmtGlory(p.glory)} ${GLORY_EMOJI}</span><span class="gh-hero__medal" aria-hidden="true">${['🥇', '🥈', '🥉', '✨'][i] || '✨'}</span><span class="sr-only">${hint}</span></li>`;
+        return p.avatar
+            ? `<span class="${cls}"><img src="${p.avatar}" alt="" loading="lazy" decoding="async" width="40" height="40"></span>`
+            : `<span class="${cls}">${_escapeHtml(initial)}</span>`;
     };
-    const champ = (row.chapterTop || []).slice(0, 3);
-    const legends = (row.topContributors || []).slice(0, 3).map((c) => ({ ...c, glory: c.gloryEstimate }));
+    const stars = (row.chapterTop || []).slice(0, 3);
+    const podium = [1, 0, 2].filter((i) => stars[i]).map((i) => `
+                            <li class="gh-ds__step gh-ds__step--${i + 1}">
+                                ${i === 0 ? '<span class="gh-ds__crown" aria-hidden="true">👑</span>' : ''}
+                                ${face(stars[i], 'gh-ds__face')}
+                                <span class="gh-ds__who">${_escapeHtml(stars[i].name)}</span>
+                                <span class="gh-ds__pts">${_fmtGlory(stars[i].glory)} ${GLORY_EMOJI}</span>
+                                <span class="gh-ds__block" aria-hidden="true">${i + 1}</span>
+                            </li>`).join('');
+    const legends = (row.topContributors || []).slice(0, 3).map((p, i) => `
+                            <li class="gh-ds__legend">
+                                <span class="gh-ds__medal" aria-hidden="true">${['🥇', '🥈', '🥉'][i]}</span>
+                                ${face(p, 'gh-ds__face gh-ds__face--sm')}
+                                <span class="gh-ds__who">${_escapeHtml(p.name)}</span>
+                                <span class="gh-ds__pts">${_fmtGlory(p.gloryEstimate)} ${GLORY_EMOJI}</span>
+                            </li>`).join('');
     return `
-                        <dl class="gh-stats">
-                            <div><dt>${chapterName(live.key) || 'This month'}</dt><dd>${_fmtGlory(live.glory)} ${GLORY_EMOJI}</dd></div>
-                            <div><dt>Earning this month</dt><dd>${Number(live.contributors) || 0} / ${row.memberCount}</dd></div>
-                            <div><dt>Year, per member</dt><dd>${_fmtGlory(row.yearGloryPerMember)} ${GLORY_EMOJI}</dd></div>
-                            <div><dt>Months won</dt><dd>${wins.length ? wins.map((w) => w.slice(0, 3)).join(' · ') : '—'}</dd></div>
-                        </dl>
-                        <h4 class="gh-details__title">Stars of ${chapterName(live.key) || 'the month'}</h4>
-                        ${champ.length ? `<ol class="gh-heroes">${champ.map((p, i) => person(p, i, 'this month')).join('')}</ol>` : '<p class="gh-details__empty">The first star this month takes the top spot.</p>'}
-                        <h4 class="gh-details__title">Legends of the year</h4>
-                        ${legends.length ? `<ol class="gh-heroes">${legends.map((p, i) => person(p, i, 'this year')).join('')}</ol>` : '<p class="gh-details__empty">No Glory earned yet this year.</p>'}
-                        <button type="button" class="gh-details__spotlight" data-top-heroes-guild="${row.guildId}" style="--g1:${g.primary || '#6b7280'};"><i class="fas fa-users" aria-hidden="true"></i>Guild spotlight</button>`;
+                        <ul class="gh-ds__facts">
+                            <li style="--k:0"><span aria-hidden="true">${GLORY_EMOJI}</span><b>${_fmtGlory(live.glory)}</b><small>Glory in ${month}</small></li>
+                            <li style="--k:1"><span aria-hidden="true">🙋</span><b>${earning}<i>/${members}</i></b><small>heroes earning</small></li>
+                            <li style="--k:2"><span aria-hidden="true">📈</span><b>${_fmtGlory(row.yearGloryPerMember)}</b><small>year, per member</small></li>
+                            <li style="--k:3"><span aria-hidden="true">🏆</span><b>${wins.length ? wins.join(' ') : '—'}</b><small>${wins.length === 1 ? 'month won' : 'months won'}</small></li>
+                        </ul>
+                        <div class="gh-ds__earning" title="${earning} of ${members} members have earned Glory in ${month}"><span style="transform:scaleX(${members ? (earning / members).toFixed(3) : 0})"></span></div>
+                        <h4 class="gh-ds__title" style="--k:4">Stars of ${month}</h4>
+                        ${podium ? `<ol class="gh-ds__podium" style="--k:5">${podium}</ol>` : '<p class="gh-ds__empty" style="--k:5">The first star this month takes the top step.</p>'}
+                        <h4 class="gh-ds__title" style="--k:6">Legends of the year</h4>
+                        ${legends ? `<ol class="gh-ds__legends" style="--k:7">${legends}</ol>` : '<p class="gh-ds__empty" style="--k:7">No Glory earned yet this year.</p>'}
+                        <button type="button" class="gh-ds__spotlight" data-top-heroes-guild="${row.guildId}" style="--k:8"><i class="fas fa-star" aria-hidden="true"></i>Open the ${_escapeHtml(g.name || 'guild')} Spotlight</button>`;
 }
 
 function _patchBanner(el, row, model, { fresh }) {
@@ -1032,11 +1049,21 @@ function _patchHall(hall, model, { fresh }) {
 
 function _toggleStats(hall) {
     _guildHallStatsExpanded = !_guildHallStatsExpanded;
-    hall.querySelectorAll('[data-gh="details"]').forEach((d) => d.classList.toggle('is-open', _guildHallStatsExpanded));
+    hall.querySelectorAll('[data-gh="details"]').forEach((d) => {
+        d.classList.toggle('is-open', _guildHallStatsExpanded);
+        // The facts, podium and legends step in one after another, only when opened by hand.
+        if (_guildHallStatsExpanded && !_reduceMotion()) {
+            d.classList.remove('is-revealing');
+            void d.offsetWidth;
+            d.classList.add('is-revealing');
+            clearTimeout(d._revealTimer);
+            d._revealTimer = setTimeout(() => d.classList.remove('is-revealing'), 1600);
+        }
+    });
     const btn = hall.querySelector('#guild-stats-expand-toggle');
     btn?.setAttribute('aria-expanded', _guildHallStatsExpanded ? 'true' : 'false');
-    btn?.setAttribute('aria-label', `${_guildHallStatsExpanded ? 'Hide' : 'Show'} guild details`);
-    _setText(hall.querySelector('[data-gh="statsSub"]'), _guildHallStatsExpanded ? 'Hide the details' : 'Show the details');
+    btn?.setAttribute('aria-label', `${_guildHallStatsExpanded ? 'Hide' : 'Show'} Guild Stats`);
+    _setText(hall.querySelector('[data-gh="statsSub"]'), _guildHallStatsExpanded ? 'Fold them away' : 'Heroes and numbers');
 }
 
 function _wireHall(hall) {
@@ -1115,12 +1142,20 @@ function _initFortuneLedgerCollapse() {
 
     const apply = (open) => {
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        toggle.setAttribute('aria-label', open ? 'Hide Fortune Ledger' : 'Show Fortune Ledger');
+        toggle.setAttribute('aria-label', open ? 'Close the Fortune Ledger' : 'Open the Fortune Ledger');
         panel.classList.toggle('is-open', open);
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
         if (open) panel.removeAttribute('inert');
         else panel.setAttribute('inert', '');
         root.dataset.ledgerExpanded = open ? 'true' : 'false';
+        if (open && !_reduceMotion()) {
+            // The pages turn in one after another when the book opens.
+            root.classList.remove('is-opening');
+            void root.offsetWidth;
+            root.classList.add('is-opening');
+            clearTimeout(root._openTimer);
+            root._openTimer = setTimeout(() => root.classList.remove('is-opening'), 1800);
+        }
     };
 
     toggle.addEventListener('click', () => {
@@ -1254,100 +1289,194 @@ function _wireWheelModalButtons() {
     });
 }
 
-// ─── Fortune's Log ───────────────────────────────────────────────────────────
+// ─── Fortune Ledger ──────────────────────────────────────────────────────────
 
-let _fortuneLedgerPage = 0;
-const _fortuneLedgerPageSize = 3;
+const LEDGER_PAGE = 4;
+const LEDGER_RARITY = {
+    common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic',
+    legendary: 'Legendary', mythic: 'Mythic', cursed: 'Twist',
+};
+const LEDGER_RARITY_RANK = { cursed: 0, common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 };
+let _ledgerShown = LEDGER_PAGE;
+/** 'all' or a guild id */
+let _ledgerGuild = 'all';
+
+function _ledgerDate(entry) {
+    const v = entry?.spunAt;
+    if (!v) return null;
+    const d = typeof v.toDate === 'function' ? v.toDate() : new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "⚜️ Glory Storm" → ['⚜️', 'Glory Storm'] */
+function _ledgerSplitLabel(label) {
+    const m = String(label || '').match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+    return m ? [m[1], m[2]] : ['✨', String(label || 'A spin')];
+}
+
+function _ledgerGifts(r) {
+    const out = [];
+    if (Number(r.gloryDelta) > 0) out.push(`<span class="fl-gift fl-gift--glory">+${_fmtNumber(r.gloryDelta)} ${GLORY_EMOJI}</span>`);
+    if (Number(r.starsDelta) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.starsDelta)} ⭐</span>`);
+    if (Number(r.goldDelta) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.goldDelta)} 🪙</span>`);
+    if (Number(r.artifactsGranted) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.artifactsGranted)} 🎁</span>`);
+    if (Number(r.classQuestDelta) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.classQuestDelta)} Team Quest ⭐</span>`);
+    if (!out.length) out.push(`<span class="fl-gift fl-gift--quiet">${r.segmentId === 'trickster' || r.rarity === 'cursed' ? 'A harmless trick' : 'A little magic'}</span>`);
+    return out.join('');
+}
+
+function _fmtNumber(n) {
+    return Number(n || 0).toLocaleString();
+}
+
+function _ledgerTallies(logs) {
+    const t = Object.fromEntries(GUILD_IDS.map((id) => [id, { glory: 0, stars: 0, gold: 0, finds: 0, best: null }]));
+    logs.forEach((entry) => (entry.results || []).forEach((r) => {
+        const row = t[r?.guildId];
+        if (!row) return;
+        row.finds += 1;
+        row.glory += Number(r.gloryDelta) || 0;
+        row.stars += Number(r.starsDelta) || 0;
+        row.gold += Number(r.goldDelta) || 0;
+        const rank = (x) => (LEDGER_RARITY_RANK[x?.rarity] ?? 1) * 1000 + (Number(x?.gloryDelta) || 0);
+        if (!row.best || rank(r) > rank(row.best)) row.best = r;
+    }));
+    return t;
+}
+
+function _renderLedgerChrome(logs, tallies) {
+    const summary = document.getElementById('fortune-ledger-summary');
+    const peek = document.getElementById('fortune-ledger-peek');
+    const tallyEl = document.getElementById('fortune-ledger-tally');
+    const filterEl = document.getElementById('fortune-ledger-filter');
+    const totalGlory = Object.values(tallies).reduce((s, r) => s + r.glory, 0);
+    const last = _ledgerDate(logs[0]);
+    if (summary) {
+        _setText(summary, logs.length
+            ? `${logs.length} spin${logs.length === 1 ? '' : 's'} · +${_fmtNumber(totalGlory)} Glory found${last ? ` · last spin ${last.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}`
+            : 'No spins yet this year');
+    }
+    const topGlory = Math.max(...GUILD_IDS.map((id) => tallies[id].glory));
+    const isLucky = (id) => totalGlory > 0 && tallies[id].glory === topGlory;
+    _setHtml(peek, logs.length ? GUILD_IDS.map((id) => {
+        const g = getGuildById(id) || {};
+        return `<span class="fl-peek__g${isLucky(id) ? ' is-lucky' : ''}" style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};">${_emblemBadge(id, g.name, 'fl-peek__emblem')}<b>+${_fmtNumber(tallies[id].glory)}</b></span>`;
+    }).join('') : '');
+
+    _setHtml(tallyEl, logs.length ? `
+                                <h4 class="fl-tally__title">Treasure count this year</h4>
+                                <ul class="fl-tally__list">${GUILD_IDS.map((id, i) => {
+        const g = getGuildById(id) || {};
+        const t = tallies[id];
+        const [bestIcon, bestName] = t.best ? _ledgerSplitLabel(t.best.segmentLabel) : ['', ''];
+        return `
+                                    <li class="fl-chest${isLucky(id) ? ' is-lucky' : ''}" style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};--i:${i};">
+                                        ${isLucky(id) ? '<span class="fl-chest__ribbon">Luckiest guild</span>' : ''}
+                                        <span class="fl-chest__head">${_emblemBadge(id, g.name, 'fl-chest__emblem')}<span class="fl-chest__name">${_escapeHtml(g.name || id)}</span></span>
+                                        <span class="fl-chest__glory"><b>+${_fmtNumber(t.glory)}</b> ${GLORY_EMOJI} Glory</span>
+                                        <span class="fl-chest__more">${t.finds} find${t.finds === 1 ? '' : 's'} · +${_fmtNumber(t.stars)} ⭐ · +${_fmtNumber(t.gold)} 🪙</span>
+                                        ${t.best ? `<span class="fl-chest__best fl-r--${_escapeHtml(t.best.rarity || 'common')}" title="Best find"><span aria-hidden="true">${bestIcon}</span>${_escapeHtml(bestName)}</span>` : ''}
+                                    </li>`;
+    }).join('')}</ul>` : '');
+
+    if (!logs.length) { _setHtml(filterEl, ''); return; }
+    const chip = (id, label, extra = '') => `<button type="button" class="fl-chip${_ledgerGuild === id ? ' is-active' : ''}" data-ledger-guild="${id}" aria-pressed="${_ledgerGuild === id}"${extra}>${label}</button>`;
+    _setHtml(filterEl, chip('all', '<i class="fa-solid fa-book-open" aria-hidden="true"></i>All guilds') + GUILD_IDS.map((id) => {
+        const g = getGuildById(id) || {};
+        return chip(id, `${_emblemBadge(id, g.name, 'fl-chip__emblem')}${_escapeHtml(g.name || id)}`, ` style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};"`);
+    }).join(''));
+}
+
+function _ledgerEntryHtml(entry, i, classNames) {
+    const date = _ledgerDate(entry);
+    const results = (entry.results || []).filter((r) => r && (_ledgerGuild === 'all' || r.guildId === _ledgerGuild));
+    const total = results.reduce((sum, r) => sum + (Number(r.gloryDelta) || 0), 0);
+    const className = classNames.get(entry.classId) || '';
+    const by = entry.spunBy?.name || '';
+    return `
+                <li class="fl-entry" style="--i:${i};">
+                    <span class="fl-entry__date" aria-label="${date ? date.toDateString() : 'Unknown date'}">
+                        <small>${date ? date.toLocaleDateString(undefined, { weekday: 'short' }) : '—'}</small>
+                        <b>${date ? date.getDate() : '?'}</b>
+                        <small>${date ? date.toLocaleDateString(undefined, { month: 'short' }) : ''}</small>
+                    </span>
+                    <div class="fl-entry__main">
+                        <header class="fl-entry__head">
+                            ${className ? `<span class="fl-entry__class"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>${_escapeHtml(className)}</span>` : ''}
+                            ${by ? `<span class="fl-entry__by">spun with ${_escapeHtml(by)}</span>` : ''}
+                            <span class="fl-entry__total">+${_fmtNumber(total)} ${GLORY_EMOJI}</span>
+                        </header>
+                        <ul class="fl-cards${results.length === 1 ? ' fl-cards--one' : ''}">${results.map((r, k) => {
+        const g = getGuildById(r.guildId) || {};
+        const [icon, name] = _ledgerSplitLabel(r.segmentLabel || r.segmentId);
+        return `
+                            <li class="fl-card fl-r--${_escapeHtml(r.rarity || 'common')}" style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};--k:${k};" title="${_escapeHtml(r.description || r.segmentDescription || '')}">
+                                <span class="fl-card__guild">${_emblemBadge(r.guildId, g.name, 'fl-card__emblem')}<span>${_escapeHtml(g.name || r.guildId)}</span></span>
+                                <span class="fl-card__icon" aria-hidden="true">${icon}</span>
+                                <b class="fl-card__name">${_escapeHtml(name)}${r.favored ? ' <span title="Gilded by Fortune’s Favor">✨</span>' : ''}</b>
+                                <span class="fl-card__rarity">${LEDGER_RARITY[r.rarity] || 'Find'}</span>
+                                <span class="fl-card__gifts">${_ledgerGifts(r)}</span>
+                            </li>`;
+    }).join('')}</ul>
+                    </div>
+                </li>`;
+}
+
+/** Draws the Ledger from state.fortuneWheelLog. Exported so the guidebook capture renders the real book. */
+export function renderFortuneLedger() {
+    _initFortuneLedgerNav();
+    _renderFortunesLog();
+}
 
 function _renderFortunesLog() {
-    const section = document.getElementById('fortunes-log-section');
     const listEl = document.getElementById('fortunes-log-list');
-    if (!section || !listEl) return;
+    const more = document.getElementById('fortune-ledger-more');
+    if (!listEl) return;
 
     const logs = state.get('fortuneWheelLog') || [];
-    if (logs.length === 0) {
+    const tallies = _ledgerTallies(logs);
+    _renderLedgerChrome(logs, tallies);
+
+    if (!logs.length) {
         _setHtml(listEl, `
-            <div class="guild-fortune-ledger__empty">
-                <div class="guild-fortune-ledger__empty-title">No recent rituals</div>
-                <p class="guild-fortune-ledger__empty-copy">When a class completes the ceremony, the treasures each guild found will appear here.</p>
-            </div>`);
-        _updateLedgerNavButtons(0, 0);
+            <li class="fl-empty">
+                <span class="fl-empty__wheel" aria-hidden="true">🎡</span>
+                <b>The first page is still blank</b>
+                <p>Spin Fortune’s Wheel in a class’s last lesson of the week. Every guild’s treasure is written here.</p>
+            </li>`);
+        if (more) more.hidden = true;
         return;
     }
 
-    // Calculate pagination
-    const start = _fortuneLedgerPage * _fortuneLedgerPageSize;
-    const end = start + _fortuneLedgerPageSize;
-    const pagedLogs = logs.slice(start, end);
-    const totalPages = Math.ceil(logs.length / _fortuneLedgerPageSize);
-
-    _setHtml(listEl, pagedLogs.map(entry => {
-        const date = entry.spunAt?.toDate ? entry.spunAt.toDate() : new Date(entry.spunAt);
-        const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        const results = entry.results || [];
-        const totalGlorySwing = results.reduce((sum, result) => sum + (Number(result.gloryDelta) || 0), 0);
-        return `
-            <article class="guild-fortune-ledger__entry">
-                <div class="guild-fortune-ledger__entry-topline">
-                    <div>
-                        <div class="guild-fortune-ledger__entry-date">${dateStr}</div>
-                        <div class="guild-fortune-ledger__entry-week">Week ${entry.weekKey || '?'}</div>
-                    </div>
-                    <div class="guild-fortune-ledger__entry-swing ${totalGlorySwing < 0 ? 'guild-fortune-ledger__entry-swing--negative' : ''}">
-                        ${totalGlorySwing >= 0 ? '+' : ''}${totalGlorySwing} ${GLORY_EMOJI}
-                    </div>
-                </div>
-                <div class="guild-fortune-ledger__entry-results">
-                    ${results.map(r => {
-                        const gDef = getGuildById(r.guildId);
-                        const badgeHtml = getGuildBadgeHtml(r.guildId, 'w-8 h-8');
-                        return `
-                            <div class="guild-fortune-ledger__result" style="--guild-primary:${gDef?.primary || '#666'};--guild-secondary:${gDef?.secondary || '#999'};">
-                                <div class="guild-fortune-ledger__result-badge">${badgeHtml}</div>
-                                <div class="guild-fortune-ledger__result-copy">
-                                    <div class="guild-fortune-ledger__result-guild">${gDef?.name || r.guildId}</div>
-                                    <div class="guild-fortune-ledger__result-label">${r.segmentLabel || r.segmentId}</div>
-                                </div>
-                                <div class="guild-fortune-ledger__result-impact ${Number(r.gloryDelta) < 0 ? 'guild-fortune-ledger__result-impact--negative' : ''}">
-                                    ${r.gloryDelta ? `${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ${GLORY_EMOJI}` : 'Effect'}
-                                </div>
-                            </div>`;
-                    }).join('')}
-                </div>
-            </article>`;
-    }).join(""));
-
-    _updateLedgerNavButtons(_fortuneLedgerPage, totalPages);
-}
-
-function _updateLedgerNavButtons(currentPage, totalPages) {
-    const prevBtn = document.getElementById('fortune-ledger-prev');
-    const nextBtn = document.getElementById('fortune-ledger-next');
-    if (!prevBtn || !nextBtn) return;
-
-    prevBtn.disabled = currentPage === 0;
-    nextBtn.disabled = currentPage >= totalPages - 1 || totalPages === 0;
+    const classNames = new Map([...(state.get('allSchoolClasses') || []), ...(state.get('allTeachersClasses') || [])].map((c) => [c.id, c.name]));
+    const visible = _ledgerGuild === 'all' ? logs : logs.filter((e) => (e.results || []).some((r) => r?.guildId === _ledgerGuild));
+    const page = visible.slice(0, _ledgerShown);
+    _setHtml(listEl, page.length
+        ? page.map((entry, i) => _ledgerEntryHtml(entry, i, classNames)).join('')
+        : '<li class="fl-empty"><b>No spins for this guild yet</b></li>');
+    if (more) {
+        more.hidden = visible.length <= _ledgerShown;
+        const left = visible.length - _ledgerShown;
+        _setText(more.querySelector('span'), `Show older spins (${Math.max(0, left)})`);
+    }
 }
 
 function _initFortuneLedgerNav() {
-    const prevBtn = document.getElementById('fortune-ledger-prev');
-    const nextBtn = document.getElementById('fortune-ledger-next');
-    if (!prevBtn || !nextBtn) return;
-    if (prevBtn._ledgerNavWired) return;
-    prevBtn._ledgerNavWired = true;
-
-    prevBtn.addEventListener('click', () => {
-        if (_fortuneLedgerPage > 0) {
-            _fortuneLedgerPage--;
+    const section = document.getElementById('fortunes-wheel-section');
+    if (!section || section._ledgerNavWired) return;
+    section._ledgerNavWired = true;
+    section.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!(t instanceof Element)) return;
+        const chip = t.closest('[data-ledger-guild]');
+        if (chip) {
+            _ledgerGuild = chip.dataset.ledgerGuild || 'all';
+            _ledgerShown = LEDGER_PAGE;
             _renderFortunesLog();
+            return;
         }
-    });
-
-    nextBtn.addEventListener('click', () => {
-        const logs = state.get('fortuneWheelLog') || [];
-        const totalPages = Math.ceil(logs.length / _fortuneLedgerPageSize);
-        if (_fortuneLedgerPage < totalPages - 1) {
-            _fortuneLedgerPage++;
+        if (t.closest('#fortune-ledger-more')) {
+            _ledgerShown += LEDGER_PAGE;
             _renderFortunesLog();
         }
     });

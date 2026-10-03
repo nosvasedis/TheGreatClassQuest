@@ -83,14 +83,14 @@
 .fw-controls-section,
 .fw-custom-dropdown,
 .fw-reveal-card,
-.guild-fortune-ledger__list {
+.fl-list {
     scrollbar-color: rgba(253, 230, 138, 0.95) rgba(15, 23, 42, 0.45);
 }
 
 .fw-controls-section::-webkit-scrollbar-track,
 .fw-custom-dropdown::-webkit-scrollbar-track,
 .fw-reveal-card::-webkit-scrollbar-track,
-.guild-fortune-ledger__list::-webkit-scrollbar-track {
+.fl-list::-webkit-scrollbar-track {
     background: linear-gradient(
         180deg,
         rgba(15, 23, 42, 0.55) 0%,
@@ -102,7 +102,7 @@
 .fw-controls-section::-webkit-scrollbar-thumb,
 .fw-custom-dropdown::-webkit-scrollbar-thumb,
 .fw-reveal-card::-webkit-scrollbar-thumb,
-.guild-fortune-ledger__list::-webkit-scrollbar-thumb {
+.fl-list::-webkit-scrollbar-thumb {
     background: linear-gradient(
         180deg,
         #fde68a 0%,
@@ -118,7 +118,7 @@
 .fw-controls-section::-webkit-scrollbar-thumb:hover,
 .fw-custom-dropdown::-webkit-scrollbar-thumb:hover,
 .fw-reveal-card::-webkit-scrollbar-thumb:hover,
-.guild-fortune-ledger__list::-webkit-scrollbar-thumb:hover {
+.fl-list::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
         180deg,
         #fef3c7 0%,

@@ -215,8 +215,7 @@ body.gcq-mobile #hero-level-up-modal,
 body.gcq-mobile #starfall-modal,
 body.gcq-mobile #celebration-bonus-modal,
 body.gcq-mobile #storybook-viewer-modal,
-body.gcq-mobile #welcome-back-modal,
-body.gcq-mobile #guild-heroes-modal {
+body.gcq-mobile #welcome-back-modal {
     align-items: center;
     padding: 1rem;
 }
@@ -227,8 +226,7 @@ body.gcq-mobile #hero-level-up-modal > *,
 body.gcq-mobile #starfall-modal > *,
 body.gcq-mobile #celebration-bonus-modal > *,
 body.gcq-mobile #storybook-viewer-modal > *,
-body.gcq-mobile #welcome-back-modal > *,
-body.gcq-mobile #guild-heroes-modal > * {
+body.gcq-mobile #welcome-back-modal > * {
     width: auto;
     max-width: 100%;
     max-height: none;

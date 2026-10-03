@@ -70,6 +70,8 @@
 
 /* 11b-ii. Guild Hall: the hall scene, month banners and the Crown Race board */
 @import url('./styles/guild_hall.css');
+@import url('./styles/guild_spotlight.css');
+@import url('./styles/fortune_ledger.css');
 
 /* 11c. Fortune's Wheel modal */
 @import url('./styles/fortunes_wheel.css');

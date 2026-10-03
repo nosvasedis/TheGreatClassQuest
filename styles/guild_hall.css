@@ -102,7 +102,7 @@
     color: var(--gh-ink);
 }
 
-/* ═══ Top bar: Fortune's Wheel · this month's Chapter · Magical Analytics ════ */
+/* ═══ Top bar: Fortune's Wheel · this month's Chapter · Guild Stats ════ */
 
 .gh-bar {
     display: grid;
@@ -702,7 +702,7 @@
 }
 .gh-standard i { color: var(--gh-gold); font-size: 0.6rem; }
 
-/* Magical Analytics: details that slide open under each banner. */
+/* Guild Stats: a stats card that slides open under each banner. */
 .gh-banner__details {
     display: grid;
     grid-template-rows: 0fr;
@@ -710,76 +710,170 @@
 }
 .gh-banner__details.is-open { grid-template-rows: 1fr; margin-top: 0.75rem; }
 .gh-banner__details-clip { min-height: 0; overflow: hidden; }
-.gh-details {
-    padding: 0.8rem;
-    border-radius: 1rem;
-    background: rgba(10, 7, 26, 0.78);
-    border: 1px solid color-mix(in srgb, var(--g2) 45%, transparent);
+.gh-ds {
+    position: relative;
+    padding: 0.8rem 0.75rem 0.75rem;
+    border-radius: 1.1rem;
+    background:
+        radial-gradient(120% 50% at 50% 0%, color-mix(in srgb, var(--g1) 34%, transparent), transparent 70%),
+        linear-gradient(180deg, #1a1238, #100b26);
+    border: 1px solid color-mix(in srgb, var(--g2) 50%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-.gh-stats {
+.gh-ds::before {
+    /* a little gilt notch tying the card to its banner */
+    content: '';
+    position: absolute;
+    top: -0.4rem;
+    left: 50%;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-left: -0.4rem;
+    transform: rotate(45deg);
+    background: #1a1238;
+    border-left: 1px solid color-mix(in srgb, var(--g2) 50%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--g2) 50%, transparent);
+}
+.gh-ds__facts {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem;
+    gap: 0.35rem;
     margin: 0;
+    padding: 0;
+    list-style: none;
 }
-.gh-stats > div {
-    padding: 0.4rem 0.5rem;
-    border-radius: 0.6rem;
+.gh-ds__facts li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'icon num' 'icon label';
+    align-items: center;
+    column-gap: 0.4rem;
+    padding: 0.4rem 0.45rem;
+    border-radius: 0.75rem;
     background: rgba(255, 255, 255, 0.05);
+    min-width: 0;
 }
-.gh-stats dt { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-ink-3); }
-.gh-stats dd { margin: 0.15rem 0 0; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.9rem; color: var(--gh-ink); }
-.gh-details__title {
-    margin: 0.75rem 0 0.35rem;
-    font-size: 0.62rem;
+.gh-ds__facts li > span { grid-area: icon; font-size: 1.05rem; }
+.gh-ds__facts b {
+    grid-area: num;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.05;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-ds__facts b i { font-style: normal; font-size: 0.72rem; color: var(--gh-ink-3); }
+.gh-ds__facts small { grid-area: label; font-size: 0.56rem; font-weight: 800; line-height: 1.15; color: var(--gh-ink-3); }
+.gh-ds__earning { height: 0.3rem; margin: 0.45rem 0.1rem 0; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.gh-ds__earning > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #4ade80, #bbf7d0);
+    transform-origin: left center;
+    transition: transform 0.8s var(--gh-ease);
+}
+.gh-ds__title {
+    margin: 0.8rem 0 0.4rem;
+    font-size: 0.6rem;
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    text-align: center;
     color: var(--gh-gold);
 }
-.gh-details__empty { margin: 0; font-size: 0.72rem; color: var(--gh-ink-3); }
-.gh-heroes { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
-.gh-hero {
-    display: grid;
-    grid-template-columns: 1.8rem minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.25rem 0.4rem;
-    border-radius: 0.6rem;
-    background: rgba(255, 255, 255, 0.04);
-    font-size: 0.74rem;
-}
-.gh-hero__face {
+.gh-ds__empty { margin: 0; font-size: 0.7rem; text-align: center; color: var(--gh-ink-3); }
+.gh-ds__face {
+    flex: none;
     display: grid;
     place-items: center;
-    width: 1.8rem;
-    height: 1.8rem;
+    width: 2.3rem;
+    height: 2.3rem;
     border-radius: 50%;
     overflow: hidden;
-    background: color-mix(in srgb, var(--g1) 70%, #000);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--g1) 80%, #000), color-mix(in srgb, var(--g2) 60%, #000));
+    border: 2px solid color-mix(in srgb, var(--g2) 70%, #fff);
     font-weight: 800;
+    font-size: 0.85rem;
+    color: #fff;
 }
-.gh-hero__face img { width: 100%; height: 100%; object-fit: cover; }
-.gh-hero__name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gh-hero__glory { font-family: 'Fredoka', sans-serif; font-weight: 600; color: #fde68a; white-space: nowrap; }
-.gh-details__spotlight {
+.gh-ds__face img { width: 100%; height: 100%; object-fit: cover; }
+.gh-ds__face--sm { width: 1.6rem; height: 1.6rem; font-size: 0.65rem; border-width: 1.5px; }
+.gh-ds__who { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; font-weight: 800; }
+.gh-ds__pts { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.68rem; color: #fde68a; white-space: nowrap; }
+
+/* Stars of the month: a small podium */
+.gh-ds__podium {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.gh-ds__step { display: grid; justify-items: center; gap: 0.1rem; min-width: 0; text-align: center; }
+.gh-ds__crown { font-size: 0.85rem; line-height: 1; }
+.gh-ds__block {
+    display: grid;
+    place-items: start center;
+    width: 100%;
+    margin-top: 0.15rem;
+    padding-top: 0.15rem;
+    border-radius: 0.45rem 0.45rem 0.2rem 0.2rem;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--g2) 55%, #1a1238), color-mix(in srgb, var(--g1) 35%, #0d0a20));
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.85);
+    transform-origin: bottom center;
+}
+.gh-ds__step--1 .gh-ds__block { height: 2.2rem; background: linear-gradient(180deg, #fde68a, #b7791f); color: #2a1a05; }
+.gh-ds__step--1 .gh-ds__face { width: 2.7rem; height: 2.7rem; border-color: var(--gh-gold); }
+.gh-ds__step--2 .gh-ds__block { height: 1.55rem; }
+.gh-ds__step--3 .gh-ds__block { height: 1.1rem; }
+
+/* Legends of the year */
+.gh-ds__legends { display: grid; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
+.gh-ds__legend {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.45rem 0.22rem 0.3rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+}
+.gh-ds__medal { font-size: 0.85rem; }
+
+.gh-ds__spotlight {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
     width: 100%;
-    margin-top: 0.75rem;
-    padding: 0.45rem;
-    border-radius: 0.7rem;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: color-mix(in srgb, var(--g1) 55%, #140f30);
+    margin-top: 0.8rem;
+    padding: 0.5rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--g2) 70%, #fff);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--g1) 80%, #000), color-mix(in srgb, var(--g2) 60%, #000));
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--g1) 35%, transparent);
     color: #fff;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 800;
     cursor: pointer;
     transition: transform 0.2s var(--gh-ease);
 }
-.gh-details__spotlight:hover { transform: translateY(-1px); }
+.gh-ds__spotlight i { color: #fde68a; }
+.gh-ds__spotlight:hover { transform: translateY(-2px); }
+
+/* Opened by hand: the parts step in one after another, the podium rises */
+.gh-banner__details.is-revealing .gh-ds > * { animation: gh-ds-in 0.5s var(--gh-ease) both; animation-delay: calc(var(--k, 0) * 60ms + 120ms); }
+.gh-banner__details.is-revealing .gh-ds__block { animation: gh-ds-rise 0.7s var(--gh-ease) both; animation-delay: 0.5s; }
+@keyframes gh-ds-in { from { transform: translate3d(0, 8px, 0); opacity: 0; } }
+@keyframes gh-ds-rise { from { transform: scaleY(0); } }
 
 /* ═══ The year: the Crown Race board ════════════════════════════════════════ */
 
@@ -1035,6 +1129,7 @@
 }
 .gh--lite .gh-banner.is-leading .gh-banner__cloth::after { display: none; }
 .gh--lite .gh-banner__details { transition: none; }
+.gh--lite .gh-banner__details.is-revealing * { animation: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
     .guild-hall-motes,

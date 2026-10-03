@@ -150,8 +150,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'seasonal', icon: 'fa-leaf', name: 'Seasonal and Festival stalls', tier: 'elite',
                     where: 'Mystic Market tab', go: 'tab:shop-tab',
-                    text: `A monthly stall of 15 treasures that follows the classroom season, with limited copies of each. The round brass Restock button on the counter brings a brand-new stall. A Festival Stall appears before Halloween, Christmas, Easter and Apokries. The reigning Hero of the Day gets 25% off this shelf. Teacher Settings, Market repairs or replaces a piece.`,
-                    keys: 'restock festival stall seasonal treasures halloween christmas easter apokries discount'
+                    text: `A monthly stall of 15 treasures that follows the classroom season and suits each league's age, with limited copies of each. Every stall is one of the month's collections, and the round brass Restock button on the counter brings a brand-new stall from a different one. A Festival Stall opens for Halloween, Christmas, New Year's Luck, Apokries, Easter, May Day and the End of Year Fair. The reigning Hero of the Day gets 25% off this shelf. Teacher Settings, Market repairs or replaces a piece.`,
+                    keys: 'restock festival stall seasonal treasures collection halloween christmas new year vasilopita easter apokries may day end of year discount'
                 },
                 {
                     id: 'familiars', icon: 'fa-dragon', name: 'Familiars', tier: 'elite',

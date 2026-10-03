@@ -1,16 +1,5 @@
 'use strict';
 
-const YOUNG_LEARNER_LEAGUES = new Set(['Pre-Junior', 'Junior A', 'Junior B']);
-const AGE_GROUP_BY_LEAGUE = {
-  'Pre-Junior': '5-7',
-  'Junior A': '7-8',
-  'Junior B': '8-9',
-  A: '9-10',
-  B: '10-11',
-  C: '11-12',
-  D: '12-13'
-};
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -26,41 +15,20 @@ function normalizeCatalogItem(item) {
   const desc = String(item?.desc || item?.description || '').trim();
   const price = Number(item?.price);
   if (!name || !desc || !Number.isFinite(price)) return null;
-  return { name, desc, price: Math.round(price), id: item.id || null };
-}
-
-function styleForLeague(league) {
-  return YOUNG_LEARNER_LEAGUES.has(league)
-    ? 'a die-cut vector sticker, thick white outline, flat color, simple shapes, cartoon style, white background'
-    : 'a fantasy rpg inventory icon, 3d render, centered, neutral background, high detail';
-}
-
-function languageForLeague(league) {
-  return YOUNG_LEARNER_LEAGUES.has(league)
-    ? 'Use simple English (7-9yo). Max 8 words.'
-    : 'Use exciting English (10-13yo). Max 10 words.';
-}
-
-function buildCatalogPrompt({ league, needed, tiers, themePrompt, avoidNames }) {
-  const ageCategory = AGE_GROUP_BY_LEAGUE[league] || 'all ages';
-  const avoid = avoidNames.length ? `Do NOT reuse these names: ${avoidNames.join(', ')}.` : '';
-  return `You are a JSON generator API for a school RPG app. You output ONLY raw valid JSON — no explanations, no reasoning, no markdown, no commentary before or after.
-        Target Audience: ${league} students (approx age ${ageCategory}).
-        ${themePrompt}
-        
-        Requirements:
-        1. Generate ${needed} UNIQUE handheld objects. ${avoid}
-        2. PRICE TIERS (CRITICAL):
-           - ${tiers.common} "Common" items: 10-18 Gold (Easy to get in 1 month).
-           - ${tiers.rare} "Rare" items: 35-50 Gold (Requires saving for 2-3 months).
-           - ${tiers.legendary} "Legendary" items: 80-120 Gold (Long-term "End of Term" trophies).
-        3. DESCRIPTIONS: ${languageForLeague(league)}
-        4. Output ONLY this JSON structure, nothing else: [{"name": "string", "desc": "string", "price": number}, ...]`;
+  return {
+    name,
+    desc,
+    price: Math.round(price),
+    id: item.id || null,
+    look: String(item?.look || '').trim(),
+    collection: String(item?.collection || '').trim()
+  };
 }
 
 function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   const calendarP = import('./calendar.mjs');
   const restockP = import('./restock.mjs');
+  const briefP = import('./brief.mjs');
   const ai = require('./ai');
 
   // This month's items plus the active festival's items. A festival window can start in the
@@ -116,13 +84,13 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     return `shop_items/${teacherId}/${yearKey}/${monthKey}_${leagueKey}_${ai.simpleHashCode(name)}_${Date.now()}.png`;
   }
 
-  async function generateImage(item, league) {
-    const styleContext = styleForLeague(league);
-    const negativePrompt = 'pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap';
+  async function generateImage(item, league, palette = '') {
+    const brief = await briefP;
+    const prompt = brief.buildImagePrompt(item, { league, palette });
+    const negativePrompt = brief.buildImageNegativePrompt(league);
     let lastError = null;
     for (let attempt = 0; attempt < 4; attempt += 1) {
       try {
-        const prompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
         // Shop icons are shown small; 512 is one FLUX tile instead of four.
         return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512 });
       } catch (error) {
@@ -155,6 +123,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       createdBy: { uid: teacherId, name: teacherName || 'Teacher' }
     };
     if (shelf === 'festival') payload.festivalId = festivalId;
+    if (item.look) payload.look = item.look;
+    if (item.collection) payload.collection = item.collection;
     if (item.id) {
       await db.doc(`${publicDataPath}/shop_items/${item.id}`).update({
         image: imageUrl || '',
@@ -178,7 +148,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     for (const group of chunk(items, 2)) {
       await Promise.all(group.map(async (item) => {
         try {
-          const bytes = await generateImage(item, context.league);
+          const bytes = await generateImage(item, context.league, context.theme?.palette);
           const path = shopImagePath({ ...context, name: item.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({ ...context, item, imageUrl });
@@ -198,38 +168,85 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     return savedThisRun;
   }
 
-  async function inventCatalog({ league, needed, tiers, themePrompt, existingNames }) {
-    if (needed <= 0) return [];
-    const systemPrompt = buildCatalogPrompt({
-      league,
-      needed,
-      tiers,
-      themePrompt,
-      avoidNames: existingNames
-    });
-    let itemsData = [];
+  async function askMerchant(systemPrompt) {
     const jsonString = await ai.shopAiChat(systemPrompt, 'Output the JSON array now.');
     try {
-      itemsData = ai.extractJsonFromAiText(jsonString);
+      return ai.extractJsonFromAiText(jsonString);
     } catch (_) {
       const fixedJson = await ai.shopAiChat(
         'You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:',
         jsonString
       );
-      itemsData = ai.extractJsonFromAiText(fixedJson);
+      return ai.extractJsonFromAiText(fixedJson);
     }
-    if (!Array.isArray(itemsData)) itemsData = [];
+  }
+
+  // Invents treasures from the stall's brief, drops anything off-season or wrong for the
+  // age group, and asks once more for whatever the checks threw out.
+  async function inventCatalog({ league, needed, tiers, theme, collection = null, existingNames }) {
+    if (needed <= 0) return [];
+    const brief = await briefP;
     const taken = new Set(existingNames.map((name) => String(name).toLowerCase()));
-    return itemsData
-      .map(normalizeCatalogItem)
-      .filter(Boolean)
-      .filter((item) => {
-        const key = item.name.toLowerCase();
-        if (taken.has(key)) return false;
-        taken.add(key);
-        return true;
-      })
-      .slice(0, needed);
+    const accepted = [];
+    const wanted = { ...tiers };
+    const count = (rows) => (rows.common || 0) + (rows.rare || 0) + (rows.legendary || 0);
+    // Batches of up to 8, plus one extra ask for anything the checks threw out.
+    const maxAsks = Math.ceil(count(wanted) / 8) + 1;
+    for (let ask = 0; ask < maxAsks && count(wanted) > 0; ask += 1) {
+      const batch = brief.nextTierBatch(wanted, 8);
+      const systemPrompt = brief.buildCatalogBrief({
+        league,
+        needed: count(batch),
+        tiers: batch,
+        theme,
+        collection,
+        avoidNames: [...existingNames, ...accepted.map((item) => item.name)]
+      });
+      let raw = [];
+      try {
+        raw = await askMerchant(systemPrompt);
+      } catch (error) {
+        if (!accepted.length && ask === maxAsks - 1) throw error;
+        console.error('Shop catalog batch failed:', league, error?.message || error);
+        continue;
+      }
+      const fresh = (Array.isArray(raw) ? raw : [])
+        .map(brief.normalizeBriefItem)
+        .filter(Boolean)
+        .filter((item) => {
+          const reason = brief.shopItemRejection(item, { league, theme });
+          if (reason) {
+            console.log(JSON.stringify({ event: 'shopItemRejected', league, name: item.name, reason }));
+            return false;
+          }
+          const key = item.name.toLowerCase();
+          if (taken.has(key)) return false;
+          taken.add(key);
+          return true;
+        });
+      brief.balanceTiers(fresh, batch).forEach((item) => {
+        accepted.push({ ...item, collection: collection?.name || '' });
+        wanted[item.tier] = Math.max(0, (wanted[item.tier] || 0) - 1);
+      });
+    }
+    return accepted.slice(0, needed);
+  }
+
+  // Topping up keeps the collection already on the shelf. A fresh stall keeps the collection
+  // its first new pictures were made in, or else brings one the live stall is not using.
+  async function stallBrief({ shelf, festival, monthKey }, items, incoming) {
+    const brief = await briefP;
+    const theme = brief.stallTheme({ shelf, festival, monthKey });
+    const onShelf = (items || []).filter((item) => String(item.shelf || 'seasonal') === shelf);
+    const collectionOf = (rows) => rows.map((item) => String(item.collection || '')).find(Boolean) || '';
+    const live = collectionOf(onShelf.filter((item) => !item.incoming));
+    const arriving = collectionOf(onShelf.filter((item) => item.incoming));
+    const collection = incoming
+      ? (arriving
+        ? brief.pickCollection(theme, { current: arriving, keep: true })
+        : brief.pickCollection(theme, { current: live }))
+      : brief.pickCollection(theme, { current: live, keep: true });
+    return { theme, collection };
   }
 
   async function applyPlan(plan, currentItems, context) {
@@ -254,16 +271,19 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       return { mode: 'swap', savedThisRun: 0, completeCount: nextPlan.targetCount };
     }
 
+    const { theme, collection } = await stallBrief(context, items, nextPlan.incoming);
+    const making = { ...context, theme, incoming: nextPlan.incoming };
     const retryItems = nextPlan.retry.map(normalizeCatalogItem).filter(Boolean);
-    let savedThisRun = await produceItems(retryItems, { ...context, incoming: nextPlan.incoming });
+    let savedThisRun = await produceItems(retryItems, making);
     const catalog = await inventCatalog({
       league: context.league,
       needed: nextPlan.needed,
       tiers: nextPlan.tiers,
-      themePrompt: context.themePrompt,
+      theme,
+      collection,
       existingNames: nextPlan.existingNames
     });
-    savedThisRun += await produceItems(catalog, { ...context, incoming: nextPlan.incoming });
+    savedThisRun += await produceItems(catalog, making);
 
     const latest = await loadStock(context.teacherId, context.league, context.monthKey, context.activeFestivalId);
     const latestPlan = restock.planShopRestock(latest, { shelf: context.shelf });
@@ -360,8 +380,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
           yearKey,
           monthKey,
           shelf: 'seasonal',
-          activeFestivalId,
-          themePrompt: calendar.monthlyShelfPrompt()
+          activeFestivalId
         });
         items = await loadStock(teacherId, league, monthKey, activeFestivalId);
       }
@@ -379,7 +398,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             shelf: 'festival',
             festivalId: festival.festivalId,
             activeFestivalId,
-            themePrompt: calendar.festivalShelfPrompt(festival)
+            festival
           });
         }
       }
@@ -421,19 +440,28 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
         }
         const latest = { id: latestSnap.id, ...latestSnap.data() };
         const shelf = restock.shopItemShelf(latest);
+        const brief = await briefP;
+        const activeFestival = calendar.getActiveFestival();
+        const itemFestival = shelf === 'festival'
+          ? (activeFestival && activeFestival.festivalId === latest.festivalId
+            ? activeFestival
+            : { id: String(latest.festivalId || '').replace(/-\d{4}$/, ''), name: 'Festival' })
+          : null;
+        const theme = brief.stallTheme({ shelf, festival: itemFestival, monthKey });
         if (action === 'new-picture') {
           const bytes = await generateImage({
             name: latest.name,
             desc: latest.description || latest.desc,
+            look: latest.look,
             price: latest.price
-          }, league);
+          }, league, theme.palette);
           const path = shopImagePath({ teacherId, yearKey, monthKey, league, name: latest.name });
           const imageUrl = await uploadPng(bytes, path);
           await ref.update({ image: imageUrl });
           return { ok: true, action, itemId, image: imageUrl };
         }
         if (action === 'replace') {
-          const festival = calendar.getActiveFestival();
+          const festival = activeFestival;
           const stall = await loadStock(teacherId, league, monthKey, festival?.festivalId || '');
           const avoidNames = stall
             .filter((row) => row.id !== latest.id && restock.shopItemShelf(row) === shelf)
@@ -443,14 +471,13 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
           const keepTier = restock.shopItemTier(latest.price);
           const tiers = { common: 0, rare: 0, legendary: 0 };
           tiers[keepTier] = 1;
-          const themePrompt = shelf === 'festival' && festival
-            ? calendar.festivalShelfPrompt(festival)
-            : calendar.monthlyShelfPrompt();
+          const collection = brief.pickCollection(theme, { current: String(latest.collection || ''), keep: true });
           const catalog = await inventCatalog({
             league,
             needed: 1,
             tiers,
-            themePrompt,
+            theme,
+            collection: collection && collection.name === latest.collection ? collection : null,
             existingNames: avoidNames
           });
           const next = catalog[0];
@@ -458,7 +485,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             throw new Error('The merchant could not invent a replacement.');
           }
           next.price = restock.clampPriceToTier(next.price, keepTier);
-          const bytes = await generateImage(next, league);
+          const bytes = await generateImage(next, league, theme.palette);
           const path = shopImagePath({ teacherId, yearKey, monthKey, league, name: next.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({

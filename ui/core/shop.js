@@ -661,7 +661,7 @@ export function renderShopUI() {
                     id: 'festival', label: 'Festival Stall', icon: 'fa-mask', tone: 'rose',
                     title: 'Festival Stall',
                     month: activeFestival?.name || 'Festival',
-                    desc: 'Short-lived holiday treasures. Cheaper kinds have more copies; the rarest is truly one of a kind.',
+                    desc: `${activeFestival?.tagline ? `${escapeShopHtml(activeFestival.tagline)}. ` : ''}Short-lived holiday treasures. Cheaper kinds have more copies; the rarest is truly one of a kind.`,
                     badge: 'Limited',
                     before: `
                         <div class="shop-festival-banner" role="status">
@@ -674,10 +674,11 @@ export function renderShopUI() {
 
             if (festivalItems.length) maybeToastFestivalArrival(activeFestival);
 
+            const collectionName = seasonalItems.map(item => String(item.collection || '').trim()).find(Boolean) || '';
             const seasonalSection = renderMarketAisle({
                 id: 'seasonal', label: 'Seasonal', icon: 'fa-leaf', tone: 'amber',
                 title: 'Seasonal Treasures',
-                month: monthLabel,
+                month: collectionName ? `${monthLabel} · ${collectionName}` : monthLabel,
                 desc: "This month's classroom treasures. Heroes of the Day earn discounts, and Aurum Satchels stack on the price.",
                 body: seasonalItems.length === 0
                     ? noSeasonalHtml

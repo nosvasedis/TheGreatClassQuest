@@ -54,7 +54,7 @@ Always in stock. **Two legendary buys per student per month.** Use them from the
 
 ## Seasonal treasures (Elite)
 
-The monthly stall follows **this month’s classroom story** (September is harvest and back-to-school, not Halloween). Elite fills **15** kinds automatically when the stall is empty — keep teaching; pictures land in the background. Tap the round brass **Restock** button (circling arrows, at the left end of the counter; it reads "Restock the shelves" when you point at it) for a brand-new monthly stall; today’s treasures stay until the new pictures are ready. Festival Stall is separate and arrives on its own.
+The monthly stall follows **this month’s classroom story** (September is harvest and back-to-school, not Halloween) and is written for the league’s age: Pre-Junior gets cosy toys and six-word descriptions with sticker pictures, while C and D get crafted artefacts and nothing babyish. Each stall is one of the month’s three **collections** (October: Mushroom Ring, Chestnut Fire, Foggy Forest Library), shown next to the month on the shelf. Elite fills **15** kinds automatically when the stall is empty — keep teaching; pictures land in the background. Tap the round brass **Restock** button (circling arrows, at the left end of the counter; it reads "Restock the shelves" when you point at it) for a brand-new monthly stall from a different collection; today’s treasures stay until the new pictures are ready. Festival Stall is separate and arrives on its own.
 
 Each kind has copies: Common **5**, Rare **2**, Legendary seasonal **1**. Buying spends one copy; the last copy leaves the shelf. If every monthly kind sells out, the merchant restocks that stall without a tap.
 
@@ -66,7 +66,7 @@ Junior language and art stay toy-like; senior items read as RPG relics. There is
 
 ## Festival Stall (Elite)
 
-A small extra shelf for **Halloween** (31 Oct), **Christmas** (25 Dec), **Orthodox Easter**, and Greek **Carnival / Apokries**. It appears about **22 days** before the feast, once its stock is ready, and is removed the day after the celebration. The Market shows a banner (and a one-time toast) when limited festival treasures have arrived.
+A small extra shelf for **Halloween** (31 Oct), **Christmas** (25 Dec), **New Year’s Luck** (2 to 25 Jan, the vasilopita season), Greek **Carnival / Apokries**, **Orthodox Easter**, **May Day Flowers** (two weeks before 1 May) and the **End of Year Fair** (all of June). Halloween, Christmas, Apokries and Easter appear about **22 days** before the feast, once their stock is ready; each stall is removed the day after its celebration. When Easter falls late, its stall takes the place of May Day. The Market shows a banner (and a one-time toast) when limited festival treasures have arrived.
 
 Festival kinds: 2 Common, 2 Rare, 1 Legendary, with the same copy rules. If the Festival Stall sells out, a **new** holiday batch is made at the end of that day. School Office holiday ranges do **not** drive this shelf.
 

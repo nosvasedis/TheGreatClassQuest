@@ -141,13 +141,6 @@
     border-color: #881337;
 }
 
-.mm-facade__tagline {
-    margin: 1.8rem auto 0;
-    max-width: 40rem;
-    font-size: 1rem;
-    color: #64748b;
-}
-
 @keyframes mm-sign-sway {
     0%, 100% { transform: rotate(-0.8deg); }
     50% { transform: rotate(0.8deg); }

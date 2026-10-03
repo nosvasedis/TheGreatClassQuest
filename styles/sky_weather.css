@@ -808,6 +808,7 @@ html[data-wx-wind="gale"] .wx-gust { animation-duration: 6s; }
 /* Award tagline stays readable on grey and dark skies. */
 html:not([data-wx-tone="fair"]):not([data-wx-tone="snow"]):not([data-wx-tone="fog"]) #app-screen.award-sky-active #award-stars-tab .tab-sign p.tab-sign__tagline,
 html[data-wx-night="1"] #app-screen.award-sky-active #award-stars-tab .tab-sign p.tab-sign__tagline {
+    --ts-tag-accent: #fbcfe8;
     color: #f1f5f9 !important;
     text-shadow: 0 1px 3px rgba(15, 23, 42, 0.55);
 }

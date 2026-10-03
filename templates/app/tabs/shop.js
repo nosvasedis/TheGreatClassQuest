@@ -16,7 +16,7 @@ export const shopTabHTML = `
                                 <span class="mm-sign__open" id="shop-open-sign"><i class="fas fa-door-open"></i> Open for trade</span>
                             </div>
                         </div>
-                        <p id="shop-tagline" class="mm-facade__tagline">
+                        <p id="shop-tagline" class="tab-sign__tagline mm-facade__tagline">
                             Pick a shopper, check their purse, then browse the shelves.
                         </p>
                     </header>

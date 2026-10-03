@@ -165,3 +165,23 @@ test('a leader level on stars wins the tie-break, and rows say why', () => {
     assert.match(html, /Behind on tie-break/);
     assert.match(html, /4 to catch E/);
 });
+
+test('hero rows explain their road to 1st and mark where the podium starts', () => {
+    const html = renderStandingsSectionHtml({ id: 's', title: 'C', entries: [entry('a', 1, 10), entry('b', 2, 8), entry('c', 3, 6), entry('d', 4, 3), entry('e', 5, 0)] });
+    assert.match(html, /30% of the way to 1st/);
+    assert.match(html, /No stars yet/);
+    assert.match(html, /hcs-road__flag" style="--at:0\.600"/);
+    assert.match(html, /hcs-row hcs-row--next/);
+});
+
+test('trait chips and role badges share one look', async () => {
+    const { renderHeroTraitsHtml, renderHeroRoleBadgesHtml } = await import('../ui/tabs/heroStandings.js');
+    const traits = renderHeroTraitsHtml({ prodigy: true, weekStars: 3, streak: 1, skill: { key: 'focus', icon: 'fa-brain', name: 'Focus' }, egg: { kind: 'soon', remaining: 2 } });
+    assert.match(traits, /hcs-trait--crown/);
+    assert.match(traits, /\+3 this week/);
+    assert.doesNotMatch(traits, /perfect/);
+    assert.match(traits, /hcs-trait--amber[^>]*>.*Focus/);
+    assert.match(traits, /2 to hatch/);
+    assert.equal(renderHeroTraitsHtml(), '');
+    assert.match(renderHeroRoleBadgesHtml({ champion: true, color: '#f00' }), /--badge:#f00/);
+});

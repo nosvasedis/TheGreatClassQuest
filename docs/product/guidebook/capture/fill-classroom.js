@@ -16,6 +16,8 @@ import {
   annotateStandingsChanges,
   buildStandingsSnapshot,
   playStandingsChanges,
+  renderHeroRoleBadgesHtml,
+  renderHeroTraitsHtml,
   renderStandingsHeraldHtml,
   renderStandingsSectionHtml
 } from '../../../../ui/tabs/heroStandings.js';
@@ -104,16 +106,11 @@ export function hideAwardStarsTab() {
   tab?.classList.remove('capture-award');
 }
 
-const HC_PILL = {
-  prodigy: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shadow-sm border border-amber-300">👑 Prodigy</div>',
-  week: (n) => `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200"><i class="fas fa-fire"></i> Week: ${n}</div>`,
-  streak: (n) => `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200"><i class="fas fa-bolt"></i> Streak: ${n}</div>`,
-  skill: {
-    Teamwork: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 shadow-sm border border-white/50"><i class="fas fa-users"></i> <span>Teamwork</span></div>',
-    Focus: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700 shadow-sm border border-white/50"><i class="fas fa-brain"></i> <span>Focus</span></div>',
-    Respect: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 shadow-sm border border-white/50"><i class="fas fa-hands-helping"></i> <span>Respect</span></div>',
-    Creativity: '<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-100 text-pink-700 shadow-sm border border-white/50"><i class="fas fa-lightbulb"></i> <span>Creativity</span></div>'
-  }
+const HC_SKILLS = {
+  Teamwork: { key: 'teamwork', icon: 'fa-users', name: 'Teamwork' },
+  Focus: { key: 'focus', icon: 'fa-brain', name: 'Focus' },
+  Respect: { key: 'respect', icon: 'fa-hands-helping', name: 'Respect' },
+  Creativity: { key: 'creativity', icon: 'fa-lightbulb', name: 'Creativity' }
 };
 
 const HC_AVATAR_TINTS = ['bg-indigo-100 text-indigo-600', 'bg-rose-100 text-rose-600', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-sky-100 text-sky-700'];
@@ -136,9 +133,10 @@ function hcEntry(h, rank, showClass) {
     avatarLargeHtml: hcAvatar(h, rank === 1 ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16 sm:w-20 sm:h-20'),
     familiarHtml: '',
     guildBadgeHtml: `<span class="hcs-guild">${badge(h.guildId, 'w-6 h-6')}</span>`,
-    titleBadgeHtml: `<span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${h.titleColor}, ${h.titleColor}dd);"><span>${h.title}</span></span>`,
-    roleBadgesHtml: h.champion ? '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:#7c3aed;" title="Guild Champion this month">⚔️ Champion</span>' : '',
-    pillsHtml: [h.prodigy ? HC_PILL.prodigy : '', h.week ? HC_PILL.week(h.week) : '', h.streak ? HC_PILL.streak(h.streak) : '', HC_PILL.skill[h.skill] || ''].join(''),
+    titleBadgeHtml: `<span class="hcs-herotitle" style="--aura:${h.titleColor}" title="Hero rank"><span>${h.title}</span></span>`,
+    roleBadgesHtml: renderHeroRoleBadgesHtml({ champion: h.champion, color: getGuildById(h.guildId)?.primary }),
+    pillsHtml: renderHeroTraitsHtml({ prodigy: h.prodigy, weekStars: h.week || 0, streak: h.streak || 0, skill: HC_SKILLS[h.skill] }),
+    accent: getGuildById(h.guildId)?.primary || '',
     className: h.className,
     classLogo: h.classLogo,
     showClass

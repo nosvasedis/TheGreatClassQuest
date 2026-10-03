@@ -122,7 +122,7 @@ const moreSheetHTML = `
                 ${moreItem('adventure-log-tab', 'nav-color-teal', 'fa-book-open', 'Adventure Log', 'Class diary')}
                 ${moreItem('scholars-scroll-tab', 'nav-color-scroll', 'fa-scroll', "Scholar's Scroll", 'Tests & marks')}
                 ${moreItem('calendar-tab', 'nav-color-blue', 'fa-calendar-alt', 'Quest Calendar', 'Plan the days')}
-                ${moreItem('reward-ideas-tab', 'nav-color-indigo', 'fa-shield-halved', 'Training Grounds', 'Class games')}
+                ${moreItem('reward-ideas-tab', 'nav-color-indigo', 'fa-bullseye', 'Training Grounds', 'Class games')}
                 ${moreItem('manage-students-tab', 'nav-color-fuchsia', 'fa-user-graduate', 'Student Roster', 'Your heroes')}
                 <button type="button" id="m-secretary-console-item" class="nav-button m-more-item m-pressable nav-color-cyan hidden" aria-label="School Office">
                     <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas fa-building-shield icon"></i></span>

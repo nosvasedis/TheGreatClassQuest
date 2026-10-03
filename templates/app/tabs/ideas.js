@@ -14,9 +14,9 @@ const TG_TABS = TG_TAB_DEFS.map((t, i) => `                        <button type=
                         </button>`).join('\n');
 
 const TG_GAME_PANELS = [
-    { key: 'hoard', heading: 'The Vanishing Hoard', sub: 'A dragon guards a hoard of treasures. Watch closely: some of them are about to vanish.', icon: 'fa-dragon', guide: 'How the hoard works' },
-    { key: 'map', heading: 'The Torn Map', sub: 'A treasure map lies torn in pieces. Each group holds one scrap of every riddle.', icon: 'fa-compass', guide: 'How the map works' },
-    { key: 'council', heading: 'The Round Table', sub: 'The kingdom’s council meets. Hold the Speaking Stone, echo, listen, and honour every voice.', icon: 'fa-shield-heart', guide: 'How the council works' }
+    { key: 'hoard', heading: 'The Vanishing Hoard', sub: 'A dragon guards a hoard of treasures. Watch closely: some of them are about to vanish.', icon: 'fa-dragon', shelf: 'Sealed Vaults', shelfSub: 'Every vault the class seals is kept here.' },
+    { key: 'map', heading: 'The Torn Map', sub: 'A treasure map lies torn in pieces. Each group holds one scrap of every riddle.', icon: 'fa-compass', shelf: 'The Map Chest', shelfSub: 'Every map the class makes whole is kept here.' },
+    { key: 'council', heading: 'The Round Table', sub: 'The kingdom’s council meets. Hold the Speaking Stone, echo, listen, and honour every voice.', icon: 'fa-shield-heart', shelf: 'Hall of Banners', shelfSub: 'Every banner the council raises hangs here.' }
 ];
 
 /** The small ? beside each game's title; it opens How to play (features/trainingGrounds.js). */
@@ -48,39 +48,27 @@ const TG_PANELS = TG_GAME_PANELS.map((g) => `
                                 <div class="sw-milestone" data-tg-slot="milestone"></div>
                             </section>
 
-                            <div class="sw-desk">
-                                <section class="sw-card" aria-labelledby="tg-${g.key}-controls-heading">
-                                    <header class="sw-card__head">
-                                        <span class="sw-card__icon" aria-hidden="true"><i class="fas ${g.icon}"></i></span>
+                            <section class="tg-gm" aria-label="Game Master controls" data-tg-slot="controls"></section>
+
+                            <div class="tg-bottom">
+                                <section class="sw-library tg-library" aria-labelledby="tg-${g.key}-shelf-heading">
+                                    <header class="sw-library__head">
                                         <div>
-                                            <h3 id="tg-${g.key}-controls-heading" class="sw-card__title">Game Master Controls</h3>
-                                            <p class="sw-card__sub">Run each round from here or straight from the board.</p>
+                                            <h3 id="tg-${g.key}-shelf-heading" class="sw-card__title">${g.shelf}</h3>
+                                            <p class="sw-card__sub">${g.shelfSub}</p>
                                         </div>
                                     </header>
-                                    <div data-tg-slot="controls"></div>
+                                    <div data-tg-slot="shelf"></div>
+                                    <div class="sw-shelf__plank" aria-hidden="true"></div>
                                 </section>
-                                <section class="sw-card sw-helpers-card" aria-labelledby="tg-${g.key}-guide-heading">
-                                    <header class="sw-card__head">
-                                        <span class="sw-card__icon sw-card__icon--gold" aria-hidden="true"><i class="fas fa-lightbulb"></i></span>
-                                        <div>
-                                            <h3 id="tg-${g.key}-guide-heading" class="sw-card__title">${g.guide}</h3>
-                                            <p class="sw-card__sub">Matched to the class's Quest League.</p>
-                                        </div>
+                                <section class="tg-recent" aria-labelledby="tg-${g.key}-log-heading">
+                                    <header class="tg-recent__head">
+                                        <span class="tg-recent__icon" aria-hidden="true"><i class="fas fa-clock-rotate-left"></i></span>
+                                        <h3 id="tg-${g.key}-log-heading" class="sw-card__title">Recent rounds</h3>
                                     </header>
-                                    <div data-tg-slot="guide"></div>
+                                    <div data-tg-slot="log"></div>
                                 </section>
                             </div>
-
-                            <section class="sw-library tg-library" aria-labelledby="tg-${g.key}-shelf-heading">
-                                <header class="sw-library__head">
-                                    <div>
-                                        <h3 id="tg-${g.key}-shelf-heading" class="sw-card__title">${g.key === 'hoard' ? 'Sealed Vaults' : g.key === 'map' ? 'The Map Chest' : 'Hall of Banners'}</h3>
-                                        <p class="sw-card__sub">${g.key === 'hoard' ? 'Every vault the class seals is kept here.' : g.key === 'map' ? 'Every map the class makes whole is kept here.' : 'Every banner the council raises hangs here.'}</p>
-                                    </div>
-                                </header>
-                                <div data-tg-slot="shelf"></div>
-                                <div class="sw-shelf__plank" aria-hidden="true"></div>
-                            </section>
                         </div>
                     </section>`).join('');
 
@@ -88,16 +76,44 @@ export const ideasTabHTML = `
             <div id="reward-ideas-tab" class="app-tab hidden">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
                     <!-- Tab title: Training Grounds -->
-                    <header class="tab-sign tab-sign--weave">
+                    <header class="tab-sign tab-sign--arena">
                         <div class="tab-sign__piece">
-                            <span class="tab-sign__rod" aria-hidden="true"></span>
+                            <span class="tg-sign__bunting" aria-hidden="true">
+                                <span class="tg-sign__pennant tg-sign__pennant--story"><i class="fas fa-feather-pointed"></i></span>
+                                <span class="tg-sign__pennant tg-sign__pennant--hoard"><i class="fas fa-eye"></i></span>
+                                <span class="tg-sign__pennant tg-sign__pennant--map"><i class="fas fa-compass"></i></span>
+                                <span class="tg-sign__pennant tg-sign__pennant--council"><i class="fas fa-shield-heart"></i></span>
+                            </span>
+                            <span class="tg-sign__post tg-sign__post--l" aria-hidden="true"></span>
+                            <span class="tg-sign__post tg-sign__post--r" aria-hidden="true"></span>
+                            <svg class="tg-sign__target" viewBox="0 0 64 64" aria-hidden="true">
+                                <circle cx="32" cy="32" r="30" fill="#f4e4bc" stroke="#7a4a1e" stroke-width="3"/>
+                                <circle cx="32" cy="32" r="23" fill="#dc2626"/>
+                                <circle cx="32" cy="32" r="16" fill="#fff7ed"/>
+                                <circle cx="32" cy="32" r="9" fill="#dc2626"/>
+                                <circle cx="32" cy="32" r="4" fill="#fbbf24"/>
+                                <path d="M33 31 L58 8" stroke="#5b3a1a" stroke-width="2.6" stroke-linecap="round"/>
+                                <path d="M54 5 l6 -2 -2 6 M57 9 l6 -2 -2 6" stroke="#0e7490" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+                            </svg>
+                            <svg class="tg-sign__swords" viewBox="0 0 64 64" aria-hidden="true">
+                                <g stroke-linecap="round">
+                                    <path d="M12 52 L50 10" stroke="#c99a5b" stroke-width="6"/>
+                                    <path d="M12 52 L50 10" stroke="#e8c48c" stroke-width="2.2"/>
+                                    <path d="M52 52 L14 10" stroke="#c99a5b" stroke-width="6"/>
+                                    <path d="M52 52 L14 10" stroke="#e8c48c" stroke-width="2.2"/>
+                                    <path d="M14 40 L24 50 M50 40 L40 50" stroke="#7a4a1e" stroke-width="4"/>
+                                    <circle cx="10" cy="54" r="3.5" fill="#d9a84e"/>
+                                    <circle cx="54" cy="54" r="3.5" fill="#d9a84e"/>
+                                </g>
+                            </svg>
                             <div class="tab-sign__board">
+                                <span class="tg-sign__rivet tg-sign__rivet--tl" aria-hidden="true"></span>
+                                <span class="tg-sign__rivet tg-sign__rivet--tr" aria-hidden="true"></span>
+                                <span class="tg-sign__rivet tg-sign__rivet--bl" aria-hidden="true"></span>
+                                <span class="tg-sign__rivet tg-sign__rivet--br" aria-hidden="true"></span>
                                 <span class="tab-sign__kicker">Create · Focus · Unite · Honour</span>
                                 <h2 class="font-title tab-sign__title">Training Grounds</h2>
                             </div>
-                            <span class="tab-sign__fringe" aria-hidden="true"></span>
-                            <span class="tab-sign__tassel tab-sign__tassel--l" aria-hidden="true"></span>
-                            <span class="tab-sign__tassel tab-sign__tassel--r" aria-hidden="true"></span>
                         </div>
                         <p class="tab-sign__tagline">Four class games, one for each hero skill. Win two rounds to earn a skill star.</p>
                     </header>

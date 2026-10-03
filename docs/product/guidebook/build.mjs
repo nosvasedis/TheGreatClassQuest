@@ -41,7 +41,7 @@ const CHAPTERS = [
   { id: 'hero-campfire', file: 'teacher/15-hero-campfire.md', icon: 'fa-fire', color: 'amber', group: 'The classroom', kicker: 'Hero Campfire' },
   { id: 'scholars-scroll', file: 'teacher/10-scholars-scroll.md', icon: 'fa-scroll', color: 'pink', group: 'The classroom', kicker: "Tab · Scholar's Scroll" },
   { id: 'quest-calendar', file: 'teacher/11-quest-calendar.md', icon: 'fa-calendar-alt', color: 'blue', group: 'The classroom', kicker: 'Tab · Quest Calendar' },
-  { id: 'story-weavers', file: 'teacher/12-story-weavers.md', icon: 'fa-shield-halved', color: 'indigo', group: 'The classroom', kicker: 'Tab · Training Grounds' },
+  { id: 'story-weavers', file: 'teacher/12-story-weavers.md', icon: 'fa-bullseye', color: 'indigo', group: 'The classroom', kicker: 'Tab · Training Grounds' },
   { id: 'settings', file: 'teacher/13-settings-and-roster.md', icon: 'fa-cog', color: 'slate', group: 'The classroom', kicker: 'Teacher Settings' },
   { id: 'hero-path', file: 'teacher/14-hero-path.md', icon: 'fa-hat-wizard', color: 'violet', group: 'The classroom', kicker: 'Hero Path' },
   { id: 'school-office', file: 'secretary/school-office.md', icon: 'fa-building-shield', color: 'emerald', group: 'The rest of the school', kicker: 'School Office' },

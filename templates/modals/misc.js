@@ -596,7 +596,7 @@ export const miscModalsHTML = `
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 AI-powered Quiz of the Week</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🤖 Personalised Adventure Log from your class activity, with AI pictures</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>✏️ Edit AI-generated entries</span></li>
-                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🛡️ Training Grounds (Story Weavers + 3 class games)</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎯 Training Grounds (Story Weavers + 3 class games)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔤 Word of the Day</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🐉 Familiars (magical companions)</span></li>
                                 <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔮 Hero's Chronicle Oracle</span></li>

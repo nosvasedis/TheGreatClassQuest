@@ -52,7 +52,7 @@ Whichever tab you open, it always starts **at the top** — never halfway down w
 
 ## Tab titles
 
-Each tab opens with a title drawn as **its own object** rather than a plain heading: a folded quest map for Team Quest, a royal banner for Hero’s Challenge, a stone archway for Guild Hall, a night-sky star medal for Award Stars, a stitched leather journal for Adventure Log, a parchment scroll for Scholar’s Scroll, a ringed desk calendar for Quest Calendar, a tapestry for Training Grounds, and a chalkboard for Teacher Settings. Only the **Mystic Market** keeps a shop sign. Team Quest and Hero’s Challenge also have a gilded month ribbon that names *this month’s race* or *this month’s challenge*. The titles are decoration; nothing to tap.
+Each tab opens with a title drawn as **its own object** rather than a plain heading: a folded quest map for Team Quest, a royal banner for Hero’s Challenge, a stone archway for Guild Hall, a night-sky star medal for Award Stars, a stitched leather journal for Adventure Log, a parchment scroll for Scholar’s Scroll, a ringed desk calendar for Quest Calendar, a training-yard sign with four skill pennants for Training Grounds, and a chalkboard for Teacher Settings. Only the **Mystic Market** keeps a shop sign. Team Quest and Hero’s Challenge also have a gilded month ribbon that names *this month’s race* or *this month’s challenge*. The titles are decoration; nothing to tap.
 
 ## Projector Mode (classroom wallpaper)
 

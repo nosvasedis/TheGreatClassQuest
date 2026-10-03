@@ -89,7 +89,7 @@ Each honoured council lights a candle; six candles finish a banner for the **Hal
 
 - The small **?** beside each game's title opens **How to play**: four picture steps, how to win, and a tip for you. It works in full screen too, so you can show it to the class.
 - Every game has **Full screen** for the projector, and **Stop this round** if the bell rings.
-- The **guide** card next to each game shows how it works for this class's league and the last few rounds.
+- Under the board, the **Game Master** bar shows which step the round is on and what to do now. Below it sit the keepsake shelf and **Recent rounds**.
 - Rounds are saved on the class, so any device shows the same knots and keepsakes.
 
 ## How this feeds the rest of the Quest

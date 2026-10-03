@@ -14,8 +14,6 @@ export function esc(value) {
         .replaceAll("'", '&#039;');
 }
 
-const BAND_LABEL = { early: 'ages 5-7', junior: 'ages 7-9', mid: 'ages 9-11', upper: 'ages 11-13' };
-
 export function knotsHtml(rounds) {
     const into = knotsTied(rounds);
     return [0, 1].map((i) => `<span class="sw-knot${i < into ? ' is-tied' : ''}"></span>`).join('');
@@ -535,50 +533,57 @@ const STEPS = {
     ]
 };
 
+/** The Game Master bar under the board: where the round is, what to do now, and the tools for it. */
 export function controlsHtml(gameKey, v) {
     const steps = STEPS[gameKey];
     const at = Math.max(0, steps.findIndex((s) => s.phases.includes(v.phase)));
-    const extras = {
-        hoard: [
-            `<div class="tg-lesson-words">
-                <label class="tg-switch"><input type="checkbox" data-tg-input="hoard-use-words"${v.useWords ? ' checked' : ''}><span></span> Use this lesson’s words</label>
-                <textarea data-tg-input="hoard-words" class="tg-textarea${v.useWords ? '' : ' hidden'}" rows="2" placeholder="castle, lantern, brave…" aria-label="Lesson words, separated by commas">${esc(v.wordsText || '')}</textarea>
-            </div>`,
-            '',
-            ''
-        ],
-        map: [
-            v.phase === 'riddle' ? `<div class="tg-step-actions">${ghost('Another riddle', 'map-another', 'fa-shuffle')}</div>` : '',
-            v.riddle ? `<div class="tg-step-actions">${ghost('Print the scraps', 'map-print', 'fa-print')}</div>` : '',
-            ''
-        ],
-        council: ['', '', '']
-    }[gameKey];
-    const busy = !['vault', 'map', 'table'].includes(v.phase) && !['result', 'solved'].includes(v.phase);
-    return `<ol class="sw-steps">${steps.map((s, i) => `<li class="sw-step${i < at ? ' is-done' : ''}${i === at ? ' is-ready' : ''}">
-            <span class="sw-step__num" aria-hidden="true">${i + 1}</span>
-            <div class="sw-step__body"><p class="sw-step__title">${s.title}</p><p class="sw-step__hint">${s.hint}</p>${extras[i] || ''}</div>
-        </li>`).join('')}</ol>
-        ${busy ? `<div class="tg-abandon">${ghost('Stop this round', `${gameKey}-abandon`, 'fa-xmark')}</div>` : ''}`;
+    const busy = !['vault', 'map', 'table', 'result', 'solved'].includes(v.phase);
+    const tools = [];
+    let drawer = '';
+    if (gameKey === 'hoard' && v.phase === 'vault') {
+        tools.push(`<label class="tg-switch"><input type="checkbox" data-tg-input="hoard-use-words"${v.useWords ? ' checked' : ''}><span></span> Use this lesson’s words</label>`);
+        drawer = `<div class="tg-gm__drawer${v.useWords ? '' : ' hidden'}" data-tg-words-drawer>
+            <textarea data-tg-input="hoard-words" class="tg-textarea" rows="2" placeholder="castle, lantern, brave…" aria-label="Lesson words, separated by commas">${esc(v.wordsText || '')}</textarea>
+            <p class="tg-gm__note">Separate words with commas. They join the hoard as treasures.</p>
+        </div>`;
+    }
+    if (gameKey === 'map' && v.phase === 'riddle') tools.push(ghost('Another riddle', 'map-another', 'fa-shuffle'));
+    if (gameKey === 'map' && v.riddle && ['riddle', 'deal', 'pool'].includes(v.phase)) tools.push(ghost('Print the scraps', 'map-print', 'fa-print'));
+    if (busy) tools.push(ghost('Stop this round', `${gameKey}-abandon`, 'fa-xmark'));
+    const stepper = steps.map((s, i) => {
+        const state = i < at ? ' is-done' : i === at ? ' is-now' : '';
+        return `<li class="tg-gm__step${state}"${i === at ? ' aria-current="step"' : ''}>
+            <span class="tg-gm__n" aria-hidden="true">${i < at ? '<i class="fas fa-check"></i>' : i + 1}</span>
+            <span class="tg-gm__title">${s.title}</span>
+        </li>`;
+    }).join('');
+    return `<div class="tg-gm__row">
+            <span class="tg-gm__label"><i class="fas fa-chess-king" aria-hidden="true"></i> Game Master</span>
+            <ol class="tg-gm__steps">${stepper}</ol>
+            ${tools.length ? `<div class="tg-gm__tools">${tools.join('')}</div>` : ''}
+        </div>
+        <p class="tg-gm__hint"><i class="fas fa-circle-info" aria-hidden="true"></i> ${steps[at].hint}</p>
+        ${drawer}`;
 }
 
-export function guideHtml(gameKey, { league = '', band = 'mid', log = [], settingsLine = '' } = {}) {
-    const game = TRAINING_GAMES[gameKey];
-    const how = {
-        hoard: ['The hoard glows on the board. Everyone watches in silence.', 'A dragon’s wing sweeps over it, and treasures vanish.', 'The class agrees what is missing and names it in English.', 'Name them all to seal the hoard and light a rune.'],
-        map: ['Everyone sees a riddle and its possible answers.', 'Each group secretly reads one scrap of the map.', 'Groups share their scraps in English. Each scrap rules out one wrong answer.', 'Pick the one answer left to restore a piece of the map. A wrong pick opens a scrap to help; a second one tears the round.'],
-        council: ['The kingdom brings the council a question.', 'The Speaking Stone passes from speaker to speaker.', 'Each speaker first echoes the last speaker, then shares.', 'No interrupting. An honoured council lights a candle.']
-    }[gameKey];
-    const logRows = (log || []).slice(0, 4).map((e) => `<li class="tg-log__row${e.ok ? ' is-ok' : ''}">
-        <i class="fas ${e.ok ? (e.counted ? 'fa-star' : 'fa-check') : 'fa-wind'}" aria-hidden="true"></i>
-        <span>${esc(e.date || '')}</span><span>${e.ok ? (e.counted ? 'Won, knot tied' : 'Won, practice') : 'Not this time'}</span>
-        ${e.note ? `<em>${esc(e.note)}</em>` : ''}</li>`).join('');
-    return `<ol class="tg-how">${how.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
-        <p class="sw-helper-label"><i class="fas fa-sliders" aria-hidden="true"></i> For ${esc(league || 'this class')} <span class="sw-helper-hint">${BAND_LABEL[band] || ''}</span></p>
-        <p class="tg-guide__settings">${settingsLine}</p>
-        <p class="sw-helper-label"><i class="fas fa-star" aria-hidden="true"></i> The ${esc(game.skillLabel)} Star <span class="sw-helper-hint">every second round won</span></p>
-        <p class="tg-guide__settings">One round per lesson ties a knot. Two knots, and you can give the whole class +0.5 ${esc(game.skillLabel)} stars. Vanguards earn extra Gold.</p>
-        ${logRows ? `<p class="sw-helper-label"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Recent rounds</p><ul class="tg-log">${logRows}</ul>` : ''}`;
+/** Shown in the Game Master bar before a class is chosen. */
+export function controlsNoClassHtml() {
+    return `<div class="tg-gm__row">
+            <span class="tg-gm__label"><i class="fas fa-chess-king" aria-hidden="true"></i> Game Master</span>
+            <p class="tg-gm__hint tg-gm__hint--solo"><i class="fas fa-hand-pointer" aria-hidden="true"></i> Choose a class from the header to begin.</p>
+        </div>`;
+}
+
+/** The last few rounds this class played. */
+export function logHtml(log = [], hasClass = true) {
+    if (!hasClass) return '<p class="tg-recent__empty">Choose a class to see its rounds.</p>';
+    const rows = (log || []).slice(0, 5).map((e) => `<li class="tg-log__row${e.ok ? ' is-ok' : ''}${e.ok && e.counted ? ' is-knot' : ''}">
+        <span class="tg-log__icon" aria-hidden="true"><i class="fas ${e.ok ? (e.counted ? 'fa-star' : 'fa-check') : 'fa-wind'}"></i></span>
+        <span class="tg-log__what"><strong>${e.ok ? (e.counted ? 'Won · knot tied' : 'Won · practice') : 'Not this time'}</strong>${e.note ? `<em>${esc(e.note)}</em>` : ''}</span>
+        <span class="tg-log__date">${esc(e.date || '')}</span></li>`).join('');
+    return rows
+        ? `<ul class="tg-log">${rows}</ul>`
+        : '<p class="tg-recent__empty">No rounds yet. The first win ties a knot toward the next star.</p>';
 }
 
 export function shelfHtml(gameKey, shelf = [], hasClass = true) {

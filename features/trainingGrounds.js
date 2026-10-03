@@ -21,7 +21,7 @@ import {
 } from './trainingGroundsCore.mjs';
 import {
     knotsHtml, milestoneHtml, noClassHtml, hoardStageHtml, mapStageHtml, councilStageHtml,
-    controlsHtml, guideHtml, shelfHtml, printableScrapsHtml, howToHtml
+    controlsHtml, controlsNoClassHtml, logHtml, shelfHtml, printableScrapsHtml, howToHtml
 } from './trainingGroundsView.mjs';
 
 const TAB_KEY = 'tg-active-game';
@@ -180,8 +180,8 @@ function renderGame(gameKey, { keepStage = false } = {}) {
     if (!tg.classId) {
         stage.innerHTML = noClassHtml(gameKey);
         slot(gameKey, 'milestone').innerHTML = '';
-        slot(gameKey, 'controls').innerHTML = '<p class="sw-step__hint">Choose a class from the header to begin.</p>';
-        slot(gameKey, 'guide').innerHTML = guideHtml(gameKey, { band: 'mid', settingsLine: 'Content matches each class’s Quest League.' });
+        slot(gameKey, 'controls').innerHTML = controlsNoClassHtml();
+        slot(gameKey, 'log').innerHTML = logHtml([], false);
         slot(gameKey, 'shelf').innerHTML = shelfHtml(gameKey, [], false);
         return;
     }
@@ -196,7 +196,7 @@ function renderGame(gameKey, { keepStage = false } = {}) {
     const s = gameState(gameKey);
     slot(gameKey, 'milestone').innerHTML = milestoneHtml(gameKey, s.rounds, { countedToday: !canCountRound(s, getTodayDateString()) });
     slot(gameKey, 'controls').innerHTML = controlsHtml(gameKey, current);
-    slot(gameKey, 'guide').innerHTML = guideHtml(gameKey, { league: cls?.questLevel || '', band: bandFor(), log: s.log, settingsLine: settingsLine(gameKey) });
+    slot(gameKey, 'log').innerHTML = logHtml(s.log, true);
     slot(gameKey, 'shelf').innerHTML = shelfHtml(gameKey, s.shelf, true);
 }
 

@@ -284,7 +284,7 @@ export const GUIDE_CHAPTERS = {
                     keys: 'quiz game show weekly review questions'
                 },
                 {
-                    id: 'training-grounds', icon: 'fa-shield-halved', name: 'Training Grounds', tier: 'elite',
+                    id: 'training-grounds', icon: 'fa-bullseye', name: 'Training Grounds', tier: 'elite',
                     where: 'Training Grounds tab', go: 'tab:reward-ideas-tab',
                     text: `Four class games, one for each hero skill, matched to the class's Quest League. Story Weavers (Creativity): the class writes a storybook a sentence at a time around a Word of the Day, and Elite paints each page. The Vanishing Hoard (Focus): watch the dragon's treasures, then spot what vanished. The Torn Map (Teamwork): every group holds one clue, and only by sharing them can the class find the answer. The Round Table (Respect): pass the Speaking Stone, echo the last speaker and let nobody interrupt. One round per lesson counts, and every second round won can give the whole class +0.5 stars of that skill.`,
                     keys: 'training grounds story weavers word of the day creative writing storybook pdf vanishing hoard memory focus torn map clues groups teamwork round table speaking stone respect listening'
@@ -538,7 +538,7 @@ export const GUIDE_CHAPTERS = {
                     keys: 'quiz game show'
                 },
                 {
-                    id: 'training-grounds', icon: 'fa-shield-halved', name: 'Training Grounds', tier: 'elite',
+                    id: 'training-grounds', icon: 'fa-bullseye', name: 'Training Grounds', tier: 'elite',
                     text: `Four class games: write a storybook together, spot the treasure that vanished from the dragon's hoard, share your group's clue to mend the torn map, and pass the Speaking Stone at the Round Table. Win two rounds and the whole class earns a star!`,
                     keys: 'training grounds story word of the day hoard map round table'
                 },

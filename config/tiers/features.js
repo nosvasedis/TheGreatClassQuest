@@ -25,7 +25,7 @@ export const FEATURE_DEFINITIONS = {
     },
     storyWeavers: {
         name: 'Training Grounds',
-        emoji: '🛡️',
+        emoji: '🎯',
         description: 'Story Weavers, The Vanishing Hoard, The Torn Map and The Round Table',
         tier: 'Elite',
     },

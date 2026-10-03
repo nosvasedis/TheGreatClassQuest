@@ -340,7 +340,7 @@ export function scrollDemoHtml() {
 
 export function storyWeaversHtml() {
   return `<div class="live-demo">
-    <p class="live-demo__label"><i class="fas fa-shield-halved" aria-hidden="true"></i> Training Grounds</p>
+    <p class="live-demo__label"><i class="fas fa-bullseye" aria-hidden="true"></i> Training Grounds</p>
     <p class="wotd">✒️ <strong>Story Weavers</strong> · Creativity</p>
     <p class="wotd">🐉 <strong>The Vanishing Hoard</strong> · Focus</p>
     <p class="wotd">🗺️ <strong>The Torn Map</strong> · Teamwork</p>

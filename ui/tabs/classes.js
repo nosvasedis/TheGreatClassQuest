@@ -15,6 +15,7 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { openAccessCenterForStudent } from '../../features/accessManagement.js';
 import { handlePlaceReturningStudents } from '../../db/actions/students.js';
 import { showToast } from '../effects.js';
+import * as utils from '../../utils.js';
 import {
     buildReturningStudentGroups,
     filterStudentsBySearch,
@@ -255,6 +256,58 @@ function renderReturningStudentsPanel(currentClassId, options = {}) {
     }
 }
 
+/**
+ * Orders My Classes by the clock: the class in session first (or the one that just
+ * ended, same grace as follow-schedule), then today's upcoming lessons, then today's
+ * finished ones, then other days by their next weekday and start time. Unscheduled
+ * classes go last. Returns [{ cls, slot }] where slot is 'now' | 'today' | 'done' | null.
+ */
+function sortClassesByTimeOfDay(classes, now = new Date()) {
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const todayClasses = utils.getClassesOnDay(
+        utils.getTodayDateString(),
+        state.get('allSchoolClasses') || [],
+        state.get('allScheduleOverrides') || [],
+        classEndDates
+    ).filter(c => classes.some(mine => mine.id === c.id));
+    const todayIds = new Set(todayClasses.map(c => c.id));
+    const live = utils.findLessonClassWithGrace(todayClasses, now);
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const today = now.getDay();
+
+    const rank = (c) => {
+        const start = utils.parseClockToMinutes(c.timeStart);
+        const startKey = start == null ? 24 * 60 : start;
+        if (live && c.id === live.id) return { group: 0, offset: 0, startKey, slot: 'now' };
+        if (todayIds.has(c.id)) {
+            const end = utils.parseClockToMinutes(c.timeEnd);
+            const finished = end != null ? end < nowMin : (start != null && start < nowMin);
+            return finished
+                ? { group: 2, offset: 0, startKey, slot: 'done' }
+                : { group: 1, offset: 0, startKey, slot: 'today' };
+        }
+        const offsets = (c.scheduleDays || [])
+            .map(d => ((Number(d) - today + 7) % 7) || 7)
+            .filter(n => Number.isFinite(n));
+        if (offsets.length === 0) return { group: 4, offset: 0, startKey, slot: null };
+        return { group: 3, offset: Math.min(...offsets), startKey, slot: null };
+    };
+
+    return classes
+        .map(cls => ({ cls, ...rank(cls) }))
+        .sort((a, b) => a.group - b.group
+            || a.offset - b.offset
+            || a.startKey - b.startKey
+            || a.cls.name.localeCompare(b.cls.name))
+        .map(({ cls, slot }) => ({ cls, slot }));
+}
+
+const CLASS_SLOT_CHIPS = {
+    now: '<span class="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm"><span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>In session</span>',
+    today: '<span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"><i class="fas fa-hourglass-half"></i>Later today</span>',
+    done: '<span class="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 border border-gray-200 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"><i class="fas fa-check"></i>Done today</span>'
+};
+
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
     if (!list) return;
@@ -262,11 +315,11 @@ export function renderManageClassesTab() {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">You haven't created any classes yet.</p>`;
         return;
     }
-    list.innerHTML = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => {
+    list.innerHTML = sortClassesByTimeOfDay(state.get('allTeachersClasses')).map(({ cls: c, slot }) => {
         const schedule = (c.scheduleDays || []).map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
         const time = (c.timeStart && c.timeEnd) ? `${c.timeStart} - ${c.timeEnd}` : 'No time set';
         return `
-            <div class="relative bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] shadow-lg border border-teal-100 transform transition hover:shadow-xl hover:-translate-y-1 overflow-hidden group">
+            <div class="relative bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] shadow-lg border border-teal-100${slot === 'now' ? ' ring-4 ring-emerald-300/70' : ''} transform transition hover:shadow-xl hover:-translate-y-1 overflow-hidden group">
                 <div class="absolute -right-12 -top-12 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
                 <div class="absolute -left-12 -bottom-12 w-32 h-32 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
                 
@@ -277,6 +330,7 @@ export function renderManageClassesTab() {
                             <div>
                                 <h3 class="font-title text-3xl text-gray-800 tracking-wide">${c.name}</h3>
                                 <p class="text-xs text-teal-600 font-bold uppercase tracking-widest mt-0.5">${c.questLevel || 'Uncategorized'}</p>
+                                ${slot ? `<div class="mt-2">${CLASS_SLOT_CHIPS[slot]}</div>` : ''}
                             </div>
                         </div>
                         

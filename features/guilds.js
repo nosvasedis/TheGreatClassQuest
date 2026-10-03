@@ -49,16 +49,16 @@ export const GUILDS = {
         motto: 'Stand together. Stand strong.',
         anthemLyrics: [
             { type: 'verse', lines: [
-                { text: 'From the roots of the mountain the old forest sings',      time: 2.3  },
-                { text: 'of the strength that is found in the smallest of things.', time: 6.3  },
-                { text: 'When the river runs wild and the winter is long,',         time: 10.3 },
-                { text: 'we hold to each other, we carry the song.',                time: 14.5 },
+                { text: 'From the roots of the mountain the old forest sings',      time: 2.4  },
+                { text: 'of the strength that is found in the smallest of things.', time: 6.5  },
+                { text: 'When the river runs wild and the winter is long,',         time: 10.5 },
+                { text: 'we hold to each other, we carry the song.',                time: 14.7 },
             ]},
             { type: 'chorus', lines: [
                 { text: 'Stand together, stand strong,',                            time: 19.2 },
                 { text: 'shoulder to shoulder, where we belong!',                   time: 23.0 },
-                { text: 'Grizzly Might, steady and true,',                          time: 27.0 },
-                { text: 'stand together, we\'ll see it through!',                   time: 31.1 },
+                { text: 'Grizzly Might, steady and true,',                          time: 27.2 },
+                { text: 'stand together, we\'ll see it through!',                   time: 31.2 },
             ]},
         ],
     },

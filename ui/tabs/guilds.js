@@ -253,12 +253,34 @@ function _playOverlayClose(overlay, prefix, duration) {
 
 // ─── Karaoke sync ─────────────────────────────────────────────────────────────
 let _karaokeCleanup = null;
+const ANTHEM_LAST_LINE_SECONDS = 3.6; // how long the final line is sung (no next line to measure from)
+const KARAOKE_LEAD_SECONDS = 0.08;    // light a line a hair early so eyes reach it as the voice does
 
 function ensureAnthemOverlayRoot() {
     const overlay = document.getElementById('guild-anthem-overlay');
     if (!overlay || overlay.parentElement === document.body) return overlay;
     document.body.appendChild(overlay);
     return overlay;
+}
+
+function _setAnthemStatus(text) {
+    const el = document.getElementById('guild-anthem-now-playing-text');
+    if (el && el.textContent !== text) el.textContent = text;
+}
+
+function _setAnthemProgress(fraction) {
+    const fill = document.getElementById('guild-anthem-progress-fill');
+    if (fill) fill.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction || 0))})`;
+}
+
+/** Glide the lyric panel (not the page) so the sung line sits a little above centre. */
+function _centerLyricLine(lyricsEl, line, smooth = true) {
+    if (!lyricsEl || !line || lyricsEl.scrollHeight <= lyricsEl.clientHeight + 1) return;
+    const boxRect = lyricsEl.getBoundingClientRect();
+    const lineRect = line.getBoundingClientRect();
+    const target = lyricsEl.scrollTop + (lineRect.top - boxRect.top) - (lyricsEl.clientHeight * 0.4 - lineRect.height / 2);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    lyricsEl.scrollTo({ top: Math.max(0, target), behavior: smooth && !reduceMotion ? 'smooth' : 'auto' });
 }
 
 function startKaraokeSync(guildId) {
@@ -269,38 +291,82 @@ function startKaraokeSync(guildId) {
 
     const lines = Array.from(lyricsEl.querySelectorAll('.guild-anthem-line[data-time]'));
     if (!lines.length) return;
+    const times = lines.map(line => parseFloat(line.dataset.time) || 0);
+    const sections = Array.from(lyricsEl.children);
 
-    let lastActiveIdx = -1;
+    let lastActiveIdx = -2;
+    let rafId = 0;
+    let finished = false;
 
-    function onTimeUpdate() {
-        if (!_currentAnthemId) return;
-        const ct = audio.currentTime;
-        let activeIdx = -1;
-        for (let i = 0; i < lines.length; i++) {
-            if (ct >= parseFloat(lines[i].dataset.time)) activeIdx = i;
-        }
-        if (activeIdx === lastActiveIdx) return;
-        lastActiveIdx = activeIdx;
+    function paint(activeIdx, ct) {
         lines.forEach((line, i) => {
-            line.classList.toggle('karaoke-active', i === activeIdx);
+            const active = i === activeIdx;
+            if (active) {
+                // Start the gold sweep where the song actually is (re-opens / late frames)
+                line.style.setProperty('--line-offset', `${-Math.max(0, ct - times[i]).toFixed(2)}s`);
+            }
+            line.classList.toggle('karaoke-active', active);
             line.classList.toggle('karaoke-past', i < activeIdx);
             line.classList.toggle('karaoke-upcoming', i > activeIdx);
+            line.classList.toggle('karaoke-next', i === activeIdx + 1);
         });
-        if (activeIdx >= 0) {
-            lines[activeIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const activeLine = lines[activeIdx];
+        const singingSection = activeLine?.closest('.guild-anthem-verse, .guild-anthem-chorus') || null;
+        sections.forEach(section => section.classList.toggle('is-singing', section === singingSection));
+        if (activeIdx < 0) {
+            _setAnthemStatus('Get ready to sing…');
+            _centerLyricLine(lyricsEl, lines[0], false);
+        } else {
+            _setAnthemStatus(`Sing the ${singingSection?.dataset.section || 'song'}!`);
+            _centerLyricLine(lyricsEl, activeLine);
         }
     }
 
+    function update() {
+        if (!_currentAnthemId) {
+            // The anthem has faded out (or the alcove was closed): the last line stays lit as the curtain call
+            if (!finished) {
+                finished = true;
+                _setAnthemStatus('Bravo! 🎉');
+                _setAnthemProgress(1);
+            }
+            rafId = 0;
+            return;
+        }
+        const ct = audio.currentTime;
+        const lead = ct + KARAOKE_LEAD_SECONDS;
+        let activeIdx = -1;
+        for (let i = 0; i < times.length; i++) {
+            if (lead >= times[i]) activeIdx = i;
+        }
+        if (activeIdx !== lastActiveIdx) {
+            lastActiveIdx = activeIdx;
+            paint(activeIdx, ct);
+        }
+        if (audio.duration && Number.isFinite(audio.duration)) _setAnthemProgress(ct / audio.duration);
+        rafId = requestAnimationFrame(update);
+    }
+
+    // Frame-accurate while visible; timeupdate keeps it honest if frames are throttled
+    function onTimeUpdate() { if (!rafId && !finished) update(); }
     audio.addEventListener('timeupdate', onTimeUpdate);
-    _karaokeCleanup = () => audio.removeEventListener('timeupdate', onTimeUpdate);
+    rafId = requestAnimationFrame(update);
+
+    _karaokeCleanup = () => {
+        audio.removeEventListener('timeupdate', onTimeUpdate);
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+    };
 }
 
 function stopKaraokeSync() {
     if (_karaokeCleanup) { _karaokeCleanup(); _karaokeCleanup = null; }
     // reset all line states
     document.querySelectorAll('.guild-anthem-line').forEach(l => {
-        l.classList.remove('karaoke-active', 'karaoke-past', 'karaoke-upcoming');
+        l.classList.remove('karaoke-active', 'karaoke-past', 'karaoke-upcoming', 'karaoke-next');
+        l.style.removeProperty('--line-offset');
     });
+    document.querySelectorAll('#guild-anthem-lyrics .is-singing').forEach(s => s.classList.remove('is-singing'));
 }
 
 // ─── Anthem modal ─────────────────────────────────────────────────────────────
@@ -337,18 +403,28 @@ export function fillGuildAnthemCard(guildId) {
 
     const lyricsEl = document.getElementById('guild-anthem-lyrics');
     if (lyricsEl && guild?.anthemLyrics) {
+        // Each line knows how long it is sung (until the next line starts), so the
+        // gold ink can sweep across it in time with the singers.
+        const times = guild.anthemLyrics.flatMap(section => section.lines.map(line => Number(line.time) || 0));
+        let lineIdx = 0;
         lyricsEl.innerHTML = guild.anthemLyrics.map(section => {
             const sectionClass = section.type === 'chorus' ? 'guild-anthem-chorus' : 'guild-anthem-verse';
             const label = section.type === 'chorus' ? '🎶 Chorus' : '🎵 Verse';
             return `
-                <div class="${sectionClass}">
+                <div class="${sectionClass}" data-section="${section.type === 'chorus' ? 'Chorus' : 'Verse'}">
                     <span class="guild-anthem-section-label">${label}</span>
-                    ${section.lines.map(line =>
-                `<p class="guild-anthem-line karaoke-upcoming" data-time="${line.time}">${line.text}</p>`
-            ).join('')}
+                    ${section.lines.map(line => {
+                const i = lineIdx++;
+                const next = times[i + 1];
+                const dur = Math.min(6, Math.max(1.2, (next ?? times[i] + ANTHEM_LAST_LINE_SECONDS) - times[i]));
+                return `<p class="guild-anthem-line karaoke-upcoming" data-time="${times[i]}" style="--line-dur:${dur.toFixed(2)}s"><span class="guild-anthem-line__text">${_escapeHtml(line.text)}</span></p>`;
+            }).join('')}
                 </div>`;
         }).join('');
+        lyricsEl.scrollTop = 0;
     }
+    _setAnthemStatus('Now Playing…');
+    _setAnthemProgress(0);
     return true;
 }
 

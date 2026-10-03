@@ -164,9 +164,10 @@ export const guildsTabHTML = `
                             <div class="guild-anthem-now-playing" id="guild-anthem-now-playing">
                                 <span class="guild-anthem-note-anim">♪</span>
                                 <span class="guild-anthem-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-                                <span class="guild-anthem-now-playing-text">Now Playing…</span>
+                                <span class="guild-anthem-now-playing-text" id="guild-anthem-now-playing-text">Now Playing…</span>
                                 <span class="guild-anthem-note-anim" style="animation-delay:0.4s">♫</span>
                             </div>
+                            <div class="guild-anthem-progress" aria-hidden="true"><span class="guild-anthem-progress__fill" id="guild-anthem-progress-fill"></span></div>
                         </div>
                         <div class="guild-anthem-lyrics" id="guild-anthem-lyrics"></div>
                     </div>

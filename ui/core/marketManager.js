@@ -141,7 +141,39 @@ function readDraft(card) {
     };
 }
 
+// A Firestore update for the card being worked on lands while it is still busy, and that
+// render is skipped so it does not wipe the spinner. Remember it and render once free,
+// otherwise the card keeps showing the old picture or the old treasure.
+let renderSkippedWhileBusy = false;
+
+function renderIfSkipped() {
+    if (!renderSkippedWhileBusy) return;
+    if (document.querySelector('.market-manager-card.is-busy')) return;
+    renderSkippedWhileBusy = false;
+    renderMarketManagerUi();
+}
+
+function showPicture(card, url) {
+    const media = card?.querySelector('.market-manager-card__media');
+    if (!media || !url) return;
+    const current = media.querySelector('.market-manager-card__art');
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    img.className = 'market-manager-card__art';
+    if (current) current.replaceWith(img);
+    else media.prepend(img);
+}
+
 async function handleAction(action, itemId, card, button) {
+    try {
+        await runAction(action, itemId, card, button);
+    } finally {
+        renderIfSkipped();
+    }
+}
+
+async function runAction(action, itemId, card, button) {
     if (action === 'save') {
         setBusy(card, true, button, 'Saving…');
         try {
@@ -154,7 +186,8 @@ async function handleAction(action, itemId, card, button) {
     if (action === 'picture') {
         setBusy(card, true, button, 'Drawing…');
         try {
-            await regenerateManagedShopPicture(itemId);
+            const result = await regenerateManagedShopPicture(itemId);
+            if (result?.image) showPicture(card, result.image);
         } finally {
             setBusy(card, false, button);
         }
@@ -182,7 +215,11 @@ async function handleAction(action, itemId, card, button) {
 }
 
 export function renderMarketManagerUi() {
-    if (document.querySelector('.market-manager-card.is-busy')) return;
+    if (document.querySelector('.market-manager-card.is-busy')) {
+        renderSkippedWhileBusy = true;
+        return;
+    }
+    renderSkippedWhileBusy = false;
     const locked = document.getElementById('options-market-locked');
     const content = document.getElementById('options-market-content');
     const list = document.getElementById('market-manager-list');

@@ -278,6 +278,10 @@ test('shop restock does not wipe a live stall and runs in the background', async
   const manager = fs.readFileSync(path.join(root, 'ui/core/marketManager.js'), 'utf8');
   assert.match(manager, /New picture/);
   assert.match(manager, /Replace this treasure/);
+  // A listener render skipped while a card is busy must run once the card is free,
+  // or New picture keeps showing the old picture.
+  assert.match(manager, /renderSkippedWhileBusy = true/);
+  assert.match(manager, /showPicture\(card, result\.image\)/);
   assert.match(fs.readFileSync(path.join(root, 'templates/app/tabs/options.js'), 'utf8'), /data-options-tab="market"/);
 });
 

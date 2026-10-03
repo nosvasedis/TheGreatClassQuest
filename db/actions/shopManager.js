@@ -111,6 +111,9 @@ async function runManagedShopAction(itemId, action, busyLabel) {
         if (action === 'replace') {
             showToast(`${result?.name || 'A new treasure'} took that place on the stall.`, 'success');
         } else {
+            // Keep the local copy in step until the listener brings the same URL, so every
+            // place that draws this treasure shows the new picture straight away.
+            if (result?.image) item.image = result.image;
             showToast(`A new picture is ready for ${item.name}.`, 'success');
         }
         return result;

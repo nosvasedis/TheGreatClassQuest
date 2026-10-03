@@ -2251,7 +2251,8 @@
     display: none;
 }
 
-/* Locked: no roster to show, the notice speaks for itself */
+/* Idle (opening, before the availability check settles) and locked: no roster to show */
+.fw-card[data-phase="idle"] .fw-guild-members-panel,
 .fw-card[data-phase="locked"] .fw-guild-members-panel {
     display: none;
 }

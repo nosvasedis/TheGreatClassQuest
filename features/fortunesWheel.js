@@ -1633,6 +1633,11 @@ export async function openFortunesWheel() {
     if (!modal) return;
 
     _wireWheelResize();
+    // Clear the last ceremony's leftovers before the card animates in. The idle
+    // phase hides the roster panel until the availability check settles.
+    _setCardPhase('idle');
+    _hideResultReveal();
+    document.getElementById('fw-summary')?.classList.add('hidden');
     showAnimatedModal('fortunes-wheel-modal');
 
     const resolvedClassId = state.get('globalSelectedClassId') || '';
@@ -1938,11 +1943,11 @@ export async function closeFortunesWheel() {
     }
 
     _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0 };
-    _renderCurrentGuildMembers();
 
+    // Leave the card exactly as it is while it animates out; re-rendering it
+    // here flashed the idle roster panel inside the closing card.
+    // openFortunesWheel resets the view before the next opening.
     hideModal('fortunes-wheel-modal');
-    _setCardPhase('idle');
-    _hideResultReveal();
 }
 
 // ── Internal UI helpers ──────────────────────────────────────────────────────

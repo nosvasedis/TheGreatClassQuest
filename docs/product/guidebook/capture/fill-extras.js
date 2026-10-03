@@ -278,6 +278,9 @@ export async function showFortuneWheel() {
   if (!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-fw');
+  // Staged mid-ceremony: the idle phase hides the guild roster panel
+  const card = modal.querySelector('.fw-card');
+  if (card) card.dataset.phase = 'ready';
 
   const guild = getGuildById('dragon_flame');
   const header = document.getElementById('fw-guild-header');

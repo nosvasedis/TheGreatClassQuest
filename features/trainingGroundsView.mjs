@@ -577,7 +577,7 @@ export function guideHtml(gameKey, { league = '', band = 'mid', log = [], settin
         <p class="sw-helper-label"><i class="fas fa-sliders" aria-hidden="true"></i> For ${esc(league || 'this class')} <span class="sw-helper-hint">${BAND_LABEL[band] || ''}</span></p>
         <p class="tg-guide__settings">${settingsLine}</p>
         <p class="sw-helper-label"><i class="fas fa-star" aria-hidden="true"></i> The ${esc(game.skillLabel)} Star <span class="sw-helper-hint">every second round won</span></p>
-        <p class="tg-guide__settings">One round per lesson ties a knot. Two knots, and you can give the whole class +0.5 ${esc(game.skillLabel)} stars. Weavers earn extra Gold.</p>
+        <p class="tg-guide__settings">One round per lesson ties a knot. Two knots, and you can give the whole class +0.5 ${esc(game.skillLabel)} stars. Vanguards earn extra Gold.</p>
         ${logRows ? `<p class="sw-helper-label"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Recent rounds</p><ul class="tg-log">${logRows}</ul>` : ''}`;
 }
 
@@ -621,3 +621,111 @@ export function printableScrapsHtml(riddle, className = '') {
     <p class="opts">Answers: ${riddle.options.map((o) => `${o.emoji} ${esc(o.word)}`).join(' · ')}</p>
     <script>window.onload=()=>window.print()</script></body></html>`;
 }
+
+// ─── How to play (the small ? on each game) ──────────────────────────────────
+
+const HOW_TO = {
+    story: {
+        goal: 'Write one storybook together, a sentence at a time.',
+        steps: [
+            { scene: '🔤 ✨', title: 'Pick the Word of the Day', line: 'Choose a word and lock it in. Every new sentence must use it.' },
+            { scene: '🙋 💬', title: 'Say the next sentence', line: 'One hero says what happens next in the story, using the word.' },
+            { scene: '✍️ 🎨', title: 'Add the page', line: 'Type it in with Continue. On Elite, a picture is painted for the page.' },
+            { scene: '📖 👀', title: 'Reveal and talk', line: 'Show the page to the class and talk about the three questions.' }
+        ],
+        win: 'Every second page you add is a star moment.',
+        keepsake: { art: '📚', line: 'Press The End and the book goes to the Archive. You can print it or hear it read aloud.' },
+        tip: 'Lock the word before anyone writes, so it is a fun challenge and not a trap at the end. Let a different hero own each sentence.'
+    },
+    hoard: {
+        goal: 'Remember the dragon’s treasure, then name what it stole.',
+        steps: [
+            { scene: '🤫 👀 💎', title: 'Watch in silence', line: 'Look at every treasure while the timer runs. No talking!' },
+            { scene: '🐉 💨', title: 'Whoosh!', line: 'The dragon’s wing sweeps past and steals some treasure.' },
+            { scene: '🧠 🗣️', title: 'What is missing?', line: 'Talk together and agree. Use the sentence starters to say it in English.' },
+            { scene: '🃏 ✅', title: 'Turn the cards', line: 'Name every stolen treasure and the hoard is sealed.' }
+        ],
+        win: 'Name every stolen treasure to light a rune on the vault.',
+        keepsake: { art: 'vault', line: 'Eight runes seal the vault. Then a new, harder vault opens.' },
+        tip: 'Turn on “Use this lesson’s words” to hide your vocabulary in the hoard. As the vault fills, more treasures appear and more vanish.'
+    },
+    map: {
+        goal: 'Every group holds one clue. Only together can you find the answer.',
+        steps: [
+            { scene: '📜 ❓', title: 'Read the riddle', line: 'Everyone sees the question and the possible answers.' },
+            { scene: '🤐 🧩', title: 'Get your scrap', line: 'Each group secretly reads its own clue. Keep it in your group!' },
+            { scene: '🗣️ 🤝', title: 'Share the clues', line: '“Our clue says… So it isn’t the…” Each clue rules out one answer.' },
+            { scene: '👉 🗺️', title: 'Choose together', line: 'Pick the one answer left. You have two tries.' }
+        ],
+        win: 'The right answer brings back a piece of the map.',
+        keepsake: { art: 'map', line: 'Six pieces make the whole map. It goes to the Map Chest.' },
+        tip: 'Ask one speaker per group to share the clue. If you prefer cards, use Print the scraps and hand one to each group.'
+    },
+    council: {
+        goal: 'Share your ideas, listen well, and let every voice be heard.',
+        steps: [
+            { scene: '👑 ❓', title: 'Hear the question', line: 'The kingdom asks the council a question. There is no wrong answer.' },
+            { scene: '💎 ✋', title: 'Hold the Speaking Stone', line: 'Only the hero holding the stone speaks. Everyone else listens.' },
+            { scene: '🔁 💬', title: 'Echo, then share', line: 'First say one thing the last speaker said. Then give your idea.' },
+            { scene: '🤫 ➡️', title: 'No interrupting', line: 'Wait for the stone. When you finish, pass it on.' }
+        ],
+        win: 'Everyone echoed and nobody interrupted? A candle is lit.',
+        keepsake: { art: 'table', line: 'Six candles make a banner for the Hall of Banners.' },
+        tip: 'A real object makes a great Speaking Stone. Tap Echoed! for each echo and Interrupted if someone speaks out of turn. You always have the last word.'
+    }
+};
+
+function keepsakeArt(art) {
+    if (art === 'vault') return vaultSvg(3, { label: 'A vault with three runes lit' });
+    if (art === 'map') return mapSvg(3, { label: 'A map with three pieces back' });
+    if (art === 'table') return tableSvg(3, { label: 'The Round Table with three candles lit' });
+    return `<span class="tg-howto__book" aria-hidden="true">${art}</span>`;
+}
+
+/** The how-to-play card for one game. forClass is the line about this class's league, if known. */
+export function howToHtml(gameKey, { forClass = '' } = {}) {
+    const game = TRAINING_GAMES[gameKey];
+    const how = HOW_TO[gameKey];
+    if (!game || !how) return '';
+    const steps = how.steps.map((s, i) => `
+        <li class="tg-howto__step" style="--i:${i}">
+            <span class="tg-howto__n" aria-hidden="true">${i + 1}</span>
+            <span class="tg-howto__scene" aria-hidden="true">${s.scene}</span>
+            <strong class="tg-howto__step-title">${s.title}</strong>
+            <span class="tg-howto__step-line">${s.line}</span>
+        </li>`).join('');
+    return `<div class="tg-howto tg-howto--${gameKey}" role="dialog" aria-modal="true" aria-labelledby="tg-howto-title" data-tg-howto>
+        <div class="tg-howto__backdrop" data-tg-howto-close></div>
+        <article class="tg-howto__card">
+            <button type="button" class="tg-howto__x" data-tg-howto-close aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            <header class="tg-howto__head">
+                <span class="tg-howto__medal" aria-hidden="true"><i class="fas ${game.icon}"></i></span>
+                <div>
+                    <p class="tg-howto__kicker">How to play · ${game.skillLabel}</p>
+                    <h2 id="tg-howto-title" class="tg-howto__title">${game.name}</h2>
+                    <p class="tg-howto__goal">${how.goal}</p>
+                </div>
+            </header>
+            <ol class="tg-howto__steps">${steps}</ol>
+            <section class="tg-howto__reward">
+                <div class="tg-howto__keepsake">${keepsakeArt(how.keepsake.art)}</div>
+                <div class="tg-howto__reward-copy">
+                    <p class="tg-howto__win"><i class="fas fa-trophy" aria-hidden="true"></i> ${how.win}</p>
+                    <p class="tg-howto__keepsake-line">${how.keepsake.line}</p>
+                    <p class="tg-howto__star">
+                        <span class="tg-howto__knots" aria-hidden="true"><span class="sw-knot is-tied"></span><span class="sw-knot is-tied"></span></span>
+                        <span>${gameKey === 'story' ? 'Two pages' : 'Two rounds won, on two lessons'} = <strong>+0.5 ${game.skillLabel} stars</strong> for the whole class. Vanguards earn extra Gold.</span>
+                    </p>
+                </div>
+            </section>
+            <aside class="tg-howto__tip">
+                <span class="tg-howto__tip-label"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> For the teacher</span>
+                <span>${how.tip}${forClass ? ` <em>${esc(forClass)}</em>` : ''}</span>
+            </aside>
+            <footer class="tg-howto__foot">
+                <button type="button" class="tg-cta" data-tg-howto-close><i class="fas fa-play" aria-hidden="true"></i><span>Let’s play!</span></button>
+            </footer>
+        </article>
+    </div>`;
+}
+

@@ -8,7 +8,9 @@ import {
     MAP_RIDDLES, MAP_TRIES, pickRiddle, scrapCount, hintScrapIndex,
     COUNCIL_QUESTIONS, councilSettings, pickCouncilQuestion, councilVerdict, milestoneLine
 } from '../features/trainingGroundsCore.mjs';
-import { getHeroReasons, heroClassEarnsFrom, calculateSkillBonus, getOutwardEffects, getHeroReason } from '../features/heroSkillTree.js';
+import { getHeroReasons, heroClassEarnsFrom, calculateSkillBonus, getOutwardEffects, getHeroReason, HERO_SKILL_TREE } from '../features/heroSkillTree.js';
+import { HERO_CLASSES, calculateHeroGold } from '../features/heroClasses.js';
+import { TRAINING_HERO, isLegacyHeroClass, normalizeHeroClass } from '../features/heroClassNames.mjs';
 
 const BANDS = ['early', 'junior', 'mid', 'upper'];
 
@@ -188,20 +190,35 @@ test('milestone copy names the skill star', () => {
     assert.match(milestoneLine('hoard', 2), /Two more/);
 });
 
-test('the Weaver levels and earns from all four Training Grounds games', () => {
-    assert.equal(getHeroReason('Weaver'), TRAINING_PATH_KEY);
-    assert.deepEqual(getHeroReasons('Weaver'), [...TRAINING_REASONS]);
-    for (const reason of TRAINING_REASONS) assert.ok(heroClassEarnsFrom('Weaver', reason), reason);
-    assert.equal(heroClassEarnsFrom('Weaver', 'creativity'), false);
+test('the Vanguard levels and earns from all four Training Grounds games', () => {
+    assert.equal(TRAINING_HERO, 'Vanguard');
+    assert.equal(getHeroReason('Vanguard'), TRAINING_PATH_KEY);
+    assert.deepEqual(getHeroReasons('Vanguard'), [...TRAINING_REASONS]);
+    for (const reason of TRAINING_REASONS) assert.ok(heroClassEarnsFrom('Vanguard', reason), reason);
+    assert.equal(heroClassEarnsFrom('Vanguard', 'creativity'), false);
     assert.equal(heroClassEarnsFrom('Sage', 'story_weaver'), false);
     assert.ok(heroClassEarnsFrom('Sage', 'creativity'));
     assert.deepEqual(getHeroReasons('Nobody'), []);
 
-    const bonus = calculateSkillBonus('Weaver', ['weaver_1a', 'weaver_3b'], 'torn_map', 0.5);
+    const bonus = calculateSkillBonus('Vanguard', ['weaver_1a', 'weaver_3b'], 'torn_map', 0.5);
     assert.equal(bonus.extraStars, 0.5);
     assert.ok(bonus.extraGold > 0);
-    assert.equal(calculateSkillBonus('Weaver', ['weaver_3b'], 'teamwork', 1).extraStars, 0);
+    assert.equal(calculateSkillBonus('Vanguard', ['weaver_3b'], 'teamwork', 1).extraStars, 0);
 
-    const outward = getOutwardEffects('Weaver', ['weaver_1b'], 'round_table', 0.5);
+    const outward = getOutwardEffects('Vanguard', ['weaver_1b'], 'round_table', 0.5);
     assert.ok(outward.some((e) => e.type === 'classmate_gold_on_reason'));
+});
+
+test('students still stored as Weaver keep working as Vanguards', () => {
+    assert.ok(isLegacyHeroClass('Weaver'));
+    assert.equal(normalizeHeroClass('Weaver'), 'Vanguard');
+    assert.equal(normalizeHeroClass('Sage'), 'Sage');
+    assert.equal(normalizeHeroClass(undefined), undefined);
+    assert.equal(HERO_CLASSES.Weaver, HERO_CLASSES.Vanguard);
+    assert.equal(HERO_SKILL_TREE.Weaver, HERO_SKILL_TREE.Vanguard);
+    assert.ok(!Object.keys(HERO_CLASSES).includes('Weaver'), 'the old name is never offered');
+    assert.ok(Object.keys(HERO_CLASSES).includes('Vanguard'));
+    assert.ok(heroClassEarnsFrom('Weaver', 'vanishing_hoard'));
+    assert.equal(calculateSkillBonus('Weaver', ['weaver_3b'], 'round_table', 0.5).extraStars, 0.5);
+    assert.equal(calculateHeroGold({ heroClass: 'Weaver' }, 'torn_map', 0.5).goldChange, 10.5);
 });

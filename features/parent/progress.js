@@ -1,4 +1,5 @@
 // features/parent/progress.js — how a child is growing: stars by month, results, attendance
+import { normalizeHeroClass } from '../heroClassNames.mjs';
 import * as state from '../../state.js';
 import { getGuildById } from '../guilds.js';
 import {
@@ -148,7 +149,7 @@ function renderHeroCard(snapshot, name) {
                 <div class="fp-hero__item">
                     <span class="fp-hero__badge" aria-hidden="true">${hero ? hero.icon : '🌱'}</span>
                     <span class="fp-hero__label">Hero class</span>
-                    <span class="fp-hero__value">${escapeHtml(snapshot.heroClass || 'Not chosen yet')}</span>
+                    <span class="fp-hero__value">${escapeHtml(normalizeHeroClass(snapshot.heroClass) || 'Not chosen yet')}</span>
                     ${hero ? `<span class="fp-hero__hint">${escapeHtml(hero.gift)}</span>` : ''}
                 </div>
                 <div class="fp-hero__item">

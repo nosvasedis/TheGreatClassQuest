@@ -9,6 +9,7 @@
 //   random_classmate_gold        — add `amount` gold to a randomly chosen classmate in the same class
 
 import { TRAINING_PATH_KEY, TRAINING_REASONS, TRAINING_REASON_LABELS } from './trainingGroundsCore.mjs';
+import { TRAINING_HERO, withLegacyHeroAliases } from './heroClassNames.mjs';
 
 export const HERO_SKILL_TREE = {
 
@@ -321,24 +322,25 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── WEAVER (Training Grounds) — The Weaver of the Four Arts ─────────────
+    // ─── VANGUARD (Training Grounds) — formerly the Weaver ───────────────────
     // Identity: levels on every Training Grounds game (Story Weavers, Vanishing Hoard,
     // Torn Map, Round Table). Those stars come to the whole class at once, half a star
     // at a time, so the path is short and the gifts spread to many allies.
-    Weaver: {
+    // Skill ids keep their weaver_ prefix so chosen skills survive the rename.
+    [TRAINING_HERO]: {
         reason: TRAINING_PATH_KEY,
         reasons: TRAINING_REASONS,
         auraColor: '#0d9488',
         auraGlow: '0 0 18px 6px #0d948888',
-        titles: ['Trainee', 'Spellweaver', 'Thread Warden', 'Loom Master', 'Grand Weaver'],
+        titles: ['Recruit', 'Scout', 'Ranger', 'Captain', 'High Vanguard'],
         levels: [
             {
                 threshold: 2,
                 branches: [
-                    { id: 'weaver_1a', name: 'Four Threads', icon: '🧵',
+                    { id: 'weaver_1a', name: 'Four Arts', icon: '🎯',
                       desc: '+6 Gold for every Training Grounds star you earn (+3 for each half-star moment).',
                       effect: { type: 'self_gold_on_reason', amount: 6 } },
-                    { id: 'weaver_1b', name: 'Shared Loom', icon: '🤝',
+                    { id: 'weaver_1b', name: 'Rally Call', icon: '📯',
                       desc: '+2 Gold to every classmate each time your class wins a Training Grounds star.',
                       effect: { type: 'classmate_gold_on_reason', amount: 2 } }
                 ]
@@ -346,10 +348,10 @@ export const HERO_SKILL_TREE = {
             {
                 threshold: 4,
                 branches: [
-                    { id: 'weaver_2a', name: 'Guild Tapestry', icon: '🌊',
+                    { id: 'weaver_2a', name: 'Guild Banner', icon: '🚩',
                       desc: '+2 Gold to every guildmate each time you earn a Training Grounds star.',
                       effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
-                    { id: 'weaver_2b', name: 'First Thread', icon: '📕',
+                    { id: 'weaver_2b', name: 'First Light', icon: '🌅',
                       desc: 'The first Training Grounds star you earn each month gives all your guildmates +5 Gold.',
                       effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
                 ]
@@ -357,10 +359,10 @@ export const HERO_SKILL_TREE = {
             {
                 threshold: 7,
                 branches: [
-                    { id: 'weaver_3a', name: 'Woven Together', icon: '🏛️',
+                    { id: 'weaver_3a', name: 'Lead the Way', icon: '🧭',
                       desc: '+8 Gold per Training Grounds star you earn AND +2 Gold to every classmate when the class wins one.',
                       effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'classmate_gold_on_reason', amount: 2 } },
-                    { id: 'weaver_3b', name: 'Chronicle', icon: '📰',
+                    { id: 'weaver_3b', name: 'Trailblazer', icon: '🔥',
                       desc: '+0.5 extra star added to your total whenever you earn a Training Grounds star.',
                       effect: { type: 'star_bonus_on_reason', amount: 0.5 } }
                 ]
@@ -368,10 +370,10 @@ export const HERO_SKILL_TREE = {
             {
                 threshold: 11,
                 branches: [
-                    { id: 'weaver_4a', name: 'Master of the Arts', icon: '🎭',
+                    { id: 'weaver_4a', name: "Scout's Gift", icon: '🔭',
                       desc: '+3 Gold to a random classmate every time you earn a Training Grounds star.',
                       effect: { type: 'random_classmate_gold', amount: 3 } },
-                    { id: 'weaver_4b', name: 'Saga Warden', icon: '🗝️',
+                    { id: 'weaver_4b', name: 'Shield Wall', icon: '🛡️',
                       desc: '+3 Gold to every guildmate each time you earn a Training Grounds star.',
                       effect: { type: 'guildmate_gold_on_reason', amount: 3 } }
                 ]
@@ -379,10 +381,10 @@ export const HERO_SKILL_TREE = {
             {
                 threshold: 16,
                 branches: [
-                    { id: 'weaver_5a', name: 'Grand Weaver\'s Mark', icon: '🌟',
+                    { id: 'weaver_5a', name: 'Standard Bearer', icon: '🌟',
                       desc: '+12 Gold per Training Grounds star you earn AND +3 Gold to all your guildmates.',
                       effect: { type: 'self_gold_on_reason', amount: 12 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 3 } },
-                    { id: 'weaver_5b', name: "Weaver's Web", icon: '👑',
+                    { id: 'weaver_5b', name: 'High Command', icon: '👑',
                       desc: '+1 bonus star added to your total whenever you earn a Training Grounds star.',
                       effect: { type: 'star_bonus_on_reason', amount: 1 } }
                 ]
@@ -482,6 +484,7 @@ export const HERO_SKILL_TREE = {
         ]
     }
 };
+withLegacyHeroAliases(HERO_SKILL_TREE);
 
 // ─── REASON DISPLAY NAMES ────────────────────────────────────────────────────
 
@@ -519,7 +522,7 @@ export function getHeroReason(heroClass) {
     return HERO_SKILL_TREE[heroClass]?.reason || null;
 }
 
-/** Every award reason a class levels on. Most classes have one; the Weaver has the four Training Grounds games. */
+/** Every award reason a class levels on. Most classes have one; the Vanguard has the four Training Grounds games. */
 export function getHeroReasons(heroClass) {
     const tree = HERO_SKILL_TREE[heroClass];
     if (!tree) return [];

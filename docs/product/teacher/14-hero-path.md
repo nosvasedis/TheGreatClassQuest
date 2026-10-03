@@ -6,7 +6,7 @@ Hero Path is how a student **chooses a vocation** and grows by practising one vi
 
 ## Purpose
 
-Children invest in **who they are becoming**. A Guardian is invited to practise Respect; a Weaver is invited to shine in every Training Grounds game; a Patron is invited to give Hero's Boon. Skill branches let them choose *self gold* or *gifts to others* — the same economy, two moral flavours.
+Children invest in **who they are becoming**. A Guardian is invited to practise Respect; a Vanguard is invited to shine in every Training Grounds game; a Patron is invited to give Hero's Boon. Skill branches let them choose *self gold* or *gifts to others* — the same economy, two moral flavours.
 
 Base perk for every class: **+10 Gold** when the award reason matches their vocation (on top of 1 Gold per star). A Patron's +10 Gold lands on the **giver** of a Hero's Boon (so a paid gift costs 5 Gold unless Compassion Token has made boons free).
 
@@ -21,7 +21,7 @@ Hero Path is **not** a tenth tab. You assign it on the roster, as a **ceremony**
 1. Open **Teacher Settings → My Classes → Manage Students** (or the roster shortcut).
 2. Each row groups its buttons as **Hero path** (Guild, Class, Skills), **Records** and **Manage**. If they have **no Hero Class** yet, tap the **Class** shield in the **Hero path** group (**Choose Hero Class**). Once they have one, that slot shows their class emblem instead. To choose or change it from the profile, tap **Edit** (the pencil in the **Manage** group) → the **Hero path** section → **Choose Hero Class** (or **Change Hero Class** if they already have one).
 3. The ceremony opens on the board. They tap a class to **preview** it (the hall morphs to that vocation’s colour). **Swear this Path** saves the class at once. **Not yet** / close does not save.
-4. A short result beat follows: **You are a Guardian!** (or Sage, Paladin, Artificer, Scholar, Weaver, Nomad, Patron). **Let's Go!** closes it.
+4. A short result beat follows: **You are a Guardian!** (or Sage, Paladin, Artificer, Scholar, Vanguard, Nomad, Patron). **Let's Go!** closes it.
 5. **No Class** is still a real choice: simply do **not** run the ceremony. A child may stay unassigned all year; the ceremony itself does not offer No Class.
 6. **Skills** (the sitemap button in the row's **Hero path** group, or **Skill tree** in the profile's Hero path section) opens their vocation tree. The roster button pulses when a new branch is waiting.
 
@@ -37,12 +37,12 @@ Help them pick how they **already shine**. Do not switch to chase Gold.
 | 🔮 **Sage** | Creativity | Apprentice → Scholar → Mystic → Archmage → Elder Sage | 20 / 45 / 70 / 95 / 120 |
 | ⚔️ **Paladin** | Teamwork | Squire → Knight → Crusader → Marshal → High Paladin | 20 / 45 / 70 / 95 / 120 |
 | ⚙️ **Artificer** | Focus | Tinkerer → Engineer → Inventor → Mastermind → Grand Artificer | 20 / 45 / 70 / 95 / 120 |
-| ✒️ **Weaver** | Training Grounds (all four games) | Trainee → Spellweaver → Thread Warden → Loom Master → Grand Weaver | **2 / 4 / 7 / 11 / 16** |
+| ⚜️ **Vanguard** | Training Grounds (all four games) | Recruit → Scout → Ranger → Captain → High Vanguard | **2 / 4 / 7 / 11 / 16** |
 | 📜 **Scholar** | Scholar’s Bonus | Scribe → Research Mentor → Grand Scholar | **10 / 20 / 30** (three tiers) |
 | 👟 **Nomad** | Welcome Back | Wanderer → Pathfinder → Legendary Nomad | **10 / 20 / 30** (three tiers) |
 | 💝 **Patron** | Hero's Boon (**giving**) | Giver → Benefactor → Grand Patron | **10 / 20 / 30** (three tiers; one path point per calendar week you give) |
 
-The Weaver's thresholds are small because Training Grounds stars come half a star at a time, to the whole class at once. Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift. Extra Hero's Boon gifts in the same week still help classmates; they do not buy another path point.
+The Vanguard's thresholds are small because Training Grounds stars come half a star at a time, to the whole class at once. Scholar, Nomad, and Patron are shorter because tests, returns, and peer gifts are **rarer** than daily virtue stars. Their capstones are stronger so the path still feels complete. Patron never adds rank stars to the giver — Overflowing Heart enlarges the **receiver's** gift. Extra Hero's Boon gifts in the same week still help classmates; they do not buy another path point.
 
 Thresholds assume a long September–June year, not a sprint.
 
@@ -52,7 +52,7 @@ Open it from **Manage Students** (the **Skills** sitemap button), from the enlar
 
 At each new level the Skill Tree button **pulses** on the roster until they pick **one of two** permanent branches (A or B). On the path, that seal glows with **Level up! Choose one** and both skills float and shimmer. Tapping one opens a short rite (**Awaken this skill** / **Reconsider**). When they awaken it, the skill bursts into light and stays lit. The other branch dims to **Path not taken**. If an earlier seal still needs a choice, later unlocked seals wait for it. Help them read both cards aloud: extra Gold for themselves, bonus stars (these *do* move ranks), Gold to classmates who earned the same reason today, Gold to guildmates, a gift to a random classmate, or a **first time this calendar month** gift to the whole guild.
 
-Effects only fire when the **matching reason** is awarded (Respect for a Guardian, a star from any Training Grounds game for a Weaver, Welcome Back for a Nomad, a Hero's Boon **gift** for a Patron, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
+Effects only fire when the **matching reason** is awarded (Respect for a Guardian, a star from any Training Grounds game for a Vanguard, Welcome Back for a Nomad, a Hero's Boon **gift** for a Patron, and so on). Unused branches stay dark. From **level 3** a coloured **aura ring** appears on leaderboards.
 
 ### Kinds of gift
 
@@ -113,17 +113,17 @@ Highest **self Gold** path.
 | 4 (95) | **Clockwork Aura** — +3 Gold to a random classmate | **Mana Battery** — +3 Gold to guildmates earning Focus today |
 | 5 (120) | **Grand Contraption** — +10 Gold to you and +2 to guildmates | **Perpetual Engine** — +2 bonus stars on Focus |
 
-## ✒️ Weaver (Training Grounds) — the weaver of the four arts
+## ⚜️ Vanguard (Training Grounds) — first onto every field
 
-Levels from **every Training Grounds game**: Story Weavers, The Vanishing Hoard, The Torn Map and The Round Table. Those stars come as class bonuses, never from Award Stars buttons, and every one of them pays the Weaver's +10 Gold.
+Levels from **every Training Grounds game**: Story Weavers, The Vanishing Hoard, The Torn Map and The Round Table. Those stars come as class bonuses, never from Award Stars buttons, and every one of them pays the Vanguard's +10 Gold. Children who chose the class when it was called the **Weaver** keep their level, skills and Gold; their class simply reads Vanguard now.
 
 | Level | Branch A | Branch B |
 |-------|----------|----------|
-| 1 (2) | **Four Threads** — +6 Gold per Training Grounds star | **Shared Loom** — +2 Gold to every classmate when the class wins one |
-| 2 (4) | **Guild Tapestry** — +2 Gold to guildmates | **First Thread** — first this month: guildmates +5 Gold |
-| 3 (7) | **Woven Together** — +8 Gold to you and +2 to every classmate | **Chronicle** — +0.5 bonus star |
-| 4 (11) | **Master of the Arts** — +3 Gold to a random classmate | **Saga Warden** — +3 Gold to guildmates |
-| 5 (16) | **Grand Weaver's Mark** — +12 Gold to you and +3 to guildmates | **Weaver's Web** — +1 bonus star |
+| 1 (2) | **Four Arts** — +6 Gold per Training Grounds star | **Rally Call** — +2 Gold to every classmate when the class wins one |
+| 2 (4) | **Guild Banner** — +2 Gold to guildmates | **First Light** — first this month: guildmates +5 Gold |
+| 3 (7) | **Lead the Way** — +8 Gold to you and +2 to every classmate | **Trailblazer** — +0.5 bonus star |
+| 4 (11) | **Scout's Gift** — +3 Gold to a random classmate | **Shield Wall** — +3 Gold to guildmates |
+| 5 (16) | **Standard Bearer** — +12 Gold to you and +3 to guildmates | **High Command** — +1 bonus star |
 
 ## 📜 Scholar (Scholar’s Bonus) — the academic
 

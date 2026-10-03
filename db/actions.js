@@ -45,7 +45,7 @@ export function awardStoryWeaverBonusStarToClass(classId) {
 /**
  * Gives every student in the class the Training Grounds bonus for one game: +0.5 stars
  * (+1 for Story Weavers with an Archivist's Quill), logged under the game's own reason so it
- * never touches the daily skill award. Weavers also get their Gold, skills and Hero Path.
+ * never touches the daily skill award. Vanguards also get their Gold, skills and Hero Path.
  */
 export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
     const game = TRAINING_GAMES[gameKey];
@@ -111,17 +111,17 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
         });
         showToast(`${game.skillLabel} bonus stars awarded!`, "success");
 
-        // Weavers spread their gifts one at a time, so two Weavers never race on a classmate's Gold.
+        // Vanguards spread their gifts one at a time, so two never race on a classmate's Gold.
         (async () => {
             for (const { student, starAmount } of awards) {
                 if (!heroClassEarnsFrom(student.heroClass, game.reason)) continue;
                 await applyAwardOutwardSkillEffects(student.id, classId, game.reason, starAmount, { wholeClass: true })
-                    .catch((e) => console.warn('Weaver skill effect failed:', e));
+                    .catch((e) => console.warn('Vanguard skill effect failed:', e));
             }
         })();
         const levelUps = awards.map((a) => a.levelUpInfo).filter(Boolean);
         if (levelUps.length) showHeroLevelUpCelebration(levelUps[0]);
-        if (levelUps.length > 1) showToast(`${levelUps.length - 1} more Weaver${levelUps.length > 2 ? 's' : ''} levelled up too!`, 'success');
+        if (levelUps.length > 1) showToast(`${levelUps.length - 1} more Vanguard${levelUps.length > 2 ? 's' : ''} levelled up too!`, 'success');
 
         const praise = TRAINING_PRAISE[gameKey] || TRAINING_PRAISE.story;
         if (canUseFeature('eliteAI')) {

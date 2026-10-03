@@ -51,7 +51,7 @@ export const TRAINING_GAME_KEYS = Object.freeze(['story', 'hoard', 'map', 'counc
 export const ROUND_GAME_KEYS = Object.freeze(['hoard', 'map', 'council']);
 /** Award reasons paid by the Training Grounds. They are bonus rows, never a daily skill award. */
 export const TRAINING_REASONS = Object.freeze(TRAINING_GAME_KEYS.map((key) => TRAINING_GAMES[key].reason));
-/** Hero Path key the Weaver levels on: the sum of all four Training Grounds reasons. */
+/** Hero Path key the Vanguard levels on: the sum of all four Training Grounds reasons. */
 export const TRAINING_PATH_KEY = 'training_grounds';
 
 export const TRAINING_REASON_LABELS = Object.freeze({

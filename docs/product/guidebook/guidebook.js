@@ -285,7 +285,7 @@
         <article class="hero-class-chip" style="--hc:#9333ea"><span>🔮</span><strong>Sage</strong></article>
         <article class="hero-class-chip" style="--hc:#2563eb"><span>⚔️</span><strong>Paladin</strong></article>
         <article class="hero-class-chip" style="--hc:#d97706"><span>⚙️</span><strong>Artificer</strong></article>
-        <article class="hero-class-chip" style="--hc:#0d9488"><span>✒️</span><strong>Weaver</strong></article>
+        <article class="hero-class-chip" style="--hc:#0d9488"><span>⚜️</span><strong>Vanguard</strong></article>
         <article class="hero-class-chip" style="--hc:#0891b2"><span>📜</span><strong>Scholar</strong></article>
         <article class="hero-class-chip" style="--hc:#7c3aed"><span>👟</span><strong>Nomad</strong></article>
         <article class="hero-class-chip" style="--hc:#e11d48"><span>💝</span><strong>Patron</strong></article>

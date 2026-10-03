@@ -3,6 +3,7 @@
 import * as state from '../../state.js';
 import { HERO_CLASSES, heroClassChangesRemaining, heroClassLockApplies } from '../../features/heroClasses.js';
 import { getReasonDisplayName, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
+import { TRAINING_HERO } from '../../features/heroClassNames.mjs';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
@@ -40,7 +41,7 @@ const CLASS_MOTTOS = {
     Paladin: 'Leads the guild, shoulder to shoulder.',
     Artificer: 'Builds greatness one careful step at a time.',
     Scholar: 'Turns every trial into treasure.',
-    Weaver: 'Masters every game in the Training Grounds.',
+    [TRAINING_HERO]: 'First onto every field in the Training Grounds.',
     Nomad: 'Always finds the way back to the quest.',
     Patron: 'Grows stronger by giving to others.'
 };

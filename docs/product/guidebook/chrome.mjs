@@ -33,7 +33,7 @@ export const HERO_CLASSES = [
   { name: 'Sage', icon: '🔮', virtue: 'Creativity', color: '#9333ea' },
   { name: 'Paladin', icon: '⚔️', virtue: 'Teamwork', color: '#2563eb' },
   { name: 'Artificer', icon: '⚙️', virtue: 'Focus', color: '#d97706' },
-  { name: 'Weaver', icon: '✒️', virtue: 'Training Grounds', color: '#0d9488' },
+  { name: 'Vanguard', icon: '⚜️', virtue: 'Training Grounds', color: '#0d9488' },
   { name: 'Scholar', icon: '📜', virtue: "Scholar's Bonus", color: '#0891b2' },
   { name: 'Nomad', icon: '👟', virtue: 'Welcome Back', color: '#7c3aed' },
   { name: 'Patron', icon: '💝', virtue: "Hero's Boon", color: '#e11d48' }

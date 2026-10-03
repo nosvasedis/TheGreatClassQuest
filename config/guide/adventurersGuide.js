@@ -177,7 +177,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'hero-classes', icon: 'fa-shield', name: 'Hero Classes', tier: 'pro',
                     where: 'The Class shield on the roster', go: 'options:classes',
-                    text: `Eight vocations, each tied to one way of earning stars: Guardian (Respect), Sage (Creativity), Paladin (Teamwork), Artificer (Focus), Weaver (every Training Grounds game), Scholar (Starfall), Nomad (Welcome Back) and Patron (giving a Hero's Boon). A matching star pays +10 Gold. The class can change twice a school year, and No Class is a fine choice too.`,
+                    text: `Eight vocations, each tied to one way of earning stars: Guardian (Respect), Sage (Creativity), Paladin (Teamwork), Artificer (Focus), Vanguard (every Training Grounds game), Scholar (Starfall), Nomad (Welcome Back) and Patron (giving a Hero's Boon). A matching star pays +10 Gold. The class can change twice a school year, and No Class is a fine choice too.`,
                     why: 'Help each child choose how they already shine, not the path with the most Gold.',
                     keys: 'hero path vocation guardian sage paladin artificer weaver scholar nomad patron'
                 },
@@ -500,7 +500,7 @@ export const GUIDE_CHAPTERS = {
             entries: [
                 {
                     id: 'hero-class', icon: 'fa-shield', name: 'Your Hero Class', tier: 'pro',
-                    text: `Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad or Patron. Each class grows from one kind of star, and every matching star gives you 10 extra Gold. The Weaver grows from all four Training Grounds games.`,
+                    text: `Guardian, Sage, Paladin, Artificer, Vanguard, Scholar, Nomad or Patron. Each class grows from one kind of star, and every matching star gives you 10 extra Gold. The Vanguard grows from all four Training Grounds games.`,
                     keys: 'hero class vocation'
                 },
                 {

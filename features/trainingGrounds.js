@@ -21,7 +21,7 @@ import {
 } from './trainingGroundsCore.mjs';
 import {
     knotsHtml, milestoneHtml, noClassHtml, hoardStageHtml, mapStageHtml, councilStageHtml,
-    controlsHtml, guideHtml, shelfHtml, printableScrapsHtml
+    controlsHtml, guideHtml, shelfHtml, printableScrapsHtml, howToHtml
 } from './trainingGroundsView.mjs';
 
 const TAB_KEY = 'tg-active-game';
@@ -212,6 +212,56 @@ function settingsLine(gameKey) {
     }
     const cs = councilSettings(band);
     return `${cs.speakers} speakers, about ${cs.seconds} seconds each with the stone. Change the number of speakers before you begin.`;
+}
+
+// ─── How to play ─────────────────────────────────────────────────────────────
+
+let howTo = null;
+
+function openHowTo(gameKey, opener) {
+    closeHowTo(false);
+    const cls = tg.classId ? classData() : null;
+    const forClass = cls && gameKey !== 'story'
+        ? `For ${cls.questLevel ? `this ${cls.questLevel} class` : 'this class'}: ${settingsLine(gameKey)}`
+        : '';
+    // Full screen shows only the stage, so the card has to live inside it.
+    const host = document.fullscreenElement || document.body;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = howToHtml(gameKey, { forClass });
+    const el = wrap.firstElementChild;
+    if (!el) return;
+    if (LITE) el.classList.add('is-lite');
+    host.appendChild(el);
+    const onKey = (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); closeHowTo(); return; }
+        if (event.key !== 'Tab') return;
+        const focusable = [...el.querySelectorAll('button')];
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    el.addEventListener('click', (event) => {
+        if (event.target.closest('[data-tg-howto-close]')) closeHowTo();
+    });
+    document.addEventListener('keydown', onKey, true);
+    howTo = { el, onKey, opener };
+    playSound('click');
+    requestAnimationFrame(() => {
+        el.classList.add('is-open');
+        el.querySelector('.tg-howto__foot .tg-cta')?.focus({ preventScroll: true });
+    });
+}
+
+function closeHowTo(restoreFocus = true) {
+    if (!howTo) return;
+    const { el, onKey, opener } = howTo;
+    howTo = null;
+    document.removeEventListener('keydown', onKey, true);
+    el.classList.remove('is-open');
+    el.classList.add('is-closing');
+    setTimeout(() => el.remove(), LITE ? 0 : 220);
+    if (restoreFocus) opener?.focus?.({ preventScroll: true });
 }
 
 // ─── Saving a round ──────────────────────────────────────────────────────────
@@ -541,6 +591,11 @@ function bindOnce(root) {
     if (tg.bound) return;
     tg.bound = true;
     root.addEventListener('click', (event) => {
+        const help = event.target.closest('[data-tg-help]');
+        if (help && root.contains(help)) {
+            openHowTo(help.dataset.tgHelp, help);
+            return;
+        }
         const tab = event.target.closest('#tg-tabs [data-tg-game]');
         if (tab) {
             selectGame(tab.dataset.tgGame);

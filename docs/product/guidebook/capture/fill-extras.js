@@ -424,7 +424,7 @@ export function showHallOfHeroes() {
     row('Maria', 'Guardian', 5, 27),
     row('Alex', 'Sage', 3, 21),
     row('Nikos', 'Artificer', 2, 17),
-    row('Eleni', 'Weaver', 1, 12),
+    row('Eleni', 'Vanguard', 1, 12),
     row('Sofia', 'Nomad', 1, 6),
     row('Yannis', null, 0),
     row('Sam', null, 0)

@@ -19,6 +19,9 @@ const TG_GAME_PANELS = [
     { key: 'council', heading: 'The Round Table', sub: 'The kingdom’s council meets. Hold the Speaking Stone, echo, listen, and honour every voice.', icon: 'fa-shield-heart', guide: 'How the council works' }
 ];
 
+/** The small ? beside each game's title; it opens How to play (features/trainingGrounds.js). */
+const helpButton = (key, name) => `<button type="button" class="tg-help" data-tg-help="${key}" aria-label="How to play ${name}" title="How to play"><i class="fas fa-question" aria-hidden="true"></i></button>`;
+
 const TG_PANELS = TG_GAME_PANELS.map((g) => `
                     <section id="tg-panel-${g.key}" class="tg-panel hidden" data-tg-panel="${g.key}" role="tabpanel" aria-labelledby="tg-tab-${g.key}">
                         <div class="sw-layout tg-layout tg-layout--${g.key}">
@@ -29,7 +32,10 @@ const TG_PANELS = TG_GAME_PANELS.map((g) => `
                                 <div class="sw-stage__bar">
                                     <div class="sw-stage__title">
                                         <span class="sw-class-chip hidden" data-tg-class-chip></span>
-                                        <h3 id="tg-${g.key}-heading" class="sw-stage__heading">${g.heading}</h3>
+                                        <div class="tg-heading-row">
+                                            <h3 id="tg-${g.key}-heading" class="sw-stage__heading">${g.heading}</h3>
+                                            ${helpButton(g.key, g.heading)}
+                                        </div>
                                         <p class="sw-stage__sub">${g.sub}</p>
                                     </div>
                                     <div class="sw-stage__tools">
@@ -111,7 +117,10 @@ ${TG_TABS}
                             <div class="sw-stage__bar">
                                 <div class="sw-stage__title">
                                     <span id="sw-class-chip" class="sw-class-chip hidden"></span>
-                                    <h3 id="sw-book-heading" class="sw-stage__heading">Current Chronicle</h3>
+                                    <div class="tg-heading-row">
+                                        <h3 id="sw-book-heading" class="sw-stage__heading">Current Chronicle</h3>
+                                        ${helpButton('story', 'Story Weavers')}
+                                    </div>
                                     <p id="sw-stage-sub" class="sw-stage__sub">The open book shows the latest page of your class story.</p>
                                 </div>
                                 <div class="sw-stage__tools">

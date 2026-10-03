@@ -42,7 +42,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Fortune Ledger** | This school year’s Fortune’s Wheel outcomes on Guild Hall. Last year’s spins stay in last year. | Adventure Log |
 | **Grand Guild Ceremony** | End-of-year house crowning | Ceremony of the Month |
 | **Guild Champion** | Top earner **inside one guild** this month | Prodigy of the Month |
-| **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron | Quest League (Junior B, etc.) |
+| **Hero Path / Hero Class** | Guardian, Sage, Paladin, Artificer, Vanguard, Scholar, Nomad, Patron | Quest League (Junior B, etc.) |
 | **Quest League** | Age/difficulty band that races together on Team Quest | Guild |
 | **Projector Mode** | Classroom wallpaper you can open any time in the lesson: sky, clocks, lesson ring, remaining times, rotating Sky Cards, a remote to pin or skip cards | Sky Theater (header emoji acts) |
 | **The Director** | The part of Projector Mode that chooses which Sky Cards appear (about 160 kinds, in nine families) | The teacher |

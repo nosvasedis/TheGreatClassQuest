@@ -1,5 +1,6 @@
 // /ui/tabs/classes.js
 import * as state from '../../state.js';
+import { TRAINING_HERO, withLegacyHeroAliases } from '../../features/heroClassNames.mjs';
 import * as modals from '../modals.js';
 import { deleteClass, deleteStudent } from '../../db/actions.js';
 import { showTab } from './navigation.js';
@@ -408,16 +409,16 @@ export function renderManageStudentsTab() {
         return;
     }
 
-    const heroClassConfig = {
+    const heroClassConfig = withLegacyHeroAliases({
         'Guardian':  { icon: '🛡️', bg: '#f3e8ff', text: '#7e22ce', ring: '#a855f7' },
         'Sage':      { icon: '🔮', bg: '#ede9fe', text: '#6d28d9', ring: '#8b5cf6' },
         'Paladin':   { icon: '⚔️', bg: '#fee2e2', text: '#991b1b', ring: '#ef4444' },
         'Artificer': { icon: '⚙️', bg: '#ffedd5', text: '#9a3412', ring: '#f97316' },
         'Scholar':   { icon: '📜', bg: '#fef3c7', text: '#92400e', ring: '#f59e0b' },
-        'Weaver':    { icon: '✒️', bg: '#d1fae5', text: '#065f46', ring: '#10b981' },
+        [TRAINING_HERO]: { icon: '⚜️', bg: '#d1fae5', text: '#065f46', ring: '#10b981' },
         'Nomad':     { icon: '👟', bg: '#e0f2fe', text: '#075985', ring: '#0ea5e9' },
         'Patron':    { icon: '💝', bg: '#ffe4e6', text: '#9f1239', ring: '#e11d48' },
-    };
+    });
 
     list.innerHTML = studentsInClass.map(s => {
         const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);

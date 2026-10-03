@@ -15,7 +15,7 @@ Content follows the class's **Quest League**: Pre-Junior gets pictures and the s
 
 ## Purpose
 
-Give each skill a game the class can practise across lessons, not only a button the teacher presses. Shy children still belong: the story needs every sentence, the map needs every group, the council needs every voice. Every game levels the **Weaver** Hero Path.
+Give each skill a game the class can practise across lessons, not only a button the teacher presses. Shy children still belong: the story needs every sentence, the map needs every group, the council needs every voice. Every game levels the **Vanguard** Hero Path.
 
 ## Story Weavers (Creativity)
 
@@ -87,13 +87,14 @@ Each honoured council lights a candle; six candles finish a banner for the **Hal
 
 ## In class
 
+- The small **?** beside each game's title opens **How to play**: four picture steps, how to win, and a tip for you. It works in full screen too, so you can show it to the class.
 - Every game has **Full screen** for the projector, and **Stop this round** if the bell rings.
 - The **guide** card next to each game shows how it works for this class's league and the last few rounds.
 - Rounds are saved on the class, so any device shows the same knots and keepsakes.
 
 ## How this feeds the rest of the Quest
 
-Training Grounds stars are real stars: map, ranks, Glory, Gold. Every one of them levels the **Weaver** Hero Path and pays the Weaver's Gold. Home's Chronicle can show the latest story line. Projector can show the sentence (Elite).
+Training Grounds stars are real stars: map, ranks, Glory, Gold. Every one of them levels the **Vanguard** Hero Path and pays the Vanguard's Gold. Home's Chronicle can show the latest story line. Projector can show the sentence (Elite).
 
 ## Plan notes
 

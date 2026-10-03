@@ -11,7 +11,9 @@ import {
     getDoc,
     collectionGroup,
     limit,
+    updateDoc,
 } from "../firebase.js";
+import { isLegacyHeroClass, normalizeHeroClass } from "../features/heroClassNames.mjs";
 import * as state from "../state.js";
 import { getStartOfMonthString, getTodayDateString } from "../utils.js";
 import {
@@ -214,6 +216,20 @@ function buildCompletedStoriesQuery(yearContext) {
         orderBy("completedAt", "desc"),
         limit(100),
     );
+}
+
+const heroClassMigrated = new Set();
+
+/** Renamed hero classes (the Weaver is now the Vanguard): rewrite this teacher's students once. */
+function migrateLegacyHeroClasses(docs, userId) {
+    for (const snap of docs) {
+        const data = snap.data();
+        if (!isLegacyHeroClass(data.heroClass) || heroClassMigrated.has(snap.id)) continue;
+        if (!userId || data.createdBy?.uid !== userId) continue;
+        heroClassMigrated.add(snap.id);
+        updateDoc(snap.ref, { heroClass: normalizeHeroClass(data.heroClass) })
+            .catch((error) => console.warn("Hero class rename failed:", error));
+    }
 }
 
 function buildHeroChronicleNotesQuery(userId, isSecretary, yearContext) {
@@ -1059,11 +1075,16 @@ export async function setupDataListeners(
         onSnapshot(
             studentsQuery,
             (snapshot) => {
+                migrateLegacyHeroClasses(snapshot.docs, userId);
                 const allStudents = snapshot.docs
-                    .map((doc) => ({
-                        id: doc.id,
-                        ...doc.data(),
-                    }))
+                    .map((doc) => {
+                        const data = doc.data();
+                        return {
+                            id: doc.id,
+                            ...data,
+                            ...(isLegacyHeroClass(data.heroClass) ? { heroClass: normalizeHeroClass(data.heroClass) } : {}),
+                        };
+                    })
                     .filter((item) =>
                         isActiveStudent(item, activeYearKey, {
                             includeUntagged,

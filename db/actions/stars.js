@@ -61,6 +61,7 @@ import { canUseFeature } from "../../utils/subscription.js";
 import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.js";
 import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
+import { TRAINING_HERO, normalizeHeroClass } from "../../features/heroClassNames.mjs";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -651,7 +652,7 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
 
     const targetStudents = state
         .get("allStudents")
-        .filter((student) => ["Scholar", "Nomad", "Patron", "Weaver"].includes(student.heroClass));
+        .filter((student) => ["Scholar", "Nomad", "Patron", TRAINING_HERO].includes(normalizeHeroClass(student.heroClass)));
     if (targetStudents.length === 0) return;
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
@@ -677,8 +678,8 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
             query(
                 collection(db, `${publicDataPath}/award_log`),
                 where(isPatronGiverPath ? "giverId" : "studentId", "==", student.id),
-                // The Weaver's path sums every Training Grounds reason.
-                student.heroClass === "Weaver"
+                // The Vanguard's path sums every Training Grounds reason.
+                normalizeHeroClass(student.heroClass) === TRAINING_HERO
                     ? where("reason", "in", getHeroReasons(student.heroClass))
                     : where("reason", "==", reason),
                 ...yearScopeClauses(

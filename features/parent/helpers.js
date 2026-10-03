@@ -1,5 +1,6 @@
 // features/parent/helpers.js — shared data helpers for the Family Portal
 import * as state from '../../state.js';
+import { TRAINING_HERO, normalizeHeroClass } from '../heroClassNames.mjs';
 
 export { escapeHtml } from '../roles/shared.js';
 
@@ -170,13 +171,13 @@ const HERO_CLASSES = {
     Paladin: { icon: '⚔️', gift: 'shines at teamwork' },
     Artificer: { icon: '⚙️', gift: 'shines at focus' },
     Scholar: { icon: '📜', gift: 'shines in tests' },
-    Weaver: { icon: '✒️', gift: 'shines in the class training games' },
+    [TRAINING_HERO]: { icon: '⚜️', gift: 'shines in the class training games' },
     Nomad: { icon: '👟', gift: 'always comes back stronger' },
     Patron: { icon: '💝', gift: 'shines at kindness to classmates' }
 };
 
 export function heroClassMeta(heroClass) {
-    return HERO_CLASSES[heroClass] || null;
+    return HERO_CLASSES[normalizeHeroClass(heroClass)] || null;
 }
 
 /** Topics a family can write about. Keys match the server's sendFamilyMessage topics. */

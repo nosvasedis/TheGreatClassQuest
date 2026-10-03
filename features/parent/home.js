@@ -1,4 +1,5 @@
 // features/parent/home.js — the Family Portal's Home: this week at a glance
+import { normalizeHeroClass } from '../heroClassNames.mjs';
 import * as state from '../../state.js';
 import { getGuildById } from '../guilds.js';
 import {
@@ -319,7 +320,7 @@ export function updateParentHeader(snapshot = getSnapshot()) {
         const bits = [
             snapshot.className ? escapeHtml(snapshot.className) : '',
             guild ? `${escapeHtml(guild.emoji)} ${escapeHtml(guild.name)}` : '',
-            hero ? `<span class="fp-sub-hero">${escapeHtml(hero.icon)} ${escapeHtml(snapshot.heroClass)}</span>` : ''
+            hero ? `<span class="fp-sub-hero">${escapeHtml(hero.icon)} ${escapeHtml(normalizeHeroClass(snapshot.heroClass))}</span>` : ''
         ].filter(Boolean);
         subtitleEl.innerHTML = name
             ? bits.map((bit, i) => (i && bit.startsWith('<span') ? `<span class="fp-sub-hero"> · </span>${bit}` : `${i ? ' · ' : ''}${bit}`)).join('')

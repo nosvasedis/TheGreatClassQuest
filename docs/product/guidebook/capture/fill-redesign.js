@@ -45,7 +45,7 @@ const STUDENTS = [
   { id: 'guide-alex', name: 'Alex', classId: CLASS_ID, guildId: 'dragon_flame', heroClass: 'Guardian', avatar: face('🦊', '#fde68a'), birthday: '2017-03-14', nameday: '2017-08-30' },
   { id: 'guide-maria', name: 'Maria', classId: CLASS_ID, guildId: 'owl_wisdom', heroClass: 'Sage', avatar: face('🐼', '#bfdbfe') },
   { id: 'guide-nikos', name: 'Nikos', classId: CLASS_ID, guildId: 'grizzly_might', heroClass: 'Artificer' },
-  { id: 'guide-eleni', name: 'Eleni', classId: CLASS_ID, guildId: 'phoenix_rising', heroClass: 'Weaver', avatar: face('🐯', '#fed7aa') },
+  { id: 'guide-eleni', name: 'Eleni', classId: CLASS_ID, guildId: 'phoenix_rising', heroClass: 'Vanguard', avatar: face('🐯', '#fed7aa') },
   { id: 'guide-sofia', name: 'Sofia', classId: CLASS_ID, guildId: 'owl_wisdom' },
   { id: 'guide-yannis', name: 'Yannis', classId: CLASS_ID, guildId: 'dragon_flame', avatar: face('🐸', '#bbf7d0') },
   { id: 'guide-sam', name: 'Sam', classId: 'guide-ja', heroClass: 'Paladin' },

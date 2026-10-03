@@ -429,7 +429,7 @@ export const TERMS = [
     names: { en: 'Hero Path', el: 'Hero Path' },
     aliases: ['hero path', 'hero class', 'guardian sage paladin'],
     def: {
-      en: 'Pro. Eight classroom identities (Guardian, Sage, Paladin, Artificer, Weaver, Scholar, Nomad, Patron) and a Skill Tree. Not a Quest League and not a guild.',
+      en: 'Pro. Eight classroom identities (Guardian, Sage, Paladin, Artificer, Vanguard, Scholar, Nomad, Patron) and a Skill Tree. Not a Quest League and not a guild.',
       el: 'Pro. Οκτώ ταυτότητες τάξης και Skill Tree. Δεν είναι Quest League ούτε guild.'
     },
     confuse: { en: 'Quest League (Junior B, Class C…)', el: 'Quest League (Junior B, C…)' }

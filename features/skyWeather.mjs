@@ -1,7 +1,7 @@
 /**
  * Sky weather: pure maths that turns a live weather reading and the time of day
  * into one "scene" every sky surface paints from (header band, Award sky, Home
- * weather card, mobile header, Projector Sky Window).
+ * weather and greeting cards, mobile header, Projector Sky Window).
  *
  * No DOM here, so it is unit tested (tests/sky-weather.test.js). The art lives in
  * features/skyWeatherArt.js and the DOM wiring in features/skyWeatherStage.js.
@@ -94,6 +94,7 @@ export function cloudCountFor(surface, cover, { lite = false } = {}) {
         header: [2, 8],
         sky: [2, 9],
         card: [1, 4],
+        greeting: [1, 6],
         wall: [3, 12],
         mobile: [1, 4]
     };
@@ -159,7 +160,7 @@ export function resolveSkyScene(weather = {}, sun = {}, { lite = false } = {}) {
         now,
         counts: {}
     };
-    for (const surface of ['header', 'sky', 'card', 'wall', 'mobile']) {
+    for (const surface of ['header', 'sky', 'card', 'greeting', 'wall', 'mobile']) {
         scene.counts[surface] = cloudCountFor(surface, cover, { lite });
     }
     return scene;
@@ -196,12 +197,13 @@ const BANDS = {
     header: [-0.25, 0.55],
     sky: [0.02, 0.8],
     card: [-0.12, 0.2],
+    greeting: [-0.1, 0.3],
     wall: [0.02, 0.62],
     mobile: [-0.25, 0.5]
 };
 
 /** Base crossing time (seconds) for the nearest cloud on each surface, before wind. */
-const BASE_SECONDS = { header: 70, sky: 150, card: 34, wall: 150, mobile: 60 };
+const BASE_SECONDS = { header: 70, sky: 150, card: 34, greeting: 70, wall: 150, mobile: 60 };
 
 /**
  * Where each cloud sits and how it drifts. Deterministic for (surface, count, tone, seed).
@@ -214,7 +216,7 @@ export function cloudLayout(surface, count, tone = 'fair', seed = 7, wind = { fa
     const base = BASE_SECONDS[surface] || 90;
     const factor = Math.max(0.4, Number(wind?.factor) || 1);
     const sizeRange = {
-        header: [7, 15], sky: [9, 22], card: [3.4, 6], wall: [14, 30], mobile: [4.5, 8]
+        header: [7, 15], sky: [9, 22], card: [3.4, 6], greeting: [5, 10], wall: [14, 30], mobile: [4.5, 8]
     }[surface] || [8, 16];
     // A separate stream picks each cloud's variant, so the layout itself stays as it was.
     const vrand = seededRandom(seed * 7919 + count);

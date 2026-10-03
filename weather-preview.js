@@ -9,6 +9,8 @@ import { syncAwardSkyWeather } from './utils.js';
 import { applySkyReading, paintSkySurface } from './features/skyWeatherStage.js';
 import { getWeatherCardHtml } from './features/weatherCard.js';
 import { wallpaperHTML } from './templates/app/screens/wallpaper.js';
+import { getGreetingSkyHtml, getDayRingEmblemHtml } from './features/homeGreetingScene.js';
+import { resolveDayPart, greetingForDayPart, gradientForDayPart } from './utils/dayPart.mjs';
 
 const params = new URLSearchParams(location.search);
 const state = {
@@ -40,10 +42,7 @@ document.getElementById('app-root').innerHTML = `
         </div>
         ${awardImmersiveSkyHTML}
         <main id="preview-main">
-            <div id="pv-home" class="pv-row">
-                <div class="vibrant-card greeting-panel" style="min-height: 16rem"></div>
-                <div id="pv-weather-slot"></div>
-            </div>
+            <div id="pv-home" class="w-full max-w-7xl mx-auto p-4"><div id="pv-home-grid" class="horizons-grid"></div></div>
             <div id="pv-award" class="hidden">${awardTabHTML}</div>
         </main>
     </div>
@@ -88,7 +87,42 @@ function render() {
     header.classList.add(...headerClassesForTheme(theme, isNight));
     syncAwardSkyWeather(header);
 
-    document.getElementById('pv-weather-slot').innerHTML = getWeatherCardHtml(theme, scene, { reading, sun, now });
+    // Same markup as features/home.js#getLayout.
+    const part = resolveDayPart(sun.now, sun.sunrise, sun.sunset);
+    const greetingHtml = `
+        <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${part}" >
+            <div class="greeting-bg-mesh"></div>
+            ${getGreetingSkyHtml()}
+            ${getDayRingEmblemHtml('🦉', { now: sun.now, sunrise: sun.sunrise, sunset: sun.sunset, intro: false })}
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <div class="greeting-top-row">
+                    <div class="greeting-top-row__reminders flex flex-wrap items-center gap-3 py-1">
+                        <span class="date-pill home-pill"><span class="home-pill__icon"><i class="fas fa-star"></i></span>Star Day</span>
+                    </div>
+                </div>
+                <div class="greeting-main">
+                    <h1 class="greeting-title font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-2">
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r ${gradientForDayPart(part)}">${greetingForDayPart(part)}</span>,
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500 whitespace-nowrap">Nasos</span>!
+                    </h1>
+                    <div class="greeting-chips"><span class="greeting-chip greeting-chip--school"><i class="fas fa-landmark"></i><span data-school-name>Rentis English School</span></span><span class="greeting-chip greeting-chip--today"><i class="fas fa-school"></i>4 classes today<small>2 yours</small></span></div>
+                </div>
+            </div>
+        </div>`;
+
+    // Phone: same markup as mobile/home.js#renderClassView's hero.
+    const phoneHero = `
+        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${part}" style="grid-column: 1 / -1">
+            ${getGreetingSkyHtml()}
+            ${getDayRingEmblemHtml('🦉', { now: sun.now, sunrise: sun.sunrise, sunset: sun.sunset, intro: false })}
+            <p class="m-home-hero__greeting">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r ${gradientForDayPart(part)}">${greetingForDayPart(part)}</span>, Nasos!
+            </p>
+            <p class="m-home-hero__school"><i class="fas fa-university" aria-hidden="true"></i> Rentis English School</p>
+        </section>`;
+    const phone = params.get('mobile') === '1';
+    document.getElementById('pv-home-grid').innerHTML = (phone ? phoneHero : greetingHtml) + getWeatherCardHtml(theme, scene, { reading, sun, now });
+    paintSkySurface('card');
 
     const app = document.getElementById('app-screen');
     app.classList.toggle('award-sky-active', state.sky);

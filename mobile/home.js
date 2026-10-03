@@ -14,7 +14,7 @@ import {
 import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
-import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from '../features/homeGreetingScene.js';
+import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock } from '../features/homeGreetingScene.js';
 import { getCuratedDailyQuote, isCuratedDailyQuote } from '../utils/dailyQuote.mjs';
 
 const SCHEDULE_GRADIENTS = [
@@ -92,11 +92,7 @@ function getGreeting() {
 /** The desktop greeting's painted hills and live day ring, sized for the phone hero card. */
 function heroSceneHtml(greeting, logo) {
     return `
-            <div class="greeting-sky" aria-hidden="true">
-                <span class="greeting-sky__glow"></span>
-                <span class="greeting-sky__stars"></span>
-                ${getGreetingHillsHtml()}
-            </div>
+            ${getGreetingSkyHtml()}
             ${getDayRingEmblemHtml(escapeHtml(logo), { intro: false })}`;
 }
 

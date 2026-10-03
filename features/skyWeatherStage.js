@@ -52,6 +52,7 @@ const SURFACES = [
     { surface: 'sky', clouds: '#award-immersive-sky .wx-clouds--sky', fx: '#award-immersive-sky .wx-stage--sky' },
     { surface: 'mobile', clouds: '.m-header .m-header__clouds', fx: '.m-header .wx-stage--mobile' },
     { surface: 'card', clouds: '.weather-card--v3 .wx-clouds--card', fx: '.weather-card--v3 .wx-stage--card' },
+    { surface: 'greeting', clouds: '.greeting-sky .wx-clouds--greeting', fx: '.greeting-sky .wx-stage--greeting' },
     { surface: 'wall', clouds: '#wall-parallax-clouds', fx: '#wall-weather-fx' }
 ];
 

@@ -6,6 +6,9 @@
 // ring at the current time.
 
 import { getSolarTimes } from '../utils.js';
+import { getSkyScene } from './skyWeatherStage.js';
+import { sceneLayoutKey } from './skyWeather.mjs';
+import { buildCloudsHtml, buildWeatherFxHtml } from './skyWeatherArt.js';
 import {
     dialAngle,
     dialAngleFromMidnight,
@@ -58,6 +61,26 @@ export function treesHtml(trees) {
 }
 
 let hillsSerial = 0;
+
+/**
+ * The card's whole sky: the live weather's clouds and weather layer (the stage keeps
+ * them in step with the header, see skyWeatherStage.js), the glow and stars, then the hills.
+ */
+export function getGreetingSkyHtml() {
+    const scene = getSkyScene();
+    const key = scene ? sceneLayoutKey(scene, 'greeting') : '';
+    const clouds = scene ? buildCloudsHtml(scene, 'greeting') : '';
+    const fx = scene ? buildWeatherFxHtml(scene, 'greeting') : '';
+    const keyAttr = (prefix) => (scene ? ` data-wx-key="${prefix}:${key}"` : '');
+    return `
+    <div class="greeting-sky" aria-hidden="true">
+        <span class="greeting-sky__glow"></span>
+        <span class="greeting-sky__stars"></span>
+        <div class="wx-clouds wx-clouds--greeting"${keyAttr('c')}>${clouds}</div>
+        ${getGreetingHillsHtml()}
+        <div class="wx-stage wx-stage--greeting"${keyAttr('f')}>${fx}</div>
+    </div>`;
+}
 
 export function getGreetingHillsHtml() {
     // Wide canvas that crops from the middle on narrow cards (slice), so the

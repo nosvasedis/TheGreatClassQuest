@@ -1259,3 +1259,245 @@ html[data-wx-light="twilight"] .wall-horizon {
     .wall-sun { transition: opacity 0.4s ease; }
     .wall-sun__halo { animation: none; }
 }
+
+/* ============================================================
+   7b. HOME GREETING CARD
+   The greeting card is the same sky as the header and the weather card beside
+   it: one backdrop from the shared palette, so the light of the hour and the
+   weather show on both at once. On a wide Home the two cards read as one strip
+   of the header's left-to-right sky (the greeting takes the first two thirds,
+   the weather card the rest); stacked, on the phone and in the Projector
+   journey copy, each card carries the whole sky like the phone header.
+   The hills take the same light: a base colour for each light of the day,
+   dulled by grey weather and hazed toward the sky (farther hills more).
+   ============================================================ */
+@property --ghb-far-top { syntax: '<color>'; inherits: true; initial-value: #cfe3dc; }
+@property --ghb-far-bottom { syntax: '<color>'; inherits: true; initial-value: #e4efe9; }
+@property --ghb-mid-top { syntax: '<color>'; inherits: true; initial-value: #a9d59a; }
+@property --ghb-mid-bottom { syntax: '<color>'; inherits: true; initial-value: #cfe8c3; }
+@property --ghb-mid2-top { syntax: '<color>'; inherits: true; initial-value: #8cc57c; }
+@property --ghb-mid2-bottom { syntax: '<color>'; inherits: true; initial-value: #b9dcaa; }
+@property --ghb-near-top { syntax: '<color>'; inherits: true; initial-value: #74b766; }
+@property --ghb-near-bottom { syntax: '<color>'; inherits: true; initial-value: #9fd08f; }
+@property --ghb-tree { syntax: '<color>'; inherits: true; initial-value: #4d8f4a; }
+@property --ghb-tree-far { syntax: '<color>'; inherits: true; initial-value: #7fb27a; }
+@property --gh-dull-c { syntax: '<color>'; inherits: true; initial-value: #8a9690; }
+@property --gh-dull { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+@property --gh-haze { syntax: '<number>'; inherits: true; initial-value: 1; }
+@property --gp-ink { syntax: '<color>'; inherits: true; initial-value: #0f3557; }
+@property --gp-accent { syntax: '<color>'; inherits: true; initial-value: #2563eb; }
+@property --gp-shadow { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.55); }
+
+.greeting-panel:is(.vibrant-card, .m-home-hero, .wp-cardsky) {
+    /* Where the header's sky stands at this card's right edge (and where the weather card picks it up). */
+    --gp-sky-end: color-mix(in srgb, var(--wx-sky-2), var(--wx-sky-3) 24%);
+    background:
+        linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 55%),
+        linear-gradient(to top, var(--wx-horizon) 0%, transparent 60%),
+        linear-gradient(to right, var(--wx-sky-1) 0%, var(--wx-sky-2) 83%, var(--gp-sky-end) 100%);
+    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 14px 36px -14px rgba(30, 58, 138, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    color: var(--gp-ink);
+    --gp-glow: color-mix(in srgb, var(--wx-glow) 55%, transparent);
+    --wx-melt: 8s;
+    transition:
+        --wx-sky-1 var(--wx-melt) ease-in-out, --wx-sky-2 var(--wx-melt) ease-in-out, --wx-sky-3 var(--wx-melt) ease-in-out,
+        --wx-zenith var(--wx-melt) ease-in-out, --wx-horizon var(--wx-melt) ease-in-out, --wx-glow var(--wx-melt) ease-in-out,
+        --ghb-far-top var(--wx-melt) ease-in-out, --ghb-far-bottom var(--wx-melt) ease-in-out,
+        --ghb-mid-top var(--wx-melt) ease-in-out, --ghb-mid-bottom var(--wx-melt) ease-in-out,
+        --ghb-mid2-top var(--wx-melt) ease-in-out, --ghb-mid2-bottom var(--wx-melt) ease-in-out,
+        --ghb-near-top var(--wx-melt) ease-in-out, --ghb-near-bottom var(--wx-melt) ease-in-out,
+        --ghb-tree var(--wx-melt) ease-in-out, --ghb-tree-far var(--wx-melt) ease-in-out,
+        --gh-dull-c var(--wx-melt) ease-in-out, --gh-dull var(--wx-melt) ease-in-out, --gh-haze var(--wx-melt) ease-in-out,
+        --gp-ink var(--wx-melt) ease-in-out, --gp-accent var(--wx-melt) ease-in-out, --gp-shadow var(--wx-melt) ease-in-out,
+        transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 0.4s ease;
+}
+/* Stacked (narrow desktop, phone) and the Projector journey copy: the whole sky, like the phone header. */
+@media (max-width: 767px) {
+    .greeting-panel:is(.vibrant-card, .m-home-hero, .wp-cardsky) {
+        background:
+            linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 55%),
+            linear-gradient(to top, var(--wx-horizon) 0%, transparent 60%),
+            linear-gradient(135deg, var(--wx-sky-1) 0%, var(--wx-sky-2) 55%, var(--wx-sky-3) 100%);
+    }
+}
+body.gcq-mobile .greeting-panel.m-home-hero {
+    background:
+        linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 55%),
+        linear-gradient(to top, var(--wx-horizon) 0%, transparent 60%),
+        linear-gradient(135deg, var(--wx-sky-1) 0%, var(--wx-sky-2) 55%, var(--wx-sky-3) 100%);
+}
+/* The weather card beside it carries on from where the greeting's sky ends. */
+@media (min-width: 768px) {
+    .horizons-grid > .greeting-panel + .weather-card--v3 {
+        background:
+            radial-gradient(ellipse 70% 60% at 82% 18%, var(--wx-glow) 0%, transparent 70%),
+            linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 55%),
+            linear-gradient(to top, var(--wx-horizon) 0%, transparent 60%),
+            linear-gradient(to right, color-mix(in srgb, var(--wx-sky-2), var(--wx-sky-3) 29%) 0%, var(--wx-sky-3) 100%) !important;
+    }
+}
+
+/* No white glass wash or pastel mesh over the sky. */
+.greeting-panel.vibrant-card::before,
+.wp-cardsky::before,
+.greeting-panel .greeting-bg-mesh { display: none; }
+
+/* Stars come out when the sky has them (clear enough night). */
+html[data-wx-stars="1"] .greeting-sky__stars,
+html[data-wx-stars="dim"] .greeting-sky__stars {
+    opacity: 0.9;
+    animation: greeting-stars-twinkle 4.5s ease-in-out infinite;
+}
+
+/* Greeting words: deep ink on a bright sky, moonlight white on a dark one. */
+.greeting-panel .greeting-title,
+.greeting-panel .greeting-title.text-slate-800,
+html .greeting-panel.m-home-hero .m-home-hero__greeting {
+    color: var(--gp-ink);
+    text-shadow: none;
+    filter: drop-shadow(0 1px 0 var(--gp-shadow)) drop-shadow(0 2px 8px var(--gp-shadow));
+}
+.greeting-panel .greeting-title .bg-clip-text,
+html .greeting-panel.m-home-hero .m-home-hero__greeting .bg-clip-text {
+    background-image: linear-gradient(90deg, var(--gp-accent) 0%, color-mix(in srgb, var(--gp-accent), var(--gp-ink) 45%) 100%);
+    filter: none;
+}
+.greeting-panel .greeting-title .bg-clip-text + .bg-clip-text {
+    background-image: none;
+    color: var(--gp-ink);
+}
+
+/* ---- Light of the hour: ink and hill colours ---- */
+.greeting-panel {
+    --gp-ink: #0f3557;
+    --gp-accent: #1d4ed8;
+    --gp-shadow: rgba(255, 255, 255, 0.55);
+    --ghb-far-top: #cfe3dc; --ghb-far-bottom: #e4efe9;
+    --ghb-mid-top: #a9d59a; --ghb-mid-bottom: #cfe8c3;
+    --ghb-mid2-top: #8cc57c; --ghb-mid2-bottom: #b9dcaa;
+    --ghb-near-top: #74b766; --ghb-near-bottom: #9fd08f;
+    --ghb-tree: #4d8f4a; --ghb-tree-far: #7fb27a;
+    --gh-crest: rgba(255, 255, 255, 0.55);
+    --gh-mist-k: 70%;
+    /* What the hills are made of: base colour, dulled by the weather, then hazed toward the sky. */
+    --gh-far-top: color-mix(in srgb, color-mix(in srgb, var(--ghb-far-top), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(40% * var(--gh-haze)));
+    --gh-far-bottom: color-mix(in srgb, color-mix(in srgb, var(--ghb-far-bottom), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(34% * var(--gh-haze)));
+    --gh-mid-top: color-mix(in srgb, color-mix(in srgb, var(--ghb-mid-top), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(24% * var(--gh-haze)));
+    --gh-mid-bottom: color-mix(in srgb, color-mix(in srgb, var(--ghb-mid-bottom), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(20% * var(--gh-haze)));
+    --gh-mid2-top: color-mix(in srgb, color-mix(in srgb, var(--ghb-mid2-top), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(14% * var(--gh-haze)));
+    --gh-mid2-bottom: color-mix(in srgb, color-mix(in srgb, var(--ghb-mid2-bottom), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(11% * var(--gh-haze)));
+    --gh-near-top: color-mix(in srgb, color-mix(in srgb, var(--ghb-near-top), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(6% * var(--gh-haze)));
+    --gh-near-bottom: color-mix(in srgb, color-mix(in srgb, var(--ghb-near-bottom), var(--gh-dull-c) var(--gh-dull)), var(--wx-sky-2) calc(4% * var(--gh-haze)));
+    --gh-tree: color-mix(in srgb, var(--ghb-tree), var(--gh-dull-c) calc(var(--gh-dull) * 0.4));
+    --gh-tree-far: color-mix(in srgb, color-mix(in srgb, var(--ghb-tree-far), var(--gh-dull-c) calc(var(--gh-dull) * 0.5)), var(--wx-sky-2) calc(20% * var(--gh-haze)));
+    --gh-mist: color-mix(in srgb, var(--wx-sky-1) var(--gh-mist-k), #ffffff);
+    --gh-light: var(--wx-glow);
+}
+html[data-wx-light="dawn"] .greeting-panel {
+    --gp-ink: #4a1d3f;
+    --gp-accent: #c2410c;
+    --gp-shadow: rgba(255, 245, 235, 0.6);
+    --ghb-far-top: #efcfb8; --ghb-far-bottom: #f7e3d3;
+    --ghb-mid-top: #b8d99a; --ghb-mid-bottom: #dcebc4;
+    --ghb-mid2-top: #9ccc7f; --ghb-mid2-bottom: #c7e2ad;
+    --ghb-near-top: #82bd66; --ghb-near-bottom: #acd690;
+    --ghb-tree: #55904a; --ghb-tree-far: #93b884;
+    --gh-crest: rgba(255, 236, 190, 0.8);
+}
+html[data-wx-light="golden"] .greeting-panel {
+    --gp-ink: #4a2412;
+    --gp-accent: #c2410c;
+    --gp-shadow: rgba(255, 244, 225, 0.6);
+    --ghb-far-top: #e6bf9e; --ghb-far-bottom: #f1d6be;
+    --ghb-mid-top: #b5c98a; --ghb-mid-bottom: #d4dfb1;
+    --ghb-mid2-top: #99b974; --ghb-mid2-bottom: #c0d39e;
+    --ghb-near-top: #7fa95d; --ghb-near-bottom: #a7c785;
+    --ghb-tree: #4f7f3f; --ghb-tree-far: #8ea876;
+    --gh-crest: rgba(255, 214, 150, 0.85);
+}
+html[data-wx-light="twilight"] .greeting-panel {
+    --gp-ink: #fdf2f8;
+    --gp-accent: #fbcfe8;
+    --gp-shadow: rgba(30, 16, 60, 0.55);
+    --ghb-far-top: #5f4c91; --ghb-far-bottom: #6f5a9c;
+    --ghb-mid-top: #4b4c80; --ghb-mid-bottom: #5a5b8d;
+    --ghb-mid2-top: #3e4373; --ghb-mid2-bottom: #4c5282;
+    --ghb-near-top: #2f3662; --ghb-near-bottom: #3c4472;
+    --ghb-tree: #20274a; --ghb-tree-far: #3b4170;
+    --gh-crest: rgba(244, 143, 177, 0.5);
+    --gh-mist-k: 88%;
+}
+html[data-wx-light="night"] .greeting-panel {
+    --gp-ink: #f8fafc;
+    --gp-accent: #c7d2fe;
+    --gp-shadow: rgba(2, 6, 23, 0.6);
+    --ghb-far-top: #34407e; --ghb-far-bottom: #3e4a8b;
+    --ghb-mid-top: #2b3672; --ghb-mid-bottom: #35417e;
+    --ghb-mid2-top: #242e64; --ghb-mid2-bottom: #2d3871;
+    --ghb-near-top: #1d2656; --ghb-near-bottom: #263164;
+    --ghb-tree: #121a3e; --ghb-tree-far: #2b3568;
+    --gh-crest: rgba(165, 180, 252, 0.35);
+    --gh-mist-k: 88%;
+}
+
+/* ---- Weather: grey skies dull the meadow, snow covers it, fog swallows the far hills ---- */
+html[data-wx-tone="grey"] .greeting-panel { --gh-dull-c: #8a9690; --gh-dull: 34%; }
+html[data-wx-tone="rain"] .greeting-panel { --gh-dull-c: #6d7a78; --gh-dull: 44%; }
+html[data-wx-tone="storm"] .greeting-panel { --gh-dull-c: #4a5560; --gh-dull: 56%; }
+html[data-wx-tone="ice"] .greeting-panel { --gh-dull-c: #9cc6cf; --gh-dull: 48%; }
+html[data-wx-tone="snow"] .greeting-panel { --gh-dull-c: #f1f5f9; --gh-dull: 74%; --gh-crest: rgba(255, 255, 255, 0.9); }
+html[data-wx-tone="fog"] .greeting-panel { --gh-dull-c: #c9d2da; --gh-dull: 42%; --gh-haze: 1.7; }
+html[data-wx-night="1"][data-wx-tone="grey"] .greeting-panel,
+html[data-wx-night="1"][data-wx-tone="rain"] .greeting-panel,
+html[data-wx-night="1"][data-wx-tone="storm"] .greeting-panel,
+html[data-wx-night="1"][data-wx-tone="ice"] .greeting-panel { --gh-dull-c: #1f2836; }
+html[data-wx-night="1"][data-wx-tone="snow"] .greeting-panel { --gh-dull-c: #7f8eac; --gh-dull: 58%; --gh-crest: rgba(226, 232, 255, 0.5); }
+html[data-wx-night="1"][data-wx-tone="fog"] .greeting-panel { --gh-dull-c: #3d4757; }
+
+/* Daytime ink against each weather's sky: pale skies keep deep ink, dark ones take white. */
+html[data-wx-night="0"][data-wx-tone="grey"] .greeting-panel { --gp-ink: #1e293b; --gp-accent: #334e8a; --gp-shadow: rgba(255, 255, 255, 0.5); }
+html[data-wx-night="0"]:is([data-wx-tone="snow"], [data-wx-tone="fog"]) .greeting-panel { --gp-ink: #1e293b; --gp-accent: #3f51b5; --gp-shadow: rgba(255, 255, 255, 0.7); }
+html[data-wx-night="0"]:is([data-wx-tone="rain"], [data-wx-tone="storm"], [data-wx-tone="ice"]) .greeting-panel {
+    --gp-ink: #f8fafc; --gp-accent: #e0f2fe; --gp-shadow: rgba(15, 23, 42, 0.5);
+}
+html[data-wx-night="0"][data-wx-light="golden"]:is([data-wx-tone="rain"], [data-wx-tone="storm"], [data-wx-tone="ice"]) .greeting-panel { --gp-accent: #fed7aa; }
+html[data-wx-night="0"][data-wx-light="dawn"]:is([data-wx-tone="rain"], [data-wx-tone="storm"], [data-wx-tone="ice"]) .greeting-panel { --gp-accent: #fecdd3; }
+
+/* Lamps in the cottage once the light goes. */
+html:is([data-wx-light="golden"], [data-wx-night="1"]) .greeting-hills .gh-cottage__window { fill: #fde047; filter: drop-shadow(0 0 4px #facc15); }
+html[data-wx-night="1"] .greeting-hills .gh-cottage__wall { fill: #8a90bd; }
+html[data-wx-night="1"] .greeting-hills .gh-cottage__roof { fill: #43467c; }
+html[data-wx-night="1"] .greeting-hills :is(.gh-cottage__chimney, .gh-cottage__door) { fill: #2f3366; }
+
+/* The live weather in the greeting card's sky: clouds behind the hills, rain and snow in front. */
+.greeting-sky .wx-clouds--greeting { position: absolute; inset: 0; overflow: hidden; }
+.greeting-sky .wx-clouds--greeting .wx-cloud { opacity: calc(var(--wx-a, 1) * var(--wx-cloud-alpha) * 0.72); }
+.greeting-sky .wx-stage--greeting { z-index: 1; }
+.wx-stage--greeting .wx-bolt { height: 85%; }
+.wx-stage--greeting .wx-rainbow-wrap { top: auto; bottom: -18%; right: 8%; width: 46%; }
+.wx-stage--greeting .wx-icicles {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 12px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 12'%3E%3Cpath d='M0 0h72v1.5l-3 0-2 7-2-7h-5l-1.5 4-1.5-4h-6l-2.5 10-2.5-10h-6l-1.5 5-1.5-5h-7l-2 8-2-8h-6l-1.2 3.5L13 1.5H8L5.5 9 3 1.5H0z' fill='%23e0f7ff' fill-opacity='.92'/%3E%3C/svg%3E") repeat-x;
+    background-size: 72px 12px;
+}
+html[data-wx-lite="1"] .wx-stage--greeting .wx-precip { display: none; }
+
+/* The Projector journey's copy of the card: the same sky, laid over the card's own place on screen
+   and carried on flat beyond its edges (ui/wallpaperPortal.js sets --wp-l and --wp-w). */
+@media (min-width: 768px) {
+    .wp-stage .greeting-panel.wp-cardsky {
+        background:
+            linear-gradient(to bottom, var(--wx-zenith) 0%, transparent 55%),
+            linear-gradient(to top, var(--wx-horizon) 0%, transparent 60%),
+            linear-gradient(to right,
+                var(--wx-sky-1) var(--wp-l, 0px),
+                var(--wx-sky-2) calc(var(--wp-l, 0px) + var(--wp-w, 100%) * 0.83),
+                var(--gp-sky-end) calc(var(--wp-l, 0px) + var(--wp-w, 100%)));
+    }
+}

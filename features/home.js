@@ -36,7 +36,7 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
-import { getGreetingHillsHtml, getDayRingEmblemHtml, startDayRingClock } from './homeGreetingScene.js';
+import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock } from './homeGreetingScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import {
@@ -682,11 +682,7 @@ function getLayout(name, theme, selector, row2, row3) {
 
             <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${dayPart}">
                 <div class="greeting-bg-mesh"></div>
-                <div class="greeting-sky" aria-hidden="true">
-                    <span class="greeting-sky__glow"></span>
-                    <span class="greeting-sky__stars"></span>
-                    ${getGreetingHillsHtml()}
-                </div>
+                ${getGreetingSkyHtml()}
                 ${getDayRingEmblemHtml(escapeHtml(heroEmoji))}
                 <div class="relative z-10 flex flex-col justify-between h-full">
 

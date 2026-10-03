@@ -1167,16 +1167,9 @@
 }
 .weather-card.w-snowy:not(.weather-night) .weather-sun { color: #94a3b8; }
 
-/* ---------- 7. Greeting card ---------- */
-.greeting-panel.greeting-panel--morning { background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 45%, #fdf2f8 100%); }
-.greeting-panel.greeting-panel--afternoon { background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 50%, #f0fdfa 100%); }
-.greeting-panel.greeting-panel--evening { background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 50%, #fdf2f8 100%); }
-.greeting-panel.greeting-panel--night { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 55%, #ede9fe 100%); }
-.greeting-panel--morning { --gp-glow: rgba(251, 191, 36, 0.35); }
-.greeting-panel--afternoon { --gp-glow: rgba(56, 189, 248, 0.3); }
-.greeting-panel--evening { --gp-glow: rgba(236, 72, 153, 0.25); }
-.greeting-panel--night { --gp-glow: rgba(99, 102, 241, 0.3); }
-
+/* ---------- 7. Greeting card ----------
+   Its sky (backdrop, glow, stars and the hills' light) is painted from the shared
+   live palette in styles/sky_weather.css (section 7b), the same sky as the header. */
 .greeting-sky {
     position: absolute;
     inset: 0;
@@ -1207,49 +1200,12 @@
         radial-gradient(1.5px 1.5px at 96% 58%, #fff 50%, transparent 100%);
     filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0.9));
 }
-.greeting-panel--evening .greeting-sky__stars,
-.greeting-panel--night .greeting-sky__stars {
-    opacity: 0.9;
-    animation: greeting-stars-twinkle 4.5s ease-in-out infinite;
-}
 @keyframes greeting-stars-twinkle {
     0%, 100% { opacity: 0.45; }
     50% { opacity: 1; }
 }
 
-/* Rolling hills: layered SVG landscape, recoloured for each part of the day */
-.greeting-panel {
-    --gh-far-top: #cfe3dc; --gh-far-bottom: #e4efe9;
-    --gh-mid-top: #a9d59a; --gh-mid-bottom: #cfe8c3;
-    --gh-mid2-top: #8cc57c; --gh-mid2-bottom: #b9dcaa;
-    --gh-near-top: #74b766; --gh-near-bottom: #9fd08f;
-    --gh-mist: #f0fdfa; --gh-light: #fff7d6; --gh-tree: #4d8f4a; --gh-tree-far: #7fb27a;
-    --gh-crest: rgba(255, 255, 255, 0.55);
-}
-.greeting-panel--morning {
-    --gh-far-top: #efcfb8; --gh-far-bottom: #f7e3d3;
-    --gh-mid-top: #b8d99a; --gh-mid-bottom: #dcebc4;
-    --gh-mid2-top: #9ccc7f; --gh-mid2-bottom: #c7e2ad;
-    --gh-near-top: #82bd66; --gh-near-bottom: #acd690;
-    --gh-mist: #fff7ed; --gh-light: #ffe7b0; --gh-tree: #55904a; --gh-tree-far: #93b884;
-    --gh-crest: rgba(255, 236, 190, 0.8);
-}
-.greeting-panel--evening {
-    --gh-far-top: #d9b8d6; --gh-far-bottom: #eed8e6;
-    --gh-mid-top: #a9b39a; --gh-mid-bottom: #cdd0bd;
-    --gh-mid2-top: #8f9f82; --gh-mid2-bottom: #b6bda6;
-    --gh-near-top: #72876c; --gh-near-bottom: #99a88c;
-    --gh-mist: #fdf2f8; --gh-light: #fecdd3; --gh-tree: #4d6149; --gh-tree-far: #8b927d;
-    --gh-crest: rgba(254, 205, 170, 0.75);
-}
-.greeting-panel--night {
-    --gh-far-top: #b7bde6; --gh-far-bottom: #cfd3f1;
-    --gh-mid-top: #8f98c9; --gh-mid-bottom: #b1b8e0;
-    --gh-mid2-top: #7580b6; --gh-mid2-bottom: #9aa3d3;
-    --gh-near-top: #5d689f; --gh-near-bottom: #7f89c0;
-    --gh-mist: #e0e7ff; --gh-light: #eef2ff; --gh-tree: #414a80; --gh-tree-far: #6c75ad;
-    --gh-crest: rgba(224, 231, 255, 0.7);
-}
+/* Rolling hills: layered SVG landscape. Colours come from sky_weather.css (7b). */
 .greeting-hills {
     position: absolute;
     left: 0;
@@ -1289,13 +1245,6 @@
 .greeting-hills .gh-cottage__door { fill: #92400e; }
 .greeting-hills .gh-cottage__window { fill: #93c5fd; }
 .greeting-hills .gh-cottage { opacity: 0.9; }
-.greeting-panel--evening .gh-cottage__wall { fill: #eadfd2; }
-.greeting-panel--evening .gh-cottage__window,
-.greeting-panel--night .gh-cottage__window { fill: #fde047; filter: drop-shadow(0 0 4px #facc15); }
-.greeting-panel--night .gh-cottage__wall { fill: #a5acd6; }
-.greeting-panel--night .gh-cottage__roof { fill: #4c4f8a; }
-.greeting-panel--night .gh-cottage__chimney,
-.greeting-panel--night .gh-cottage__door { fill: #3b3f73; }
 
 /* Class logo inside a live 24-hour sky dial (a little astrolabe).
    Noon at the top, midnight at the bottom; the sun or tonight's moon sits at the real time.

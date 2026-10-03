@@ -341,7 +341,7 @@ export function buildWeatherFxHtml(scene, surface) {
         const kind = scene.precip;
         // Small windows (the Home card, the phone header) get a single depth: the
         // header and big skies above them already carry the layered look.
-        const small = surface === 'card' || surface === 'mobile' || (scene.lite && surface === 'header');
+        const small = surface === 'card' || surface === 'greeting' || surface === 'mobile' || (scene.lite && surface === 'header');
         const layers = small ? ['near']
             : kind === 'snow'
                 ? (scene.intensity === 'light' ? ['far', 'near'] : ['far', 'mid', 'near'])
@@ -354,7 +354,7 @@ export function buildWeatherFxHtml(scene, surface) {
 
     if (scene.gusts) parts.push(`<div class="wx-gusts">${[0, 1, 2].map(gustSvg).join('')}</div>`);
 
-    if (scene.shootingStars && surface !== 'card' && surface !== 'mobile') {
+    if (scene.shootingStars && surface !== 'card' && surface !== 'greeting' && surface !== 'mobile') {
         parts.push('<div class="wx-shooting"><span class="wx-shooting__star wx-shooting__star--1"></span><span class="wx-shooting__star wx-shooting__star--2"></span></div>');
     }
 
@@ -362,7 +362,7 @@ export function buildWeatherFxHtml(scene, surface) {
         parts.push(`<div class="wx-lightning" data-wx-lightning><span class="wx-flash"></span>${boltSvg(0)}</div>`);
     }
 
-    if (scene.icicles && (surface === 'header' || surface === 'card' || surface === 'mobile')) {
+    if (scene.icicles && (surface === 'header' || surface === 'card' || surface === 'greeting' || surface === 'mobile')) {
         parts.push('<div class="wx-icicles"></div>');
     }
 

@@ -287,20 +287,54 @@ function cardWords(card) {
 // ─── The scene: the card's sky, the meadow strips and the realm strips ─────
 
 /**
- * A copy of the greeting card's pale sky, sized to the camera window. It matches the card to the
- * pixel (inner glow, glass sheen, and the drifting mesh and twinkling stars at the same moment of
- * their loops), because the camera swaps it in for the card without any cross-fade.
+ * A copy of the greeting card's sky (the live sky palette, its clouds and weather), sized to the
+ * camera window. It matches the card to the pixel (the twinkling stars and every drifting cloud at
+ * the same moment of their loops), because the camera swaps it in for the card without any cross-fade.
  */
 function buildCardSky(stage, card, part, frame) {
     const sky = document.createElement('div');
     sky.className = `greeting-panel greeting-panel--${part} wp-cardsky`;
     sky.setAttribute('aria-hidden', 'true');
-    sky.innerHTML = '<div class="greeting-bg-mesh"></div><div class="greeting-sky"><span class="greeting-sky__glow"></span><span class="greeting-sky__stars"></span></div>';
+    sky.innerHTML = '<div class="greeting-sky"><span class="greeting-sky__glow"></span><span class="greeting-sky__stars"></span></div>';
     sky.style.top = px(frame.window.top);
     sky.style.height = px(frame.window.height);
-    sky.style.boxShadow = `inset 0 0 ${px(60 / frame.scale)} rgba(255, 255, 255, 0.4)`;
+    // Where the card's own box sits on the stage, so its left-to-right sky lines up.
+    sky.style.setProperty('--wp-l', px(frame.inset.left));
+    sky.style.setProperty('--wp-w', px(card.width / frame.scale));
+    sky.style.boxShadow = `inset 0 ${px(1 / frame.scale)} 0 rgba(255, 255, 255, 0.35)`;
+    const liveSky = card.panel?.querySelector('.greeting-sky');
+    const copySky = sky.querySelector('.greeting-sky');
+    ['.wx-clouds--greeting', '.wx-stage--greeting'].forEach((sel) => {
+        const live = liveSky?.querySelector(sel);
+        if (!live) return;
+        const copy = live.cloneNode(true);
+        copy.removeAttribute('data-wx-key');
+        // At the card's own size on screen at the start (the stage is scaled down by frame.scale),
+        // then zooming in with the camera like the rest of the card's picture.
+        Object.assign(copy.style, {
+            inset: 'auto',
+            left: px(frame.inset.left),
+            top: '0px',
+            width: px(card.width),
+            height: px(card.height),
+            transform: `scale(${Math.round((1 / frame.scale) * 1e5) / 1e5})`,
+            transformOrigin: '0 0'
+        });
+        copySky.appendChild(copy);
+    });
     stage.appendChild(sky);
     return sky;
+}
+
+/** Puts every drifting cloud and falling layer of the copy at the card's moment in its loop. */
+function syncWeatherLoops(from, to) {
+    ['.wx-clouds--greeting', '.wx-stage--greeting'].forEach((sel) => {
+        const a = from?.querySelector(sel)?.getAnimations?.({ subtree: true }) || [];
+        const b = to?.querySelector(sel)?.getAnimations?.({ subtree: true }) || [];
+        b.forEach((anim, i) => {
+            if (a[i] && a[i].currentTime != null) anim.currentTime = a[i].currentTime;
+        });
+    });
 }
 
 // ─── Hills beyond the screen edge ───────────────────────────────────────────
@@ -503,7 +537,8 @@ function buildJourney(wallEl, card, frame, vw) {
     const meadow = buildMeadow(part, card.hillsHeight / frame.scale, vw);
     stage.append(...[realm.far, meadow.far, castle, meadow.mid, realm.near, meadow.near].filter(Boolean));
     document.body.appendChild(stage);
-    ['.greeting-bg-mesh', '.greeting-sky__stars'].forEach((sel) => syncLoops(card.panel, cardSky, sel));
+    syncLoops(card.panel, cardSky, '.greeting-sky__stars');
+    syncWeatherLoops(card.panel, cardSky);
     syncLoops(horizon, castle, '.wall-horizon__flag');
     horizon?.classList.add('is-travelling');
     return {

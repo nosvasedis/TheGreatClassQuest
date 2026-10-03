@@ -31,24 +31,24 @@ test('module, section, review and lesson suffix', () => {
     assert.equal(parseUnits('Module 3')[0].unit, 3);
     assert.equal(parseUnits('Section 2')[0].unit, 2);
     assert.equal(parseUnits('grammalysis b1 lesson 14b')[0].lessonCode, '14b');
-    assert.equal(parseUnits('grammalysis b2 review 3')[0].review, true);
+    assert.equal(parseUnits('grammalysis b1 review 3')[0].review, true);
 });
 const bookCases = {
     'primary-path-2': ['PP2 un.4 pp.78-80', 'pp2 unit 4', 'cpp2 u.4', 'Primary Path 2 Unit 4', 'cambridge primary path 2 unit 4', 'Διάβασμα PP2 unit 4'],
     'close-up-b1': ['Close Up B1 un.2 p.17', 'close-up b1 unit 2', 'new close up b1 p.17', 'cu b1 un.1', 'ncu b1 unit 1'],
-    'close-up-b1-plus': ['Close Up B1+ unit 2', 'cu b1+ u.2', 'b1+ p.17', 'B1 + p.17', 'close up plus u2', 'CU Β1+ u2'],
     'yeti-2': ['Yeti 2 unit 13', 'yeti and friends 2 u.13', 'yeti junior b unit 13'],
     bamboo: ['Bamboo lesson 5 p.12', 'english with bamboo L5'],
     'burlington-grammar-2': ['My Grammar Book 2 unit 8', 'burlington 2 unit 8', 'Grammar Book 2 unit 8'],
-    'grammalysis-b1': ['grammalysis b1 lesson 14b'],
-    'grammalysis-b2': ['grammalysis b2 review 3']
+    'grammalysis-b1': ['grammalysis b1 lesson 14b']
 };
 for (const [bookId, inputs] of Object.entries(bookCases)) for (const input of inputs)
     test('book: ' + input, () => assert.equal(detectBooks(input)[0]?.bookId, bookId));
 test('longest alias wins without swallowing another book', () => {
-    assert.deepEqual(detectBooks('close up b1+').map(b => b.bookId), ['close-up-b1-plus']);
-    assert.equal(detectBooks('Close Up B1, Close Up B1+').length, 2);
+    assert.equal(detectBooks('Close Up B1, Primary Path 2').length, 2);
     assert.equal(detectBooks('grammalysis b1+').length, 0);
+    // Retired books are not misread as their lower-level neighbour.
+    assert.equal(detectBooks('close up b1+ unit 2').length, 0);
+    assert.equal(detectBooks('grammalysis b2 review 3').length, 0);
 });
 test('multi-target keeps coursebook primary and explicit grammar book separate', () => {
     const multi = parseLessonTarget('SB p.42, GB un.5, φωτοτυπία: clothes', BOOK_ATLAS, plan);

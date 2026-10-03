@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { BOOK_ATLAS, getUnitWords, unitPageSets, describeUnit, unitForPage, pageRangeForUnit } from '../features/bookAtlas.mjs';
-test('all twelve books have unique, ordered, sourced units',()=>{
-    assert.equal(BOOK_ATLAS.length,12);
+test('all ten books have unique, ordered, sourced units',()=>{
+    assert.equal(BOOK_ATLAS.length,10);
+    for(const gone of ['close-up-b1-plus','grammalysis-b2']) assert.ok(!BOOK_ATLAS.some(b=>b.id===gone),gone+' was retired');
     for(const b of BOOK_ATLAS){assert.ok(b.units.length);assert.equal(new Set(b.units.map(u=>u.n)).size,b.units.length);assert.ok(b.source);for(const u of b.units) if(u.pageRange)assert.ok(u.pageRange[0]<=u.pageRange[1]);}
 });
 test('page ranges map a unit to pages and back, and page-less books stay null',()=>{
@@ -18,7 +19,7 @@ test('published third-edition Close-Up page ranges do not inherit old-edition co
     assert.equal(unitForPage('close-up-b1',17),2);
     assert.equal(unitForPage('close-up-b1',137),12);
     assert.equal(unitForPage('close-up-b1',17,'wb'),null);
-    for(const [file,count] of [['close-up-b1',1366],['close-up-b1-plus',1566]]){
+    for(const [file,count] of [['close-up-b1',1366]]){
         const data=JSON.parse(fs.readFileSync(new URL('../features/bookAtlas/data/'+file+'.json',import.meta.url)));
         assert.equal(Object.values(data.units).flat().length,count);
         const words=await getUnitWords(file,2,{limit:8});assert.equal(words.length,8);assert.ok(words.every(w=>w.w));

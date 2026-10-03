@@ -72,21 +72,16 @@ const closeup = [
     { ref: 'b1', id: 'close-up-b1', level: 'B1', league: 'D',
         titles: ['Perfect for the job', 'Delicious!', 'It’s natural', 'That’s the fashion', 'Where we live', 'Go for it!', 'Have a great trip!', 'My own time', 'Digital world', 'Show time!', 'Life lessons', 'Body and mind'],
         themes: ['jobs and personality', 'food and cooking', 'nature and the environment', 'clothes and shopping', 'homes and household objects', 'sports', 'travel and holidays', 'free time', 'computers and technology', 'film and television', 'education', 'health and the body'],
-        grammar: ['present simple/continuous; stative verbs; countable/uncountable nouns; quantifiers', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; articles', 'relative clauses; clauses with time expressions', 'will; going to; future plans and predictions', 'zero, first and second conditional; unless', 'question tags; subject/object questions; past perfect simple/continuous', 'modals and semi-modals', 'passive voice; passive with modals; by/with', 'reported statements, questions and requests', 'causative; gerunds and infinitives', 'adjectives/adverbs; so/such; comparison'] },
-    { ref: 'b1plus', id: 'close-up-b1-plus', level: 'B1+', league: 'D',
-        titles: ['Your world', 'Mysterious world', 'Fit as a fiddle', 'Technological wonders', 'Going places', 'Living history', 'Wild world', 'Media matters', 'Making a living', 'See the world', 'Crime time', 'You are what you wear'],
-        themes: ['feelings and people', 'mysteries', 'health and fitness', 'technology', 'ambition and success', 'history', 'natural disasters', 'the media', 'work', 'holidays and travel', 'crime', 'fashion and shopping'],
-        grammar: ['present simple/continuous; articles', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; quantifiers', 'will/going to; future continuous/perfect', 'modals, semi-modals and perfect modals', 'past perfect simple/continuous; question tags; pronouns', 'gerunds/infinitives; comparison; too/enough/so/such', 'passive voice including gerunds, infinitives and modals', 'reported statements/questions/commands/requests; reporting verbs', 'zero, first, second, third and mixed conditionals', 'defining/non-defining/reduced relative clauses', 'causative; inversion'] }
+        grammar: ['present simple/continuous; stative verbs; countable/uncountable nouns; quantifiers', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; articles', 'relative clauses; clauses with time expressions', 'will; going to; future plans and predictions', 'zero, first and second conditional; unless', 'question tags; subject/object questions; past perfect simple/continuous', 'modals and semi-modals', 'passive voice; passive with modals; by/with', 'reported statements, questions and requests', 'causative; gerunds and infinitives', 'adjectives/adverbs; so/such; comparison'] }
 ];
 for (const c of closeup) {
-    const vocabulary = json('closeup/closeup-' + (c.ref === 'b1' ? 'b1' : 'b1-plus') + '.json');
-    const aliases = c.ref === 'b1' ? ['close up b1', 'closeup b1', 'new close up b1', 'cu b1', 'ncu b1', 'b1', 'close up intermediate']
-        : ['close up b1+', 'closeup b1+', 'new close up b1+', 'cu b1+', 'ncu b1+', 'b1+', 'b1 plus', 'close up plus', 'close up upper intermediate'];
+    const vocabulary = json('closeup/closeup-' + c.ref + '.json');
+    const aliases = ['close up b1', 'closeup b1', 'new close up b1', 'cu b1', 'ncu b1', 'b1', 'close up intermediate'];
     const item = book(c.id, 'New Close-Up ' + c.level, 'coursebook', [c.league], aliases,
         { kind: 'publisher-scope-and-wordlist', url: 'https://www.eltngl.com/assets/downloads/newcloseup_pro0000009154/newcloseup-' + c.ref + '-scopeandsequence.pdf' },
         { publisher: 'National Geographic Learning', edition: '3e', wordlistRef: c.id,
-            prevBookId: c.ref === 'b1' ? null : 'close-up-b1', nextBookId: c.ref === 'b1' ? 'close-up-b1-plus' : null });
-    // Verified against the third-edition scope (newcloseup-b1[-plus]-3e-scope.pdf): the twelve units are
+            prevBookId: null, nextBookId: null });
+    // Verified against the third-edition scope (newcloseup-b1-3e-scope.pdf): the twelve units are
     // contiguous twelve-page units from p5 and all reviews sit at the end (Review units 1-12 pp149-160),
     // so unit 12 starts on p137. (The two-page interleaved reviews belong to the older edition's contents.)
     item.units = c.titles.map((title, i) => ({ n: i + 1, title, theme: c.themes[i], grammar: c.grammar[i], pageRange: [5 + i * 12, 16 + i * 12], pages: { sb: [5 + i * 12, 16 + i * 12] }, reviewAfter: false }));
@@ -141,21 +136,17 @@ for (let level = 1; level <= 3; level++) {
         return { ...rest, pageRange: range, pages: { grammar: range }, reviewAfter: false };
     });
 }
-for (const level of ['b1', 'b2']) {
-    const text = read('publisher/grammalysis-' + level + '-sample.pdf.txt');
+{
+    const text = read('publisher/grammalysis-b1-sample.pdf.txt');
     const units = [];
-    if (level === 'b1') {
-        for (const m of text.matchAll(/LESSON (\d+) a (.+?) (?:Phrasal Verbs.*?|Prepositional Phrases|Prepositions|Derivatives) (\d+)\r?\nb (.+?) (?:Phrasal Verbs.*?|Prepositional Phrases|Prepositions|Derivatives) (\d+)/g)) {
-            units.push({ n: +m[1], title: m[2], theme: m[2], grammar: m[2] + '; ' + m[4], pageRange: [+m[3], +m[5] + 2],
-                lessons: [{ code: m[1] + 'a', title: m[2], pageRange: [+m[3], +m[5] - 1] }, { code: m[1] + 'b', title: m[4], pageRange: [+m[5], +m[5] + 2] }] });
-        }
-    } else for (const m of text.matchAll(/^LESSON (\d+) Gr (.+?) (\d+)\r?\nVoc (.+?) (\d+)/gm)) {
-        units.push({ n: +m[1], title: m[2], theme: m[2], grammar: m[2], vocabulary: m[4], pageRange: [+m[3], +m[5]] });
+    for (const m of text.matchAll(/LESSON (\d+) a (.+?) (?:Phrasal Verbs.*?|Prepositional Phrases|Prepositions|Derivatives) (\d+)\r?\nb (.+?) (?:Phrasal Verbs.*?|Prepositional Phrases|Prepositions|Derivatives) (\d+)/g)) {
+        units.push({ n: +m[1], title: m[2], theme: m[2], grammar: m[2] + '; ' + m[4], pageRange: [+m[3], +m[5] + 2],
+            lessons: [{ code: m[1] + 'a', title: m[2], pageRange: [+m[3], +m[5] - 1] }, { code: m[1] + 'b', title: m[4], pageRange: [+m[5], +m[5] + 2] }] });
     }
-    if (units.length !== (level === 'b1' ? 20 : 36)) throw Error('Incomplete Grammalysis ' + level + ': ' + units.length);
-    const item = book('grammalysis-' + level, 'Grammalysis ' + level.toUpperCase(), 'grammar', ['D'],
-        ['grammalysis ' + level, 'grammalysis ' + (level === 'b1' ? '1' : '2'), 'grammalysis for all ' + level],
-        { kind: 'publisher-contents', file: 'grammalysis-' + level + '-sample.pdf' }, { publisher: 'Super Course' });
+    if (units.length !== 20) throw Error('Incomplete Grammalysis B1: ' + units.length);
+    const item = book('grammalysis-b1', 'Grammalysis B1', 'grammar', ['D'],
+        ['grammalysis b1', 'grammalysis 1', 'grammalysis for all b1'],
+        { kind: 'publisher-contents', file: 'grammalysis-b1-sample.pdf' }, { publisher: 'Super Course' });
     item.units = units.map(u => ({ ...u, pages: { grammar: u.pageRange } }));
 }
 // Curated per-component page maps for collections whose parts are not published as scope PDFs.

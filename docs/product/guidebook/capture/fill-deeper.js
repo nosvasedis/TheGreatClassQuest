@@ -16,6 +16,7 @@ import { hideAppScreen, hideExtras, onHideExtras } from './fill-extras.js';
 import { classroomShellHtml, hideClassroom } from './fill-classroom.js';
 import { hideSurfaces, surfacesShellHtml } from './fill-surfaces.js';
 import { hideRedesign, seedSchool } from './fill-redesign.js';
+import { QUIZ_TYPES, describeQuizWeek, planSummaryText, quizFactsHtml, quizHistoryHtml, quizTrackHtml, weekRangeLabel } from '../../../../ui/tabs/quizSetupView.mjs';
 import { quizIntroHtml as stageIntroHtml, quizResultsHtml as stageResultsHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from '../../../../ui/modals/quizStageMarkup.js';
 
 function quizPlayShellHtml() {
@@ -267,97 +268,126 @@ function fillGrading() {
   }
 }
 
-function fillQuizSetup() {
-  document.getElementById('options-quiz-locked')?.classList.add('hidden');
-  document.getElementById('options-quiz-content')?.classList.remove('hidden');
-  const cls = document.getElementById('qow-class-display');
-  if (cls) cls.textContent = '📚 Junior B';
-  document.getElementById('qow-class-meta')?.classList.remove('hidden');
-  const level = document.getElementById('qow-class-level-badge');
-  if (level) level.textContent = 'Junior B';
-  const meta = document.getElementById('qow-class-meta-text');
-  if (meta) meta.textContent = 'Mon, Wed · 17:00–18:30';
-  document.getElementById('qow-card-curriculum')?.classList.remove('qow-card-disabled');
-  document.getElementById('qow-card-options')?.classList.remove('qow-card-disabled');
-  const lesson = document.getElementById('qow-lesson-focus');
-  if (lesson) {
-    lesson.classList.remove('hidden');
-    const summary = document.getElementById('qow-lesson-summary');
-    if (summary) summary.textContent = 'Since last quiz (Week 38): 3 lessons';
-    const units = document.getElementById('qow-lesson-units');
-    if (units) units.innerHTML = '<p class="qow-lesson-unit">Cambridge Primary Path 2 · Unit 4 · What is a friend?</p>';
-    const grammar = document.getElementById('qow-lesson-grammar');
-    if (grammar) {
-      grammar.classList.remove('hidden');
-      grammar.innerHTML = '<span class="qow-lesson-grammar-chip">present simple: affirmative, negative and questions</span>';
-    }
-    const words = document.getElementById('qow-lesson-words');
-    if (words) {
-      const list = [['friend', true], ['kind', true], ['share', true], ['trust', true], ['help', true], ['together', false]];
-      words.innerHTML = list.map(([word, on]) => `
-            <label class="qow-chip-label">
-                <input type="checkbox" value="${word}" class="qow-chip-check qow-lesson-word"${on ? ' checked' : ''} />
+const QUIZ_SAMPLE_QUESTIONS = Array.from({ length: 8 }, (_, i) => ({ id: `q${i + 1}`, ...(i < 2 ? { carriedFrom: { questionId: `p${i}` } } : {}) }));
+const QUIZ_SAMPLE_CURRICULUM = {
+  type: 'mix',
+  categories: [],
+  lessonFocus: { source: 'book-atlas', units: [{ unit: 4 }], words: ['friend', 'kind', 'share', 'trust', 'help'] }
+};
+const QUIZ_SAMPLE = {
+  none: null,
+  review: { status: 'review', questions: QUIZ_SAMPLE_QUESTIONS, curriculum: QUIZ_SAMPLE_CURRICULUM, reviewBeforeLive: true },
+  ready: { status: 'ready', questions: QUIZ_SAMPLE_QUESTIONS, curriculum: QUIZ_SAMPLE_CURRICULUM, reviewBeforeLive: false },
+  generating: { status: 'pending', questions: [], curriculum: QUIZ_SAMPLE_CURRICULUM },
+  completed: {
+    status: 'completed', weekKey: '2026-W40', questions: QUIZ_SAMPLE_QUESTIONS, curriculum: QUIZ_SAMPLE_CURRICULUM,
+    results: { tier: 'epic', firstTryCorrectPct: 88, allParticipating: Array.from({ length: 11 }, (_, i) => `s${i}`) }
+  }
+};
+
+/** Settings → Quiz with the same view models the live page uses (ui/tabs/quizSetup.js). */
+function fillQuizSetup(stateName = 'ready') {
+  const quiz = stateName in QUIZ_SAMPLE ? QUIZ_SAMPLE[stateName] : QUIZ_SAMPLE.ready;
+  const generating = stateName === 'generating';
+  const $ = (id) => document.getElementById(id);
+  const show = (el, on) => el?.classList.toggle('hidden', !on);
+  show($('options-quiz-locked'), false);
+  show($('options-quiz-content'), true);
+  show($('qwk-no-class'), false);
+  show($('qwk-body'), true);
+  show($('qwk-class-chip'), true);
+  $('qwk-class-logo').textContent = '📚';
+  $('qwk-class-name').textContent = 'Junior B';
+  $('qwk-class-meta').textContent = 'Junior B · Mon, Wed · 17:00–18:30';
+
+  const nextLesson = { date: new Date(2026, 9, 5), timeStart: '17:00' };
+  const model = describeQuizWeek({ quiz, nextLesson, generating });
+  const week = $('qwk-week');
+  week.dataset.tone = model.tone;
+  $('qwk-week-icon').textContent = model.icon;
+  $('qwk-week-eyebrow').textContent = `This week · ${weekRangeLabel('2026-10-05')}`;
+  $('qwk-week-title').textContent = model.title;
+  $('qwk-week-sub').textContent = model.sub;
+  $('qwk-track').innerHTML = quizTrackHtml(model.phase, { skippedCheck: quiz ? !quiz.reviewBeforeLive : false });
+  $('qwk-week-facts').innerHTML = quizFactsHtml(model.facts);
+  show($('qwk-week-facts'), model.facts.length > 0);
+  show($('qwk-gen'), generating);
+  if (generating) {
+    week.querySelectorAll('[data-gen-step]').forEach((el) => {
+      el.classList.toggle('is-done', el.dataset.genStep === '1');
+      el.classList.toggle('is-now', el.dataset.genStep === '2');
+    });
+    const fill = week.querySelector('.qwk-gen__fill');
+    if (fill) { fill.style.animation = 'none'; fill.style.width = '46%'; }
+  }
+  const actions = new Set(model.actions);
+  show($('quiz-review-btn'), actions.has('review') || actions.has('edit'));
+  $('quiz-review-btn').classList.toggle('ts-btn--quiet', !actions.has('review'));
+  $('quiz-review-btn-label').textContent = actions.has('review') ? 'Check & approve' : 'Read & edit the questions';
+  show($('qwk-play-btn'), actions.has('play'));
+  show($('qwk-results-btn'), actions.has('results'));
+  show($('quiz-reset-btn'), actions.has('reset'));
+
+  const hasQuestions = (quiz?.questions || []).length > 0;
+  const locked = quiz?.status === 'completed';
+  const open = !hasQuestions && !locked;
+  $('qwk-plan').dataset.mode = locked ? 'locked' : open ? 'open' : 'closed';
+  show($('qwk-plan-form'), open);
+  show($('qwk-plan-locked'), locked);
+  $('qwk-plan-title').textContent = hasQuestions ? 'This week\'s plan' : 'Plan the quiz';
+  $('qwk-plan-summary').textContent = quiz ? planSummaryText(quiz.curriculum) : '';
+  show($('qwk-plan-summary'), !open && Boolean(quiz));
+  show($('qwk-plan-toggle'), hasQuestions && !locked);
+
+  show($('qwk-lesson'), true);
+  show($('qwk-topics'), false);
+  $('qwk-lesson-window').textContent = 'Since last quiz (Week 39): 3 lessons';
+  $('qwk-lesson-units').innerHTML = '<p class="qwk-lesson__unit"><i class="fas fa-bookmark" aria-hidden="true"></i> Cambridge Primary Path 2 · Unit 4 · What is a friend?</p>';
+  $('qwk-lesson-grammar').innerHTML = '<span class="qwk-grammar"><i class="fas fa-spell-check" aria-hidden="true"></i> present simple: affirmative, negative and questions</span>';
+  const words = [['friend', true], ['kind', true], ['share', true], ['trust', true], ['help', true], ['together', false]];
+  $('qwk-lesson-words').innerHTML = words.map(([word, on]) => `
+            <label class="qwk-chip">
+                <input type="checkbox" value="${word}" class="qwk-chip__input qwk-lesson-word"${on ? ' checked' : ''} />
                 <span>${word}</span>
             </label>`).join('');
-    }
-    document.getElementById('qow-lesson-words-label')?.classList.remove('hidden');
-  }
-  const title = document.getElementById('qow-curriculum-title');
-  if (title) title.innerHTML = '<i class="fas fa-book-open mr-2 text-amber-500"></i>This week\'s lessons';
-  const details = document.getElementById('qow-different-focus');
-  if (details) {
-    details.classList.remove('qow-focus-fallback');
-    details.open = false;
-  }
-  document.getElementById('qow-different-focus-summary')?.classList.remove('hidden');
-  const keywords = document.getElementById('quiz-keywords');
-  if (keywords) keywords.value = '';
-  const keywordsLabel = document.getElementById('qow-keywords-label');
-  if (keywordsLabel) keywordsLabel.innerHTML = '<i class="fas fa-pen mr-1"></i> Add a note <span class="text-gray-400 font-normal">(optional)</span>';
-  const generate = document.getElementById('quiz-generate-btn');
-  if (generate) {
-    generate.disabled = false;
-    const icon = generate.querySelector('i');
-    if (icon) icon.className = 'fas fa-rotate-right';
-  }
-  const generateLabel = document.getElementById('quiz-generate-btn-label');
-  if (generateLabel) generateLabel.textContent = 'Re-generate Quiz';
-  const status = document.getElementById('quiz-status-area');
-  status?.classList.remove('hidden', 'qow-status-active', 'qow-status-done', 'qow-status-error');
-  status?.classList.add('qow-status-ready');
-  const icon = document.getElementById('quiz-status-icon');
-  if (icon) icon.textContent = '✅';
-  const text = document.getElementById('quiz-status-text');
-  if (text) text.textContent = 'Quiz ready — 8 questions!';
-  const statusDetails = document.getElementById('quiz-status-details');
-  if (statusDetails) statusDetails.textContent = 'MIX · What is a friend? · present simple';
-  const badge = document.getElementById('qow-status-badge');
-  if (badge) {
-    badge.textContent = '✅ Ready';
-    badge.className = 'qow-status-pill qow-pill-ready';
-    badge.classList.remove('hidden');
-  }
-  document.getElementById('quiz-reset-btn')?.classList.remove('hidden');
-  document.getElementById('quiz-history-area')?.classList.remove('hidden');
-  const history = document.getElementById('quiz-history-list');
-  if (history) {
-    history.innerHTML = `
-                        <div class="qow-history-item">
-                            <span class="qow-history-week">Week 2026-W35</span>
-                            <span class="qow-tier-badge qow-tier-epic">🌟 EPIC</span>
-                            <span class="qow-history-pct">88%</span>
-                            <span class="qow-history-q">8 Q</span>
-                        </div>
-                        <div class="qow-history-item">
-                            <span class="qow-history-week">Week 2026-W34</span>
-                            <span class="qow-tier-badge qow-tier-rare">💎 RARE</span>
-                            <span class="qow-history-pct">71%</span>
-                            <span class="qow-history-q">7 Q</span>
-                        </div>`;
-  }
+  $('qwk-words-count').textContent = '5 of 6';
+  $('qwk-type').innerHTML = QUIZ_TYPES.map((t) => `
+        <button type="button" role="radio" class="qwk-type__opt" data-type="${t.id}" aria-checked="${t.id === 'mix'}">
+            <span class="qwk-type__icon" aria-hidden="true">${t.icon}</span>
+            <span class="qwk-type__label">${t.label}</span>
+            <span class="qwk-type__hint">${t.hint}</span>
+        </button>`).join('');
+  $('quiz-review-toggle').checked = true;
+  $('quiz-carry-toggle').checked = true;
+  show($('quiz-carry-panel'), true);
+  $('quiz-carry-summary').textContent = '2 questions missed last time. Tick the ones to bring back.';
+  $('quiz-carry-list').innerHTML = [
+    ['Which word means "a person you like and trust"?', 'friend', 'teacher', true],
+    ['She ___ her toys with her brother.', 'shares', 'share', false]
+  ].map(([q, a, w, on], i) => `
+            <label class="qwk-carry__item">
+                <input type="checkbox" class="qwk-carry__check" data-carry-index="${i}"${on ? ' checked' : ''} />
+                <span class="qwk-carry__copy">
+                    <span class="qwk-carry__question">${q}</span>
+                    <span class="qwk-carry__meta"><span class="qwk-carry__answer"><i class="fas fa-check" aria-hidden="true"></i> ${a}</span><span class="qwk-carry__wrong">Most chose “${w}”</span></span>
+                </span>
+            </label>`).join('');
+  $('qwk-go-summary').textContent = 'About 9 questions · Mix · 5 words · 1 back from last time';
+  const generate = $('quiz-generate-btn');
+  generate.disabled = false;
+  $('quiz-generate-btn-label').textContent = 'Create the quiz';
+
+  show($('quiz-history-area'), true);
+  $('quiz-history-list').innerHTML = quizHistoryHtml([
+    { weekKey: '2026-W39', curriculum: { type: 'vocabulary', lessonFocus: { units: [{ unit: 3 }], words: ['tall', 'short', 'curly', 'straight'] } }, results: { tier: 'epic', firstTryCorrectPct: 88, totalQuestions: 8, allParticipating: Array(11).fill(0) } },
+    { weekKey: '2026-W38', curriculum: { type: 'grammar', lessonFocus: { units: [{ unit: 3 }], grammarPoints: ['have got / has got'], words: [] } }, results: { tier: 'rare', firstTryCorrectPct: 71, totalQuestions: 7, allParticipating: Array(10).fill(0) } },
+    { weekKey: '2026-W37', curriculum: { type: 'mix', categories: ['Animals', 'Can / Can\'t'] }, results: { tier: 'common', firstTryCorrectPct: 54, totalQuestions: 8, allParticipating: Array(9).fill(0) } }
+  ]);
 }
 
-export function showSettings(section) {
+export function showSettings(sectionArg) {
+  // 'quiz' or 'quiz:review' (none, generating, review, ready, completed)
+  const [section, quizState = section === 'quiz' ? 'ready' : ''] = String(sectionArg).split(':');
   startShow();
   hideRoster();
   hideChronicle();
@@ -380,7 +410,7 @@ export function showSettings(section) {
   }
   if (section === 'assessments') fillGrading();
   if (section === 'access') return fillFamilyAccess();
-  if (section === 'quiz') fillQuizSetup();
+  if (quizState) fillQuizSetup(quizState);
 }
 
 export function hideSettings() {

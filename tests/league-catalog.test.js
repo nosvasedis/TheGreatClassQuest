@@ -138,7 +138,7 @@ test('league picker is themed, grouped by age stage, repeatable, and silent', as
 });
 
 test('Quiz of the Week has an explicit curriculum for every league', () => {
-  const source = read('ui/tabs/navigation.js');
+  const source = read('ui/tabs/quizSetup.js');
   for (const league of [
     'Pre-Junior', 'Junior A', 'Junior B',
     'A', 'B', 'C', 'D',

@@ -262,6 +262,7 @@
 
 /* 47. Teacher Settings: the teacher's desk (pages, stationery, picker) */
 @import url('./styles/teacher_settings.css');
+@import url('./styles/quiz_setup.css');
 
 /* 48. Award Stars: star clouds, virtues, tallies, award moments (features/awardCloudCard.mjs) */
 @import url('./styles/award_stars.css');

@@ -15,14 +15,14 @@ import {
     getQuizHistory
 } from '../db/actions/quizOfTheWeek.js';
 import { computeQuestionStats } from './quizReviewCore.mjs';
+import { expectedQuestionCount } from './quizCurriculumCore.mjs';
 
 // =============================================================================
 // 0. QUESTION COUNT SCALING — Proportional to class size
 // =============================================================================
 
 export function calculateQuestionCount(enrolledCount) {
-    if (!enrolledCount || enrolledCount <= 0) return 7;
-    return Math.min(15, Math.max(5, Math.ceil(enrolledCount * 0.75)));
+    return expectedQuestionCount(enrolledCount);
 }
 
 // =============================================================================

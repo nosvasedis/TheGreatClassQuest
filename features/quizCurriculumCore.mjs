@@ -8,6 +8,12 @@ import { cleanCampfireText, lessonThemeFromUnit } from './heroCampfireCore.mjs';
 export const QUIZ_WORD_CAP = 16;
 export const QUIZ_EXAMPLE_CAP = 4;
 
+/** Questions in a fresh quiz: proportional to class size, 5–15 (7 when the roster is unknown). */
+export function expectedQuestionCount(enrolledCount) {
+    if (!enrolledCount || enrolledCount <= 0) return 7;
+    return Math.min(15, Math.max(5, Math.ceil(enrolledCount * 0.75)));
+}
+
 const STOP_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'to', 'of', 'in', 'on', 'at', 'is', 'are', 'it', 'this', 'that', 'page', 'unit', 'lesson', 'exercise', 'ex', 'homework', 'read', 'write', 'learn', 'study', 'do']);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_WEEK = /^(\d{4})-W(\d{2})$/;

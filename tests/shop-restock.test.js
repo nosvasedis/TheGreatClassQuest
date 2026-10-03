@@ -282,6 +282,8 @@ test('shop restock does not wipe a live stall and runs in the background', async
   // or New picture keeps showing the old picture.
   assert.match(manager, /renderSkippedWhileBusy = true/);
   assert.match(manager, /showPicture\(card, result\.image\)/);
+  // The Market Manager loads the stall itself; it must not depend on the Mystic Market.
+  assert.match(manager, /ensureShopItemsListener\(\)/);
   assert.match(fs.readFileSync(path.join(root, 'templates/app/tabs/options.js'), 'utf8'), /data-options-tab="market"/);
 });
 

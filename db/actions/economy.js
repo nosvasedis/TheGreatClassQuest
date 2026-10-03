@@ -255,6 +255,11 @@ export async function handleGenerateShopStock() {
     return runShopStockJob('replace-monthly', { toast: true });
 }
 
+// The Market Manager's "Fill the stall": only the missing spots, with progress toasts.
+export async function handleFillShopStock() {
+    return runShopStockJob('ensure', { toast: true });
+}
+
 export async function handleEnsureShopStock() {
     if (!canUseFeature('eliteAI')) return null;
     if (!isGameplaySeasonLiveFromAppState(state)) return null;

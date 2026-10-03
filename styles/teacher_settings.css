@@ -1617,6 +1617,63 @@
 #options-tab .market-manager-btn--replace { --btn: #0369a1; --btn-line: #bae6fd; }
 #options-tab .market-manager-btn--remove { --btn: #dc2626; --btn-line: #fecaca; margin-left: auto; }
 
+#options-tab .market-manager-btn--fill { --btn: #b45309; --btn-line: #fcd34d; margin-left: auto; }
+
+#options-tab .market-manager-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 0.8rem;
+    padding: 0.8rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #166534;
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    border-radius: 1rem;
+}
+
+#options-tab .market-manager-status--busy {
+    color: #6d28d9;
+    background: #f5f3ff;
+    border-color: #ddd6fe;
+}
+
+#options-tab .market-manager-status--warn {
+    color: #92400e;
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+#options-tab .market-manager-empty__action {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.75rem;
+}
+
+#options-tab .market-manager-hint {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ts-ink-soft);
+}
+
+#options-tab .market-manager-unsaved {
+    display: none;
+    align-self: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #b45309;
+}
+
+#options-tab .market-manager-card.is-dirty {
+    border-color: #fcd34d;
+    box-shadow: 0 0 0 2px #fef3c7, 0 8px 18px -14px rgba(92, 64, 24, 0.5);
+}
+
+#options-tab .market-manager-card.is-dirty .market-manager-unsaved {
+    display: inline;
+}
+
 /* ── Quiz of the Week: its step cards join the desk ── */
 #options-tab [data-ts-accent="quiz"] .qow-card {
     position: relative;

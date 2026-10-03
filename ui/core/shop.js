@@ -230,6 +230,8 @@ let shopRestockBusy = false;
 export function setShopRestockBusy(busy) {
     shopRestockBusy = Boolean(busy);
     syncShopRestockButton();
+    // The Market Manager shows the same restock in progress without loading the Market.
+    document.dispatchEvent(new CustomEvent('gcq:shop-restock', { detail: { busy: shopRestockBusy } }));
 }
 
 function syncShopRestockButton() {

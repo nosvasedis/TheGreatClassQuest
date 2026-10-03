@@ -237,17 +237,19 @@ export function grandWondersHtml({ wheel = {}, familiars = {}, luckyGuild = null
 }
 
 /** Chapter V: four guild pillars. Displayed in the fixed guild order so position gives nothing away. */
-export function grandGuildPillarsHtml(rows = [], { maxPower = 1 } = {}) {
+export function grandGuildPillarsHtml(rows = [], { maxCrowns = 1 } = {}) {
     const pillars = rows.map((row) => {
         const g = row.guild || {};
-        const h = Math.max(0.12, Math.min(1, (Number(row.guildPower) || 0) / (maxPower || 1)));
+        const crowns = Number(row.crowns) || 0;
+        const h = Math.max(0.12, Math.min(1, crowns / (maxCrowns || 1)));
+        const wins = (row.chapterWins || []).length;
         return `<li class="grd-pillar" data-guild="${esc(row.guildId)}" data-rank="${Number(row.rank)}" style="--g1:${esc(g.primary)};--g2:${esc(g.secondary)};--gg:${esc(g.glow)};--h:${h.toFixed(3)}">
             <div class="grd-pillar__crown" aria-hidden="true"><i class="fas fa-crown"></i></div>
             ${crestHtml(g, 'grd-crest grd-pillar__crest')}
             <b class="grd-pillar__name">${esc(g.name || row.guildName)}</b>
             <div class="grd-pillar__track">
                 <span class="grd-pillar__bar"></span>
-                <span class="grd-pillar__value"><span class="grd-count" data-count="${Math.round(Number(row.guildPower) || 0)}">?</span><small>Guild Power</small></span>
+                <span class="grd-pillar__value"><span class="grd-count" data-count="${crowns}">?</span><small>👑 Crowns${wins ? ` · ${wins} Chapter${wins === 1 ? '' : 's'} won` : ''}</small></span>
             </div>
             <span class="grd-pillar__rank">#${Number(row.rank)}</span>
         </li>`;

@@ -195,7 +195,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Pro',
             label: 'Pro',
-            bullets: "Adds Guild Hall (Guild Power, Fortune's Wheel), Hero Path & Skill Tree, Quest Calendar & My Planning, Scholar's Scroll, Family Access, Attendance Chronicle, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes)."
+            bullets: "Adds Guild Hall (the Crown Race, Fortune's Wheel), Hero Path & Skill Tree, Quest Calendar & My Planning, Scholar's Scroll, Family Access, Attendance Chronicle, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes)."
         },
         {
             tier: 'Elite',

@@ -199,7 +199,7 @@
       return termShot('fortune-ledger.png', 'Fortune Ledger: this year’s Wheel history on Guild Hall');
     }
     if (w === 'guild-power') {
-      return termShot('guild-power.png', 'Guild Power: the year’s Glory per member');
+      return termShot('guild-power.png', 'The Crown Race: monthly Chapters that pay Crowns');
     }
     if (w === 'quiz-week') {
       return termShot('quiz-of-the-week.png', 'Quiz of the Week on the Home weather card')

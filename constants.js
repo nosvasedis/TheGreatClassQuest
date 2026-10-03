@@ -164,7 +164,7 @@ export function getQuestLeagueDefinition(league) {
     return QUEST_LEAGUE_DEFINITIONS.find((definition) => definition.name === league) || null;
 }
 
-/** Young-learner leagues never receive cursed or harsh negative segments. */
+/** Young-learner leagues (Pre-Junior, Junior). */
 export const JUNIOR_LEAGUES = QUEST_LEAGUE_DEFINITIONS
     .filter((league) => league.isYoungLearner)
     .map((league) => league.name);
@@ -177,8 +177,6 @@ export const EARLY_LEAGUES = QUEST_LEAGUE_DEFINITIONS
 // ─── Glory Currency (Guild scoring) ──────────────────────────────────────────
 export const GLORY_PER_STAR = 2;
 export const GLORY_EMOJI = '⚜️';
-
-/** Composite Guild Power weights (must sum to 1.0) */
 
 /** Fortune's Wheel segment rarity weights (probability out of 100) */
 export const WHEEL_RARITY_WEIGHTS = {
@@ -225,9 +223,9 @@ export const WHEEL_RARITY_CONFIG = {
         { label: 'Mythic',    color: '#a78bfa', bg: '#3b0764', glow: '#a78bfa80' },   // Astral Violet
     ],
     cursed: [
-        { label: 'Cursed',    color: '#ef4444', bg: '#450a0a', glow: '#ef444480' },   // Blood Red
-        { label: 'Cursed',    color: '#dc2626', bg: '#450a0a', glow: '#dc262680' },   // Dark Crimson
-        { label: 'Cursed',    color: '#b91c1c', bg: '#450a0a', glow: '#b91c1c80' },   // Shadow Red
+        { label: 'Twist',     color: '#ef4444', bg: '#450a0a', glow: '#ef444480' },   // Blood Red
+        { label: 'Twist',     color: '#dc2626', bg: '#450a0a', glow: '#dc262680' },   // Dark Crimson
+        { label: 'Twist',     color: '#b91c1c', bg: '#450a0a', glow: '#b91c1c80' },   // Shadow Red
     ],
 };
 

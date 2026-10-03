@@ -5,6 +5,11 @@ import { getGuildEmblemUrl } from '../../features/guilds.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import * as state from '../../state.js';
 import { GLORY_EMOJI } from '../../constants.js';
+import { UNITY_SEAL, chapterName } from '../../features/guildScoringCore.js';
+
+function _ordinal(n) {
+    return ['1st', '2nd', '3rd', '4th'][Number(n) - 1] || `#${n}`;
+}
 
 let _wired = false;
 let _selectedGuildId = null;
@@ -63,22 +68,21 @@ function _renderGuildRoleBadges(hero, guild) {
     return `<div class="guild-heroes-role-badges">${badges.join('')}</div>`;
 }
 
-function _momentumSentence(guild) {
-    const pct = Number(guild.totals.momentumPct) || 0;
-    const arrow = guild.totals.momentumArrow || '';
-    if (Math.abs(pct) < 0.5) return `${arrow} About the same Glory pace as last week.`;
-    const dir = pct > 0 ? 'up' : 'down';
-    return `${arrow} Glory is ${dir} about ${_fmtOne(Math.abs(pct))}% compared to last week.`;
+function _chapterLabel(key) {
+    return chapterName(key) || 'this month';
 }
 
 function _rankPhrase(guild, payload) {
-    const r = guild.comparison.rankByGuildPower;
+    const r = guild.comparison.rankByCrowns;
     const leader = payload.guilds[0];
     if (!leader) return '';
-    if (guild.guildId === leader.guildId) return `Your guild is #1 for Guild Power right now.`;
-    const powerGap = guild.comparison.deltaToLeaderPower || 0;
-    const perMemberGap = guild.comparison.deltaToLeaderPerCapitaGlory || 0;
-    return `#${r} of ${payload.guilds.length}. ${_fmtOne(powerGap)} Power behind ${leader.guildName}, about ${_fmtOne(perMemberGap)} season ${GLORY_EMOJI}/member back.`;
+    const t = guild.totals;
+    const chapterBit = t.chapterPlace
+        ? ` ${_ordinal(t.chapterPlace)} in ${_chapterLabel(t.chapterKey)} so far (+${t.chapterCrowns} 👑 if it ended today).`
+        : ` No Glory yet in ${_chapterLabel(t.chapterKey)}.`;
+    if (guild.guildId === leader.guildId) return `Your guild leads the Crown Race with ${t.crowns} Crown${t.crowns === 1 ? '' : 's'}.${chapterBit}`;
+    const gap = guild.comparison.crownsBehindLeader || 0;
+    return `${_ordinal(r)} of ${payload.guilds.length} in the Crown Race${gap ? `, ${gap} Crown${gap === 1 ? '' : 's'} behind ${leader.guildName}` : `, level with ${leader.guildName} on Crowns`}.${chapterBit}`;
 }
 
 function _renderOverviewCards(payload) {
@@ -91,13 +95,13 @@ function _renderOverviewCards(payload) {
                     data-guild-switch="${g.guildId}"
                     style="--gh-primary:${g.colors.primary};--gh-glow:${g.colors.glow};--gh-secondary:${g.colors.secondary};">
                 <div class="guild-heroes-overview-head">
-                    <span class="guild-heroes-rank">#${g.comparison.rankByGuildPower}</span>
+                    <span class="guild-heroes-rank">#${g.comparison.rankByCrowns}</span>
                     <span class="guild-heroes-name">${_guildEmblem(g)} ${_escapeHtml(g.guildName)}</span>
                 </div>
                 <div class="guild-heroes-overview-body">
                     ${_heroAvatar(champ, g.colors.primary)}
                     <div class="guild-heroes-overview-meta">
-                        <div class="guild-heroes-overview-line"><strong>${_fmtOne(g.totals.guildPower)}</strong> Guild Power (season ${GLORY_EMOJI} per hero)</div>
+                        <div class="guild-heroes-overview-line"><strong>👑 ${_fmtNumber(g.totals.crowns)}</strong> Crowns · ${_fmtOne(g.totals.chapterPerMember)} ${GLORY_EMOJI}/member in ${_escapeHtml(_chapterLabel(g.totals.chapterKey))}</div>
                         <div class="guild-heroes-overview-line">${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐ this month` : 'Pick your guild above'}</div>
                     </div>
                 </div>
@@ -123,27 +127,6 @@ function _renderViewTabs() {
 }
 
 function _renderWheelPanel(guild) {
-    const now = Date.now();
-    const activeMods = (state.get('allGuildScores')?.[guild.guildId]?.gloryModifiers || [])
-        .filter(m => (Number(m.expiresAt) || 0) > now)
-        .sort((a, b) => (Number(a.expiresAt) || 0) - (Number(b.expiresAt) || 0));
-
-    const modsHtml = activeMods.length
-        ? `<div class="gh-wheel-mods">
-                ${activeMods.slice(0, 8).map(m => {
-                    const ms = Math.max(0, (Number(m.expiresAt) || 0) - now);
-                    const hrs = Math.floor(ms / 3_600_000);
-                    const mins = Math.floor((ms % 3_600_000) / 60_000);
-                    const eta = hrs > 0 ? `${hrs}h ${mins}m` : `${Math.max(mins, 1)}m`;
-                    const label = _escapeHtml(m.label || m.type || 'Boost');
-                    return `<div class="gh-wheel-mod">
-                        <div class="t">${label}</div>
-                        <div class="s">${eta} left</div>
-                    </div>`;
-                }).join('')}
-           </div>`
-        : `<div class="gh-wheel-empty">No active Glory modifiers right now. Future stars will use the normal ledger rules.</div>`;
-
     const logs = state.get('fortuneWheelLog') || [];
     const omenRows = logs.flatMap(entry => {
         const spunAt = entry.spunAt?.toDate ? entry.spunAt.toDate() : (entry.spunAt ? new Date(entry.spunAt) : null);
@@ -174,7 +157,7 @@ function _renderWheelPanel(guild) {
                     </div>
                 `).join('')}
            </div>`
-        : `<div class="gh-wheel-empty">No Fortune's Wheel ledger entries for this guild yet.</div>`;
+        : `<div class="gh-wheel-empty">No Fortune's Wheel treasures for this guild yet.</div>`;
 
     return `
         <div class="gh-wheel-panel gh-wheel-panel--modal">
@@ -183,17 +166,13 @@ function _renderWheelPanel(guild) {
                     <div class="h">Recent spins</div>
                     ${omensHtml}
                 </section>
-                <section class="gh-wheel-card">
-                    <div class="h">Active boosts</div>
-                    ${modsHtml}
-                </section>
             </div>
         </div>`;
 }
 
 function _renderGlanceView(payload, guild) {
     const t = guild.totals;
-    const activityPct = Math.round(Number(t.activityScore) || 0);
+    const wins = (t.chapterWins || []).map((k) => chapterName(k));
     return `
         <div class="gh-spotlight">
             <div class="gh-spotlight-hero" style="--gh-spot:${guild.colors.primary};--gh-spot-glow:${guild.colors.glow};">
@@ -205,27 +184,27 @@ function _renderGlanceView(payload, guild) {
             </div>
             <div class="gh-stat-grid">
                 <div class="gh-stat-tile">
-                    <span class="gh-stat-tile__label">Guild Power</span>
-                    <span class="gh-stat-tile__value">${_fmtOne(t.guildPower)}</span>
-                    <span class="gh-stat-tile__hint">Season-fair ledger score</span>
+                    <span class="gh-stat-tile__label">Crowns</span>
+                    <span class="gh-stat-tile__value">👑 ${_fmtNumber(t.crowns)}</span>
+                    <span class="gh-stat-tile__hint">${wins.length ? `Won ${_escapeHtml(wins.join(', '))}` : 'No Chapter won yet'}</span>
                 </div>
                 <div class="gh-stat-tile">
-                    <span class="gh-stat-tile__label">Season ${GLORY_EMOJI}/hero</span>
-                    <span class="gh-stat-tile__value">${_fmtOne(t.perCapitaGlory)}</span>
-                    <span class="gh-stat-tile__hint">${_fmtNumber(t.totalGlory)} total ${GLORY_EMOJI}</span>
+                    <span class="gh-stat-tile__label">${_escapeHtml(_chapterLabel(t.chapterKey))} ${GLORY_EMOJI}/hero</span>
+                    <span class="gh-stat-tile__value">${_fmtOne(t.chapterPerMember)}</span>
+                    <span class="gh-stat-tile__hint">${t.chapterPlace ? `${_ordinal(t.chapterPlace)} in this Chapter` : 'Chapter not started yet'}</span>
                 </div>
                 <div class="gh-stat-tile">
-                    <span class="gh-stat-tile__label">Weekly ${GLORY_EMOJI}/hero</span>
-                    <span class="gh-stat-tile__value">${_fmtOne(t.weeklyPerCapitaGlory)}</span>
-                    <span class="gh-stat-tile__hint">${_momentumSentence(guild)}</span>
+                    <span class="gh-stat-tile__label">Unity Seal</span>
+                    <span class="gh-stat-tile__value">${_fmtNumber(t.unityCount)}/${_fmtNumber(t.unityNeeded || t.memberCount)}</span>
+                    <span class="gh-stat-tile__hint">${t.unity ? 'Seal won: +1 Crown this Chapter' : `Heroes with ${UNITY_SEAL.minGlory} ${GLORY_EMOJI} this Chapter`}</span>
                 </div>
                 <div class="gh-stat-tile">
-                    <span class="gh-stat-tile__label">Showing up</span>
-                    <span class="gh-stat-tile__value">${activityPct}%</span>
-                    <span class="gh-stat-tile__hint">Heroes who earned stars this week</span>
+                    <span class="gh-stat-tile__label">Year ${GLORY_EMOJI}/hero</span>
+                    <span class="gh-stat-tile__value">${_fmtOne(t.yearGloryPerMember)}</span>
+                    <span class="gh-stat-tile__hint">Splits a tie on Crowns</span>
                 </div>
             </div>
-            <p class="gh-soft-note">${_fmtNumber(t.weeklyGlory)} ${GLORY_EMOJI} earned this week · ${_fmtNumber(t.memberCount)} heroes in the guild · ${t.momentumArrow} ${t.momentumPct >= 0 ? '+' : ''}${_fmtOne(t.momentumPct)}% momentum</p>
+            <p class="gh-soft-note">${_fmtNumber(t.contributors)} of ${_fmtNumber(t.memberCount)} heroes have earned Glory this Chapter · ${_fmtNumber(Math.round(t.totalGlory))} ${GLORY_EMOJI} this year</p>
         </div>`;
 }
 

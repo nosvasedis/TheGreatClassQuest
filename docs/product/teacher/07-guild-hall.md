@@ -2,11 +2,11 @@
 
 Guild Hall is **guild versus guild** for the **whole school year**. Students from every level join **one house** and feed that house whenever they earn stars. In June, one guild is crowned at the **Grand Guild Ceremony**.
 
-This is the third race. It does **not** reset every month the way Team Quest and Hero’s Challenge do.
+This is the third race. The year is told in **Chapters**: every school month is a fresh race for **Crowns**, and the Crowns add up all year. A bad October never ends a guild’s year.
 
 ## Purpose
 
-**Belonging across ages.** A quiet Junior and a bold Senior can share a motto. Scoring is **Guild Power**, built so a small house is not doomed by headcount.
+**Belonging across ages.** A quiet Junior and a bold Senior can share a motto. Scoring is the **Crown Race**, built so a small house is not doomed by headcount and a guild that falls behind always has a next month to fight for.
 
 ## The four guilds
 
@@ -20,7 +20,7 @@ Four houses. Four temperaments. The emblems, anthems, and colours are the same e
 
 **Phoenix Rising** — *Fall down seven, rise up eight.* Resilience, Renewal, Hope. The house of the second chance. Welcome Back belongs in their story. They come back to the work.
 
-Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem on a column and the guild's **banner** unfurls over the whole screen: a heraldic banner in the house colours hanging from a gilded rod, with the crest, the name, the motto on a ribbon, the traits and the numbers (Guild Power, Total Glory, stars, stars per member, members). Close it and it rolls back up.
+Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem on a column and the guild's **banner** unfurls over the whole screen: a heraldic banner in the house colours hanging from a gilded rod, with the crest, the name, the motto on a ribbon, the traits and the numbers (Crowns, this Chapter’s Glory per member, the Unity Seal count, the year’s Glory and members). Close it and it rolls back up.
 
 The small **music-note** button on the emblem plays the anthem. It opens in a torch-lit alcove with the crest between two torches; the verses light up as they are sung. Play the anthem when the room needs identity, not noise for its own sake.
 
@@ -41,29 +41,39 @@ The question pool **matches the league** — Pre-Junior language is not D langua
 
 Starter schools see a locked hat. **Pro** and **Elite** run the quiz.
 
-## Glory and Guild Power
+## Glory and the Crown Race
 
-Every positive star adds **Guild Glory**, at **2 Glory per star**, plus extras from the Wheel, the Quiz and Glory artifacts.
+Every positive star adds **Guild Glory**, at **2 Glory per star**, plus a little from Quiz of the Week, Fortune’s Wheel and a few Mystic Market relics. Glory is never taken away by chance: only an undone star or a teacher’s correction removes it.
 
-**Guild Power** (what the crystal columns rank) is simple: **the Glory each member has earned this school year, on average**. Add up the Glory the guild’s current members earned since September, divide by how many members the guild has, and that is the number on the column. A house of eight who all play can beat a house of twenty where four children carry the crystal.
+**Chapters.** Each school month is a **Chapter**. On the 1st every guild starts the Chapter at 0. The Chapter is won by the guild whose members earned the **most Glory each, on average**: the Glory its current members earned that month, divided by how many members it has. A house of eight who all play beats a house of twenty where four children carry the crystal.
 
-- **Only Glory moves it.** A guild’s Power changes only when that guild earns or loses Glory, never just because a new week began. The standings do not flip-flop on a Monday.
-- **This week’s form is a badge, not a score.** Glory per member this week, members active this week and Glory versus last week still show on each column, so the room can see who is busy right now. They never change the order.
-- **Leavers take their Glory with them.** When a student leaves the school, the Glory they earned leaves the guild too, so no guild climbs by getting smaller.
-- **Every guild size is equal at the Wheel.** Fortune’s Wheel Glory is sized to each guild, so every member of every guild gains or loses the same (see Fortune’s Wheel below).
-- **The June crown** goes to the guild with the highest Guild Power at the Grand Guild Ceremony.
+**Crowns.** When a Chapter ends it is sealed and pays Crowns:
 
-Tap the **?** next to Guild Power (under each column's number, or on a guild's banner) to open **How Guild Power works**, which says all this on screen in plain words. A busy small guild can beat a sleepy large one. That is the pedagogical point — say it aloud.
+| Place | 1st | 2nd | 3rd | 4th |
+|-------|-----|-----|-----|-----|
+| Crowns | 5 | 3 | 2 | 1 |
+
+Guilds level on Glory per member share the higher place. A guild that earned no Glory in the month gets no Crowns.
+
+**The Unity Seal: +1 Crown.** Any guild where at least **4 in 5 members** earned **6 Glory (3 stars)** that month takes one extra Crown, whatever its place. Every guild can win it in the same month. It rewards the room for bringing the quiet heroes along, not only for the stars of the stars.
+
+**The year.** The guild with the **most Crowns** at the Grand Guild Ceremony wins the June crown. If two guilds are level on Crowns, the one with more Glory per member over the whole year wins.
+
+- **Sealed Chapters never change.** Once a month has ended and been sealed, its places and Crowns are history. A star undone later still comes off the guild’s year Glory, but not off a sealed Chapter.
+- **Leavers take their Glory with them.** When a student leaves, their Glory stops counting for the guild, so no guild climbs by getting smaller.
+- **Fair at every size.** Wheel Glory, the Chalice of Unity and Quiz of the Week give Glory to individual children, so a big guild is never handed a bigger number just for being big.
+
+Tap the **?** on the Crown Race (or on a guild’s banner) to open **How the Crown Race works**, which says all this on screen in plain words. A busy small guild can beat a sleepy large one, and a guild that came 4th last month can win this one. Say it aloud.
 
 The Hall stays still until the school year has begun and class schedules exist, so do not worry if it looks quiet during setup week.
 
 ## What you see on the tab
 
-- A **balance-of-power bar** above the columns (each guild's share of the summed Guild Power, plus who leads and by how much). Live season only
-- Four **crystal columns**, ranked by Guild Power (gold / silver / bronze plaques, a crown for 1st), with fill, rank-change arrows, member counts
-- Under each Power number: a **chase line** that says how far the house is from its neighbours (for example “N Power ahead of 2nd”, or “N Power behind 2nd”), with “Neck and neck with…” when the gap is under 0.05 Power and “Tied with…” or “Tied for 1st” only when the Power is exactly equal; a **Latest** line once something moves during your session (“+3 Power”, “Up to 2nd”, “Down to 3rd”); and four tiles: the Glory the current members earned this year, plus this week’s form (Glory per member this week, members active this week, Glory compared with last week). The form tiles never change the ranking
-- **This Month’s Champion** per guild (top earner; also badged on Hero’s Challenge)
-- Active **Wheel boon chips** on columns
+- **The Crown Race** at the top: one row per guild with its Crowns, and one stone per month of the year. Sealed months show the Crowns won (a crown icon for a Chapter win, a glow for a Unity Seal); the running month shows the Crowns the guild would take if it ended today. The header says who leads and by how much, which Chapter is running and how many days are left
+- Four **crystal columns**, in Crown Race order. The crystal fills with **this Chapter’s Glory per member**, the number every guild is racing on this month
+- Under each number: the guild’s **place this Chapter** and the Crowns it would win today (“2nd now · +3 👑 so far”), then the **Unity Seal meter** (how many members have earned their 6 Glory this month, against how many are needed)
+- Tiles for the guild’s **Crowns** and its year Glory, and any **Guild Standards** raised this Chapter (students who bought one in the Mystic Market)
+- **Chapter champion** per guild: the member with the most Glory this month
 - **Magical Analytics** when you expand a column: champions, top heroes, class mix, contribution, activity
 - **Fortune’s Wheel** (when the ritual window is open)
 - **Fortune Ledger** (collapsible, paged history of spins)
@@ -83,7 +93,7 @@ The end-of-year spectacle, a **Midsummer Festival** under the guild castle. Home
 - **Chapter II · The Quest Road.** Each class’s year as a row of monthly bars. Classes are not ranked against other leagues.
 - **Chapter III · The Crown Road.** One tile per finished month with its Prodigy of the Month (or Co-Prodigies), and a **Most crowned** plaque.
 - **Chapter IV · Wonders of the Year.** Fortune’s Wheel spins and Familiars hatched, with the luckiest guild. Skipped when the year has neither.
-- **Chapter V · The Guild Crowning.** Night falls. The four guild pillars stand with their power hidden and are revealed **from last place up** (**Reveal #4**, **#3**, **#2**). **🥁 Crown the Champion** runs a drumroll with the spotlight sweeping the last two pillars, then crowns the winning guild by **Guild Power** (the year’s Glory per member). Each pillar shows its Guild Power when it is revealed. Its crest, motto and **anthem** follow, with the lyrics lighting up in time with the music, and the guild’s top heroes.
+- **Chapter V · The Guild Crowning.** Night falls. The four guild pillars stand with their power hidden and are revealed **from last place up** (**Reveal #4**, **#3**, **#2**). **🥁 Crown the Champion** runs a drumroll with the spotlight sweeping the last two pillars, then crowns the guild with the **most Crowns** (June’s Chapter counts as it stands that day; a tie goes to the year’s Glory per member). Each pillar shows its Crowns and the Chapters it won when it is revealed. Its crest, motto and **anthem** follow, with the lyrics lighting up in time with the music, and the guild’s top heroes.
 - **Chapter VI · The Hall of Heroes.** Every hero of the participating classes appears as a star in the night sky, with the numbers of the year.
 
 **Finish Ceremony** saves the year’s summary (heroes, class stars, prodigy crowns, the guild ranking, Wheel spins and Familiars) and says farewell until next year. Guilds are for life: the ceremony never re-sorts anyone.
@@ -101,24 +111,20 @@ A weekly ritual, not a slot machine to mash every lesson. It lives on this tab b
 - You are **inside lesson time**
 - This class has **not** already spun this week
 
-**How the ceremony runs.** Open **Fortune's Wheel** from its button in the Hall. It opens as a celestial **Wheel of Fate**: a night sky with a turning zodiac ring, the wheel framed by star lamps. The four guilds take their turn **one at a time, in a random order**. Each guild gets its own wheel, and an **On this wheel** panel counts how many wedges of each rarity it faces. Press **Spin This Guild**; the landed wedge is revealed on a fortune card. Then **Present Next Guild**, and after the fourth guild **Reveal Final Ledger** deals the week's outcome as four fortune cards. What the wheel gives or takes lands on that guild's members **in this class**. When the wheel cannot spin, it is shown chained and sealed (or recharging, if this class has already spun this week).
+**How the ceremony runs.** Open **Fortune's Wheel** from its button in the Hall. It opens as a celestial **Wheel of Fate**: a night sky with a turning zodiac ring, the wheel framed by star lamps. The four guilds take their turn **one at a time, in a random order**. Each guild gets its own wheel, and an **On this wheel** panel counts how many wedges of each rarity it faces. Press **Spin This Guild**; the landed wedge is revealed on a fortune card. Then **Present Next Guild**, and after the fourth guild **Reveal Final Ledger** deals the week's outcome as four fortune cards. Every gift lands on that guild's members **in this class**. When the wheel cannot spin, it is shown chained and sealed (or recharging, if this class has already spun this week).
 
-Each wheel draws **20** unique segments from a large catalogue (at most one cursed, one legendary and one mythic wedge, and no more than four negative ones). Categories:
+**A treasure wheel.** Nothing on the wheel takes stars, Gold, artifacts or Glory away, and nothing multiplies future Glory. The worst wedge is the **Trickster** (a Twist): it looks like a win and turns out to be nothing. Spin it as a celebration, not as a threat.
 
-- **Glory** — instant Glory, multipliers, shields, unity bonuses
-- **Perk** — stars, Gold, artifacts, Team Quest bonuses for the class
-- **Fun** — anthem, confetti, small Glory
-- **Negative** — Glory tax, slumber, heist, lost Gold/stars/artifacts, Trickster (nothing happens)
+Each wheel draws **20** unique segments from the catalogue (at most one Trickster, one legendary and one mythic wedge, and always at least one rare-or-better wedge to hope for). Categories:
 
-Every league draws from the same catalogue, so a Junior class can land on a cursed wedge too; spin with that in mind and frame a bad week as part of the story. **Bulwark Crest** and Wheel **Glory Shield** can block negative Glory hits, including a rival’s **Fate’s Reversal**. **Shattered Mirror** halves the *next positive* Wheel effect.
+- **Glory**: +1 to +5 Glory for **each guildmate in this class** (Spark, Surge, Fountain, Storm, Glory Miracle). **Rainbow Bridge** gives +1 Glory to every child in the class, for their own guild
+- **Perk**: stars, Gold and artifacts for guildmates here, and Team Quest bonus stars for the class
+- **Fun**: anthem, confetti and a small gift
+- **Twist**: the Trickster, harmless
 
-**Wheel Glory is fair per member.** A flat amount on a wedge (for example **Glory Windfall +200** or **Lightning Strike −30**) is what a guild of average size gets; a bigger guild gets more in total and a smaller one less, so each child in every guild gains or loses the same. The fortune card shows the sized amount. Wedges that take a share of a guild’s own Glory (Glory Tax, Glory Eclipse, Market Crash) are fair already. The ones that work per member:
+**Wheel Glory is fair per child.** Glory goes to each guild member who is in the spinning class, so a guild’s Chapter Glory per member rises by the same small amount whatever its size, and every child in every guild has the same chances each week. Because the Wheel’s Glory is small next to a month of stars, effort decides the Chapter and the Wheel adds sparkle.
 
-- **Glory Rain**: +5 Glory for every member of the guild, school-wide.
-- **Glory Heist**: steals from the guild with the most Glory per member this week. Each member of the thief guild gains what each member of the victim guild loses.
-- **Fate’s Reversal**: swaps this week’s Glory per member with the closest rival.
-- **Glory Challenge**: if the guild earns the most Glory per member by Sunday night, a bonus (sized to the guild) is added to the Ledger the following week. Ties all win.
-- **Momentum Lock**: keeps the guild’s momentum badge from dipping for a week. It is a badge of honour only; Guild Power does not use momentum.
+**Fortune’s Favor.** A student who used **Fortune’s Favor** from the Mystic Market gilds their guild’s next wheel in their class: no common wedges and no Trickster. The stage says so before the spin, and the Favor is spent on that spin.
 
 Spin **with the class watching**. Read the Ledger afterward so the story is remembered.
 
@@ -130,11 +136,12 @@ History of what the Wheel actually did **this school year**: who gained Glory, w
 
 | Input | Guild effect |
 |-------|----------------|
-| Award Stars | Glory at 2:1, Power updates |
+| Award Stars | 2 Glory per star, for this Chapter and the year |
 | Hero’s Boon (+0.5) | Glory for the receiver’s house |
-| Quiz of the Week | Extra Glory; legendary tier can bless the leading house for 24h |
-| Glory artifacts / Wheel | Spikes, shields, drama |
-| Pathfinder / Quest bonuses | Team Quest, not Power directly — but Wheel perks can add both |
+| Quiz of the Week | Glory for each child’s own correct answers |
+| Fortune’s Wheel | Small Glory for each guildmate in the class, plus perks |
+| Mystic Market | Banner of Glory, Chalice of Unity, Guild Standard, Fortune’s Favor |
+| Pathfinder / Quest bonuses | Team Quest, not the Crown Race directly. Wheel perks can add both |
 
 Hero’s Challenge still sorts **students**, not guilds. Send the class to Guild Hall to *feel* the house race.
 
@@ -142,4 +149,4 @@ Hero’s Challenge still sorts **students**, not guilds. Send the class to Guild
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Guild Hall is not on this plan | Houses, Glory, Guild Power, Fortune’s Wheel, Fortune Ledger, Analytics, Grand Guild Ceremony | Same guild race. Familiars appear in the June story |
+| Guild Hall is not on this plan | Houses, Glory, the Crown Race, Fortune’s Wheel, Fortune Ledger, Analytics, Grand Guild Ceremony | Same guild race. Familiars appear in the June story |

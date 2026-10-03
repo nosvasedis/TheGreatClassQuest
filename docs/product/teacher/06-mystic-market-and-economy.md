@@ -43,14 +43,14 @@ Always in stock. **Two legendary buys per student per month.** Use them from the
 | **Aurum Satchel** | 32 | **50% off** the next Market purchase this month | — |
 | **Banner of Glory** | 35 | Next **3** stars each add **+1 bonus Guild Glory** | Needs a guild |
 | **The Herald’s Banner** | 40 | A school-wide celebration message | — |
-| **Bulwark Crest** | 48 | Guild **Glory Shield** for **7 days** (blocks Glory losses from the Wheel) | Needs a guild |
+| **Fortune’s Favor** | 48 | The guild’s next **Fortune’s Wheel** in the student’s class is gilded: no common wedges and no Trickster | Needs a guild |
 | **The Starfall Catalyst** | 50 | Doubles the next high-test **Starfall** bonus | — |
-| **Chalice of Radiance** | 55 | Guildmates’ stars each earn +1 bonus Glory for **24 hours** | Needs a guild |
+| **Chalice of Unity** | 55 | **+1 Glory** right away for the student and every guildmate in their class | Needs a guild |
 | **Compassion Token** | 55 | Hero’s Boon costs **0 Gold** for the rest of this month | — |
 | **The Pathfinder’s Map** | 60 | Instant **+10 Team Quest stars** for the class | **1 use per class per month** (and not while a classmate still holds an unused Pathfinder’s Map bought this month) |
 | **Archivist’s Quill** | 62 | Next Story Weaver class bonus is **1 star instead of 0.5** for that student | — |
 | **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next Adventure Log | **1 buy per student per month** |
-| **Crown of the Eternal** | 90 | Guild: **2×** star-earned Glory until **midnight** | Needs a guild |
+| **Guild Standard** | 75 | The student’s name flies on the guild’s column in Guild Hall for the rest of this month’s Chapter, plus **+2 Glory** | Needs a guild |
 
 ## Seasonal treasures (Elite)
 
@@ -112,7 +112,7 @@ A Familiar sits beside its student’s portrait on the boards, and larger when y
 
 ## How this feeds the rest of the Quest
 
-Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (Glory tools, Wheel shield). Familiars make every future star visible. Compassion Token makes Hero’s Boons free for a month.
+Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (small Glory gifts, a Guild Standard on the column, a gilded Wheel). None of them multiplies Glory, so Gold can never buy a Chapter. Familiars make every future star visible. Compassion Token makes Hero’s Boons free for a month.
 
 ## Plan notes
 

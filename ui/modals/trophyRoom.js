@@ -4,7 +4,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
 import { showAnimatedModal } from './base.js';
-import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
+import { currentArtifactFor, handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { showInventoryItemDetail } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { buildTrophySatchel, summarizeSatchel, buildActiveEffects } from '../../features/trophyRoomCore.mjs';
@@ -19,7 +19,7 @@ let currentClassId = '';
 let currentStudentId = '';
 let listenersBound = false;
 
-const usable = { isUsable: isItemUsable };
+const usable = { isUsable: isItemUsable, present: currentArtifactFor };
 
 function findStudent(studentId) {
     return (state.get('allStudents') || []).find((s) => s.id === studentId) || null;

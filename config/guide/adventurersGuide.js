@@ -110,20 +110,20 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'guild-hall', icon: 'fa-shield-halved', name: 'Guild Hall', tier: 'pro',
                     where: 'Guild Hall tab', go: 'tab:guilds-tab',
-                    text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Houses are ranked by Guild Power: the Glory each member earned this school year, on average, so a small busy house can beat a big one. Tap an emblem for the house banner, or the note for its anthem.`,
+                    text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Each month is a Chapter: the house whose members earn the most Glory each, on average, wins it, so a small busy house can beat a big one. Chapters pay Crowns (5, 3, 2, 1), plus one more for a house where at least 4 in 5 members earned 3 stars. Most Crowns in June wins the year. Tap an emblem for the house banner, or the note for its anthem.`,
                     why: 'Belonging across ages. A student\'s guild is theirs for life.',
-                    keys: 'guilds houses glory guild power dragon flame grizzly might owl wisdom phoenix rising anthem'
+                    keys: 'guilds houses glory crown race crowns chapter unity seal guild power dragon flame grizzly might owl wisdom phoenix rising anthem'
                 },
                 {
                     id: 'fortunes-wheel', icon: 'fa-dharmachakra', name: "Fortune's Wheel", tier: 'pro',
                     where: 'Guild Hall, on the last lesson of the week', go: 'tab:guilds-tab',
-                    text: `A weekly ritual with the class watching. During a class's last lesson of the week, each guild spins its own wheel in turn. Wedges can give Glory, stars, Gold or artifacts, and a few take something away. The Fortune Ledger keeps every spin of the year.`,
+                    text: `A weekly ritual with the class watching. During a class's last lesson of the week, each guild spins its own wheel in turn. Wedges give Glory to each guildmate in the class, stars, Gold, artifacts or Team Quest stars. Nothing is ever taken away; the worst wedge is the Trickster, who gives nothing. The Fortune Ledger keeps every spin of the year.`,
                     keys: 'wheel spin fortune ledger weekly'
                 },
                 {
                     id: 'grand-ceremony', icon: 'fa-chess-rook', name: 'Grand Guild Ceremony', tier: 'pro',
                     where: 'Home, when the year ends in June', go: 'tab:about-tab',
-                    text: `The year-end Midsummer Festival. Its chapters recall the Heroes of the Day, each class's road, the Prodigy crowns and the year's wonders. Then the guild pillars are revealed from last place up and the champion house is crowned by Guild Power. Nobody is re-sorted.`,
+                    text: `The year-end Midsummer Festival. Its chapters recall the Heroes of the Day, each class's road, the Prodigy crowns and the year's wonders. Then the guild pillars are revealed from last place up and the house with the most Crowns is crowned. Nobody is re-sorted.`,
                     keys: 'june year end guild crowning festival'
                 }
             ]
@@ -452,12 +452,12 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'guilds', icon: 'fa-shield-halved', name: 'Your guild', tier: 'pro',
-                    text: `You belong to one of four houses: Dragon Flame, Grizzly Might, Owl Wisdom or Phoenix Rising. Your stars give your house Glory all year, and in June one house is crowned. Your guild is yours for life!`,
+                    text: `You belong to one of four houses: Dragon Flame, Grizzly Might, Owl Wisdom or Phoenix Rising. Your stars give your house Glory. Every month your house races for Crowns, and in June the house with the most Crowns is crowned. Your guild is yours for life!`,
                     keys: 'house glory dragon grizzly owl phoenix'
                 },
                 {
                     id: 'wheel', icon: 'fa-dharmachakra', name: "Fortune's Wheel", tier: 'pro',
-                    text: `On the last lesson of the week each guild spins the wheel. It can bring Glory, stars, Gold or a treasure... or a little bad luck!`,
+                    text: `On the last lesson of the week each guild spins the wheel. It can bring Glory, stars, Gold or a treasure... or the Trickster, who gives nothing at all!`,
                     keys: 'wheel spin'
                 }
             ]

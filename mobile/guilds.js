@@ -6,7 +6,7 @@
 import { playSound } from '../audio.js';
 
 const MOBILE_GUILD_BLURB =
-    'Guilds race for ⚜️ Glory. June’s champion wins the Grand Guild Ceremony.';
+    'Win each month’s Chapter for 👑 Crowns. Most Crowns in June is crowned at the Grand Guild Ceremony.';
 
 let wired = false;
 let listObserver = null;

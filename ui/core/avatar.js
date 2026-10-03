@@ -3,7 +3,7 @@
 // (markup: ui/core/heroStageView.mjs, satchel model: features/trophyRoomCore.mjs).
 import * as state from '../../state.js';
 import { getLocalMonthKey } from '../../utils.js';
-import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
+import { currentArtifactFor, handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
 import { getGuildById } from '../../features/guilds.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -56,7 +56,7 @@ function findClass(classId) {
 function buildStageBody(studentId) {
     const scoreData = (state.get('allStudentScores') || []).find((s) => s.id === studentId) || {};
     const student = (state.get('allStudents') || []).find((s) => s.id === studentId) || {};
-    const satchel = buildTrophySatchel(scoreData.inventory, { isUsable: isItemUsable });
+    const satchel = buildTrophySatchel(scoreData.inventory, { isUsable: isItemUsable, present: currentArtifactFor });
     return {
         firstName: String(student.name || 'Hero').trim().split(/\s+/)[0] || 'Hero',
         stats: {

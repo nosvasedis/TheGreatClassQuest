@@ -37,7 +37,7 @@
 | [Home Dashboard](#-home-dashboard) | Weather, schedule, tools, class/school view |
 | [Team Quest](#-team-quest) | League map, monthly goals, ceremony |
 | [Hero's Challenge](#-heros-challenge) | Student ranks, Trophy Room, Hero Stats, Hall of Prodigies, certificates |
-| [Guilds & Factions](#-guilds--factions) | Guild Hall, Guild Power, Fortune's Wheel, year-long race |
+| [Guilds & Factions](#-guilds--factions) | Guild Hall, the Crown Race, Fortune's Wheel, year-long race |
 | [My Classes & Roster](#-my-classes--roster) | Classes and roster (inside Teacher Settings) |
 | [Award Stars](#-award-stars) | Reasons, effects, bounties, Hero's Boon |
 | [Adventure Log](#-adventure-log) | Diary, Hero of the Day, Hall of Heroes, attendance, homework |
@@ -86,7 +86,7 @@ The app is built on four pedagogical pillars:
 
 | Pillar | Description |
 |--------|-------------|
-| **Triple-layer motivation** | **Team Quest:** The class advances together on a map (belonging). **Hero's Challenge:** Students compete for rank and Prodigy status (accountability). **Guild Hall:** Cross-age houses race all year on **Guild Power** (identity). |
+| **Triple-layer motivation** | **Team Quest:** The class advances together on a map (belonging). **Hero's Challenge:** Students compete for rank and Prodigy status (accountability). **Guild Hall:** Cross-age houses race all year in the **Crown Race**, a month-by-month race for Crowns (identity). |
 | **Tangible "Gold" Economy** | Stars become purchasing power. The **Mystic Market** (seasonal + **Legendary Artifacts**) and **Hero's Boon** (peer-to-peer gift) teach delayed gratification and generosity. |
 | **Visual Feedback Loops** | Progress is never abstract: progress bars, floating stats, growing avatars, **League Map** zones (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), and **Projector Mode** keep the quest visible. |
 | **AI as the "Dungeon Master"** | On **Elite**, AI narrates daily logs, suggests words for Story Weavers, generates avatars and certificates, and powers **Hero's Chronicle** Oracle reports. On **Pro**, the same rituals exist with more of the teacher's own words. |
@@ -103,7 +103,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Team Quest** | Class vs class **League Map** (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), monthly goal (holidays/cancellations), start of **Ceremony of the Month**. |
 | **Hero's Challenge** | Student ranks (**By Class / Global**, Monthly / Total). **Trophy Room**, Hero Stats, **Hall of Prodigies**, certificates. Guild *badges* appear on rows; guild *ranking* is Guild Hall. |
 | **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Festival Stall**, Elite **Familiar** eggs. |
-| **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
+| **Guild Hall** | Year-long houses ranked by **Crowns** in the Crown Race. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
 | **Adventure Log** | **Crown Today's Hero**, then write today's page: **Auto** (AI + image, Elite) or **Manual** (Pro). Records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment** (recognises the book, unit and pages), **Attendance Chronicle**. **Gather at the Campfire** (Pro) lights up after the crowning. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
 | **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |
@@ -157,14 +157,14 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Aurum Satchel** | 32 | **50% off** next Market purchase this month. |
 | **Banner of Glory** | 35 | Next **3** stars each write **+1 bonus Guild Glory**. |
 | **The Herald's Banner** | 40 | School-wide celebration toast. |
-| **Bulwark Crest** | 48 | Guild Glory Shield **7 days** (blocks negative Wheel Glory hits). |
+| **Fortune’s Favor** | 48 | The guild’s next Fortune’s Wheel in this class is gilded (no commons, no Trickster). |
 | **The Starfall Catalyst** | 50 | **Double** the next high-test Starfall bonus. |
-| **Chalice of Radiance** | 55 | +1 bonus Glory on qualifying stars for **24h**. |
+| **Chalice of Unity** | 55 | +1 Glory right away for the student and every guildmate in the class. |
 | **Compassion Token** | 55 | Hero's Boon costs **0 Gold** for the rest of the month. |
 | **The Pathfinder’s Map** | 60 | Instant **+10** Team Quest stars (class limit: 1/month). |
 | **Archivist's Quill** | 62 | Next Story Weaver class bonus is **1★ instead of 0.5**. |
 | **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next log (1/student/month). |
-| **Crown of the Eternal** | 90 | **2×** star-earned Glory until midnight. |
+| **Guild Standard** | 75 | The student’s name flies on the guild’s column for this Chapter, plus +2 Glory. |
 
 *Use from Trophy Room / enlarged avatar; consuming applies the effect and removes the item.*
 
@@ -226,7 +226,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Hero stats:** one page everywhere (Hero Stage → **Hero stats**, or a hero in a Home schedule card's roster): identity, Hero Path and guild, stars and Gold, **virtues this month**, **latest stars**, Teacher Boon / Hero's Boon status, and for your own classes the **Scholar's Scroll** summary (trials, test average, best test, dictation summary, progress chart) with **Full analytics**. **Back to roster** shows the whole class.
 - **Prodigy of the Month / Hall of Prodigies:** Archive of past **Prodigy** (and Co-Prodigy) for **completed** months; open from Hero's Challenge, Home, or related shortcuts. This is **not** Hall of Heroes.
 - **Certificates:** **Generate Certificate** (from the roster) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
-- **Guild badges:** Rows can show a house emblem. The **guild vs guild** race lives on **Guild Hall** (Guild Power), not as a toggle on this tab.
+- **Guild badges:** Rows can show a house emblem. The **guild vs guild** race lives on **Guild Hall** (the Crown Race), not as a toggle on this tab.
 
 ---
 
@@ -240,7 +240,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
   - **Owl Wisdom** – curiosity, thoughtful learning, calm focus.
   - **Phoenix Rising** – resilience, bouncing back, never giving up.
 - **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. It runs as a full-screen **Sorting Ceremony**: one tap per answer while a glowing orb drinks in each choice, then a projector-ready reveal where a spotlight circles the four houses before the crest, motto and traits of the new guild appear.
-- **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Houses rank by **Guild Power** — 70% season Glory per member, 15% this week’s Glory per member, 10% activity, 5% momentum — not raw Total Stars. Totals **do not reset monthly**; June’s **Grand Guild Ceremony** crowns the winning guild.
+- **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Each school month is a **Chapter**: guilds race on Glory per member (never raw Total Stars), and when the month ends it pays **Crowns** (5 / 3 / 2 / 1, plus **+1 Unity Seal** for a guild where at least 4 in 5 members earned 6 Glory). Crowns add up all year; June’s **Grand Guild Ceremony** crowns the guild with the most.
 - **Fortune's Wheel:** Spin on the class’s **last lesson day of the week**, during lesson time, **once per week per class**. **Fortune Ledger** stores that school year’s outcomes. Magical Analytics expands each crystal column.
 - **Guild Champions:** At the end of each month, the top earner in every guild is **Guild Champion**.
 

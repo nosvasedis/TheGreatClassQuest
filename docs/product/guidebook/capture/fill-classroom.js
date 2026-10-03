@@ -348,10 +348,10 @@ export function showFortuneLedger() {
                     <div class="guild-fortune-ledger__entry-swing">+40 ⚜️</div>
                 </div>
                 <div class="guild-fortune-ledger__entry-results">
-                    ${ledgerResult('dragon_flame', 'Glory Bloom', 40)}
+                    ${ledgerResult('dragon_flame', 'Glory Storm', 20)}
                     ${ledgerResult('owl_wisdom', 'Trickster', 0)}
-                    ${ledgerResult('grizzly_might', 'Unity Chorus', 12)}
-                    ${ledgerResult('phoenix_rising', 'Confetti Burst', 8)}
+                    ${ledgerResult('grizzly_might', 'Glory Surge', 12)}
+                    ${ledgerResult('phoenix_rising', 'Celebration!', 8)}
                 </div>
             </article>
             <article class="guild-fortune-ledger__entry">
@@ -360,13 +360,13 @@ export function showFortuneLedger() {
                         <div class="guild-fortune-ledger__entry-date">22 Aug</div>
                         <div class="guild-fortune-ledger__entry-week">Week 2026-W34</div>
                     </div>
-                    <div class="guild-fortune-ledger__entry-swing guild-fortune-ledger__entry-swing--negative">−15 ⚜️</div>
+                    <div class="guild-fortune-ledger__entry-swing">+16 ⚜️</div>
                 </div>
                 <div class="guild-fortune-ledger__entry-results">
-                    ${ledgerResult('grizzly_might', 'Glory Eclipse', -15)}
-                    ${ledgerResult('phoenix_rising', 'Scholar\'s Momentum', 10)}
-                    ${ledgerResult('dragon_flame', 'Anthem', 0)}
-                    ${ledgerResult('owl_wisdom', 'Bulwark Crest', 0)}
+                    ${ledgerResult('grizzly_might', 'Glory Surge', 8)}
+                    ${ledgerResult('phoenix_rising', 'Spark of Glory', 4)}
+                    ${ledgerResult('dragon_flame', 'Anthem Power', 4)}
+                    ${ledgerResult('owl_wisdom', 'Trickster', 0)}
                 </div>
             </article>`;
   }

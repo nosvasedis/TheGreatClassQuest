@@ -2,7 +2,7 @@
 // Aggregates guild hero analytics from in-memory state.
 
 import * as state from '../state.js';
-import { compareGuildLeaderboardRows, getGuildLeaderboardData, getMomentumArrow } from './guildScoring.js';
+import { getGuildLeaderboardData } from './guildScoring.js';
 import { GUILD_IDS, getGuildById } from './guilds.js';
 
 /**
@@ -172,20 +172,23 @@ export function getGuildHeroAnalytics() {
             },
             totals: {
                 totalStars: Number(lb.totalStars) || 0,
-                monthlyStars: Number(lb.monthlyStars) || 0,
+                monthlyStars: heroRows.reduce((sum, h) => sum + (Number(h.monthlyStars) || 0), 0),
                 memberCount: Number(lb.memberCount) || 0,
-                perCapitaStars: Number(lb.perCapitaStars) || 0,
-                monthlyPerCapitaStars: Number(lb.monthlyPerCapitaStars) || 0,
-                // Glory & Power metrics
-                totalGlory: Number(lb.totalGlory) || 0,
-                perCapitaGlory: Number(lb.perCapitaGlory) || 0,
-                guildPower: Number(lb.guildPower) || 0,
-                momentumScore: Number(lb.momentumScore) || 0,
-                momentumPct: Number(lb.momentumPct) || 0,
-                momentumArrow: getMomentumArrow(lb.momentumPct || 0),
-                activityScore: Number(lb.activityScore) || 0,
-                weeklyGlory: Number(lb.weeklyGlory) || 0,
-                weeklyPerCapitaGlory: Number(lb.weeklyPerCapitaGlory) || 0,
+                perCapitaStars: lb.memberCount > 0 ? Math.round(((Number(lb.totalStars) || 0) / lb.memberCount) * 10) / 10 : 0,
+                // The Crown Race
+                crowns: Number(lb.crowns) || 0,
+                chapterWins: lb.chapterWins || [],
+                chapterGlory: Number(lb.live?.glory) || 0,
+                chapterPerMember: Number(lb.live?.perMember) || 0,
+                chapterPlace: lb.live?.place || null,
+                chapterCrowns: Number(lb.live?.crowns) || 0,
+                chapterKey: lb.live?.key || null,
+                unityCount: Number(lb.live?.unityCount) || 0,
+                unityNeeded: Number(lb.live?.unityNeeded) || 0,
+                unity: Boolean(lb.live?.unity),
+                contributors: Number(lb.live?.contributors) || 0,
+                totalGlory: Number(lb.countedGlory) || 0,
+                yearGloryPerMember: Number(lb.yearGloryPerMember) || 0,
             },
             champions: {
                 monthlyChampion: _pickMonthlyChampion(guildChampions[guildId], heroesByMonthly),
@@ -201,22 +204,18 @@ export function getGuildHeroAnalytics() {
                 heroClassMix
             },
             comparison: {
-                rankByPerCapita: lb.rankByPerCapita || GUILD_IDS.length,
-                deltaToLeaderPerCapita: leader ? Math.round(((leader.perCapitaStars || 0) - (lb.perCapitaStars || 0)) * 10) / 10 : 0,
+                rankByCrowns: 0, // set below, in Crown Race order
+                crownsBehindLeader: leader ? Math.max(0, (leader.crowns || 0) - (lb.crowns || 0)) : 0,
+                deltaToLeaderPerCapita: leader ? Math.round(((leader.totalStars || 0) / Math.max(1, leader.memberCount || 0) - (lb.totalStars || 0) / Math.max(1, lb.memberCount || 0)) * 10) / 10 : 0,
                 deltaToLeaderTotal: leader ? Math.max(0, (leader.totalStars || 0) - (lb.totalStars || 0)) : 0,
-                rankByGuildPower: 0, // Set after sort
-                deltaToLeaderGlory: leader ? Math.max(0, (leader.totalGlory || 0) - (lb.totalGlory || 0)) : 0,
-                deltaToLeaderPower: leader ? Math.max(0, (leader.guildPower || 0) - (lb.guildPower || 0)) : 0,
-                deltaToLeaderPerCapitaGlory: leader ? Math.max(0, (leader.perCapitaGlory || 0) - (lb.perCapitaGlory || 0)) : 0
             }
         };
-    }).sort((a, b) => compareGuildLeaderboardRows(
-        { ...a.totals, guildName: a.guildName },
-        { ...b.totals, guildName: b.guildName }
-    ));
+    });
+    // Crown Race order (the leaderboard is already sorted).
+    const order = new Map(leaderboard.map((g, i) => [g.guildId, i]));
+    guilds.sort((a, b) => (order.get(a.guildId) ?? 9) - (order.get(b.guildId) ?? 9));
 
-    // Set rankByGuildPower after sort
-    guilds.forEach((g, idx) => { g.comparison.rankByGuildPower = idx + 1; });
+    guilds.forEach((g, idx) => { g.comparison.rankByCrowns = idx + 1; });
 
     const overallTopChampion = guilds
         .map(g => g.champions.allTimeChampion)
@@ -236,9 +235,10 @@ export function getGuildHeroAnalytics() {
         }
     }
 
-    // Find biggest mover (highest positive momentum) and most active guild this week
-    const biggestMover = [...guilds].sort((a, b) => (b.totals.momentumPct || 0) - (a.totals.momentumPct || 0))[0] || null;
-    const mostActive = [...guilds].sort((a, b) => (b.totals.activityScore || 0) - (a.totals.activityScore || 0))[0] || null;
+    // Chapter leader and the guild with the most members contributing this Chapter
+    const chapterLeader = [...guilds].sort((a, b) => (b.totals.chapterPerMember || 0) - (a.totals.chapterPerMember || 0))[0] || null;
+    const mostActive = [...guilds].sort((a, b) =>
+        (b.totals.contributors / Math.max(1, b.totals.memberCount)) - (a.totals.contributors / Math.max(1, a.totals.memberCount)))[0] || null;
 
     return {
         generatedAtMonthKey: _getCurrentMonthKey(),
@@ -247,8 +247,8 @@ export function getGuildHeroAnalytics() {
             leaderGuildId: guilds[0]?.guildId || null,
             overallTopChampion,
             closestRace,
-            biggestMover: biggestMover ? { guildId: biggestMover.guildId, guildName: biggestMover.guildName, momentumPct: biggestMover.totals.momentumPct } : null,
-            mostActive: mostActive ? { guildId: mostActive.guildId, guildName: mostActive.guildName, activityScore: mostActive.totals.activityScore } : null,
+            chapterLeader: chapterLeader && chapterLeader.totals.chapterPerMember > 0 ? { guildId: chapterLeader.guildId, guildName: chapterLeader.guildName, perMember: chapterLeader.totals.chapterPerMember } : null,
+            mostActive: mostActive ? { guildId: mostActive.guildId, guildName: mostActive.guildName, contributors: mostActive.totals.contributors } : null,
         }
     };
 }

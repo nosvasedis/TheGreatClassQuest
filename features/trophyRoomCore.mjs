@@ -24,8 +24,12 @@ export function trophySourceLabel(item) {
  * Split an inventory into Relics (usable power-ups, stacked by name) and Treasures (kept for good).
  * Relic `indices` point into the original inventory so "Use" spends the right copy.
  */
-export function buildTrophySatchel(inventory, { isUsable = () => false } = {}) {
-    const list = Array.isArray(inventory) ? inventory : [];
+export function buildTrophySatchel(inventory, { isUsable = () => false, present = null } = {}) {
+    // `present` maps an owned item to how it shows today (a renamed relic shows its new name).
+    const list = (Array.isArray(inventory) ? inventory : []).map((item) => {
+        const shown = item && typeof present === 'function' ? present(item) : null;
+        return shown ? { ...item, name: shown.name || item.name, icon: shown.icon || item.icon, description: shown.description || item.description } : item;
+    });
     const relicsByName = new Map();
     const treasures = [];
 
@@ -107,6 +111,7 @@ export function buildActiveEffects(scoreData, monthKey) {
     if (s.peerBoonFreeMonthKey && s.peerBoonFreeMonthKey === monthKey) effects.push({ icon: '💝', title: 'Compassion Token', body: "Hero's Boon costs 0 Gold this month." });
     const charges = Number(s.gloryBannerCharges) || 0;
     if (charges > 0) effects.push({ icon: '⚜️', title: 'Banner of Glory', body: `${charges} star${charges === 1 ? '' : 's'} left with +1 bonus Guild Glory.` });
+    if (s.fortuneFavorArmed) effects.push({ icon: '🍀', title: "Fortune's Favor", body: "Your guild's next Fortune's Wheel here is gilded." });
     if (s.storyWeaverDoubleNext) effects.push({ icon: '✒️', title: "Archivist's Quill", body: 'Next Story Weaver bonus is a full star.' });
     if ((Number(s.aurumVoucherPercent) || 0) > 0 && s.aurumVoucherMonth === monthKey) {
         effects.push({ icon: '💰', title: 'Aurum Satchel', body: `${s.aurumVoucherPercent}% off the next Mystic Market buy this month.` });

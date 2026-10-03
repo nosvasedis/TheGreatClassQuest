@@ -1,13 +1,13 @@
 // /ui/tabs/guilds.js — Guild Hall: crystal-column rankings, lore overlay, guild sounds, anthem modal
 
-import { compareGuildLeaderboardRows, getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces } from '../../features/guildScoringCore.js';
 import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
 import * as state from '../../state.js';
-import { getGuildModifierChipPresentation, escapeHtmlAttr as _escapeChipAttr } from '../../features/wheelModifierUi.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 
 /** Guild scores stay frozen while the school year is sealed. */
@@ -15,26 +15,27 @@ function isGuildSeasonLive() {
     return isGameplaySeasonLiveFromAppState(state);
 }
 
-// ─── Guild Power explainer overlay ───────────────────────────────────────────
+// ─── Crown Race explainer overlay ────────────────────────────────────────────
 let _powerExplainerWired = false;
-/** The Guild Power explainer card. Exported so the guidebook capture renders the real card. */
+/** The "How the Crown Race works" card. Exported so the guidebook capture renders the real card. */
 export function guildPowerExplainerCardHtml() {
+    const [first, second, third, fourth] = CHAPTER_CROWNS;
     const parts = [
         {
-            key: 'season', icon: '⚜️', name: 'Glory per member this year',
-            copy: 'All the Glory the guild earned this school year, shared out per member. This one number is the Guild Power and decides the order.',
+            key: 'season', icon: '📜', name: 'Every month is a Chapter',
+            copy: 'On the 1st every guild starts at 0. The guild whose members earn the most Glory each, on average, wins the Chapter. Size never matters.',
         },
         {
-            key: 'week', icon: '📅', name: 'This week’s form',
-            copy: 'Glory per member this week, members taking part and the week-on-week trend. Fun to watch, but it never moves the ranking.',
+            key: 'week', icon: '👑', name: 'Chapters pay Crowns',
+            copy: `When a Chapter ends: 1st ${first} Crowns, 2nd ${second}, 3rd ${third}, 4th ${fourth}. A guild that earned no Glory gets none.`,
         },
         {
-            key: 'active', icon: '⚖️', name: 'Every guild size is equal',
-            copy: 'Fortune’s Wheel Glory is sized to each guild, so every member of every guild gains or loses the same.',
+            key: 'active', icon: '🤝', name: 'The Unity Seal: +1 Crown',
+            copy: `Any guild where at least 4 in 5 members earned ${UNITY_SEAL.minGlory} Glory (3 stars) that month. Bring the quiet heroes along!`,
         },
         {
-            key: 'momentum', icon: '🚪', name: 'Leavers take their Glory with them',
-            copy: 'If a student leaves the school, the Glory they earned leaves the guild too, so no guild climbs by getting smaller.',
+            key: 'momentum', icon: '🏰', name: 'The June crown',
+            copy: 'Most Crowns at the Grand Guild Ceremony wins the year. A tie goes to the most Glory per member this year.',
         },
     ];
     return `
@@ -43,15 +44,13 @@ export function guildPowerExplainerCardHtml() {
                 <i class="fas fa-xmark" aria-hidden="true"></i>
             </button>
             <header class="guild-power-explainer-head">
-                <span class="guild-power-explainer-bolt" aria-hidden="true"><i class="fas fa-bolt"></i></span>
-                <h3 id="guild-power-explainer-title" class="guild-power-explainer-title font-title">How Guild Power works</h3>
+                <span class="guild-power-explainer-bolt" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                <h3 id="guild-power-explainer-title" class="guild-power-explainer-title font-title">How the Crown Race works</h3>
                 <p class="guild-power-explainer-copy">
-                    The <strong>Glory each member has earned this year</strong>, on average. It only moves when this
-                    guild earns Glory, so a small guild where everyone joins in can beat a big guild where only a few do.
-                    In June the guild with the highest Guild Power is crowned.
+                    Every star a member earns is <strong>${GLORY_EMOJI}2 Glory</strong> for their guild. Win the month,
+                    take the Crowns, and the guild with the most Crowns is crowned in June.
                 </p>
             </header>
-
 
             <ul class="guild-power-explainer-list">
                 ${parts.map((p) => `
@@ -65,8 +64,8 @@ export function guildPowerExplainerCardHtml() {
             </ul>
 
             <p class="guild-power-explainer-note">
-                Glory comes from stars (${GLORY_EMOJI}2 each), boons, Mystic Market relics, Quiz of the Week and Fortune’s Wheel,
-                and every change is written in the Glory ledger — so the standings can always be checked.
+                Glory comes from stars, Quiz of the Week, Fortune’s Wheel and a few Mystic Market relics. Nothing random
+                takes Glory away, and every change is written in the Glory ledger, so the standings can always be checked.
             </p>
             <button type="button" class="guild-power-explainer-ok" data-gpex-close="true">Got it</button>
         </div>
@@ -120,7 +119,7 @@ function _closePowerExplainer() {
 /** When true, detailed stats panels are visible for every guild column */
 let _guildHallStatsExpanded = false;
 
-// ─── Guild Power change tracking (for live arrow indicators) ─────────────────
+// ─── Chapter Glory change tracking (for live arrow indicators) ───────────────
 const _prevGuildPower = new Map(); // guildId → { power, rank, lastPowerDelta, lastRankDelta }
 let _guildPowerIndicatorsReady = false;
 
@@ -464,38 +463,32 @@ export function fillGuildLoreCard(guildId, gData, { seasonLive = isGuildSeasonLi
                     <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">👥</span> <strong>${members}</strong> member${members === 1 ? '' : 's'}</span>
                 </div>`;
         } else {
-            const stars = gData?.totalStars || 0;
-            const perCapita = gData?.perCapitaStars || 0;
-            const guildPower = Math.round(Number(gData?.guildPower) || 0);
-            const totalGlory = Math.round(Number(gData?.totalGlory) || 0);
-            const weeklyGlory = Math.round(Number(gData?.weeklyGlory) || 0);
-            const perCapitaGlory = Number(gData?.perCapitaGlory) || 0;
-            const weeklyPerCapitaGlory = Number(gData?.weeklyPerCapitaGlory) || 0;
-
+            const crowns = Number(gData?.crowns) || 0;
+            const live = gData?.live || {};
+            const chapter = chapterName(live.key) || 'This month';
+            const wins = (gData?.chapterWins || []).map(chapterShortName);
             statsEl.innerHTML = `
                 <div class="guild-lore-metrics-primary">
                     <div class="guild-lore-metric-tile guild-lore-metric-tile--power">
                         <div class="guild-lore-metric-tile__label">
-                            <span aria-hidden="true">⚡</span> Guild Power
+                            <span aria-hidden="true">👑</span> Crowns
                             <button type="button" class="guild-lore-power-hint"
-                                aria-label="Explain Guild Power" data-guild-lore-power-info="true">?</button>
+                                aria-label="Explain the Crown Race" data-guild-lore-power-info="true">?</button>
                         </div>
-                        <div class="guild-lore-metric-tile__value">${guildPower}</div>
-                        <div class="guild-lore-metric-tile__hint">Season-fair score from the Glory ledger</div>
+                        <div class="guild-lore-metric-tile__value">${crowns}</div>
+                        <div class="guild-lore-metric-tile__hint">${wins.length ? `Won ${wins.join(', ')}` : 'No Chapter won yet'}</div>
                     </div>
                     <div class="guild-lore-metric-tile guild-lore-metric-tile--glory">
                         <div class="guild-lore-metric-tile__label">
-                            <span aria-hidden="true">${GLORY_EMOJI}</span> Total Glory
+                            <span aria-hidden="true">${GLORY_EMOJI}</span> ${chapter}
                         </div>
-                        <div class="guild-lore-metric-tile__value">${totalGlory}</div>
-                        <div class="guild-lore-metric-tile__hint">
-                            ${weeklyGlory} this week · ${perCapitaGlory.toFixed(1)} season ${GLORY_EMOJI}/member · ${weeklyPerCapitaGlory.toFixed(1)} weekly ${GLORY_EMOJI}/member
-                        </div>
+                        <div class="guild-lore-metric-tile__value">${_fmtGlory(live.perMember)}</div>
+                        <div class="guild-lore-metric-tile__hint">Glory per member this Chapter${live.place ? ` · ${_ordinal(live.place)} place` : ''}</div>
                     </div>
                 </div>
                 <div class="guild-lore-metrics-secondary">
-                    <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">⭐</span> <strong>${stars}</strong> stars</span>
-                    <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">⚖️</span> <strong>${perCapita.toFixed(1)}</strong> ★/member</span>
+                    <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">🤝</span> <strong>${Number(live.unityCount) || 0}/${members}</strong> Unity</span>
+                    <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">${GLORY_EMOJI}</span> <strong>${_fmtGlory(gData?.yearGloryPerMember)}</strong> per member this year</span>
                     <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">👥</span> <strong>${members}</strong> member${members === 1 ? '' : 's'}</span>
                 </div>`;
         }
@@ -525,7 +518,7 @@ function wireGuildLoreListeners() {
     document.getElementById('guild-lore-overlay-bg')?.addEventListener('click', closeGuildLore);
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        // The Guild Power explainer can sit on top of the lore card — Escape closes only the top one.
+        // The Crown Race explainer can sit on top of the lore card — Escape closes only the top one.
         const explainer = document.getElementById('guild-power-explainer-overlay');
         if (explainer && !explainer.classList.contains('hidden')) return;
         closeGuildLore();
@@ -533,220 +526,185 @@ function wireGuildLoreListeners() {
 }
 
 // ─── Main render ─────────────────────────────────────────────────────────────
+
+/** Glory as shown: one decimal below 100 (0.4, 23.5), whole numbers above. */
+function _fmtGlory(n) {
+    const v = Math.max(0, Number(n) || 0);
+    return v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+}
+
+function _ordinal(n) {
+    return ['1st', '2nd', '3rd', '4th'][Number(n) - 1] || `#${n}`;
+}
+
+function _escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function _emblemBadge(guildId, guildName, cls) {
+    const emblemUrl = getGuildEmblemUrl(guildId);
+    const initial = String(guildName || guildId || '?').trim().charAt(0).toUpperCase() || '?';
+    return emblemUrl
+        ? `<img src="${emblemUrl}" alt="" class="${cls}" loading="lazy" decoding="async" width="28" height="28">`
+        : `<span class="${cls} ${cls}--initial">${initial}</span>`;
+}
+
+/** Year places: guilds share a place only when Crowns and the year's Glory per member are both level. */
+function _yearPlaces(rows) {
+    return sharedPlaces(rows, (r) => (Number(r.crowns) || 0) * 100000 + Math.round((Number(r.yearGloryPerMember) || 0) * 100) / 100);
+}
+
 /**
- * Guild champion + next three by estimated lifetime Glory (stars × GLORY_PER_STAR).
- * Wheel-only guild adjustments are not attributed per student here; see scoring copy in the UI.
+ * The Crown Road: one row per guild in year order, its Crowns, and a stone per Chapter
+ * (sealed: the Crowns it paid; running: what it would pay today; still to come: empty).
  */
+function _buildCrownRoad(rows, keys) {
+    const liveKey = rows[0]?.live?.key;
+    const daysLeft = chapterDaysLeft();
+    const anyCrowns = rows.some((r) => r.crowns > 0);
+    const places = _yearPlaces(rows);
+    const head = keys.map((k) => `<span class="crown-road__month${k === liveKey ? ' is-live' : ''}" title="${chapterName(k)}">${chapterShortName(k)}</span>`).join('');
+    const body = rows.map((r, i) => {
+        const guild = getGuildById(r.guildId);
+        const byKey = new Map(r.chapters.map((c) => [c.key, c]));
+        const stones = keys.map((k) => {
+            const sealed = byKey.get(k);
+            if (sealed) {
+                const won = sealed.place === 1;
+                const tip = sealed.place
+                    ? `${chapterName(k)}: ${_ordinal(sealed.place)} place${sealed.unity ? ' + Unity Seal' : ''} · ${sealed.crowns} Crown${sealed.crowns === 1 ? '' : 's'}`
+                    : `${chapterName(k)}: no Glory, no Crowns`;
+                return `<span class="crown-road__stone is-sealed${won ? ' is-won' : ''}${sealed.unity ? ' has-unity' : ''}" title="${tip}">${won ? '<i class="fas fa-crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
+            }
+            if (k === liveKey && r.live?.counts) {
+                const c = Number(r.live.crowns) || 0;
+                return `<span class="crown-road__stone is-live" title="${chapterName(k)} is still running: ${c ? `${c} Crown${c === 1 ? '' : 's'} if it ended today` : 'no Glory yet'}"><b>${c ? `+${c}` : '…'}</b></span>`;
+            }
+            return `<span class="crown-road__stone is-future" aria-hidden="true"></span>`;
+        }).join('');
+        return `
+                <div class="crown-road__row${places[i] === 0 && anyCrowns ? ' is-leader' : ''}" style="--road-primary:${guild?.primary || '#6b7280'};--road-glow:${guild?.glow || '#fff'};">
+                    <span class="crown-road__guild">${_emblemBadge(r.guildId, r.guildName, 'crown-road__emblem')}<span class="crown-road__name">${r.guildName}</span></span>
+                    <span class="crown-road__crowns" title="${r.crowns} Crown${r.crowns === 1 ? '' : 's'} from sealed Chapters"><i class="fas fa-crown" aria-hidden="true"></i>${r.crowns}</span>
+                    <span class="crown-road__stones">${stones}</span>
+                </div>`;
+    }).join('');
+    const leader = rows[0];
+    const second = rows[1];
+    const gap = leader && second ? leader.crowns - second.crowns : 0;
+    const summary = !anyCrowns
+        ? `The first Chapter is under way. Win ${chapterName(liveKey) || 'it'} to take the first ${CHAPTER_CROWNS[0]} Crowns.`
+        : gap > 0
+            ? `<strong>${leader.guildName}</strong> leads the Crown Race by <strong>${gap}</strong> Crown${gap === 1 ? '' : 's'}`
+            : 'Level on Crowns at the top: the year’s Glory per member splits them';
+    return `
+            <section class="crown-road" aria-label="The Crown Race">
+                <header class="crown-road__head">
+                    <span class="crown-road__title"><i class="fas fa-crown" aria-hidden="true"></i>The Crown Race</span>
+                    <span class="crown-road__summary">${summary}</span>
+                    <span class="crown-road__chapter">${chapterName(liveKey)} Chapter · ${daysLeft} day${daysLeft === 1 ? '' : 's'} left
+                        <button class="guild-power-info-btn" type="button" aria-label="Explain the Crown Race" data-guild-power-info="true">?</button></span>
+                </header>
+                <div class="crown-road__grid" style="--road-months:${keys.length};">
+                    <div class="crown-road__row crown-road__row--head"><span class="crown-road__guild"></span><span class="crown-road__crowns"><i class="fas fa-crown" aria-hidden="true"></i></span><span class="crown-road__stones">${head}</span></div>
+                    ${body}
+                </div>
+            </section>`;
+}
+
+/** Chapter line under the big number: place in this month's race and the Crowns it would pay. */
+function _chapterLine(g, rows) {
+    const live = g.live || {};
+    if (!live.counts) return { tone: 'tie', icon: 'fa-hourglass-start', text: 'Warm-up Chapter: no Crowns yet' };
+    if (!live.place) return { tone: 'tie', icon: 'fa-hourglass-start', text: 'No Glory yet this Chapter' };
+    const tied = rows.some((r) => r.guildId !== g.guildId && r.live?.place === live.place);
+    const crowns = Number(live.crowns) || 0;
+    return {
+        tone: live.place === 1 ? 'lead' : 'chase',
+        icon: live.place === 1 ? 'fa-crown' : 'fa-flag-checkered',
+        text: `${tied ? 'Tied ' : ''}${_ordinal(live.place)} now · +${crowns} 👑 so far`,
+    };
+}
+
+/** How far this guild is from the Unity Seal this Chapter. */
+function _unityMeterHtml(g) {
+    const live = g.live || {};
+    const have = Number(live.unityCount) || 0;
+    const need = Math.max(1, Number(live.unityNeeded) || 0);
+    const members = Number(g.memberCount) || 0;
+    const pct = members ? Math.min(100, Math.round((have / need) * 100)) : 0;
+    const sealed = Boolean(live.unity);
+    const title = `Unity Seal: +${UNITY_SEAL.crowns} Crown when at least ${need} of ${members} members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this Chapter.`;
+    return `
+                    <div class="guild-unity-meter${sealed ? ' is-sealed' : ''}" title="${title}">
+                        <span class="guild-unity-meter__label"><span aria-hidden="true">🤝</span>${sealed ? 'Unity Seal won' : 'Unity Seal'}</span>
+                        <span class="guild-unity-meter__bar" aria-hidden="true"><span style="width:${pct}%"></span></span>
+                        <span class="guild-unity-meter__count">${have}/${need}</span>
+                    </div>`;
+}
+
+function _standardsHtml(g) {
+    const names = [...new Set((g.standards || []).map((s) => s?.name).filter(Boolean))];
+    if (!names.length) return '';
+    return `<div class="guild-standards" title="Raised with a Guild Standard from the Mystic Market"><span aria-hidden="true">🚩</span>${names.slice(0, 3).map(_escapeHtml).join(' · ')}${names.length > 3 ? ` +${names.length - 3}` : ''}</div>`;
+}
+
+function _heroTile(c, primary, medal, placeLabel, hint) {
+    const initialHero = String(c.name || '?').trim().charAt(0).toUpperCase() || '?';
+    const avatarInner = c.avatar
+        ? `<img src="${c.avatar}" alt="" class="guild-crystal-hero-tile__avatar-img" loading="lazy" decoding="async" width="36" height="36">`
+        : `<span class="guild-crystal-hero-tile__avatar-fallback">${initialHero}</span>`;
+    return `
+                       <span class="guild-crystal-hero-tile" style="--hero-tile-accent:${primary};" title="${c.name} — ${_fmtGlory(c.glory)} ${GLORY_EMOJI} ${hint}">
+                           <span class="guild-crystal-hero-tile__avatar" aria-hidden="true">${avatarInner}</span>
+                           <span class="guild-crystal-hero-tile__body">
+                               <span class="guild-crystal-hero-tile__name">${c.name}</span>
+                               <span class="guild-crystal-hero-tile__glory">
+                                   <span class="guild-crystal-hero-tile__glory-num">${_fmtGlory(c.glory)}</span>
+                                   <span class="guild-crystal-hero-tile__glory-icon" aria-hidden="true">${GLORY_EMOJI}</span>
+                                   <span class="guild-crystal-hero-tile__glory-hint">${hint}</span>
+                               </span>
+                           </span>
+                           <span class="guild-crystal-hero-tile__medal" role="img" aria-label="${placeLabel}">${medal}</span>
+                       </span>`;
+}
+
+/** Chapter champion: the member who has earned the most Glory this Chapter. */
 function _buildGuildChampionPanel(g, primary) {
-    const guildId = g.guildId;
-    const spotlightBtn = `
-                    <button type="button" class="guild-power-info-btn guild-analytics-info-btn guild-crystal-champion-panel__info"
-                            data-top-heroes-guild="${guildId}"
-                            title="Guild spotlight"
-                            aria-label="Open guild spotlight">i</button>`;
     const header = `
                 <header class="guild-crystal-champion-panel__header">
                     <span class="guild-crystal-champion-panel__burst" aria-hidden="true"><i class="fas fa-crown"></i></span>
                     <div class="guild-crystal-champion-panel__headlines">
-                        <h4 class="guild-crystal-champion-panel__title">Top champion</h4>
-                        <p class="guild-crystal-champion-panel__subtitle">${GLORY_EMOJI} Glory lead from lifetime stars</p>
+                        <h4 class="guild-crystal-champion-panel__title">Chapter champion</h4>
+                        <p class="guild-crystal-champion-panel__subtitle">Most ${GLORY_EMOJI} Glory in ${chapterName(g.live?.key) || 'this Chapter'}</p>
                     </div>
-                    ${spotlightBtn}
+                    <button type="button" class="guild-power-info-btn guild-analytics-info-btn guild-crystal-champion-panel__info"
+                            data-top-heroes-guild="${g.guildId}" title="Guild spotlight" aria-label="Open guild spotlight">i</button>
                 </header>`;
-    const champ = g.topContributors?.[0];
-    if (!champ) {
-        return `
-            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced" style="--guild-champion-accent:${primary};" aria-label="Guild champion">
-                ${header}
-                <div class="guild-crystal-champion-panel__body">
-                    <p class="guild-crystal-champion-panel__vacant" role="status">Throne vacant — the first spark will claim it.</p>
-                </div>
-            </section>`;
-    }
-    const glory = Number(champ.gloryEstimate) || 0;
-    const initialHero = String(champ.name || '?').trim().charAt(0).toUpperCase() || '?';
-    const avatarInner = champ.avatar
-        ? `<img src="${champ.avatar}" alt="" class="guild-crystal-champion-panel__avatar-img" loading="lazy" decoding="async" width="44" height="44">`
-        : `<span class="guild-crystal-champion-panel__avatar-fallback">${initialHero}</span>`;
+    const champ = g.chapterTop?.[0];
     return `
-            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced" style="--guild-champion-accent:${primary};" aria-label="Guild champion">
+            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced" style="--guild-champion-accent:${primary};" aria-label="Chapter champion">
                 ${header}
                 <div class="guild-crystal-champion-panel__body">
-                    <div class="guild-crystal-champion-panel__card" style="--hero-tile-accent:${primary};" title="${champ.name} — ${glory} ${GLORY_EMOJI} from lifetime stars">
-                        <span class="guild-crystal-champion-panel__avatar" aria-hidden="true">${avatarInner}</span>
-                        <span class="guild-crystal-champion-panel__text">
-                            <span class="guild-crystal-champion-panel__name">${champ.name}</span>
-                            <span class="guild-crystal-champion-panel__glory">
-                                <span class="guild-crystal-champion-panel__glory-num">${glory}</span>
-                                <span class="guild-crystal-champion-panel__glory-unit" aria-hidden="true">${GLORY_EMOJI}</span>
-                                <span class="guild-crystal-champion-panel__glory-hint">from stars</span>
-                            </span>
-                        </span>
-                        <span class="guild-crystal-champion-panel__medal" role="img" aria-label="First place">🥇</span>
-                    </div>
+                    ${champ ? _heroTile(champ, primary, '🥇', 'Chapter champion', 'this Chapter') : '<p class="guild-crystal-champion-panel__vacant" role="status">Throne vacant: the first star this Chapter claims it.</p>'}
                 </div>
             </section>`;
 }
 
-/**
- * Balance-of-power ribbon above the columns: each guild's share of the summed Guild Power,
- * in standings order, plus a one-line leader summary. Live season only.
- */
-function _buildGuildRaceTrack(displayData) {
-    if (!displayData.length) return '';
-    // Exact Glory per member, so small early-season numbers aren't all rounded to 0 (equal shares).
-    const powers = displayData.map((g) => Math.max(0, Number(g.seasonGloryPerMember ?? g.guildPower) || 0));
-    const fmtPower = (n) => (n >= 10 ? String(Math.round(n)) : (Math.round(n * 10) / 10).toString());
-    const total = powers.reduce((sum, p) => sum + p, 0);
-
-    const segments = displayData.map((g, i) => {
-        const guild = getGuildById(g.guildId);
-        const primary = guild?.primary || '#6b7280';
-        const secondary = guild?.secondary || '#9ca3af';
-        const glow = guild?.glow || primary;
-        const emblemUrl = getGuildEmblemUrl(g.guildId);
-        const initial = String(g.guildName || g.guildId || '?').trim().charAt(0).toUpperCase() || '?';
-        const pct = total > 0 ? Math.round((powers[i] / total) * 100) : Math.round(100 / displayData.length);
-        const grow = total > 0 ? powers[i] : 1;
-        const badge = emblemUrl
-            ? `<img src="${emblemUrl}" alt="" class="guild-race-track__emblem" loading="lazy" decoding="async" width="22" height="22">`
-            : `<span class="guild-race-track__emblem guild-race-track__emblem--initial">${initial}</span>`;
-        return `
-                    <div class="guild-race-track__seg${i === 0 && total > 0 ? ' is-leader' : ''}"
-                         style="flex:${grow} 1 0;--seg-primary:${primary};--seg-secondary:${secondary};--seg-glow:${glow};"
-                         title="${g.guildName}: ${fmtPower(powers[i])} Guild Power (${pct}% of the hall)">
-                        ${badge}
-                        <span class="guild-race-track__pct">${pct}%</span>
-                    </div>`;
-    }).join('');
-
-    const leader = displayData[0];
-    const runnerUp = displayData[1];
-    const leadGap = runnerUp ? powers[0] - powers[1] : powers[0];
-    const leaderLine = total <= 0.005
-        ? 'The race begins with the first Glory earned &mdash; every guild starts level'
-        : leadGap >= 0.05
-        ? `<strong>${leader.guildName}</strong> leads the season race by <strong>${fmtPower(leadGap)}</strong> Power`
-        : 'Dead heat at the top &mdash; every star counts!';
-
-    return `
-            <div class="guild-race-track" role="group" aria-label="Balance of power between the guilds">
-                <div class="guild-race-track__bar">${segments}</div>
-                <div class="guild-race-track__legend">
-                    <span class="guild-race-track__leader"><i class="fas fa-crown" aria-hidden="true"></i>${leaderLine}</span>
-                    <span class="guild-race-track__goal"><i class="fas fa-circle-info" aria-hidden="true"></i>Each colour = that guild's share of all Guild Power</span>
-                </div>
-            </div>`;
-}
-
-/**
- * This week against last week. Until the guild earns Glory this week there is nothing to
- * compare yet (a quiet Monday is not a -100% week), and a first week has no "last week".
- */
-function _momentumTileHtml(g) {
-    const title = "This week's Glory compared with last week's. This week's form never changes the ranking.";
-    if (!((Number(g.weeklyGlory) || 0) > 0)) {
-        return `<span class="guild-crystal-power-tile guild-crystal-power-tile--flat" title="${title}"><strong>—</strong><small>no Glory yet<br>this week</small></span>`;
-    }
-    if (!((Number(g.previousWeekGlory) || 0) > 0)) {
-        return `<span class="guild-crystal-power-tile guild-crystal-power-tile--up" title="${title}"><strong>New</strong><small>🌱 nothing<br>last week</small></span>`;
-    }
-    const pct = Number(g.momentumPct) || 0;
-    return `<span class="guild-crystal-power-tile guild-crystal-power-tile--${pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'}" title="${title}"><strong>${pct >= 0 ? '+' : ''}${pct}%</strong><small>${g.momentumArrow} Glory vs<br>last week</small></span>`;
-}
-
-/** Exact Guild Power used for places and gaps (never a rounded value). */
-function _exactPower(row) {
-    return Math.max(0, Number(row?.seasonGloryPerMember ?? row?.guildPower) || 0);
-}
-
-/**
- * Shared places: guilds with the same Power share a place ("1st, 1st, 3rd, 4th").
- * `raceStarted` is false until any guild has earned Glory, so an all-zero Hall shows no
- * winners and no ties at all.
- */
-function _guildPlaces(displayData) {
-    const powers = displayData.map(_exactPower);
-    const same = (a, b) => Math.abs(a - b) < 0.005;
-    const places = powers.map((p, i) => {
-        let first = i;
-        while (first > 0 && same(powers[first - 1], p)) first -= 1;
-        return first;
-    });
-    return { places, raceStarted: powers.some((p) => p > 0.005) };
-}
-
-/** Short "chase" line under each column's Guild Power (gap to the guild one place above). */
-function _guildChaseLine(displayData, index, rankLabels, standing = _guildPlaces(displayData)) {
-    const fmt = (gap) => (gap >= 10 ? String(Math.round(gap)) : String(Math.round(gap * 10) / 10));
-    const label = (i) => rankLabels[standing.places[i]] || `#${standing.places[i] + 1}`;
-    if (!standing.raceStarted) {
-        return { tone: 'tie', icon: 'fa-hourglass-start', text: 'Race not started' };
-    }
-    const place = standing.places[index];
-    const sharesPlace = standing.places.some((p, i) => i !== index && p === place);
-    if (sharesPlace) return { tone: 'tie', icon: 'fa-scale-balanced', text: `Tied for ${label(index)}` };
-    if (index === 0) {
-        const gap = displayData[1] ? _exactPower(displayData[0]) - _exactPower(displayData[1]) : 0;
-        if (gap >= 0.05) return { tone: 'lead', icon: 'fa-crown', text: `${fmt(gap)} Power ahead of ${label(1)}` };
-        return { tone: 'tie', icon: 'fa-scale-balanced', text: `Neck and neck with ${label(1)}` };
-    }
-    const gap = _exactPower(displayData[index - 1]) - _exactPower(displayData[index]);
-    if (gap >= 0.05) return { tone: 'chase', icon: 'fa-flag-checkered', text: `${fmt(gap)} Power behind ${label(index - 1)}` };
-    return { tone: 'tie', icon: 'fa-scale-balanced', text: `Neck and neck with ${label(index - 1)}` };
-}
-
-/**
- * "Latest" row under the chase line: the most recent Guild Power change and any place change,
- * written out in words. Empty (but still reserving its row, so columns stay aligned) until something moves.
- */
-function _guildTrendRow(delta, isFirstRender, index, rankLabels, placeIndex = index) {
-    const items = [];
-    if (delta && !isFirstRender) {
-        if (delta.powerDelta) {
-            const up = delta.powerDelta > 0;
-            const abs = Math.abs(delta.powerDelta);
-            items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${up ? 'up' : 'down'}"
-                title="Guild Power ${up ? 'rose' : 'fell'} by ${abs} with the latest Glory change">
-                <i class="fas ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}" aria-hidden="true"></i>${up ? '+' : '−'}${abs} Power</span>`);
-        }
-        if (delta.rankDelta) {
-            const climbed = delta.rankDelta > 0;
-            const place = rankLabels[placeIndex] || `#${placeIndex + 1}`;
-            items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${climbed ? 'climb' : 'slip'}"
-                title="${climbed ? 'Climbed' : 'Slipped'} to ${place} place with the latest Glory change">
-                <i class="fas ${climbed ? 'fa-circle-up' : 'fa-circle-down'}" aria-hidden="true"></i>${climbed ? 'Up' : 'Down'} to ${place}</span>`);
-        }
-    }
-    return `<div class="guild-crystal-trend${items.length ? '' : ' guild-crystal-trend--quiet'}">${items.length
-        ? `<span class="guild-crystal-trend__label">Latest</span>${items.join('')}`
-        : ''}</div>`;
-}
-
-/** Guild Power as shown: one decimal while small (0.4, 7.5), whole numbers from 10. */
-function _fmtPower(n) {
-    const v = Math.max(0, Number(n) || 0);
-    return v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
-}
-
-/**
- * The crystal tubes share one fixed scale: the next round mark above the leader (10, 20, 25,
- * 50, 100, ...), never less than 10 Power. So a tiny early lead (0.4) is a sliver, not a full
- * tube, and a tube is never full just because its guild is first.
- */
+/** The crystal tubes share one scale: the next round mark above the Chapter leader (never under 10). */
 function _crystalTubeScale(displayData) {
-    const top = Math.max(0, ...displayData.map(_exactPower));
+    const top = Math.max(0, ...displayData.map((g) => Number(g.live?.perMember) || 0));
     const marks = [10, 20, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000];
     const mark = marks.find((m) => m >= top * 1.1);
     return mark || Math.ceil((top * 1.1) / 500) * 500;
 }
 
-function _crystalFillPct(power, scale) {
-    if (!(power > 0.005)) return 0;
-    return Math.max(3, Math.min(92, Math.round((power / scale) * 92)));
+function _crystalFillPct(value, scale) {
+    if (!(value > 0.005)) return 0;
+    return Math.max(3, Math.min(92, Math.round((value / scale) * 92)));
 }
 
-/** Rolls each changed Guild Power number from its previous value (skipped for reduced motion). */
+/** Rolls each changed Chapter number from its previous value (skipped for reduced motion). */
 let _powerCountToken = 0;
 function _animateGuildPowerCounters(root) {
     const token = ++_powerCountToken;
@@ -756,17 +714,44 @@ function _animateGuildPowerCounters(root) {
         .map((el) => ({ el, from: Number(el.dataset.countFrom), to: Number(el.dataset.countTo) }))
         .filter((j) => Number.isFinite(j.from) && Number.isFinite(j.to) && j.from !== j.to);
     if (!jobs.length) return;
-    jobs.forEach((j) => { j.el.textContent = String(j.from); });
+    jobs.forEach((j) => { j.el.textContent = _fmtGlory(j.from); });
     const duration = 1200;
     const start = performance.now();
     const step = (now) => {
         if (token !== _powerCountToken) return;
         const t = Math.min(1, (now - start) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
-        jobs.forEach((j) => { j.el.textContent = _fmtPower(j.from + (j.to - j.from) * eased); });
+        jobs.forEach((j) => { j.el.textContent = _fmtGlory(j.from + (j.to - j.from) * eased); });
         if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+}
+
+/**
+ * "Latest" row: the last change to this Chapter's Glory per member and any change of year place,
+ * in words. Empty (but still reserving its row, so columns stay aligned) until something moves.
+ */
+function _guildTrendRow(delta, isFirstRender, placeIndex) {
+    const items = [];
+    if (delta && !isFirstRender) {
+        if (delta.powerDelta) {
+            const up = delta.powerDelta > 0;
+            const abs = Math.abs(delta.powerDelta);
+            items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${up ? 'up' : 'down'}"
+                title="This Chapter's Glory per member ${up ? 'rose' : 'fell'} by ${abs}">
+                <i class="fas ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}" aria-hidden="true"></i>${up ? '+' : '−'}${abs} ${GLORY_EMOJI}</span>`);
+        }
+        if (delta.rankDelta) {
+            const climbed = delta.rankDelta > 0;
+            const place = _ordinal(placeIndex + 1);
+            items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${climbed ? 'climb' : 'slip'}"
+                title="${climbed ? 'Climbed' : 'Slipped'} to ${place} in the Crown Race">
+                <i class="fas ${climbed ? 'fa-circle-up' : 'fa-circle-down'}" aria-hidden="true"></i>${climbed ? 'Up' : 'Down'} to ${place}</span>`);
+        }
+    }
+    return `<div class="guild-crystal-trend${items.length ? '' : ' guild-crystal-trend--quiet'}">${items.length
+        ? `<span class="guild-crystal-trend__label">Latest</span>${items.join('')}`
+        : ''}</div>`;
 }
 
 export function renderGuildsTab() {
@@ -779,75 +764,30 @@ export function renderGuildsTab() {
     wireAnthemListeners();
 
     const seasonLive = isGuildSeasonLive();
-    const rawData = getGuildLeaderboardData();
+    const rows = getGuildLeaderboardData();
+    // Frozen season: stable guild order (no false rankings).
+    const displayData = seasonLive ? rows : GUILD_IDS.map((gid) => rows.find((r) => r.guildId === gid)).filter(Boolean);
+    const places = _yearPlaces(displayData);
 
-    // Always render all 4 guilds (zero stars = empty crystal, still looks great)
-    let displayData = GUILD_IDS.map((gid) => {
-        const found = rawData.find((d) => d.guildId === gid);
-        const guild = GUILDS[gid];
-        return {
-            guildId: gid,
-            guildName: guild?.name || gid,
-            totalStars: found?.totalStars || 0,
-            monthlyStars: found?.monthlyStars || 0,
-            memberCount: found?.memberCount || 0,
-            perCapitaStars: found?.perCapitaStars || 0,
-            monthlyPerCapitaStars: found?.monthlyPerCapitaStars || 0,
-            topContributors: found?.topContributors || [],
-            // Glory & Power fields (must mirror getGuildLeaderboardData / calculateGuildPower)
-            totalGlory: found?.totalGlory || 0,
-            countedGlory: found?.countedGlory ?? found?.totalGlory ?? 0,
-            seasonGloryPerMember: found?.seasonGloryPerMember ?? 0,
-            weeklyGlory: found?.weeklyGlory || 0,
-            previousWeekGlory: found?.previousWeekGlory || 0,
-            perCapitaGlory: found?.perCapitaGlory || 0,
-            weeklyPerCapitaGlory: found?.weeklyPerCapitaGlory || 0,
-            guildPower: found?.guildPower || 0,
-            seasonGloryScore: found?.seasonGloryScore ?? found?.gloryScore ?? 0,
-            weeklyGloryScore: found?.weeklyGloryScore ?? 0,
-            gloryScore: found?.gloryScore ?? 0,
-            momentumScore: found?.momentumScore ?? 0,
-            momentumPct: Number.isFinite(Number(found?.momentumPct))
-                ? Math.round(Number(found.momentumPct))
-                : 0,
-            momentumArrow: found?.momentumArrow || '➡️',
-            activityScore: found?.activityScore ?? 0,
-            gloryModifiers: found?.gloryModifiers || [],
-        };
-    });
-    // Frozen season: keep stable guild order (no false rankings from baseline power)
-    if (seasonLive) {
-        displayData = displayData.sort(compareGuildLeaderboardRows);
-    }
-
-    // ── Compute power deltas for live indicators ──────────────────────────────
-    const powerDeltas = new Map(); // guildId → { powerDelta, rankDelta, prevPower, prevRank, freshChange }
+    // ── Changes since the last render, for the "Latest" row ───────────────────
+    const powerDeltas = new Map();
     const isFirstRender = !_guildPowerIndicatorsReady;
     if (seasonLive) {
         displayData.forEach((g, index) => {
             const prev = _prevGuildPower.get(g.guildId);
-            if (prev) {
-                const powerDelta = Math.round((Number(g.guildPower) - Number(prev.power)) * 10) / 10;
-                const rankDelta = prev.rank - index; // positive = moved up
-                // If nothing changed, carry forward the last known trend
-                if (powerDelta === 0 && rankDelta === 0) {
-                    powerDeltas.set(g.guildId, {
-                        powerDelta: prev.lastPowerDelta || 0,
-                        rankDelta: prev.lastRankDelta || 0,
-                        prevPower: prev.power,
-                        prevRank: prev.rank,
-                        freshChange: false,
-                    });
-                } else {
-                    powerDeltas.set(g.guildId, { powerDelta, rankDelta, prevPower: prev.power, prevRank: prev.rank, freshChange: true });
-                }
+            if (!prev) return;
+            const powerDelta = Math.round(((Number(g.live?.perMember) || 0) - Number(prev.power)) * 10) / 10;
+            const rankDelta = prev.rank - index; // positive = moved up
+            if (powerDelta === 0 && rankDelta === 0) {
+                powerDeltas.set(g.guildId, { powerDelta: prev.lastPowerDelta || 0, rankDelta: prev.lastRankDelta || 0, freshChange: false });
+            } else {
+                powerDeltas.set(g.guildId, { powerDelta, rankDelta, freshChange: true });
             }
         });
     }
 
-    const rankLabels = ['1st', '2nd', '3rd', '4th'];
-    const standing = _guildPlaces(displayData);
     const tubeScale = _crystalTubeScale(displayData);
+    const anyCrowns = displayData.some((g) => g.crowns > 0);
 
     const columns = displayData.map((g, index) => {
         const guild = getGuildById(g.guildId);
@@ -856,7 +796,10 @@ export function renderGuildsTab() {
         const secondary = guild?.secondary || '#9ca3af';
         const glow = guild?.glow || primary;
         const initial = String(g.guildName || g.guildId || '?').trim().charAt(0).toUpperCase() || '?';
-        const fillPct = seasonLive ? _crystalFillPct(_exactPower(g), tubeScale) : 0;
+        const live = g.live || {};
+        const perMember = Number(live.perMember) || 0;
+        const fillPct = seasonLive ? _crystalFillPct(perMember, tubeScale) : 0;
+        const chapter = chapterName(live.key) || 'This month';
 
         const emblemHtml = emblemUrl
             ? `<img src="${emblemUrl}" alt="${g.guildName}" class="guild-crystal-emblem"
@@ -866,45 +809,18 @@ export function renderGuildsTab() {
                    <span class="guild-crystal-emblem-initial" style="color:${primary}">${initial}</span>
                </div>`;
 
-        const legendRunners = seasonLive ? g.topContributors.slice(1, 4) : [];
-        const legendMedals = ['🥈', '🥉', '✨'];
-        const legendPlaceLabels = ['2nd place', '3rd place', '4th place'];
-
+        const legends = seasonLive ? (g.topContributors || []).slice(0, 3) : [];
+        const legendMedals = ['🥇', '🥈', '🥉'];
         const topHeroesBody = !seasonLive
             ? `<p class="guild-crystal-heroes-panel__empty" role="status">Legends sleep until the school year begins.</p>`
-            : legendRunners.length
-            ? legendRunners.map((c, hi) => {
-                const rankMedal = legendMedals[hi] || '✨';
-                const placeLabel = legendPlaceLabels[hi] || `${hi + 2}nd place`;
-                const initialHero = String(c.name || '?').trim().charAt(0).toUpperCase() || '?';
-                const glory = Number(c.gloryEstimate) || 0;
-                const avatarInner = c.avatar
-                    ? `<img src="${c.avatar}" alt="" class="guild-crystal-hero-tile__avatar-img" loading="lazy" decoding="async" width="36" height="36">`
-                    : `<span class="guild-crystal-hero-tile__avatar-fallback">${initialHero}</span>`;
-                return `
-                       <span class="guild-crystal-hero-tile"
-                             style="--hero-tile-accent:${primary};"
-                             title="${c.name} — ${glory} ${GLORY_EMOJI} from lifetime stars">
-                           <span class="guild-crystal-hero-tile__avatar" aria-hidden="true">${avatarInner}</span>
-                           <span class="guild-crystal-hero-tile__body">
-                               <span class="guild-crystal-hero-tile__name">${c.name}</span>
-                               <span class="guild-crystal-hero-tile__glory">
-                                   <span class="guild-crystal-hero-tile__glory-num">${glory}</span>
-                                   <span class="guild-crystal-hero-tile__glory-icon" aria-hidden="true">${GLORY_EMOJI}</span>
-                                   <span class="guild-crystal-hero-tile__glory-hint">lifetime</span>
-                               </span>
-                           </span>
-                           <span class="guild-crystal-hero-tile__medal" role="img" aria-label="${placeLabel}">${rankMedal}</span>
-                       </span>`;
-            }).join('')
-            : (g.topContributors.length === 0
-                ? `<p class="guild-crystal-heroes-panel__empty" role="status">Summon stars to crown your first legends.</p>`
-                : `<p class="guild-crystal-heroes-panel__empty" role="status">The court awaits more guildmates ranked by ${GLORY_EMOJI}.</p>`);
+            : legends.length
+                ? legends.map((c, hi) => _heroTile({ ...c, glory: c.gloryEstimate }, primary, legendMedals[hi] || '✨', `${_ordinal(hi + 1)} this year`, 'this year')).join('')
+                : `<p class="guild-crystal-heroes-panel__empty" role="status">Summon stars to crown your first legends.</p>`;
 
         const championPanelHtml = seasonLive
             ? _buildGuildChampionPanel(g, primary)
             : `
-            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced guild-crystal-champion-panel--frozen" style="--guild-champion-accent:${primary};" aria-label="Guild champion">
+            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced guild-crystal-champion-panel--frozen" style="--guild-champion-accent:${primary};" aria-label="Chapter champion">
                 <header class="guild-crystal-champion-panel__header">
                     <span class="guild-crystal-champion-panel__burst" aria-hidden="true"><i class="fas fa-snowflake"></i></span>
                     <div class="guild-crystal-champion-panel__headlines">
@@ -922,79 +838,39 @@ export function renderGuildsTab() {
                 <header class="guild-crystal-heroes-panel__header">
                     <span class="guild-crystal-heroes-panel__burst" aria-hidden="true"><i class="fas ${seasonLive ? 'fa-dragon' : 'fa-snowflake'}"></i></span>
                     <div class="guild-crystal-heroes-panel__headlines">
-                        <h4 class="guild-crystal-heroes-panel__title">${seasonLive ? 'Legends of the guild' : 'Legends awaiting'}</h4>
-                        <p class="guild-crystal-heroes-panel__subtitle">${seasonLive ? `Next warriors by lifetime ${GLORY_EMOJI} (from stars)` : 'Glory ledgers open when classes begin'}</p>
+                        <h4 class="guild-crystal-heroes-panel__title">${seasonLive ? 'Legends of the year' : 'Legends awaiting'}</h4>
+                        <p class="guild-crystal-heroes-panel__subtitle">${seasonLive ? `Most ${GLORY_EMOJI} Glory earned this school year` : 'Glory ledgers open when classes begin'}</p>
                     </div>
                 </header>
                 <div class="guild-crystal-heroes-panel__roster">${topHeroesBody}</div>
             </section>`;
 
-        const now = Date.now();
-        const activeModsSorted = seasonLive
-            ? [...(g.gloryModifiers || [])]
-                .filter((m) => (Number(m.expiresAt) || 0) > now)
-                .sort((a, b) => (Number(a.expiresAt) || 0) - (Number(b.expiresAt) || 0))
-            : [];
-        const shownWheelMods = activeModsSorted.slice(0, 2);
-        const overflowMods = Math.max(0, activeModsSorted.length - shownWheelMods.length);
-        const modsChipsInner = !seasonLive
-            ? `<p class="guild-crystal-effects-panel__empty" role="status"><span aria-hidden="true">❄</span> Fortune's Wheel rests until the season thaws</p>`
-            : activeModsSorted.length
-            ? `${shownWheelMods.map((m) => {
-                const p = getGuildModifierChipPresentation(m);
-                const headSafe = _escapeChipAttr((p.headlinePlain || '').slice(0, 64));
-                return `<span class="guild-crystal-effect-chip" tabindex="0" aria-label="${p.headlineAttr}" title="${p.hoverExplainerAttr}">
-                        <span class="guild-crystal-effect-chip__pulse" aria-hidden="true"></span>
-                        <span class="guild-crystal-effect-chip__ico" aria-hidden="true"><i class="${p.iconClass}"></i></span>
-                        <span class="guild-crystal-effect-chip__label">${headSafe}</span>
-                    </span>`;
-            }).join('')}
-               ${overflowMods > 0 ? `
-                    <span class="guild-crystal-effect-chip guild-crystal-effect-chip--more" tabindex="0"
-                          aria-label="${_escapeChipAttr(`${overflowMods} more active Glory perk${overflowMods === 1 ? '' : 's'}`)}"
-                          title="${_escapeChipAttr(`${overflowMods} more Glory perk${overflowMods === 1 ? '' : 's'} are stacking on this guild (${activeModsSorted.length} total right now). Open Guild spotlight (${GLORY_EMOJI} Legends card) → Wheel tab to read them all.`)}">
-                        <span class="guild-crystal-effect-chip__ico" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
-                        <span class="guild-crystal-effect-chip__label">+${overflowMods}</span>
-                    </span>` : ''}`
-            : `<p class="guild-crystal-effects-panel__empty" role="status"><span aria-hidden="true">✶</span> No wheel magic right now &mdash; spin Fortune's Wheel to stir the halls</p>`;
-
-        const modsHtml = `
-            <section class="guild-crystal-effects-panel guild-crystal-effects-panel--balanced" style="--guild-effects-accent:${primary};">
-                <header class="guild-crystal-effects-panel__header">
-                    <span class="guild-crystal-effects-panel__wheel" aria-hidden="true"><i class="fa-solid fa-dharmachakra"></i></span>
-                    <div class="guild-crystal-effects-panel__headlines">
-                        <h4 class="guild-crystal-effects-panel__title">Wheel boons</h4>
-                        <p class="guild-crystal-effects-panel__subtitle">${seasonLive ? "Blessings cast by Fortune's Wheel &mdash; hover a charm for what it actually does." : 'Wheel magic stays sealed until the school year begins.'}</p>
-                    </div>
-                </header>
-                <div class="guild-crystal-effects-panel__chips">${modsChipsInner}</div>
-            </section>`;
-
-        const powerNow = _fmtPower(Number(g.guildPower) || 0);
-        const prevPowerEntry = _prevGuildPower.get(g.guildId);
-        const powerFrom = prevPowerEntry ? _fmtPower(Number(prevPowerEntry.power) || 0) : '0';
-        const chase = seasonLive ? _guildChaseLine(displayData, index, rankLabels, standing) : null;
+        const prevEntry = _prevGuildPower.get(g.guildId);
+        const countFrom = prevEntry ? _fmtGlory(prevEntry.power) : '0';
+        const line = seasonLive ? _chapterLine(g, displayData) : null;
+        const wins = (g.chapterWins || []).map(chapterShortName);
 
         const countBlock = seasonLive
             ? `
                 <div class="guild-crystal-count" style="color:${primary};">
-                    <span class="guild-crystal-count-num${(() => { const d = powerDeltas.get(g.guildId); if (!d || isFirstRender) return ''; return d.powerDelta > 0 ? ' guild-power-boost' : d.powerDelta < 0 ? ' guild-power-drop' : ''; })()}" data-guild-id="${g.guildId}" data-count-from="${powerFrom}" data-count-to="${powerNow}">${powerNow}</span>
+                    <span class="guild-crystal-count-num${(() => { const d = powerDeltas.get(g.guildId); if (!d || isFirstRender) return ''; return d.powerDelta > 0 ? ' guild-power-boost' : d.powerDelta < 0 ? ' guild-power-drop' : ''; })()}" data-guild-id="${g.guildId}" data-count-from="${countFrom}" data-count-to="${_fmtGlory(perMember)}">${_fmtGlory(perMember)}</span>
                     <span class="guild-crystal-count-label">
-                        ⚡ Guild Power
-                        <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
+                        ${GLORY_EMOJI} per member · ${chapter}
+                        <button class="guild-power-info-btn" type="button" aria-label="Explain the Crown Race" data-guild-power-info="true">?</button>
                     </span>
-                    <span class="guild-crystal-chase guild-crystal-chase--${chase.tone}"><i class="fas ${chase.icon}" aria-hidden="true"></i>${chase.text}</span>
-                    ${_guildTrendRow(powerDeltas.get(g.guildId), isFirstRender, index, rankLabels, standing.places[index])}
-                    <div class="guild-crystal-power-strip guild-crystal-power-strip--tiles" aria-label="How ${g.guildName} is doing">
-                        <span class="guild-crystal-power-tile" title="All the Glory this guild's current members earned this year. Guild Power is this shared out per member."><strong>${Math.round(Number(g.countedGlory) || 0)}</strong><small>${GLORY_EMOJI} earned<br>this year</small></span>
-                        <span class="guild-crystal-power-tile" title="This week's Glory per member. This week's form never changes the ranking."><strong>${g.weeklyPerCapitaGlory.toFixed(1)}</strong><small>${GLORY_EMOJI} per member<br>this week</small></span>
-                        <span class="guild-crystal-power-tile" title="Share of members who earned Glory this week. This week's form never changes the ranking."><strong>${Math.round(Number(g.activityScore) || 0)}%</strong><small>🔥 members<br>active this week</small></span>
-                        ${_momentumTileHtml(g)}
+                    <span class="guild-crystal-chase guild-crystal-chase--${line.tone}"><i class="fas ${line.icon}" aria-hidden="true"></i>${line.text}</span>
+                    ${_guildTrendRow(powerDeltas.get(g.guildId), isFirstRender, places[index])}
+                    ${_unityMeterHtml(g)}
+                    <div class="guild-crystal-power-strip guild-crystal-power-strip--tiles guild-crystal-power-strip--crowns" aria-label="How ${g.guildName} is doing">
+                        <span class="guild-crystal-power-tile guild-crystal-power-tile--crowns" title="Crowns from sealed Chapters. Most Crowns in June wins the year."><strong>👑 ${g.crowns}</strong><small>Crowns<br>this year</small></span>
+                        <span class="guild-crystal-power-tile" title="Chapters this guild has won${wins.length ? `: ${wins.join(', ')}` : ''}"><strong>${wins.length}</strong><small>Chapters<br>won</small></span>
+                        <span class="guild-crystal-power-tile" title="Glory each member earned this school year, on average. Splits a tie on Crowns."><strong>${_fmtGlory(g.yearGloryPerMember)}</strong><small>${GLORY_EMOJI} per member<br>this year</small></span>
                     </div>
+                    ${_standardsHtml(g)}
                 </div>`
             : `
                 <div class="guild-crystal-count guild-crystal-count--frozen" style="color:${primary};">
-                    <span class="guild-crystal-count-num guild-crystal-count-num--frozen" data-guild-id="${g.guildId}" aria-label="Guild Power frozen">—</span>
+                    <span class="guild-crystal-count-num guild-crystal-count-num--frozen" data-guild-id="${g.guildId}" aria-label="Guild Hall frozen">—</span>
                     <span class="guild-crystal-count-label">
                         <i class="fas fa-snowflake" aria-hidden="true"></i> Frozen
                     </span>
@@ -1008,19 +884,19 @@ export function renderGuildsTab() {
             ? `
                             <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Season Glory/member</div>
-                                    <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                    <div class="guild-crystal-metric__hint">This is the Guild Power</div>
+                                    <div class="guild-crystal-metric__label">${chapter} Glory</div>
+                                    <div class="guild-crystal-metric__value">${_fmtGlory(live.glory)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
+                                    <div class="guild-crystal-metric__hint">${_fmtGlory(perMember)} per member</div>
                                 </div>
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Weekly Glory/member</div>
-                                    <div class="guild-crystal-metric__value">${g.weeklyPerCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                    <div class="guild-crystal-metric__hint">This week's form</div>
+                                    <div class="guild-crystal-metric__label">Members contributing</div>
+                                    <div class="guild-crystal-metric__value">${Number(live.contributors) || 0} / ${g.memberCount}</div>
+                                    <div class="guild-crystal-metric__hint">earned Glory this Chapter</div>
                                 </div>
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Activity + momentum</div>
-                                    <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}% · ${g.momentumArrow}</div>
-                                    <div class="guild-crystal-metric__hint">${!((Number(g.weeklyGlory) || 0) > 0) ? 'No Glory yet this week' : !((Number(g.previousWeekGlory) || 0) > 0) ? 'New this week' : `${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}% vs last week`}</div>
+                                    <div class="guild-crystal-metric__label">Chapters won</div>
+                                    <div class="guild-crystal-metric__value">${wins.length ? wins.join(' · ') : '—'}</div>
+                                    <div class="guild-crystal-metric__hint">${g.crowns} Crown${g.crowns === 1 ? '' : 's'} so far</div>
                                 </div>
                             </div>
                             <div class="guild-crystal-roster-ribbon" style="--guild-roster-accent:${primary};">
@@ -1030,54 +906,38 @@ export function renderGuildsTab() {
                                     <span class="guild-crystal-roster-ribbon__fine">${g.memberCount === 1 ? 'guildmate' : 'guildmates'}</span>
                                 </div>
                                 <div class="guild-crystal-roster-ribbon__rule" aria-hidden="true"></div>
-                                <div class="guild-crystal-roster-ribbon__seg guild-crystal-roster-ribbon__seg--glory" role="group" aria-label="Glory earned this week">
-                                    <span class="guild-crystal-roster-ribbon__eyebrow"><span aria-hidden="true">${GLORY_EMOJI}</span>This week</span>
-                                    <span class="guild-crystal-roster-ribbon__figure guild-crystal-roster-ribbon__figure--accent">${Math.round(g.weeklyGlory || 0)}</span>
-                                    <span class="guild-crystal-roster-ribbon__fine">weekly ${GLORY_EMOJI} tally</span>
+                                <div class="guild-crystal-roster-ribbon__seg guild-crystal-roster-ribbon__seg--glory" role="group" aria-label="Glory earned this year">
+                                    <span class="guild-crystal-roster-ribbon__eyebrow"><span aria-hidden="true">${GLORY_EMOJI}</span>This year</span>
+                                    <span class="guild-crystal-roster-ribbon__figure guild-crystal-roster-ribbon__figure--accent">${Math.round(Number(g.countedGlory) || 0)}</span>
+                                    <span class="guild-crystal-roster-ribbon__fine">Glory earned</span>
                                 </div>
                             </div>`
             : `
                             <div class="guild-crystal-metrics guild-crystal-metrics--frozen" style="--guild-metric-accent:${primary};">
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Season Glory</div>
+                                    <div class="guild-crystal-metric__label">Chapter Glory</div>
                                     <div class="guild-crystal-metric__value">—</div>
                                     <div class="guild-crystal-metric__hint">Awaiting school year</div>
                                 </div>
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Weekly Glory</div>
-                                    <div class="guild-crystal-metric__value">—</div>
-                                    <div class="guild-crystal-metric__hint">Not counting yet</div>
-                                </div>
-                                <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Momentum</div>
+                                    <div class="guild-crystal-metric__label">Crowns</div>
                                     <div class="guild-crystal-metric__value">❄</div>
-                                    <div class="guild-crystal-metric__hint">Awaiting activity</div>
-                                </div>
-                            </div>
-                            <div class="guild-crystal-roster-ribbon" style="--guild-roster-accent:${primary};">
-                                <div class="guild-crystal-roster-ribbon__seg" role="group" aria-label="Guild roster size">
-                                    <span class="guild-crystal-roster-ribbon__eyebrow"><i class="fas fa-users" aria-hidden="true"></i>Roster</span>
-                                    <span class="guild-crystal-roster-ribbon__figure">${g.memberCount}</span>
-                                    <span class="guild-crystal-roster-ribbon__fine">${g.memberCount === 1 ? 'guildmate' : 'guildmates'}</span>
-                                </div>
-                                <div class="guild-crystal-roster-ribbon__rule" aria-hidden="true"></div>
-                                <div class="guild-crystal-roster-ribbon__seg guild-crystal-roster-ribbon__seg--glory" role="group" aria-label="Glory earned this week">
-                                    <span class="guild-crystal-roster-ribbon__eyebrow"><span aria-hidden="true">${GLORY_EMOJI}</span>This week</span>
-                                    <span class="guild-crystal-roster-ribbon__figure guild-crystal-roster-ribbon__figure--accent">—</span>
-                                    <span class="guild-crystal-roster-ribbon__fine">season not live</span>
+                                    <div class="guild-crystal-metric__hint">Not counting yet</div>
                                 </div>
                             </div>`;
 
+        const rankClass = seasonLive ? `is-rank-${places[index] + 1}` : 'is-frozen';
+        const rankLabel = !seasonLive ? '❄' : !anyCrowns && !displayData.some((r) => r.yearGloryPerMember > 0) ? '—' : _ordinal(places[index] + 1);
+        const showCrown = seasonLive && rankLabel !== '—' && places[index] === 0;
+
         return `
-            <div class="guild-crystal-col ${seasonLive ? `is-rank-${index + 1}` : 'is-frozen'}${(() => { if (!seasonLive) return ''; const d = powerDeltas.get(g.guildId); return (!isFirstRender && d && d.freshChange && d.rankDelta !== 0) ? ' guild-rank-changed' : ''; })()}" data-guild="${g.guildId}"
+            <div class="guild-crystal-col ${rankClass}${(() => { if (!seasonLive) return ''; const d = powerDeltas.get(g.guildId); return (!isFirstRender && d && d.freshChange && d.rankDelta !== 0) ? ' guild-rank-changed' : ''; })()}" data-guild="${g.guildId}"
                  style="--guild-primary:${primary};--guild-secondary:${secondary};--guild-glow:${glow};">
 
-                <!-- ── Rank ── -->
-                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${seasonLive && standing.raceStarted && standing.places[index] === 0 ? '<i class="fas fa-crown guild-crystal-rank__crown" aria-hidden="true"></i>' : ''}${!seasonLive ? '❄' : !standing.raceStarted ? '—' : (rankLabels[standing.places[index]] || `#${standing.places[index] + 1}`)}</span></div>
+                <!-- ── Place in the Crown Race ── -->
+                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${showCrown ? '<i class="fas fa-crown guild-crystal-rank__crown" aria-hidden="true"></i>' : ''}${rankLabel}</span></div>
 
-                <!-- ── Header section (fixed min-height so all columns align at tube start) ── -->
                 <div class="guild-crystal-header">
-                    <!-- Emblem is the click target for lore + sound; anthem btn lives inside, bottom-left -->
                     <div class="guild-crystal-emblem-wrapper"
                          data-guild-id="${g.guildId}"
                          role="button" tabindex="0"
@@ -1092,7 +952,7 @@ export function renderGuildsTab() {
                     <div class="guild-crystal-name guild-crystal-name--ribbon">${g.guildName}</div>
                 </div>
 
-                <!-- ── Crystal tube (fixed height, fills from bottom) ── -->
+                <!-- ── Crystal tube: this Chapter's Glory per member ── -->
                 <div class="guild-crystal-tube-wrap${seasonLive ? '' : ' guild-crystal-tube-wrap--frozen'}">
                     ${seasonLive ? '' : `
                     <div class="guild-crystal-seal-badge">
@@ -1133,7 +993,6 @@ export function renderGuildsTab() {
                     <div class="guild-crystal-details">
                         <div class="guild-crystal-details-inner">
                             ${metricsBlock}
-                            ${modsHtml}
                             ${championPanelHtml}
                             ${topHtml}
                         </div>
@@ -1190,15 +1049,15 @@ export function renderGuildsTab() {
                     </button>
                 </div>
             </div>
-            ${seasonLive ? _buildGuildRaceTrack(displayData) : ''}
+            ${seasonLive ? _buildCrownRoad(displayData, getCrownRoadKeys()) : ''}
             <div class="guild-crystal-arena${_guildHallStatsExpanded && seasonLive ? ' guild-crystal-arena--stats-expanded' : ''}${seasonLive ? '' : ' guild-crystal-arena--frozen'}">${columns.join('')}</div>
         </div>`;
 
-    // ── Update power tracking for next render ─────────────────────────────────
+    // ── Remember this render for the next "Latest" row ────────────────────────
     displayData.forEach((g, index) => {
         const d = powerDeltas.get(g.guildId);
         _prevGuildPower.set(g.guildId, {
-            power: Number(g.guildPower) || 0,
+            power: Number(g.live?.perMember) || 0,
             rank: index,
             lastPowerDelta: d?.powerDelta || 0,
             lastRankDelta: d?.rankDelta || 0,
@@ -1257,7 +1116,7 @@ export function renderGuildsTab() {
         });
     });
 
-    // ── Roll Guild Power numbers up/down to their new values ─────────────────
+    // ── Roll Chapter Glory numbers up/down to their new values ───────────────
     if (seasonLive) _animateGuildPowerCounters(list);
 
     // ── Wire emblem click / keyboard ──────────────────────────────────────────
@@ -1296,6 +1155,10 @@ export function renderGuildsTab() {
     arena.addEventListener('click', handleGuildActivate);
     arena.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') handleGuildActivate(e);
+    });
+
+    list.querySelector('.crown-road')?.addEventListener('click', (e) => {
+        if (e.target.closest?.('[data-guild-power-info="true"]')) _openPowerExplainer();
     });
 
     // ── Fortune's Wheel button ────────────────────────────────────────────────

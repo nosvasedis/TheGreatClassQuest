@@ -5,154 +5,159 @@ async function loadCore() {
   return import('../features/guildScoringCore.js');
 }
 
-const WEIGHTS = {
-  seasonGlory: 0.70,
-  weeklyGlory: 0.15,
-  activity: 0.10,
-  momentum: 0.05,
-};
+const ids = (prefix, n) => Array.from({ length: n }, (_, i) => `${prefix}${i}`);
 
-test('guild power is fair for equal per-member output across different guild sizes', async () => {
-  const { calculateGuildPower } = await loadCore();
-  const maxima = { maxPerCapitaGlory: 20, maxWeeklyPerCapitaGlory: 4 };
+/** A Chapter where each listed member earned the given Glory. */
+function chapterOf(gloryByMember) {
+  const members = { ...gloryByMember };
+  const glory = Object.values(members).reduce((a, b) => a + b, 0);
+  return { glory, members };
+}
 
-  const smallGuild = calculateGuildPower({
-    memberCount: 5,
-    totalGlory: 100,
-    weeklyGlory: 20,
-    previousWeekGlory: 10,
-    weeklyActiveMembers: 5,
-  }, maxima, WEIGHTS);
-
-  const largeGuild = calculateGuildPower({
-    memberCount: 10,
-    totalGlory: 200,
-    weeklyGlory: 40,
-    previousWeekGlory: 20,
-    weeklyActiveMembers: 10,
-  }, maxima, WEIGHTS);
-
-  assert.equal(smallGuild.perCapitaGlory, largeGuild.perCapitaGlory);
-  assert.equal(smallGuild.weeklyPerCapitaGlory, largeGuild.weeklyPerCapitaGlory);
-  assert.equal(smallGuild.guildPower, largeGuild.guildPower);
+test('a star is 2 Glory, the Banner of Glory adds 1 per star, and nothing multiplies it', async () => {
+  const { calculateGuildGloryDelta } = await loadCore();
+  assert.equal(calculateGuildGloryDelta({ starDelta: 3 }).totalGloryDelta, 6);
+  const banner = calculateGuildGloryDelta({ starDelta: 3, scoreData: { gloryBannerCharges: 2 } });
+  assert.equal(banner.totalGloryDelta, 8, 'only two Banner charges were left');
+  const old = calculateGuildGloryDelta({ starDelta: 2, scoreData: { gloryMultiplier: 3, chaliceActive: true }, modifiers: [{ multiplier: 2 }] });
+  assert.equal(old.totalGloryDelta, 4, 'retired multipliers and chalices are ignored');
 });
 
-test('empty guilds score zero and negative weekly glory clamps safely', async () => {
-  const { calculateGuildPower } = await loadCore();
-
-  const empty = calculateGuildPower({
-    memberCount: 0,
-    totalGlory: 500,
-    weeklyGlory: 100,
-    weeklyActiveMembers: 3,
-  }, { maxPerCapitaGlory: 20, maxWeeklyPerCapitaGlory: 5 }, WEIGHTS);
-
-  assert.equal(empty.guildPower, 0);
-  assert.equal(empty.perCapitaGlory, 0);
-  assert.equal(empty.weeklyPerCapitaGlory, 0);
-
-  const penalized = calculateGuildPower({
-    memberCount: 4,
-    totalGlory: 40,
-    weeklyGlory: -20,
-    previousWeekGlory: 20,
-    weeklyActiveMembers: 0,
-  }, { maxPerCapitaGlory: 10, maxWeeklyPerCapitaGlory: 5 }, WEIGHTS);
-
-  assert.equal(penalized.weeklyGloryScore, 0);
-  assert.equal(penalized.activityScore, 0);
-  assert.equal(penalized.momentumScore, 0);
-  assert.equal(penalized.guildPower, 10, 'a bad week never lowers Guild Power; only the year\'s Glory per member counts');
+test('a star taken back costs only its plain Glory', async () => {
+  const { calculateGuildGloryDelta } = await loadCore();
+  const back = calculateGuildGloryDelta({ starDelta: -1, scoreData: { gloryBannerCharges: 3 } });
+  assert.equal(back.totalGloryDelta, -2);
+  assert.equal(calculateGuildGloryDelta({ directGlory: 5 }).totalGloryDelta, 5);
 });
 
-test('momentum lock prevents negative momentum from lowering the momentum component', async () => {
-  const { calculateGuildPower } = await loadCore();
-  const now = Date.now();
-  const base = {
-    memberCount: 5,
-    totalGlory: 100,
-    weeklyGlory: 10,
-    previousWeekGlory: 20,
-    weeklyActiveMembers: 3,
+test('an exact Glory change is exactly that size', async () => {
+  const { exactGuildGloryDelta } = await loadCore();
+  assert.equal(exactGuildGloryDelta({ starDelta: -1, glory: -3 }).totalGloryDelta, -3);
+});
+
+test('Chapter keys are calendar months and name the month', async () => {
+  const { chapterKeyFor, chapterKeyFromMonthKey, chapterName, chapterShortName, schoolYearChapterKeys, chapterDaysLeft } = await loadCore();
+  assert.equal(chapterKeyFor(new Date(2026, 9, 3)), 'm2026_10');
+  assert.equal(chapterKeyFromMonthKey('2026-11'), 'm2026_11');
+  assert.equal(chapterKeyFromMonthKey('m2026_11'), 'm2026_11');
+  assert.equal(chapterKeyFromMonthKey('nope'), null);
+  assert.equal(chapterName('m2027_01'), 'January');
+  assert.equal(chapterShortName('m2026_09'), 'Sep');
+  const keys = schoolYearChapterKeys('2026-2027');
+  assert.equal(keys.length, 10);
+  assert.equal(keys[0], 'm2026_09');
+  assert.equal(keys[9], 'm2027_06');
+  assert.equal(chapterDaysLeft(new Date(2026, 9, 31)), 1);
+  assert.equal(chapterDaysLeft(new Date(2026, 9, 1)), 31);
+});
+
+test('only a school year\'s own Chapters are read', async () => {
+  const { isChapterOfSchoolYear, guildChapterBook } = await loadCore();
+  assert.equal(isChapterOfSchoolYear('m2026_09', '2026-2027'), true);
+  assert.equal(isChapterOfSchoolYear('m2027_08', '2026-2027'), true);
+  assert.equal(isChapterOfSchoolYear('m2026_08', '2026-2027'), false);
+  const book = guildChapterBook({
+    chapters: { m2026_06: { glory: 9 }, m2026_10: { glory: 4 } },
+    sealedChapters: { m2026_05: { crowns: 5 }, m2026_09: { crowns: 3 } },
+  }, '2026-2027');
+  assert.deepEqual(Object.keys(book.chapters), ['m2026_10']);
+  assert.deepEqual(Object.keys(book.sealed), ['m2026_09']);
+});
+
+test('a Chapter is won on Glory per member, so size never decides it', async () => {
+  const { chapterTally, rankChapter } = await loadCore();
+  const small = ids('s', 5);
+  const big = ids('b', 20);
+  // Every member of both guilds earns 10 Glory, but four big-guild stars carry 30 each.
+  const smallChapter = chapterOf(Object.fromEntries(small.map((id) => [id, 10])));
+  const bigChapter = chapterOf(Object.fromEntries(big.slice(0, 4).map((id) => [id, 30])));
+  const ranked = rankChapter({
+    small: chapterTally(smallChapter, small),
+    big: chapterTally(bigChapter, big),
+  });
+  assert.equal(chapterTally(bigChapter, big).glory, 120, 'more raw Glory');
+  assert.equal(ranked.small.place, 1, 'but fewer Glory each');
+  assert.equal(ranked.big.place, 2);
+  assert.equal(ranked.small.crowns, 5 + 1, '1st place plus the Unity Seal');
+  assert.equal(ranked.big.crowns, 3, '2nd place, no Unity Seal');
+});
+
+test('Chapter places pay 5, 3, 2, 1; ties share the higher place; no Glory pays nothing', async () => {
+  const { rankChapter } = await loadCore();
+  const r = rankChapter({
+    a: { perMember: 8, unity: false },
+    b: { perMember: 8, unity: false },
+    c: { perMember: 3, unity: false },
+    d: { perMember: 0, unity: false },
+  });
+  assert.equal(r.a.place, 1);
+  assert.equal(r.b.place, 1);
+  assert.equal(r.a.crowns, 5);
+  assert.equal(r.b.crowns, 5);
+  assert.equal(r.c.place, 3);
+  assert.equal(r.c.crowns, 2);
+  assert.equal(r.d.place, null);
+  assert.equal(r.d.crowns, 0);
+});
+
+test('the Unity Seal needs 4 in 5 members with 6 Glory, and any guild can win it', async () => {
+  const { chapterTally, rankChapter } = await loadCore();
+  const team = ids('m', 10);
+  const eight = chapterOf(Object.fromEntries(team.slice(0, 8).map((id) => [id, 6])));
+  const seven = chapterOf(Object.fromEntries(team.slice(0, 7).map((id) => [id, 6])));
+  const t8 = chapterTally(eight, team);
+  const t7 = chapterTally(seven, team);
+  assert.equal(t8.unityNeeded, 8);
+  assert.equal(t8.unity, true);
+  assert.equal(t7.unity, false);
+  const r = rankChapter({ x: { ...t7, perMember: 9 }, y: t8 });
+  assert.equal(r.x.crowns, 5, '1st place without the seal');
+  assert.equal(r.y.crowns, 3 + 1, '2nd place with the seal');
+  // Small guilds round the share up: 3 members need 3.
+  assert.equal(chapterTally({}, ids('t', 3)).unityNeeded, 3);
+  assert.equal(chapterTally({}, ids('f', 5)).unityNeeded, 4);
+});
+
+test('Glory earned by members who left leaves the Chapter with them', async () => {
+  const { chapterTally } = await loadCore();
+  const t = chapterTally({ glory: 30, members: { a: 10, b: 10, gone: 10 } }, ['a', 'b']);
+  assert.equal(t.glory, 20);
+  assert.equal(t.perMember, 10);
+  assert.equal(t.contributors, 2);
+  assert.equal(chapterTally({ glory: 4, members: {} }, []).perMember, 0, 'an empty guild scores 0');
+});
+
+test('finished Chapters are sealed once, from the first Crown Chapter on', async () => {
+  const { chaptersToSeal } = await loadCore();
+  const guilds = {
+    a: { chapters: { m2026_09: { glory: 4 }, m2026_10: { glory: 2 } }, sealedChapters: {} },
+    b: { chapters: { m2026_09: { glory: 6 } }, sealedChapters: {} },
   };
-
-  const unlocked = calculateGuildPower(base, { maxPerCapitaGlory: 20, maxWeeklyPerCapitaGlory: 4 }, WEIGHTS);
-  const locked = calculateGuildPower({
-    ...base,
-    gloryModifiers: [{ type: 'momentum_lock', expiresAt: now + 60_000 }],
-  }, { maxPerCapitaGlory: 20, maxWeeklyPerCapitaGlory: 4 }, WEIGHTS);
-
-  assert.equal(unlocked.momentumPct, -50);
-  assert.equal(unlocked.momentumScore, 25);
-  assert.equal(locked.momentumPct, 0);
-  assert.equal(locked.momentumScore, 50);
-  assert.equal(locked.guildPower, unlocked.guildPower, 'momentum is a badge, not part of the ranking');
+  const now = new Date(2026, 10, 2);
+  assert.deepEqual(chaptersToSeal(guilds, '2026-2027', now), ['m2026_09', 'm2026_10']);
+  assert.deepEqual(chaptersToSeal(guilds, '2026-2027', now, 'm2026_10'), ['m2026_10'], 'a warm-up month is never sealed');
+  const sealed = {
+    a: { ...guilds.a, sealedChapters: { m2026_09: { crowns: 3 } } },
+    b: { ...guilds.b, sealedChapters: { m2026_09: { crowns: 5 } } },
+  };
+  assert.deepEqual(chaptersToSeal(sealed, '2026-2027', now), ['m2026_10']);
+  assert.deepEqual(chaptersToSeal(sealed, '2026-2027', new Date(2026, 9, 15)), [], 'the running Chapter waits');
 });
 
-test('glory events combine stars, Banner, Chalice, charged bonuses, and multipliers once', async () => {
-  const { calculateGuildGloryDelta } = await loadCore();
-  const now = Date.now();
-  const result = calculateGuildGloryDelta({
-    starDelta: 3,
-    directGlory: 5,
-    scoreData: { gloryBannerCharges: 1 },
-    guildData: {
-      chaliceActive: true,
-      chaliceExpiresAt: now + 60_000,
-      gloryModifiers: [
-        { type: 'bonus_per_star', amount: 2, charges: 2, expiresAt: now + 60_000, label: 'Crown of Sparks' },
-        { type: 'multiply', factor: 2, expiresAt: now + 60_000, label: 'Glory Doubler' },
-      ],
-    },
-    gloryPerStar: 2,
-    now,
-  });
-
-  assert.equal(result.baseGlory, 6);
-  assert.equal(result.modifierGlory, 22);
-  assert.equal(result.directGlory, 5);
-  assert.equal(result.totalGloryDelta, 33);
-  assert.equal(result.consumedGloryModifiers.length, 1);
-  assert.equal(result.consumedGloryModifiers[0].type, 'multiply');
-});
-
-test('negative wheel star effects write negative Glory without per-star bonuses', async () => {
-  const { calculateGuildGloryDelta } = await loadCore();
-  const now = Date.now();
-
-  const result = calculateGuildGloryDelta({
-    starDelta: -2,
-    scoreData: { gloryBannerCharges: 3 },
-    guildData: {
-      chaliceActive: true,
-      chaliceExpiresAt: now + 60_000,
-      gloryModifiers: [{ type: 'bonus_per_star', amount: 5, charges: 5, expiresAt: now + 60_000 }],
-    },
-    gloryPerStar: 2,
-    now,
-  });
-
-  assert.equal(result.baseGlory, -4);
-  assert.equal(result.modifierGlory, 0);
-  assert.equal(result.totalGloryDelta, -4);
-  assert.equal(result.consumedGloryModifiers[0].charges, 5);
-});
-
-test('the year-long race is ranked by Glory per member only; this week never reorders it', async () => {
-  const { compareGuildLeaderboardRows, calculateGuildPower } = await loadCore();
-  const steady = calculateGuildPower({ memberCount: 10, totalGlory: 300, weeklyGlory: 0, previousWeekGlory: 50 }, { maxWeeklyPerCapitaGlory: 5 });
-  const hotWeek = calculateGuildPower({ memberCount: 10, totalGlory: 299, weeklyGlory: 50, previousWeekGlory: 0, weeklyActiveMembers: 10 }, { maxWeeklyPerCapitaGlory: 5 });
-  assert.equal(steady.guildPower, 30);
-  assert.ok(steady.guildPower > hotWeek.guildPower);
-
+test('the year is ranked on Crowns, then the year\'s Glory per member', async () => {
+  const { compareCrownRaceRows, compareFinalCrownRows, sharedPlaces } = await loadCore();
   const rows = [
-    { guildName: 'Borealis', seasonGloryPerMember: 12, totalGlory: 90 },
-    { guildName: 'Aether', seasonGloryPerMember: 12, totalGlory: 90 },
-    { guildName: 'Cygnus', seasonGloryPerMember: 12, totalGlory: 120 },
-    { guildName: 'Dawn', seasonGloryPerMember: 12.04, totalGlory: 12 },
-  ];
-  rows.sort(compareGuildLeaderboardRows);
-  assert.deepEqual(rows.map(r => r.guildName), ['Dawn', 'Cygnus', 'Aether', 'Borealis']);
+    { guildName: 'A', crowns: 9, yearGloryPerMember: 50 },
+    { guildName: 'B', crowns: 12, yearGloryPerMember: 20 },
+    { guildName: 'C', crowns: 9, yearGloryPerMember: 60 },
+  ].sort(compareCrownRaceRows);
+  assert.deepEqual(rows.map((r) => r.guildName), ['B', 'C', 'A']);
+  assert.deepEqual(sharedPlaces(rows), [0, 1, 1]);
+  const june = [
+    { guildName: 'B', crowns: 12, liveCrowns: 1, yearGloryPerMember: 20 },
+    { guildName: 'C', crowns: 9, liveCrowns: 6, yearGloryPerMember: 60 },
+  ].sort(compareFinalCrownRows);
+  assert.equal(june[0].guildName, 'C', 'June\'s Chapter counts at the ceremony');
 });
 
 test('Glory earned by students who left leaves the guild with them', async () => {
@@ -163,89 +168,9 @@ test('Glory earned by students who left leaves the guild with them', async () =>
   assert.equal(countedGuildGlory(lastYearMap, ['a', 'b']).countedGlory, 130, 'an old year\'s map is ignored');
 });
 
-test('wheel Glory is sized so each member of every guild gains the same', async () => {
-  const { guildSizeScale } = await loadCore();
-  const sizes = { small: 10, big: 30 };
-  assert.equal(guildSizeScale(sizes, 'small'), 0.5);
-  assert.equal(guildSizeScale(sizes, 'big'), 1.5);
-  assert.equal(20 * guildSizeScale(sizes, 'small') / 10, 20 * guildSizeScale(sizes, 'big') / 30);
-  assert.equal(guildSizeScale({}, 'small'), 1);
-});
-
-
-// Mon 5 Oct 2026, 10:00 local; previous Monday is 28 Sep.
-const MONDAY_OCT_5 = new Date(2026, 9, 5, 10, 0, 0).getTime();
-
-test('a guild that has not earned since Monday is read as a fresh week, not last week', async () => {
-  const { resolveGuildWeek } = await loadCore();
-  const stale = resolveGuildWeek({
-    lastWeeklyReset: '2026-09-28', weeklyGlory: 180, previousWeekGlory: 90,
-    weeklyActiveMembers: 12, weeklyActiveMemberIds: ['a', 'b'],
-  }, MONDAY_OCT_5);
-  assert.equal(stale.weeklyGlory, 0);
-  assert.equal(stale.previousWeekGlory, 180, 'last week is the stored week');
-  assert.equal(stale.weeklyActiveMembers, 0);
-
-  const skippedAWeek = resolveGuildWeek({ lastWeeklyReset: '2026-09-21', weeklyGlory: 180 }, MONDAY_OCT_5);
-  assert.equal(skippedAWeek.previousWeekGlory, 0, 'a guild that sat out last week had 0 last week');
-
-  const current = resolveGuildWeek({
-    lastWeeklyReset: '2026-10-05', weeklyGlory: 14, previousWeekGlory: 180,
-    weeklyActiveMembers: 99, weeklyActiveMemberIds: ['a', 'a', 'b'],
-  }, MONDAY_OCT_5);
-  assert.equal(current.weeklyGlory, 14);
-  assert.equal(current.previousWeekGlory, 180);
-  assert.equal(current.weeklyActiveMembers, 2, 'active members come from the unique id list');
-});
-
-test('taking a star back during a multiplier costs only its plain Glory', async () => {
-  const { calculateGuildGloryDelta } = await loadCore();
-  const guildData = { gloryModifiers: [{ type: 'multiply', factor: 4, expiresAt: MONDAY_OCT_5 + 3600000 }] };
-  const give = calculateGuildGloryDelta({ starDelta: 1, guildData, now: MONDAY_OCT_5 });
-  const takeBack = calculateGuildGloryDelta({ starDelta: -1, guildData, now: MONDAY_OCT_5 });
-  assert.equal(give.totalGloryDelta, 8);
-  assert.equal(takeBack.totalGloryDelta, -2);
-});
-
-test('a Glory Challenge pays the guild with the most Glory per member last week', async () => {
-  const { findWonGuildChallenges, consumeChargeModifiers } = await loadCore();
-  const lastWed = new Date(2026, 8, 30, 11, 0, 0).getTime();
-  const lastSunday = new Date(2026, 9, 4, 23, 59, 59, 999).getTime();
-  const challenge = { type: 'challenge', bonus: 50, createdAt: lastWed, expiresAt: lastSunday };
-  const scores = {
-    small: { lastWeeklyReset: '2026-09-28', weeklyGlory: 100, gloryModifiers: [challenge] },
-    big: { lastWeeklyReset: '2026-10-05', weeklyGlory: 4, previousWeekGlory: 150, gloryModifiers: [{ ...challenge, createdAt: lastWed + 1 }] },
-  };
-  const won = findWonGuildChallenges(scores, { small: 5, big: 10 }, MONDAY_OCT_5);
-  assert.deepEqual(won.map((w) => w.guildId), ['small'], '20 per member beats 15 per member');
-  assert.equal(won[0].key, `challenge_small_${lastWed}`);
-
-  assert.equal(consumeChargeModifiers([challenge], 1, MONDAY_OCT_5).length, 1, 'kept on file until tallied');
-  assert.equal(findWonGuildChallenges(scores, { small: 5, big: 10 }, lastWed + 3600000).length, 0, 'not judged mid-week');
-});
-
-test('a star given and taken back leaves that member not active this week', async () => {
-  const { resolveGuildWeek, countActiveMembersThisWeek } = await loadCore();
-  const week = resolveGuildWeek({
-    lastWeeklyReset: '2026-10-05', weeklyMemberGloryWeek: '2026-10-05', weeklyGlory: 2,
-    weeklyMemberGlory: { tested: 0, real: 2, left: 4 }, weeklyActiveMemberIds: ['tested', 'real', 'left'],
-  }, MONDAY_OCT_5);
-  assert.equal(countActiveMembersThisWeek(week, ['tested', 'real']), 1);
-
-  const legacy = resolveGuildWeek({ lastWeeklyReset: '2026-10-05', weeklyGlory: 0, weeklyActiveMemberIds: ['tested'] }, MONDAY_OCT_5);
-  assert.equal(countActiveMembersThisWeek(legacy, ['tested']), 0, 'no net Glory this week means nobody is active');
-});
-
 test('Glory left on members with no stars is found so it can be taken back', async () => {
   const { findOrphanMemberGlory } = await loadCore();
   const guild = { activeSchoolYearKey: 'Y', memberGloryYear: 'Y', totalGlory: 16, memberGlory: { tested: 12, real: 4, gone: 0 } };
   assert.deepEqual(findOrphanMemberGlory(guild, ['tested', 'real'], { real: 2 }), [{ studentId: 'tested', glory: -12 }]);
   assert.deepEqual(findOrphanMemberGlory({ ...guild, memberGloryYear: 'X' }, ['tested'], {}), [], 'not before the map is built');
-});
-
-test('an exact Glory change ignores multipliers', async () => {
-  const { exactGuildGloryDelta } = await loadCore();
-  const d = exactGuildGloryDelta({ starDelta: -1, glory: -8, guildData: { gloryModifiers: [{ type: 'multiply', factor: 4 }] } });
-  assert.equal(d.totalGloryDelta, -8);
-  assert.equal(d.consumedGloryModifiers.length, 1);
 });

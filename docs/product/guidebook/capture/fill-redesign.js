@@ -263,12 +263,11 @@ export async function showGuildBanner(guildId = 'dragon_flame') {
   fillGuildLoreCard(guildId, {
     memberCount: 7,
     totalStars: 142,
-    perCapitaStars: 20.3,
-    guildPower: 45,
     totalGlory: 318,
-    weeklyGlory: 36,
-    perCapitaGlory: 45.4,
-    weeklyPerCapitaGlory: 5.1
+    yearGloryPerMember: 45.4,
+    crowns: 9,
+    chapterWins: ['m2025_10'],
+    live: { key: 'm2025_11', glory: 108, perMember: 15.4, unityCount: 6, unityNeeded: 6, unity: true, place: 1, crowns: 6 }
   }, { seasonLive: true });
   const overlay = frame('guild-lore-overlay', 'capture-lore');
   fixAssetUrls(overlay);

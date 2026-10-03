@@ -919,6 +919,8 @@ export async function handleDeleteAwardLog(logId) {
                 source: `delete_${deletedGuildEvent.reason}`,
                 starDelta: -deletedGuildEvent.starCredit,
                 exactGlory: deletedGuildEvent.guildGlory != null ? -deletedGuildEvent.guildGlory : null,
+                // Taken back from the Chapter the award was given in (if it is still running).
+                chapter: deletedLogMonthKey || true,
                 note: `Deleted award log ${logId}`,
             }).catch((error) => console.warn("Guild Glory delete adjustment failed:", error));
         }
@@ -1159,6 +1161,8 @@ export async function handleSetStudentScores() {
                 classId: student.classId || null,
                 source: 'manual_score_override',
                 starDelta: totalDelta,
+                // A correction of the year's total, not something earned this month.
+                chapter: false,
                 note: 'Manual student score override',
             }).catch((e) => console.warn("Override Guild Glory adjustment failed:", e));
         }

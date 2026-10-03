@@ -118,7 +118,7 @@ First-try accuracy of the class decides a **performance tier**, and rewards land
 | 40%+ | Common | Light stars and Gold |
 | Below 40% | Heroic | Encouragement Gold (and a tiny artifact chance); showing up still matters |
 
-Rewards include, depending on tier: stars and Gold **per correct answer** for the students who got them right, a **Team Quest bonus** for the class, **Guild Glory** for houses that scored, and — on the best tiers — a **lucky artifact** for one high scorer (from a short list such as Scroll of the Gilded Star, Elixir of Luck, Banner of Glory, Chalice of Radiance, Compassion Token).
+Rewards include, depending on tier: stars and Gold **per correct answer** for the students who got them right, a **Team Quest bonus** for the class, **Guild Glory** for houses that scored, and — on the best tiers — a **lucky artifact** for one high scorer (from a short list such as Scroll of the Gilded Star, Elixir of Luck, Banner of Glory, Chalice of Unity, Compassion Token).
 
 Heroic tier still gives **participation Gold** so a hard week is not a public zero.
 

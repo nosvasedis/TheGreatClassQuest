@@ -322,10 +322,10 @@ export function hideCeremony() {
 }
 
 const GRAND_ROWS = [
-  { guildId: 'owl_wisdom', guildPower: 86 },
-  { guildId: 'dragon_flame', guildPower: 79 },
-  { guildId: 'phoenix_rising', guildPower: 71 },
-  { guildId: 'grizzly_might', guildPower: 64 }
+  { guildId: 'owl_wisdom', crowns: 21, chapterWins: ['m2025_09', 'm2025_12', 'm2026_02', 'm2026_04'] },
+  { guildId: 'dragon_flame', crowns: 18, chapterWins: ['m2025_10', 'm2026_03'] },
+  { guildId: 'phoenix_rising', crowns: 15, chapterWins: ['m2025_11', 'm2026_01'] },
+  { guildId: 'grizzly_might', crowns: 11, chapterWins: ['m2026_05'] }
 ].map((row, i) => ({ ...row, rank: i + 1, guild: getGuildById(row.guildId), guildName: getGuildById(row.guildId)?.name }));
 
 function setGrandChrome({ scene, realm, kicker = '', title = '', herald = '', action = '' }) {
@@ -371,7 +371,7 @@ export function showGrandCeremony(mode) {
   if (mode === 'crowning') {
     const stage = setGrandChrome({ scene: 'guilds', realm: 'night', kicker: 'Guild Champions of the Year', title: GRAND_ROWS[0].guildName, action: `Hear the ${GRAND_ROWS[0].guildName} anthem` });
     const display = GUILD_IDS.map((id) => GRAND_ROWS.find((r) => r.guildId === id));
-    stage.innerHTML = grandGuildPillarsHtml(display, { maxPower: GRAND_ROWS[0].guildPower });
+    stage.innerHTML = grandGuildPillarsHtml(display, { maxCrowns: GRAND_ROWS[0].crowns });
     stage.querySelector('.grd-pillars')?.classList.add('is-rising', 'is-crowned');
     stage.querySelectorAll('.grd-pillar').forEach((el) => el.classList.add('is-revealed'));
     stage.querySelector('.grd-pillar[data-rank="1"]')?.classList.add('is-champion');

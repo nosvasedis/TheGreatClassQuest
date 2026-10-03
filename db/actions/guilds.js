@@ -17,10 +17,9 @@ import {
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { GUILDS, GUILD_IDS } from '../../features/guilds.js';
-import { getISOWeekKey, recordGuildGloryEvent, getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { getISOWeekKey, recordGuildGloryEvent } from '../../features/guildScoring.js';
 import { GLORY_PER_STAR } from '../../constants.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
-import { getLocalIsoDateString } from '../../utils.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -59,19 +58,12 @@ export async function assignStudentToGuild(studentId, guildId) {
             activeSchoolYearKey: state.getActiveSchoolYearKey(),
             totalStars: 0,
             totalGlory: 0,
-            monthlyGlory: 0,
-            weeklyGlory: 0,
-            previousWeekGlory: 0,
-            weeklyActiveMembers: 0,
-            weeklyActiveMemberIds: [],
-            gloryModifiers: [],
-            chaliceActive: false,
-            chaliceExpiresAt: 0,
-            lastWeeklyReset: getLocalIsoDateString(),
             memberCount: 1,
             memberIds: [studentId],
             memberGlory: {},
             memberGloryYear: state.getActiveSchoolYearKey(),
+            chapters: {},
+            sealedChapters: {},
             createdAt: serverTimestamp(),
             lastUpdated: serverTimestamp(),
         });
@@ -84,7 +76,8 @@ export async function assignStudentToGuild(studentId, guildId) {
             studentId,
             source: 'guild_join',
             exactGlory: studentGloryContribution,
-            affectsWeek: false,
+            // They count for the year, not for the Chapter running now.
+            chapter: false,
             note: 'Stars earned before joining the guild',
         });
     }
@@ -93,22 +86,6 @@ export async function assignStudentToGuild(studentId, guildId) {
         guildId,
         guildAssignmentDate: serverTimestamp(),
     });
-}
-
-/**
- * Get guild leaderboard snapshot. Prefer reading from state.allGuildScores when in app.
- */
-export async function getGuildLeaderboardSnapshot() {
-    return getGuildLeaderboardData().map((row) => ({
-        guildId: row.guildId,
-        guildName: row.guildName,
-        totalStars: Number(row.totalStars) || 0,
-        totalGlory: Number(row.totalGlory) || 0,
-        memberCount: Number(row.memberCount) || 0,
-        guildPower: Number(row.guildPower) || 0,
-        perCapitaGlory: Number(row.perCapitaGlory) || 0,
-        weeklyPerCapitaGlory: Number(row.weeklyPerCapitaGlory) || 0,
-    }));
 }
 
 // ─── Fortune's Wheel Persistence ─────────────────────────────────────────────
@@ -179,20 +156,6 @@ export async function getRecentWheelResults(classId, maxResults = 4) {
             return bTime - aTime;
         })
         .slice(0, maxResults);
-}
-
-/**
- * Apply a Glory modifier to a guild (from Fortune's Wheel).
- * @param {string} guildId
- * @param {{ type: string, factor?: number, amount?: number, expiresAt: number, label: string }} modifier
- */
-export async function applyGloryModifier(guildId, modifier) {
-    if (!guildId || !modifier) return;
-    const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
-    await updateDoc(guildRef, {
-        gloryModifiers: arrayUnion(modifier),
-        lastUpdated: serverTimestamp(),
-    });
 }
 
 /**

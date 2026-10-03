@@ -69,7 +69,7 @@ export const TERMS = [
     names: { en: 'Grand Guild Ceremony', el: 'Grand Guild Ceremony' },
     aliases: ['great guild ceremony', 'grand guild ceremony', 'guild ceremony', 'year-end ceremony', 'june ceremony'],
     def: {
-      en: 'The June, end-of-year crowning of houses in Guild Hall. It looks back at the year: Guild Power, prodigies, and Heroes of the Day. It is not the monthly dual ceremony.',
+      en: 'The June, end-of-year crowning of houses in Guild Hall. It looks back at the year: the Crown Race, prodigies, and Heroes of the Day. It is not the monthly dual ceremony.',
       el: 'Η Ιουνιατική, τέλος-χρονιάς στέψη των σπιτιών στο Guild Hall. Κοιτά όλη τη χρονιά. Δεν είναι η μηνιαία διπλή τελετή.'
     },
     confuse: { en: 'Ceremony of the Month', el: 'Ceremony of the Month' }
@@ -186,11 +186,11 @@ export const TERMS = [
     id: 'guild-power',
     chapter: 'guild-hall',
     widget: 'guild-power',
-    names: { en: 'Guild Power', el: 'Guild Power' },
-    aliases: ['guild power', 'house score', 'fair house score'],
+    names: { en: 'Crown Race', el: 'Crown Race' },
+    aliases: ['crown race', 'unity seal', 'guild power', 'house score', 'fair house score'],
     def: {
-      en: 'The fair house score Guild Hall ranks by — not raw Total Stars. It is the Glory each member earned this school year, on average, and it only moves when that guild earns or loses Glory. This week’s Glory, activity and momentum are badges that never change the order. Leavers take their Glory with them. The highest Guild Power is crowned in June.',
-      el: 'Το δίκαιο σκορ των σπιτιών στο Guild Hall — όχι τα ακατέργαστα Total Stars. Είναι το Glory που κέρδισε κάθε μέλος αυτή τη σχολική χρονιά, κατά μέσο όρο, και κινείται μόνο όταν αυτό το guild κερδίζει ή χάνει Glory. Το Glory της εβδομάδας, η δραστηριότητα και το momentum είναι σήματα που δεν αλλάζουν ποτέ τη σειρά. Όποιος φεύγει παίρνει το Glory του μαζί του. Το υψηλότερο Guild Power στέφεται τον Ιούνιο.'
+      en: 'How Guild Hall ranks the houses — not raw Total Stars. Each school month is a Chapter that every guild starts at 0. The guild whose members earn the most Glory each, on average, wins it. Sealed Chapters pay Crowns: 5, 3, 2 and 1, plus +1 Unity Seal for a guild where at least 4 in 5 members earned 6 Glory (3 stars). Most Crowns in June wins the year; a tie goes to the year’s Glory per member.',
+      el: 'Ο τρόπος που το Guild Hall κατατάσσει τα σπίτια — όχι τα ακατέργαστα Total Stars. Κάθε σχολικός μήνας είναι ένα Chapter που κάθε guild ξεκινά από το 0. Το κερδίζει το guild του οποίου τα μέλη κερδίζουν το περισσότερο Glory το καθένα, κατά μέσο όρο. Τα σφραγισμένα Chapters δίνουν Crowns: 5, 3, 2 και 1, συν +1 Unity Seal για guild όπου τουλάχιστον 4 στα 5 μέλη κέρδισαν 6 Glory (3 αστέρια). Τα περισσότερα Crowns τον Ιούνιο κερδίζουν τη χρονιά· στην ισοπαλία μετρά το Glory της χρονιάς ανά μέλος.'
     },
     confuse: { en: 'Guild Glory (ledger from stars), Gold', el: 'Guild Glory (κατάστιχο από αστέρια), Gold' }
   },
@@ -201,10 +201,10 @@ export const TERMS = [
     names: { en: 'Guild Glory', el: 'Guild Glory' },
     aliases: ['guild glory'],
     def: {
-      en: 'House ledger: 2 Glory per star, plus Wheel / Quiz / artifact gifts. Feeds Guild Power; it is not Gold.',
+      en: 'House ledger: 2 Glory per star, plus Wheel / Quiz / artifact gifts. Feeds the Crown Race; it is not Gold.',
       el: 'Κατάστιχο σπιτιού: 2 Glory ανά αστέρι, συν Wheel / Quiz / αντικείμενα. Δεν είναι Gold.'
     },
-    confuse: { en: 'Gold, Guild Power', el: 'Gold, Guild Power' }
+    confuse: { en: 'Gold, Crowns', el: 'Gold, Crowns' }
   },
   {
     id: 'fortunes-wheel',
@@ -213,8 +213,8 @@ export const TERMS = [
     names: { en: "Fortune's Wheel", el: "Fortune's Wheel" },
     aliases: ["fortune's wheel", 'fortunes wheel', 'fortune wheel', 'the wheel'],
     def: {
-      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. Wheel Glory is sized to each guild, so every member of every guild gains or loses the same. Pro.',
-      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Το Glory του τροχού προσαρμόζεται σε κάθε guild, ώστε κάθε μέλος κάθε guild να κερδίζει ή να χάνει το ίδιο. Pro.'
+      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. A treasure wheel: its Glory goes to each guildmate in the class, and nothing is ever taken away. Pro.',
+      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Ένας τροχός θησαυρών: το Glory του πηγαίνει σε κάθε μέλος του guild στο τμήμα, και τίποτα δεν χάνεται ποτέ. Pro.'
     },
     confuse: { en: 'Quiz of the Week', el: 'Quiz of the Week' }
   },
@@ -408,7 +408,7 @@ export const TERMS = [
       en: 'The spendable wallet. 1 star granted = 1 Gold. Spending Gold in the Market does not lower star rank or Team Quest progress.',
       el: 'Το πορτοφόλι. 1 αστέρι = 1 Gold. Το ξόδεμα στο Market δεν κατεβάζει αστέρια ούτε το Team Quest.'
     },
-    confuse: { en: 'Guild Glory, Guild Power', el: 'Guild Glory, Guild Power' }
+    confuse: { en: 'Guild Glory, Crowns', el: 'Guild Glory, Crowns' }
   },
   {
     id: 'my-planning',
@@ -669,8 +669,8 @@ export const TERMS = [
     names: { en: 'Guild Hall', el: 'Guild Hall' },
     aliases: ['guild hall', 'the guilds', 'four houses'],
     def: {
-      en: 'The year-long house tab (Pro). Four houses for life, ranked by Guild Power. Fortune’s Wheel lives here. June’s Grand Guild Ceremony is here — not the monthly dual ceremony.',
-      el: 'Η καρτέλα των σπιτιών όλης της χρονιάς (Pro). Τέσσερα σπίτια για ζωή, κατάταξη με Guild Power. Η Grand Guild Ceremony του Ιουνίου είναι εδώ.'
+      en: 'The year-long house tab (Pro). Four houses for life, ranked by Crowns in the Crown Race. Fortune’s Wheel lives here. June’s Grand Guild Ceremony is here — not the monthly dual ceremony.',
+      el: 'Η καρτέλα των σπιτιών όλης της χρονιάς (Pro). Τέσσερα σπίτια για ζωή, κατάταξη με Crowns στο Crown Race. Η Grand Guild Ceremony του Ιουνίου είναι εδώ.'
     },
     confuse: { en: 'Team Quest (monthly class map)', el: 'Team Quest (μηνιαίος χάρτης τμημάτων)' }
   },
@@ -741,10 +741,10 @@ export const TERMS = [
     names: { en: 'Guild banner', el: 'Guild banner' },
     aliases: ['guild banner', 'crest', 'guild lore'],
     def: {
-      en: 'The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall: crest, motto, traits and Power. The music-note button sings the anthem in a torch-lit alcove.',
-      el: 'Το κρεμαστό λάβαρο του guild που ξετυλίγεται όταν πατάς το έμβλημά του στο Guild Hall: θυρεός, σύνθημα, χαρακτηριστικά και Power. Το κουμπί με τη νότα παίζει τον ύμνο σε μια κόγχη με πυρσούς.'
+      en: 'The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall: crest, motto, traits, Crowns and this Chapter’s Glory. The music-note button sings the anthem in a torch-lit alcove.',
+      el: 'Το κρεμαστό λάβαρο του guild που ξετυλίγεται όταν πατάς το έμβλημά του στο Guild Hall: θυρεός, σύνθημα, χαρακτηριστικά, Crowns και το Glory του Chapter. Το κουμπί με τη νότα παίζει τον ύμνο σε μια κόγχη με πυρσούς.'
     },
-    confuse: { en: 'Guild Power', el: 'Guild Power' }
+    confuse: { en: 'Crown Race', el: 'Crown Race' }
   },
   {
     id: 'former-students',
@@ -942,7 +942,7 @@ export const CHAPTER_SEARCH = {
   'ceremony': ['monthly ritual', 'dual', 'teacher boon ribbon', 'co-prodigy', 'league duel', 'hero duel', 'growth festival', 'classic arena', 'golden bloom'],
   'quest-calendar': ['holidays', 'day planner', 'quest event', 'special quest', 'vocabulary vault'],
   'market': ['gold', 'artifacts', 'familiars', 'eggs', 'mask'],
-  'guild-hall': ['guild banner', 'anthem', 'guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'guild power', 'fortune ledger', 'momentum'],
+  'guild-hall': ['guild banner', 'anthem', 'guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'crown race', 'crowns', 'unity seal', 'guild power', 'fortune ledger'],
   'award-stars': ['boon', 'teacher boon', 'hero boon', 'welcome back', 'virtues', 'heart'],
   'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'quest board', 'attendance chronicle', 'campfire', 'ember oaths'],
   'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope'],

@@ -1578,8 +1578,11 @@ export async function setupDataListeners(
                 });
                 state.setAllGuildScores(allGuildScores);
                 import("../features/guildScoring.js")
-                    .then((m) => Promise.all([m.settleGuildChallenges(), m.backfillGuildMemberGloryIfNeeded(), m.correctOrphanMemberGlory()]))
-                    .catch((e) => console.warn("Glory Challenge tally skipped:", e));
+                    .then((m) => Promise.all([
+                        m.backfillGuildMemberGloryIfNeeded().then(() => m.sealFinishedChapters()),
+                        m.correctOrphanMemberGlory(),
+                    ]))
+                    .catch((e) => console.warn("Guild Chapter upkeep skipped:", e));
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();
                 const guildsTab = document.getElementById("guilds-tab");

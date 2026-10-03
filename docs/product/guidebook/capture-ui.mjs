@@ -249,7 +249,7 @@ try {
   await captureExtra('Fortune Ledger', () => window.__gcqCapture.showFortuneLedger(), '#fortunes-wheel-section', 'fortune-ledger.png');
   await captureExtra('Trophy Room', () => window.__gcqCapture.showTrophyRoom(), '#trophy-room-modal.capture-trophy > div', 'trophy-room.png');
   await captureExtra('Hall of Prodigies', () => window.__gcqCapture.showHallOfProdigies(), '#prodigy-modal.capture-prodigy .prodigy-hall-shell', 'hall-of-prodigies.png');
-  await captureExtra('Guild Power explainer', () => window.__gcqCapture.showGuildPowerExplainer(), '#guild-power-explainer-overlay.capture-gpex .guild-power-explainer-card', 'guild-power.png');
+  await captureExtra('Crown Race explainer', () => window.__gcqCapture.showGuildPowerExplainer(), '#guild-power-explainer-overlay.capture-gpex .guild-power-explainer-card', 'guild-power.png');
   await captureExtra('Home tab', () => window.__gcqCapture.showHomeTab(), '#about-tab.capture-home', 'home-tab.png');
   await captureExtra('Projector wallpaper', () => window.__gcqCapture.showProjector(), '#dynamic-wallpaper-screen.capture-wall', 'projector.png');
   await captureExtra('Certificate forge', () => window.__gcqCapture.showCertificateForge(), '#certificate-modal.capture-cert-forge > div', 'certificate-forge.png');

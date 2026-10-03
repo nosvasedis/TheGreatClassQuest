@@ -92,3 +92,15 @@ test('junior leagues never receive mythic/cursed and exclude harsh negative ids'
     }
   }
 });
+
+test('the live wheel is a treasure wheel: no negative wedges and no multipliers', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'features', 'fortunesWheel.js'), 'utf8');
+  const catalog = src.split('const ALL_SEGMENTS = [')[1].split('\n];')[0];
+  const categories = [...catalog.matchAll(/category: '([a-z]+)'/g)].map((m) => m[1]);
+  assert.ok(categories.length >= 30, 'the catalogue was read');
+  assert.deepEqual([...new Set(categories)].sort(), ['fun', 'glory', 'perk', 'twist']);
+  assert.equal(categories.filter((c) => c === 'twist').length, 1, 'only the Trickster');
+  assert.doesNotMatch(catalog, /multiplier|shield|tax|heist|steal/i);
+});

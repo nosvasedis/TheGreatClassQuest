@@ -13,6 +13,7 @@ import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { GUILDS, GUILD_IDS, getGuildById } from './guilds.js';
 import { getGuildLeaderboardData } from './guildScoring.js';
+import { compareFinalCrownRows } from './guildScoringCore.js';
 import { getAwardLogMonthlyStarCredit } from './awardLogReasonMeta.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../utils/yearLegend.js';
 import { createCeremonyFx } from '../ui/ceremonyFx.js';
@@ -229,8 +230,10 @@ function gatherGuilds(classIds) {
     const classSet = new Set(classIds);
     const students = (state.get('allStudents') || []).filter((s) => classSet.has(s.classId));
     const scores = state.get('allStudentScores') || [];
+    // The June Chapter is sealed as it stands: its Crowns count tonight.
     const rows = getGuildLeaderboardData()
         .filter((row) => Number(row.memberCount) > 0)
+        .sort(compareFinalCrownRows)
         .map((row, index) => {
             const guild = getGuildById(row.guildId) || GUILDS[row.guildId] || {};
             const heroes = students
@@ -238,7 +241,16 @@ function gatherGuilds(classIds) {
                 .map((s) => ({ id: s.id, name: s.name, avatar: s.avatar || null, totalStars: Number(scores.find((sc) => sc.id === s.id)?.totalStars) || 0 }))
                 .sort((a, b) => b.totalStars - a.totalStars)
                 .slice(0, 4);
-            return { guildId: row.guildId, guildName: guild.name || row.guildName, guild, guildPower: Number(row.guildPower) || 0, rank: index + 1, heroes };
+            return {
+                guildId: row.guildId,
+                guildName: guild.name || row.guildName,
+                guild,
+                crowns: (Number(row.crowns) || 0) + (Number(row.liveCrowns) || 0),
+                chapterWins: [...(row.chapterWins || []), ...(row.live?.counts && row.live?.place === 1 ? [row.live.key] : [])],
+                yearGloryPerMember: Number(row.yearGloryPerMember) || 0,
+                rank: index + 1,
+                heroes,
+            };
         });
     return rows;
 }
@@ -693,11 +705,11 @@ function renderGuildPillars() {
         renderHall();
         return;
     }
-    const maxPower = Math.max(1, ...rows.map((r) => r.guildPower));
+    const maxCrowns = Math.max(1, ...rows.map((r) => r.crowns));
     const display = GUILD_IDS.map((id) => rows.find((r) => r.guildId === id)).filter(Boolean);
-    stage.innerHTML = grandGuildPillarsHtml(display, { maxPower });
+    stage.innerHTML = grandGuildPillarsHtml(display, { maxCrowns });
     chapterHeading('guilds', 'Which guild wears the crown?');
-    setHerald('Four guilds. One crown. Guild Power decides.');
+    setHerald('Four guilds. One crown. A year of Chapters decides.');
     ceremony.music = 'grand_suspense';
     playCeremonyTrack('grand_suspense');
     playCeremonySfx('gong');
@@ -886,7 +898,7 @@ function buildSummary() {
         classStars: Object.fromEntries((d.questYear || []).map((c) => [c.id, c.totalStars])),
         prodigyCrowns: d.prodigies?.totalCrowns || 0,
         mostCrowned: (d.prodigies?.mostCrowned || []).map((p) => p.id),
-        guildRanking: (d.guilds || []).map((g) => ({ guildId: g.guildId, rank: g.rank, guildPower: Math.round(g.guildPower) })),
+        guildRanking: (d.guilds || []).map((g) => ({ guildId: g.guildId, rank: g.rank, crowns: g.crowns, chapterWins: g.chapterWins || [] })),
         wheelSpins: d.wheel?.totalSpins || 0,
         familiarsHatched: d.familiars?.totalHatched || 0
     };

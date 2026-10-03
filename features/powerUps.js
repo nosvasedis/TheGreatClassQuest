@@ -1,4 +1,6 @@
-import { db, doc, runTransaction, increment, collection, serverTimestamp } from '../firebase.js';
+import { db, doc, runTransaction, increment, collection, serverTimestamp, arrayUnion } from '../firebase.js';
+import { awardGloryToStudents } from './guildScoring.js';
+import { chapterKeyFor } from './guildScoringCore.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showModal } from '../ui/modals/base.js';
@@ -14,18 +16,38 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_glory_banner', name: 'Banner of Glory', price: 35, description: 'Your next 3 stars each write +1 bonus Guild Glory into the ledger.', icon: '⚜️' },
     { id: 'leg_banner', name: "The Herald's Banner", price: 40, description: 'Broadcasts a school-wide victory celebration!', icon: '📢' },
     { id: 'leg_catalyst', name: 'The Starfall Catalyst', price: 50, description: 'Double the stars for your next high test score.', icon: '📜' },
-    { id: 'leg_glory_chalice', name: 'Chalice of Radiance', price: 55, description: "Guildmates' qualifying stars write +1 bonus Glory while the Chalice is active.", icon: '🏆' },
+    { id: 'leg_glory_chalice', name: 'Chalice of Unity', price: 55, description: '+1 Glory right now for you and every guildmate in your class.', icon: '🏆' },
     { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: `Instant +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Stars for the Team Quest. (Class Limit: 1/month)`, icon: '🗺️' },
     { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
-    { id: 'leg_glory_crown', name: 'Crown of the Eternal', price: 90, description: "Your guild's star-earned Glory ledger events are DOUBLED for the rest of the day!", icon: '👑' },
+    { id: 'leg_glory_crown', name: 'Guild Standard', price: 75, description: "Your name flies on your guild's column in the Guild Hall for the rest of this month's Chapter, plus +2 Glory.", icon: '🚩' },
     { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
-    { id: 'leg_bulwark', name: 'Bulwark Crest', price: 48, description: 'Your guild gains a Glory Shield for 7 days (blocks negative wheel effects).', icon: '🛡️' },
+    { id: 'leg_bulwark', name: "Fortune's Favor", price: 48, description: "Your guild's next Fortune's Wheel in your class is gilded: only uncommon or rarer wedges, and no Trickster.", icon: '🍀' },
     { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
     { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Hero's Boon costs 0 Gold for the rest of this month.", icon: '💝' }
 ];
 
+// Items renamed by the Crown Race keep working when a child already owns them.
+const RENAMED_ITEMS = {
+    'Chalice of Radiance': 'Chalice of Unity',
+    'Crown of the Eternal': 'Guild Standard',
+    'Bulwark Crest': "Fortune's Favor",
+};
+
+/** The catalog entry for an owned item (by id), so renamed items show today's name and power. */
+export function currentArtifactFor(item = {}) {
+    const current = LEGENDARY_ARTIFACTS.find((a) => a.id === item.id);
+    if (current) return current;
+    const renamed = RENAMED_ITEMS[item.name];
+    return renamed ? LEGENDARY_ARTIFACTS.find((a) => a.name === renamed) || null : null;
+}
+
+function _effectFor(item = {}) {
+    const current = currentArtifactFor(item);
+    return (current && POWER_UP_EFFECTS[current.name]) || POWER_UP_EFFECTS[RENAMED_ITEMS[item.name]] || POWER_UP_EFFECTS[item.name] || null;
+}
+
 export function isItemUsable(itemName) {
-    return !!POWER_UP_EFFECTS[itemName];
+    return !!(POWER_UP_EFFECTS[itemName] || POWER_UP_EFFECTS[RENAMED_ITEMS[itemName]]);
 }
 
 function updateLocalStudentScore(studentId, patch = {}, removeInventoryIndex = null) {
@@ -245,58 +267,51 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Chalice of Radiance': async (student, classData, context) => {
-        const guildId = student.guildId;
-        if (!guildId) {
+    'Chalice of Unity': async (student, classData) => {
+        if (!student.guildId) {
             return { success: false, errorMessage: 'This student is not in a guild.' };
         }
-        const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now
-        const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
-        context.transaction.update(guildRef, {
-            chaliceActive: true,
-            chaliceExpiresAt: expiresAt,
-        });
+        const guildmates = (state.get('allStudents') || [])
+            .filter((s) => s.guildId === student.guildId && s.classId === student.classId)
+            .map((s) => s.id);
+        const useKey = `chalice_${student.id}_${Date.now()}`;
         return {
             success: true,
             feedback: {
                 icon: '🏆',
-                title: 'Chalice activated!',
-                body: `Members of ${student.name}'s guild will write +1 bonus Glory when qualifying stars land.`
+                title: 'Chalice of Unity raised!',
+                body: `+1 Glory for ${student.name} and every guildmate in ${classData?.name || 'the class'}.`
             },
             localAfterCommit: () => {
-                showPraiseToast(`${student.name} activated the Chalice of Radiance! 🏆 +1 Glory for the whole guild!`, '🏆');
+                awardGloryToStudents(guildmates, 1, 'market_chalice_of_unity', {
+                    classId: student.classId, note: `Chalice of Unity raised by ${student.name}`, idempotencyPrefix: useKey,
+                }).catch((e) => console.warn('Chalice of Unity Glory failed:', e));
+                showPraiseToast(`${student.name} raised the Chalice of Unity! 🏆 +1 Glory for ${guildmates.length} guildmate${guildmates.length === 1 ? '' : 's'}!`, '🏆');
             }
         };
     },
-    'Crown of the Eternal': async (student, classData, context) => {
+    'Guild Standard': async (student, classData, context) => {
         const guildId = student.guildId;
         if (!guildId) {
             return { success: false, errorMessage: 'This student is not in a guild.' };
         }
-        const now = new Date();
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const expiresAt = endOfDay.getTime();
-        const modifier = {
-            type: 'multiply',
-            factor: 2,
-            expiresAt,
-            label: 'Crown of the Eternal (2x star Glory events)',
-            createdAt: Date.now(),
-        };
+        const chapterKey = chapterKeyFor(new Date());
         const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
-        const { arrayUnion } = await import('../firebase.js');
         context.transaction.update(guildRef, {
-            gloryModifiers: arrayUnion(modifier),
+            [`chapters.${chapterKey}.standards`]: arrayUnion({ studentId: student.id, name: student.name, at: Date.now() }),
         });
         return {
             success: true,
             feedback: {
-                icon: '👑',
-                title: 'Crown of the Eternal activated!',
-                body: `${student.name}'s guild now writes DOUBLE star-earned Glory for the rest of today!`
+                icon: '🚩',
+                title: 'Guild Standard raised!',
+                body: `${student.name}'s name now flies on the guild's column in the Guild Hall until the Chapter ends.`
             },
             localAfterCommit: () => {
-                showPraiseToast(`${student.name} crowned their guild! 👑 Future star Glory events count 2x until midnight!`, '👑');
+                awardGloryToStudents([student.id], 2, 'market_guild_standard', {
+                    classId: student.classId, note: 'Guild Standard', idempotencyPrefix: `standard_${chapterKey}_${Date.now()}`,
+                }).catch((e) => console.warn('Guild Standard Glory failed:', e));
+                showPraiseToast(`${student.name} raised the Guild Standard! 🚩`, '🚩');
             }
         };
     },
@@ -320,29 +335,18 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Bulwark Crest': async (student, classData, context) => {
-        const guildId = student.guildId;
-        if (!guildId) {
+    "Fortune's Favor": async (student, classData, context) => {
+        if (!student.guildId) {
             return { success: false, errorMessage: 'This student is not in a guild.' };
         }
-        const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
-        const modifier = {
-            type: 'shield',
-            expiresAt,
-            label: 'Bulwark Crest (7d)',
-            createdAt: Date.now()
-        };
-        const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
-        const { arrayUnion } = await import('../firebase.js');
-        context.transaction.update(guildRef, {
-            gloryModifiers: arrayUnion(modifier)
-        });
+        context.transaction.update(context.scoreRef, { fortuneFavorArmed: true });
         return {
             success: true,
+            scorePatch: { fortuneFavorArmed: true },
             feedback: {
-                icon: '🛡️',
-                title: 'Guild shield raised',
-                body: `${student.name}'s guild is protected from negative Fortune's Wheel effects for 7 days.`
+                icon: '🍀',
+                title: "Fortune's Favor stored",
+                body: `${student.name}'s guild will spin a gilded wheel at this class's next Fortune's Wheel.`
             }
         };
     },
@@ -378,8 +382,11 @@ export async function handleUseItem(studentId, itemIndex) {
     const scoreData = state.get('allStudentScores').find((entry) => entry.id === studentId);
     if (!student || !scoreData?.inventory?.[itemIndex]) return { success: false, cancelled: true };
 
-    const item = scoreData.inventory[itemIndex];
-    if (!POWER_UP_EFFECTS[item.name]) {
+    const ownedItem = scoreData.inventory[itemIndex];
+    const current = currentArtifactFor(ownedItem);
+    const item = current ? { ...ownedItem, name: current.name, icon: current.icon, description: current.description } : ownedItem;
+    const runEffect = _effectFor(ownedItem);
+    if (!runEffect) {
         showToast('This item is a collectible and has no active power.', 'info');
         return { success: false, cancelled: true };
     }
@@ -413,11 +420,11 @@ export async function handleUseItem(studentId, itemIndex) {
                         const currentData = scoreDoc.data();
                         const currentInventory = Array.isArray(currentData.inventory) ? [...currentData.inventory] : [];
                         const inventoryItem = currentInventory[itemIndex];
-                        if (!inventoryItem || inventoryItem.id !== item.id || inventoryItem.name !== item.name) {
+                        if (!inventoryItem || inventoryItem.id !== ownedItem.id || inventoryItem.name !== ownedItem.name) {
                             return { success: false, errorMessage: 'That item is no longer in the inventory.' };
                         }
 
-                        const effectResult = await POWER_UP_EFFECTS[item.name](student, classData, {
+                        const effectResult = await runEffect(student, classData, {
                             transaction,
                             scoreRef,
                             scoreData: currentData,

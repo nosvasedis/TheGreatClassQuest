@@ -1,10 +1,9 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
 import { compressImageBase64, getTodayDateString, getLeagueAiAudience, getLeagueAiVisualStyle } from '../../utils.js';
-import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
+import { awardGloryToStudents, getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
 import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
-import { adjustGuildGlory, applyGloryModifier } from './guilds.js';
 import { playSound } from '../../audio.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
@@ -443,18 +442,18 @@ function computePerformanceTier(firstTryCorrectPct) {
 }
 
 const REWARD_TABLE = {
-    legendary: { starPerCorrect: 1, goldPerCorrect: 2, questBonus: 3, gloryPerGuild: 3, gloryMultiplier: true, artifactChance: 0.3 },
-    epic:      { starPerCorrect: 0.5, goldPerCorrect: 1, questBonus: 2, gloryPerGuild: 2, gloryMultiplier: false, artifactChance: 0.15 },
-    rare:      { starPerCorrect: 0.5, goldPerCorrect: 0.5, questBonus: 1, gloryPerGuild: 1, gloryMultiplier: false, artifactChance: 0 },
-    common:    { starPerCorrect: 0.25, goldPerCorrect: 0.25, questBonus: 1, gloryPerGuild: 1, gloryMultiplier: false, artifactChance: 0 },
-    heroic:    { starPerCorrect: 0, goldPerCorrect: 0.25, questBonus: 0.5, gloryPerGuild: 0.5, gloryMultiplier: false, artifactChance: 0.05 }
+    legendary: { starPerCorrect: 1, goldPerCorrect: 2, questBonus: 3, gloryPerGuild: 3, artifactChance: 0.3 },
+    epic:      { starPerCorrect: 0.5, goldPerCorrect: 1, questBonus: 2, gloryPerGuild: 2, artifactChance: 0.15 },
+    rare:      { starPerCorrect: 0.5, goldPerCorrect: 0.5, questBonus: 1, gloryPerGuild: 1, artifactChance: 0 },
+    common:    { starPerCorrect: 0.25, goldPerCorrect: 0.25, questBonus: 1, gloryPerGuild: 1, artifactChance: 0 },
+    heroic:    { starPerCorrect: 0, goldPerCorrect: 0.25, questBonus: 0.5, gloryPerGuild: 0.5, artifactChance: 0.05 }
 };
 
 const LEGENDARY_ARTIFACTS = [
     { id: 'leg_gilded', name: 'Scroll of the Gilded Star', icon: '📜', description: 'Triple gold on next star award' },
     { id: 'leg_luck', name: 'Elixir of Luck', icon: '🧪', description: '50% chance for bonus star next lesson' },
     { id: 'leg_banner', name: 'Banner of Glory', icon: '🏳️', description: 'Next 3 stars give +1 bonus Glory' },
-    { id: 'leg_chalice', name: 'Chalice of Radiance', icon: '🏆', description: 'Guildmates get +1 Glory on next star' },
+    { id: 'leg_chalice', name: 'Chalice of Unity', icon: '🏆', description: '+1 Glory for you and every guildmate in your class' },
     { id: 'leg_compass', name: 'Compassion Token', icon: '💝', description: 'Free Hero Boons for rest of month' }
 ];
 
@@ -577,33 +576,14 @@ export async function distributeQuizRewards(classId, results) {
             }
         }
 
-        // --- Reward 3: Guild Glory ---
+        // --- Reward 3: Guild Glory, credited to each child for their own correct answers ---
         const guildGloryByGuild = {};
         for (const studentId of correctStudentIds) {
             const gId = guildMap[studentId];
-            if (gId) {
-                guildGloryByGuild[gId] = (guildGloryByGuild[gId] || 0) + (rewards.gloryPerGuild * (correctAnswerCounts[studentId] || 0));
-            }
-        }
-        for (const [guildId, glory] of Object.entries(guildGloryByGuild)) {
-            if (glory > 0) {
-                await adjustGuildGlory(guildId, glory, 'quiz_of_the_week');
-            }
-        }
-
-        // --- Reward 4: Glory multiplier for legendary tier ---
-        if (rewards.gloryMultiplier) {
-            const bestGuild = Object.entries(guildGloryByGuild).sort((a, b) => b[1] - a[1])[0];
-            if (bestGuild) {
-                const now = Date.now();
-                await applyGloryModifier(bestGuild[0], {
-                    type: 'multiply',
-                    factor: 1.2,
-                    source: 'quiz_week_triumph',
-                    label: 'Quiz Week Triumph',
-                    expiresAt: now + (24 * 60 * 60 * 1000)
-                });
-            }
+            const glory = rewards.gloryPerGuild * (correctAnswerCounts[studentId] || 0);
+            if (!gId || !(glory > 0)) continue;
+            await awardGloryToStudents([studentId], glory, 'quiz_of_the_week', { classId, note: 'Quiz of the Week' });
+            guildGloryByGuild[gId] = (guildGloryByGuild[gId] || 0) + glory;
         }
 
         // --- Reward 5: One lucky top-scorer gets an artifact (legendary/epic tiers only) ---

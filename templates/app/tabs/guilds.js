@@ -11,11 +11,11 @@ export const guildsTabHTML = `
                             <span class="tab-sign__shield tab-sign__shield--l" aria-hidden="true"><span class="tab-sign__flame"></span><i class="fas fa-chess-rook"></i></span>
                             <span class="tab-sign__shield tab-sign__shield--r" aria-hidden="true"><span class="tab-sign__flame"></span><i class="fas fa-chess-knight"></i></span>
                             <div class="tab-sign__board">
-                                <span class="tab-sign__kicker">Banners · Glory · The Crown</span>
+                                <span class="tab-sign__kicker">Glory · Chapters · Crowns</span>
                                 <h2 class="font-title tab-sign__title guild-hall-title">Guild Hall</h2>
                             </div>
                         </div>
-                        <p class="tab-sign__tagline">Every deed stokes the hearth. When June comes, one banner will be crowned.</p>
+                        <p class="tab-sign__tagline">Win the month, take the Crowns. When June comes, one banner will be crowned.</p>
                     </header>
                 </div>
 
@@ -90,7 +90,7 @@ export const guildsTabHTML = `
                                     <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
                                         <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">
                                             <p class="guild-fortune-ledger-section__lede">
-                                                Glory shifts and guild omens from each ceremony appear below. Use the Fortune's Wheel button above when the ritual window is open.
+                                                The treasures and Glory each class found at the wheel appear below. Use the Fortune's Wheel button above when the ritual window is open.
                                             </p>
                                         </div>
                                         <div class="guild-fortune-ledger-section__context">

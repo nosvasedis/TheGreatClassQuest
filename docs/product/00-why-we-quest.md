@@ -91,7 +91,7 @@ This is why the suggested staff-training timeline introduces one new layer at a 
 - Stars recognise observable actions and growth; they are not an official grade or a judgement of a child’s worth.
 - Academic progress remains visible through its own tools; life-skill recognition does not replace subject feedback.
 - Gold is separate from rank. Children can spend it, but they cannot buy a higher place on a leaderboard.
-- Class Bounties and Guild Power reward shared participation, not only the child who is already ahead.
+- Class Bounties and the guild Unity Seal reward shared participation, not only the child who is already ahead.
 - Hero’s Boon has eligibility and repeat-use rules so generosity does not become popularity pressure.
 - Fair rotation, shared crowns and the Teacher Boon stop one narrow idea of success from dominating every celebration.
 - Hero’s Chronicle remains private unless the teacher chooses to publish a page. AI suggestions remain editable and optional.

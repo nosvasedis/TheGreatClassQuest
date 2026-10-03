@@ -1,8 +1,8 @@
 /*
  * styles/guild_standings.css — Guild Hall Standings polish
- * Ornate title, balance-of-power race track, heraldic rank plaques,
+ * Ornate title, the Crown Road, heraldic rank plaques,
  * guild alcoves, name ribbons, measured crystal tubes on stone plinths,
- * chase line, "Latest" change row and Power ingredient tiles. Loaded right after guilds.css.
+ * Chapter line, "Latest" change row, Unity meter and Crown tiles. Loaded right after guilds.css.
  * Phone layout (body.gcq-mobile) keeps its own layer; column alcoves are desktop-only.
  */
 
@@ -52,123 +52,276 @@
     left: -4px;
 }
 
-/* ── Balance-of-power race track ──────────────────────────────────────────── */
-.guild-race-track {
-    width: min(100%, 880px);
-    margin: -0.55rem auto 0;
-    padding: 0 0.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    box-sizing: border-box;
-}
-.guild-race-track__bar {
-    display: flex;
-    gap: 3px;
-    height: 2.15rem;
-    padding: 3px;
-    border-radius: 999px;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 60%),
-        rgba(8, 6, 22, 0.62);
-    border: 1px solid rgba(251, 191, 36, 0.35);
-    box-shadow:
-        inset 0 2px 8px rgba(0, 0, 0, 0.55),
-        0 0 0 3px rgba(251, 191, 36, 0.06),
-        0 0 26px rgba(124, 58, 237, 0.2);
-    overflow: hidden;
-}
-.guild-race-track__seg {
-    position: relative;
-    min-width: 3.7rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.32rem;
-    border-radius: 999px;
-    overflow: hidden;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.04) 48%, rgba(0, 0, 0, 0.12) 100%),
-        linear-gradient(90deg, var(--seg-primary, #6b7280), var(--seg-secondary, #9ca3af));
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.35),
-        0 0 14px color-mix(in srgb, var(--seg-glow, #fff) 35%, transparent);
-    cursor: default;
-}
-.guild-race-track__seg.is-leader::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
-    background-size: 250% 100%;
-    animation: guild-race-sheen 3.6s ease-in-out infinite;
-    pointer-events: none;
-}
+/* ── The Crown Road: Crowns per guild and one stone per Chapter ───────────── */
 @keyframes guild-race-sheen {
     0% { background-position: 150% 0; }
     60%, 100% { background-position: -100% 0; }
 }
-.guild-race-track__emblem {
-    position: relative;
-    z-index: 1;
+.crown-road {
+    width: min(100%, 960px);
+    margin: -0.55rem auto 0.4rem;
+    padding: 0.7rem 0.9rem 0.8rem;
+    box-sizing: border-box;
+    border-radius: 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 50%),
+        rgba(8, 6, 22, 0.62);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(251, 191, 36, 0.05), 0 0 26px rgba(124, 58, 237, 0.18);
+    color: rgba(255, 247, 214, 0.88);
+}
+.crown-road__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem 1rem;
+    margin-bottom: 0.55rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+.crown-road__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.03em;
+    color: #fde68a;
+}
+.crown-road__title i { color: #fbbf24; filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6)); }
+.crown-road__summary strong { color: #fde68a; font-weight: 800; }
+.crown-road__chapter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.18rem 0.3rem 0.18rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(120, 53, 15, 0.45);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    color: #fef3c7;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+.crown-road__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.crown-road__row {
+    display: grid;
+    grid-template-columns: minmax(8.5rem, 1.3fr) 3.6rem minmax(0, 4fr);
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.28rem 0.5rem;
+    border-radius: 0.8rem;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--road-primary, #6b7280) 30%, transparent), rgba(255, 255, 255, 0.02) 55%);
+    border: 1px solid color-mix(in srgb, var(--road-glow, #fff) 18%, transparent);
+}
+.crown-road__row--head {
+    padding-top: 0;
+    padding-bottom: 0;
+    background: none;
+    border-color: transparent;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+.crown-road__row.is-leader {
+    border-color: rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 18px rgba(251, 191, 36, 0.14);
+}
+.crown-road__guild {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.crown-road__emblem {
     flex: 0 0 auto;
-    width: 1.4rem;
-    height: 1.4rem;
+    width: 1.65rem;
+    height: 1.65rem;
     border-radius: 50%;
     object-fit: cover;
     border: 1.5px solid rgba(255, 255, 255, 0.85);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
-.guild-race-track__emblem--initial {
+.crown-road__emblem--initial {
     display: grid;
     place-items: center;
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: #fff;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--road-primary, #6b7280);
 }
-.guild-race-track__pct {
-    position: relative;
-    z-index: 1;
+.crown-road__name {
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 0.8rem;
-    line-height: 1;
+    font-size: 0.86rem;
     color: #fff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.guild-race-track__legend {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.3rem 1rem;
-    padding: 0 0.6rem;
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: rgba(255, 247, 214, 0.82);
-}
-.guild-race-track__leader,
-.guild-race-track__goal {
+.crown-road__crowns {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-}
-.guild-race-track__leader strong {
+    justify-content: center;
+    gap: 0.3rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.15rem;
     color: #fde68a;
-    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
-.guild-race-track__leader i {
+.crown-road__crowns i { font-size: 0.7em; color: #fbbf24; }
+.crown-road__row--head .crown-road__crowns { font-size: 0.7rem; }
+.crown-road__row.is-leader .crown-road__crowns {
+    background: linear-gradient(110deg, #fde68a 30%, #fff 50%, #fde68a 70%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: guild-race-sheen 3.6s ease-in-out infinite;
+}
+.crown-road__row.is-leader .crown-road__crowns i { -webkit-text-fill-color: #fbbf24; }
+.crown-road__stones {
+    display: grid;
+    grid-template-columns: repeat(var(--road-months, 10), minmax(0, 1fr));
+    gap: 0.28rem;
+}
+.crown-road__month {
+    text-align: center;
+    white-space: nowrap;
+}
+.crown-road__month.is-live { color: #fde68a; }
+.crown-road__stone {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 1.7rem;
+    border-radius: 0.5rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.crown-road__stone.is-sealed {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--road-primary, #6b7280) 70%, #000) 0%, color-mix(in srgb, var(--road-primary, #6b7280) 40%, #000) 100%);
+    border-color: color-mix(in srgb, var(--road-glow, #fff) 35%, transparent);
+    cursor: help;
+}
+.crown-road__stone.is-won {
+    color: #422006;
+    background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 40%, #f59e0b 80%);
+    border-color: rgba(254, 243, 199, 0.9);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.45);
+}
+.crown-road__stone.is-won i {
+    position: absolute;
+    top: -0.45rem;
+    font-size: 0.6rem;
     color: #fbbf24;
-    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
 }
-.guild-race-track__goal {
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 0.68rem;
+.crown-road__stone.has-unity::after {
+    content: '🤝';
+    position: absolute;
+    right: -0.25rem;
+    bottom: -0.35rem;
+    font-size: 0.6rem;
 }
-.guild-race-track__goal i {
-    color: rgba(251, 191, 36, 0.7);
+.crown-road__stone.is-live {
+    color: #fde68a;
+    background: rgba(120, 53, 15, 0.3);
+    border: 1px dashed rgba(251, 191, 36, 0.75);
+    animation: crown-road-live 2.6s ease-in-out infinite;
+    cursor: help;
+}
+@keyframes crown-road-live {
+    0%, 100% { box-shadow: 0 0 0 rgba(251, 191, 36, 0); }
+    50% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.4); }
+}
+.crown-road__stone.is-future {
+    background: transparent;
+    border-style: dotted;
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Unity Seal meter and Guild Standard names under each column ──────────── */
+.guild-unity-meter {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: rgba(224, 231, 255, 0.85);
+    cursor: help;
+}
+.guild-unity-meter__label { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
+.guild-unity-meter__bar {
+    height: 0.42rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+.guild-unity-meter__bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--guild-primary, #6b7280), var(--guild-glow, #a5b4fc));
+    transition: width 0.8s ease;
+}
+.guild-unity-meter__count { font-variant-numeric: tabular-nums; }
+.guild-unity-meter.is-sealed { color: #bbf7d0; }
+.guild-unity-meter.is-sealed .guild-unity-meter__bar span { background: linear-gradient(90deg, #16a34a, #86efac); }
+.guild-crystal-power-tile--crowns strong { color: #fde68a; }
+.guild-standards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.3rem;
+    margin-top: 0.45rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #fff;
+    background: color-mix(in srgb, var(--guild-primary, #6b7280) 55%, rgba(0, 0, 0, 0.3));
+    border: 1px solid color-mix(in srgb, var(--guild-glow, #fff) 45%, transparent);
+}
+
+body.gcq-mobile .crown-road {
+    margin: 0.1rem 0.75rem 0.4rem;
+    width: auto;
+    padding: 0.6rem;
+}
+body.gcq-mobile .crown-road__row {
+    grid-template-columns: minmax(0, 1fr) 2.8rem;
+    grid-template-areas: 'guild crowns' 'stones stones';
+    row-gap: 0.3rem;
+}
+body.gcq-mobile .crown-road__guild { grid-area: guild; }
+body.gcq-mobile .crown-road__crowns { grid-area: crowns; }
+body.gcq-mobile .crown-road__stones { grid-area: stones; }
+body.gcq-mobile .crown-road__row--head { display: none; }
+
+/* A narrow window on a computer stacks the road the same way. */
+@media (max-width: 760px) {
+    .crown-road__row {
+        grid-template-columns: minmax(0, 1fr) 2.8rem;
+        grid-template-areas: 'guild crowns' 'stones stones';
+        row-gap: 0.3rem;
+    }
+    .crown-road__guild { grid-area: guild; }
+    .crown-road__crowns { grid-area: crowns; }
+    .crown-road__stones { grid-area: stones; }
+    .crown-road__row--head { display: none; }
 }
 
 /* ── Guild alcoves behind each column (desktop) ───────────────────────────── */
@@ -511,18 +664,6 @@ body:not(.gcq-mobile) .guild-crystal-count-num.guild-power-drop {
 }
 
 /* ── Phones: keep the stage layout, size the new pieces to the card ───────── */
-body.gcq-mobile .guild-race-track {
-    margin: 0.1rem 0 0;
-    padding: 0 0.75rem;
-}
-body.gcq-mobile .guild-race-track__legend {
-    justify-content: center;
-    text-align: center;
-    font-size: 0.7rem;
-}
-body.gcq-mobile .guild-race-track__goal {
-    font-size: 0.64rem;
-}
 body.gcq-mobile .guild-crystal-arena-title__flourish {
     width: 1.2em;
 }
@@ -533,7 +674,8 @@ body.gcq-mobile .guild-crystal-tube-wrap::before {
 /* ── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     .guild-crystal-trend__item--visible,
-    .guild-race-track__seg.is-leader::after,
+    .crown-road__row.is-leader .crown-road__crowns,
+    .crown-road__stone.is-live,
     .guild-crystal-col.is-rank-1 .guild-crystal-rank__label::after,
     .guild-crystal-col.is-rank-1 .guild-crystal-emblem-wrapper::before,
     .guild-crystal-fill::after {

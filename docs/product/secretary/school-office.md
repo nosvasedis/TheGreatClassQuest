@@ -136,7 +136,7 @@ Three numbered steps: **Set the last school day**, **Check readiness** (opens a 
 
 Finishing a year **archives** it, so wait until the grades, reports and certificates the school still needs are done. If something is missed, emergency printing tools exist outside this guidebook; they are for recovery, not for daily use.
 
-Guild Power, Hero Path progress and Familiars belong to one school year at a time. Finishing the year closes that chapter, the way the Grand Guild Ceremony does for the guilds.
+Guild Crowns, Hero Path progress and Familiars belong to one school year at a time. Finishing the year closes that chapter, the way the Grand Guild Ceremony does for the guilds.
 
 ## Admin → School Details
 

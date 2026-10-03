@@ -1,4 +1,19 @@
-// /features/guildScoringCore.js — pure Guild Glory and Guild Power math
+// /features/guildScoringCore.js — pure math for the Crown Race (Glory, Chapters, Crowns)
+//
+// Glory ⚜️  — what a guild's members earn (2 per star, plus Quiz, Wheel and Market gifts).
+// Chapter  — one school month. Guilds race on Glory per member that month.
+// Crowns 👑 — what a sealed Chapter pays by place. Most Crowns in June wins the year.
+
+/** Crowns a sealed Chapter pays for 1st, 2nd, 3rd and 4th place. */
+export const CHAPTER_CROWNS = [5, 3, 2, 1];
+
+/** Unity Seal: +1 Crown when at least 4 in 5 members earned 6 Glory (3 stars) in the Chapter. */
+export const UNITY_SEAL = { share: 0.8, minGlory: 6, crowns: 1 };
+
+/** Months shown on the Crown Road, from the school year's September. */
+export const SCHOOL_YEAR_CHAPTER_MONTHS = 10;
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export function roundTo(value, places = 1) {
     const factor = 10 ** places;
@@ -9,66 +24,96 @@ export function clamp(value, min = 0, max = 100) {
     return Math.max(min, Math.min(max, Number(value) || 0));
 }
 
-/** Local-calendar Monday of the week holding `d`, as "YYYY-MM-DD". */
-export function weekMondayKey(d = new Date()) {
+// ─── Chapter keys ────────────────────────────────────────────────────────────
+
+/** Chapter key for the local month holding `d`, e.g. "m2026_10" (safe as a Firestore field name). */
+export function chapterKeyFor(d = new Date()) {
     const date = new Date(d);
-    const day = date.getDay();
-    date.setDate(date.getDate() - day + (day === 0 ? -6 : 1));
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `m${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** "m2026_10" ← "2026-10" (also accepts a key that is already a chapter key). */
+export function chapterKeyFromMonthKey(monthKey = '') {
+    const s = String(monthKey || '');
+    if (/^m\d{4}_\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{4})-(\d{2})/);
+    return m ? `m${m[1]}_${m[2]}` : null;
+}
+
+/** { year, month (1-12) } for a chapter key. */
+export function parseChapterKey(key = '') {
+    const m = String(key || '').match(/^m(\d{4})_(\d{2})$/);
+    return m ? { year: Number(m[1]), month: Number(m[2]) } : null;
+}
+
+export function chapterName(key) {
+    const p = parseChapterKey(key);
+    return p ? MONTH_NAMES[p.month - 1] : '';
+}
+
+export function chapterShortName(key) {
+    return chapterName(key).slice(0, 3);
+}
+
+/** Chapter keys of a school year ("2026-2027" → m2026_09 … m2027_06). */
+export function schoolYearChapterKeys(schoolYearKey, months = SCHOOL_YEAR_CHAPTER_MONTHS) {
+    const m = String(schoolYearKey || '').match(/^(\d{4})-\d{4}$/);
+    if (!m) return [];
+    const keys = [];
+    for (let i = 0; i < months; i += 1) keys.push(chapterKeyFor(new Date(Number(m[1]), 8 + i, 1)));
+    return keys;
+}
+
+/** Days left in the Chapter holding `now`, today included. */
+export function chapterDaysLeft(now = new Date()) {
+    const d = new Date(now);
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return last - d.getDate() + 1;
+}
+
+// ─── Glory deltas ────────────────────────────────────────────────────────────
+
 /**
- * The guild's week as it really stands at `now`.
- * guild_scores only rolls its weekly counters when that guild next earns Glory, so a guild
- * that has earned nothing since Monday still carries last week's numbers in the document.
- * Every reader goes through this so all guilds are compared on the same week.
+ * Glory for a star change: 2 per star, plus +1 per star while the student's Banner of Glory
+ * has charges. A star taken back costs only its plain Glory.
  */
-export function resolveGuildWeek(guildData = {}, now = Date.now()) {
-    const currentMonday = weekMondayKey(new Date(now));
-    const previousMonday = weekMondayKey(new Date(new Date(now).getTime() - 7 * 86400000));
-    const lastReset = String(guildData?.lastWeeklyReset || '');
-    const storedIds = Array.isArray(guildData?.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : null;
-    if (lastReset && lastReset >= currentMonday) {
-        const map = guildData.weeklyMemberGlory;
-        return {
-            // Per-member net Glory this week; only trusted when it was started this week.
-            weeklyMemberGlory: map && typeof map === 'object' && guildData.weeklyMemberGloryWeek === lastReset ? map : null,
-            weeklyGlory: Number(guildData.weeklyGlory) || 0,
-            previousWeekGlory: Number(guildData.previousWeekGlory) || 0,
-            weeklyActiveMemberIds: storedIds || [],
-            weeklyActiveMembers: storedIds ? new Set(storedIds).size : (Number(guildData.weeklyActiveMembers) || 0),
-            currentMonday,
-        };
+export function calculateGuildGloryDelta({
+    starDelta = 0,
+    directGlory = 0,
+    scoreData = {},
+    gloryPerStar = 2,
+} = {}) {
+    const safeStarDelta = Number(starDelta) || 0;
+    const safeDirectGlory = Number(directGlory) || 0;
+    const breakdown = [];
+
+    const starGlory = safeStarDelta * gloryPerStar;
+    if (safeStarDelta !== 0) {
+        breakdown.push({ type: 'base_star_glory', amount: starGlory, detail: `${gloryPerStar} Glory per star` });
     }
+
+    let bannerGlory = 0;
+    if (safeStarDelta > 0 && Number(scoreData?.gloryBannerCharges) > 0) {
+        bannerGlory = Math.min(safeStarDelta, Number(scoreData.gloryBannerCharges) || 0);
+        breakdown.push({ type: 'banner_of_glory', amount: bannerGlory, detail: '+1 Glory per awarded star' });
+    }
+
+    if (safeDirectGlory) {
+        breakdown.push({ type: 'direct_glory', amount: safeDirectGlory, detail: 'Direct Guild Glory event' });
+    }
+
     return {
-        weeklyMemberGlory: {},
-        weeklyGlory: 0,
-        previousWeekGlory: lastReset && lastReset >= previousMonday ? (Number(guildData.weeklyGlory) || 0) : 0,
-        weeklyActiveMemberIds: [],
-        weeklyActiveMembers: 0,
-        currentMonday,
+        starDelta: safeStarDelta,
+        baseGlory: roundTo(starGlory, 2),
+        modifierGlory: roundTo(bannerGlory, 2),
+        directGlory: roundTo(safeDirectGlory, 2),
+        totalGloryDelta: roundTo(starGlory + bannerGlory + safeDirectGlory, 2),
+        breakdown,
     };
 }
 
-/**
- * Members who earned Glory this week, counting each member's net: a star given and then
- * taken back leaves that member not active.
- */
-export function countActiveMembersThisWeek(week = {}, memberIds = []) {
-    const members = new Set(memberIds);
-    if (week.weeklyMemberGlory) {
-        return Object.entries(week.weeklyMemberGlory)
-            .filter(([id, glory]) => members.has(id) && (Number(glory) || 0) > 0.001).length;
-    }
-    if (!((Number(week.weeklyGlory) || 0) > 0)) return 0;
-    return new Set((week.weeklyActiveMemberIds || []).filter((id) => members.has(id))).size;
-}
-
-/**
- * A Glory change of an exact size: used to take back precisely the Glory an award gave
- * (whatever multipliers were active then) or to correct Glory left behind.
- */
-export function exactGuildGloryDelta({ starDelta = 0, glory = 0, guildData = {} } = {}) {
+/** A Glory change of an exact size: takes back precisely what an award gave, or corrects leftovers. */
+export function exactGuildGloryDelta({ starDelta = 0, glory = 0 } = {}) {
     const amount = roundTo(Number(glory) || 0, 2);
     return {
         starDelta: Number(starDelta) || 0,
@@ -77,54 +122,14 @@ export function exactGuildGloryDelta({ starDelta = 0, glory = 0, guildData = {} 
         directGlory: 0,
         totalGloryDelta: amount,
         breakdown: [{ type: 'exact_glory', amount, detail: 'Exact Glory change' }],
-        consumedGloryModifiers: Array.isArray(guildData.gloryModifiers) ? guildData.gloryModifiers : [],
     };
 }
 
-/**
- * Members holding Glory for stars they no longer have: a current member with no stars this
- * year cannot have earned star Glory, so what the ledger still credits them is left over
- * from awards that were taken back. Returns corrections that bring each back to 0.
- * `starsByStudent` must hold every current member's stars this year (missing = 0).
- */
-export function findOrphanMemberGlory(guildData = {}, memberIds = [], starsByStudent = {}) {
-    const { memberGloryReady } = countedGuildGlory(guildData, memberIds);
-    if (!memberGloryReady) return [];
-    const map = guildData.memberGlory || {};
-    return memberIds
-        .filter((id) => Math.abs(Number(map[id]) || 0) > 0.001 && !(Number(starsByStudent[id]) > 0))
-        .map((id) => ({ studentId: id, glory: roundTo(-(Number(map[id]) || 0), 2) }));
-}
-
-export function getActiveGuildModifiers(guildData = {}, now = Date.now()) {
-    return (Array.isArray(guildData.gloryModifiers) ? guildData.gloryModifiers : [])
-        .filter((mod) => (Number(mod?.expiresAt) || 0) > now);
-}
-
-export function getMomentumArrow(pct) {
-    const n = Number(pct) || 0;
-    if (n >= 50) return '⬆️';
-    if (n >= 15) return '↗️';
-    if (n > -15) return '➡️';
-    if (n > -50) return '↘️';
-    return '⬇️';
-}
+// ─── Year Glory (the tie-breaker) ────────────────────────────────────────────
 
 /**
- * The year-long race: the guild whose members have earned the most Glory each, on average,
- * this school year leads. This week's numbers never change the order.
- */
-export function compareGuildLeaderboardRows(a = {}, b = {}) {
-    const exact = (row) => Number(row.seasonGloryPerMember ?? row.perCapitaGlory ?? row.guildPower) || 0;
-    return exact(b) - exact(a) ||
-        (Number(b.totalGlory) || 0) - (Number(a.totalGlory) || 0) ||
-        String(a.guildName || a.name || '').localeCompare(String(b.guildName || b.name || ''));
-}
-
-/**
- * Glory a guild counts toward its standing: everything it earned this year, minus what
- * members who have since left earned (they no longer count as members, so their Glory
- * leaves with them). `memberGlory` is only trusted for the year it was built for.
+ * Glory a guild counts for the year: everything it earned this year, minus what members who
+ * have since left earned. `memberGlory` is only trusted for the year it was built for.
  */
 export function countedGuildGlory(guildData = {}, currentMemberIds = []) {
     const totalGlory = Number(guildData?.totalGlory) || 0;
@@ -142,200 +147,131 @@ export function countedGuildGlory(guildData = {}, currentMemberIds = []) {
 }
 
 /**
- * Wheel Glory is written for an average-sized guild; a bigger guild gets proportionally more
- * so every member of every guild gains (or loses) the same.
+ * Members holding Glory for stars they no longer have (a current member with no stars this year
+ * cannot have earned star Glory). Returns corrections that bring each back to 0.
  */
-export function guildSizeScale(memberCounts = {}, guildId) {
-    const sizes = Object.values(memberCounts).map(Number).filter((n) => n > 0);
-    const own = Number(memberCounts[guildId]) || 0;
-    if (!sizes.length || own <= 0) return 1;
-    return own / (sizes.reduce((sum, n) => sum + n, 0) / sizes.length);
+export function findOrphanMemberGlory(guildData = {}, memberIds = [], starsByStudent = {}) {
+    const { memberGloryReady } = countedGuildGlory(guildData, memberIds);
+    if (!memberGloryReady) return [];
+    const map = guildData.memberGlory || {};
+    return memberIds
+        .filter((id) => Math.abs(Number(map[id]) || 0) > 0.001 && !(Number(starsByStudent[id]) > 0))
+        .map((id) => ({ studentId: id, glory: roundTo(-(Number(map[id]) || 0), 2) }));
 }
 
-export function consumeChargeModifiers(modifiers = [], starDelta = 0, now = Date.now()) {
-    if (!(starDelta > 0)) return modifiers;
-    let starsRemaining = Number(starDelta) || 0;
-    return modifiers
-        .map((mod) => {
-            if (!mod || mod.type !== 'bonus_per_star') return mod;
-            const charges = Number(mod.charges);
-            if (!Number.isFinite(charges)) return mod;
-            if (charges <= 0) return null;
-            const used = Math.min(charges, starsRemaining);
-            starsRemaining = Math.max(0, starsRemaining - used);
-            const nextCharges = charges - used;
-            return nextCharges > 0 ? { ...mod, charges: nextCharges } : null;
-        })
-        .filter((mod) => mod && ((Number(mod.expiresAt) || 0) > now || !mod.expiresAt || isChallengeAwaitingTally(mod, now)));
+// ─── Chapters ────────────────────────────────────────────────────────────────
+
+/** True when a Chapter key falls inside a school year ("2026-2027" → m2026_09 … m2027_08). */
+export function isChapterOfSchoolYear(key, schoolYearKey) {
+    const m = String(schoolYearKey || '').match(/^(\d{4})-\d{4}$/);
+    if (!m || !parseChapterKey(key)) return false;
+    const start = Number(m[1]);
+    return key >= `m${start}_09` && key <= `m${start + 1}_08`;
 }
 
-const CHALLENGE_TALLY_WINDOW_MS = 7 * 86400000;
-
-/** A Glory Challenge stays on file for a week after it ends so its result can be tallied. */
-export function isChallengeAwaitingTally(mod, now = Date.now()) {
-    return mod?.type === 'challenge' && now < (Number(mod.expiresAt) || 0) + CHALLENGE_TALLY_WINDOW_MS;
+function _pickYear(map, schoolYearKey) {
+    if (!map || typeof map !== 'object') return {};
+    return Object.fromEntries(Object.entries(map).filter(([k]) => isChapterOfSchoolYear(k, schoolYearKey)));
 }
 
 /**
- * Glory Challenges whose week has ended and can be judged now: the challenge's week must be
- * last week, so every guild's last-week Glory is still known. The winner is the guild with the
- * most Glory per member that week (ties all win); a week with no Glory has no winner.
- * `members` maps guildId → current member count.
+ * The guild's Chapter records for a school year. Keys are calendar months, so another
+ * year's Chapters never mix in; they are simply left out.
  */
-export function findWonGuildChallenges(allGuildScores = {}, members = {}, now = Date.now()) {
-    const currentMonday = weekMondayKey(new Date(now));
-    const previousMonday = weekMondayKey(new Date(now - 7 * 86400000));
-    const perMember = {};
-    for (const [guildId, data] of Object.entries(allGuildScores || {})) {
-        const count = Number(members[guildId]) || 0;
-        perMember[guildId] = count > 0 ? resolveGuildWeek(data, now).previousWeekGlory / count : 0;
-    }
-    const best = Math.max(0, ...Object.values(perMember));
-    const won = [];
-    for (const [guildId, data] of Object.entries(allGuildScores || {})) {
-        for (const mod of Array.isArray(data?.gloryModifiers) ? data.gloryModifiers : []) {
-            if (mod?.type !== 'challenge' || !isChallengeAwaitingTally(mod, now)) continue;
-            const challengeMonday = weekMondayKey(new Date(Number(mod.createdAt) || 0));
-            if (challengeMonday >= currentMonday || challengeMonday !== previousMonday) continue;
-            if (best > 0 && perMember[guildId] >= best - 1e-9) {
-                won.push({ guildId, bonus: Number(mod.bonus) || 50, key: `challenge_${guildId}_${Number(mod.createdAt) || 0}` });
-            }
-        }
-    }
-    return won;
-}
-
-export function calculateGuildGloryDelta({
-    starDelta = 0,
-    directGlory = 0,
-    scoreData = {},
-    guildData = {},
-    gloryPerStar = 2,
-    now = Date.now(),
-} = {}) {
-    const safeStarDelta = Number(starDelta) || 0;
-    const safeDirectGlory = Number(directGlory) || 0;
-    const activeModifiers = getActiveGuildModifiers(guildData, now);
-    const breakdown = [];
-
-    let starGlory = safeStarDelta * gloryPerStar;
-    if (safeStarDelta !== 0) {
-        breakdown.push({ type: 'base_star_glory', amount: starGlory, detail: `${gloryPerStar} Glory per star` });
-    }
-
-    let perStarBonus = 0;
-    if (safeStarDelta > 0 && Number(scoreData?.gloryBannerCharges) > 0) {
-        const amount = Math.min(safeStarDelta, Number(scoreData.gloryBannerCharges) || 0);
-        perStarBonus += amount;
-        breakdown.push({ type: 'banner_of_glory', amount, detail: '+1 Glory per awarded star' });
-    }
-
-    if (safeStarDelta > 0 && guildData?.chaliceActive && Number(guildData?.chaliceExpiresAt) > now) {
-        const amount = safeStarDelta;
-        perStarBonus += amount;
-        breakdown.push({ type: 'chalice_of_radiance', amount, detail: '+1 Glory per awarded star' });
-    }
-
-    for (const mod of activeModifiers) {
-        if (mod.type !== 'bonus_per_star' || safeStarDelta <= 0) continue;
-        const chargeLimit = Number.isFinite(Number(mod.charges)) ? Math.max(0, Number(mod.charges)) : safeStarDelta;
-        const qualifyingStars = Math.min(safeStarDelta, chargeLimit);
-        const amount = (Number(mod.amount) || 0) * qualifyingStars;
-        if (!amount) continue;
-        perStarBonus += amount;
-        breakdown.push({ type: 'modifier_bonus_per_star', amount, label: mod.label || '', detail: `+${Number(mod.amount) || 0} Glory per star` });
-    }
-
-    const beforeMultiplier = starGlory + perStarBonus;
-    let afterMultiplier = beforeMultiplier;
-    let multiplierDelta = 0;
-    // Multipliers grow earned Glory only. A star taken back (a correction) always
-    // costs its plain Glory, so fixing a mistake during a 4x day never costs 4x.
-    for (const mod of beforeMultiplier > 0 ? activeModifiers : []) {
-        if (mod.type !== 'multiply') continue;
-        const factor = Number(mod.factor);
-        if (!Number.isFinite(factor) || factor === 1) continue;
-        const next = Math.round(afterMultiplier * factor);
-        const delta = next - afterMultiplier;
-        multiplierDelta += delta;
-        afterMultiplier = next;
-        breakdown.push({ type: 'modifier_multiply', amount: delta, factor, label: mod.label || '', detail: `${factor}x Glory modifier` });
-    }
-
-    if (safeDirectGlory) {
-        breakdown.push({ type: 'direct_glory', amount: safeDirectGlory, detail: 'Direct Guild Glory event' });
-    }
-
+export function guildChapterBook(guildData = {}, schoolYearKey = guildData?.activeSchoolYearKey) {
     return {
-        starDelta: safeStarDelta,
-        baseGlory: roundTo(starGlory, 2),
-        modifierGlory: roundTo(perStarBonus + multiplierDelta, 2),
-        directGlory: roundTo(safeDirectGlory, 2),
-        totalGloryDelta: roundTo(afterMultiplier + safeDirectGlory, 2),
-        breakdown,
-        consumedGloryModifiers: consumeChargeModifiers(guildData.gloryModifiers || [], safeStarDelta, now),
+        chapters: _pickYear(guildData?.chapters, schoolYearKey),
+        sealed: _pickYear(guildData?.sealedChapters, schoolYearKey),
     };
 }
 
-export function calculateGuildPower(guildData, maxima = {}) {
-    const memberCountRaw = Number(guildData?.memberCount) || 0;
-    if (memberCountRaw <= 0) {
-        return {
-            guildPower: 0,
-            seasonGloryScore: 0,
-            weeklyGloryScore: 0,
-            activityScore: 0,
-            momentumScore: 50,
-            momentumPct: 0,
-            momentumArrow: getMomentumArrow(0),
-            perCapitaGlory: 0,
-            seasonGloryPerMember: 0,
-            weeklyPerCapitaGlory: 0,
-        };
+/**
+ * One guild's live Chapter: Glory its current members earned in it, shared per member, and
+ * how many members already have the Unity Seal's 6 Glory. Leavers' Glory leaves with them.
+ */
+export function chapterTally(chapter = {}, memberIds = []) {
+    const members = chapter?.members && typeof chapter.members === 'object' ? chapter.members : {};
+    const current = new Set(memberIds);
+    let leaversGlory = 0;
+    for (const [id, glory] of Object.entries(members)) {
+        if (!current.has(id)) leaversGlory += Number(glory) || 0;
     }
-
-    const memberCount = Math.max(memberCountRaw, 1);
-    const totalGlory = Number(guildData?.countedGlory ?? guildData?.totalGlory) || 0;
-    const weeklyGlory = Number(guildData?.weeklyGlory) || 0;
-    const previousWeekGlory = Number(guildData?.previousWeekGlory) || 0;
-    const weeklyActiveMembers = Number(guildData?.weeklyActiveMembers) || 0;
-    const activeModifiers = getActiveGuildModifiers(guildData);
-    const hasMomentumLock = activeModifiers.some((m) => m.type === 'momentum_lock');
-
-    const perCapitaGlory = totalGlory / memberCount;
-    const weeklyPerCapitaGlory = weeklyGlory / memberCount;
-    const maxPerCapitaGlory = Math.max(Number(maxima.maxPerCapitaGlory) || 0, 1);
-    const maxWeeklyPerCapitaGlory = Math.max(Number(maxima.maxWeeklyPerCapitaGlory) || 0, 1);
-
-    const seasonGloryScore = clamp((perCapitaGlory / maxPerCapitaGlory) * 100);
-    const weeklyGloryScore = clamp((weeklyPerCapitaGlory / maxWeeklyPerCapitaGlory) * 100);
-    const activityScore = clamp((weeklyActiveMembers / memberCount) * 100);
-
-    let momentumPct = 0;
-    if (previousWeekGlory > 0) {
-        momentumPct = ((weeklyGlory - previousWeekGlory) / previousWeekGlory) * 100;
-    } else if (weeklyGlory > 0) {
-        momentumPct = 100;
-    }
-    if (hasMomentumLock) momentumPct = Math.max(0, momentumPct);
-    momentumPct = clamp(momentumPct, -100, 100);
-    const momentumScore = (momentumPct + 100) / 2;
-
-    // Guild Power is the year's Glory per member: it only moves when this guild earns (or
-    // loses) Glory. The weekly scores below are shown as "this week" badges only.
-    const guildPower = roundTo(perCapitaGlory, 1);
-
+    const glory = Math.max(0, roundTo((Number(chapter?.glory) || 0) - leaversGlory, 2));
+    const memberCount = memberIds.length;
+    const unityCount = memberIds.filter((id) => (Number(members[id]) || 0) >= UNITY_SEAL.minGlory - 1e-9).length;
+    const contributors = memberIds.filter((id) => (Number(members[id]) || 0) > 0.001).length;
     return {
-        guildPower: Math.max(0, guildPower),
-        seasonGloryPerMember: perCapitaGlory,
-        seasonGloryScore: roundTo(seasonGloryScore),
-        gloryScore: roundTo(seasonGloryScore),
-        weeklyGloryScore: roundTo(weeklyGloryScore),
-        activityScore: roundTo(activityScore),
-        momentumScore: roundTo(momentumScore),
-        momentumPct: Math.round(momentumPct),
-        momentumArrow: getMomentumArrow(momentumPct),
-        perCapitaGlory: roundTo(perCapitaGlory),
-        weeklyPerCapitaGlory: roundTo(weeklyPerCapitaGlory),
+        glory,
+        memberCount,
+        perMember: memberCount > 0 ? glory / memberCount : 0,
+        unityCount,
+        unityNeeded: Math.ceil(memberCount * UNITY_SEAL.share - 1e-9),
+        unity: memberCount > 0 && glory > 0 && unityCount >= Math.ceil(memberCount * UNITY_SEAL.share - 1e-9),
+        contributors,
     };
+}
+
+/**
+ * Places and Crowns for one Chapter. `tallies` maps guildId → chapterTally().
+ * Guilds that tie share the higher place; a guild with no Glory has no place and no Crowns.
+ */
+export function rankChapter(tallies = {}) {
+    const entries = Object.entries(tallies).map(([guildId, t]) => ({ guildId, ...t }));
+    const scoring = entries.filter((e) => e.perMember > 0.0001).sort((a, b) => b.perMember - a.perMember);
+    const result = {};
+    scoring.forEach((e, i) => {
+        let place = i;
+        while (place > 0 && Math.abs(scoring[place - 1].perMember - e.perMember) < 1e-6) place -= 1;
+        const placeCrowns = CHAPTER_CROWNS[place] || 0;
+        result[e.guildId] = { ...e, place: place + 1, placeCrowns, crowns: placeCrowns + (e.unity ? UNITY_SEAL.crowns : 0) };
+    });
+    entries.filter((e) => !(e.perMember > 0.0001)).forEach((e) => {
+        result[e.guildId] = { ...e, place: null, placeCrowns: 0, crowns: 0, unity: false };
+    });
+    return result;
+}
+
+/**
+ * Chapters that ended and still need sealing: keys some guild has data for, from `firstKey`
+ * on, before the current Chapter, and not yet sealed on every guild.
+ */
+export function chaptersToSeal(allGuildScores = {}, schoolYearKey, now = new Date(), firstKey = null) {
+    const current = chapterKeyFor(now);
+    const books = Object.values(allGuildScores).map((g) => guildChapterBook(g, schoolYearKey));
+    const keys = new Set();
+    for (const book of books) Object.keys(book.chapters).forEach((k) => keys.add(k));
+    for (const key of schoolYearChapterKeys(schoolYearKey)) if (key < current) keys.add(key);
+    return [...keys]
+        .filter((k) => parseChapterKey(k) && k < current && (!firstKey || k >= firstKey))
+        .filter((k) => books.some((b) => !b.sealed[k]))
+        .sort();
+}
+
+// ─── The Crown Race standings ────────────────────────────────────────────────
+
+/**
+ * Year order: most Crowns, then most Glory per member this year, then name.
+ * `crowns` is the sealed total; the live Chapter only counts once it is sealed.
+ */
+export function compareCrownRaceRows(a = {}, b = {}) {
+    return (Number(b.crowns) || 0) - (Number(a.crowns) || 0) ||
+        (Number(b.yearGloryPerMember) || 0) - (Number(a.yearGloryPerMember) || 0) ||
+        String(a.guildName || a.name || '').localeCompare(String(b.guildName || b.name || ''));
+}
+
+/** Final order at the Grand Guild Ceremony: the June Chapter is sealed as it stands. */
+export function compareFinalCrownRows(a = {}, b = {}) {
+    return compareCrownRaceRows(
+        { ...a, crowns: (Number(a.crowns) || 0) + (Number(a.liveCrowns) || 0) },
+        { ...b, crowns: (Number(b.crowns) || 0) + (Number(b.liveCrowns) || 0) },
+    );
+}
+
+/** Shared places for a sorted list ("1st, 1st, 3rd") by a numeric score. */
+export function sharedPlaces(rows = [], score = (r) => r.crowns) {
+    return rows.map((row, i) => {
+        let p = i;
+        while (p > 0 && Math.abs((Number(score(rows[p - 1])) || 0) - (Number(score(row)) || 0)) < 1e-6) p -= 1;
+        return p;
+    });
 }

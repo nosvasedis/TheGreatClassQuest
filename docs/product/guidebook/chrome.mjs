@@ -10,14 +10,14 @@ export const ARTIFACTS = [
   { icon: '💰', name: 'Aurum Satchel', gold: 32, perk: '50% off the next Market buy this month' },
   { icon: '⚜️', name: 'Banner of Glory', gold: 35, perk: 'Next 3 stars each write +1 Guild Glory' },
   { icon: '📢', name: "The Herald's Banner", gold: 40, perk: 'School-wide victory celebration' },
-  { icon: '🛡️', name: 'Bulwark Crest', gold: 48, perk: 'Guild Glory Shield for 7 days' },
+  { icon: '🍀', name: 'Fortune’s Favor', gold: 48, perk: 'The guild’s next Wheel is gilded: no commons, no Trickster' },
   { icon: '📜', name: 'The Starfall Catalyst', gold: 50, perk: 'Double the next high-test Starfall' },
-  { icon: '🏆', name: 'Chalice of Radiance', gold: 55, perk: 'Guild +1 Glory on qualifying stars for 24h' },
+  { icon: '🏆', name: 'Chalice of Unity', gold: 55, perk: '+1 Glory now for every guildmate in the class' },
   { icon: '💝', name: 'Compassion Token', gold: 55, perk: "Hero's Boon costs 0 Gold this month" },
   { icon: '🗺️', name: "Pathfinder's Map", gold: 60, perk: '+10 Team Quest stars for the class (1/month)' },
   { icon: '✒️', name: "Archivist's Quill", gold: 62, perk: 'Next Story Weaver bonus is 1 star, not 0.5' },
   { icon: '🎭', name: 'Mask of the Protagonist', gold: 75, perk: 'Guarantees Hero of the Day on the next log' },
-  { icon: '👑', name: 'Crown of the Eternal', gold: 90, perk: '2× star-earned Glory until midnight' }
+  { icon: '🚩', name: 'Guild Standard', gold: 75, perk: 'Name on the guild’s column this Chapter, +2 Glory' }
 ];
 
 export const FAMILIARS = [

@@ -27,7 +27,7 @@ test('Fortune Ledger listener is scoped to the active school year', () => {
 test('wheel spin checks and class history stay in the active school year', () => {
     const guilds = read('db/actions/guilds.js');
     const hasSpun = guilds.split('export async function hasSpunThisWeek')[1].split('export async function getRecentWheelResults')[0];
-    const recent = guilds.split('export async function getRecentWheelResults')[1].split('export async function applyGloryModifier')[0];
+    const recent = guilds.split('export async function getRecentWheelResults')[1].split('export async function adjustGuildGlory')[0];
     assert.match(hasSpun, /schoolYearKey/);
     assert.match(hasSpun, /getActiveSchoolYearKey/);
     assert.match(recent, /schoolYearKey/);

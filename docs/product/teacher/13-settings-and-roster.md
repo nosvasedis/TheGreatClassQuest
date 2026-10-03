@@ -101,7 +101,7 @@ Whatever you change in a student’s Passport, such as their name, is what appea
 
 **Edit** on a roster row opens the student’s profile as one open passport. The cover carries the name and class and guild chips.
 
-**Left page — Identity:** the portrait (tap to view it; **New portrait** opens the Avatar Forge), **Name**, **Class** with **Move**, **Guild** (with **Sort** only while they have no guild), and the quest record: Total stars, This month, Gold, Hero rank. Under it, **Open for this student**: Chronicle, Analytics, Certificate, Avatar Forge, Skill Tree, Move class.
+**Left page — Identity:** the portrait (tap to view it; **New portrait** opens the Avatar Forge), **Name**, **Class** with **Move**, **Guild** (with **Sort** only while they have no guild), and the quest record: Total stars, This month, Gold, Hero rank. Under it, **Open for this student**: Chronicle, Folio, Certificate, Avatar Forge, Skill Tree, Move class.
 
 **Right page — Special days:** **Birthday** and **Nameday** as postage stamps (pick day and month; **Clear** empties one). **Find from name** is the **AI Nameday Lookup** (Greek Orthodox εορτολόγιο) on Elite. On their day the class sees a celebration banner and they get bonus stars.
 

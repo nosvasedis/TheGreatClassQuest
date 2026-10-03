@@ -44,6 +44,17 @@ Secretary sets the school picture. **Class Grading** is your override when this 
 
 **Pending Makeups** (tests): if a large share of the class sat a paper and someone has no mark, they appear on the list (recent months only). Log a result, or dismiss the entry on this device. Separate from the **pending grading** queue for advertised Quest Board tests.
 
+## A scholar’s folio
+
+Click a scholar’s name on the Honour Roll (or **Scholar’s Folio** on Hero stats, or **Folio** on a student’s page) to open their **Scholar’s Folio**: one page with everything their trials say.
+
+- **Header:** portrait, Hero Path and class, their place in the class on the overall average, their band, and the average as a medallion with the gap to the class. The arrows (or ← / →) walk through the class in Honour Roll order without closing.
+- **Period:** 30 days, 3 months (the default) or the whole year (the older trials load once).
+- **Overview:** Momentum (the last three trials against the ones before), Best result, Latest trial and Presence (absences in the last 30 days, and papers with no mark). The **journey** chart shows every trial in order with the class average of the same paper behind it; point at a dot for the details, click it to jump to that trial. **The scribe’s reading** says in plain words what is going well and what to keep an eye on. **The record** sets tests and dictations against the class and shows this month’s Starfall.
+- **Trials:** every paper with its mark, percent, class average, place on that paper and how far above or below the class it was. Badges mark **Top of class**, **Personal best** (better than at least two earlier results of that kind) and Starfall marks. Papers most of the class sat that still have no mark for this scholar are listed first.
+- **Oracle** (Elite): parent-meeting notes, a next-step plan, where it gets hard, the story so far, or your own question, written from the folio’s numbers. Read an answer before you share it; the copy button puts it on the clipboard.
+- **Spreadsheet** (CSV) and **Print** (the print dialog also saves a PDF) sit top right.
+
 ## Starfall
 
 After a bulk save, the Quest may offer bonus stars:

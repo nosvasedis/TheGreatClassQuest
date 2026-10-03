@@ -150,9 +150,9 @@ export const studentModalsHTML = `
                                 <span class="sp-tool__icon"><i class="fas fa-book-reader"></i></span>
                                 <span class="sp-tool__label">Chronicle</span>
                             </button>
-                            <button type="button" id="edit-student-hub-analytics-btn" class="sp-tool sp-tool--analytics bubbly-button" title="Scores, grades & history">
-                                <span class="sp-tool__icon"><i class="fas fa-chart-line"></i></span>
-                                <span class="sp-tool__label">Analytics</span>
+                            <button type="button" id="edit-student-hub-analytics-btn" class="sp-tool sp-tool--analytics bubbly-button" title="Scholar’s Folio: trials, scores and history">
+                                <span class="sp-tool__icon"><i class="fas fa-scroll"></i></span>
+                                <span class="sp-tool__label">Folio</span>
                             </button>
                             <button type="button" id="edit-student-hub-certificate-btn" class="sp-tool sp-tool--certificate bubbly-button" title="Generate award certificate">
                                 <span class="sp-tool__icon"><i class="fas fa-award"></i></span>

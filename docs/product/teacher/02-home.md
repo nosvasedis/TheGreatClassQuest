@@ -44,7 +44,7 @@ You are looking at **this group**:
 - **Quest progress**: this class’s monthly stars versus the Team Quest goal (the goal already allows for holidays and cancelled lessons), drawn as a road through the four Team Quest realms (Bronze Meadows, Silver Peaks, Golden Citadel, Crystal Realm) to the goal flag. The class emblem stands where the class is now, realms already reached light up, and a line says how many stars remain to the next realm. Any Pathfinder bonus is counted and shown under the goal.
 - **Class virtue and class photo**: a crest for the virtue that has earned the class the most stars (or **Ready to Quest!** before the first stars), a ribbon showing how the stars split between virtues, and every hero standing on the meadow for a class photo. Hover a hero for their first name and stars this month; tap to open their Hero Stage. A small arrow marks a Hero Path skill waiting, and a gold star marks who has the most stars this month.
 - **The Chronicle** — latest homework, Story Weavers line, or Adventure Log sentence
-- **Class actions** — shortcuts such as Roll Call, Report, Story, Trials, Stars, Edit
+- **Class actions** — the same launcher tiles as Global Tools, for this class only and never a repeat of the bottom bar: **Roll Call** (shows who is away today), **Class Roster** (heroes, stars and Gold), **Class Report** (AI progress report), **Edit Class** and **Prodigies** (past Prodigies of the Month). In the last week of the month **Teacher Boon** comes first and shows who received it.
 - **Quiz of the Week** on the weather card when the class is eligible (Elite)
 
 ## What you can do

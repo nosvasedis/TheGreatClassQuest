@@ -13,7 +13,7 @@ import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { getHomeGlobalTools } from './homeGlobalTools.mjs';
+import { getHomeGlobalTools, getHomeClassActions } from './homeGlobalTools.mjs';
 import {
     DAILY_QUOTE_SYSTEM_PROMPT,
     buildDailyQuoteUserPrompt,
@@ -415,6 +415,27 @@ function getChroniclePageHtml({ kind, index, icon, kicker, kickerAttr = '', body
                 </article>`;
 }
 
+/** One launcher tile for Global Tools / Class Actions (styles/home.css .gt-tile). */
+function homeToolTileHtml(t, i, activeLeague = '') {
+    const league = t.scoped ? (activeLeague || '') : '';
+    return `
+                    <button type="button"
+                        class="gt-tile gt-tile--${t.tone} shortcut-action-btn"
+                        style="--gt-i:${i}"
+                        data-action="${t.action}"
+                        data-id="${t.classId || ''}"
+                        data-subtab="${t.subtab || ''}"
+                        data-league="${league}"
+                        title="${league ? `${t.label} for ${league} League` : t.label}">
+                        <span class="gt-tile__icon" aria-hidden="true"><i class="fas ${t.icon}"></i></span>
+                        <span class="gt-tile__text">
+                            <span class="gt-tile__label">${t.label}</span>
+                            <span class="gt-tile__hint">${escapeHtml(t.hint)}</span>
+                        </span>
+                        <i class="fas fa-chevron-right gt-tile__go" aria-hidden="true"></i>
+                    </button>`;
+}
+
 function getGeneralDashboard(name, theme, spice) {
     const today = utils.getTodayDateString();
     const activeLeague = resolveActiveHomeLeague();
@@ -477,22 +498,7 @@ function getGeneralDashboard(name, theme, spice) {
                 <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-toolbox"></i></span>Global Tools</h3>
             </div>
             <div class="gt-grid">
-                ${tools.map((t, i) => `
-                    <button type="button"
-                        class="gt-tile gt-tile--${t.tone} shortcut-action-btn"
-                        style="--gt-i:${i}"
-                        data-action="${t.action}"
-                        data-subtab="${t.subtab || ''}"
-                        data-league="${t.scoped ? (activeLeague || '') : ''}"
-                        title="${t.scoped && activeLeague ? `${t.label} for ${activeLeague} League` : t.label}">
-                        <span class="gt-tile__icon" aria-hidden="true"><i class="fas ${t.icon}"></i></span>
-                        <span class="gt-tile__text">
-                            <span class="gt-tile__label">${t.label}</span>
-                            <span class="gt-tile__hint">${escapeHtml(t.hint)}</span>
-                        </span>
-                        <i class="fas fa-chevron-right gt-tile__go" aria-hidden="true"></i>
-                    </button>
-                `).join('')}
+                ${tools.map((t, i) => homeToolTileHtml(t, i, activeLeague)).join('')}
             </div>
         </div>
         <div class="vibrant-card h-span-8 card-glass-white">
@@ -593,14 +599,15 @@ function getActiveDashboard(classData, name, theme, spice) {
     const virtueStars = {};
     classLogs.forEach(l => { if (l.reason) virtueStars[l.reason] = (virtueStars[l.reason] || 0) + l.stars; });
 
-    const tools = [
-        { icon: 'fa-clipboard-check', label: 'Roll Call', action: 'open-attendance' },
-        { icon: 'fa-magic', label: 'Report', action: 'open-report', id: classId },
-        { icon: 'fa-feather-alt', label: 'Story', target: 'reward-ideas-tab' },
-        { icon: 'fa-scroll', label: 'Trials', target: 'scholars-scroll-tab' },
-        { icon: 'fa-star', label: 'Stars', target: 'award-stars-tab' },
-        { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', id: classId },
-    ];
+    const boon = classData.teacherBoons?.[utils.getLocalMonthKey()] || null;
+    const boonHero = boon ? students.find(st => st.id === boon.studentId) : null;
+    const tools = getHomeClassActions({
+        classId,
+        heroCount: students.length,
+        absentToday: absentTodayIds.size,
+        boonWindow: utils.isTeacherBoonWindow(),
+        boonGivenTo: boonHero ? String(boonHero.name || '').split(/\s+/)[0] : '',
+    });
 
     return getLayout(
         name, theme, getHomeBountyPillHtml(),
@@ -633,11 +640,8 @@ function getActiveDashboard(classData, name, theme, spice) {
             <div class="home-section-head">
                 <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-magic"></i></span>Class Actions</h3>
             </div>
-            <div class="grid grid-cols-3 gap-3 p-4 pt-3">
-                ${tools.map(t => {
-            const attr = t.target ? `data-target="${t.target}" class="tool-btn-pop shortcut-tab-btn"` : `data-action="${t.action}" data-id="${t.id || ''}" class="tool-btn-pop shortcut-action-btn"`;
-            return `<div ${attr} style="aspect-ratio: 1/0.8"><i class="fas ${t.icon} text-xl mb-1"></i><span style="font-size: 0.65rem">${t.label}</span></div>`;
-        }).join('')}
+            <div class="gt-grid">
+                ${tools.map((t, i) => homeToolTileHtml(t, i)).join('')}
             </div>
         </div>
         `
@@ -1002,6 +1006,9 @@ async function handleAction(action, data) {
     else if (action === 'create-class') await openCreateClassForm(scopedLeague);
     else if (action === 'edit-class') modals.openEditClassModal(data.id);
     else if (action === 'open-report') modals.handleGenerateReport(data.id);
+    else if (action === 'open-class-roster') openScheduleClassRoster(data.id);
+    else if (action === 'open-prodigies') modals.openProdigyModal();
+    else if (action === 'open-teacher-boon') modals.openTeacherBoonModal();
 }
 
 function applyScheduleBasedClassSync() {

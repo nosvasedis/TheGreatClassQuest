@@ -1,1261 +1,1066 @@
+// /ui/modals/studentAnalytics.js
+// The Scholar's Folio: the page that opens when you click a scholar on the Honour
+// Roll (Scholar's Scroll), in the class roster or from Hero stats.
+//
+//   Header   portrait, hero path, class, place in class, the average as a wax-seal
+//            medallion, and a pager to walk through the class without closing.
+//   Overview momentum / best / latest / attendance tiles, the journey chart (every
+//            trial against the class result of the same paper), the scribe's
+//            reading (plain-English observations) and a test/dictation record.
+//   Trials   every paper: mark, percent, class average, place on the paper, badges,
+//            and the papers the class sat that still have no mark.
+//   Oracle   Elite AI: parent-meeting notes, a next-step plan and free questions,
+//            built from the same numbers.
+//
+// Numbers come from features/scholarFolioCore.mjs (pure, tested). Everything that
+// moves is a transform or opacity; .sf--lite (low-power machines) and reduced
+// motion skip the choreography, and .sf--still (live refreshes) never replays it.
+// Markup shell: templates/modals/studentAnalytics.js · styles: styles/student_analytics.css
+
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { callGeminiApi } from '../../api.js';
-import { getAssessmentValueLabel, getClassAssessmentUsage, getNormalizedPercentForScore, getWeightedAcademicAverage } from '../../features/assessmentConfig.js';
-import { TRIAL_TYPE_GUIDE } from '../../features/trialTypesCore.mjs';
+import {
+    getAssessmentSchemeForClass,
+    getAssessmentValueLabel,
+    getClassAssessmentUsage,
+    getNearestQualitativeLabel,
+    getNormalizedPercentForScore
+} from '../../features/assessmentConfig.js';
+import { TRIAL_TYPES, TRIAL_TYPE_GUIDE, normalizeTrialType } from '../../features/trialTypesCore.mjs';
+import { SCROLL_TIERS, esc, formatPct, ringGaugeSvg } from '../../features/scholarScrollCore.mjs';
+import {
+    FOLIO_RANGES,
+    buildFolio,
+    folioCsv,
+    folioRangeStart,
+    journeyChartSvg,
+    oracleMarkdown,
+    ordinal,
+    shortDate
+} from '../../features/scholarFolioCore.mjs';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { showToast } from '../effects.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { fetchAllTrialsForClass, fetchAllWrittenScoresForStudent } from '../../db/queries.js';
-import { loadChart, loadPdfTools } from '../../utils/lazyLibraries.js';
-import {
-    buildAnalyticsCsv,
-    buildHeatmapData,
-    buildRecommendations,
-    buildRollingTrend,
-    buildSmartAlerts,
-    buildSubjectBreakdown,
-    calculateImprovementRate,
-    calculateParticipationLevel,
-    extractTopicWeaknesses,
-    getScoreTopicTags,
-    predictAssessmentOutcome,
-    summarizeGradeBand
-} from '../../utils/studentAnalytics.mjs';
+import { fetchAllTrialsForClass } from '../../db/queries.js';
+import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 
-const analyticsCache = new Map();
-const aiCache = new Map();
-const chartRegistry = new Map();
-const CACHE_TTL_MS = 120000;
+const MODAL_ID = 'student-analytics-modal';
+const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
+const TIER_LABEL = Object.fromEntries(SCROLL_TIERS.map((t) => [t.key, t.label]));
 
+const ORACLE_PROMPTS = [
+    { id: 'report', icon: 'fa-people-roof', title: 'Parent meeting notes', text: 'A warm, honest summary to share with the family.' },
+    { id: 'plan', icon: 'fa-route', title: 'Next-step plan', text: 'Three classroom moves for the next two weeks.' },
+    { id: 'struggle', icon: 'fa-magnifying-glass', title: 'Where it gets hard', text: 'The weakest papers, what they suggest, how to help.' },
+    { id: 'story', icon: 'fa-book-open', title: 'The story so far', text: 'The trajectory in five short bullets.' }
+];
+
+/** Whole-year trials per class, fetched on demand. */
+const yearCache = new Map();
+
+const view = {
+    open: false,
+    studentId: null,
+    trigger: null,
+    order: [],
+    tab: 'overview',
+    range: '3m',
+    filter: 'all',
+    sort: 'newest',
+    model: null,
+    yearLoading: false,
+    chartPoints: [],
+    resizeObserver: null,
+    refreshTimer: 0
+};
+
+/** Oracle answers per scholar, kept while the app is open. */
+const oracleLog = new Map();
+let oracleBusy = false;
 let wired = false;
-let subscriptionsBound = false;
-let activeStudentId = null;
-let activeTrigger = null;
-let activeTab = 'overview';
-let activeLoadToken = 0;
-let activeAiToken = 0;
-/** @type {'teacher' | 'student'} */
-let activeAudience = 'teacher';
-/** When set, analytics use Firestore-backed full trial lists instead of the ~3mo live listener slice. */
-let fullHistoryPayload = null;
 
-function getRefs() {
-    return {
-        modal: document.getElementById('student-analytics-modal'),
-        shell: document.querySelector('#student-analytics-modal .student-analytics-shell'),
-        closeBtn: document.getElementById('student-analytics-close-btn'),
-        name: document.getElementById('analytics-student-name'),
-        subtitle: document.getElementById('analytics-student-subtitle'),
-        avatar: document.getElementById('analytics-student-avatar'),
-        quickGrade: document.getElementById('analytics-quick-grade'),
-        quickAttendance: document.getElementById('analytics-quick-attendance'),
-        quickRecent: document.getElementById('analytics-quick-recent'),
-        quickAvg: document.getElementById('analytics-quick-avg'),
-        toolbarStatus: document.getElementById('analytics-toolbar-status'),
-        historyHint: document.getElementById('analytics-history-hint'),
-        errorBanner: document.getElementById('student-analytics-error-banner')
-    };
-}
+const $ = (id) => document.getElementById(id);
+const motionOff = () => LITE || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-function mergeScoreDocsById(remoteDocs = [], liveDocs = []) {
-    const map = new Map();
-    remoteDocs.forEach((doc) => {
-        if (doc?.id) map.set(doc.id, doc);
-    });
-    liveDocs.forEach((doc) => {
-        if (doc?.id) map.set(doc.id, doc);
-    });
-    return [...map.values()];
-}
-
-function clearCaches() {
-    analyticsCache.clear();
-    aiCache.clear();
-}
-
-function bindStateInvalidation() {
-    if (subscriptionsBound) return;
-    subscriptionsBound = true;
-    state.subscribe(
-        ['allWrittenScores', 'allAttendanceRecords', 'allAwardLogs', 'allHeroChronicleNotes', 'allQuestAssignments', 'allStudents'],
-        clearCaches
-    );
-}
-
-function destroyCharts() {
-    chartRegistry.forEach((chart) => {
-        try {
-            chart?.destroy?.();
-        } catch (_error) {
-            // Ignore chart cleanup failures.
-        }
-    });
-    chartRegistry.clear();
-}
-
-function resetAssistantUi() {
-    const transcript = document.getElementById('analytics-assistant-transcript');
-    const textarea = document.getElementById('analytics-assistant-input');
-    if (transcript) {
-        transcript.innerHTML = `
-            <div class="analytics-chat-bubble analytics-chat-bubble-system">
-                Ask a question about the student's progress, request a report, or generate actionable next steps.
-            </div>
-        `;
-    }
-    if (textarea) textarea.value = '';
-}
-
-function setErrorBanner(message = '') {
-    const refs = getRefs();
-    if (!refs.errorBanner) return;
-    // Write into the text span so the banner's retry button survives.
-    const textEl = document.getElementById('student-analytics-error-text') || refs.errorBanner;
-    if (!message) {
-        refs.errorBanner.classList.add('hidden');
-        textEl.textContent = '';
-        return;
-    }
-    textEl.textContent = message;
-    refs.errorBanner.classList.remove('hidden');
-}
-
-function setPanelState(panelName, stateName) {
-    const panel = document.getElementById(`analytics-panel-${panelName}`);
-    if (!panel) return;
-    panel.querySelectorAll('[data-panel-state]').forEach((block) => {
-        block.classList.toggle('hidden', block.dataset.panelState !== stateName);
-    });
-}
-
-function setAllPanelsLoading() {
-    ['overview', 'performance', 'analysis', 'assistant'].forEach((panel) => setPanelState(panel, 'loading'));
-}
-
-function activateTab(nextTab) {
-    activeTab = nextTab;
-    document.querySelectorAll('.analytics-tab-button').forEach((button) => {
-        const isActive = button.dataset.tab === nextTab;
-        button.classList.toggle('active', isActive);
-        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        button.tabIndex = isActive ? 0 : -1;
-    });
-    document.querySelectorAll('[data-tab-content]').forEach((panel) => {
-        panel.classList.toggle('hidden', panel.dataset.tabContent !== nextTab);
-    });
-}
-
-function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
-
-function formatPercent(value, digits = 1) {
-    return Number.isFinite(value) ? `${value.toFixed(digits)}%` : '--';
-}
-
-function formatDelta(delta) {
-    if (!Number.isFinite(delta)) return '--';
-    if (delta > 0) return `+${delta.toFixed(1)} pts`;
-    if (delta < 0) return `${delta.toFixed(1)} pts`;
-    return '0.0 pts';
-}
-
-function formatRelativeTrend(improvement) {
-    if (!improvement) return '--';
-    if (improvement.trend === 'up') return `${formatDelta(improvement.delta)} improving`;
-    if (improvement.trend === 'down') return `${formatDelta(improvement.delta)} decline`;
-    return 'Stable pattern';
-}
-
-function buildClassSessionDates(student, classScores, classAssignments, classAttendance) {
-    const dates = new Set();
-    classScores.forEach((score) => {
-        if (score.date) dates.add(score.date);
-    });
-    classAttendance.forEach((record) => {
-        if (record.date) dates.add(record.date);
-    });
-    classAssignments.forEach((assignment) => {
-        if (assignment?.testData?.date) dates.add(assignment.testData.date);
-    });
-    if (!dates.size && student?.createdAt?.toDate) {
-        dates.add(utils.getDDMMYYYY(student.createdAt.toDate()));
-    }
-    return [...dates];
-}
-
-function findAssignmentMeta(classAssignments, score) {
-    return classAssignments.find((assignment) => {
-        if (assignment.classId !== score.classId || !assignment.testData) return false;
-        if (!utils.datesMatch(assignment.testData.date, score.date)) return false;
-        if (score.type !== 'test') return true;
-        return String(assignment.testData.title || '').trim() === String(score.title || '').trim();
-    }) || null;
-}
-
-function createHistoryEntry(score, classAssignments, classData) {
-    const assignment = findAssignmentMeta(classAssignments, score);
-    const normalizedPercent = getNormalizedPercentForScore(score, classData);
-    const extended = {
-        ...score,
-        curriculum: assignment?.testData?.curriculum || '',
-        normalizedPercent
-    };
-    return {
-        ...extended,
-        displayScore: getAssessmentValueLabel(score, classData),
-        tags: getScoreTopicTags(extended),
-        sortDate: utils.parseFlexibleDate(score.date) || new Date(0)
-    };
-}
-
-function buildAnalyticsData(studentId) {
-    const now = new Date();
-    const student = (state.get('allStudents') || []).find((item) => item.id === studentId);
-    if (!student) return null;
-
-    // Drop stale full-history batch if switching students mid-session.
-    if (fullHistoryPayload && fullHistoryPayload.studentId !== studentId) {
-        fullHistoryPayload = null;
-    }
-
-    const classData = (state.get('allSchoolClasses') || []).find((item) => item.id === student.classId)
-        || (state.get('allTeachersClasses') || []).find((item) => item.id === student.classId)
+function findClass(classId) {
+    return (state.get('allSchoolClasses') || []).find((c) => c.id === classId)
+        || (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
         || null;
-
-    const allScores = state.get('allWrittenScores') || [];
-    const classAssignments = (state.get('allQuestAssignments') || []).filter((assignment) => assignment.classId === student.classId);
-
-    const useFullHistory = fullHistoryPayload && fullHistoryPayload.studentId === studentId;
-    const liveStudentDocs = allScores.filter((score) => score.studentId === studentId);
-    const liveClassDocs = allScores.filter((score) => score.classId === student.classId);
-    let studentScoreDocs = liveStudentDocs;
-    let classScoreDocs = liveClassDocs;
-    if (useFullHistory) {
-        studentScoreDocs = mergeScoreDocsById(fullHistoryPayload.studentScores, liveStudentDocs);
-        classScoreDocs = mergeScoreDocsById(fullHistoryPayload.classScores, liveClassDocs);
-    }
-
-    const studentScores = studentScoreDocs
-        .map((score) => createHistoryEntry(score, classAssignments, classData))
-        .filter((entry) => Number.isFinite(entry.normalizedPercent))
-        .sort((left, right) => left.sortDate - right.sortDate);
-    const classScores = classScoreDocs
-        .map((score) => createHistoryEntry(score, classAssignments, classData))
-        .filter((entry) => Number.isFinite(entry.normalizedPercent));
-
-    const attendanceRecords = (state.get('allAttendanceRecords') || []).filter((record) => record.classId === student.classId);
-    const studentAbsences = attendanceRecords.filter((record) => record.studentId === studentId);
-    const classSessionDates = buildClassSessionDates(student, classScores, classAssignments, attendanceRecords);
-    const uniqueAbsenceDates = new Set(studentAbsences.map((record) => record.date).filter(Boolean));
-    const attendancePercent = classSessionDates.length
-        ? Math.max(0, ((classSessionDates.length - uniqueAbsenceDates.size) / classSessionDates.length) * 100)
-        : null;
-
-    const awardLogs = (state.get('allAwardLogs') || []).filter((log) => log.studentId === studentId);
-    const notes = (state.get('allHeroChronicleNotes') || []).filter((note) => note.studentId === studentId);
-    const testScoresRaw = studentScoreDocs.filter((score) => score.studentId === studentId && score.type === 'test');
-    const dictationScoresRaw = studentScoreDocs.filter((score) => score.studentId === studentId && score.type === 'dictation');
-    const currentAverage = getWeightedAcademicAverage(testScoresRaw, dictationScoresRaw, classData);
-    const trend = buildRollingTrend(studentScores, 6, now);
-    const improvement = calculateImprovementRate(studentScores);
-    const participation = calculateParticipationLevel({
-        awardCount: awardLogs.length,
-        noteCount: notes.length,
-        assessmentCount: studentScores.length,
-        attendanceRate: attendancePercent
-    });
-    const subjectBreakdown = buildSubjectBreakdown(
-        studentScores,
-        classScores.filter((score) => score.studentId !== studentId)
-    );
-    const weakTopics = extractTopicWeaknesses(studentScores, 4);
-    const prediction = predictAssessmentOutcome(studentScores, attendancePercent);
-    const alerts = buildSmartAlerts({ scores: studentScores, attendanceRate: attendancePercent, weakTopics });
-    const recommendations = buildRecommendations({
-        scores: studentScores,
-        attendanceRate: attendancePercent,
-        participationLevel: participation,
-        weakTopics,
-        prediction
-    });
-    const heatmap = buildHeatmapData(studentScores, studentAbsences, now);
-    const strengths = [...subjectBreakdown].sort((left, right) => right.studentAverage - left.studentAverage).slice(0, 3);
-    const areasForGrowth = weakTopics.slice(0, 3);
-    const latestScores = studentScores.slice(-4).map((entry) => entry.normalizedPercent);
-    const averageScore = latestScores.length
-        ? latestScores.reduce((sum, value) => sum + value, 0) / latestScores.length
-        : currentAverage;
-
-    return {
-        student,
-        classData,
-        scores: studentScores,
-        classScores,
-        awardLogs,
-        notes,
-        attendancePercent,
-        totalSessions: classSessionDates.length,
-        absences: uniqueAbsenceDates.size,
-        currentAverage,
-        currentGrade: summarizeGradeBand(currentAverage),
-        trend,
-        improvement,
-        participation,
-        subjectBreakdown,
-        weakTopics,
-        prediction,
-        alerts,
-        recommendations,
-        heatmap,
-        strengths,
-        areasForGrowth,
-        averageScore,
-        hasEnoughHistory: studentScores.length > 0,
-        canDeepAnalyze: studentScores.length >= 2,
-        fullHistoryLoaded: Boolean(useFullHistory)
-    };
 }
 
-async function loadAnalyticsData(studentId, skipCache = false) {
-    if (!skipCache) {
-        const cached = analyticsCache.get(studentId);
-        if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
-            return cached.data;
-        }
-    }
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const data = buildAnalyticsData(studentId);
-    analyticsCache.set(studentId, { timestamp: Date.now(), data });
-    return data;
+function firstName(name) {
+    return String(name || '').trim().split(/\s+/)[0] || 'This scholar';
 }
 
-function renderAvatar(student) {
-    const refs = getRefs();
-    if (!refs.avatar) return;
-    if (student?.avatar) {
-        refs.avatar.innerHTML = `<img src="${student.avatar}" alt="${student.name}" class="w-full h-full object-cover">`;
-    } else {
-        refs.avatar.innerHTML = `<div class="w-full h-full flex items-center justify-center text-2xl font-bold text-indigo-600 bg-indigo-50">${(student?.name || '?').charAt(0)}</div>`;
-    }
+function toDate(value) {
+    if (!value) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (value instanceof Date) return value;
+    if (Number.isFinite(value?.seconds)) return new Date(value.seconds * 1000);
+    return null;
 }
 
-function renderHistoryHint(data) {
-    const refs = getRefs();
-    if (!refs.historyHint) return;
-    refs.historyHint.classList.remove('hidden');
-    if (activeAudience === 'student') {
-        refs.historyHint.textContent = data.fullHistoryLoaded
-            ? `Full history`
-            : `Recent sync`;
-        return;
-    }
-    refs.historyHint.textContent = data.fullHistoryLoaded
-        ? `Complete history`
-        : `Recent sync`;
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+function scoreDocsFor(classId) {
+    const live = (state.get('allWrittenScores') || []).filter((s) => s.classId === classId);
+    if (view.range !== 'year' || !yearCache.has(classId)) return live;
+    const merged = new Map();
+    yearCache.get(classId).forEach((doc) => { if (doc?.id) merged.set(doc.id, doc); });
+    live.forEach((doc) => { if (doc?.id) merged.set(doc.id, doc); });
+    return [...merged.values()];
 }
 
-function applyAudienceChrome(audience) {
-    activeAudience = audience;
-    const shell = document.querySelector('#student-analytics-modal .student-analytics-shell');
-    if (shell) {
-        shell.classList.toggle('student-analytics-shell--student', audience === 'student');
-    }
-    const toolbar = document.getElementById('student-analytics-toolbar');
-    if (toolbar) toolbar.hidden = audience === 'student';
-    if (audience === 'student') {
-        activateTab('overview');
-    }
-}
+function collect(studentId) {
+    const students = state.get('allStudents') || [];
+    const student = students.find((s) => s.id === studentId);
+    if (!student) return null;
+    const classData = findClass(student.classId);
+    const classmates = students.filter((s) => s.classId === student.classId);
+    const usage = getClassAssessmentUsage(classData);
 
-async function handleLoadFullHistory() {
-    if (!activeStudentId || activeAudience === 'student') return;
-    const btn = document.getElementById('student-analytics-load-full-history-btn');
-    const statusEl = document.getElementById('analytics-full-history-status');
-    const student = (state.get('allStudents') || []).find((item) => item.id === activeStudentId);
-    if (!student?.classId) {
-        showToast('Could not determine class for this student.', 'error');
-        return;
-    }
-    const originalHtml = btn?.innerHTML;
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading…</span>';
-    }
-    if (statusEl) statusEl.textContent = '';
-
-    try {
-        const [studentDocs, classDocs] = await Promise.all([
-            fetchAllWrittenScoresForStudent(activeStudentId),
-            fetchAllTrialsForClass(student.classId)
-        ]);
-        fullHistoryPayload = {
-            studentId: activeStudentId,
-            studentScores: studentDocs,
-            classScores: classDocs
-        };
-        aiCache.clear();
-        analyticsCache.delete(activeStudentId);
-        destroyCharts();
-        const data = await loadAnalyticsData(activeStudentId, true);
-        if (!data || activeStudentId !== data.student.id) return;
-        renderHeader(data);
-        renderOverview(data);
-        renderPerformance(data);
-        renderAnalysis(data);
-        renderAssistant(data);
-        if (statusEl) {
-            statusEl.textContent = `Loaded ${studentDocs.length} assessments.`;
-        }
-        showToast('Full assessment history is ready.', 'success');
-    } catch (error) {
-        console.error('Load full assessment history failed:', error);
-        showToast('Could not load full history. Try again.', 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml || '<i class="fas fa-cloud-download-alt"></i><span>Load full history</span>';
-        }
-    }
-}
-
-function renderHeader(data) {
-    const refs = getRefs();
-    refs.name.textContent = data.student.name;
-    const classLine = `${data.classData?.logo || ''} ${data.classData?.name || 'Class'}`.trim();
-    refs.subtitle.textContent = activeAudience === 'student'
-        ? (classLine || 'Your progress')
-        : `${classLine || 'Class'} · ${data.scores.length} assessments`;
-    refs.quickGrade.textContent = Number.isFinite(data.currentAverage) ? `${data.currentGrade} · ${data.currentAverage.toFixed(1)}%` : data.currentGrade;
-    refs.quickAttendance.textContent = formatPercent(data.attendancePercent, 0);
-    refs.quickRecent.textContent = formatRelativeTrend(data.improvement);
-    refs.quickAvg.textContent = formatPercent(data.averageScore, 1);
-    if (refs.toolbarStatus) {
-        refs.toolbarStatus.textContent = activeAudience === 'teacher'
-            ? (data.fullHistoryLoaded
-                ? `Complete history · ${data.scores.length} assessments`
-                : `Recent sync · ${data.scores.length} assessments (~last 3 months)`)
-            : '';
-    }
-    renderHistoryHint(data);
-    renderAvatar(data.student);
-}
-
-function renderOverview(data) {
-    if (!data.hasEnoughHistory) {
-        setPanelState('overview', 'empty');
-        return;
-    }
-    const root = document.getElementById('analytics-overview-content');
-    if (!root) return;
-    const isStudent = activeAudience === 'student';
-    root.innerHTML = `
-        <div class="analytics-grid analytics-grid-2col gap-6">
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-violet-50/50 p-6 rounded-[2rem] border-2 border-violet-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full min-h-[400px]">
-                <div class="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-violet-100/50 pb-4 shrink-0">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="w-12 h-12 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-chart-line"></i></div>
-                        <div class="min-w-0">
-                            <span class="text-xs font-bold text-violet-500 uppercase tracking-wider block truncate">${isStudent ? 'Recent scores' : 'Six-month trend'}</span>
-                            <h3 class="font-title text-2xl text-violet-900 leading-tight truncate">${isStudent ? 'How your scores move' : 'Performance over time'}</h3>
-                        </div>
-                    </div>
-                    <span class="bg-white border-2 border-violet-100 text-violet-700 px-3 py-1 rounded-full text-sm font-bold shadow-sm whitespace-nowrap shrink-0">${formatRelativeTrend(data.improvement)}</span>
-                </div>
-                <div class="flex-1 relative min-h-[250px] w-full">
-                    <canvas id="analytics-overview-trend-chart" aria-label="Performance trend"></canvas>
-                </div>
-            </section>
-            
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-blue-50/50 p-6 rounded-[2rem] border-2 border-blue-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full">
-                <div class="flex items-center gap-4 mb-6 border-b border-blue-100/50 pb-4 shrink-0">
-                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-search-plus"></i></div>
-                    <div class="min-w-0">
-                        <span class="text-xs font-bold text-blue-500 uppercase tracking-wider block truncate">${isStudent ? 'Snapshot' : 'Quick read'}</span>
-                        <h3 class="font-title text-2xl text-blue-900 leading-tight truncate">${isStudent ? 'Highlights for you' : 'Summary for planning'}</h3>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 gap-3 flex-1 overflow-y-auto pr-2 scrollbar-custom">
-                    <div class="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:border-indigo-200 transition-colors">
-                        <div class="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fas fa-bullseye"></i></div>
-                        <div class="min-w-0"><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5 truncate">${isStudent ? 'Average score' : 'Average score'}</p><p class="font-title text-xl text-gray-800 truncate">${formatPercent(data.averageScore, 1)}</p></div>
-                    </div>
-                    <div class="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:border-emerald-200 transition-colors">
-                        <div class="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fas fa-arrow-trend-up"></i></div>
-                        <div class="min-w-0"><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5 truncate">${isStudent ? 'Likely next band' : 'Outlook'}</p><p class="font-title text-xl text-gray-800 truncate">${data.prediction.predictedScore !== null ? `${data.prediction.band} <span class="text-sm text-gray-500">(${data.prediction.predictedScore}%)</span>` : data.prediction.band}</p></div>
-                    </div>
-                    <div class="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:border-amber-200 transition-colors">
-                        <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fas fa-star"></i></div>
-                        <div class="min-w-0"><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5 truncate">${isStudent ? 'Bright spot' : 'Strength'}</p><p class="font-title text-xl text-gray-800 truncate">${data.strengths[0] ? `${data.strengths[0].label} <span class="text-sm text-gray-500">(${data.strengths[0].studentAverage}%)</span>` : (isStudent ? 'Collecting data!' : 'Need more data')}</p></div>
-                    </div>
-                    <div class="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:border-rose-200 transition-colors">
-                        <div class="w-10 h-10 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center text-lg shrink-0"><i class="fas fa-dumbbell"></i></div>
-                        <div class="min-w-0"><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5 truncate">${isStudent ? 'Extra practice' : 'Support focus'}</p><p class="font-title text-xl text-gray-800 truncate">${data.areasForGrowth[0] ? `${data.areasForGrowth[0].label} <span class="text-sm text-gray-500">(${data.areasForGrowth[0].average}%)</span>` : (isStudent ? 'Nothing urgent!' : 'No urgent concerns')}</p></div>
-                    </div>
-                </div>
-            </section>
-        </div>
-    `;
-    setPanelState('overview', 'ready');
-
-    const canvas = document.getElementById('analytics-overview-trend-chart');
-    if (canvas && window.Chart) {
-        const chart = new window.Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: data.trend.map((entry) => entry.label),
-                datasets: [{
-                    label: 'Average score',
-                    data: data.trend.map((entry) => entry.value),
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-                    tension: 0.35,
-                    fill: true,
-                    spanGaps: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-                    y: { beginAtZero: true, max: 100, ticks: { callback: (value) => `${value}%`, color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
-                }
-            }
+    const entries = [];
+    scoreDocsFor(student.classId).forEach((doc) => {
+        if (doc.type !== 'test' && doc.type !== 'dictation') return;
+        const date = utils.parseFlexibleDate(doc.date);
+        const pct = getNormalizedPercentForScore(doc, classData);
+        if (!date || !Number.isFinite(pct)) return;
+        entries.push({
+            id: doc.id,
+            studentId: doc.studentId,
+            type: normalizeTrialType(doc.type),
+            title: String(doc.title || '').trim(),
+            date: doc.date,
+            time: date.getTime(),
+            pct,
+            display: getAssessmentValueLabel(doc, classData)
         });
-        chartRegistry.set('overviewTrend', chart);
-    }
+    });
+
+    const monthAgo = Date.now() - 30 * 86400000;
+    const absenceDates = (state.get('allAttendanceRecords') || [])
+        .filter((r) => r.studentId === studentId && r.classId === student.classId)
+        .map((r) => r.date)
+        .filter((d) => (utils.parseFlexibleDate(d)?.getTime() || 0) >= monthAgo);
+
+    const starfall = (state.get('allAwardLogs') || [])
+        .filter((l) => l.studentId === studentId && l.reason === 'scholar_s_bonus' && !/Celebration!/.test(String(l.note || '')))
+        .reduce((sum, l) => sum + (Number(l.stars) || 0), 0);
+
+    const folio = buildFolio({
+        studentId,
+        firstName: firstName(student.name),
+        classStudentIds: classmates.map((s) => s.id),
+        entries,
+        usage,
+        since: folioRangeStart(view.range),
+        joinedAt: toDate(student.createdAt),
+        absenceDates
+    });
+
+    const schemes = { test: getAssessmentSchemeForClass(classData, 'test'), dictation: getAssessmentSchemeForClass(classData, 'dictation') };
+    return { student, classData, classmates, usage, folio, starfall, schemes };
 }
 
-function renderPerformance(data) {
-    if (!data.canDeepAnalyze) {
-        setPanelState('performance', data.hasEnoughHistory ? 'ready' : 'empty');
+/** "Great!!" next to a percent, when the class grades that kind in words. */
+function qualFor(model, kind, pct) {
+    const { schemes, usage } = model;
+    let scheme = null;
+    if (kind === 'test' || kind === 'dictation') scheme = schemes[kind];
+    else if (usage.tests && usage.dictations) scheme = schemes.test.mode === 'qualitative' && schemes.dictation.mode === 'qualitative' ? schemes.test : null;
+    else scheme = usage.dictations ? schemes.dictation : schemes.test;
+    if (!scheme || scheme.mode !== 'qualitative' || !Number.isFinite(pct)) return '';
+    return getNearestQualitativeLabel(scheme, pct);
+}
+
+/** The pager follows the Honour Roll when opened from it, otherwise the class A–Z. */
+function scholarOrder(student, trigger) {
+    if (trigger?.closest?.('#scholars-scroll-tab')) {
+        const ids = [...new Set([...document.querySelectorAll('#scroll-performance-chart .chart-label-button[data-student-id]')]
+            .map((el) => el.dataset.studentId))];
+        if (ids.includes(student.id)) return ids;
     }
-    const root = document.getElementById('analytics-performance-content');
-    if (!root) return;
-    const isStudent = activeAudience === 'student';
-    const usage = getClassAssessmentUsage(data.classData);
-    const tableRows = data.scores
-        .slice()
-        .sort((left, right) => right.sortDate - left.sortDate)
-        .map((entry) => {
-            const typeIcon = entry.type?.toLowerCase().includes('dict') ? 'fa-pen-fancy text-emerald-500' : 'fa-file-lines text-blue-500';
-            const scoreColor = entry.normalizedPercent >= 85 ? 'bg-emerald-100 text-emerald-800' : (entry.normalizedPercent >= 70 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
-            return `
-            <tr class="hover:bg-indigo-50/50 transition-colors group border-b border-gray-100 last:border-0">
-                <td class="p-4 text-sm font-semibold text-gray-600 whitespace-nowrap">${entry.date || '--'}</td>
-                <td class="p-4 text-sm whitespace-nowrap"><span class="flex items-center gap-2 font-bold text-gray-700"><i class="fas ${typeIcon} bg-white shadow-sm w-8 h-8 rounded-full flex items-center justify-center"></i> ${entry.type || '--'}</span></td>
-                <td class="p-4 text-sm font-medium text-gray-800">${entry.title || 'Assessment'}</td>
-                <td class="p-4 text-sm font-bold text-gray-700">${entry.displayScore || '--'}</td>
-                <td class="p-4 text-sm whitespace-nowrap"><span class="px-3 py-1 rounded-full font-bold text-xs shadow-sm ${scoreColor}">${formatPercent(entry.normalizedPercent, 1)}</span></td>
-                <td class="p-4 text-sm"><div class="flex flex-wrap gap-1">${(entry.tags || []).map((tag) => `<span class="bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wider">${tag}</span>`).join('') || '<span class="text-gray-400 italic text-xs">General</span>'}</div></td>
-            </tr>
-            `;
+    return (state.get('allStudents') || [])
+        .filter((s) => s.classId === student.classId)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+        .map((s) => s.id);
+}
+
+// ─── Small pieces ────────────────────────────────────────────────────────────
+
+const pct0 = (v) => formatPct(v, 0);
+/** Whole percent, unless rounding would carry it over a band line (79.6 shows as 79.6%, not 80%). */
+const bandSafePct = (v) => ([50, 80].some((line) => v < line && Math.round(v) >= line) ? formatPct(v, 1) : pct0(v));
+/** "Unit 3 Test · 4 Dec"; an untitled dictation's name already carries its date. */
+const nameWithDate = (t) => (t.title ? `${t.name} · ${shortDate(t.time)}` : t.name);
+
+function signed(v) {
+    if (!Number.isFinite(v)) return '';
+    const r = Math.round(v);
+    if (r === 0) return '±0';
+    return r > 0 ? `+${r}` : `−${Math.abs(r)}`;
+}
+
+function portraitHtml(student) {
+    const inner = student.avatar
+        ? `<img src="${esc(student.avatar)}" alt="" decoding="async">`
+        : `<span class="sf-portrait__initial">${esc(String(student.name || '?').charAt(0))}</span>`;
+    const hero = student.heroClass && HERO_CLASSES[student.heroClass];
+    return `<div class="sf-portrait">${inner}${hero ? `<span class="sf-portrait__badge" title="${esc(student.heroClass)}">${hero.icon}</span>` : ''}</div>`;
+}
+
+function emptyHtml({ icon, title, text, action = '' }) {
+    return `<div class="sf-empty">
+        <span class="sf-empty__art" aria-hidden="true"><i class="fas ${icon}"></i></span>
+        <p class="sf-empty__title">${esc(title)}</p>
+        <p class="sf-empty__text">${esc(text)}</p>
+        ${action}
+    </div>`;
+}
+
+function kindIcon(type) {
+    return TRIAL_TYPES[type === 'dictation' ? 'dictation' : 'test'].icon;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+function renderHead(model) {
+    const { student, classData, folio } = model;
+    const hero = student.heroClass && HERO_CLASSES[student.heroClass];
+    const pos = view.order.indexOf(student.id);
+    const total = view.order.length;
+    const prevId = total > 1 ? view.order[(pos - 1 + total) % total] : null;
+    const nextId = total > 1 ? view.order[(pos + 1) % total] : null;
+    const nameOf = (id) => (state.get('allStudents') || []).find((s) => s.id === id)?.name || '';
+
+    let rankChip = '';
+    if (folio.rank && folio.rankOf >= 2) {
+        const joint = folio.tiedWith > 0;
+        rankChip = folio.rank === 1
+            ? `<span class="sf-chip sf-chip--crown"><i class="fas fa-crown" aria-hidden="true"></i>${joint ? 'Joint top of the class' : 'Top of the class'}</span>`
+            : `<span class="sf-chip"><i class="fas fa-ranking-star" aria-hidden="true"></i>${joint ? 'Joint ' : ''}${ordinal(folio.rank)} of ${folio.rankOf}</span>`;
+    }
+    const avg = folio.avg.overall;
+    const qual = qualFor(model, 'overall', avg);
+    const classGap = Number.isFinite(avg) && Number.isFinite(folio.classAvg.overall) && folio.rankOf >= 2 ? avg - folio.classAvg.overall : null;
+
+    $('sf-head').innerHTML = `
+        <div class="sf-head__bar">
+            ${total > 1 ? `
+            <div class="sf-pager" role="group" aria-label="Browse scholars">
+                <button type="button" class="sf-icon-btn" data-sf-goto="${esc(prevId)}" title="Previous: ${esc(nameOf(prevId))} (←)" aria-label="Previous scholar, ${esc(nameOf(prevId))}"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                <span class="sf-pager__count"><b>${pos + 1}</b> of ${total}</span>
+                <button type="button" class="sf-icon-btn" data-sf-goto="${esc(nextId)}" title="Next: ${esc(nameOf(nextId))} (→)" aria-label="Next scholar, ${esc(nameOf(nextId))}"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            </div>` : '<span></span>'}
+            <div class="sf-tools">
+                <button type="button" class="sf-icon-btn" data-sf-act="csv" title="Download as a spreadsheet (CSV)" aria-label="Download as a spreadsheet"><i class="fas fa-file-csv" aria-hidden="true"></i></button>
+                <button type="button" class="sf-icon-btn" data-sf-act="print" title="Print, or save as PDF" aria-label="Print or save as PDF"><i class="fas fa-print" aria-hidden="true"></i></button>
+                <button type="button" class="sf-icon-btn sf-close" data-sf-close title="Close (Esc)" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        <div class="sf-id">
+            ${portraitHtml(student)}
+            <div class="sf-id__text">
+                <p class="sf-id__kicker">Scholar’s Folio</p>
+                <h2 id="sf-name" class="sf-id__name">${esc(student.name)}</h2>
+                <p class="sf-id__meta">
+                    ${hero ? `<span>${hero.icon} ${esc(student.heroClass)}</span>` : ''}
+                    <span>${esc(classData?.logo || '📜')} ${esc(classData?.name || 'Class')}</span>
+                </p>
+                <div class="sf-id__chips">
+                    ${rankChip}
+                    ${Number.isFinite(avg) ? `<span class="sf-chip sf-chip--tier" data-tier="${folio.tier}">${esc(TIER_LABEL[folio.tier])}</span>` : ''}
+                </div>
+            </div>
+            <div class="sf-medal" data-tier="${folio.tier}" title="${Number.isFinite(avg) ? `Average of every trial, ${esc(FOLIO_RANGES[view.range].toLowerCase())}` : 'No graded trials yet'}">
+                <span class="sf-medal__ring">${ringGaugeSvg(avg, { size: 92, stroke: 8 })}</span>
+                <span class="sf-medal__face">
+                    <b${Number.isFinite(avg) && bandSafePct(avg).length > 4 ? ' class="is-long"' : ''}>${Number.isFinite(avg) ? bandSafePct(avg) : '—'}</b>
+                    <small>${Number.isFinite(avg) ? esc(qual || 'average') : 'no trials'}</small>
+                </span>
+                ${classGap !== null ? `<span class="sf-medal__vs" data-dir="${classGap >= 1 ? 'up' : (classGap <= -1 ? 'down' : 'level')}">${Math.abs(classGap) < 1 ? 'level with class' : `${signed(classGap)} vs class`}</span>` : ''}
+            </div>
+        </div>`;
+
+    $('sf-trial-count').textContent = folio.trials.length ? String(folio.trials.length) : '';
+    const hasOracle = canUseFeature('eliteAI');
+    $('sf-oracle-lock').hidden = hasOracle;
+}
+
+function renderRange() {
+    const host = $('sf-range');
+    host.innerHTML = Object.entries(FOLIO_RANGES).map(([key, label]) => `
+        <button type="button" class="sf-seg__btn${view.range === key ? ' is-active' : ''}" data-sf-range="${key}" aria-pressed="${view.range === key}">
+            ${key === 'year' && view.yearLoading ? '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>' : ''}<span>${label.replace('Last ', '')}</span>
+        </button>`).join('');
+}
+
+// ─── Overview ────────────────────────────────────────────────────────────────
+
+function tileHtml({ icon, label, value, sub, note, tone = '', i = 0, attrs = '' }) {
+    const tag = attrs ? 'button' : 'div';
+    return `<${tag} ${attrs ? `type="button" ${attrs}` : ''} class="sf-tile${tone ? ` sf-tile--${tone}` : ''}" style="--i:${i}">
+        <span class="sf-tile__icon" aria-hidden="true"><i class="fas ${icon}"></i></span>
+        <span class="sf-tile__label">${label}</span>
+        <span class="sf-tile__value">${value}${sub ? `<small>${sub}</small>` : ''}</span>
+        <span class="sf-tile__note">${note}</span>
+    </${tag}>`;
+}
+
+function overviewTiles(model) {
+    const { folio } = model;
+    const m = folio.momentum;
+    const momentum = m
+        ? tileHtml({
+            icon: m.dir === 'up' ? 'fa-arrow-trend-up' : (m.dir === 'down' ? 'fa-arrow-trend-down' : 'fa-equals'),
+            label: 'Momentum',
+            value: m.dir === 'steady' ? 'Steady' : `${signed(m.delta)} pts`,
+            note: m.basis === 'three'
+                ? `Last three ${pct0(m.recent)} · before ${pct0(m.earlier)}`
+                : `Latest ${pct0(m.recent)} · before ${pct0(m.earlier)}`,
+            tone: m.dir === 'up' ? 'up' : (m.dir === 'down' ? 'down' : ''),
+            i: 0
         })
-        .join('');
-    const heatmapCells = data.heatmap.map((cell) => `
-        <button type="button"
-            class="analytics-heatmap-cell"
-            style="--heat:${cell.intensity};"
-            title="${cell.label}: ${cell.assessments} assessments, ${cell.averageScore === null ? 'no score' : `${cell.averageScore}% avg`}">
-            <span class="sr-only">${cell.label} week ${cell.weekIndex + 1}</span>
-        </button>
-    `).join('');
+        : tileHtml({ icon: 'fa-seedling', label: 'Momentum', value: '—', note: 'Shows after two trials', i: 0 });
 
-    root.innerHTML = `
-        <div class="analytics-grid analytics-grid-2col gap-6 mb-6">
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-indigo-50/50 p-6 rounded-[2rem] border-2 border-indigo-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full min-h-[400px]">
-                <div class="flex items-center gap-4 mb-6 border-b border-indigo-100/50 pb-4 shrink-0">
-                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-chart-column"></i></div>
-                    <div class="min-w-0">
-                        <span class="text-xs font-bold text-indigo-500 uppercase tracking-wider block truncate">${isStudent ? 'By topic' : 'Topic comparison'}</span>
-                        <h3 class="font-title text-2xl text-indigo-900 leading-tight truncate">${isStudent ? 'You and your class' : 'Student vs class average'}</h3>
-                    </div>
-                </div>
-                <div class="flex-1 relative min-h-[250px] w-full">
-                    <canvas id="analytics-performance-bar-chart" aria-label="Topic scores compared to class"></canvas>
-                </div>
-            </section>
-            
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-orange-50/50 p-6 rounded-[2rem] border-2 border-orange-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full">
-                <div class="flex items-center gap-4 mb-6 border-b border-orange-100/50 pb-4 shrink-0">
-                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-calendar-days"></i></div>
-                    <div class="min-w-0">
-                        <span class="text-xs font-bold text-orange-500 uppercase tracking-wider block truncate">${isStudent ? 'Rhythm' : 'Activity map'}</span>
-                        <h3 class="font-title text-2xl text-orange-900 leading-tight truncate">${isStudent ? 'When assessments happen' : 'Assessment pattern over time'}</h3>
-                    </div>
-                </div>
-                <div class="analytics-heatmap-grid flex-1">
-                    ${heatmapCells}
-                </div>
-                <p class="mt-4 text-xs font-bold text-orange-700/60 bg-orange-100/50 px-3 py-2 rounded-xl shrink-0"><i class="fas fa-info-circle mr-1"></i> ${isStudent ? 'Darker squares mean more activity on those days.' : 'Darker cells show heavier assessment activity and score intensity (last 12 weeks).'}</p>
-            </section>
-        </div>
-        
-        <section class="analytics-card sa-card bg-white p-6 rounded-[2rem] border-2 border-gray-100 shadow-sm transition-transform hover:scale-[1.01]">
-            <div class="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
-                <div class="w-12 h-12 bg-gray-100 text-gray-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-list"></i></div>
-                <div class="min-w-0">
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">${isStudent ? 'Your log' : 'Assessment history'}</span>
-                    <h3 class="font-title text-2xl text-gray-900 leading-tight truncate">${isStudent ? (usage.any ? (usage.tests && usage.dictations ? 'Tests & dictations' : (usage.tests ? 'Tests' : 'Dictations')) : 'Assessments') : (usage.any ? (usage.tests && usage.dictations ? 'Tests and dictations' : (usage.tests ? 'Tests' : 'Dictations')) : 'Assessments')}</h3>
-                </div>
-            </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-200">
-                <table class="w-full text-left border-collapse min-w-[600px]">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="p-3 font-title text-gray-700 text-sm">Date</th>
-                            <th class="p-3 font-title text-gray-700 text-sm">Type</th>
-                            <th class="p-3 font-title text-gray-700 text-sm">Title</th>
-                            <th class="p-3 font-title text-gray-700 text-sm">Score</th>
-                            <th class="p-3 font-title text-gray-700 text-sm">Score %</th>
-                            <th class="p-3 font-title text-gray-700 text-sm">Topics</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        ${tableRows}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    `;
-    setPanelState('performance', data.hasEnoughHistory ? 'ready' : 'empty');
+    const best = folio.best;
+    const bestTile = best
+        ? tileHtml({
+            icon: 'fa-medal', label: 'Best result',
+            value: pct0(best.pct), sub: esc(qualFor(model, best.type, best.pct)),
+            note: esc(nameWithDate(best)),
+            tone: 'gold', i: 1, attrs: `data-sf-trial="${best.index}" title="Show this trial"`
+        })
+        : tileHtml({ icon: 'fa-medal', label: 'Best result', value: '—', note: 'Waiting for a first trial', i: 1 });
 
-    const canvas = document.getElementById('analytics-performance-bar-chart');
-    if (canvas && window.Chart && data.subjectBreakdown.length > 0) {
-        const chart = new window.Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: data.subjectBreakdown.map((entry) => entry.label),
-                datasets: [
-                    {
-                        label: activeAudience === 'student' ? 'You' : 'Student',
-                        data: data.subjectBreakdown.map((entry) => entry.studentAverage),
-                        backgroundColor: '#8b5cf6'
-                    },
-                    {
-                        label: 'Class average',
-                        data: data.subjectBreakdown.map((entry) => entry.classAverage),
-                        backgroundColor: '#ddd6fe'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#e2e8f0' } }
-                },
-                scales: {
-                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-                    y: { beginAtZero: true, max: 100, ticks: { callback: (value) => `${value}%`, color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
-                }
-            }
-        });
-        chartRegistry.set('performanceBars', chart);
-    }
-}
+    const latest = folio.latest;
+    const latestTile = latest
+        ? tileHtml({
+            icon: kindIcon(latest.type), label: `Latest ${latest.type === 'dictation' ? 'dictation' : 'test'}`,
+            value: pct0(latest.pct), sub: esc(qualFor(model, latest.type, latest.pct)),
+            note: `${esc(latest.name)}${Number.isFinite(latest.delta) ? ` · ${signed(latest.delta)} vs class` : ` · ${shortDate(latest.time)}`}`,
+            i: 2, attrs: `data-sf-trial="${latest.index}" title="Show this trial"`
+        })
+        : tileHtml({ icon: 'fa-feather-alt', label: 'Latest', value: '—', note: 'Nothing logged yet', i: 2 });
 
-function renderAnalysis(data) {
-    if (!data.hasEnoughHistory) {
-        setPanelState('analysis', 'empty');
-        return;
-    }
-    if (activeAudience === 'student') {
-        const root = document.getElementById('analytics-analysis-content');
-        if (root) {
-            root.innerHTML = `
-                <div class="sa-card sa-student-nudge">
-                    <p class="sa-student-nudge-text">Your teacher uses this space for planning and coaching. If you want to talk through these numbers, ask them in class — they’re here to help.</p>
-                </div>`;
-        }
-        setPanelState('analysis', 'ready');
-        return;
-    }
-    const hasEliteAi = canUseFeature('eliteAI');
-    const root = document.getElementById('analytics-analysis-content');
-    if (!root) return;
-    const strengthsHtml = data.strengths.length
-        ? data.strengths.map((item) => `<li class="flex items-center gap-2"><i class="fas fa-check text-emerald-500"></i> <span class="flex-1">${item.label}</span> <strong class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">${item.studentAverage}%</strong></li>`).join('')
-        : '<li class="text-gray-500 italic">Need more data to identify strengths.</li>';
-    const growthHtml = data.areasForGrowth.length
-        ? data.areasForGrowth.map((item) => `<li class="flex items-center gap-2"><i class="fas fa-arrow-up text-rose-500"></i> <span class="flex-1">${item.label}</span> <strong class="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md">${item.average}%</strong></li>`).join('')
-        : '<li class="text-gray-500 italic">No urgent areas detected.</li>';
-    const alertsHtml = data.alerts.map((alert) => `
-        <article class="flex items-start gap-4 p-4 rounded-2xl border ${alert.severity === 'high' ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100'} mb-3 shadow-sm hover:-translate-y-0.5 transition-transform">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${alert.severity === 'high' ? 'bg-red-100 text-red-500' : 'bg-orange-100 text-orange-500'}">
-                <i class="fas ${alert.severity === 'high' ? 'fa-exclamation-triangle' : 'fa-bell'}"></i>
-            </div>
-            <div>
-                <h4 class="font-bold ${alert.severity === 'high' ? 'text-red-900' : 'text-orange-900'} mb-1">${alert.title}</h4>
-                <p class="text-sm ${alert.severity === 'high' ? 'text-red-700' : 'text-orange-700'} leading-relaxed">${alert.message}</p>
-            </div>
-        </article>
-    `).join('');
-    const recommendationsHtml = data.recommendations.map((item) => `
-        <article class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:border-indigo-200 hover:-translate-y-0.5 transition-all mb-3">
-            <span class="inline-block bg-indigo-50 text-indigo-600 text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-lg mb-3">${item.type}</span>
-            <h4 class="font-title text-xl text-gray-800 mb-2">${item.title}</h4>
-            <p class="text-sm text-gray-600 leading-relaxed">${item.description}</p>
-        </article>
-    `).join('');
-
-    root.innerHTML = `
-        <div class="analytics-grid analytics-grid-2col gap-6 mb-6">
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-amber-50/50 p-6 rounded-[2rem] border-2 border-amber-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full">
-                <div class="flex items-center justify-between gap-4 mb-6 border-b border-amber-100/50 pb-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-eye"></i></div>
-                        <div>
-                            <span class="text-xs font-bold text-amber-500 uppercase tracking-wider block">Looking ahead</span>
-                            <h3 class="font-title text-2xl text-amber-900 leading-tight">Next assessment outlook</h3>
-                        </div>
-                    </div>
-                    <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap"><i class="fas fa-check-circle mr-1"></i> ${data.prediction.confidence} conf</span>
-                </div>
-                <div class="flex-1 text-center py-6">
-                    <div class="font-title text-6xl text-amber-500 mb-2 drop-shadow-sm">${data.prediction.predictedScore !== null ? `${data.prediction.predictedScore}%` : '--'}</div>
-                    <p class="text-xl font-bold text-amber-900 mb-4">${data.prediction.band}</p>
-                    <p class="text-gray-600">${data.prediction.rationale}</p>
-                </div>
-            </section>
-            
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-emerald-50/50 p-6 rounded-[2rem] border-2 border-emerald-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full">
-                <div class="flex items-center gap-4 mb-6 border-b border-emerald-100/50 pb-4">
-                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-balance-scale"></i></div>
-                    <div>
-                        <span class="text-xs font-bold text-emerald-500 uppercase tracking-wider block">Strengths & gaps</span>
-                        <h3 class="font-title text-2xl text-emerald-900 leading-tight">Where to cheer & coach</h3>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-6 flex-1">
-                    <div class="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
-                        <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2"><i class="fas fa-star text-yellow-400"></i> Top strengths</h4>
-                        <ul class="space-y-3 text-sm text-gray-600">${strengthsHtml}</ul>
-                    </div>
-                    <div class="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
-                        <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2"><i class="fas fa-arrow-trend-up text-rose-400"></i> Growth areas</h4>
-                        <ul class="space-y-3 text-sm text-gray-600">${growthHtml}</ul>
-                    </div>
-                </div>
-            </section>
-        </div>
-        
-        <div class="analytics-grid analytics-grid-2col gap-6 mb-6">
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-red-50/30 p-6 rounded-[2rem] border-2 border-red-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full">
-                <div class="flex items-center gap-4 mb-6 border-b border-red-100/50 pb-4">
-                    <div class="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-exclamation-circle"></i></div>
-                    <div>
-                        <span class="text-xs font-bold text-red-500 uppercase tracking-wider block">Heads-up</span>
-                        <h3 class="font-title text-2xl text-red-900 leading-tight">Patterns worth noticing</h3>
-                    </div>
-                </div>
-                <div class="flex-1">${alertsHtml || '<p class="text-gray-500 italic text-center py-6">No active alerts detected.</p>'}</div>
-            </section>
-            
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-indigo-50/30 p-6 rounded-[2rem] border-2 border-indigo-100 shadow-sm transition-transform hover:scale-[1.01] flex flex-col h-full">
-                <div class="flex items-center gap-4 mb-6 border-b border-indigo-100/50 pb-4">
-                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-lightbulb"></i></div>
-                    <div>
-                        <span class="text-xs font-bold text-indigo-500 uppercase tracking-wider block">Ideas</span>
-                        <h3 class="font-title text-2xl text-indigo-900 leading-tight">Next steps to try</h3>
-                    </div>
-                </div>
-                <div class="flex-1">${recommendationsHtml || '<p class="text-gray-500 italic text-center py-6">Collect more data for ideas.</p>'}</div>
-            </section>
-        </div>
-        
-        <section class="analytics-card sa-card bg-gradient-to-br from-white to-purple-50/50 p-6 rounded-[2rem] border-2 border-purple-100 shadow-sm transition-transform hover:scale-[1.01]">
-            <div class="flex items-center gap-4 mb-6 border-b border-purple-100/50 pb-4">
-                <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-robot"></i></div>
-                <div>
-                    <span class="text-xs font-bold text-purple-500 uppercase tracking-wider block">AI summary</span>
-                    <h3 class="font-title text-2xl text-purple-900 leading-tight">Narrative overview</h3>
-                </div>
-            </div>
-            ${hasEliteAi
-                ? `<div id="analytics-ai-summary-output" class="p-4 bg-white rounded-xl shadow-sm border border-purple-100 min-h-[100px]"><p class="text-indigo-500 font-bold flex items-center gap-2"><i class="fas fa-circle-notch fa-spin"></i> Generating strengths and improvement summary...</p></div>`
-                : `<div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center">
-                        <div class="w-16 h-16 bg-gray-200 text-gray-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"><i class="fas fa-lock"></i></div>
-                        <p class="text-gray-600 mb-4 max-w-md mx-auto">Upgrade to Elite to unlock AI-generated strengths, improvement narratives, and personalized study recommendations.</p>
-                        <button id="analytics-analysis-inline-upgrade-btn" type="button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full shadow-md transition-colors">Unlock Elite AI</button>
-                   </div>`}
-        </section>
-    `;
-    setPanelState('analysis', 'ready');
-    if (hasEliteAi) {
-        void hydrateAiSummary(data);
-    }
-}
-
-function renderAssistant(data) {
-    if (activeAudience === 'student') {
-        const root = document.getElementById('analytics-assistant-content');
-        if (root) {
-            root.innerHTML = `
-                <div class="sa-card sa-student-nudge">
-                    <p class="sa-student-nudge-text">Teachers use this assistant to plan next steps for you. Questions? Ask your teacher — they’re happy to help.</p>
-                </div>`;
-        }
-        setPanelState('assistant', 'ready');
-        return;
-    }
-    const hasEliteAi = canUseFeature('eliteAI');
-    if (!data.hasEnoughHistory) {
-        setPanelState('assistant', hasEliteAi ? 'empty' : 'locked');
-        return;
-    }
-    if (!hasEliteAi) {
-        setPanelState('assistant', 'locked');
-        return;
-    }
-    const root = document.getElementById('analytics-assistant-content');
-    if (!root) return;
-    root.innerHTML = `
-        <div class="analytics-grid analytics-grid-2col gap-6">
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-indigo-50/50 p-6 rounded-[2rem] border-2 border-indigo-100 shadow-sm flex flex-col h-full min-h-[500px]">
-                <div class="flex items-center gap-4 mb-6 border-b border-indigo-100/50 pb-4 shrink-0">
-                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-comments"></i></div>
-                    <div>
-                        <span class="text-xs font-bold text-indigo-500 uppercase tracking-wider block">Chat</span>
-                        <h3 class="font-title text-2xl text-indigo-900 leading-tight">Ask the teaching assistant</h3>
-                    </div>
-                </div>
-                <div id="analytics-assistant-transcript" class="flex-1 overflow-y-auto pr-2 space-y-4 mb-4 scrollbar-custom"></div>
-                <div class="bg-white rounded-2xl border-2 border-indigo-100 p-2 shadow-inner shrink-0 flex items-end gap-2">
-                    <textarea id="analytics-assistant-input" rows="2" class="w-full bg-transparent border-none focus:ring-0 text-gray-700 placeholder-gray-400 resize-none px-2 py-1 text-sm outline-none" placeholder="Ask about trends, weak points, or next steps..."></textarea>
-                    <button id="analytics-assistant-send-btn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform hover:scale-105 shadow-sm">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </section>
-            
-            <section class="analytics-card sa-card bg-gradient-to-br from-white to-purple-50/50 p-6 rounded-[2rem] border-2 border-purple-100 shadow-sm flex flex-col h-full">
-                <div class="flex items-center gap-4 mb-6 border-b border-purple-100/50 pb-4 shrink-0">
-                    <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-bolt"></i></div>
-                    <div>
-                        <span class="text-xs font-bold text-purple-500 uppercase tracking-wider block">Shortcuts</span>
-                        <h3 class="font-title text-2xl text-purple-900 leading-tight">Ready-made prompts</h3>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 gap-2 mb-6">
-                    <button type="button" class="analytics-quick-prompt text-left bg-white border border-purple-100 hover:border-purple-300 hover:bg-purple-50 p-3 rounded-xl shadow-sm transition-all text-sm font-semibold text-purple-800 flex items-center gap-3" data-prompt-type="report"><i class="fas fa-file-alt text-purple-400"></i> Generate parent-teacher report</button>
-                    <button type="button" class="analytics-quick-prompt text-left bg-white border border-purple-100 hover:border-purple-300 hover:bg-purple-50 p-3 rounded-xl shadow-sm transition-all text-sm font-semibold text-purple-800 flex items-center gap-3" data-prompt-type="instructions"><i class="fas fa-list-ol text-purple-400"></i> Create personalized instructions</button>
-                    <button type="button" class="analytics-quick-prompt text-left bg-white border border-purple-100 hover:border-purple-300 hover:bg-purple-50 p-3 rounded-xl shadow-sm transition-all text-sm font-semibold text-purple-800 flex items-center gap-3" data-prompt-type="weakness"><i class="fas fa-search text-purple-400"></i> Analyze weak points deeply</button>
-                    <button type="button" class="analytics-quick-prompt text-left bg-white border border-purple-100 hover:border-purple-300 hover:bg-purple-50 p-3 rounded-xl shadow-sm transition-all text-sm font-semibold text-purple-800 flex items-center gap-3" data-prompt-type="summary"><i class="fas fa-compress-alt text-purple-400"></i> Summarize trajectory</button>
-                </div>
-                <div id="analytics-assistant-result" class="flex-1 bg-white border border-purple-100 rounded-2xl p-6 shadow-inner overflow-y-auto scrollbar-custom">
-                    <p class="text-gray-400 text-center italic mt-10"><i class="fas fa-magic text-3xl text-purple-200 block mb-3"></i>Use a quick action or ask a custom question to generate teacher-ready support.</p>
-                </div>
-            </section>
-        </div>
-    `;
-    resetAssistantUi();
-    setPanelState('assistant', 'ready');
-}
-
-function parseAnalyticsMarkdown(text) {
-    if (window.marked) return window.marked.parse(String(text || ''));
-    let html = String(text || '');
-    // Bold italic
-    html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-    // Bold
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Italic
-    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    // Headers
-    html = html.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-gray-800 mt-4 mb-2">$1</h3>');
-    html = html.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-gray-900 mt-5 mb-3">$1</h2>');
-    html = html.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-6 mb-4">$1</h1>');
-    // Bullets (simple approach)
-    html = html.replace(/^\s*\-\s(.*$)/gm, '<li class="ml-4 list-disc marker:text-indigo-500 mb-1">$1</li>');
-    // Newlines
-    html = html.replace(/\n/g, '<br>');
-    // Clean up empty <br> inside lists
-    html = html.replace(/<\/li><br>/g, '</li>');
-    return html;
-}
-
-function buildAiSummaryPrompt(data) {
-    const strengths = data.strengths.map((item) => `${item.label} (${item.studentAverage}%)`).join(', ') || 'No clear strengths yet';
-    const areas = data.areasForGrowth.map((item) => `${item.label} (${item.average}%)`).join(', ') || 'No major weak areas';
-    const alerts = data.alerts.map((item) => `${item.title}: ${item.message}`).join(' | ');
-    return {
-        systemPrompt: `You are an educational performance analyst. ${TRIAL_TYPE_GUIDE} Produce concise, teacher-facing insight using plain English and short bullet points.`,
-        userPrompt: `Student: ${data.student.name}
-Class: ${data.classData?.name || 'Unknown'}
-Current grade band: ${data.currentGrade}
-Current weighted average: ${data.currentAverage?.toFixed?.(1) || 'N/A'}%
-Attendance: ${data.attendancePercent?.toFixed?.(1) || 'N/A'}%
-Improvement: ${data.improvement?.label || 'Stable'} (${data.improvement?.delta || 0})
-Prediction: ${data.prediction.predictedScore || 'N/A'}%
-Top strengths: ${strengths}
-Support areas: ${areas}
-Smart alerts: ${alerts}
-
-Return:
-1. Three strengths
-2. Three areas needing improvement
-3. A short teacher-facing next-step summary
-
-Keep it under 180 words and use markdown bullets.`
-    };
-}
-
-async function hydrateAiSummary(data) {
-    if (activeAudience === 'student') return;
-    const output = document.getElementById('analytics-ai-summary-output');
-    if (!output) return;
-    const cacheKey = `${data.student.id}:analysisSummary`;
-    if (aiCache.has(cacheKey)) {
-        output.innerHTML = aiCache.get(cacheKey);
-        return;
-    }
-    const requestToken = ++activeAiToken;
-    try {
-        const prompts = buildAiSummaryPrompt(data);
-        const text = await callGeminiApi(prompts.systemPrompt, prompts.userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 20000 });
-        if (requestToken !== activeAiToken || activeStudentId !== data.student.id) return;
-        const parsedHTML = parseAnalyticsMarkdown(text);
-        const html = `<div class="prose prose-sm max-w-none text-gray-800">${parsedHTML}</div>`;
-        aiCache.set(cacheKey, html);
-        output.innerHTML = html;
-    } catch (error) {
-        console.error('Student analytics AI summary failed:', error);
-        if (requestToken !== activeAiToken || activeStudentId !== data.student.id) return;
-        output.innerHTML = '<p class="text-red-600">The AI summary is temporarily unavailable. Deterministic predictions and alerts remain visible.</p>';
-    }
-}
-
-function buildAssistantPrompt(data, promptType, customText = '') {
-    const weakTopics = data.weakTopics.map((item) => `${item.label} (${item.average}%)`).join(', ') || 'No urgent weak topics';
-    const strengths = data.strengths.map((item) => `${item.label} (${item.studentAverage}%)`).join(', ') || 'No clear strengths yet';
-    const baseContext = `Student: ${data.student.name}
-Class: ${data.classData?.name || 'Unknown'}
-Current grade: ${data.currentGrade} (${data.currentAverage?.toFixed?.(1) || 'N/A'}%)
-Attendance: ${data.attendancePercent?.toFixed?.(1) || 'N/A'}%
-Improvement rate: ${data.improvement?.delta || 0}
-Prediction: ${data.prediction.predictedScore || 'N/A'}%
-Strengths: ${strengths}
-Weak topics: ${weakTopics}
-Alerts: ${data.alerts.map((item) => item.title).join(', ') || 'None'}
-Trial types: ${TRIAL_TYPE_GUIDE}
-Recent assessments:
-${data.scores.slice(-6).map((entry) => `- ${entry.date}: ${entry.title || entry.type} => ${entry.normalizedPercent}%`).join('\n')}`;
-
-    if (promptType === 'report') {
-        return `${baseContext}
-
-Write a parent-teacher meeting report with:
-- current picture
-- progress summary
-- concerns
-- recommended next steps
-
-Keep it constructive and professional.`;
-    }
-    if (promptType === 'instructions') {
-        return `${baseContext}
-
-Generate three personalized instruction templates the teacher can adapt and send.`;
-    }
-    if (promptType === 'weakness') {
-        return `${baseContext}
-
-Give a deep-dive analysis of the student's weakest concepts, likely root causes, and targeted support strategies.`;
-    }
-    if (promptType === 'summary') {
-        return `${baseContext}
-
-Summarize the student's recent trajectory for the teacher in short action-oriented bullets.`;
-    }
-    return `${baseContext}
-
-Teacher question: ${customText}
-
-Answer the teacher directly using short sections and practical recommendations.`;
-}
-
-function appendAssistantMessage(kind, text) {
-    const transcript = document.getElementById('analytics-assistant-transcript');
-    if (!transcript) return;
-    const bubble = document.createElement('div');
-    
-    if (kind === 'user') {
-        bubble.className = `ml-auto max-w-[85%] bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-sm`;
-        bubble.textContent = text;
-    } else if (kind === 'system') {
-        bubble.className = `mx-auto text-center text-red-500 text-xs font-bold my-2`;
-        bubble.textContent = text;
-    } else {
-        const parsedHTML = parseAnalyticsMarkdown(text);
-        bubble.className = `mr-auto max-w-[90%] bg-gray-100 text-gray-800 p-4 rounded-2xl rounded-tl-none shadow-sm text-sm`;
-        bubble.innerHTML = `<div class="prose prose-sm max-w-none">${parsedHTML}</div>`;
-    }
-    
-    transcript.appendChild(bubble);
-    transcript.scrollTop = transcript.scrollHeight;
-}
-
-async function runAssistantAction(promptType, customText = '') {
-    if (activeAudience === 'student') return;
-    if (!requireEliteAI({ feature: 'Student analytics assistant' })) return;
-    const data = analyticsCache.get(activeStudentId)?.data || await loadAnalyticsData(activeStudentId);
-    if (!data) return;
-
-    const resultEl = document.getElementById('analytics-assistant-result');
-    if (resultEl) {
-        resultEl.innerHTML = '<p class="analytics-loading-text">Generating teacher-ready response...</p>';
-    }
-
-    const userText = customText || ({
-        report: 'Generate parent-teacher report',
-        instructions: 'Create personalized instructions',
-        weakness: 'Analyze weak points deeply',
-        summary: 'Summarize trajectory'
-    }[promptType] || 'Custom teacher question');
-
-    appendAssistantMessage('user', userText);
-    const requestToken = ++activeAiToken;
-
-    try {
-        const response = await callGeminiApi(
-            'You are a concise AI teaching assistant for student analytics. Provide structured, teacher-ready responses in plain English.',
-            buildAssistantPrompt(data, promptType, customText),
-            { retries: 1, baseDelay: 500, timeoutMs: 25000 }
-        );
-        if (requestToken !== activeAiToken || activeStudentId !== data.student.id) return;
-        appendAssistantMessage('assistant', response);
-        if (resultEl) {
-            const parsedHTML = parseAnalyticsMarkdown(response);
-            resultEl.innerHTML = `<div class="prose prose-sm max-w-none text-gray-800">${parsedHTML}</div>`;
-        }
-    } catch (error) {
-        console.error('Student analytics assistant failed:', error);
-        if (requestToken !== activeAiToken || activeStudentId !== data.student.id) return;
-        appendAssistantMessage('system', 'The AI assistant could not complete that request right now.');
-        if (resultEl) {
-            resultEl.innerHTML = '<p class="text-red-600">The assistant could not complete that request right now.</p>';
-        }
-    }
-}
-
-async function exportAnalyticsPdf() {
-    const button = document.getElementById('student-analytics-export-pdf-btn');
-    const shell = document.querySelector('#student-analytics-modal .student-analytics-shell');
-    if (!button || !shell) return;
-
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>PDF</span>';
-    try {
-        const { html2canvas, jsPDF } = await loadPdfTools();
-        const canvas = await html2canvas(shell, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        const studentName = (getRefs().name?.textContent || 'student').replace(/\s+/g, '_');
-        pdf.save(`${studentName}_analytics.pdf`);
-    } catch (error) {
-        console.error('Student analytics PDF export failed:', error);
-        showToast('Could not export analytics PDF.', 'error');
-    } finally {
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-file-pdf"></i><span>PDF</span>';
-    }
-}
-
-async function exportAnalyticsCsv() {
-    const data = analyticsCache.get(activeStudentId)?.data || await loadAnalyticsData(activeStudentId);
-    if (!data) return;
-    const csv = buildAnalyticsCsv({
-        student: data.student,
-        metrics: {
-            currentGrade: data.currentGrade,
-            attendancePercent: data.attendancePercent?.toFixed?.(1) || 'N/A',
-            averageScore: data.averageScore?.toFixed?.(1) || 'N/A',
-            improvementDelta: data.improvement?.delta?.toFixed?.(1) || '0.0'
-        },
-        history: data.scores,
-        alerts: data.alerts,
-        recommendations: data.recommendations
+    const abs = folio.absences.length;
+    const missed = folio.missed.length;
+    const presence = tileHtml({
+        icon: missed ? 'fa-hourglass-half' : 'fa-user-check',
+        label: 'Presence',
+        value: abs === 0 ? 'No absences' : `${abs} absence${abs === 1 ? '' : 's'}`,
+        note: `Last 30 days · ${missed ? `${missed} paper${missed === 1 ? '' : 's'} without a mark` : 'no papers missed'}`,
+        tone: missed || abs >= 2 ? 'watch' : '',
+        i: 3,
+        attrs: missed ? 'data-sf-tab="trials" data-sf-focus="missed" title="Show the papers without a mark"' : ''
     });
-    const filename = `${(data.student.name || 'student').replace(/\s+/g, '_')}_analytics.csv`;
-    downloadTextFile(filename, csv, 'text/csv;charset=utf-8');
+    return `<div class="sf-tiles">${momentum}${bestTile}${latestTile}${presence}</div>`;
 }
 
-function printAnalytics() {
-    document.body.classList.add('student-analytics-print-mode');
-    const cleanup = () => {
-        document.body.classList.remove('student-analytics-print-mode');
-        window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    window.print();
-    setTimeout(cleanup, 1000);
+function readingHtml(model) {
+    const { folio, student } = model;
+    const items = folio.insights;
+    const groups = [
+        ['good', 'Shining', 'fa-sun'],
+        ['watch', 'Keep an eye on', 'fa-eye'],
+        ['calm', 'Worth knowing', 'fa-feather']
+    ].map(([tone, title, icon]) => {
+        const list = items.filter((i) => i.tone === tone);
+        if (!list.length) return '';
+        return `<div class="sf-reading__group" data-tone="${tone}">
+            <p class="sf-reading__label"><i class="fas ${icon}" aria-hidden="true"></i>${title}</p>
+            <ul>${list.map((i, n) => `<li style="--i:${n}"><i class="fas ${i.icon}" aria-hidden="true"></i><span>${esc(i.text)}</span></li>`).join('')}</ul>
+        </div>`;
+    }).join('');
+    return `<section class="sf-sheet sf-reading" style="--i:5">
+        <header class="sf-sheet__head">
+            <span class="sf-sheet__crest" aria-hidden="true"><i class="fas fa-feather-pointed"></i></span>
+            <div><p class="sf-sheet__kicker">The scribe’s reading</p><h3 class="sf-sheet__title">What the trials say about ${esc(firstName(student.name))}</h3></div>
+        </header>
+        <div class="sf-reading__body" data-selectable>${groups || `<p class="sf-reading__quiet">One trial is a start. The reading fills in after a couple more.</p>`}</div>
+    </section>`;
 }
 
-function wireModal() {
+function recordHtml(model) {
+    const { folio, usage, starfall } = model;
+    const kinds = ['test', 'dictation'].filter((k) => (k === 'test' ? usage.tests : usage.dictations) || folio.counts[k] > 0);
+    const rows = kinds.map((k) => {
+        const mine = folio.avg[k];
+        const cls = folio.classAvg[k];
+        const list = folio.trials.filter((t) => t.type === k);
+        const best = list.reduce((b, t) => (!b || t.pct >= b.pct ? t : b), null);
+        const tier = mine === null ? 'none' : (mine >= 80 ? 'high' : (mine >= 50 ? 'mid' : 'low'));
+        return `<div class="sf-kind" data-type="${k}">
+            <div class="sf-kind__top">
+                <span class="sf-kind__name"><i class="fas ${kindIcon(k)}" aria-hidden="true"></i>${TRIAL_TYPES[k].plural}</span>
+                <span class="sf-kind__count">${list.length ? `${list.length} paper${list.length === 1 ? '' : 's'}` : 'none yet'}</span>
+                <b class="sf-kind__avg">${mine === null ? '—' : pct0(mine)}</b>
+            </div>
+            <span class="sf-meter" role="img" aria-label="${TRIAL_TYPES[k].plural}: ${mine === null ? 'no results' : pct0(mine)}${cls === null ? '' : `, class ${pct0(cls)}`}">
+                <span class="sf-meter__fill" data-tier="${tier}" style="--w:${mine === null ? 0 : (Math.max(2, mine) / 100).toFixed(3)}"></span>
+                ${cls === null ? '' : `<span class="sf-meter__class" style="left:${cls.toFixed(1)}%"></span>`}
+            </span>
+            <p class="sf-kind__foot">${cls === null ? '' : `<span>Class ${pct0(cls)}</span>`}${best ? `<span>Best ${pct0(best.pct)}, ${esc(best.name)}</span>` : ''}${qualFor(model, k, mine) ? `<span>Usually “${esc(qualFor(model, k, mine))}”</span>` : ''}</p>
+        </div>`;
+    }).join('');
+    return `<section class="sf-sheet sf-record" style="--i:6">
+        <header class="sf-sheet__head">
+            <span class="sf-sheet__crest sf-sheet__crest--ink" aria-hidden="true"><i class="fas fa-book"></i></span>
+            <div><p class="sf-sheet__kicker">The record</p><h3 class="sf-sheet__title">By kind of trial</h3></div>
+        </header>
+        <div class="sf-record__kinds">${rows}</div>
+        <p class="sf-record__legend"><span class="sf-record__tick" aria-hidden="true"></span>The thin mark is the class average.</p>
+        ${starfall > 0 ? `<p class="sf-starfall"><i class="fas fa-star" aria-hidden="true"></i>Starfall this month: <b>+${starfall}★</b> Scholar’s Bonus</p>` : ''}
+    </section>`;
+}
+
+function renderOverview(model) {
+    const { folio, usage, student, classData } = model;
+    const panel = $('sf-panel-overview');
+    if (!usage.any && folio.trials.length === 0) {
+        panel.innerHTML = emptyHtml({
+            icon: 'fa-feather-alt',
+            title: `${classData?.name || 'This class'} does not use trials`,
+            text: 'Tests and dictations are switched off for this class. The secretary can turn them on in Grading.'
+        });
+        return;
+    }
+    if (folio.trials.length === 0) {
+        panel.innerHTML = `${overviewTiles(model)}${emptyHtml({
+            icon: 'fa-scroll',
+            title: `No trials for ${firstName(student.name)} ${view.range === 'year' ? 'this year' : `in the ${FOLIO_RANGES[view.range].toLowerCase()}`}`,
+            text: view.range === 'year' ? 'Log a test or dictation on the Scholar’s Scroll and it appears here.' : 'Try a longer period, or log a trial on the Scholar’s Scroll.',
+            action: view.range !== 'year' ? '<button type="button" class="sf-btn" data-sf-range="year"><i class="fas fa-calendar" aria-hidden="true"></i>Show the whole year</button>' : ''
+        })}`;
+        return;
+    }
+    const both = folio.trials.some((t) => t.type === 'test') && folio.trials.some((t) => t.type === 'dictation');
+    panel.innerHTML = `
+        ${overviewTiles(model)}
+        <section class="sf-sheet sf-journey" style="--i:4">
+            <header class="sf-sheet__head">
+                <span class="sf-sheet__crest" aria-hidden="true"><i class="fas fa-route"></i></span>
+                <div><p class="sf-sheet__kicker">The journey · ${esc(FOLIO_RANGES[view.range].toLowerCase())}</p><h3 class="sf-sheet__title">Every trial, against the class</h3></div>
+                <div class="sf-legend" aria-hidden="true">
+                    <span><i class="sf-legend__line"></i>${esc(firstName(student.name))}</span>
+                    <span><i class="sf-legend__class"></i>Class on that paper</span>
+                    ${both ? '<span><i class="sf-legend__dot"></i>Test</span><span><i class="sf-legend__diamond"></i>Dictation</span>' : ''}
+                </div>
+            </header>
+            <div class="sf-chart" id="sf-chart">
+                <div class="sf-chart__canvas" id="sf-chart-canvas"></div>
+                <div class="sf-chart__tip" id="sf-chart-tip" role="status" aria-live="polite"></div>
+            </div>
+        </section>
+        <div class="sf-split">
+            ${readingHtml(model)}
+            ${recordHtml(model)}
+        </div>`;
+    drawChart(model);
+}
+
+function drawChart(model) {
+    const canvas = $('sf-chart-canvas');
+    if (!canvas) return;
+    const width = canvas.clientWidth || 640;
+    const height = width < 520 ? 190 : 230;
+    const { svg, points } = journeyChartSvg(model.folio.trials, { width, height });
+    canvas.innerHTML = svg;
+    canvas.dataset.width = String(width);
+    view.chartPoints = points;
+    hideTip();
+}
+
+function hideTip() {
+    $('sf-chart-tip')?.classList.remove('is-on');
+    $('sf-chart')?.classList.remove('is-hovering');
+    document.querySelectorAll('#sf-chart .sf-chart__mark.is-hot').forEach((m) => m.classList.remove('is-hot'));
+}
+
+function showTip(index) {
+    const trial = view.model?.folio.trials[index];
+    const point = view.chartPoints[index];
+    const tip = $('sf-chart-tip');
+    const chart = $('sf-chart');
+    if (!trial || !point || !tip || !chart) return;
+    document.querySelectorAll('#sf-chart .sf-chart__mark.is-hot').forEach((m) => m.classList.remove('is-hot'));
+    chart.querySelector(`.sf-chart__mark[data-index="${index}"]`)?.classList.add('is-hot');
+    const guide = chart.querySelector('.sf-chart__guide');
+    if (guide) guide.style.transform = `translateX(${point.x}px)`;
+    chart.classList.add('is-hovering');
+    const qual = qualFor(view.model, trial.type, trial.pct);
+    tip.innerHTML = `
+        <span class="sf-tip__kind" data-type="${trial.type}"><i class="fas ${kindIcon(trial.type)}" aria-hidden="true"></i>${trial.type === 'dictation' ? 'Dictation' : 'Test'} · ${shortDate(trial.time, true)}</span>
+        <b class="sf-tip__name">${esc(trial.name)}</b>
+        <span class="sf-tip__score"><b data-tier="${trial.tier}">${esc(trial.display || pct0(trial.pct))}</b>${trial.display && trial.display !== pct0(trial.pct) ? ` · ${pct0(trial.pct)}` : ''}${qual && qual !== trial.display ? ` · ${esc(qual)}` : ''}</span>
+        ${Number.isFinite(trial.classAvg) ? `<span class="sf-tip__class">Class ${pct0(trial.classAvg)} · ${signed(trial.delta)} pts${trial.rank ? ` · ${trial.joint ? 'joint ' : ''}${ordinal(trial.rank)} of ${trial.of}` : ''}</span>` : '<span class="sf-tip__class">Only result on this paper</span>'}`;
+    const canvasW = Number($('sf-chart-canvas')?.dataset.width) || chart.clientWidth;
+    const tipW = tip.offsetWidth || 200;
+    const left = Math.max(4, Math.min(canvasW - tipW - 4, point.x - tipW / 2));
+    const above = point.y > 92;
+    tip.style.transform = `translate(${left}px, ${above ? point.y - (tip.offsetHeight || 80) - 14 : point.y + 16}px)`;
+    tip.classList.add('is-on');
+}
+
+function nearestPoint(clientX) {
+    const canvas = $('sf-chart-canvas');
+    if (!canvas || !view.chartPoints.length) return -1;
+    const x = clientX - canvas.getBoundingClientRect().left;
+    let best = -1;
+    let bestD = Infinity;
+    view.chartPoints.forEach((p, i) => {
+        const d = Math.abs(p.x - x);
+        if (d < bestD) { bestD = d; best = i; }
+    });
+    return bestD <= 40 ? best : -1;
+}
+
+// ─── Trials ──────────────────────────────────────────────────────────────────
+
+function renderTrials(model) {
+    const { folio, student } = model;
+    const panel = $('sf-panel-trials');
+    if (!folio.trials.length && !folio.missed.length) {
+        panel.innerHTML = emptyHtml({
+            icon: 'fa-scroll',
+            title: 'No trials in this period',
+            text: `Nothing graded for ${firstName(student.name)} ${view.range === 'year' ? 'this year' : `in the ${FOLIO_RANGES[view.range].toLowerCase()}`}.`,
+            action: view.range !== 'year' ? '<button type="button" class="sf-btn" data-sf-range="year"><i class="fas fa-calendar" aria-hidden="true"></i>Show the whole year</button>' : ''
+        });
+        return;
+    }
+    const hasTests = folio.trials.some((t) => t.type === 'test');
+    const hasDicts = folio.trials.some((t) => t.type === 'dictation');
+    if (!(hasTests && hasDicts)) view.filter = 'all';
+    let list = folio.trials.filter((t) => view.filter === 'all' || t.type === view.filter);
+    if (view.sort === 'newest') list = list.slice().reverse();
+    else if (view.sort === 'best') list = list.slice().sort((a, b) => b.pct - a.pct || b.time - a.time);
+
+    const seg = (name, options, active, label) => `<div class="sf-seg" role="group" aria-label="${label}">${options.map(([val, text, icon]) => `
+        <button type="button" class="sf-seg__btn${val === active ? ' is-active' : ''}" data-sf-${name}="${val}" aria-pressed="${val === active}">${icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : ''}<span>${text}</span></button>`).join('')}</div>`;
+
+    const missed = folio.missed.length ? `
+        <div class="sf-missed" id="sf-missed">
+            <p class="sf-missed__title"><i class="fas fa-hourglass-half" aria-hidden="true"></i>No mark yet <b>${folio.missed.length}</b><small>Papers most of the class sat.${folio.missed.some((m) => m.type === 'test') ? ' Tests can be made up from Pending Makeups on the Scholar’s Scroll.' : ''}</small></p>
+            <div class="sf-missed__list">${folio.missed.map((m) => `
+                <span class="sf-missed__chip"><i class="fas ${kindIcon(m.type)}" aria-hidden="true"></i><span>${esc(m.name)}</span><em>${shortDate(m.time)} · class ${pct0(m.classAvg)}</em></span>`).join('')}
+            </div>
+        </div>` : '';
+
+    const rows = list.map((t, n) => {
+        const d = new Date(t.time);
+        const qual = qualFor(model, t.type, t.pct);
+        const badges = [
+            t.isTop ? '<span class="sf-badge sf-badge--crown"><i class="fas fa-crown" aria-hidden="true"></i>Top of class</span>' : '',
+            t.isBest ? '<span class="sf-badge sf-badge--best"><i class="fas fa-medal" aria-hidden="true"></i>Personal best</span>' : '',
+            t.type === 'test' && t.pct >= 95 ? '<span class="sf-badge sf-badge--star"><i class="fas fa-star" aria-hidden="true"></i>Starfall mark</span>' : ''
+        ].join('');
+        const dir = !Number.isFinite(t.delta) ? 'none' : (t.delta >= 1 ? 'up' : (t.delta <= -1 ? 'down' : 'level'));
+        return `<li class="sf-trial" data-tier="${t.tier}" data-index="${t.index}" style="--i:${Math.min(n, 20)}">
+            <span class="sf-trial__date"><b>${d.getDate()}</b><small>${d.toLocaleDateString('en-GB', { month: 'short' })}</small></span>
+            <span class="sf-trial__main">
+                <span class="sf-trial__name"><i class="fas ${kindIcon(t.type)}" data-type="${t.type}" aria-hidden="true"></i>${esc(t.title || (t.type === 'dictation' ? 'Dictation' : 'Test'))}</span>
+                <span class="sf-trial__sub">${t.type === 'dictation' ? 'Dictation' : 'Test'}${t.rank ? ` · ${t.joint ? 'joint ' : ''}${ordinal(t.rank)} of ${t.of}` : ''}${Number.isFinite(t.classAvg) ? ` · class ${pct0(t.classAvg)}` : ''}</span>
+                ${badges ? `<span class="sf-trial__badges">${badges}</span>` : ''}
+            </span>
+            <span class="sf-trial__bar" aria-hidden="true">
+                <span class="sf-meter"><span class="sf-meter__fill" data-tier="${t.tier}" style="--w:${(Math.max(2, t.pct) / 100).toFixed(3)}"></span>${Number.isFinite(t.classAvg) ? `<span class="sf-meter__class" style="left:${t.classAvg.toFixed(1)}%"></span>` : ''}</span>
+            </span>
+            <span class="sf-trial__score"><b>${esc(t.display || pct0(t.pct))}</b><small>${t.display && t.display !== pct0(t.pct) ? pct0(t.pct) : ''}${qual && qual !== t.display ? `${t.display && t.display !== pct0(t.pct) ? ' · ' : ''}${esc(qual)}` : ''}</small></span>
+            <span class="sf-trial__delta" data-dir="${dir}" title="${Number.isFinite(t.delta) ? 'Points against the class average of this paper' : 'Nobody else has a mark on this paper'}">${Number.isFinite(t.delta) ? `${dir === 'level' ? '=' : signed(t.delta)}<small>vs class</small>` : '<small>solo</small>'}</span>
+        </li>`;
+    }).join('');
+
+    panel.innerHTML = `
+        <div class="sf-trials__bar">
+            ${hasTests && hasDicts ? seg('filter', [['all', 'All', ''], ['test', 'Tests', TRIAL_TYPES.test.icon], ['dictation', 'Dictations', TRIAL_TYPES.dictation.icon]], view.filter, 'Show') : '<span></span>'}
+            ${seg('sort', [['newest', 'Newest', 'fa-arrow-down-wide-short'], ['oldest', 'Oldest', 'fa-arrow-up-wide-short'], ['best', 'Best', 'fa-trophy']], view.sort, 'Order')}
+        </div>
+        ${missed}
+        ${list.length ? `<ol class="sf-trial-list" aria-label="Trials" data-selectable>${rows}</ol>` : ''}`;
+}
+
+// ─── Oracle ──────────────────────────────────────────────────────────────────
+
+function renderOracle(model) {
+    const panel = $('sf-panel-oracle');
+    const name = firstName(model.student.name);
+    if (!canUseFeature('eliteAI')) {
+        panel.innerHTML = `<div class="sf-locked">
+            <span class="sf-locked__orb" aria-hidden="true"><i class="fas fa-hat-wizard"></i></span>
+            <p class="sf-locked__title">The Oracle reads the folio for you</p>
+            <p class="sf-locked__text">Parent-meeting notes, a next-step plan and answers to your own questions, written from ${esc(name)}’s results. Part of the Elite plan.</p>
+            <button type="button" class="sf-btn sf-btn--seal" data-sf-act="upgrade"><i class="fas fa-crown" aria-hidden="true"></i>See Elite</button>
+        </div>`;
+        return;
+    }
+    if (!model.folio.trials.length) {
+        panel.innerHTML = emptyHtml({ icon: 'fa-hat-wizard', title: 'Nothing to read yet', text: `The Oracle needs at least one graded trial for ${name}.` });
+        return;
+    }
+    const log = oracleLog.get(model.student.id) || [];
+    panel.innerHTML = `
+        <div class="sf-oracle">
+            <div class="sf-oracle__intro">
+                <span class="sf-oracle__orb" aria-hidden="true"><i class="fas fa-hat-wizard"></i></span>
+                <div>
+                    <p class="sf-sheet__kicker">Ask the Oracle</p>
+                    <p class="sf-oracle__lead">Written from the results on this folio (${esc(FOLIO_RANGES[view.range].toLowerCase())}). Read it before you share it.</p>
+                </div>
+            </div>
+            <div class="sf-oracle__prompts">${ORACLE_PROMPTS.map((p, i) => `
+                <button type="button" class="sf-prompt" data-sf-prompt="${p.id}" style="--i:${i}" ${oracleBusy ? 'disabled' : ''}>
+                    <i class="fas ${p.icon}" aria-hidden="true"></i><b>${p.title}</b><span>${p.text}</span>
+                </button>`).join('')}
+            </div>
+            <form class="sf-oracle__ask" id="sf-oracle-form">
+                <label class="sr-only" for="sf-oracle-input">Your question about ${esc(name)}</label>
+                <input id="sf-oracle-input" type="text" autocomplete="off" maxlength="400" placeholder="Ask anything about ${esc(name)}’s trials…" ${oracleBusy ? 'disabled' : ''}>
+                <button type="submit" class="sf-btn sf-btn--seal" ${oracleBusy ? 'disabled' : ''}><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>Ask</span></button>
+            </form>
+            <div class="sf-oracle__log" id="sf-oracle-log">${oracleBusy ? oracleThinkingHtml() : ''}${log.map(oracleAnswerHtml).join('')}</div>
+        </div>`;
+}
+
+function oracleThinkingHtml() {
+    return `<div class="sf-answer sf-answer--thinking"><span class="sf-quill" aria-hidden="true"><i class="fas fa-feather-pointed"></i></span><span>The Oracle is writing…</span></div>`;
+}
+
+function oracleAnswerHtml(entry, i) {
+    return `<article class="sf-answer${entry.error ? ' sf-answer--error' : ''}">
+        <header class="sf-answer__head"><span>${esc(entry.question)}</span>${entry.error ? '' : `<button type="button" class="sf-icon-btn sf-icon-btn--sm" data-sf-copy="${i}" title="Copy" aria-label="Copy this answer"><i class="fas fa-copy" aria-hidden="true"></i></button>`}</header>
+        <div class="sf-answer__body" data-selectable>${entry.error ? `<p>${esc(entry.error)}</p>` : oracleMarkdown(entry.text)}</div>
+    </article>`;
+}
+
+function oracleContext(model) {
+    const { folio, student, classData } = model;
+    const name = firstName(student.name);
+    const notes = (state.get('allHeroChronicleNotes') || [])
+        .filter((n) => n.studentId === student.id && n.noteText)
+        .slice(-3)
+        .map((n) => `- ${String(n.noteText).slice(0, 240)}`);
+    const trials = folio.trials.slice(-20).map((t) => `- ${shortDate(t.time, true)} · ${t.type} · ${t.name}: ${t.display || pct0(t.pct)} (${pct0(t.pct)})${Number.isFinite(t.classAvg) ? `, class ${pct0(t.classAvg)}, place ${t.rank} of ${t.of}` : ''}${t.isBest ? ', personal best' : ''}`);
+    return `Scholar: ${name}
+Class: ${classData?.name || 'Unknown'}
+Period: ${FOLIO_RANGES[view.range]}
+Average: ${pct0(folio.avg.overall)} (${TIER_LABEL[folio.tier] || 'not graded'}); class average ${pct0(folio.classAvg.overall)}${folio.rank ? `; place ${folio.rank} of ${folio.rankOf}` : ''}
+Tests average: ${folio.counts.test ? pct0(folio.avg.test) : 'none'} (class ${pct0(folio.classAvg.test)})
+Dictations average: ${folio.counts.dictation ? pct0(folio.avg.dictation) : 'none'} (class ${pct0(folio.classAvg.dictation)})
+Momentum: ${folio.momentum ? `${folio.momentum.dir}, ${signed(folio.momentum.delta)} points` : 'not enough trials'}
+Absences in the last 30 days: ${folio.absences.length}
+Papers the class sat with no mark for ${name}: ${folio.missed.map((m) => `${m.name} (${shortDate(m.time)})`).join(', ') || 'none'}
+Trials, oldest first:
+${trials.join('\n')}
+${notes.length ? `Teacher's chronicle notes:\n${notes.join('\n')}` : ''}`;
+}
+
+const ORACLE_ASKS = {
+    report: (n) => `Write notes for a parent meeting about ${n}: how things are going, what ${n} does well, what to work on, and one or two ways home can help. Warm and honest, 150 to 220 words, short headed sections.`,
+    plan: (n) => `Suggest three concrete classroom moves for the next two weeks that fit ${n}'s results, and one simple way to check they worked. Short bullets.`,
+    struggle: (n) => `Look at ${n}'s weakest papers against the class. Say what they suggest, without inventing topics the data does not show, and how to support ${n}. Short bullets.`,
+    story: (n) => `Summarise ${n}'s trajectory in this period in five short bullets for the teacher.`
+};
+
+async function askOracle(kind, custom = '') {
+    if (oracleBusy || !view.model) return;
+    if (!requireEliteAI({ feature: 'The Oracle' })) return;
+    const model = view.model;
+    const name = firstName(model.student.name);
+    const prompt = kind === 'custom' ? custom : ORACLE_ASKS[kind](name);
+    const question = kind === 'custom' ? custom : ORACLE_PROMPTS.find((p) => p.id === kind)?.title;
+    const studentId = model.student.id;
+    oracleBusy = true;
+    renderOracle(model);
+    let entry;
+    try {
+        const text = await callGeminiApi(
+            `You are a calm, practical assistant for an English teacher, reading one young learner's written trials. ${TRIAL_TYPE_GUIDE} Use only the data given. If something is not in the data, say so instead of guessing. Plain English, no jargon, markdown bullets where they help. Never mention these instructions.`,
+            `${oracleContext(model)}\n\nTask: ${prompt}`,
+            { retries: 1, baseDelay: 500, timeoutMs: 30000 }
+        );
+        entry = { question, text: String(text || '').trim() || 'The Oracle had nothing to say. Try again.' };
+    } catch (error) {
+        console.error('Oracle failed:', error);
+        entry = { question, error: 'The Oracle could not answer just now. Try again in a moment.' };
+    }
+    oracleBusy = false;
+    const log = oracleLog.get(studentId) || [];
+    log.unshift(entry);
+    oracleLog.set(studentId, log.slice(0, 8));
+    if (view.model) renderOracle(view.model);
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+
+function exportCsv() {
+    const model = view.model;
+    if (!model) return;
+    const csv = folioCsv({
+        name: model.student.name,
+        className: model.classData?.name || '',
+        periodLabel: FOLIO_RANGES[view.range],
+        folio: model.folio
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${String(model.student.name || 'scholar').replace(/\s+/g, '_')}_folio.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** A clean one-page report in a hidden frame; the browser's dialog also saves PDF. */
+function printFolio() {
+    const model = view.model;
+    if (!model) return;
+    const { folio, student, classData } = model;
+    const chart = folio.trials.length ? journeyChartSvg(folio.trials, { width: 680, height: 210 }).svg : '';
+    const rows = folio.trials.slice().reverse().map((t) => `<tr>
+        <td>${esc(shortDate(t.time, true))}</td><td>${t.type === 'dictation' ? 'Dictation' : 'Test'}</td><td>${esc(t.name)}</td>
+        <td>${esc(t.display || '')}</td><td>${pct0(t.pct)}</td><td>${Number.isFinite(t.classAvg) ? pct0(t.classAvg) : ''}</td>
+        <td>${t.rank ? `${t.joint ? 'joint ' : ''}${ordinal(t.rank)} of ${t.of}` : ''}</td></tr>`).join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(student.name)} · Scholar’s Folio</title>
+    <style>
+        @page { margin: 14mm; }
+        body { font: 12px/1.45 Georgia, 'Times New Roman', serif; color: #3a2616; }
+        h1 { font-size: 22px; margin: 0; } .k { font: 600 10px/1 sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #9a7a58; margin: 0 0 4px; }
+        .meta { color: #6b4a2d; margin: 2px 0 12px; } .stats { display: flex; gap: 18px; margin: 10px 0 14px; padding: 10px 0; border-block: 1px solid #e6cf9f; }
+        .stats b { display: block; font-size: 18px; } ul { margin: 4px 0 12px 16px; padding: 0; } li { margin: 2px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; } th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #efe2c6; }
+        th { font: 600 10px sans-serif; text-transform: uppercase; letter-spacing: .08em; color: #9a7a58; }
+        svg { width: 100%; height: auto; color: #6b4a2d; } svg text { font: 10px sans-serif; fill: #9a7a58; }
+        .sf-chart__band[data-tier="high"] { fill: #0e9b6b; opacity: .07 } .sf-chart__band[data-tier="mid"] { fill: #cf8410; opacity: .07 } .sf-chart__band[data-tier="low"] { fill: #c93a50; opacity: .07 }
+        .sf-chart__grid { stroke: #e6cf9f; } .sf-chart__line { fill: none; stroke: #3a2616; stroke-width: 2; } .sf-chart__area { fill: none; }
+        .sf-chart__class { fill: none; stroke: #b8862f; stroke-dasharray: 4 3; } .sf-chart__class-dot { fill: #b8862f; }
+        .sf-chart__pt { stroke: #fff; stroke-width: 1.5; } .sf-chart__pt[data-tier="high"] { fill: #0e9b6b } .sf-chart__pt[data-tier="mid"] { fill: #cf8410 } .sf-chart__pt[data-tier="low"] { fill: #c93a50 }
+        .sf-chart__halo { fill: none; stroke: #e8c270; stroke-width: 2; } .sf-chart__guide { display: none; }
+    </style></head><body>
+        <p class="k">Scholar’s Folio · ${esc(FOLIO_RANGES[view.range])}</p>
+        <h1>${esc(student.name)}</h1>
+        <p class="meta">${esc(classData?.name || '')} · printed ${esc(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))}</p>
+        <div class="stats">
+            <div><span class="k">Average</span><b>${Number.isFinite(folio.avg.overall) ? bandSafePct(folio.avg.overall) : '—'}</b></div>
+            <div><span class="k">Class average</span><b>${pct0(folio.classAvg.overall)}</b></div>
+            ${folio.rank ? `<div><span class="k">Place</span><b>${ordinal(folio.rank)} of ${folio.rankOf}</b></div>` : ''}
+            <div><span class="k">Trials</span><b>${folio.trials.length}</b></div>
+            <div><span class="k">Absences (30 days)</span><b>${folio.absences.length}</b></div>
+        </div>
+        ${chart}
+        ${folio.insights.length ? `<p class="k" style="margin-top:12px">Reading</p><ul>${folio.insights.map((i) => `<li>${esc(i.text)}</li>`).join('')}</ul>` : ''}
+        ${rows ? `<table><thead><tr><th>Date</th><th>Kind</th><th>Trial</th><th>Mark</th><th>%</th><th>Class</th><th>Place</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+    </body></html>`;
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0;';
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+        try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) { console.error('Folio print failed:', e); showToast('Could not open the print dialog.', 'error'); }
+        setTimeout(() => frame.remove(), 1500);
+    }, 120);
+}
+
+// ─── Render orchestration ────────────────────────────────────────────────────
+
+function setTab(tab, { focus = false } = {}) {
+    if (tab !== view.tab) { const body = $('sf-body'); if (body) body.scrollTop = 0; }
+    view.tab = tab;
+    document.querySelectorAll('#student-analytics-modal [data-sf-tab].sf-tab').forEach((btn) => {
+        const on = btn.dataset.sfTab === tab;
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        btn.tabIndex = on ? 0 : -1;
+        if (on && focus) btn.focus();
+    });
+    ['overview', 'trials', 'oracle'].forEach((name) => {
+        const panel = $(`sf-panel-${name}`);
+        if (!panel) return;
+        const on = name === tab;
+        panel.hidden = !on;
+        if (on && !motionOff()) {
+            panel.classList.remove('is-entering');
+            void panel.offsetWidth;
+            panel.classList.add('is-entering');
+        }
+    });
+    if (tab === 'overview' && view.model) {
+        const canvas = $('sf-chart-canvas');
+        if (canvas && Math.abs((canvas.clientWidth || 0) - Number(canvas.dataset.width || 0)) > 4) drawChart(view.model);
+    }
+}
+
+function renderAll({ still = false } = {}) {
+    const model = collect(view.studentId);
+    if (!model) return false;
+    view.model = model;
+    const overlay = $(MODAL_ID);
+    overlay.classList.toggle('sf--still', still);
+    renderHead(model);
+    renderRange();
+    renderOverview(model);
+    renderTrials(model);
+    if (!still) renderOracle(model);
+    const body = $('sf-body');
+    if (!still && body) body.scrollTop = 0;
+    return true;
+}
+
+function scheduleRefresh() {
+    if (!view.open) return;
+    clearTimeout(view.refreshTimer);
+    view.refreshTimer = setTimeout(() => {
+        if (!view.open) return;
+        const body = $('sf-body');
+        const top = body?.scrollTop || 0;
+        if (!renderAll({ still: true })) { closeStudentAnalyticsModal(); return; }
+        if (body) body.scrollTop = top;
+    }, 300);
+}
+
+async function switchTo(studentId) {
+    if (!studentId || studentId === view.studentId || view.switching) return;
+    view.switching = true;
+    const pos = view.order.indexOf(view.studentId);
+    const next = view.order.indexOf(studentId);
+    const dir = next > pos || (pos === view.order.length - 1 && next === 0) ? 1 : -1;
+    const card = $('sf-card');
+    const parts = [...card.querySelectorAll('.sf-id, .sf-body')];
+    if (!motionOff()) {
+        await Promise.all(parts.map((el) => el.animate(
+            [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-18 * dir}px)` }],
+            { duration: 140, easing: 'ease-in', fill: 'forwards' }
+        ).finished.catch(() => {})));
+    }
+    view.studentId = studentId;
+    renderAll();
+    const freshParts = [...card.querySelectorAll('.sf-id, .sf-body')];
+    if (!motionOff()) {
+        freshParts.forEach((el) => {
+            el.getAnimations().forEach((a) => a.cancel());
+            el.animate(
+                [{ opacity: 0, transform: `translateX(${18 * dir}px)` }, { opacity: 1, transform: 'none' }],
+                { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+            );
+        });
+    } else {
+        freshParts.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    }
+    $(MODAL_ID).dataset.studentId = studentId;
+    view.switching = false;
+}
+
+async function setRange(range) {
+    if (!FOLIO_RANGES[range] || range === view.range) return;
+    const classId = view.model?.student.classId;
+    if (range === 'year' && classId && !yearCache.has(classId)) {
+        view.yearLoading = true;
+        renderRange();
+        try {
+            yearCache.set(classId, await fetchAllTrialsForClass(classId));
+        } catch (error) {
+            console.error('Whole-year trials failed:', error);
+            showToast('Could not load the whole year. Try again.', 'error');
+            view.yearLoading = false;
+            renderRange();
+            return;
+        } finally {
+            view.yearLoading = false;
+        }
+        if (!view.open) return;
+    }
+    view.range = range;
+    renderAll();
+    setTab(view.tab);
+}
+
+// ─── Wiring ──────────────────────────────────────────────────────────────────
+
+function onClick(e) {
+    const t = e.target;
+    if (t.closest('[data-sf-close]')) { closeStudentAnalyticsModal(); return; }
+    const go = t.closest('[data-sf-goto]');
+    if (go) { void switchTo(go.dataset.sfGoto); return; }
+    const tab = t.closest('[data-sf-tab]');
+    if (tab) {
+        setTab(tab.dataset.sfTab);
+        if (tab.dataset.sfFocus === 'missed') $('sf-missed')?.scrollIntoView({ block: 'start', behavior: motionOff() ? 'auto' : 'smooth' });
+        return;
+    }
+    const range = t.closest('[data-sf-range]');
+    if (range) { void setRange(range.dataset.sfRange); return; }
+    const filter = t.closest('[data-sf-filter]');
+    if (filter) { view.filter = filter.dataset.sfFilter; renderTrials(view.model); return; }
+    const sort = t.closest('[data-sf-sort]');
+    if (sort) { view.sort = sort.dataset.sfSort; renderTrials(view.model); return; }
+    const trial = t.closest('[data-sf-trial]');
+    if (trial) { revealTrial(Number(trial.dataset.sfTrial)); return; }
+    const prompt = t.closest('[data-sf-prompt]');
+    if (prompt) { void askOracle(prompt.dataset.sfPrompt); return; }
+    const copy = t.closest('[data-sf-copy]');
+    if (copy) { void copyAnswer(Number(copy.dataset.sfCopy)); return; }
+    const act = t.closest('[data-sf-act]')?.dataset.sfAct;
+    if (act === 'csv') exportCsv();
+    else if (act === 'print') printFolio();
+    else if (act === 'upgrade') requireEliteAI({ feature: 'The Oracle' });
+}
+
+function revealTrial(index) {
+    if (!Number.isFinite(index)) return;
+    view.filter = 'all';
+    renderTrials(view.model);
+    setTab('trials');
+    const row = document.querySelector(`#sf-panel-trials .sf-trial[data-index="${index}"]`);
+    if (!row) return;
+    row.scrollIntoView({ block: 'center', behavior: motionOff() ? 'auto' : 'smooth' });
+    row.classList.remove('is-flash');
+    void row.offsetWidth;
+    row.classList.add('is-flash');
+}
+
+async function copyAnswer(i) {
+    const entry = (oracleLog.get(view.studentId) || [])[i];
+    if (!entry?.text) return;
+    try {
+        await navigator.clipboard.writeText(entry.text);
+        showToast('Copied.', 'success');
+    } catch {
+        showToast('Could not copy. Select the text instead.', 'error');
+    }
+}
+
+function onKey(e) {
+    if (!view.open) return;
+    // Only when the folio is the top layer (a prompt opened over it keeps its own keys).
+    const overlay = $(MODAL_ID);
+    const active = document.activeElement;
+    if (active && active !== document.body && !overlay.contains(active)) return;
+    if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeStudentAnalyticsModal();
+        return;
+    }
+    const inField = e.target.closest?.('input, textarea, select, [contenteditable="true"]');
+    if (inField) return;
+    const onTab = e.target.closest?.('.sf-tab');
+    if (onTab && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        const tabs = ['overview', 'trials', 'oracle'];
+        const i = tabs.indexOf(view.tab);
+        setTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], { focus: true });
+        e.preventDefault();
+        return;
+    }
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && view.order.length > 1) {
+        const pos = view.order.indexOf(view.studentId);
+        const step = e.key === 'ArrowRight' ? 1 : -1;
+        void switchTo(view.order[(pos + step + view.order.length) % view.order.length]);
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}
+
+function wire() {
     if (wired) return;
     wired = true;
-    bindStateInvalidation();
+    const overlay = $(MODAL_ID);
+    if (!overlay) return;
+    overlay.classList.toggle('sf--lite', LITE);
+    overlay.addEventListener('click', onClick);
+    overlay.addEventListener('submit', (e) => {
+        if (e.target.id !== 'sf-oracle-form') return;
+        e.preventDefault();
+        const input = $('sf-oracle-input');
+        const q = input?.value.trim();
+        if (!q) { input?.focus(); return; }
+        void askOracle('custom', q);
+    });
+    document.addEventListener('keydown', onKey, true);
 
-    const refs = getRefs();
-    if (!refs.modal) return;
-
-    refs.closeBtn?.addEventListener('click', closeStudentAnalyticsModal);
-    refs.modal.addEventListener('click', (event) => {
-        if (event.target === refs.modal) closeStudentAnalyticsModal();
+    const chartEvents = (type, handler) => overlay.addEventListener(type, (e) => {
+        if (!e.target.closest?.('#sf-chart')) return;
+        handler(e);
+    });
+    chartEvents('pointermove', (e) => {
+        const i = nearestPoint(e.clientX);
+        if (i < 0) hideTip(); else showTip(i);
+    });
+    chartEvents('click', (e) => {
+        const i = nearestPoint(e.clientX);
+        if (i >= 0 && e.pointerType !== 'touch') revealTrial(i);
+        else if (i >= 0) showTip(i);
+    });
+    overlay.addEventListener('pointerleave', (e) => { if (e.target === overlay) hideTip(); });
+    overlay.addEventListener('pointerout', (e) => {
+        if (e.target.closest?.('#sf-chart') && !e.relatedTarget?.closest?.('#sf-chart')) hideTip();
     });
 
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && activeStudentId && !refs.modal.classList.contains('hidden')) {
-            closeStudentAnalyticsModal();
-        }
-    });
-
-    document.querySelectorAll('.analytics-tab-button').forEach((button) => {
-        button.addEventListener('click', () => activateTab(button.dataset.tab));
-    });
-
-    document.getElementById('student-analytics-retry-btn')?.addEventListener('click', () => {
-        if (activeStudentId) {
-            clearCaches();
-            void openStudentAnalyticsModal(activeStudentId, activeTrigger, { audience: activeAudience });
-        }
-    });
-    document.getElementById('student-analytics-load-full-history-btn')?.addEventListener('click', () => void handleLoadFullHistory());
-    document.getElementById('student-analytics-export-pdf-btn')?.addEventListener('click', () => void exportAnalyticsPdf());
-    document.getElementById('student-analytics-export-csv-btn')?.addEventListener('click', () => void exportAnalyticsCsv());
-    document.getElementById('student-analytics-print-btn')?.addEventListener('click', printAnalytics);
-
-    refs.modal.addEventListener('click', (event) => {
-        const upgradeButton = event.target.closest('#analytics-analysis-upgrade-btn, #analytics-assistant-upgrade-btn, #analytics-analysis-inline-upgrade-btn');
-        if (upgradeButton) {
-            requireEliteAI({ feature: 'Student analytics AI' });
-            return;
-        }
-        const quickPrompt = event.target.closest('.analytics-quick-prompt');
-        if (quickPrompt) {
-            void runAssistantAction(quickPrompt.dataset.promptType);
-        }
-    });
-
-    refs.modal.addEventListener('click', (event) => {
-        const sendButton = event.target.closest('#analytics-assistant-send-btn');
-        if (!sendButton) return;
-        const textarea = document.getElementById('analytics-assistant-input');
-        const question = textarea?.value?.trim();
-        if (!question) {
-            showToast('Enter a teacher question first.', 'info');
-            return;
-        }
-        textarea.value = '';
-        void runAssistantAction('custom', question);
-    });
-}
-
-function resetModalUi() {
-    destroyCharts();
-    setErrorBanner('');
-    setAllPanelsLoading();
-    activateTab('overview');
-    resetAssistantUi();
-}
-
-function populateTriggerOrigin(triggerElement) {
-    const refs = getRefs();
-    if (!refs.shell || !triggerElement) return;
-    const rect = triggerElement.getBoundingClientRect();
-    const originX = rect.left + (rect.width / 2);
-    const originY = rect.top + (rect.height / 2);
-    refs.shell.style.transformOrigin = `${originX}px ${originY}px`;
-}
-
-function renderEmptyShell(student) {
-    const refs = getRefs();
-    refs.name.textContent = student?.name || 'Student analytics';
-    refs.subtitle.textContent = 'Preparing analytics dashboard...';
-    refs.quickGrade.textContent = '--';
-    refs.quickAttendance.textContent = '--';
-    refs.quickRecent.textContent = '--';
-    refs.quickAvg.textContent = '--';
-    if (refs.toolbarStatus) {
-        refs.toolbarStatus.textContent = activeAudience === 'teacher' ? 'Gathering insights…' : '';
+    if ('ResizeObserver' in window) {
+        let frame = 0;
+        view.resizeObserver = new ResizeObserver(() => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                const canvas = $('sf-chart-canvas');
+                if (!view.open || !canvas || !view.model || canvas.closest('[hidden]')) return;
+                if (Math.abs(canvas.clientWidth - Number(canvas.dataset.width || 0)) > 4) {
+                    overlay.classList.add('sf--still');
+                    drawChart(view.model);
+                }
+            });
+        });
+        view.resizeObserver.observe($('sf-body'));
     }
-    if (refs.historyHint) {
-        refs.historyHint.textContent = '';
-        refs.historyHint.classList.add('hidden');
-    }
-    renderAvatar(student);
+
+    state.subscribe(['allWrittenScores', 'allAttendanceRecords', 'allAwardLogs', 'allStudents'], scheduleRefresh);
 }
 
-export async function openStudentAnalyticsModal(studentId, triggerElement = null, options = {}) {
-    const { ensureHeroChronicleNotesListener } = await import('../../db/listeners.js');
-    ensureHeroChronicleNotesListener();
-
-    wireModal();
-    activeStudentId = studentId;
-    activeTrigger = triggerElement || null;
-    activeLoadToken += 1;
-    const loadToken = activeLoadToken;
-
-    const student = (state.get('allStudents') || []).find((item) => item.id === studentId);
+export async function openStudentAnalyticsModal(studentId, triggerElement = null) {
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
     if (!student) {
         showToast('Student not found.', 'error');
         return;
     }
-
-    applyAudienceChrome(options.audience === 'student' ? 'student' : 'teacher');
-
-    const refs = getRefs();
-    populateTriggerOrigin(triggerElement);
-    resetModalUi();
-    renderEmptyShell(student);
-    refs.modal.dataset.studentId = studentId;
-    showAnimatedModal('student-analytics-modal');
-    setTimeout(() => refs.closeBtn?.focus(), 60);
-
-    try {
-        await loadChart();
-        const data = await loadAnalyticsData(studentId);
-        if (loadToken !== activeLoadToken || activeStudentId !== studentId) return;
-        if (!data) {
-            setErrorBanner('Could not load student analytics.');
-            ['overview', 'performance', 'analysis', 'assistant'].forEach((panel) => setPanelState(panel, 'error'));
-            return;
-        }
-        renderHeader(data);
-        renderOverview(data);
-        renderPerformance(data);
-        renderAnalysis(data);
-        renderAssistant(data);
-    } catch (error) {
-        console.error('Student analytics load failed:', error);
-        if (loadToken !== activeLoadToken || activeStudentId !== studentId) return;
-        setErrorBanner('The student analytics modal could not load right now. Try again.');
-        ['overview', 'performance', 'analysis', 'assistant'].forEach((panel) => setPanelState(panel, 'error'));
+    import('../../db/listeners.js').then((m) => m.ensureHeroChronicleNotesListener?.()).catch(() => {});
+    wire();
+    const reopen = view.open;
+    view.studentId = studentId;
+    view.trigger = triggerElement || view.trigger;
+    view.order = scholarOrder(student, triggerElement);
+    view.filter = 'all';
+    if (!reopen) {
+        view.tab = 'overview';
+        view.sort = 'newest';
     }
+    const overlay = $(MODAL_ID);
+    overlay.dataset.studentId = studentId;
+    overlay.classList.remove('sf--still');
+    view.open = true;
+    if (!reopen) {
+        overlay.classList.add('sf--entering');
+        clearTimeout(view.enterTimer);
+        view.enterTimer = setTimeout(() => overlay.classList.remove('sf--entering'), 1400);
+    }
+    showAnimatedModal(MODAL_ID);
+    renderAll();
+    setTab(view.tab);
+    if (!reopen) setTimeout(() => overlay.querySelector('.sf-close')?.focus({ preventScroll: true }), 60);
 }
 
 export function closeStudentAnalyticsModal() {
-    activeAiToken += 1;
-    activeStudentId = null;
-    hideModal('student-analytics-modal');
-    destroyCharts();
-    if (activeTrigger?.focus) {
-        const triggerToFocus = activeTrigger;
-        setTimeout(() => triggerToFocus.focus(), 360);
-    }
-    activeTrigger = null;
+    if (!view.open) return;
+    view.open = false;
+    clearTimeout(view.refreshTimer);
+    hideTip();
+    hideModal(MODAL_ID);
+    const trigger = view.trigger;
+    view.trigger = null;
+    if (trigger?.isConnected && trigger.focus) setTimeout(() => trigger.focus({ preventScroll: true }), 360);
 }

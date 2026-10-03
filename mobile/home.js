@@ -7,7 +7,7 @@ import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReason
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { getHomeGlobalTools } from '../features/homeGlobalTools.mjs';
+import { getHomeGlobalTools, getHomeClassActions } from '../features/homeGlobalTools.mjs';
 import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
@@ -227,16 +227,28 @@ function getMobileGlobalTools() {
     return getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
 }
 
+function getMobileClassActions(classId) {
+    const classData = (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
+        || (state.get('allSchoolClasses') || []).find((c) => c.id === classId) || {};
+    const students = (state.get('allStudents') || []).filter((s) => s.classId === classId);
+    const today = utils.getTodayDateString();
+    const absentToday = new Set((state.get('allAttendanceRecords') || [])
+        .filter((r) => r.classId === classId && r.date === today)
+        .map((r) => r.studentId)).size;
+    const boon = classData.teacherBoons?.[utils.getLocalMonthKey()] || null;
+    const boonHero = boon ? students.find((s) => s.id === boon.studentId) : null;
+    return getHomeClassActions({
+        classId,
+        heroCount: students.length,
+        absentToday,
+        boonWindow: utils.isTeacherBoonWindow(),
+        boonGivenTo: boonHero ? String(boonHero.name || '').split(/\s+/)[0] : '',
+    });
+}
+
 function getQuickActionHtml(classId) {
     const tools = classId
-        ? [
-            { icon: 'fa-clipboard-check', label: 'Roll Call', action: 'attendance', tone: 'sky' },
-            { icon: 'fa-star', label: 'Stars', tab: 'award-stars-tab', tone: 'amber' },
-            { icon: 'fa-scroll', label: 'Trials', tab: 'scholars-scroll-tab', tone: 'scroll' },
-            { icon: 'fa-feather-alt', label: 'Story', tab: 'reward-ideas-tab', tone: 'indigo' },
-            { icon: 'fa-file-lines', label: 'Report', action: 'report', tone: 'emerald' },
-            { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', tone: 'rose' }
-        ]
+        ? getMobileClassActions(classId)
         : getMobileGlobalTools();
 
     return tools.map((tool, i) => `
@@ -471,15 +483,24 @@ async function handleQuickAction(action, subtab) {
     playSound('click');
     const classId = state.get('globalSelectedClassId');
 
-    if (action === 'attendance') {
+    if (action === 'open-attendance') {
         const modals = await import('../ui/modals.js');
         if (classId) modals.openAttendanceChronicle(classId);
-    } else if (action === 'report') {
+    } else if (action === 'open-report') {
         const modals = await import('../ui/modals.js');
         if (classId) modals.handleGenerateReport(classId);
     } else if (action === 'edit-class') {
         const modals = await import('../ui/modals.js');
         if (classId) modals.openEditClassModal(classId);
+    } else if (action === 'open-class-roster') {
+        const { openClassRosterModal } = await import('../ui/modals/classRoster.js');
+        if (classId) openClassRosterModal(classId);
+    } else if (action === 'open-prodigies') {
+        const modals = await import('../ui/modals.js');
+        modals.openProdigyModal();
+    } else if (action === 'open-teacher-boon') {
+        const modals = await import('../ui/modals.js');
+        modals.openTeacherBoonModal();
     } else if (action === 'open-student-ranks') {
         const modals = await import('../ui/modals.js');
         modals.openStudentRankingsModal();

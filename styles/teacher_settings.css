@@ -1674,46 +1674,6 @@
     display: inline;
 }
 
-/* ── Quiz of the Week: its step cards join the desk ── */
-#options-tab [data-ts-accent="quiz"] .qow-card {
-    position: relative;
-    overflow: hidden;
-    padding-top: 1.4rem;
-    border: 1.5px solid var(--ts-line);
-    border-radius: 1.15rem;
-    box-shadow: 0 8px 18px -14px rgba(92, 64, 24, 0.5);
-}
-
-#options-tab [data-ts-accent="quiz"] .qow-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: var(--accent);
-}
-
-#options-tab [data-ts-accent="quiz"] .qow-card-badge {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, #fff), var(--accent));
-    border-bottom-color: var(--accent-deep);
-}
-
-#options-tab [data-ts-accent="quiz"] .qow-steps-row {
-    padding: 0.9rem;
-    background: color-mix(in srgb, var(--accent-soft) 45%, #fff);
-    border: 1.5px dashed var(--accent-soft-2);
-    border-radius: 1.15rem;
-}
-
-#options-tab [data-ts-accent="quiz"] .qow-step {
-    border-color: var(--ts-line);
-}
-
-#options-tab [data-ts-accent="quiz"] .qow-step-arrow {
-    color: var(--accent);
-}
-
 /* ── Locked drawers (plan-gated sections) ── */
 #options-tab .options-tier-locked {
     position: relative;

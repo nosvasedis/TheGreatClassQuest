@@ -350,185 +350,162 @@ export const optionsTabHTML = `
                                     <p class="options-tier-locked-text">AI-powered weekly quizzes are available on the Elite plan.</p>
                                     <span class="options-tier-locked-badge">Elite</span>
                                 </div>
-                                <div id="options-quiz-content" class="qow-panel ts-page hidden" data-ts-accent="quiz">
+                                <div id="options-quiz-content" class="qwk ts-page hidden" data-ts-accent="quiz">
                                     <span class="ts-page__tape" aria-hidden="true"></span>
-                                    <header class="ts-page__head">
+                                    <header class="ts-page__head qwk-head">
                                         <span class="ts-sticker" aria-hidden="true"><i class="fas fa-trophy"></i></span>
                                         <div class="ts-page__heading">
                                             <h2 class="font-title ts-page__title">Quiz of the Week</h2>
-                                            <p class="ts-page__lede">AI generates a tailored multiple-choice quiz from this week's lessons — play it live on Home.</p>
+                                            <p class="ts-page__lede">A quiz show made from this week's lessons. Plan it here; the class plays it from Home during a lesson.</p>
+                                        </div>
+                                        <div id="qwk-class-chip" class="qwk-class hidden">
+                                            <span id="qwk-class-logo" class="qwk-class__logo" aria-hidden="true"></span>
+                                            <span class="qwk-class__copy">
+                                                <span id="qwk-class-name" class="qwk-class__name"></span>
+                                                <span id="qwk-class-meta" class="qwk-class__meta"></span>
+                                            </span>
                                         </div>
                                     </header>
 
-                                    <!-- ── HOW IT WORKS ── -->
-                                    <div class="qow-steps-row">
-                                        <div class="qow-step">
-                                            <div class="qow-step-num">1</div>
-                                            <div class="qow-step-icon">🎓</div>
-                                            <div class="qow-step-label">Check this week's lessons</div>
-                                        </div>
-                                        <div class="qow-step-arrow">→</div>
-                                        <div class="qow-step">
-                                            <div class="qow-step-num">2</div>
-                                            <div class="qow-step-icon">🤖</div>
-                                            <div class="qow-step-label">AI generates questions</div>
-                                        </div>
-                                        <div class="qow-step-arrow">→</div>
-                                        <div class="qow-step">
-                                            <div class="qow-step-num">3</div>
-                                            <div class="qow-step-icon">🎮</div>
-                                            <div class="qow-step-label">Play live in class!</div>
-                                        </div>
+                                    <div id="qwk-no-class" class="qwk-empty">
+                                        <span class="qwk-empty__icon" aria-hidden="true">🎟️</span>
+                                        <p class="qwk-empty__title">Choose a class first</p>
+                                        <p class="qwk-empty__text">Pick a class in the header and its quiz for this week appears here.</p>
                                     </div>
 
-                                    <!-- ── STEP 1 — CLASS (from header) ── -->
-                                    <div class="qow-card" id="qow-card-class">
-                                        <div class="qow-card-header">
-                                            <span class="qow-card-badge">Step 1</span>
-                                            <span class="qow-card-title"><i class="fas fa-users mr-2 text-amber-500"></i>Which class is this for?</span>
-                                        </div>
-                                        <div id="qow-class-display" class="qow-class-display rounded-xl border-2 border-amber-100 bg-amber-50/50 px-4 py-3 text-amber-900 font-title font-semibold text-center">
-                                            Choose a class from the header…
-                                        </div>
-                                        <div id="qow-class-meta" class="qow-class-meta hidden">
-                                            <span id="qow-class-level-badge" class="qow-level-badge"></span>
-                                            <span id="qow-class-meta-text" class="qow-class-meta-text"></span>
-                                        </div>
-                                    </div>
-
-                                    <!-- ── STEP 2 — CURRICULUM ── -->
-                                    <div class="qow-card qow-card-disabled" id="qow-card-curriculum">
-                                        <div class="qow-card-header">
-                                            <span class="qow-card-badge">Step 2</span>
-                                            <span class="qow-card-title" id="qow-curriculum-title"><i class="fas fa-book-open mr-2 text-amber-500"></i>This week's lessons</span>
-                                        </div>
-
-                                        <div id="qow-lesson-focus" class="qow-lesson-focus hidden">
-                                            <p id="qow-lesson-summary" class="qow-lesson-summary"></p>
-                                            <div id="qow-lesson-units" class="qow-lesson-units"></div>
-                                            <div id="qow-lesson-grammar" class="qow-lesson-grammar"></div>
-                                            <p class="qow-section-label" id="qow-lesson-words-label"><i class="fas fa-font mr-1"></i> Words they practised <span class="text-gray-400 font-normal">(untick to drop)</span></p>
-                                            <div id="qow-lesson-words" class="qow-chips"></div>
-                                        </div>
-
-                                        <!-- Type pills -->
-                                        <div class="qow-type-pills" id="qow-type-pills">
-                                            <button class="qow-type-pill" data-type="grammar">
-                                                <span class="qow-type-pill-icon">📐</span>
-                                                <span class="qow-type-pill-label">Grammar</span>
-                                            </button>
-                                            <button class="qow-type-pill qow-type-pill-active" data-type="mix">
-                                                <span class="qow-type-pill-icon">🔀</span>
-                                                <span class="qow-type-pill-label">Mix</span>
-                                            </button>
-                                            <button class="qow-type-pill" data-type="vocabulary">
-                                                <span class="qow-type-pill-icon">📚</span>
-                                                <span class="qow-type-pill-label">Vocabulary</span>
-                                            </button>
-                                        </div>
-                                        <!-- hidden select still used as source of truth -->
-                                        <select id="quiz-curriculum-type" class="hidden">
-                                            <option value="grammar">Grammar</option>
-                                            <option value="vocabulary">Vocabulary</option>
-                                            <option value="mix" selected>Mix</option>
-                                        </select>
-
-                                        <details id="qow-different-focus" class="qow-different-focus qow-focus-fallback" open>
-                                            <summary id="qow-different-focus-summary" class="qow-different-focus-summary hidden">Different focus</summary>
-                                            <div id="quiz-categories-wrap" class="qow-categories-wrap">
-                                                <p class="qow-section-label"><i class="fas fa-tags mr-1"></i> Suggested topics <span class="text-gray-400 font-normal">(tick what you're covering)</span></p>
-                                                <div id="quiz-categories-chips" class="qow-chips"></div>
+                                    <div id="qwk-body" class="qwk-body hidden">
+                                        <!-- ── THIS WEEK ── -->
+                                        <article id="qwk-week" class="qwk-week" data-tone="idle" aria-live="polite">
+                                            <div class="qwk-week__top">
+                                                <span id="qwk-week-icon" class="qwk-week__icon" aria-hidden="true">✨</span>
+                                                <div class="qwk-week__copy">
+                                                    <p id="qwk-week-eyebrow" class="qwk-week__eyebrow">This week</p>
+                                                    <h3 id="qwk-week-title" class="qwk-week__title">No quiz for this week yet</h3>
+                                                    <p id="qwk-week-sub" class="qwk-week__sub"></p>
+                                                </div>
                                             </div>
-                                        </details>
-
-                                        <div class="qow-keywords-wrap">
-                                            <p class="qow-section-label" id="qow-keywords-label"><i class="fas fa-pen mr-1"></i> Add a note <span class="text-gray-400 font-normal">(optional)</span></p>
-                                            <textarea id="quiz-keywords" class="qow-textarea" rows="2"
-                                                placeholder="e.g. keep sentences short, include was/were…"></textarea>
-                                        </div>
-                                    </div>
-
-                                    <!-- ── STEP 3: OPTIONAL EXTRAS ── -->
-                                    <div class="qow-card qow-card-disabled" id="qow-card-options">
-                                        <div class="qow-card-header">
-                                            <span class="qow-card-badge">Step 3</span>
-                                            <span class="qow-card-title"><i class="fas fa-sliders mr-2 text-amber-500"></i>Optional extras</span>
-                                        </div>
-                                        <label class="qow-option-toggle" for="quiz-review-toggle">
-                                            <input type="checkbox" id="quiz-review-toggle" class="qow-option-check" />
-                                            <span class="qow-option-copy">
-                                                <span class="qow-option-title"><i class="fas fa-pen-to-square mr-1"></i>Review the questions before they go live</span>
-                                                <span class="qow-option-sub">You can read, edit, or delete any question first. Leave this off and the quiz is ready as soon as it is generated.</span>
-                                            </span>
-                                        </label>
-                                        <label class="qow-option-toggle" for="quiz-carry-toggle">
-                                            <input type="checkbox" id="quiz-carry-toggle" class="qow-option-check" />
-                                            <span class="qow-option-copy">
-                                                <span class="qow-option-title"><i class="fas fa-rotate mr-1"></i>Bring back questions the class missed last week</span>
-                                                <span class="qow-option-sub">Spaced review: you choose which missed questions return. Their answers are shuffled, and they take the first places in the quiz.</span>
-                                            </span>
-                                        </label>
-                                        <div id="quiz-carry-panel" class="qow-carry-panel hidden" aria-live="polite">
-                                            <div class="qow-carry-toolbar">
-                                                <span id="quiz-carry-summary" class="qow-carry-summary">Looking for last week's quiz…</span>
-                                                <span class="qow-carry-actions">
-                                                    <button type="button" id="quiz-carry-all-btn" class="qow-carry-link">Select all</button>
-                                                    <button type="button" id="quiz-carry-none-btn" class="qow-carry-link">Clear</button>
-                                                </span>
+                                            <ol id="qwk-track" class="qwk-track" aria-label="Quiz steps"></ol>
+                                            <div id="qwk-week-facts" class="qwk-facts"></div>
+                                            <div id="qwk-gen" class="qwk-gen hidden">
+                                                <div class="qwk-gen__track"><div class="qwk-gen__fill"></div></div>
+                                                <div class="qwk-gen__steps">
+                                                    <span data-gen-step="1" class="qwk-gen__step">Writing questions</span>
+                                                    <span data-gen-step="2" class="qwk-gen__step">Adding pictures</span>
+                                                    <span data-gen-step="3" class="qwk-gen__step">Saving to the class</span>
+                                                </div>
                                             </div>
-                                            <div id="quiz-carry-list" class="qow-carry-list"></div>
-                                        </div>
-                                    </div>
-
-                                    <!-- ── VALIDATION MSG ── -->
-                                    <p id="quiz-validation-msg" class="qow-validation hidden"></p>
-
-                                    <!-- ── GENERATE BUTTON ── -->
-                                    <button id="quiz-generate-btn" class="qow-generate-btn" disabled>
-                                        <i class="fas fa-wand-magic-sparkles"></i>
-                                        <span id="quiz-generate-btn-label">Generate from this week's lessons</span>
-                                    </button>
-
-                                    <!-- ── STATUS BANNER ── -->
-                                    <div id="quiz-status-area" class="qow-status hidden">
-                                        <div class="qow-status-top">
-                                            <span id="quiz-status-icon" class="qow-status-emoji">⏳</span>
-                                            <div class="qow-status-body">
-                                                <div id="quiz-status-text" class="qow-status-title">Generating…</div>
-                                                <div id="quiz-status-details" class="qow-status-sub"></div>
+                                            <div id="qwk-week-actions" class="qwk-week__actions">
+                                                <button type="button" id="qwk-play-btn" class="ts-btn hidden"><i class="fas fa-play"></i> Open the quiz show</button>
+                                                <button type="button" id="quiz-review-btn" class="ts-btn hidden"><i class="fas fa-eye"></i> <span id="quiz-review-btn-label">Check &amp; approve</span></button>
+                                                <button type="button" id="qwk-results-btn" class="ts-btn hidden"><i class="fas fa-trophy"></i> See the results</button>
+                                                <button type="button" id="quiz-reset-btn" class="qwk-link qwk-link--danger hidden"><i class="fas fa-trash-can"></i> Delete this week's quiz</button>
                                             </div>
-                                            <div id="qow-status-badge" class="qow-status-pill hidden"></div>
-                                        </div>
-                                        <!-- Animated generation progress bar (shown during generation) -->
-                                        <div id="qow-gen-progress" class="qow-gen-progress hidden">
-                                            <div class="qow-gen-progress-track">
-                                                <div class="qow-gen-progress-fill"></div>
-                                            </div>
-                                            <div class="qow-gen-steps">
-                                                <span id="qow-gstep-1" class="qow-gen-step active">🤖 Crafting questions</span>
-                                                <span id="qow-gstep-2" class="qow-gen-step">🖼️ Generating images</span>
-                                                <span id="qow-gstep-3" class="qow-gen-step">✅ Saving to class</span>
-                                            </div>
-                                        </div>
-                                        <button id="quiz-review-btn" type="button"
-                                            class="qow-review-btn hidden">
-                                            <i class="fas fa-pen-to-square mr-1"></i> <span id="quiz-review-btn-label">Review &amp; edit questions</span>
-                                        </button>
-                                        <button id="quiz-reset-btn"
-                                            class="qow-reset-btn hidden">
-                                            <i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week's Quiz
-                                        </button>
-                                    </div>
+                                        </article>
 
-                                    <!-- ── HISTORY ── -->
-                                    <div id="quiz-history-area" class="qow-history hidden">
-                                        <div class="qow-history-header">
-                                            <i class="fas fa-clock-rotate-left mr-2 text-amber-500"></i>
-                                            <span class="font-title text-amber-700">Recent Quizzes</span>
-                                        </div>
-                                        <div id="quiz-history-list" class="qow-history-list"></div>
-                                    </div>
+                                        <!-- ── THE PLAN ── -->
+                                        <article id="qwk-plan" class="qwk-plan" data-mode="open">
+                                            <header class="qwk-plan__head">
+                                                <div>
+                                                    <h3 class="qwk-plan__title"><i class="fas fa-pen-ruler"></i> <span id="qwk-plan-title">Plan the quiz</span></h3>
+                                                    <p id="qwk-plan-summary" class="qwk-plan__summary hidden"></p>
+                                                </div>
+                                                <button type="button" id="qwk-plan-toggle" class="ts-btn ts-btn--quiet qwk-plan__toggle hidden"><i class="fas fa-sliders"></i> <span>Change the plan</span></button>
+                                            </header>
+                                            <p id="qwk-plan-locked" class="qwk-plan__locked hidden"><i class="fas fa-lock"></i> This week's quiz has been played, so its plan is closed. Next week's opens on Saturday.</p>
 
+                                            <div id="qwk-plan-form" class="qwk-plan__form">
+                                                <!-- 1. What it covers -->
+                                                <section class="qwk-part">
+                                                    <h4 class="qwk-part__title"><span class="qwk-part__num">1</span> What should it cover?</h4>
+
+                                                    <div id="qwk-lesson" class="qwk-lesson hidden">
+                                                        <div class="qwk-lesson__head">
+                                                            <span class="qwk-lesson__badge"><i class="fas fa-book-open"></i> From your lessons</span>
+                                                            <span id="qwk-lesson-window" class="qwk-lesson__window"></span>
+                                                        </div>
+                                                        <div id="qwk-lesson-units" class="qwk-lesson__units"></div>
+                                                        <div id="qwk-lesson-grammar" class="qwk-lesson__grammar"></div>
+                                                        <div id="qwk-words-block" class="qwk-words">
+                                                            <div class="qwk-words__bar">
+                                                                <span class="qwk-label">Words to practise <span id="qwk-words-count" class="qwk-label__count"></span></span>
+                                                                <span class="qwk-words__tools">
+                                                                    <button type="button" class="qwk-link" data-words="all">All</button>
+                                                                    <button type="button" class="qwk-link" data-words="none">None</button>
+                                                                </span>
+                                                            </div>
+                                                            <div id="qwk-lesson-words" class="qwk-chips"></div>
+                                                        </div>
+                                                        <button type="button" id="qwk-own-topics-btn" class="qwk-link qwk-lesson__switch"><i class="fas fa-shuffle"></i> Use my own topics instead</button>
+                                                    </div>
+
+                                                    <div id="qwk-topics" class="qwk-topics">
+                                                        <div class="qwk-topics__bar">
+                                                            <span class="qwk-label" id="qwk-topics-label">Pick the topics you covered</span>
+                                                            <button type="button" id="qwk-back-to-lessons-btn" class="qwk-link hidden"><i class="fas fa-book-open"></i> Back to the lessons</button>
+                                                        </div>
+                                                        <div id="quiz-categories-chips" class="qwk-chips"></div>
+                                                    </div>
+                                                </section>
+
+                                                <!-- 2. Style -->
+                                                <section class="qwk-part">
+                                                    <h4 class="qwk-part__title"><span class="qwk-part__num">2</span> What kind of questions?</h4>
+                                                    <div id="qwk-type" class="qwk-type" role="radiogroup" aria-label="Question style"></div>
+                                                    <label class="qwk-label qwk-note-label" for="quiz-keywords">Note for the quiz writer <span class="qwk-label__hint">(optional)</span></label>
+                                                    <textarea id="quiz-keywords" class="ts-input qwk-note" rows="2" placeholder="e.g. keep sentences short, include was / were"></textarea>
+                                                </section>
+
+                                                <!-- 3. Extras -->
+                                                <section class="qwk-part">
+                                                    <h4 class="qwk-part__title"><span class="qwk-part__num">3</span> Before it goes live</h4>
+                                                    <label class="qwk-switch" for="quiz-review-toggle">
+                                                        <input type="checkbox" id="quiz-review-toggle" class="qwk-switch__input" />
+                                                        <span class="qwk-switch__track" aria-hidden="true"><span class="qwk-switch__knob"></span></span>
+                                                        <span class="qwk-switch__copy">
+                                                            <span class="qwk-switch__title">Let me check the questions first</span>
+                                                            <span class="qwk-switch__sub">Read, fix or remove any question before the class sees it.</span>
+                                                        </span>
+                                                    </label>
+                                                    <label class="qwk-switch" for="quiz-carry-toggle">
+                                                        <input type="checkbox" id="quiz-carry-toggle" class="qwk-switch__input" />
+                                                        <span class="qwk-switch__track" aria-hidden="true"><span class="qwk-switch__knob"></span></span>
+                                                        <span class="qwk-switch__copy">
+                                                            <span class="qwk-switch__title">Bring back questions they missed</span>
+                                                            <span class="qwk-switch__sub">You choose which ones return. They come first, with the answers shuffled.</span>
+                                                        </span>
+                                                    </label>
+                                                    <div id="quiz-carry-panel" class="qwk-carry hidden" aria-live="polite">
+                                                        <div class="qwk-carry__bar">
+                                                            <span id="quiz-carry-summary" class="qwk-carry__summary">Looking for last week's quiz…</span>
+                                                            <span class="qwk-words__tools">
+                                                                <button type="button" id="quiz-carry-all-btn" class="qwk-link">All</button>
+                                                                <button type="button" id="quiz-carry-none-btn" class="qwk-link">None</button>
+                                                            </span>
+                                                        </div>
+                                                        <div id="quiz-carry-list" class="qwk-carry__list"></div>
+                                                    </div>
+                                                </section>
+
+                                                <footer class="qwk-go">
+                                                    <p id="quiz-validation-msg" class="qwk-go__warn hidden" role="alert"></p>
+                                                    <p id="qwk-replace-note" class="qwk-go__replace hidden"><i class="fas fa-circle-info"></i> <span></span></p>
+                                                    <div class="qwk-go__row">
+                                                        <p id="qwk-go-summary" class="qwk-go__summary"></p>
+                                                        <button type="button" id="quiz-generate-btn" class="ts-btn qwk-go__btn" disabled>
+                                                            <i class="fas fa-wand-magic-sparkles"></i>
+                                                            <span id="quiz-generate-btn-label">Create the quiz</span>
+                                                        </button>
+                                                    </div>
+                                                </footer>
+                                            </div>
+                                        </article>
+
+                                        <!-- ── PAST QUIZZES ── -->
+                                        <article id="quiz-history-area" class="qwk-history hidden">
+                                            <h3 class="qwk-history__title"><i class="fas fa-clock-rotate-left"></i> Past quizzes</h3>
+                                            <ol id="quiz-history-list" class="qwk-history__list"></ol>
+                                        </article>
+                                    </div>
                                 </div>
                             </section>
 

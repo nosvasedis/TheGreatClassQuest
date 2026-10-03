@@ -112,14 +112,46 @@ test("last month's stars read as zero until the monthly reset", () => {
     assert.equal(currentMonthStarsFromScore(null, '2026-10-01'), 0);
 });
 
+const podiumIds = (html) => [...html.split('hcs-ranks')[0].matchAll(/class="hcs-figure[^"]*" data-hcs-mover data-hcs-id="([^"]+)"/g)].map((m) => m[1]);
+
 const entry = (id, rank, score) => ({ id, name: id.toUpperCase(), rank, score, gold: 0, slot: 0, fromSlot: 0 });
 
-test('the podium shows shared places on the same metal with both crowned', () => {
+test('the podium shows shared places on one shared pedestal with both crowned', () => {
     const html = renderStandingsSectionHtml({ id: 's', title: 'Class', entries: [entry('a', 1, 10), entry('b', 1, 10), entry('c', 3, 6)] });
-    assert.equal((html.match(/hcs-spot--gold/g) || []).length, 2);
+    assert.equal((html.match(/hcs-spot--gold hcs-spot--shared/g) || []).length, 1);
+    assert.deepEqual(podiumIds(html), ['a', 'b', 'c']);
     assert.equal((html.match(/hcs-figure__crown/g) || []).length, 2);
     assert.match(html, /Tied for 1st/);
+    assert.match(html, /Two heroes share the crown/);
     assert.doesNotMatch(html, /Leads by/);
+});
+
+test('everyone tied for 1st stands on the podium, however many', () => {
+    const entries = ['a', 'b', 'c', 'd', 'e'].map((id) => entry(id, 1, 9)).concat([entry('f', 6, 4), entry('g', 7, 2)]);
+    const html = renderStandingsSectionHtml({ id: 's', title: 'Class', entries }, { metric: 'monthly' });
+    assert.deepEqual(podiumIds(html).sort(), ['a', 'b', 'c', 'd', 'e']);
+    assert.match(html, /hcs-podium--tiers/);
+    assert.match(html, /5 heroes share the crown/);
+    assert.match(html, /Co-Prodigies/);
+    assert.match(html, /5 from the podium/);
+});
+
+test('a sole leader brings every tied 2nd; ties in 3rd all join too', () => {
+    const second = renderStandingsSectionHtml({ id: 's', title: 'C', entries: [entry('a', 1, 9), entry('b', 2, 7), entry('c', 2, 7), entry('d', 2, 7), entry('e', 5, 3)] });
+    assert.deepEqual(podiumIds(second).sort(), ['a', 'b', 'c', 'd']);
+    assert.match(second, /Tied for 2nd/);
+    assert.doesNotMatch(second, /share the crown/);
+    const third = renderStandingsSectionHtml({ id: 's', title: 'C', entries: [entry('a', 1, 9), entry('b', 2, 8), entry('c', 3, 6), entry('d', 3, 6), entry('e', 5, 3)] });
+    assert.deepEqual(podiumIds(third).sort(), ['a', 'b', 'c', 'd']);
+    assert.match(third, /hcs-podium--wide/);
+    const plain = renderStandingsSectionHtml({ id: 's', title: 'C', entries: [entry('a', 1, 9), entry('b', 2, 8), entry('c', 3, 6), entry('d', 4, 3)] });
+    assert.deepEqual(podiumIds(plain), ['b', 'a', 'c']);
+    assert.match(plain, /hcs-podium--classic/);
+});
+
+test('heroes without stars never stand on the podium', () => {
+    const html = renderStandingsSectionHtml({ id: 's', title: 'C', entries: [entry('a', 1, 3), entry('b', 2, 0), entry('c', 2, 0)] });
+    assert.deepEqual(podiumIds(html), ['a']);
 });
 
 test('a leader level on stars wins the tie-break, and rows say why', () => {

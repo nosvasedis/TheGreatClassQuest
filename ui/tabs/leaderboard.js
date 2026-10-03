@@ -42,6 +42,7 @@ import {
 } from './heroStandings.js';
 import { getMonthFinaleClassIds } from '../../features/monthFinale.js';
 import { playSound } from '../../audio.js';
+import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 
 const TEAM_QUEST_ANALYTICS_ASSETS = {
     bronze: new URL('../../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
@@ -702,6 +703,9 @@ function bindTeamQuestBoard(board) {
     }
 }
 
+// Low-power machines get a still podium stage (no looping glints or motes).
+const _heroLite = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
+
 // What each Hero's Challenge board looked like when this visit to the tab began
 // (drives the ▲/+N chips), and what was last drawn (drives the motion).
 const _heroVisitBaselines = new Map();
@@ -756,7 +760,7 @@ function clearHeroStandingsList(list, html) {
     list.dataset.hcsBoard = '';
     list.__hcsHtml = '';
     list.__hcsToken = null;
-    list.className = 'hcs-list';
+    list.className = _heroLite ? 'hcs-list hcs-list--lite' : 'hcs-list';
     list.innerHTML = html;
 }
 
@@ -1130,7 +1134,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     list.dataset.hcsBoard = boardKey;
     list.__hcsHtml = boardSignature;
     list.__hcsToken = null;
-    list.className = 'hcs-list';
+    list.className = _heroLite ? 'hcs-list hcs-list--lite' : 'hcs-list';
     list.innerHTML = outputHtml;
 
     if (moved) playStandingsChanges(list, sections);

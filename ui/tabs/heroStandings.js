@@ -146,21 +146,52 @@ function ordinal(n) {
     return `${n}${{ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'}`;
 }
 
-/** Who shares this hero's place, as the tie rules decided it. */
-function sharesPlace(e, entries) {
-    return entries.some((other) => other !== e && other.rank === e.rank);
+// --- The podium ----------------------------------------------------------------
+//
+// Everyone who holds a medal place (1st, 2nd or 3rd under the shared ranking
+// rules) stands on the podium, so a tie never pushes a hero off it:
+//   - 1, 2, 3        three heroes, one per pedestal
+//   - 1, 1, 1, 1     four heroes share the gold, nobody else fits (next is 5th)
+//   - 1, 2, 2, 2     gold plus three silvers
+//   - 1, 1, 3, 3     two golds and two bronzes
+// Up to five heroes keep the classic side-by-side stage (each pedestal widens
+// for its group); a bigger crowd, or a group of four or more, stands on
+// stacked tiers instead, gold on top. Phones stack from four heroes up.
+
+const CLASSIC_MAX = 5;
+const GROUP_CLASSIC_MAX = 3;
+const PHONE_CLASSIC_MAX = 3;
+
+/** The podium heroes: a medal place and at least one star. */
+export function pickPodiumEntries(entries = []) {
+    const out = [];
+    for (const e of entries) {
+        if (!(e.score > 0) || !(e.rank <= PODIUM_SIZE)) break;
+        out.push(e);
+    }
+    return out;
+}
+
+/** 'classic', 'wide' (classic, but stacked on phones) or 'tiers'. */
+export function choosePodiumLayout(groups) {
+    const total = groups.reduce((n, g) => n + g.heroes.length, 0);
+    const biggest = groups.reduce((n, g) => Math.max(n, g.heroes.length), 0);
+    if (total > CLASSIC_MAX || biggest > GROUP_CLASSIC_MAX) return 'tiers';
+    return total > PHONE_CLASSIC_MAX ? 'wide' : 'classic';
+}
+
+function heroCount(n) {
+    return `${n} hero${n === 1 ? '' : 'es'}`;
 }
 
 /**
- * The podium line under a hero's chips: how far 1st is ahead, or that the
- * place is shared, or that equal stars were split by the tie-breakers.
+ * The note under a lone podium hero: how far 1st is ahead, or that equal
+ * stars were split by the tie-breakers. A shared place is said once, on its
+ * pedestal, instead of under every hero.
  */
-function podiumNoteHtml(e, spots) {
-    if (sharesPlace(e, spots)) {
-        return `<span class="hcs-figure__lead hcs-figure__lead--tie" title="Same stars and the same tie-breakers">Tied for ${ordinal(e.rank)}</span>`;
-    }
-    if (e.rank !== 1) return '';
-    const next = spots.find((other) => other.rank > 1);
+function podiumNoteHtml(e, group, entries) {
+    if (group.heroes.length > 1 || e.rank !== 1) return '';
+    const next = entries.find((other) => other.rank > 1);
     if (!next) return '';
     const leadBy = e.score - next.score;
     return leadBy > 0
@@ -168,65 +199,104 @@ function podiumNoteHtml(e, spots) {
         : '<span class="hcs-figure__lead" title="Level on stars: more 3-star and 2-star awards, more kinds of awards, then the better test average decide">Wins the tie-break</span>';
 }
 
-function podiumFigureHtml(e, spots) {
+function podiumFigureHtml(e, group, entries, k, packed) {
     const crown = e.rank === 1
         ? '<span class="hcs-figure__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
         : '';
-    const lead = podiumNoteHtml(e, spots);
+    const lead = podiumNoteHtml(e, group, entries);
+    // A packed hero keeps the guild badge; titles and pills wait for the rows' room.
+    const badges = packed ? (e.guildBadgeHtml || '') : `${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}`;
     return `
-        <div class="hcs-figure" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}">
+        <div class="hcs-figure${packed ? ' hcs-figure--packed' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--k:${k}">
             ${crown}
             <div class="hcs-figure__portrait hero-challenge-avatar-wrap">
                 <span class="hcs-figure__ring" aria-hidden="true"></span>
                 ${e.avatarLargeHtml}
                 ${e.familiarHtml || ''}
             </div>
-            <h3 class="hcs-figure__name font-title">${nameHtml(e)}</h3>
-            <div class="hcs-figure__badges">${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}</div>
+            <h3 class="hcs-figure__name font-title" title="${escapeStandingsHtml(e.name)}">${nameHtml(e)}</h3>
+            <div class="hcs-figure__badges">${badges}</div>
             <div class="hcs-figure__stars">
                 <i class="fas fa-star hcs-figure__star" aria-hidden="true"></i>
                 ${countHtml(e)}
                 ${gainChipHtml(e)}
             </div>
             <div class="hcs-figure__chips">${moveChipHtml(e)}${lead}${classChipHtml(e)}</div>
-            <div class="hcs-figure__pills">${e.pillsHtml || ''}</div>
+            ${packed ? '' : `<div class="hcs-figure__pills">${e.pillsHtml || ''}</div>`}
         </div>`;
 }
 
-function podiumHtml(entries) {
-    const spots = entries.slice(0, PODIUM_SIZE);
-    // Classic stage order: silver, gold, bronze. The metal follows the hero's
-    // rank, so heroes who share a place stand on the same metal.
-    const order = [1, 0, 2].filter((i) => spots[i]);
-    const spotsHtml = order.map((i) => {
-        const e = spots[i];
-        const metal = PLACE_NAMES[e.rank] || PLACE_NAMES[PODIUM_SIZE];
+function pedestalTagHtml(group) {
+    const n = group.heroes.length;
+    if (n > 1) {
+        return `<span class="hcs-pedestal__tag" title="Same stars and the same tie-breakers">Tied for ${ordinal(group.rank)}<b> · ${heroCount(n)}</b></span>`;
+    }
+    return `<span class="hcs-pedestal__tag hcs-pedestal__tag--solo">${ordinal(group.rank)} place</span>`;
+}
+
+/** The ribbon over a shared crown. */
+function crownBannerHtml(gold, metric) {
+    const n = gold.heroes.length;
+    if (n < 2) return '';
+    const sub = metric === 'monthly'
+        ? '<span class="hcs-podium__banner-sub">Co-Prodigies if the month ended today</span>'
+        : '<span class="hcs-podium__banner-sub">Level on every star</span>';
+    return `
+        <div class="hcs-podium__banner" role="note">
+            <i class="fas fa-crown" aria-hidden="true"></i>
+            <span class="hcs-podium__banner-main">${n === 2 ? 'Two heroes share' : `${n} heroes share`} the crown</span>
+            ${sub}
+        </div>`;
+}
+
+function podiumHtml(spots, metric) {
+    const groups = [];
+    spots.forEach((e) => {
+        const last = groups[groups.length - 1];
+        if (last && last.rank === e.rank) last.heroes.push(e);
+        else groups.push({ rank: e.rank, heroes: [e] });
+    });
+    const layout = choosePodiumLayout(groups);
+    const packedEverywhere = layout === 'tiers';
+    // Classic stage order: silver, gold, bronze (tiers restack gold on top in
+    // CSS). The metal follows the place, so a shared place shares one pedestal.
+    const byRank = (r) => groups.find((g) => g.rank === r);
+    const order = [byRank(2), byRank(1), byRank(3)].filter(Boolean);
+    const spotsHtml = order.map((group) => {
+        const metal = PLACE_NAMES[group.rank];
+        const n = group.heroes.length;
+        const packed = packedEverywhere || n > 1;
+        const figures = group.heroes.map((e, k) => podiumFigureHtml(e, group, spots, k, packed)).join('');
         return `
-            <div class="hcs-spot hcs-spot--${metal}">
-                ${podiumFigureHtml(e, spots)}
+            <div class="hcs-spot hcs-spot--${metal}${n > 1 ? ' hcs-spot--shared' : ''}" style="--n:${n}">
+                <div class="hcs-spot__heroes">${figures}</div>
                 <div class="hcs-pedestal" aria-hidden="true">
                     <span class="hcs-pedestal__cap"></span>
-                    <span class="hcs-pedestal__num font-title">${e.rank}</span>
+                    <span class="hcs-pedestal__num font-title">${group.rank}</span>
+                    ${pedestalTagHtml(group)}
                 </div>
             </div>`;
     }).join('');
     const motes = Array.from({ length: 10 }, (_, i) => `<i style="--m:${i}"></i>`).join('');
     return `
-        <div class="hcs-podium" data-spots="${spots.length}">
+        <div class="hcs-podium hcs-podium--${layout}" data-spots="${spots.length}" style="--total:${spots.length}">
             <div class="hcs-podium__backdrop" aria-hidden="true">
                 <div class="hcs-podium__rays"></div>
                 <div class="hcs-podium__motes">${motes}</div>
                 <div class="hcs-podium__valance"></div>
             </div>
+            ${crownBannerHtml(groups[0], metric)}
             <div class="hcs-podium__stage">${spotsHtml}</div>
         </div>`;
 }
 
-function rowHtml(e, above) {
+function rowHtml(e, above, { firstBelowPodium = false } = {}) {
     let gapHtml = '';
     if (above) {
         const gap = above.score - e.score;
-        if (gap > 0) {
+        if (gap > 0 && firstBelowPodium) {
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--podium" title="Stars to draw level with ${escapeStandingsHtml(above.name)} on the podium">${gap} from the podium</span>`;
+        } else if (gap > 0) {
             gapHtml = `<span class="hcs-row__gap">${gap} to catch ${escapeStandingsHtml(above.name)}</span>`;
         } else if (above.rank === e.rank) {
             gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="Same stars and the same tie-breakers">Tied for ${ordinal(e.rank)}</span>`;
@@ -329,11 +399,13 @@ export function renderStandingsSectionHtml(section, { monthName = '', metric = '
         e.power = leaderScore > 0 ? e.score / leaderScore : 0;
         e.powerFrom = prevLeaderScore > 0 ? (e.fromScore ?? e.score) / prevLeaderScore : 0;
     });
-    const podiumCount = Math.min(PODIUM_SIZE, entries.filter((e) => e.score > 0).length);
-    // Stars decide the podium; a hero with no stars never stands on it.
-    const podium = podiumCount > 0 ? podiumHtml(entries.slice(0, podiumCount)) : openRaceHtml(monthName, metric);
+    // Every hero holding 1st, 2nd or 3rd stands on the podium, however many
+    // share a place; a hero with no stars never does.
+    const spots = pickPodiumEntries(entries);
+    const podiumCount = spots.length;
+    const podium = podiumCount > 0 ? podiumHtml(spots, metric) : openRaceHtml(monthName, metric);
     const rows = entries.slice(podiumCount)
-        .map((e, i) => rowHtml(e, entries[podiumCount + i - 1] || null))
+        .map((e, i) => rowHtml(e, entries[podiumCount + i - 1] || null, { firstBelowPodium: i === 0 && podiumCount > 0 }))
         .join('');
     const mine = section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '';
     const facts = (section.facts || []).map((f) => `<span class="hcs-section__fact">${f}</span>`).join('');

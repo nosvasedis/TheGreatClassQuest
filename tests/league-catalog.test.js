@@ -82,6 +82,9 @@ test('sorting quiz uses a dedicated early pool and senior content for advanced l
   const senior = getQuestionsForLevel('D');
   assert.ok(preJunior.length >= 7);
   assert.ok(preJunior.every((question) => question.id.startsWith('pj')));
+  // A class still on the retired Nursery league gets the same early pool.
+  assert.equal(getQuestionsForLevel('Nursery'), preJunior);
+  assert.ok(senior.every((question) => question.id.startsWith('cd')));
 });
 
 test('league picker is themed, grouped by age stage, repeatable, and silent', async () => {

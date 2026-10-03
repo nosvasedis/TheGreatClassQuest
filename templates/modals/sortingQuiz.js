@@ -14,6 +14,7 @@ export const sortingQuizModalsHTML = `
 
         <div class="sq-sky" aria-hidden="true">
             <div class="sq-sky__nebula"></div>
+            <div class="sq-sky__nebula" style="visibility:hidden"></div>
             <div class="sq-sky__stars sq-sky__stars--far"></div>
             <div class="sq-sky__stars sq-sky__stars--near"></div>
             <div class="sq-sky__motes"></div>

@@ -11,7 +11,7 @@ export const ORB_REST = { a: '#8b5cf6', b: '#22d3ee' };
 /** One line per house for the reveal: why the stars chose it. */
 export const GUILD_REVEAL_LINES = {
     dragon_flame: 'Your answers blazed with courage. You step forward when others wait.',
-    grizzly_might: 'Again and again you chose your friends. Together, you are unstoppable.',
+    grizzly_might: 'Your answers stood strong and steady. Nothing can move you, and nobody gets left behind.',
     owl_wisdom: 'Your curious mind lit the way. You ask why, and then you find out.',
     phoenix_rising: 'You never give up. Every time you fall, you rise brighter.',
 };

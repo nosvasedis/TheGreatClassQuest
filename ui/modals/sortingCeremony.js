@@ -4,7 +4,6 @@
 
 import * as state from '../../state.js';
 import * as sortingQuiz from '../../features/sortingQuiz.js';
-import { assignGuildFromQuizResults } from '../../features/guildQuiz.js';
 import { GUILDS, getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import {
     SORTING_RING_ORDER,
@@ -43,6 +42,60 @@ function escapeHtml(value) {
 
 function reducedMotion() {
     return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+// ─── Low-power mode ─────────────────────────────────────────────────────────
+// Weak classroom laptops get .sq--lite (styles/sorting_ceremony.css): the same
+// scene minus a few costly extras. It starts on low-core / low-memory machines
+// and switches on by itself if frames keep running long; once on, it stays on
+// for the rest of the session.
+
+let _lite = (() => {
+    try {
+        const cores = Number(navigator.hardwareConcurrency) || 8;
+        const memory = Number(navigator.deviceMemory) || 8;
+        return cores <= 4 || memory <= 4;
+    } catch (_) {
+        return false;
+    }
+})();
+let _frameWatch = 0;
+
+function applyLite() {
+    modalEl()?.classList.toggle('sq--lite', _lite);
+}
+
+/** Watch frame times while the ceremony is open; slow frames switch on lite mode. */
+function watchFrames() {
+    stopFrameWatch();
+    if (_lite) return;
+    const samples = [];
+    let last = 0;
+    const step = (t) => {
+        const modal = modalEl();
+        if (!modal || modal.classList.contains('hidden')) { _frameWatch = 0; return; }
+        if (last && !document.hidden && !modal.classList.contains('is-entering')) {
+            samples.push(t - last);
+            if (samples.length > 40) samples.shift();
+            if (samples.length === 40) {
+                const sorted = [...samples].sort((a, b) => a - b);
+                if (sorted[20] > 30) {
+                    _lite = true;
+                    applyLite();
+                    _frameWatch = 0;
+                    return;
+                }
+            }
+        }
+        last = t;
+        _frameWatch = requestAnimationFrame(step);
+    };
+    _frameWatch = requestAnimationFrame(step);
+}
+
+function stopFrameWatch() {
+    if (_frameWatch) cancelAnimationFrame(_frameWatch);
+    _frameWatch = 0;
 }
 
 function later(fn, ms) {
@@ -134,14 +187,52 @@ function renderHero(student) {
     }
 }
 
-function applyOrbColors() {
+let _nebFront = 0;
+
+/**
+ * Recolour the nebula by fading a second, freshly painted layer in over it.
+ * Easing the colour itself would repaint the whole sky every frame, which
+ * stalls weak laptops; a cross-fade paints once and lets the GPU do the rest.
+ */
+function paintNebula(a, b, ms = 900) {
+    const layers = modalEl()?.querySelectorAll('.sq-sky__nebula');
+    if (!layers || layers.length < 2) return;
+    const front = layers[_nebFront];
+    if (front.dataset.a === a && front.dataset.b === b) return;
+    const next = layers[1 - _nebFront];
+    [front, next].forEach((el) => el.getAnimations().forEach((anim) => anim.cancel()));
+    front.style.opacity = '1';
+    front.style.zIndex = '0';
+    next.dataset.a = a;
+    next.dataset.b = b;
+    next.style.setProperty('--neb-a', a);
+    next.style.setProperty('--neb-b', b);
+    next.style.zIndex = '1';
+    next.style.visibility = 'visible';
+    _nebFront = 1 - _nebFront;
+    const settle = () => {
+        next.style.opacity = '1';
+        front.style.visibility = 'hidden';
+    };
+    if (ms <= 0 || reducedMotion() || !next.animate) { settle(); return; }
+    next.style.opacity = '0';
+    const anim = next.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'ease', fill: 'forwards' });
+    anim.onfinish = () => { settle(); anim.cancel(); };
+}
+
+function setOrbColors(a, b, nebulaMs, nebula = true) {
     const modal = modalEl();
     if (!modal) return;
+    modal.style.setProperty('--sq-orb-a', a);
+    modal.style.setProperty('--sq-orb-b', b);
+    if (nebula) paintNebula(a, b, nebulaMs);
+}
+
+function applyOrbColors(nebulaMs) {
     const { questions, answers } = sortingQuiz.getQuizState();
     const { shares } = computeGuildAffinity(questions, answers);
     const { a, b } = orbColorsForShares(shares, GUILDS);
-    modal.style.setProperty('--sq-orb-a', a);
-    modal.style.setProperty('--sq-orb-b', b);
+    setOrbColors(a, b, nebulaMs);
 }
 
 function renderRunes(step, total, answers) {
@@ -310,22 +401,20 @@ function lightSeat(guildId) {
         seat.classList.toggle('is-lit', seat.dataset.guild === guildId);
     });
     const g = GUILDS[guildId];
-    const modal = modalEl();
-    if (g && modal) {
-        modal.style.setProperty('--sq-orb-a', g.glow);
-        modal.style.setProperty('--sq-orb-b', g.secondary);
-    }
+    // On lite machines the sky stays put while the spotlight races; the orb still follows it.
+    if (g) setOrbColors(g.glow, g.secondary, 260, !_lite);
 }
 
 async function startReveal() {
     if (ctx.busy) return;
     const { questions, answers } = sortingQuiz.getQuizState();
     if (!questions?.length || answers.filter((a) => a !== undefined).length !== questions.length) return;
+    // The pick is decided once up front, so the spotlight knows where to land
+    // while the save runs alongside the drama.
+    const guildId = sortingQuiz.decideGuild();
+    if (!guildId) return;
     ctx.busy = true;
 
-    // The pick is deterministic, so the spotlight can know where to land while
-    // the save runs alongside the drama.
-    const guildId = assignGuildFromQuizResults(answers, null, questions);
     ctx.resultId = guildId;
     ctx.savePromise = sortingQuiz.submitQuiz().then((r) => {
         ctx.saved = !!r;
@@ -460,7 +549,8 @@ let _sparkRaf = 0;
 function burstSparks(cx, cy, colors, count) {
     const canvas = $('sq-sparks');
     if (!canvas?.getContext) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, _lite ? 1 : 2);
+    if (_lite) count = Math.round(count * 0.55);
     const w = window.innerWidth;
     const h = window.innerHeight;
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
@@ -644,11 +734,12 @@ export function openSortingCeremony(studentId, opts = {}) {
     ['--sq-g1', '--sq-g2', '--sq-glow'].forEach((p) => modal.style.removeProperty(p));
     delete modal.dataset.guild;
     modal.classList.remove('is-flashing', 'is-leaving', 'is-entering');
-    applyOrbColors();
+    applyOrbColors(0);
 
     // Start folded (sq-pre), then let the portal open and the sigil unfurl.
     setPortalPoint(modal, opts.origin);
     modal.classList.add('sq-pre');
+    applyLite();
     modal.classList.remove('hidden');
     document.body.classList.add('sq-open');
     setStage('intro');
@@ -656,6 +747,7 @@ export function openSortingCeremony(studentId, opts = {}) {
     modal.classList.add('is-entering');
     requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.remove('sq-pre')));
     later(() => modal.classList.remove('is-entering'), reducedMotion() ? 0 : OPEN_SETTLE_MS);
+    if (!reducedMotion()) watchFrames();
     sound('magic_chime');
 }
 
@@ -665,6 +757,7 @@ export function closeSortingCeremony() {
     if (!modal || modal.classList.contains('hidden') || modal.classList.contains('is-leaving')) return;
     clearTimers();
     stopSparks();
+    stopFrameWatch();
     import('../../audio.js').then((a) => a.stopDrumRoll?.()).catch(() => {});
     const saved = ctx.saved;
     ctx.busy = false;

@@ -31,6 +31,23 @@ export const SENTENCE_STARTERS = Object.freeze({
     upper: ['Without warning,…', 'Meanwhile,…', 'Although they were scared,…', 'By the time they arrived,…', 'If only they had…', 'Just as the sun set,…', 'Little did they know that…', 'Despite the storm,…', 'It was the first time that…']
 });
 
+// ─── Story Weavers: Word of the Day bank (Lucky Dip, no AI needed) ──────────
+// Each entry is [word, kind]; kinds are noun, verb or adjective.
+export const STORY_WORD_BANK = Object.freeze({
+    early: [['moon', 'noun'], ['jump', 'verb'], ['happy', 'adjective'], ['box', 'noun'], ['run', 'verb'], ['big', 'adjective'],
+        ['star', 'noun'], ['sing', 'verb'], ['little', 'adjective'], ['cake', 'noun'], ['swim', 'verb'], ['funny', 'adjective'],
+        ['frog', 'noun'], ['fly', 'verb'], ['red', 'adjective'], ['tree', 'noun'], ['dance', 'verb'], ['sleepy', 'adjective']],
+    junior: [['castle', 'noun'], ['whisper', 'verb'], ['brave', 'adjective'], ['dragon', 'noun'], ['climb', 'verb'], ['tiny', 'adjective'],
+        ['key', 'noun'], ['hide', 'verb'], ['scary', 'adjective'], ['island', 'noun'], ['shout', 'verb'], ['shiny', 'adjective'],
+        ['robot', 'noun'], ['find', 'verb'], ['hungry', 'adjective'], ['map', 'noun'], ['follow', 'verb'], ['magic', 'adjective']],
+    mid: [['treasure', 'noun'], ['discover', 'verb'], ['mysterious', 'adjective'], ['forest', 'noun'], ['escape', 'verb'], ['enormous', 'adjective'],
+        ['lantern', 'noun'], ['explore', 'verb'], ['curious', 'adjective'], ['storm', 'noun'], ['rescue', 'verb'], ['ancient', 'adjective'],
+        ['potion', 'noun'], ['wander', 'verb'], ['gloomy', 'adjective'], ['secret', 'noun'], ['tremble', 'verb'], ['sparkling', 'adjective']],
+    upper: [['labyrinth', 'noun'], ['venture', 'verb'], ['luminous', 'adjective'], ['prophecy', 'noun'], ['vanish', 'verb'], ['fearless', 'adjective'],
+        ['echo', 'noun'], ['unravel', 'verb'], ['eerie', 'adjective'], ['voyage', 'noun'], ['plunge', 'verb'], ['reluctant', 'adjective'],
+        ['riddle', 'noun'], ['stumble', 'verb'], ['majestic', 'adjective'], ['shadow', 'noun'], ['summon', 'verb'], ['bewildered', 'adjective']]
+});
+
 // ─── Story Weavers: structure hints (one pattern per line, per league) ──────
 export const STRUCTURE_HINTS = Object.freeze({
     'Pre-Junior': [
@@ -186,6 +203,18 @@ export function getSentenceStarters(league) {
     return [...fromBand(SENTENCE_STARTERS, league)];
 }
 
+/** Three different bank words for a Lucky Dip, never repeating `exclude`. */
+export function pickStoryWords(league, { count = 3, exclude = [], random = Math.random } = {}) {
+    const skip = new Set(exclude.map((w) => String(w || '').toLowerCase()));
+    const pool = fromBand(STORY_WORD_BANK, league).filter(([word]) => !skip.has(word));
+    const picks = [];
+    while (pool.length && picks.length < count) {
+        const [entry] = pool.splice(Math.floor(random() * pool.length) % pool.length, 1);
+        picks.push({ word: entry[0], kind: entry[1] });
+    }
+    return picks;
+}
+
 export function getStructureHints(league) {
     const hints = STRUCTURE_HINTS[String(league || '').trim()];
     return hints ? [...hints] : [...STRUCTURE_HINTS.A];
@@ -202,7 +231,10 @@ export function pickOne(list = [], random = Math.random) {
  */
 export function getDialogicPrompts(league, { word = '', random = Math.random } = {}) {
     const bank = fromBand(DIALOGIC_PROMPTS, league);
-    const fill = (text) => String(text || '').replaceAll('{word}', word ? `"${word}"` : 'a new word');
+    // The bank already quotes {word}, so only an unquoted one gets quotes added.
+    const fill = (text) => String(text || '')
+        .replaceAll('"{word}"', word ? `"${word}"` : 'a new word')
+        .replaceAll('{word}', word ? `"${word}"` : 'a new word');
     const picks = [
         ['recall'],
         [random() < 0.5 ? 'open' : 'wh'],

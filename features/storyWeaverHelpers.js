@@ -70,13 +70,13 @@ export function renderStoryWritingHelpers(classId = storyWeaverClassId()) {
     const activeIndex = readStructureFocus(classId);
     hintsEl.innerHTML = getStructureHints(classData.questLevel).map((hint, index) => `
         <button type="button" class="sw-structure-card ${index === activeIndex ? 'is-active' : ''}" role="radio"
-            aria-checked="${index === activeIndex}" data-structure-index="${index}">
+            aria-checked="${index === activeIndex}" data-structure-index="${index}" style="--i:${index}">
             <span class="sw-structure-name">${escapeHtml(hint.label)}</span>
             <span class="sw-structure-pattern">${escapeHtml(hint.pattern)}</span>
             <span class="sw-structure-example">“${escapeHtml(hint.example)}”</span>
         </button>`).join('');
-    startersEl.innerHTML = getSentenceStarters(classData.questLevel).map((starter) => `
-        <button type="button" class="sw-starter-chip" data-story-starter="${escapeHtml(starter)}">${escapeHtml(starter)}</button>`).join('');
+    startersEl.innerHTML = getSentenceStarters(classData.questLevel).map((starter, index) => `
+        <button type="button" class="sw-starter-chip" style="--i:${index}" data-story-starter="${escapeHtml(starter)}">${escapeHtml(starter)}</button>`).join('');
 }
 
 export function renderStoryInputHelpers(classId = storyWeaverClassId()) {
@@ -88,11 +88,9 @@ export function renderStoryInputHelpers(classId = storyWeaverClassId()) {
         container.innerHTML = '';
         return;
     }
-    const word = state.get('storyWeaverLockedWord');
     const focus = getActiveStructureHint(classId, scaffolds);
     const starters = getSentenceStarters(classData.questLevel).slice(0, 6);
     container.innerHTML = `
-        ${word ? `<p class="sw-input-word"><i class="fas fa-gem" aria-hidden="true"></i> Use today's word: <strong>${escapeHtml(word)}</strong></p>` : ''}
         ${focus ? `<p class="sw-input-focus"><i class="fas fa-shapes" aria-hidden="true"></i> <strong>${escapeHtml(focus.label)}:</strong> ${escapeHtml(focus.pattern)} <span>e.g. “${escapeHtml(focus.example)}”</span></p>` : ''}
         <div class="sw-input-starters" aria-label="Sentence starters">
             ${starters.map((starter) => `<button type="button" class="sw-starter-chip sw-starter-chip--small" data-input-starter="${escapeHtml(starter)}">${escapeHtml(starter)}</button>`).join('')}

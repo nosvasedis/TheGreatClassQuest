@@ -100,7 +100,7 @@ export async function handleEndStory() {
     showModal('Finish this Storybook?', 'This will mark the story as complete and move it to the archive. You will start with a blank page. Are you sure?', async () => {
         const endBtn = document.getElementById('story-weavers-end-btn');
         endBtn.disabled = true;
-        endBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+        endBtn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Binding...</span>`;
 
         try {
             const publicDataPath = "artifacts/great-class-quest/public/data";
@@ -113,7 +113,10 @@ export async function handleEndStory() {
                 return;
             }
 
-            const storyChapters = historySnapshot.docs.map(d => d.data());
+            // Pages left behind by an older Start New are not part of this story.
+            const pageCount = Number(currentStoryData[classId]?.storyAdditionsCount) || 0;
+            const allChapters = historySnapshot.docs.map(d => d.data());
+            const storyChapters = pageCount > 0 && pageCount < allChapters.length ? allChapters.slice(-pageCount) : allChapters;
             let storyTitle;
             if (canUseFeature('eliteAI')) {
                 storyTitle = await callGeminiApi(
@@ -159,7 +162,7 @@ export async function handleEndStory() {
             showToast("Failed to archive the story. Please try again.", "error");
         } finally {
             endBtn.disabled = false;
-            endBtn.innerHTML = `The End`;
+            endBtn.innerHTML = `<i class="fas fa-book-bookmark" aria-hidden="true"></i><span>The End</span>`;
         }
     }, "Yes, Finish It!");
 }

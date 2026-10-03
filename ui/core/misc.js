@@ -37,17 +37,7 @@ export function updateStudentCardAttendanceState(studentId, isAbsent) {
 }
 
 export function confirmWord() {
-    const input = document.getElementById('story-weavers-word-input');
-    const word = input.value.trim();
-    if (word) {
-        state.set('storyWeaverLockedWord', word);
-        input.classList.add('bg-green-100', 'border-green-400', 'font-bold');
-        document.getElementById('story-weavers-suggest-word-btn').disabled = true;
-        document.getElementById('story-weavers-lock-in-btn').disabled = false;
-        document.getElementById('story-weavers-end-btn').disabled = false;
-        storyWeaver.hideWordEditorControls(true);
-        playSound('confirm');
-    }
+    storyWeaver.confirmStoryWord();
 }
 
 export function handleWordInputChange(event) {

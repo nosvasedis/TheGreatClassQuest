@@ -143,7 +143,10 @@ state.subscribe(['allEmberOaths', 'allAwardLogs'], refreshReadyBadges);
 window.addEventListener('gcq:campfire-updated', async event => {
     const m = await import('./campfire/campfireService.js');
     const classId = event.detail?.classId;
-    if (classId && m.getCachedCampfire(classId)?.status === 'completed') completed.add(classId + '_' + getTodayDateString());
+    const status = classId ? m.getCachedCampfire(classId)?.status : null;
+    if (status === 'completed') completed.add(classId + '_' + getTodayDateString());
+    // "Not today" on the projector rests the card exactly like its ✕ does.
+    if (status === 'skipped') { try { localStorage.setItem(dismissKey(classId), '1'); } catch {} }
     refreshEntries();
 });
 window.addEventListener('gcq:hero-crowned', event => {

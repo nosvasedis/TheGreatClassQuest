@@ -35,12 +35,13 @@ test('one daily mood, bounded history, no hidden penalty for quiet days', () => 
     oath.checkIns=addOathCheckIn(oath,'flame','2026-09-20'); assert.equal(oath.checkIns.length,12);
     assert.equal(oath.checkIns.at(-1).mood,'flame'); assert.throws(()=>addOathCheckIn({...oath,status:'kept'},'flame','2026-09-21'));
 });
-test('keepsake is stable, collectible only, and private copy stays discreet', () => {
-    const oath = draft(); oath.private=true; oath.legendLine='Kept a personal promise with care.';
+test('keepsake is stable and collectible only; every promise is shown as written', () => {
+    const oath = draft(); oath.legendLine='Kept a promise: I help someone take a turn.';
     const item=buildOathKeepsake(oath,'2026-09-27');
     assert.equal(item.id,'ember_oath'); assert.equal(item.source,'ember_oath'); assert.equal(item.description,oath.legendLine);
     assert.equal(item.gold,undefined); assert.equal(item.stars,undefined);
-    assert.equal(createOathDraft(oathTemplates('A')[0],{studentId:'s',classId:'c',teacherId:'t',schoolYearKey:'2026-2027',date:'2026-09-27',private:true}).projectorText,'A secret oath');
+    assert.equal(createOathDraft(oathTemplates('A')[0],{studentId:'s',classId:'c',teacherId:'t',schoolYearKey:'2026-2027',date:'2026-09-27',private:true}).projectorText,'I share an idea in English.');
+    assert.equal(createOathDraft(oathTemplates('A')[0],{studentId:'s',classId:'c',teacherId:'t',schoolYearKey:'2026-2027',date:'2026-09-27'}).private,false);
 });
 test('family publication whitelists content and retry replaces the same note', () => {
     const note=publicEmberNote({oathId:'oath',summary:'A small promise kept.',date:'2026-09-27',schoolYearKey:'2026-2027',evidence:['private']});

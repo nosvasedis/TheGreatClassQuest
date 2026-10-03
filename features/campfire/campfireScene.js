@@ -287,7 +287,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             const crowned = student.id === session.heroStudentId;
             const mood = oath?.checkIns?.find(c => c.date === session.date)?.mood || '';
             const guild = getGuildById(student.guildId);
-            const text = oath ? (oath.private ? '🔒 A secret promise' : oath.projectorText || oath.text) : '✨ A promise is waiting to be chosen';
+            const text = oath ? oath.text || oath.projectorText : '✨ A promise is waiting to be chosen';
             return '<article class="cf-seat' + (crowned ? ' is-crowned' : '') + (mood ? ' is-' + mood : '') + (oath ? '' : ' is-empty') + '" style="--seat:' + i + (guild?.primary ? ';--guild:' + esc(guild.primary) : '') + '">' +
                 '<div class="cf-seat-bubble"><p>' + esc(text) + '</p></div>' +
                 '<div class="cf-seat-avatar">' + avatar(student) + (crowned ? '<i class="cf-crown" aria-label="Hero of the Day">👑</i>' : '') +
@@ -315,7 +315,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             '<div class="cf-moment-burst" aria-hidden="true">' + Array.from({ length: 18 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div></div>' +
             '<div class="cf-moment-text"><div class="cf-moment-avatar">' + avatar(student) + '</div>' +
             '<p class="cf-eyebrow">A PROMISE KEPT</p><h2>' + esc(student?.name || 'A hero') + ' kept a promise!</h2>' +
-            '<p class="cf-moment-quote">' + esc(keptNow?.private ? 'A personal promise, kept with care.' : '“' + (keptNow?.projectorText || keptNow?.text || '') + '”') + '</p>' +
+            '<p class="cf-moment-quote">' + esc('“' + (keptNow?.text || keptNow?.projectorText || '') + '”') + '</p>' +
             '<button class="cf-next cf-moment-continue" data-moment-continue>✦ Place it in our sky</button></div>';
         root.classList.add('has-moment', 'is-sky-featured');
         // The ember leaves the fire and climbs to the centre of the sky.
@@ -421,7 +421,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
                   '<div class="cf-medallions">' + ready.map((o, i) => {
                       const student = students.find(s => s.id === o.studentId);
                       return '<article class="cf-medallion" style="--i:' + i + '"><div class="cf-medallion-avatar">' + avatar(student) + '</div><h3>' + esc(student?.name || '') + '</h3>' +
-                          '<p>' + esc(o.private ? 'A personal promise' : o.projectorText || o.text) + '</p><button data-keep="' + esc(o.id) + '">✨ Let it rise</button></article>';
+                          '<p>' + esc(o.text || o.projectorText) + '</p><button data-keep="' + esc(o.id) + '">✨ Let it rise</button></article>';
                   }).join('') + '</div>'
                 : heading('OUR SKY OF PROMISES', kept ? (kept === 1 ? 'One promise shines in our sky.' : kept + ' promises shine in our sky.') : 'Our sky is waiting for its first star.',
                     kept ? 'Look up: every star was once a small promise. Each shape is a different kind.' : 'Keep a promise, and it will shine here.')

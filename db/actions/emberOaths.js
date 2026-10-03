@@ -84,7 +84,7 @@ export async function keepEmberOath(id, { confirmed = false, reflection = {} } =
         const scoreRef = doc(db, ROOT + 'student_scores', current.studentId);
         const score = await tx.get(scoreRef);
         if (!score.exists() || score.data().activeSchoolYearKey !== c.schoolYearKey) throw new Error('The active-year student record is unavailable.');
-        const legendLine = current.private ? 'Kept a personal promise with care.' : 'Kept a promise: ' + current.text;
+        const legendLine = 'Kept a promise: ' + current.text;
         const kept = { ...current, status: 'kept', evidence: result.evidence, legendLine,
             reflection: { helped: cleanCampfireText(reflection.helped, 240), next: cleanCampfireText(reflection.next, 240), emoji: cleanCampfireText(reflection.emoji, 12) } };
         const keepsake = buildOathKeepsake(kept, new Date().toISOString());

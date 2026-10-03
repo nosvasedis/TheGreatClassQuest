@@ -83,7 +83,7 @@ test('hero path, skills, familiar, oath and treasures reach the page', () => {
             inventory: [{ name: 'Star-Ember', acquiredAt: '2026-09-12' }, { name: 'Old', acquiredAt: '2026-05-01' }] },
         familiarTypes: { emberfang: { name: 'Emberfang', levelNames: ['Hatchling', 'Flame Drake', 'Inferno Dragon'] } },
         oaths: [{ studentId: 's1', status: 'kept', text: 'Help a friend', keptAt: { seconds: Date.UTC(2026, 8, 12) / 1000 } },
-            { studentId: 's1', status: 'kept', private: true, text: 'secret', keptAt: { seconds: Date.UTC(2026, 3, 1) / 1000 } }],
+            { studentId: 's1', status: 'kept', text: 'Last spring promise', keptAt: { seconds: Date.UTC(2026, 3, 1) / 1000 } }],
     });
     assert.equal(m.hero.level, 5, 'level is clamped to the class tree');
     assert.equal(m.hero.title, 'Eternal Guardian');
@@ -94,7 +94,7 @@ test('hero path, skills, familiar, oath and treasures reach the page', () => {
     assert.ok(m.honours.length <= 6);
     const prompt = buildCertificatePrompt(m).user;
     assert.match(prompt, /Help a friend/);
-    assert.doesNotMatch(prompt, /secret/);
+    assert.doesNotMatch(prompt, /Last spring promise/, 'only this year’s kept promise is told');
 });
 
 test('markup escapes names and keeps the stable element ids', () => {

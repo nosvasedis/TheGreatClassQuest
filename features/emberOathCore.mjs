@@ -70,14 +70,15 @@ export function addOathCheckIn(oath, mood, date) {
     if (oath.status !== 'active') throw new Error('This promise is no longer active.');
     return [...(oath.checkIns || []).filter(c => c.date !== date), { date, mood }].sort((a, b) => a.date.localeCompare(b.date)).slice(-12);
 }
-export function createOathDraft(template, { studentId, classId, teacherId, schoolYearKey, date, text, private: isPrivate = false }) {
+export function createOathDraft(template, { studentId, classId, teacherId, schoolYearKey, date, text }) {
     const due = new Date(date + 'T12:00:00'); due.setDate(due.getDate() + Math.min(8, template.weeks || 2) * 7);
     const body = cleanCampfireText(text || template.text, 240);
     if (!body || !studentId || !classId || !teacherId || !schoolYearKey || Number.isNaN(due.getTime())) throw new Error('Complete the promise before saving.');
     return { studentId, classId, teacherId, schoolYearKey, templateId: template.id || 'custom', text: body,
-        projectorText: isPrivate ? 'A secret oath' : body, category: template.category || 'habit', band: template.band || 'mid',
+        projectorText: body, category: template.category || 'habit', band: template.band || 'mid',
         target: template.target || { kind: 'manual', count: 2 }, evidenceRule: template.evidenceRule || 'manual',
-        startDate: date, dueDate: oathDate(due), status: 'active', private: !!isPrivate, checkIns: [], evidence: [],
+        startDate: date, dueDate: oathDate(due), status: 'active', private: false, // kept false for the stored shape; every promise is shown as written
+        checkIns: [], evidence: [],
         reflection: { helped: '', next: '', emoji: '' }, legendLine: '', keptAt: null };
 }
 export function buildOathKeepsake(oath, date) {

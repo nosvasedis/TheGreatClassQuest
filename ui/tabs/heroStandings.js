@@ -124,9 +124,37 @@ function countHtml(e) {
     return `<span class="hcs-count" data-hcs-count data-from="${e.fromScore ?? e.score}" data-to="${e.score}">${e.score}</span>`;
 }
 
-function nameHtml(e) {
-    const icon = e.heroIcon ? `<span class="hcs-name__icon" aria-hidden="true">${e.heroIcon}</span>` : '';
-    return `${icon}<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+/**
+ * The hero class emblem left of a name: a round badge in the class's aura
+ * colour, with a card on hover or focus naming the rank, level and perk.
+ * heroClass: { cls, icon, aura, title, level, maxLevel, perk, next }
+ */
+export function heroEmblemHtml(hc) {
+    if (!hc?.icon) return '';
+    const level = Number(hc.level) || 0;
+    const levelLine = level > 0
+        ? `${escapeStandingsHtml(hc.cls)} · Level ${level}${hc.maxLevel >= level ? ` of ${hc.maxLevel}` : ''}`
+        : `${escapeStandingsHtml(hc.cls)} · Not ranked up yet`;
+    const next = hc.next ? `<span class="hcs-emblem__next">Next rank: <b>${escapeStandingsHtml(hc.next)}</b></span>` : '';
+    const perk = hc.perk ? `<span class="hcs-emblem__perk"><i class="fas fa-coins" aria-hidden="true"></i>${escapeStandingsHtml(hc.perk)}</span>` : '';
+    const label = `${hc.title || hc.cls}, ${hc.cls}${level > 0 ? ` level ${level}` : ''}`;
+    return `<span class="hcs-emblem" style="--aura:${escapeStandingsHtml(hc.aura || '#7c3aed')}" tabindex="0" role="img" aria-label="${escapeStandingsHtml(label)}">
+            <span class="hcs-emblem__icon" aria-hidden="true">${hc.icon}</span>
+            ${level > 0 ? `<span class="hcs-emblem__lvl" aria-hidden="true">${level}</span>` : ''}
+            <span class="hcs-emblem__tip" aria-hidden="true">
+                <span class="hcs-emblem__head"><span class="hcs-emblem__tip-icon">${hc.icon}</span><b>${escapeStandingsHtml(hc.title || hc.cls)}</b></span>
+                <span class="hcs-emblem__lvlline">${levelLine}</span>
+                ${perk}${next}
+            </span>
+        </span>`;
+}
+
+function nameHtml(e, { emblem: withEmblem = true } = {}) {
+    if (!withEmblem) return `<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+    const emblem = e.heroClass
+        ? heroEmblemHtml(e.heroClass)
+        : (e.heroIcon ? `<span class="hcs-name__icon" aria-hidden="true">${e.heroIcon}</span>` : '');
+    return `${emblem}<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
 }
 
 function classChipHtml(e) {
@@ -213,8 +241,9 @@ function podiumFigureHtml(e, group, entries, k, packed) {
                 <span class="hcs-figure__ring" aria-hidden="true"></span>
                 ${e.avatarLargeHtml}
                 ${e.familiarHtml || ''}
+                ${e.heroClass ? heroEmblemHtml(e.heroClass) : ''}
             </div>
-            <h3 class="hcs-figure__name font-title" title="${escapeStandingsHtml(e.name)}">${nameHtml(e)}</h3>
+            <h3 class="hcs-figure__name font-title">${nameHtml(e, { emblem: !e.heroClass })}</h3>
             <div class="hcs-figure__badges">${badges}</div>
             <div class="hcs-figure__stars">
                 <i class="fas fa-star hcs-figure__star" aria-hidden="true"></i>
@@ -290,36 +319,101 @@ function podiumHtml(spots, metric) {
         </div>`;
 }
 
-function rowHtml(e, above, { firstBelowPodium = false } = {}) {
+// --- Hero rows ----------------------------------------------------------------
+
+const SKILL_TONES = {
+    teamwork: 'violet',
+    creativity: 'pink',
+    respect: 'green',
+    focus: 'amber',
+    scholar_s_bonus: 'amber',
+    teacher_boon: 'pink',
+    pathfinder_map: 'indigo'
+};
+
+function traitHtml(tone, icon, text, title) {
+    return `<span class="hcs-trait hcs-trait--${tone}" title="${escapeStandingsHtml(title)}"><i class="fas ${icon}" aria-hidden="true"></i><span>${escapeStandingsHtml(text)}</span></span>`;
+}
+
+/**
+ * The little trait chips a hero carries (rows and podium): reigning Prodigy,
+ * stars this week, perfect-lesson streak, top skill this month, egg news.
+ * skill: { key, icon, name } · egg: { kind: 'ready' | 'soon', remaining }
+ */
+export function renderHeroTraitsHtml({ prodigy = false, weekStars = 0, streak = 0, skill = null, egg = null } = {}) {
+    const out = [];
+    if (prodigy) out.push(traitHtml('crown', 'fa-crown', 'Prodigy', 'Reigning Prodigy of the Month'));
+    if (weekStars > 0) out.push(traitHtml('fire', 'fa-fire', `+${weekStars} this week`, `${weekStars} star${weekStars === 1 ? '' : 's'} this week`));
+    if (streak > 1) out.push(traitHtml('bolt', 'fa-bolt', `${streak} perfect`, `${streak} perfect 3-star lessons in a row`));
+    if (skill?.name) out.push(traitHtml(SKILL_TONES[skill.key] || 'sky', skill.icon || 'fa-star', skill.name, 'Top skill this month'));
+    if (egg?.kind === 'ready') out.push(traitHtml('egg', 'fa-egg', 'Ready to hatch', 'This egg is ready to hatch now'));
+    else if (egg?.kind === 'soon') out.push(traitHtml('egg', 'fa-egg', `${egg.remaining} to hatch`, `${egg.remaining} more star${egg.remaining === 1 ? '' : 's'} until the egg hatches`));
+    return out.join('');
+}
+
+/** Guild role badges: this month's Guild Champion and the guild's Top Hero. */
+export function renderHeroRoleBadgesHtml({ champion = false, topHero = false, color = '' } = {}) {
+    const style = color ? ` style="--badge:${escapeStandingsHtml(color)}"` : '';
+    let html = '';
+    if (champion) html += `<span class="hcs-badge hcs-badge--champion"${style} title="Guild Champion this month"><i class="fas fa-shield-alt" aria-hidden="true"></i>Champion</span>`;
+    if (topHero) html += '<span class="hcs-badge hcs-badge--top" title="Top Hero for this guild"><i class="fas fa-medal" aria-hidden="true"></i>Top Hero</span>';
+    return html;
+}
+
+/**
+ * The bar under a hero's name: how far along the road to 1st they are (their
+ * stars as a share of the leader's), with a flag where the podium starts.
+ */
+function roadHtml(e, { leaderScore, podiumFloor }) {
+    const pct = leaderScore > 0 ? Math.round((e.score / leaderScore) * 100) : 0;
+    const flag = podiumFloor > 0 && podiumFloor < leaderScore
+        ? `<span class="hcs-road__flag" style="--at:${(podiumFloor / leaderScore).toFixed(3)}" title="The podium starts at ${podiumFloor} star${podiumFloor === 1 ? '' : 's'}"></span>`
+        : '';
+    const label = e.score > 0 ? `${pct}% of the way to 1st` : 'No stars yet';
+    return `
+        <div class="hcs-road" title="${e.score} of the leader's ${leaderScore} stars">
+            <span class="hcs-road__track" aria-hidden="true">
+                <span class="hcs-road__fill"></span>
+                ${flag}
+                <i class="fas fa-crown hcs-road__goal"></i>
+            </span>
+            <span class="hcs-road__label">${label}</span>
+        </div>`;
+}
+
+function rowHtml(e, above, { firstBelowPodium = false, leaderScore = 0, podiumFloor = 0 } = {}) {
     let gapHtml = '';
     if (above) {
         const gap = above.score - e.score;
         if (gap > 0 && firstBelowPodium) {
-            gapHtml = `<span class="hcs-row__gap hcs-row__gap--podium" title="Stars to draw level with ${escapeStandingsHtml(above.name)} on the podium">${gap} from the podium</span>`;
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--podium" title="Stars to draw level with ${escapeStandingsHtml(above.name)} on the podium"><i class="fas fa-flag" aria-hidden="true"></i>${gap} from the podium</span>`;
         } else if (gap > 0) {
-            gapHtml = `<span class="hcs-row__gap">${gap} to catch ${escapeStandingsHtml(above.name)}</span>`;
+            gapHtml = `<span class="hcs-row__gap" title="Stars to draw level with ${escapeStandingsHtml(above.name)}"><i class="fas fa-arrow-up" aria-hidden="true"></i>${gap} to catch ${escapeStandingsHtml(above.name)}</span>`;
         } else if (above.rank === e.rank) {
-            gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="Same stars and the same tie-breakers">Tied for ${ordinal(e.rank)}</span>`;
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="Same stars and the same tie-breakers"><i class="fas fa-equals" aria-hidden="true"></i>Tied for ${ordinal(e.rank)}</span>`;
         } else {
-            gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="${escapeStandingsHtml(above.name)} has more 3-star or 2-star awards, more kinds of awards, or a better test average">Behind on tie-break</span>`;
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="${escapeStandingsHtml(above.name)} has more 3-star or 2-star awards, more kinds of awards, or a better test average"><i class="fas fa-balance-scale" aria-hidden="true"></i>Behind on tie-break</span>`;
         }
     }
+    const accent = e.accent ? `--hcs-accent:${escapeStandingsHtml(e.accent)};` : '';
+    const crest = e.guildBadgeHtml ? `<span class="hcs-row__crest">${e.guildBadgeHtml}</span>` : '';
     return `
-        <li class="hcs-row" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--hcs-power:${e.power.toFixed(3)};--hcs-power-from:${(e.powerFrom ?? e.power).toFixed(3)};--hcs-i:${e.slot}">
+        <li class="hcs-row${firstBelowPodium ? ' hcs-row--next' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="${accent}--hcs-power:${e.power.toFixed(3)};--hcs-power-from:${(e.powerFrom ?? e.power).toFixed(3)};--hcs-i:${e.slot}">
             <div class="hcs-row__rank" aria-label="Rank ${e.rank}">
                 <span class="hcs-shield"><span class="hcs-shield__num font-title" data-hcs-rank data-from="${e.fromRank ?? e.rank}" data-to="${e.rank}">${e.rank}</span></span>
             </div>
             <div class="hcs-row__portrait hero-challenge-avatar-wrap">
                 ${e.avatarHtml}
                 ${e.familiarHtml || ''}
+                ${crest}
             </div>
             <div class="hcs-row__body">
                 <div class="hcs-row__head">
                     <h3 class="hcs-row__name font-title">${nameHtml(e)}</h3>
-                    ${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}${moveChipHtml(e)}
+                    ${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}${moveChipHtml(e)}
                 </div>
                 <div class="hcs-row__meta">${goldChipHtml(e)}${classChipHtml(e)}${e.pillsHtml || ''}</div>
-                <div class="hcs-row__power" aria-hidden="true"><span class="hcs-row__power-fill"></span></div>
+                ${roadHtml(e, { leaderScore, podiumFloor })}
             </div>
             <div class="hcs-row__score">
                 <div class="hcs-row__stars">
@@ -387,7 +481,7 @@ function resealButtonHtml() {
 /**
  * section: { id, title, logo, facts: [html], mine, entries, seal }
  * seal: null, or 'sealed' (curtain drawn) / 'open' (finale day, peeked at)
- * entry: { id, name, rank, score, gold, heroIcon, avatarHtml, avatarLargeHtml,
+ * entry: { id, name, rank, score, gold, heroIcon, heroClass, accent, avatarHtml, avatarLargeHtml,
  *          familiarHtml, guildBadgeHtml, titleBadgeHtml, roleBadgesHtml, pillsHtml,
  *          className, classLogo, showClass, slot, fromSlot, fromScore, gain, climb }
  */
@@ -405,7 +499,11 @@ export function renderStandingsSectionHtml(section, { monthName = '', metric = '
     const podiumCount = spots.length;
     const podium = podiumCount > 0 ? podiumHtml(spots, metric) : openRaceHtml(monthName, metric);
     const rows = entries.slice(podiumCount)
-        .map((e, i) => rowHtml(e, entries[podiumCount + i - 1] || null, { firstBelowPodium: i === 0 && podiumCount > 0 }))
+        .map((e, i) => rowHtml(e, entries[podiumCount + i - 1] || null, {
+            firstBelowPodium: i === 0 && podiumCount > 0,
+            leaderScore,
+            podiumFloor: podiumCount > 0 ? spots[podiumCount - 1].score : 0
+        }))
         .join('');
     const mine = section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '';
     const facts = (section.facts || []).map((f) => `<span class="hcs-section__fact">${f}</span>`).join('');

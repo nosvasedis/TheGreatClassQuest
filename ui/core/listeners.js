@@ -1044,7 +1044,6 @@ export function setupUIListeners() {
     document.getElementById('story-weavers-archive-btn').addEventListener('click', storyWeaver.openStoryArchiveModal);
     document.getElementById('story-weavers-reset-btn').addEventListener('click', storyWeaver.handleResetStory);
     document.getElementById('story-reveal-close-btn').addEventListener('click', () => modals.hideModal('story-reveal-modal'));
-    document.getElementById('story-history-close-btn').addEventListener('click', () => modals.hideModal('story-history-modal'));
     document.getElementById('story-archive-close-btn').addEventListener('click', () => modals.hideModal('story-archive-modal'));
     document.getElementById('storybook-viewer-close-btn').addEventListener('click', () => modals.hideModal('storybook-viewer-modal'));
     document.getElementById('story-archive-search').addEventListener('input', storyWeaver.handleStoryArchiveSearchInput);

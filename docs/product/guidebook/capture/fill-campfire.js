@@ -65,8 +65,6 @@ function studioOaths(today) {
       ]
     }),
     make(t[5], 'b', {
-      private: true,
-      projectorText: 'A secret oath',
       evidence: [{ kind: 'virtue', label: 'Teamwork observed', date: '2026-08-26', refId: 'x3' }]
     }),
     make(t[1], 'd', { checkIns: [{ date: '2026-08-26', mood: 'moon' }] }),
@@ -87,7 +85,7 @@ function previewApi(oaths, cls) {
         id: 'guide-new',
         ...createOathDraft(tpl, {
           classId: CLASS_ID, teacherId: 'guide', schoolYearKey: '2026-2027',
-          date: today, studentId: o.studentId, text: o.text, private: !!o.private
+          date: today, studentId: o.studentId, text: o.text
         })
       };
       oaths.push(oath);
@@ -160,9 +158,8 @@ function scenePayload() {
   const oaths = present.map((s, i) => ({
     id: 'scene-o' + i,
     studentId: s.id,
-    private: i === 1,
-    text: ['I share an idea in English.', 'A personal promise', 'I help someone take a turn.', 'I practise a little between lessons.'][i],
-    projectorText: i === 1 ? 'A secret promise' : ['I share an idea in English.', 'A personal promise', 'I help someone take a turn.', 'I practise a little between lessons.'][i],
+    text: ['I share an idea in English.', 'I help a friend who is stuck.', 'I help someone take a turn.', 'I practise a little between lessons.'][i],
+    projectorText: ['I share an idea in English.', 'I help a friend who is stuck.', 'I help someone take a turn.', 'I practise a little between lessons.'][i],
     status: 'active',
     checkIns: i === 0 ? [{ date: DATE, mood: 'flame' }] : i === 2 ? [{ date: DATE, mood: 'candle' }] : [],
     evidence: i === 0 ? [{ kind: 'manual', date: DATE, label: 'Shared a sentence' }] : []

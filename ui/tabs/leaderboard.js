@@ -36,6 +36,8 @@ import {
     playStandingsEntrance,
     playUnseal,
     readStandingsSnapshot,
+    renderHeroRoleBadgesHtml,
+    renderHeroTraitsHtml,
     renderStandingsHeraldHtml,
     renderStandingsSectionHtml,
     writeStandingsSnapshot
@@ -912,15 +914,15 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
 
     // --- RENDER HELPERS ---
     const reasonInfo = {
-        teamwork: { icon: 'fa-users', color: 'bg-purple-100 text-purple-700', name: 'Teamwork' },
-        creativity: { icon: 'fa-lightbulb', color: 'bg-pink-100 text-pink-700', name: 'Creativity' },
-        respect: { icon: 'fa-hands-helping', color: 'bg-green-100 text-green-700', name: 'Respect' },
-        focus: { icon: 'fa-brain', color: 'bg-yellow-100 text-yellow-700', name: 'Focus' },
-        welcome_back: { icon: 'fa-hand-sparkles', color: 'bg-cyan-100 text-cyan-700', name: 'Back!' },
-        story_weaver: { icon: 'fa-feather-alt', color: 'bg-cyan-100 text-cyan-700', name: 'Story' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'bg-amber-100 text-amber-800', name: 'Scholar' },
-        teacher_boon: { icon: 'fa-wand-magic-sparkles', color: 'bg-fuchsia-100 text-fuchsia-700', name: 'Teacher Boon' },
-        pathfinder_map: { icon: 'fa-map', color: 'bg-indigo-100 text-indigo-700', name: 'Pathfinder' }
+        teamwork: { icon: 'fa-users', name: 'Teamwork' },
+        creativity: { icon: 'fa-lightbulb', name: 'Creativity' },
+        respect: { icon: 'fa-hands-helping', name: 'Respect' },
+        focus: { icon: 'fa-brain', name: 'Focus' },
+        welcome_back: { icon: 'fa-hand-sparkles', name: 'Back!' },
+        story_weaver: { icon: 'fa-feather-alt', name: 'Story' },
+        scholar_s_bonus: { icon: 'fa-graduation-cap', name: 'Scholar' },
+        teacher_boon: { icon: 'fa-wand-magic-sparkles', name: 'Teacher Boon' },
+        pathfinder_map: { icon: 'fa-map', name: 'Pathfinder' }
     };
 
     const getAvatarHtml = (s, sizeClass = "w-12 h-12") => {
@@ -939,64 +941,41 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
 
     const getGuildRoleBadgesHtml = (s) => {
         if (!s.guildId) return '';
-        const guild = getGuildById(s.guildId);
-        const color = guild?.primary || '#7c3aed';
-        const badges = [];
-
-        if (guildChampions[s.guildId]?.studentId === s.id) {
-            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:${color};" title="Guild Champion this month">⚔️ Champion</span>`);
-        }
-        if (topHeroByGuild[s.guildId] === s.id) {
-            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300" title="Top Hero for this guild">🏅 Top Hero</span>`);
-        }
-
-        return badges.join('');
+        return renderHeroRoleBadgesHtml({
+            champion: guildChampions[s.guildId]?.studentId === s.id,
+            topHero: topHeroByGuild[s.guildId] === s.id,
+            color: getGuildById(s.guildId)?.primary || '#7c3aed'
+        });
     };
 
-    /** Hero rank title (e.g. Tinkerer, Sentinel) as a styled pill using class aura color. */
-    const getHeroTitleBadgeHtml = (s) => {
-        if (!heroProgressionEnabled) return '';
-        if (!s.heroClass) return '';
+    /** Hero class emblem data: rank title, level and perk for the tooltip. */
+    const getHeroClassInfo = (s) => {
+        if (!heroProgressionEnabled || !s.heroClass || !HERO_CLASSES[s.heroClass]) return null;
         const level = s.heroLevel || 0;
-        const title = level > 0 ? getHeroTitle(s.heroClass, level) : (s.heroClass || 'Novice');
         const tree = HERO_SKILL_TREE[s.heroClass];
-        const auraColor = tree?.auraColor || '#7c3aed';
-        const icon = HERO_CLASSES[s.heroClass]?.icon || '';
-        return `<span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${auraColor}, ${auraColor}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);" title="Hero rank">${icon ? `<span class="opacity-90">${icon}</span>` : ''}<span>${title}</span></span>`;
+        const titles = tree?.titles || [];
+        return {
+            cls: s.heroClass,
+            icon: HERO_CLASSES[s.heroClass].icon,
+            aura: tree?.auraColor || '#7c3aed',
+            title: level > 0 ? getHeroTitle(s.heroClass, level) : s.heroClass,
+            level,
+            maxLevel: titles.length,
+            perk: HERO_CLASSES[s.heroClass].desc || '',
+            next: titles[level] || ''
+        };
     };
 
     const getPillsHtml = (s) => {
-        let html = '';
-
-        // Badge 0: Reigning Prodigy of the Month (previous month's winner, supports co-prodigies)
-        if (prodigyByClass[s.classId]?.has(s.id)) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shadow-sm border border-amber-300" title="Reigning Prodigy of the Month!">👑 Prodigy</div>`;
-        }
-
-        // Badge 1: Stars THIS WEEK
-        if (s.stats.weeklyStars > 0) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week"><i class="fas fa-fire"></i> Week: ${s.stats.weeklyStars}</div>`;
-        }
-
-        // Badge 2: Streak of Perfect 3-Stars
-        if (s.stats.streak > 1) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="Streak of ${s.stats.streak} perfect lessons!"><i class="fas fa-bolt"></i> Streak: ${s.stats.streak}</div>`;
-        }
-
-        // Badge 3: Top Reason of the MONTH
-        if (s.stats.topSkill) {
-            const info = reasonInfo[s.stats.topSkill] || { icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star' };
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill this Month"><i class="fas ${info.icon}"></i> <span>${info.name}</span></div>`;
-        }
-
         const eggAlert = s.familiar ? getEggAlertState(s.familiar, s.totalStars) : null;
-        if (eggAlert?.kind === 'ready') {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 shadow-sm border border-emerald-300" title="This egg is ready to hatch now">🥚 Ready!</div>`;
-        } else if (eggAlert?.kind === 'soon') {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-fuchsia-100 text-fuchsia-700 shadow-sm border border-fuchsia-300" title="${eggAlert.remaining} more star(s) until hatch">🥚 ${eggAlert.remaining} left</div>`;
-        }
-
-        return html;
+        const skill = s.stats.topSkill ? (reasonInfo[s.stats.topSkill] || { icon: 'fa-star', name: 'Star' }) : null;
+        return renderHeroTraitsHtml({
+            prodigy: Boolean(prodigyByClass[s.classId]?.has(s.id)),
+            weekStars: s.stats.weeklyStars || 0,
+            streak: s.stats.streak || 0,
+            skill: skill ? { key: s.stats.topSkill, icon: skill.icon, name: skill.name } : null,
+            egg: eggAlert
+        });
     };
 
     const starMetric = state.get('studentStarMetric') === 'monthly' ? 'monthly' : 'total';
@@ -1012,15 +991,16 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         score: s.score,
         gold: s.gold,
         heroIcon: heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : '',
-        avatarHtml: getAvatarHtml(s, 'w-12 h-12 sm:w-14 sm:h-14'),
+        heroClass: getHeroClassInfo(s),
+        avatarHtml: getAvatarHtml(s, 'w-14 h-14 sm:w-16 sm:h-16'),
         avatarLargeHtml: getAvatarHtml(s, rank === 1 ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16 sm:w-20 sm:h-20'),
         familiarHtml: s.familiar
             ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>`
             : '',
         guildBadgeHtml: s.guildId ? `<span class="hcs-guild">${getGuildBadgeHtml(s.guildId, 'w-6 h-6')}</span>` : '',
-        titleBadgeHtml: getHeroTitleBadgeHtml(s),
         roleBadgesHtml: getGuildRoleBadgesHtml(s),
         pillsHtml: getPillsHtml(s),
+        accent: s.guildId ? getGuildById(s.guildId)?.primary || '' : '',
         className: s.className,
         classLogo: s.classLogo,
         showClass

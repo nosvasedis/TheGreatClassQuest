@@ -268,12 +268,12 @@ export function ensureCompletedStoriesListener() {
                             }),
                         ),
                 );
-                if (
-                    document.getElementById("story-archive-modal") &&
-                    !document
-                        .getElementById("story-archive-modal")
-                        .classList.contains("hidden")
-                ) {
+                // The archive modal and the Story Weavers shelf both show these books.
+                const isShown = (id) => {
+                    const el = document.getElementById(id);
+                    return Boolean(el && !el.classList.contains("hidden"));
+                };
+                if (isShown("story-archive-modal") || isShown("reward-ideas-tab")) {
                     renderStoryArchive();
                 }
             },

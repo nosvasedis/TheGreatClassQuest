@@ -27,8 +27,8 @@ test('the suggestion pool always includes every board category', () => {
     for (const kind of OATH_CATEGORIES) assert.ok(cats.has(kind), kind);
 });
 
-test('secret promises stay a quiet gold spark; unknown kinds fall back safely', () => {
-    assert.equal(oathStarCategory({ category: 'habit', private: true }), 'virtue');
+test('every promise shines in its own kind; unknown kinds fall back safely', () => {
+    assert.equal(oathStarCategory({ category: 'habit', private: true }), 'habit', 'old secret promises now shine as their kind');
     assert.equal(oathStarCategory({ category: 'speak' }), 'speak');
     assert.equal(oathStarCategory({ category: 'not-a-kind' }), 'virtue');
     assert.equal(oathStarCategory(null), 'virtue');
@@ -40,12 +40,12 @@ test('constellation lines never join two different kinds of promise', () => {
         { id: 'v1', status: 'kept', category: 'virtue', studentId: 'a', keptAt: { seconds: 2 } },
         { id: 's2', status: 'kept', category: 'speak', studentId: 'b', keptAt: { seconds: 3 } },
         { id: 'w1', status: 'kept', category: 'write', studentId: 'c', keptAt: { seconds: 4 } },
-        { id: 'secret', status: 'kept', category: 'habit', private: true, studentId: 'd', keptAt: { seconds: 5 } }
+        { id: 'r1', status: 'kept', category: 'read/listen', studentId: 'd', keptAt: { seconds: 5 } }
     ];
     const links = constellationLinks(oaths);
     assert.equal(links.filter(l => l.kind === 'speak').length, 1);
-    assert.equal(links.filter(l => l.kind === 'virtue').length, 1);
-    assert.ok(!links.some(l => l.kind === 'habit'));
+    assert.equal(links.filter(l => l.kind === 'virtue').length, 0, 'a lone star joins nothing');
+    assert.ok(!links.some(l => l.kind === 'read/listen'));
     for (const link of links) {
         const from = oaths.find(o => o.id === link.fromId);
         const to = oaths.find(o => o.id === link.toId);
@@ -53,10 +53,10 @@ test('constellation lines never join two different kinds of promise', () => {
         assert.equal(oathStarCategory(to), link.kind);
     }
     assert.deepEqual([links.find(l => l.kind === 'speak').fromId, links.find(l => l.kind === 'speak').toId].sort(), ['s1', 's2']);
-    assert.equal(oathStarCategory(oaths[4]), 'virtue');
+    assert.equal(oathStarCategory(oaths[4]), 'read/listen');
     const { points } = constellationLayout(oaths);
     assert.notEqual(points.get('s1').x, points.get('v1').x);
-    assert.deepEqual(constellationKinds(oaths), ['speak', 'write', 'virtue']);
+    assert.deepEqual(constellationKinds(oaths), ['speak', 'write', 'read/listen', 'virtue']);
 });
 
 test('two stars of every board kind form six same-kind lines, never a mixed pair', () => {
@@ -94,8 +94,9 @@ test('each kind has its own figure and way of joining, and a new star does not s
     const next = constellationLayout(threeSpeak).points;
     assert.equal(first.get('a').x, next.get('a').x);
     assert.equal(first.get('b').x, next.get('b').x);
-    const peek = constellationPeek({ private: true, category: 'habit', legendLine: 'secret text' }, { name: 'Maya' });
-    assert.equal(peek.line, 'A promise kept');
+    const peek = constellationPeek({ category: 'habit', legendLine: 'Kept a promise: I tidy up.' }, { name: 'Maya' });
+    assert.equal(peek.line, 'Kept a promise: I tidy up.');
+    assert.equal(peek.kind, 'habit');
     assert.equal(peek.name, 'Maya');
 });
 

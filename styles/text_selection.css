@@ -48,8 +48,7 @@
     /* Logbooks, history, assignments and planner notes */
     #logbook-modal-content, #history-modal-content, #previous-assignment-text,
     #day-planner-past-note, #narrative-text-container,
-    /* Student analytics: written analysis and the assistant */
-    #analytics-analysis-content, #analytics-assistant-content,
+    /* Scholar's Folio: the reading, the trial list and Oracle answers carry data-selectable */
     /* Record tables a teacher may paste elsewhere */
     #trial-history-content, #attendance-chronicle-content,
     /* Adventurer's Guide pages */

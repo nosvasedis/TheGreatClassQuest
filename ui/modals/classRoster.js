@@ -401,7 +401,7 @@ function renderTrialsPanel(ctx, hero) {
     const head = `
         <div class="crm-trials-head">
             <h3 class="crm-section__title"><i class="fas fa-scroll"></i> Scholar’s Scroll · last 3 months</h3>
-            <button type="button" class="crm-btn crm-btn--ghost crm-btn--small" data-crm-analytics="${escapeHtml(hero.id)}"><i class="fas fa-chart-line"></i> Full analytics</button>
+            <button type="button" class="crm-btn crm-btn--ghost crm-btn--small" data-crm-analytics="${escapeHtml(hero.id)}"><i class="fas fa-scroll"></i> Scholar’s Folio</button>
         </div>`;
     if (!scores.length) {
         return `<section class="crm-section">${head}<p class="crm-trials-empty">No trials logged for ${escapeHtml(hero.firstName)} in the last 3 months.</p></section>`;

@@ -20,9 +20,9 @@ Four houses. Four temperaments. The emblems, anthems, and colours are the same e
 
 **Phoenix Rising** — *Fall down seven, rise up eight.* Resilience, Renewal, Hope. The house of the second chance. Welcome Back belongs in their story. They come back to the work.
 
-Each has an emblem, a sound, and a **karaoke anthem**. Tap the emblem on a column and the guild's **banner** unfurls over the whole screen: a heraldic banner in the house colours hanging from a gilded rod, with the crest, the name, the motto on a ribbon, the traits and the numbers (Crowns, this Chapter’s Glory per member, the Unity Seal count, the year’s Glory and members). Close it and it rolls back up.
+Each has an emblem, a sound, and a **karaoke anthem**. Tap the crest on a guild’s banner in the Hall and the guild's **banner** unfurls over the whole screen: a heraldic banner in the house colours hanging from a gilded rod, with the crest, the name, the motto on a ribbon, the traits and the numbers (Crowns, this Chapter’s Glory per member, the Unity Seal count, the year’s Glory and members). Close it and it rolls back up.
 
-The small **music-note** button on the emblem plays the anthem. It opens in a torch-lit alcove with the crest between two torches. Each anthem is a short cinematic song (about 40 seconds: one verse, then the chorus), sung by an adult lead singer with a full choir on the chorus, written to suit every age in the school. While it plays, the line being sung lights up and fills with gold from left to right, the next line is brighter so the class can read ahead, and the lyrics scroll on their own to keep the sung line in view. A thin gold bar under the plaque shows how far through the song you are, and the plaque says "Get ready to sing…", then "Sing the Verse!" / "Sing the Chorus!", then "Bravo!" at the end. Play the anthem when the room needs identity, not noise for its own sake.
+The small **music-note** button on the crest plays the anthem. It opens in a torch-lit alcove with the crest between two torches. Each anthem is a short cinematic song (about 40 seconds: one verse, then the chorus), sung by an adult lead singer with a full choir on the chorus, written to suit every age in the school. While it plays, the line being sung lights up and fills with gold from left to right, the next line is brighter so the class can read ahead, and the lyrics scroll on their own to keep the sung line in view. A thin gold bar under the plaque shows how far through the song you are, and the plaque says "Get ready to sing…", then "Sing the Verse!" / "Sing the Chorus!", then "Bravo!" at the end. Play the anthem when the room needs identity, not noise for its own sake.
 
 ## Guild Placement Quiz
 
@@ -45,7 +45,7 @@ Starter schools see a locked hat. **Pro** and **Elite** run the quiz.
 
 Every positive star adds **Guild Glory**, at **2 Glory per star**, plus a little from Quiz of the Week, Fortune’s Wheel and a few Mystic Market relics. Glory is never taken away by chance: only an undone star or a teacher’s correction removes it.
 
-**Chapters.** Each school month is a **Chapter**. On the 1st every guild starts the Chapter at 0. The Chapter is won by the guild whose members earned the **most Glory each, on average**: the Glory its current members earned that month, divided by how many members it has. A house of eight who all play beats a house of twenty where four children carry the crystal.
+**Chapters.** Each school month is a **Chapter**. On the 1st every guild starts the Chapter at 0. The Chapter is won by the guild whose members earned the **most Glory each, on average**: the Glory its current members earned that month, divided by how many members it has. A house of eight who all play beats a house of twenty where four children carry the banner.
 
 **Crowns.** When a Chapter ends it is sealed and pays Crowns:
 
@@ -63,25 +63,31 @@ Guilds level on Glory per member share the higher place. A guild that earned no 
 - **Leavers take their Glory with them.** When a student leaves, their Glory stops counting for the guild, so no guild climbs by getting smaller.
 - **Fair at every size.** Wheel Glory, the Chalice of Unity and Quiz of the Week give Glory to individual children, so a big guild is never handed a bigger number just for being big.
 
-Tap the **?** on the Crown Race (or on a guild’s banner) to open **How the Crown Race works**, which says all this on screen in plain words. A busy small guild can beat a sleepy large one, and a guild that came 4th last month can win this one. Say it aloud.
+Tap the **?** next to the month’s Chapter (or on the Crown Race board) to open **How the Crown Race works**, which says all this on screen in plain words. A busy small guild can beat a sleepy large one, and a guild that came 4th last month can win this one. Say it aloud.
 
 The Hall stays still until the school year has begun and class schedules exist, so do not worry if it looks quiet during setup week.
 
 ## What you see on the tab
 
-- **The Crown Race** at the top: one row per guild with its Crowns, and one stone per month of the year. Sealed months show the Crowns won (a crown icon for a Chapter win, a glow for a Unity Seal); the running month shows the Crowns the guild would take if it ended today. The header says who leads and by how much, which Chapter is running and how many days are left
-- Four **crystal columns**, in Crown Race order. The crystal fills with **this Chapter’s Glory per member**, the number every guild is racing on this month
-- Under each number: the guild’s **place this Chapter** and the Crowns it would win today (“2nd now · +3 👑 so far”), then the **Unity Seal meter** (how many members have earned their 6 Glory this month, against how many are needed)
-- Tiles for the guild’s **Crowns** and its year Glory, and any **Guild Standards** raised this Chapter (students who bought one in the Mystic Market)
-- **Chapter champion** per guild: the member with the most Glory this month
-- **Magical Analytics** when you expand a column: champions, top heroes, class mix, contribution, activity
-- **Fortune’s Wheel** (when the ritual window is open)
+The Hall is one night-time great hall with three parts, top to bottom.
+
+- **The top bar.** **Fortune’s Wheel** on the left, **Magical Analytics** on the right, and in the middle **this month’s Chapter**: a dial with the days left, the month’s name and what it pays (🥇 5 · 🥈 3 · 🥉 2 · 4th 1, plus 1 for the Unity Seal). The **?** opens How the Crown Race works
+- **Four guild banners**, always in the same order so every child finds their house in the same place. Each banner has:
+  - its **place this month** as a medal in the corner (gold, silver, bronze, iron); the leader’s banner has a gold edge
+  - the crest (tap it for the full banner) and the **music-note** button for the anthem
+  - a **vial** that fills with **this Chapter’s Glory per member**, the number every guild is racing on, with the number under it. When stars land, the number rolls up and a small “+0.4” floats beside it
+  - **“+3 👑 if the month ended now”**: the Crowns the guild would take today, Unity Seal included
+  - the **Unity Seal** ring: how many members have earned their 6 Glory this month, against how many are needed. When the ring closes the seal turns gold: **Sealed! +1 Crown**
+  - any **Guild Standards** raised this Chapter (students who bought one in the Mystic Market)
+- **The Crown Race board**, one row per guild in Crown order, with a medal for the place, one stone per month from September to June and the Crowns total. Sealed months show the Crowns won (gold, silver, bronze or iron, with a green dot for a Unity Seal); the running month is a dashed stone with the Crowns it would pay today. The title line says who leads and by how much. When the order changes, the rows glide into their new places
+- **Magical Analytics** opens a details panel under every banner: this month’s Glory, how many members are earning this month, the year’s Glory per member, the months won, the **Stars of the month** and the **Legends of the year** (top three each), and **Guild spotlight** for the guild’s heroes
 - **Fortune Ledger** (collapsible, paged history of spins)
-- Guild Heroes / spotlight when offered
+
+The Hall waits for the guild scores before it shows a number: until they arrive it shows soft shimmering placeholders, never a row of zeros. After that it only changes what changed, so it never flashes or redraws while you teach. On a slower laptop (and when the computer asks for reduced motion) the Hall keeps every number and colour but drops the looping effects.
 
 ## Magical Analytics
 
-Not for grading. For **coaching**: which classes feed which house, who the quiet contributors are, whether one hero is carrying a crystal. Celebrate contribution percentage as teamwork, not as a league table of children.
+Not for grading. For **coaching**: which classes feed which house, who the quiet contributors are, whether one hero is carrying a banner. Celebrate contribution percentage as teamwork, not as a league table of children.
 
 ## Grand Guild Ceremony
 

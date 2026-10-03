@@ -109,6 +109,7 @@ function getDefaultState() {
         studentStarMetric: "monthly",
         studentLeaderboardDisplay: "individual", // 'individual' | 'guild'
         allGuildScores: {},
+        allGuildScoresLoaded: false,
         guildChampions: {}, // keyed by guildId → { studentId, studentName, avatar, monthlyStars }
         fortuneWheelLog: [], // Recent wheel results for current viewed class
         unsubscribeFortuneWheelLog: () => {},
@@ -609,6 +610,7 @@ export function setStudentLeaderboardDisplay(display) {
 }
 export function setAllGuildScores(scores) {
     state.allGuildScores = scores;
+    state.allGuildScoresLoaded = true;
     _notify("allGuildScores");
 }
 export function setAllMonthlyHistory(history) {

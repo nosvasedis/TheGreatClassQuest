@@ -68,7 +68,7 @@ body.gcq-mobile .role-main .rounded-3xl {
     border-radius: 1.35rem !important;
 }
 
-body.gcq-mobile .app-tab button:not(.guild-anthem-btn):not(.m-guild-stage-nav):not(.m-guild-stage-dot),
+body.gcq-mobile .app-tab button:not(.gh-banner__anthem):not(.gh-info),
 body.gcq-mobile .role-main button {
     min-height: 2.5rem;
 }

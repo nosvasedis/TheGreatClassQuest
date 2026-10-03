@@ -126,6 +126,20 @@ function onSnapshot(target, onNext, onError) {
     });
 }
 
+/**
+ * Refresh the Guild Hall when it is open or opening. A tab fades in for a moment after it is
+ * chosen, so "not hidden yet" must still count: data that lands then would otherwise be
+ * dropped and the Hall would sit on its empty first paint.
+ */
+function requestGuildHallRefresh() {
+    const tab = document.getElementById("guilds-tab");
+    if (!tab) return;
+    let opening = false;
+    try { opening = localStorage.getItem("quest_last_active_tab") === "guilds-tab"; } catch { /* storage blocked */ }
+    if (tab.classList.contains("hidden") && !opening) return;
+    import("../ui/tabs/guilds.js").then((m) => m.requestGuildHallRender());
+}
+
 function wheelLogTime(entry) {
     if (typeof entry?.spunAt?.toMillis === "function") return entry.spunAt.toMillis();
     const value = entry?.spunAt;
@@ -754,9 +768,7 @@ export async function setupDataListeners(
                 schoolYearReady = true;
                 maybeFireInitialReady();
                 scheduleHomeRender();
-                if (isTabVisible("guilds-tab")) {
-                    import("../ui/tabs/guilds.js").then((m) => m.renderGuildsTab());
-                }
+                requestGuildHallRefresh();
                 if (isTabVisible("shop-tab")) {
                     import("../ui/core/shop.js").then((m) => m.initializeShopTab());
                 }
@@ -1060,12 +1072,7 @@ export async function setupDataListeners(
                 state.setAllStudents(
                     allStudents.sort((a, b) => a.name.localeCompare(b.name)),
                 );
-                const guildsTab = document.getElementById("guilds-tab");
-                if (guildsTab && !guildsTab.classList.contains("hidden")) {
-                    import("../ui/tabs/guilds.js").then((m) =>
-                        m.renderGuildsTab(),
-                    );
-                }
+                requestGuildHallRefresh();
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();
                 if (isTabVisible("class-leaderboard-tab"))
@@ -1207,12 +1214,7 @@ export async function setupDataListeners(
                     renderManageStudentsTab();
                 }
 
-                const guildsTab = document.getElementById("guilds-tab");
-                if (guildsTab && !guildsTab.classList.contains("hidden")) {
-                    import("../ui/tabs/guilds.js").then((m) =>
-                        m.renderGuildsTab(),
-                    );
-                }
+                requestGuildHallRefresh();
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();
                 if (isTabVisible("class-leaderboard-tab"))
@@ -1585,12 +1587,7 @@ export async function setupDataListeners(
                     .catch((e) => console.warn("Guild Chapter upkeep skipped:", e));
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();
-                const guildsTab = document.getElementById("guilds-tab");
-                if (guildsTab && !guildsTab.classList.contains("hidden")) {
-                    import("../ui/tabs/guilds.js").then((m) =>
-                        m.renderGuildsTab(),
-                    );
-                }
+                requestGuildHallRefresh();
             },
             (error) => console.error("Error listening to guild_scores:", error),
         ),
@@ -1642,12 +1639,7 @@ export async function setupDataListeners(
                     .sort((a, b) => wheelLogTime(b) - wheelLogTime(a))
                     .slice(0, 20);
                 state.setFortuneWheelLog(log);
-                const guildsTab = document.getElementById("guilds-tab");
-                if (guildsTab && !guildsTab.classList.contains("hidden")) {
-                    import("../ui/tabs/guilds.js").then((m) =>
-                        m.renderGuildsTab(),
-                    );
-                }
+                requestGuildHallRefresh();
             },
             (error) =>
                 console.error("Error listening to fortune_wheel_log:", error),

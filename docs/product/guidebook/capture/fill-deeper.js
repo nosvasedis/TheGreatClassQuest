@@ -18,10 +18,6 @@ import { hideSurfaces, surfacesShellHtml } from './fill-surfaces.js';
 import { hideRedesign, seedSchool } from './fill-redesign.js';
 import { quizIntroHtml as stageIntroHtml, quizResultsHtml as stageResultsHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from '../../../../ui/modals/quizStageMarkup.js';
 
-function assetUrl(url) {
-  return String(url || '').replace(/^\.\//, '/');
-}
-
 function quizPlayShellHtml() {
   return quizStageShellHtml();
 }
@@ -540,54 +536,79 @@ export function hideSortingQuiz() {
   modal?.classList.remove('capture-sort');
 }
 
-function crystalCol(id, rank, fillPct) {
-  const g = GUILDS[id];
-  const emblem = assetUrl(getGuildEmblemUrl(id));
-  return `
-            <div class="guild-crystal-col is-rank-${rank}" data-guild="${id}">
-                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${rank === 1 ? '1st' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : '4th'}</span></div>
-                <div class="guild-crystal-header">
-                    <div class="guild-crystal-emblem-wrapper" style="--glow-color:${g.glow};">
-                        <img src="${emblem}" alt="${g.name}" class="guild-crystal-emblem" style="border-color:${g.primary}; box-shadow: 0 0 16px ${g.glow}77;">
-                        <div class="guild-emblem-ring" style="border-color:${g.glow};box-shadow:0 0 24px ${g.glow}88;"></div>
-                    </div>
-                    <div class="guild-crystal-name" style="color:${g.primary};">${g.name}</div>
-                </div>
-                <div class="guild-crystal-tube-wrap">
-                    <div class="guild-crystal-tube" style="border-color:${g.primary}44; box-shadow:inset 0 0 16px rgba(0,0,0,0.08), 0 0 32px ${g.glow}1a;">
-                        <div class="guild-crystal-fill" style="height:${fillPct}%;background:linear-gradient(to top,${g.primary} 0%,${g.secondary} 60%,${g.glow} 100%);box-shadow:0 -6px 28px ${g.glow}cc;"></div>
-                        <div class="guild-crystal-glass-shine"></div>
-                    </div>
-                </div>
-            </div>`;
+let _guildHallRestore = null;
+
+/** Seeds four guilds mid-October (September already sealed) and renders the real Guild Hall. */
+function seedGuildHall() {
+  const now = new Date();
+  const key = `m${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const year = '2026-2027';
+  const classId = state.get('globalSelectedClassId');
+  const sizes = { dragon_flame: 9, grizzly_might: 14, owl_wisdom: 6, phoenix_rising: 11 };
+  const names = ['Maria', 'Alex', 'Eleni', 'Nikos', 'Sofia', 'Yannis', 'Zoe', 'Dimitra', 'Kostas', 'Anna', 'Petros', 'Ioanna', 'Giorgos', 'Katerina'];
+  const students = [];
+  const scores = [];
+  const docs = {};
+  Object.keys(sizes).forEach((gid, gi) => {
+    const memberIds = [];
+    const memberGlory = {};
+    const members = {};
+    let totalGlory = 0;
+    let glory = 0;
+    for (let i = 0; i < sizes[gid]; i++) {
+      const id = `capture_${gid}_${i}`;
+      memberIds.push(id);
+      const stars = 6 + ((i * 7 + gi * 3) % 13);
+      students.push({ id, name: `${names[i % names.length]} ${String.fromCharCode(65 + gi)}.`, classId, guildId: gid, activeSchoolYearKey: year });
+      scores.push({ id, totalStars: stars, monthlyStars: 3, activeSchoolYearKey: year });
+      memberGlory[id] = stars * 2;
+      totalGlory += stars * 2;
+      members[id] = i % (gi + 2) === 0 ? 2 : 6 + ((i + gi) % 5) * 2;
+      glory += members[id];
+    }
+    docs[gid] = {
+      id: gid, guildId: gid, activeSchoolYearKey: year, memberGloryYear: year, memberIds, memberCount: memberIds.length, totalGlory, memberGlory,
+      chapters: { [key]: { glory, members, standards: gi === 2 ? [{ studentId: memberIds[1], name: 'Alex C.' }] : [] } },
+      sealedChapters: { m2026_09: { place: [2, 1, 3, 4][gi], crowns: [3, 6, 2, 1][gi], unity: gi === 1 } }
+    };
+  });
+  _guildHallRestore = {
+    schoolYearState: state.get('schoolYearState'),
+    allSchoolYears: state.get('allSchoolYears'),
+    allStudents: state.get('allStudents'),
+    allStudentScores: state.get('allStudentScores'),
+    allGuildScores: state.get('allGuildScores')
+  };
+  state.set('schoolYearState', { activeYearKey: year, rolloverStatus: 'active', openedAt: '2026-09-07' });
+  state.set('allSchoolYears', [{ id: year, startsAt: '2026-09-07' }]);
+  state.set('allStudents', [...(state.get('allStudents') || []), ...students]);
+  state.set('allStudentScores', [...(state.get('allStudentScores') || []), ...scores]);
+  state.setAllGuildScores(docs);
 }
 
-export function showGuildHall() {
+export async function showGuildHall() {
   startShow();
   const tab = document.getElementById('guilds-tab');
   if (!tab) return;
   tab.classList.remove('hidden');
   tab.classList.add('capture-guilds');
-  const list = document.getElementById('guilds-leaderboard-list');
-  if (list) {
-    list.innerHTML = `<div class="guild-crystal-hall">
-        <div class="guild-crystal-arena-header">
-            <h2 class="guild-crystal-arena-title font-title">Standings</h2>
-        </div>
-        <div class="guild-crystal-arena">
-        ${crystalCol('dragon_flame', 1, 78)}
-        ${crystalCol('owl_wisdom', 2, 61)}
-        ${crystalCol('grizzly_might', 3, 44)}
-        ${crystalCol('phoenix_rising', 4, 29)}
-        </div>
-    </div>`;
-  }
+  if (!_guildHallRestore) seedGuildHall();
+  const { renderGuildsTab } = await import('../../../../ui/tabs/guilds.js');
+  renderGuildsTab();
+  // The vials pour on the second frame after the first paint.
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 export function hideGuildHall() {
   const tab = document.getElementById('guilds-tab');
   tab?.classList.add('hidden');
   tab?.classList.remove('capture-guilds');
+  if (_guildHallRestore) {
+    const { allGuildScores, ...rest } = _guildHallRestore;
+    Object.entries(rest).forEach(([k, v]) => state.set(k, v));
+    state.set('allGuildScores', allGuildScores);
+    _guildHallRestore = null;
+  }
 }
 
 function lessonChipHtml() {

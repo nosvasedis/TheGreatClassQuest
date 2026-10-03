@@ -17,7 +17,7 @@ export const ARTIFACTS = [
   { icon: '🗺️', name: "Pathfinder's Map", gold: 60, perk: '+10 Team Quest stars for the class (1/month)' },
   { icon: '✒️', name: "Archivist's Quill", gold: 62, perk: 'Next Story Weaver bonus is 1 star, not 0.5' },
   { icon: '🎭', name: 'Mask of the Protagonist', gold: 75, perk: 'Guarantees Hero of the Day on the next log' },
-  { icon: '🚩', name: 'Guild Standard', gold: 75, perk: 'Name on the guild’s column this Chapter, +2 Glory' }
+  { icon: '🚩', name: 'Guild Standard', gold: 75, perk: 'Name on the guild’s banner this Chapter, +2 Glory' }
 ];
 
 export const FAMILIARS = [

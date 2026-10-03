@@ -1,8 +1,9 @@
-// /ui/tabs/guilds.js — Guild Hall: crystal-column rankings, lore overlay, guild sounds, anthem modal
+// /ui/tabs/guilds.js — Guild Hall: month banners, the Crown Race, lore overlay, guild sounds, anthem modal
 
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces } from '../../features/guildScoringCore.js';
-import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
+import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
+import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
@@ -118,10 +119,6 @@ function _closePowerExplainer() {
 
 /** When true, detailed stats panels are visible for every guild column */
 let _guildHallStatsExpanded = false;
-
-// ─── Chapter Glory change tracking (for live arrow indicators) ───────────────
-const _prevGuildPower = new Map(); // guildId → { power, rank, lastPowerDelta, lastRankDelta }
-let _guildPowerIndicatorsReady = false;
 
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
@@ -464,9 +461,9 @@ function openGuildLore(guildId, gData) {
     // Unfurl the banner
     _playOverlayOpen(overlay, 'guild-lore-overlay');
 
-    // Glow the matching column emblem
-    document.querySelectorAll('.guild-crystal-col').forEach(col => {
-        col.classList.toggle('guild-active', col.dataset.guild === guildId);
+    // Light the matching banner in the Hall
+    document.querySelectorAll('.gh-banner').forEach((el) => {
+        el.classList.toggle('is-active', el.dataset.guild === guildId);
     });
 
     playGuildSound(guildId);
@@ -574,7 +571,7 @@ export function fillGuildLoreCard(guildId, gData, { seasonLive = isGuildSeasonLi
 
 function closeGuildLore() {
     _playOverlayClose(document.getElementById('guild-lore-overlay'), 'guild-lore-overlay', LORE_CLOSE_MS);
-    document.querySelectorAll('.guild-crystal-col.guild-active').forEach(c => c.classList.remove('guild-active'));
+    document.querySelectorAll('.gh-banner.is-active').forEach((el) => el.classList.remove('is-active'));
 }
 
 function wireGuildLoreListeners() {
@@ -602,6 +599,17 @@ function wireGuildLoreListeners() {
 }
 
 // ─── Main render ─────────────────────────────────────────────────────────────
+// The Hall is built once and then patched in place: numbers roll, vials pour, Crown Race rows
+// glide to their new places. Data arriving from the listeners never tears it down, so nothing
+// flashes back to 0 and a teacher never sees it redraw.
+
+const _lite = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
+const _reduceMotion = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+const PLACE_CLASS = ['gold', 'silver', 'bronze', 'iron'];
+let _hallSig = '';
+let _renderFrame = 0;
+const _htmlCache = new WeakMap(); // element → the HTML it last received
+const _shown = new Map(); // `${guildId}:${field}` → the number on screen
 
 /** Glory as shown: one decimal below 100 (0.4, 23.5), whole numbers above. */
 function _fmtGlory(n) {
@@ -621,7 +629,7 @@ function _emblemBadge(guildId, guildName, cls) {
     const emblemUrl = getGuildEmblemUrl(guildId);
     const initial = String(guildName || guildId || '?').trim().charAt(0).toUpperCase() || '?';
     return emblemUrl
-        ? `<img src="${emblemUrl}" alt="" class="${cls}" loading="lazy" decoding="async" width="28" height="28">`
+        ? `<img src="${emblemUrl}" alt="" class="${cls}" loading="lazy" decoding="async" width="64" height="64">`
         : `<span class="${cls} ${cls}--initial">${initial}</span>`;
 }
 
@@ -630,620 +638,471 @@ function _yearPlaces(rows) {
     return sharedPlaces(rows, (r) => (Number(r.crowns) || 0) * 100000 + Math.round((Number(r.yearGloryPerMember) || 0) * 100) / 100);
 }
 
-/**
- * The Crown Road: one row per guild in year order, its Crowns, and a stone per Chapter
- * (sealed: the Crowns it paid; running: what it would pay today; still to come: empty).
- */
-function _buildCrownRoad(rows, keys) {
-    const liveKey = rows[0]?.live?.key;
-    const daysLeft = chapterDaysLeft();
-    const anyCrowns = rows.some((r) => r.crowns > 0);
-    const places = _yearPlaces(rows);
-    const head = keys.map((k) => `<span class="crown-road__month${k === liveKey ? ' is-live' : ''}" title="${chapterName(k)}">${chapterShortName(k)}</span>`).join('');
-    const body = rows.map((r, i) => {
-        const guild = getGuildById(r.guildId);
-        const byKey = new Map(r.chapters.map((c) => [c.key, c]));
-        const stones = keys.map((k) => {
-            const sealed = byKey.get(k);
-            if (sealed) {
-                const won = sealed.place === 1;
-                const tip = sealed.place
-                    ? `${chapterName(k)}: ${_ordinal(sealed.place)} place${sealed.unity ? ' + Unity Seal' : ''} · ${sealed.crowns} Crown${sealed.crowns === 1 ? '' : 's'}`
-                    : `${chapterName(k)}: no Glory, no Crowns`;
-                return `<span class="crown-road__stone is-sealed${won ? ' is-won' : ''}${sealed.unity ? ' has-unity' : ''}" title="${tip}">${won ? '<i class="fas fa-crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
-            }
-            if (k === liveKey && r.live?.counts) {
-                const c = Number(r.live.crowns) || 0;
-                return `<span class="crown-road__stone is-live" title="${chapterName(k)} is still running: ${c ? `${c} Crown${c === 1 ? '' : 's'} if it ended today` : 'no Glory yet'}"><b>${c ? `+${c}` : '…'}</b></span>`;
-            }
-            return `<span class="crown-road__stone is-future" aria-hidden="true"></span>`;
-        }).join('');
-        return `
-                <div class="crown-road__row${places[i] === 0 && anyCrowns ? ' is-leader' : ''}" style="--road-primary:${guild?.primary || '#6b7280'};--road-glow:${guild?.glow || '#fff'};">
-                    <span class="crown-road__guild">${_emblemBadge(r.guildId, r.guildName, 'crown-road__emblem')}<span class="crown-road__name">${r.guildName}</span></span>
-                    <span class="crown-road__crowns" title="${r.crowns} Crown${r.crowns === 1 ? '' : 's'} from sealed Chapters"><i class="fas fa-crown" aria-hidden="true"></i>${r.crowns}</span>
-                    <span class="crown-road__stones">${stones}</span>
-                </div>`;
-    }).join('');
-    const leader = rows[0];
-    const second = rows[1];
-    const gap = leader && second ? leader.crowns - second.crowns : 0;
-    const summary = !anyCrowns
-        ? `The first Chapter is under way. Win ${chapterName(liveKey) || 'it'} to take the first ${CHAPTER_CROWNS[0]} Crowns.`
-        : gap > 0
-            ? `<strong>${leader.guildName}</strong> leads the Crown Race by <strong>${gap}</strong> Crown${gap === 1 ? '' : 's'}`
-            : 'Level on Crowns at the top: the year’s Glory per member splits them';
-    return `
-            <section class="crown-road" aria-label="The Crown Race">
-                <header class="crown-road__head">
-                    <span class="crown-road__title"><i class="fas fa-crown" aria-hidden="true"></i>The Crown Race</span>
-                    <span class="crown-road__summary">${summary}</span>
-                    <span class="crown-road__chapter">${chapterName(liveKey)} Chapter · ${daysLeft} day${daysLeft === 1 ? '' : 's'} left
-                        <button class="guild-power-info-btn" type="button" aria-label="Explain the Crown Race" data-guild-power-info="true">?</button></span>
-                </header>
-                <div class="crown-road__grid" style="--road-months:${keys.length};">
-                    <div class="crown-road__row crown-road__row--head"><span class="crown-road__guild"></span><span class="crown-road__crowns"><i class="fas fa-crown" aria-hidden="true"></i></span><span class="crown-road__stones">${head}</span></div>
-                    ${body}
-                </div>
-            </section>`;
+/** Replace an element's HTML only when it really changed. */
+function _setHtml(el, html) {
+    if (!el || _htmlCache.get(el) === html) return false;
+    _htmlCache.set(el, html);
+    el.innerHTML = html;
+    return true;
 }
 
-/** Chapter line under the big number: place in this month's race and the Crowns it would pay. */
-function _chapterLine(g, rows) {
-    const live = g.live || {};
-    if (!live.counts) return { tone: 'tie', icon: 'fa-hourglass-start', text: 'Warm-up Chapter: no Crowns yet' };
-    if (!live.place) return { tone: 'tie', icon: 'fa-hourglass-start', text: 'No Glory yet this Chapter' };
-    const tied = rows.some((r) => r.guildId !== g.guildId && r.live?.place === live.place);
-    const crowns = Number(live.crowns) || 0;
+function _setText(el, text) {
+    if (el && el.textContent !== text) el.textContent = text;
+}
+
+/** Re-run a one-shot CSS animation class (place change, Unity sealed, Glory gained). */
+function _pulse(el, cls) {
+    if (!el || _reduceMotion()) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+}
+
+/** The vials share one scale: a round mark just above this Chapter's leader (never under 10). */
+function _vialScale(top) {
+    const marks = [10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 150, 200, 300, 500, 1000];
+    return marks.find((m) => m >= top * 1.12) || Math.ceil((top * 1.12) / 500) * 500;
+}
+
+function _hallModel(now = new Date()) {
+    const seasonLive = isGuildSeasonLive();
+    const scores = state.get('allGuildScores') || {};
+    const students = state.get('allStudents') || [];
+    const loading = !state.get('allGuildScoresLoaded') || (!students.length && Object.keys(scores).length > 0);
+    const rows = getGuildLeaderboardData(now);
+    const byId = new Map(rows.map((r) => [r.guildId, r]));
+    const liveKey = rows[0]?.live?.key || '';
+    const top = Math.max(0, ...rows.map((r) => Number(r.live?.perMember) || 0));
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     return {
-        tone: live.place === 1 ? 'lead' : 'chase',
-        icon: live.place === 1 ? 'fa-crown' : 'fa-flag-checkered',
-        text: `${tied ? 'Tied ' : ''}${_ordinal(live.place)} now · +${crowns} 👑 so far`,
+        seasonLive,
+        loading,
+        rows,
+        byId,
+        places: _yearPlaces(rows),
+        liveKey,
+        counts: rows[0]?.live?.counts !== false,
+        roadKeys: getCrownRoadKeys(),
+        scale: _vialScale(top),
+        daysLeft: chapterDaysLeft(now),
+        daysInMonth,
     };
 }
 
-/** How far this guild is from the Unity Seal this Chapter. */
-function _unityMeterHtml(g) {
-    const live = g.live || {};
-    const have = Number(live.unityCount) || 0;
-    const need = Math.max(1, Number(live.unityNeeded) || 0);
-    const members = Number(g.memberCount) || 0;
-    const pct = members ? Math.min(100, Math.round((have / need) * 100)) : 0;
-    const sealed = Boolean(live.unity);
-    const title = `Unity Seal: +${UNITY_SEAL.crowns} Crown when at least ${need} of ${members} members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this Chapter.`;
+// ── Shell (built once per season state) ──────────────────────────────────────
+
+function _actionButtonsHtml(seasonLive) {
     return `
-                    <div class="guild-unity-meter${sealed ? ' is-sealed' : ''}" title="${title}">
-                        <span class="guild-unity-meter__label"><span aria-hidden="true">🤝</span>${sealed ? 'Unity Seal won' : 'Unity Seal'}</span>
-                        <span class="guild-unity-meter__bar" aria-hidden="true"><span style="width:${pct}%"></span></span>
-                        <span class="guild-unity-meter__count">${have}/${need}</span>
-                    </div>`;
+            <button type="button" id="fortunes-wheel-btn" class="gh-action gh-action--wheel${seasonLive ? '' : ' is-season-frozen'}"
+                    data-fw-state="${seasonLive ? 'waiting' : 'locked'}" ${seasonLive ? '' : 'disabled'}
+                    aria-label="${seasonLive ? "Open Fortune's Wheel" : "Fortune's Wheel is locked until the school year begins."}">
+                <span class="gh-action__icon" aria-hidden="true"><i class="fa-solid ${seasonLive ? 'fa-dharmachakra' : 'fa-snowflake'}"></i></span>
+                <span class="gh-action__text">
+                    <span class="gh-action__title">Fortune's Wheel</span>
+                    <span id="fortunes-wheel-window" class="gh-action__sub" data-state="${seasonLive ? 'waiting' : 'locked'}">${seasonLive ? 'Pick a class first' : 'Season frozen'}</span>
+                </span>
+            </button>`;
 }
 
-function _standardsHtml(g) {
-    const names = [...new Set((g.standards || []).map((s) => s?.name).filter(Boolean))];
-    if (!names.length) return '';
-    return `<div class="guild-standards" title="Raised with a Guild Standard from the Mystic Market"><span aria-hidden="true">🚩</span>${names.slice(0, 3).map(_escapeHtml).join(' · ')}${names.length > 3 ? ` +${names.length - 3}` : ''}</div>`;
-}
-
-function _heroTile(c, primary, medal, placeLabel, hint) {
-    const initialHero = String(c.name || '?').trim().charAt(0).toUpperCase() || '?';
-    const avatarInner = c.avatar
-        ? `<img src="${c.avatar}" alt="" class="guild-crystal-hero-tile__avatar-img" loading="lazy" decoding="async" width="36" height="36">`
-        : `<span class="guild-crystal-hero-tile__avatar-fallback">${initialHero}</span>`;
+function _statsButtonHtml(seasonLive) {
+    const open = seasonLive && _guildHallStatsExpanded;
     return `
-                       <span class="guild-crystal-hero-tile" style="--hero-tile-accent:${primary};" title="${c.name} — ${_fmtGlory(c.glory)} ${GLORY_EMOJI} ${hint}">
-                           <span class="guild-crystal-hero-tile__avatar" aria-hidden="true">${avatarInner}</span>
-                           <span class="guild-crystal-hero-tile__body">
-                               <span class="guild-crystal-hero-tile__name">${c.name}</span>
-                               <span class="guild-crystal-hero-tile__glory">
-                                   <span class="guild-crystal-hero-tile__glory-num">${_fmtGlory(c.glory)}</span>
-                                   <span class="guild-crystal-hero-tile__glory-icon" aria-hidden="true">${GLORY_EMOJI}</span>
-                                   <span class="guild-crystal-hero-tile__glory-hint">${hint}</span>
-                               </span>
-                           </span>
-                           <span class="guild-crystal-hero-tile__medal" role="img" aria-label="${placeLabel}">${medal}</span>
-                       </span>`;
+            <button type="button" id="guild-stats-expand-toggle" class="gh-action gh-action--stats${seasonLive ? '' : ' is-season-frozen'}"
+                    ${seasonLive ? '' : 'disabled'} aria-expanded="${open ? 'true' : 'false'}"
+                    aria-label="${seasonLive ? (open ? 'Hide' : 'Show') + ' guild details' : 'Guild details wake with the school year.'}">
+                <span class="gh-action__icon" aria-hidden="true"><i class="fas ${seasonLive ? 'fa-chart-pie' : 'fa-snowflake'}"></i></span>
+                <span class="gh-action__text">
+                    <span class="gh-action__title">Magical Analytics</span>
+                    <span class="gh-action__sub" data-gh="statsSub">${seasonLive ? (open ? 'Hide the details' : 'Show the details') : 'Season frozen'}</span>
+                </span>
+                <span class="gh-action__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+            </button>`;
 }
 
-/** Chapter champion: the member who has earned the most Glory this Chapter. */
-function _buildGuildChampionPanel(g, primary) {
-    const header = `
-                <header class="guild-crystal-champion-panel__header">
-                    <span class="guild-crystal-champion-panel__burst" aria-hidden="true"><i class="fas fa-crown"></i></span>
-                    <div class="guild-crystal-champion-panel__headlines">
-                        <h4 class="guild-crystal-champion-panel__title">Chapter champion</h4>
-                        <p class="guild-crystal-champion-panel__subtitle">Most ${GLORY_EMOJI} Glory in ${chapterName(g.live?.key) || 'this Chapter'}</p>
+function _payoutHtml() {
+    const medals = ['🥇', '🥈', '🥉', '4th'];
+    return CHAPTER_CROWNS.map((c, i) => `<li class="gh-payout__item gh-payout__item--${PLACE_CLASS[i]}"><span class="gh-payout__place">${medals[i]}</span><b>${c}</b><i class="fas fa-crown" aria-hidden="true"></i></li>`).join('')
+        + `<li class="gh-payout__item gh-payout__item--unity" title="Unity Seal: at least 4 in 5 members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this month"><span class="gh-payout__place">🤝</span><b>+${UNITY_SEAL.crowns}</b><i class="fas fa-crown" aria-hidden="true"></i></li>`;
+}
+
+function _bannerShellHtml(guildId, i, seasonLive) {
+    const g = getGuildById(guildId) || {};
+    const name = g.name || guildId;
+    return `
+            <article class="gh-banner${seasonLive ? '' : ' is-frozen'}" data-guild="${guildId}"
+                     style="--g1:${g.primary || '#6b7280'};--g2:${g.secondary || '#9ca3af'};--gg:${g.glow || '#e5e7eb'};--i:${i};">
+                <span class="gh-banner__rod" aria-hidden="true"></span>
+                <div class="gh-banner__cloth">
+                    <span class="gh-banner__place" data-gh="place" aria-live="polite"></span>
+                    <div class="gh-banner__crest" data-guild-id="${guildId}" role="button" tabindex="0" aria-label="Unfurl the ${_escapeHtml(name)} banner">
+                        ${_emblemBadge(guildId, name, 'gh-banner__emblem')}
+                        <button type="button" class="gh-banner__anthem" data-anthem-guild="${guildId}" aria-label="Play the ${_escapeHtml(name)} anthem"><i class="fas fa-music" aria-hidden="true"></i></button>
                     </div>
-                    <button type="button" class="guild-power-info-btn guild-analytics-info-btn guild-crystal-champion-panel__info"
-                            data-top-heroes-guild="${g.guildId}" title="Guild spotlight" aria-label="Open guild spotlight">i</button>
-                </header>`;
-    const champ = g.chapterTop?.[0];
+                    <h3 class="gh-banner__name">${_escapeHtml(name)}</h3>
+                    <div class="gh-vial" aria-hidden="true">
+                        <div class="gh-vial__liquid" data-gh="liquid" style="transform:translate3d(0,100%,0)">
+                            <span class="gh-vial__surface"></span>
+                            <span class="gh-vial__bubbles"><i></i><i></i><i></i></span>
+                        </div>
+                        <span class="gh-vial__frost"></span>
+                        <span class="gh-vial__shine"></span>
+                    </div>
+                    <div class="gh-banner__score">
+                        <span class="gh-banner__num-wrap"><b class="gh-banner__num" data-gh="num">${seasonLive ? '0' : '—'}</b><span class="gh-banner__gain" data-gh="gain" aria-hidden="true"></span></span>
+                        <span class="gh-banner__unit">${GLORY_EMOJI} Glory per member</span>
+                    </div>
+                    <div class="gh-banner__prize" data-gh="prize">${seasonLive ? '' : '<span class="gh-prize__big"><i class="fas fa-snowflake" aria-hidden="true"></i></span><span class="gh-prize__small">wakes with the school year</span>'}</div>
+                    <div class="gh-unity" data-gh="unity">
+                        <span class="gh-unity__seal" data-gh="unitySeal" aria-hidden="true"><span>🤝</span></span>
+                        <span class="gh-unity__text"><b>Unity Seal</b><small data-gh="unityText"></small></span>
+                    </div>
+                    <div class="gh-banner__standards" data-gh="standards"></div>
+                </div>
+                <div class="gh-banner__details${_guildHallStatsExpanded && seasonLive ? ' is-open' : ''}" data-gh="details">
+                    <div class="gh-banner__details-clip"><div class="gh-details" data-gh="detailsInner"></div></div>
+                </div>
+            </article>`;
+}
+
+function _raceShellHtml(model) {
+    const months = model.roadKeys.map((k) => `<span class="gh-race__month${k === model.liveKey ? ' is-live' : ''}" title="${chapterName(k)}">${chapterShortName(k)}</span>`).join('');
+    const rows = model.rows.map((r) => {
+        const g = getGuildById(r.guildId) || {};
+        return `
+                <li class="gh-race__row" data-guild="${r.guildId}" style="--g1:${g.primary || '#6b7280'};--g2:${g.secondary || '#9ca3af'};--gg:${g.glow || '#e5e7eb'};">
+                    <span class="gh-race__place" data-gh="rplace"></span>
+                    <span class="gh-race__guild">${_emblemBadge(r.guildId, r.guildName, 'gh-race__emblem')}<span class="gh-race__name">${_escapeHtml(r.guildName)}</span></span>
+                    <span class="gh-race__track" data-gh="track"></span>
+                    <span class="gh-race__total" title="Crowns from finished months"><i class="fas fa-crown" aria-hidden="true"></i><b data-gh="rcrowns">0</b></span>
+                </li>`;
+    }).join('');
     return `
-            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced" style="--guild-champion-accent:${primary};" aria-label="Chapter champion">
-                ${header}
-                <div class="guild-crystal-champion-panel__body">
-                    ${champ ? _heroTile(champ, primary, '🥇', 'Chapter champion', 'this Chapter') : '<p class="guild-crystal-champion-panel__vacant" role="status">Throne vacant: the first star this Chapter claims it.</p>'}
+            <section class="gh-race" aria-label="The Crown Race" style="--months:${Math.max(1, model.roadKeys.length)};">
+                <header class="gh-race__head">
+                    <h3 class="gh-race__title"><i class="fas fa-crown" aria-hidden="true"></i>The Crown Race</h3>
+                    <p class="gh-race__summary" data-gh="raceSummary"></p>
+                    <button type="button" class="gh-info" data-guild-power-info="true" aria-label="How the Crown Race works">?</button>
+                </header>
+                <div class="gh-race__board">
+                    <div class="gh-race__row gh-race__row--head" aria-hidden="true">
+                        <span class="gh-race__place"></span><span class="gh-race__guild">Guild</span>
+                        <span class="gh-race__track">${months}</span>
+                        <span class="gh-race__total"><i class="fas fa-crown"></i></span>
+                    </div>
+                    <ol class="gh-race__rows" data-gh="raceRows">${rows}</ol>
                 </div>
             </section>`;
 }
 
-/** The crystal tubes share one scale: the next round mark above the Chapter leader (never under 10). */
-function _crystalTubeScale(displayData) {
-    const top = Math.max(0, ...displayData.map((g) => Number(g.live?.perMember) || 0));
-    const marks = [10, 20, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000];
-    const mark = marks.find((m) => m >= top * 1.1);
-    return mark || Math.ceil((top * 1.1) / 500) * 500;
+function _hallShellHtml(model) {
+    const live = model.seasonLive;
+    const chapter = chapterName(model.liveKey) || 'This month';
+    return `
+        <div class="gh${live ? '' : ' gh--frozen'}${_lite ? ' gh--lite' : ''}">
+            <div class="gh-bar">
+                ${_actionButtonsHtml(live)}
+                <div class="gh-chapter" data-gh="chapter">
+                    ${live ? `
+                    <span class="gh-chapter__dial" data-gh="dial" aria-hidden="true"><span class="gh-chapter__days" data-gh="days"></span><small>days left</small></span>
+                    <span class="gh-chapter__text">
+                        <span class="gh-chapter__kicker">The race this month</span>
+                        <span class="gh-chapter__name"><span data-gh="chapterName">${chapter}</span> Chapter</span>
+                        <ol class="gh-payout" aria-label="Crowns paid when the month ends">${_payoutHtml()}</ol>
+                    </span>
+                    <button type="button" class="gh-info" data-guild-power-info="true" aria-label="How the Crown Race works">?</button>` : `
+                    <span class="gh-chapter__dial gh-chapter__dial--frozen" aria-hidden="true"><i class="fas fa-snowflake"></i></span>
+                    <span class="gh-chapter__text">
+                        <span class="gh-chapter__kicker">Guild Hall frozen</span>
+                        <span class="gh-chapter__name">The race wakes with the school year</span>
+                    </span>`}
+                </div>
+                ${_statsButtonHtml(live)}
+            </div>
+            <div class="gh-banners">${GUILD_IDS.map((id, i) => _bannerShellHtml(id, i, live)).join('')}</div>
+            ${live ? _raceShellHtml(model) : ''}
+        </div>`;
 }
 
-function _crystalFillPct(value, scale) {
-    if (!(value > 0.005)) return 0;
-    return Math.max(3, Math.min(92, Math.round((value / scale) * 92)));
-}
+// ── Patching ─────────────────────────────────────────────────────────────────
 
-/** Rolls each changed Chapter number from its previous value (skipped for reduced motion). */
-let _powerCountToken = 0;
-function _animateGuildPowerCounters(root) {
-    const token = ++_powerCountToken;
-    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-    const jobs = [...root.querySelectorAll('.guild-crystal-count-num[data-count-to]')]
-        .map((el) => ({ el, from: Number(el.dataset.countFrom), to: Number(el.dataset.countTo) }))
-        .filter((j) => Number.isFinite(j.from) && Number.isFinite(j.to) && j.from !== j.to);
-    if (!jobs.length) return;
-    jobs.forEach((j) => { j.el.textContent = _fmtGlory(j.from); });
-    const duration = 1200;
+/** Roll a number from what is on screen to its new value. Returns the value it rolled from. */
+function _roll(el, key, to, fmt, { fromZero = false } = {}) {
+    if (!el) return to;
+    const had = _shown.has(key);
+    const from = had ? _shown.get(key) : (fromZero ? 0 : to);
+    _shown.set(key, to);
+    if (el._rollFrame) cancelAnimationFrame(el._rollFrame);
+    if (from === to || _reduceMotion()) {
+        _setText(el, fmt(to));
+        return from;
+    }
     const start = performance.now();
+    const duration = 1100;
     const step = (now) => {
-        if (token !== _powerCountToken) return;
         const t = Math.min(1, (now - start) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
-        jobs.forEach((j) => { j.el.textContent = _fmtGlory(j.from + (j.to - j.from) * eased); });
-        if (t < 1) requestAnimationFrame(step);
+        _setText(el, fmt(from + (to - from) * eased));
+        el._rollFrame = t < 1 ? requestAnimationFrame(step) : 0;
     };
-    requestAnimationFrame(step);
+    el._rollFrame = requestAnimationFrame(step);
+    return from;
 }
 
-/**
- * "Latest" row: the last change to this Chapter's Glory per member and any change of year place,
- * in words. Empty (but still reserving its row, so columns stay aligned) until something moves.
- */
-function _guildTrendRow(delta, isFirstRender, placeIndex) {
-    const items = [];
-    if (delta && !isFirstRender) {
-        if (delta.powerDelta) {
-            const up = delta.powerDelta > 0;
-            const abs = Math.abs(delta.powerDelta);
-            items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${up ? 'up' : 'down'}"
-                title="This Chapter's Glory per member ${up ? 'rose' : 'fell'} by ${abs}">
-                <i class="fas ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}" aria-hidden="true"></i>${up ? '+' : '−'}${abs} ${GLORY_EMOJI}</span>`);
+function _prizeHtml(model, live, tied) {
+    if (!model.counts) return '<span class="gh-prize__big">Warm-up</span><span class="gh-prize__small">no Crowns this month</span>';
+    if (!live.place) return '<span class="gh-prize__big">—</span><span class="gh-prize__small">no Glory yet this month</span>';
+    const crowns = Number(live.crowns) || 0;
+    return `<span class="gh-prize__big">+${crowns} <i class="fas fa-crown" aria-hidden="true"></i></span><span class="gh-prize__small">${tied ? 'tied, ' : ''}if the month ended now</span>`;
+}
+
+function _detailsHtml(row) {
+    const live = row.live || {};
+    const g = getGuildById(row.guildId) || {};
+    const wins = (row.chapterWins || []).map(chapterName);
+    const person = (p, i, hint) => {
+        const initial = String(p.name || '?').trim().charAt(0).toUpperCase() || '?';
+        const face = p.avatar
+            ? `<img src="${p.avatar}" alt="" loading="lazy" decoding="async" width="32" height="32">`
+            : `<span>${_escapeHtml(initial)}</span>`;
+        return `<li class="gh-hero"><span class="gh-hero__face">${face}</span><span class="gh-hero__name">${_escapeHtml(p.name)}</span><span class="gh-hero__glory">${_fmtGlory(p.glory)} ${GLORY_EMOJI}</span><span class="gh-hero__medal" aria-hidden="true">${['🥇', '🥈', '🥉', '✨'][i] || '✨'}</span><span class="sr-only">${hint}</span></li>`;
+    };
+    const champ = (row.chapterTop || []).slice(0, 3);
+    const legends = (row.topContributors || []).slice(0, 3).map((c) => ({ ...c, glory: c.gloryEstimate }));
+    return `
+                        <dl class="gh-stats">
+                            <div><dt>${chapterName(live.key) || 'This month'}</dt><dd>${_fmtGlory(live.glory)} ${GLORY_EMOJI}</dd></div>
+                            <div><dt>Earning this month</dt><dd>${Number(live.contributors) || 0} / ${row.memberCount}</dd></div>
+                            <div><dt>Year, per member</dt><dd>${_fmtGlory(row.yearGloryPerMember)} ${GLORY_EMOJI}</dd></div>
+                            <div><dt>Months won</dt><dd>${wins.length ? wins.map((w) => w.slice(0, 3)).join(' · ') : '—'}</dd></div>
+                        </dl>
+                        <h4 class="gh-details__title">Stars of ${chapterName(live.key) || 'the month'}</h4>
+                        ${champ.length ? `<ol class="gh-heroes">${champ.map((p, i) => person(p, i, 'this month')).join('')}</ol>` : '<p class="gh-details__empty">The first star this month takes the top spot.</p>'}
+                        <h4 class="gh-details__title">Legends of the year</h4>
+                        ${legends.length ? `<ol class="gh-heroes">${legends.map((p, i) => person(p, i, 'this year')).join('')}</ol>` : '<p class="gh-details__empty">No Glory earned yet this year.</p>'}
+                        <button type="button" class="gh-details__spotlight" data-top-heroes-guild="${row.guildId}" style="--g1:${g.primary || '#6b7280'};"><i class="fas fa-users" aria-hidden="true"></i>Guild spotlight</button>`;
+}
+
+function _patchBanner(el, row, model, { fresh }) {
+    const q = (k) => el.querySelector(`[data-gh="${k}"]`);
+    const live = row.live || {};
+    const per = Number(live.perMember) || 0;
+    const place = model.counts && live.place ? live.place : null;
+    const tied = place && model.rows.some((r) => r.guildId !== row.guildId && r.live?.place === place);
+
+    el.classList.toggle('is-leading', place === 1);
+    PLACE_CLASS.forEach((c, i) => el.classList.toggle(`is-${c}`, place === i + 1));
+
+    const placeEl = q('place');
+    const placeHtml = place ? `<span class="gh-place__n">${_ordinal(place)}</span><span class="gh-place__sub">${tied ? 'tied' : 'this month'}</span>` : '<span class="gh-place__n">·</span>';
+    if (_setHtml(placeEl, placeHtml) && !fresh) _pulse(placeEl, 'is-pop');
+
+    const pct = per > 0.005 ? Math.max(4, Math.min(94, (per / model.scale) * 94)) : 0;
+    const liquid = q('liquid');
+    if (liquid) {
+        liquid.dataset.target = `translate3d(0, ${(100 - pct).toFixed(2)}%, 0)`;
+        if (!fresh) liquid.style.transform = liquid.dataset.target;
+    }
+
+    const from = _roll(q('num'), `${row.guildId}:per`, Math.round(per * 10) / 10, _fmtGlory, { fromZero: fresh });
+    if (!fresh && per - from > 0.04) {
+        const gain = q('gain');
+        _setText(gain, `+${_fmtGlory(per - from)}`);
+        _pulse(gain, 'is-up');
+    }
+
+    _setHtml(q('prize'), _prizeHtml(model, live, tied));
+
+    const have = Number(live.unityCount) || 0;
+    const need = Math.max(1, Number(live.unityNeeded) || 0);
+    const unity = q('unity');
+    const sealed = Boolean(live.unity) && model.counts;
+    if (unity) {
+        const was = unity.classList.contains('is-sealed');
+        unity.classList.toggle('is-sealed', sealed);
+        if (sealed && !was && !fresh) _pulse(unity, 'is-stamped');
+        unity.title = `Unity Seal: +${UNITY_SEAL.crowns} Crown when at least ${need} of ${row.memberCount} members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this month.`;
+    }
+    q('unitySeal')?.style.setProperty('--p', String(Math.min(1, have / need)));
+    _setText(q('unityText'), sealed ? `Sealed! +${UNITY_SEAL.crowns} Crown` : `${Math.min(have, need)} of ${need} members ready`);
+
+    const names = [...new Set((row.standards || []).map((s) => s?.name).filter(Boolean))];
+    _setHtml(q('standards'), names.length
+        ? `<span class="gh-standard" title="Raised with a Guild Standard from the Mystic Market"><i class="fas fa-flag" aria-hidden="true"></i>${names.slice(0, 2).map(_escapeHtml).join(' · ')}${names.length > 2 ? ` +${names.length - 2}` : ''}</span>`
+        : '');
+
+    _setHtml(q('detailsInner'), _detailsHtml(row));
+}
+
+function _stonesHtml(row, model) {
+    const byKey = new Map((row.chapters || []).map((c) => [c.key, c]));
+    return model.roadKeys.map((k) => {
+        const sealed = byKey.get(k);
+        if (sealed) {
+            const p = Number(sealed.place) || 0;
+            const tip = p
+                ? `${chapterName(k)}: ${_ordinal(p)} place${sealed.unity ? ' + Unity Seal' : ''}, ${sealed.crowns} Crown${sealed.crowns === 1 ? '' : 's'}`
+                : `${chapterName(k)}: no Glory, no Crowns`;
+            return `<span class="gh-stone is-${p ? PLACE_CLASS[p - 1] : 'empty'}${sealed.unity ? ' has-unity' : ''}" title="${tip}">${p === 1 ? '<i class="fas fa-crown gh-stone__crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
         }
-        if (delta.rankDelta) {
-            const climbed = delta.rankDelta > 0;
-            const place = _ordinal(placeIndex + 1);
-            items.push(`<span class="guild-crystal-trend__item guild-crystal-trend__item--${climbed ? 'climb' : 'slip'}"
-                title="${climbed ? 'Climbed' : 'Slipped'} to ${place} in the Crown Race">
-                <i class="fas ${climbed ? 'fa-circle-up' : 'fa-circle-down'}" aria-hidden="true"></i>${climbed ? 'Up' : 'Down'} to ${place}</span>`);
+        if (k === model.liveKey) {
+            const c = model.counts ? Number(row.live?.crowns) || 0 : 0;
+            return `<span class="gh-stone is-live" title="${chapterName(k)} is still running${c ? `: ${c} Crown${c === 1 ? '' : 's'} if it ended now` : ''}"><b>${c ? `+${c}` : '…'}</b></span>`;
+        }
+        return '<span class="gh-stone is-future" aria-hidden="true"></span>';
+    }).join('');
+}
+
+function _patchRace(hall, model, { fresh }) {
+    const list = hall.querySelector('[data-gh="raceRows"]');
+    if (!list) return;
+    const rowEls = new Map([...list.children].map((li) => [li.dataset.guild, li]));
+    const anyCrowns = model.rows.some((r) => r.crowns > 0);
+
+    model.rows.forEach((r, i) => {
+        const li = rowEls.get(r.guildId);
+        if (!li) return;
+        const place = model.places[i];
+        li.classList.toggle('is-leader', anyCrowns && place === 0);
+        _setHtml(li.querySelector('[data-gh="rplace"]'), anyCrowns ? `<span class="gh-medal gh-medal--${PLACE_CLASS[place] || 'iron'}">${place + 1}</span>` : '<span class="gh-medal gh-medal--none">·</span>');
+        _setHtml(li.querySelector('[data-gh="track"]'), _stonesHtml(r, model));
+        _roll(li.querySelector('[data-gh="rcrowns"]'), `${r.guildId}:crowns`, Number(r.crowns) || 0, (v) => String(Math.round(v)), { fromZero: fresh });
+    });
+
+    // Glide rows into their new order (FLIP: measure, reorder, slide from the old spot).
+    const order = model.rows.map((r) => rowEls.get(r.guildId)).filter(Boolean);
+    const current = [...list.children];
+    if (order.some((li, i) => current[i] !== li)) {
+        const before = new Map(current.map((li) => [li, li.getBoundingClientRect().top]));
+        order.forEach((li) => list.appendChild(li));
+        if (!_reduceMotion() && !fresh) {
+            order.forEach((li) => {
+                const dy = (before.get(li) || 0) - li.getBoundingClientRect().top;
+                if (!dy) return;
+                li.style.transition = 'none';
+                li.style.transform = `translate3d(0, ${dy}px, 0)`;
+                requestAnimationFrame(() => {
+                    li.style.transition = '';
+                    li.style.transform = '';
+                });
+            });
         }
     }
-    return `<div class="guild-crystal-trend${items.length ? '' : ' guild-crystal-trend--quiet'}">${items.length
-        ? `<span class="guild-crystal-trend__label">Latest</span>${items.join('')}`
-        : ''}</div>`;
+
+    const leader = model.rows[0];
+    const second = model.rows[1];
+    const gap = leader && second ? leader.crowns - second.crowns : 0;
+    const chapter = chapterName(model.liveKey) || 'this month';
+    _setHtml(hall.querySelector('[data-gh="raceSummary"]'), !anyCrowns
+        ? `The first Crowns go to the winners of <strong>${chapter}</strong>.`
+        : gap > 0
+            ? `<strong>${_escapeHtml(leader.guildName)}</strong> lead by <strong>${gap}</strong> Crown${gap === 1 ? '' : 's'}`
+            : 'Level on Crowns at the top. The year’s Glory per member splits them.');
+}
+
+function _patchHall(hall, model, { fresh }) {
+    hall.classList.toggle('is-loading', model.loading);
+    if (model.seasonLive) {
+        // The calendar never waits for scores.
+        const dial = hall.querySelector('[data-gh="dial"]');
+        if (dial) {
+            dial.style.setProperty('--p', String(1 - (model.daysLeft - 1) / model.daysInMonth));
+            dial.classList.toggle('is-last-day', model.daysLeft <= 1);
+        }
+        _setText(hall.querySelector('[data-gh="days"]'), String(model.daysLeft));
+        _setText(hall.querySelector('[data-gh="chapterName"]'), chapterName(model.liveKey) || 'This month');
+    }
+    if (model.loading) return;
+    const first = fresh || hall.dataset.ghReady !== '1';
+    hall.dataset.ghReady = '1';
+    if (!model.seasonLive) return;
+
+    hall.querySelectorAll('.gh-banner').forEach((el) => {
+        const row = model.byId.get(el.dataset.guild);
+        if (row) _patchBanner(el, row, model, { fresh: first });
+    });
+    _patchRace(hall, model, { fresh: first });
+
+    if (first) {
+        // The vials pour from empty on the first paint with data.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            hall.querySelectorAll('[data-gh="liquid"]').forEach((l) => { l.style.transform = l.dataset.target || ''; });
+        }));
+    }
+}
+
+function _toggleStats(hall) {
+    _guildHallStatsExpanded = !_guildHallStatsExpanded;
+    hall.querySelectorAll('[data-gh="details"]').forEach((d) => d.classList.toggle('is-open', _guildHallStatsExpanded));
+    const btn = hall.querySelector('#guild-stats-expand-toggle');
+    btn?.setAttribute('aria-expanded', _guildHallStatsExpanded ? 'true' : 'false');
+    btn?.setAttribute('aria-label', `${_guildHallStatsExpanded ? 'Hide' : 'Show'} guild details`);
+    _setText(hall.querySelector('[data-gh="statsSub"]'), _guildHallStatsExpanded ? 'Hide the details' : 'Show the details');
+}
+
+function _wireHall(hall) {
+    const activate = (e) => {
+        const t = e.target;
+        if (!(t instanceof Element)) return;
+        if (t.closest('[data-guild-power-info="true"]')) { e.stopPropagation(); _openPowerExplainer(); return; }
+        const spot = t.closest('[data-top-heroes-guild]');
+        if (spot) { e.stopPropagation(); openGuildHeroesModal(spot.dataset.topHeroesGuild); return; }
+        const anthem = t.closest('[data-anthem-guild]');
+        if (anthem) { e.stopPropagation(); openAnthemModal(anthem.dataset.anthemGuild); return; }
+        if (t.closest('#guild-stats-expand-toggle')) {
+            const btn = t.closest('#guild-stats-expand-toggle');
+            if (!btn.disabled && isGuildSeasonLive()) _toggleStats(hall);
+            return;
+        }
+        const crest = t.closest('.gh-banner__crest');
+        if (!crest) return;
+        e.stopPropagation();
+        const guildId = crest.dataset.guildId;
+        openGuildLore(guildId, getGuildLeaderboardData().find((r) => r.guildId === guildId));
+    };
+    hall.addEventListener('click', activate);
+    hall.addEventListener('keydown', (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof Element && e.target.matches('.gh-banner__crest')) {
+            e.preventDefault();
+            activate(e);
+        }
+    });
 }
 
 export function renderGuildsTab() {
     const list = document.getElementById('guilds-leaderboard-list');
     if (!list) return;
+    if (_renderFrame) { cancelAnimationFrame(_renderFrame); _renderFrame = 0; }
 
     _ensurePowerExplainerOverlay();
-
     wireGuildLoreListeners();
     wireAnthemListeners();
 
-    const seasonLive = isGuildSeasonLive();
-    const rows = getGuildLeaderboardData();
-    // Frozen season: stable guild order (no false rankings).
-    const displayData = seasonLive ? rows : GUILD_IDS.map((gid) => rows.find((r) => r.guildId === gid)).filter(Boolean);
-    const places = _yearPlaces(displayData);
-
-    // ── Changes since the last render, for the "Latest" row ───────────────────
-    const powerDeltas = new Map();
-    const isFirstRender = !_guildPowerIndicatorsReady;
-    if (seasonLive) {
-        displayData.forEach((g, index) => {
-            const prev = _prevGuildPower.get(g.guildId);
-            if (!prev) return;
-            const powerDelta = Math.round(((Number(g.live?.perMember) || 0) - Number(prev.power)) * 10) / 10;
-            const rankDelta = prev.rank - index; // positive = moved up
-            if (powerDelta === 0 && rankDelta === 0) {
-                powerDeltas.set(g.guildId, { powerDelta: prev.lastPowerDelta || 0, rankDelta: prev.lastRankDelta || 0, freshChange: false });
-            } else {
-                powerDeltas.set(g.guildId, { powerDelta, rankDelta, freshChange: true });
-            }
-        });
+    const model = _hallModel();
+    const sig = `${model.seasonLive ? 'live' : 'frozen'}|${model.roadKeys.join(',')}|${model.liveKey}`;
+    let hall = list.querySelector(':scope > .gh');
+    const fresh = !hall || _hallSig !== sig;
+    if (fresh) {
+        list.innerHTML = _hallShellHtml(model);
+        hall = list.querySelector(':scope > .gh');
+        _hallSig = sig;
+        _shown.clear();
+        _wireHall(hall);
     }
+    _patchHall(hall, model, { fresh });
 
-    const tubeScale = _crystalTubeScale(displayData);
-    const anyCrowns = displayData.some((g) => g.crowns > 0);
-
-    const columns = displayData.map((g, index) => {
-        const guild = getGuildById(g.guildId);
-        const emblemUrl = getGuildEmblemUrl(g.guildId);
-        const primary = guild?.primary || '#6b7280';
-        const secondary = guild?.secondary || '#9ca3af';
-        const glow = guild?.glow || primary;
-        const initial = String(g.guildName || g.guildId || '?').trim().charAt(0).toUpperCase() || '?';
-        const live = g.live || {};
-        const perMember = Number(live.perMember) || 0;
-        const fillPct = seasonLive ? _crystalFillPct(perMember, tubeScale) : 0;
-        const chapter = chapterName(live.key) || 'This month';
-
-        const emblemHtml = emblemUrl
-            ? `<img src="${emblemUrl}" alt="${g.guildName}" class="guild-crystal-emblem"
-                    style="border-color:${primary}; box-shadow: 0 0 16px ${glow}77;">`
-            : `<div class="guild-crystal-emblem guild-crystal-emblem-fallback"
-                    style="background:linear-gradient(135deg,${primary},${secondary}); box-shadow:0 0 16px ${glow}77;">
-                   <span class="guild-crystal-emblem-initial" style="color:${primary}">${initial}</span>
-               </div>`;
-
-        const legends = seasonLive ? (g.topContributors || []).slice(0, 3) : [];
-        const legendMedals = ['🥇', '🥈', '🥉'];
-        const topHeroesBody = !seasonLive
-            ? `<p class="guild-crystal-heroes-panel__empty" role="status">Legends sleep until the school year begins.</p>`
-            : legends.length
-                ? legends.map((c, hi) => _heroTile({ ...c, glory: c.gloryEstimate }, primary, legendMedals[hi] || '✨', `${_ordinal(hi + 1)} this year`, 'this year')).join('')
-                : `<p class="guild-crystal-heroes-panel__empty" role="status">Summon stars to crown your first legends.</p>`;
-
-        const championPanelHtml = seasonLive
-            ? _buildGuildChampionPanel(g, primary)
-            : `
-            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced guild-crystal-champion-panel--frozen" style="--guild-champion-accent:${primary};" aria-label="Chapter champion">
-                <header class="guild-crystal-champion-panel__header">
-                    <span class="guild-crystal-champion-panel__burst" aria-hidden="true"><i class="fas fa-snowflake"></i></span>
-                    <div class="guild-crystal-champion-panel__headlines">
-                        <h4 class="guild-crystal-champion-panel__title">Throne frozen</h4>
-                        <p class="guild-crystal-champion-panel__subtitle">Champions awaken with the new school year</p>
-                    </div>
-                </header>
-                <div class="guild-crystal-champion-panel__body">
-                    <p class="guild-crystal-champion-panel__vacant" role="status">No standings yet — the halls are sealed in frost.</p>
-                </div>
-            </section>`;
-
-        const topHtml = `
-            <section class="guild-crystal-heroes-panel guild-crystal-heroes-panel--balanced" style="--guild-heroes-accent:${primary};">
-                <header class="guild-crystal-heroes-panel__header">
-                    <span class="guild-crystal-heroes-panel__burst" aria-hidden="true"><i class="fas ${seasonLive ? 'fa-dragon' : 'fa-snowflake'}"></i></span>
-                    <div class="guild-crystal-heroes-panel__headlines">
-                        <h4 class="guild-crystal-heroes-panel__title">${seasonLive ? 'Legends of the year' : 'Legends awaiting'}</h4>
-                        <p class="guild-crystal-heroes-panel__subtitle">${seasonLive ? `Most ${GLORY_EMOJI} Glory earned this school year` : 'Glory ledgers open when classes begin'}</p>
-                    </div>
-                </header>
-                <div class="guild-crystal-heroes-panel__roster">${topHeroesBody}</div>
-            </section>`;
-
-        const prevEntry = _prevGuildPower.get(g.guildId);
-        const countFrom = prevEntry ? _fmtGlory(prevEntry.power) : '0';
-        const line = seasonLive ? _chapterLine(g, displayData) : null;
-        const wins = (g.chapterWins || []).map(chapterShortName);
-
-        const countBlock = seasonLive
-            ? `
-                <div class="guild-crystal-count" style="color:${primary};">
-                    <span class="guild-crystal-count-num${(() => { const d = powerDeltas.get(g.guildId); if (!d || isFirstRender) return ''; return d.powerDelta > 0 ? ' guild-power-boost' : d.powerDelta < 0 ? ' guild-power-drop' : ''; })()}" data-guild-id="${g.guildId}" data-count-from="${countFrom}" data-count-to="${_fmtGlory(perMember)}">${_fmtGlory(perMember)}</span>
-                    <span class="guild-crystal-count-label">
-                        ${GLORY_EMOJI} per member · ${chapter}
-                        <button class="guild-power-info-btn" type="button" aria-label="Explain the Crown Race" data-guild-power-info="true">?</button>
-                    </span>
-                    <span class="guild-crystal-chase guild-crystal-chase--${line.tone}"><i class="fas ${line.icon}" aria-hidden="true"></i>${line.text}</span>
-                    ${_guildTrendRow(powerDeltas.get(g.guildId), isFirstRender, places[index])}
-                    ${_unityMeterHtml(g)}
-                    <div class="guild-crystal-power-strip guild-crystal-power-strip--tiles guild-crystal-power-strip--crowns" aria-label="How ${g.guildName} is doing">
-                        <span class="guild-crystal-power-tile guild-crystal-power-tile--crowns" title="Crowns from sealed Chapters. Most Crowns in June wins the year."><strong>👑 ${g.crowns}</strong><small>Crowns<br>this year</small></span>
-                        <span class="guild-crystal-power-tile" title="Chapters this guild has won${wins.length ? `: ${wins.join(', ')}` : ''}"><strong>${wins.length}</strong><small>Chapters<br>won</small></span>
-                        <span class="guild-crystal-power-tile" title="Glory each member earned this school year, on average. Splits a tie on Crowns."><strong>${_fmtGlory(g.yearGloryPerMember)}</strong><small>${GLORY_EMOJI} per member<br>this year</small></span>
-                    </div>
-                    ${_standardsHtml(g)}
-                </div>`
-            : `
-                <div class="guild-crystal-count guild-crystal-count--frozen" style="color:${primary};">
-                    <span class="guild-crystal-count-num guild-crystal-count-num--frozen" data-guild-id="${g.guildId}" aria-label="Guild Hall frozen">—</span>
-                    <span class="guild-crystal-count-label">
-                        <i class="fas fa-snowflake" aria-hidden="true"></i> Frozen
-                    </span>
-                    <div class="guild-crystal-power-strip guild-crystal-power-strip--frozen" aria-label="Season not started">
-                        <span>No scores yet</span>
-                        <span>${g.memberCount} member${g.memberCount === 1 ? '' : 's'}</span>
-                    </div>
-                </div>`;
-
-        const metricsBlock = seasonLive
-            ? `
-                            <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
-                                <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">${chapter} Glory</div>
-                                    <div class="guild-crystal-metric__value">${_fmtGlory(live.glory)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                    <div class="guild-crystal-metric__hint">${_fmtGlory(perMember)} per member</div>
-                                </div>
-                                <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Members contributing</div>
-                                    <div class="guild-crystal-metric__value">${Number(live.contributors) || 0} / ${g.memberCount}</div>
-                                    <div class="guild-crystal-metric__hint">earned Glory this Chapter</div>
-                                </div>
-                                <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Chapters won</div>
-                                    <div class="guild-crystal-metric__value">${wins.length ? wins.join(' · ') : '—'}</div>
-                                    <div class="guild-crystal-metric__hint">${g.crowns} Crown${g.crowns === 1 ? '' : 's'} so far</div>
-                                </div>
-                            </div>
-                            <div class="guild-crystal-roster-ribbon" style="--guild-roster-accent:${primary};">
-                                <div class="guild-crystal-roster-ribbon__seg" role="group" aria-label="Guild roster size">
-                                    <span class="guild-crystal-roster-ribbon__eyebrow"><i class="fas fa-users" aria-hidden="true"></i>Roster</span>
-                                    <span class="guild-crystal-roster-ribbon__figure">${g.memberCount}</span>
-                                    <span class="guild-crystal-roster-ribbon__fine">${g.memberCount === 1 ? 'guildmate' : 'guildmates'}</span>
-                                </div>
-                                <div class="guild-crystal-roster-ribbon__rule" aria-hidden="true"></div>
-                                <div class="guild-crystal-roster-ribbon__seg guild-crystal-roster-ribbon__seg--glory" role="group" aria-label="Glory earned this year">
-                                    <span class="guild-crystal-roster-ribbon__eyebrow"><span aria-hidden="true">${GLORY_EMOJI}</span>This year</span>
-                                    <span class="guild-crystal-roster-ribbon__figure guild-crystal-roster-ribbon__figure--accent">${Math.round(Number(g.countedGlory) || 0)}</span>
-                                    <span class="guild-crystal-roster-ribbon__fine">Glory earned</span>
-                                </div>
-                            </div>`
-            : `
-                            <div class="guild-crystal-metrics guild-crystal-metrics--frozen" style="--guild-metric-accent:${primary};">
-                                <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Chapter Glory</div>
-                                    <div class="guild-crystal-metric__value">—</div>
-                                    <div class="guild-crystal-metric__hint">Awaiting school year</div>
-                                </div>
-                                <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Crowns</div>
-                                    <div class="guild-crystal-metric__value">❄</div>
-                                    <div class="guild-crystal-metric__hint">Not counting yet</div>
-                                </div>
-                            </div>`;
-
-        const rankClass = seasonLive ? `is-rank-${places[index] + 1}` : 'is-frozen';
-        const rankLabel = !seasonLive ? '❄' : !anyCrowns && !displayData.some((r) => r.yearGloryPerMember > 0) ? '—' : _ordinal(places[index] + 1);
-        const showCrown = seasonLive && rankLabel !== '—' && places[index] === 0;
-
-        return `
-            <div class="guild-crystal-col ${rankClass}${(() => { if (!seasonLive) return ''; const d = powerDeltas.get(g.guildId); return (!isFirstRender && d && d.freshChange && d.rankDelta !== 0) ? ' guild-rank-changed' : ''; })()}" data-guild="${g.guildId}"
-                 style="--guild-primary:${primary};--guild-secondary:${secondary};--guild-glow:${glow};">
-
-                <!-- ── Place in the Crown Race ── -->
-                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${showCrown ? '<i class="fas fa-crown guild-crystal-rank__crown" aria-hidden="true"></i>' : ''}${rankLabel}</span></div>
-
-                <div class="guild-crystal-header">
-                    <div class="guild-crystal-emblem-wrapper"
-                         data-guild-id="${g.guildId}"
-                         role="button" tabindex="0"
-                         aria-label="Discover ${g.guildName}"
-                         style="--glow-color:${glow};">
-                        ${emblemHtml}
-                        <div class="guild-emblem-ring" style="border-color:${glow};box-shadow:0 0 24px ${glow}88;"></div>
-                        <button class="guild-anthem-btn" data-anthem-guild="${g.guildId}"
-                                aria-label="Play ${g.guildName} anthem"
-                                style="--anthem-color:${primary};--anthem-glow:${glow};"><i class="fas fa-music" aria-hidden="true"></i></button>
-                    </div>
-                    <div class="guild-crystal-name guild-crystal-name--ribbon">${g.guildName}</div>
-                </div>
-
-                <!-- ── Crystal tube: this Chapter's Glory per member ── -->
-                <div class="guild-crystal-tube-wrap${seasonLive ? '' : ' guild-crystal-tube-wrap--frozen'}">
-                    ${seasonLive ? '' : `
-                    <div class="guild-crystal-seal-badge">
-                        <i class="fas fa-snowflake" aria-hidden="true"></i><span>Sealed</span>
-                    </div>`}
-                    <div class="guild-crystal-tube${seasonLive ? '' : ' guild-crystal-tube--frozen'}"
-                         style="border-color:${primary}44; box-shadow:inset 0 0 16px rgba(0,0,0,0.08), 0 0 32px ${glow}1a;">
-                        ${seasonLive ? `
-                        <div class="guild-crystal-fill"
-                             data-fill-target="${fillPct}"
-                             style="height:0%;
-                                    background:linear-gradient(to top,${primary} 0%,${secondary} 60%,${glow} 100%);
-                                    box-shadow:0 -6px 28px ${glow}cc;">
-                            <div class="guild-crystal-shimmer"></div>
-                            <div class="guild-crystal-bubbles">
-                                <span class="guild-bubble" style="--delay:0s;   --left:18%;--size:7px;background:${glow}aa"></span>
-                                <span class="guild-bubble" style="--delay:0.7s; --left:50%;--size:5px;background:${glow}88"></span>
-                                <span class="guild-bubble" style="--delay:1.4s; --left:76%;--size:6px;background:${glow}99"></span>
-                                <span class="guild-bubble" style="--delay:2.1s; --left:35%;--size:4px;background:${glow}77"></span>
-                            </div>
-                        </div>` : `
-                        <div class="guild-crystal-fill guild-crystal-fill--frozen" data-fill-target="0" style="height:0%;"></div>
-                        <div class="guild-crystal-frost" aria-hidden="true">
-                            <span class="guild-crystal-frost__flake" style="--fx:18%;--fy:22%;--fs:0.7rem;--fd:0s;">❄</span>
-                            <span class="guild-crystal-frost__flake" style="--fx:62%;--fy:38%;--fs:0.95rem;--fd:0.4s;">❅</span>
-                            <span class="guild-crystal-frost__flake" style="--fx:40%;--fy:58%;--fs:0.65rem;--fd:0.9s;">❄</span>
-                            <span class="guild-crystal-frost__flake" style="--fx:78%;--fy:70%;--fs:0.8rem;--fd:1.3s;">❅</span>
-                            <span class="guild-crystal-frost__flake" style="--fx:28%;--fy:82%;--fs:0.55rem;--fd:1.7s;">❄</span>
-                        </div>`}
-                        <div class="guild-crystal-glass-shine"></div>
-                        <div class="guild-crystal-glow-top" style="background:radial-gradient(ellipse at 50% 0%,${glow}22,transparent 70%);"></div>
-                    </div>
-                </div>
-
-                ${countBlock}
-
-                <div id="guild-crystal-details-${g.guildId}" class="guild-crystal-details-expander ${_guildHallStatsExpanded ? 'is-expanded' : ''}">
-                    <div class="guild-crystal-details">
-                        <div class="guild-crystal-details-inner">
-                            ${metricsBlock}
-                            ${championPanelHtml}
-                            ${topHtml}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    });
-
-    list.innerHTML = `
-        <div class="guild-crystal-hall${seasonLive ? '' : ' guild-crystal-hall--frozen'}">
-            <div class="guild-crystal-arena-header${seasonLive ? '' : ' guild-crystal-arena-header--frozen'}">
-                <div class="guild-crystal-fortune-wrap">
-                    <button type="button"
-                            id="fortunes-wheel-btn"
-                            class="guild-crystal-expand-btn guild-crystal-expand-btn--fortune${seasonLive ? '' : ' is-season-frozen'}"
-                            data-fw-state="${seasonLive ? 'waiting' : 'locked'}"
-                            ${seasonLive ? '' : 'disabled'}
-                            aria-label="${seasonLive ? "Open Fortune's Wheel. Select a class to see when the ritual window opens." : "Fortune's Wheel is locked until the school year begins."}">
-                        <div class="guild-crystal-expand-btn__icon">
-                            <i class="fa-solid ${seasonLive ? 'fa-dharmachakra' : 'fa-snowflake'}"></i>
-                        </div>
-                        <span class="guild-crystal-expand-btn__col">
-                            <span class="guild-crystal-expand-btn__text">Fortune's Wheel</span>
-                            <span id="fortunes-wheel-window" class="guild-crystal-expand-btn__sub" data-state="${seasonLive ? 'waiting' : 'locked'}">${seasonLive ? 'Pick a class first' : 'Season frozen'}</span>
-                        </span>
-                    </button>
-                </div>
-                ${seasonLive
-                    ? `<h2 class="guild-crystal-arena-title guild-crystal-arena-title--ornate font-title">
-                        <span class="guild-crystal-arena-title__flourish" aria-hidden="true"></span>
-                        <span class="guild-crystal-arena-title__text">Standings</span>
-                        <span class="guild-crystal-arena-title__flourish guild-crystal-arena-title__flourish--end" aria-hidden="true"></span>                    </h2>`
-                    : `<div class="guild-frozen-badge" role="status" tabindex="0" aria-label="Guild Hall Frozen — wakes with the new school year">
-                        <span class="guild-frozen-badge__icon" aria-hidden="true"><i class="fas fa-snowflake"></i></span>
-                        <span class="guild-frozen-badge__title" aria-hidden="true">Guild Hall Frozen</span>
-                        <span class="guild-frozen-badge__tooltip" aria-hidden="true">Wakes with the new school year</span>
-                    </div>`}
-                <div class="guild-crystal-expand-all-wrap">
-                    <button type="button"
-                            id="guild-stats-expand-toggle"
-                            class="guild-crystal-expand-btn guild-crystal-expand-btn--global${seasonLive ? '' : ' is-season-frozen'}"
-                            data-stats-state="${seasonLive ? (_guildHallStatsExpanded ? 'ready' : 'waiting') : 'locked'}"
-                            ${seasonLive ? '' : 'disabled'}
-                            aria-expanded="${seasonLive && _guildHallStatsExpanded ? 'true' : 'false'}"
-                            aria-label="${seasonLive ? (_guildHallStatsExpanded ? 'Hide' : 'Show') + ' detailed guild analytics' : 'Magical Analytics is locked until the school year begins.'}">
-                        <div class="guild-crystal-expand-btn__icon">
-                            <i class="fas ${seasonLive ? 'fa-chart-pie' : 'fa-snowflake'}"></i>
-                        </div>
-                        <span class="guild-crystal-expand-btn__col">
-                            <span class="guild-crystal-expand-btn__text">Magical Analytics</span>
-                            <span class="guild-crystal-expand-btn__sub" data-state="${seasonLive ? (_guildHallStatsExpanded ? 'ready' : 'waiting') : 'locked'}">${seasonLive ? (_guildHallStatsExpanded ? 'Hide the stats' : 'Show all stats') : 'Season frozen'}</span>
-                        </span>
-                        <span class="guild-crystal-expand-btn__chev" aria-hidden="true">${seasonLive ? (_guildHallStatsExpanded ? '▲' : '▼') : ''}</span>
-                    </button>
-                </div>
-            </div>
-            ${seasonLive ? _buildCrownRoad(displayData, getCrownRoadKeys()) : ''}
-            <div class="guild-crystal-arena${_guildHallStatsExpanded && seasonLive ? ' guild-crystal-arena--stats-expanded' : ''}${seasonLive ? '' : ' guild-crystal-arena--frozen'}">${columns.join('')}</div>
-        </div>`;
-
-    // ── Remember this render for the next "Latest" row ────────────────────────
-    displayData.forEach((g, index) => {
-        const d = powerDeltas.get(g.guildId);
-        _prevGuildPower.set(g.guildId, {
-            power: Number(g.live?.perMember) || 0,
-            rank: index,
-            lastPowerDelta: d?.powerDelta || 0,
-            lastRankDelta: d?.rankDelta || 0,
-        });
-    });
-    _guildPowerIndicatorsReady = true;
-
-    // ── Trigger entrance animations for trend indicators ──────────────────────
-    if (!isFirstRender) {
-        requestAnimationFrame(() => {
-            list.querySelectorAll('.guild-crystal-trend__item').forEach(el => {
-                el.classList.add('guild-crystal-trend__item--visible');
-            });
-        });
-    }
-
-    list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', Boolean(_guildHallStatsExpanded && seasonLive));
-
-    const expandToggle = list.querySelector('#guild-stats-expand-toggle');
-    expandToggle?.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!seasonLive || expandToggle.disabled || expandToggle.classList.contains('is-season-frozen')) return;
-        _guildHallStatsExpanded = !_guildHallStatsExpanded;
-        
-        list.querySelectorAll('.guild-crystal-details-expander').forEach((expander) => {
-            expander.classList.toggle('is-expanded', _guildHallStatsExpanded);
-            // Remove inline styles to let the CSS class take over
-            expander.style.gridTemplateRows = '';
-            expander.style.opacity = '';
-        });
-
-        expandToggle.setAttribute('aria-expanded', _guildHallStatsExpanded ? 'true' : 'false');
-        expandToggle.setAttribute(
-            'aria-label',
-            _guildHallStatsExpanded ? 'Hide detailed guild analytics' : 'Show detailed guild analytics'
-        );
-        const sub = expandToggle.querySelector('.guild-crystal-expand-btn__sub');
-        if (sub) {
-            sub.textContent = _guildHallStatsExpanded ? 'Hide the stats' : 'Show all stats';
-            sub.dataset.state = _guildHallStatsExpanded ? 'ready' : 'waiting';
-        }
-        const chev = expandToggle.querySelector('.guild-crystal-expand-btn__chev');
-        if (chev) chev.textContent = _guildHallStatsExpanded ? '▲' : '▼';
-        list.querySelector('.guild-crystal-arena')?.classList.toggle('guild-crystal-arena--stats-expanded', _guildHallStatsExpanded);
-        list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', _guildHallStatsExpanded);
-    });
-
-    // ── Animate crystal fills in ──────────────────────────────────────────────
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            document.querySelectorAll('.guild-crystal-fill').forEach(el => {
-                const target = el.dataset.fillTarget;
-                if (target) el.style.height = `${target}%`;
-            });
-        });
-    });
-
-    // ── Roll Chapter Glory numbers up/down to their new values ───────────────
-    if (seasonLive) _animateGuildPowerCounters(list);
-
-    // ── Wire emblem click / keyboard ──────────────────────────────────────────
-    const arena = list.querySelector('.guild-crystal-arena');
-    if (!arena) return;
-
-    const handleGuildActivate = (e) => {
-        const powerInfoBtn = e.target.closest?.('[data-guild-power-info="true"]');
-        if (powerInfoBtn) {
-            e.stopPropagation();
-            _openPowerExplainer();
-            return;
-        }
-        const infoBtn = e.target.closest('[data-top-heroes-guild]');
-        if (infoBtn) {
-            e.stopPropagation();
-            openGuildHeroesModal(infoBtn.dataset.topHeroesGuild);
-            return;
-        }
-
-        // Anthem button takes priority
-        const anthemBtn = e.target.closest('.guild-anthem-btn');
-        if (anthemBtn) {
-            e.stopPropagation();
-            openAnthemModal(anthemBtn.dataset.anthemGuild);
-            return;
-        }
-        const wrapper = e.target.closest('.guild-crystal-emblem-wrapper');
-        if (!wrapper) return;
-        e.stopPropagation();
-        const guildId = wrapper.dataset.guildId;
-        const gData = displayData.find(d => d.guildId === guildId);
-        openGuildLore(guildId, gData);
-    };
-
-    arena.addEventListener('click', handleGuildActivate);
-    arena.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') handleGuildActivate(e);
-    });
-
-    list.querySelector('.crown-road')?.addEventListener('click', (e) => {
-        if (e.target.closest?.('[data-guild-power-info="true"]')) _openPowerExplainer();
-    });
-
-    // ── Fortune's Wheel button ────────────────────────────────────────────────
     _wireFortunesWheel();
-
-    // ── Fortune's Log ─────────────────────────────────────────────────────────
     _initFortuneLedgerCollapse();
     _initFortuneLedgerNav();
     _renderFortunesLog();
+}
+
+/** For data listeners: one patch per frame, even when several listeners fire together. */
+export function requestGuildHallRender() {
+    if (_renderFrame) return;
+    _renderFrame = requestAnimationFrame(() => {
+        _renderFrame = 0;
+        renderGuildsTab();
+    });
 }
 
 function _initFortuneLedgerCollapse() {
@@ -1272,6 +1131,18 @@ function _initFortuneLedgerCollapse() {
 }
 
 // ─── Fortune's Wheel wiring ──────────────────────────────────────────────────
+
+// The spin check reads Firestore; the Hall patches often, so the answer is kept briefly
+// (and dropped as soon as a new spin lands in the wheel log).
+const _spinCheck = { key: '', at: 0, value: null };
+async function _canSpinCached(classId) {
+    const key = `${classId}|${(state.get('fortuneWheelLog') || []).length}`;
+    if (_spinCheck.key === key && _spinCheck.value && Date.now() - _spinCheck.at < 30000) return _spinCheck.value;
+    _spinCheck.key = key;
+    _spinCheck.at = Date.now();
+    _spinCheck.value = canSpinThisWeek(classId).catch((e) => { _spinCheck.key = ''; throw e; });
+    return _spinCheck.value;
+}
 
 async function _wireFortunesWheel() {
     const section = document.getElementById('fortunes-wheel-section');
@@ -1317,7 +1188,7 @@ async function _wireFortunesWheel() {
 
     try {
         if (classId) {
-            const canSpin = await canSpinThisWeek(classId);
+            const canSpin = await _canSpinCached(classId);
             if (canSpin) {
                 statusMsg = 'This class is in its final lesson before the weekend — you can run the wheel now.';
                 statusTone = 'ready';
@@ -1395,11 +1266,11 @@ function _renderFortunesLog() {
 
     const logs = state.get('fortuneWheelLog') || [];
     if (logs.length === 0) {
-        listEl.innerHTML = `
+        _setHtml(listEl, `
             <div class="guild-fortune-ledger__empty">
                 <div class="guild-fortune-ledger__empty-title">No recent rituals</div>
-                <p class="guild-fortune-ledger__empty-copy">When a class completes the ceremony, the latest guild omens will appear here.</p>
-            </div>`;
+                <p class="guild-fortune-ledger__empty-copy">When a class completes the ceremony, the treasures each guild found will appear here.</p>
+            </div>`);
         _updateLedgerNavButtons(0, 0);
         return;
     }
@@ -1410,7 +1281,7 @@ function _renderFortunesLog() {
     const pagedLogs = logs.slice(start, end);
     const totalPages = Math.ceil(logs.length / _fortuneLedgerPageSize);
 
-    listEl.innerHTML = pagedLogs.map(entry => {
+    _setHtml(listEl, pagedLogs.map(entry => {
         const date = entry.spunAt?.toDate ? entry.spunAt.toDate() : new Date(entry.spunAt);
         const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         const results = entry.results || [];
@@ -1444,7 +1315,7 @@ function _renderFortunesLog() {
                     }).join('')}
                 </div>
             </article>`;
-    }).join('');
+    }).join(""));
 
     _updateLedgerNavButtons(_fortuneLedgerPage, totalPages);
 }

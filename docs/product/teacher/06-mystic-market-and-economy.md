@@ -50,7 +50,7 @@ Always in stock. **Two legendary buys per student per month.** Use them from the
 | **The Pathfinder’s Map** | 60 | Instant **+10 Team Quest stars** for the class | **1 use per class per month** (and not while a classmate still holds an unused Pathfinder’s Map bought this month) |
 | **Archivist’s Quill** | 62 | Next Story Weaver class bonus is **1 star instead of 0.5** for that student | — |
 | **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next Adventure Log | **1 buy per student per month** |
-| **Guild Standard** | 75 | The student’s name flies on the guild’s column in Guild Hall for the rest of this month’s Chapter, plus **+2 Glory** | Needs a guild |
+| **Guild Standard** | 75 | The student’s name flies on the guild’s banner in Guild Hall for the rest of this month’s Chapter, plus **+2 Glory** | Needs a guild |
 
 ## Seasonal treasures (Elite)
 
@@ -112,7 +112,7 @@ A Familiar sits beside its student’s portrait on the boards, and larger when y
 
 ## How this feeds the rest of the Quest
 
-Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (small Glory gifts, a Guild Standard on the column, a gilded Wheel). None of them multiplies Glory, so Gold can never buy a Chapter. Familiars make every future star visible. Compassion Token makes Hero’s Boons free for a month.
+Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (small Glory gifts, a Guild Standard on the banner, a gilded Wheel). None of them multiplies Glory, so Gold can never buy a Chapter. Familiars make every future star visible. Compassion Token makes Hero’s Boons free for a month.
 
 ## Plan notes
 

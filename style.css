@@ -68,8 +68,8 @@
 /* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
 @import url('./styles/guilds.css');
 
-/* 11b-ii. Guild Hall Standings polish: race track, rank plaques, alcoves, tubes */
-@import url('./styles/guild_standings.css');
+/* 11b-ii. Guild Hall: the hall scene, month banners and the Crown Race board */
+@import url('./styles/guild_hall.css');
 
 /* 11c. Fortune's Wheel modal */
 @import url('./styles/fortunes_wheel.css');

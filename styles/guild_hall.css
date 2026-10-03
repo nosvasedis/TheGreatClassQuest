@@ -1,0 +1,1053 @@
+/*
+ * styles/guild_hall.css — the Guild Hall: a night-time great hall with four hanging banners
+ * (this month's race) and the Crown Race board (the year).
+ *
+ * Built for weak classroom laptops: everything that moves is a transform or opacity change,
+ * nothing animates a blur, a shadow or a filter, and .gh--lite (low-power devices) and
+ * prefers-reduced-motion stop every looping animation.
+ */
+
+#guilds-tab {
+    --gh-ink: #f8f1dc;
+    --gh-ink-2: rgba(248, 241, 220, 0.72);
+    --gh-ink-3: rgba(248, 241, 220, 0.5);
+    --gh-gold: #f5c95a;
+    --gh-gold-2: #d99a2b;
+    --gh-gold-deep: #7a4b0c;
+    --gh-night: #110c27;
+    --gh-line: rgba(245, 201, 90, 0.28);
+    --gh-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ═══ The hall ═══════════════════════════════════════════════════════════════ */
+
+.guild-hall-scene {
+    position: relative;
+    max-width: min(1180px, calc(100% - 1rem));
+    margin: 0 auto;
+    border-radius: 1.75rem;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+        radial-gradient(120% 60% at 50% -10%, rgba(124, 92, 255, 0.32), transparent 60%),
+        radial-gradient(60% 40% at 50% 112%, rgba(245, 158, 11, 0.22), transparent 70%),
+        linear-gradient(180deg, #17113a 0%, #120d2c 45%, #0d0a20 100%);
+    box-shadow:
+        0 0 0 1px rgba(245, 201, 90, 0.55),
+        0 0 0 5px rgba(245, 201, 90, 0.1),
+        0 24px 60px rgba(9, 6, 24, 0.35);
+}
+
+.guild-hall-scene-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Vaulted arches and two tall windows of moonlight, all static gradients. */
+.guild-hall-vault {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(28% 34% at 22% 0%, rgba(167, 139, 250, 0.16), transparent 70%),
+        radial-gradient(28% 34% at 78% 0%, rgba(167, 139, 250, 0.16), transparent 70%),
+        radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 34% 9%, rgba(255, 255, 255, 0.4) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 63% 14%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 88% 7%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.5px),
+        repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(255, 255, 255, 0.025) calc(25% - 1px) 25%);
+}
+.guild-hall-vault::after {
+    /* stone floor line */
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 28%;
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.28));
+}
+
+/* Slow golden motes drifting up. */
+.guild-hall-motes span {
+    position: absolute;
+    bottom: -8px;
+    left: var(--x);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(253, 230, 138, 0.85);
+    opacity: 0;
+    animation: gh-mote var(--d, 12s) var(--dl, 0s) linear infinite;
+    will-change: transform, opacity;
+}
+@keyframes gh-mote {
+    0% { transform: translate3d(0, 0, 0); opacity: 0; }
+    10% { opacity: 0.7; }
+    80% { opacity: 0.35; }
+    100% { transform: translate3d(14px, -760px, 0); opacity: 0; }
+}
+
+.guild-hall-scene-content {
+    position: relative;
+    z-index: 1;
+    padding: 1.25rem 1.25rem 1.4rem;
+}
+
+.gh {
+    display: grid;
+    gap: 1.35rem;
+    color: var(--gh-ink);
+}
+
+/* ═══ Top bar: Fortune's Wheel · this month's Chapter · Magical Analytics ════ */
+
+.gh-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+}
+.gh-bar > .gh-action--wheel { justify-self: start; }
+.gh-bar > .gh-action--stats { justify-self: end; }
+
+.gh-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 3.1rem;
+    max-width: 100%;
+    padding: 0.4rem 1rem 0.4rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--gh-line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+    color: var(--gh-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s var(--gh-ease), border-color 0.2s ease, background 0.2s ease;
+}
+.gh-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: rgba(245, 201, 90, 0.7);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+}
+.gh-action:focus-visible { outline: 2px solid var(--gh-gold); outline-offset: 3px; }
+.gh-action:disabled { cursor: default; opacity: 0.6; }
+.gh-action__icon {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff3c4, var(--gh-gold) 45%, var(--gh-gold-2) 100%);
+    color: #3b2306;
+    font-size: 1rem;
+}
+.gh-action--stats .gh-action__icon {
+    background: radial-gradient(circle at 35% 30%, #efe7ff, #a78bfa 45%, #6d28d9 100%);
+    color: #fff;
+}
+.gh-action.is-season-frozen .gh-action__icon { background: rgba(255, 255, 255, 0.14); color: #c7d2fe; }
+.gh-action--wheel:hover:not(:disabled) .gh-action__icon i { transform: rotate(90deg); }
+.gh-action__icon i { transition: transform 0.5s var(--gh-ease); }
+.gh-action__text { display: grid; min-width: 0; }
+.gh-action__title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.gh-action__sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--gh-ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-action__sub[data-state="ready"] { color: #86efac; }
+.gh-action__sub[data-state="ready"]::before {
+    content: '';
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: gh-blink 1.6s ease-in-out infinite;
+}
+.gh-action[data-fw-state="ready"] { border-color: rgba(134, 239, 172, 0.6); }
+.gh-action[data-fw-state="ready"] .gh-action__icon::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(134, 239, 172, 0.7);
+    animation: gh-ring 2s ease-out infinite;
+}
+.gh-action__chev {
+    margin-left: 0.15rem;
+    font-size: 0.7rem;
+    color: var(--gh-ink-3);
+    transition: transform 0.3s var(--gh-ease);
+}
+.gh-action[aria-expanded="true"] .gh-action__chev { transform: rotate(180deg); }
+
+@keyframes gh-blink { 50% { opacity: 0.35; } }
+@keyframes gh-ring {
+    from { transform: scale(0.9); opacity: 0.9; }
+    to { transform: scale(1.35); opacity: 0; }
+}
+
+/* The Chapter: a dial of the days left, the month's name and what it pays. */
+.gh-chapter {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.5rem 0.9rem 0.5rem 0.55rem;
+    border-radius: 1.4rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.18));
+    border: 1px solid var(--gh-line);
+}
+.gh-chapter__dial {
+    --p: 0;
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    width: 4.2rem;
+    height: 4.2rem;
+    border-radius: 50%;
+    background: conic-gradient(var(--gh-gold) calc(var(--p) * 360deg), rgba(255, 255, 255, 0.12) 0);
+}
+.gh-chapter__dial::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #2a2056, #140f30);
+}
+.gh-chapter__dial > * { position: relative; }
+.gh-chapter__days {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.45rem;
+    line-height: 1;
+    color: #fde68a;
+}
+.gh-chapter__dial small {
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gh-ink-3);
+}
+.gh-chapter__dial.is-last-day { background: conic-gradient(#fb7185 360deg, transparent 0); }
+.gh-chapter__dial.is-last-day .gh-chapter__days { color: #fecdd3; }
+.gh-chapter__dial--frozen { background: rgba(199, 210, 254, 0.25); color: #c7d2fe; font-size: 1.4rem; }
+.gh-chapter__dial--frozen::before { background: #1a1640; }
+.gh-chapter__text { display: grid; gap: 0.15rem; min-width: 0; }
+.gh-chapter__kicker {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gh-gold);
+}
+.gh-chapter__name {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1.1;
+    color: var(--gh-ink);
+    white-space: nowrap;
+}
+.gh-payout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+.gh-payout__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.08rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--gh-ink-2);
+}
+.gh-payout__item b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; color: #fde68a; }
+.gh-payout__item i { font-size: 0.55rem; color: var(--gh-gold); }
+.gh-payout__place { font-size: 0.72rem; }
+.gh-payout__item--iron .gh-payout__place { font-size: 0.6rem; font-weight: 800; }
+.gh-payout__item--unity { border-color: rgba(134, 239, 172, 0.35); }
+
+.gh-info {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--gh-line);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--gh-gold);
+    font-weight: 800;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: transform 0.2s var(--gh-ease), background 0.2s ease;
+}
+.gh-info:hover { transform: scale(1.12); background: rgba(245, 201, 90, 0.2); }
+.gh-info:focus-visible { outline: 2px solid var(--gh-gold); outline-offset: 2px; }
+
+/* ═══ The month race: four hanging banners ══════════════════════════════════ */
+
+.gh-banners {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.1rem;
+    align-items: stretch;
+    padding-top: 0.4rem;
+}
+
+.gh-banner {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    animation: gh-drop 0.75s var(--gh-ease) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes gh-drop {
+    from { transform: translate3d(0, -28px, 0); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+
+.gh-banner__rod {
+    position: absolute;
+    z-index: 2;
+    top: -0.4rem;
+    left: -4%;
+    right: -4%;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff1bf, var(--gh-gold) 40%, var(--gh-gold-deep));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.gh-banner__rod::before,
+.gh-banner__rod::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 0.95rem;
+    height: 0.95rem;
+    margin-top: -0.475rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff6d6, var(--gh-gold) 50%, var(--gh-gold-deep));
+}
+.gh-banner__rod::before { left: -0.45rem; }
+.gh-banner__rod::after { right: -0.45rem; }
+
+/* The cloth: a gold edge (the element) with the woven cloth inside it (::before), cut into a swallowtail. */
+.gh-banner__cloth {
+    --cut: 1.6rem;
+    position: relative;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.45rem 0.85rem calc(var(--cut) + 1rem);
+    background: linear-gradient(180deg, #ffe7a3, #c08a2c 60%, #8a5a12);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), 50% 100%, 0 calc(100% - var(--cut)));
+    transition: transform 0.35s var(--gh-ease);
+}
+.gh-banner__cloth::before {
+    content: '';
+    position: absolute;
+    inset: 2px 2px 0;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 6px),
+        radial-gradient(110% 55% at 50% 0%, color-mix(in srgb, var(--gg) 32%, transparent), transparent 70%),
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--g1) 72%, #0c0820) 0%,
+            color-mix(in srgb, var(--g1) 52%, #0c0820) 55%,
+            color-mix(in srgb, var(--g2) 42%, #0c0820) 100%);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut) - 1px), 50% calc(100% - 3px), 0 calc(100% - var(--cut) - 1px));
+}
+.gh-banner__cloth > * { position: relative; z-index: 1; }
+.gh-banner:hover .gh-banner__cloth { transform: translate3d(0, 3px, 0); }
+
+/* The month's leader: brighter gold edge and a sheen that crosses the cloth now and then. */
+.gh-banner.is-leading .gh-banner__cloth { background: linear-gradient(180deg, #fff4cc, #f5c95a 45%, #b07a1a); }
+.gh-banner.is-leading .gh-banner__cloth::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    left: -60%;
+    width: 45%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+    animation: gh-sheen 6s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes gh-sheen {
+    0%, 55% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(360%, 0, 0); }
+}
+.gh-banner.is-active .gh-banner__cloth { transform: translate3d(0, 4px, 0); }
+
+/* Place this month: a medal in the corner. */
+.gh-banner__place {
+    position: absolute !important;
+    top: 0.65rem;
+    right: 0.6rem;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    min-width: 2.7rem;
+    height: 2.7rem;
+    padding: 0 0.25rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: var(--gh-ink-2);
+    line-height: 1;
+}
+.gh-place__n { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 0.95rem; }
+.gh-place__sub { font-size: 0.42rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.8; margin-top: 0.1rem; }
+.gh-banner.is-gold .gh-banner__place { background: radial-gradient(circle at 35% 30%, #fff6cf, #fbbf24 50%, #b45309); color: #451a03; border-color: #fde68a; }
+.gh-banner.is-silver .gh-banner__place { background: radial-gradient(circle at 35% 30%, #ffffff, #d1d5db 50%, #6b7280); color: #1f2937; border-color: #f3f4f6; }
+.gh-banner.is-bronze .gh-banner__place { background: radial-gradient(circle at 35% 30%, #ffe2c4, #e0995e 50%, #8a4b1f); color: #3b1a06; border-color: #fcd5b0; }
+.gh-banner.is-iron .gh-banner__place { background: radial-gradient(circle at 35% 30%, #e5e7eb, #9ca3af 50%, #4b5563); color: #111827; border-color: #d1d5db; }
+.gh-banner__place.is-pop { animation: gh-pop 0.6s var(--gh-ease); }
+@keyframes gh-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.3) rotate(-8deg); }
+    100% { transform: scale(1); }
+}
+
+/* Crest: the emblem in a gold ring. Tap for the banner, the note for the anthem. */
+.gh-banner__crest {
+    width: 5.2rem;
+    height: 5.2rem;
+    padding: 4px;
+    border-radius: 50%;
+    background: conic-gradient(from 210deg, #fff1bf, var(--gh-gold), var(--gh-gold-deep), var(--gh-gold), #fff1bf);
+    cursor: pointer;
+    transition: transform 0.25s var(--gh-ease);
+}
+.gh-banner__crest:hover { transform: scale(1.06); }
+.gh-banner__crest:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.gh-banner__emblem {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--g1);
+}
+.gh-banner__emblem--initial { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.8rem; color: #fff; }
+.gh-banner__anthem {
+    position: absolute !important;
+    left: -0.2rem;
+    bottom: -0.1rem;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 241, 191, 0.75);
+    background: #1a1238;
+    color: #fde68a;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: transform 0.2s var(--gh-ease), background 0.2s ease;
+}
+.gh-banner__anthem:hover { transform: scale(1.18); background: var(--g1); color: #fff; }
+.gh-banner__anthem:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.gh-banner__name {
+    margin: 0.55rem 0 0.75rem;
+    max-width: 100%;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: 0.03em;
+    line-height: 1.15;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The vial fills with this month's Glory per member. The liquid slides up (a transform). */
+.gh-vial {
+    position: relative;
+    width: 4.3rem;
+    height: 10.5rem;
+    border-radius: 2.15rem;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+        repeating-linear-gradient(0deg, transparent 0 calc(25% - 1px), rgba(255, 255, 255, 0.14) calc(25% - 1px) 25%) left 0.55rem top 0 / 0.55rem 100% no-repeat,
+        linear-gradient(90deg, rgba(5, 3, 15, 0.7), rgba(20, 14, 45, 0.55), rgba(5, 3, 15, 0.7));
+    border: 2px solid rgba(255, 255, 255, 0.24);
+    box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+.gh-vial__liquid {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 35%, transparent 65%, rgba(0, 0, 0, 0.22)),
+        linear-gradient(180deg, color-mix(in srgb, var(--gg) 85%, #fff) 0%, var(--g2) 30%, var(--g1) 100%);
+    transition: transform 1.3s var(--gh-ease);
+    will-change: transform;
+}
+.gh-vial__surface {
+    position: absolute;
+    top: -5px;
+    left: -50%;
+    width: 200%;
+    height: 10px;
+    border-radius: 50%;
+    background: repeating-radial-gradient(ellipse 18% 100% at 25% 50%, rgba(255, 255, 255, 0.55) 0 30%, transparent 60%);
+    opacity: 0.8;
+    animation: gh-wave 4s linear infinite;
+}
+@keyframes gh-wave {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(25%, 0, 0); }
+}
+.gh-vial__bubbles i {
+    position: absolute;
+    bottom: 0.4rem;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    opacity: 0;
+    animation: gh-bubble 3.6s ease-in infinite;
+}
+.gh-vial__bubbles i:nth-child(1) { left: 28%; animation-delay: 0s; }
+.gh-vial__bubbles i:nth-child(2) { left: 55%; width: 4px; height: 4px; animation-delay: 1.3s; }
+.gh-vial__bubbles i:nth-child(3) { left: 70%; width: 3px; height: 3px; animation-delay: 2.4s; }
+@keyframes gh-bubble {
+    0% { transform: translate3d(0, 0, 0); opacity: 0; }
+    15% { opacity: 0.9; }
+    100% { transform: translate3d(0, -8rem, 0); opacity: 0; }
+}
+.gh-vial__shine {
+    position: absolute;
+    z-index: 2;
+    top: 7%;
+    left: 20%;
+    width: 18%;
+    height: 72%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.05));
+    pointer-events: none;
+}
+.gh-vial__frost {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    display: none;
+    background:
+        radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.5) 0 2px, transparent 3px),
+        radial-gradient(circle at 65% 48%, rgba(255, 255, 255, 0.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 40% 72%, rgba(255, 255, 255, 0.4) 0 2px, transparent 3px),
+        linear-gradient(180deg, rgba(199, 210, 254, 0.28), rgba(199, 210, 254, 0.08));
+}
+
+.gh-banner__score {
+    display: grid;
+    justify-items: center;
+    margin-top: 0.7rem;
+    line-height: 1;
+}
+.gh-banner__num-wrap { position: relative; }
+.gh-banner__num {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-weight: 400;
+    font-size: 2.35rem;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 18px color-mix(in srgb, var(--gg) 55%, transparent);
+}
+.gh-banner__unit {
+    margin-top: 0.3rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--gh-ink-2);
+}
+.gh-banner__gain {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 0.2rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.9rem;
+    color: #86efac;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+}
+.gh-banner__gain.is-up { animation: gh-gain 1.8s var(--gh-ease); }
+@keyframes gh-gain {
+    0% { transform: translate3d(0, 10px, 0); opacity: 0; }
+    20% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { transform: translate3d(0, -14px, 0); opacity: 0; }
+}
+
+/* What the month would pay if it ended now. */
+.gh-banner__prize {
+    display: grid;
+    justify-items: center;
+    min-width: 7.5rem;
+    min-height: 2.9rem;
+    margin-top: 0.65rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 0.9rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    text-align: center;
+}
+.gh-prize__big {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.15rem;
+    line-height: 1.1;
+    color: #fde68a;
+}
+.gh-prize__big i { font-size: 0.85rem; }
+.gh-prize__small { font-size: 0.6rem; font-weight: 700; color: var(--gh-ink-3); }
+.gh-banner.is-gold .gh-banner__prize { border-color: rgba(253, 230, 138, 0.6); background: rgba(120, 72, 6, 0.35); }
+
+/* The Unity Seal: a ring that fills as members reach 3 stars; wax-sealed once won. */
+.gh-unity {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+.gh-unity__seal {
+    --p: 0;
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 50%;
+    background: conic-gradient(#86efac calc(var(--p) * 360deg), rgba(255, 255, 255, 0.14) 0);
+    transition: background 0.4s ease;
+}
+.gh-unity__seal > span {
+    display: grid;
+    place-items: center;
+    width: calc(100% - 6px);
+    height: calc(100% - 6px);
+    border-radius: 50%;
+    background: #1a1238;
+    font-size: 0.85rem;
+}
+.gh-unity__text { display: grid; line-height: 1.15; }
+.gh-unity__text b { font-size: 0.7rem; font-weight: 800; color: var(--gh-ink); }
+.gh-unity__text small { font-size: 0.62rem; font-weight: 700; color: var(--gh-ink-3); }
+.gh-unity.is-sealed .gh-unity__seal { background: conic-gradient(var(--gh-gold) 360deg, transparent 0); }
+.gh-unity.is-sealed .gh-unity__seal > span { background: radial-gradient(circle at 35% 30%, #fb7185, #be123c 55%, #7f1d1d); }
+.gh-unity.is-sealed .gh-unity__text small { color: #fde68a; }
+.gh-unity.is-stamped .gh-unity__seal { animation: gh-stamp 0.7s var(--gh-ease); }
+@keyframes gh-stamp {
+    0% { transform: scale(1.8) rotate(-25deg); opacity: 0.2; }
+    60% { transform: scale(0.92) rotate(4deg); opacity: 1; }
+    100% { transform: none; }
+}
+
+.gh-banner__standards:empty { display: none; }
+.gh-banner__standards { margin-top: 0.5rem; max-width: 100%; }
+.gh-standard {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.3);
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--gh-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-standard i { color: var(--gh-gold); font-size: 0.6rem; }
+
+/* Magical Analytics: details that slide open under each banner. */
+.gh-banner__details {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.45s var(--gh-ease), margin-top 0.45s var(--gh-ease);
+}
+.gh-banner__details.is-open { grid-template-rows: 1fr; margin-top: 0.75rem; }
+.gh-banner__details-clip { min-height: 0; overflow: hidden; }
+.gh-details {
+    padding: 0.8rem;
+    border-radius: 1rem;
+    background: rgba(10, 7, 26, 0.78);
+    border: 1px solid color-mix(in srgb, var(--g2) 45%, transparent);
+}
+.gh-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin: 0;
+}
+.gh-stats > div {
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+.gh-stats dt { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gh-ink-3); }
+.gh-stats dd { margin: 0.15rem 0 0; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.9rem; color: var(--gh-ink); }
+.gh-details__title {
+    margin: 0.75rem 0 0.35rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gh-gold);
+}
+.gh-details__empty { margin: 0; font-size: 0.72rem; color: var(--gh-ink-3); }
+.gh-heroes { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.gh-hero {
+    display: grid;
+    grid-template-columns: 1.8rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 0.6rem;
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 0.74rem;
+}
+.gh-hero__face {
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--g1) 70%, #000);
+    font-weight: 800;
+}
+.gh-hero__face img { width: 100%; height: 100%; object-fit: cover; }
+.gh-hero__name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gh-hero__glory { font-family: 'Fredoka', sans-serif; font-weight: 600; color: #fde68a; white-space: nowrap; }
+.gh-details__spotlight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.45rem;
+    border-radius: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: color-mix(in srgb, var(--g1) 55%, #140f30);
+    color: #fff;
+    font-size: 0.74rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.2s var(--gh-ease);
+}
+.gh-details__spotlight:hover { transform: translateY(-1px); }
+
+/* ═══ The year: the Crown Race board ════════════════════════════════════════ */
+
+.gh-race {
+    padding: 1rem 1.1rem 0.9rem;
+    border-radius: 1.3rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--gh-line);
+}
+.gh-race__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    margin-bottom: 0.7rem;
+}
+.gh-race__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fde68a;
+}
+.gh-race__title i { color: var(--gh-gold); }
+.gh-race__summary { flex: 1 1 14rem; margin: 0; font-size: 0.85rem; color: var(--gh-ink-2); }
+.gh-race__summary strong { color: #fde68a; }
+
+.gh-race__rows { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.gh-race__row {
+    display: grid;
+    grid-template-columns: 2.2rem minmax(8.5rem, 1.25fr) minmax(0, 5fr) 4.2rem;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.95rem;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--g1) 38%, transparent), rgba(255, 255, 255, 0.025) 60%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition: transform 0.7s var(--gh-ease), border-color 0.3s ease;
+}
+.gh-race__row--head {
+    padding-top: 0;
+    padding-bottom: 0.15rem;
+    background: none;
+    border-color: transparent;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gh-ink-3);
+}
+.gh-race__row--head .gh-race__total { justify-content: center; color: var(--gh-gold); }
+.gh-race__row.is-leader { border-color: rgba(253, 230, 138, 0.6); background: linear-gradient(90deg, color-mix(in srgb, var(--g1) 50%, transparent), rgba(120, 72, 6, 0.18) 70%); }
+
+.gh-medal {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.95rem;
+}
+.gh-medal--gold { background: radial-gradient(circle at 35% 30%, #fff6cf, #fbbf24 50%, #b45309); color: #451a03; }
+.gh-medal--silver { background: radial-gradient(circle at 35% 30%, #fff, #d1d5db 50%, #6b7280); color: #1f2937; }
+.gh-medal--bronze { background: radial-gradient(circle at 35% 30%, #ffe2c4, #e0995e 50%, #8a4b1f); color: #3b1a06; }
+.gh-medal--iron { background: radial-gradient(circle at 35% 30%, #e5e7eb, #9ca3af 50%, #4b5563); color: #111827; }
+.gh-medal--none { color: var(--gh-ink-3); }
+
+.gh-race__guild { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+.gh-race__emblem {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--g1);
+    box-shadow: 0 0 0 2px rgba(255, 241, 191, 0.55);
+}
+.gh-race__emblem--initial { font-family: 'Cinzel', serif; font-weight: 700; color: #fff; }
+.gh-race__name {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gh-race__track {
+    display: grid;
+    grid-template-columns: repeat(var(--months, 10), minmax(0, 1fr));
+    gap: 0.3rem;
+}
+.gh-race__month { text-align: center; white-space: nowrap; }
+.gh-race__month.is-live { color: #fde68a; }
+
+.gh-stone {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 2rem;
+    border-radius: 0.6rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.85rem;
+    color: var(--gh-ink);
+}
+.gh-stone b { font-weight: 400; }
+.gh-stone.is-future { border: 1px dashed rgba(255, 255, 255, 0.12); }
+.gh-stone.is-empty { background: rgba(255, 255, 255, 0.06); color: var(--gh-ink-3); }
+.gh-stone.is-gold { background: linear-gradient(180deg, #fde68a, #d97706); color: #451a03; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18); }
+.gh-stone.is-silver { background: linear-gradient(180deg, #f3f4f6, #9ca3af); color: #1f2937; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18); }
+.gh-stone.is-bronze { background: linear-gradient(180deg, #fcd5b0, #b8692f); color: #3b1a06; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18); }
+.gh-stone.is-iron { background: linear-gradient(180deg, #d1d5db, #6b7280); color: #111827; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18); }
+.gh-stone.has-unity::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
+}
+.gh-stone__crown {
+    position: absolute;
+    top: -0.5rem;
+    font-size: 0.62rem;
+    color: #fde68a;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.gh-stone.is-live {
+    border: 1.5px dashed color-mix(in srgb, var(--gg) 75%, #fff);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fde68a;
+    animation: gh-breathe 2.6s ease-in-out infinite;
+}
+@keyframes gh-breathe { 50% { opacity: 0.6; } }
+
+.gh-race__total {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.55rem;
+    color: #fde68a;
+}
+.gh-race__total i { font-size: 0.85rem; color: var(--gh-gold); }
+.gh-race__total b { font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* ═══ Loading: soft placeholders until the guild scores arrive (never a row of zeros) ═══ */
+
+.gh.is-loading .gh-banner__num,
+.gh.is-loading .gh-banner__prize,
+.gh.is-loading .gh-unity__text small,
+.gh.is-loading .gh-race__track,
+.gh.is-loading .gh-race__total b,
+.gh.is-loading .gh-race__summary {
+    color: transparent !important;
+    text-shadow: none !important;
+    border-radius: 0.6rem;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+    background-size: 200% 100%;
+    animation: gh-shimmer 1.4s linear infinite;
+}
+.gh.is-loading .gh-banner__prize > *,
+.gh.is-loading .gh-race__track > * { visibility: hidden; }
+.gh.is-loading .gh-race__track { min-height: 2rem; }
+.gh.is-loading .gh-race__summary { min-height: 1rem; max-width: 18rem; }
+.gh.is-loading .gh-banner__place { visibility: hidden; }
+@keyframes gh-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+}
+
+/* ═══ Frozen season ════════════════════════════════════════════════════════ */
+
+.gh-banner.is-frozen .gh-banner__cloth { background: linear-gradient(180deg, #e0e7ff, #94a3b8 60%, #475569); }
+.gh-banner.is-frozen .gh-banner__cloth::before { filter: saturate(0.35) brightness(0.85); }
+.gh-banner.is-frozen .gh-vial__frost { display: block; }
+.gh-banner.is-frozen .gh-unity,
+.gh-banner.is-frozen .gh-banner__place,
+.gh-banner.is-frozen .gh-banner__gain { display: none; }
+.gh-banner.is-frozen .gh-banner__num { color: #c7d2fe; text-shadow: none; }
+.gh-banner.is-frozen .gh-prize__big { color: #c7d2fe; }
+
+/* ═══ Smaller screens ══════════════════════════════════════════════════════ */
+
+@media (max-width: 1100px) {
+    .gh-banners { gap: 0.8rem; }
+    .gh-banner__crest { width: 4.5rem; height: 4.5rem; }
+    .gh-vial { height: 9.5rem; width: 3.9rem; }
+    .gh-banner__num { font-size: 2rem; }
+    .gh-chapter__name { font-size: 1.1rem; }
+}
+
+@media (max-width: 900px) {
+    .gh-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gh-chapter { grid-column: 1 / -1; order: -1; justify-self: stretch; }
+    .gh-chapter__text { flex: 1; }
+    .gh-banners { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.4rem; }
+    .gh-race__row { grid-template-columns: 2.2rem minmax(0, 1fr) auto; grid-template-areas: 'place guild total' 'track track track'; row-gap: 0.4rem; }
+    .gh-race__place { grid-area: place; }
+    .gh-race__guild { grid-area: guild; }
+    .gh-race__track { grid-area: track; }
+    .gh-race__total { grid-area: total; }
+    .gh-race__row--head { display: none; }
+}
+
+@media (max-width: 480px) {
+    .guild-hall-scene { border-radius: 1.25rem; }
+    .guild-hall-scene-content { padding: 0.9rem 0.7rem 1rem; }
+    .gh-action { padding-right: 0.7rem; min-height: 2.8rem; }
+    .gh-action__icon { width: 2rem; height: 2rem; }
+    .gh-action__title { font-size: 0.8rem; }
+    .gh-action__chev { display: none; }
+    .gh-chapter { padding: 0.45rem 0.6rem 0.45rem 0.45rem; gap: 0.6rem; }
+    .gh-chapter__dial { width: 3.6rem; height: 3.6rem; }
+    .gh-chapter__days { font-size: 1.2rem; }
+    .gh-banner__cloth { padding: 1.3rem 0.5rem calc(var(--cut) + 0.8rem); }
+    .gh-banner__crest { width: 3.9rem; height: 3.9rem; }
+    .gh-banner__name { font-size: 0.86rem; }
+    .gh-vial { height: 8rem; width: 3.3rem; }
+    .gh-banner__num { font-size: 1.75rem; }
+    .gh-banner__place { min-width: 2.2rem; height: 2.2rem; top: 0.5rem; right: 0.4rem; }
+    .gh-place__n { font-size: 0.8rem; }
+    .gh-banner__prize { min-width: 0; width: 100%; padding: 0.3rem 0.4rem; }
+    .gh-unity__text b { font-size: 0.64rem; }
+    .gh-race { padding: 0.8rem 0.7rem; }
+    .gh-stone { height: 1.6rem; font-size: 0.72rem; border-radius: 0.45rem; }
+    .gh-race__track { gap: 0.2rem; }
+}
+
+/* ═══ Weak laptops and reduced motion: nothing loops ════════════════════════ */
+
+.guild-hall-scene:has(.gh--lite) .guild-hall-motes,
+.gh--lite .gh-vial__surface,
+.gh--lite .gh-vial__bubbles {
+    display: none;
+}
+.gh--lite .gh-banner.is-leading .gh-banner__cloth::after,
+.gh--lite .gh-stone.is-live,
+.gh--lite .gh-action__sub[data-state="ready"]::before,
+.gh--lite .gh-action[data-fw-state="ready"] .gh-action__icon::after {
+    animation: none;
+}
+.gh--lite .gh-banner.is-leading .gh-banner__cloth::after { display: none; }
+.gh--lite .gh-banner__details { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .guild-hall-motes,
+    .gh-vial__surface,
+    .gh-vial__bubbles,
+    .gh-banner.is-leading .gh-banner__cloth::after { display: none; }
+    .gh-banner,
+    .gh-stone.is-live,
+    .gh.is-loading *,
+    .gh-action__sub[data-state="ready"]::before,
+    .gh-action[data-fw-state="ready"] .gh-action__icon::after { animation: none !important; }
+    .gh-vial__liquid,
+    .gh-race__row,
+    .gh-banner__details,
+    .gh-banner__cloth { transition: none !important; }
+}

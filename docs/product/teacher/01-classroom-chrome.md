@@ -219,7 +219,7 @@ The **class picker** shows each of your classes with its days and time, a **Toda
 
 Every phone sheet (More, class picker, Settings sections) closes with ✕, a tap outside it, or by dragging its handle down.
 
-The phone is the same Quest. Prefer the PC whenever the class should *see* the world: Projector, ceremonies, Guild Hall crystals, Story Weavers reveal.
+The phone is the same Quest. Prefer the PC whenever the class should *see* the world: Projector, ceremonies, Guild Hall banners, Story Weavers reveal.
 
 ## How this feeds the rest of the Quest
 

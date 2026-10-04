@@ -7,7 +7,7 @@ import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReason
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { getHomeGlobalTools, getHomeClassActions } from '../features/homeGlobalTools.mjs';
+import { getHomeGlobalTools, getHomeClassActions, getClassToolCounts } from '../features/homeGlobalTools.mjs';
 import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
@@ -219,15 +219,16 @@ function getMobileGlobalTools() {
     const today = utils.getTodayDateString();
     const myClasses = state.get('allTeachersClasses') || [];
     const myClassIds = new Set(myClasses.map((c) => c.id));
-    const myLessonsToday = isSchoolYearAwaitingOpen(state.get('schoolYearState'))
-        ? 0
+    const myTodaysClasses = isSchoolYearAwaitingOpen(state.get('schoolYearState'))
+        ? []
         : utils.getClassesOnDay(
             today,
             state.get('allSchoolClasses') || [],
             state.get('allScheduleOverrides') || [],
             state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
-        ).filter((c) => myClassIds.has(c.id)).length;
-    return getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
+        ).filter((c) => myClassIds.has(c.id));
+    const lessonClass = utils.findLessonClassWithGrace(myTodaysClasses);
+    return getHomeGlobalTools({ canUseFeature, myLessonsToday: myTodaysClasses.length, myClassCount: myClasses.length, lessonClassName: lessonClass?.name || '' });
 }
 
 function getMobileClassActions(classId) {
@@ -235,9 +236,10 @@ function getMobileClassActions(classId) {
         || (state.get('allSchoolClasses') || []).find((c) => c.id === classId) || {};
     const students = (state.get('allStudents') || []).filter((s) => s.classId === classId);
     const today = utils.getTodayDateString();
-    const absentToday = new Set((state.get('allAttendanceRecords') || [])
+    const absentIds = new Set((state.get('allAttendanceRecords') || [])
         .filter((r) => r.classId === classId && r.date === today)
-        .map((r) => r.studentId)).size;
+        .map((r) => r.studentId));
+    const absentToday = absentIds.size;
     const boon = classData.teacherBoons?.[utils.getLocalMonthKey()] || null;
     const boonHero = boon ? students.find((s) => s.id === boon.studentId) : null;
     return getHomeClassActions({
@@ -246,6 +248,7 @@ function getMobileClassActions(classId) {
         absentToday,
         boonWindow: utils.isTeacherBoonWindow(),
         boonGivenTo: boonHero ? String(boonHero.name || '').split(/\s+/)[0] : '',
+        ...getClassToolCounts({ classData, studentIds: students.map((s) => s.id), absentIds, dateKey: today }),
     });
 }
 
@@ -516,6 +519,12 @@ async function handleQuickAction(action, subtab) {
     } else if (action === 'open-options') {
         const tabs = await import('../ui/tabs.js');
         await tabs.showOptionsSubtab(subtab || 'classes');
+    } else if (action === 'open-team-maker') {
+        const { openTeamMaker } = await import('../ui/modals/teamMaker.js');
+        openTeamMaker(classId || null);
+    } else if (action === 'open-fair-picker') {
+        const { openFairPicker } = await import('../ui/modals/fairPicker.js');
+        openFairPicker(classId || null);
     } else if (action === 'open-day-planner') {
         const modals = await import('../ui/modals.js');
         modals.openDayPlannerModal(utils.getTodayDateString(), document.body);

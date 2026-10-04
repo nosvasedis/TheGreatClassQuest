@@ -5,6 +5,8 @@ import * as state from '../../state.js';
 import { parseDDMMYYYY, getTodayDateString } from '../../utils.js';
 import { GUILD_IDS, getGuildById } from '../../features/guilds.js';
 import { audienceShare, describeAudience } from '../../features/bountyAudience.mjs';
+import { teamsForDay, teamBanner } from '../../features/teamMakerCore.mjs';
+import { readClassField } from './classTools.js';
 
 const STAR_BOUNTY_HOURS = 2; // matches the expiry handleCreateBounty gives star bounties
 const MODE_KEY = 'gcq.bountyPoster.mode';
@@ -19,7 +21,7 @@ const TIME_PRESETS = [5, 10, 15, 20, 30];
 const $ = (id) => document.getElementById(id);
 
 // Who the bounty is for. Reset with every fresh poster.
-const audience = { kind: 'class', guildId: null, heroIds: new Set() };
+const audience = { kind: 'class', guildId: null, heroIds: new Set(), team: null };
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -55,6 +57,17 @@ function classStudents() {
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
 }
 
+/** Today's Team Maker teams for this class (ids still in the class only). */
+function classTeams() {
+    const classId = $('bounty-class-id')?.value;
+    const today = classId ? teamsForDay(readClassField(classId, 'teamMaker'), getTodayDateString()) : null;
+    if (!today) return [];
+    const known = new Set(classStudents().map(s => s.id));
+    return today.teams
+        .map((ids, index) => ({ index, banner: teamBanner(index), ids: ids.filter(id => known.has(id)) }))
+        .filter(t => t.ids.length);
+}
+
 /** Guilds with at least one hero in this class, in the usual guild order. */
 function classGuilds() {
     const counts = new Map();
@@ -70,7 +83,7 @@ function audienceRecord() {
     }
     if (audience.kind === 'heroes' && audience.heroIds.size) {
         const ids = classStudents().map(s => s.id).filter(id => audience.heroIds.has(id));
-        return { kind: 'heroes', studentIds: ids };
+        return audience.team ? { kind: 'heroes', studentIds: ids, label: audience.team.label } : { kind: 'heroes', studentIds: ids };
     }
     return { kind: 'class' };
 }
@@ -85,6 +98,7 @@ function audienceMemberCount() {
 function audienceWho() {
     if (audience.kind === 'guild') return getGuildById(audience.guildId)?.name || 'The guild';
     if (audience.kind === 'heroes') {
+        if (audience.team) return audience.team.label;
         const n = audience.heroIds.size;
         if (!n) return 'The chosen heroes';
         if (n <= 3) {
@@ -110,8 +124,9 @@ function renderAudience() {
     }
     const chip = (key, seal, label, count, style = '') => {
         const on = key === 'class' ? audience.kind === 'class'
-            : key === 'heroes' ? audience.kind === 'heroes'
-                : audience.kind === 'guild' && audience.guildId === key;
+            : key === 'heroes' ? audience.kind === 'heroes' && !audience.team
+                : key.startsWith('team:') ? audience.kind === 'heroes' && audience.team?.key === key
+                    : audience.kind === 'guild' && audience.guildId === key;
         return `<button type="button" class="bp-chip bp-chip--audience${on ? ' is-picked' : ''}" data-bp-audience="${escapeHtml(key)}" aria-pressed="${on}"${style}>
             <span class="bp-chip__seal" aria-hidden="true">${seal}</span>${escapeHtml(label)}${count != null ? `<small>${count}</small>` : ''}</button>`;
     };
@@ -119,7 +134,9 @@ function renderAudience() {
         chip('class', '🏰', 'Whole class', total || null),
         ...guilds.map(({ guild, count }) => chip(guild.id, guild.emoji, guild.name, count,
             ` style="--bp-seal:${guild.primary}33;--bp-seal-ink:${guild.primary}"`)),
-        chip('heroes', '🧭', 'Chosen heroes', audience.kind === 'heroes' && audience.heroIds.size ? audience.heroIds.size : null)
+        ...classTeams().map(({ index, banner, ids }) => chip(`team:${index}`, banner.emoji, banner.short, ids.length,
+            ` style="--bp-seal:${banner.primary}33;--bp-seal-ink:${banner.deep}" title="${escapeHtml(banner.name)}, today's Team Maker team"`)),
+        chip('heroes', '🧭', 'Chosen heroes', audience.kind === 'heroes' && !audience.team && audience.heroIds.size ? audience.heroIds.size : null)
     ].join('');
 
     const heroesBox = $('bp-audience-heroes');
@@ -139,6 +156,8 @@ function renderAudience() {
     const hint = $('bp-audience-hint');
     if (audience.kind === 'guild') {
         hint.innerHTML = `Only stars earned by <b>${escapeHtml(audienceWho())}</b> heroes count. The rest of the class carries on as usual.`;
+    } else if (audience.kind === 'heroes' && audience.team) {
+        hint.innerHTML = `Only stars earned by the <b>${escapeHtml(audience.team.label)}</b> count. Tap a face to change the team for this bounty.`;
     } else if (audience.kind === 'heroes') {
         hint.innerHTML = audience.heroIds.size
             ? 'Only stars earned by the chosen heroes count. Good for one table or a small team.'
@@ -395,10 +414,28 @@ function syncTagline() {
         : who.kind === 'guild' ? `${who.short} takes it on together` : 'A chosen band takes it on together';
 }
 
+function setAudienceQuietly(key) {
+    const team = classTeams().find(t => `team:${t.index}` === key);
+    if (!team) return;
+    audience.kind = 'heroes';
+    audience.guildId = null;
+    audience.heroIds = new Set(team.ids);
+    audience.team = { key, label: team.banner.name };
+}
+
 function setAudience(key) {
-    if (key === 'class') { audience.kind = 'class'; audience.guildId = null; }
+    if (key === 'class') { audience.kind = 'class'; audience.guildId = null; audience.team = null; }
     else if (key === 'heroes') { audience.kind = 'heroes'; audience.guildId = null; }
-    else if (GUILD_IDS.includes(key)) { audience.kind = 'guild'; audience.guildId = key; }
+    else if (key.startsWith('team:')) {
+        const team = classTeams().find(t => `team:${t.index}` === key);
+        if (team) {
+            audience.kind = 'heroes';
+            audience.guildId = null;
+            audience.heroIds = new Set(team.ids);
+            audience.team = { key, label: team.banner.name };
+        }
+    }
+    else if (GUILD_IDS.includes(key)) { audience.kind = 'guild'; audience.guildId = key; audience.team = null; }
     renderAudience();
     const tiers = renderTargetPicks();
     // Keep a hand-typed target, but move a picked one to the matching tier for the new group.
@@ -450,8 +487,11 @@ export function validateBountyPoster() {
     return true;
 }
 
-/** Fills a fresh poster for this class. Call before showing the modal. */
-export function prepareBountyPoster(classId) {
+/**
+ * Fills a fresh poster for this class. Call before showing the modal.
+ * `team` ({ ids, label }) opens it aimed at one Team Maker team.
+ */
+export function prepareBountyPoster(classId, { team = null } = {}) {
     $('bounty-class-id').value = classId;
     const classData = currentClass();
     $('bp-class-logo').textContent = classData?.logo || '📚';
@@ -465,6 +505,14 @@ export function prepareBountyPoster(classId) {
     audience.kind = 'class';
     audience.guildId = null;
     audience.heroIds = new Set();
+    audience.team = null;
+    const teamKey = team ? classTeams().find(t => t.banner.name === team.label)?.index : undefined;
+    if (teamKey !== undefined) setAudienceQuietly(`team:${teamKey}`);
+    else if (team?.ids?.length) {
+        audience.kind = 'heroes';
+        audience.heroIds = new Set(team.ids.map(String));
+        audience.team = { key: 'team:given', label: team.label || 'team' };
+    }
     renderAudience();
 
     const tiers = renderTargetPicks();
@@ -507,6 +555,7 @@ export function setupBountyPoster() {
         if (heroChip) {
             const id = heroChip.dataset.bpHero;
             if (audience.heroIds.has(id)) audience.heroIds.delete(id); else audience.heroIds.add(id);
+            audience.team = null; // a hand-picked group is no longer exactly the team
             setAudience('heroes');
             $('bp-audience-heroes').querySelector(`[data-bp-hero="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
             return;

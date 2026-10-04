@@ -2,7 +2,10 @@
 // Only shortcuts the bottom nav bar and the header gear do not already reach in one click.
 // Each tile carries a short live hint so it reads as more than an icon.
 
-export const HOME_GLOBAL_TOOL_LIMIT = 6;
+import { teamsForDay } from './teamMakerCore.mjs';
+import { fairStatus, normalizeFairPicker } from './fairPickerCore.mjs';
+
+export const HOME_GLOBAL_TOOL_LIMIT = 8;
 
 function plural(n, one, many) {
     return `${n} ${n === 1 ? one : many}`;
@@ -13,9 +16,10 @@ function plural(n, one, many) {
  * @param {(flag: string) => boolean} ctx.canUseFeature
  * @param {number} [ctx.myLessonsToday] the teacher's own classes meeting today
  * @param {number} [ctx.myClassCount] classes the teacher runs
+ * @param {string} [ctx.lessonClassName] the teacher's class in a lesson right now, if any (the class tools open on it)
  * @returns {{ id: string, icon: string, label: string, hint: string, tone: string, action: string, subtab?: string, scoped?: boolean }[]}
  */
-export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassCount = 0 }) {
+export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassCount = 0, lessonClassName = '' }) {
     const can = (flag) => !flag || Boolean(canUseFeature?.(flag));
     const catalog = [
         {
@@ -27,6 +31,16 @@ export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassC
             id: 'new-class', icon: 'fa-plus', label: 'New Class', tone: 'emerald',
             action: 'create-class', scoped: true,
             hint: myClassCount > 0 ? `You run ${plural(myClassCount, 'class', 'classes')}` : 'Start your first class',
+        },
+        myClassCount > 0 && {
+            id: 'team-maker', icon: 'fa-people-group', label: 'Team Maker', tone: 'teal',
+            action: 'open-team-maker',
+            hint: lessonClassName ? `Teams for ${lessonClassName}` : 'Split a class into teams',
+        },
+        myClassCount > 0 && {
+            id: 'fair-picker', icon: 'fa-hand-sparkles', label: 'Fair Picker', tone: 'indigo',
+            action: 'open-fair-picker',
+            hint: lessonClassName ? `Turns in ${lessonClassName}` : 'Everyone gets a turn',
         },
         {
             id: 'quiz', flag: 'quizOfTheWeek', icon: 'fa-circle-question', label: 'Quiz of the Week', tone: 'violet',
@@ -54,7 +68,7 @@ export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassC
         },
     ];
     return catalog
-        .filter((tool) => can(tool.flag))
+        .filter((tool) => tool && can(tool.flag))
         .slice(0, HOME_GLOBAL_TOOL_LIMIT)
         .map(({ flag, ...tool }) => tool);
 }
@@ -69,9 +83,13 @@ export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassC
  * @param {number} [ctx.absentToday] students marked away today
  * @param {boolean} [ctx.boonWindow] the Teacher Boon is open (last week of the month)
  * @param {string} [ctx.boonGivenTo] first name of this month's Teacher Boon hero, if given
+ * @param {number} [ctx.teamsToday] teams the Team Maker saved for this class today
+ * @param {number} [ctx.waitingTurns] heroes here who are still waiting for a Fair Picker turn this round
+ * @param {boolean} [ctx.fairRoundStarted] at least one Fair Picker turn has been given this round
  * @returns {{ id: string, icon: string, label: string, hint: string, tone: string, action: string, classId: string }[]}
  */
-export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, boonWindow = false, boonGivenTo = '' }) {
+export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, boonWindow = false, boonGivenTo = '', teamsToday = 0, waitingTurns = 0, fairRoundStarted = false }) {
+    const here = Math.max(0, heroCount - absentToday);
     const catalog = [
         boonWindow && {
             id: 'teacher-boon', icon: 'fa-gift', label: 'Teacher Boon', tone: 'amber',
@@ -84,7 +102,17 @@ export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, b
             hint: absentToday > 0 ? `${absentToday} away today` : 'Mark who is away',
         },
         {
-            id: 'roster', icon: 'fa-users', label: 'Class Roster', tone: 'teal',
+            id: 'team-maker', icon: 'fa-people-group', label: 'Team Maker', tone: 'teal',
+            action: 'open-team-maker',
+            hint: teamsToday > 0 ? `${plural(teamsToday, 'team', 'teams')} today` : here >= 2 ? `Split ${here} into teams` : 'Split the class',
+        },
+        {
+            id: 'fair-picker', icon: 'fa-hand-sparkles', label: 'Fair Picker', tone: 'indigo',
+            action: 'open-fair-picker',
+            hint: fairRoundStarted && waitingTurns > 0 ? `${waitingTurns} still waiting` : 'Everyone gets a turn',
+        },
+        {
+            id: 'roster', icon: 'fa-users', label: 'Class Roster', tone: 'emerald',
             action: 'open-class-roster',
             hint: heroCount > 0 ? plural(heroCount, 'hero', 'heroes') : 'No heroes yet',
         },
@@ -102,4 +130,18 @@ export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, b
         },
     ];
     return catalog.filter(Boolean).slice(0, HOME_GLOBAL_TOOL_LIMIT).map((tool) => ({ ...tool, classId }));
+}
+
+/** Live hint numbers for the Team Maker and Fair Picker tiles of one class. */
+export function getClassToolCounts({ classData, studentIds = [], absentIds = new Set(), dateKey = '' }) {
+    const ids = studentIds.map(String);
+    const present = ids.filter((id) => !absentIds.has(id));
+    const today = teamsForDay(classData?.teamMaker, dateKey);
+    const fair = normalizeFairPicker(classData?.fairPicker);
+    const status = fairStatus(fair, { classIds: ids, presentIds: present });
+    return {
+        teamsToday: today ? today.teams.length : 0,
+        waitingTurns: status.waiting.length,
+        fairRoundStarted: status.had.length > 0,
+    };
 }

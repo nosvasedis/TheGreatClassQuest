@@ -23,7 +23,7 @@ You are looking at the **whole school**:
 - **School Stars** — this month’s stars across all students
 - **Heroes** — how many students are on the roster
 - **Treasury** — this year's Gold held by students. Last year's Gold is archived when the school year is finished, so a new year starts at 0.
-- **Global Tools** — shortcuts the bottom bar and the gear do not already reach in one click, each with a live hint: **Plan Today** (Pro calendar; shows how many of your lessons are today), **New Class** (shows how many classes you run), **Quiz of the Week** (Elite), **Family Access** (parent logins), **Hero Archive** and **Team Archive** (past months' rankings). On plans without some of these, **Student Fixes** (adjust stars or gold) and **Last Lessons** (end-of-year days) take their place.
+- **Global Tools** — shortcuts the bottom bar and the gear do not already reach in one click, each with a live hint: **Plan Today** (Pro calendar; shows how many of your lessons are today), **New Class** (shows how many classes you run), **Team Maker** and **Fair Picker** (they open on your class in a lesson now, and you can switch class inside them), **Quiz of the Week** (Elite), **Family Access** (parent logins), **Hero Archive** and **Team Archive** (past months' rankings). On plans without some of these, **Student Fixes** (adjust stars or gold) and **Last Lessons** (end-of-year days) take their place.
 - **Today’s school schedule** — every class that meets today. A crown marks your own classes, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class to open its **class roster**, which shows:
   - the league, teacher, time and days, and how many heroes there are;
   - stars this month and all year, Gold, Team Quest progress and the next lesson;
@@ -44,7 +44,7 @@ You are looking at **this group**:
 - **Quest progress**: this class’s monthly stars versus the Team Quest goal (the goal already allows for holidays and cancelled lessons), drawn as a road through the four Team Quest realms (Bronze Meadows, Silver Peaks, Golden Citadel, Crystal Realm) to the goal flag. The class emblem stands where the class is now, realms already reached light up, and a line says how many stars remain to the next realm. Any Pathfinder bonus is counted and shown under the goal.
 - **Class virtue and class photo**: a crest for the virtue that has earned the class the most stars (or **Ready to Quest!** before the first stars), a ribbon showing how the stars split between virtues, and every hero standing on the meadow for a class photo. Hover a hero for their first name and stars this month; tap to open their Hero Stage. A small arrow marks a Hero Path skill waiting, and a gold star marks who has the most stars this month.
 - **The Chronicle** — latest homework, Story Weavers line, or Adventure Log sentence
-- **Class actions** — the same launcher tiles as Global Tools, for this class only and never a repeat of the bottom bar: **Roll Call** (shows who is away today), **Class Roster** (heroes, stars and Gold), **Class Report** (AI progress report), **Edit Class** and **Prodigies** (past Prodigies of the Month). In the last week of the month **Teacher Boon** comes first and shows who received it.
+- **Class actions** — the same launcher tiles as Global Tools, for this class only and never a repeat of the bottom bar: **Roll Call** (shows who is away today), **Team Maker** (shows today's teams, or how many are here to split), **Fair Picker** (shows how many are still waiting for a turn this round), **Class Roster** (heroes, stars and Gold), **Class Report** (AI progress report), **Edit Class** and **Prodigies** (past Prodigies of the Month). In the last week of the month **Teacher Boon** comes first and shows who received it.
 - **Quiz of the Week** on the weather card when the class is eligible (Elite)
 
 ## What you can do
@@ -63,11 +63,38 @@ A bounty is a shared challenge, never “which student is first”. Tap **Bounty
 - **Star Hunt** — earn stars together to win a reward. Name the quest (or tap one of the quest ideas; titles and rewards you used before with this class come back first, marked with a small return arrow). For **Stars to earn**, tap **Quick win**, **Fair fight** (picked for you), or **Heroic**: the numbers come from how many stars this class usually earns in one lesson, and you can still nudge the number up or down. Then write or tap **The reward** (for example 5 min free time or a class game). Stars count from the moment the bounty is pinned, for two hours.
 - **Race the Clock** — finish a task before time runs out. Name the task, then pick **5, 10, 15, 20, or 30 min**, type your own minutes, or set an **Ends at** time. When the class has a scheduled end time today, an **Until the bell** chip sets the countdown to the end of the lesson.
 
-**Who takes it on?** Under the two kinds, choose **Whole class** (the default), **one guild** (each guild with heroes in this class has its own chip, with how many members it has here), or **Chosen heroes**, where you tap the children who take it on, for example one table. For a guild or chosen heroes, only stars those children earn fill the Star Hunt, the Quick win, Fair fight and Heroic targets shrink to the group’s size, and the bounty card, Home pill and Projector show who it is for (“For Owl Wisdom”, “For 4 heroes”). A group Race the Clock works the same way and simply shows who is racing. Everyone else carries on as usual, so you can motivate one corner of the room without a class-wide reward.
+**Who takes it on?** Under the two kinds, choose **Whole class** (the default), **one guild** (each guild with heroes in this class has its own chip, with how many members it has here), or **Chosen heroes**, where you tap the children who take it on, for example one table. When you made teams with the Team Maker today, each team has its own chip in its colours too. For a guild or chosen heroes, only stars those children earn fill the Star Hunt, the Quick win, Fair fight and Heroic targets shrink to the group’s size, and the bounty card, Home pill and Projector show who it is for (“For Owl Wisdom”, “For 4 heroes”). A group Race the Clock works the same way and simply shows who is racing. Everyone else carries on as usual, so you can motivate one corner of the room without a class-wide reward.
 
 A one-line summary at the bottom reads the bounty back in plain words (for example “When 4A earns 12 stars for English Only, they win 5 min free time.”), and the poster tells you if a bounty is already on the board (a new one runs alongside it). If something is missing, the poster highlights it for you. Finish with **Pin it to the board** (Star Hunt) or **Start the clock** (Race the Clock), or **Not now** to close.
 
 Live bounties sit on the bounty board at the top of the screen and on the Projector wallpaper; **Time Warp Hourglass** adds five minutes to running countdowns.
+
+## Team Maker and Fair Picker
+
+Two everyday tools that do different jobs. The **Team Maker** splits the class into groups. The **Fair Picker** chooses one child to answer.
+
+### Team Maker
+
+Open **Team Maker** from Class Actions (or Global Tools). It starts with the children who are here: Roll Call already leaves out the ones away today, and **N here** lets you leave someone out or bring them back for this lesson.
+
+- **Teams**: 2 to 6 (it suggests teams of about four and says how big each team will be).
+- **Mix**: **Mix the guilds** (every team gets heroes from different guilds), **Balance by stars** (teams even out on this month's stars; each team shows its total), or **Pure luck**.
+- **Never the same pairs**: keeps apart children who were in the same team last time. If that cannot be done with this many teams, a note says how many pairs repeat.
+- Press **Make teams**. The teams appear as coloured banners: Coral Foxes, Azure Dolphins, Jade Turtles, Golden Bees, Violet Unicorns and Ruby Ladybirds (never the guild colours). To move a child, tap them and then tap the team they should join. **Shuffle again** makes a new split.
+- **Use these teams** saves them as today's teams for this class. **Show on projector** fills the screen with the teams, big and in their colours (Esc or × closes it), and the Projector wallpaper shows a **Today's Teams** card next.
+- **Bounty** on a team opens the bounty poster already aimed at that team.
+
+Teams give nothing in stars or Gold by themselves; they are for organising the lesson. Today's teams are kept on the class, so the bounty poster and the Fair Picker can use them all day.
+
+### Fair Picker
+
+Open **Fair Picker** whenever you want someone to answer, in any lesson. Press **Pick a hero** (or Space): names flicker under a spotlight and land on one child. It keeps the Quiz spotlight's promise: **nobody gets a second turn until everyone here has had one**, and the round carries on from lesson to lesson. Children away today stay in **Away today, still owed a turn** and lean a little ahead once they are back.
+
+- **Not now** gives the turn back (the child returns to waiting and it does not count).
+- **5s, 10s, 20s** start a thinking-time ring around the child.
+- **Pick from** narrows the pick to one of today's teams.
+- **Still waiting** and **Had a turn** show the round; **Start a fresh round** lets everyone wait again.
+- **Big screen** fills the projector with the spotlight.
 
 ## Quiz of the Week (Elite)
 

@@ -14,7 +14,7 @@ import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { getHomeGlobalTools, getHomeClassActions } from './homeGlobalTools.mjs';
+import { getHomeGlobalTools, getHomeClassActions, getClassToolCounts } from './homeGlobalTools.mjs';
 import {
     DAILY_QUOTE_SYSTEM_PROMPT,
     buildDailyQuoteUserPrompt,
@@ -458,8 +458,10 @@ function getGeneralDashboard(name, theme, spice) {
         );
     const todaysClassCount = todaysClasses.length;
     const myClassIds = new Set(myClasses.map(c => c.id));
-    const myLessonsToday = todaysClasses.filter(c => myClassIds.has(c.id)).length;
-    const tools = getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
+    const myTodaysClasses = todaysClasses.filter(c => myClassIds.has(c.id));
+    const myLessonsToday = myTodaysClasses.length;
+    const lessonClass = utils.findLessonClassWithGrace(myTodaysClasses);
+    const tools = getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length, lessonClassName: lessonClass?.name || '' });
 
     return getLayout(
         name, theme, '',
@@ -608,6 +610,7 @@ function getActiveDashboard(classData, name, theme, spice) {
         absentToday: absentTodayIds.size,
         boonWindow: utils.isTeacherBoonWindow(),
         boonGivenTo: boonHero ? String(boonHero.name || '').split(/\s+/)[0] : '',
+        ...getClassToolCounts({ classData, studentIds: students.map(s => s.id), absentIds: absentTodayIds, dateKey: today }),
     });
 
     return getLayout(
@@ -1010,6 +1013,8 @@ async function handleAction(action, data) {
     else if (action === 'open-class-roster') openScheduleClassRoster(data.id);
     else if (action === 'open-prodigies') modals.openProdigyModal();
     else if (action === 'open-teacher-boon') modals.openTeacherBoonModal();
+    else if (action === 'open-team-maker') import('../ui/modals/teamMaker.js').then(m => m.openTeamMaker(data?.id || null));
+    else if (action === 'open-fair-picker') import('../ui/modals/fairPicker.js').then(m => m.openFairPicker(data?.id || null));
 }
 
 function applyScheduleBasedClassSync() {

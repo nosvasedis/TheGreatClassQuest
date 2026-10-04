@@ -15,7 +15,7 @@ export function formatTrophyMonth(iso) {
 /** Where a kept item came from, in words a class understands. */
 export function trophySourceLabel(item) {
     if (item?.source === 'ember_oath') return 'Oath kept';
-    if (item?.source === 'quiz_treasure') return 'Quiz prize';
+    if (item?.source === 'quiz_treasure' || item?.source === 'quiz_prize') return 'Quiz prize';
     if (String(item?.id || '').startsWith('leg_')) return 'Legendary';
     return 'Mystic Market';
 }

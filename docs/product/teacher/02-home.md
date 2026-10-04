@@ -73,15 +73,17 @@ Quiz of the Week is a **live game-show review**, not a paper test. It does not r
 
 ### Before the lesson (Teacher Settings → Quiz)
 
+The page opens on a **This week** ticket: where the quiz stands (Plan, Create, Check, Play), the class's next lesson, and the one button that matters now (**Check & approve**, **Open the quiz show** or **See the results**). Below it is the plan, which folds away once questions exist (**Change the plan** opens it) and locks once the quiz has been played.
+
 1. Select the class in the header.
-2. If you have been saving Quest Assignments for this class, Step 2 already shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch between Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the multiple-choice questions from that list, and the AI keeps to those words.
+2. If you have been saving Quest Assignments for this class, part 1 of the plan already shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch between Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the multiple-choice questions from that list, and the AI keeps to those words.
 3. If there is no book history yet, you still pick **grammar**, **vocabulary**, or a **mix**, plus topic chips and optional keywords, then Generate.
 4. The number of questions scales with class size (about three-quarters of the roster, at least 5, at most 15).
 5. You can reset and generate again if the set is wrong for this week.
-6. **Different focus** opens the general topic chips (grammar, vocabulary and mix) for when you want to choose the focus yourself.
-7. **Optional extras** (Step 3, both off unless you tick them; the app remembers your choice per class):
-   - **Review the questions before they go live.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
-   - **Bring back questions the class missed last week.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. This is spaced review of real weak spots.
+6. **Use my own topics instead** opens the general topic chips for when you want to choose the focus yourself.
+7. **Before it goes live** (part 3, both off unless you tick them; the app remembers your choice per class):
+   - **Let me check the questions first.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
+   - **Bring back questions they missed.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. This is spaced review of real weak spots.
 
 ### When it appears on Home
 
@@ -106,21 +108,22 @@ The quiz opens as a **quiz-show stage** made for the projector. The first screen
 - The **lights at the top** show how each question went: gold for right on the first try, green for solved after a pass, red when nobody got it. The star counter beside them counts the first tries.
 - **Pause** (the button top right, or **Esc**) keeps the show where it is. Open the quiz again from Home to carry on; reloading the page starts it over.
 
-At the end the judges tally up, and the **curtain call** shows the class’s tier medal, first-try accuracy, stars granted and the Team Quest bonus, the **stars of the show** with what each earned, **Glory for the guilds**, any treasure, and a **recap of every question** with its answer. Tapping the curtain call skips the reveal. For the rest of the week, **See the results** on Home opens the same curtain call again.
+At the end the judges tally up, and the **curtain call** shows the class’s tier medal, first-try accuracy, stars granted and the Team Quest bonus, the **stars of the show** with what each earned, **Glory for the guilds**, the **Quiz Champion** and their treasure, and a **recap of every question** with its answer. Tapping the curtain call skips the reveal. For the rest of the week, **See the results** on Home opens the same curtain call again.
 
-First-try accuracy of the class decides a **performance tier**, and rewards land automatically.
+Rewards land automatically, once, when the show ends. Each child is rewarded for **their own answers**, never for how the rest of the class did:
 
-| First-try accuracy | Tier | Feel of the reward |
-|--------------------|------|--------------------|
-| 100% | Legendary | Strongest stars, Gold, Team Quest bonus, Guild Glory, chance of a treasure artifact, a 24-hour Glory boost for the leading guild |
-| 80%+ | Epic | Solid stars and Gold, Team Quest bonus, smaller artifact chance |
-| 60%+ | Rare | Modest stars and Gold |
-| 40%+ | Common | Light stars and Gold |
-| Below 40% | Heroic | Encouragement Gold (and a tiny artifact chance); showing up still matters |
+| What happened | Reward |
+|---------------|--------|
+| Right on the first try | **1 star** |
+| Rescued a question someone else missed | **½ star** |
+| Took a turn, nothing landed | **+1 Gold** for being brave |
+| Never called this week | Nothing this time; the spotlight calls them first next week |
 
-Rewards include, depending on tier: stars and Gold **per correct answer** for the students who got them right, a **Team Quest bonus** for the class, **Guild Glory** for houses that scored, and — on the best tiers — a **lucky artifact** for one high scorer (from a short list such as Scroll of the Gilded Star, Elixir of Luck, Banner of Glory, Chalice of Unity, Compassion Token).
+- **At most 2 stars from one quiz**, so a child who happened to be called more often cannot run away with it.
+- **Every star pays 1 Gold** and **2 Guild Glory**, the same as any other star. There is no extra Glory on top.
+- The class's **first-try accuracy** sets the tier and a **Team Quest bonus** for the whole class: Legendary (100%) +3, Epic (80%+) +2, Rare (60%+) +1, Common (40%+) +½, Heroic (below 40%) none.
 
-Heroic tier still gives **participation Gold** so a hard week is not a public zero.
+**One Quiz Champion** wins **one treasure from the Mystic Market** for free. The champion is the child with the most points (2 for each first try, 1 for each rescue) and needs at least one first-try answer. A tie goes to the child who has won the fewest quiz prizes this year, then to the one with fewer wrong answers. The treasure is taken from **this month's stall of the class's league** (or its festival stall) and leaves its stock, exactly like a purchase: the last copy leaves the shelf. It is a common treasure, or a rare one when the class reached Epic or Legendary. If the stall has nothing in stock, the champion gets **10 Gold** instead.
 
 Configure in Settings; **play on Home**. Do not hunt for a Quiz tab in the cloud dock — there is none.
 

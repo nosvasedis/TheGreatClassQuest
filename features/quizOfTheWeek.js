@@ -528,16 +528,13 @@ export async function finalizeQuiz(classId) {
     };
 
     try {
-        const rewardResult = await distributeQuizRewards(classId, results);
-        const studentRewardsById = Object.fromEntries(
-            (rewardResult?.studentRewards || []).map((reward) => [reward.studentId, reward])
-        );
+        const rewardResult = await distributeQuizRewards(classId, results, { attempts: qs.attempts || [] });
+        if (rewardResult?.alreadyPaid) return results;
 
-        // Enrich rewards with human-readable student and guild details for results display
-        const correctStudentDetails = correctStudents.map(id => {
-            const s = students.find(st => st.id === id);
-            const perf = studentPerformance[id] || { attemptedCount: 0, correctCount: 0, wrongCount: 0, solvedAnswers: [] };
-            const reward = studentRewardsById[id] || { stars: 0, gold: 0, correctCount: perf.correctCount };
+        // Every hero who took a turn, with what they earned, for the curtain call.
+        const correctStudentDetails = (rewardResult?.studentRewards || []).map((reward) => {
+            const s = students.find((st) => st.id === reward.studentId);
+            const perf = studentPerformance[reward.studentId] || { attemptedCount: 0, correctCount: 0, wrongCount: 0, solvedAnswers: [] };
             return s ? {
                 id: s.id,
                 name: s.name,
@@ -546,24 +543,23 @@ export async function finalizeQuiz(classId) {
                 attemptedCount: perf.attemptedCount,
                 correctCount: perf.correctCount,
                 wrongCount: perf.wrongCount,
+                firstTry: reward.firstTry || 0,
+                rescues: reward.rescues || 0,
+                brave: Boolean(reward.brave),
                 solvedAnswers: perf.solvedAnswers,
                 awardedStars: reward.stars || 0,
                 awardedGold: reward.gold || 0
-            } : { id };
-        }).sort((a, b) => (b.correctCount || 0) - (a.correctCount || 0) || (b.awardedStars || 0) - (a.awardedStars || 0));
+            } : null;
+        }).filter(Boolean)
+            .sort((a, b) => (b.awardedStars - a.awardedStars) || (b.firstTry - a.firstTry) || String(a.name).localeCompare(String(b.name)));
 
         const guildContributors = correctStudentDetails.reduce((acc, student) => {
-            if (!student.guildId) return acc;
-            if (!acc[student.guildId]) acc[student.guildId] = [];
-            acc[student.guildId].push({
-                name: student.name || 'Hero',
-                correctCount: student.correctCount || 0
-            });
+            if (!student.guildId || !(student.awardedStars > 0)) return acc;
+            (acc[student.guildId] ||= []).push({ name: student.name || 'Hero', correctCount: student.correctCount || 0 });
             return acc;
         }, {});
 
-        const guildGloryByGuild = rewardResult?.guildGloryByGuild || {};
-        const guildDetails = Object.entries(guildGloryByGuild)
+        const guildDetails = Object.entries(rewardResult?.guildGloryByGuild || {})
             .filter(([, glory]) => glory > 0)
             .map(([guildId, glory]) => {
                 const def = GUILDS[guildId];
@@ -578,7 +574,7 @@ export async function finalizeQuiz(classId) {
             })
             .sort((a, b) => b.glory - a.glory);
 
-        const finalResults = { ...results, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
+        const finalResults = { ...results, tier: rewardResult?.tier, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
         await markQuizCompleted(classId, finalResults);
         return finalResults;
     } catch (e) {

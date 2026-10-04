@@ -154,7 +154,7 @@ One parent login per student. Pick the student; a key tag shows whether a login 
 
 ## Quiz (Elite)
 
-When Quest Assignments have been filling the class book, **Generate from this week's lessons** uses those units, grammar, and words (since the last finished quiz). Untick words or open **Different focus** for the old topic chips. Optional extras (**Review the questions before they go live**, **Bring back questions the class missed last week**), **Review & edit questions**, history, reset this week. Question count scales with class size. Play on Home, first lesson of the week, during lesson time. Full reward tables live in the Home chapter.
+The page opens on **This week**: where the quiz stands (Plan, Create, Check, Play), the next lesson, and the one action that matters now. The plan below covers what the quiz is about (this week's lesson words, or **Use my own topics instead**), the kind of questions, and two switches (**Let me check the questions first**, **Bring back questions they missed**); **Create the quiz** makes it. Once questions exist the plan folds away, and after the quiz is played it locks until next week. **Past quizzes** lists earlier weeks with their first-try accuracy. Question count scales with class size. Play on Home, first lesson of the week, during lesson time. Full reward tables live in the Home chapter.
 
 ## Market (Elite)
 

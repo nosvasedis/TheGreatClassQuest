@@ -143,7 +143,8 @@ export function quizIntroHtml({ questionCount = 0, contestants = [], absentCount
                 <ol class="qs-rules">
                     <li><span class="qs-rules__icon"><i class="fas fa-lightbulb"></i></span><span>The spotlight picks a hero for each question.</span></li>
                     <li><span class="qs-rules__icon"><i class="fas fa-people-arrows"></i></span><span>A wrong answer passes the question to someone new.</span></li>
-                    <li><span class="qs-rules__icon"><i class="fas fa-star"></i></span><span>Right on the first try? That earns the brightest rewards.</span></li>
+                    <li><span class="qs-rules__icon"><i class="fas fa-star"></i></span><span>Right first time: 1 star. Rescue a passed question: ½ star.</span></li>
+                    <li><span class="qs-rules__icon"><i class="fas fa-crown"></i></span><span>The Quiz Champion wins a treasure from the Mystic Market.</span></li>
                 </ol>`}
             </section>
         </div>
@@ -314,25 +315,37 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
             ${rewards.questBonus ? `<div class="qs-stat"><span class="qs-stat__value">+<span data-count-to="${fmt(rewards.questBonus)}">${fmt(rewards.questBonus)}</span></span><span class="qs-stat__label">Team Quest bonus</span></div>` : ''}
         </div>`;
 
-    const artifactFor = new Map(artifacts.map((award) => [award.studentId, award.artifact]));
+    // Older quizzes stored a random artifact; newer ones one champion prize from the Market.
+    const prize = rewards.prize || null;
+    const prizeFor = new Map(artifacts.map((award) => [award.studentId, award.artifact]));
+    if (prize?.kind === 'treasure') prizeFor.set(prize.studentId, prize.item);
+    const heroMeta = (hero) => {
+        if (hero.brave) return 'Brave try';
+        const parts = [];
+        if (hero.firstTry) parts.push(`${hero.firstTry} first try`);
+        if (hero.rescues) parts.push(plural(hero.rescues, 'rescue'));
+        return parts.length ? parts.join(' · ') : plural(hero.correctCount || 0, 'right answer');
+    };
     const heroesHtml = heroes.length ? `
         <section class="qs-section" style="--i:${next()}">
             <h4 class="qs-section__title"><i class="fas fa-medal"></i> Stars of the show</h4>
             <ul class="qs-heroes">
                 ${heroes.map((hero, i) => {
-                    const artifact = artifactFor.get(hero.id);
+                    const won = prizeFor.get(hero.id);
+                    const champion = prize?.studentId === hero.id;
                     return `
-                    <li class="qs-hero" style="--j:${i}">
+                    <li class="qs-hero${champion ? ' is-champion' : ''}" style="--j:${i}">
                         ${quizAvatarHtml(hero, 'qs-hero__avatar')}
                         <span class="qs-hero__copy">
                             <span class="qs-hero__line">
-                                <strong class="qs-hero__name">${esc(hero.name || 'Hero')}</strong>
-                                <span class="qs-hero__meta">${plural(hero.correctCount || 0, 'right answer')}</span>
+                                <strong class="qs-hero__name">${champion ? '<i class="fas fa-crown" aria-hidden="true"></i> ' : ''}${esc(hero.name || 'Hero')}</strong>
+                                <span class="qs-hero__meta">${esc(heroMeta(hero))}</span>
                             </span>
                             <span class="qs-hero__loot">
                                 ${(hero.awardedStars || 0) > 0 ? `<span class="qs-loot qs-loot--star">+${fmt(hero.awardedStars)} <i class="fas fa-star"></i></span>` : ''}
                                 ${(hero.awardedGold || 0) > 0 ? `<span class="qs-loot qs-loot--gold">+${fmt(hero.awardedGold)} <i class="fas fa-coins"></i></span>` : ''}
-                                ${artifact ? `<span class="qs-loot qs-loot--relic" title="${esc(artifact.name || 'Artifact')}">${esc(artifact.icon || '🎁')} ${esc(artifact.name || '')}</span>` : ''}
+                                ${won ? `<span class="qs-loot qs-loot--relic" title="${esc(won.name || 'Treasure')}">${won.icon ? esc(won.icon) : '🎁'} ${esc(won.name || '')}</span>` : ''}
+                                ${champion && prize.kind === 'gold' ? `<span class="qs-loot qs-loot--gold">+${fmt(prize.gold)} <i class="fas fa-coins"></i> prize</span>` : ''}
                             </span>
                         </span>
                     </li>`;
@@ -358,21 +371,35 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
             </ul>
         </section>` : '';
 
-    const artifactsHtml = artifacts.length ? `
+    const championName = (id) => esc(heroes.find((h) => h.id === id)?.name || 'a hero');
+    const prizeHtml = prize ? `
+        <section class="qs-section" style="--i:${next()}">
+            <h4 class="qs-section__title"><i class="fas fa-crown"></i> Quiz Champion</h4>
+            <ul class="qs-relics">
+                <li class="qs-relic">
+                    <span class="qs-relic__icon" aria-hidden="true">${prize.kind === 'treasure' && prize.item?.image
+                        ? `<img src="${esc(prize.item.image)}" alt="">`
+                        : (prize.kind === 'treasure' ? esc(prize.item?.icon || '🎁') : '🪙')}</span>
+                    <span class="qs-relic__copy">
+                        <strong>${championName(prize.studentId)} wins ${prize.kind === 'treasure' ? esc(prize.item?.name || 'a treasure') : `${fmt(prize.gold)} Gold`}</strong>
+                        <span>${prize.kind === 'treasure'
+                            ? `A gift from the Mystic Market stall${prize.item?.description ? ` · ${esc(prize.item.description)}` : ''}`
+                            : 'The Mystic Market stall was empty, so the prize is paid in Gold.'}</span>
+                    </span>
+                </li>
+            </ul>
+        </section>` : artifacts.length ? `
         <section class="qs-section" style="--i:${next()}">
             <h4 class="qs-section__title"><i class="fas fa-gift"></i> Treasure from the stage</h4>
             <ul class="qs-relics">
-                ${artifacts.map((award) => {
-                    const hero = heroes.find((h) => h.id === award.studentId);
-                    return `
+                ${artifacts.map((award) => `
                     <li class="qs-relic">
                         <span class="qs-relic__icon" aria-hidden="true">${esc(award.artifact?.icon || '🎁')}</span>
                         <span class="qs-relic__copy">
                             <strong>${esc(award.artifact?.name || 'Artifact')}</strong>
-                            <span>for ${esc(hero?.name || 'a hero')}${award.artifact?.description ? ` · ${esc(award.artifact.description)}` : ''}</span>
+                            <span>for ${championName(award.studentId)}</span>
                         </span>
-                    </li>`;
-                }).join('')}
+                    </li>`).join('')}
             </ul>
         </section>` : '';
 
@@ -395,7 +422,7 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
                     </li>`;
                 }).join('')}
             </ol>
-            ${stats.some((stat) => !stat.firstTryCorrect) ? '<p class="qs-recap__hint"><i class="fas fa-rotate"></i> Questions the class missed can come back next week: tick "Bring back questions the class missed" in Settings › Quiz.</p>' : ''}
+            ${stats.some((stat) => !stat.firstTryCorrect) ? '<p class="qs-recap__hint"><i class="fas fa-rotate"></i> Questions the class missed can come back next week: turn on "Bring back questions they missed" in Settings › Quiz.</p>' : ''}
         </section>` : '';
 
     const emptyHtml = !heroes.length && !guilds.length ? `
@@ -416,7 +443,7 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
             ${statsHtml}
             ${heroesHtml}
             ${guildsHtml}
-            ${artifactsHtml}
+            ${prizeHtml}
             ${emptyHtml}
             ${recapHtml}
         </div>

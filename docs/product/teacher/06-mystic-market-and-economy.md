@@ -20,7 +20,7 @@ Extra Gold can arrive from:
 | **Scroll of the Gilded Star** | Next star pays **triple Gold** |
 | **Fortune’s Wheel** | Gold showers, rushes, and similar segments |
 | **Birthday / nameday** | Stars (and Gold) on the special occasion |
-| **Quiz of the Week** | Gold per correct answer by tier |
+| **Quiz of the Week** | 1 Gold per star earned, +1 Gold for a brave try; the Quiz Champion takes one treasure from the stall (it leaves the stock) |
 | **Coin Purse** (Teacher Settings) | Fixing a balance by hand |
 
 Do not hand out Gold instead of stars. The star is the act of recognition; Gold simply follows it.

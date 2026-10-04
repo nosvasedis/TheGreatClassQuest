@@ -280,7 +280,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'quiz', icon: 'fa-circle-question', name: 'Quiz of the Week', tier: 'elite',
                     where: 'Set up in Teacher Settings, Quiz. Play from Home', go: 'options:quiz',
-                    text: `Generate questions from this week's lessons, and choose whether to review them first or bring back last week's missed questions. On the class's first lesson of the week, during lesson time, a ticket on Home opens the quiz-show stage. First-try accuracy sets the tier, and stars, Gold and Glory land by themselves.`,
+                    text: `Generate questions from this week's lessons, and choose whether to review them first or bring back last week's missed questions. On the class's first lesson of the week, during lesson time, a ticket on Home opens the quiz-show stage. Each child earns from their own answers: 1 star for a first try, ½ for a rescue (2 at most), +1 Gold for a brave try. The class score sets the Team Quest bonus, and one Quiz Champion wins a treasure from the league's Mystic Market stall.`,
                     keys: 'quiz game show weekly review questions'
                 },
                 {
@@ -534,7 +534,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'quiz', icon: 'fa-circle-question', name: 'Quiz of the Week', tier: 'elite',
-                    text: `Once a week the quiz show comes to our class. The spotlight picks a hero for each question, and if you get it wrong, the question passes on. Good answers win stars for everyone.`,
+                    text: `Once a week the quiz show comes to our class. The spotlight picks a hero for each question, and if you get it wrong, the question passes on. Your own right answers win you stars, and the Quiz Champion wins a treasure from the Mystic Market.`,
                     keys: 'quiz game show'
                 },
                 {

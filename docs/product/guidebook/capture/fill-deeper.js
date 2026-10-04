@@ -1002,8 +1002,11 @@ function quizQuestionHtml() {
 }
 
 function quizResultsHtml() {
-  const hero = (id, name, guildId, correctCount) => ({ id, name, avatar: null, guildId, correctCount, attemptedCount: correctCount, awardedStars: correctCount * 0.5, awardedGold: correctCount });
-  const heroes = [hero('s1', 'Sofia', 'owl_wisdom', 2), hero('s2', 'Nikos', 'dragon_flame', 2), hero('s3', 'Eleni', 'phoenix_rising', 1), hero('s4', 'Jonas', 'grizzly_might', 1), hero('s5', 'Zoe', 'owl_wisdom', 1)];
+  const hero = (id, name, guildId, firstTry, rescues = 0) => {
+    const stars = Math.min(2, firstTry + rescues * 0.5);
+    return { id, name, avatar: null, guildId, firstTry, rescues, correctCount: firstTry + rescues, attemptedCount: Math.max(1, firstTry + rescues), brave: stars === 0, awardedStars: stars, awardedGold: stars || 1 };
+  };
+  const heroes = [hero('s1', 'Sofia', 'owl_wisdom', 2), hero('s2', 'Nikos', 'dragon_flame', 1, 1), hero('s3', 'Eleni', 'phoenix_rising', 1), hero('s4', 'Jonas', 'grizzly_might', 1), hero('s5', 'Zoe', 'owl_wisdom', 0, 1), hero('s6', 'Leo', 'dragon_flame', 0)];
   const guild = (id, glory, names) => ({ guildId: id, name: GUILDS[id].name, emoji: GUILDS[id].emoji, primary: GUILDS[id].primary, glory, contributors: names.map((name) => ({ name, correctCount: 1 })) });
   const stat = (question, correctIndex, correctAnswer, firstTryCorrect, solved = true) => ({ question, correctIndex, correctAnswer, firstTryCorrect, solved, asked: true });
   return stageResultsHtml({
@@ -1015,8 +1018,8 @@ function quizResultsHtml() {
       questBonus: 2,
       studentRewards: heroes.map((h) => ({ studentId: h.id, stars: h.awardedStars, gold: h.awardedGold })),
       correctStudentDetails: heroes,
-      guildDetails: [guild('owl_wisdom', 4, ['Sofia', 'Zoe']), guild('dragon_flame', 2, ['Nikos']), guild('phoenix_rising', 2, ['Eleni']), guild('grizzly_might', 2, ['Jonas'])],
-      awardedArtifacts: [{ studentId: 's1', artifact: { name: 'Elixir of Luck', icon: '🧪', description: '50% chance for bonus star next lesson' } }]
+      guildDetails: [guild('owl_wisdom', 5, ['Sofia', 'Zoe']), guild('dragon_flame', 3, ['Nikos']), guild('phoenix_rising', 2, ['Eleni']), guild('grizzly_might', 2, ['Jonas'])],
+      prize: { studentId: 's1', kind: 'treasure', item: { name: 'Autumn Leaf Lantern', icon: '🏮', description: 'A paper lantern that glows like October leaves.' } }
     },
     questionStats: [
       stat('What is the opposite of "early"?', 0, 'late', true),

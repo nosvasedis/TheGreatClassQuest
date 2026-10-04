@@ -1,7 +1,7 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
 import { compressImageBase64, getTodayDateString, getLeagueAiAudience, getLeagueAiVisualStyle } from '../../utils.js';
-import { awardGloryToStudents, getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
+import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
 import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { playSound } from '../../audio.js';
@@ -18,6 +18,18 @@ import {
     statToCarriedQuestion
 } from '../../features/quizReviewCore.mjs';
 import { buildQuizGenerationUserPrompt, sanitizeLessonFocus } from '../../features/quizCurriculumCore.mjs';
+import {
+    QUIZ_PRIZE_FALLBACK_GOLD,
+    QUIZ_TEAM_BONUS,
+    computeHeroRewards,
+    computeQuizRewardTier,
+    countQuizPrizeWins,
+    pickQuizChampion,
+    quizPrizeCandidates
+} from '../../features/quizRewardsCore.mjs';
+import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemStock } from '../../utils/shopRestock.js';
+import { shopMonthKey, getActiveFestival } from '../../utils/shopCalendar.js';
+import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -430,218 +442,221 @@ export async function getPreviousQuizReview(classId) {
 }
 
 // =============================================================================
-// 4. REWARD DISTRIBUTION (SAFE TRANSACTIONS)
+// 4. REWARDS — rules in features/quizRewardsCore.mjs
 // =============================================================================
 
-function computePerformanceTier(firstTryCorrectPct) {
-    if (firstTryCorrectPct === 100) return 'legendary';
-    if (firstTryCorrectPct >= 80) return 'epic';
-    if (firstTryCorrectPct >= 60) return 'rare';
-    if (firstTryCorrectPct >= 40) return 'common';
-    return 'heroic';
+const QUIZ_ALREADY_PAID = 'quiz-rewards-already-paid';
+
+/** The class's current Mystic Market stall (this month's treasures and any festival stall). */
+async function loadLeagueStall(league) {
+    const teacherId = state.get('currentUserId');
+    const scope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId || '' };
+    const byId = new Map();
+    try {
+        const snap = await getDocs(query(
+            collection(db, `${PUBLIC_DATA_PATH}/shop_items`),
+            where('league', '==', league),
+            where('monthKey', '==', scope.monthKey),
+            where('teacherId', '==', teacherId)
+        ));
+        snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+    } catch (error) {
+        console.warn('Quiz prize: could not read the stall, using the loaded one.', error);
+    }
+    // Festival stalls can belong to the month before; the live listener already holds them.
+    for (const item of state.get('currentShopItems') || []) {
+        if (item?.id && !byId.has(item.id) && isCurrentStallItem(item, scope)) byId.set(item.id, item);
+    }
+    return [...byId.values()].filter((item) => isCurrentStallItem(item, scope) && isCompleteShopItem(item) && !item.incoming && shopItemInStock(item));
 }
 
-const REWARD_TABLE = {
-    legendary: { starPerCorrect: 1, goldPerCorrect: 2, questBonus: 3, gloryPerGuild: 3, artifactChance: 0.3 },
-    epic:      { starPerCorrect: 0.5, goldPerCorrect: 1, questBonus: 2, gloryPerGuild: 2, artifactChance: 0.15 },
-    rare:      { starPerCorrect: 0.5, goldPerCorrect: 0.5, questBonus: 1, gloryPerGuild: 1, artifactChance: 0 },
-    common:    { starPerCorrect: 0.25, goldPerCorrect: 0.25, questBonus: 1, gloryPerGuild: 1, artifactChance: 0 },
-    heroic:    { starPerCorrect: 0, goldPerCorrect: 0.25, questBonus: 0.5, gloryPerGuild: 0.5, artifactChance: 0.05 }
-};
-
-const LEGENDARY_ARTIFACTS = [
-    { id: 'leg_gilded', name: 'Scroll of the Gilded Star', icon: '📜', description: 'Triple gold on next star award' },
-    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🧪', description: '50% chance for bonus star next lesson' },
-    { id: 'leg_banner', name: 'Banner of Glory', icon: '🏳️', description: 'Next 3 stars give +1 bonus Glory' },
-    { id: 'leg_chalice', name: 'Chalice of Unity', icon: '🏆', description: '+1 Glory for you and every guildmate in your class' },
-    { id: 'leg_compass', name: 'Compassion Token', icon: '💝', description: 'Free Hero Boons for rest of month' }
-];
-
-function pickRandomItem(arr) {
-    if (!arr || arr.length === 0) return null;
-    return arr[Math.floor(Math.random() * arr.length)];
-}
-
-export async function distributeQuizRewards(classId, results) {
-    const tier = computePerformanceTier(results.firstTryCorrectPct);
-    const rewards = REWARD_TABLE[tier];
-    const correctAnswerCounts = results.correctAnswerCounts || {};
-    const correctStudentIds = Object.keys(correctAnswerCounts).filter((studentId) => (correctAnswerCounts[studentId] || 0) > 0);
-    const allParticipatingIds = results.allParticipating || [];
-    const guildMap = results.studentGuilds || {};
-    const classData = state.get('allSchoolClasses')?.find(c => c.id === classId);
-    const questLevel = classData?.questLevel || 'A';
-
-    if (correctStudentIds.length === 0 && allParticipatingIds.length === 0) {
-        return { tier, distributed: false, message: 'No students to reward.' };
+/**
+ * Give the champion one treasure from the stall, exactly as if it were bought for 0 Gold:
+ * the stall loses one copy (the last copy leaves the shelf). Falls back to Gold when the
+ * stall is empty or every candidate sold out meanwhile.
+ */
+async function grantQuizPrize(classId, studentId, tier, league) {
+    const candidates = quizPrizeCandidates(await loadLeagueStall(league), tier).slice(0, 5);
+    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
+    for (const candidate of candidates) {
+        try {
+            const granted = await runTransaction(db, async (transaction) => {
+                const itemRef = doc(db, `${PUBLIC_DATA_PATH}/shop_items`, candidate.id);
+                const itemSnap = await transaction.get(itemRef);
+                const scoreSnap = await transaction.get(scoreRef);
+                if (!itemSnap.exists() || !scoreSnap.exists()) return null;
+                const item = { id: itemSnap.id, ...itemSnap.data() };
+                const remaining = shopItemStock(item) - 1;
+                if (remaining < 0) return null;
+                if (remaining === 0) transaction.delete(itemRef);
+                else transaction.update(itemRef, { stock: remaining });
+                const inventory = Array.isArray(scoreSnap.data().inventory) ? scoreSnap.data().inventory : [];
+                transaction.update(scoreRef, {
+                    inventory: [...inventory, {
+                        id: item.id,
+                        name: item.name,
+                        image: item.image || null,
+                        icon: item.icon || null,
+                        description: item.description || '',
+                        acquiredAt: new Date().toISOString(),
+                        source: 'quiz_prize'
+                    }]
+                });
+                return { item, remaining };
+            });
+            if (!granted) continue;
+            const { item, remaining } = granted;
+            const shopItems = state.get('currentShopItems') || [];
+            state.setCurrentShopItems(remaining > 0
+                ? shopItems.map((entry) => (entry.id === item.id ? { ...entry, stock: remaining } : entry))
+                : shopItems.filter((entry) => entry.id !== item.id));
+            return {
+                studentId,
+                kind: 'treasure',
+                item: { id: item.id, name: item.name, image: item.image || null, icon: item.icon || null, description: item.description || '', price: Number(item.price) || 0 },
+                league
+            };
+        } catch (error) {
+            console.warn('Quiz prize: this treasure could not be given, trying another.', error);
+        }
     }
 
+    await runTransaction(db, async (transaction) => {
+        const scoreSnap = await transaction.get(scoreRef);
+        if (!scoreSnap.exists()) return;
+        const current = getLiveYearGold(scoreSnap.data(), getLiveYearGoldContextFromState(state));
+        transaction.update(scoreRef, { gold: current + QUIZ_PRIZE_FALLBACK_GOLD });
+    });
+    return { studentId, kind: 'gold', gold: QUIZ_PRIZE_FALLBACK_GOLD, league };
+}
+
+/**
+ * Pays this week's quiz once. `attempts` are the turns logged during the show.
+ * Returns what was paid so the curtain call can show it.
+ */
+export async function distributeQuizRewards(classId, results, { attempts = [] } = {}) {
+    const tier = computeQuizRewardTier(results.firstTryCorrectPct);
+    const heroRewards = computeHeroRewards(attempts);
+    const empty = { tier, distributed: false, studentRewards: [], questBonus: 0, guildGloryByGuild: {}, prize: null };
+    if (!heroRewards.length) return empty;
+
+    const classData = state.get('allSchoolClasses')?.find((c) => c.id === classId);
+    const yearKey = state.getActiveSchoolYearKey();
+    const teacher = { uid: state.get('currentUserId'), name: state.get('currentTeacherName') };
+    const goldContext = getLiveYearGoldContextFromState(state);
+
     try {
-        // --- Transaction 1: Individual rewards (stars + gold + possible artifacts) ---
-        const rewardedStudents = [];
-        const awardedArtifacts = [];
-
-        // Firestore transactions require ALL reads to be executed before ALL writes.
-        // We collect refs + rolls outside then do a two-pass: reads first, then writes.
+        // ── Stars and Gold for every hero who took a turn, and the paid mark, in one transaction ──
         await runTransaction(db, async (transaction) => {
-            // ── PASS 1: All reads ──────────────────────────────────────────────────
-            const correctReads = await Promise.all(
-                correctStudentIds.map(async (studentId) => {
-                    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
-                    const scoreSnap = await transaction.get(scoreRef);
-                    return { studentId, scoreRef, scoreSnap };
-                })
-            );
+            const quizSnap = await transaction.get(quizDocRef(classId));
+            if (quizSnap.exists() && (quizSnap.data().rewardsPaidAt || quizSnap.data().status === 'completed')) {
+                throw new Error(QUIZ_ALREADY_PAID);
+            }
+            const reads = await Promise.all(heroRewards.map(async (hero) => {
+                const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, hero.studentId);
+                return { hero, scoreRef, scoreSnap: await transaction.get(scoreRef) };
+            }));
 
-            // Heroic participation reads (only students not already in correct list)
-            const heroicParticipantIds = tier === 'heroic'
-                ? allParticipatingIds.filter(id => !correctStudentIds.includes(id))
-                : [];
-            const heroicReads = await Promise.all(
-                heroicParticipantIds.map(async (studentId) => {
-                    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
-                    const scoreSnap = await transaction.get(scoreRef);
-                    return { studentId, scoreRef, scoreSnap };
-                })
-            );
-
-            // ── PASS 2: All writes ─────────────────────────────────────────────────
-            for (const { studentId, scoreRef, scoreSnap } of correctReads) {
-                const correctCount = Math.max(1, Number(correctAnswerCounts[studentId]) || 0);
-                const starsAwarded = rewards.starPerCorrect * correctCount;
-                const goldAwarded = rewards.goldPerCorrect * correctCount;
-                const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
-
-                const updates = {
-                    totalStars: increment(starsAwarded),
-                    monthlyStars: increment(starsAwarded),
-                    gold: increment(goldAwarded),
-                };
-
+            for (const { hero, scoreRef, scoreSnap } of reads) {
+                if (!(hero.stars > 0) && !(hero.gold > 0)) continue;
                 if (scoreSnap.exists()) {
+                    const current = getLiveYearGold(scoreSnap.data(), goldContext);
+                    const updates = { gold: current + hero.gold };
+                    if (hero.stars > 0) {
+                        updates.totalStars = increment(hero.stars);
+                        updates.monthlyStars = increment(hero.stars);
+                    }
                     transaction.update(scoreRef, updates);
                 } else {
-                    const student = state.get('allStudents')?.find(s => s.id === studentId);
+                    const student = state.get('allStudents')?.find((s) => s.id === hero.studentId);
                     transaction.set(scoreRef, withActiveScoreYear({
-                        totalStars: starsAwarded,
-                        monthlyStars: starsAwarded,
-                        gold: goldAwarded,
+                        totalStars: hero.stars,
+                        monthlyStars: hero.stars,
+                        gold: hero.gold,
                         inventory: [],
-                        createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                    }, state.getActiveSchoolYearKey()));
+                        createdBy: student?.createdBy || teacher
+                    }, yearKey));
                 }
-
-                const logRef = doc(collection(db, `${PUBLIC_DATA_PATH}/award_log`));
-                transaction.set(logRef, withSchoolYear({
-                    studentId,
-                    classId,
-                    teacherId: state.get('currentUserId'),
-                    stars: starsAwarded,
-                    appliedStarCredit: starsAwarded,
-                    reason: 'quiz_of_the_week',
-                    note: `Quiz of the Week - ${correctCount} correct answer${correctCount === 1 ? '' : 's'} - Tier: ${tier.toUpperCase()}`,
-                    date: getTodayDateString(),
-                    createdAt: serverTimestamp(),
-                    createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                }, state.getActiveSchoolYearKey()));
-
-                rewardedStudents.push({ studentId, correctCount, stars: starsAwarded, gold: goldAwarded });
-            }
-
-            // Heroic tier: participation gold writes
-            for (const { studentId, scoreRef, scoreSnap } of heroicReads) {
-                if (scoreSnap.exists()) {
-                    transaction.update(scoreRef, { gold: increment(rewards.goldPerCorrect) });
-                } else {
-                    const student = state.get('allStudents')?.find(s => s.id === studentId);
-                    transaction.set(scoreRef, withActiveScoreYear({
-                        totalStars: 0,
-                        monthlyStars: 0,
-                        gold: rewards.goldPerCorrect,
-                        inventory: [],
-                        createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                    }, state.getActiveSchoolYearKey()));
+                if (hero.stars > 0) {
+                    const parts = [
+                        hero.firstTry ? `${hero.firstTry} first try` : '',
+                        hero.rescues ? `${hero.rescues} rescue${hero.rescues === 1 ? '' : 's'}` : ''
+                    ].filter(Boolean).join(', ');
+                    transaction.set(doc(collection(db, `${PUBLIC_DATA_PATH}/award_log`)), withSchoolYear({
+                        studentId: hero.studentId,
+                        classId,
+                        teacherId: teacher.uid,
+                        stars: hero.stars,
+                        appliedStarCredit: hero.stars,
+                        reason: 'quiz_of_the_week',
+                        note: `Quiz of the Week: ${parts}`,
+                        date: getTodayDateString(),
+                        createdAt: serverTimestamp(),
+                        createdBy: teacher
+                    }, yearKey));
                 }
             }
+            transaction.set(quizDocRef(classId), { rewardsPaidAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
         });
 
-        // --- Reward 2: Class Quest Bonus (safe, separate transaction) ---
-        if (rewards.questBonus > 0) {
-            await applyClassQuestBonusDelta(classId, rewards.questBonus, `Quiz of the Week - ${tier.toUpperCase()}`);
-        }
-
-        for (const rewarded of rewardedStudents) {
-            if (Number(rewarded.stars) > 0) {
-                await updateGuildScores(rewarded.studentId, Number(rewarded.stars), 'quiz_of_the_week');
-            }
-        }
-
-        // --- Reward 3: Guild Glory, credited to each child for their own correct answers ---
+        // ── Glory comes from the stars, the same as any other star ──
         const guildGloryByGuild = {};
-        for (const studentId of correctStudentIds) {
-            const gId = guildMap[studentId];
-            const glory = rewards.gloryPerGuild * (correctAnswerCounts[studentId] || 0);
-            if (!gId || !(glory > 0)) continue;
-            await awardGloryToStudents([studentId], glory, 'quiz_of_the_week', { classId, note: 'Quiz of the Week' });
-            guildGloryByGuild[gId] = (guildGloryByGuild[gId] || 0) + glory;
+        for (const hero of heroRewards) {
+            if (!(hero.stars > 0)) continue;
+            const delta = await updateGuildScores(hero.studentId, hero.stars, 'quiz_of_the_week').catch((error) => {
+                console.warn('Quiz Glory failed for a hero:', error);
+                return null;
+            });
+            const guildId = state.get('allStudents')?.find((s) => s.id === hero.studentId)?.guildId;
+            const glory = Number(delta?.totalGloryDelta) || 0;
+            if (guildId && glory > 0) guildGloryByGuild[guildId] = Math.round(((guildGloryByGuild[guildId] || 0) + glory) * 100) / 100;
         }
 
-        // --- Reward 5: One lucky top-scorer gets an artifact (legendary/epic tiers only) ---
-        const isTreasureTier = tier === 'legendary' || tier === 'epic';
-        if (isTreasureTier && correctStudentIds.length > 0) {
-            const luckyId = correctStudentIds[Math.floor(Math.random() * correctStudentIds.length)];
-            const randomArtifact = pickRandomItem(LEGENDARY_ARTIFACTS);
-            if (randomArtifact) {
-                try {
-                    await runTransaction(db, async (transaction) => {
-                        const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, luckyId);
-                        const scoreSnap = await transaction.get(scoreRef);
-                        const currentInventory = scoreSnap.exists()
-                            ? (Array.isArray(scoreSnap.data().inventory) ? scoreSnap.data().inventory : [])
-                            : [];
-                        transaction.update(scoreRef, {
-                            inventory: [...currentInventory, { ...randomArtifact, source: 'quiz_treasure', awardedAt: new Date().toISOString() }]
-                        });
-                    });
-                    awardedArtifacts.push({ studentId: luckyId, artifact: randomArtifact, type: 'treasure' });
-                } catch (e) {
-                    console.warn('Random class treasure failed:', e);
-                }
-            }
+        // ── Team Quest bonus for the whole class, from the class score ──
+        const questBonus = QUIZ_TEAM_BONUS[tier] || 0;
+        if (questBonus > 0) {
+            await applyClassQuestBonusDelta(classId, questBonus, `Quiz of the Week - ${tier.toUpperCase()}`).catch((error) => {
+                console.warn('Quiz Team Quest bonus failed:', error);
+            });
         }
 
-        // --- Mark quiz as completed ---
-        await markQuizCompleted(classId, {
-            tier,
-            firstTryCorrectPct: results.firstTryCorrectPct,
-            totalQuestions: results.totalQuestions,
-            correctFirstTry: results.correctFirstTry,
-            rewardedStudents: rewardedStudents.length,
-            totalCorrectAnswers: Object.values(correctAnswerCounts).reduce((sum, count) => sum + count, 0),
-            awardedArtifacts: awardedArtifacts.length
-        });
+        // ── One Quiz Champion, one treasure from the league's stall ──
+        let prize = null;
+        const history = await getQuizHistory(classId, 60).catch(() => []);
+        const championId = pickQuizChampion(heroRewards, { prizeWins: countQuizPrizeWins(history) });
+        if (championId) {
+            prize = await grantQuizPrize(classId, championId, tier, classData?.questLevel || 'A').catch((error) => {
+                console.warn('Quiz prize failed:', error);
+                return null;
+            });
+        }
 
         playSound('magic_chime');
-        const student = state.get('allStudents')?.find(s => s.id === allParticipatingIds[0]);
-        const studentName = student ? student.name : 'Hero';
-        showPraiseToast(`Quiz complete! ${tier.toUpperCase()} performance — rewards granted!`, '🎯');
+        showPraiseToast('Quiz complete! Rewards are in the heroes’ pockets.', '🎯');
 
         return {
             tier,
-            rewardedStudents: rewardedStudents.length,
-            studentRewards: rewardedStudents.map((rewardedStudent) => ({
-                studentId: rewardedStudent.studentId,
-                correctCount: rewardedStudent.correctCount,
-                stars: rewardedStudent.stars,
-                gold: rewardedStudent.gold
+            distributed: true,
+            rewardedStudents: heroRewards.filter((hero) => hero.stars > 0 || hero.gold > 0).length,
+            studentRewards: heroRewards.map((hero) => ({
+                studentId: hero.studentId,
+                correctCount: hero.correct,
+                firstTry: hero.firstTry,
+                rescues: hero.rescues,
+                stars: hero.stars,
+                gold: hero.gold,
+                brave: hero.brave
             })),
-            questBonus: rewards.questBonus,
+            questBonus,
             guildGloryByGuild,
             totalGloryDistributed: Object.values(guildGloryByGuild).reduce((a, b) => a + b, 0),
-            awardedArtifacts
+            prize
         };
-
     } catch (error) {
+        if (error?.message === QUIZ_ALREADY_PAID) {
+            showToast('This week’s quiz rewards were already given.', 'info');
+            return { ...empty, alreadyPaid: true };
+        }
         console.error('Quiz reward distribution failed:', error);
         showToast('Failed to distribute quiz rewards.', 'error');
         throw error;

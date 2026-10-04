@@ -11,6 +11,7 @@ import {
     formatQuestStars,
     getQuestNextStop
 } from '../../features/teamQuestRace.mjs';
+import { REALM_STOPS, journalMonth, realmMonthKey } from '../../features/realmMomentsCore.mjs';
 
 const asset = (name) => new URL(`../../assets/team-quest-map/living-atlas/${name}`, import.meta.url).href;
 
@@ -123,6 +124,16 @@ function renderHeroes(heroes) {
         </li>`).join('')}</ol>`;
 }
 
+/** This month's Map Journal stamps (first arrival in each realm). */
+function journalStampsHtml(entry) {
+    const page = journalMonth(entry, realmMonthKey());
+    return REALM_STOPS.filter((stop) => page[stop.id]).map((stop) => {
+        const [y, m, d] = String(page[stop.id].date || '').split('-').map(Number);
+        const day = y ? new Date(y, m - 1, d).toLocaleString('en-GB', { day: 'numeric', month: 'short' }) : '';
+        return `<span class="tqc-pill tqc-pill--race" title="Stamped in the Map Journal"><i class="fas fa-stamp" aria-hidden="true"></i>${stop.icon} ${esc(stop.label)}${day ? ` · ${esc(day)}` : ''}</span>`;
+    }).join('');
+}
+
 function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
     const rank = Number(entry.rank) || index + 1;
     const tier = TIERS[rank - 1] || 'slate';
@@ -182,6 +193,7 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
                         ${raceLine ? `<span class="tqc-pill tqc-pill--race"><i class="fas fa-flag-checkered" aria-hidden="true"></i>${esc(raceLine)}</span>` : ''}
                         ${entry.classQuestBonus > 0 ? `<span class="tqc-pill tqc-pill--bonus"><i class="fas fa-compass" aria-hidden="true"></i>+${formatQuestStars(entry.classQuestBonus)} Pathfinder</span>` : ''}
                         ${goalNote}
+                        ${journalStampsHtml(entry)}
                     </div>
                     <div class="tqc-card__body">
                         <div class="tqc-stats">

@@ -4,6 +4,7 @@
 // days, the sky, recent pages) are optional colour and are never required.
 import { normalizeQuestType, QUEST_TYPE_LABELS, isSchoolWideModifierType } from './specialQuestEngine.js';
 import { getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
+import { realmArrivalsOn } from './realmMomentsCore.mjs';
 import { TRIAL_TYPE_GUIDE } from './trialTypesCore.mjs';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
 
@@ -175,6 +176,8 @@ export function buildAdventureLogContext(input = {}) {
         // Oaths are private. Only anonymous activity belongs in the public class diary.
         ...unique(scoped(input.oaths).filter(o => today(o.keptAt) || list(o.evidence).some(e => today(e.date)) || list(o.checkIns).some(c => today(c.date)) || today(o.createdAt)).map(o => today(o.keptAt) ? 'A private promise was kept today' : 'Private promises were tended today')).map(activity => ({ ritual: 'Ember Oaths', activity }))
     ], true);
+    // A realm reached for the first time this month, stamped live in the class's Map Journal.
+    add('realmArrival', 'Team Quest: a new realm reached today (say it in one line, e.g. "Today we reached the Silver Peaks")', realmArrivalsOn(classroom, date), true);
     add('ceremonies', 'Ceremony of the Month today', scoped(input.ceremonies).filter(s => today(s.completedAt) || today(s.lockedAt) || today(s.playback?.updatedAt)).map(s => ({ mode: clean(s.mode, 40), month: clean(s.monthKey, 10), status: clean(s.status, 25) })), true);
 
     // Background colour.

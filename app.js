@@ -1385,6 +1385,10 @@ async function initApp() {
         } catch (e) {
             console.warn('Live sky failed to start', e);
         }
+        // Team Quest realm moments: stamps the Map Journal and plays the arrival banner.
+        import('./features/realmMoments.js')
+            .then(({ startRealmMoments }) => startRealmMoments())
+            .catch((e) => console.warn('Realm moments failed to start', e));
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
         // Solar sync should wait for school settings so we do not

@@ -40,7 +40,7 @@ const ZONE_BADGES = {
 const RANK_WORDS = ['1st', '2nd', '3rd'];
 
 // What the teacher is looking at; kept while stepping through months.
-const view = { league: ALL, query: '', monthKey: '' };
+const view = { league: ALL, query: '', monthKey: '', journal: false };
 // Per open: computed standings by month, and the year's quest completions.
 const monthCache = new Map();
 let questHistoryRows = null;
@@ -238,6 +238,7 @@ function controlsHtml(months) {
         </div>
         <div class="la-scope">
             ${leagues.length ? `<div class="la-picks" role="group" aria-label="League">${picks}</div>` : ''}
+            ${journalButtonHtml()}
             <label class="la-search">
                 <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
                 <input type="search" class="la-search__input" placeholder="Find a class…" aria-label="Find a class" autocomplete="off" value="${esc(view.query)}">
@@ -245,11 +246,30 @@ function controlsHtml(months) {
         </div>`;
 }
 
+function journalButtonHtml() {
+    return `<button type="button" class="la-pick la-journal-btn${view.journal ? ' is-active' : ''}" data-la-journal aria-pressed="${view.journal}"><i class="fas fa-book-open" aria-hidden="true"></i><span>Map Journal</span></button>`;
+}
+
+/** The Map Journal replaces the month's sheets while it is open. */
+async function showJournal() {
+    const contentEl = document.getElementById('league-archive-content');
+    if (!contentEl) return;
+    const token = ++archiveToken;
+    try {
+        const { renderMapJournalHtml } = await import('./mapJournal.js');
+        if (token !== archiveToken || !view.journal) return;
+        contentEl.innerHTML = renderMapJournalHtml({ league: view.league, query: view.query });
+    } catch (error) {
+        console.error('Map Journal render error:', error);
+        if (token === archiveToken) contentEl.innerHTML = emptyHtml('fa-triangle-exclamation', 'The Map Journal couldn’t open', 'Please try again.', 'error');
+    }
+}
+
 function refreshControls() {
     const controlsEl = document.getElementById('league-archive-controls');
     if (!controlsEl) return;
     const months = listChartedMonths();
-    if (!months.length) { controlsEl.innerHTML = ''; return; }
+    if (!months.length) { controlsEl.innerHTML = `<div class="la-scope">${journalButtonHtml()}</div>`; return; }
     const hadFocus = document.activeElement?.classList?.contains('la-search__input');
     controlsEl.innerHTML = controlsHtml(months);
     const trail = controlsEl.querySelector('.la-trail');
@@ -535,6 +555,7 @@ async function showMonth(monthKey) {
 }
 
 function rerenderCurrent() {
+    if (view.journal) { showJournal(); return; }
     const data = monthCache.get(view.monthKey);
     if (data) renderSheets(data);
 }
@@ -561,13 +582,23 @@ function bindOnce() {
         const step = e.target.closest('[data-la-step]');
         if (step && !step.disabled) {
             const next = months[months.indexOf(view.monthKey) + Number(step.dataset.laStep)];
-            if (next) { playSound('click'); showMonth(next); }
+            if (next) { playSound('click'); view.journal = false; showMonth(next); }
             return;
         }
         const stop = e.target.closest('[data-la-month]');
-        if (stop && stop.dataset.laMonth !== view.monthKey) {
+        if (stop && (stop.dataset.laMonth !== view.monthKey || view.journal)) {
             playSound('click');
+            view.journal = false;
             showMonth(stop.dataset.laMonth);
+            return;
+        }
+        if (e.target.closest('[data-la-journal]')) {
+            playSound('click');
+            view.journal = !view.journal;
+            refreshControls();
+            if (view.journal) showJournal();
+            else if (view.monthKey) showMonth(view.monthKey);
+            else showYearEmpty();
             return;
         }
         const pick = e.target.closest('[data-la-league]');
@@ -597,12 +628,21 @@ function bindOnce() {
     });
 }
 
+function showYearEmpty() {
+    ++archiveToken;
+    const contentEl = document.getElementById('league-archive-content');
+    if (contentEl) {
+        contentEl.innerHTML = emptyHtml('fa-feather-pointed', 'The first map is still being drawn', 'Each month’s race is charted here once the month closes. Last year’s races stay in last year’s archive. The Map Journal already keeps this month’s realms.', 'year');
+    }
+}
+
 /** Opens the League Archive on the latest closed month. `league` preselects a league (else the header's league, else all). */
 export function openLeagueArchive({ league = null } = {}) {
     bindOnce();
     monthCache.clear();
     questHistoryRows = null;
     view.query = '';
+    view.journal = false;
 
     const leagues = getLeaguesWithClasses();
     const preferred = league || state.get('globalSelectedLeague');
@@ -615,10 +655,7 @@ export function openLeagueArchive({ league = null } = {}) {
         view.monthKey = '';
         updateTitles();
         refreshControls();
-        const contentEl = document.getElementById('league-archive-content');
-        if (contentEl) {
-            contentEl.innerHTML = emptyHtml('fa-feather-pointed', 'The first map is still being drawn', 'Each month’s race is charted here once the month closes. Last year’s races stay in last year’s archive.', 'year');
-        }
+        showYearEmpty();
         return;
     }
     showMonth(months[months.length - 1]);

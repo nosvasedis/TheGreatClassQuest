@@ -30,7 +30,8 @@ const FAMILY_OF_TYPE = {
         'bday', 'name', 'reigning_hero_spotlight', 'lang_growth_star', 'school_top_student',
         'absent_heroes', 'teacher_shoutout', 'class_stars_today', 'class_star_of_week', 'class_next_birthday',
         'hero_first_light', 'hero_rising_star', 'hero_milestone_near', 'hero_virtue_champions',
-        'hero_steady_flame', 'hero_kindness_spotted', 'hero_birthdays_month', 'hero_name_acrostic'
+        'hero_steady_flame', 'hero_kindness_spotted', 'hero_birthdays_month', 'hero_name_acrostic',
+        'quiz_champion_week'
     ],
     quest: [
         'class_quest', 'treasury_class', 'streak', 'class_bounty', 'quest_map_position',
@@ -38,13 +39,14 @@ const FAMILY_OF_TYPE = {
         'class_familiar_hatch_watch', 'class_special_quest', 'attendance_summary', 'class_season_snapshot',
         'lesson_milestone', 'story_sentence', 'log',
         'class_star_trail', 'class_best_day', 'class_virtue_wheel', 'class_constellation', 'class_every_hero',
-        'class_guild_colours', 'class_month_so_far'
+        'class_guild_colours', 'class_month_so_far',
+        'tg_knots_week', 'realm_journal_month'
     ],
     time: [
         'timekeeper', 'next_lesson', 'holiday', 'pre_holiday_hype', 'upcoming_test_countdown',
         'class_test_luck', 'school_upcoming_event', 'context_morning', 'context_afternoon', 'context_night',
         'context_monday', 'context_friday', 'post_holiday_welcome', 'giant_clock', 'school_year_journey',
-        'timer_end',
+        'timer_end', 'market_festival',
         'time_week_path', 'time_month_calendar', 'time_weekend_countdown', 'time_world_clocks'
     ],
     words: [
@@ -70,7 +72,8 @@ const FAMILY_OF_TYPE = {
     heart: [
         'mindfulness', 'healthy_habit', 'eco_hero_tip', 'class_mood_check', 'study_tip',
         'motivation_poster', 'creative_prompt', 'would_you_rather',
-        'heart_breathe', 'heart_gratitude', 'heart_kindness_quest', 'heart_stretch'
+        'heart_breathe', 'heart_gratitude', 'heart_kindness_quest', 'heart_stretch',
+        'oaths_kept_month'
     ],
     sky: ['weather', 'season_visual', 'sky_moon_phase', 'sky_daylight', 'sky_constellation', 'sky_season_turn', 'sky_planet'],
     realm: [

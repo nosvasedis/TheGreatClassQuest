@@ -64,8 +64,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'bounties', icon: 'fa-scroll', name: 'Quest Bounties', tier: 'starter',
                     where: 'Home, Bounty button in the class greeting', go: 'tab:about-tab',
-                    text: `A whole-class challenge on a bounty poster. Star Hunt: earn a number of stars together within two hours to win a reward, with Quick win, Fair fight and Heroic targets based on how this class usually earns. Race the Clock: finish a task before a countdown runs out; Until the bell sets it to the end of the lesson. Live bounties sit on the bounty board and on the projector.`,
-                    keys: 'bounty poster star hunt race the clock timer countdown reward'
+                    text: `A shared challenge on a bounty poster, for the whole class, one guild, or chosen heroes (for example one table); a group bounty only counts its own children's stars and sizes its targets to the group. Star Hunt: earn a number of stars together within two hours to win a reward, with Quick win, Fair fight and Heroic targets based on how this class usually earns. Race the Clock: finish a task before a countdown runs out; Until the bell sets it to the end of the lesson. Live bounties sit on the bounty board and on the projector.`,
+                    keys: 'bounty poster star hunt race the clock timer countdown reward guild group table chosen heroes'
                 },
                 {
                     id: 'bonus-days', icon: 'fa-bolt', name: 'Bonus days', tier: 'pro',
@@ -529,7 +529,7 @@ export const GUIDE_CHAPTERS = {
             entries: [
                 {
                     id: 'bounties', icon: 'fa-scroll', name: 'Bounties', tier: 'starter',
-                    text: `A bounty poster goes up: earn enough stars together, or beat the clock, and the whole class wins the reward.`,
+                    text: `A bounty poster goes up: earn enough stars together, or beat the clock, and you win the reward. Sometimes it is for the whole class, sometimes just for one guild or one table.`,
                     keys: 'bounty timer'
                 },
                 {

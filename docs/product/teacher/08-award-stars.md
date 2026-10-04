@@ -117,7 +117,7 @@ Full month history lives on Adventure Log → **Attendance Chronicle** (Pro).
 
 ## Quest Bounties
 
-Short whole-class challenges, posted from the **Bounty** button on the class **Home** (a parchment bounty poster; see Home). There are two kinds: **Star Hunt** (earn a number of stars together, within two hours of pinning it, to win a stated reward such as five minutes of free time) and **Race the Clock** (finish a task before a countdown runs out). Every star you award here fills an active Star Hunt; live bounties sit on the bounty board at the top of the screen and on Projector Mode. **Time Warp Hourglass** adds five minutes to running countdowns. Hitting the target plays a fanfare.
+Short shared challenges for the whole class, one guild, or a few chosen heroes (for example one table), posted from the **Bounty** button on the class **Home** (a parchment bounty poster; see Home). There are two kinds: **Star Hunt** (earn a number of stars together, within two hours of pinning it, to win a stated reward such as five minutes of free time) and **Race the Clock** (finish a task before a countdown runs out). Every star you award here fills an active Star Hunt (a guild or chosen-heroes bounty only counts its own children’s stars); live bounties sit on the bounty board at the top of the screen and on Projector Mode. **Time Warp Hourglass** adds five minutes to running countdowns. Hitting the target plays a fanfare.
 
 ## How this feeds the rest of the Quest
 

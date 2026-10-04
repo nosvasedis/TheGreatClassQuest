@@ -58,10 +58,12 @@ You are looking at **this group**:
 
 ## Posting a Quest Bounty
 
-A bounty is a **whole-class** challenge, never “which student is first”. Tap **Bounty** in the class greeting panel and a torn-parchment **bounty poster** opens, posted for the selected class. Choose the kind of bounty at the top (the poster remembers your last choice):
+A bounty is a shared challenge, never “which student is first”. Tap **Bounty** in the class greeting panel and a torn-parchment **bounty poster** opens, posted for the selected class. Choose the kind of bounty at the top (the poster remembers your last choice):
 
 - **Star Hunt** — earn stars together to win a reward. Name the quest (or tap one of the quest ideas; titles and rewards you used before with this class come back first, marked with a small return arrow). For **Stars to earn**, tap **Quick win**, **Fair fight** (picked for you), or **Heroic**: the numbers come from how many stars this class usually earns in one lesson, and you can still nudge the number up or down. Then write or tap **The reward** (for example 5 min free time or a class game). Stars count from the moment the bounty is pinned, for two hours.
 - **Race the Clock** — finish a task before time runs out. Name the task, then pick **5, 10, 15, 20, or 30 min**, type your own minutes, or set an **Ends at** time. When the class has a scheduled end time today, an **Until the bell** chip sets the countdown to the end of the lesson.
+
+**Who takes it on?** Under the two kinds, choose **Whole class** (the default), **one guild** (each guild with heroes in this class has its own chip, with how many members it has here), or **Chosen heroes**, where you tap the children who take it on, for example one table. For a guild or chosen heroes, only stars those children earn fill the Star Hunt, the Quick win, Fair fight and Heroic targets shrink to the group’s size, and the bounty card, Home pill and Projector show who it is for (“For Owl Wisdom”, “For 4 heroes”). A group Race the Clock works the same way and simply shows who is racing. Everyone else carries on as usual, so you can motivate one corner of the room without a class-wide reward.
 
 A one-line summary at the bottom reads the bounty back in plain words (for example “When 4A earns 12 stars for English Only, they win 5 min free time.”), and the poster tells you if a bounty is already on the board (a new one runs alongside it). If something is missing, the poster highlights it for you. Finish with **Pin it to the board** (Star Hunt) or **Start the clock** (Race the Clock), or **Not now** to close.
 

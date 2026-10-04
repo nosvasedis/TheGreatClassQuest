@@ -3,6 +3,8 @@
 // Saving stays in db/actions/bounties.js, which reads the same field ids.
 import * as state from '../../state.js';
 import { parseDDMMYYYY, getTodayDateString } from '../../utils.js';
+import { GUILD_IDS, getGuildById } from '../../features/guilds.js';
+import { audienceShare, describeAudience } from '../../features/bountyAudience.mjs';
 
 const STAR_BOUNTY_HOURS = 2; // matches the expiry handleCreateBounty gives star bounties
 const MODE_KEY = 'gcq.bountyPoster.mode';
@@ -15,6 +17,9 @@ const REWARD_IDEAS = ['5 min free time', 'A class game', 'Music while we work', 
 const TIME_PRESETS = [5, 10, 15, 20, 30];
 
 const $ = (id) => document.getElementById(id);
+
+// Who the bounty is for. Reset with every fresh poster.
+const audience = { kind: 'class', guildId: null, heroIds: new Set() };
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -41,6 +46,107 @@ function currentClass() {
 
 function className() {
     return currentClass()?.name || 'The class';
+}
+
+function classStudents() {
+    const classId = $('bounty-class-id')?.value;
+    return (state.get('allStudents') || [])
+        .filter(s => s.classId === classId)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+}
+
+/** Guilds with at least one hero in this class, in the usual guild order. */
+function classGuilds() {
+    const counts = new Map();
+    for (const s of classStudents()) {
+        if (s.guildId && GUILD_IDS.includes(s.guildId)) counts.set(s.guildId, (counts.get(s.guildId) || 0) + 1);
+    }
+    return GUILD_IDS.filter(id => counts.has(id)).map(id => ({ guild: getGuildById(id), count: counts.get(id) }));
+}
+
+function audienceRecord() {
+    if (audience.kind === 'guild' && audience.guildId) {
+        return { kind: 'guild', guildId: audience.guildId, label: getGuildById(audience.guildId)?.name || '' };
+    }
+    if (audience.kind === 'heroes' && audience.heroIds.size) {
+        const ids = classStudents().map(s => s.id).filter(id => audience.heroIds.has(id));
+        return { kind: 'heroes', studentIds: ids };
+    }
+    return { kind: 'class' };
+}
+
+function audienceMemberCount() {
+    if (audience.kind === 'guild') return classGuilds().find(g => g.guild.id === audience.guildId)?.count || 0;
+    if (audience.kind === 'heroes') return audience.heroIds.size;
+    return classStudents().length;
+}
+
+/** Name for the proclamation and tagline: the class name, the guild, or "these 4 heroes". */
+function audienceWho() {
+    if (audience.kind === 'guild') return getGuildById(audience.guildId)?.name || 'The guild';
+    if (audience.kind === 'heroes') {
+        const n = audience.heroIds.size;
+        if (!n) return 'The chosen heroes';
+        if (n <= 3) {
+            const names = classStudents().filter(s => audience.heroIds.has(s.id)).map(s => String(s.name || '').split(' ')[0]);
+            return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+        }
+        return `These ${n} heroes`;
+    }
+    return className();
+}
+
+function heroFaceHtml(student) {
+    if (student.avatar) return `<span class="bp-hero__face"><img src="${escapeHtml(student.avatar)}" alt="" loading="lazy"></span>`;
+    return `<span class="bp-hero__face">${escapeHtml(String(student.name || '?').charAt(0))}</span>`;
+}
+
+function renderAudience() {
+    const guilds = classGuilds();
+    const total = classStudents().length;
+    if (audience.kind === 'guild' && !guilds.some(g => g.guild.id === audience.guildId)) {
+        audience.kind = 'class';
+        audience.guildId = null;
+    }
+    const chip = (key, seal, label, count, style = '') => {
+        const on = key === 'class' ? audience.kind === 'class'
+            : key === 'heroes' ? audience.kind === 'heroes'
+                : audience.kind === 'guild' && audience.guildId === key;
+        return `<button type="button" class="bp-chip bp-chip--audience${on ? ' is-picked' : ''}" data-bp-audience="${escapeHtml(key)}" aria-pressed="${on}"${style}>
+            <span class="bp-chip__seal" aria-hidden="true">${seal}</span>${escapeHtml(label)}${count != null ? `<small>${count}</small>` : ''}</button>`;
+    };
+    $('bp-audience-picks').innerHTML = [
+        chip('class', '🏰', 'Whole class', total || null),
+        ...guilds.map(({ guild, count }) => chip(guild.id, guild.emoji, guild.name, count,
+            ` style="--bp-seal:${guild.primary}33;--bp-seal-ink:${guild.primary}"`)),
+        chip('heroes', '🧭', 'Chosen heroes', audience.kind === 'heroes' && audience.heroIds.size ? audience.heroIds.size : null)
+    ].join('');
+
+    const heroesBox = $('bp-audience-heroes');
+    const keepScroll = heroesBox.scrollTop;
+    if (audience.kind === 'heroes') {
+        heroesBox.innerHTML = classStudents().map(s => {
+            const on = audience.heroIds.has(s.id);
+            return `<button type="button" class="bp-hero${on ? ' is-picked' : ''}" data-bp-hero="${escapeHtml(s.id)}" aria-pressed="${on}">${heroFaceHtml(s)}${escapeHtml(String(s.name || '').split(' ')[0])}</button>`;
+        }).join('') || '<span class="bp-hint">No heroes in this class yet.</span>';
+        heroesBox.classList.remove('hidden');
+        heroesBox.scrollTop = keepScroll;
+    } else {
+        heroesBox.innerHTML = '';
+        heroesBox.classList.add('hidden');
+    }
+
+    const hint = $('bp-audience-hint');
+    if (audience.kind === 'guild') {
+        hint.innerHTML = `Only stars earned by <b>${escapeHtml(audienceWho())}</b> heroes count. The rest of the class carries on as usual.`;
+    } else if (audience.kind === 'heroes') {
+        hint.innerHTML = audience.heroIds.size
+            ? 'Only stars earned by the chosen heroes count. Good for one table or a small team.'
+            : 'Tap the heroes who take this on, for example one table.';
+    } else {
+        hint.innerHTML = guilds.length ? 'Or aim it at one guild or a few chosen heroes.' : 'Or aim it at a few chosen heroes, for example one table.';
+    }
+    $('bounty-audience').value = JSON.stringify(audienceRecord());
 }
 
 /** Stars this class usually earns in one lesson: the median of its recent lesson days, today left out. */
@@ -132,16 +238,18 @@ function renderRewardIdeas() {
 function renderTargetPicks() {
     const classId = $('bounty-class-id').value;
     const typical = typicalLessonStars(classId);
-    const tiers = targetTiers(typical.stars);
+    const share = audience.kind === 'class' ? 1 : audienceShare(audienceMemberCount(), classStudents().length);
+    const tiers = targetTiers(Math.max(3, Math.round(typical.stars * share)));
     $('bp-target-picks').innerHTML = tiers.map(tier => `
         <button type="button" class="bp-chip bp-chip--tier" data-bp-target="${tier.value}" data-tier="${tier.key}">
             <span class="bp-chip__tier">${tier.label}</span>
             <span class="bp-chip__value">${tier.value}<i class="fas fa-star" aria-hidden="true"></i></span>
         </button>`).join('');
     const name = escapeHtml(className());
-    const basis = typical.lessons
+    let basis = typical.lessons
         ? `${name} usually earns about <b>${typical.stars}</b> stars a lesson.`
         : `A class of ${typical.heroes || 'your'} heroes earns about <b>${typical.stars}</b> stars a lesson.`;
+    if (share < 1) basis += ` The picks are sized for ${escapeHtml(audienceWho())}.`;
     $('bp-target-hint').innerHTML = `${basis} Stars count from when it's pinned, for ${STAR_BOUNTY_HOURS} hours.`;
     return tiers;
 }
@@ -227,7 +335,7 @@ function syncPickedChips() {
 
 function renderProclamation() {
     const mode = $('bounty-type').value;
-    const name = escapeHtml(className());
+    const name = escapeHtml(audienceWho());
     const title = $('bounty-title').value.trim();
     const quest = title ? `<em>${escapeHtml(title)}</em>` : '<span class="bp-blank">the quest</span>';
     const readout = $('bp-time-readout');
@@ -238,7 +346,7 @@ function renderProclamation() {
             const day = timing.tomorrow ? 'tomorrow at ' : '';
             readout.innerHTML = `<i class="fas fa-hourglass-start" aria-hidden="true"></i> Time's up ${day}<b>${formatClock(timing.deadline)}</b> <span>(${timing.mins} min)</span>`;
             readout.classList.add('is-set');
-            $('bp-proclamation').innerHTML = `${name} has <b>${timing.mins} minutes</b> for ${quest}. The sand runs out at <b>${formatClock(timing.deadline)}</b>.`;
+            $('bp-proclamation').innerHTML = `${name} ${audience.kind === 'heroes' && audience.heroIds.size > 1 ? 'have' : 'has'} <b>${timing.mins} minutes</b> for ${quest}. The sand runs out at <b>${formatClock(timing.deadline)}</b>.`;
         } else {
             readout.innerHTML = 'Pick a time and the hourglass is set.';
             readout.classList.remove('is-set');
@@ -251,7 +359,8 @@ function renderProclamation() {
     const reward = $('bounty-reward').value.trim();
     const stars = target > 0 ? `<b>${target} stars</b>` : '<span class="bp-blank">the stars</span>';
     const prize = reward ? `<b>${escapeHtml(reward)}</b>` : '<span class="bp-blank">a reward</span>';
-    $('bp-proclamation').innerHTML = `When ${name} earns ${stars} for ${quest}, they win ${prize}.`;
+    const verb = audience.kind === 'heroes' && audience.heroIds.size > 1 ? 'earn' : 'earns';
+    $('bp-proclamation').innerHTML = `When ${name} ${verb} ${stars} for ${quest}, they win ${prize}.`;
 }
 
 function refresh() {
@@ -269,11 +378,36 @@ function setMode(mode) {
     $('bounty-mode-timer').setAttribute('aria-pressed', String(isTimer));
     $('bounty-inputs-stars').classList.toggle('hidden', isTimer);
     $('bounty-inputs-timer').classList.toggle('hidden', !isTimer);
-    $('bp-tagline').textContent = isTimer ? 'Finish before the sand runs out' : 'The whole class takes it on together';
+    syncTagline();
     $('bp-title-label').textContent = isTimer ? 'What must be done in time?' : "What's the quest?";
     $('bounty-title').placeholder = isTimer ? 'Name the task' : 'Name the challenge';
     setSubmitLabel();
     renderTitleIdeas($('bounty-type').value);
+    clearInvalid();
+    refresh();
+}
+
+function syncTagline() {
+    const isTimer = $('bounty-type').value === 'timer';
+    if (isTimer) { $('bp-tagline').textContent = 'Finish before the sand runs out'; return; }
+    const who = describeAudience({ audience: audienceRecord() }, { guildName: getGuildById(audience.guildId)?.name });
+    $('bp-tagline').textContent = who.kind === 'class' ? 'The whole class takes it on together'
+        : who.kind === 'guild' ? `${who.short} takes it on together` : 'A chosen band takes it on together';
+}
+
+function setAudience(key) {
+    if (key === 'class') { audience.kind = 'class'; audience.guildId = null; }
+    else if (key === 'heroes') { audience.kind = 'heroes'; audience.guildId = null; }
+    else if (GUILD_IDS.includes(key)) { audience.kind = 'guild'; audience.guildId = key; }
+    renderAudience();
+    const tiers = renderTargetPicks();
+    // Keep a hand-typed target, but move a picked one to the matching tier for the new group.
+    const pickedTier = $('bounty-target').dataset.tier;
+    if (pickedTier) {
+        const match = tiers.find(t => t.key === pickedTier);
+        if (match) $('bounty-target').value = String(match.value);
+    }
+    syncTagline();
     clearInvalid();
     refresh();
 }
@@ -306,6 +440,7 @@ function markInvalid(fieldKey, focusEl) {
 export function validateBountyPoster() {
     clearInvalid();
     if (!$('bounty-title').value.trim()) { markInvalid('title', $('bounty-title')); return false; }
+    if (audience.kind === 'heroes' && !audience.heroIds.size) { markInvalid('audience', $('bp-audience-heroes').querySelector('button')); return false; }
     if ($('bounty-type').value === 'timer') {
         if (!timerDeadline()) { markInvalid('time', $('bounty-timer-minutes')); return false; }
         return true;
@@ -327,8 +462,14 @@ export function prepareBountyPoster(classId) {
     $('bounty-timer-minutes').value = '';
     $('bounty-timer-end').value = '';
 
+    audience.kind = 'class';
+    audience.guildId = null;
+    audience.heroIds = new Set();
+    renderAudience();
+
     const tiers = renderTargetPicks();
     $('bounty-target').value = String(tiers[1].value);
+    $('bounty-target').dataset.tier = tiers[1].key;
     renderRewardIdeas();
     renderTimePresets();
     renderOnBoard();
@@ -357,11 +498,24 @@ export function setupBountyPoster() {
         if (rewardChip) { $('bounty-reward').value = rewardChip.dataset.bpReward; clearInvalid(); refresh(); return; }
 
         const targetChip = e.target.closest('[data-bp-target]');
-        if (targetChip) { $('bounty-target').value = targetChip.dataset.bpTarget; clearInvalid(); refresh(); return; }
+        if (targetChip) { $('bounty-target').value = targetChip.dataset.bpTarget; $('bounty-target').dataset.tier = targetChip.dataset.tier || ''; clearInvalid(); refresh(); return; }
+
+        const audienceChip = e.target.closest('[data-bp-audience]');
+        if (audienceChip) { setAudience(audienceChip.dataset.bpAudience); return; }
+
+        const heroChip = e.target.closest('[data-bp-hero]');
+        if (heroChip) {
+            const id = heroChip.dataset.bpHero;
+            if (audience.heroIds.has(id)) audience.heroIds.delete(id); else audience.heroIds.add(id);
+            setAudience('heroes');
+            $('bp-audience-heroes').querySelector(`[data-bp-hero="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+            return;
+        }
 
         const step = e.target.closest('[data-bp-step]');
         if (step) {
             const current = parseInt($('bounty-target').value, 10) || 0;
+            $('bounty-target').dataset.tier = '';
             $('bounty-target').value = String(Math.min(500, Math.max(1, current + Number(step.dataset.bpStep))));
             clearInvalid();
             refresh();
@@ -387,6 +541,7 @@ export function setupBountyPoster() {
     });
     ['bounty-title', 'bounty-target', 'bounty-reward'].forEach(id => {
         $(id).addEventListener('input', () => {
+            if (id === 'bounty-target') $(id).dataset.tier = '';
             $(id).closest('.bp-field')?.classList.remove('is-invalid');
             refresh();
         });

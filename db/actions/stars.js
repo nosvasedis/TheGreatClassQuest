@@ -488,7 +488,7 @@ export async function setStudentStarsForToday(
         // --- Side Effects (After Transaction) ---
         if (studentClassId && difference > 0) {
             debouncedCheckAndRecordQuestCompletion(studentClassId);
-            checkBountyProgress(studentClassId, difference);
+            checkBountyProgress(studentClassId, difference, [studentId]);
             const logIdForGlory = dailyLogIdForGlory;
             updateGuildScores(studentId, guildStarCredit || difference, 'standard_star_award')
                 .then((event) => _noteDailyLogGlory(logIdForGlory, event?.totalGloryDelta))

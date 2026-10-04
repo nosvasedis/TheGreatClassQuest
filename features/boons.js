@@ -328,7 +328,7 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
         showHeroLevelUpCelebration(levelUpInfo);
     }
 
-    checkBountyProgress(classId, numericStars);
+    checkBountyProgress(classId, numericStars, [studentId]);
     updateGuildScores(studentId, appliedGuildStars, 'teacher_boon');
     reconcileFamiliarLifecycle(studentId, { announce: true, source: 'teacher-boon' }).catch((error) => {
         console.warn('Teacher boon familiar reconciliation failed:', error);

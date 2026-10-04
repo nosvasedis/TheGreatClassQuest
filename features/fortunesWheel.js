@@ -342,7 +342,7 @@ async function randomStars(ctx, count, amount) {
             const event = await updateGuildScores(sid, amount, 'wheel_star_blessing');
             gloryDelta += Number(event?.totalGloryDelta) || 0;
         }
-        await checkBountyProgress(ctx.classId, amount * outcome.affectedStudents.length);
+        await checkBountyProgress(ctx.classId, amount * outcome.affectedStudents.length, outcome.affectedStudents);
         await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
         outcome.gloryDelta = gloryDelta;
     }
@@ -441,7 +441,7 @@ async function teachersFavor(ctx) {
     if (sid) {
         const event = await updateGuildScores(sid, 2, 'wheel_teachers_favor');
         gloryDelta = Number(event?.totalGloryDelta) || 0;
-        await checkBountyProgress(ctx.classId, 2);
+        await checkBountyProgress(ctx.classId, 2, [sid]);
         await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
     }
 

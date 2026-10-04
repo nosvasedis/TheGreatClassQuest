@@ -451,10 +451,10 @@ export const TERMS = [
     chapter: 'home',
     widget: 'bounty',
     names: { en: 'Bounties', el: 'Bounties' },
-    aliases: ['bounty', 'class bounty', 'star hunt', 'race the clock', 'bounty poster', 'post a bounty'],
+    aliases: ['bounty', 'class bounty', 'group bounty', 'guild bounty', 'star hunt', 'race the clock', 'bounty poster', 'post a bounty'],
     def: {
-      en: 'Whole-class challenges pinned from the Bounty button on class Home as a bounty poster: Star Hunt (earn a star target together within two hours for a reward) or Race the Clock (finish a task before a countdown, or until the bell). Not a first-student-to-finish contest.',
-      el: 'Προκλήσεις όλου του τμήματος από το κουμπί Bounty στο Home, ως αφίσα bounty: Star Hunt (κοινός στόχος αστεριών μέσα σε δύο ώρες για έπαθλο) ή Race the Clock (μια εργασία πριν λήξει η αντίστροφη μέτρηση ή μέχρι το κουδούνι). Όχι αγώνας «ποιος πρώτος».'
+      en: 'Shared challenges for the whole class, one guild, or chosen heroes (for example one table), pinned from the Bounty button on class Home as a bounty poster: Star Hunt (earn a star target together within two hours for a reward) or Race the Clock (finish a task before a countdown, or until the bell). Not a first-student-to-finish contest.',
+      el: 'Κοινές προκλήσεις για όλο το τμήμα, ένα guild ή επιλεγμένους ήρωες (για παράδειγμα ένα θρανίο), από το κουμπί Bounty στο Home, ως αφίσα bounty: Star Hunt (κοινός στόχος αστεριών μέσα σε δύο ώρες για έπαθλο) ή Race the Clock (μια εργασία πριν λήξει η αντίστροφη μέτρηση ή μέχρι το κουδούνι). Όχι αγώνας «ποιος πρώτος».'
     },
     confuse: { en: 'Hero’s Challenge ranks', el: 'Κατάταξη Hero’s Challenge' }
   },

@@ -4,6 +4,15 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { normalizeAudience, bountyStarsFromAward } from '../../features/bountyAudience.mjs';
+
+function readPosterAudience() {
+    try {
+        return normalizeAudience(JSON.parse(document.getElementById('bounty-audience')?.value || 'null'));
+    } catch {
+        return normalizeAudience(null);
+    }
+}
 
 // --- QUEST BOUNTIES ---
 
@@ -44,6 +53,7 @@ export async function handleCreateBounty() {
     }
 
     if (!title) { showToast('Please enter a title.', 'error'); return; }
+    const audience = readPosterAudience();
 
     const btn = document.getElementById('bounty-submit-btn');
     const idleLabel = btn.innerHTML;
@@ -56,7 +66,8 @@ export async function handleCreateBounty() {
             title,
             target: type === 'standard' ? target : 0,
             reward,
-            type, 
+            type,
+            audience,
             currentProgress: 0,
             deadline: deadline.toISOString(),
             status: 'active',
@@ -101,18 +112,23 @@ export async function handleClaimBounty(bountyId, classId, rewardText) {
     return true;
 }
 
-// Helper to update progress when stars are awarded
-// We need to hook this into `setStudentStarsForToday`
-export async function checkBountyProgress(classId, starsAdded) {
-    const added = Number(starsAdded) || 0;
-    if (!added) return;
+// Progress when stars are awarded. `studentIds` are the heroes who earned the stars
+// (shared equally); group bounties (one guild, chosen heroes) only count their own members.
+export async function checkBountyProgress(classId, starsAdded, studentIds = null) {
+    const total = Number(starsAdded) || 0;
+    if (!total) return;
     const bounties = (state.get('allQuestBounties') || []).filter(b => b.classId === classId && b.status === 'active');
+    if (!bounties.length) return;
+    const ids = (Array.isArray(studentIds) ? studentIds : studentIds ? [studentIds] : []).map(String);
+    const studentsById = new Map((state.get('allStudents') || []).filter(s => ids.includes(String(s.id))).map(s => [String(s.id), s]));
 
     // Check local expiry
     const now = new Date();
 
     await Promise.all(bounties.map(async (b) => {
         if (new Date(b.deadline) < now) return; // Expired
+        const added = bountyStarsFromAward(b, total, ids, studentsById);
+        if (!added) return;
 
         const previousProgress = Number(b.currentProgress) || 0;
         const newProgress = previousProgress + added;

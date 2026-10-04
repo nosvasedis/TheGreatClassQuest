@@ -287,6 +287,7 @@ export const miscModalsHTML = `
             <form id="create-bounty-form" class="bp-paper" novalidate>
                 <input type="hidden" id="bounty-class-id">
                 <input type="hidden" id="bounty-type" value="standard">
+                <input type="hidden" id="bounty-audience" value="">
 
                 <header class="bp-head">
                     <button type="button" id="bounty-cancel-x-btn" class="bp-close" aria-label="Close">
@@ -324,6 +325,13 @@ export const miscModalsHTML = `
                     </fieldset>
 
                     <div id="bp-on-board" class="bp-on-board hidden" role="note"></div>
+
+                    <section class="bp-field bp-field--audience" data-bp-field="audience">
+                        <span class="bp-label" id="bp-audience-label"><span class="bp-label__num"><i class="fas fa-users" aria-hidden="true"></i></span>Who takes it on?</span>
+                        <div id="bp-audience-picks" class="bp-chips bp-chips--audience" role="group" aria-labelledby="bp-audience-label"></div>
+                        <div id="bp-audience-heroes" class="bp-heroes hidden" role="group" aria-label="Choose the heroes"></div>
+                        <p id="bp-audience-hint" class="bp-hint"></p>
+                    </section>
 
                     <section class="bp-field" data-bp-field="title">
                         <label for="bounty-title" class="bp-label"><span class="bp-label__num">I</span><span id="bp-title-label">What's the quest?</span></label>

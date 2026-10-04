@@ -6,6 +6,7 @@ import * as state from '../state.js';
 import { normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
 import { isSpecialQuestType } from './specialQuestEngine.js';
 import * as utils from '../utils.js';
+import { bountyAudienceLabel } from '../ui/bountyAudienceTag.js';
 import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { buildHomePartyCardHtml } from './homePartyCard.mjs';
@@ -1361,7 +1362,7 @@ function getReminderPills(classId) {
                     <span class="date-pill__body">
                         <span class="date-pill__eyebrow">Active Bounty</span>
                         <span class="date-pill__title">${activeBounty.title}</span>
-                        <span class="date-pill__meta">Progress is rolling in</span>
+                        <span class="date-pill__meta">${bountyAudienceLabel(activeBounty) ? `For ${escapeHtml(bountyAudienceLabel(activeBounty))}` : 'Progress is rolling in'}</span>
                     </span>
                     <span class="date-pill__value-wrap">
                         <span class="date-pill__value">${pct}%</span>

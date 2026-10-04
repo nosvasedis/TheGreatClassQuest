@@ -17,6 +17,7 @@ import { paintSkySurface } from '../features/skyWeatherStage.js';
 import { getLiveYearGoldFromAppState, sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { chooseCardPlacement } from '../utils/wallpaperLayout.mjs';
 import { getGuildLeaderboardData } from '../features/guildScoring.js';
+import { bountyAudienceTagHtml } from './bountyAudienceTag.js';
 import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLanguageCardDeck } from './wallpaperLanguageCards.js';
 import { SKY_CARD_TYPES, getSkyCardDeck, hydrateSkyCard, getLiveWeatherCard, rememberSkyWeather } from './wallpaperSkyCards.js';
 import { ATLAS_CARD_TYPES, getAtlasCardDeck, hydrateAtlasCard } from './wallpaperAtlasCards.js';
@@ -193,6 +194,7 @@ function buildWallpaperTimerPill(activeTimer, tone) {
         <div class="wall-timer-pill ${tone.pillClass}" data-wall-timer-card>
             <span class="wall-timer-pill__icon">${tone.icon}</span>
             <span class="wall-timer-pill__title">${activeTimer.title}</span>
+            ${bountyAudienceTagHtml(activeTimer, { tone: 'dark' })}
             <span class="wall-timer-pill__sep"></span>
             <span class="wall-timer-pill__clock" data-wall-timer-countdown>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
         </div>`;
@@ -1038,7 +1040,8 @@ async function directorGameLoop({ skipGap = false } = {}) {
                 const html = `
                     <p class="sc-big sc-big--xl">Time's Up!</p>
                     <p class="sc-quote">Pencils down, heroes!</p>
-                    <p class="sc-sub">${escapeCardText(activeTimer.title || 'Bounty')}</p>`;
+                    <p class="sc-sub">${escapeCardText(activeTimer.title || 'Bounty')}</p>
+                    ${bountyAudienceTagHtml(activeTimer, { tone: 'dark' })}`;
                 spawnCard(container, { html, id: 'timer_end', centered: true, family: 'time', sigil: '⏰', title: 'The bounty clock has spoken' });
 
                 // Let the room read it, then send it off and resume the cards.
@@ -2605,7 +2608,7 @@ function getClassBountyCard(classId) {
     const pct = Math.round((bounty.currentProgress / bounty.target) * 100);
 
     return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-red-100 text-red-800">Active Bounty</div><h3 class="font-title text-2xl text-white mb-2">${bounty.title}</h3><div class="w-full bg-black/20 h-6 rounded-full overflow-hidden mb-2"><div class="bg-red-500 h-full transition-all" style="width:${pct}%"></div></div><p class="text-white font-bold">${bounty.currentProgress} / ${bounty.target} ⭐</p></div>`,
+        html: `<div class="text-center w-full"><div class="badge-pill bg-red-100 text-red-800">Active Bounty</div><h3 class="font-title text-2xl text-white mb-2">${bounty.title}</h3>${bountyAudienceTagHtml(bounty, { tone: 'dark' }) ? `<div class="mb-2">${bountyAudienceTagHtml(bounty, { tone: 'dark' })}</div>` : ''}<div class="w-full bg-black/20 h-6 rounded-full overflow-hidden mb-2"><div class="bg-red-500 h-full transition-all" style="width:${pct}%"></div></div><p class="text-white font-bold">${bounty.currentProgress} / ${bounty.target} ⭐</p></div>`,
         css: 'float-card-red'
     };
 }

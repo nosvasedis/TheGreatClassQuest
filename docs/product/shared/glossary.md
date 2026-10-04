@@ -65,7 +65,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Hero Certificate** | Illuminated A4 certificate: Monthly Quest or Legend’s Journey, with an Oracle citation (Elite) | Hall of Prodigies plaque |
 | **Teacher Settings** | Cog: sheets on the teacher’s desk for classes, tools, Family Access, Quiz setup | School Office Admin |
 | **Cloud dock** | The ten classroom tabs as clouds along the bottom; on a mouse PC they sink away when idle | Header tools (Settings is the cog) |
-| **Bounty** | Whole-class challenge from the Bounty poster on Home: **Star Hunt** (star target) or **Race the Clock** (countdown) | Hero’s Challenge ranks |
+| **Bounty** | Shared challenge (whole class, one guild, or chosen heroes) from the Bounty poster on Home: **Star Hunt** (star target) or **Race the Clock** (countdown) | Hero’s Challenge ranks |
 | **Adventurer’s Guide** | The (i) field guide in the app: chapter tabs, search, Take me there, and a For the class view | This guidebook |
 | **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |

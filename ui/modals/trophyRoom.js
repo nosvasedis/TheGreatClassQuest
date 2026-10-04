@@ -9,6 +9,9 @@ import { showInventoryItemDetail } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { buildTrophySatchel, summarizeSatchel, buildActiveEffects } from '../../features/trophyRoomCore.mjs';
 import { renderTrophyRosterHtml, renderTrophyIdleHtml, renderTrophySatchelHtml } from './trophyRoomView.js';
+import '../../styles/hero_seals.css';
+import { buildSealBookView } from '../../features/heroSealsCore.mjs';
+import { ensureHeroSealsForClass } from '../../features/heroSeals.js';
 
 const MODAL_ID = 'trophy-room-modal';
 const CONTENT_ID = 'trophy-room-content';
@@ -104,6 +107,7 @@ function renderSatchel({ animate = false, keepScroll = false } = {}) {
         gold: getLiveYearGoldFromAppState(scoreData, state),
         satchel: buildTrophySatchel(scoreData?.inventory, usable),
         effects: buildActiveEffects(scoreData, utils.getLocalMonthKey()),
+        seals: buildSealBookView({ student, heroSeals: scoreData?.heroSeals || null }),
     });
     contentEl.scrollTop = keepScroll ? scrollTop : 0;
 
@@ -174,6 +178,11 @@ function bindListeners() {
     });
 
     contentEl.addEventListener('click', (e) => {
+        const bookBtn = e.target.closest('.tr-seal-book-btn');
+        if (bookBtn) {
+            import('./studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(bookBtn.dataset.studentId, bookBtn, { tab: 'seals' })).catch(() => {});
+            return;
+        }
         const useBtn = e.target.closest('.tr-use-btn');
         if (useBtn) {
             if (!useBtn.disabled) useRelic(useBtn);
@@ -206,6 +215,7 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
     currentClassId = classId;
     currentStudentId = preselected?.id || '';
     bindListeners();
+    ensureHeroSealsForClass(classId).catch(() => {});
     renderRoster();
     renderSatchel();
     showAnimatedModal(MODAL_ID);

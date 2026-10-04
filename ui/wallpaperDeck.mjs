@@ -40,7 +40,7 @@ const FAMILY_OF_TYPE = {
         'lesson_milestone', 'story_sentence', 'log',
         'class_star_trail', 'class_best_day', 'class_virtue_wheel', 'class_constellation', 'class_every_hero',
         'class_guild_colours', 'class_month_so_far',
-        'tg_knots_week', 'realm_journal_month'
+        'tg_knots_week', 'realm_journal_month', 'class_teams_today'
     ],
     time: [
         'timekeeper', 'next_lesson', 'holiday', 'pre_holiday_hype', 'upcoming_test_countdown',

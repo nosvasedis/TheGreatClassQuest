@@ -64,8 +64,22 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'bounties', icon: 'fa-scroll', name: 'Quest Bounties', tier: 'starter',
                     where: 'Home, Bounty button in the class greeting', go: 'tab:about-tab',
-                    text: `A shared challenge on a bounty poster, for the whole class, one guild, or chosen heroes (for example one table); a group bounty only counts its own children's stars and sizes its targets to the group. Star Hunt: earn a number of stars together within two hours to win a reward, with Quick win, Fair fight and Heroic targets based on how this class usually earns. Race the Clock: finish a task before a countdown runs out; Until the bell sets it to the end of the lesson. Live bounties sit on the bounty board and on the projector.`,
+                    text: `A shared challenge on a bounty poster, for the whole class, one guild, one of today's Team Maker teams, or chosen heroes (for example one table); a group bounty only counts its own children's stars and sizes its targets to the group. Star Hunt: earn a number of stars together within two hours to win a reward, with Quick win, Fair fight and Heroic targets based on how this class usually earns. Race the Clock: finish a task before a countdown runs out; Until the bell sets it to the end of the lesson. Live bounties sit on the bounty board and on the projector.`,
                     keys: 'bounty poster star hunt race the clock timer countdown reward guild group table chosen heroes'
+                },
+                {
+                    id: 'team-maker', icon: 'fa-people-group', name: 'Team Maker', tier: 'starter',
+                    where: 'Home, Class Actions or Global Tools', go: 'tab:about-tab',
+                    text: `Splits the children who are here into 2 to 6 coloured teams: Mix the guilds, Balance by stars (this month's), or Pure luck, with Never the same pairs to keep last time's partners apart. Tap a child, then a team, to move them. Use these teams saves today's teams; Show on projector puts them on the big screen, and Bounty on a team posts a bounty for just that team.`,
+                    why: 'Fair, mixed groups in seconds, with nobody always stuck with the same partner.',
+                    keys: 'teams groups split random mix pairs projector colours group work'
+                },
+                {
+                    id: 'fair-picker', icon: 'fa-hand-sparkles', name: 'Fair Picker', tier: 'starter',
+                    where: 'Home, Class Actions or Global Tools', go: 'tab:about-tab',
+                    text: `Picks one child to answer any question, under a spotlight. Nobody gets a second turn until everyone here has had one, and the round carries on next lesson; children away stay owed a turn. Not now gives a turn back, 5s/10s/20s starts thinking time, Pick from narrows it to one of today's teams, and Big screen fills the projector.`,
+                    why: 'Every child gets asked, not only the raised hands.',
+                    keys: 'random name picker turn spotlight question cold call fair who answers'
                 },
                 {
                     id: 'bonus-days', icon: 'fa-bolt', name: 'Bonus days', tier: 'pro',
@@ -106,6 +120,13 @@ export const GUIDE_CHAPTERS = {
                     where: "Buttons on Hero's Challenge", go: 'tab:student-leaderboard-tab',
                     text: `The Hall of Prodigies is a sunlit marble hall with one crowned Prodigy for each finished month of this school year. The Trophy Room holds every hero's satchel: relics ready to use, effects working now, and treasures kept for good.`,
                     keys: 'hall of prodigies trophy room satchel relics inventory treasures'
+                },
+                {
+                    id: 'hero-seals', icon: 'fa-stamp', name: 'Hero Seals', tier: 'starter',
+                    where: "Scholar's Folio → Seals, and the Trophy Room", go: 'tab:student-leaderboard-tab',
+                    text: `Quiet personal milestones in each child's Seal Book: ten shared seals (a first star in each virtue, all four virtues in one month, ten lessons in a row, a first Hero's Boon, a kept Ember Oath, Quiz Champion, a personal best) and six chosen for that child from their Hero Path, guild, trials, attendance, birthday and a fixed draw of the stars. Seals give no Gold or stars. When children press seals, a small notice appears bottom left; tap it to see who got what.`,
+                    why: 'Every child has a story worth marking, not only the ones at the top.',
+                    keys: 'hero seals seal book milestones personal badges wax seal notice summary'
                 },
                 {
                     id: 'guild-hall', icon: 'fa-shield-halved', name: 'Guild Hall', tier: 'pro',
@@ -480,6 +501,11 @@ export const GUIDE_CHAPTERS = {
                     keys: 'trophy room inventory'
                 },
                 {
+                    id: 'my-seals', icon: 'fa-stamp', name: 'Your Hero Seals', tier: 'starter',
+                    text: `Your Seal Book holds 16 wax seals. Some are the same for everyone, like a first star for Respect; six are chosen just for you. They don't give Gold or stars. They mark your own story, and once you press one it stays.`,
+                    keys: 'seals seal book milestones'
+                },
+                {
                     id: 'seasonal', icon: 'fa-leaf', name: 'Seasonal treasures', tier: 'elite',
                     text: `Every month new treasures arrive on the market stall, and a Festival Stall appears before the holidays. When one sells out, it's gone!`,
                     keys: 'festival seasonal'
@@ -529,8 +555,13 @@ export const GUIDE_CHAPTERS = {
             entries: [
                 {
                     id: 'bounties', icon: 'fa-scroll', name: 'Bounties', tier: 'starter',
-                    text: `A bounty poster goes up: earn enough stars together, or beat the clock, and you win the reward. Sometimes it is for the whole class, sometimes just for one guild or one table.`,
+                    text: `A bounty poster goes up: earn enough stars together, or beat the clock, and you win the reward. Sometimes it is for the whole class, sometimes just for one guild, one team or one table.`,
                     keys: 'bounty timer'
+                },
+                {
+                    id: 'teams-and-turns', icon: 'fa-people-group', name: 'Teams and turns', tier: 'starter',
+                    text: `For group work the Team Maker splits us into coloured teams, like the Coral Foxes or the Jade Turtles, and tries not to put you with the same partners as last time. When a question needs an answer, the Fair Picker's spotlight chooses: nobody gets a second turn until everyone has had one.`,
+                    keys: 'teams groups turn picker spotlight'
                 },
                 {
                     id: 'quiz', icon: 'fa-circle-question', name: 'Quiz of the Week', tier: 'elite',

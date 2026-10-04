@@ -16,6 +16,9 @@ export const studentAnalyticsModalHTML = `
                     <button type="button" class="sf-tab" role="tab" id="sf-tab-trials" data-sf-tab="trials" aria-selected="false" aria-controls="sf-panel-trials" tabindex="-1">
                         <i class="fas fa-scroll" aria-hidden="true"></i><span>Trials</span><b class="sf-tab__count" id="sf-trial-count"></b>
                     </button>
+                    <button type="button" class="sf-tab" role="tab" id="sf-tab-seals" data-sf-tab="seals" aria-selected="false" aria-controls="sf-panel-seals" tabindex="-1">
+                        <i class="fas fa-stamp" aria-hidden="true"></i><span>Seals</span><b class="sf-tab__count" id="sf-seal-count"></b>
+                    </button>
                     <button type="button" class="sf-tab" role="tab" id="sf-tab-oracle" data-sf-tab="oracle" aria-selected="false" aria-controls="sf-panel-oracle" tabindex="-1">
                         <i class="fas fa-hat-wizard" aria-hidden="true"></i><span>Oracle</span><i class="fas fa-lock sf-tab__lock" id="sf-oracle-lock" aria-hidden="true" hidden></i>
                     </button>
@@ -25,6 +28,7 @@ export const studentAnalyticsModalHTML = `
             <div class="sf-body" id="sf-body">
                 <section id="sf-panel-overview" class="sf-panel" role="tabpanel" aria-labelledby="sf-tab-overview"></section>
                 <section id="sf-panel-trials" class="sf-panel" role="tabpanel" aria-labelledby="sf-tab-trials" hidden></section>
+                <section id="sf-panel-seals" class="sf-panel" role="tabpanel" aria-labelledby="sf-tab-seals" hidden></section>
                 <section id="sf-panel-oracle" class="sf-panel" role="tabpanel" aria-labelledby="sf-tab-oracle" hidden></section>
             </div>
         </div>

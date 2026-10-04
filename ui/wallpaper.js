@@ -22,6 +22,7 @@ import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLa
 import { SKY_CARD_TYPES, getSkyCardDeck, hydrateSkyCard, getLiveWeatherCard, rememberSkyWeather } from './wallpaperSkyCards.js';
 import { ATLAS_CARD_TYPES, getAtlasCardDeck, hydrateAtlasCard } from './wallpaperAtlasCards.js';
 import { QUEST_CARD_TYPES, QUEST_CARD_FEATURES, getQuestCardDeck, hydrateQuestCard } from './wallpaperQuestCards.js';
+import { takeProjectorCard } from './wallpaperQueue.mjs';
 import {
     CARD_FAMILIES,
     CARD_DURATION_CHOICES,
@@ -1150,6 +1151,12 @@ async function directorGameLoop({ skipGap = false } = {}) {
 async function selectNextCard(classId) {
     try {
         const capabilities = getWallpaperCapabilities();
+        // A tool asked for a card (e.g. Team Maker just saved today's teams): show it next.
+        const asked = takeProjectorCard(classId);
+        if (asked) {
+            const card = await safeHydrate(asked.type, classId, capabilities);
+            if (card) return card;
+        }
         let potentialCards = buildDeckList(classId, capabilities);
         potentialCards = shuffleDeck(potentialCards);
 

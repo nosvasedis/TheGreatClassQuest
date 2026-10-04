@@ -1,7 +1,7 @@
 // /ui/wallpaperQuestCards.js — Projector Mode (The Director): cards for the newer quests.
 // Training Grounds knots this week, the Quiz Champion of the week, Ember Oaths kept this month
 // (a count only, never names), the class's Map Journal stamps, and the Mystic Market's festival
-// stall. Every builder returns null when it has nothing real to show, so the Director moves on.
+// stall, and today's Team Maker teams. Every builder returns null when it has nothing real to show, so the Director moves on.
 import '../styles/wallpaper_quest_cards.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -9,8 +9,9 @@ import { escapeCardText as esc } from './wallpaperDeck.mjs';
 import { TRAINING_GAMES, TRAINING_GAME_KEYS, knotsTied, normalizeGameState } from '../features/trainingGroundsCore.mjs';
 import { REALM_STOPS, journalMonth, realmMonthKey } from '../features/realmMomentsCore.mjs';
 import { getActiveFestival, getFestivalWindow } from '../utils/shopCalendar.js';
+import { teamsForDay, teamBanner } from '../features/teamMakerCore.mjs';
 
-const CLASS_QUEST_CARDS = ['tg_knots_week', 'quiz_champion_week', 'oaths_kept_month', 'realm_journal_month'];
+const CLASS_QUEST_CARDS = ['tg_knots_week', 'quiz_champion_week', 'oaths_kept_month', 'realm_journal_month', 'class_teams_today'];
 const SHARED_QUEST_CARDS = ['market_festival'];
 
 export const QUEST_CARD_TYPES = Object.freeze([...CLASS_QUEST_CARDS, ...SHARED_QUEST_CARDS]);
@@ -211,6 +212,28 @@ function realmJournalMonth(classId, now = new Date()) {
     };
 }
 
+/** Today's Team Maker teams, each in its colours. */
+function teamsToday(classId) {
+    const cls = classById(classId);
+    const today = teamsForDay(cls?.teamMaker, utils.getTodayDateString());
+    if (!today) return null;
+    const many = today.teams.length > 4;
+    return {
+        sigil: '🚩',
+        title: "Today's Teams",
+        html: `<div class="qc-teams${many ? ' qc-teams--many' : ''}">
+                ${today.teams.map((ids, i) => {
+                    const b = teamBanner(i);
+                    const names = ids.map(studentById).filter(Boolean).map(firstName);
+                    return `<section class="qc-team" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
+                        <header><span aria-hidden="true">${b.emoji}</span>${esc(b.short)}</header>
+                        <p>${names.join(' · ')}</p>
+                    </section>`;
+                }).join('')}
+            </div>`
+    };
+}
+
 /** The Mystic Market's festival stall: open now, or opening soon. */
 function marketFestival(now = new Date()) {
     const active = getActiveFestival(now);
@@ -253,6 +276,7 @@ export async function hydrateQuestCard(baseType, classId) {
         case 'quiz_champion_week': return quizChampionWeek(classId);
         case 'oaths_kept_month': return oathsKeptMonth(classId);
         case 'realm_journal_month': return realmJournalMonth(classId);
+        case 'class_teams_today': return teamsToday(classId);
         case 'market_festival': return marketFestival();
         default: return null;
     }

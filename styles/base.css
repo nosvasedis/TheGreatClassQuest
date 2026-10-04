@@ -159,6 +159,67 @@ body {
     justify-content: center;
 }
 
+/* Class pill: chevron flips while the class compass is open, clock badge when following the schedule */
+
+#header-class-selector-btn {
+    position: relative;
+}
+
+#header-class-selector-btn > .fa-chevron-down {
+    transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+#header-class-selector-btn[aria-expanded="true"] > .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+#header-class-selector-btn[aria-expanded="true"] {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.gcq-cd-follow-badge {
+    position: absolute;
+    top: -5px;
+    right: -4px;
+    width: 15px;
+    height: 15px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #38bdf8, #6366f1);
+    color: #fff;
+    font-size: 8px;
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+    pointer-events: none;
+}
+
+.gcq-cd-follow-badge.hidden {
+    display: none;
+}
+
+.gcq-cd-follow-badge i {
+    filter: none;
+    -webkit-text-stroke: 0;
+}
+
+#header-class-selector-logo.gcq-cd-logo-pop {
+    animation: gcq-cd-logo-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes gcq-cd-logo-pop {
+    0% { transform: scale(0.4) rotate(-20deg); opacity: 0; }
+    60% { transform: scale(1.25) rotate(6deg); opacity: 1; }
+    100% { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #header-class-selector-logo.gcq-cd-logo-pop {
+        animation: none;
+    }
+}
+
 #app-info-btn,
 #projector-mode-btn,
 #secretary-console-btn,

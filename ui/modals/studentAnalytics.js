@@ -9,6 +9,8 @@
 //            reading (plain-English observations) and a test/dictation record.
 //   Trials   every paper: mark, percent, class average, place on the paper, badges,
 //            and the papers the class sat that still have no mark.
+//   Seals    the Seal Book: the child's Hero Seals, pressed and still to find
+//            (features/heroSealsCore.mjs; pressed by features/heroSeals.js).
 //   Oracle   Elite AI: parent-meeting notes, a next-step plan and free questions,
 //            built from the same numbers.
 //
@@ -46,6 +48,10 @@ import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { fetchAllTrialsForClass } from '../../db/queries.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import '../../styles/hero_seals.css';
+import { buildSealBookView } from '../../features/heroSealsCore.mjs';
+import { sealBookPanelHtml } from '../../features/heroSealsView.mjs';
+import { ensureHeroSealsForClass } from '../../features/heroSeals.js';
 
 const MODAL_ID = 'student-analytics-modal';
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
@@ -162,7 +168,9 @@ function collect(studentId) {
     });
 
     const schemes = { test: getAssessmentSchemeForClass(classData, 'test'), dictation: getAssessmentSchemeForClass(classData, 'dictation') };
-    return { student, classData, classmates, usage, folio, starfall, schemes };
+    const heroSeals = (state.get('allStudentScores') || []).find((s) => s.id === studentId)?.heroSeals || null;
+    const seals = buildSealBookView({ student, heroSeals });
+    return { student, classData, classmates, usage, folio, starfall, schemes, seals };
 }
 
 /** "Great!!" next to a percent, when the class grades that kind in words. */
@@ -273,6 +281,7 @@ function renderHead(model) {
                 <div class="sf-id__chips">
                     ${rankChip}
                     ${Number.isFinite(avg) ? `<span class="sf-chip sf-chip--tier" data-tier="${folio.tier}">${esc(TIER_LABEL[folio.tier])}</span>` : ''}
+                    ${model.seals.earnedCount ? `<button type="button" class="sf-chip sf-chip--seals" data-sf-tab="seals" title="Open the Seal Book"><i class="fas fa-stamp" aria-hidden="true"></i>${model.seals.earnedCount} Hero Seal${model.seals.earnedCount === 1 ? '' : 's'}</button>` : ''}
                 </div>
             </div>
             <div class="sf-medal" data-tier="${folio.tier}" title="${Number.isFinite(avg) ? `Average of every trial, ${esc(FOLIO_RANGES[view.range].toLowerCase())}` : 'No graded trials yet'}">
@@ -286,6 +295,7 @@ function renderHead(model) {
         </div>`;
 
     $('sf-trial-count').textContent = folio.trials.length ? String(folio.trials.length) : '';
+    $('sf-seal-count').textContent = model.seals.earnedCount ? String(model.seals.earnedCount) : '';
     const hasOracle = canUseFeature('eliteAI');
     $('sf-oracle-lock').hidden = hasOracle;
 }
@@ -770,6 +780,13 @@ function printFolio() {
     }, 120);
 }
 
+// ─── Seals ───────────────────────────────────────────────────────────────────
+
+function renderSeals(model) {
+    const panel = $('sf-panel-seals');
+    if (panel) panel.innerHTML = sealBookPanelHtml(model.seals, model.student, { reading: view.sealsReading === model.student.classId });
+}
+
 // ─── Render orchestration ────────────────────────────────────────────────────
 
 function setTab(tab, { focus = false } = {}) {
@@ -782,7 +799,9 @@ function setTab(tab, { focus = false } = {}) {
         btn.tabIndex = on ? 0 : -1;
         if (on && focus) btn.focus();
     });
-    ['overview', 'trials', 'oracle'].forEach((name) => {
+    const range = $('sf-range');
+    if (range) range.hidden = tab === 'seals';
+    ['overview', 'trials', 'seals', 'oracle'].forEach((name) => {
         const panel = $(`sf-panel-${name}`);
         if (!panel) return;
         const on = name === tab;
@@ -809,6 +828,7 @@ function renderAll({ still = false } = {}) {
     renderRange();
     renderOverview(model);
     renderTrials(model);
+    renderSeals(model);
     if (!still) renderOracle(model);
     const body = $('sf-body');
     if (!still && body) body.scrollTop = 0;
@@ -953,7 +973,7 @@ function onKey(e) {
     if (inField) return;
     const onTab = e.target.closest?.('.sf-tab');
     if (onTab && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        const tabs = ['overview', 'trials', 'oracle'];
+        const tabs = ['overview', 'trials', 'seals', 'oracle'];
         const i = tabs.indexOf(view.tab);
         setTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], { focus: true });
         e.preventDefault();
@@ -1019,10 +1039,10 @@ function wire() {
         view.resizeObserver.observe($('sf-body'));
     }
 
-    state.subscribe(['allWrittenScores', 'allAttendanceRecords', 'allAwardLogs', 'allStudents'], scheduleRefresh);
+    state.subscribe(['allWrittenScores', 'allAttendanceRecords', 'allAwardLogs', 'allStudents', 'allStudentScores'], scheduleRefresh);
 }
 
-export async function openStudentAnalyticsModal(studentId, triggerElement = null) {
+export async function openStudentAnalyticsModal(studentId, triggerElement = null, { tab = '' } = {}) {
     const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
     if (!student) {
         showToast('Student not found.', 'error');
@@ -1039,6 +1059,16 @@ export async function openStudentAnalyticsModal(studentId, triggerElement = null
         view.tab = 'overview';
         view.sort = 'newest';
     }
+    if (['overview', 'trials', 'seals', 'oracle'].includes(tab)) view.tab = tab;
+    // Bring the class's Seal Books up to date (the panel refreshes when they land).
+    if (view.sealsReading !== student.classId && !(state.get('allStudentScores') || []).find((s) => s.id === studentId)?.heroSeals?.book) {
+        view.sealsReading = student.classId;
+    }
+    ensureHeroSealsForClass(student.classId).catch(() => {}).finally(() => {
+        if (view.sealsReading !== student.classId) return;
+        view.sealsReading = '';
+        scheduleRefresh();
+    });
     const overlay = $(MODAL_ID);
     overlay.dataset.studentId = studentId;
     overlay.classList.remove('sf--still');

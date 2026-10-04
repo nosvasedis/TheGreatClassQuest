@@ -576,6 +576,10 @@ export async function finalizeQuiz(classId) {
 
         const finalResults = { ...results, tier: rewardResult?.tier, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
         await markQuizCompleted(classId, finalResults);
+        // The Quiz Champion presses a Hero Seal (read from the quiz history just saved).
+        if (rewardResult?.prize?.studentId) {
+            import('./heroSeals.js').then((m) => m.noteQuizChampion(classId)).catch(() => {});
+        }
         return finalResults;
     } catch (e) {
         console.error('Failed to distribute rewards:', e);

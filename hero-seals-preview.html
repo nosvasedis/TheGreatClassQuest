@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hero Seals preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { background: linear-gradient(180deg, #e0e7ff 0%, #f5f3ff 40%, #faf5ff 100%); font-family: 'Fredoka', sans-serif; }
+    .pv-cat { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; padding: 1.5rem; }
+    .pv-cat figure { margin: 0; display: grid; justify-items: center; gap: .35rem; padding: .8rem .4rem; border-radius: 1rem; background: #fffaf0; border: 1px solid #f0e0bf; text-align: center; }
+    .pv-cat figcaption { font-size: .8rem; color: #3a2616; font-weight: 600; }
+    .pv-cat small { display: block; font-size: .68rem; color: #9a7a58; font-weight: 400; }
+    .pv-toolbar { position: fixed; right: 10px; top: 10px; z-index: 999; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; }
+    .pv-toolbar a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="pv-root"></div>
+  <div class="pv-toolbar" id="pv-toolbar"></div>
+  <script type="module" src="/hero-seals-preview.js"></script>
+</body>
+</html>

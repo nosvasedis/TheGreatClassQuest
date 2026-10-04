@@ -122,6 +122,13 @@ export const GUIDE_CHAPTERS = {
                     keys: 'hall of prodigies trophy room satchel relics inventory treasures'
                 },
                 {
+                    id: 'hero-seals', icon: 'fa-stamp', name: 'Hero Seals', tier: 'starter',
+                    where: "Scholar's Folio → Seals, and the Trophy Room", go: 'tab:student-leaderboard-tab',
+                    text: `Quiet personal milestones in each child's Seal Book: ten shared seals (a first star in each virtue, all four virtues in one month, ten lessons in a row, a first Hero's Boon, a kept Ember Oath, Quiz Champion, a personal best) and six chosen for that child from their Hero Path, guild, trials, attendance, birthday and a fixed draw of the stars. Seals give no Gold or stars. When children press seals, a small notice appears bottom left; tap it to see who got what.`,
+                    why: 'Every child has a story worth marking, not only the ones at the top.',
+                    keys: 'hero seals seal book milestones personal badges wax seal notice summary'
+                },
+                {
                     id: 'guild-hall', icon: 'fa-shield-halved', name: 'Guild Hall', tier: 'pro',
                     where: 'Guild Hall tab', go: 'tab:guilds-tab',
                     text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Each month is a Chapter: the house whose members earn the most Glory each, on average, wins it, so a small busy house can beat a big one. Chapters pay Crowns (5, 3, 2, 1), plus one more for a house where at least 4 in 5 members earned 3 stars. Most Crowns in June wins the year. Tap an emblem for the house banner, or the note for its anthem.`,
@@ -492,6 +499,11 @@ export const GUIDE_CHAPTERS = {
                     id: 'trophy-room', icon: 'fa-box-open', name: 'Your satchel', tier: 'starter',
                     text: `Everything you buy waits in your satchel in the Trophy Room until you use it. Treasures you win stay there for good.`,
                     keys: 'trophy room inventory'
+                },
+                {
+                    id: 'my-seals', icon: 'fa-stamp', name: 'Your Hero Seals', tier: 'starter',
+                    text: `Your Seal Book holds 16 wax seals. Some are the same for everyone, like a first star for Respect; six are chosen just for you. They don't give Gold or stars. They mark your own story, and once you press one it stays.`,
+                    keys: 'seals seal book milestones'
                 },
                 {
                     id: 'seasonal', icon: 'fa-leaf', name: 'Seasonal treasures', tier: 'elite',

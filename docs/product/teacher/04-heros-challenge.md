@@ -35,10 +35,31 @@ Floating action buttons typically include **Hall of Prodigies** (monthly archive
 Every hero’s satchel for the chosen class. The hero list on the left shows each student’s item count, with a ⚡ when a relic is ready; tap a name (or use the arrow keys) to open their satchel.
 
 - **Working now:** effects already switched on (the Gilded Star, Elixir of Luck, Banner of Glory charges, the Aurum Satchel discount, and so on).
+- **Hero Seals:** the seals this hero has pressed, newest first, with **Seal Book** to open the full book in their Scholar's Folio.
 - **Relics:** unused Legendary Artifacts, with copies stacked (×2). **Use** asks to confirm, then uses up one copy and applies the effect (see Mystic Market).
 - **Treasures:** kept for good, newest first: seasonal and Festival pieces, quiz prizes and Star-Embers from kept Ember Oaths. Each tile shows where it came from and when; tap one to look closer.
 
 On a phone the hero list becomes a strip across the top.
+
+### Hero Seals
+
+Hero Seals are quiet personal milestones. They give **no Gold and no stars**; they are about the child's own story, and every child can press most of them. Once pressed, a seal stays for the school year, even if a star is later taken back.
+
+Every child has a **Seal Book** of 16 wax seals.
+
+- **Ten shared seals** (the same for everyone): a first star for **Respect**, **Creativity**, **Teamwork** and **Focus** (one seal each), **The Four Winds** (all four virtues in one month), **Steadfast** (ten lessons present in a row), **The Open Hand** (a first Hero's Boon given), **Oathkeeper** (a first Ember Oath kept), **Champion's Laurel** (named Quiz Champion) and **Personal Best** (a test or dictation better than every earlier one of that kind, with at least two before it).
+- **Six seals chosen for this child:**
+  - **Path:** from their Hero Path (Guardian's Unbroken Shield, Sage's Lantern of Ideas, and so on: reach level 1), or **First Step** (choose a path) for a child without one. It follows the child if they change path before pressing it.
+  - **Quill:** set to the child's own pace in trials: **Rising Quill** (beat your own last result by 10 points), **Bright Quill** (85% or more) or **Golden Quill** (three trials in a row at 90%+). In a class without trials it is the **Star of Excellence**. The book never says which pace a child is on.
+  - **Hearth:** from their attendance: **Welcome Home** (a star in the first lesson back after an absence) for a child who has been away lately, otherwise **Full Moon** (present at every lesson of a whole month).
+  - **Guild:** ten stars in one month for their guild (eight in the younger leagues): **Dragon's Ember**, **Grizzly's Paw**, **Owl's Wing** or **Phoenix Plume**. Before sorting it is **Under a Banner**.
+  - **Two wild seals:** **Candle Star** (a star in the lesson on or just after their birthday or nameday) when one is known, **Hatchling's Bond** (their familiar hatches) when they carry an egg, and otherwise seals drawn by the stars for that child: Early Light (the first star of a lesson), Bright Day (three stars in one lesson), Hero of the Story, Generous Heart (three Hero's Boons), Kindred Spirit (a Hero's Boon received), Unbroken Chain (a star in five lessons in a row), Yard Ribbon (a first Training Grounds star) or Magpie's Hoard (three keepsakes). The draw is fixed per child, so the book never reshuffles.
+
+**Where they show.** The Scholar's Folio has a **Seals** tab with the whole book; the Trophy Room shows the pressed seals for each hero. When a seal is pressed during a lesson, the class diary may mention it in one line (seals about marks or absences never appear there).
+
+**The notice.** When children press seals, a small wax-seal notice appears at the bottom left of your screen (never on the Projector): for example **3 heroes pressed Hero Seals**. Tap it for a summary of who pressed what; tap a name to open that child's Seal Book. ✕ dismisses it. The first time a class is opened after Hero Seals arrived, the Quest reads the year so far once and the notice says **The Seal Book opens**, with the seals already earned this year.
+
+A seal is pressed a little after the star that earns it (so a star given by mistake can still be undone first). Seals are checked for the class you are teaching, classes with activity today, and any class whose Folio or Trophy Room you open.
 
 ### Hall of Prodigies
 

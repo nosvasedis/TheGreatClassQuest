@@ -1,5 +1,6 @@
 // ui/modals/trophyRoomView.js — HTML for the Trophy Room (no state, no DOM access).
 // Kept pure so the guidebook capture can render the real markup from sample data.
+import { sealArtHtml } from '../../features/heroSealsCore.mjs';
 
 export function escTrophy(value) {
     return String(value ?? '')
@@ -86,12 +87,48 @@ function treasureTileHtml(treasure) {
 }
 
 /**
+ * Hero Seals in the satchel: the pressed seals, newest first, and a way into the Seal Book.
+ * `seals` is buildSealBookView() from features/heroSealsCore.mjs.
+ */
+export function renderTrophySealsHtml(seals, student) {
+    if (!seals) return '';
+    const first = String(student?.name || '').trim().split(/\s+/)[0] || 'This hero';
+    const pressed = seals.pressed || [];
+    const shown = pressed.slice(0, 8);
+    const more = pressed.length - shown.length;
+    return `
+        <section class="tr-section tr-section--seals" aria-label="Hero Seals">
+            <header class="tr-section-head">
+                <span class="tr-section-icon" aria-hidden="true"><i class="fas fa-stamp"></i></span>
+                <div>
+                    <h4 class="font-title">Hero Seals <span class="tr-section-count">${pressed.length} of ${seals.total}</span></h4>
+                    <p>Quiet milestones from ${escTrophy(first)}’s own story. No Gold, no stars, just theirs.</p>
+                </div>
+                <button type="button" class="tr-seal-book-btn" data-student-id="${escTrophy(student?.id)}">
+                    <i class="fas fa-book-open" aria-hidden="true"></i><span>Seal Book</span>
+                </button>
+            </header>
+            ${shown.length ? `
+            <div class="tr-seal-row">
+                ${shown.map((s, i) => `
+                    <div class="tr-seal" style="--i:${i}" title="${escTrophy(s.name)}${s.dateLabel ? `, ${escTrophy(s.dateLabel)}` : ''}">
+                        ${sealArtHtml(s, { size: 58 })}
+                        <span class="tr-seal-name">${escTrophy(s.name)}</span>
+                        ${s.dateLabel ? `<span class="tr-seal-date">${escTrophy(s.dateLabel)}</span>` : ''}
+                    </div>`).join('')}
+                ${more > 0 ? `<button type="button" class="tr-seal tr-seal--more tr-seal-book-btn" data-student-id="${escTrophy(student?.id)}"><span class="tr-seal-more">+${more}</span><span class="tr-seal-name">more in the book</span></button>` : ''}
+            </div>`
+            : `<p class="tr-section-empty">No seals pressed yet. A first star for any virtue presses the first one, and ${seals.total - pressed.length} more wait in the Seal Book.</p>`}
+        </section>`;
+}
+
+/**
  * The open satchel.
  * @param {{ student: {id:string,name:string,avatar?:string}, classLabel?: string, gold: number,
  *   satchel: ReturnType<import('../../features/trophyRoomCore.mjs').buildTrophySatchel>,
  *   effects: Array<{icon:string,title:string,body:string}> }} view
  */
-export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, satchel, effects = [] }) {
+export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, satchel, effects = [], seals = null }) {
     const { relics, treasures, relicCount, treasureCount, total } = satchel;
 
     const effectsHtml = effects.length ? `
@@ -155,6 +192,7 @@ export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, sa
                 </div>
             </header>
             ${effectsHtml}
+            ${renderTrophySealsHtml(seals, student)}
             ${total === 0 ? emptyAll : relicsHtml + treasuresHtml}
         </div>`;
 }

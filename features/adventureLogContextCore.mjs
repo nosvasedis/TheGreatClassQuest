@@ -5,6 +5,7 @@
 import { normalizeQuestType, QUEST_TYPE_LABELS, isSchoolWideModifierType } from './specialQuestEngine.js';
 import { getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
 import { realmArrivalsOn } from './realmMomentsCore.mjs';
+import { sealsPressedOn } from './heroSealsCore.mjs';
 import { TRIAL_TYPE_GUIDE } from './trialTypesCore.mjs';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
 
@@ -178,6 +179,8 @@ export function buildAdventureLogContext(input = {}) {
     ], true);
     // A realm reached for the first time this month, stamped live in the class's Map Journal.
     add('realmArrival', 'Team Quest: a new realm reached today (say it in one line, e.g. "Today we reached the Silver Peaks")', realmArrivalsOn(classroom, date), true);
+    // Hero Seals pressed live today (personal milestones; marks and absences never appear).
+    add('heroSeals', 'Hero Seals pressed today: quiet personal milestones (one warm line at most, e.g. "Maria pressed the Seal of Respect")', sealsPressedOn(scores.map(score => ({ name: name(score.id), heroSeals: score.heroSeals })), date).slice(0, 4), true);
     add('ceremonies', 'Ceremony of the Month today', scoped(input.ceremonies).filter(s => today(s.completedAt) || today(s.lockedAt) || today(s.playback?.updatedAt)).map(s => ({ mode: clean(s.mode, 40), month: clean(s.monthKey, 10), status: clean(s.status, 25) })), true);
 
     // Background colour.

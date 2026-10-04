@@ -70,6 +70,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |
 | **Star-Ember** | Keepsake in the Trophy Room for a kept oath; worth no stars or Gold | Stars; Starfall; Growth Starfall |
+| **Hero Seal** | A wax-seal milestone in a child's Seal Book (Scholar's Folio → Seals, Trophy Room); worth no stars or Gold | Hero Path seals (the stages of a Hero Path); Map Journal stamps |
 | **Class constellation** | The Campfire sky: one star per oath kept this year. The telescope zooms those same stars; each promise kind has its own figure | Team Quest map; Hall of Heroes |
 | **Book atlas** | The built-in list of the school’s books, units, pages and words the Campfire reads from Quest Assignment | Scholar’s Scroll tests; Quiz syllabus chips |
 

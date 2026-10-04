@@ -1389,6 +1389,10 @@ async function initApp() {
         import('./features/realmMoments.js')
             .then(({ startRealmMoments }) => startRealmMoments())
             .catch((e) => console.warn('Realm moments failed to start', e));
+        // Hero Seals: presses each child's personal milestones and tells the teacher.
+        import('./features/heroSeals.js')
+            .then(({ startHeroSeals }) => startHeroSeals())
+            .catch((e) => console.warn('Hero Seals failed to start', e));
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
         // Solar sync should wait for school settings so we do not

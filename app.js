@@ -1395,6 +1395,10 @@ async function initApp() {
         import('./features/heroSeals.js')
             .then(({ startHeroSeals }) => startHeroSeals())
             .catch((e) => console.warn('Hero Seals failed to start', e));
+        // Realm Raid: the school's shared Guardian three times a year; pays each class its spoils.
+        import('./features/realmRaid.js')
+            .then(({ startRealmRaid }) => startRealmRaid())
+            .catch((e) => console.warn('Realm Raid failed to start', e));
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
         // Solar sync should wait for school settings so we do not

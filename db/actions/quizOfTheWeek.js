@@ -27,8 +27,7 @@ import {
     pickQuizChampion,
     quizPrizeCandidates
 } from '../../features/quizRewardsCore.mjs';
-import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemStock } from '../../utils/shopRestock.js';
-import { shopMonthKey, getActiveFestival } from '../../utils/shopCalendar.js';
+import { grantStallTreasure, loadLeagueStall } from './stallTreasure.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -447,87 +446,10 @@ export async function getPreviousQuizReview(classId) {
 
 const QUIZ_ALREADY_PAID = 'quiz-rewards-already-paid';
 
-/** The class's current Mystic Market stall (this month's treasures and any festival stall). */
-async function loadLeagueStall(league) {
-    const teacherId = state.get('currentUserId');
-    const scope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId || '' };
-    const byId = new Map();
-    try {
-        const snap = await getDocs(query(
-            collection(db, `${PUBLIC_DATA_PATH}/shop_items`),
-            where('league', '==', league),
-            where('monthKey', '==', scope.monthKey),
-            where('teacherId', '==', teacherId)
-        ));
-        snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
-    } catch (error) {
-        console.warn('Quiz prize: could not read the stall, using the loaded one.', error);
-    }
-    // Festival stalls can belong to the month before; the live listener already holds them.
-    for (const item of state.get('currentShopItems') || []) {
-        if (item?.id && !byId.has(item.id) && isCurrentStallItem(item, scope)) byId.set(item.id, item);
-    }
-    return [...byId.values()].filter((item) => isCurrentStallItem(item, scope) && isCompleteShopItem(item) && !item.incoming && shopItemInStock(item));
-}
-
-/**
- * Give the champion one treasure from the stall, exactly as if it were bought for 0 Gold:
- * the stall loses one copy (the last copy leaves the shelf). Falls back to Gold when the
- * stall is empty or every candidate sold out meanwhile.
- */
+/** One treasure from the league's stall for the champion, or Gold when the stall is empty. */
 async function grantQuizPrize(classId, studentId, tier, league) {
     const candidates = quizPrizeCandidates(await loadLeagueStall(league), tier).slice(0, 5);
-    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
-    for (const candidate of candidates) {
-        try {
-            const granted = await runTransaction(db, async (transaction) => {
-                const itemRef = doc(db, `${PUBLIC_DATA_PATH}/shop_items`, candidate.id);
-                const itemSnap = await transaction.get(itemRef);
-                const scoreSnap = await transaction.get(scoreRef);
-                if (!itemSnap.exists() || !scoreSnap.exists()) return null;
-                const item = { id: itemSnap.id, ...itemSnap.data() };
-                const remaining = shopItemStock(item) - 1;
-                if (remaining < 0) return null;
-                if (remaining === 0) transaction.delete(itemRef);
-                else transaction.update(itemRef, { stock: remaining });
-                const inventory = Array.isArray(scoreSnap.data().inventory) ? scoreSnap.data().inventory : [];
-                transaction.update(scoreRef, {
-                    inventory: [...inventory, {
-                        id: item.id,
-                        name: item.name,
-                        image: item.image || null,
-                        icon: item.icon || null,
-                        description: item.description || '',
-                        acquiredAt: new Date().toISOString(),
-                        source: 'quiz_prize'
-                    }]
-                });
-                return { item, remaining };
-            });
-            if (!granted) continue;
-            const { item, remaining } = granted;
-            const shopItems = state.get('currentShopItems') || [];
-            state.setCurrentShopItems(remaining > 0
-                ? shopItems.map((entry) => (entry.id === item.id ? { ...entry, stock: remaining } : entry))
-                : shopItems.filter((entry) => entry.id !== item.id));
-            return {
-                studentId,
-                kind: 'treasure',
-                item: { id: item.id, name: item.name, image: item.image || null, icon: item.icon || null, description: item.description || '', price: Number(item.price) || 0 },
-                league
-            };
-        } catch (error) {
-            console.warn('Quiz prize: this treasure could not be given, trying another.', error);
-        }
-    }
-
-    await runTransaction(db, async (transaction) => {
-        const scoreSnap = await transaction.get(scoreRef);
-        if (!scoreSnap.exists()) return;
-        const current = getLiveYearGold(scoreSnap.data(), getLiveYearGoldContextFromState(state));
-        transaction.update(scoreRef, { gold: current + QUIZ_PRIZE_FALLBACK_GOLD });
-    });
-    return { studentId, kind: 'gold', gold: QUIZ_PRIZE_FALLBACK_GOLD, league };
+    return grantStallTreasure(studentId, candidates, { league, source: 'quiz_prize', fallbackGold: QUIZ_PRIZE_FALLBACK_GOLD });
 }
 
 /**

@@ -73,8 +73,37 @@ You do not “award Team Quest points” by hand. Award Stars, Pathfinder’s Ma
 | Quiz of the Week | Extra class quest bonus by performance tier |
 | 2x Star Day / Reason Bonus Day | More stars that month, so the token moves faster |
 | Holidays / cancelled lessons | Lower goal, fairer race |
+| Realm Raid victory | **+5%** of the class's own monthly goal (another **+2.5%** for a Legendary victory) |
 
 Team Quest **resets each calendar month**. Guild Hall does **not**. Do not mix the two races in a parent meeting.
+
+## Realm Raid: the whole school on one side
+
+Three times a year the whole school stops racing and fights together. **Eldhorn**, a great crystal-antlered stag who guards the Realm, comes for one week in a festival coat:
+
+| Raid | When |
+|------|------|
+| **The Winter Raid** | The 7 days before the Christmas holiday starts (from the school's holiday list; 16 to 22 December if none is saved) |
+| **The Carnival Raid** | The 7 days before Clean Monday |
+| **The Summer Raid** | The last school week: the 7 days before the school year closes, never later than 14 June |
+
+A week before, a **Realm Raid** pill appears on Home ("Eldhorn arrives in 5 days"). It stays for ten days after the raid with the result. On the projector the remote gets a shield button, and the deck has a Realm Raid card.
+
+**The shield is fair by design.** It is made of one **shard** per class. A shard's size is what that class's own Team Quest map expects from it in its raid lessons, at 80%: heroes × raid lessons × the class's normal stars per lesson. A class of 8 that meets once has a small shard; a class of 16 that meets twice has a big one. The same normal, good week breaks either of them. Leagues don't change it, and a cancelled lesson or a holiday shrinks the shard.
+
+**Every star counts.** Every star any class earns that week sends light into its shard. Stars past a class's shard keep helping the school. When all the stars together fill the whole shield, it breaks for everyone, and the victory moment plays on whichever screen is open (once per device).
+
+| Spoils | Who | What |
+|--------|-----|------|
+| **Victory** (the shield breaks) | Every class | **+5 Gold** for every hero, a **5% step** on its Team Quest map, and one **festival treasure** for its **Raid Hero** |
+| **Legendary** (120% of the shield) | Every class | **+3 Gold** more for every hero and another **2.5% step** |
+| **Valor** (a class breaks its own shard) | That class | **+2 Gold** for every hero, even if the shield holds |
+
+The **Raid Hero** is the child who struck the shield in the most of the class's raid lessons, then the most stars, then the fewest Raid Hero prizes before. Open the Raid Hall in the class's last raid lesson and press **Reveal our Raid Hero**. The treasure comes out of the class's own Mystic Market stall like a purchase (10 Gold if the stall is empty). If nobody reveals it, the app picks the hero quietly three days after the raid.
+
+Each teacher's app pays its own classes, once, and you get the usual notification when it does. **Nothing is ever taken away**: if the shield holds, Eldhorn bows and comes back next term.
+
+Tap the pill to open the **Raid Hall**: Eldhorn and the shield, the stars so far, your class's shard, the spoils, and **The Alliance**, a banner for every class. Tap a banner to feature that class. While the hall is open, new stars fly from a class's banner into its shard.
 
 ## Plan notes
 

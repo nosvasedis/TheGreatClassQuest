@@ -1,7 +1,7 @@
 // /ui/wallpaperQuestCards.js — Projector Mode (The Director): cards for the newer quests.
 // Training Grounds knots this week, the Quiz Champion of the week, Ember Oaths kept this month
 // (a count only, never names), the class's Map Journal stamps, and the Mystic Market's festival
-// stall, and today's Team Maker teams. Every builder returns null when it has nothing real to show, so the Director moves on.
+// stall, today's Team Maker teams, and the school's Realm Raid. Every builder returns null when it has nothing real to show, so the Director moves on.
 import '../styles/wallpaper_quest_cards.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -12,7 +12,7 @@ import { getActiveFestival, getFestivalWindow } from '../utils/shopCalendar.js';
 import { teamsForDay, teamBanner } from '../features/teamMakerCore.mjs';
 
 const CLASS_QUEST_CARDS = ['tg_knots_week', 'quiz_champion_week', 'oaths_kept_month', 'realm_journal_month', 'class_teams_today'];
-const SHARED_QUEST_CARDS = ['market_festival'];
+const SHARED_QUEST_CARDS = ['market_festival', 'realm_raid'];
 
 export const QUEST_CARD_TYPES = Object.freeze([...CLASS_QUEST_CARDS, ...SHARED_QUEST_CARDS]);
 
@@ -266,6 +266,19 @@ function marketFestival(now = new Date()) {
     };
 }
 
+/** The Realm Raid: the Guardian, the school's shield and this class's shard (herald to aftermath). */
+async function realmRaidCard(classId) {
+    const { getRaidView } = await import('../features/realmRaid.js');
+    const view = getRaidView();
+    if (!view || view.loading) return null;
+    const { raidCardHtml } = await import('./modals/realmRaidView.mjs');
+    return {
+        sigil: '🛡️',
+        title: view.raid.season.name,
+        html: raidCardHtml(view, { focusId: classId || '' })
+    };
+}
+
 // ─── Dispatch ───────────────────────────────────────────────────────────────
 
 /** Builds one quest card (may be async), or null. */
@@ -278,6 +291,7 @@ export async function hydrateQuestCard(baseType, classId) {
         case 'realm_journal_month': return realmJournalMonth(classId);
         case 'class_teams_today': return teamsToday(classId);
         case 'market_festival': return marketFestival();
+        case 'realm_raid': return realmRaidCard(classId);
         default: return null;
     }
 }

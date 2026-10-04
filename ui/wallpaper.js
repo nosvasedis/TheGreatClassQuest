@@ -205,6 +205,15 @@ function buildWallpaperTimerPill(activeTimer, tone) {
         </div>`;
 }
 
+/** The remote's shield button shows only while a Realm Raid is near (herald, raid week, aftermath). */
+function syncRaidButton() {
+    const btn = document.querySelector('[data-wall-action="raid"]');
+    if (!btn) return;
+    import('../features/realmRaid.js')
+        .then(({ currentRaid }) => btn.classList.toggle('hidden', !currentRaid()))
+        .catch(() => btn.classList.add('hidden'));
+}
+
 export function toggleWallpaperMode() {
     const wallpaperEl = document.getElementById('dynamic-wallpaper-screen');
     // A second press while the window is still opening or folding away waits its turn.
@@ -225,6 +234,7 @@ export function toggleWallpaperMode() {
         // page styles (they hide the app header and reflow the tabs) switch on only once the
         // journey covers the screen, so Home never jumps while it is still in view.
         const enterProjectorMode = () => document.body.classList.add('projector-mode');
+        syncRaidButton();
         playPortalOpen(wallpaperEl, { onCovered: enterProjectorMode }).finally(() => {
             portalBusy = false;
             if (!isRunning) return;
@@ -297,6 +307,8 @@ export function toggleWallpaperMode() {
 
 function handleWallpaperKeydown(e) {
     if (!isRunning) return;
+    // The Realm Raid hall (or its victory moment) is open over the projector: its own keys win.
+    if (document.querySelector('.rr-host')) return;
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     const panelOpen = !document.getElementById('wall-deck-panel')?.classList.contains('hidden');
     switch (e.key) {
@@ -340,6 +352,7 @@ function bindWallControls() {
             else if (action === 'deck') openDeckPanel();
             else if (action === 'fullscreen') toggleWallFullscreen();
             else if (action === 'dragon') openQuietDragonFrom('wallpaper');
+            else if (action === 'raid') import('../features/realmRaid.js').then(({ openRealmRaid }) => openRealmRaid());
         });
     });
 

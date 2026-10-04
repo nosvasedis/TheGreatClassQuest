@@ -142,6 +142,7 @@ export const wallpaperHTML = `
             <button type="button" data-wall-action="next" title="Next card (→)" aria-label="Next card"><i class="fas fa-forward-step"></i></button>
             <span class="wall-remote__sep" aria-hidden="true"></span>
             <button type="button" data-wall-action="dragon" title="The Quiet Dragon (Q)" aria-label="The Quiet Dragon" style="--qd-icon-eye:#1e1b4b">${quietDragonIconSvg()}</button>
+            <button type="button" data-wall-action="raid" class="hidden" title="Realm Raid" aria-label="Open the Realm Raid"><i class="fas fa-shield-halved"></i></button>
             <button type="button" data-wall-action="deck" title="Card deck (D)" aria-label="Card deck"><i class="fas fa-layer-group"></i></button>
             <button type="button" data-wall-action="fullscreen" title="Full screen (F)" aria-label="Full screen"><i class="fas fa-expand"></i></button>
             <button type="button" id="exit-wallpaper-btn" class="wall-remote__exit" title="Leave (Esc)" aria-label="Leave Projector Mode"><i class="fas fa-power-off"></i></button>

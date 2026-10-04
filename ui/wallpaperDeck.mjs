@@ -80,7 +80,8 @@ const FAMILY_OF_TYPE = {
         'school_pulse', 'treasury_school', 'school_leader_top3', 'school_active_bounties',
         'school_adventure_count', 'school_gold_leader', 'school_avg_attendance', 'guild_leaderboard',
         'league_race',
-        'realm_stars_today', 'realm_class_league', 'realm_in_numbers', 'realm_guild_banners'
+        'realm_stars_today', 'realm_class_league', 'realm_in_numbers', 'realm_guild_banners',
+        'realm_raid'
     ]
 };
 

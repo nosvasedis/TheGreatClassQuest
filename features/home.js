@@ -33,6 +33,7 @@ import { shouldShowQuizButton } from './quizOfTheWeek.js';
 import { quizLaunchButtonHtml } from '../ui/modals/quizStageMarkup.js';
 import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
 import { escapeHtml } from './roles/shared.js';
+import { getRaidView, raidPill, subscribeRaid, openRealmRaid } from './realmRaid.js';
 import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
@@ -1191,6 +1192,45 @@ function wireCeremonyPill(classId) {
     };
 }
 
+/** The Realm Raid pill: the whole school's raid, from its herald week to its aftermath. */
+function raidPillHtml() {
+    const pill = raidPill(getRaidView());
+    if (!pill) return '';
+    return reminderPill({
+        tone: 'raid',
+        icon: 'fa-shield-halved',
+        eyebrow: pill.eyebrow,
+        title: pill.title,
+        tag: pill.tag,
+        tagName: 'button',
+        extraClass: pill.won ? 'is-won' : '',
+        attrs: `id="home-raid-pill" data-home-raid data-sig="${escapeHtml(raidPillSig(pill))}" aria-label="Open the Realm Raid"`
+    });
+}
+
+function raidPillSig(pill) {
+    return pill ? [pill.eyebrow, pill.title, pill.won ? 1 : 0].join('|') : '';
+}
+
+let raidPillWatch = false;
+function watchRaidPill() {
+    if (raidPillWatch) return;
+    raidPillWatch = true;
+    document.addEventListener('click', (event) => {
+        if (event.target.closest?.('[data-home-raid]')) openRealmRaid();
+    });
+    subscribeRaid(() => {
+        const html = raidPillHtml().trim();
+        const current = document.getElementById('home-raid-pill');
+        if (current) {
+            if (!html) current.remove();
+            else if (current.dataset.sig !== raidPillSig(raidPill(getRaidView()))) current.outerHTML = html;
+            return;
+        }
+        if (html) document.getElementById('home-reminders-container')?.insertAdjacentHTML('afterbegin', html);
+    });
+}
+
 function getReminderPills(classId) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -1198,6 +1238,10 @@ function getReminderPills(classId) {
     endOfMonth.setHours(23, 59, 59, 999);
 
     let pills = [];
+
+    watchRaidPill();
+    const raid = raidPillHtml();
+    if (raid) pills.push(raid);
 
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');

@@ -104,6 +104,13 @@ export const GUIDE_CHAPTERS = {
                     keys: 'league map class race monthly goal league archive history realms'
                 },
                 {
+                    id: 'realm-raid', icon: 'fa-shield-halved', name: 'Realm Raid', tier: 'starter',
+                    where: 'Home → the Realm Raid pill (the week before and during a raid), or the shield button on the projector remote',
+                    text: `Three times a year (the week before the Christmas holiday, before Clean Monday, and the last school week) every class fights Eldhorn the Realm Guardian together. His shield has one shard per class, sized to what that class's own Team Quest map expects from it in its raid lessons, so big and small classes need the same good week. Every star that week fills a shard; when the school's stars fill the whole shield it breaks. Victory: +5 Gold for every hero, a 5% Team Quest step and a festival treasure for each class's Raid Hero. Legendary (120%): +3 Gold more and another 2.5%. Valor: a class that breaks its own shard gets +2 Gold for every hero. Nothing is ever taken away.`,
+                    why: 'The only week when every class is on the same side, so the rivalries of Team Quest and the Crown Race have a counterweight.',
+                    keys: 'realm raid guardian eldhorn shield shard school co-op festival raid hero alliance valor legendary winter carnival summer'
+                },
+                {
                     id: 'heros-challenge', icon: 'fa-crown', name: "Hero's Challenge", tier: 'starter',
                     where: "Hero's Challenge tab", go: 'tab:student-leaderboard-tab',
                     text: `Student against student, By Class or Global, Monthly or Total stars. Each class opens on a podium, and rank changes glide into place when you come back after awarding. Tap a portrait for the Hero Stage: stars, Gold, the satchel, Hero stats and the Skill Tree. Spending Gold never lowers a rank.`,
@@ -467,6 +474,11 @@ export const GUIDE_CHAPTERS = {
                     id: 'team-quest', icon: 'fa-map-location-dot', name: 'Team Quest', tier: 'starter',
                     text: `Our class travels a map with other classes of our age: Bronze Meadows, Silver Peaks, Golden Citadel and Crystal Realm. Every star anyone earns moves the whole class forward. A new race starts every month.`,
                     keys: 'map class race'
+                },
+                {
+                    id: 'realm-raid', icon: 'fa-shield-halved', name: 'Realm Raid', tier: 'starter',
+                    text: `Three times a year the whole school fights Eldhorn, the great stag who guards the Realm. His shield has one piece for every class. Every star you earn that week sends light into our piece. If all the classes together fill the whole shield, it breaks and everyone wins Gold, a step on the map, and a treasure for our Raid Hero. Nothing is ever taken away.`,
+                    keys: 'raid guardian shield school together'
                 },
                 {
                     id: 'heros-challenge', icon: 'fa-crown', name: "Hero's Challenge", tier: 'starter',

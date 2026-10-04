@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Realm Raid preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
+  <style>
+    html, body { margin: 0; background: #0b1534; }
+    .pv-toolbar { position: fixed; right: 10px; bottom: 10px; z-index: 9999; display: flex; flex-wrap: wrap; gap: 6px; max-width: 520px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.86); font: 600 12px system-ui; }
+    .pv-toolbar a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
+    body.pv-shot .pv-toolbar { display: none; }
+    .pv-card { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 30%, #1e3a8a, #0b1534); }
+    .pv-card .sky-card { width: min(980px, 92vw); padding: 2rem; border-radius: 2rem; background: rgba(255,255,255,.94); color: #1e293b; font-family: 'Fredoka', sans-serif; box-shadow: 0 30px 80px rgba(0,0,0,.4); }
+    .pv-card .sky-card h3 { margin: 0 0 1rem; font: 400 1.6rem 'Fredoka One', sans-serif; }
+    .pv-card .sc-big { font: 400 2.2rem 'Fredoka One', sans-serif; }
+    .pv-card .sc-sub { font-size: 1.2rem; color: #475569; }
+  </style>
+</head>
+<body>
+  <div id="pv-root"></div>
+  <div class="pv-toolbar" id="pv-toolbar"></div>
+  <script type="module" src="/realm-raid-preview.js"></script>
+</body>
+</html>

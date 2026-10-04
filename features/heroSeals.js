@@ -15,7 +15,8 @@
 import '../styles/hero_seals.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { db, doc, updateDoc, collection, query, where, getDocs } from '../firebase.js';
+import { db, doc, updateDoc, deleteField, collection, query, where, getDocs } from '../firebase.js';
+import { getSchoolYearOpeningDay } from '../utils/schoolYearOpening.mjs';
 import { fetchAllTrialsForClass } from '../db/queries.js';
 import { getClassAssessmentUsage, getNormalizedPercentForScore } from './assessmentConfig.js';
 import { normalizeTrialType } from './trialTypesCore.mjs';
@@ -23,6 +24,7 @@ import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { notify } from '../ui/effects.js';
 import { escSeal, heroSealsNoticeCopy, heroSealsSummaryHtml } from './heroSealsView.mjs';
 import {
+    ATTENDANCE_SEALS,
     HERO_SEALS_VERSION,
     VIRTUES,
     buildSealBook,
@@ -199,6 +201,8 @@ async function evaluateClass(classId, { refreshQuiz = false } = {}) {
     const monthStartKey = utils.getLocalIsoDateString(monthStart);
     // Children who joined this month are fully covered by the live month.
     const needYear = students.some((s) => {
+        // Every Seal Book keeps the day the class's records begin; without it, read the year once.
+        if (!scoreOf(s.id)?.heroSeals?.since) return true;
         if (scoreOf(s.id)?.heroSeals?.backfilledAt) return false;
         const joined = sealDateKey(s.createdAt);
         return !joined || joined < monthStartKey;
@@ -226,6 +230,14 @@ async function evaluateClass(classId, { refreshQuiz = false } = {}) {
     const trialDocs = union(records.trials, (state.get('allWrittenScores') || []).filter((r) => r.classId === classId));
 
     const lessons = lessonDays(classId);
+    // The class's first record in the Quest: before it nobody took attendance.
+    const recordDays = [...(records.yearAwards || []), ...settledLive].map((a) => sealDateKey(a.date || a.createdAt))
+        .concat(absences.map((r) => sealDateKey(r.date)))
+        .filter(Boolean);
+    const storedSince = students.map((s) => scoreOf(s.id)?.heroSeals?.since).filter(Boolean);
+    const trackedFrom = (records.yearAwards ? recordDays : (storedSince.length ? storedSince : recordDays)).sort()[0] || today;
+    const opening = getSchoolYearOpeningDay();
+    const openingDay = opening ? utils.getLocalIsoDateString(opening) : '';
     const usage = getClassAssessmentUsage(classData);
     const young = utils.isYoungLearnerLeague(classData.questLevel);
 
@@ -302,6 +314,8 @@ async function evaluateClass(classId, { refreshQuiz = false } = {}) {
             inventoryCount: inventory.filter((i) => i && i.name).length,
             occasions,
             joinedMonth,
+            trackedFrom,
+            openingDay,
             young,
         };
         const catchingUp = !stored.backfilledAt;
@@ -317,6 +331,12 @@ async function evaluateClass(classId, { refreshQuiz = false } = {}) {
         }
         if (catchingUp && records.yearAwards) patch['heroSeals.backfilledAt'] = now;
         else if (catchingUp && joined && joined >= monthStartKey) patch['heroSeals.backfilledAt'] = now;
+        if (stored.since !== trackedFrom && (records.yearAwards || !stored.since)) patch['heroSeals.since'] = trackedFrom;
+        // Version 1 pressed attendance seals for lessons before the class used the Quest: take those back.
+        if ((Number(stored.v) || 0) < 2 && records.yearAwards) {
+            const still = evaluateSeals(ATTENDANCE_SEALS, facts);
+            ATTENDANCE_SEALS.forEach((id) => { if (earned[id] && !still[id]) patch[`heroSeals.earned.${id}`] = deleteField(); });
+        }
         Object.entries(presses).forEach(([id, press]) => { patch[`heroSeals.earned.${id}`] = press; });
         if (!Object.keys(patch).length) continue;
         Object.keys(presses).forEach((id) => written.add(`${student.id}|${id}`));

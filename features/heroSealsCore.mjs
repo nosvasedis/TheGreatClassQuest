@@ -16,14 +16,16 @@
 // app's records into plain facts; everything else is worked out here.
 //
 // Stored on student_scores as `heroSeals`:
-//   { v: 1, book: { path, quill, hearth, guild, wild1, wild2 },
+//   { v: 2, book: { path, quill, hearth, guild, wild1, wild2 }, since: first record date,
 //     earned: { [sealId]: { date: 'YYYY-MM-DD', found: ms, note, late? } }, backfilledAt }
 // `late` marks a seal found in the year's history when Hero Seals first arrived (or
 // recognised later), so the diary never claims it happened today.
 
 import { TRAINING_REASONS } from './trainingGroundsCore.mjs';
 
-export const HERO_SEALS_VERSION = 1;
+export const HERO_SEALS_VERSION = 2;
+/** Seals that rest on attendance: only lessons the Quest actually kept count for them. */
+export const ATTENDANCE_SEALS = Object.freeze(['steadfast', 'hearth_return', 'hearth_full_moon']);
 
 export const VIRTUES = Object.freeze(['respect', 'creativity', 'teamwork', 'focus']);
 const VIRTUE_LABEL = { respect: 'Respect', creativity: 'Creativity', teamwork: 'Teamwork', focus: 'Focus' };
@@ -272,6 +274,8 @@ function monthOf(dateKey) {
  *   awards: [{ date, reason, stars }]       stars this child received (positive only)
  *   boonsGiven: [date], boonsReceived: [date]
  *   lessons: [date]                          the class's lesson days since the child joined, up to today
+ *   trackedFrom: date                        the class's first record in the Quest; attendance counts from here
+ *   openingDay: date                         the school year's opening day (a month opened late is not whole)
  *   absences: [date]                         lessons the child missed
  *   trials: [{ date, type, pct }]            the child's graded tests and dictations
  *   firstStarDates: [date]                   lessons where this child got the first star of the class
@@ -288,6 +292,8 @@ export function evaluateSeals(ids = [], facts = {}) {
         .filter((a) => a && a.date && (Number(a.stars) || 0) > 0 && (!today || a.date <= today))
         .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     const lessons = [...new Set(facts.lessons || [])].filter((d) => !today || d <= today).sort();
+    // Before the class's first record nobody took attendance, so no absence proves nothing.
+    const kept = facts.trackedFrom ? lessons.filter((d) => d >= facts.trackedFrom) : lessons;
     const absent = new Set(facts.absences || []);
     const starsOn = new Map();
     awards.forEach((a) => starsOn.set(a.date, (starsOn.get(a.date) || 0) + (Number(a.stars) || 0)));
@@ -322,7 +328,7 @@ export function evaluateSeals(ids = [], facts = {}) {
             }
             case 'steadfast': {
                 let run = 0;
-                for (const d of lessons) {
+                for (const d of kept) {
                     if (absent.has(d)) { run = 0; continue; }
                     // Today's lesson counts once a star proves the child was there.
                     if (d === today && !starsOn.has(d)) continue;
@@ -359,13 +365,13 @@ export function evaluateSeals(ids = [], facts = {}) {
                     if (pathFor(facts.heroClass) === id && (Number(facts.heroLevel) || 0) >= 1) hit(id, today, 'Hero Path level 1', true);
                     break;
                 }
-                evaluatePersonal(id, { facts, today, awards, lessons, absent, starsOn, trials, hit });
+                evaluatePersonal(id, { facts, today, awards, lessons, kept, absent, starsOn, trials, hit });
         }
     }
     return out;
 }
 
-function evaluatePersonal(id, { facts, today, awards, lessons, absent, starsOn, trials, hit }) {
+function evaluatePersonal(id, { facts, today, awards, lessons, kept, absent, starsOn, trials, hit }) {
     switch (id) {
         case 'quill_rising': {
             const last = {};
@@ -391,9 +397,9 @@ function evaluatePersonal(id, { facts, today, awards, lessons, absent, starsOn, 
             hit(id, awards.find((a) => a.reason === 'excellence')?.date, 'First Excellence star');
             return;
         case 'hearth_return': {
-            for (let i = 0; i < lessons.length; i += 1) {
-                if (!absent.has(lessons[i])) continue;
-                const back = lessons.slice(i + 1).find((d) => !absent.has(d));
+            for (let i = 0; i < kept.length; i += 1) {
+                if (!absent.has(kept[i])) continue;
+                const back = kept.slice(i + 1).find((d) => !absent.has(d));
                 if (back && starsOn.has(back)) { hit(id, back, 'A star on the first lesson back'); return; }
             }
             return;
@@ -408,8 +414,13 @@ function evaluatePersonal(id, { facts, today, awards, lessons, absent, starsOn, 
                 byMonth.get(m).push(d);
             });
             const joined = facts.joinedMonth || '';
+            const opening = facts.openingDay || '';
             for (const [m, days] of [...byMonth.entries()].sort()) {
                 if (joined && m <= joined) continue; // a month joined part-way is not a whole month
+                // A month the Quest did not keep from its first lesson is not a whole month,
+                // nor the opening month when the year opened after its first week.
+                if (facts.trackedFrom && days[0] < facts.trackedFrom) continue;
+                if (opening && monthOf(opening) === m && Number(opening.slice(8, 10)) > 7) continue;
                 if (days.length >= 4 && days.every((d) => !absent.has(d))) { hit(id, days[days.length - 1], `Every lesson of ${MONTHS[Number(m.slice(5)) - 1]}`); return; }
             }
             return;

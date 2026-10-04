@@ -125,6 +125,24 @@ test('hearth seals: welcome home and a full month', () => {
     assert.equal(evaluateSeals(['hearth_full_moon'], { today: '2026-10-04', lessons, joinedMonth: '2026-09' }).hearth_full_moon, undefined);
 });
 
+test('attendance seals count only lessons the Quest kept', () => {
+    // The year opened on 18 September; the class's first record is on 1 October.
+    const sept = ['2026-09-18', '2026-09-21', '2026-09-23', '2026-09-25', '2026-09-28', '2026-09-30'];
+    const oct = ['2026-10-01', '2026-10-05', '2026-10-07', '2026-10-09', '2026-10-12', '2026-10-14', '2026-10-16', '2026-10-19', '2026-10-21', '2026-10-23', '2026-10-26', '2026-10-28', '2026-10-30'];
+    const lessons = [...sept, ...oct];
+    const base = { today: '2026-11-02', lessons, trackedFrom: '2026-10-01', openingDay: '2026-09-18' };
+    // September had no records at all: not a whole month, and no part of a streak.
+    assert.equal(evaluateSeals(['hearth_full_moon'], { ...base, today: '2026-10-04' }).hearth_full_moon, undefined);
+    assert.equal(evaluateSeals(['steadfast'], { ...base, today: '2026-10-09' }).steadfast, undefined);
+    assert.equal(evaluateSeals(['steadfast'], base).steadfast.date, '2026-10-23');
+    assert.equal(evaluateSeals(['hearth_full_moon'], base).hearth_full_moon.date, '2026-10-30');
+    // Even with September records, a year opened after the first week leaves September partial.
+    assert.equal(evaluateSeals(['hearth_full_moon'], { ...base, today: '2026-10-04', trackedFrom: '2026-09-18' }).hearth_full_moon, undefined);
+    // An absence before the first record does not make a "welcome home".
+    const back = evaluateSeals(['hearth_return'], { ...base, absences: ['2026-09-21'], awards: [award('2026-09-23', 'focus')] });
+    assert.equal(back.hearth_return, undefined);
+});
+
 test('candle star lands on the first lesson on or after the special day', () => {
     const lessons = ['2026-03-10', '2026-03-12', '2026-03-17'];
     const facts = { today: '2026-04-01', lessons, occasions: ['03-11'] };

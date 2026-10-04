@@ -14,7 +14,9 @@ import {
     toMillis,
     isHomeworkNew,
     getNextLesson,
-    weekdayName
+    onWeekday,
+    tr,
+    isGreek
 } from './helpers.js';
 
 function sortedHomework() {
@@ -34,12 +36,12 @@ function renderTestCard(item, test) {
                 <span class="fp-leaf__day">${date ? date.getDate() : '–'}</span>
             </span>
             <div class="fp-test__copy">
-                <p class="fp-kicker">${upcoming ? 'Test coming up' : 'Test'}</p>
+                <p class="fp-kicker">${upcoming ? tr('Test coming up', 'Έρχεται διαγώνισμα') : tr('Test', 'Διαγώνισμα')}</p>
                 <p class="fp-test__title">${escapeHtml(test.title)}</p>
                 <p class="fp-test__when">${escapeHtml(shortDate(test.date))}${upcoming ? ` · <strong>${escapeHtml(countdownLabel(test.date))}</strong>` : ''}</p>
                 ${test.curriculum ? `<p class="fp-test__topics"><i class="fas fa-list-check" aria-hidden="true"></i> ${escapeHtml(test.curriculum)}</p>` : ''}
             </div>
-            ${upcoming ? `<button type="button" class="fp-btn fp-btn--soft fp-test__cal" data-parent-ics="${escapeHtml(item.id)}"><i class="fas fa-calendar-plus" aria-hidden="true"></i> Add to calendar</button>` : ''}
+            ${upcoming ? `<button type="button" class="fp-btn fp-btn--soft fp-test__cal" data-parent-ics="${escapeHtml(item.id)}"><i class="fas fa-calendar-plus" aria-hidden="true"></i> ${tr('Add to calendar', 'Στο ημερολόγιο')}</button>` : ''}
         </div>`;
 }
 
@@ -48,17 +50,22 @@ function renderNote(item, { main = false } = {}) {
     // The current note is titled by the lesson it is for, the way a family would say it.
     if (main && parts.title === 'Homework') {
         const lesson = getNextLesson(getSnapshot());
-        if (lesson) parts.title = lesson.inDays === 0 ? 'For today' : lesson.inDays === 1 ? 'For tomorrow' : `For ${weekdayName(lesson.date)}`;
+        if (lesson) {
+            parts.title = lesson.inDays === 0 ? tr('For today', 'Για σήμερα')
+                : lesson.inDays === 1 ? tr('For tomorrow', 'Για αύριο')
+                    : tr(`For ${onWeekday(lesson.date).replace(/^on /, '')}`, `Για ${onWeekday(lesson.date)}`);
+        }
     }
+    if (parts.title === 'Homework') parts.title = tr('Homework', 'Εργασία για το σπίτι');
     const isNew = isHomeworkNew(item);
     return `
         <article class="fp-note${main ? ' fp-note--main' : ''} fp-rise" style="--fp-delay:${main ? 1 : 2}">
             <span class="fp-note__magnet" aria-hidden="true"></span>
             <header class="fp-note__head">
                 <h3 class="fp-note__title">${escapeHtml(parts.title)}</h3>
-                ${isNew ? '<span class="fp-new-tag">New</span>' : ''}
+                ${isNew ? `<span class="fp-new-tag">${tr('New', 'Νέο')}</span>` : ''}
             </header>
-            <p class="fp-note__date"><i class="fas fa-thumbtack" aria-hidden="true"></i> Set ${escapeHtml(relativeDay(parts.setOn))}${parts.setOn ? ` · ${escapeHtml(shortDate(parts.setOn))}` : ''}</p>
+            <p class="fp-note__date"><i class="fas fa-thumbtack" aria-hidden="true"></i> ${tr('Set', 'Δόθηκε')} ${escapeHtml(relativeDay(parts.setOn))}${parts.setOn ? ` · ${escapeHtml(shortDate(parts.setOn))}` : ''}</p>
             ${parts.body ? `<div class="fp-note__body">${escapeHtml(parts.body)}</div>` : ''}
             ${parts.test ? renderTestCard(item, parts.test) : ''}
         </article>`;
@@ -72,22 +79,24 @@ export function renderParentHomework() {
         <header class="fp-pagehead fp-rise">
             <span class="fp-pagehead__icon fp-pagehead__icon--amber" aria-hidden="true"><i class="fas fa-book-open"></i></span>
             <div>
-                <h2 class="fp-pagehead__title">Homework</h2>
-                <p class="fp-pagehead__sub">What ${escapeHtml(name)} needs to do before the next lesson.</p>
+                <h2 class="fp-pagehead__title">${tr('Homework', 'Εργασίες')}</h2>
+                <p class="fp-pagehead__sub">${isGreek() ? 'Τι χρειάζεται να γίνει πριν από το επόμενο μάθημα.' : `What ${escapeHtml(name)} needs to do before the next lesson.`}</p>
             </div>
         </header>
         <div class="fp-fridge">
             ${current ? renderNote(current, { main: true }) : `
                 <div class="fp-note fp-note--empty fp-rise">
                     <span class="fp-note__magnet" aria-hidden="true"></span>
-                    <h3 class="fp-note__title">Nothing pinned yet</h3>
-                    <p class="fp-note__body">When the teacher sets homework after a lesson, it appears here.</p>
+                    <h3 class="fp-note__title">${tr('Nothing pinned yet', 'Τίποτα καρφιτσωμένο ακόμη')}</h3>
+                    <p class="fp-note__body">${tr('When the teacher sets homework after a lesson, it appears here.', 'Όταν δοθεί εργασία μετά το μάθημα, θα εμφανιστεί εδώ.')}</p>
                 </div>`}
             ${earlier.length ? `
-                <p class="fp-section-label">Earlier</p>
+                <p class="fp-section-label">${tr('Earlier', 'Παλαιότερες')}</p>
                 ${earlier.map((item) => renderNote(item)).join('')}` : ''}
         </div>
-        <p class="fp-tip"><i class="fas fa-lightbulb" aria-hidden="true"></i> A few calm minutes a day beats one long evening. Ask ${escapeHtml(name)} to explain the task to you in English.</p>`;
+        <p class="fp-tip"><i class="fas fa-lightbulb" aria-hidden="true"></i> ${isGreek()
+            ? 'Λίγα ήρεμα λεπτά κάθε μέρα αξίζουν περισσότερο από ένα μεγάλο απόγευμα διαβάσματος. Ζητήστε από το παιδί σας να σας εξηγήσει την εργασία στα αγγλικά.'
+            : `A few calm minutes a day beats one long evening. Ask ${escapeHtml(name)} to explain the task to you in English.`}</p>`;
 }
 
 function icsDate(date) {

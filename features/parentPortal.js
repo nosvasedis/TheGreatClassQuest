@@ -6,8 +6,10 @@ import { renderParentHome, updateParentHeader } from './parent/home.js';
 import { renderParentHomework, downloadTestCalendarEvent } from './parent/homework.js';
 import { renderParentProgress } from './parent/progress.js';
 import { renderParentMessages, getActiveThread, absenceStarter } from './parent/messages.js';
+import { getLang, setLang, tr } from './parent/i18n.js';
+import '../styles/family_portal_lang.css';
 import {
-    FAMILY_TOPICS,
+    familyTopics,
     markThreadSeen,
     markHomeworkSeen,
     unreadThreadCount,
@@ -50,8 +52,8 @@ function updateBadges() {
         else badge.removeAttribute('aria-label');
     };
     const unread = unreadThreadCount();
-    setBadge('messages', unread ? String(unread) : '', { label: `${unread} unread` });
-    setBadge('homework', '', { dot: isHomeworkNew(newestHomework()), label: 'New homework' });
+    setBadge('messages', unread ? String(unread) : '', { label: tr(`${unread} unread`, `${unread} αδιάβαστα`) });
+    setBadge('homework', '', { dot: isHomeworkNew(newestHomework()), label: tr('New homework', 'Νέα εργασία') });
 }
 
 // Opening a tab counts as reading what is new there.
@@ -103,9 +105,56 @@ export function renderParentTab(tabKey) {
     updateBadges();
 }
 
+const SHELL_WORDS = {
+    portal: ['Family Portal', 'Πύλη γονέων'],
+    home: ['Home', 'Αρχική'],
+    homework: ['Homework', 'Εργασίες'],
+    progress: ['Progress', 'Πρόοδος'],
+    messages: ['Messages', 'Μηνύματα']
+};
+
+/** The header and tab bar are static HTML, so their words follow the chosen language here. */
+function applyShellLanguage() {
+    const screen = document.getElementById('parent-screen');
+    if (!screen) return;
+    const lang = getLang();
+    screen.lang = lang;
+    screen.dataset.lang = lang;
+    screen.querySelectorAll('[data-parent-i18n]').forEach((el) => {
+        const words = SHELL_WORDS[el.dataset.parentI18n];
+        if (words) el.textContent = tr(...words);
+    });
+    const label = (el, en, el_) => {
+        if (!el) return;
+        el.title = tr(en, el_);
+        el.setAttribute('aria-label', tr(en, el_));
+    };
+    label(document.getElementById('parent-refresh-btn'), 'Check for news', 'Έλεγχος για νέα');
+    label(document.getElementById('parent-logout-btn'), 'Log out', 'Αποσύνδεση');
+    document.getElementById('parent-bottom-nav')?.setAttribute('aria-label', tr(...SHELL_WORDS.portal));
+    document.querySelectorAll('[data-lang-opt]').forEach((opt) => opt.classList.toggle('is-on', opt.dataset.langOpt === lang));
+    const langBtn = document.getElementById('parent-lang-btn');
+    langBtn?.setAttribute('aria-label', lang === 'el' ? 'Switch to English' : 'Αλλαγή σε Ελληνικά');
+    langBtn?.setAttribute('title', lang === 'el' ? 'English' : 'Ελληνικά');
+}
+
+function switchLanguage() {
+    setLang(getLang() === 'el' ? 'en' : 'el');
+    applyShellLanguage();
+    renderParentPortal();
+    // Mid tab-change the old panel can still be the visible one; redraw the chosen tab too.
+    const chosen = state.get('parentView')?.activeTab;
+    if (chosen && chosen !== getActiveTabKey()) renderParentTab(chosen);
+    const main = document.querySelector('#parent-screen .fp-main');
+    main?.classList.remove('fp-lang-flip');
+    void main?.offsetWidth;
+    main?.classList.add('fp-lang-flip');
+}
+
 // Live updates (snapshot, homework, letters) redraw the header, badges and the tab on screen;
 // hidden tabs are drawn fresh when opened.
 export function renderParentPortal() {
+    applyShellLanguage();
     updateParentHeader(state.get('currentParentSnapshot') || {});
     renderParentTab(getActiveTabKey());
 }
@@ -137,16 +186,17 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
     listenersWired = true;
 
     document.getElementById('parent-logout-btn')?.addEventListener('click', () => onLogout?.());
+    document.getElementById('parent-lang-btn')?.addEventListener('click', switchLanguage);
     document.getElementById('parent-refresh-btn')?.addEventListener('click', async (event) => {
         const button = event.currentTarget;
         if (button.classList.contains('is-busy')) return;
         setBusy(button, true);
         try {
             await onRefresh?.();
-            showToast('Up to date.', 'success');
+            showToast(tr('Up to date.', 'Όλα ενημερωμένα.'), 'success');
         } catch (error) {
             console.error('Family refresh failed:', error);
-            showToast('Could not check for news right now.', 'error');
+            showToast(tr('Could not check for news right now.', 'Δεν ήταν δυνατός ο έλεγχος για νέα αυτή τη στιγμή.'), 'error');
         } finally {
             setBusy(button, false);
         }
@@ -199,7 +249,7 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
 
         const icsBtn = event.target.closest('[data-parent-ics]');
         if (icsBtn) {
-            if (!downloadTestCalendarEvent(icsBtn.dataset.parentIcs)) showToast('This test has no date yet.', 'info');
+            if (!downloadTestCalendarEvent(icsBtn.dataset.parentIcs)) showToast(tr('This test has no date yet.', 'Αυτό το διαγώνισμα δεν έχει ακόμη ημερομηνία.'), 'info');
             return;
         }
 
@@ -219,7 +269,7 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
         const topicBtn = event.target.closest('[data-parent-topic]');
         if (topicBtn) {
             const key = topicBtn.dataset.parentTopic;
-            const topic = FAMILY_TOPICS.find((item) => item.key === key);
+            const topic = familyTopics().find((item) => item.key === key);
             if (!topic) return;
             state.setParentView({ composeTopic: key });
             document.querySelectorAll('[data-parent-topic]').forEach((btn) => {
@@ -278,7 +328,7 @@ async function sendReply(form) {
     const body = field?.value?.trim();
     const linkedStudentId = state.get('currentUserProfile')?.linkedStudentId;
     if (!thread || !body || !linkedStudentId) {
-        showToast('Write a message first.', 'info');
+        showToast(tr('Write a message first.', 'Γράψτε πρώτα ένα μήνυμα.'), 'info');
         return;
     }
     const button = form.querySelector('button[type="submit"]');
@@ -295,7 +345,7 @@ async function sendReply(form) {
         markThreadSeen(thread);
     } catch (error) {
         console.error('Could not send parent message:', error);
-        showToast(error?.message || 'Could not send the message right now.', 'error');
+        showToast(error?.message || tr('Could not send the message right now.', 'Δεν ήταν δυνατή η αποστολή του μηνύματος αυτή τη στιγμή.'), 'error');
     } finally {
         setBusy(button, false);
     }
@@ -306,7 +356,7 @@ async function sendNewMessage(form, onSelectThread) {
     const body = field?.value?.trim();
     const topic = state.get('parentView')?.composeTopic || 'question';
     if (!body) {
-        showToast('Write a message first.', 'info');
+        showToast(tr('Write a message first.', 'Γράψτε πρώτα ένα μήνυμα.'), 'info');
         field?.focus();
         return;
     }
@@ -315,7 +365,7 @@ async function sendNewMessage(form, onSelectThread) {
     try {
         const result = await sendFamilyMessage({ topic, body });
         field.value = '';
-        showToast('Sent. The school will reply here.', 'success');
+        showToast(tr('Sent. The school will reply here.', 'Στάλθηκε. Το σχολείο θα απαντήσει εδώ.'), 'success');
         if (result?.threadId) {
             onSelectThread?.(result.threadId);
             openMessagesView('thread');
@@ -325,7 +375,7 @@ async function sendNewMessage(form, onSelectThread) {
     } catch (error) {
         console.error('Could not start a family message:', error);
         const notReady = /not[- ]found|internal/i.test(String(error?.code || ''));
-        showToast(notReady ? 'Messaging is being updated. Please try again later.' : (error?.message || 'Could not send the message right now.'), 'error');
+        showToast(notReady ? tr('Messaging is being updated. Please try again later.', 'Τα μηνύματα ενημερώνονται. Δοκιμάστε ξανά αργότερα.') : (error?.message || tr('Could not send the message right now.', 'Δεν ήταν δυνατή η αποστολή του μηνύματος αυτή τη στιγμή.')), 'error');
     } finally {
         setBusy(button, false);
     }

@@ -52,11 +52,14 @@ const familyHeader = `
         <div class="fp-header__row">
             <div class="fp-portrait" data-parent-portrait aria-hidden="true"><span>?</span></div>
             <div class="fp-header__copy">
-                <p class="fp-header__eyebrow"><i class="fas fa-house-chimney-window" aria-hidden="true"></i> Family Portal<span class="fp-header__school" data-parent-school></span></p>
+                <p class="fp-header__eyebrow"><i class="fas fa-house-chimney-window" aria-hidden="true"></i> <span data-parent-i18n="portal">Family Portal</span><span class="fp-header__school" data-parent-school></span></p>
                 <h1 class="fp-header__title" data-parent-title>Loading…</h1>
                 <p class="fp-header__sub" data-parent-student-name></p>
             </div>
             <div class="fp-header__actions">
+                <button type="button" id="parent-lang-btn" class="fp-lang" aria-label="Ελληνικά / English" title="Ελληνικά / English">
+                    <span class="fp-lang__opt" data-lang-opt="el" lang="el">ΕΛ</span><span class="fp-lang__opt" data-lang-opt="en" lang="en">EN</span>
+                </button>
                 <button type="button" id="parent-refresh-btn" class="fp-icon-btn" title="Check for news" aria-label="Check for news">
                     <i class="fas fa-rotate" aria-hidden="true"></i>
                 </button>
@@ -77,7 +80,7 @@ const familyNav = `
         ].map(({ key, icon, label }, index) => `
             <button type="button" class="fp-nav__btn${index === 0 ? ' active' : ''}" data-parent-tab="${key}" aria-current="${index === 0 ? 'page' : 'false'}">
                 <span class="fp-nav__icon"><i class="fas ${icon}" aria-hidden="true"></i><span class="fp-nav__badge hidden" data-parent-badge="${key}"></span></span>
-                <span class="fp-nav__label">${label}</span>
+                <span class="fp-nav__label" data-parent-i18n="${key}">${label}</span>
             </button>
         `).join('')}
     </nav>`;

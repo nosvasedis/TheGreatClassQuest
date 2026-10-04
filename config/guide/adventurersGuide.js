@@ -117,8 +117,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'fortunes-wheel', icon: 'fa-dharmachakra', name: "Fortune's Wheel", tier: 'pro',
                     where: 'Guild Hall, on the last lesson of the week', go: 'tab:guilds-tab',
-                    text: `A weekly ritual with the class watching. During a class's last lesson of the week, each guild spins its own wheel in turn. Wedges give Glory to each guildmate in the class, stars, Gold, artifacts or Team Quest stars. Nothing is ever taken away; the worst wedge is the Trickster, who gives nothing. The Fortune Ledger keeps every spin of the year.`,
-                    keys: 'wheel spin fortune ledger weekly'
+                    text: `A weekly ritual with the class watching. During a class's last lesson of the week, each guild spins its own wheel in turn. Treasure wedges give Glory to each guildmate in the class, stars, Gold, artifacts or Team Quest stars. Twists bring drama (a respin, three chests, double or nothing, a kindness gift, the Trickster), trials put a quick English challenge to the guild, and storms take a little Glory or Gold, never stars or artifacts. Most storms can be braved with a right answer. The Fortune Ledger keeps every spin of the year.`,
+                    keys: 'wheel spin fortune ledger weekly storm twist trial chests trickster'
                 },
                 {
                     id: 'grand-ceremony', icon: 'fa-chess-rook', name: 'Grand Guild Ceremony', tier: 'pro',
@@ -457,8 +457,8 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'wheel', icon: 'fa-dharmachakra', name: "Fortune's Wheel", tier: 'pro',
-                    text: `On the last lesson of the week each guild spins the wheel. It can bring Glory, stars, Gold or a treasure... or the Trickster, who gives nothing at all!`,
-                    keys: 'wheel spin'
+                    text: `On the last lesson of the week each guild spins the wheel. It can bring Glory, stars, Gold or a treasure, a twist like three chests or a coin flip, a quick English challenge... or a little storm. Answer together and your shield can stop the storm!`,
+                    keys: 'wheel spin storm chest trickster'
                 }
             ]
         },

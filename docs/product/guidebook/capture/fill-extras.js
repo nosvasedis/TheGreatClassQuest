@@ -40,7 +40,7 @@ const LEGENDARY_ARTIFACTS = [
   { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
   { id: 'leg_glory_crown', name: 'Guild Standard', price: 75, description: "Your name flies on your guild's banner in the Guild Hall for the rest of this month's Chapter, plus +2 Glory.", icon: '🚩' },
   { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
-  { id: 'leg_bulwark', name: "Fortune's Favor", price: 48, description: "Your guild's next Fortune's Wheel in your class is gilded: only uncommon or rarer wedges, and no Trickster.", icon: '🍀' },
+  { id: 'leg_bulwark', name: "Fortune's Favor", price: 48, description: "Your guild's next Fortune's Wheel in your class is gilded: no storms, no Trickster and no common wedges.", icon: '🍀' },
   { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
   { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Hero's Boon costs 0 Gold for the rest of this month.", icon: '💝' }
 ];

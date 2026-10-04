@@ -644,3 +644,61 @@ export function playHeroFanfare() {
         heroFanfare.start();
     }
 }
+
+// ── Fortune's Wheel moments ──────────────────────────────────────
+// Synthesised on first use: thunder for storms, a shield chime, a whoosh for the
+// Whirlwind, the Trickster's "wah-wah", a coin ring and a creaking chest.
+let wheelVoices = null;
+function getWheelVoices() {
+    if (wheelVoices || !Tone) return wheelVoices;
+    const out = new Tone.Gain(0.9).toDestination();
+    const reverb = new Tone.Reverb({ decay: 2.4, wet: 0.28 }).connect(out);
+    const rumbleFilter = new Tone.Filter({ type: 'lowpass', frequency: 260, Q: 0.7 }).connect(out);
+    const rumble = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.03, decay: 1.6, sustain: 0, release: 0.8 }, volume: -2 }).connect(rumbleFilter);
+    const crack = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.05 }, volume: -12 }).connect(reverb);
+    const whooshFilter = new Tone.AutoFilter({ frequency: 2.2, baseFrequency: 300, octaves: 4 }).connect(reverb).start();
+    const whoosh = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.25, decay: 0.6, sustain: 0.2, release: 0.6 }, volume: -10 }).connect(whooshFilter);
+    const bell = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.003, decay: 0.5, sustain: 0, release: 0.6 }, volume: -10 }).connect(reverb);
+    const horn = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.03, decay: 0.1, sustain: 0.8, release: 0.25 }, volume: -16 });
+    const hornFilter = new Tone.Filter({ type: 'lowpass', frequency: 1100 }).connect(out);
+    horn.connect(hornFilter);
+    const knock = new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 2, envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }, volume: -8 }).connect(out);
+    wheelVoices = { rumble, crack, whoosh, bell, horn, knock };
+    return wheelVoices;
+}
+
+/** Fortune's Wheel sound effects: 'thunder' | 'shield' | 'whoosh' | 'trickster' | 'coin' | 'chest' | 'tick_heavy' | 'buzzer'. */
+/** Builds the Wheel's voices ahead of time (the reverb takes a moment), so the first thunder doesn't stall a frame. */
+export function warmWheelAudio() {
+    if (!soundsReady || !Tone || Tone.context.state !== 'running') return;
+    getWheelVoices();
+}
+
+export function playWheelSfx(name) {
+    if (!soundsReady || !Tone || Tone.context.state !== 'running') return;
+    const v = getWheelVoices();
+    if (!v) return;
+    const t = Tone.now() + 0.03;
+    try {
+        if (name === 'thunder') {
+            v.crack.triggerAttackRelease(0.15, t);
+            v.rumble.triggerAttackRelease(1.8, t + 0.05);
+        } else if (name === 'shield') {
+            ['C5', 'G5', 'C6', 'E6', 'G6'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.6, t + i * 0.06, 0.7));
+        } else if (name === 'whoosh') {
+            v.whoosh.triggerAttackRelease(1.2, t);
+        } else if (name === 'trickster') {
+            ['G3', 'F#3', 'F3'].forEach((n, i) => v.horn.triggerAttackRelease(n, 0.32, t + i * 0.36));
+            v.horn.triggerAttackRelease('E3', 0.9, t + 1.08);
+        } else if (name === 'coin') {
+            v.bell.triggerAttackRelease(['E6', 'B6'], 0.4, t, 0.6);
+        } else if (name === 'chest') {
+            v.knock.triggerAttackRelease('G2', 0.2, t);
+            v.bell.triggerAttackRelease(['C6', 'E6', 'G6', 'C7'], 0.8, t + 0.15, 0.55);
+        } else if (name === 'tick_heavy') {
+            v.knock.triggerAttackRelease('C3', 0.1, t);
+        } else if (name === 'buzzer') {
+            v.horn.triggerAttackRelease('C3', 0.5, t);
+        }
+    } catch (_) { /* overlapping triggers are harmless */ }
+}

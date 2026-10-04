@@ -157,7 +157,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Aurum Satchel** | 32 | **50% off** next Market purchase this month. |
 | **Banner of Glory** | 35 | Next **3** stars each write **+1 bonus Guild Glory**. |
 | **The Herald's Banner** | 40 | School-wide celebration toast. |
-| **Fortune’s Favor** | 48 | The guild’s next Fortune’s Wheel in this class is gilded (no commons, no Trickster). |
+| **Fortune’s Favor** | 48 | The guild’s next Fortune’s Wheel in this class is gilded (no storms, no Trickster, no commons). |
 | **The Starfall Catalyst** | 50 | **Double** the next high-test Starfall bonus. |
 | **Chalice of Unity** | 55 | +1 Glory right away for the student and every guildmate in the class. |
 | **Compassion Token** | 55 | Hero's Boon costs **0 Gold** for the rest of the month. |
@@ -241,7 +241,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
   - **Phoenix Rising** – resilience, bouncing back, never giving up.
 - **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. It runs as a full-screen **Sorting Ceremony**: one tap per answer while a glowing orb drinks in each choice, then a projector-ready reveal where a spotlight circles the four houses before the crest, motto and traits of the new guild appear.
 - **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Each school month is a **Chapter**: guilds race on Glory per member (never raw Total Stars), and when the month ends it pays **Crowns** (5 / 3 / 2 / 1, plus **+1 Unity Seal** for a guild where at least 4 in 5 members earned 6 Glory). Crowns add up all year; June’s **Grand Guild Ceremony** crowns the guild with the most.
-- **Fortune's Wheel:** Spin on the class’s **last lesson day of the week**, during lesson time, **once per week per class**. **Fortune Ledger** stores that school year’s outcomes. Magical Analytics expands each crystal column.
+- **Fortune's Wheel:** Spin on the class’s **last lesson day of the week**, during lesson time, **once per week per class**. Each guild’s 20-wedge wheel mixes treasure, drama twists (Whirlwind, Three Chests, Double or Nothing, Kindness Gift, Robin Hood, Mirror of Fates, Trickster), quick English trials the teacher judges, and small storms a guild can brave with a right answer. Storms never take stars or artifacts, only this month’s Glory or a little Gold. **Fortune Ledger** stores that school year’s outcomes.
 - **Guild Champions:** At the end of each month, the top earner in every guild is **Guild Champion**.
 
 ---

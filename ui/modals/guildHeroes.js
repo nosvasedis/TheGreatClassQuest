@@ -19,8 +19,9 @@ const PLACE = ['gold', 'silver', 'bronze', 'iron'];
 const RARITY = {
     common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic',
     legendary: 'Legendary', mythic: 'Mythic', cursed: 'Twist',
+    storm: 'Storm', twist: 'Twist', trial: 'Trial',
 };
-const RARITY_RANK = { cursed: 0, common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 };
+const RARITY_RANK = { storm: 0, cursed: 0, twist: 1, common: 1, trial: 2, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 };
 
 const _lite = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
 
@@ -498,14 +499,20 @@ function _wheelView(guild) {
         const m = String(label || '').match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u);
         return m ? [m[1], m[2]] : ['✨', String(label || 'A spin')];
     };
+    const signed = (n) => `${Number(n) < 0 ? '−' : '+'}${_num(Math.abs(Number(n) || 0))}`;
     const chips = (r) => {
         const out = [];
-        if (Number(r.gloryDelta) > 0) out.push(`<span class="gsp-gift gsp-gift--glory">+${_num(r.gloryDelta)} ${GLORY_EMOJI}</span>`);
-        if (Number(r.starsDelta) > 0) out.push(`<span class="gsp-gift">+${_num(r.starsDelta)} ⭐</span>`);
-        if (Number(r.goldDelta) > 0) out.push(`<span class="gsp-gift">+${_num(r.goldDelta)} 🪙</span>`);
+        const chip = (n, what, cls = '') => {
+            const v = Number(n) || 0;
+            if (v) out.push(`<span class="gsp-gift${cls}${v < 0 ? ' gsp-gift--loss' : ''}">${signed(v)} ${what}</span>`);
+        };
+        chip(r.gloryDelta, GLORY_EMOJI, ' gsp-gift--glory');
+        chip(r.starsDelta, '⭐');
+        chip(r.goldDelta, '🪙');
         if (Number(r.artifactsGranted) > 0) out.push(`<span class="gsp-gift">${_plural(r.artifactsGranted, 'artifact')} 🎁</span>`);
-        if (Number(r.classQuestDelta) > 0) out.push(`<span class="gsp-gift">+${_num(r.classQuestDelta)} Team Quest ⭐</span>`);
-        if (!out.length) out.push(`<span class="gsp-gift gsp-gift--quiet">${r.rarity === 'cursed' ? 'A harmless trick' : 'A little magic'}</span>`);
+        chip(r.classQuestDelta, 'Team Quest ⭐');
+        if (r.braved) out.push('<span class="gsp-gift">🛡️ Braved</span>');
+        if (!out.length) out.push(`<span class="gsp-gift gsp-gift--quiet">${r.rarity === 'cursed' || r.segmentId === 'trickster' ? 'A harmless trick' : r.rarity === 'storm' ? 'The storm found nothing' : 'A little magic'}</span>`);
         return out.join('');
     };
     const [bestIcon, bestName] = split(best.segmentLabel);
@@ -513,9 +520,9 @@ function _wheelView(guild) {
         <div class="gsp-wheel">
             <div class="gsp-tiles">
                 <div class="gsp-tile" style="--i:0;"><span class="gsp-tile__icon">🎡</span><b>${finds.length}</b><small>recent spins</small></div>
-                <div class="gsp-tile" style="--i:1;"><span class="gsp-tile__icon">${GLORY_EMOJI}</span><b>+${_num(sum('gloryDelta'))}</b><small>Glory found</small></div>
-                <div class="gsp-tile" style="--i:2;"><span class="gsp-tile__icon">⭐</span><b>+${_num(sum('starsDelta'))}</b><small>stars</small></div>
-                <div class="gsp-tile" style="--i:3;"><span class="gsp-tile__icon">🪙</span><b>+${_num(sum('goldDelta'))}</b><small>gold</small></div>
+                <div class="gsp-tile" style="--i:1;"><span class="gsp-tile__icon">${GLORY_EMOJI}</span><b>${signed(sum('gloryDelta'))}</b><small>Glory from the Wheel</small></div>
+                <div class="gsp-tile" style="--i:2;"><span class="gsp-tile__icon">⭐</span><b>${signed(sum('starsDelta'))}</b><small>stars</small></div>
+                <div class="gsp-tile" style="--i:3;"><span class="gsp-tile__icon">🪙</span><b>${signed(sum('goldDelta'))}</b><small>gold</small></div>
             </div>
             <section class="gsp-best gsp-rarity--${_esc(best.rarity || 'common')}" style="--i:4;">
                 <span class="gsp-best__icon" aria-hidden="true">${bestIcon}</span>

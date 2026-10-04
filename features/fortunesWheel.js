@@ -3,13 +3,18 @@
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
-import { WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
+import { WHEEL_RARITY_WEIGHTS, WHEEL_PRISMATIC_CONFIG, JUNIOR_LEAGUES, getRarityPalette } from '../constants.js';
 import { saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
-import { getISOWeekKey, updateGuildScores, awardGloryToStudents } from './guildScoring.js';
+import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, getGuildMemberCounts } from './guildScoring.js';
+import { chapterKeyFor } from './guildScoringCore.js';
+import { composeWheel, wheelModeFor } from '../utils/fortuneWheelSegments.mjs';
+import { challengeBand } from '../utils/wheelChallenges.mjs';
+import { runStage, cancelStage, fxStorm, fxShield, fxSwirl, fxTwist, fxTrial, fxBurst, fxFlash } from './wheelStages.js';
+import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
 import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
-import { ensureAudioReady, playSound, playHeroFanfare } from '../audio.js';
+import { ensureAudioReady, playSound, playHeroFanfare, playWheelSfx, warmWheelAudio, playDrumRoll, stopDrumRoll } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 
@@ -28,13 +33,20 @@ function _luminance(hex) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * The treasure wheel. Each segment has: id, emoji, label, description, rarity, category, effect.
- * Categories: 'glory' (Glory for the guild's members in this class), 'perk' (stars, gold,
- * artifacts, Team Quest), 'fun' (a moment plus a small gift), 'twist' (the harmless Trickster).
+ * The Wheel of Fate. Each segment has: id, emoji, label, description, rarity, category, effect.
+ * Four families share the wheel, each with its own colour and pattern:
+ *   treasure (common … mythic): Glory, stars, gold, artifacts and Team Quest stars
+ *   twist:  drama (spin again, three chests, double or nothing, a kindness gift, the Trickster…)
+ *   trial:  a quick English challenge the guild (or one hero) takes in front of the class
+ *   storm:  a small loss: a little Glory or gold. Some storms can be braved with a right answer.
  *
- * Fair by design: Glory always goes to each guild member in the spinning class, so every child in
- * every guild gets the same chances each week, whatever the guild's size. Nothing on the wheel
- * takes stars, gold, artifacts or Glory away, and nothing multiplies future Glory.
+ * Fair by design: Glory always goes to (or comes from) each guild member in the spinning class,
+ * so every child in every guild faces the same chances, whatever the guild's size. A storm only
+ * takes Glory a child already earned this month (never below 0), never takes stars or artifacts,
+ * and a guild a storm hit last time gets calmer skies the next week.
+ * `stage` names the interactive moment (features/wheelStages.js) that runs before the effect;
+ * the effect then receives that moment's decision. `favoredOk: false` keeps a wedge off a wheel
+ * gilded by Fortune's Favor.
  */
 const ALL_SEGMENTS = [
     // ── Common ────────────────────────────────────────────────────────────────
@@ -62,14 +74,14 @@ const ALL_SEGMENTS = [
     // ── Rare ──────────────────────────────────────────────────────────────────
     { id: 'glory_fountain',    emoji: '⚜️', label: 'Glory Fountain',     description: '+3 Glory for each guildmate in this class.',            rarity: 'rare',      category: 'glory', effect: (ctx) => classGlory(ctx, 3) },
     { id: 'star_burst',        emoji: '⭐', label: 'Star Burst',         description: '3 random guildmates get +1 star each!',                 rarity: 'rare',      category: 'perk',  effect: (ctx) => randomStars(ctx, 3, 1) },
-    { id: 'star_storm',        emoji: '⭐', label: 'Star Storm',         description: '5 random guildmates get +1 star each!',                 rarity: 'rare',      category: 'perk',  effect: (ctx) => randomStars(ctx, 5, 1) },
+    { id: 'star_storm',        emoji: '⭐', label: 'Star Shower Royale', description: '5 random guildmates get +1 star each!',                 rarity: 'rare',      category: 'perk',  effect: (ctx) => randomStars(ctx, 5, 1) },
     { id: 'treasury_overflow', emoji: '🪙', label: 'Treasury Overflow',  description: 'Every guildmate here gets +10 gold!',                    rarity: 'rare',      category: 'perk',  effect: (ctx) => randomGold(ctx, ctx.memberCount, 10) },
     { id: 'mystery_gift',      emoji: '🎒', label: 'Mystery Gift',       description: '1 random guildmate gets a free Legendary Artifact!',    rarity: 'rare',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
     { id: 'quest_surge',       emoji: '🗺️', label: 'Quest Surge',        description: '+15 Team Quest bonus stars (this month)!',              rarity: 'rare',      category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 15) },
     { id: 'star_cascade',      emoji: '🌠', label: 'Star Cascade',       description: '4 random guildmates get +1 star and +10 gold each!',    rarity: 'rare',      category: 'perk',  effect: (ctx) => starsAndGold(ctx, 4, 1, 10) },
 
     // ── Epic ──────────────────────────────────────────────────────────────────
-    { id: 'glory_storm',       emoji: '⚜️', label: 'Glory Storm',        description: '+4 Glory for each guildmate in this class!',            rarity: 'epic',      category: 'glory', effect: (ctx) => classGlory(ctx, 4) },
+    { id: 'glory_storm',       emoji: '⚜️', label: 'Glory Cascade',      description: '+4 Glory for each guildmate in this class!',            rarity: 'epic',      category: 'glory', effect: (ctx) => classGlory(ctx, 4) },
     { id: 'golden_tide',       emoji: '🌊', label: 'Golden Tide',        description: 'Every guildmate here gets +20 gold and +2 Glory!',      rarity: 'epic',      category: 'perk',  effect: (ctx) => combo(ctx, [(c) => randomGold(c, c.memberCount, 20), (c) => classGlory(c, 2)], 'A golden tide! Every guildmate here gets +20 gold and +2 Glory!') },
     { id: 'teachers_favor',    emoji: '🍎', label: "Teacher's Favor",   description: '1 random guildmate gets +2 stars and +30 gold!',        rarity: 'epic',      category: 'perk',  effect: (ctx) => teachersFavor(ctx) },
     { id: 'double_gift',       emoji: '🎒', label: 'Double Gift',        description: '2 random guildmates each get a Legendary Artifact!',    rarity: 'epic',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 2) },
@@ -85,9 +97,29 @@ const ALL_SEGMENTS = [
     { id: 'mythic_relic',      emoji: '🏆', label: 'Relic of Triumph',   description: '+30 Team Quest bonus stars & an Artifact for 5 guildmates!', rarity: 'mythic', category: 'perk', effect: (ctx) => mythicRelic(ctx) },
     { id: 'celestial_convergence', emoji: '✨', label: 'Celestial Convergence', description: '+20 Team Quest bonus, and every guildmate here gets +1 star & +30 gold!', rarity: 'mythic', category: 'perk', isPrismatic: true, effect: (ctx) => combo(ctx, [(c) => classQuestBonus(c, 20), (c) => starsAndGold(c, c.memberCount, 1, 30)], 'Celestial convergence! +20 Team Quest bonus stars, and every guildmate here gets +1 star and +30 gold!') },
 
-    // ── Twist ─────────────────────────────────────────────────────────────────
-    { id: 'trickster',         emoji: '🎭', label: 'Trickster',          description: 'What looks like a win... turns out to be nothing!',     rarity: 'cursed',    category: 'twist', effect: () => ({ gloryDelta: 0, description: 'The Trickster laughs! Nothing happened, and nothing was lost.' }) },
+    // ── Twists: the drama ─────────────────────────────────────────────────────
+    { id: 'trickster',         emoji: '🎭', label: 'Trickster',          description: 'It looks like a win… then it turns out to be nothing!', rarity: 'twist', category: 'twist', stage: 'trickster', weight: 2, favoredOk: false, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The Trickster laughs! No treasure, and nothing was lost.' }) },
+    { id: 'whirlwind',         emoji: '🌪️', label: 'Whirlwind',          description: 'The wind grabs the wheel and spins it again!',          rarity: 'twist', category: 'twist', stage: 'whirlwind', weight: 2, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The Whirlwind spun the wheel again.' }) },
+    { id: 'double_or_nothing', emoji: '🎲', label: 'Double or Nothing',  description: 'Keep +1 Glory each, or flip the coin: +3 each or −1 each!', rarity: 'twist', category: 'twist', stage: 'coin', weight: 2, effect: (ctx, d) => doubleOrNothing(ctx, d) },
+    { id: 'three_chests',      emoji: '🗝️', label: 'Three Chests',       description: 'Pick a chest! Two hold treasure… one holds a Mimic.',    rarity: 'twist', category: 'twist', stage: 'chests', weight: 2, effect: (ctx, d) => threeChests(ctx, d) },
+    { id: 'kindness_gift',     emoji: '💝', label: 'Kindness Gift',      description: 'Choose a guild to share with: you both earn +1 Glory each.', rarity: 'twist', category: 'twist', stage: 'kindness', weight: 2, effect: (ctx, d) => kindnessGift(ctx, d) },
+    { id: 'robin_hood',        emoji: '🏹', label: 'Robin Hood',         description: 'Takes 1 Glory from each guildmate here for the guild that is last this month. If you are last, it helps you!', rarity: 'twist', category: 'twist', weight: 1, favoredOk: false, effect: (ctx) => robinHood(ctx) },
+    { id: 'mirror_of_fates',   emoji: '🪞', label: 'Mirror of Fates',    description: 'You get exactly what the guild before you got, good or bad!', rarity: 'twist', category: 'twist', weight: 1, favoredOk: false, effect: (ctx) => mirrorOfFates(ctx) },
+
+    // ── Trials: a challenge in front of the class ─────────────────────────────
+    { id: 'sphinx_riddle',     emoji: '🦁', label: "Sphinx's Riddle",   description: 'Answer the Sphinx together: +3 Glory each if right, −1 each if wrong.', rarity: 'trial', category: 'trial', stage: 'trial', trial: 'riddle', win: '+3 Glory each', lose: '−1 Glory each', weight: 2, effect: (ctx, d) => (d?.passed ? classGlory(ctx, 3, 'The Sphinx bows!', 'sphinx') : stormGlory(ctx, 1, 'The Sphinx keeps its secret.', 'sphinx')) },
+    { id: 'lightning_round',   emoji: '⚡', label: 'Lightning Round',    description: 'Name the words before the clock runs out: +2 Glory each!', rarity: 'trial', category: 'trial', stage: 'trial', trial: 'lightning', win: '+2 Glory each', lose: 'No Glory this time', weight: 2, effect: (ctx, d) => (d?.passed ? classGlory(ctx, 2, 'Lightning fast!', 'lightning') : { gloryDelta: 0, echo: { kind: 'none' }, description: 'So close! The clock won this round.' }) },
+    { id: 'heros_dare',        emoji: '🎤', label: "Hero's Dare",        description: 'The spotlight picks one guildmate for a dare: +1 star and +10 gold!', rarity: 'trial', category: 'trial', stage: 'dare', weight: 2, effect: (ctx, d) => herosDare(ctx, d) },
+
+    // ── Storms: small losses (never stars, never artifacts) ───────────────────
+    { id: 'rain_cloud',        emoji: '🌧️', label: 'Rain Cloud',         description: '−1 Glory for each guildmate here.',                      rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 3, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx) : stormGlory(ctx, 1, 'The rain washes a little Glory away.')) },
+    { id: 'leaky_pouch',       emoji: '🕳️', label: 'Leaky Pouch',        description: '3 guildmates drop 5 gold each.',                         rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 3, favoredOk: false, effect: (ctx) => loseGold(ctx, 3, 5, 'A hole in the pouch!') },
+    { id: 'goblin_toll',       emoji: '👺', label: "Goblin's Toll",      description: '2 guildmates pay the goblin 10 gold each.',              rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The goblin grumbles and runs off empty-handed!') : loseGold(ctx, 2, 10, 'The goblin collects its toll.')) },
+    { id: 'rockslide',         emoji: '🪨', label: 'Rockslide',          description: '−1 Glory each, and 2 guildmates drop 5 gold.',           rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The rocks roll past the guild!') : combo(ctx, [(c) => stormGlory(c, 1), (c) => loseGold(c, 2, 5)], 'Rockslide! A little Glory and gold tumble away.')) },
+    { id: 'thunderclap',       emoji: '⛈️', label: 'Thunderclap',        description: '−2 Glory for each guildmate here. No shelter from this one!', rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 1, favoredOk: false, effect: (ctx) => stormGlory(ctx, 2, 'Thunder shakes the hall!') },
 ];
+
+const SEGMENTS_BY_ID = new Map(ALL_SEGMENTS.map((seg) => [seg.id, seg]));
 
 /** The catalog, for the guidebook and tests. */
 export function getWheelCatalog() {
@@ -108,26 +140,173 @@ async function combo(ctx, effects, description) {
         total.goldDelta += Number(r.goldDelta) || 0;
         total.classQuestDelta += Number(r.classQuestDelta) || 0;
         total.artifactsGranted += Number(r.artifactsGranted) || 0;
+        if (r.stormHit) total.stormHit = true;
         total.affectedStudents = [...new Set([...total.affectedStudents, ...(r.affectedStudents || [])])];
     }
     return { ...total, description };
 }
 
 /** +perMember Glory for each guild member in this class, credited to each of them. */
-async function classGlory(ctx, perMember, lead = '') {
+async function classGlory(ctx, perMember, lead = '', tag = 'glory') {
     const members = ctx.guildStudents || [];
-    if (!members.length) return { gloryDelta: 0, description: 'No guildmates in this class to receive the Glory.' };
+    if (!members.length) return { gloryDelta: 0, echo: { kind: 'glory', n: perMember }, description: 'No guildmates in this class to receive the Glory.' };
     const byGuild = await awardGloryToStudents(members.map((s) => s.id), perMember, 'wheel_glory', {
         classId: ctx.classId,
         note: "Fortune's Wheel",
-        idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_glory` : null,
+        idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
     });
     const gloryDelta = Math.round(Number(byGuild[ctx.guildId]) || 0);
     return {
         gloryDelta,
         affectedStudents: members.map((s) => s.id),
+        echo: { kind: 'glory', n: perMember },
         description: `${lead ? `${lead} ` : ''}Each of the ${members.length} guildmate${members.length === 1 ? '' : 's'} here earns +${perMember} Glory (+${gloryDelta} for the guild).`,
     };
+}
+
+/** A storm: up to `perMember` Glory from each guildmate here, only from Glory earned this month. */
+async function stormGlory(ctx, perMember, lead = '', tag = 'storm') {
+    const members = ctx.guildStudents || [];
+    if (!members.length) return { gloryDelta: 0, echo: { kind: 'loseGlory', n: perMember }, description: 'No guildmates here, so the storm found no one.' };
+    const { byGuild, byStudent } = await takeGloryFromStudents(members.map((s) => s.id), perMember, 'wheel_storm', {
+        classId: ctx.classId,
+        note: "Fortune's Wheel storm",
+        idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
+    });
+    const lost = Math.round((Number(byGuild[ctx.guildId]) || 0) * 100) / 100;
+    const spared = members.length - Object.keys(byStudent).length;
+    return {
+        gloryDelta: -lost,
+        stormHit: lost > 0,
+        affectedStudents: Object.keys(byStudent),
+        echo: { kind: 'loseGlory', n: perMember },
+        description: lost > 0
+            ? `${lead ? `${lead} ` : ''}The guild loses ${lost} Glory (up to ${perMember} from each guildmate here${spared ? `; ${spared} had no Glory this month to lose` : ''}).`
+            : `${lead ? `${lead} ` : ''}Nobody here had Glory this month for the storm to take!`,
+    };
+}
+
+/** A storm: `count` random guildmates (with gold) lose `amount` gold each, never below 0. */
+async function loseGold(ctx, count, amount, lead = '') {
+    const members = ctx.guildStudents || [];
+    const scores = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
+    const withGold = members.filter((s) => (Number(scores.get(s.id)?.gold) || 0) > 0);
+    if (!withGold.length) return { gloryDelta: 0, echo: { kind: 'loseGold', count, n: amount }, description: `${lead ? `${lead} ` : ''}Empty pockets: nobody here had gold to drop!` };
+    const outcome = await applyWheelStudentEffects({ classId: ctx.classId, students: withGold, count, goldDelta: -amount, note: "Fortune's Wheel storm" });
+    const names = members.filter((s) => outcome.affectedStudents.includes(s.id)).map((s) => s.name).join(', ');
+    return {
+        gloryDelta: 0,
+        ...outcome,
+        stormHit: (outcome.goldDelta || 0) < 0,
+        echo: { kind: 'loseGold', count, n: amount },
+        description: `${lead ? `${lead} ` : ''}${names} drop${outcome.affectedStudents.length === 1 ? 's' : ''} ${amount} gold.`,
+    };
+}
+
+/** A storm the guild braved with a right answer: nothing lost. */
+function braved(ctx, line = 'The guild braved the storm. Its shield held, and nothing was lost!') {
+    return { gloryDelta: 0, braved: true, echo: { kind: 'none' }, description: line };
+}
+
+async function doubleOrNothing(ctx, d = {}) {
+    if (d.choice !== 'flip') {
+        const r = await classGlory(ctx, 1, 'The guild played it safe.', 'coin');
+        return { ...r, decision: 'Kept it safe' };
+    }
+    if (d.heads) {
+        const r = await classGlory(ctx, 3, 'Heads! The gamble paid off.', 'coin');
+        return { ...r, decision: 'Flipped: heads' };
+    }
+    const r = await stormGlory(ctx, 1, 'Tails! The gamble slipped away.', 'coin');
+    return { ...r, decision: 'Flipped: tails' };
+}
+
+async function threeChests(ctx, d = {}) {
+    if (d.prize === 'gold') return { ...(await classGlory(ctx, 3, 'The golden chest!', 'chest')), decision: 'Golden chest' };
+    if (d.prize === 'silver') {
+        const r = await combo(ctx, [(c) => classGlory(c, 1, '', 'chest'), (c) => randomGold(c, 2, 10)], 'The silver chest: +1 Glory each, and gold for two guildmates!');
+        return { ...r, echo: { kind: 'glory', n: 1 }, decision: 'Silver chest' };
+    }
+    if (d.prize === 'bronze') return { ...(await randomGold(ctx, 2, 10)), echo: { kind: 'gold', count: 2, n: 10 }, decision: 'Bronze chest' };
+    return { ...(await stormGlory(ctx, 1, 'A Mimic! It bites off a little Glory.', 'chest')), decision: 'The Mimic' };
+}
+
+/** Guild members in this class, for another guild. */
+function _classMembersOf(guildId, classId) {
+    return (state.get('allStudents') || []).filter((s) => s.guildId === guildId && s.classId === classId);
+}
+
+async function kindnessGift(ctx, d = {}) {
+    const mine = await classGlory(ctx, 1, '', 'kind');
+    const other = d.guildId ? _classMembersOf(d.guildId, ctx.classId) : [];
+    if (!other.length) return { ...mine, description: 'No other guild here to share with, so the kindness stays home: +1 Glory each.' };
+    await awardGloryToStudents(other.map((s) => s.id), 1, 'wheel_kindness', {
+        classId: ctx.classId, note: "Fortune's Wheel: Kindness Gift", idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_kind_to` : null,
+    });
+    const name = getGuildById(d.guildId)?.name || 'another guild';
+    return { ...mine, sharedWith: d.guildId, decision: `Shared with ${name}`, description: `A kind heart! Every guildmate here and every ${name} member in this class earn +1 Glory.` };
+}
+
+/** This month's Glory per member for each guild that has members in this class. */
+function _classChapterStandings(classId) {
+    const key = chapterKeyFor(new Date());
+    const scores = state.get('allGuildScores') || {};
+    const counts = getGuildMemberCounts();
+    return GUILD_IDS
+        .filter((gid) => _classMembersOf(gid, classId).length > 0)
+        .map((gid) => ({ gid, perMember: (Number(scores[gid]?.chapters?.[key]?.glory) || 0) / Math.max(1, counts[gid] || 1) }))
+        .sort((a, b) => a.perMember - b.perMember);
+}
+
+async function robinHood(ctx) {
+    const standings = _classChapterStandings(ctx.classId);
+    const last = standings[0]?.gid;
+    if (!last || last === ctx.guildId || standings.length < 2) {
+        const r = await classGlory(ctx, 1, 'Robin Hood helps the underdog!', 'robin');
+        return { ...r, description: `Robin Hood helps the underdog! ${r.description}` };
+    }
+    const taken = await stormGlory(ctx, 1, '', 'robin');
+    const receivers = _classMembersOf(last, ctx.classId);
+    await awardGloryToStudents(receivers.map((s) => s.id), 1, 'wheel_robin_hood', {
+        classId: ctx.classId, note: "Fortune's Wheel: Robin Hood", idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_robin_give` : null,
+    });
+    const name = getGuildById(last)?.name || 'the last guild';
+    return {
+        ...taken,
+        robinTo: last,
+        echo: { kind: 'loseGlory', n: 1 },
+        description: `Robin Hood strikes! ${taken.gloryDelta < 0 ? `This guild gives ${-taken.gloryDelta} Glory` : 'Nobody here had Glory to give, but Robin is generous'}, and each ${name} member in this class earns +1 Glory.`,
+    };
+}
+
+async function mirrorOfFates(ctx) {
+    const prev = ctx.previous;
+    const echo = prev?.echo;
+    const prevName = prev ? (getGuildById(prev.guildId)?.name || 'the guild before') : null;
+    let r;
+    if (!prev || !echo) {
+        r = await classGlory(ctx, 1, '', 'mirror');
+        return { ...r, description: `The mirror shows only your own reflection: +1 Glory for each guildmate here.` };
+    }
+    if (echo.kind === 'segment' && SEGMENTS_BY_ID.get(echo.id) && !SEGMENTS_BY_ID.get(echo.id).stage) r = await SEGMENTS_BY_ID.get(echo.id).effect({ ...ctx, spinKey: `${ctx.spinKey}_mirror` }, {});
+    else if (echo.kind === 'segment' && SEGMENTS_BY_ID.get(echo.id)?.stage === 'storm') r = await SEGMENTS_BY_ID.get(echo.id).effect({ ...ctx, spinKey: `${ctx.spinKey}_mirror` }, { braved: false });
+    else if (echo.kind === 'glory') r = await classGlory(ctx, echo.n, '', 'mirror');
+    else if (echo.kind === 'loseGlory') r = await stormGlory(ctx, echo.n, '', 'mirror');
+    else if (echo.kind === 'gold') r = await randomGold(ctx, echo.count, echo.n);
+    else if (echo.kind === 'loseGold') r = await loseGold(ctx, echo.count, echo.n);
+    else r = { gloryDelta: 0, description: '' };
+    return { ...r, echo: { kind: 'none' }, mirrored: prev.segmentLabel, description: `The mirror copies ${prevName}'s fate (${prev.segmentLabel}). ${r.description || 'Nothing happens… just like for them!'}` };
+}
+
+async function herosDare(ctx, d = {}) {
+    const hero = (ctx.guildStudents || []).find((s) => s.id === d.studentId);
+    if (!hero) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'No hero in the spotlight this time.' };
+    if (d.passed) {
+        const r = await starsAndGold({ ...ctx, guildStudents: [hero] }, 1, 1, 10);
+        return { ...r, echo: { kind: 'none' }, decision: `${hero.name} took the dare`, description: `${hero.name} nailed the dare! +1 star and +10 gold.` };
+    }
+    const r = await randomGold({ ...ctx, guildStudents: [hero] }, 1, 5);
+    return { ...r, echo: { kind: 'none' }, decision: `${hero.name} was brave`, description: `${hero.name} gave it a brave try: +5 gold for courage.` };
 }
 
 /** Rainbow Bridge: every child in the class earns Glory for their own guild. */
@@ -321,55 +500,26 @@ function shuffleArray(arr) {
     return arr;
 }
 
-const RARE_PLUS = ['rare', 'epic', 'legendary', 'mythic'];
-
 /**
- * Generate 20 wheel segments for a spin, weighted by rarity.
- * A favored wheel (Fortune's Favor from the Mystic Market) has no common wedges and no Trickster.
- * @param {string} leagueLevel - e.g. 'Junior A', 'B', 'C' (every league draws from the same catalog)
- * @param {{ favored?: boolean }} options
+ * Generate one guild's 20 wedges: treasure, twists, trials and storms (utils/fortuneWheelSegments.mjs).
+ * A favored wheel (Fortune's Favor) has no storms, no Trickster and no common treasure;
+ * calm skies (a storm hit this guild at its last spin here) leave one storm at most.
+ * @param {string} leagueLevel - kept for callers; every league draws from the same catalogue
+ * @param {{ favored?: boolean, calm?: boolean }} options
  * @returns {Array} 20 segments
  */
-export function generateWheelSegments(leagueLevel, { favored = false } = {}) {
-    const pool = favored
-        ? ALL_SEGMENTS.filter((s) => s.rarity !== 'common' && s.rarity !== 'cursed')
-        : ALL_SEGMENTS;
-    const caps = favored
-        ? { cursed: 0, mythic: 1, epic: 4, legendary: 2 }
-        : { cursed: 1, mythic: 1, epic: 2, legendary: 1 };
-    const size = Math.min(20, pool.length);
+export function generateWheelSegments(leagueLevel, { favored = false, calm = false } = {}) {
+    return composeWheel(ALL_SEGMENTS, WHEEL_RARITY_WEIGHTS, { mode: wheelModeFor({ favored, stormLastTime: calm }) })
+        .map((seg) => ({ ...seg, effect: SEGMENTS_BY_ID.get(seg.id)?.effect }));
+}
 
-    const weighted = [];
-    for (const seg of pool) {
-        const weight = WHEEL_RARITY_WEIGHTS[seg.rarity] || 10;
-        for (let i = 0; i < weight; i++) weighted.push(seg);
-    }
-
-    const selected = new Map();
-    const counts = {};
-    let attempts = 0;
-    while (selected.size < size && attempts < 2000) {
-        attempts++;
-        const candidate = weighted[Math.floor(Math.random() * weighted.length)];
-        if (selected.has(candidate.id)) continue;
-        const cap = caps[candidate.rarity];
-        if (cap !== undefined && (counts[candidate.rarity] || 0) >= cap) continue;
-        selected.set(candidate.id, { ...candidate, paletteIndex: Math.floor(Math.random() * 3) });
-        counts[candidate.rarity] = (counts[candidate.rarity] || 0) + 1;
-    }
-
-    // Always at least one rare-or-better wedge to hope for.
-    if (![...selected.values()].some((s) => RARE_PLUS.includes(s.rarity))) {
-        const rares = pool.filter((s) => s.rarity === 'rare');
-        const replaceable = [...selected.values()].filter((s) => s.rarity === 'common' || s.rarity === 'uncommon');
-        if (rares.length && replaceable.length) {
-            selected.delete(replaceable[0].id);
-            const rare = rares[Math.floor(Math.random() * rares.length)];
-            selected.set(rare.id, { ...rare, paletteIndex: 0 });
-        }
-    }
-
-    return shuffleArray([...selected.values()]);
+/** True when a storm (or any loss) hit this guild at its last spin in this class, before this week. */
+export function stormHitLastTime(guildId, classId) {
+    const week = getISOWeekKey();
+    const last = (state.get('fortuneWheelLog') || []).find((entry) => entry.classId === classId && entry.weekKey !== week
+        && (entry.results || []).some((r) => r?.guildId === guildId));
+    const result = last?.results?.find((r) => r?.guildId === guildId);
+    return Boolean(result && (result.stormHit || Number(result.gloryDelta) < 0 || Number(result.goldDelta) < 0));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -441,7 +591,7 @@ async function _spendFortuneFavor(guildId, classId) {
  * @param {{ favored?: boolean }} options - the wheel was gilded by a Fortune's Favor
  * @returns {Promise<object>} result with gloryDelta, description, affectedStudents, etc.
  */
-export async function applyWheelResult(guildId, segment, classId, { favored = false } = {}) {
+export async function applyWheelResult(guildId, segment, classId, { favored = false, decision = {}, previous = null } = {}) {
     const allStudents = state.get('allStudents') || [];
     const guildStudents = allStudents.filter(s => s.guildId === guildId && s.classId === classId);
 
@@ -450,38 +600,35 @@ export async function applyWheelResult(guildId, segment, classId, { favored = fa
         classId,
         guildStudents,
         memberCount: guildStudents.length || 1,
+        previous,
         // One spin per guild per class per week, so its Glory is written exactly once.
         spinKey: `wheel_${classId}_${getISOWeekKey()}_${guildId}`,
     };
 
+    const base = {
+        guildId,
+        segmentId: segment.id,
+        segmentLabel: `${segment.emoji} ${segment.label}`,
+        segmentDescription: segment.description,
+        rarity: segment.rarity,
+        favored: Boolean(favored),
+    };
     try {
-        const result = await segment.effect(ctx);
+        const effect = wheelTestHooks.effect || segment.effect || SEGMENTS_BY_ID.get(segment.id)?.effect;
+        const result = (await effect(ctx, decision || {}, segment)) || {};
         if (favored) await _spendFortuneFavor(guildId, classId);
-
-        return {
-            guildId,
-            segmentId: segment.id,
-            segmentLabel: `${segment.emoji} ${segment.label}`,
-            segmentDescription: segment.description,
-            rarity: segment.rarity,
-            favored: Boolean(favored),
-            applied: true,
-            ...(result || {}),
-        };
+        // What the Mirror of Fates copies: the wedge itself, unless the effect named its own echo.
+        const replayable = !segment.stage || (segment.stage === 'storm' && !result.braved);
+        const echo = result.echo || (replayable ? { kind: 'segment', id: segment.id } : { kind: 'none' });
+        return { ...base, applied: true, ...result, echo };
     } catch (err) {
         console.error(`Wheel effect failed for ${segment.id}:`, err);
-        return {
-            guildId,
-            segmentId: segment.id,
-            segmentLabel: `${segment.emoji} ${segment.label}`,
-            segmentDescription: segment.description,
-            rarity: segment.rarity,
-            applied: false,
-            gloryDelta: 0,
-            description: `Effect could not be applied${err?.message ? `: ${err.message}` : '.'}`,
-        };
+        return { ...base, applied: false, gloryDelta: 0, echo: { kind: 'none' }, description: `Effect could not be applied${err?.message ? `: ${err.message}` : '.'}` };
     }
 }
+
+/** Lets the guidebook capture and the browser checks run the ceremony without Firestore. */
+export const wheelTestHooks = { effect: null, lite: null };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CANVAS WHEEL RENDERER
@@ -561,6 +708,66 @@ function _giltDot(ctx, x, y, r) {
     ctx.fillStyle = g;
     ctx.fill();
 }
+
+/** Patterns for the three families, drawn inside a wedge (already clipped to it). */
+const FAMILY_PATTERNS = {
+    // Storm: slanting rain streaks and a jagged bolt along the wedge.
+    storm(ctx, radius, start, end, size, conf) {
+        ctx.strokeStyle = 'rgba(203, 213, 225, 0.16)';
+        ctx.lineWidth = Math.max(1, size * 0.003);
+        const step = Math.max(6, size * 0.022);
+        for (let k = -radius; k < radius; k += step) {
+            ctx.beginPath();
+            ctx.moveTo(k, -radius);
+            ctx.lineTo(k + radius * 0.35, radius);
+            ctx.stroke();
+        }
+        const mid = (start + end) / 2;
+        const r0 = radius * 0.34;
+        const r1 = radius * 0.62;
+        const w = (end - start) * 0.18;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(mid - w) * r0, Math.sin(mid - w) * r0);
+        ctx.lineTo(Math.cos(mid + w) * (r0 + (r1 - r0) * 0.45), Math.sin(mid + w) * (r0 + (r1 - r0) * 0.45));
+        ctx.lineTo(Math.cos(mid - w * 0.4) * (r0 + (r1 - r0) * 0.55), Math.sin(mid - w * 0.4) * (r0 + (r1 - r0) * 0.55));
+        ctx.lineTo(Math.cos(mid + w) * r1, Math.sin(mid + w) * r1);
+        ctx.strokeStyle = conf.color;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = Math.max(1.5, size * 0.006);
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    },
+    // Twist: harlequin diamonds.
+    twist(ctx, radius, start, end, size) {
+        const d = Math.max(10, size * 0.045);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+        for (let y = -radius; y < radius; y += d) {
+            for (let x = -radius; x < radius; x += d) {
+                const odd = Math.round((x + y) / d) % 2 === 0;
+                if (!odd) continue;
+                ctx.beginPath();
+                ctx.moveTo(x, y - d / 2);
+                ctx.lineTo(x + d / 2, y);
+                ctx.lineTo(x, y + d / 2);
+                ctx.lineTo(x - d / 2, y);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+    },
+    // Trial: rings like a Sphinx's seal.
+    trial(ctx, radius, start, end, size) {
+        ctx.strokeStyle = 'rgba(204, 251, 241, 0.13)';
+        ctx.lineWidth = Math.max(1, size * 0.004);
+        const step = Math.max(6, size * 0.03);
+        for (let r = radius * 0.3; r < radius; r += step) {
+            ctx.beginPath();
+            ctx.arc(0, 0, r, start, end);
+            ctx.stroke();
+        }
+    },
+};
 
 /**
  * Render the full static wheel (rim, wedges, pegs, text, gilt hub, sheen)
@@ -673,6 +880,15 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
             _wedgePath(ctx, radius, startAngle, endAngle);
             ctx.fillStyle = 'rgba(255, 244, 214, 0.05)';
             ctx.fill();
+        }
+
+        // Storms, twists and trials carry a pattern too, so a family reads at a glance.
+        if (FAMILY_PATTERNS[seg.rarity]) {
+            ctx.save();
+            _wedgePath(ctx, radius, startAngle, endAngle);
+            ctx.clip();
+            FAMILY_PATTERNS[seg.rarity](ctx, radius, startAngle, endAngle, size, rarityConf);
+            ctx.restore();
         }
 
         // Rarity bezel: the coloured band just inside the rim
@@ -947,306 +1163,118 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
 // WHEEL RESULT REVEAL EFFECTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function triggerWheelRevealEffects(rarity, isNegative) {
-    const stageFrame = document.getElementById('fw-stage-frame');
-    if (!stageFrame) return;
-    const rect = stageFrame.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-
-    if (rarity === 'mythic') {
-        triggerMythicReveal(x, y, isNegative);
-    } else if (rarity === 'legendary') {
-        triggerLegendaryReveal(x, y, isNegative);
-    } else if (rarity === 'epic') {
-        triggerEpicReveal(x, y, isNegative);
-    } else if (rarity === 'rare') {
-        triggerRareReveal(x, y);
-    } else if (rarity === 'cursed') {
-        triggerCursedReveal(x, y);
-    } else {
-        triggerCommonReveal(x, y);
+/** Weak laptops (and reduced motion) get the same moments with far fewer particles. */
+function _isLite() {
+    if (wheelTestHooks.lite !== null && wheelTestHooks.lite !== undefined) return Boolean(wheelTestHooks.lite);
+    try {
+        return detectLowPowerTier() || Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    } catch (_) {
+        return false;
     }
 }
 
-function _createSparkles(x, y, count, colors, sizeRange = [3, 7], distRange = [40, 120]) {
-    for (let i = 0; i < count; i++) {
-        const sparkle = document.createElement('div');
-        sparkle.className = 'fw-sparkle';
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const size = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
-        const angle = Math.random() * Math.PI * 2;
-        const dist = distRange[0] + Math.random() * (distRange[1] - distRange[0]);
-        const tx = Math.cos(angle) * dist;
-        const ty = Math.sin(angle) * dist - 20; // slight upward bias
-        const dur = 0.6 + Math.random() * 0.5;
-        sparkle.style.left = `${x}px`;
-        sparkle.style.top = `${y}px`;
-        sparkle.style.setProperty('--size', `${size}px`);
-        sparkle.style.setProperty('--sparkle-color', color);
-        sparkle.style.setProperty('--tx', `${tx}px`);
-        sparkle.style.setProperty('--ty', `${ty}px`);
-        sparkle.style.setProperty('--duration', `${dur}s`);
-        sparkle.style.animationDelay = `${Math.random() * 0.15}s`;
-        document.body.appendChild(sparkle);
-        sparkle.addEventListener('animationend', () => sparkle.remove());
-    }
+/** The centre of the wheel, in the card's effect layer coordinates. */
+function _fxOrigin() {
+    const layer = document.getElementById('fw-fx');
+    const frame = document.getElementById('fw-stage-frame');
+    if (!layer || !frame) return null;
+    const l = layer.getBoundingClientRect();
+    const f = frame.getBoundingClientRect();
+    return { layer, x: f.left - l.left + f.width / 2, y: f.top - l.top + f.height / 2, size: f.width };
 }
 
-function _createHaloRing(x, y, color, delay = 0) {
-    setTimeout(() => {
-        const ring = document.createElement('div');
-        ring.className = 'fw-halo-ring';
-        ring.style.left = `${x}px`;
-        ring.style.top = `${y}px`;
-        ring.style.setProperty('--halo-color', color);
-        document.body.appendChild(ring);
-        ring.addEventListener('animationend', () => ring.remove());
-    }, delay);
+const TREASURE_FX = {
+    common:    { count: 10, spread: 0.32, emojis: ['✨', '⭐'], emojiCount: 4, colors: ['#fbbf24', '#fcd34d', '#fef3c7'] },
+    uncommon:  { count: 14, spread: 0.36, emojis: ['✨', '⭐', '🍀'], emojiCount: 6, colors: ['#22c55e', '#86efac', '#fbbf24'] },
+    rare:      { count: 20, spread: 0.42, emojis: ['✨', '💫', '⭐'], emojiCount: 8, colors: ['#a855f7', '#c084fc', '#e9d5ff'], flash: 'rgba(168, 85, 247, 0.28)' },
+    epic:      { count: 28, spread: 0.5, emojis: ['🌟', '✨', '💫', '🎁'], emojiCount: 12, colors: ['#f97316', '#fb7185', '#fbbf24'], flash: 'rgba(249, 115, 22, 0.3)' },
+    legendary: { count: 36, spread: 0.6, emojis: ['👑', '⭐', '✨', '🏆', '⚜️'], emojiCount: 18, colors: ['#fbbf24', '#f59e0b', '#fde68a', '#fff7d6'], flash: 'rgba(251, 191, 36, 0.4)' },
+    mythic:    { count: 44, spread: 0.7, emojis: ['💎', '👑', '✨', '🌟', '🏆'], emojiCount: 24, colors: ['#22d3ee', '#a78bfa', '#f472b6', '#fbbf24', '#34d399'], flash: 'rgba(167, 139, 250, 0.42)' },
+};
+
+/** Particles and a flash for a treasure, sized by rarity (a third of them on weak laptops). */
+function triggerWheelRevealEffects(rarity) {
+    const conf = TREASURE_FX[rarity];
+    const o = _fxOrigin();
+    if (!conf || !o) return;
+    const lite = _isLite();
+    if (conf.flash) fxFlash(o.layer, conf.flash);
+    fxBurst(o.layer, { x: o.x, y: o.y, colors: conf.colors, count: conf.count, emojis: conf.emojis, emojiCount: conf.emojiCount, spread: o.size * conf.spread, lite });
 }
 
-function _createStarburst(x, y, color) {
-    const burst = document.createElement('div');
-    burst.className = 'fw-starburst';
-    burst.style.left = `${x}px`;
-    burst.style.top = `${y}px`;
-    burst.style.setProperty('--burst-color', color);
-    document.body.appendChild(burst);
-    burst.addEventListener('animationend', () => burst.remove());
-}
-
-function _createCrumbleParticles(x, y, count, colors) {
-    for (let i = 0; i < count; i++) {
-        const p = document.createElement('div');
-        p.className = 'fw-crumble-particle';
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const size = 4 + Math.random() * 6;
-        const tx = (Math.random() - 0.5) * 160;
-        const fd = 100 + Math.random() * 200;
-        const rot = (Math.random() - 0.5) * 360;
-        const dur = 0.8 + Math.random() * 0.6;
-        p.style.left = `${x + (Math.random() - 0.5) * 100}px`;
-        p.style.top = `${y - 20}px`;
-        p.style.setProperty('--size', `${size}px`);
-        p.style.setProperty('--crumble-color', color);
-        p.style.setProperty('--tx', `${tx}px`);
-        p.style.setProperty('--fd', `${fd}px`);
-        p.style.setProperty('--rot', `${rot}deg`);
-        p.style.setProperty('--duration', `${dur}s`);
-        p.style.animationDelay = `${Math.random() * 0.2}s`;
-        document.body.appendChild(p);
-        p.addEventListener('animationend', () => p.remove());
-    }
-}
-
-function _createPrismaticFlash() {
-    const flash = document.createElement('div');
-    flash.className = 'fw-prismatic-flash';
-    document.body.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
-}
-
-function triggerMythicReveal(x, y, isNegative) {
-    // Prismatic flash
-    _createPrismaticFlash();
-    // Starburst
-    _createStarburst(x, y, isNegative ? 'rgba(220, 38, 38, 0.5)' : 'rgba(251, 191, 36, 0.5)');
-    // 4 staggered halo rings
-    for (let i = 0; i < 4; i++) {
-        _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.7)' : 'rgba(251, 191, 36, 0.8)', i * 120);
-    }
-    // 40 sparkles
-    const mythicColors = isNegative
-        ? ['#ef4444', '#dc2626', '#991b1b', '#f97316', '#fbbf24']
-        : ['#fbbf24', '#f59e0b', '#eab308', '#22d3ee', '#a78bfa', '#ec4899', '#34d399'];
-    _createSparkles(x, y, 40, mythicColors, [4, 10], [60, 210]);
-    // Emoji rain
-    const emojis = isNegative ? ['☄️', '🌑', '⚰️', '💀', '🔥', '🕯️'] : ['🏆', '👑', '⚜️', '✨', '💎', '🌟', '🗺️', '🎁'];
-    triggerEmojiRain(x, y, emojis, 55);
-}
-
-function triggerLegendaryReveal(x, y, isNegative) {
-    const flash = document.createElement('div');
-    flash.className = 'screen-flash';
-    flash.style.setProperty('--flash-color', isNegative ? 'rgba(127, 29, 29, 0.45)' : 'rgba(251, 191, 36, 0.5)');
-    document.body.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
-
-    // 3 staggered halo rings
-    for (let i = 0; i < 3; i++) {
-        _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.7)' : 'rgba(251, 191, 36, 0.8)', i * 150);
-    }
-
-    // 32 sparkles
-    const legendaryColors = isNegative
-        ? ['#ef4444', '#dc2626', '#f97316']
-        : ['#fbbf24', '#f59e0b', '#eab308', '#fcd34d'];
-    _createSparkles(x, y, 32, legendaryColors, [3, 8], [50, 160]);
-
-    const emojis = isNegative ? ['💀', '⚰️', '🌑', '💀', '🔥'] : ['⭐', '✨', '🌟', '💫', '🏆', '⚜️', '👑'];
-    triggerEmojiRain(x, y, emojis, 35);
-}
-
-function triggerEpicReveal(x, y, isNegative) {
-    const flash = document.createElement('div');
-    flash.className = 'screen-flash';
-    flash.style.setProperty('--flash-color', isNegative ? 'rgba(127, 29, 29, 0.35)' : 'rgba(168, 85, 247, 0.4)');
-    document.body.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
-
-    // 2 staggered halo rings
-    _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.6)' : 'rgba(168, 85, 247, 0.7)');
-    setTimeout(() => _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.5)' : 'rgba(168, 85, 247, 0.5)'), 130);
-
-    // 24 sparkles
-    const epicColors = isNegative
-        ? ['#ef4444', '#f97316', '#fbbf24']
-        : ['#a855f7', '#c084fc', '#e879f9', '#fbbf24'];
-    _createSparkles(x, y, 24, epicColors, [3, 7], [40, 130]);
-
-    const emojis = isNegative ? ['🔻', '⚡', '💔'] : ['🌟', '✨', '💫', '🎁'];
-    triggerEmojiRain(x, y, emojis, 22);
-}
-
-function triggerRareReveal(x, y) {
-    const flash = document.createElement('div');
-    flash.className = 'screen-flash';
-    flash.style.setProperty('--flash-color', 'rgba(59, 130, 246, 0.35)');
-    document.body.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
-
-    // 1 halo ring
-    _createHaloRing(x, y, 'rgba(96, 165, 250, 0.6)');
-
-    // 16 sparkles
-    _createSparkles(x, y, 16, ['#a855f7', '#818cf8', '#c084fc', '#e9d5ff'], [2, 6], [30, 100]);
-
-    const emojis = ['✨', '⭐', '💫'];
-    triggerEmojiRain(x, y, emojis, 14);
-}
-
-function triggerCursedReveal(x, y) {
-    const flash = document.createElement('div');
-    flash.className = 'screen-flash';
-    flash.style.setProperty('--flash-color', 'rgba(127, 29, 29, 0.5)');
-    document.body.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
-
-    // 2 staggered halo rings
-    for (let i = 0; i < 2; i++) {
-        _createHaloRing(x, y, 'rgba(185, 28, 28, 0.7)', i * 200);
-    }
-
-    // Crumble particles
-    _createCrumbleParticles(x, y, 20, ['#ef4444', '#dc2626', '#991b1b', '#7f1d1d']);
-
-    // 20 sparkles (dark red)
-    _createSparkles(x, y, 20, ['#ef4444', '#dc2626', '#f87171'], [2, 5], [20, 80]);
-
-    triggerEmojiRain(x, y, ['⚡', '💀', '🌑', '🔻'], 18);
-}
-
-function triggerCommonReveal(x, y) {
-    // 8 sparkles (subtle)
-    _createSparkles(x, y, 8, ['#fbbf24', '#fcd34d', '#fef3c7'], [2, 5], [20, 60]);
-
-    triggerEmojiRain(x, y, ['✨', '⭐', '💫'], 8);
-}
-
-function triggerEmojiRain(x, y, emojis, count) {
-    for (let i = 0; i < count; i++) {
-        const star = document.createElement('div');
-        star.className = 'star-rain-element';
-        star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        const sz = 16 + Math.random() * 22;
-        const ws = (Math.random() - 0.5) * 120;
-        const we = (Math.random() - 0.5) * 160;
-        const fd = 120 + Math.random() * 220;
-        const rot = (Math.random() - 0.5) * 720;
-        const dur = 0.75 + Math.random() * 0.8;
-        const startX = x + (Math.random() - 0.5) * 200;
-        star.style.left = `${startX}px`;
-        star.style.top = `${y}px`;
-        star.style.setProperty('--size', `${sz}px`);
-        star.style.setProperty('--ws', `${ws}px`);
-        star.style.setProperty('--we', `${we}px`);
-        star.style.setProperty('--fd', `${fd}px`);
-        star.style.setProperty('--rot', `${rot}deg`);
-        star.style.setProperty('--duration', `${dur}s`);
-        star.style.animationDelay = `${Math.random() * 0.3}s`;
-        document.body.appendChild(star);
-        star.addEventListener('animationend', () => star.remove());
-    }
+/** Turns the wheel canvas with a CSS transform (composited: no repaint while it spins). */
+function _setCanvasRotation(canvas, angle) {
+    if (canvas) canvas.style.transform = `rotate(${angle}rad)`;
 }
 
 /**
- * Animate the wheel spin.
+ * Animate the wheel spin. The wheel face is painted once; the spin only rotates the canvas
+ * (a GPU transform), so it stays smooth on weak classroom laptops.
+ * About one spin in three ends with a near miss: the wheel creeps into the next wedge
+ * and rolls back.
  * @param {HTMLCanvasElement} canvas
  * @param {Array} segments
  * @param {number} winnerIndex
  * @param {object} guildDef
  * @param {Function} onTick - Called on each segment pass (for tick sound)
- * @returns {Promise} resolves when animation completes
+ * @param {{ startAngle?: number, quick?: boolean }} options - quick: the Whirlwind's shorter second spin
+ * @returns {Promise<{ rotationAngle: number }>} resolves when animation completes
  */
-export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick) {
+export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick, { startAngle = 0, quick = false } = {}) {
     return new Promise((resolve) => {
         const segCount = segments.length;
         const segAngle = TAU / segCount;
 
+        drawWheel(canvas, segments, 0, guildDef);
+        canvas.style.willChange = 'transform';
+
         // Target angle: winner segment should be at the TOP (12 o'clock = -π/2)
         const winnerCenterAngle = winnerIndex * segAngle + segAngle / 2;
+        const base = ((startAngle % TAU) + TAU) % TAU;
         const targetAngle = -winnerCenterAngle - Math.PI / 2;
+        const normalizedTarget = ((targetAngle - base) % TAU + TAU) % TAU;
+        const turns = quick ? 4 + Math.floor(Math.random() * 2) : 8 + Math.floor(Math.random() * 4);
+        const travel = turns * TAU + normalizedTarget;
 
-        // Add extra full spins for drama (8-12 full rotations for a high energy spin)
-        const extraSpins = (8 + Math.floor(Math.random() * 4)) * TAU;
-        const normalizedTarget = ((targetAngle % TAU) + TAU) % TAU;
-        const totalRotation = extraSpins + normalizedTarget;
-
-        const duration = 6500 + Math.random() * 1500; // 6.5-8s for maximum suspense
+        const nearMiss = !quick && Math.random() < 0.34;
+        const overshoot = nearMiss ? segAngle * (0.6 + Math.random() * 0.15) : 0;
+        const duration = (quick ? 3800 : 6500 + Math.random() * 1500) + (nearMiss ? 900 : 0);
+        const windUp = quick ? 0 : 0.07;
+        const rollback = nearMiss ? 0.13 : 0;
         const startTime = performance.now();
-        let lastSegIndex = -1;
+        let lastSegIndex = null;
 
-        // Custom easing: slight back-in (wind up) then long smooth ease-out
-        function customSpinEase(t) {
-            const c1 = 1.70158;
-            const c3 = c1 + 1;
-            
-            // Wind up
-            if (t < 0.1) {
-                const normalizedT = t / 0.1;
-                return -0.05 * Math.sin(normalizedT * Math.PI); 
+        const angleAt = (t) => {
+            if (t < windUp) return -segAngle * 0.7 * Math.sin((t / windUp) * Math.PI);
+            const mainEnd = 1 - rollback;
+            if (t < mainEnd || rollback === 0) {
+                const pt = Math.min(1, (t - windUp) / (mainEnd - windUp));
+                return (travel + overshoot) * (1 - Math.pow(1 - pt, 5));
             }
-            // Fast spin and slow down
-            const pt = (t - 0.1) / 0.9;
-            return 1 - Math.pow(1 - pt, 5); // easeOutQuint
-        }
+            const rt = (t - mainEnd) / rollback;
+            return travel + overshoot * (1 - (0.5 - 0.5 * Math.cos(Math.PI * rt)));
+        };
 
         function frame(now) {
-            const elapsed = now - startTime;
-            const t = Math.min(1, elapsed / duration);
-            const eased = customSpinEase(t);
-            const currentAngle = totalRotation * eased;
+            const t = Math.min(1, (now - startTime) / duration);
+            const angle = base + angleAt(t);
+            _setCanvasRotation(canvas, angle);
 
-            drawWheel(canvas, segments, currentAngle, guildDef);
-
-            // Tick sound on segment boundary crossing
-            // Only play tick if we're moving forward
-            if (t >= 0.1) {
-                // Offset by -π/2 because pointer is at 12 o'clock (top), not 3 o'clock
-                const normalizedAngle = (((currentAngle % TAU) + TAU) % TAU + Math.PI / 2) % TAU;
-                const currentSegIndex = Math.floor(normalizedAngle / segAngle) % segCount;
-                if (currentSegIndex !== lastSegIndex) {
-                    lastSegIndex = currentSegIndex;
-                    // Play sound slightly less often near the end for dramatic effect
-                    if (onTick && t < 0.99) onTick();
-                }
-            }
+            // A tick each time a peg passes the pointer (both ways, so the roll-back clicks too).
+            const pointerAt = ((((-Math.PI / 2 - angle) % TAU) + TAU) % TAU);
+            const segIndex = Math.floor(pointerAt / segAngle) % segCount;
+            if (lastSegIndex !== null && segIndex !== lastSegIndex && onTick && t < 0.999) onTick(segIndex);
+            lastSegIndex = segIndex;
 
             if (t < 1) {
                 requestAnimationFrame(frame);
             } else {
-                drawWheel(canvas, segments, totalRotation, guildDef, winnerIndex);
-                setTimeout(() => resolve({ rotationAngle: totalRotation }), 800);
+                const finalAngle = base + travel;
+                _setCanvasRotation(canvas, finalAngle);
+                canvas.style.willChange = '';
+                // The winner's spotlight is painted in wheel space; the canvas keeps its rotation.
+                drawWheel(canvas, segments, 0, guildDef, winnerIndex);
+                setTimeout(() => resolve({ rotationAngle: finalAngle }), 650);
             }
         }
 
@@ -1284,12 +1312,15 @@ export async function openFortunesWheel() {
     if (!modal) return;
 
     _wireWheelResize();
+    modal.classList.toggle('fw--lite', _isLite());
     // Clear the last ceremony's leftovers before the card animates in. The idle
     // phase hides the roster panel until the availability check settles.
     _setCardPhase('idle');
     _hideResultReveal();
     document.getElementById('fw-summary')?.classList.add('hidden');
     showAnimatedModal('fortunes-wheel-modal');
+    // Wake the audio once the card has landed, so the first spin starts without a stall.
+    setTimeout(() => { ensureAudioReady().then(() => warmWheelAudio()).catch(() => {}); }, 700);
 
     const resolvedClassId = state.get('globalSelectedClassId') || '';
     const allClasses = state.get('allTeachersClasses') || [];
@@ -1306,7 +1337,7 @@ export async function openFortunesWheel() {
 export async function refreshFortunesWheelModalFromGlobalClass() {
     const modal = document.getElementById('fortunes-wheel-modal');
     if (!modal || modal.classList.contains('hidden')) return;
-    if (_wheelState.phase === 'spinning') return;
+    if (['spinning', 'staging', 'applying'].includes(_wheelState.phase)) return;
     if ((_wheelState.results?.length || 0) > 0) return;
 
     const resolvedClassId = state.get('globalSelectedClassId') || '';
@@ -1320,7 +1351,7 @@ function _wireWheelResize() {
     if (_wheelResizeWired) return;
     _wheelResizeWired = true;
     window.addEventListener('resize', () => {
-        if (_wheelState.phase !== 'ready' && _wheelState.phase !== 'spinning' && _wheelState.phase !== 'revealed') return;
+        if (!['ready', 'revealed', 'staging'].includes(_wheelState.phase)) return;
         _sizeAndRenderWheel();
     });
 }
@@ -1483,6 +1514,94 @@ function _renderCurrentGuildMembers() {
         <div class="fw-guild-members__list">${rosterHtml}</div>`;
 }
 
+/** Plays the moment a wedge is landed on: storm clouds, a twist's shimmer, a trial's ring, or treasure. */
+async function _landingMoment(seg) {
+    const frame = document.getElementById('fw-stage-frame');
+    const lite = _isLite();
+    try {
+        if (seg.rarity === 'storm') {
+            playWheelSfx('thunder');
+            await fxStorm(frame, { lite });
+            return;
+        }
+        if (seg.rarity === 'twist') {
+            playSound('magic_chime');
+            fxTwist(frame);
+            await new Promise((r) => setTimeout(r, 600));
+            return;
+        }
+        if (seg.rarity === 'trial') {
+            playSound('quiz_open');
+            fxTrial(frame);
+            await new Promise((r) => setTimeout(r, 600));
+            return;
+        }
+        if (seg.rarity === 'mythic' || seg.rarity === 'legendary') playHeroFanfare();
+        else if (seg.rarity === 'epic') playSound('familiar_levelup');
+        else if (seg.rarity === 'rare') playSound('magic_chime');
+        else playSound('star1');
+    } catch (_) { /* sound is optional */ }
+}
+
+// Bumped whenever the ceremony closes, so a spin still playing out knows it is stale.
+let _ceremonySeq = 0;
+
+/** The teacher closed the wheel while it spun: close now (earlier guilds' fates are saved). */
+function _closeAfterSpin() {
+    _wheelState._aborting = false;
+    _wheelState.phase = 'closing';
+    return closeFortunesWheel();
+}
+
+/** Spins the wheel to `winnerIndex` (from wherever it rests) with ticks and pointer flicks. */
+async function _spinTo(winnerIndex, { quick = false } = {}) {
+    const canvas = document.getElementById('fortunes-wheel-canvas');
+    const guildDef = getGuildById(_wheelState.guildOrder[_wheelState.currentGuildIndex]);
+    const stageFrame = document.getElementById('fw-stage-frame');
+    stageFrame?.classList.add('is-spinning');
+    const anim = await animateWheelSpin(canvas, _wheelState.segments, winnerIndex, guildDef, () => {
+        try { playSound('click'); } catch (_) { /* optional */ }
+        _flickPointer();
+    }, { startAngle: _wheelState.rotationAngle || 0, quick });
+    stageFrame?.classList.remove('is-spinning');
+    _wheelState.winnerIndex = winnerIndex;
+    _wheelState.rotationAngle = anim?.rotationAngle || 0;
+}
+
+/** Opens the reveal layer as an empty, family-themed card for an interactive moment. */
+function _openStageCard(seg) {
+    const conf = getRarityPalette(seg.rarity, seg.paletteIndex);
+    _showResultReveal({ cardHtml: '', rarity: seg.rarity, rarityColor: conf.color, rarityGlow: conf.glow, rarityBg: conf.bg });
+    return document.getElementById('fw-reveal-card');
+}
+
+/** Everything a stage needs about the guild at the wheel and the class. */
+function _stageOptions(seg, cardEl) {
+    const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
+    const guildDef = getGuildById(guildId);
+    const classId = _wheelState.classId;
+    const students = (state.get('allStudents') || [])
+        .filter((s) => s.classId === classId && s.guildId === guildId)
+        .map((s) => ({ id: s.id, name: s.name || 'Hero', avatar: s.avatar || null }));
+    const otherGuilds = GUILD_IDS.filter((gid) => gid !== guildId)
+        .map((gid) => ({ id: gid, def: getGuildById(gid), count: _classMembersOf(gid, classId).length }))
+        .filter((g) => g.count > 0)
+        .map((g) => ({ id: g.id, name: g.def?.name || g.id, primary: g.def?.primary, emblemUrl: getGuildEmblemUrl(g.id), count: g.count }));
+    return {
+        cardEl,
+        segment: seg,
+        guild: { id: guildId, name: guildDef?.name || guildId, primary: guildDef?.primary, emblemUrl: getGuildEmblemUrl(guildId) },
+        band: challengeBand(_wheelState.leagueLevel, JUNIOR_LEAGUES),
+        students,
+        otherGuilds,
+        favored: Boolean(_wheelState.favored),
+        lite: _isLite(),
+        sfx: (name) => playWheelSfx(name),
+        sound: (name) => playSound(name),
+        drum: { start: () => playDrumRoll(), stop: () => stopDrumRoll() },
+    };
+}
+
 /**
  * Called when teacher clicks "Spin!" for the current guild.
  */
@@ -1490,60 +1609,76 @@ export async function triggerSpin() {
     if (_wheelState.phase !== 'ready') return;
     _wheelState.phase = 'spinning';
     _wheelState.winnerIndex = null;
-    _wheelState.rotationAngle = 0;
+    const seq = _ceremonySeq;
+    const stale = () => seq !== _ceremonySeq;
 
     try {
         await ensureAudioReady();
     } catch (_) {}
 
-    const canvas = document.getElementById('fortunes-wheel-canvas');
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
     const guildDef = getGuildById(guildId);
+    const guildName = guildDef?.name || 'The guild';
     const segments = _wheelState.segments;
-    const winnerIndex = spinWheel(segments.length);
-    const stageFrame = document.getElementById('fw-stage-frame');
-    if (stageFrame) stageFrame.classList.add('is-spinning');
-    const canvasWrap = document.getElementById('fw-canvas-wrap');
-    if (canvasWrap) canvasWrap.classList.remove('is-idle');
+    document.getElementById('fw-canvas-wrap')?.classList.remove('is-idle');
     _setCardPhase('spinning');
     _setStageCaption('The wheel whirls… every eye on the pointer.');
-
     _updateSpinButton(true, 'Spinning...');
 
-    // Animate
-    const anim = await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
-        try { playSound('click'); } catch (_) {}
-        _flickPointer();
-    });
-    if (stageFrame) stageFrame.classList.remove('is-spinning');
-    _wheelState.winnerIndex = winnerIndex;
-    _wheelState.rotationAngle = anim?.rotationAngle || 0;
+    await _spinTo(spinWheel(segments.length));
+    if (stale()) return;
+    if (_wheelState._aborting) return _closeAfterSpin();
 
-    // Guard: if the modal was closed during the spin animation, abort cleanly
-    if (_wheelState._aborting) {
-        _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0, _aborting: false };
-        hideModal('fortunes-wheel-modal');
+    let winningSeg = segments[_wheelState.winnerIndex];
+    await _landingMoment(winningSeg);
+    if (stale()) return;
+    if (_wheelState._aborting) return _closeAfterSpin();
+
+    // The Whirlwind spins the wheel again (it can't land on itself twice).
+    let whirlwind = null;
+    if (winningSeg.stage === 'whirlwind') {
+        whirlwind = winningSeg;
+        _wheelState.phase = 'staging';
+        _setCardPhase('staging');
+        await runStage('whirlwind', _stageOptions(winningSeg, _openStageCard(winningSeg)));
+        if (stale()) return;
         _hideResultReveal();
-        return;
+        _setCardPhase('spinning');
+        _setStageCaption('The Whirlwind spins the wheel again!');
+        fxSwirl(document.getElementById('fw-stage-frame'));
+        drawWheel(document.getElementById('fortunes-wheel-canvas'), segments, 0, guildDef);
+        const choices = segments.map((seg, i) => i).filter((i) => segments[i].id !== 'whirlwind');
+        _wheelState.phase = 'spinning';
+        await _spinTo(choices[spinWheel(choices.length)], { quick: true });
+        if (stale()) return;
+        if (_wheelState._aborting) return _closeAfterSpin();
+        winningSeg = segments[_wheelState.winnerIndex];
+        await _landingMoment(winningSeg);
+        if (stale()) return;
+        if (_wheelState._aborting) return _closeAfterSpin();
     }
 
-    // Reveal sound based on rarity
-    const winningSeg = segments[winnerIndex];
-    try {
-        if (winningSeg.rarity === 'mythic') playHeroFanfare();
-        else if (winningSeg.rarity === 'legendary') playHeroFanfare();
-        else if (winningSeg.rarity === 'epic') playSound('familiar_levelup');
-        else if (winningSeg.rarity === 'rare') playSound('magic_chime');
-        else if (winningSeg.rarity === 'cursed') playSound('star_remove');
-        else playSound('star1');
-    } catch (_) {}
+    let decision = {};
+    if (winningSeg.stage && winningSeg.stage !== 'whirlwind') {
+        _wheelState.phase = 'staging';
+        _setCardPhase('staging');
+        _setStageCaption(winningSeg.rarity === 'storm'
+            ? `A storm gathers over ${guildName}!`
+            : `${guildName} faces ${winningSeg.label}.`);
+        decision = await runStage(winningSeg.stage, _stageOptions(winningSeg, _openStageCard(winningSeg)));
+        if (stale()) return;
+    }
 
-    // Trigger WOW visual effects based on rarity
-    triggerWheelRevealEffects(winningSeg.rarity, false);
-
-    // Apply effect
-    const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId, { favored: Boolean(_wheelState.favored) });
+    const previous = _wheelState.results[_wheelState.results.length - 1] || null;
+    // Closing while the fate is being written waits for it, so it lands in the log too.
+    _wheelState.phase = 'applying';
+    const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId, { favored: Boolean(_wheelState.favored), decision, previous });
+    if (whirlwind) {
+        result.segmentLabel = `${whirlwind.emoji} ${whirlwind.label} → ${result.segmentLabel}`;
+        result.whirlwind = true;
+    }
     _wheelState.results.push(result);
+    if (_wheelState._aborting) return _closeAfterSpin();
     _wheelState.phase = 'revealed';
 
     // The guild_scores listener already carries these writes (Firestore applies local
@@ -1551,18 +1686,19 @@ export async function triggerSpin() {
     try {
         const guildsTab = document.getElementById('guilds-tab');
         if (guildsTab && !guildsTab.classList.contains('hidden')) {
-            import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
+            import('../ui/tabs/guilds.js').then(m => m.requestGuildHallRender());
         }
     } catch (_) { }
 
     _renderWheelResult(winningSeg, result, guildDef);
 }
 
-/** Draws the wheel for the guild now at the wheel (gilded when a Fortune's Favor waits). */
 function _prepareGuildWheel() {
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
     _wheelState.favored = isGuildWheelFavored(guildId, _wheelState.classId);
-    _wheelState.segments = generateWheelSegments(_wheelState.leagueLevel, { favored: _wheelState.favored });
+    _wheelState.calm = !_wheelState.favored && stormHitLastTime(guildId, _wheelState.classId);
+    _wheelState.segments = generateWheelSegments(_wheelState.leagueLevel, { favored: _wheelState.favored, calm: _wheelState.calm });
+    _wheelState.rotationAngle = 0;
 }
 
 /**
@@ -1571,6 +1707,7 @@ function _prepareGuildWheel() {
 export function advanceWheel() {
     if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
         _wheelState.currentGuildIndex++;
+        cancelStage();
         invalidateWheelCache();
         _prepareGuildWheel();
         _wheelState.phase = 'ready';
@@ -1588,19 +1725,24 @@ export function advanceWheel() {
  */
 export async function closeFortunesWheel() {
     // If a spin animation is in progress, flag it to abort after animation completes
-    if (_wheelState.phase === 'spinning') {
+    if (_wheelState.phase === 'spinning' || _wheelState.phase === 'applying') {
         _wheelState._aborting = true;
         return;
     }
+    // Closing in the middle of a chest, a coin or a trial: that guild's fate is left unapplied.
+    if (_wheelState.phase === 'staging') _wheelState.phase = 'closing';
+    cancelStage();
+    _ceremonySeq += 1;
     if (_wheelState.classId && _wheelState.results.length > 0) {
         try {
-            await saveFortuneWheelResult(_wheelState.classId, _wheelState.results);
+            // Firestore refuses undefined fields; the JSON round trip drops them.
+            await saveFortuneWheelResult(_wheelState.classId, JSON.parse(JSON.stringify(_wheelState.results)));
         } catch (err) {
             console.error('Failed to save wheel results:', err);
         }
     }
 
-    _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0 };
+    _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0, _aborting: false };
 
     // Leave the card exactly as it is while it animates out; re-rendering it
     // here flashed the idle roster panel inside the closing card.
@@ -1643,7 +1785,7 @@ function _renderWheelLegend() {
         legendEl.innerHTML = '';
         return;
     }
-    const order = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'cursed'];
+    const order = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'twist', 'trial', 'storm'];
     const counts = new Map();
     for (const seg of segments) counts.set(seg.rarity, (counts.get(seg.rarity) || 0) + 1);
     const chips = order
@@ -1687,9 +1829,12 @@ function _renderWheelPhase() {
     _renderCurrentGuildMembers();
     _renderWheelLegend();
     _setStageEmblem(guildId);
+    const guildName = guildDef?.name || 'This guild';
     _setStageCaption(_wheelState.favored
-        ? `${guildDef?.name || 'This guild'} steps up to a gilded wheel: Fortune's Favor chose only the rarer fates.`
-        : `${guildDef?.name || 'This guild'} steps up to the wheel. Spin to reveal its weekly fortune.`);
+        ? `${guildName} steps up to a gilded wheel: Fortune's Favor cleared the storms and the Trickster.`
+        : _wheelState.calm
+            ? `${guildName} steps up to calmer skies: only one storm this time. Spin!`
+            : `${guildName} steps up to the wheel. Treasure, twists, trials… or a storm?`);
     _setCardPhase('ready');
 
     const stageFrame = document.getElementById('fw-stage-frame');
@@ -1701,6 +1846,8 @@ function _renderWheelPhase() {
         stageFrame.style.setProperty('--guild-glow', guildDef?.glow || guildDef?.primary || '#fbbf24');
     }
 
+    // The ledger must be gone before the wheel measures its stage.
+    document.getElementById('fw-summary')?.classList.add('hidden');
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) {
         canvasWrap.classList.remove('hidden');
@@ -1746,9 +1893,10 @@ function _sizeAndRenderWheel() {
     canvas.style.height = `${displaySize}px`;
     canvas.width = pixelSize;
     canvas.height = pixelSize;
-    const rotation = _wheelState.phase === 'revealed' ? (_wheelState.rotationAngle || 0) : 0;
-    const highlightIndex = _wheelState.phase === 'revealed' ? _wheelState.winnerIndex : null;
-    drawWheel(canvas, _wheelState.segments, rotation, guildDef, highlightIndex);
+    // The face is painted unturned; the canvas itself carries the rotation (see animateWheelSpin).
+    const landed = _wheelState.phase === 'revealed' || _wheelState.phase === 'staging';
+    _setCanvasRotation(canvas, _wheelState.rotationAngle || 0);
+    drawWheel(canvas, _wheelState.segments, 0, guildDef, landed ? _wheelState.winnerIndex : null);
 }
 
 function _updateSpinButton(disabled, label = 'Spin the Wheel', sublabel = 'The relic chooses a fate') {
@@ -1935,25 +2083,39 @@ function _renderWheelResult(segment, result, guildDef) {
             <div class="fw-result-artifacts-showcase">${pills}${overflowPill}</div>`;
     }
 
+    // ── Outcome: how the fate turned out (storm braved, chest chosen, coin flipped…) ──
+    const family = ['storm', 'twist', 'trial'].includes(segment.rarity) ? segment.rarity : 'treasure';
+    const outcome = result.braved ? 'braved' : result.stormHit ? 'hit' : (result.gloryDelta || 0) < 0 ? 'hit' : 'gain';
+    const ribbon = result.braved ? 'Storm braved!' : result.whirlwind ? `Whirlwind · ${rarityConf.label}` : rarityConf.label;
+    const decisionHtml = result.decision
+        ? `<div class="fw-result-decision">${result.decision}</div>`
+        : '';
+
     // ── Full card HTML ────────────────────────────────────────────────────
     const cardHtml = `
         <div class="fw-result-card fw-result-card--v2${segment.isPrismatic ? ' is-prismatic' : ''}"
-             data-rarity="${segment.rarity}"
+             data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${outcome}"
              style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
-            <div class="fw-result-ribbon">${rarityConf.label}</div>
-            <div class="fw-result-emoji-orb">${segment.emoji}</div>
+            <div class="fw-result-ribbon">${ribbon}</div>
+            <div class="fw-result-emoji-orb">${result.braved ? '🛡️' : segment.emoji}</div>
             <div class="fw-result-guild-row">
                 ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || ''}" class="fw-result-guild-row__image">` : ''}
                 <span class="fw-result-guild-row__name">${guildDef?.name || result.guildId}</span>
             </div>
             <div class="fw-result-title">${segment.label}</div>
+            ${decisionHtml}
             <div class="fw-result-description">${result.description || segment.description}</div>
             ${statsBlockHtml}
             ${artifactShowcaseHtml}
             ${studentChipsHtml}
         </div>`;
 
-    _setStageCaption(`${guildDef?.name || 'The guild'} has received ${segment.label}. Advance when you are ready for the next reveal.`);
+    const guildName = guildDef?.name || 'The guild';
+    _setStageCaption(result.braved
+        ? `${guildName} braved the storm! Advance when you are ready for the next guild.`
+        : outcome === 'hit'
+            ? `A stormy moment for ${guildName}. Every hero has one. Advance when you are ready.`
+            : `${guildName} has received ${segment.label}. Advance when you are ready for the next reveal.`);
     _setCardPhase('revealed');
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
     _showResultReveal({
@@ -1984,13 +2146,34 @@ function _renderWheelResult(segment, result, guildDef) {
             }
     });
 
-    // ── Secondary sounds (staggered after the rarity sound that plays at spin-stop) ──
-    if ((result.starsDelta || 0) > 0)               setTimeout(() => playSound('star2'),        400);
-    if ((result.goldDelta || 0) > 0)                setTimeout(() => playSound('cash'),         600);
-    if ((result.artifactsGranted || 0) > 0)         setTimeout(() => playSound('magic_chime'),  800);
-    if ((result.starsDelta || 0) < 0 || (result.artifactsRemoved || 0) > 0) {
-        setTimeout(() => playSound('star_remove'), 400);
+    _playOutcome(segment, result, outcome);
+}
+
+/** The result card's moment: a shield for a braved storm, rain for a loss, a burst for a gift. */
+function _playOutcome(segment, result, outcome) {
+    const frame = document.getElementById('fw-stage-frame');
+    const o = _fxOrigin();
+    const lite = _isLite();
+    if (outcome === 'braved') {
+        try { playWheelSfx('shield'); } catch (_) { /* optional */ }
+        fxShield(frame);
+        if (o) fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#fde68a', '#fbbf24', '#fff7d6'], count: 18, emojis: ['🛡️', '✨'], emojiCount: 5, spread: o.size * 0.4, lite });
+        return;
     }
+    if (outcome === 'hit') {
+        try { setTimeout(() => playSound('star_remove'), 250); } catch (_) { /* optional */ }
+        if (o) fxBurst(o.layer, { x: o.x, y: o.y * 0.7, colors: ['#94a3b8', '#64748b', '#cbd5e1'], count: 8, emojis: ['💧', '🌧️'], emojiCount: 6, spread: o.size * 0.35, lite });
+        return;
+    }
+    const hasGain = (result.gloryDelta || 0) > 0 || (result.goldDelta || 0) > 0 || (result.starsDelta || 0) > 0
+        || (result.artifactsGranted || 0) > 0 || (result.classQuestDelta || 0) > 0;
+    if (TREASURE_FX[segment.rarity]) triggerWheelRevealEffects(segment.rarity);
+    else if (hasGain) triggerWheelRevealEffects(segment.rarity === 'trial' ? 'rare' : 'uncommon');
+    // Secondary sounds, staggered after the landing sound.
+    if ((result.starsDelta || 0) > 0)       setTimeout(() => playSound('star2'),       400);
+    if ((result.goldDelta || 0) > 0)        setTimeout(() => playSound('cash'),        600);
+    if ((result.artifactsGranted || 0) > 0) setTimeout(() => playSound('magic_chime'), 800);
+    if ((result.artifactsRemoved || 0) > 0) setTimeout(() => playSound('star_remove'), 400);
 }
 
 function _renderWheelSummary() {

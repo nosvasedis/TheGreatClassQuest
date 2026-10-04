@@ -48,7 +48,7 @@ export const guildsTabHTML = `
                             aria-label="Open the Fortune Ledger">
                         <span class="fl-toggle__book" aria-hidden="true"><i class="fa-solid fa-book"></i><span class="fl-toggle__clasp"></span></span>
                         <span class="fl-toggle__text">
-                            <span class="fl-toggle__kicker">Every treasure the Wheel gave this year</span>
+                            <span class="fl-toggle__kicker">Every fortune the Wheel brought this year</span>
                             <h3 id="fortune-ledger-heading" class="fl-toggle__title font-title">Fortune Ledger</h3>
                             <span id="fortune-ledger-summary" class="fl-toggle__summary">No spins yet this year</span>
                         </span>

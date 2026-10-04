@@ -296,8 +296,8 @@ function captureWheelLog() {
   const day = (d) => new Date(2026, 8, d, 13, 30);
   const spin = (id, d, weekKey, results) => ({ id, classId: 'capture-junior-b', weekKey, spunAt: day(d), spunBy: { name: 'Ms. Eleni' }, results });
   return [
-    spin('cap-w4', 25, '2026-W39', [r('dragon_flame', '⚜️ Glory Storm', 'epic', { gloryDelta: 20 }), r('owl_wisdom', '🎭 Trickster', 'cursed'), r('grizzly_might', '⚜️ Glory Surge', 'uncommon', { gloryDelta: 12 }), r('phoenix_rising', '🎆 Celebration!', 'common', { gloryDelta: 8 })]),
-    spin('cap-w3', 18, '2026-W38', [r('grizzly_might', '🌠 Star Cascade', 'rare', { starsDelta: 4, goldDelta: 40 }), r('phoenix_rising', '⚜️ Spark of Glory', 'common', { gloryDelta: 4 }), r('dragon_flame', '🎵 Anthem Power', 'common', { gloryDelta: 4 }), r('owl_wisdom', '👑 Glory Miracle', 'mythic', { gloryDelta: 25, goldDelta: 100 })]),
+    spin('cap-w4', 25, '2026-W39', [r('dragon_flame', '⚜️ Glory Cascade', 'epic', { gloryDelta: 20 }), r('owl_wisdom', '🌧️ Rain Cloud', 'storm', { gloryDelta: -4, stormHit: true }), r('grizzly_might', '🗝️ Three Chests', 'twist', { gloryDelta: 12, decision: 'Golden chest' }), r('phoenix_rising', '👺 Goblin’s Toll', 'storm', { braved: true })]),
+    spin('cap-w3', 18, '2026-W38', [r('grizzly_might', '🌠 Star Cascade', 'rare', { starsDelta: 4, goldDelta: 40 }), r('phoenix_rising', '⚜️ Spark of Glory', 'common', { gloryDelta: 4 }), r('dragon_flame', '🦁 Sphinx’s Riddle', 'trial', { gloryDelta: 12 }), r('owl_wisdom', '👑 Glory Miracle', 'mythic', { gloryDelta: 25, goldDelta: 100 })]),
     spin('cap-w2', 11, '2026-W37', [r('owl_wisdom', '🌟 Spotlight', 'uncommon', { artifactsGranted: 1 }), r('dragon_flame', '🪙 Gold Rush', 'common', { goldDelta: 45 }), r('phoenix_rising', '⚜️ Glory Fountain', 'rare', { gloryDelta: 15 }), r('grizzly_might', '📚 Scholar’s Blessing', 'uncommon', { classQuestDelta: 5 })]),
   ];
 }

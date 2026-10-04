@@ -6,7 +6,7 @@ import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guild
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
-import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
+import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek, getWheelState } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
 import * as state from '../../state.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
@@ -1278,6 +1278,8 @@ function _wireWheelModalButtons() {
         const target = e.target;
         if (!(target instanceof HTMLElement)) return;
         if (target.id === 'fortunes-wheel-modal' || target.classList.contains('fw-backdrop')) {
+            // Mid-challenge (a riddle, a coin, a chest) only the close button ends the ceremony.
+            if (getWheelState().phase === 'staging') return;
             closeFortunesWheel();
         }
     });
@@ -1285,6 +1287,7 @@ function _wireWheelModalButtons() {
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         if (modal.classList.contains('hidden')) return;
+        if (getWheelState().phase === 'staging') return;
         closeFortunesWheel();
     });
 }
@@ -1295,8 +1298,9 @@ const LEDGER_PAGE = 4;
 const LEDGER_RARITY = {
     common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic',
     legendary: 'Legendary', mythic: 'Mythic', cursed: 'Twist',
+    storm: 'Storm', twist: 'Twist', trial: 'Trial',
 };
-const LEDGER_RARITY_RANK = { cursed: 0, common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 };
+const LEDGER_RARITY_RANK = { storm: 0, cursed: 0, twist: 1, common: 1, trial: 2, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 };
 let _ledgerShown = LEDGER_PAGE;
 /** 'all' or a guild id */
 let _ledgerGuild = 'all';
@@ -1314,14 +1318,27 @@ function _ledgerSplitLabel(label) {
     return m ? [m[1], m[2]] : ['✨', String(label || 'A spin')];
 }
 
+/** +3 / −1 with a real minus sign. */
+function _signed(n) {
+    const v = Number(n) || 0;
+    return `${v < 0 ? '−' : '+'}${_fmtNumber(Math.abs(v))}`;
+}
+
 function _ledgerGifts(r) {
     const out = [];
-    if (Number(r.gloryDelta) > 0) out.push(`<span class="fl-gift fl-gift--glory">+${_fmtNumber(r.gloryDelta)} ${GLORY_EMOJI}</span>`);
-    if (Number(r.starsDelta) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.starsDelta)} ⭐</span>`);
-    if (Number(r.goldDelta) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.goldDelta)} 🪙</span>`);
+    const chip = (n, what, cls = '') => {
+        const v = Number(n) || 0;
+        if (!v) return;
+        out.push(`<span class="fl-gift${cls}${v < 0 ? ' fl-gift--loss' : ''}">${_signed(v)} ${what}</span>`);
+    };
+    chip(r.gloryDelta, GLORY_EMOJI, ' fl-gift--glory');
+    chip(r.starsDelta, '⭐');
+    chip(r.goldDelta, '🪙');
     if (Number(r.artifactsGranted) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.artifactsGranted)} 🎁</span>`);
-    if (Number(r.classQuestDelta) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.classQuestDelta)} Team Quest ⭐</span>`);
-    if (!out.length) out.push(`<span class="fl-gift fl-gift--quiet">${r.segmentId === 'trickster' || r.rarity === 'cursed' ? 'A harmless trick' : 'A little magic'}</span>`);
+    chip(r.classQuestDelta, 'Team Quest ⭐');
+    if (r.braved) out.push('<span class="fl-gift fl-gift--braved">🛡️ Braved</span>');
+    else if (r.decision) out.push(`<span class="fl-gift fl-gift--quiet">${_escapeHtml(r.decision)}</span>`);
+    if (!out.length) out.push(`<span class="fl-gift fl-gift--quiet">${r.segmentId === 'trickster' || r.rarity === 'cursed' ? 'A harmless trick' : r.rarity === 'storm' ? 'The storm found nothing' : 'A little magic'}</span>`);
     return out.join('');
 }
 
@@ -1330,7 +1347,7 @@ function _fmtNumber(n) {
 }
 
 function _ledgerTallies(logs) {
-    const t = Object.fromEntries(GUILD_IDS.map((id) => [id, { glory: 0, stars: 0, gold: 0, finds: 0, best: null }]));
+    const t = Object.fromEntries(GUILD_IDS.map((id) => [id, { glory: 0, stars: 0, gold: 0, finds: 0, braved: 0, best: null }]));
     logs.forEach((entry) => (entry.results || []).forEach((r) => {
         const row = t[r?.guildId];
         if (!row) return;
@@ -1338,6 +1355,7 @@ function _ledgerTallies(logs) {
         row.glory += Number(r.gloryDelta) || 0;
         row.stars += Number(r.starsDelta) || 0;
         row.gold += Number(r.goldDelta) || 0;
+        if (r.braved) row.braved += 1;
         const rank = (x) => (LEDGER_RARITY_RANK[x?.rarity] ?? 1) * 1000 + (Number(x?.gloryDelta) || 0);
         if (!row.best || rank(r) > rank(row.best)) row.best = r;
     }));
@@ -1353,18 +1371,18 @@ function _renderLedgerChrome(logs, tallies) {
     const last = _ledgerDate(logs[0]);
     if (summary) {
         _setText(summary, logs.length
-            ? `${logs.length} spin${logs.length === 1 ? '' : 's'} · +${_fmtNumber(totalGlory)} Glory found${last ? ` · last spin ${last.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}`
+            ? `${logs.length} spin${logs.length === 1 ? '' : 's'} · ${_signed(totalGlory)} Glory${last ? ` · last spin ${last.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}`
             : 'No spins yet this year');
     }
     const topGlory = Math.max(...GUILD_IDS.map((id) => tallies[id].glory));
     const isLucky = (id) => totalGlory > 0 && tallies[id].glory === topGlory;
     _setHtml(peek, logs.length ? GUILD_IDS.map((id) => {
         const g = getGuildById(id) || {};
-        return `<span class="fl-peek__g${isLucky(id) ? ' is-lucky' : ''}" style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};">${_emblemBadge(id, g.name, 'fl-peek__emblem')}<b>+${_fmtNumber(tallies[id].glory)}</b></span>`;
+        return `<span class="fl-peek__g${isLucky(id) ? ' is-lucky' : ''}" style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};">${_emblemBadge(id, g.name, 'fl-peek__emblem')}<b>${_signed(tallies[id].glory)}</b></span>`;
     }).join('') : '');
 
     _setHtml(tallyEl, logs.length ? `
-                                <h4 class="fl-tally__title">Treasure count this year</h4>
+                                <h4 class="fl-tally__title">Fortune count this year</h4>
                                 <ul class="fl-tally__list">${GUILD_IDS.map((id, i) => {
         const g = getGuildById(id) || {};
         const t = tallies[id];
@@ -1373,8 +1391,8 @@ function _renderLedgerChrome(logs, tallies) {
                                     <li class="fl-chest${isLucky(id) ? ' is-lucky' : ''}" style="--g1:${g.primary || '#666'};--g2:${g.secondary || '#999'};--i:${i};">
                                         ${isLucky(id) ? '<span class="fl-chest__ribbon">Luckiest guild</span>' : ''}
                                         <span class="fl-chest__head">${_emblemBadge(id, g.name, 'fl-chest__emblem')}<span class="fl-chest__name">${_escapeHtml(g.name || id)}</span></span>
-                                        <span class="fl-chest__glory"><b>+${_fmtNumber(t.glory)}</b> ${GLORY_EMOJI} Glory</span>
-                                        <span class="fl-chest__more">${t.finds} find${t.finds === 1 ? '' : 's'} · +${_fmtNumber(t.stars)} ⭐ · +${_fmtNumber(t.gold)} 🪙</span>
+                                        <span class="fl-chest__glory"><b>${_signed(t.glory)}</b> ${GLORY_EMOJI} Glory</span>
+                                        <span class="fl-chest__more">${t.finds} spin${t.finds === 1 ? '' : 's'} · ${_signed(t.stars)} ⭐ · ${_signed(t.gold)} 🪙${t.braved ? ` · 🛡️ ${t.braved}` : ''}</span>
                                         ${t.best ? `<span class="fl-chest__best fl-r--${_escapeHtml(t.best.rarity || 'common')}" title="Best find"><span aria-hidden="true">${bestIcon}</span>${_escapeHtml(bestName)}</span>` : ''}
                                     </li>`;
     }).join('')}</ul>` : '');
@@ -1404,7 +1422,7 @@ function _ledgerEntryHtml(entry, i, classNames) {
                         <header class="fl-entry__head">
                             ${className ? `<span class="fl-entry__class"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>${_escapeHtml(className)}</span>` : ''}
                             ${by ? `<span class="fl-entry__by">spun with ${_escapeHtml(by)}</span>` : ''}
-                            <span class="fl-entry__total">+${_fmtNumber(total)} ${GLORY_EMOJI}</span>
+                            <span class="fl-entry__total${total < 0 ? ' is-loss' : ''}">${_signed(total)} ${GLORY_EMOJI}</span>
                         </header>
                         <ul class="fl-cards${results.length === 1 ? ' fl-cards--one' : ''}">${results.map((r, k) => {
         const g = getGuildById(r.guildId) || {};

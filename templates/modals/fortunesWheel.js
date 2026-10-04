@@ -44,6 +44,8 @@ export const fortunesWheelModalHTML = `
                 </div>
             </div>
 
+            <div id="fw-fx" class="fw-fx" aria-hidden="true"></div>
+
             <div class="fw-atmosphere" aria-hidden="true">
                 <div class="fw-atmosphere__halo"></div>
                 <div class="fw-atmosphere__stars"></div>

@@ -93,10 +93,16 @@ export async function applyWheelStudentEffects({
 
     let artifactsGranted = 0;
     let artifactsRemoved = 0;
+    // Gold can't go below 0, so a loss reports what was really taken.
+    let goldApplied = 0;
     /** @type {Array<{id:string, name:string, icon:string, description:string}>} */
     const grantedArtifactsList = [];
 
     await runTransaction(db, async (transaction) => {
+        goldApplied = 0;
+        artifactsGranted = 0;
+        artifactsRemoved = 0;
+        grantedArtifactsList.length = 0;
         const scoreSnapshots = new Map();
         for (const studentId of affectedStudentIds) {
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
@@ -125,6 +131,7 @@ export async function applyWheelStudentEffects({
 
             if (goldDelta !== 0) {
                 next.gold = Math.max(0, currentGold + goldDelta);
+                goldApplied += next.gold - currentGold;
             }
 
             let nextInventory = currentInventory;
@@ -183,7 +190,7 @@ export async function applyWheelStudentEffects({
     return {
         affectedStudents: affectedStudentIds,
         starsDelta: totalStarsDelta,
-        goldDelta: totalGoldDelta,
+        goldDelta: goldDelta < 0 ? goldApplied : totalGoldDelta,
         artifactsGranted,
         artifactsRemoved,
         grantedArtifacts: grantedArtifactsList

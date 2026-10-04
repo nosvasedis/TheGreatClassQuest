@@ -10,7 +10,7 @@ export const ARTIFACTS = [
   { icon: '💰', name: 'Aurum Satchel', gold: 32, perk: '50% off the next Market buy this month' },
   { icon: '⚜️', name: 'Banner of Glory', gold: 35, perk: 'Next 3 stars each write +1 Guild Glory' },
   { icon: '📢', name: "The Herald's Banner", gold: 40, perk: 'School-wide victory celebration' },
-  { icon: '🍀', name: 'Fortune’s Favor', gold: 48, perk: 'The guild’s next Wheel is gilded: no commons, no Trickster' },
+  { icon: '🍀', name: 'Fortune’s Favor', gold: 48, perk: 'The guild’s next Wheel is gilded: no storms, no Trickster, no commons' },
   { icon: '📜', name: 'The Starfall Catalyst', gold: 50, perk: 'Double the next high-test Starfall' },
   { icon: '🏆', name: 'Chalice of Unity', gold: 55, perk: '+1 Glory now for every guildmate in the class' },
   { icon: '💝', name: 'Compassion Token', gold: 55, perk: "Hero's Boon costs 0 Gold this month" },

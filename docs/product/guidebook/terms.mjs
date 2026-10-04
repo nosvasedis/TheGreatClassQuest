@@ -213,8 +213,8 @@ export const TERMS = [
     names: { en: "Fortune's Wheel", el: "Fortune's Wheel" },
     aliases: ["fortune's wheel", 'fortunes wheel', 'fortune wheel', 'the wheel'],
     def: {
-      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. A treasure wheel: its Glory goes to each guildmate in the class, and nothing is ever taken away. Pro.',
-      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Ένας τροχός θησαυρών: το Glory του πηγαίνει σε κάθε μέλος του guild στο τμήμα, και τίποτα δεν χάνεται ποτέ. Pro.'
+      en: 'Weekly ritual in Guild Hall on the class’s last lesson of a Monday–Friday week, once per class: each guild takes its turn on its own 20-wedge celestial wheel, then the Final Ledger. Treasure, drama twists, quick English trials and small storms that a guild can brave; its Glory goes to (or comes from) each guildmate in the class, and a storm never takes stars or artifacts. Pro.',
+      el: 'Εβδομαδιαίο τελετουργικό στο Guild Hall, στο τελευταίο μάθημα της εβδομάδας Δευτέρα–Παρασκευή, μία φορά ανά τμήμα: κάθε guild γυρίζει τον δικό του ουράνιο τροχό με 20 σφήνες, και μετά το Final Ledger. Θησαυροί, twists με δράμα, σύντομα trials στα Αγγλικά και μικρές καταιγίδες που ένα guild μπορεί να αντιμετωπίσει· το Glory του πηγαίνει σε (ή φεύγει από) κάθε μέλος του guild στο τμήμα, και μια καταιγίδα δεν παίρνει ποτέ αστέρια ή artifacts. Pro.'
     },
     confuse: { en: 'Quiz of the Week', el: 'Quiz of the Week' }
   },

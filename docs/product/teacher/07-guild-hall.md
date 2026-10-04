@@ -43,7 +43,7 @@ Starter schools see a locked hat. **Pro** and **Elite** run the quiz.
 
 ## Glory and the Crown Race
 
-Every positive star adds **Guild Glory**, at **2 Glory per star**, plus a little from Fortune’s Wheel and a few Mystic Market relics. Quiz of the Week pays its Glory through the stars it gives. Glory is never taken away by chance: only an undone star or a teacher’s correction removes it.
+Every positive star adds **Guild Glory**, at **2 Glory per star**, plus a little from Fortune’s Wheel and a few Mystic Market relics. Quiz of the Week pays its Glory through the stars it gives. The only chance that takes Glory away is a small Fortune’s Wheel storm or twist, and only from Glory earned this month. Otherwise only an undone star or a teacher’s correction removes it.
 
 **Chapters.** Each school month is a **Chapter**. On the 1st every guild starts the Chapter at 0. The Chapter is won by the guild whose members earned the **most Glory each, on average**: the Glory its current members earned that month, divided by how many members it has. A house of eight who all play beats a house of twenty where four children carry the banner.
 
@@ -124,26 +124,38 @@ A weekly ritual, not a slot machine to mash every lesson. It lives on this tab b
 - You are **inside lesson time**
 - This class has **not** already spun this week
 
-**How the ceremony runs.** Open **Fortune's Wheel** from its button in the Hall. It opens as a celestial **Wheel of Fate**: a night sky with a turning zodiac ring, the wheel framed by star lamps. The four guilds take their turn **one at a time, in a random order**. Each guild gets its own wheel, and an **On this wheel** panel counts how many wedges of each rarity it faces. Press **Spin This Guild**; the landed wedge is revealed on a fortune card. Then **Present Next Guild**, and after the fourth guild **Reveal Final Ledger** deals the week's outcome as four fortune cards. Every gift lands on that guild's members **in this class**. When the wheel cannot spin, it is shown chained and sealed (or recharging, if this class has already spun this week).
+**How the ceremony runs.** Open **Fortune's Wheel** from its button in the Hall. It opens as a celestial **Wheel of Fate**: a night sky with a turning zodiac ring, the wheel framed by star lamps. The four guilds take their turn **one at a time, in a random order**. Each guild gets its own wheel, and an **On this wheel** panel counts how many wedges of each kind it faces. Press **Spin This Guild**. The wheel winds back, races, slows, and sometimes creeps past a wedge and rolls back. Then the landed wedge plays out: a treasure is revealed on a fortune card, a storm rolls clouds and lightning over the wheel, a twist or a trial opens its own moment on the card. **Present Next Guild** moves on, and after the fourth guild **Reveal Final Ledger** deals the week's outcome as four fortune cards. Every gift (and every loss) lands on that guild's members **in this class**. When the wheel cannot spin, it is shown chained and sealed (or recharging, if this class has already spun this week).
 
-**A treasure wheel.** Nothing on the wheel takes stars, Gold, artifacts or Glory away, and nothing multiplies future Glory. The worst wedge is the **Trickster** (a Twist): it looks like a win and turns out to be nothing. Spin it as a celebration, not as a threat.
+**Anything can happen, a little.** Each wheel has **20** wedges in four families, each with its own colour and pattern:
 
-Each wheel draws **20** unique segments from the catalogue (at most one Trickster, one legendary and one mythic wedge, and always at least one rare-or-better wedge to hope for). Categories:
+- **Treasure** (common to mythic, jewel colours): +1 to +5 Glory for **each guildmate in this class** (Spark, Surge, Fountain, Cascade, Glory Miracle), stars, Gold, artifacts and Team Quest bonus stars. **Rainbow Bridge** gives +1 Glory to every child in the class, for their own guild. At most two epic, one legendary and one mythic wedge, and always at least one rare-or-better wedge to hope for.
+- **Twist** (magenta, harlequin diamonds), 3 per wheel: the drama.
+  - **Whirlwind**: the wind grabs the wheel and spins it again.
+  - **Three Chests**: the guild picks one of three chests. Golden: +3 Glory each. Silver: +1 Glory each and Gold for two guildmates. The third is a **Mimic**: −1 Glory each. The other two chests open afterwards, so the class sees what it missed.
+  - **Double or Nothing**: keep +1 Glory each, or flip the coin. The guild's crest: +3 each. The bolt: −1 each.
+  - **Kindness Gift**: the guild chooses another guild in the class, and both earn +1 Glory for each of their members here.
+  - **Robin Hood**: takes 1 Glory from each guildmate here and gives +1 to each member here of the guild that is last this month. If the spinning guild is last, Robin helps it instead.
+  - **Mirror of Fates**: copies exactly what the guild before got, good or bad.
+  - **Trickster**: a fake legendary jackpot that cracks and flips: nothing won, nothing lost.
+- **Trial** (teal, rings), 2 per wheel: a short English challenge in front of the class. Press **Start the clock**; you judge with **Correct!** or **Not this time**. **Another one** draws a new question, and **Answer (for the teacher)** shows the answer to you. Questions come in two bands: Pre-Junior and Junior A/B get simpler ones.
+  - **Sphinx's Riddle** (20 seconds): right +3 Glory each, wrong −1 each.
+  - **Lightning Round** (30 seconds): name words before the clock runs out. +2 Glory each, or nothing.
+  - **Hero's Dare**: a spotlight hops across the guild and picks one child for a dare. +1 star and +10 Gold, or +5 Gold for a brave try.
+- **Storm** (slate with lightning yellow, rain streaks), 2 or 3 per wheel: a small loss. **Rain Cloud** (−1 Glory each), **Leaky Pouch** (3 guildmates drop 5 Gold), **Goblin's Toll** (2 guildmates pay 10 Gold), **Rockslide** (−1 Glory each and 2 guildmates drop 5 Gold) and **Thunderclap** (−2 Glory each). The guild can **Brave the storm** on most of them: answer one question together and the shield holds, nothing lost; a wrong answer lets the storm through. Thunderclap and Leaky Pouch have no shelter.
 
-- **Glory**: +1 to +5 Glory for **each guildmate in this class** (Spark, Surge, Fountain, Storm, Glory Miracle). **Rainbow Bridge** gives +1 Glory to every child in the class, for their own guild
-- **Perk**: stars, Gold and artifacts for guildmates here, and Team Quest bonus stars for the class
-- **Fun**: anthem, confetti and a small gift
-- **Twist**: the Trickster, harmless
+**Losses stay small and fair.** A storm never takes stars or artifacts. It takes only Glory a child earned **this month** (nobody goes below 0) and Gold only from children who have some. A guild that a storm (or any loss) hit at its last spin in this class gets **calmer skies** next time: one storm at most. Spin it as a game the whole class is in, and say so when a storm hits: every hero has stormy days.
 
-**Wheel Glory is fair per child.** Glory goes to each guild member who is in the spinning class, so a guild’s Chapter Glory per member rises by the same small amount whatever its size, and every child in every guild has the same chances each week. Because the Wheel’s Glory is small next to a month of stars, effort decides the Chapter and the Wheel adds sparkle.
+**Wheel Glory is fair per child.** Glory goes to (or comes from) each guild member who is in the spinning class, so a guild's Chapter Glory per member moves by the same small amount whatever its size, and every child in every guild has the same chances each week. Because the Wheel's Glory is small next to a month of stars, effort decides the Chapter and the Wheel adds drama.
 
-**Fortune’s Favor.** A student who used **Fortune’s Favor** from the Mystic Market gilds their guild’s next wheel in their class: no common wedges and no Trickster. The stage says so before the spin, and the Favor is spent on that spin.
+**Fortune’s Favor.** A student who used **Fortune’s Favor** from the Mystic Market gilds their guild's next wheel in their class: no storms, no Trickster, Robin Hood or Mirror, no common wedges, and the chests hold a bronze prize instead of the Mimic. The stage says so before the spin, and the Favor is spent on that spin.
+
+**On a slower laptop** the wheel plays the same moments with fewer particles and stops the background loops, so the spin stays smooth on a projector laptop.
 
 Spin **with the class watching**. Read the Ledger afterward so the story is remembered.
 
 ## Fortune Ledger
 
-History of what the Wheel actually did **this school year**: who gained Glory, who found an artifact, which class got a Quest bonus. Opening the book shows the Wheel’s window for the chosen class, a **Treasure count** per guild (Glory, finds, stars, gold and the best find, with a **Luckiest guild** ribbon), guild chips to show one guild only, and one page per spin: its date, class and teacher, the Glory it gave, and four fortune cards edged in their rarity colour. **Show older spins** turns more pages. Use it in the Grand Guild Ceremony narrative and in parent conversations (“the house had a hard Wheel week, then recovered”). When the year is finished, those entries stay with that year — the new year’s Ledger starts empty.
+History of what the Wheel actually did **this school year**: who gained Glory, who found an artifact, which class got a Quest bonus, which guild braved a storm and which one lost a little. Opening the book shows the Wheel’s window for the chosen class, a **Fortune count** per guild (Glory, spins, stars, gold, storms braved and the best find, with a **Luckiest guild** ribbon), guild chips to show one guild only, and one page per spin: its date, class and teacher, the Glory it gave or took (a loss shows with a minus), and four fortune cards edged in their family colour, with the choice the guild made (the chest it picked, the coin flip). **Show older spins** turns more pages. Use it in the Grand Guild Ceremony narrative and in parent conversations (“the house had a hard Wheel week, then recovered”). When the year is finished, those entries stay with that year — the new year’s Ledger starts empty.
 
 ## How this feeds the rest of the Quest
 
@@ -152,7 +164,7 @@ History of what the Wheel actually did **this school year**: who gained Glory, w
 | Award Stars | 2 Glory per star, for this Chapter and the year |
 | Hero’s Boon (+0.5) | Glory for the receiver’s house |
 | Quiz of the Week | Glory from the stars each child earns with their own answers |
-| Fortune’s Wheel | Small Glory for each guildmate in the class, plus perks |
+| Fortune’s Wheel | Small Glory for each guildmate in the class, plus perks; a storm or twist can take a little back |
 | Mystic Market | Banner of Glory, Chalice of Unity, Guild Standard, Fortune’s Favor |
 | Pathfinder / Quest bonuses | Team Quest, not the Crown Race directly. Wheel perks can add both |
 

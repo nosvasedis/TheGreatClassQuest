@@ -43,7 +43,7 @@ Always in stock. **Two legendary buys per student per month.** Use them from the
 | **Aurum Satchel** | 32 | **50% off** the next Market purchase this month | — |
 | **Banner of Glory** | 35 | Next **3** stars each add **+1 bonus Guild Glory** | Needs a guild |
 | **The Herald’s Banner** | 40 | A school-wide celebration message | — |
-| **Fortune’s Favor** | 48 | The guild’s next **Fortune’s Wheel** in the student’s class is gilded: no common wedges and no Trickster | Needs a guild |
+| **Fortune’s Favor** | 48 | The guild’s next **Fortune’s Wheel** in the student’s class is gilded: no storms, no Trickster and no common wedges | Needs a guild |
 | **The Starfall Catalyst** | 50 | Doubles the next high-test **Starfall** bonus | — |
 | **Chalice of Unity** | 55 | **+1 Glory** right away for the student and every guildmate in their class | Needs a guild |
 | **Compassion Token** | 55 | Hero’s Boon costs **0 Gold** for the rest of this month | — |

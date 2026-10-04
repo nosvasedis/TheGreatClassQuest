@@ -227,6 +227,16 @@ export const WHEEL_RARITY_CONFIG = {
         { label: 'Twist',     color: '#dc2626', bg: '#450a0a', glow: '#dc262680' },   // Dark Crimson
         { label: 'Twist',     color: '#b91c1c', bg: '#450a0a', glow: '#b91c1c80' },   // Shadow Red
     ],
+    // The wheel's three families beside the treasure tiers (each also has its own pattern).
+    storm: [
+        { label: 'Storm',     color: '#facc15', bg: '#1e2533', glow: '#94a3b880' },   // Thundercloud, lightning edge
+    ],
+    twist: [
+        { label: 'Twist',     color: '#ff5ad8', bg: '#3a0a33', glow: '#ff5ad880' },   // Harlequin magenta
+    ],
+    trial: [
+        { label: 'Trial',     color: '#5eead4', bg: '#0d3b37', glow: '#5eead480' },   // Sphinx teal
+    ],
 };
 
 /** Prismatic config for ultra-rare rainbow segments (used on mythic/legendary isPrismatic segments) */

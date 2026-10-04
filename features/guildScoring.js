@@ -347,6 +347,45 @@ export async function awardGloryToStudents(studentIds = [], glory = 0, source = 
     return byGuild;
 }
 
+/** Glory a student has earned for their guild in this month's Chapter (from the live guild doc). */
+export function chapterGloryOf(studentId, now = new Date()) {
+    const guildId = _getStudent(studentId)?.guildId;
+    const key = chapterKeyFor(now);
+    const members = ((state.get('allGuildScores') || {})[guildId]?.chapters || {})[key]?.members || {};
+    return Math.max(0, Number(members[studentId]) || 0);
+}
+
+/**
+ * Takes up to `glory` from each student's Glory for their guild (a Fortune's Wheel storm).
+ * Only Glory the child already earned this month can be lost, so no one ever drops below 0
+ * in the Chapter. Returns the Glory actually taken, per guild and per student (as positive numbers).
+ */
+export async function takeGloryFromStudents(studentIds = [], glory = 0, source = 'wheel_storm', { note = '', classId = null, idempotencyPrefix = null } = {}) {
+    const amount = roundTo(Number(glory) || 0, 2);
+    const byGuild = {};
+    const byStudent = {};
+    if (!(amount > 0)) return { byGuild, byStudent };
+    for (const studentId of [...new Set(studentIds)]) {
+        const student = _getStudent(studentId);
+        const guildId = student?.guildId;
+        if (!guildId || !GUILD_IDS.includes(guildId)) continue;
+        const take = roundTo(Math.min(amount, chapterGloryOf(studentId)), 2);
+        if (!(take > 0)) continue;
+        await recordGuildGloryEvent({
+            guildId,
+            studentId,
+            classId: classId || student.classId || null,
+            source,
+            directGlory: -take,
+            note,
+            idempotencyKey: idempotencyPrefix ? `${idempotencyPrefix}_${studentId}` : null,
+        });
+        byGuild[guildId] = roundTo((byGuild[guildId] || 0) + take, 2);
+        byStudent[studentId] = take;
+    }
+    return { byGuild, byStudent };
+}
+
 /** Current member count per guild (active students of this school year). */
 export function getGuildMemberCounts() {
     const counts = {};

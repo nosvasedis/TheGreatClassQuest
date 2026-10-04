@@ -730,6 +730,9 @@
 .gsp-rarity--legendary { --r: #fbbf24; }
 .gsp-rarity--mythic { --r: #f472b6; }
 .gsp-rarity--cursed { --r: #a8a29e; }
+.gsp-rarity--storm { --r: #94a3b8; }
+.gsp-rarity--twist { --r: #ff5ad8; }
+.gsp-rarity--trial { --r: #2dd4bf; }
 .gsp-rarity {
     justify-self: end;
     padding: 0.12rem 0.55rem;
@@ -775,6 +778,7 @@
 .gsp-gift { padding: 0.12rem 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.08); font-size: 0.72rem; font-weight: 800; white-space: nowrap; }
 .gsp-gift--glory { background: rgba(245, 201, 90, 0.18); color: #fde68a; }
 .gsp-gift--quiet { color: var(--sp-ink-3); font-weight: 700; }
+.gsp-gift--loss { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
 .gsp-finds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
 .gsp-find {
     display: grid;

@@ -1,0 +1,1208 @@
+/* ==========================================================================
+   Fortune's Wheel — Fates: the twists, trials and storms (features/wheelStages.js)
+   and every effect around the wheel: bursts, flashes, storm clouds, the shield.
+   Weak-laptop rules: every animation moves only transform and opacity; no
+   filter or backdrop blur; .fw--lite (detectLowPowerTier) and reduced motion
+   trim the extras. Families: storm (slate + lightning yellow), twist (magenta),
+   trial (teal).
+   ========================================================================== */
+
+#fortunes-wheel-modal {
+    --fwx-storm: #facc15;
+    --fwx-storm-bg: #1e2533;
+    --fwx-storm-ink: #cbd5e1;
+    --fwx-twist: #ff5ad8;
+    --fwx-twist-bg: #3a0a33;
+    --fwx-trial: #5eead4;
+    --fwx-trial-bg: #0d3b37;
+    --fwx-win: #4ade80;
+    --fwx-lose: #fb7185;
+}
+
+/* ── Effect layer over the whole card ──────────────────────────────────── */
+
+.fw-fx {
+    position: absolute;
+    inset: 0;
+    z-index: 13;
+    pointer-events: none;
+    overflow: hidden;
+    contain: strict;
+}
+
+.fwx-spark {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 22%, var(--c) 40%, transparent 72%);
+    opacity: 0;
+    animation: fwx-spark var(--d, 0.9s) cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
+}
+
+@keyframes fwx-spark {
+    0% { opacity: 1; transform: translate(0, 0) scale(var(--s, 1)); }
+    70% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.2); }
+}
+
+.fwx-emoji {
+    position: absolute;
+    font-size: 1.6rem;
+    line-height: 1;
+    margin: -0.8rem 0 0 -0.8rem;
+    opacity: 0;
+    animation: fwx-emoji var(--d, 1.5s) cubic-bezier(0.2, 0.7, 0.4, 1) var(--delay, 0s) forwards;
+}
+
+@keyframes fwx-emoji {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+    12% { opacity: 1; }
+    45% { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(var(--s, 1)) rotate(calc(var(--r) * 0.5)); }
+    100% { opacity: 0; transform: translate(var(--tx), calc(var(--ty) + var(--fall, 120px))) scale(calc(var(--s, 1) * 0.8)) rotate(var(--r)); }
+}
+
+.fwx-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 45%, var(--c), transparent 70%);
+    opacity: 0;
+    animation: fwx-flash 0.8s ease-out forwards;
+}
+
+@keyframes fwx-flash {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ── Storm over the wheel ──────────────────────────────────────────────── */
+
+.fwx-storm {
+    position: absolute;
+    inset: -14% -18% 0;
+    z-index: 8;
+    pointer-events: none;
+    animation: fwx-fade-out 2.6s linear forwards;
+}
+
+@keyframes fwx-fade-out {
+    0%, 78% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.fwx-storm__cloud {
+    position: absolute;
+    top: 0;
+    width: 58%;
+    height: 30%;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 30% 60%, #475569 0 30%, transparent 31%),
+        radial-gradient(circle at 55% 40%, #64748b 0 34%, transparent 35%),
+        radial-gradient(circle at 78% 62%, #475569 0 28%, transparent 29%),
+        radial-gradient(ellipse at 50% 78%, #334155 0 46%, transparent 47%);
+    opacity: 0;
+}
+
+.fwx-storm__cloud--a { left: -6%; animation: fwx-cloud-l 2.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+.fwx-storm__cloud--b { right: -6%; top: 4%; animation: fwx-cloud-r 2.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+.fwx-storm__cloud--c { left: 22%; top: -6%; width: 56%; animation: fwx-cloud-c 2.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+
+@keyframes fwx-cloud-l {
+    0% { opacity: 0; transform: translateX(-40%) scale(0.9); }
+    20%, 80% { opacity: 0.96; transform: translateX(8%) scale(1); }
+    100% { opacity: 0; transform: translateX(-10%) scale(1); }
+}
+
+@keyframes fwx-cloud-r {
+    0% { opacity: 0; transform: translateX(40%) scale(0.9); }
+    22%, 80% { opacity: 0.96; transform: translateX(-8%) scale(1); }
+    100% { opacity: 0; transform: translateX(10%) scale(1); }
+}
+
+@keyframes fwx-cloud-c {
+    0% { opacity: 0; transform: translateY(-30%) scale(0.85); }
+    25%, 80% { opacity: 0.9; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-15%) scale(1); }
+}
+
+/* Rain: two tiled streak layers sliding down (one transform each). */
+.fwx-storm__rain {
+    position: absolute;
+    inset: 14% 8% -10%;
+    overflow: hidden;
+    -webkit-mask: linear-gradient(180deg, transparent, #000 18%, #000 70%, transparent);
+    mask: linear-gradient(180deg, transparent, #000 18%, #000 70%, transparent);
+    opacity: 0;
+    animation: fwx-rain-in 2.6s linear forwards;
+}
+
+.fwx-storm__rain::before,
+.fwx-storm__rain::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -100%;
+    height: 200%;
+    background: repeating-linear-gradient(100deg, transparent 0 14px, rgba(186, 209, 255, 0.55) 14px 15.5px, transparent 15.5px 31px);
+    background-size: 100% 46px;
+    animation: fwx-rain-fall 0.42s linear infinite;
+}
+
+.fwx-storm__rain::after {
+    background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(186, 209, 255, 0.35) 22px 23px, transparent 23px 47px);
+    background-size: 100% 70px;
+    animation-duration: 0.6s;
+}
+
+@keyframes fwx-rain-in {
+    0%, 18% { opacity: 0; }
+    30%, 82% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes fwx-rain-fall {
+    from { transform: translateY(0); }
+    to { transform: translateY(50%); }
+}
+
+.fwx-storm__flash {
+    position: absolute;
+    inset: 0 10%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(248, 250, 255, 0.85), transparent 65%);
+    opacity: 0;
+    animation: fwx-lightning 2.6s linear forwards;
+}
+
+@keyframes fwx-lightning {
+    0%, 30% { opacity: 0; }
+    31% { opacity: 1; }
+    34% { opacity: 0.1; }
+    37% { opacity: 0.85; }
+    46%, 100% { opacity: 0; }
+}
+
+.fwx-storm__bolt {
+    position: absolute;
+    left: 50%;
+    top: 12%;
+    width: 16%;
+    height: 48%;
+    margin-left: -8%;
+    background: linear-gradient(180deg, #fffbe6, var(--fwx-storm));
+    clip-path: polygon(48% 0, 100% 0, 66% 40%, 92% 40%, 22% 100%, 42% 52%, 10% 52%);
+    transform-origin: 50% 0;
+    opacity: 0;
+    animation: fwx-bolt 2.6s linear forwards;
+}
+
+@keyframes fwx-bolt {
+    0%, 30% { opacity: 0; transform: scaleY(0.2); }
+    32% { opacity: 1; transform: scaleY(1); }
+    40% { opacity: 1; }
+    52%, 100% { opacity: 0; transform: scaleY(1); }
+}
+
+.fwx-storm.is-lite .fwx-storm__rain::after { display: none; }
+
+.fw-stage-frame.is-quaking {
+    animation: fwx-quake 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.75s both;
+}
+
+@keyframes fwx-quake {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    12% { transform: translate(-6px, 2px) rotate(-0.6deg); }
+    26% { transform: translate(6px, -2px) rotate(0.6deg); }
+    40% { transform: translate(-4px, 1px) rotate(-0.4deg); }
+    56% { transform: translate(4px, -1px) rotate(0.3deg); }
+    72% { transform: translate(-2px, 0) rotate(-0.1deg); }
+}
+
+/* ── Shield dome: a storm braved ───────────────────────────────────────── */
+
+.fwx-shield {
+    position: absolute;
+    inset: -4%;
+    z-index: 8;
+    pointer-events: none;
+}
+
+.fwx-shield span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 4px solid rgba(253, 230, 138, 0.9);
+    background: radial-gradient(circle, transparent 55%, rgba(251, 191, 36, 0.28) 72%, rgba(253, 230, 138, 0.55) 100%);
+    opacity: 0;
+    animation: fwx-shield 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fwx-shield span + span {
+    background: none;
+    border-width: 2px;
+    animation-delay: 0.25s;
+}
+
+@keyframes fwx-shield {
+    0% { opacity: 0; transform: scale(0.4); }
+    30% { opacity: 1; transform: scale(1.04); }
+    45% { transform: scale(0.98); }
+    75% { opacity: 0.9; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.12); }
+}
+
+/* ── Whirlwind rings, twist shimmer, trial ring ────────────────────────── */
+
+.fwx-whirl {
+    position: absolute;
+    inset: -6%;
+    z-index: 8;
+    pointer-events: none;
+}
+
+/* The small whirl on the Whirlwind's card */
+.fwx-swirl {
+    width: 96px;
+    height: 96px;
+    margin-bottom: -0.4rem;
+    pointer-events: none;
+}
+
+.fwx-whirl i,
+.fwx-swirl i {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.75);
+    border-right-color: color-mix(in srgb, var(--fwx-twist) 70%, transparent);
+    animation: fwx-whirl 0.9s linear infinite;
+}
+
+.fwx-whirl i:nth-child(2),
+.fwx-swirl i:nth-child(2) { inset: 12%; animation-duration: 0.7s; animation-direction: reverse; }
+.fwx-whirl i:nth-child(3),
+.fwx-swirl i:nth-child(3) { inset: 26%; animation-duration: 0.55s; }
+
+.fwx-whirl { animation: fwx-fade-out 1.8s linear forwards; }
+
+@keyframes fwx-whirl {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.fwx-twinkle {
+    position: absolute;
+    inset: 4%;
+    z-index: 8;
+    pointer-events: none;
+    border-radius: 50%;
+    background:
+        conic-gradient(from 45deg, transparent 0 12%, rgba(255, 90, 216, 0.4) 12% 13%, transparent 13% 37%, rgba(255, 255, 255, 0.4) 37% 38%, transparent 38% 62%, rgba(255, 90, 216, 0.4) 62% 63%, transparent 63% 87%, rgba(255, 255, 255, 0.4) 87% 88%, transparent 88%);
+    opacity: 0;
+    animation: fwx-twinkle 1.4s ease-out forwards;
+}
+
+@keyframes fwx-twinkle {
+    0% { opacity: 0; transform: rotate(0deg) scale(0.7); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(120deg) scale(1.12); }
+}
+
+.fwx-trialring {
+    position: absolute;
+    inset: 2%;
+    z-index: 8;
+    pointer-events: none;
+    border-radius: 50%;
+    border: 5px solid rgba(94, 234, 212, 0.85);
+    opacity: 0;
+    animation: fwx-ring 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes fwx-ring {
+    0% { opacity: 0; transform: scale(0.6); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.25); }
+}
+
+/* ── Reveal shell themes for the three families ───────────────────────── */
+
+.fw-reveal-layer__shell[data-rarity="storm"] {
+    animation: fw-shell-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+               fw-shell-curse-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.5s both;
+}
+
+.fw-reveal-layer:has(.fw-reveal-layer__shell[data-rarity="storm"]) .fw-reveal-layer__rays,
+.fw-reveal-layer:has(.fwx) .fw-reveal-layer__rays {
+    display: none;
+}
+
+/* ── Stage card ────────────────────────────────────────────────────────── */
+
+.fwx {
+    --fam: var(--fw-gold);
+    --fam-bg: var(--fw-velvet-2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.6rem 1.1rem 1.1rem;
+    min-height: 100%;
+    border-radius: 0.9rem;
+    text-align: center;
+    color: var(--fw-moon);
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--fam) 26%, transparent), transparent 62%),
+        linear-gradient(180deg, color-mix(in srgb, var(--fam-bg) 85%, #000) 0%, var(--fw-velvet-deep) 100%);
+    box-shadow:
+        inset 0 0 0 4px rgba(15, 11, 36, 0.9),
+        inset 0 0 0 5px color-mix(in srgb, var(--fam) 50%, transparent);
+    animation: fw-result-pop-v2 0.5s cubic-bezier(0.17, 0.84, 0.44, 1) both;
+}
+
+.fwx--storm { --fam: var(--fwx-storm); --fam-bg: var(--fwx-storm-bg); }
+.fwx--twist { --fam: var(--fwx-twist); --fam-bg: var(--fwx-twist-bg); }
+.fwx--trial { --fam: var(--fwx-trial); --fam-bg: var(--fwx-trial-bg); }
+
+.fwx-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.fwx-orb {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 2.6rem;
+    line-height: 1;
+    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--fam, #e8c46a) 55%, #fff), var(--fam-bg, #221a58) 64%, #000 110%);
+    border: 3px solid var(--fw-gold);
+    box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 0 5px color-mix(in srgb, var(--fam, #e8c46a) 55%, transparent), 0 0 32px color-mix(in srgb, var(--fam, #e8c46a) 55%, transparent);
+}
+
+.fwx-orb span {
+    display: block;
+    animation: fw-orb-float 3.4s ease-in-out infinite;
+}
+
+.fwx-orb--storm { --fam: var(--fwx-storm); --fam-bg: var(--fwx-storm-bg); }
+.fwx-orb--twist { --fam: var(--fwx-twist); --fam-bg: var(--fwx-twist-bg); }
+.fwx-orb--trial { --fam: var(--fwx-trial); --fam-bg: var(--fwx-trial-bg); }
+.fwx-orb--legendary { --fam: #fbbf24; --fam-bg: #713f12; }
+
+.fwx-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fam);
+    font-weight: 700;
+}
+
+.fwx-kicker__crest {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.1);
+    display: inline-grid;
+    place-items: center;
+    font-size: 0.7rem;
+    color: var(--fw-moon);
+}
+
+.fwx-title {
+    margin: 0;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: clamp(1.35rem, 3.4vw, 1.8rem);
+    line-height: 1.1;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.fwx-text {
+    margin: 0;
+    max-width: 30rem;
+    font-size: 1rem;
+    line-height: 1.4;
+    color: var(--fw-moon-dim);
+}
+
+.fwx-text b { color: #fff; }
+
+.fwx-hint {
+    margin: 0;
+    max-width: 28rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.7rem;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    text-align: left;
+    color: #fef9c3;
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.fwx-hint i { margin-top: 0.15rem; color: var(--fwx-storm); }
+
+.fwx-hint--bare {
+    color: var(--fwx-storm-ink);
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.fwx-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 0.2rem;
+}
+
+.fwx-btn {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 999px;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.02rem;
+    letter-spacing: 0.02em;
+    color: #1b1449;
+    background: var(--fw-gold-grad);
+    box-shadow: 0 4px 0 #8a6420, 0 8px 18px rgba(0, 0, 0, 0.35);
+    transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.fwx-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.fwx-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #8a6420, 0 4px 10px rgba(0, 0, 0, 0.35); }
+.fwx-btn:disabled { opacity: 0.45; cursor: default; }
+.fwx-btn:focus-visible, .fwx-option:focus-visible, .fwx-chest:focus-visible, .fwx-guild:focus-visible, .fwx-link:focus-visible, .fwx-answer:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+}
+
+.fwx-btn--pass { color: #052e16; background: linear-gradient(180deg, #bbf7d0, #4ade80 55%, #16a34a); box-shadow: 0 4px 0 #166534, 0 8px 18px rgba(0, 0, 0, 0.35); }
+.fwx-btn--fail { color: #fff; background: linear-gradient(180deg, #fda4af, #f43f5e 55%, #be123c); box-shadow: 0 4px 0 #881337, 0 8px 18px rgba(0, 0, 0, 0.35); }
+.fwx-btn--brave { color: #1c1917; background: linear-gradient(180deg, #fef9c3, #facc15 55%, #ca8a04); box-shadow: 0 4px 0 #854d0e, 0 8px 18px rgba(0, 0, 0, 0.35); }
+.fwx-btn--twist { color: #fff; background: linear-gradient(180deg, #ffb3ec, #ff5ad8 55%, #c026a3); box-shadow: 0 4px 0 #86198f, 0 8px 18px rgba(0, 0, 0, 0.35); }
+.fwx-btn--clock { padding: 0.5rem 0.95rem; font-size: 0.9rem; color: #042f2e; background: linear-gradient(180deg, #ccfbf1, #5eead4 55%, #14b8a6); box-shadow: 0 3px 0 #115e59, 0 6px 14px rgba(0, 0, 0, 0.3); }
+.fwx-btn--quiet {
+    color: var(--fw-moon);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.28);
+}
+
+.fwx-btn[hidden] { display: none; }
+
+.fwx-link {
+    appearance: none;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--fw-moon-dim);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.fwx-link:hover { color: #fff; }
+
+/* ── Trial: stakes, question, clock, verdict stamp ─────────────────────── */
+
+.fwx-stakes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.fwx-stake {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.fwx-stake--win { color: #bbf7d0; background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.4); }
+.fwx-stake--lose { color: #fecdd3; background: rgba(251, 113, 133, 0.12); border: 1px solid rgba(251, 113, 133, 0.4); }
+
+.fwx-question {
+    width: 100%;
+    max-width: 30rem;
+    padding: 0.9rem 1rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid color-mix(in srgb, var(--fam) 45%, transparent);
+    user-select: text;
+}
+
+.fwx-question__text {
+    margin: 0;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: clamp(1.2rem, 3.2vw, 1.55rem);
+    line-height: 1.25;
+    color: #fff;
+}
+
+.fwx-answer {
+    appearance: none;
+    margin-top: 0.6rem;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--fw-moon-dim);
+    border-radius: 0.6rem;
+    padding: 0.35rem 0.7rem;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.fwx-answer__value { display: none; color: #fff; }
+.fwx-answer[aria-expanded="true"] .fwx-answer__value { display: inline; }
+.fwx-answer[aria-expanded="true"] .fwx-answer__label::after { content: ':'; }
+
+.fwx-clockrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+}
+
+.fwx-timer {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+}
+
+.fwx-timer svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.fwx-timer__track { fill: rgba(0, 0, 0, 0.3); stroke: rgba(255, 255, 255, 0.14); stroke-width: 4; }
+
+.fwx-timer__bar {
+    fill: none;
+    stroke: var(--fam);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: var(--c);
+    stroke-dashoffset: 0;
+}
+
+.fwx-timer.is-running .fwx-timer__bar { animation: fwx-timer var(--secs, 20s) linear forwards; }
+.fwx-timer.is-hurry .fwx-timer__bar { stroke: var(--fwx-lose); }
+.fwx-timer.is-hurry .fwx-timer__num { color: var(--fwx-lose); animation: fwx-pulse 1s ease-in-out infinite; }
+.fwx-timer.is-out { animation: fw-shell-curse-shake 0.5s ease both; }
+
+@keyframes fwx-timer {
+    to { stroke-dashoffset: var(--c); }
+}
+
+@keyframes fwx-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.22); }
+}
+
+.fwx-timer__num {
+    position: relative;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.3rem;
+    color: #fff;
+}
+
+.fwx-stamp {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    padding: 0.35rem 1.1rem;
+    border-radius: 0.6rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 4px solid currentColor;
+    background: rgba(7, 5, 26, 0.86);
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-10deg) scale(2);
+    pointer-events: none;
+}
+
+.fwx.is-pass .fwx-stamp,
+.fwx.is-fail .fwx-stamp {
+    animation: fwx-stamp 0.42s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+}
+
+.fwx.is-pass .fwx-stamp { color: var(--fwx-win); }
+.fwx.is-pass .fwx-stamp::before { content: 'Correct!'; }
+.fwx.is-fail .fwx-stamp { color: var(--fwx-lose); }
+.fwx.is-fail .fwx-stamp::before { content: 'Not this time'; font-size: 1.5rem; }
+
+@keyframes fwx-stamp {
+    to { opacity: 1; transform: translate(-50%, -50%) rotate(-10deg) scale(1); }
+}
+
+/* ── Hero's Dare: the spotlight roster ─────────────────────────────────── */
+
+.fwx-roster {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.55rem;
+    max-width: 30rem;
+}
+
+.fwx-roster__seat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    width: 4.6rem;
+    padding: 0.45rem 0.2rem;
+    border-radius: 0.8rem;
+    font-size: 0.78rem;
+    color: var(--fw-moon-dim);
+    opacity: 0.55;
+    transition: opacity 120ms linear, transform 160ms ease;
+}
+
+.fwx-roster__seat::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--fwx-trial) 45%, transparent), transparent 70%);
+    border: 2px solid var(--fwx-trial);
+    opacity: 0;
+    transition: opacity 120ms linear;
+}
+
+.fwx-roster__seat.is-lit { opacity: 1; transform: translateY(-3px); color: #fff; }
+.fwx-roster__seat.is-lit::before { opacity: 1; }
+.fwx-roster__seat.is-chosen { opacity: 1; transform: scale(1.18); color: #fff; }
+.fwx-roster__seat.is-chosen::before { opacity: 1; border-color: var(--fw-gold-light); animation: fwx-pulse 0.8s ease-in-out 2; }
+.fwx-roster__seat > * { position: relative; }
+
+.fwx-avatar,
+.fwx-hero__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: var(--fw-velvet-3);
+    display: grid;
+    place-items: center;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    color: #fff;
+}
+
+.fwx-roster__seat span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fwx-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.9rem 0.3rem 0.35rem;
+    border-radius: 999px;
+    background: rgba(94, 234, 212, 0.12);
+    border: 1.5px solid rgba(94, 234, 212, 0.45);
+    font-size: 1.05rem;
+}
+
+.fwx-hero__avatar { width: 38px; height: 38px; }
+
+/* ── Double or Nothing: the coin ──────────────────────────────────────── */
+
+.fwx-coin {
+    width: 110px;
+    height: 110px;
+    perspective: 600px;
+    margin: 0.2rem 0;
+}
+
+.fwx-coin__spin {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.fwx-coin__face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    background: radial-gradient(circle at 36% 30%, #fff7d6, #fbbf24 45%, #b45309 100%);
+    border: 5px solid #fde68a;
+    box-shadow: inset 0 0 0 4px rgba(146, 64, 14, 0.5), 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+.fwx-coin__face--tails {
+    transform: rotateY(180deg);
+    background: radial-gradient(circle at 36% 30%, #e2e8f0, #94a3b8 45%, #334155 100%);
+    border-color: #cbd5e1;
+    font-size: 3rem;
+}
+
+.fwx-coin__crest {
+    width: 64%;
+    height: 64%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: grid;
+    place-items: center;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 2rem;
+    color: #78350f;
+}
+
+.fwx-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 30rem;
+}
+
+.fwx-option {
+    appearance: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 0.9rem;
+    text-align: left;
+    font: inherit;
+    color: var(--fw-moon);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.fwx-option b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.1rem; color: #fff; font-weight: 400; }
+.fwx-option span { font-size: 0.85rem; color: var(--fw-moon-dim); line-height: 1.35; }
+.fwx-option:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--fw-gold); }
+.fwx-option--risk { border-color: color-mix(in srgb, var(--fwx-twist) 60%, transparent); background: color-mix(in srgb, var(--fwx-twist) 12%, transparent); }
+.fwx-option--risk:hover:not(:disabled) { border-color: var(--fwx-twist); }
+.fwx-option:disabled { opacity: 0.4; cursor: default; }
+.fwx[data-step="flip"] .fwx-options { opacity: 0.35; transition: opacity 200ms ease; }
+
+.fwx-verdict {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.5rem;
+    padding: 0.4rem 1.1rem;
+    border-radius: 999px;
+    animation: fwx-stamp-in 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.fwx-verdict--win { color: #052e16; background: linear-gradient(180deg, #bbf7d0, #4ade80); }
+.fwx-verdict--lose { color: #fff; background: linear-gradient(180deg, #fda4af, #e11d48); }
+
+@keyframes fwx-stamp-in {
+    from { opacity: 0; transform: scale(1.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Three Chests ─────────────────────────────────────────────────────── */
+
+.fwx-chests {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+    width: 100%;
+    max-width: 30rem;
+}
+
+.fwx-chest {
+    appearance: none;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.6rem 0.3rem 0.6rem;
+    border: 0;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--fw-moon);
+    font: inherit;
+    animation: fwx-chest-bob 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.8s);
+    transition: opacity 200ms ease;
+}
+
+@keyframes fwx-chest-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.fwx-chest:hover:not(:disabled) .fwx-chest__glow { opacity: 1; }
+.fwx-chest:disabled { cursor: default; animation: none; }
+
+.fwx-chest__glow {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 60%, rgba(251, 191, 36, 0.35), transparent 70%);
+    opacity: 0;
+    transition: opacity 160ms ease;
+}
+
+.fwx-chest__box,
+.fwx-chest__lid {
+    position: relative;
+    width: 76%;
+    max-width: 92px;
+    border: 3px solid #fbbf24;
+    background: linear-gradient(180deg, #92400e, #78350f);
+}
+
+.fwx-chest__lid {
+    height: 22px;
+    margin-bottom: -0.35rem;
+    border-radius: 40px 40px 6px 6px;
+    background: linear-gradient(180deg, #b45309, #92400e);
+    transform-origin: 50% 100%;
+    transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 2;
+}
+
+.fwx-chest__box {
+    height: 48px;
+    border-radius: 6px 6px 10px 10px;
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.25);
+}
+
+.fwx-chest__box i {
+    font-style: normal;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #78350f;
+    background: #fde68a;
+}
+
+.fwx-chest__prize {
+    position: absolute;
+    top: 1.4rem;
+    left: 50%;
+    font-size: 2.2rem;
+    line-height: 1;
+    opacity: 0;
+    transform: translate(-50%, 20px) scale(0.4);
+    transition: transform 520ms cubic-bezier(0.2, 1.4, 0.4, 1), opacity 260ms ease;
+    z-index: 3;
+}
+
+.fwx-chest__label {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.15;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.fwx-chest__label small { font-family: 'Fredoka', sans-serif; font-size: 0.72rem; color: var(--fw-moon-dim); }
+
+.fwx-chest.is-chosen { animation: fwx-chest-rattle 0.6s ease both; }
+.fwx-chest.is-chosen .fwx-chest__glow { opacity: 1; }
+
+@keyframes fwx-chest-rattle {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-6deg); }
+    40% { transform: rotate(6deg); }
+    60% { transform: rotate(-4deg); }
+    80% { transform: rotate(3deg); }
+}
+
+.fwx-chest.is-open .fwx-chest__lid { transform: rotate(-24deg) translate(-10%, -30%); }
+.fwx-chest.is-open .fwx-chest__prize { opacity: 1; transform: translate(-50%, -22px) scale(1); }
+.fwx-chest.is-open .fwx-chest__label { opacity: 1; transform: translateY(0); }
+.fwx-chest.is-open.is-mimic .fwx-chest__glow { background: radial-gradient(circle at 50% 60%, rgba(244, 63, 94, 0.45), transparent 70%); opacity: 1; }
+.fwx-chest.is-open.is-gold .fwx-chest__glow { background: radial-gradient(circle at 50% 60%, rgba(253, 230, 138, 0.6), transparent 70%); opacity: 1; }
+.fwx-chest.is-other { opacity: 0.55; }
+.fwx-chest.is-other .fwx-chest__glow { opacity: 0.3; }
+
+/* ── Kindness Gift: pick a guild ──────────────────────────────────────── */
+
+.fwx-guilds {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 30rem;
+}
+
+.fwx-guild {
+    appearance: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.8rem 0.5rem;
+    border-radius: 0.9rem;
+    font: inherit;
+    color: var(--fw-moon);
+    background: color-mix(in srgb, var(--g) 14%, transparent);
+    border: 2px solid color-mix(in srgb, var(--g) 55%, transparent);
+    transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.fwx-guild b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 0.98rem; }
+.fwx-guild small { font-size: 0.75rem; color: var(--fw-moon-dim); }
+.fwx-guild:hover:not(:disabled) { transform: translateY(-3px); }
+.fwx-guild:disabled { cursor: default; opacity: 0.4; }
+.fwx-guild.is-chosen { opacity: 1; transform: scale(1.08); border-color: var(--g); }
+
+.fwx-guild__crest {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.4rem;
+}
+
+/* ── The Trickster's fake jackpot ─────────────────────────────────────── */
+
+.fwx--trick {
+    display: grid;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    perspective: 900px;
+}
+
+.fwx-trick__face {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.6rem 1.1rem 1.4rem;
+    border-radius: 0.9rem;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transition: transform 650ms cubic-bezier(0.4, 1.4, 0.5, 1);
+}
+
+.fwx-trick__face--fake {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.4), transparent 62%),
+        linear-gradient(180deg, #713f12, var(--fw-velvet-deep));
+    box-shadow: inset 0 0 0 4px rgba(15, 11, 36, 0.9), inset 0 0 0 5px rgba(251, 191, 36, 0.7);
+}
+
+.fwx-trick__face--fake .fwx-kicker { color: #fbbf24; }
+
+.fwx-trick__face--real {
+    transform: rotateY(180deg);
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255, 90, 216, 0.32), transparent 62%),
+        linear-gradient(180deg, var(--fwx-twist-bg), var(--fw-velvet-deep));
+    box-shadow: inset 0 0 0 4px rgba(15, 11, 36, 0.9), inset 0 0 0 5px rgba(255, 90, 216, 0.6);
+}
+
+.fwx-trick__face--real .fwx-kicker { color: var(--fwx-twist); }
+
+.fwx--trick.is-cracking .fwx-trick__face--fake { animation: fw-shell-curse-shake 0.45s ease both; }
+.fwx--trick.is-flipped .fwx-trick__face--fake { transform: rotateY(-180deg); }
+.fwx--trick.is-flipped .fwx-trick__face--real { transform: rotateY(0deg); }
+
+/* ── Rain inside the storm card ───────────────────────────────────────── */
+
+.fwx-rain {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.5;
+    -webkit-mask: linear-gradient(180deg, #000, transparent 75%);
+    mask: linear-gradient(180deg, #000, transparent 75%);
+}
+
+.fwx-rain::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -100%;
+    height: 200%;
+    background: repeating-linear-gradient(100deg, transparent 0 18px, rgba(186, 209, 255, 0.35) 18px 19px, transparent 19px 38px);
+    background-size: 100% 56px;
+    animation: fwx-rain-fall 0.6s linear infinite;
+}
+
+.fwx > :not(.fwx-rain):not(.fwx-stamp) { position: relative; }
+
+/* ── Result card for the families ─────────────────────────────────────── */
+
+.fw-result-card--v2[data-family="storm"] .fw-result-ribbon,
+.fw-result-card--v2[data-family="trial"] .fw-result-ribbon {
+    color: #0b0824;
+    text-shadow: none;
+}
+
+.fw-result-card--v2[data-outcome="braved"] {
+    --rarity-color: #fde68a;
+    --rarity-glow: rgba(253, 230, 138, 0.55);
+}
+
+.fw-result-card--v2[data-outcome="hit"] .fw-result-emoji-orb {
+    animation: fw-orb-float 4s ease-in-out infinite, fwx-orb-droop 0.7s ease 0.2s both;
+}
+
+@keyframes fwx-orb-droop {
+    0% { transform: rotate(0deg); }
+    30% { transform: rotate(-8deg); }
+    60% { transform: rotate(5deg); }
+    100% { transform: rotate(0deg); }
+}
+
+.fw-result-decision {
+    display: inline-block;
+    margin: 0.15rem auto 0;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--rarity-color);
+    background: color-mix(in srgb, var(--rarity-color) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--rarity-color) 45%, transparent);
+}
+
+/* ── Legend chips for the families ────────────────────────────────────── */
+
+.fw-wheel-legend__chip[data-rarity="storm"] .fw-wheel-legend__gem { background: linear-gradient(135deg, #facc15, #475569); }
+.fw-wheel-legend__chip[data-rarity="twist"] .fw-wheel-legend__gem { background: linear-gradient(135deg, #ff5ad8, #7c3aed); }
+.fw-wheel-legend__chip[data-rarity="trial"] .fw-wheel-legend__gem { background: linear-gradient(135deg, #5eead4, #0f766e); }
+
+/* ── Weak laptops (.fw--lite) and reduced motion ──────────────────────── */
+
+#fortunes-wheel-modal.fw--lite .fw-atmosphere__stars,
+#fortunes-wheel-modal.fw--lite .fw-atmosphere__zodiac,
+#fortunes-wheel-modal.fw--lite .fw-atmosphere__sparks span,
+#fortunes-wheel-modal.fw--lite .fw-crest__flourish::before,
+#fortunes-wheel-modal.fw--lite .fw-kicker i,
+#fortunes-wheel-modal.fw--lite .fw-stage-aura-bright,
+#fortunes-wheel-modal.fw--lite .fw-guild-emblem-orb,
+#fortunes-wheel-modal.fw--lite .fw-pointer__gem,
+#fortunes-wheel-modal.fw--lite .fw-dormant__seal,
+#fortunes-wheel-modal.fw--lite .fw-wheel-legend__chip,
+#fortunes-wheel-modal.fw--lite .fw-btn-primary::after,
+#fortunes-wheel-modal.fw--lite .fw-btn-primary.is-busy,
+#fortunes-wheel-modal.fw--lite .fw-reveal-layer__rays,
+#fortunes-wheel-modal.fw--lite .fw-reveal-layer__shell::after,
+#fortunes-wheel-modal.fw--lite .fw-result-emoji-orb,
+#fortunes-wheel-modal.fw--lite .fw-result-emoji-orb::after,
+#fortunes-wheel-modal.fw--lite .fwx-orb span,
+#fortunes-wheel-modal.fw--lite .fwx-chest:not(.is-chosen) {
+    animation: none !important;
+}
+
+#fortunes-wheel-modal.fw--lite .fw-reveal-layer__rays,
+#fortunes-wheel-modal.fw--lite .fw-atmosphere__sparks,
+#fortunes-wheel-modal.fw--lite .fw-stage-aura-bright {
+    display: none;
+}
+
+#fortunes-wheel-modal.fw--lite .fw-reveal-layer__shell[data-rarity="mythic"] {
+    animation: fw-shell-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* While a fate or a challenge fills the screen, the loops hidden behind it rest
+   (fewer moving layers for a weak graphics chip to blend every frame). */
+.fw-card[data-phase="staging"] .fw-marquee__bulb i,
+.fw-card:is([data-phase="staging"], [data-phase="revealed"]) .fw-stage-aura-bright,
+.fw-card:is([data-phase="staging"], [data-phase="revealed"]) .fw-atmosphere *,
+.fw-card:is([data-phase="staging"], [data-phase="revealed"]) .fw-guild-emblem-orb,
+.fw-card:is([data-phase="staging"], [data-phase="revealed"]) .fw-pointer__gem {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fwx,
+    .fwx-orb span,
+    .fwx-chest,
+    .fwx-whirl,
+    .fwx-swirl i,
+    .fwx-twinkle,
+    .fwx-trialring,
+    .fwx-rain::before,
+    .fwx-storm__rain::before,
+    .fwx-storm__rain::after,
+    .fw-stage-frame.is-quaking,
+    .fwx-roster__seat.is-chosen::before,
+    .fwx-timer.is-hurry .fwx-timer__num {
+        animation: none !important;
+    }
+
+    .fwx-spark,
+    .fwx-emoji {
+        display: none;
+    }
+}

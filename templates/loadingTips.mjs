@@ -53,6 +53,8 @@ export const LOADING_TIPS = Object.freeze([
     'Legendary Artifacts can be bought twice per hero each month.',
     'A familiar starts as an egg, then hatches and evolves as its hero learns.',
     'Emberfang, Frostpaw, Thornback, Veilshade and Sparkling are all familiars.',
+    'Every familiar egg hatches a creature nobody else has. Some are even Shiny!',
+    'Grown-up familiars can hide one wrong Quiz answer, once a month.',
     'A Hero’s Boon lets a classmate spend Gold to give a friend half a star.',
     'Gold belongs to this school year. A fresh year opens a fresh purse.',
     'The Avatar Forge builds a portrait from a creature, a colour and a relic.',

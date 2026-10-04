@@ -175,8 +175,8 @@ export const optionsTabHTML = `
                                         <header class="ts-card__head">
                                             <span class="ts-card__icon" aria-hidden="true"><i class="fas fa-dragon"></i></span>
                                             <div>
-                                                <h3 class="font-title ts-card__title">Familiar Sprite Forge</h3>
-                                                <p class="ts-card__hint">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
+                                                <h3 class="font-title ts-card__title">Familiar Look</h3>
+                                                <p class="ts-card__hint">Give a Familiar a new random look. Its stage, stars and name stay the same.</p>
                                             </div>
                                         </header>
                                         <div class="ts-card__body">
@@ -187,10 +187,10 @@ export const optionsTabHTML = `
                                                 </select>
                                             </label>
                                             <div id="familiar-maintenance-status" class="ts-note" aria-live="polite">
-                                                Choose a student to inspect or regenerate their Familiar sprite.
+                                                Choose a student to see their Familiar and give it a new look.
                                             </div>
                                             <button id="familiar-regenerate-btn" class="ts-btn bubbly-button" disabled>
-                                                <i class="fas fa-wand-sparkles"></i> Regenerate Familiar Sprite
+                                                <i class="fas fa-wand-sparkles"></i> Give a New Look
                                             </button>
                                         </div>
                                     </article>

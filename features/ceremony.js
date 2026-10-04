@@ -803,6 +803,7 @@ export function startCeremony(params) {
 
 function closeCeremony() {
     ceremonyData.active = false;
+    import('./familiarParade.js').then((m) => m.stopFamiliarParade()).catch(() => {});
     cancelTimeline();
     window.removeEventListener('keydown', handleCeremonyKeys);
     stopCeremonyAudio({ fade: 0.6 });
@@ -1088,6 +1089,7 @@ function renderArenaOutro() {
     ceremonyFx?.fireworks({ count: 6, spread: 3000 });
     ceremonyFx?.confetti({ count: 120, duration: 1600 });
     playCeremonySfx('gold');
+    queueFamiliarParade();
 }
 
 function advanceCeremony() {
@@ -1451,6 +1453,20 @@ function renderGardenEnd() {
     setHerald('Our classroom garden will keep blooming bright all year long! 🌿💖');
     ceremonyFx?.stars({ count: 36, colors: ['#fef9c3', '#fde68a', '#fbcfe8'], duration: 4000 });
     playCeremonySfx('chime');
+    queueFamiliarParade();
+}
+
+/** After the final scene, every hatched familiar of the class walks across the screen once. */
+function queueFamiliarParade() {
+    if (ceremonyData.paradeQueued) return;
+    ceremonyData.paradeQueued = true;
+    const classId = ceremonyData.classId;
+    setTimeout(() => {
+        if (!ceremonyData.active || ceremonyData.classId !== classId) return;
+        import('./familiarParade.js')
+            .then((m) => m.startFamiliarParade(classId, { host: screenEl() || document.body, muted: isCeremonyAudioMuted() }))
+            .catch((e) => console.warn('Familiar Parade could not start:', e));
+    }, 2600);
 }
 
 function advanceGrowthCeremony() {

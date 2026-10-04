@@ -2,6 +2,14 @@
 // Shared by ui/core/shop.js and the guidebook capture (no Firebase / state imports).
 import { shopItemStock } from '../../utils/shopRestock.js';
 import { FAMILIAR_LEVEL_THRESHOLDS } from '../../features/familiarProgression.mjs';
+import { buildFamiliarEggSvg, describeFamiliar, getFamiliarPresets } from '../../features/familiarForge.mjs';
+
+/** The class's egg, drawn by the Familiar Forge in its signature colours. */
+function familiarEggArt(typeId) {
+    const preset = getFamiliarPresets(typeId)[0];
+    if (!preset) return '🥚';
+    return buildFamiliarEggSvg(describeFamiliar(typeId, { v: 1, preset: preset.id, seed: 7 }), { progress: 0 }).replace('class="fc ', 'class="fc fc--chip ');
+}
 
 export function escapeShopHtml(value) {
     return String(value ?? '')
@@ -117,7 +125,7 @@ export function renderFamiliarEggCard(fType) {
                 <span class="mm-ware__sale" aria-hidden="true"></span>
                 <div class="mm-ware__item">
                     <span class="mm-ware__nest" aria-hidden="true"></span>
-                    <span class="mm-ware__emoji mm-ware__egg familiar-egg-wobble" aria-hidden="true">🥚</span>
+                    <span class="mm-ware__emoji mm-ware__egg familiar-egg-wobble" aria-hidden="true" style="display:inline-block;width:4.8rem;height:4.8rem;">${familiarEggArt(fType.id)}</span>
                 </div>
                 <span class="mm-ware__ledge" aria-hidden="true"></span>
                 <div class="shop-price-display mm-tag" data-item-id="${escapeShopHtml(fType.id)}" data-base-price="${Number(fType.price) || 0}">

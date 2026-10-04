@@ -984,7 +984,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
         return;
     }
 
-    const { FAMILIAR_TYPES, buildFamiliarInitData } = await import('../../features/familiars.js');
+    const { FAMILIAR_TYPES, buildFamiliarInitData, familiarArtSvg } = await import('../../features/familiars.js');
     const typeDef = FAMILIAR_TYPES[typeId];
     if (!typeDef) { showToast('Unknown familiar type.', 'error'); return; }
     const student = state.get('allStudents').find(s => s.id === studentId);
@@ -1043,7 +1043,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
         const popupShown = showShopPurchasePopup({
             itemName: `${typeDef.name} Egg`,
             itemDescription: `A new companion has joined ${student.name}. Earn ${20} stars to hatch it!`,
-            itemVisualHtml: `<div class="text-6xl familiar-egg-wobble" style="filter:drop-shadow(0 0 12px ${typeDef.eggColor});">🥚</div>`,
+            itemVisualHtml: `<div class="familiar-egg-wobble" style="width:7rem;height:7rem;margin:0 auto;filter:drop-shadow(0 0 12px ${typeDef.eggColor});">${familiarArtSvg(familiarData, studentId, { egg: true, progress: 0 }) || '🥚'}</div>`,
             finalPrice,
             newGoldBalance,
             studentName: student.name,

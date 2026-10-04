@@ -702,3 +702,56 @@ export function playWheelSfx(name) {
         }
     } catch (_) { /* overlapping triggers are harmless */ }
 }
+
+// ─── Familiar voices ──────────────────────────────────────────────────────────
+// One voice per class (see familiarVoice() in features/familiarForge.mjs), pitched per familiar.
+let familiarVoices = null;
+
+function getFamiliarVoices() {
+    if (familiarVoices || !Tone) return familiarVoices;
+    const out = new Tone.Gain(0.8).toDestination();
+    const reverb = new Tone.Reverb({ decay: 1.6, wet: 0.25 }).connect(out);
+    const lead = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.12, sustain: 0.5, release: 0.18 }, volume: -10 }).connect(reverb);
+    const growlFilter = new Tone.Filter({ type: 'lowpass', frequency: 1500, Q: 2 }).connect(reverb);
+    const growl = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15 }, volume: -16 }).connect(growlFilter);
+    const croakFilter = new Tone.Filter({ type: 'lowpass', frequency: 700, Q: 4 }).connect(reverb);
+    const croak = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0.4, release: 0.05 }, volume: -16 }).connect(croakFilter);
+    const puffFilter = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.8 }).connect(reverb);
+    const puff = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.02, decay: 0.25, sustain: 0, release: 0.1 }, volume: -14 }).connect(puffFilter);
+    const bell = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 }, volume: -14 }).connect(reverb);
+    familiarVoices = { lead, growl, croak, puff, bell };
+    return familiarVoices;
+}
+
+function glide(synth, t, points, end) {
+    synth.triggerAttack(points[0][1], t);
+    for (const [at, freq] of points.slice(1)) synth.frequency.exponentialRampToValueAtTime(freq, t + at);
+    synth.triggerRelease(t + end);
+}
+
+/** A familiar's call: { kind: 'chirr' | 'yip' | 'croak' | 'hum' | 'trill', pitch, shiny }. */
+export function playFamiliarVoice(voice = {}) {
+    if (!soundsReady || !Tone || Tone.context.state !== 'running') return;
+    const v = getFamiliarVoices();
+    if (!v) return;
+    const p = Math.max(0.5, Math.min(1.6, Number(voice.pitch) || 1));
+    const t = Tone.now() + 0.03;
+    try {
+        if (voice.kind === 'chirr') {
+            glide(v.growl, t, [[0, 260 * p], [0.08, 420 * p], [0.32, 210 * p]], 0.34);
+            v.puff.triggerAttackRelease(0.22, t + 0.3);
+        } else if (voice.kind === 'yip') {
+            glide(v.lead, t, [[0, 780 * p], [0.05, 1150 * p], [0.13, 820 * p]], 0.14);
+            glide(v.lead, t + 0.2, [[0, 820 * p], [0.05, 1250 * p], [0.15, 880 * p]], 0.16);
+            v.bell.triggerAttackRelease([2637 * p, 3136 * p], 0.3, t + 0.38, 0.4);
+        } else if (voice.kind === 'croak') {
+            [0, 0.1, 0.2].forEach((dt, i) => glide(v.croak, t + dt, [[0, (170 - i * 12) * p], [0.07, (120 - i * 8) * p]], 0.075));
+        } else if (voice.kind === 'hum') {
+            glide(v.lead, t, [[0, 330 * p], [0.25, 495 * p], [0.6, 392 * p]], 0.62);
+            v.puff.triggerAttackRelease(0.5, t + 0.05);
+        } else {
+            [1047, 1319, 1568, 2093, 1568, 2637].forEach((freq, i) => v.bell.triggerAttackRelease(freq * p, 0.12, t + i * 0.055, 0.6));
+        }
+        if (voice.shiny) [2093, 2637, 3136, 4186].forEach((freq, i) => v.bell.triggerAttackRelease(freq, 0.3, t + 0.45 + i * 0.07, 0.35));
+    } catch (_) { /* overlapping triggers are harmless */ }
+}

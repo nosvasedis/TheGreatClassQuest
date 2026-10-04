@@ -156,8 +156,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'familiars', icon: 'fa-dragon', name: 'Familiars', tier: 'elite',
                     where: 'Eggs on the Mystic Market', go: 'tab:shop-tab',
-                    text: `One companion per student, bought as an egg. It hatches after 20 more stars, evolves at 60 and at 140 stars, and then walks beside the avatar on every board.`,
-                    keys: 'egg pet companion hatch evolve'
+                    text: `One companion per student, bought as an egg. Every egg hatches a one-of-a-kind creature (30 kinds per class, plus its own eyes, markings and keepsakes, and a rare Shiny). It hatches after 20 more stars, evolves at 60 and at 140 stars, hops for joy when its hero earns a star, and walks in the Familiar Parade after the Ceremony of the Month. At its final form it learns a trick: once a month it takes away one wrong answer in the Quiz of the Week. Tap a familiar to open its Den.`,
+                    keys: 'egg pet companion hatch evolve trick parade shiny'
                 }
             ]
         },
@@ -486,7 +486,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'familiar', icon: 'fa-dragon', name: 'Your Familiar', tier: 'elite',
-                    text: `Buy an egg and look after it with your stars. It hatches after 20 stars and grows into a bigger creature as you keep earning.`,
+                    text: `Buy an egg and look after it with your stars. It hatches after 20 stars into a creature nobody else has, and grows bigger as you keep earning. At its final form it learns a trick that can help you once a month in the Quiz of the Week.`,
                     keys: 'egg pet'
                 }
             ]

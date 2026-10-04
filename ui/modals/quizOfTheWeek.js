@@ -13,6 +13,7 @@ import {
     getQuizState
 } from '../../features/quizOfTheWeek.js';
 import { getQuizForClass } from '../../db/actions/quizOfTheWeek.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import {
     computeQuizTier,
     computeQuizTrail,
@@ -227,7 +228,50 @@ function renderTurn(turn) {
     document.getElementById('quiz-skip-btn')?.addEventListener('click', handleSkip);
 
     if (roll) spinSpotlight(pool, turn);
-    else playSound('quiz_student_reveal');
+    else {
+        playSound('quiz_student_reveal');
+        offerFamiliarTrick(turn);
+    }
+}
+
+/**
+ * A level-3 Familiar can help its hero once a month: its trick takes away one wrong answer.
+ * Only offered while at least two wrong answers are still open, so a real choice remains.
+ */
+async function offerFamiliarTrick(turn) {
+    const studentId = turn?.student?.id;
+    const question = turn?.question;
+    if (!studentId || !question || !canUseFeature('familiars')) return;
+    let fam;
+    try { fam = await import('../../features/familiars.js'); } catch { return; }
+    const ready = fam.getReadyFamiliarTrick(studentId);
+    const stage = contentEl();
+    const podium = stage?.querySelector('.qs-podium');
+    if (!ready || screen !== 'turn' || !podium || stage.querySelector('.qs-familiar-trick')) return;
+    const openWrong = () => [...stage.querySelectorAll('.qs-answer')]
+        .filter((b) => !b.disabled && Number(b.dataset.answerIndex) !== question.correctIndex);
+    if (openWrong().length < 2) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'qs-familiar-trick';
+    btn.innerHTML = `<span class="qs-familiar-trick__pet">${fam.familiarArtSvg(ready.familiar, studentId, { mode: 'chip' })}</span>`
+        + `<span>${escapeAttr(ready.name)}'s ${escapeAttr(ready.trick.name)}</span>`;
+    podium.insertAdjacentElement('afterend', btn);
+    btn.addEventListener('click', async () => {
+        if (busy || btn.disabled) return;
+        const choices = openWrong();
+        if (choices.length < 2) { btn.remove(); return; }
+        btn.disabled = true;
+        const used = await fam.useFamiliarTrick(studentId);
+        if (!used || screen !== 'turn') { btn.disabled = false; return; }
+        const gone = choices[Math.floor(Math.random() * choices.length)];
+        gone.disabled = true;
+        gone.setAttribute('aria-disabled', 'true');
+        gone.classList.add('is-tried', 'is-trick-gone');
+        btn.querySelector('span:last-child').textContent = `${ready.name} ${ready.trick.verb}!`;
+        later(() => btn.remove(), 2600);
+    });
 }
 
 /** Game-show roulette: names flicker under the spotlight, then land on the hero the fair rotation already chose. */
@@ -270,6 +314,7 @@ function landSpotlight(podium, turn) {
     podium.classList.remove('is-rolling');
     podium.classList.add('is-landed', 'is-landing');
     playSound('quiz_student_reveal');
+    offerFamiliarTrick(turn);
 }
 
 function renderTallyScreen() {

@@ -3,6 +3,7 @@
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces } from '../../features/guildScoringCore.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
+import { yearChronicles } from '../../features/guildChronicleCore.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
@@ -607,6 +608,9 @@ const _lite = (() => { try { return detectLowPowerTier(); } catch { return false
 const _reduceMotion = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 const PLACE_CLASS = ['gold', 'silver', 'bronze', 'iron'];
 let _hallSig = '';
+let _chronicleView = null;
+let _chronicleViewLoading = false;
+let _chronicleKey = null;
 let _renderFrame = 0;
 const _htmlCache = new WeakMap(); // element → the HTML it last received
 const _shown = new Map(); // `${guildId}:${field}` → the number on screen
@@ -791,6 +795,7 @@ function _raceShellHtml(model) {
                     </div>
                     <ol class="gh-race__rows" data-gh="raceRows">${rows}</ol>
                 </div>
+                <div class="gh-chron" data-gh="chronicle" aria-live="polite" hidden></div>
             </section>`;
 }
 
@@ -959,7 +964,7 @@ function _stonesHtml(row, model) {
             const tip = p
                 ? `${chapterName(k)}: ${_ordinal(p)} place${sealed.unity ? ' + Unity Seal' : ''}, ${sealed.crowns} Crown${sealed.crowns === 1 ? '' : 's'}`
                 : `${chapterName(k)}: no Glory, no Crowns`;
-            return `<span class="gh-stone is-${p ? PLACE_CLASS[p - 1] : 'empty'}${sealed.unity ? ' has-unity' : ''}" title="${tip}">${p === 1 ? '<i class="fas fa-crown gh-stone__crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
+            return `<span class="gh-stone is-${p ? PLACE_CLASS[p - 1] : 'empty'}${sealed.unity ? ' has-unity' : ''}" data-chronicle-key="${k}" title="${tip}. Tap for its chronicle.">${p === 1 ? '<i class="fas fa-crown gh-stone__crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
         }
         if (k === model.liveKey) {
             const c = model.counts ? Number(row.live?.crowns) || 0 : 0;
@@ -1016,6 +1021,58 @@ function _patchRace(hall, model, { fresh }) {
             : 'Level on Crowns at the top. The year’s Glory per member splits them.');
 }
 
+/** The Chapter chronicle scroll under the Crown Race (its view and CSS load on first need). */
+function _patchChronicle(hall) {
+    const box = hall.querySelector('[data-gh="chronicle"]');
+    if (!box) return;
+    const list = yearChronicles();
+    if (!list.length) { box.hidden = true; return; }
+    if (!_chronicleView) {
+        if (!_chronicleViewLoading) {
+            _chronicleViewLoading = true;
+            import('../../features/guildChronicleView.js')
+                .then((m) => { _chronicleView = m; requestGuildHallRender(); })
+                .catch((e) => console.warn('Chronicle view unavailable:', e))
+                .finally(() => { _chronicleViewLoading = false; });
+        }
+        return;
+    }
+    let index = list.findIndex((c) => c.key === _chronicleKey);
+    if (index < 0) index = list.length - 1;
+    const chronicle = list[index];
+    box.hidden = false;
+    _setHtml(box, _chronicleView.chroniclePanelHtml(chronicle, { index, total: list.length, canSpeak: typeof window !== 'undefined' && 'speechSynthesis' in window }));
+    hall.querySelectorAll('.gh-stone[data-chronicle-key]').forEach((el) => el.classList.toggle('is-chronicled', el.dataset.chronicleKey === chronicle.key));
+}
+
+function _chronicleAction(hall, t) {
+    const nav = t.closest('[data-chronicle-nav]');
+    const stone = t.closest('[data-chronicle-key]');
+    const read = t.closest('[data-chronicle-read]');
+    if (!nav && !stone && !read) return false;
+    const list = yearChronicles();
+    const shown = hall.querySelector('[data-chronicle-shown]')?.dataset.chronicleShown;
+    if (read) {
+        const c = list.find((x) => x.key === shown);
+        if (c && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(`The chronicle of ${c.month}. ${c.lines.join(' ')}`);
+            u.lang = 'en-GB';
+            u.rate = 0.92;
+            window.speechSynthesis.speak(u);
+        }
+        return true;
+    }
+    if (nav && !nav.disabled) {
+        const i = list.findIndex((x) => x.key === shown);
+        _chronicleKey = list[Math.max(0, Math.min(list.length - 1, i + Number(nav.dataset.chronicleNav)))]?.key || null;
+    } else if (stone) {
+        _chronicleKey = stone.dataset.chronicleKey;
+    }
+    _patchChronicle(hall);
+    return true;
+}
+
 function _patchHall(hall, model, { fresh }) {
     hall.classList.toggle('is-loading', model.loading);
     if (model.seasonLive) {
@@ -1038,6 +1095,7 @@ function _patchHall(hall, model, { fresh }) {
         if (row) _patchBanner(el, row, model, { fresh: first });
     });
     _patchRace(hall, model, { fresh: first });
+    _patchChronicle(hall);
 
     if (first) {
         // The vials pour from empty on the first paint with data.
@@ -1071,6 +1129,7 @@ function _wireHall(hall) {
         const t = e.target;
         if (!(t instanceof Element)) return;
         if (t.closest('[data-guild-power-info="true"]')) { e.stopPropagation(); _openPowerExplainer(); return; }
+        if (_chronicleAction(hall, t)) { e.stopPropagation(); return; }
         const spot = t.closest('[data-top-heroes-guild]');
         if (spot) { e.stopPropagation(); openGuildHeroesModal(spot.dataset.topHeroesGuild); return; }
         const anthem = t.closest('[data-anthem-guild]');

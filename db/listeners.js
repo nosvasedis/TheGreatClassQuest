@@ -1602,7 +1602,10 @@ export async function setupDataListeners(
                 state.setAllGuildScores(allGuildScores);
                 import("../features/guildScoring.js")
                     .then((m) => Promise.all([
-                        m.backfillGuildMemberGloryIfNeeded().then(() => m.sealFinishedChapters()),
+                        m.backfillGuildMemberGloryIfNeeded()
+                            .then(() => m.sealFinishedChapters())
+                            .then(() => import("../features/guildChronicleCore.js"))
+                            .then((c) => c.ensureChapterChronicles()),
                         m.correctOrphanMemberGlory(),
                     ]))
                     .catch((e) => console.warn("Guild Chapter upkeep skipped:", e));

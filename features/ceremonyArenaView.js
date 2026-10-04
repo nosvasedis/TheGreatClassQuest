@@ -422,11 +422,12 @@ export function arenaLadderTokenHtml(entry, type) {
     return `<li class="cer-token cer-metal--${metal}"><b>#${Number(entry.rank)}</b>${face}<span class="cer-token__name">${esc(entry.name)}</span></li>`;
 }
 
-export function arenaStandingsHtml(queueBestFirst = [], { monthName = '' } = {}) {
+export function arenaStandingsHtml(queueBestFirst = [], { monthName = '', risingStarId = null } = {}) {
     const rows = queueBestFirst.map((s, index) => {
         const metal = arenaMetalForRank(s.rank);
-        const title = s.rank === 1 ? (queueBestFirst.filter((x) => x.rank === 1).length > 1 ? 'Co-Prodigy' : 'Prodigy of the Month') : '';
-        return `<li class="cer-roll__row cer-metal--${metal}" style="--i:${index}">
+        const rising = risingStarId && s.id === risingStarId;
+        const title = s.rank === 1 ? (queueBestFirst.filter((x) => x.rank === 1).length > 1 ? 'Co-Prodigy' : 'Prodigy of the Month') : (rising ? '✦ Rising Star' : '');
+        return `<li class="cer-roll__row cer-metal--${metal}${rising ? ' is-rising' : ''}" style="--i:${index}">
             <span class="cer-roll__rank">${s.rank <= 3 ? `<i class="fas fa-medal" aria-hidden="true"></i>` : ''}#${Number(s.rank)}</span>
             ${avatarHtml(s, 'cer-roll__face')}
             <span class="cer-roll__who"><b>${esc(s.name)}</b>${title ? `<small>${title}</small>` : ''}</span>

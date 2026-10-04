@@ -33,7 +33,8 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
-import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, seededShuffle, seededHash, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
+import { isGrowthStarfallNote } from './growthStarfallCore.mjs';
+import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, chooseRisingStar, seededShuffle, seededHash, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
 import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
 import {
@@ -296,6 +297,7 @@ async function loadCeremonyResults() {
         })).map(({ stars, ...rest }) => rest);
 
         ceremonyData.studentQueue = studentStats.reverse();
+        ceremonyData.risingStar = await findRisingStar(studentsInClass, logs, monthlyScores, studentStats);
         ceremonyData.phase = 'class_reveal';
         await persistPreparedCeremonySnapshot();
         ceremonyData.loaded = true;
@@ -303,6 +305,48 @@ async function loadCeremonyResults() {
     } catch (e) {
         console.error('Ceremony Load Error:', e);
         return false;
+    }
+}
+
+/**
+ * Rising Star: the hero (not the Prodigy) who grew most against their own previous month.
+ * September has no previous month in the school year, so only Growth Starfalls count then.
+ */
+async function findRisingStar(studentsInClass, logs, monthlyScores, rankedStudents) {
+    try {
+        if (studentsInClass.length < 3) return null;
+        const [year, month] = ceremonyData.monthKey.split('-').map(Number);
+        const prevDate = new Date(year, month - 2, 1);
+        const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+        const comparable = prevDate.getMonth() + 1 !== 8 && month !== 9;
+        let previousScores = {};
+        if (comparable) {
+            const { fetchMonthlyHistory } = await import('../state.js');
+            const [prevLogs, prevArchived] = await Promise.all([
+                fetchLogsForMonth(prevDate.getFullYear(), prevDate.getMonth() + 1).catch(() => []),
+                fetchMonthlyHistory(prevKey).catch(() => ({}))
+            ]);
+            previousScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(sumMonthlyStarCreditsByStudentFromAwardLogs(prevLogs), prevArchived || {});
+        }
+        const candidates = studentsInClass.map((s) => ({
+            id: s.id,
+            name: s.name,
+            avatar: s.avatar,
+            current: monthlyScores[s.id] || 0,
+            previous: previousScores[s.id] || 0,
+            hasPrevious: comparable && existedByMonthEnd(s, prevKey),
+            growthStarfalls: logs.filter((l) => l.studentId === s.id && l.reason === 'scholar_s_bonus' && isGrowthStarfallNote(l.note)).length
+        }));
+        const excludeIds = rankedStudents.filter((s) => s.rank === 1 && Number(s.score) > 0).map((s) => s.id);
+        const pick = chooseRisingStar(candidates, { excludeIds, seed: `${ceremonyData.classId}:${ceremonyData.monthKey}` });
+        if (pick) {
+            pick.previousMonthName = comparable ? prevDate.toLocaleString('en-GB', { month: 'long' }) : '';
+            import('./ceremonyRisingStar.js').catch(() => {});
+        }
+        return pick;
+    } catch (error) {
+        console.warn('Rising Star skipped:', error);
+        return null;
     }
 }
 
@@ -337,6 +381,8 @@ function hydrateCeremonyFromSnapshot(snapshot, replay = false) {
     ceremonyData.growthPathfinderId = ceremonyData.growthGardenClasses.find((item) => item.isPathfinder)?.id || snapshot.classWinner?.id || null;
     ceremonyData.growthStudents = (snapshot.publicSequence?.parade || snapshot.spotlights || []).map((card) => ({ id: card.studentId, name: card.studentName }));
     ceremonyData.growthWinners = snapshot.prodigyWinners || [];
+    ceremonyData.risingStar = ceremonyData.mode === 'growth_festival' ? null : (snapshot.publicSequence?.risingStar || null);
+    if (ceremonyData.risingStar) import('./ceremonyRisingStar.js').catch(() => {});
     ceremonyData.classPointer = 0;
     ceremonyData.studentPointer = 0;
     ceremonyData.growthPointer = 0;
@@ -365,6 +411,7 @@ async function persistPreparedCeremonySnapshot() {
                 ? (ceremonyData.growthCanonicalStudentResults || [])
                 : (ceremonyData.studentQueue || []).map((item) => ({ ...item, count3: item.stats?.count3 ?? 0, count2: item.stats?.count2 ?? 0, uniqueReasons: item.stats?.uniqueReasons ?? 0, academicAvg: item.stats?.academicAvg ?? 0 })),
             students: ceremonyData.growthStudents || [],
+            risingStar: ceremonyData.mode === 'growth_festival' ? null : (ceremonyData.risingStar || null),
             spotlightOptions: {},
             snapshotVersion: 1
         });
@@ -612,7 +659,7 @@ function countUp(el, to, { fast = false, duration = 900 } = {}) {
     const step = (now) => {
         const t = Math.min(1, (now - start) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
-        el.textContent = String(Math.round(target * eased));
+        el.textContent = String(t < 1 ? Math.round(target * eased) : target);
         if (t < 1 && el.isConnected) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -959,7 +1006,7 @@ function handleDuelReveal() {
         delete screen.dataset.spot;
     } });
     runTimeline(steps, () => {
-        setAction(finishedClassShowdown ? "On to the Hero's Challenge" : 'Show Final Standings', advanceCeremony);
+        setAction(finishedClassShowdown ? "On to the Hero's Challenge" : (ceremonyData.risingStar ? 'One more star rises…' : 'Show Final Standings'), advanceCeremony);
     });
 }
 
@@ -977,6 +1024,42 @@ function renderTransition() {
     ceremonyFx?.stars({ count: 40, colors: ['#ddd6fe', '#c4b5fd', '#fef3c7'], duration: 2400 });
 }
 
+async function renderRisingStar() {
+    const star = ceremonyData.risingStar;
+    const stage = $('ceremony-stage-area');
+    if (!star || !stage) return;
+    let view;
+    try { view = await import('./ceremonyRisingStar.js'); } catch (error) { console.warn('Rising Star view unavailable:', error); return; }
+    if (!ceremonyData.active) return;
+    ladderOff();
+    setScene('rising', { realm: 'violet' });
+    stage.innerHTML = view.risingStarHtml(star, { monthName: ceremonyData.monthName });
+    setHeading(`${ceremonyData.monthName} · ${ceremonyData.className}`, 'Rising Star');
+    setHerald('');
+    triggerAICommentary('rising_star', { name: star.name, gain: star.gain, starfalls: star.starfalls });
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    playCeremonySfx('whoosh');
+    await new Promise((resolve) => {
+        runTimeline([
+            { at: 900, run: (fast) => {
+                const card = stage.querySelector('.cer-rise__card');
+                stage.querySelector('.cer-rise')?.classList.add('is-landed');
+                if (fast || reduced) return;
+                playCeremonySfx('reveal');
+                const p = fxPoint(card);
+                ceremonyFx?.burst(p.x, p.y, { colors: ['#fef3c7', '#fde68a', '#c4b5fd', '#a5f3fc'], count: 110, speed: 320, ring: true });
+            } },
+            { at: 1500, run: (fast) => {
+                countUp(stage.querySelector('.cer-rise__gain .cer-count'), star.gain, { fast });
+                if (!fast && !reduced) {
+                    playCeremonySfx('gold');
+                    ceremonyFx?.stars({ count: 36, colors: ['#fef3c7', '#c4b5fd', '#a5f3fc'], duration: 2200 });
+                }
+            } }
+        ], resolve);
+    });
+}
+
 function renderStandings() {
     const stage = $('ceremony-stage-area');
     ladderOff();
@@ -986,7 +1069,7 @@ function renderStandings() {
         stage.innerHTML = arenaCollectiveHtml();
         setHeading(ceremonyData.monthName, 'Our Whole Class Quest');
     } else {
-        stage.innerHTML = arenaStandingsHtml(queue.slice().reverse(), { monthName: ceremonyData.monthName });
+        stage.innerHTML = arenaStandingsHtml(queue.slice().reverse(), { monthName: ceremonyData.monthName, risingStarId: ceremonyData.risingStar?.id || null });
         setHeading('', '');
     }
     setHerald('');
@@ -1115,8 +1198,17 @@ function advanceCeremony() {
     }
 
     if (ceremonyData.phase === 'student_showdown_done') {
-        ceremonyData.phase = 'final_leaderboard';
+        ceremonyData.phase = ceremonyData.risingStar ? 'rising_star' : 'final_leaderboard';
         advanceCeremony();
+        return;
+    }
+
+    if (ceremonyData.phase === 'rising_star') {
+        ceremonyData.phase = 'final_leaderboard';
+        setAction('Showing the Rising Star…', null, { disabled: true });
+        renderRisingStar().finally(() => {
+            if (ceremonyData.active && ceremonyData.phase === 'final_leaderboard') setAction('Show Final Standings', advanceCeremony);
+        });
         return;
     }
 
@@ -1423,7 +1515,7 @@ async function saveCeremonyComplete() {
             studentResultsPrivate: ceremonyData.studentQueue || [],
             classWinner: ceremonyData.classQueue?.[ceremonyData.classQueue.length - 1] || null,
             prodigyWinners: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthWinners || []) : (ceremonyData.studentQueue?.filter((item) => item.rank === 1) || []),
-            publicSequence: ceremonyData.mode === 'growth_festival' ? { parade: ceremonyData.growthSpotlights || [] } : { classes: ceremonyData.classQueue || [], students: ceremonyData.studentQueue || [] },
+            publicSequence: ceremonyData.mode === 'growth_festival' ? { parade: ceremonyData.growthSpotlights || [] } : { classes: ceremonyData.classQueue || [], students: ceremonyData.studentQueue || [], risingStar: ceremonyData.risingStar || null },
             spotlights: ceremonyData.growthSpotlights || [],
             sourceGeneratedAt: new Date(),
             snapshotVersion: 1,
@@ -1508,6 +1600,7 @@ async function triggerAICommentary(phase, data) {
             else userPrompt = `Shout out ${data.name} for hitting Rank #${data.rank}.`;
         }
         else if (phase === 'student_winner') userPrompt = `Announce ${data.name} is the Prodigy of the Month!`;
+        else if (phase === 'rising_star') userPrompt = `Celebrate ${data.name} as this month's Rising Star: the hero who grew the most compared with their own last month. Warm and proud, not competitive.`;
         else if (phase === 'outro') userPrompt = "Sign off with energy. See you next month.";
         else if (phase === 'showdown_build') userPrompt = `It's down to ${data.name1} vs ${data.name2}. The tension is maximum! Build extreme suspense but DO NOT announce the winner yet.`;
         else if (phase === 'tie') userPrompt = `UNBELIEVABLE! It's a tie between ${data.names}! Two Co-Prodigies!`;
@@ -1519,6 +1612,7 @@ async function triggerAICommentary(phase, data) {
             transition: 'Who will be our Prodigy?',
             student_rank: `Shout out to ${data.name}!`,
             student_winner: `${data.name} is our Prodigy of the Month!`,
+            rising_star: `${data.name} climbed higher than ever. Our Rising Star!`,
             outro: 'See you next month!',
             showdown_build: `${data.name1} vs ${data.name2} — the final showdown!`,
             tie: `Two crowns! ${data.names || 'Our Co-Prodigies'} share the glory!`

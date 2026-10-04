@@ -1,0 +1,109 @@
+/* styles/guild_chronicle.css — Chapter chronicles (Guild Hall scroll + Grand Ceremony story).
+   Loaded lazily with features/guildChronicleView.js. Transform and opacity only. */
+
+.gh-chron { margin-top: 0.9rem; }
+.gh-chron[hidden] { display: none; }
+
+.gh-chron__scroll {
+    position: relative;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 0.6rem;
+}
+.gh-chron__rod {
+    display: block;
+    height: 0.7rem;
+    margin: 0 -0.6rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #a86b2c, #6b3f12 60%, #4a2a0a);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.gh-chron__paper {
+    padding: 0.7rem 1rem 0.65rem;
+    color: #3b2508;
+    background:
+        radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 60%),
+        linear-gradient(180deg, #f6e7c1, #ead3a0);
+    box-shadow: inset 0 0 22px rgba(122, 75, 12, 0.28);
+    transform-origin: 50% 0;
+    animation: gh-chron-unroll 0.55s var(--gh-ease, ease-out) both;
+}
+@keyframes gh-chron-unroll { from { transform: scaleY(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
+.gh-chron__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.gh-chron__title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Cinzel', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.15;
+    color: #6b3f12;
+}
+.gh-chron__title small { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: #8a5a20; }
+.gh-chron__nav, .gh-chron__read {
+    border: 1px solid rgba(107, 63, 18, 0.35);
+    background: rgba(255, 255, 255, 0.35);
+    color: #6b3f12;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.gh-chron__nav { width: 2rem; height: 2rem; display: grid; place-items: center; }
+.gh-chron__nav:disabled { opacity: 0.3; cursor: default; }
+.gh-chron__nav:not(:disabled):hover, .gh-chron__read:hover { background: rgba(255, 255, 255, 0.6); }
+.gh-chron__lines {
+    list-style: none;
+    margin: 0.55rem 0 0.4rem;
+    padding: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    line-height: 1.45;
+    text-align: center;
+    user-select: text;
+}
+.gh-chron__lines li { opacity: 0; animation: gh-chron-ink 0.5s ease-out calc(0.35s + var(--i) * 0.22s) both; }
+.gh-chron__lines li + li { margin-top: 0.15rem; }
+@keyframes gh-chron-ink { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.gh-chron__foot { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; font-size: 0.75rem; color: #8a5a20; }
+.gh-chron__by { display: inline-flex; align-items: center; gap: 0.35rem; }
+.gh-chron__read { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.7rem; font-size: 0.75rem; font-weight: 700; }
+
+.gh-stone[data-chronicle-key] { cursor: pointer; }
+.gh-stone.is-chronicled { outline: 2px solid rgba(246, 231, 193, 0.85); outline-offset: 1px; }
+
+/* ── Grand Guild Ceremony: the Story of the Year ── */
+.grd-story { width: min(760px, 94vw); max-height: 62vh; display: flex; flex-direction: column; }
+.grd-story__rod {
+    flex: none;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #c08a3e, #7a4b0c 60%, #4a2a0a);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+.grd-story__paper {
+    list-style: none;
+    margin: 0 10px;
+    padding: 14px 22px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    color: #3b2508;
+    background: linear-gradient(180deg, #f6e7c1, #ead3a0);
+    box-shadow: inset 0 0 26px rgba(122, 75, 12, 0.3);
+}
+.grd-story__stanza {
+    text-align: center;
+    padding: 8px 0 10px;
+    opacity: 0.12;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    transform: translateY(6px);
+}
+.grd-story__stanza.is-read { opacity: 1; transform: none; }
+.grd-story__stanza + .grd-story__stanza { border-top: 1px dashed rgba(122, 75, 12, 0.3); }
+.grd-story__month { font-family: 'Cinzel', Georgia, serif; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.85rem; color: #8a5a20; }
+.grd-story__stanza p { margin: 4px 0 0; font-family: Georgia, serif; font-style: italic; font-size: clamp(0.95rem, 2.2vh, 1.15rem); line-height: 1.45; }
+
+@media (prefers-reduced-motion: reduce) {
+    .gh-chron__paper, .gh-chron__lines li { animation: none; opacity: 1; }
+    .grd-story__stanza { transition: none; }
+}

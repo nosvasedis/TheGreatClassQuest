@@ -271,7 +271,8 @@ async function gatherAllData(classIds) {
         prodigies,
         wheel: gatherWheel(classIds),
         familiars,
-        guilds: gatherGuilds(classIds)
+        guilds: gatherGuilds(classIds),
+        chronicles: await import('./guildChronicleCore.js').then((m) => m.yearChronicles()).catch(() => [])
     };
 }
 
@@ -588,8 +589,9 @@ async function advance() {
         opening: renderHeroes,
         heroes: renderQuestYear,
         quest: renderProdigyRoad,
-        prodigies: hasWonders() ? renderWonders : renderGuildPillars,
-        wonders: renderGuildPillars,
+        prodigies: hasWonders() ? renderWonders : (hasStory() ? renderStory : renderGuildPillars),
+        wonders: hasStory() ? renderStory : renderGuildPillars,
+        story: renderGuildPillars,
         'guilds-reveal': revealNextGuild,
         'guilds-crown': renderChampion,
         champion: renderHall,
@@ -693,6 +695,35 @@ function renderWonders() {
         if (!fast) playCeremonySfx('pop');
     } })));
     herald('wonders', { wheel, familiars });
+    setAction('The Guild Crowning', advance);
+}
+
+function hasStory() {
+    return Boolean(ceremony.data?.chronicles?.length);
+}
+
+/** The Story of the Year: each sealed Chapter's chronicle, read one stanza after another. */
+async function renderStory() {
+    ceremony.phase = 'story';
+    let view;
+    try { view = await import('./guildChronicleView.js'); } catch (error) { console.warn('Story of the Year unavailable:', error); renderGuildPillars(); return; }
+    if (!ceremony.active) return;
+    setScene('story', { realm: 'night' });
+    const stage = $('grd-stage');
+    const chronicles = ceremony.data.chronicles;
+    stage.innerHTML = view.grandStoryHtml(chronicles);
+    chapterHeading('guilds', 'The Story of the Year');
+    setHerald('Every Chapter has its tale. Listen to the Chronicle of the Crown Race.');
+    playCeremonySfx('whoosh');
+    const paper = stage.querySelector('.grd-story__paper');
+    const stanzas = [...stage.querySelectorAll('.grd-story__stanza')];
+    runTimeline(stanzas.map((el, i) => ({ at: 300 + i * 2600, run: (fast) => {
+        el.classList.add('is-read');
+        if (fast) return;
+        playCeremonySfx('chime');
+        if (paper) paper.scrollTop = Math.max(0, el.offsetTop - paper.clientHeight / 3);
+        setHerald(`${chronicles[i].month}: ${chronicles[i].lines[0]}`);
+    } })), () => setHerald('And so the year was written, Chapter by Chapter.'));
     setAction('The Guild Crowning', advance);
 }
 

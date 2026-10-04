@@ -111,6 +111,33 @@ export function chooseCanonicalWinners({ classResults = [], studentResults = [] 
     return { classResults: rankedClasses, studentResults: rankedStudents, classWinner, prodigyWinners, collectiveClose: false };
 }
 
+// Rising Star (Classic Arena): the hero who grew the most against their own previous month.
+// Growth = stars gained on last month + 2 for each Growth Starfall moment this month. The
+// Prodigy winners are left out, so the crown reaches someone new. Only one Rising Star.
+export const RISING_STAR_RULES = Object.freeze({ starfallWeight: 2, minGrowth: 3 });
+
+export function chooseRisingStar(candidates = [], { excludeIds = [], seed = '' } = {}) {
+    const excluded = new Set(excludeIds);
+    const scored = candidates
+        .filter((c) => c && c.id && !excluded.has(c.id) && (Number(c.current) || 0) > 0)
+        .map((c) => {
+            const current = Number(c.current) || 0;
+            const previous = c.hasPrevious ? (Number(c.previous) || 0) : null;
+            const starfalls = Math.max(0, Number(c.growthStarfalls) || 0);
+            const gain = previous === null ? 0 : Math.max(0, current - previous);
+            const growth = gain + starfalls * RISING_STAR_RULES.starfallWeight;
+            return { id: c.id, name: c.name || '', avatar: c.avatar || null, current, previous, gain, starfalls, growth };
+        })
+        .filter((c) => c.growth >= RISING_STAR_RULES.minGrowth);
+    scored.sort((a, b) => b.growth - a.growth
+        || b.starfalls - a.starfalls
+        || a.current - b.current
+        || seededHash(`${seed}:${a.id}`) - seededHash(`${seed}:${b.id}`));
+    const best = scored[0];
+    if (!best) return null;
+    return { ...best, previous: best.previous ?? null, current: Math.round(best.current * 10) / 10, gain: Math.round(best.gain * 10) / 10, growth: Math.round(best.growth * 10) / 10 };
+}
+
 const REASONS = ['teamwork', 'creativity', 'respect', 'focus'];
 const REASON_LABELS = { teamwork: 'Teamwork Bloom', creativity: 'Bright Idea Bloom', respect: 'Kind Heart Bloom', focus: 'Steady Star Bloom' };
 
@@ -164,12 +191,12 @@ export function buildGrowthPublicSequence({ classes = [], spotlights = [], pathf
     };
 }
 
-export function buildCeremonySnapshot({ classId, className, classLogo, questLeague, monthKey, schoolYearKey, classResults = [], studentResults = [], students = [], spotlightOptions = {}, snapshotVersion = 1, createdBy } = {}) {
+export function buildCeremonySnapshot({ classId, className, classLogo, questLeague, monthKey, schoolYearKey, classResults = [], studentResults = [], students = [], spotlightOptions = {}, snapshotVersion = 1, createdBy, risingStar = null } = {}) {
     const modeResult = resolveCeremonyMode(questLeague);
     if (!modeResult.ok) throw new Error(modeResult.reason);
     const winners = chooseCanonicalWinners({ classResults, studentResults });
     const spotlights = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthSpotlights(students, spotlightOptions, { classId, monthKey, snapshotVersion }) : [];
-    const publicSequence = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthPublicSequence({ classes: classResults, spotlights, pathfinderId: winners.classWinner?.id, classId, monthKey, snapshotVersion }) : { classes: winners.classResults, students: winners.studentResults };
+    const publicSequence = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthPublicSequence({ classes: classResults, spotlights, pathfinderId: winners.classWinner?.id, classId, monthKey, snapshotVersion }) : { classes: winners.classResults, students: winners.studentResults, risingStar: risingStar || null };
     return {
         schemaVersion: 1, schoolYearKey, classId, className, classLogo, questLeague, monthKey, mode: modeResult.mode, status: 'draft',
         classResults: winners.classResults, studentResultsPrivate: winners.studentResults, classWinner: winners.classWinner, prodigyWinners: winners.prodigyWinners,

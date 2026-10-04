@@ -1,0 +1,190 @@
+/* styles/ceremony_rising_star.css — Rising Star moment of the Classic Arena ceremony.
+   Loaded lazily with features/ceremonyRisingStar.js. Transform and opacity only,
+   so weak classroom laptops stay smooth. */
+
+.cer-rise {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(560px, 92vw);
+    margin: 0 auto;
+    padding: 8px 0 4px;
+}
+
+/* A comet climbs from the bottom-left corner and lands on the card. */
+.cer-rise__comet {
+    position: absolute;
+    left: 50%;
+    top: 34%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    animation: cer-rise-comet 0.95s cubic-bezier(.3, .7, .3, 1) both;
+}
+.cer-rise__head {
+    position: absolute;
+    left: -14px;
+    top: -14px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbeb 0%, #fde68a 45%, rgba(253, 230, 138, 0) 72%);
+}
+.cer-rise__tail {
+    position: absolute;
+    right: 0;
+    top: -3px;
+    width: 220px;
+    height: 6px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(196, 181, 253, 0), rgba(196, 181, 253, 0.55) 60%, #fef3c7);
+    transform-origin: 100% 50%;
+    transform: rotate(-35deg);
+}
+@keyframes cer-rise-comet {
+    0% { transform: translate(-46vw, 42vh) scale(0.6); opacity: 0; }
+    15% { opacity: 1; }
+    88% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(0, 0) scale(1.6); opacity: 0; }
+}
+
+.cer-rise__card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding: 22px 22px 18px;
+    border-radius: 22px;
+    text-align: center;
+    background:
+        radial-gradient(120% 70% at 50% 0%, rgba(167, 139, 250, 0.35), rgba(167, 139, 250, 0) 70%),
+        linear-gradient(180deg, #24164a, #150c26);
+    border: 2px solid rgba(253, 230, 138, 0.55);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    opacity: 0;
+    transform: translateY(70px) scale(0.92);
+    transition: transform 0.75s cubic-bezier(.2, .9, .25, 1.15), opacity 0.45s ease;
+}
+.cer-rise.is-landed .cer-rise__card { opacity: 1; transform: none; }
+
+.cer-rise__emblem {
+    position: relative;
+    width: clamp(130px, 22vh, 190px);
+    aspect-ratio: 1;
+    margin: -6px auto 6px;
+    display: grid;
+    place-items: center;
+}
+.cer-rise__star {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 6px 18px rgba(253, 230, 138, 0.45));
+    animation: cer-rise-turn 14s linear infinite;
+}
+@keyframes cer-rise-turn { to { transform: rotate(360deg); } }
+.cer-rise__halo {
+    position: absolute;
+    inset: -14%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(253, 230, 138, 0.38), rgba(253, 230, 138, 0) 65%);
+    animation: cer-rise-breathe 2.6s ease-in-out infinite;
+}
+@keyframes cer-rise-breathe { 50% { transform: scale(1.12); opacity: 0.6; } }
+.cer-rise__face {
+    position: relative;
+    width: 46%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fef3c7;
+    background: #3b2a6b;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    transform: translateY(4%);
+}
+.cer-rise__face--initial {
+    display: grid;
+    place-items: center;
+    font-family: var(--cer-title-font);
+    font-size: clamp(1.8rem, 5vh, 2.6rem);
+    color: #fde68a;
+}
+
+.cer-rise__kicker {
+    margin: 0;
+    font-family: var(--cer-caps-font);
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #c4b5fd;
+    font-weight: 700;
+}
+.cer-rise__name {
+    margin: 4px 0 6px;
+    font-family: var(--cer-title-font);
+    font-size: clamp(1.7rem, 5vh, 2.8rem);
+    line-height: 1.1;
+    color: #fde68a;
+    overflow-wrap: anywhere;
+}
+.cer-rise__gain { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cer-rise__plus {
+    font-family: var(--cer-caps-font);
+    font-weight: 800;
+    font-size: clamp(2rem, 6vh, 3.2rem);
+    color: #fef3c7;
+    line-height: 1;
+}
+.cer-rise__gain small, .cer-rise__line { color: var(--cer-muted); font-size: 0.95rem; }
+.cer-rise__gain--soft small { font-size: 1.05rem; color: #fde68a; }
+.cer-rise__proof {
+    list-style: none;
+    margin: 12px auto 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+.cer-rise__proof li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(196, 181, 253, 0.35);
+    font-size: 0.85rem;
+}
+.cer-rise__proof i { color: #a7f3d0; }
+.cer-rise__line { margin: 12px 0 0; font-style: italic; }
+
+/* Little stars drifting upward behind the card. */
+.cer-rise__sparks { position: absolute; inset: 0; pointer-events: none; }
+.cer-rise__sparks i {
+    position: absolute;
+    bottom: 0;
+    left: calc(6% + var(--i) * 9.5%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fef3c7;
+    box-shadow: 0 0 10px #fde68a;
+    opacity: 0;
+    animation: cer-rise-spark 3.2s ease-in calc(1s + var(--i) * 0.27s) infinite;
+}
+@keyframes cer-rise-spark {
+    0% { transform: translateY(0) scale(0.6); opacity: 0; }
+    20% { opacity: 0.9; }
+    100% { transform: translateY(-48vh) scale(1); opacity: 0; }
+}
+
+/* The Rising Star row in the Final Standings. */
+.cer-roll__row.is-rising { box-shadow: inset 3px 0 0 #c4b5fd; }
+.cer-roll__row.is-rising .cer-roll__who small { color: #c4b5fd; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cer-rise__comet, .cer-rise__sparks { display: none; }
+    .cer-rise__star, .cer-rise__halo { animation: none; }
+    .cer-rise__card { transition: opacity 0.3s ease; transform: none; }
+}

@@ -125,6 +125,20 @@ Sort by:
 
 The **Teacher Boon** ribbon is honour: it does **not** add a secret rank, and it does **not** break a Prodigy tie by itself. The 2 stars were already in the month’s totals when they were gifted on Award Stars.
 
+### Rising Star (Classic Arena)
+
+After the Prodigy is crowned, one more card rises: the **Rising Star**, the child who grew the most compared with **their own previous month**. A comet climbs up the screen and lands on a star with the child’s portrait, the gain (“+9 stars more than last month”) and the proof underneath (last month’s and this month’s stars, and any Growth Starfall). Then **Show Final Standings**; the Rising Star’s row carries a violet **✦ Rising Star** label.
+
+How it is chosen:
+
+- Growth = this month’s stars minus last month’s, plus **2 for every Growth Starfall** on the Scholar’s Scroll this month.
+- The Prodigy (and Co-Prodigies) are left out, so the crown reaches someone new.
+- It needs a growth of at least 3. If nobody grew that much, there is no Rising Star that month, and nothing is invented.
+- A child who joined after last month has only Growth Starfalls to count. So does everyone in **September**, the first month of the school year.
+- Ties go to more Growth Starfalls, then to the child with fewer stars in total.
+
+The Rising Star is honour only: no extra stars or Gold. It is fixed when the ceremony is prepared, so a replay shows the same child. Growth Festival (Pre-Junior) keeps its own garden and has no Rising Star.
+
 Winners are kept in the **Hall of Prodigies** and show as **Prodigy of the Month** (or **Co-Prodigy** after a tie) on a mint cloud on Award Stars, and as **Reigning Prodigy** on Hero’s Challenge, until the next month’s ceremony.
 
 This ritual is **not**:
@@ -147,4 +161,4 @@ Finishing the ceremony does not wipe stars: monthly stars reset with the new mon
 
 | Starter | Pro | Elite |
 |---------|-----|-------|
-| Dual ceremony: Team Quest, then Prodigy | Same two phases | Richer AI commentary. The two phases do not depend on Elite |
+| Dual ceremony: Team Quest, then Prodigy and Rising Star | Same two phases | Richer AI commentary. The two phases do not depend on Elite |

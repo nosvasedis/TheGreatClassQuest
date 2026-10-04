@@ -33,9 +33,10 @@ function crestHtml(model) {
         </div>`;
 }
 
-function headerHtml(model) {
+function headerHtml(model, legend) {
+    const isLegend = legend?.status === 'legend';
     const rank = model.hasPath
-        ? `<span class="st-rank"><i class="fas fa-crown"></i> ${escTree(model.title)}</span>`
+        ? `<span class="st-rank${isLegend ? ' is-legend' : ''}"><i class="fas fa-crown"></i> ${escTree(model.title)}${isLegend ? ' <span class="st-rank-legend">Legend</span>' : ''}</span>`
         : '';
     return `
         <header class="st-head">
@@ -51,7 +52,7 @@ function headerHtml(model) {
         </header>`;
 }
 
-function meterHtml(model) {
+function meterHtml(model, legend) {
     if (!model.hasPath) return '';
     const seals = model.tiers.map((tier) => `
         <span class="st-meter-seal${tier.state === 'sealed' ? '' : ' is-lit'}" style="left:${tier.meterPos}%"
@@ -60,7 +61,11 @@ function meterHtml(model) {
             <span class="st-meter-seal-num">${tier.level}</span>
         </span>`).join('');
     const caption = model.isMax
-        ? `<i class="fas fa-crown"></i> The path is complete. Every seal is broken.`
+        ? legend?.status === 'legend'
+            ? `<i class="fas fa-crown"></i> A living legend. Every seal is broken and the Legend Quest is fulfilled.`
+            : legend?.status === 'open'
+                ? `<i class="fas fa-crown"></i> Every seal is broken. One Legend Quest remains.`
+                : `<i class="fas fa-crown"></i> The path is complete. Every seal is broken.`
         : model.level === 0
             ? `<b>${formatPathStars(model.toNext)}</b> more ${escTree(model.reasonLabel)} stars to break the first seal`
             : `<b>${formatPathStars(model.toNext)}</b> more ${escTree(model.reasonLabel)} stars to become <b>${escTree(model.nextTitle)}</b>`;
@@ -166,14 +171,20 @@ function footerHtml(model) {
         </footer>`;
 }
 
-/** Everything inside the panel except the static sky and close button. */
-export function renderSkillTreeStage(model) {
+/**
+ * Everything inside the panel except the static sky and close button.
+ * `legend` is the Legend Quest state and `legendHtml` its crown at the top of the path
+ * (ui/modals/legendQuestView.mjs); while the quest is open or fulfilled it takes the focus.
+ */
+export function renderSkillTreeStage(model, { legend = null, legendHtml = '' } = {}) {
+    const legendFocus = legend && (legend.status === 'open' || legend.status === 'legend');
+    const tierModel = legendFocus ? { ...model, focusTier: -1 } : model;
     const body = model.hasPath
-        ? `<ol class="st-path">${[...model.tiers].reverse().map((t) => tierHtml(t, model)).join('')}${originHtml(model)}</ol>`
+        ? `<ol class="st-path">${legendHtml}${[...model.tiers].reverse().map((t) => tierHtml(t, tierModel)).join('')}${originHtml(model)}</ol>`
         : emptyHtml();
     return `
-        ${headerHtml(model)}
-        ${meterHtml(model)}
+        ${headerHtml(model, legend)}
+        ${meterHtml(model, legend)}
         <div id="skill-tree-content" class="st-scroll custom-scrollbar">${body}</div>
         ${footerHtml(model)}`;
 }

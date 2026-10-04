@@ -3,7 +3,7 @@
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import { showAnimatedModal } from '../modals.js';
-import { playSound } from '../../audio.js';
+import { playSound, playHeroFanfare } from '../../audio.js';
 import { HERO_SKILL_TREE, getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { buildSkillTreeModel } from '../../features/skillTreeCore.mjs';
@@ -13,10 +13,29 @@ import {
     renderAwakenBurstHtml,
     skillTreeThemeStyle
 } from './skillTreeView.mjs';
+import { legendQuestState, addLegendStep, removeLatestLegendStep } from '../../features/legendQuestCore.mjs';
+import { renderLegendCrownHtml, renderLegendBornHtml } from './legendQuestView.mjs';
 import { db, doc, updateDoc } from '../../firebase.js';
 import { requireProHeroProgression } from '../../utils/upgradePrompt.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
+
+let legendStylesLoaded = null;
+const loadLegendStyles = () => (legendStylesLoaded ||= import('../../styles/legend_quest.css').catch(() => { legendStylesLoaded = null; }));
+
+/** Local calendar day as YYYY-MM-DD (one Legend Quest step per lesson day). */
+function localDayKey(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function legendFor(student, scoreData, model) {
+    return legendQuestState({
+        heroClass: student.heroClass,
+        pathComplete: Boolean(model.hasPath && model.isMax && model.awakenedCount === model.maxLevel),
+        legendQuest: scoreData.legendQuest || null,
+        todayKey: localDayKey()
+    });
+}
 
 const prefersReducedMotion = () =>
     typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -71,6 +90,7 @@ export function openSkillTreeModal(studentId) {
         return;
     }
 
+    loadLegendStyles();
     _renderTree(student, scoreData, { entering: true });
     showAnimatedModal('skill-tree-modal');
     _scrollToFocus(false);
@@ -90,7 +110,8 @@ function _renderTree(student, scoreData, { entering = false } = {}) {
     const sigil = document.getElementById('skill-tree-class-bg-icon');
     if (sigil) sigil.textContent = model.icon;
 
-    stage.innerHTML = renderSkillTreeStage(model);
+    const legend = legendFor(student, scoreData, model);
+    stage.innerHTML = renderSkillTreeStage(model, { legend, legendHtml: renderLegendCrownHtml(legend, model) });
     if (entering) {
         clearTimeout(panel._stEnterTimer);
         panel._stEnterTimer = setTimeout(() => panel.classList.remove('is-entering'), 2400);
@@ -101,13 +122,16 @@ function _renderTree(student, scoreData, { entering = false } = {}) {
             _handleChooseSkill(student.id, card.dataset.branchId, parseInt(card.dataset.levelIndex, 10), card);
         });
     });
+    stage.querySelectorAll('[data-legend]').forEach(btn => {
+        btn.addEventListener('click', () => _handleLegendStep(student.id, btn.dataset.legend, btn));
+    });
     return model;
 }
 
 function _scrollToFocus(smooth) {
     requestAnimationFrame(() => {
         const scroller = document.getElementById('skill-tree-content');
-        const focus = scroller?.querySelector('.st-tier.is-focus');
+        const focus = scroller?.querySelector('.st-tier.is-focus, .st-legend.is-focus');
         if (!scroller || !focus) return;
         const top = focus.offsetTop - (scroller.clientHeight - focus.offsetHeight) / 2;
         scroller.scrollTo({ top: Math.max(0, top), behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' });
@@ -205,4 +229,68 @@ function _playAwakening(branchId, levelIndex) {
         // If another seal is already open, glide up to it.
         if (stage.querySelector('.st-tier.is-choosing')) _scrollToFocus(true);
     }, 1900);
+}
+
+// ─── LEGEND QUEST ─────────────────────────────────────────────────────────────
+
+async function _handleLegendStep(studentId, action, btn) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
+    if (!student || !scoreData) return;
+    const model = modelFor(student, scoreData);
+    const legend = legendFor(student, scoreData, model);
+    if (legend.status !== 'open') return;
+
+    const result = action === 'undo'
+        ? removeLatestLegendStep({ heroClass: student.heroClass, legendQuest: scoreData.legendQuest })
+        : legend.canMark
+            ? addLegendStep({ heroClass: student.heroClass, legendQuest: scoreData.legendQuest, todayKey: localDayKey(), nowIso: new Date().toISOString() })
+            : { changed: false };
+    if (!result.changed) return;
+
+    if (btn) btn.disabled = true;
+    try {
+        await updateDoc(doc(db, `${publicDataPath}/student_scores`, studentId), { legendQuest: result.record });
+        const updatedScore = { ...scoreData, legendQuest: result.record };
+        syncLocalStudentScore(studentId, updatedScore);
+        _renderTree(student, updatedScore);
+        _scrollToFocus(false);
+        if (result.fulfilled) {
+            refreshVisibleSkillIndicators().catch((error) => console.warn('Could not refresh legend titles:', error));
+            const fresh = modelFor(student, updatedScore);
+            _showLegendBorn(legendFor(student, updatedScore, fresh), fresh);
+        } else if (action !== 'undo') {
+            playSound('magic_chime');
+            const left = Math.max(0, legend.stepsNeeded - result.record.steps.length);
+            showToast(`Legend Quest step marked. ${left} to go!`, 'success');
+        }
+    } catch (err) {
+        console.error('Failed to save Legend Quest step:', err);
+        showToast('Could not save the Legend Quest. Please try again.', 'error');
+        if (btn?.isConnected) btn.disabled = false;
+    }
+}
+
+function _showLegendBorn(legend, model) {
+    const panel = document.getElementById('skill-tree-modal-panel');
+    if (!panel || legend.status !== 'legend') return;
+    playHeroFanfare();
+    const rite = document.createElement('div');
+    rite.className = `st-rite lq-born${prefersReducedMotion() ? ' is-still' : ''}`;
+    rite.innerHTML = renderLegendBornHtml(legend, model);
+    panel.appendChild(rite);
+    requestAnimationFrame(() => rite.classList.add('is-open'));
+    rite.querySelector('[data-rite="ok"]')?.focus({ preventScroll: true });
+    const close = () => {
+        document.removeEventListener('keydown', onKey, true);
+        rite.classList.remove('is-open');
+        setTimeout(() => rite.remove(), prefersReducedMotion() ? 0 : 260);
+    };
+    const onKey = (e) => {
+        if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    rite.addEventListener('click', (e) => {
+        if (e.target === rite || e.target.closest('[data-rite]')) close();
+    });
 }

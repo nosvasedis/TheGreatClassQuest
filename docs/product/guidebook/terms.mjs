@@ -427,10 +427,10 @@ export const TERMS = [
     chapter: 'hero-path',
     widget: 'hero-classes',
     names: { en: 'Hero Path', el: 'Hero Path' },
-    aliases: ['hero path', 'hero class', 'guardian sage paladin'],
+    aliases: ['hero path', 'hero class', 'guardian sage paladin', 'legend quest'],
     def: {
-      en: 'Pro. Eight classroom identities (Guardian, Sage, Paladin, Artificer, Vanguard, Scholar, Nomad, Patron) and a Skill Tree. Not a Quest League and not a guild.',
-      el: 'Pro. Οκτώ ταυτότητες τάξης και Skill Tree. Δεν είναι Quest League ούτε guild.'
+      en: 'Pro. Eight classroom identities (Guardian, Sage, Paladin, Artificer, Vanguard, Scholar, Nomad, Patron) and a Skill Tree, crowned by a one-time Legend Quest once the path is complete. Not a Quest League and not a guild.',
+      el: 'Pro. Οκτώ ταυτότητες τάξης και Skill Tree, με ένα μοναδικό Legend Quest στην κορυφή όταν ολοκληρωθεί το μονοπάτι. Δεν είναι Quest League ούτε guild.'
     },
     confuse: { en: 'Quest League (Junior B, Class C…)', el: 'Quest League (Junior B, C…)' }
   },

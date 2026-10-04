@@ -135,10 +135,12 @@ export function heroEmblemHtml(hc) {
     const levelLine = level > 0
         ? `${escapeStandingsHtml(hc.cls)} · Level ${level}${hc.maxLevel >= level ? ` of ${hc.maxLevel}` : ''}`
         : `${escapeStandingsHtml(hc.cls)} · Not ranked up yet`;
-    const next = hc.next ? `<span class="hcs-emblem__next">Next rank: <b>${escapeStandingsHtml(hc.next)}</b></span>` : '';
+    const next = hc.legend
+        ? `<span class="hcs-emblem__next hcs-emblem__legend"><i class="fas fa-crown" aria-hidden="true"></i> <b>${escapeStandingsHtml(hc.legend)}</b></span>`
+        : hc.next ? `<span class="hcs-emblem__next">Next rank: <b>${escapeStandingsHtml(hc.next)}</b></span>` : '';
     const perk = hc.perk ? `<span class="hcs-emblem__perk"><i class="fas fa-coins" aria-hidden="true"></i>${escapeStandingsHtml(hc.perk)}</span>` : '';
     const label = `${hc.title || hc.cls}, ${hc.cls}${level > 0 ? ` level ${level}` : ''}`;
-    return `<span class="hcs-emblem" style="--aura:${escapeStandingsHtml(hc.aura || '#7c3aed')}" tabindex="0" role="img" aria-label="${escapeStandingsHtml(label)}">
+    return `<span class="hcs-emblem${hc.legend ? ' is-legend' : ''}" style="--aura:${escapeStandingsHtml(hc.aura || '#7c3aed')}" tabindex="0" role="img" aria-label="${escapeStandingsHtml(label)}">
             <span class="hcs-emblem__icon" aria-hidden="true">${hc.icon}</span>
             ${level > 0 ? `<span class="hcs-emblem__lvl" aria-hidden="true">${level}</span>` : ''}
             <span class="hcs-emblem__tip" aria-hidden="true">

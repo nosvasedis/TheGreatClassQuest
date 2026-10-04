@@ -1,0 +1,327 @@
+/* Legend Quest: the crown above the last seal of the Ascension Path (ui/modals/legendQuestView.mjs).
+   Loaded with the Skill Tree modal. Transform/opacity animations only; still under reduced motion. */
+
+.st-legend {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 0.2rem;
+}
+
+.lq-card {
+    position: relative;
+    width: min(30rem, 100%);
+    padding: 1.1rem 1.25rem 0.9rem;
+    border-radius: 1.4rem;
+    text-align: center;
+    background:
+        radial-gradient(90% 70% at 50% 0%, rgba(253, 230, 138, 0.16), transparent 70%),
+        linear-gradient(180deg, rgba(17, 24, 52, 0.92), rgba(7, 11, 26, 0.92));
+    border: 1px solid rgba(253, 230, 138, 0.22);
+    box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.9);
+}
+
+.st-legend.is-open .lq-card {
+    border-color: rgba(253, 230, 138, 0.55);
+    box-shadow: 0 0 46px -12px rgba(250, 204, 21, 0.55), 0 18px 40px -22px rgba(0, 0, 0, 0.9);
+}
+
+.st-legend.is-legend .lq-card {
+    border-color: rgba(253, 230, 138, 0.85);
+    background:
+        radial-gradient(100% 80% at 50% 0%, rgba(250, 204, 21, 0.28), transparent 70%),
+        linear-gradient(180deg, #2a1c06, #120c02 70%, #070b1a);
+    box-shadow: 0 0 60px -10px rgba(250, 204, 21, 0.65), inset 0 0 0 1px rgba(255, 247, 204, 0.12);
+}
+
+/* Crown */
+.lq-crown {
+    position: relative;
+    width: 5.4rem;
+    height: 4.2rem;
+    margin: -0.2rem auto 0.4rem;
+}
+
+.lq-crown-svg {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+}
+
+.lq-crown-glow {
+    position: absolute;
+    inset: -40%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.45), transparent 62%);
+    opacity: 0;
+}
+
+.st-legend.is-locked .lq-crown {
+    opacity: 0.38;
+    filter: grayscale(0.85) brightness(0.8);
+}
+
+.st-legend.is-open .lq-crown-glow { opacity: 0.7; animation: lq-breathe 3.2s ease-in-out infinite; }
+.st-legend.is-open .lq-crown-svg { animation: lq-float 3.2s ease-in-out infinite; }
+.st-legend.is-legend .lq-crown-glow { opacity: 1; animation: lq-breathe 2.6s ease-in-out infinite; }
+.st-legend.is-legend .lq-jewel--mid { animation: lq-twinkle 2.6s ease-in-out infinite; transform-origin: 60px 76px; }
+
+.lq-eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    margin: 0;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--st-gold);
+}
+
+.lq-eyebrow span {
+    width: 1.6rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(253, 230, 138, 0.7), transparent);
+}
+
+.lq-title {
+    margin: 0.3rem 0 0;
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1.15;
+    color: #fff;
+}
+
+.st-legend.is-locked .lq-title { color: var(--st-dim); }
+
+.st-legend.is-legend .lq-title {
+    background: linear-gradient(180deg, #fff7cc, #facc15 55%, #d97706);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.45));
+}
+
+.lq-note {
+    margin: 0.45rem auto 0;
+    max-width: 26rem;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--st-dim);
+    user-select: text;
+}
+
+.lq-note b { color: var(--st-ink); }
+
+/* Steps */
+.lq-steps {
+    display: flex;
+    justify-content: center;
+    gap: 0.9rem;
+    margin: 0.8rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lq-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 3.6rem;
+}
+
+.lq-step-gem {
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--st-faint);
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px dashed rgba(253, 230, 138, 0.3);
+}
+
+.lq-step.is-lit .lq-step-gem {
+    color: #422006;
+    background: radial-gradient(circle at 35% 30%, #fff7cc, #facc15 55%, #b45309);
+    border: 2px solid #fde68a;
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
+}
+
+.lq-step-day {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--st-faint);
+}
+
+.lq-step.is-lit .lq-step-day { color: var(--st-gold); }
+
+/* Actions */
+.lq-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.85rem;
+}
+
+.lq-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border: 0;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #422006;
+    background: linear-gradient(180deg, #fde68a, #f59e0b);
+    box-shadow: 0 6px 18px -6px rgba(245, 158, 11, 0.8), inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.lq-mark:hover { transform: translateY(-1px) scale(1.02); }
+.lq-mark:disabled { opacity: 0.6; cursor: wait; transform: none; }
+.lq-mark:focus-visible, .lq-undo:focus-visible { outline: 2px solid #fde68a; outline-offset: 3px; }
+
+.lq-marked {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--st-gold);
+}
+
+.lq-undo {
+    border: 0;
+    background: none;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--st-faint);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.lq-undo:hover { color: var(--st-dim); }
+
+.lq-fine {
+    margin: 0.65rem 0 0;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--st-faint);
+}
+
+.lq-climb { height: 1.6rem; margin: 0.35rem auto 0; }
+
+/* Header rank once a legend */
+.st-rank.is-legend {
+    color: #422006;
+    background: linear-gradient(180deg, #fde68a, #f59e0b);
+    border-color: #fde68a;
+    box-shadow: 0 0 16px rgba(250, 204, 21, 0.5);
+}
+
+.st-rank-legend {
+    padding-left: 0.35rem;
+    margin-left: 0.15rem;
+    border-left: 1px solid rgba(66, 32, 6, 0.35);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+/* A legend is born */
+.lq-born-card {
+    border-color: rgba(253, 230, 138, 0.85);
+    background:
+        radial-gradient(100% 70% at 50% 0%, rgba(250, 204, 21, 0.4), transparent 70%),
+        linear-gradient(180deg, #2a1c06, #0b0802);
+    box-shadow: 0 0 80px -10px rgba(250, 204, 21, 0.8), 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+}
+
+.lq-born-crown {
+    position: relative;
+    width: 8rem;
+    height: 6.2rem;
+    margin: 1rem auto 1.9rem;
+}
+
+.lq-born-crown .lq-crown-svg { animation: lq-rise 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+.lq-born-rays {
+    position: absolute;
+    inset: -2.6rem;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(250, 204, 21, 0.5) 0 7deg, transparent 7deg 24deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 30%, #000 36%, transparent 70%);
+    mask-image: radial-gradient(circle, transparent 30%, #000 36%, transparent 70%);
+    animation: lq-spin 14s linear infinite;
+}
+
+.lq-born-spark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px;
+    border-radius: 50%;
+    background: #fde68a;
+    box-shadow: 0 0 10px #facc15;
+    opacity: 0;
+    animation: lq-spark 1.4s ease-out var(--delay) both;
+}
+
+.lq-born-title {
+    background: linear-gradient(180deg, #fff7cc, #facc15 55%, #d97706);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+}
+
+.lq-born-ok {
+    color: #422006 !important;
+    background: linear-gradient(180deg, #fde68a, #f59e0b) !important;
+}
+
+@keyframes lq-breathe { 0%, 100% { transform: scale(0.92); opacity: 0.6; } 50% { transform: scale(1.06); opacity: 1; } }
+@keyframes lq-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes lq-twinkle { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+@keyframes lq-spin { to { transform: rotate(360deg); } }
+@keyframes lq-rise { from { transform: translateY(26px) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes lq-spark {
+    0% { transform: rotate(var(--a)) translateY(0) scale(0.4); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .st-legend .lq-crown-glow,
+    .st-legend .lq-crown-svg,
+    .st-legend .lq-jewel--mid,
+    .lq-born-rays,
+    .lq-born-crown .lq-crown-svg { animation: none; }
+    .lq-born-spark { display: none; }
+}
+
+@media (max-width: 640px) {
+    .lq-card { padding: 1rem 0.9rem 0.8rem; }
+    .lq-title { font-size: 1.12rem; }
+    .lq-steps { gap: 0.5rem; }
+}

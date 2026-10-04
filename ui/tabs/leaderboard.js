@@ -7,6 +7,7 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildLeaderboardData, getGuildChampionsForMonth } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, getGuildBadgeHtml } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
+import { isLegendHero, getLegendQuest } from '../../features/legendQuestCore.mjs';
 import { renderFamiliarSprite } from '../../features/familiars.js';
 import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
@@ -904,6 +905,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
                 stats,
                 heroLevel: heroProgressionEnabled ? (scoreData.heroLevel || 0) : 0,
                 pendingSkillChoice: heroProgressionEnabled ? !!scoreData.pendingSkillChoice : false,
+                isLegend: heroProgressionEnabled && isLegendHero(s.heroClass, scoreData.legendQuest),
                 familiar: scoreData.familiar || null,
                 className: studentClass?.name || '?',
                 classLogo: studentClass?.logo || '📚'
@@ -965,8 +967,17 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             level,
             maxLevel: titles.length,
             perk: HERO_CLASSES[s.heroClass].desc || '',
-            next: titles[level] || ''
+            next: titles[level] || '',
+            legend: s.isLegend ? getLegendQuest(s.heroClass)?.legend || '' : ''
         };
+    };
+
+    /** A fulfilled Legend Quest: the class title in gold beside the name. */
+    const getLegendTitleHtml = (s) => {
+        if (!s.isLegend) return '';
+        const title = getHeroTitle(s.heroClass, s.heroLevel || 0) || s.heroClass;
+        const legendName = getLegendQuest(s.heroClass)?.legend || 'Legend';
+        return `<span class="hcs-legend-title" title="${escapeLeaderboardHtml(legendName)}"><i class="fas fa-crown" aria-hidden="true"></i>${escapeLeaderboardHtml(title)}</span>`;
     };
 
     const getPillsHtml = (s) => {
@@ -1002,6 +1013,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             : '',
         guildBadgeHtml: s.guildId ? `<span class="hcs-guild">${getGuildBadgeHtml(s.guildId, 'w-6 h-6')}</span>` : '',
         roleBadgesHtml: getGuildRoleBadgesHtml(s),
+        titleBadgeHtml: getLegendTitleHtml(s),
         pillsHtml: getPillsHtml(s),
         accent: s.guildId ? getGuildById(s.guildId)?.primary || '' : '',
         className: s.className,

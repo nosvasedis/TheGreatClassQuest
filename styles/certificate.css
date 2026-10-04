@@ -451,6 +451,22 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
 .gcq-cert__skill { font-weight: 700; }
 .gcq-cert__skill-sep { color: var(--cert-gold); font-size: 9px; }
 
+.gcq-cert__legend {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    margin: 6px 0 0;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--cert-gold);
+}
+.gcq-cert__legend-crown { font-size: 12px; }
+.gcq-cert__legend-sub { font-family: 'Open Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--cert-text); opacity: 0.75; }
+
 .gcq-cert__meta {
     margin-top: 4px;
     font-family: 'Open Sans', sans-serif;

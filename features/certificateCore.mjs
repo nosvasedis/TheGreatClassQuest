@@ -3,6 +3,7 @@
 // so the maths (which month counts, which virtue leads, which honours print) is testable.
 
 import { getAwardLogMonthlyStarCredit } from './awardLogReasonMeta.js';
+import { getLegendQuest, readLegendRecord } from './legendQuestCore.mjs';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -209,8 +210,13 @@ export function buildCertificateModel(input) {
             }
             return null;
         }).filter(Boolean);
+        const legendRecord = readLegendRecord(heroClass, scoreData?.legendQuest);
+        const legendDef = getLegendQuest(heroClass);
+        const legendInScope = legendRecord.completedAt && legendDef
+            && (scope !== 'monthly' || toMonthKey(legendRecord.completedAt) === monthKey);
         hero = {
             className: heroClass,
+            legend: legendInScope ? { name: legendDef.legend, quest: legendDef.quest, completedAt: legendRecord.completedAt } : null,
             icon: heroDef.icon || '🛡️',
             level,
             maxLevel,
@@ -351,6 +357,7 @@ Plain text only: no markdown, no quotation marks around the text, no emoji, no g
     if (model.hero) {
         facts.push(`Hero path: ${model.hero.className}${model.hero.level > 0 ? `, level ${model.hero.level}, title "${model.hero.title}"` : ', just beginning'}.`);
         if (model.hero.skills.length) facts.push(`Skills learned: ${model.hero.skills.map((s) => s.name).join(', ')}.`);
+        if (model.hero.legend) facts.push(`Fulfilled the Legend Quest "${model.hero.legend.quest}" and became a ${model.hero.legend.name}.`);
     }
     if (model.familiar?.hatched) facts.push(`Companion creature: ${model.familiar.name}, a ${model.familiar.stage}.`);
     if (model.oath) facts.push(model.oath.text ? `Kept an Ember Oath (a personal promise): "${model.oath.text}".` : 'Kept a personal Ember Oath (keep its contents private).');
@@ -431,6 +438,10 @@ export function renderCertificateInner(model, { citation = '', placeholder = '',
         ? `<span class="gcq-cert__skills-label">Skills mastered</span>${hero.skills.map((s) => `<span class="gcq-cert__skill">${e(s.icon)} ${e(s.name)}</span>`).join('<span class="gcq-cert__skill-sep">✦</span>')}`
         : '';
 
+    const legendLine = hero?.legend
+        ? `<p id="cert-legend" class="gcq-cert__legend"><span class="gcq-cert__legend-crown">👑</span>${e(hero.legend.name)}<span class="gcq-cert__legend-sub">Legend Quest fulfilled: ${e(hero.legend.quest)}</span></p>`
+        : '';
+
     const metaBits = [
         `${model.classLogo} ${model.className}`.trim(),
         model.league ? `${model.league} League` : '',
@@ -489,6 +500,7 @@ export function renderCertificateInner(model, { citation = '', placeholder = '',
 
             <div id="cert-badges" class="gcq-cert__honours">${honours}</div>
             <div id="cert-flair-row" class="gcq-cert__skills">${skills}</div>
+            ${legendLine}
             <p id="cert-meta" class="gcq-cert__meta"><span id="cert-class-name">${e(metaBits[0] || '')}</span>${metaBits.slice(1).map((b, i) => `<span class="gcq-cert__meta-dot">•</span><span${i === 0 && model.league ? ' id="cert-league-pill"' : ''}>${e(b)}</span>`).join('')}</p>
 
             <footer class="gcq-cert__foot">

@@ -1959,6 +1959,23 @@ Elite. Άνοιξέ το από το **Avatar** στο μαθητολόγιο ή
 | 💝 **Patron** | Hero's Boon (όταν **δίνεις**· ένα path point ανά ημερολογιακή εβδομάδα) | Giver → Benefactor → Grand Patron |
 
 Δεν είναι Quest League και δεν είναι guild.
+
+## 👑 Το Legend Quest — η κορυφή
+
+Όταν σπάσουν όλες οι σφραγίδες του μονοπατιού και ξυπνήσουν όλες οι δεξιότητες (επίπεδο 5, ή 3 για Scholar, Nomad και Patron), ανοίγει ένα χρυσό στέμμα στην κορυφή του Ascension Path: το μοναδικό **Legend Quest** της τάξης. Είναι μια μικρή προσωπική πρόκληση που το παιδί κάνει σε **τρία διαφορετικά μαθήματα**. Επιβεβαιώνεις κάθε φορά με το κουμπί στο στέμμα (για παράδειγμα **Helped a classmate today**)· μετρά ένα βήμα ανά μέρα μαθήματος, και το **Undo the last step** παίρνει πίσω ένα λάθος πάτημα. Στο τρίτο βήμα *γεννιέται ένας θρύλος*.
+
+| Τάξη | Legend Quest | Σε τρία μαθήματα | Γίνεται |
+|---|---|---|---|
+| 🛡️ Guardian | The Shield of Kindness | Υπερασπίζεται έναν συμμαθητή: τον καλωσορίζει, τον βάζει στην παρέα, ή λέει «σταμάτα» στην αγένεια | Legend of the Shield |
+| 🔮 Sage | The Spark of Wonder | Φέρνει κάτι νέο: δική του ιδέα, ζωγραφιά, ρίμα ή ιστορία | Legend of the Bright Spark |
+| ⚔️ Paladin | The Banner Bearer | Βοηθά την ομάδα ή τον συνεργάτη να τελειώσουν μια εργασία με όλους μέσα | Legend of the Banner |
+| ⚙️ Artificer | The Master Craft | Τελειώνει μόνο του μια ολόκληρη εργασία προσεκτικά, χωρίς υπενθύμιση | Legend of the Steady Hand |
+| ⚜️ Vanguard | The Captain's Call | Εξηγεί ή καθοδηγεί ένα παιχνίδι Training Grounds για την τάξη | Legend of the Training Yard |
+| 📜 Scholar | The Teaching Scroll | Εξηγεί σε συμμαθητή μια λέξη, έναν κανόνα ή μια απάντηση στα αγγλικά | Legend of the Open Book |
+| 👟 Nomad | Tales from the Road | Χρησιμοποιεί μια νέα αγγλική λέξη έξω από το μάθημα και λέει στην τάξη πού | Legend of the Far Road |
+| 💝 Patron | The Helping Hand | Βοηθά έναν συμμαθητή χωρίς να του το ζητήσουν | Legend of the Open Hand |
+
+Ο τίτλος ενός θρύλου λάμπει **χρυσός** στο Hero's Challenge (χρυσό σήμα τίτλου δίπλα στο όνομα και χρυσό δαχτυλίδι στο έμβλημα της τάξης), η κεφαλίδα του Ascension Path γράφει **Legend**, και το πιστοποιητικό τυπώνει μια χρυσή γραμμή με το όνομα του θρύλου (της χρονιάς πάντα· το μηνιαίο τον μήνα που ολοκληρώθηκε). **Δεν** δίνει Gold ούτε αστέρια, οπότε δεν γέρνει την οικονομία. Ο θρύλος ανήκει στην τάξη όπου κερδήθηκε: αν αλλάξει Hero Class, ξεκινά το Legend Quest της νέας τάξης.
 `,
 
   'teacher/15-hero-campfire.md': `# Hero Campfire και Ember Oaths

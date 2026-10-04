@@ -157,6 +157,23 @@ Levels from **giving** Hero's Boon, not from receiving it. Three tiers. The firs
 
 The skills on this path return at most +5 Gold to the giver, so a gift never makes a **profit**. Compassion Token free gifts still count for the path when they are the first gift that calendar week.
 
+## 👑 The Legend Quest — the capstone
+
+When every seal on the path is broken and every skill is awakened (level 5, or level 3 for Scholar, Nomad and Patron), a gold crown opens at the top of the Ascension Path: the class's one-time **Legend Quest**. It is a short personal challenge the child does in **three different lessons**. You confirm each one with the button on the crown (for example **Helped a classmate today**); one step counts per lesson day, and **Undo the last step** takes back a mis-tap. On the third step a *legend is born*.
+
+| Class | Legend Quest | Do it in three lessons | Becomes |
+|---|---|---|---|
+| 🛡️ Guardian | The Shield of Kindness | Stand up for a classmate: welcome, include, or say stop to unkindness | Legend of the Shield |
+| 🔮 Sage | The Spark of Wonder | Bring something new: an idea, drawing, rhyme or story of their own | Legend of the Bright Spark |
+| ⚔️ Paladin | The Banner Bearer | Help the group or partner finish a task so that everybody takes part | Legend of the Banner |
+| ⚙️ Artificer | The Master Craft | Finish a whole task carefully alone, without a reminder | Legend of the Steady Hand |
+| ⚜️ Vanguard | The Captain's Call | Explain or captain a Training Grounds game for the class | Legend of the Training Yard |
+| 📜 Scholar | The Teaching Scroll | Explain a word, rule or answer to a classmate in English | Legend of the Open Book |
+| 👟 Nomad | Tales from the Road | Use a new English word outside the lesson and tell the class where | Legend of the Far Road |
+| 💝 Patron | The Helping Hand | Help a classmate without being asked | Legend of the Open Hand |
+
+A legend's class title shines **gold** on the Hero's Challenge (a gold title badge beside the name and a gold ring on the class emblem), the Ascension Path header says **Legend**, and the certificate prints a gold line with the legend's name (the year certificate always; a monthly one in the month it was fulfilled). It pays **no Gold and no stars**, so it never tilts the economy. The legend belongs to the class it was earned in: changing Hero Class starts that class's own Legend Quest.
+
 ## Locking and teaching advice
 
 - Help the child choose a path that matches how they **already shine**, then invite growth in that virtue — not a costume they cannot wear.

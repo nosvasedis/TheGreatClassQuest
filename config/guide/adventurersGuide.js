@@ -184,8 +184,8 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'skill-tree', icon: 'fa-sitemap', name: 'Skill Tree', tier: 'pro',
                     where: 'The Skills button on the roster', go: 'options:classes',
-                    text: `At each level the child picks one of two permanent skills: extra Gold for themselves, bonus stars, or gifts to classmates and guildmates. The Skills button pulses when a choice is waiting. From level 3 a coloured aura ring shows on the boards.`,
-                    keys: 'level up skills aura ascension path branches'
+                    text: `At each level the child picks one of two permanent skills: extra Gold for themselves, bonus stars, or gifts to classmates and guildmates. The Skills button pulses when a choice is waiting. From level 3 a coloured aura ring shows on the boards. When the whole path is complete, a gold crown opens the class's Legend Quest: a small personal challenge done in three different lessons, each one confirmed by you. It pays no Gold or stars; the title turns gold on the Hero's Challenge and on the certificate.`,
+                    keys: 'level up skills aura ascension path branches legend quest capstone crown gold title'
                 },
                 {
                     id: 'sorting', icon: 'fa-hat-wizard', name: 'Guild Sorting', tier: 'pro',

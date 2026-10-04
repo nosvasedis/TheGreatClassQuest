@@ -2,6 +2,7 @@
 
 import { resolveSkyScene } from '../../features/skyWeather.mjs';
 import { buildCloudsHtml } from '../../features/skyWeatherArt.js';
+import { quietDragonIconSvg } from '../../ui/quietDragonIcon.js';
 
 /** Fair-weather sky painted before the first live reading arrives. */
 export const DEFAULT_SKY_SCENE = resolveSkyScene({}, {});
@@ -157,6 +158,11 @@ export const headerHTML = `
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="The Adventurer's Guide" aria-label="Open The Adventurer's Guide">
                             <i class="fas fa-info"></i>
+                        </button>
+                        <button id="quiet-dragon-btn" type="button"
+                            class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            title="The Quiet Dragon" aria-label="Open The Quiet Dragon" style="--qd-icon-eye:#2b5a7a;font-size:1.05rem">
+                            ${quietDragonIconSvg()}
                         </button>
                         <button id="projector-mode-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiet Dragon preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #0a0d2a; }
+    .pv-toolbar { position: fixed; left: 10px; bottom: 10px; z-index: 999; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; }
+    .pv-toolbar a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+</head>
+<body>
+  <div class="pv-toolbar" id="pv-toolbar"></div>
+  <script type="module" src="/quiet-dragon-preview.js"></script>
+</body>
+</html>

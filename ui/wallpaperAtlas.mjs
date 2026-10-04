@@ -450,7 +450,7 @@ export const REASON_LABELS = Object.freeze({
     welcome_back: ['🚪', 'Welcome back'], story_weaver: ['📖', 'Story Weavers'], vanishing_hoard: ['🐉', 'Vanishing Hoard'], torn_map: ['🗺️', 'Torn Map'], round_table: ['🕯️', 'Round Table'], scholar_s_bonus: ['🎓', 'Scholar’s bonus'],
     teacher_boon: ['🎁', 'Teacher Boon'], peer_boon: ['💖', 'Hero’s Boon'], pathfinder_map: ['🗺️', 'Pathfinder'],
     quiz_of_the_week: ['📜', 'Quiz of the Week'], wheel_fortune: ['🎡', 'Wheel of Fortune'], marked_present: ['✅', 'Present'],
-    excellence: ['🌟', 'Excellence'], special_quest: ['✨', 'Special quest']
+    excellence: ['🌟', 'Excellence'], special_quest: ['✨', 'Special quest'], quiet_dragon: ['🌙', 'The Quiet Dragon']
 });
 
 export function reasonLabel(reason) {

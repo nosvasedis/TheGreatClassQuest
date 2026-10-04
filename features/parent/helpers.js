@@ -191,7 +191,8 @@ const REASONS = {
     pathfinder_map: { label: 'Class adventure', el: 'Περιπέτεια της τάξης', icon: 'fa-map-marked-alt', tone: 'sky' },
     quiz_of_the_week: { label: 'Quiz of the Week', el: 'Κουίζ της εβδομάδας', icon: 'fa-scroll', tone: 'sky' },
     wheel_fortune: { label: "Fortune's Wheel", el: 'Τροχός της Τύχης', icon: 'fa-wand-magic-sparkles', tone: 'amber' },
-    special_quest: { label: 'Special Quest', el: 'Ειδική αποστολή', icon: 'fa-wand-magic-sparkles', tone: 'violet' }
+    special_quest: { label: 'Special Quest', el: 'Ειδική αποστολή', icon: 'fa-wand-magic-sparkles', tone: 'violet' },
+    quiet_dragon: { label: 'A calm class (The Quiet Dragon)', el: 'Ήρεμη τάξη (Ο Ήσυχος Δράκος)', icon: 'fa-dragon', tone: 'sky' }
 };
 
 function localize(meta) {

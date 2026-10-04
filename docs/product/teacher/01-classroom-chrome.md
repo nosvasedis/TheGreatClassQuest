@@ -104,6 +104,7 @@ Move the mouse (or press any shortcut) and a small remote appears at the top-rig
 - **⏮ Previous card** (**←**) brings back the card you just skipped past.
 - **📌 Pin** (**Space**) keeps the current card on the sky until you press it again. Its time bar stops and a pin appears on it. Great for a riddle the class is still arguing about.
 - **⏭ Next card** (**→**) sends the card away and brings a fresh one now.
+- **The Quiet Dragon** (**Q**) opens the noise meter (below).
 - **Sky Deck** (**D**) opens the deck settings (below).
 - **Full screen** (**F**) and **power** (**Esc**) to leave.
 
@@ -114,6 +115,23 @@ Open it from the remote or press **D**. The settings stay on that classroom PC.
 - **Families.** Tap a family to switch it off or on. The number shows how many kinds of card that family can deal right now. Birthdays and a finished bounty timer always come through. If you switch everything off, the full deck comes back rather than an empty sky.
 - **Each card stays** 30 seconds, 1 minute, 2 minutes, or 5 minutes.
 - **Wisdom ribbon** on or off.
+
+### The Quiet Dragon (noise meter)
+
+For writing time, tests or quiet pair work. A hand-drawn dragon falls asleep on its hoard under the moon, and the class's job is to let it sleep.
+
+Open it from the **dragon** on the projector remote (or press **Q**), or from the header: switch on **Quiet Dragon button in the header** in Teacher Settings → Profile (remembered on that computer). It always works on the class selected in the header.
+
+1. Choose **how quiet**: **Test silence** (pin-drop), **Whispers** (writing time) or **Soft voices** (quiet partner work).
+2. Choose **how long**: 5, 10, 15, 20 or 30 calm minutes, or your own number.
+3. Choose **the dragon's gift**. One from the hoard, paid by the app: **Dragon's Gold** (+1, +2 or +3 Gold for every hero here), **Calm Star** (+½ or +1 star for every hero here, with Glory as usual) or **Team Quest boost** (+1 or +2 on this month's Team Quest), or **Just the treat**. Add a **classroom treat** you give in person if you like (5 minutes of free time, the class picks the next song, a game at the end of the lesson, sit where you like, a story read aloud, or your own words). "Here" means not marked away in today's Roll Call.
+4. Press **Let the dragon sleep**. The browser asks for the microphone once. The dragon listens to the room for 3 seconds to learn how a calm room sounds there, then sleeps.
+
+**How it listens.** The laptop microphone measures only how loud the room is, a few times a second. Nothing is recorded, kept or sent anywhere. As the room gets louder the dragon stirs, then opens one eye; a short bump (a cough, a chair) never wakes it. If the room stays loud for a couple of seconds it wakes and lifts its head, and the moon clock **waits** until the room settles again. It never goes backwards, and the dragon never takes anything away. The moon in the corner fills with calm minutes, the **Room** bar shows the loudness against the dragon's limit, and treasure appears on the hoard as the calm time grows.
+
+**While it sleeps** (move the mouse to see the buttons): **Teacher speaking** (**Space**) stops listening while you talk, so your own voice never wakes it. **Lighter sleep** and **Deeper sleep** adjust it for a noisy or very quiet room. **End** (**Esc**) offers **Keep listening**, **Give the gift now** (when you feel they earned it) or **End without a gift**.
+
+When the calm minutes are done, the dragon wakes gently, breathes a stream of gold and leaves the gift. The session is saved as a **completed class bounty** with your reward, the app's part is paid straight away, and Calm Stars show as "The Quiet Dragon" in the logbook and the Family Portal. The app's sounds stay silent while the dragon listens, so they cannot wake it. On weak laptops the stage drops the mist, smoke and drifting snores.
 
 ### Remaining time (when it is useful)
 

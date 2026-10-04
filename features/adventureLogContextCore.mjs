@@ -16,7 +16,7 @@ const clean = (value, max = 240) => String(value ?? '').replace(/[\u0000-\u0008\
 const list = value => Array.isArray(value) ? value : [];
 const unique = values => [...new Set(values.filter(Boolean))];
 const VIRTUES = { teamwork: 'Teamwork', creativity: 'Creativity', respect: 'Respect', focus: 'Focus' };
-const SPECIAL_AWARDS = { peer_boon: "Hero's Boon (a classmate's gift)", teacher_boon: 'Teacher Boon', scholar_s_bonus: "Scholar's Bonus", pathfinder_map: "Pathfinder's Map", story_weaver: 'Story line bonus', welcome_back: 'Welcome back after an absence', quiz_of_the_week: 'Quiz of the Week', excellence: 'Excellence', special_quest: 'Special Quest' };
+const SPECIAL_AWARDS = { peer_boon: "Hero's Boon (a classmate's gift)", teacher_boon: 'Teacher Boon', scholar_s_bonus: "Scholar's Bonus", pathfinder_map: "Pathfinder's Map", story_weaver: 'Story line bonus', welcome_back: 'Welcome back after an absence', quiz_of_the_week: 'Quiz of the Week', excellence: 'Excellence', special_quest: 'Special Quest', quiet_dragon: 'The Quiet Dragon (the class kept calm)' };
 // Never public diary material: attendance ticks, corrections, and wheel effects (the wheel has its own section).
 const SILENT_AWARDS = new Set(['marked_present', 'correction', 'wheel_fortune', 'wheel_curse']);
 

@@ -362,9 +362,16 @@ export const GUIDE_CHAPTERS = {
                     keys: 'projector tv wallpaper sky window sky cards remote sky deck clock'
                 },
                 {
+                    id: 'quiet-dragon', icon: 'fa-dragon', name: 'The Quiet Dragon', tier: 'starter',
+                    where: 'The dragon on the projector remote (Q), or the header button (Settings, Profile)',
+                    text: `A noise meter for writing time and tests. Pick how quiet (Test silence, Whispers, Soft voices), how long (5 to 30 calm minutes) and the dragon's gift: Gold or a Calm Star for every hero here, a Team Quest boost, and/or a classroom treat you give in person. The microphone only measures loudness; nothing is recorded or sent. The dragon stirs as the room gets louder and wakes if it stays loud; then the moon clock waits for calm. It never takes anything away. Teacher speaking (Space) stops it listening while you talk. A finished sleep counts as a completed class bounty.`,
+                    why: 'The room can see its own calm, and quiet work earns something real.',
+                    keys: 'noise meter quiet calm silence microphone volume loud dragon test writing time'
+                },
+                {
                     id: 'settings', icon: 'fa-gear', name: 'Teacher Settings', tier: 'starter',
                     where: 'The cog in the header', go: 'options:classes',
-                    text: `My Classes (create and edit classes, open the roster), Student Tools (repair stars or Gold), Profile (your Quest Master name and this browser's Quest cursor switch), and on Pro and Elite My Planning, Class Grading, Family Access, Quiz and Market. Switch jumps between sheets.`,
+                    text: `My Classes (create and edit classes, open the roster), Student Tools (repair stars or Gold), Profile (your Quest Master name and this browser's Quest cursor and Quiet Dragon button switches), and on Pro and Elite My Planning, Class Grading, Family Access, Quiz and Market. Switch jumps between sheets.`,
                     keys: 'settings my classes student tools profile roster class grading'
                 },
                 {
@@ -557,6 +564,11 @@ export const GUIDE_CHAPTERS = {
                     id: 'bounties', icon: 'fa-scroll', name: 'Bounties', tier: 'starter',
                     text: `A bounty poster goes up: earn enough stars together, or beat the clock, and you win the reward. Sometimes it is for the whole class, sometimes just for one guild, one team or one table.`,
                     keys: 'bounty timer'
+                },
+                {
+                    id: 'quiet-dragon-class', icon: 'fa-dragon', name: 'The Quiet Dragon', tier: 'starter',
+                    text: `Sometimes a dragon falls asleep on the big screen while we work. If the room stays calm, it sleeps, its hoard grows, and when the time is up it leaves the class a gift. If we get loud, it wakes up and the clock waits until we are calm again. It only listens to how loud we are, never to what we say.`,
+                    keys: 'quiet dragon noise calm'
                 },
                 {
                     id: 'teams-and-turns', icon: 'fa-people-group', name: 'Teams and turns', tier: 'starter',

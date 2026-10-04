@@ -1,6 +1,7 @@
 // templates/app/screens/wallpaper.js
 
 import moonUrl from '../../../assets/celestial/moon.jpg?url';
+import { quietDragonIconSvg } from '../../../ui/quietDragonIcon.js';
 
 export function celestialMoonHTML() {
     // The dark side is painted over the photo in the real phase (features/skyWeatherStage.js).
@@ -140,6 +141,7 @@ export const wallpaperHTML = `
             <button type="button" data-wall-action="pause" title="Pin this card (Space)" aria-label="Pin this card" aria-pressed="false"><i class="fas fa-thumbtack"></i></button>
             <button type="button" data-wall-action="next" title="Next card (→)" aria-label="Next card"><i class="fas fa-forward-step"></i></button>
             <span class="wall-remote__sep" aria-hidden="true"></span>
+            <button type="button" data-wall-action="dragon" title="The Quiet Dragon (Q)" aria-label="The Quiet Dragon" style="--qd-icon-eye:#1e1b4b">${quietDragonIconSvg()}</button>
             <button type="button" data-wall-action="deck" title="Card deck (D)" aria-label="Card deck"><i class="fas fa-layer-group"></i></button>
             <button type="button" data-wall-action="fullscreen" title="Full screen (F)" aria-label="Full screen"><i class="fas fa-expand"></i></button>
             <button type="button" id="exit-wallpaper-btn" class="wall-remote__exit" title="Leave (Esc)" aria-label="Leave Projector Mode"><i class="fas fa-power-off"></i></button>

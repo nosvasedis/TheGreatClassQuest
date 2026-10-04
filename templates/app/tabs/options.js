@@ -302,6 +302,10 @@ export const optionsTabHTML = `
                                             <input type="checkbox" id="quest-cursor-toggle" checked>
                                             <span>Quest cursor</span>
                                         </label>
+                                        <label class="quest-cursor-preference" for="quiet-dragon-header-toggle">
+                                            <input type="checkbox" id="quiet-dragon-header-toggle">
+                                            <span>Quiet Dragon button in the header</span>
+                                        </label>
                                     </div>
                                 </div>
                             </section>

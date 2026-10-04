@@ -38,6 +38,7 @@ import {
     normalizeWallpaperPrefs
 } from './wallpaperDeck.mjs';
 import { playPortalOpen, playPortalClose, enterFullscreen, leaveFullscreen } from './wallpaperPortal.js';
+import { openQuietDragonFrom } from './quietDragonButton.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -314,6 +315,7 @@ function handleWallpaperKeydown(e) {
         case 'r': case 'R': revealWallAnswer(); break;
         case 'd': case 'D': panelOpen ? closeDeckPanel() : openDeckPanel(); break;
         case 'f': case 'F': toggleWallFullscreen(); break;
+        case 'q': case 'Q': openQuietDragonFrom('wallpaper'); break;
         default: return;
     }
     wakeWallControls();
@@ -337,6 +339,7 @@ function bindWallControls() {
             else if (action === 'next') nextWallCard();
             else if (action === 'deck') openDeckPanel();
             else if (action === 'fullscreen') toggleWallFullscreen();
+            else if (action === 'dragon') openQuietDragonFrom('wallpaper');
         });
     });
 

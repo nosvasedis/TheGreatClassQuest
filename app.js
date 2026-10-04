@@ -1353,6 +1353,8 @@ async function initApp() {
             });
         }
 
+        import('./ui/quietDragonButton.js').then((m) => m.initQuietDragonButton()).catch((e) => console.warn('Quiet Dragon button failed to start', e));
+
         const exitWallBtn = document.getElementById('exit-wallpaper-btn');
         if (exitWallBtn) {
             exitWallBtn.addEventListener('click', async () => {

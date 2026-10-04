@@ -15,7 +15,7 @@ Under the chalkboard title, a **section picker** shows where you are, with a one
 | **My Classes** | Opens first. Create/edit classes and open the roster |
 | **Student Tools** | Fix stars, Gold or a Familiar by hand, without it looking like part of today’s lesson |
 | **My Planning** | Each class’s **final lesson day** (Pro) |
-| **Profile** | Your **display name** (Quest Master name on logs) and the browser-local **Quest cursor** switch |
+| **Profile** | Your **display name** (Quest Master name on logs) and the browser-local **Quest cursor** and **Quiet Dragon button** switches |
 | **Class Grading** | Override secretary assessment defaults for *your* class (Pro) |
 | **Family Access** | Parent username and password per child (Pro) |
 | **Quiz** | Build Quiz of the Week (Elite) — play it on **Home** |
@@ -67,6 +67,8 @@ For Pre-Junior classes the report leaves out per-hero star counts and trial aver
 ## Profile
 
 **Quest cursor** switches the sky-blue and gold mouse pointer on or off straight away, for this browser only. Choose off to use your computer’s normal pointer. Touch screens and high-contrast mode use the normal pointer automatically.
+
+**Quiet Dragon button in the header** adds a small dragon next to the TV button that opens the Quiet Dragon noise meter without going into Projector Mode. Off by default, for this browser only.
 
 Your **display name** — the Quest Master name on logs, ceremonies, and the Adventurer’s Guide greeting. A staff badge beside the box shows the name as you type. **Save Name**.
 

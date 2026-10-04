@@ -5,7 +5,7 @@ const DEEPSEEK_MODEL = 'deepseek-flash';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_FALLBACK_MODEL = 'google/gemini-3.1-flash-lite';
 const OPENROUTER_TIMEOUT_MS = 20_000;
-const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2';
+const SPEECH_MODEL = '@cf/myshell-ai/melotts';
 // FLUX.2 [klein] 4B paints every image; the unmetered SDXL betas take over when FLUX
 // fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
@@ -39,8 +39,8 @@ const VALID_ROLES = new Set(['teacher', 'secretary', 'parent']);
 const MAX_REQUEST_BYTES = 64 * 1024;
 const RATE_WINDOW_MS = 60_000;
 // image: shop Restock generates 15 items (plus the occasional black-image retry).
-const RATE_LIMITS = { chat: 12, image: 20, speech: 8 };
-const SERVICE_RATE_LIMITS = { chat: 30, image: 40, speech: 8 };
+const RATE_LIMITS = { chat: 12, image: 20, speech: 30 };
+const SERVICE_RATE_LIMITS = { chat: 30, image: 40, speech: 30 };
 const MAX_RATE_BUCKETS = 2_000;
 const PROFILE_CACHE_SECONDS = 300;
 const rateBuckets = new Map();
@@ -708,28 +708,46 @@ async function handleImage(payload, env, corsHeaders) {
 }
 
 async function handleSpeech(payload, env, corsHeaders) {
-  if (!env.ELEVENLABS_API_KEY) return json({ error: 'Speech service is unavailable.' }, 503, corsHeaders);
+  // Fail closed until this account's Workers Free plan has been verified.
+  // Free accounts stop inference at the shared daily allowance; Paid accounts bill overages.
+  if (env.SPEECH_FREE_PLAN_CONFIRMED !== 'true' || !env.AI?.run) {
+    return json({ error: 'Cloud speech is unavailable; use device narration.' }, 503, corsHeaders,
+      { 'X-GCQ-Error-Source': 'speech-free-plan' });
+  }
   const text = String(payload.text || '').trim();
-  if (!text || text.length > 5_000) return json({ error: 'Invalid speech text.' }, 400, corsHeaders);
-  const outbound = { text };
-  if (payload.model_id) outbound.model_id = String(payload.model_id).slice(0, 100);
-  if (payload.voice_settings && typeof payload.voice_settings === 'object') {
-    outbound.voice_settings = {
-      stability: boundedNumber(payload.voice_settings.stability, 0.5, 0, 1),
-      similarity_boost: boundedNumber(payload.voice_settings.similarity_boost, 0.75, 0, 1),
-    };
+  if (!text || text.length > 1_000) return json({ error: 'Invalid speech text.' }, 400, corsHeaders);
+  // GCQ narration is English. Unsupported languages use the device voice.
+  if (String(payload.lang || 'en').toLowerCase() !== 'en') {
+    return json({ error: 'This narration language needs a device voice.' }, 400, corsHeaders);
   }
-  const response = await fetchNoRedirect(ELEVENLABS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'xi-api-key': env.ELEVENLABS_API_KEY, Accept: 'audio/mpeg' },
-    body: JSON.stringify(outbound),
-    signal: AbortSignal.timeout(55_000),
-  });
-  if (!response.ok) {
-    response.body?.cancel();
-    return json({ error: 'Speech service could not complete the request.' }, response.status, corsHeaders);
+  try {
+    const bytes = await withDeadline((async () => {
+      const result = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'en' });
+      if (result instanceof Response && !result.ok) throw new Error('Speech inference failed.');
+      const encoded = result?.audio ?? result?.result?.audio;
+      if (typeof encoded === 'string') return typeof Uint8Array.fromBase64 === 'function'
+        ? Uint8Array.fromBase64(encoded)
+        : Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+      if (!(result instanceof Response || result instanceof ReadableStream || result instanceof Blob
+        || result instanceof ArrayBuffer || ArrayBuffer.isView(result))) throw new Error('Invalid speech result.');
+      return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
+    })(), 25_000, SPEECH_MODEL);
+    // The live model returns base64 WAV despite the catalog also advertising MP3.
+    // Detect the bytes; never play an empty response or a JSON error as audio.
+    const isMp3 = (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+      || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
+    const isWav = new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF'
+      && new TextDecoder().decode(bytes.slice(8, 12)) === 'WAVE';
+    if (bytes.length < 32 || bytes.length > 8 * 1024 * 1024 || !(isMp3 || isWav)) throw new Error('Invalid speech audio.');
+    return new Response(bytes, { headers: {
+      ...corsHeaders, 'Content-Type': isWav ? 'audio/wav' : 'audio/mpeg', 'Cache-Control': 'no-store',
+      'X-GCQ-AI-Provider': SPEECH_MODEL,
+    } });
+  } catch (error) {
+    const quota = isWorkersAiQuotaError(error);
+    return json({ error: quota ? 'Free speech allowance is temporarily unavailable.' : 'Speech generation is temporarily unavailable.' },
+      quota ? 429 : 503, corsHeaders, { 'X-GCQ-Error-Source': 'speech-unavailable' });
   }
-  return new Response(response.body, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' } });
 }
 
 async function processRequest(request, env, ctx, corsHeaders, identity, payload, route, requestId) {

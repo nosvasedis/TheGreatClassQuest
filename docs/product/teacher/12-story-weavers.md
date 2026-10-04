@@ -44,6 +44,8 @@ Until you choose a class, the tab shows a placeholder.
 8. **Start New** — a fresh quest.
 9. On a completed storybook: **Narrate Story** (speech), **Print Storybook** (PDF, themed pages), or delete.
 
+English read-aloud uses an online voice when available, with your device's voice as a fallback. Replaying the same passage reuses its audio during the session. Online narration needs an internet connection and may switch to the device voice when the daily allowance is unavailable. Other narration languages use device voices. **Stop** cancels narration even while the voice is loading; it does not turn the page.
+
 ### Pedagogy in the room
 
 - Lock the word **before** the sentence so the constraint is playful, not a trap at the end.

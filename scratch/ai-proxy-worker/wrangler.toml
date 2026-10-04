@@ -20,6 +20,10 @@ FIREBASE_PROJECT_ID = "the-great-class-quest"
 FIREBASE_PROJECT_NUMBER = "1021026433595"
 FIREBASE_APP_ID = "1:1021026433595:web:d1bc4b6f45f01fe25c3a1e"
 REQUIRE_APP_CHECK = "false"
+# Workers Free was verified in the account dashboard on 2026-10-04.
+# Recheck before deploying; disable if upgrading to Paid, which bills overages.
+# Free accounts stop inference at the shared 10,000 neurons/day.
+SPEECH_FREE_PLAN_CONFIRMED = "true"
 ALLOWED_ORIGINS = "https://nosvasedis.github.io,https://great-class-quest-school.pages.dev,https://the-great-class-quest.web.app,https://the-great-class-quest.firebaseapp.com,http://127.0.0.1:3000,http://localhost:3000"
 # Keep old browser model hints accepted during rollout; the Worker sends deepseek-flash upstream.
 ALLOWED_CLIENT_TEXT_MODELS = "deepseek-flash,deepseek/deepseek-v4-flash,google/gemini-3.1-flash-lite-preview"

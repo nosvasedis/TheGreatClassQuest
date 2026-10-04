@@ -4,6 +4,7 @@ import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildS
 import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces } from '../../features/guildScoringCore.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
 import { yearChronicles } from '../../features/guildChronicleCore.js';
+import { isSpeaking, isTtsSupported, speakText, stopSpeech } from '../../features/tts.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
@@ -1041,7 +1042,7 @@ function _patchChronicle(hall) {
     if (index < 0) index = list.length - 1;
     const chronicle = list[index];
     box.hidden = false;
-    _setHtml(box, _chronicleView.chroniclePanelHtml(chronicle, { index, total: list.length, canSpeak: typeof window !== 'undefined' && 'speechSynthesis' in window }));
+    _setHtml(box, _chronicleView.chroniclePanelHtml(chronicle, { index, total: list.length, canSpeak: isTtsSupported() }));
     hall.querySelectorAll('.gh-stone[data-chronicle-key]').forEach((el) => el.classList.toggle('is-chronicled', el.dataset.chronicleKey === chronicle.key));
 }
 
@@ -1054,12 +1055,9 @@ function _chronicleAction(hall, t) {
     const shown = hall.querySelector('[data-chronicle-shown]')?.dataset.chronicleShown;
     if (read) {
         const c = list.find((x) => x.key === shown);
-        if (c && window.speechSynthesis) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(`The chronicle of ${c.month}. ${c.lines.join(' ')}`);
-            u.lang = 'en-GB';
-            u.rate = 0.92;
-            window.speechSynthesis.speak(u);
+        if (c && isTtsSupported()) {
+            if (isSpeaking()) stopSpeech();
+            else speakText(`The chronicle of ${c.month}. ${c.lines.join(' ')}`, { voiceHint: 'en', rate: 0.92 });
         }
         return true;
     }

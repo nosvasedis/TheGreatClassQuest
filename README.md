@@ -60,6 +60,7 @@
 - **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and **Prodigy of the Month**, and **guild vs. guild** in a year-long race toward the **Grand Guild Ceremony**.
 - **Automated tracking:** Stars, gold, inventory, tests, attendance, and logs are stored in **Firestore** and stay in sync.
 - **AI-powered narrative (Elite):** **DeepSeek V4.1 Flash** writes daily chronicles, certificates, reports, and story text.
+- **Read aloud:** English narration uses **MeloTTS** through the authenticated Cloudflare Worker when the account's Workers Free plan is confirmed. Device voices are the fallback when cloud narration is unavailable. Generated audio is reused within the session; the shared daily AI allowance can also be used by artwork and text fallback.
 - **Live display:** **Projector Mode** turns a classroom PC into a real-time quest dashboard with day/night, weather-aware sky, rotating Director cards, and celebrations.
 
 Teachers in the app can open **The Adventurer's Guide** (information button) for a short classroom explainer.

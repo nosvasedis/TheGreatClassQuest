@@ -31,6 +31,39 @@ async function getAuthenticatedProxyHeaders(forceRefresh = false) {
     };
 }
 
+// Speech has its own deadline and no generation retries: repeating a timed-out
+// request can waste the shared free AI allocation. Only rejected login tokens refresh.
+export async function callSpeechApi(text, { signal } = {}) {
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    if (signal?.aborted) abort();
+    else signal?.addEventListener('abort', abort, { once: true });
+    const timer = setTimeout(() => controller.abort(new DOMException('Speech timed out', 'TimeoutError')), 30000);
+    try {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            const headers = await getAuthenticatedProxyHeaders(attempt === 1);
+            const response = await fetch(cloudflareWorkerUrl, {
+                method: 'POST', headers, signal: controller.signal,
+                body: JSON.stringify({ text, lang: 'en' })
+            });
+            if (attempt === 0 && response.status === 401 && response.headers.get('X-GCQ-Error-Source') === 'firebase-token') {
+                await response.body?.cancel();
+                continue;
+            }
+            if (!response.ok || !response.headers.get('Content-Type')?.startsWith('audio/')) {
+                await response.body?.cancel();
+                throw new Error(`Speech unavailable (${response.status})`);
+            }
+            const blob = await response.blob();
+            if (!blob.size) throw new Error('Empty speech audio');
+            return blob;
+        }
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', abort);
+    }
+}
+
 async function fetchAuthenticatedProxy(url, payload, config = {}) {
     const send = async (forceRefresh = false) => fetchWithBackoff(url, {
         method: 'POST',

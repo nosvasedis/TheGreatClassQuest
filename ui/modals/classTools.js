@@ -20,23 +20,15 @@ export function classById(classId) {
         || (state.get('allTeachersClasses') || []).find((c) => c.id === classId) || null;
 }
 
-/** The selected class, else the class of yours in a lesson right now, else your first class today, else your first class. */
-export function defaultToolClassId() {
-    const mine = myClasses();
+/** The class selected in the header, when it is one of yours (the tools follow it). */
+export function selectedToolClassId() {
     const selected = state.get('globalSelectedClassId');
-    if (selected && mine.some((c) => c.id === selected)) return selected;
-    try {
-        const todays = utils.getClassesOnDay(
-            utils.getTodayDateString(),
-            state.get('allSchoolClasses') || [],
-            state.get('allScheduleOverrides') || [],
-            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
-        ).filter((c) => mine.some((m) => m.id === c.id));
-        const live = utils.findLessonClassWithGrace(todays);
-        if (live) return live.id;
-        if (todays[0]) return todays[0].id;
-    } catch { /* schedule not loaded yet */ }
-    return mine[0]?.id || null;
+    return selected && myClasses().some((c) => c.id === selected) ? selected : null;
+}
+
+/** Calls back with the new class id (or null) whenever the header's class changes. Returns an unsubscribe. */
+export function followSelectedClass(callback) {
+    return state.subscribe('globalSelectedClassId', () => callback(selectedToolClassId()));
 }
 
 /** Children of the class (sorted by name) with today's absences and this month's stars. */
@@ -64,14 +56,6 @@ export function faceHtml(hero, cls = 'ct-face') {
     if (hero?.avatar) return `<span class="${cls}"><img src="${esc(hero.avatar)}" alt="" loading="lazy" decoding="async"></span>`;
     const tone = AVATAR_TONES[utils.simpleHashCode(String(hero?.id || hero?.name || '')) % AVATAR_TONES.length];
     return `<span class="${cls} ct-face--letter" style="--ct-tone:${tone}">${esc((hero?.name || '?').trim().charAt(0).toUpperCase())}</span>`;
-}
-
-export function classPickerHtml(classId, attr) {
-    const mine = myClasses();
-    if (mine.length < 2) return '';
-    return `<label class="ct-class-pick"><span class="sr-only">Class</span>
-        <select ${attr}>${mine.map((c) => `<option value="${esc(c.id)}"${c.id === classId ? ' selected' : ''}>${esc(c.logo || '📚')} ${esc(c.name || 'Class')}</option>`).join('')}</select>
-        <i class="fas fa-chevron-down" aria-hidden="true"></i></label>`;
 }
 
 // Fresh values this session, so a reopened window never shows the copy from before the save landed.

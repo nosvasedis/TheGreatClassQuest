@@ -5,7 +5,9 @@
 import { teamsForDay } from './teamMakerCore.mjs';
 import { fairStatus, normalizeFairPicker } from './fairPickerCore.mjs';
 
-export const HOME_GLOBAL_TOOL_LIMIT = 8;
+export const HOME_GLOBAL_TOOL_LIMIT = 6;
+/** Class Actions hold two more: Team Maker and Fair Picker live only here, for the selected class. */
+export const HOME_CLASS_ACTION_LIMIT = 8;
 
 function plural(n, one, many) {
     return `${n} ${n === 1 ? one : many}`;
@@ -16,10 +18,9 @@ function plural(n, one, many) {
  * @param {(flag: string) => boolean} ctx.canUseFeature
  * @param {number} [ctx.myLessonsToday] the teacher's own classes meeting today
  * @param {number} [ctx.myClassCount] classes the teacher runs
- * @param {string} [ctx.lessonClassName] the teacher's class in a lesson right now, if any (the class tools open on it)
  * @returns {{ id: string, icon: string, label: string, hint: string, tone: string, action: string, subtab?: string, scoped?: boolean }[]}
  */
-export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassCount = 0, lessonClassName = '' }) {
+export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassCount = 0 }) {
     const can = (flag) => !flag || Boolean(canUseFeature?.(flag));
     const catalog = [
         {
@@ -31,16 +32,6 @@ export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassC
             id: 'new-class', icon: 'fa-plus', label: 'New Class', tone: 'emerald',
             action: 'create-class', scoped: true,
             hint: myClassCount > 0 ? `You run ${plural(myClassCount, 'class', 'classes')}` : 'Start your first class',
-        },
-        myClassCount > 0 && {
-            id: 'team-maker', icon: 'fa-people-group', label: 'Team Maker', tone: 'teal',
-            action: 'open-team-maker',
-            hint: lessonClassName ? `Teams for ${lessonClassName}` : 'Split a class into teams',
-        },
-        myClassCount > 0 && {
-            id: 'fair-picker', icon: 'fa-hand-sparkles', label: 'Fair Picker', tone: 'indigo',
-            action: 'open-fair-picker',
-            hint: lessonClassName ? `Turns in ${lessonClassName}` : 'Everyone gets a turn',
         },
         {
             id: 'quiz', flag: 'quizOfTheWeek', icon: 'fa-circle-question', label: 'Quiz of the Week', tone: 'violet',
@@ -68,7 +59,7 @@ export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassC
         },
     ];
     return catalog
-        .filter((tool) => tool && can(tool.flag))
+        .filter((tool) => can(tool.flag))
         .slice(0, HOME_GLOBAL_TOOL_LIMIT)
         .map(({ flag, ...tool }) => tool);
 }
@@ -129,7 +120,7 @@ export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, b
             action: 'open-prodigies', hint: 'Past Prodigies',
         },
     ];
-    return catalog.filter(Boolean).slice(0, HOME_GLOBAL_TOOL_LIMIT).map((tool) => ({ ...tool, classId }));
+    return catalog.filter(Boolean).slice(0, HOME_CLASS_ACTION_LIMIT).map((tool) => ({ ...tool, classId }));
 }
 
 /** Live hint numbers for the Team Maker and Fair Picker tiles of one class. */

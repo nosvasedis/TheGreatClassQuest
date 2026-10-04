@@ -460,8 +460,7 @@ function getGeneralDashboard(name, theme, spice) {
     const myClassIds = new Set(myClasses.map(c => c.id));
     const myTodaysClasses = todaysClasses.filter(c => myClassIds.has(c.id));
     const myLessonsToday = myTodaysClasses.length;
-    const lessonClass = utils.findLessonClassWithGrace(myTodaysClasses);
-    const tools = getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length, lessonClassName: lessonClass?.name || '' });
+    const tools = getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
 
     return getLayout(
         name, theme, '',

@@ -69,14 +69,14 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'team-maker', icon: 'fa-people-group', name: 'Team Maker', tier: 'starter',
-                    where: 'Home, Class Actions or Global Tools', go: 'tab:about-tab',
+                    where: 'Home, Class Actions (selected class)', go: 'tab:about-tab',
                     text: `Splits the children who are here into 2 to 6 coloured teams: Mix the guilds, Balance by stars (this month's), or Pure luck, with Never the same pairs to keep last time's partners apart. Tap a child, then a team, to move them. Use these teams saves today's teams; Show on projector puts them on the big screen, and Bounty on a team posts a bounty for just that team.`,
                     why: 'Fair, mixed groups in seconds, with nobody always stuck with the same partner.',
                     keys: 'teams groups split random mix pairs projector colours group work'
                 },
                 {
                     id: 'fair-picker', icon: 'fa-hand-sparkles', name: 'Fair Picker', tier: 'starter',
-                    where: 'Home, Class Actions or Global Tools', go: 'tab:about-tab',
+                    where: 'Home, Class Actions (selected class)', go: 'tab:about-tab',
                     text: `Picks one child to answer any question, under a spotlight. Nobody gets a second turn until everyone here has had one, and the round carries on next lesson; children away stay owed a turn. Not now gives a turn back, 5s/10s/20s starts thinking time, Pick from narrows it to one of today's teams, and Big screen fills the projector.`,
                     why: 'Every child gets asked, not only the raised hands.',
                     keys: 'random name picker turn spotlight question cold call fair who answers'

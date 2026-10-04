@@ -16,7 +16,7 @@ import {
 import { queueProjectorCard } from '../wallpaperQueue.mjs';
 import { showAnimatedModal, hideModal } from './base.js';
 import {
-    esc, classById, classRoster, defaultToolClassId, faceHtml, classPickerHtml,
+    esc, classById, classRoster, selectedToolClassId, followSelectedClass, faceHtml,
     readClassField, saveClassField, reducedMotion, enterFullscreen, leaveFullscreen
 } from './classTools.js';
 
@@ -84,7 +84,6 @@ function headerHtml() {
                 <strong id="tm-title" class="font-title">Team Maker</strong>
                 <span class="tm-head__sub">${esc(cls?.logo || '📚')} ${esc(cls?.name || 'Class')} · split the heroes who are here into teams</span>
             </span>
-            ${classPickerHtml(ui.classId, 'data-tm-class')}
             <button type="button" class="ct-close" data-tm-close aria-label="Close Team Maker"><i class="fas fa-times"></i></button>
         </header>`;
 }
@@ -323,10 +322,10 @@ function close() {
 
 /** Open Team Maker on a class (default: the selected class, or the one in a lesson now). */
 export async function openTeamMaker(classId = null) {
-    const id = classId || defaultToolClassId();
+    const id = selectedToolClassId() || classId;
     if (!id) {
         const { showToast } = await import('../effects.js');
-        showToast('Create a class first, then make teams for it.', 'info');
+        showToast('Select one of your classes first, then make its teams.', 'info');
         return;
     }
     session?.dispose();
@@ -414,9 +413,12 @@ export async function openTeamMaker(classId = null) {
             render();
         }
     };
-    const onChange = (e) => {
-        if (e.target.matches('[data-tm-class]')) setClass(e.target.value);
-    };
+    // Team Maker always works on the class selected in the header.
+    const unfollow = followSelectedClass((next) => {
+        if (modal.classList.contains('hidden')) return;
+        if (!next) { close(); return; }
+        if (next !== ui?.classId) setClass(next);
+    });
     const onKey = (e) => {
         if (e.key !== 'Escape' || modal.classList.contains('hidden') || document.getElementById(STAGE_ID)) return;
         e.stopPropagation();
@@ -424,12 +426,11 @@ export async function openTeamMaker(classId = null) {
         close();
     };
     modal.addEventListener('click', onClick);
-    modal.addEventListener('change', onChange);
     document.addEventListener('keydown', onKey, true);
     session = {
         dispose() {
             modal.removeEventListener('click', onClick);
-            modal.removeEventListener('change', onChange);
+            unfollow();
             document.removeEventListener('keydown', onKey, true);
             session = null;
         }

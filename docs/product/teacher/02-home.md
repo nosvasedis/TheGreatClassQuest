@@ -23,7 +23,7 @@ You are looking at the **whole school**:
 - **School Stars** — this month’s stars across all students
 - **Heroes** — how many students are on the roster
 - **Treasury** — this year's Gold held by students. Last year's Gold is archived when the school year is finished, so a new year starts at 0.
-- **Global Tools** — shortcuts the bottom bar and the gear do not already reach in one click, each with a live hint: **Plan Today** (Pro calendar; shows how many of your lessons are today), **New Class** (shows how many classes you run), **Team Maker** and **Fair Picker** (they open on your class in a lesson now, and you can switch class inside them), **Quiz of the Week** (Elite), **Family Access** (parent logins), **Hero Archive** and **Team Archive** (past months' rankings). On plans without some of these, **Student Fixes** (adjust stars or gold) and **Last Lessons** (end-of-year days) take their place.
+- **Global Tools** — shortcuts the bottom bar and the gear do not already reach in one click, each with a live hint: **Plan Today** (Pro calendar; shows how many of your lessons are today), **New Class** (shows how many classes you run), **Quiz of the Week** (Elite), **Family Access** (parent logins), **Hero Archive** and **Team Archive** (past months' rankings). On plans without some of these, **Student Fixes** (adjust stars or gold) and **Last Lessons** (end-of-year days) take their place.
 - **Today’s school schedule** — every class that meets today. A crown marks your own classes, an eye marks a colleague’s, and a green dot marks a lesson in session. Tap **any** class to open its **class roster**, which shows:
   - the league, teacher, time and days, and how many heroes there are;
   - stars this month and all year, Gold, Team Quest progress and the next lesson;
@@ -75,7 +75,7 @@ Two everyday tools that do different jobs. The **Team Maker** splits the class i
 
 ### Team Maker
 
-Open **Team Maker** from Class Actions (or Global Tools). It starts with the children who are here: Roll Call already leaves out the ones away today, and **N here** lets you leave someone out or bring them back for this lesson.
+Open **Team Maker** from Class Actions (select a class first; it always works on the class selected in the header and follows it if you switch). It starts with the children who are here: Roll Call already leaves out the ones away today, and **N here** lets you leave someone out or bring them back for this lesson.
 
 - **Teams**: 2 to 6 (it suggests teams of about four and says how big each team will be).
 - **Mix**: **Mix the guilds** (every team gets heroes from different guilds), **Balance by stars** (teams even out on this month's stars; each team shows its total), or **Pure luck**.
@@ -88,7 +88,7 @@ Teams give nothing in stars or Gold by themselves; they are for organising the l
 
 ### Fair Picker
 
-Open **Fair Picker** whenever you want someone to answer, in any lesson. Press **Pick a hero** (or Space): names flicker under a spotlight and land on one child. It keeps the Quiz spotlight's promise: **nobody gets a second turn until everyone here has had one**, and the round carries on from lesson to lesson. Children away today stay in **Away today, still owed a turn** and lean a little ahead once they are back.
+Open **Fair Picker** from Class Actions whenever you want someone to answer, in any lesson; like the Team Maker it always works on the selected class. Press **Pick a hero** (or Space): names flicker under a spotlight and land on one child. It keeps the Quiz spotlight's promise: **nobody gets a second turn until everyone here has had one**, and the round carries on from lesson to lesson. Children away today stay in **Away today, still owed a turn** and lean a little ahead once they are back.
 
 - **Not now** gives the turn back (the child returns to waiting and it does not count).
 - **5s, 10s, 20s** start a thinking-time ring around the child.

@@ -11,7 +11,7 @@ import { normalizeFairPicker, fairStatus, pickTurn, passTurn, freshRound } from 
 import { teamsForDay, teamBanner } from '../../features/teamMakerCore.mjs';
 import { showAnimatedModal, hideModal } from './base.js';
 import {
-    esc, classById, classRoster, defaultToolClassId, faceHtml, classPickerHtml,
+    esc, classById, classRoster, selectedToolClassId, followSelectedClass, faceHtml,
     readClassField, saveClassField, reducedMotion, enterFullscreen, leaveFullscreen
 } from './classTools.js';
 
@@ -97,7 +97,6 @@ function headerHtml() {
                 <strong id="fpk-title" class="font-title">Fair Picker</strong>
                 <span class="fpk-head__sub">${esc(cls?.logo || '📚')} ${esc(cls?.name || 'Class')} · one hero answers, everyone gets a turn</span>
             </span>
-            ${classPickerHtml(ui.classId, 'data-fpk-class')}
             <button type="button" class="fpk-bigbtn" data-fpk-big aria-pressed="false" title="Big screen for the projector"><i class="fas fa-expand"></i><span>Big screen</span></button>
             <button type="button" class="ct-close" data-fpk-close aria-label="Close Fair Picker"><i class="fas fa-times"></i></button>
         </header>`;
@@ -284,10 +283,10 @@ function ensureShell() {
 
 /** Open the Fair Picker on a class (default: the selected class, or the one in a lesson now). */
 export async function openFairPicker(classId = null) {
-    const id = classId || defaultToolClassId();
+    const id = selectedToolClassId() || classId;
     if (!id) {
         const { showToast } = await import('../effects.js');
-        showToast('Create a class first, then pick fairly in it.', 'info');
+        showToast('Select one of your classes first, then pick fairly in it.', 'info');
         return;
     }
     session?.dispose();
@@ -325,13 +324,16 @@ export async function openFairPicker(classId = null) {
             render();
         }
     };
-    const onChange = (e) => {
-        if (!e.target.matches('[data-fpk-class]')) return;
+    // The Fair Picker always works on the class selected in the header.
+    const unfollow = followSelectedClass((next) => {
+        if (modal.classList.contains('hidden')) return;
+        if (!next) { close(); return; }
+        if (next === ui?.classId) return;
         clearTimers();
         flushSave();
-        loadClass(e.target.value);
+        loadClass(next);
         render();
-    };
+    });
     const onKey = (e) => {
         if (modal.classList.contains('hidden')) return;
         if (e.key === 'Escape') {
@@ -355,13 +357,12 @@ export async function openFairPicker(classId = null) {
         }
     };
     modal.addEventListener('click', onClick);
-    modal.addEventListener('change', onChange);
     document.addEventListener('keydown', onKey, true);
     document.addEventListener('fullscreenchange', onFullscreen);
     session = {
         dispose() {
             modal.removeEventListener('click', onClick);
-            modal.removeEventListener('change', onChange);
+            unfollow();
             document.removeEventListener('keydown', onKey, true);
             document.removeEventListener('fullscreenchange', onFullscreen);
             session = null;

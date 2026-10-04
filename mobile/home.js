@@ -227,8 +227,7 @@ function getMobileGlobalTools() {
             state.get('allScheduleOverrides') || [],
             state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
         ).filter((c) => myClassIds.has(c.id));
-    const lessonClass = utils.findLessonClassWithGrace(myTodaysClasses);
-    return getHomeGlobalTools({ canUseFeature, myLessonsToday: myTodaysClasses.length, myClassCount: myClasses.length, lessonClassName: lessonClass?.name || '' });
+    return getHomeGlobalTools({ canUseFeature, myLessonsToday: myTodaysClasses.length, myClassCount: myClasses.length });
 }
 
 function getMobileClassActions(classId) {

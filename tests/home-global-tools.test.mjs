@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getHomeGlobalTools, getHomeClassActions, HOME_GLOBAL_TOOL_LIMIT } from '../features/homeGlobalTools.mjs';
+import { getHomeGlobalTools, getHomeClassActions, HOME_GLOBAL_TOOL_LIMIT, HOME_CLASS_ACTION_LIMIT } from '../features/homeGlobalTools.mjs';
 
 const all = () => true;
 const none = () => false;
@@ -8,10 +8,10 @@ const none = () => false;
 // Bottom nav tabs and the header gear are one click away, so Home must not repeat them.
 const ONE_CLICK_ELSEWHERE = ['open-settings', 'open-my-classes'];
 
-test('full plan shows eight tools led by today’s plan, none duplicating one-click navigation', () => {
+test('full plan shows six tools led by today’s plan, none duplicating one-click navigation', () => {
     const tools = getHomeGlobalTools({ canUseFeature: all, myLessonsToday: 3, myClassCount: 5 });
     assert.equal(tools.length, HOME_GLOBAL_TOOL_LIMIT);
-    assert.deepEqual(tools.map(t => t.id), ['plan-today', 'new-class', 'team-maker', 'fair-picker', 'quiz', 'family', 'hero-archive', 'team-archive']);
+    assert.deepEqual(tools.map(t => t.id), ['plan-today', 'new-class', 'quiz', 'family', 'hero-archive', 'team-archive']);
     assert.ok(tools.every(t => !ONE_CLICK_ELSEWHERE.includes(t.action) && !t.tab));
     assert.equal(tools[0].hint, '3 lessons today');
     assert.equal(tools[1].hint, 'You run 5 classes');
@@ -29,7 +29,7 @@ test('hints read naturally for one and for none', () => {
 
 test('gated tools drop out and settings shortcuts fill the space', () => {
     const tools = getHomeGlobalTools({ canUseFeature: none, myClassCount: 2 });
-    assert.deepEqual(tools.map(t => t.id), ['new-class', 'team-maker', 'fair-picker', 'hero-archive', 'team-archive', 'student-fixes', 'last-lessons']);
+    assert.deepEqual(tools.map(t => t.id), ['new-class', 'hero-archive', 'team-archive', 'student-fixes', 'last-lessons']);
     assert.equal(tools.find(t => t.id === 'student-fixes').subtab, 'manage');
     assert.equal(tools.find(t => t.id === 'last-lessons').subtab, 'planning');
 });
@@ -50,7 +50,7 @@ test('Teacher Boon leads during its window and says who received it', () => {
     const open = getHomeClassActions({ classId: 'c1', boonWindow: true });
     assert.equal(open[0].id, 'teacher-boon');
     assert.equal(open[0].hint, 'Open this week');
-    assert.equal(open.length, HOME_GLOBAL_TOOL_LIMIT);
+    assert.equal(open.length, HOME_CLASS_ACTION_LIMIT);
     const given = getHomeClassActions({ classId: 'c1', boonWindow: true, boonGivenTo: 'Maria' });
     assert.equal(given[0].hint, 'Given to Maria');
 });
@@ -59,7 +59,7 @@ test('Team Maker and Fair Picker hints follow today\'s teams and the turn round'
     const tools = getHomeClassActions({ classId: 'c1', heroCount: 12, teamsToday: 4, waitingTurns: 5, fairRoundStarted: true });
     assert.equal(tools.find(t => t.id === 'team-maker').hint, '4 teams today');
     assert.equal(tools.find(t => t.id === 'fair-picker').hint, '5 still waiting');
-    const global = getHomeGlobalTools({ canUseFeature: all, myClassCount: 2, lessonClassName: 'Owls' });
-    assert.equal(global.find(t => t.id === 'team-maker').hint, 'Teams for Owls');
-    assert.ok(!getHomeGlobalTools({ canUseFeature: all, myClassCount: 0 }).some(t => t.id === 'team-maker'));
+    // Class tools only: they always follow the selected class, so Global Tools never offer them.
+    const global = getHomeGlobalTools({ canUseFeature: all, myClassCount: 2 });
+    assert.ok(!global.some(t => t.id === 'team-maker' || t.id === 'fair-picker'));
 });

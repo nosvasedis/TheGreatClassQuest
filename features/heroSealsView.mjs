@@ -71,22 +71,9 @@ export function heroSealsNoticeCopy(groups) {
     }
     if (groups.length === 1) {
         const g = groups[0];
-        return { title: `${firstNameOf(g.student.name)} pressed ${g.seals.length === 1 ? 'a Hero Seal' : `${g.seals.length} Hero Seals`}`, sub: g.seals.length === 1 ? g.seals[0].name : 'See which ones' };
+        return { title: `${firstNameOf(g.student.name)} pressed ${g.seals.length === 1 ? 'a Hero Seal' : `${g.seals.length} Hero Seals`}`, sub: g.seals.slice(0, 3).map((x) => x.name).join(', ') + (g.seals.length > 3 ? ' and more' : '') };
     }
-    return { title: `${groups.length} heroes pressed Hero Seals`, sub: `${seals} seal${seals === 1 ? '' : 's'} · see who got what` };
-}
-
-/** The notice's inner markup. `groups` is collectNewSeals(). */
-export function heroSealsNoticeHtml(groups) {
-    if (!groups?.length) return '';
-    const { title, sub } = heroSealsNoticeCopy(groups);
-    return `
-        <button type="button" class="hs-notice__open" aria-label="${esc(title)}. Open the summary">
-            <span class="hs-notice__art">${sealArtHtml(groups[0].seals[0], { size: 46 })}</span>
-            <span class="hs-notice__text"><b>${esc(title)}</b><small>${esc(sub)}</small></span>
-            <span class="hs-notice__go" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-        </button>
-        <button type="button" class="hs-notice__dismiss" aria-label="Dismiss" title="Dismiss"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
+    return { title: `${groups.length} heroes pressed Hero Seals`, sub: `${seals} seals in all` };
 }
 
 // ─── The summary ─────────────────────────────────────────────────────────────

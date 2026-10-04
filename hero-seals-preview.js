@@ -1,8 +1,10 @@
 // Hero Seals preview: the real markup with sample heroes, no Firebase.
 // /hero-seals-preview.html?view=catalogue|folio|trophy|summary|notice|opens[&lite=1][&shot=1]
+import './styles/notifications.css';
 import './styles/hero_seals.css';
+import { notify } from './ui/effects.js';
 import { SEALS, buildSealBook, buildSealBookView, collectNewSeals, sealArtHtml } from './features/heroSealsCore.mjs';
-import { heroSealsNoticeHtml, heroSealsSummaryHtml, sealBookPanelHtml } from './features/heroSealsView.mjs';
+import { heroSealsNoticeCopy, escSeal, heroSealsSummaryHtml, sealBookPanelHtml } from './features/heroSealsView.mjs';
 import { studentAnalyticsModalHTML } from './templates/modals/studentAnalytics.js';
 import { trophyRoomModalsHTML } from './templates/modals/trophyRoom.js';
 import { renderTrophyRosterHtml, renderTrophySatchelHtml } from './ui/modals/trophyRoomView.js';
@@ -103,12 +105,19 @@ function summary(since = T - 60000) {
 
 function notice() {
     catalogue();
-    const el = document.createElement('div');
-    el.className = `hs-notice${lite ? ' hs--lite' : ''}`;
-    el.innerHTML = heroSealsNoticeHtml(collectNewSeals(rows, T - 60000));
-    document.body.appendChild(el);
-    requestAnimationFrame(() => el.classList.add('is-in'));
-    el.addEventListener('click', () => summary());
+    const host = document.createElement('div');
+    host.id = 'toast-container';
+    document.body.appendChild(host);
+    const groups = collectNewSeals(rows, T - 60000);
+    const { title, sub } = heroSealsNoticeCopy(groups);
+    notify({
+        type: 'praise',
+        title: 'Hero Seals',
+        icon: sealArtHtml(groups[0].seals[0], { size: 34, className: 'hs-herald-seal' }),
+        message: `${escSeal(title)}<span class="hs-herald-sub">${escSeal(sub)}</span>`,
+        duration: 0,
+        action: { label: 'See who', icon: 'fa-scroll', onClick: () => summary() },
+    });
 }
 
 ({ catalogue, folio, trophy, summary: () => summary(), notice, opens: () => summary(0) })[viewName]?.();

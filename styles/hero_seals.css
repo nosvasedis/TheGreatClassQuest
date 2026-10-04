@@ -41,114 +41,16 @@
     opacity: 0.38;
 }
 
-/* ── The notice (teacher only, never on the projector) ──────────────── */
-.hs-notice {
-    position: fixed;
-    left: 16px;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
-    z-index: 65;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    max-width: min(24rem, calc(100vw - 32px));
-    padding: 0.35rem 0.35rem 0.35rem 0.4rem;
-    border-radius: 1.4rem;
-    background: linear-gradient(135deg, #fffaf0, #fbefd6);
-    border: 1px solid #e8d1a2;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 14px 30px -12px rgba(76, 38, 12, 0.45), 0 3px 8px -4px rgba(76, 38, 12, 0.3);
-    color: #3a2616;
-    font-family: 'Fredoka', 'Open Sans', sans-serif;
-    opacity: 0;
-    transform: translateX(-24px) scale(0.96);
-    transition: opacity 0.32s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.hs-notice.is-in {
-    opacity: 1;
-    transform: none;
-}
-
-.hs-notice.is-bump .hs-notice__art {
-    animation: hs-bump 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-body.projector-mode .hs-notice { display: none; }
-
-.hs-notice__open {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    min-width: 0;
-    padding: 0.2rem 0.4rem 0.2rem 0.15rem;
-    border: 0;
-    border-radius: 1.1rem;
-    background: transparent;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.hs-notice__open:hover .hs-notice__go,
-.hs-notice__open:focus-visible .hs-notice__go { transform: translateX(3px); }
-
-.hs-notice__open:focus-visible,
-.hs-notice__dismiss:focus-visible {
-    outline: 3px solid #b8862f;
-    outline-offset: 2px;
-}
-
-.hs-notice__art {
-    display: grid;
-    place-items: center;
-}
-
-.hs-notice:not(.hs--lite).is-in .hs-notice__art .hs-seal {
-    animation: hs-press 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
-}
-
-.hs-notice__text {
-    display: grid;
-    min-width: 0;
-    line-height: 1.2;
-}
-
-.hs-notice__text b {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-weight: 400;
-    font-size: 0.98rem;
-    color: #5a1f12;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.hs-notice__text small {
-    font-size: 0.78rem;
-    color: #8a6a48;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.hs-notice__go {
-    margin-left: auto;
-    color: #b8862f;
+/* ── The herald (seals ride the app's ordinary notification) ─────────── */
+.herald--praise .herald__gem-core .hs-herald-seal { filter: none; }
+.herald .hs-herald-sub {
+    display: block;
+    margin-top: 0.1rem;
+    font-family: 'Open Sans', sans-serif;
     font-size: 0.8rem;
-    transition: transform 0.2s ease;
+    font-weight: 600;
+    color: #a16207;
 }
-
-.hs-notice__dismiss {
-    width: 1.9rem;
-    height: 1.9rem;
-    flex-shrink: 0;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(138, 106, 72, 0.1);
-    color: #8a6a48;
-    cursor: pointer;
-}
-
-.hs-notice__dismiss:hover { background: rgba(138, 106, 72, 0.2); }
 
 /* ── The summary ─────────────────────────────────────────────────────── */
 .hs-sum {
@@ -702,7 +604,6 @@ body.projector-mode .hs-notice { display: none; }
 .hs--still .hs-sum__card { animation: none !important; }
 
 @media (max-width: 640px) {
-    .hs-notice { left: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
     .hs-sum { padding: 0.5rem; }
     .hs-sum__head { gap: 0.7rem; padding: 0.9rem 3rem 0.85rem 0.9rem; }
     .hs-sum__hero-seal .hs-seal { --hs-size: 70px !important; }
@@ -719,6 +620,6 @@ body.projector-mode .hs-notice { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hs-notice, .hs-sum__card-shell, .hs-sum__bg { transition: none; }
-    .hs-seal, .hs-sum__card, .hs-tile, .hs-sum__rays, .hs-notice__art, #trophy-room-modal .tr-seal { animation: none !important; }
+    .hs-sum__card-shell, .hs-sum__bg { transition: none; }
+    .hs-seal, .hs-sum__card, .hs-tile, .hs-sum__rays, #trophy-room-modal .tr-seal { animation: none !important; }
 }

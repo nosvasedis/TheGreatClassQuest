@@ -57,7 +57,7 @@ Every child has a **Seal Book** of 16 wax seals.
 
 **Where they show.** The Scholar's Folio has a **Seals** tab with the whole book; the Trophy Room shows the pressed seals for each hero. When a seal is pressed during a lesson, the class diary may mention it in one line (seals about marks or absences never appear there).
 
-**The notice.** When children press seals, a small wax-seal notice appears at the bottom left of your screen (never on the Projector): for example **3 heroes pressed Hero Seals**. Tap it for a summary of who pressed what; tap a name to open that child's Seal Book. ✕ dismisses it. The first time a class is opened after Hero Seals arrived, the Quest reads the year so far once and the notice says **The Seal Book opens**, with the seals already earned this year.
+**The notification.** When children press seals, the Quest's usual notification appears with a wax seal, for example **3 heroes pressed Hero Seals**. Tap **See who** for a summary of who pressed what; tap a name to open that child's Seal Book. If you let it pass, it comes back with the next new seal and still covers every seal you have not looked at. The first time a class is opened after Hero Seals arrived, the Quest reads the year so far once and the notification says **The Seal Book opens**, with the seals already earned this year.
 
 A seal is pressed a little after the star that earns it (so a star given by mistake can still be undone first). Seals are checked for the class you are teaching, classes with activity today, and any class whose Folio or Trophy Room you open.
 

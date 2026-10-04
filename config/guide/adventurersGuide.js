@@ -124,9 +124,9 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'hero-seals', icon: 'fa-stamp', name: 'Hero Seals', tier: 'starter',
                     where: "Scholar's Folio → Seals, and the Trophy Room", go: 'tab:student-leaderboard-tab',
-                    text: `Quiet personal milestones in each child's Seal Book: ten shared seals (a first star in each virtue, all four virtues in one month, ten lessons in a row, a first Hero's Boon, a kept Ember Oath, Quiz Champion, a personal best) and six chosen for that child from their Hero Path, guild, trials, attendance, birthday and a fixed draw of the stars. Seals give no Gold or stars. When children press seals, a small notice appears bottom left; tap it to see who got what.`,
+                    text: `Quiet personal milestones in each child's Seal Book: ten shared seals (a first star in each virtue, all four virtues in one month, ten lessons in a row, a first Hero's Boon, a kept Ember Oath, Quiz Champion, a personal best) and six chosen for that child from their Hero Path, guild, trials, attendance, birthday and a fixed draw of the stars. Seals give no Gold or stars. When children press seals, the usual notification says so; tap See who to see who got what.`,
                     why: 'Every child has a story worth marking, not only the ones at the top.',
-                    keys: 'hero seals seal book milestones personal badges wax seal notice summary'
+                    keys: 'hero seals seal book milestones personal badges wax seal notice notification summary'
                 },
                 {
                     id: 'guild-hall', icon: 'fa-shield-halved', name: 'Guild Hall', tier: 'pro',

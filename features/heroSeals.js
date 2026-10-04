@@ -10,8 +10,8 @@
 // real dates (`late`). After that the live listeners are enough, plus absences, trials and
 // quiz history read once per session per class.
 //
-// When seals are pressed, a quiet notice appears for the teacher (never on the projector);
-// pressing it opens a summary of who pressed what. Seen-ness is kept per teacher per device.
+// When seals are pressed, the app's ordinary notification says so; its button opens a
+// summary of who pressed what. Seen-ness is kept per teacher per device.
 import '../styles/hero_seals.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -20,7 +20,8 @@ import { fetchAllTrialsForClass } from '../db/queries.js';
 import { getClassAssessmentUsage, getNormalizedPercentForScore } from './assessmentConfig.js';
 import { normalizeTrialType } from './trialTypesCore.mjs';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
-import { heroSealsNoticeHtml, heroSealsSummaryHtml } from './heroSealsView.mjs';
+import { notify } from '../ui/effects.js';
+import { escSeal, heroSealsNoticeCopy, heroSealsSummaryHtml } from './heroSealsView.mjs';
 import {
     HERO_SEALS_VERSION,
     VIRTUES,
@@ -29,6 +30,7 @@ import {
     collectNewSeals,
     evaluateSeals,
     newSealPresses,
+    sealArtHtml,
     sealDateKey,
 } from './heroSealsCore.mjs';
 
@@ -418,48 +420,55 @@ function pendingGroups() {
     return collectNewSeals(rows, readSeen());
 }
 
-let noticeEl = null;
-let noticeKey = '';
+const TOLD_KEY = (uid) => `gcq.heroSeals.told.${uid}`;
 
+let told = 0;
+
+function readTold() {
+    try { return Number(localStorage.getItem(TOLD_KEY(uid()))) || told; } catch { return told; }
+}
+
+function writeTold(value) {
+    told = value;
+    try { localStorage.setItem(TOLD_KEY(uid()), String(value)); } catch { /* private mode: kept for this session */ }
+}
+
+let herald = null;
+
+/**
+ * New seals ride the app's ordinary notification: one herald that names who pressed
+ * what and opens the summary. It covers every seal not yet looked at, and appears again
+ * only when a newer seal is pressed.
+ */
 function refreshNotice() {
     if (!started) return;
     const groups = pendingGroups();
-    const key = groups.map((g) => `${g.student.id}:${g.seals.length}`).join('|');
     if (!groups.length) { hideNotice(); return; }
-    if (key === noticeKey && noticeEl?.isConnected) return;
-    noticeKey = key;
-    if (!noticeEl || !noticeEl.isConnected) {
-        noticeEl = document.createElement('div');
-        noticeEl.className = `hs-notice${LITE ? ' hs--lite' : ''}`;
-        noticeEl.setAttribute('role', 'status');
-        noticeEl.addEventListener('click', (e) => {
-            if (e.target.closest('.hs-notice__dismiss')) { markAllSeen(); return; }
-            if (e.target.closest('.hs-notice__open')) openHeroSealsSummary();
-        });
-        document.body.appendChild(noticeEl);
-        requestAnimationFrame(() => noticeEl?.classList.add('is-in'));
-    } else {
-        noticeEl.classList.remove('is-bump');
-        void noticeEl.offsetWidth;
-        noticeEl.classList.add('is-bump');
-    }
-    noticeEl.innerHTML = heroSealsNoticeHtml(groups);
+    const newest = groups.reduce((m, g) => Math.max(m, g.newest), 0);
+    if (newest <= readTold()) return;
+    writeTold(newest);
+    const { title, sub } = heroSealsNoticeCopy(groups);
+    herald = notify({
+        key: 'hero-seals',
+        type: 'praise',
+        title: 'Hero Seals',
+        icon: sealArtHtml(groups[0].seals[0], { size: 34, className: 'hs-herald-seal' }),
+        message: `${escSeal(title)}<span class="hs-herald-sub">${escSeal(sub)}</span>`,
+        duration: 10000,
+        action: { label: 'See who', icon: 'fa-scroll', onClick: () => openHeroSealsSummary() },
+    });
 }
 
 function hideNotice() {
-    noticeKey = '';
-    if (!noticeEl) return;
-    const el = noticeEl;
-    noticeEl = null;
-    el.classList.remove('is-in');
-    setTimeout(() => el.remove(), 320);
+    herald?.dismiss();
+    herald = null;
 }
 
 function markAllSeen() {
     const groups = pendingGroups();
     const newest = groups.reduce((m, g) => Math.max(m, g.newest), readSeen());
     writeSeen(Math.max(newest, readSeen()));
-    hideNotice();
+    if (newest > readTold()) writeTold(newest);
 }
 
 // ─── The summary ─────────────────────────────────────────────────────────────

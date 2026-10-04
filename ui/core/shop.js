@@ -17,6 +17,7 @@ import { shopMonthKey, getMonthlyShopTheme, getActiveFestival } from '../../util
 import { showToast } from '../effects.js';
 import {
     keeperWelcomeLine,
+    keeperFestivalWelcomeLine,
     keeperGreetingLine,
     keeperWareLine,
     keeperPurchaseLine,
@@ -36,6 +37,9 @@ import {
     renderShelf,
     renderMarketAisle
 } from './marketView.mjs';
+import { renderFestivalStall } from './festivalStall.mjs';
+import '../../styles/festival_stall.css';
+import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
 import { closeMarketCurtains, openMarketCurtains, shopStageIsLive } from './marketCurtains.js';
 
@@ -656,20 +660,11 @@ export function renderShopUI() {
                         <button type="button" class="shop-upgrade-seasonal-btn shop-callout-action">Upgrade to Elite</button>
                     </div>`;
 
-            const festivalSection = festivalItems.length
-                ? renderMarketAisle({
-                    id: 'festival', label: 'Festival Stall', icon: 'fa-mask', tone: 'rose',
-                    title: 'Festival Stall',
-                    month: activeFestival?.name || 'Festival',
-                    desc: `${activeFestival?.tagline ? `${escapeShopHtml(activeFestival.tagline)}. ` : ''}Short-lived holiday treasures. Cheaper kinds have more copies; the rarest is truly one of a kind.`,
-                    badge: 'Limited',
-                    before: `
-                        <div class="shop-festival-banner" role="status">
-                            <p class="shop-festival-banner-title"><i class="fas fa-hat-wizard"></i> Limited ${escapeShopHtml(activeFestival?.name || 'festival')} treasures</p>
-                            <p class="shop-festival-banner-text">The Festival Stall is open for ${escapeShopHtml(activeFestival?.name || 'this celebration')} — these pieces vanish when the celebration ends.</p>
-                        </div>`,
-                    body: renderShelf(festivalItems.map(item => renderShopItemCard(item, 'festival')).join(''))
-                })
+            // The Festival Stall dresses itself for the celebration. While its first pictures
+            // are still being made, Elite teachers see the marquee with a "being unpacked" note.
+            const showFestival = Boolean(activeFestival) && (festivalItems.length > 0 || canUseAI);
+            const festivalSection = showFestival
+                ? renderFestivalStall(activeFestival, festivalItems, { preparing: festivalItems.length === 0 })
                 : '';
 
             if (festivalItems.length) maybeToastFestivalArrival(activeFestival);
@@ -710,6 +705,7 @@ export function renderShopUI() {
             }
 
             container.innerHTML = html;
+            dressMarketForFestival(showFestival ? activeFestival : null);
             setShopOpenSign(true);
             applyShopSort();
             renderShopAisleChips();
@@ -724,6 +720,39 @@ export function renderShopUI() {
             }
         }
     });
+}
+
+let festivalStallObserver = null;
+
+/**
+ * Dresses the market for the active celebration (awning and lanterns follow data-festival),
+ * holds the stall's decorations still on low-power machines, plays the wares' arrival once
+ * per festival per session, and pauses the animations while the stall is out of view.
+ */
+function dressMarketForFestival(festival) {
+    const tab = document.getElementById('shop-tab');
+    if (tab) {
+        if (festival?.id) tab.dataset.festival = festival.id;
+        else delete tab.dataset.festival;
+    }
+    festivalStallObserver?.disconnect();
+    festivalStallObserver = null;
+    const stall = document.getElementById('shop-aisle-festival');
+    if (!stall || !festival) return;
+    stall.classList.toggle('mm-fest--lite', detectLowPowerTier());
+    try {
+        const key = `gcq-festival-arrived:${festival.festivalId}`;
+        if (stall.querySelector('.mm-ware') && !sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, '1');
+            stall.classList.add('is-arriving');
+        }
+    } catch (_) { /* storage blocked: skip the arrival flourish */ }
+    if (typeof IntersectionObserver === 'function') {
+        festivalStallObserver = new IntersectionObserver(([entry]) => {
+            stall.classList.toggle('is-offscreen', !entry?.isIntersecting);
+        });
+        festivalStallObserver.observe(stall);
+    }
 }
 
 function maybeToastFestivalArrival(festival) {
@@ -793,7 +822,11 @@ export async function updateShopStudentDisplay(studentId) {
         syncShopAffordToggle(false);
         applyShopSort();
         applyShopAisleFilters();
-        keeperSay(keeperWelcomeLine(String(new Date().getDate())), { sticky: true });
+        const festivalStall = document.getElementById('shop-aisle-festival');
+        const festivalName = festivalStall?.querySelector('.mm-ware') ? getActiveFestival()?.name : '';
+        keeperSay(festivalName
+            ? keeperFestivalWelcomeLine(festivalName, String(new Date().getDate()))
+            : keeperWelcomeLine(String(new Date().getDate())), { sticky: true });
         return;
     }
 

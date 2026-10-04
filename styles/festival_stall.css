@@ -1,0 +1,569 @@
+/* ==========================================================================
+   Festival Stall (loaded after mystic_market.css)
+   A celebration marquee over the stall: bunting on a sagging string, decorations
+   drifting through the sky, a glowing emblem and a countdown, then themed wares.
+   Colours come from ui/core/festivalStall.mjs as --fest-* custom properties.
+   Only transform and opacity animate. .mm-fest--lite and reduced motion hold still;
+   .is-offscreen pauses everything while the stall is scrolled out of view.
+   ========================================================================== */
+
+.mm-fest {
+    --fest-accent: #fb7185;
+    --fest-accent-2: #c4b5fd;
+    --fest-deep: #1c1640;
+    --fest-glow: rgba(251, 113, 133, 0.5);
+    --fest-ink: #fff1f2;
+    position: relative;
+    margin-bottom: 2.8rem;
+    padding-bottom: 1.4rem;
+    border-radius: 1.4rem;
+    border: 1px solid color-mix(in srgb, var(--fest-accent) 45%, transparent);
+    background:
+        radial-gradient(ellipse 90% 60% at 50% 0%, color-mix(in srgb, var(--fest-accent) 16%, transparent), transparent 70%),
+        linear-gradient(180deg, color-mix(in srgb, var(--fest-deep) 88%, transparent) 0%, rgba(12, 9, 30, 0.88) 100%);
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 0 46px color-mix(in srgb, var(--fest-accent) 18%, transparent);
+}
+
+.mm-fest .mm-shelf-grid { padding: 0 1.1rem; }
+
+/* ── Marquee ─────────────────────────────────────────────────────────── */
+
+.mm-fest__marquee {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    padding: 3.1rem 1.4rem 1.1rem;
+    border-radius: 1.4rem 1.4rem 0 0;
+    background:
+        radial-gradient(circle at 12% 120%, color-mix(in srgb, var(--fest-accent-2) 30%, transparent), transparent 45%),
+        radial-gradient(circle at 88% -10%, var(--fest-glow), transparent 50%),
+        linear-gradient(160deg, var(--fest-deep) 0%, color-mix(in srgb, var(--fest-deep) 70%, #000) 100%);
+    border-bottom: 1px solid color-mix(in srgb, var(--fest-accent) 35%, transparent);
+    isolation: isolate;
+}
+
+.mm-fest.is-preparing { padding-bottom: 0; }
+.mm-fest.is-preparing .mm-fest__marquee { margin-bottom: 0; border-bottom: 0; border-radius: 1.4rem; }
+
+/* bunting: triangle flags hung on a string that sags in the middle */
+.mm-fest__bunting {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2.6rem;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.mm-fest__bunting::before { /* the string */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 28' preserveAspectRatio='none'%3E%3Cpath d='M0 3 Q50 45 100 3' fill='none' stroke='%23f5deb3' stroke-opacity='.7' stroke-width='1.2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") 0 0 / 100% 28px no-repeat;
+}
+
+.mm-fest__flag {
+    position: absolute;
+    left: calc(var(--t) * 100%);
+    top: calc(var(--y) * 1px);
+    width: 1.15rem;
+    height: 1.35rem;
+    margin-left: -0.575rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 55%),
+        var(--c);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: 50% 0;
+    animation: mm-fest-flag 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.37s);
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+
+/* fairy lights for Christmas and New Year: round bulbs that twinkle in turn */
+.mm-fest__bulb {
+    position: absolute;
+    left: calc(var(--t) * 100%);
+    top: calc(var(--y) * 1px + 1px);
+    width: 0.55rem;
+    height: 0.8rem;
+    margin-left: -0.275rem;
+    border-radius: 50% 50% 45% 45%;
+    background: radial-gradient(circle at 40% 35%, #fff 0 18%, var(--c) 55%);
+    box-shadow: 0 0 8px 2px var(--c);
+    animation: mm-fest-bulb 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.55s);
+}
+
+.mm-fest__bulb::before { /* socket */
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -0.2rem;
+    width: 0.32rem;
+    height: 0.25rem;
+    margin-left: -0.16rem;
+    border-radius: 1px;
+    background: #3f3f46;
+}
+
+@keyframes mm-fest-bulb {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+@keyframes mm-fest-flag {
+    0%, 100% { transform: rotate(-7deg); }
+    50% { transform: rotate(7deg); }
+}
+
+/* drifting sky decorations */
+.mm-fest__sky {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    container-type: size;
+}
+
+.mm-fest__bit {
+    position: absolute;
+    left: var(--x);
+    top: 0;
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: mm-fest-fall var(--t) linear infinite;
+    animation-delay: var(--d);
+}
+
+.mm-fest__bit--emoji {
+    font-size: calc(1.15rem * var(--s));
+    line-height: 1;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.mm-fest__bit--confetti {
+    width: calc(0.45rem * var(--s));
+    height: calc(0.75rem * var(--s));
+    border-radius: 1px;
+    background: var(--c);
+}
+
+.mm-fest__bit--snow {
+    width: calc(0.42rem * var(--s));
+    height: calc(0.42rem * var(--s));
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 45%, rgba(255, 255, 255, 0.4) 70%, transparent 72%);
+}
+
+.mm-fest__bit--spark {
+    width: calc(1.05rem * var(--s));
+    height: calc(1.05rem * var(--s));
+    background: radial-gradient(circle, #fff 0 14%, var(--fest-accent) 34%, transparent 66%);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+}
+
+.mm-fest__bit--petal {
+    width: calc(0.6rem * var(--s));
+    height: calc(0.85rem * var(--s));
+    border-radius: 80% 0 80% 0;
+    background: linear-gradient(135deg, #fff 0%, var(--c) 70%);
+    opacity: 0.85;
+}
+
+/* falling: confetti, snow, Christmas stars */
+@keyframes mm-fest-fall {
+    0% { opacity: 0; transform: translate3d(0, -2rem, 0) rotate(0deg); }
+    8% { opacity: 0.95; }
+    50% { transform: translate3d(1.2rem, 50cqh, 0) rotate(200deg); }
+    90% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate3d(-0.6rem, calc(100cqh + 1rem), 0) rotate(380deg); }
+}
+
+/* snow drifts down without spinning */
+.mm-fest--christmas .mm-fest__bit { animation-name: mm-fest-snow; }
+
+@keyframes mm-fest-snow {
+    0% { opacity: 0; transform: translate3d(0, -1.5rem, 0); }
+    10% { opacity: 1; }
+    35% { transform: translate3d(0.9rem, 35cqh, 0); }
+    70% { transform: translate3d(-0.7rem, 70cqh, 0); }
+    90% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate3d(0.4rem, calc(100cqh + 1rem), 0); }
+}
+
+/* rising: New Year sparks and lucky coins float up */
+.mm-fest--rise .mm-fest__bit {
+    top: auto;
+    bottom: 0;
+    animation-name: mm-fest-rise;
+}
+
+@keyframes mm-fest-rise {
+    0% { opacity: 0; transform: translate3d(0, 1.5rem, 0) scale(0.6); }
+    15% { opacity: 1; }
+    60% { opacity: 0.9; transform: translate3d(0.8rem, -60cqh, 0) scale(1); }
+    100% { opacity: 0; transform: translate3d(-0.5rem, calc(-100cqh - 1rem), 0) scale(0.7); }
+}
+
+/* fluttering: Halloween bats cross the moonlit sky */
+.mm-fest--flutter .mm-fest__bit {
+    top: calc(var(--x) * 0.55);
+    left: 0;
+    animation-name: mm-fest-flutter;
+}
+
+@keyframes mm-fest-flutter {
+    0% { opacity: 0; transform: translate3d(-2rem, 0, 0); }
+    10% { opacity: 0.95; }
+    25% { transform: translate3d(25cqw, -0.9rem, 0); }
+    50% { transform: translate3d(50cqw, 0.7rem, 0); }
+    75% { transform: translate3d(75cqw, -0.6rem, 0); }
+    90% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate3d(calc(100cqw + 3rem), 0.2rem, 0); }
+}
+
+.mm-fest--flutter .mm-fest__bit--emoji { font-size: calc(1rem * var(--s)); }
+.mm-fest--flutter .mm-fest__bit--spark { animation-name: mm-fest-twinkle; top: calc(var(--x) * 0.9); left: var(--x); }
+
+@keyframes mm-fest-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+
+/* drifting: petals, butterflies and blossoms sail down slowly */
+.mm-fest--drift .mm-fest__bit { animation-name: mm-fest-drift; }
+
+@keyframes mm-fest-drift {
+    0% { opacity: 0; transform: translate3d(0, -1.5rem, 0) rotate(-20deg); }
+    12% { opacity: 0.95; }
+    33% { transform: translate3d(2rem, 33cqh, 0) rotate(25deg); }
+    66% { transform: translate3d(-0.6rem, 66cqh, 0) rotate(-15deg); }
+    90% { opacity: 0.85; }
+    100% { opacity: 0; transform: translate3d(1.5rem, calc(100cqh + 1rem), 0) rotate(30deg); }
+}
+
+/* the Halloween moon */
+.mm-fest--halloween .mm-fest__marquee::before {
+    content: '';
+    position: absolute;
+    right: 19%;
+    top: 1.6rem;
+    width: 4.6rem;
+    height: 4.6rem;
+    z-index: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%, #fff7d6 0%, #fde68a 45%, #f59e0b 100%);
+    box-shadow: 0 0 40px 10px rgba(253, 230, 138, 0.28);
+    opacity: 0.85;
+}
+
+/* ── Hero row: emblem, words, countdown ──────────────────────────────── */
+
+.mm-fest__hero {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+}
+
+.mm-fest__emblem {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95), var(--fest-accent) 62%, color-mix(in srgb, var(--fest-accent) 60%, #000) 100%);
+    border: 3px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 26px var(--fest-glow), 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.mm-fest__emblem::before { /* soft halo that breathes */
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px solid var(--fest-accent);
+    opacity: 0;
+    animation: mm-fest-halo 3s ease-out infinite;
+}
+
+.mm-fest__emblem span {
+    font-size: 2.7rem;
+    line-height: 1;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+    animation: mm-fest-bob 3.4s ease-in-out infinite;
+}
+
+@keyframes mm-fest-halo {
+    0% { opacity: 0.75; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes mm-fest-bob {
+    0%, 100% { transform: translateY(0) rotate(-6deg); }
+    50% { transform: translateY(-5px) rotate(6deg); }
+}
+
+.mm-fest__words { flex: 1 1 auto; min-width: 0; }
+
+.mm-fest__eyebrow {
+    margin: 0 0 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fest-accent);
+}
+
+.mm-fest__eyebrow i { margin-right: 0.25rem; }
+
+.mm-fest__title {
+    margin: 0;
+    font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+    line-height: 1.05;
+    background: linear-gradient(100deg, var(--fest-ink) 0%, var(--fest-accent) 55%, var(--fest-accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+.mm-fest__tagline {
+    margin: 0.3rem 0 0;
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-size: 0.98rem;
+    color: color-mix(in srgb, var(--fest-ink) 88%, transparent);
+}
+
+.mm-fest__clock {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 5.2rem;
+    padding: 0.55rem 0.8rem 0.5rem;
+    border-radius: 1rem;
+    color: var(--fest-deep);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 50%),
+        var(--fest-accent);
+    border: 2px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 18px var(--fest-glow);
+    transform: rotate(3deg);
+}
+
+.mm-fest__clock-num {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.9rem;
+    line-height: 1;
+}
+
+.mm-fest__clock-label {
+    margin-top: 0.15rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.mm-fest__clock.is-last { animation: mm-fest-urgent 1.6s ease-in-out infinite; }
+
+@keyframes mm-fest-urgent {
+    0%, 100% { transform: rotate(3deg) scale(1); }
+    50% { transform: rotate(-2deg) scale(1.07); }
+}
+
+.mm-fest__note {
+    position: relative;
+    z-index: 1;
+    margin: 1rem 0 0;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.7rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--fest-ink) 82%, transparent);
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mm-fest__note.is-preparing {
+    color: var(--fest-ink);
+    border-color: color-mix(in srgb, var(--fest-accent) 50%, transparent);
+}
+
+.mm-fest__note.is-preparing i { color: var(--fest-accent); animation: mm-fest-twinkle 2s ease-in-out infinite; }
+
+/* ── Festival wares ──────────────────────────────────────────────────── */
+
+.mm-shelves .mm-fest .shop-item-card.mm-ware {
+    border-color: color-mix(in srgb, var(--fest-accent) 45%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--fest-deep) 65%, var(--mm-velvet-2)) 0%, var(--mm-velvet) 100%);
+}
+
+.mm-shelves .mm-fest .shop-item-card.mm-ware:hover {
+    border-color: var(--fest-accent);
+    box-shadow: 0 20px 36px rgba(0, 0, 0, 0.5), 0 0 28px var(--fest-glow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.mm-shelves .mm-fest .mm-ware .mm-ware__display {
+    background:
+        radial-gradient(ellipse 65% 70% at 50% -5%, color-mix(in srgb, var(--fest-accent) 34%, transparent) 0%, transparent 72%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0%, transparent 14%, transparent 86%, rgba(0, 0, 0, 0.35) 100%),
+        linear-gradient(180deg, color-mix(in srgb, var(--fest-deep) 80%, #000) 0%, var(--fest-deep) 100%);
+}
+
+.mm-fest .mm-ware--festival .mm-ware__ribbon {
+    color: var(--fest-deep);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--fest-accent) 70%, #fff), var(--fest-accent));
+}
+
+/* the stall's star: the priciest, one-of-a-kind piece gets a gilded frame and twinkles */
+.mm-shelves .mm-fest .shop-item-card.mm-ware--fest-star {
+    border: 2px solid #fcd34d;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(252, 211, 77, 0.35);
+}
+
+.mm-ware--fest-star .mm-ware__display::before,
+.mm-ware--fest-star .mm-ware__display::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute;
+    z-index: 3;
+    width: 0.9rem;
+    height: 0.9rem;
+    background: radial-gradient(circle, #fff 0 14%, #fde68a 32%, transparent 62%);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    animation: mm-fest-twinkle 2.6s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.mm-ware--fest-star .mm-ware__display::before { left: 22%; top: 30%; }
+.mm-ware--fest-star .mm-ware__display::after { right: 18%; top: 52%; width: 0.65rem; height: 0.65rem; animation-delay: -1.3s; }
+
+/* first visit to a new stall: wares pop onto the shelf one after another */
+.mm-fest.is-arriving .mm-ware {
+    animation: mm-fest-arrive 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.mm-fest.is-arriving .mm-ware:nth-child(2) { animation-delay: 0.08s; }
+.mm-fest.is-arriving .mm-ware:nth-child(3) { animation-delay: 0.16s; }
+.mm-fest.is-arriving .mm-ware:nth-child(4) { animation-delay: 0.24s; }
+.mm-fest.is-arriving .mm-ware:nth-child(5) { animation-delay: 0.32s; }
+.mm-fest.is-arriving .mm-ware:nth-child(n + 6) { animation-delay: 0.4s; }
+
+@keyframes mm-fest-arrive {
+    0% { opacity: 0; transform: translateY(18px) scale(0.92); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* ── The whole market dresses up while a festival is on ─────────────── */
+
+#shop-tab[data-festival='halloween'] { --mm-awning-a: #ea580c; --mm-awning-b: #2e1065; }
+#shop-tab[data-festival='christmas'] { --mm-awning-a: #b91c1c; --mm-awning-b: #fef9f0; }
+#shop-tab[data-festival='newyear'] { --mm-awning-a: #d97706; --mm-awning-b: #1e1b4b; }
+#shop-tab[data-festival='carnival'] { --mm-awning-a: #db2777; --mm-awning-b: #fde047; }
+#shop-tab[data-festival='easter'] { --mm-awning-a: #dc2626; --mm-awning-b: #fefce8; }
+#shop-tab[data-festival='mayday'] { --mm-awning-a: #16a34a; --mm-awning-b: #fefce8; }
+#shop-tab[data-festival='endofyear'] { --mm-awning-a: #0284c7; --mm-awning-b: #fefce8; }
+
+#shop-tab[data-festival='halloween'] .mm-lantern__glass {
+    background: radial-gradient(circle at 50% 55%, #fff7ed 0%, #fdba74 30%, #ea580c 70%, #7c2d12 100%);
+}
+
+#shop-tab[data-festival='christmas'] .mm-lantern--l .mm-lantern__glass {
+    background: radial-gradient(circle at 50% 55%, #fef2f2 0%, #fca5a5 30%, #dc2626 70%, #7f1d1d 100%);
+    box-shadow: 0 0 14px 4px rgba(239, 68, 68, 0.5), 0 0 42px 12px rgba(239, 68, 68, 0.2);
+}
+
+#shop-tab[data-festival='christmas'] .mm-lantern--r .mm-lantern__glass {
+    background: radial-gradient(circle at 50% 55%, #f0fdf4 0%, #86efac 30%, #16a34a 70%, #14532d 100%);
+    box-shadow: 0 0 14px 4px rgba(34, 197, 94, 0.5), 0 0 42px 12px rgba(34, 197, 94, 0.2);
+}
+
+#shop-tab[data-festival='carnival'] .mm-lantern--l .mm-lantern__glass {
+    background: radial-gradient(circle at 50% 55%, #fdf2f8 0%, #f9a8d4 30%, #db2777 70%, #831843 100%);
+}
+
+#shop-tab[data-festival='carnival'] .mm-lantern--r .mm-lantern__glass {
+    background: radial-gradient(circle at 50% 55%, #f0fdfa 0%, #5eead4 30%, #0d9488 70%, #134e4a 100%);
+}
+
+/* ── Phones ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+    .mm-fest { border-radius: 1.1rem; }
+    .mm-fest .mm-shelf-grid { padding: 0 0.7rem; }
+    .mm-fest__marquee { padding: 2.8rem 0.95rem 0.95rem; border-radius: 1.1rem 1.1rem 0 0; }
+    .mm-fest__hero { flex-wrap: wrap; gap: 0.8rem; }
+    .mm-fest__emblem { width: 3.6rem; height: 3.6rem; }
+    .mm-fest__emblem span { font-size: 1.95rem; }
+    .mm-fest__words { flex-basis: calc(100% - 4.5rem); }
+    .mm-fest__title { font-size: 1.55rem; }
+    .mm-fest__tagline { font-size: 0.86rem; }
+    .mm-fest__eyebrow-more { display: none; }
+    .mm-fest__clock {
+        min-width: 0;
+        margin-left: 4.4rem;
+        flex-direction: row;
+        gap: 0.35rem;
+        padding: 0.3rem 0.7rem;
+        transform: none;
+    }
+    .mm-fest__clock.is-last { animation: none; }
+    .mm-fest__clock-num { font-size: 1.1rem; }
+    .mm-fest__clock-label { margin-top: 0; font-size: 0.56rem; }
+    .mm-fest__flag { width: 0.85rem; height: 1rem; margin-left: -0.425rem; }
+    .mm-fest__bulb:nth-child(even) { display: none; }
+    .mm-fest--halloween .mm-fest__marquee::before { width: 3rem; height: 3rem; right: 4%; top: 2.2rem; opacity: 0.6; }
+}
+
+/* ── Holding still ───────────────────────────────────────────────────── */
+
+.mm-fest.is-offscreen *,
+.mm-fest.is-offscreen *::before,
+.mm-fest.is-offscreen *::after {
+    animation-play-state: paused !important;
+}
+
+/* Low-power machines: a few decorations still drift; the bunting and twinkles hold still. */
+.mm-fest--lite .mm-fest__bit:nth-child(n + 5) { display: none; }
+
+.mm-fest--lite .mm-fest__flag,
+.mm-fest--lite .mm-fest__bulb,
+.mm-fest--lite .mm-fest__emblem::before,
+.mm-fest--lite .mm-ware--fest-star .mm-ware__display::before,
+.mm-fest--lite .mm-ware--fest-star .mm-ware__display::after {
+    animation: none !important;
+}
+
+.mm-fest--lite .mm-ware--fest-star .mm-ware__display::before,
+.mm-fest--lite .mm-ware--fest-star .mm-ware__display::after { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-fest__bit { display: none; }
+
+    .mm-fest__flag,
+    .mm-fest__bulb,
+    .mm-fest__emblem::before,
+    .mm-fest__emblem span,
+    .mm-fest__clock.is-last,
+    .mm-fest__note.is-preparing i,
+    .mm-ware--fest-star .mm-ware__display::before,
+    .mm-ware--fest-star .mm-ware__display::after,
+    .mm-fest.is-arriving .mm-ware {
+        animation: none !important;
+    }
+
+    .mm-ware--fest-star .mm-ware__display::before,
+    .mm-ware--fest-star .mm-ware__display::after { opacity: 1; }
+}

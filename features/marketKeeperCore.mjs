@@ -33,6 +33,16 @@ export function keeperWelcomeLine(seed = '') {
     ], seed);
 }
 
+/** Welcome while a Festival Stall is open: the keeper points at the limited shelf. */
+export function keeperFestivalWelcomeLine(festivalName = '', seed = '') {
+    const name = String(festivalName || '').trim() || 'the festival';
+    return pick([
+        `The ${name} stall is open! Limited treasures, gone when the celebration ends. Who is shopping?`,
+        `${name} treasures just arrived, and they won't stay long. Choose a shopper!`,
+        `Festive greetings, travellers! The ${name} shelf won't wait. Pick a shopper.`
+    ], seed);
+}
+
 /** Greeting once a shopper is chosen: purse, reach, and any discount. */
 export function keeperGreetingLine({
     studentName,

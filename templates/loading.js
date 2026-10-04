@@ -1,27 +1,7 @@
 import { detectLowPowerTier as sharedLowPowerTier } from '../utils/devicePerformance.mjs';
 import { cloudSvg, cloudVariantCount } from '../features/skyWeatherArt.js';
+import { createTipDeck } from './loadingTips.mjs';
 // templates/loading.js
-
-const LOADING_TIPS = [
-    'Heroes earn XP by completing quests and helping their guild\u2026',
-    'The Fortune Wheel rewards the bravest adventurers!',
-    'Guild teams grow stronger when every hero contributes\u2026',
-    'Rare boons await those who master their skills.',
-    'Every great quest begins with a single step forward.',
-    'Scholar\u2019s Scroll tracks every hero\u2019s growth over time.',
-    'Class streaks grow when daily quests are completed together.',
-    'Adventure Log keeps your class story alive, one day at a time.',
-    'Power-Ups can shift the tide for your guild at the perfect moment.',
-    'Sorting heroes into balanced guilds creates stronger teamwork.',
-    'Quiz of the Week is a fast way to earn extra class glory.',
-    'Familiars level up as heroes stay active in their learning journey.',
-    'Boon windows reward consistency, teamwork, and daily momentum.',
-    'The world map celebrates every milestone your class unlocks.',
-    'Assessment moments are easier when heroes prep as a guild.',
-    'Great classrooms rise when curiosity leads the quest.',
-    'Teacher Journey has smart checkpoints for your next best step.',
-    'Small daily wins stack into legendary school adventures.',
-];
 
 let _tipIntervalId = null;
 let _stagedPersonalization = null;
@@ -450,19 +430,16 @@ export function initLoadingTips() {
     if (_tipIntervalId) {
         clearInterval(_tipIntervalId);
     }
-    let i = randomInt(LOADING_TIPS.length);
-    tipEl.textContent = LOADING_TIPS[i];
+    let storage = null;
+    try { storage = window.localStorage; } catch { /* blocked storage: deal without memory */ }
+    const deck = createTipDeck({ storage });
+    tipEl.textContent = deck.next();
 
     _tipIntervalId = setInterval(() => {
-        let next = i;
-        while (next === i && LOADING_TIPS.length > 1) {
-            next = randomInt(LOADING_TIPS.length);
-        }
-        i = next;
-
+        const tip = deck.next();
         tipEl.classList.add('loading-tip-fade');
         setTimeout(() => {
-            tipEl.textContent = LOADING_TIPS[i];
+            tipEl.textContent = tip;
             tipEl.classList.remove('loading-tip-fade');
         }, TIP_FADE_MS);
     }, TIP_ROTATE_MS);

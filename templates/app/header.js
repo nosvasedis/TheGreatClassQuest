@@ -145,30 +145,13 @@ export const headerHTML = `
                         <div id="header-class-selector-wrap" class="relative z-20 flex items-center overflow-visible">
                             <button type="button" id="header-class-selector-btn"
                                 class="hover:bg-white/40 text-white max-w-[9.5rem] sm:max-w-[13rem] h-7 sm:h-8 pl-2 pr-2 sm:pl-3 sm:pr-2 rounded-full bubbly-button transition-colors duration-300 flex items-center gap-1.5 border border-white/30 font-title leading-none"
-                                title="Choose class" aria-expanded="false" aria-haspopup="listbox">
+                                title="Choose class" aria-expanded="false" aria-haspopup="dialog" aria-controls="header-class-selector-panel">
                                 <span id="header-class-selector-logo" class="leading-none shrink-0" aria-hidden="true">🏫</span>
                                 <span id="header-class-selector-text" class="truncate text-left font-bold leading-none">Class…</span>
                                 <i class="fas fa-chevron-down opacity-80 shrink-0"></i>
+                                <span id="header-class-follow-badge" class="gcq-cd-follow-badge hidden" aria-hidden="true"><i class="fas fa-clock"></i></span>
                             </button>
-                            <div id="header-class-selector-panel"
-                                class="hidden w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-white/90 ring-4 ring-sky-100/50 origin-top-right">
-                                <div class="max-h-72 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                                    <button type="button" id="header-class-follow-schedule-btn"
-                                        class="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-sky-50 to-indigo-50 hover:from-sky-100 hover:to-indigo-100 border border-sky-200/80 text-left transition-colors">
-                                        <span class="text-xl w-10 text-center bg-white rounded-lg py-1 shadow-sm">⏰</span>
-                                        <div>
-                                            <div class="font-title font-bold text-sky-900 text-sm">Follow today’s schedule</div>
-                                            <div class="text-[11px] text-sky-700/90">Auto-switch to the class in session, or General when none is</div>
-                                        </div>
-                                    </button>
-                                    <div class="header-class-item flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-indigo-100"
-                                        data-id="" role="option">
-                                        <span class="text-2xl w-10 text-center bg-indigo-100 rounded-lg py-1">🏫</span>
-                                        <span class="font-title font-bold text-indigo-800 text-sm">General view</span>
-                                    </div>
-                                    <div id="header-class-list-mount"></div>
-                                </div>
-                            </div>
+                            <div id="header-class-selector-panel" class="gcq-cd hidden" role="dialog" aria-label="Choose a class"></div>
                         </div>
                         <button id="app-info-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crystal Portal preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&family=Uncial+Antiqua&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
+  <style>
+    html, body { margin: 0; min-height: 100vh; background: #e9dfc8; }
+    .pv-toolbar { position: fixed; left: 10px; bottom: 10px; z-index: 9999; display: flex; flex-wrap: wrap; gap: 6px; max-width: 520px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.86); font: 600 12px system-ui; }
+    .pv-toolbar a { color: #fff; text-decoration: none; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
+    body.pv-shot .pv-toolbar { display: none; }
+    #milestone-details-modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
+    #milestone-details-modal.hidden { display: none; }
+    #milestone-modal-close-btn { border-radius: 999px; cursor: pointer; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="milestone-details-modal" data-modal-mode="portal">
+    <div class="milestone-details-panel">
+      <div class="milestone-details-header"><h2 id="milestone-modal-title" class="hidden"></h2><button id="milestone-modal-close-btn" type="button">&times;</button></div>
+      <div id="milestone-modal-content" class="custom-scrollbar"></div>
+    </div>
+  </div>
+  <div class="pv-toolbar" id="pv-toolbar"></div>
+  <script type="module" src="/crystal-portal-preview.js"></script>
+</body>
+</html>

@@ -81,7 +81,7 @@ function getRealmBounds(zoneId) {
 }
 
 /** Every class of the selected league with the same goal/stars the map uses. */
-function collectLeagueParties(league) {
+export function collectLeagueParties(league) {
     const allStudentScores = state.get('allStudentScores') || [];
     const allStudents = state.get('allStudents') || [];
     const classes = (state.get('allSchoolClasses') || []).filter((c) => c.questLevel === league);
@@ -104,7 +104,8 @@ function collectLeagueParties(league) {
             goal,
             stars: totalStars,
             questBonus: Number(classBonus) || 0,
-            progress
+            progress,
+            completedAt: c.questCompletedAt || null
         };
     }).sort(utils.sortTeamQuestEntries);
 }
@@ -298,6 +299,16 @@ function renderRealm(zoneId) {
 
             <div class="ro-parties">${listHtml}</div>
 
+            ${zoneId === 'crystal' ? `
+            <button type="button" class="ro-portal-link" data-portal-open>
+                <span class="ro-portal-link__swirl" aria-hidden="true"></span>
+                <span class="ro-portal-link__copy">
+                    <small>The end of the road</small>
+                    <strong>Look into the Crystal Portal</strong>
+                </span>
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </button>` : ''}
+
             <p class="ro-foot">
                 <i class="fas fa-scale-balanced" aria-hidden="true"></i>
                 Progress is measured against each class's own monthly goal, so every party races fairly.
@@ -313,6 +324,10 @@ function bindRealmNavigation(contentEl) {
     contentEl.addEventListener('click', (event) => {
         const modal = document.getElementById(MODAL_ID);
         if (modal?.dataset.modalMode !== 'zone-overview') return;
+        if (event.target.closest('[data-portal-open]')) {
+            import('./crystalPortal.js').then((m) => m.openCrystalPortalModal());
+            return;
+        }
         const pick = event.target.closest('[data-realm-pick]');
         if (!pick || pick.dataset.realmPick === currentZoneId) return;
         renderRealm(pick.dataset.realmPick);
@@ -354,7 +369,8 @@ export function openZoneOverviewModal(zoneType) {
     }
     contentEl.className = 'custom-scrollbar';
 
+    const alreadyOpen = !modal.classList.contains('hidden');
     bindRealmNavigation(contentEl);
     renderRealm(zoneId);
-    showAnimatedModal(MODAL_ID);
+    if (!alreadyOpen) showAnimatedModal(MODAL_ID);
 }

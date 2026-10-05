@@ -880,13 +880,55 @@
     .ro-foot { margin: 1rem 0.75rem 1.1rem; }
 }
 
+/* —— Crystal Realm: the way into the Crystal Portal (ui/modals/crystalPortal.js) —— */
+.ro-portal-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: calc(100% - 2.5rem);
+    margin: 1.1rem 1.25rem 0;
+    padding: 0.7rem 1.1rem 0.7rem 0.75rem;
+    border: 0;
+    border-radius: 1.1rem;
+    background: linear-gradient(120deg, #2a1466 0%, #1d0f4a 55%, #0c2f4f 100%);
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(59, 21, 110, 0.32), inset 0 0 0 1px rgba(171, 108, 255, 0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ro-portal-link:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(59, 21, 110, 0.4), inset 0 0 0 1px rgba(101, 232, 255, 0.6); }
+.ro-portal-link:focus-visible { outline: 3px solid rgba(147, 51, 234, 0.6); outline-offset: 2px; }
+
+.ro-portal-link__swirl {
+    flex: 0 0 auto;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: url('../assets/team-quest-map/living-atlas/portal-vortex.webp') center / contain no-repeat;
+    animation: ro-portal-swirl 10s linear infinite;
+}
+
+.ro-portal-link__copy { display: grid; flex: 1 1 auto; line-height: 1.15; }
+.ro-portal-link__copy small { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(101, 232, 255, 0.9); }
+.ro-portal-link__copy strong { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.05rem; font-weight: 400; }
+.ro-portal-link > i { color: rgba(101, 232, 255, 0.9); }
+
+@keyframes ro-portal-swirl { to { transform: rotate(360deg); } }
+
+@media (max-width: 720px) {
+    .ro-portal-link { width: calc(100% - 1.5rem); margin: 1rem 0.75rem 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ro-hero__art,
     .ro-hero__crest,
     .ro-party,
+    .ro-portal-link__swirl,
     .ro-route__fill { animation: none !important; }
 
     .ro-party:hover,
     .ro-party:hover .ro-party__seal,
+    .ro-portal-link:hover,
     #milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn:hover { transform: none; }
 }

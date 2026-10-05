@@ -99,9 +99,9 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'team-quest', icon: 'fa-map-location-dot', name: 'Team Quest', tier: 'starter',
                     where: 'Team Quest tab', go: 'tab:class-leaderboard-tab',
-                    text: `Classes in the same Quest League race across Bronze Meadows, Silver Peaks, Golden Citadel and Crystal Realm. Position is this month's stars against a goal the app sets for you: lower in months with holidays or cancelled lessons, a little higher each time a class finishes the map. History opens the League Archive of past months.`,
+                    text: `Classes in the same Quest League race across Bronze Meadows, Silver Peaks, Golden Citadel and Crystal Realm. Position is this month's stars against a goal the app sets for you: lower in months with holidays or cancelled lessons, a little higher each time a class finishes the map. Tap a realm crest to see who is there, or the Crystal Portal at the end of the road to see who stepped through this month and the year's Portal Keepers. History opens the League Archive of past months.`,
                     why: 'Every star moves the whole class, so nobody is a lonely high-scorer.',
-                    keys: 'league map class race monthly goal league archive history realms'
+                    keys: 'league map class race monthly goal league archive history realms crystal portal keepers'
                 },
                 {
                     id: 'realm-raid', icon: 'fa-shield-halved', name: 'Realm Raid', tier: 'starter',

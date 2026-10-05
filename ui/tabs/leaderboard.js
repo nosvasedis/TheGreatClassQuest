@@ -660,6 +660,10 @@ function bindTeamQuestBoard(board) {
             scrollToElement(mapSlot);
             return;
         }
+        if (target.closest('.portal-trigger')) {
+            import('../modals/crystalPortal.js').then((m) => m.openCrystalPortalModal());
+            return;
+        }
         const zone = target.closest('.zone-trigger');
         if (zone) {
             import('../modals.js').then((m) => m.openZoneOverviewModal(zone.dataset.zone));

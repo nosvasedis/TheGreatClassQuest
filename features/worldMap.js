@@ -505,10 +505,13 @@ export function generateLeagueMapHtml(classes, options = {}) {
             </div>
 
             ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" data-offset-x="9" data-offset-y="-46" aria-hidden="true">
-                <span class="tq-route-finish__glow"></span>
-                <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async">
-                <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async">
+            <span class="tq-route-finish" data-route-progress="100" data-offset-x="9" data-offset-y="-46">
+                <button type="button" class="tq-route-finish__button portal-trigger" aria-label="Open the Crystal Portal" title="The Crystal Portal">
+                    <span class="tq-route-finish__glow" aria-hidden="true"></span>
+                    <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
+                    <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
+                    <span class="tq-route-finish__label" aria-hidden="true">The Portal</span>
+                </button>
             </span>
             <div class="tq-class-token-layer">${parts.tokensHtml}</div>
 

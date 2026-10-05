@@ -14,6 +14,9 @@ import {
 } from '../../features/quizOfTheWeek.js';
 import { getQuizForClass } from '../../db/actions/quizOfTheWeek.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getAgeCategoryForLeague } from '../../utils.js';
+import { prefetchSpeech, speakText, stopSpeech } from '../../features/tts.js';
+import { countKinds, questionKind } from '../../features/quizKindsCore.mjs';
 import {
     computeQuizTier,
     computeQuizTrail,
@@ -184,6 +187,7 @@ function renderIntroScreen(quiz, qs, { resume = false } = {}) {
         contestants: presentContestants(qs),
         absentCount: qs.absentCount || 0,
         topic: describeTopic(quiz?.curriculum),
+        kinds: countKinds(qs.questions),
         resume: resume && progress
             ? { questionNumber: Math.min(progress.answeredCount + 1, progress.totalQuestions), total: progress.totalQuestions }
             : null
@@ -191,9 +195,88 @@ function renderIntroScreen(quiz, qs, { resume = false } = {}) {
     if (!setScreen(html, 'intro')) return;
     const begin = document.getElementById('quiz-begin-btn');
     begin?.addEventListener('click', () => {
+        stopSpeech();
         playSound('quiz_open');
         showNextQuestion({ resume });
     }, { once: true });
+    // Listen and choose needs the projector's speakers: one press checks them before the show.
+    const soundBtn = document.getElementById('quiz-sound-check');
+    soundBtn?.addEventListener('click', (event) => {
+        // After a mouse click, Enter should still raise the curtain rather than test again.
+        if (event.detail) soundBtn.blur();
+        const label = soundBtn.querySelector('span');
+        soundBtn.classList.add('is-speaking');
+        const done = (text) => {
+            soundBtn.classList.remove('is-speaking');
+            if (label) label.textContent = text;
+        };
+        speakText('Ready, Quest Heroes? Listen carefully!', {
+            rate: speechRate(),
+            onEnd: () => done('Sound is working'),
+            onError: () => done('No sound: check the speakers')
+        });
+    });
+}
+
+// =============================================================================
+// LISTEN AND CHOOSE
+// =============================================================================
+
+/** Slower speech for the youngest leagues. */
+function speechRate() {
+    const classData = (state.get('allSchoolClasses') || []).find((c) => c.id === currentClassId);
+    const band = getAgeCategoryForLeague(classData?.questLevel);
+    return band === 'early' ? 0.82 : band === 'junior' ? 0.9 : 0.97;
+}
+
+/** Speak the hidden words of a Listen and choose question. The class hears them; the screen never shows them until the question is over. */
+function speakListen(question) {
+    if (questionKind(question) !== 'listen' || !question.listen || screen !== 'turn') return;
+    const btn = document.getElementById('quiz-listen-btn');
+    const help = document.querySelector('[data-quiz-listen-help]');
+    help?.classList.add('hidden');
+    btn?.classList.add('is-loading');
+    const started = speakText(question.listen, {
+        rate: speechRate(),
+        onStart: () => { btn?.classList.remove('is-loading'); btn?.classList.add('is-speaking'); },
+        onEnd: () => btn?.classList.remove('is-speaking', 'is-loading'),
+        onError: () => {
+            btn?.classList.remove('is-speaking', 'is-loading');
+            if (!help || screen !== 'turn') return;
+            help.innerHTML = 'The sound did not play. Press <kbd>L</kbd> to try again, or <button type="button" class="qs-linkish" data-quiz-show-words>show the words</button> and read them aloud.';
+            help.classList.remove('hidden');
+            help.querySelector('[data-quiz-show-words]')?.addEventListener('click', () => revealHeard(), { once: true });
+        }
+    });
+    if (!started) btn?.classList.remove('is-loading');
+}
+
+function revealHeard() {
+    document.querySelector('[data-quiz-heard]')?.classList.remove('hidden');
+    document.querySelector('[data-quiz-listen-help]')?.classList.add('hidden');
+}
+
+/** Once a question is over, show what was heard and the names under the pictures. */
+function revealQuestionAnswers(question) {
+    if (questionKind(question) === 'listen') revealHeard();
+    document.querySelector('.qs-answers--pictures')?.classList.add('is-resolved');
+}
+
+/** A picture that will not load shows its name instead, so the question can still be played. */
+function guardPictures() {
+    document.querySelectorAll('.qs-answer--picture img').forEach((img) => {
+        const fail = () => img.closest('.qs-answer')?.classList.add('is-broken');
+        if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) fail();
+        else img.addEventListener('error', fail, { once: true });
+    });
+}
+
+/** The spotlight has landed (or there was nothing to spin): the turn can begin. */
+function beginTurn(turn) {
+    playSound('quiz_student_reveal');
+    offerFamiliarTrick(turn);
+    // Let the reveal sound finish before the question is spoken.
+    if (questionKind(turn.question) === 'listen') later(() => speakListen(turn.question), reducedMotion() ? 150 : 650);
 }
 
 function renderTurn(turn) {
@@ -226,12 +309,17 @@ function renderTurn(turn) {
     const stage = contentEl();
     stage.querySelectorAll('.qs-answer').forEach((btn) => btn.addEventListener('click', () => handleMcqAnswer(btn, q)));
     document.getElementById('quiz-skip-btn')?.addEventListener('click', handleSkip);
+    if (questionKind(q) === 'listen') {
+        prefetchSpeech(q.listen);
+        document.getElementById('quiz-listen-btn')?.addEventListener('click', () => {
+            if (busy || document.querySelector('.qs-podium')?.classList.contains('is-rolling')) return;
+            speakListen(q);
+        });
+    }
+    guardPictures();
 
     if (roll) spinSpotlight(pool, turn);
-    else {
-        playSound('quiz_student_reveal');
-        offerFamiliarTrick(turn);
-    }
+    else beginTurn(turn);
 }
 
 /**
@@ -313,8 +401,7 @@ function landSpotlight(podium, turn) {
     }
     podium.classList.remove('is-rolling');
     podium.classList.add('is-landed', 'is-landing');
-    playSound('quiz_student_reveal');
-    offerFamiliarTrick(turn);
+    beginTurn(turn);
 }
 
 function renderTallyScreen() {
@@ -351,6 +438,8 @@ async function handleMcqAnswer(btn, question) {
     const podium = document.querySelector('.qs-podium');
     if (podium?.classList.contains('is-rolling')) return; // wait for the spotlight to land
     busy = true;
+    stopSpeech();
+    document.getElementById('quiz-listen-btn')?.classList.remove('is-speaking', 'is-loading');
     const stage = contentEl();
     stage.querySelectorAll('.qs-answer').forEach((b) => { b.disabled = true; });
     document.getElementById('quiz-skip-btn')?.classList.add('hidden');
@@ -375,6 +464,7 @@ async function handleMcqAnswer(btn, question) {
     refreshTrail();
 
     let verdict;
+    if (isCorrect || !result?.questionPassedToNextStudent) revealQuestionAnswers(question);
     if (isCorrect) {
         stage.classList.add('is-solved');
         verdict = quizVerdictHtml({ kind: 'correct', attemptNumber: turnAttempt, explanation: question.explanation });
@@ -434,6 +524,7 @@ function showNextAction(result, isCorrect) {
 
 function handleSkip() {
     if (busy) return;
+    stopSpeech();
     const progress = skipQuestion(currentClassId);
     if (!progress) return;
     if (progress.isComplete) finishQuiz();
@@ -446,6 +537,7 @@ function handleSkip() {
 
 function showNextQuestion({ resume = false } = {}) {
     clearTimers();
+    stopSpeech();
     const turn = (resume && getActiveTurn(currentClassId)) || getCurrentQuestion(currentClassId);
     if (!turn) {
         finishQuiz();
@@ -481,6 +573,8 @@ function requestClose() {
 }
 
 function openPauseCard() {
+    stopSpeech();
+    document.getElementById('quiz-listen-btn')?.classList.remove('is-speaking', 'is-loading');
     const stage = document.getElementById('quiz-modal-inner');
     if (!stage || document.getElementById('quiz-pause-card')) return;
     stage.insertAdjacentHTML('beforeend', quizPauseCardHtml());
@@ -518,6 +612,11 @@ function onKeydown(e) {
         if (idx != null) {
             const btn = document.querySelector(`.qs-answer[data-answer-index="${idx}"]`);
             if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+            return;
+        }
+        if (String(e.key).toLowerCase() === 'l') {
+            const listen = document.getElementById('quiz-listen-btn');
+            if (listen && !busy) { e.preventDefault(); listen.click(); }
             return;
         }
     }
@@ -584,6 +683,7 @@ function showStage(triggerBtn) {
 
 export function closeQuizModal(wasCompleted = false) {
     clearTimers();
+    stopSpeech();
     closePauseCard();
     document.removeEventListener('keydown', onKeydown);
     hideModal(MODAL_ID);

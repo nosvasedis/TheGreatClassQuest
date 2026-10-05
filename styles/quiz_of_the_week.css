@@ -1648,6 +1648,314 @@
     100% { transform: scale(1); }
 }
 
+/* ─── Question kinds: Listen and choose, Picture question, Fix the sentence ───
+   Every kind still plays as four gems with A to D. Animations use only
+   transform and opacity, so weak classroom laptops stay smooth.            */
+
+/* The format ribbon inside the cue card */
+.qs-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.55rem;
+    padding: 0.2rem 0.75rem 0.22rem;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 0.74rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--kind-ink, #5b21b6);
+    background: var(--kind-bg, rgba(124, 58, 237, 0.12));
+    border: 1px solid var(--kind-line, rgba(124, 58, 237, 0.3));
+}
+
+.qs-kind--listen { --kind-ink: #0e5a8a; --kind-bg: rgba(14, 165, 233, 0.13); --kind-line: rgba(14, 165, 233, 0.4); }
+.qs-kind--picture { --kind-ink: #9a3412; --kind-bg: rgba(249, 115, 22, 0.13); --kind-line: rgba(249, 115, 22, 0.4); }
+.qs-kind--fix { --kind-ink: #9f1239; --kind-bg: rgba(244, 63, 94, 0.12); --kind-line: rgba(244, 63, 94, 0.38); }
+
+/* Listen and choose: a big speaker beside the question */
+.qs-listen-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.8rem, 2vw, 1.4rem);
+    max-width: 46rem;
+}
+
+.qs-listen-row .qs-cue__text { text-align: left; }
+
+.qs-listen {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: clamp(4.2rem, 7vw, 5.4rem);
+    height: clamp(4.2rem, 7vw, 5.4rem);
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    color: #fff;
+    background: radial-gradient(circle at 35% 28%, #7dd3fc, #0284c7 62%, #075985);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.22), 0 10px 22px rgba(7, 89, 133, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.18s ease;
+}
+
+.qs-listen:hover { transform: scale(1.05); }
+.qs-listen:active { transform: scale(0.97); }
+.qs-listen:focus-visible { outline: 3px solid var(--qs-gold); outline-offset: 4px; }
+
+.qs-listen__icon { position: relative; z-index: 1; font-size: clamp(1.5rem, 2.6vw, 2rem); }
+
+/* Two rings breathe out while the words are spoken */
+.qs-listen__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    border: 3px solid rgba(14, 165, 233, 0.55);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.qs-listen.is-speaking .qs-listen__ring { animation: qs-listen-ring 1.5s ease-out infinite; }
+.qs-listen.is-speaking .qs-listen__ring--2 { animation-delay: 0.75s; }
+.qs-listen.is-loading .qs-listen__icon { animation: qs-listen-wait 1s ease-in-out infinite; }
+
+@keyframes qs-listen-ring {
+    0% { opacity: 0.85; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.7); }
+}
+
+@keyframes qs-listen-wait {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+/* What was heard, shown once the question is over */
+.qs-heard {
+    margin: 0.75rem 0 0;
+    padding: 0.45rem 1rem;
+    max-width: 44rem;
+    border-radius: 0.9rem;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: clamp(1rem, 1.8vw, 1.25rem);
+    color: #0c4a6e;
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px dashed rgba(14, 165, 233, 0.45);
+    animation: qs-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.qs-heard span {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0369a1;
+}
+
+.qs-heard.hidden,
+.qs-listen-help.hidden { display: none; }
+
+.qs-listen-help {
+    margin: 0.6rem 0 0;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.9rem;
+    color: #7c2d12;
+}
+
+.qs-listen-help kbd {
+    padding: 0 0.3rem;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(124, 45, 18, 0.35);
+    font-family: inherit;
+    font-size: 0.8rem;
+}
+
+.qs-linkish {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 700;
+    color: #b45309;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+/* Fix the sentence: the cracked sentence on top */
+.qs-fix {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 0.6rem;
+    padding: 0.45rem 1rem;
+    max-width: 44rem;
+    border-radius: 0.9rem;
+    background: rgba(244, 63, 94, 0.08);
+    border: 2px dashed rgba(225, 29, 72, 0.4);
+}
+
+.qs-fix__crack { color: #e11d48; font-size: 1.15rem; }
+
+.qs-fix__broken {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: clamp(1.15rem, 2.3vw, 1.6rem);
+    color: #881337;
+    text-decoration: underline wavy rgba(225, 29, 72, 0.7);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+    overflow-wrap: anywhere;
+}
+
+.qs-cue--fix .qs-cue__text { font-size: clamp(1.15rem, 2.2vw, 1.6rem); }
+
+/* Long answers (Fix the sentence) get a full row each */
+.qs-answers--sentences { grid-template-columns: minmax(0, 1fr); gap: 0.55rem; }
+.qs-answers--sentences .qs-answer { min-height: 3.6rem; }
+.qs-answers--sentences .qs-answer__gem { width: 2.6rem; height: 2.6rem; font-size: 1.15rem; }
+
+/* Picture question: four picture cards in a row */
+.qs-answers--pictures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(0.5rem, 1.4vw, 0.9rem);
+    width: min(100%, 44rem);
+    align-self: center;
+}
+
+.qs-answer--picture {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    min-height: 0;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.qs-answer__pic {
+    position: relative;
+    display: block;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.qs-answer__pic img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    user-select: none;
+}
+
+.qs-answer--picture .qs-answer__gem {
+    position: absolute;
+    top: -0.55rem;
+    left: -0.55rem;
+    z-index: 2;
+    width: 2.6rem;
+    height: 2.6rem;
+    font-size: 1.15rem;
+}
+
+.qs-answer--picture .qs-answer__key { top: auto; bottom: 0.65rem; right: 0.65rem; transform: none; z-index: 2; background: rgba(23, 17, 58, 0.7); }
+.qs-answer--picture .qs-answer__mark { top: 0.9rem; right: 0.9rem; transform: scale(0); z-index: 2; }
+.qs-answer--picture.is-correct .qs-answer__mark,
+.qs-answer--picture.is-reveal .qs-answer__mark,
+.qs-answer--picture.is-wrong .qs-answer__mark { transform: scale(1.25); }
+
+/* The names stay hidden until the question is over; then they rise under each picture */
+.qs-answer__name {
+    display: block;
+    min-height: 1.4em;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: clamp(0.95rem, 1.6vw, 1.2rem);
+    line-height: 1.2;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    overflow-wrap: anywhere;
+}
+
+.qs-answers--pictures.is-resolved .qs-answer__name,
+.qs-answer--picture.is-broken .qs-answer__name { opacity: 1; transform: none; }
+.qs-answer--picture.is-broken .qs-answer__pic { display: none; }
+.qs-answer--picture.is-broken { justify-content: center; min-height: 6rem; }
+.qs-answer--picture.is-tried .qs-answer__pic img { opacity: 0.6; }
+
+/* This week's formats on the intro screen */
+.qs-mix {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    animation: qs-rise 0.6s 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.qs-mix__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.32rem 0.85rem;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.86rem;
+    color: #fff;
+    background: rgba(var(--chip, 167, 139, 250), 0.18);
+    border: 1px solid rgba(var(--chip, 167, 139, 250), 0.55);
+}
+
+.qs-mix__chip b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; color: var(--qs-gold-2); }
+.qs-mix__chip i { color: rgb(var(--chip, 167, 139, 250)); }
+.qs-mix__chip--listen { --chip: 56, 189, 248; }
+.qs-mix__chip--picture { --chip: 251, 146, 60; }
+.qs-mix__chip--fix { --chip: 251, 113, 133; }
+.qs-mix__chip--choice { --chip: 167, 139, 250; }
+
+.qs-mix__sound {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.32rem 0.9rem;
+    border-radius: 999px;
+    border: 1px dashed rgba(125, 211, 252, 0.7);
+    background: rgba(14, 165, 233, 0.12);
+    color: #e0f2fe;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.86rem;
+    cursor: pointer;
+    transition: transform 0.18s ease;
+}
+
+.qs-mix__sound:hover { transform: translateY(-1px); }
+.qs-mix__sound.is-speaking i { animation: qs-listen-wait 0.8s ease-in-out infinite; }
+
+/* Curtain-call recap */
+.qs-recap__kind { margin-right: 0.4rem; color: var(--qs-gold-2); opacity: 0.85; }
+
+.qs-recap__pic {
+    display: inline-block;
+    width: 1.9rem;
+    height: 1.9rem;
+    margin-right: 0.4rem;
+    border-radius: 0.4rem;
+    object-fit: cover;
+    vertical-align: middle;
+    background: #fff;
+}
+
 /* ─── Phones & short screens ─────────────────────────────────────── */
 
 @media (max-width: 720px) {
@@ -1684,6 +1992,12 @@
     .qs-guild__bar { grid-column: 1 / -1; order: 4; }
     .qs-recap__row { grid-template-columns: auto 1fr; }
     .qs-recap__note { grid-column: 2; }
+    .qs-answers--pictures { grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 22rem); }
+    .qs-answer--picture { padding: 0.45rem; }
+    .qs-answer--picture .qs-answer__gem { width: 2.1rem; height: 2.1rem; font-size: 0.95rem; top: -0.4rem; left: -0.4rem; }
+    .qs-listen-row { gap: 0.7rem; }
+    .qs-listen { width: 3.6rem; height: 3.6rem; }
+    .qs-fix { padding: 0.4rem 0.7rem; }
 }
 
 @media (max-height: 640px) and (min-width: 721px) {
@@ -1692,6 +2006,8 @@
     .qs-cue { padding: 1.1rem 1.4rem 0.9rem; }
     .qs-answer { min-height: 3.4rem; }
     .qs-rules { display: none; }
+    .qs-answers--pictures { width: min(100%, 38rem); }
+    .qs-answer--picture { min-height: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1702,7 +2018,12 @@
     .qs-pip.is-current,
     .qs-tally__drum,
     .quiz-week-btn::after,
-    .quiz-week-btn__gem { animation: none !important; }
+    .quiz-week-btn__gem,
+    .qs-listen__ring,
+    .qs-listen__icon,
+    .qs-mix__sound i { animation: none !important; }
+
+    .qs-listen.is-speaking { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0.35), 0 10px 22px rgba(7, 89, 133, 0.35); }
 
     .qs-stage *,
     .quiz-week-btn-wrap {

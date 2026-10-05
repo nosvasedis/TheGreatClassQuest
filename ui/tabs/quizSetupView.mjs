@@ -4,6 +4,7 @@
  * Behaviour lives in ui/tabs/quizSetup.js.
  */
 import { mondayFromIsoWeekKey } from '../../features/quizCurriculumCore.mjs';
+import { countKinds, describeKindMix } from '../../features/quizKindsCore.mjs';
 
 export { expectedQuestionCount } from '../../features/quizCurriculumCore.mjs';
 
@@ -78,11 +79,14 @@ export function describeQuizWeek({ quiz = null, nextLesson = null, generating = 
     if (count) facts.push({ icon: 'fa-circle-question', text: plural(count, 'question') });
     if (typeLabel) facts.push({ icon: 'fa-shapes', text: typeLabel });
     if (carried) facts.push({ icon: 'fa-rotate', text: `${carried} back from last time` });
+    const kinds = countKinds(questions);
+    // Older quizzes are all classic questions: their card stays as it was.
+    if (count && kinds.choice < count) facts.push({ icon: 'fa-layer-group', text: describeKindMix(kinds) });
 
     const base = { status, facts, count, actions: [] };
     switch (status) {
         case 'generating':
-            return { ...base, phase: 2, tone: 'busy', icon: '🪄', title: 'Writing the questions…', sub: 'This takes up to a minute. Pictures are added as it goes.' };
+            return { ...base, phase: 2, tone: 'busy', icon: '🪄', title: 'Writing the questions…', sub: 'The questions are written in a few parts and the pictures are drawn once. This can take a minute or two.' };
         case 'error':
             return { ...base, phase: 2, tone: 'error', icon: '⚠️', title: 'The questions could not be made', sub: error || 'Please try again in a moment.' };
         case 'pending':

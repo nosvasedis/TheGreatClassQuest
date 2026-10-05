@@ -284,9 +284,20 @@ export async function loadQuizForClass(classId) {
     if (presentStudents.length === 0) return false;
 
     const qs = initQuiz(classId);
-    // Fully MCQ-only: typed-answer quiz types are excluded from the live experience.
+    // Every kind (choice, Listen and choose, Picture question, Fix the sentence) plays as four gems.
+    // Typed-answer questions from very old quizzes are left out of the live show.
     qs.questions = [...quiz.questions].filter((q) => q.type === 'mcq' && Array.isArray(q.options) && q.options.length >= 2);
     if (qs.questions.length === 0) return false;
+    // Fetch every picture now, so no picture pops in late on the projector.
+    qs.preloadedPictures = qs.questions.flatMap((q) => (Array.isArray(q.optionImages) ? q.optionImages : []))
+        .filter(Boolean)
+        .map((url) => {
+            if (typeof Image === 'undefined') return null;
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = url;
+            return img;
+        });
     qs.totalQuestions = qs.questions.length;
     qs.absentCount = absentIds.size;
     qs.inProgress = true;
@@ -499,7 +510,7 @@ export async function finalizeQuiz(classId) {
             correctAnswerCounts[attempt.studentId] = (correctAnswerCounts[attempt.studentId] || 0) + 1;
             studentPerformance[attempt.studentId].solvedAnswers.push({
                 questionId: attempt.questionId,
-                prompt: questionsById[attempt.questionId]?.question || '',
+                prompt: questionsById[attempt.questionId]?.listen || questionsById[attempt.questionId]?.question || '',
                 answer: attempt.selectedAnswer || ''
             });
         } else {

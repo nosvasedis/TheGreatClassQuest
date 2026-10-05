@@ -3,25 +3,47 @@ import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { QUIZ_MIN_QUESTIONS, QUIZ_OPTION_COUNT } from '../../features/quizReviewCore.mjs';
+import { QUIZ_KIND_INFO, questionKind } from '../../features/quizKindsCore.mjs';
 
 const OVERLAY_ID = 'qow-review-overlay';
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 function questionCardHtml(question, index) {
+    const kind = questionKind(question);
+    const info = QUIZ_KIND_INFO[kind];
+    const pictures = kind === 'picture' && Array.isArray(question.optionImages) ? question.optionImages : null;
     const options = Array.from({ length: QUIZ_OPTION_COUNT }, (_, i) => question.options?.[i] || '');
     const carried = question.carriedFrom
         ? `<span class="qow-review-carried" title="Missed last week — back for review"><i class="fas fa-rotate"></i> Review question</span>`
+        : '';
+    const kindBadge = `<span class="qow-review-kind qow-review-kind--${kind}"><i class="fas ${info.icon}" aria-hidden="true"></i> ${escapeHtml(info.label)}</span>`;
+    const listenField = kind === 'listen' ? `
+            <label class="qow-review-label">What the class hears (spoken aloud, not shown on screen)
+                <span class="qow-review-listen-row">
+                    <textarea class="qow-review-question" rows="2" maxlength="280" data-field="listen">${escapeHtml(question.listen || '')}</textarea>
+                    <button type="button" class="qow-review-hear" data-review-hear title="Hear it" aria-label="Hear it"><i class="fas fa-volume-high"></i></button>
+                </span>
+            </label>` : '';
+    const fixField = kind === 'fix' ? `
+            <label class="qow-review-label qow-review-label--small">Sentence with the mistake (shown above the answers, optional)
+                <input type="text" class="qow-review-explanation" maxlength="200" value="${escapeHtml(question.broken || '')}" data-field="broken" />
+            </label>` : '';
+    const pictureNote = pictures
+        ? '<p class="qow-review-note"><i class="fas fa-circle-info"></i> The pictures stay as they were drawn. The class sees the names only after the answer.</p>'
         : '';
     return `
         <article class="qow-review-card" data-review-card>
             <header class="qow-review-card-head">
                 <span class="qow-review-num">Q${index + 1}</span>
+                ${kindBadge}
                 ${carried}
                 <button type="button" class="qow-review-delete" data-review-delete aria-label="Delete question ${index + 1}" title="Delete this question">
                     <i class="fas fa-trash-can"></i>
                 </button>
             </header>
-            <label class="qow-review-label">Question
+            ${listenField}
+            ${fixField}
+            <label class="qow-review-label">${kind === 'listen' ? 'Question on screen' : 'Question'}
                 <textarea class="qow-review-question" rows="2" maxlength="300" data-field="question">${escapeHtml(question.question || '')}</textarea>
             </label>
             <div class="qow-review-options" role="radiogroup" aria-label="Answers for question ${index + 1}">
@@ -31,10 +53,12 @@ function questionCardHtml(question, index) {
                             <input type="radio" name="qow-correct-${index}" value="${optionIndex}" ${optionIndex === question.correctIndex ? 'checked' : ''} data-field="correct" />
                             <span>${LETTERS[optionIndex]}</span>
                         </label>
+                        ${pictures?.[optionIndex] ? `<img class="qow-review-thumb" src="${escapeHtml(pictures[optionIndex])}" alt="" loading="lazy" decoding="async" />` : ''}
                         <input type="text" class="qow-review-option-input" maxlength="160" value="${escapeHtml(option)}"
-                            placeholder="Answer ${LETTERS[optionIndex]}${optionIndex >= 2 ? ' (optional)' : ''}" data-field="option" data-option-index="${optionIndex}" />
+                            placeholder="Answer ${LETTERS[optionIndex]}${optionIndex >= 2 && !pictures ? ' (optional)' : ''}" data-field="option" data-option-index="${optionIndex}" />
                     </div>`).join('')}
             </div>
+            ${pictureNote}
             <label class="qow-review-label qow-review-label--small">Short explanation (optional)
                 <input type="text" class="qow-review-explanation" maxlength="200" value="${escapeHtml(question.explanation || '')}" data-field="explanation" />
             </label>
@@ -46,13 +70,17 @@ function readQuestionsFromDom(overlay, originals) {
         const original = originals[Number(card.dataset.originalIndex)] || {};
         const options = [...card.querySelectorAll('[data-field="option"]')].map((input) => input.value);
         const checked = card.querySelector('[data-field="correct"]:checked');
+        const listen = card.querySelector('[data-field="listen"]');
+        const broken = card.querySelector('[data-field="broken"]');
         return {
             ...original,
             id: `q${index + 1}`,
             question: card.querySelector('[data-field="question"]').value,
             options,
             correctIndex: checked ? Number(checked.value) : 0,
-            explanation: card.querySelector('[data-field="explanation"]').value
+            explanation: card.querySelector('[data-field="explanation"]').value,
+            ...(listen ? { listen: listen.value } : {}),
+            ...(broken ? { broken: broken.value } : {})
         };
     });
 }
@@ -61,6 +89,7 @@ function closeOverlay() {
     const overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) return;
     overlay.classList.add('is-closing');
+    import('../../features/tts.js').then(({ stopSpeech }) => stopSpeech()).catch(() => {});
     document.removeEventListener('keydown', overlay._escHandler);
     window.setTimeout(() => overlay.remove(), 180);
 }
@@ -144,6 +173,12 @@ export async function openQuizReviewEditor(classId, { onSaved, quiz: preloadedQu
         }
     });
     list.addEventListener('click', (event) => {
+        const hear = event.target.closest('[data-review-hear]');
+        if (hear) {
+            const text = hear.closest('[data-review-card]')?.querySelector('[data-field="listen"]')?.value || '';
+            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: 0.95 })).catch(() => {});
+            return;
+        }
         const deleteBtn = event.target.closest('[data-review-delete]');
         if (!deleteBtn) return;
         const cards = list.querySelectorAll('[data-review-card]');

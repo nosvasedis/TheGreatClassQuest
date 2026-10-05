@@ -308,7 +308,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'quiz', icon: 'fa-circle-question', name: 'Quiz of the Week', tier: 'elite',
                     where: 'Set up in Teacher Settings, Quiz. Play from Home', go: 'options:quiz',
-                    text: `Generate questions from this week's lessons, and choose whether to review them first or bring back last week's missed questions. On the class's first lesson of the week, during lesson time, a ticket on Home opens the quiz-show stage. Each child earns from their own answers: 1 star for a first try, ½ for a rescue (2 at most), +1 Gold for a brave try. The class score sets the Team Quest bonus, and one Quiz Champion wins a treasure from the league's Mystic Market stall.`,
+                    text: `Generate questions from this week's lessons, and choose whether to review them first or bring back last week's missed questions. The quiz mixes four kinds, all answered with A to D: classic questions, Listen and choose (the app reads the words aloud), Picture questions (four small pictures drawn when the quiz is made) and Fix the sentence. Younger leagues get more Listen and Picture questions. On the class's first lesson of the week, during lesson time, a ticket on Home opens the quiz-show stage. Each child earns from their own answers: 1 star for a first try, ½ for a rescue (2 at most), +1 Gold for a brave try. The class score sets the Team Quest bonus, and one Quiz Champion wins a treasure from the league's Mystic Market stall.`,
                     keys: 'quiz game show weekly review questions'
                 },
                 {
@@ -589,7 +589,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'quiz', icon: 'fa-circle-question', name: 'Quiz of the Week', tier: 'elite',
-                    text: `Once a week the quiz show comes to our class. The spotlight picks a hero for each question, and if you get it wrong, the question passes on. Your own right answers win you stars, and the Quiz Champion wins a treasure from the Mystic Market.`,
+                    text: `Once a week the quiz show comes to our class. The spotlight picks a hero for each question: sometimes you read it, sometimes you listen, sometimes you pick a picture or fix a sentence. If you get it wrong, the question passes on. Your own right answers win you stars, and the Quiz Champion wins a treasure from the Mystic Market.`,
                     keys: 'quiz game show'
                 },
                 {

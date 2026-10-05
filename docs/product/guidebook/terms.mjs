@@ -285,8 +285,8 @@ export const TERMS = [
     names: { en: 'Quiz of the Week', el: 'Quiz of the Week' },
     aliases: ['quiz of the week', 'weekly quiz', 'qotw'],
     def: {
-      en: 'Elite game-show review on Home, first lesson day of the week during lesson time. The number of questions grows with class size (about three-quarters of the class, at least 5 and at most 15).',
-      el: 'Elite παιχνίδι επανάληψης στο Home. Ο αριθμός των ερωτήσεων μεγαλώνει με το μέγεθος του τμήματος (περίπου τα τρία τέταρτα της τάξης, τουλάχιστον 5, το πολύ 15).'
+      en: 'Elite game-show review on Home, first lesson day of the week during lesson time. The number of questions grows with class size (about three-quarters of the class, at least 5 and at most 15). Four kinds of question, all answered with A to D: classic, Listen and choose, Picture question and Fix the sentence.',
+      el: 'Elite παιχνίδι επανάληψης στο Home. Ο αριθμός των ερωτήσεων μεγαλώνει με το μέγεθος του τμήματος (περίπου τα τρία τέταρτα της τάξης, τουλάχιστον 5, το πολύ 15). Τέσσερα είδη ερωτήσεων, όλα με απάντηση A έως D: κλασική, Listen and choose, Picture question και Fix the sentence.'
     },
     confuse: { en: "Scholar's Scroll test", el: 'Διαγώνισμα Scholar’s Scroll' }
   },

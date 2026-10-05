@@ -129,6 +129,54 @@
     padding: 0.1rem 0.55rem;
 }
 
+.qow-review-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.1rem 0.6rem;
+    color: #5b21b6;
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+}
+
+.qow-review-kind--listen { color: #075985; background: #e0f2fe; border-color: #7dd3fc; }
+.qow-review-kind--picture { color: #9a3412; background: #ffedd5; border-color: #fdba74; }
+.qow-review-kind--fix { color: #9f1239; background: #ffe4e6; border-color: #fda4af; }
+
+.qow-review-listen-row { display: flex; align-items: flex-start; gap: 0.5rem; }
+
+.qow-review-hear {
+    flex: 0 0 auto;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 9999px;
+    color: #fff;
+    background: linear-gradient(160deg, #38bdf8, #0284c7);
+    border: 0;
+    cursor: pointer;
+}
+
+.qow-review-hear:hover { filter: brightness(1.08); }
+
+.qow-review-thumb {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.55rem;
+    object-fit: cover;
+    background: #fff;
+    border: 1.5px solid #fde68a;
+}
+
+.qow-review-note {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #92400e;
+}
+
 .qow-review-delete {
     margin-left: auto;
     width: 2rem;
@@ -477,6 +525,11 @@
     width: 1.5rem;
     color: #d97706;
 }
+
+.wall-lang-options--pictures { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wall-lang-options--pictures span { position: relative; padding: 0.3rem; }
+.wall-lang-options--pictures b { position: absolute; top: 0.3rem; left: 0.45rem; }
+.wall-lang-options--pictures img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 0.6rem; }
 
 .wall-lang-scramble {
     display: flex;

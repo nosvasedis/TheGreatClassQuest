@@ -1,5 +1,6 @@
 // /ui/modals/quizStageMarkup.js — Pure markup for the Quiz of the Week show stage.
 // No state, DOM or Firebase imports: the live modal and the guidebook captures both build from here.
+import { QUIZ_KIND_INFO, questionKind } from '../../features/quizKindsCore.mjs';
 
 const GEMS = ['a', 'b', 'c', 'd'];
 const GEM_LETTERS = ['A', 'B', 'C', 'D'];
@@ -111,7 +112,23 @@ export function quizStageShellHtml(modalId = 'quiz-of-week-modal') {
 /**
  * @param {{ questionCount:number, contestants:Array<{name,avatar}>, absentCount?:number, topic?:string, resume?:{questionNumber:number, total:number}|null }} data
  */
-export function quizIntroHtml({ questionCount = 0, contestants = [], absentCount = 0, topic = '', resume = null } = {}) {
+/** This week's formats, e.g. 3 Listen and choose · 2 Picture questions, with a sound check when anything is spoken. */
+export function quizMixHtml(kinds = null) {
+    if (!kinds) return '';
+    const order = ['listen', 'picture', 'fix', 'choice'].filter((kind) => (Number(kinds[kind]) || 0) > 0);
+    // A quiz of classic questions only (every older quiz) keeps the stage as it was.
+    if (!order.some((kind) => kind !== 'choice')) return '';
+    const chips = order.map((kind) => {
+        const info = QUIZ_KIND_INFO[kind];
+        return `<li class="qs-mix__chip qs-mix__chip--${kind}" title="${esc(info.label)}"><i class="fas ${info.icon}" aria-hidden="true"></i><b>${kinds[kind]}</b> ${esc(info.short)}</li>`;
+    }).join('');
+    const sound = kinds.listen > 0
+        ? `<li><button type="button" class="qs-mix__sound" id="quiz-sound-check"><i class="fas fa-volume-high" aria-hidden="true"></i><span>Test the sound</span></button></li>`
+        : '';
+    return `<ul class="qs-mix" aria-label="This week's question formats">${chips}${sound}</ul>`;
+}
+
+export function quizIntroHtml({ questionCount = 0, contestants = [], absentCount = 0, topic = '', resume = null, kinds = null } = {}) {
     const shown = contestants.slice(0, 14);
     const extra = contestants.length - shown.length;
     const cast = shown.map((student, i) => `
@@ -138,6 +155,7 @@ export function quizIntroHtml({ questionCount = 0, contestants = [], absentCount
                     <div class="qs-ticket"><span class="qs-ticket__num">${contestants.length}</span><span class="qs-ticket__label">${contestants.length === 1 ? 'hero on stage' : 'heroes on stage'}</span></div>
                     ${absentCount > 0 ? `<div class="qs-ticket qs-ticket--muted"><span class="qs-ticket__num">${absentCount}</span><span class="qs-ticket__label">absent today</span></div>` : ''}
                 </div>
+                ${quizMixHtml(kinds)}
                 ${cast ? `<ul class="qs-cast" aria-label="Heroes in the spotlight pool">${cast}</ul>` : ''}
                 ${resume ? '' : `
                 <ol class="qs-rules">
@@ -159,8 +177,73 @@ export function quizIntroHtml({ questionCount = 0, contestants = [], absentCount
 
 // ─── A turn: one hero, one question ─────────────────────────────────────────
 
+/** The answer gems. Picture answers show their picture; their names appear once the question is over. */
+function answersHtml(question, kind, tried) {
+    const options = (question?.options || []).slice(0, 4);
+    const pictures = kind === 'picture' && Array.isArray(question.optionImages) ? question.optionImages : null;
+    return options.map((option, i) => {
+        const isTried = tried.has(i);
+        const common = `class="qs-answer${pictures ? ' qs-answer--picture' : ''}${isTried ? ' is-tried' : ''}" data-gem="${GEMS[i]}" data-answer-index="${i}" data-answer-text="${esc(option)}"${isTried ? ' disabled aria-disabled="true"' : ''} style="--i:${i}"`;
+        if (pictures) {
+            return `
+            <button type="button" ${common} aria-label="Picture ${GEM_LETTERS[i]}">
+                <span class="qs-answer__pic"><img src="${esc(pictures[i] || '')}" alt="" decoding="async" draggable="false"></span>
+                <span class="qs-answer__gem" aria-hidden="true">${GEM_LETTERS[i]}</span>
+                <span class="qs-answer__name">${esc(option)}</span>
+                <span class="qs-answer__mark" aria-hidden="true"></span>
+                <kbd class="qs-answer__key" aria-hidden="true">${i + 1}</kbd>
+            </button>`;
+        }
+        return `
+            <button type="button" ${common}>
+                <span class="qs-answer__gem" aria-hidden="true">${GEM_LETTERS[i]}</span>
+                <span class="qs-answer__text">${esc(option)}</span>
+                <span class="qs-answer__mark" aria-hidden="true"></span>
+                <kbd class="qs-answer__key" aria-hidden="true">${i + 1}</kbd>
+            </button>`;
+    }).join('');
+}
+
+/** The cue card: what the class reads (and, for Listen and choose, the button that speaks). */
+function cueHtml(question, kind, { questionNumber, total, passed, attemptNumber }) {
+    const info = QUIZ_KIND_INFO[kind];
+    const ribbon = kind === 'choice' ? '' : `<span class="qs-kind qs-kind--${kind}"><i class="fas ${info.icon}" aria-hidden="true"></i>${esc(info.label)}</span>`;
+    const tag = `<span class="qs-cue__tag">Question ${questionNumber} of ${total}${passed ? ` · ${ordinal(attemptNumber)} try` : ''}</span>`;
+    const text = `<p class="qs-cue__text" data-quiz-question-text>${esc(question?.question || '')}</p>`;
+    if (kind === 'listen') {
+        return `
+            <section class="qs-cue qs-cue--listen">
+                ${tag}${ribbon}
+                <div class="qs-listen-row">
+                    <button type="button" class="qs-listen" id="quiz-listen-btn" title="Hear it again (L)" aria-label="Hear it again">
+                        <span class="qs-listen__ring" aria-hidden="true"></span>
+                        <span class="qs-listen__ring qs-listen__ring--2" aria-hidden="true"></span>
+                        <span class="qs-listen__icon" aria-hidden="true"><i class="fas fa-volume-high"></i></span>
+                    </button>
+                    ${text}
+                </div>
+                <p class="qs-heard hidden" data-quiz-heard><span>You heard</span>“${esc(question.listen || '')}”</p>
+                <p class="qs-listen-help hidden" data-quiz-listen-help role="status"></p>
+            </section>`;
+    }
+    if (kind === 'fix') {
+        return `
+            <section class="qs-cue qs-cue--fix">
+                ${tag}${ribbon}
+                ${question.broken ? `<p class="qs-fix"><span class="qs-fix__crack" aria-hidden="true"><i class="fas fa-heart-crack"></i></span><span class="qs-fix__broken">${esc(question.broken)}</span></p>` : ''}
+                ${text}
+            </section>`;
+    }
+    return `
+            <section class="qs-cue${kind === 'picture' ? ' qs-cue--picture' : ''}">
+                ${tag}${ribbon}
+                ${text}
+            </section>`;
+}
+
 /**
- * @param {{ question:{question:string, options:string[]}, questionNumber:number, total:number, attemptNumber?:number,
+ * @param {{ question:{question:string, options:string[], kind?:string, listen?:string, optionImages?:string[], broken?:string},
+ *           questionNumber:number, total:number, attemptNumber?:number,
  *           student:{name,avatar}|null, stars?:number, trail?:string[], firstTryCount?:number, triedIndexes?:number[], rolling?:boolean }} data
  */
 export function quizTurnHtml({
@@ -169,16 +252,9 @@ export function quizTurnHtml({
 } = {}) {
     const tried = new Set(triedIndexes);
     const passed = attemptNumber > 1;
-    const options = (question?.options || []).slice(0, 4).map((option, i) => {
-        const isTried = tried.has(i);
-        return `
-            <button type="button" class="qs-answer${isTried ? ' is-tried' : ''}" data-gem="${GEMS[i]}" data-answer-index="${i}" data-answer-text="${esc(option)}"${isTried ? ' disabled aria-disabled="true"' : ''} style="--i:${i}">
-                <span class="qs-answer__gem" aria-hidden="true">${GEM_LETTERS[i]}</span>
-                <span class="qs-answer__text">${esc(option)}</span>
-                <span class="qs-answer__mark" aria-hidden="true"></span>
-                <kbd class="qs-answer__key" aria-hidden="true">${i + 1}</kbd>
-            </button>`;
-    }).join('');
+    const kind = questionKind(question);
+    const longSentences = (question?.options || []).some((option) => String(option).length > (kind === 'fix' ? 30 : 34));
+    const answersClass = kind === 'picture' && Array.isArray(question.optionImages) ? ' qs-answers--pictures' : longSentences ? ' qs-answers--sentences' : '';
 
     const middle = `
         ${trailHtml(trail, total, questionNumber - 1)}
@@ -186,7 +262,7 @@ export function quizTurnHtml({
 
     return `
         ${topBarHtml({ middle, pause: true })}
-        <div class="qs-body qs-body--turn">
+        <div class="qs-body qs-body--turn" data-kind="${kind}">
             <section class="qs-podium${rolling ? ' is-rolling' : ' is-landed'}${passed ? ' is-passed' : ''}" aria-live="polite">
                 <span class="qs-podium__beam" aria-hidden="true"></span>
                 <span class="qs-podium__ring">
@@ -198,16 +274,13 @@ export function quizTurnHtml({
                 </span>
                 <span class="qs-podium__stars" title="Stars so far"><i class="fas fa-star"></i>${Number(stars) || 0}</span>
             </section>
-            <section class="qs-cue">
-                <span class="qs-cue__tag">Question ${questionNumber} of ${total}${passed ? ` · ${ordinal(attemptNumber)} try` : ''}</span>
-                <p class="qs-cue__text" data-quiz-question-text>${esc(question?.question || '')}</p>
-            </section>
-            <div class="qs-answers" role="group" aria-label="Answers">${options}</div>
+            ${cueHtml(question, kind, { questionNumber, total, passed, attemptNumber })}
+            <div class="qs-answers${answersClass}" role="group" aria-label="Answers">${answersHtml(question, kind, tried)}</div>
             <div id="quiz-explanation-area" class="qs-verdict hidden" role="status"></div>
         </div>
         <footer class="qs-foot">
             <button type="button" class="qs-btn qs-btn--quiet" id="quiz-skip-btn"><i class="fas fa-forward"></i><span>Skip question</span></button>
-            <span class="qs-keys" aria-hidden="true"><kbd>1</kbd>–<kbd>4</kbd> answer</span>
+            <span class="qs-keys" aria-hidden="true"><kbd>1</kbd>–<kbd>4</kbd> answer${kind === 'listen' ? ' · <kbd>L</kbd> hear again' : ''}</span>
             <button type="button" class="qs-btn qs-btn--go hidden" id="quiz-next-btn"><i class="fas fa-arrow-right"></i><span>Next question</span></button>
         </footer>`;
 }
@@ -411,12 +484,15 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
                     const outcome = !stat.asked ? 'skipped' : stat.firstTryCorrect ? 'first' : stat.solved ? 'late' : 'missed';
                     const letter = GEM_LETTERS[Number(stat.correctIndex)] || '';
                     const note = { first: 'First try', late: 'Solved after a pass', missed: 'Nobody solved it', skipped: 'Skipped' }[outcome];
+                    const kind = questionKind(stat);
+                    const picture = kind === 'picture' && Array.isArray(stat.optionImages) ? stat.optionImages[Number(stat.correctIndex)] : '';
+                    const prompt = kind === 'listen' && stat.listen ? `“${stat.listen}”` : stat.question;
                     return `
                     <li class="qs-recap__row is-${outcome}">
                         <span class="qs-recap__num">${i + 1}</span>
                         <span class="qs-recap__copy">
-                            <span class="qs-recap__q">${esc(stat.question)}</span>
-                            <span class="qs-recap__a">${letter ? `<b>${letter}</b> ` : ''}${esc(stat.correctAnswer)}</span>
+                            <span class="qs-recap__q">${kind !== 'choice' ? `<i class="fas ${QUIZ_KIND_INFO[kind].icon} qs-recap__kind" title="${esc(QUIZ_KIND_INFO[kind].label)}" aria-label="${esc(QUIZ_KIND_INFO[kind].label)}"></i>` : ''}${esc(prompt)}</span>
+                            <span class="qs-recap__a">${picture ? `<img class="qs-recap__pic" src="${esc(picture)}" alt="" loading="lazy" decoding="async">` : ''}${letter ? `<b>${letter}</b> ` : ''}${esc(stat.correctAnswer)}</span>
                         </span>
                         <span class="qs-recap__note">${note}</span>
                     </li>`;

@@ -394,7 +394,7 @@ export const optionsTabHTML = `
                                                 <div class="qwk-gen__track"><div class="qwk-gen__fill"></div></div>
                                                 <div class="qwk-gen__steps">
                                                     <span data-gen-step="1" class="qwk-gen__step">Writing questions</span>
-                                                    <span data-gen-step="2" class="qwk-gen__step">Adding pictures</span>
+                                                    <span data-gen-step="2" class="qwk-gen__step">Drawing pictures</span>
                                                     <span data-gen-step="3" class="qwk-gen__step">Saving to the class</span>
                                                 </div>
                                             </div>

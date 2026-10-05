@@ -2,6 +2,7 @@
  * Pure helpers for Quiz of the Week review, item analysis, and carry-forward.
  * No Firestore or DOM here; covered by tests/quiz-review-core.test.mjs.
  */
+import { hasAllPictures, pictureToListenQuestion, questionKind, reorderQuestionOptions } from './quizKindsCore.mjs';
 
 export const QUIZ_MIN_QUESTIONS = 3;
 export const QUIZ_OPTION_COUNT = 4;
@@ -13,16 +14,17 @@ function cleanText(value, max = 400) {
 }
 
 /**
- * Normalise one MCQ question (from AI, from the review editor, or carried forward).
- * Returns null when the question cannot be played (empty prompt, fewer than 2 options).
+ * Normalise one question (from the AI step, the review editor, or carried forward).
+ * Keeps its kind (Listen and choose, Picture question, Fix the sentence) and what that kind needs.
+ * Returns null when the question cannot be played (empty prompt, fewer than 2 answers).
  */
 export function sanitizeQuizQuestion(raw = {}, fallbackId = 'q1') {
+    let kind = questionKind(raw);
     const question = cleanText(raw.question, 300);
-    const options = (Array.isArray(raw.options) ? raw.options : [])
+    let options = (Array.isArray(raw.options) ? raw.options : [])
         .map((option) => cleanText(option, 160))
         .slice(0, QUIZ_OPTION_COUNT);
-    const filled = options.filter(Boolean);
-    if (!question || filled.length < 2) return null;
+    if (!question || options.filter(Boolean).length < 2) return null;
 
     let correctIndex = Number.isInteger(raw.correctIndex) ? raw.correctIndex : Number.parseInt(raw.correctIndex, 10);
     if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length || !options[correctIndex]) {
@@ -30,9 +32,21 @@ export function sanitizeQuizQuestion(raw = {}, fallbackId = 'q1') {
         correctIndex = byAnswer >= 0 ? byAnswer : options.findIndex(Boolean);
     }
 
-    const sanitized = {
+    let images = Array.isArray(raw.optionImages) ? raw.optionImages.slice(0, QUIZ_OPTION_COUNT) : null;
+    let prompts = Array.isArray(raw.picturePrompts) ? raw.picturePrompts.slice(0, QUIZ_OPTION_COUNT).map((p) => cleanText(p, 110)) : null;
+    // An emptied answer leaves the stage (its picture with it), so no blank gem is ever shown.
+    const keep = options.map((option, index) => index).filter((index) => options[index]);
+    if (keep.length !== options.length) {
+        correctIndex = keep.indexOf(correctIndex);
+        options = keep.map((index) => options[index]);
+        if (images) images = keep.map((index) => images[index] ?? null);
+        if (prompts) prompts = keep.map((index) => prompts[index] ?? '');
+    }
+
+    let sanitized = {
         id: cleanText(raw.id, 40) || fallbackId,
         type: 'mcq',
+        kind,
         question,
         options,
         correctIndex,
@@ -41,6 +55,19 @@ export function sanitizeQuizQuestion(raw = {}, fallbackId = 'q1') {
         imagePrompt: '',
         imageUrl: raw.imageUrl || null
     };
+    if (kind === 'picture') {
+        sanitized.optionImages = images;
+        sanitized.picturePrompts = prompts || options.map((option) => `a ${option}`);
+        // Without all its pictures the question would show its names and give itself away.
+        if (!hasAllPictures(sanitized)) sanitized = pictureToListenQuestion(sanitized);
+    } else if (kind === 'listen') {
+        const spoken = cleanText(raw.listen, 280);
+        if (spoken) sanitized.listen = spoken;
+        else sanitized.kind = 'choice';
+    } else if (kind === 'fix') {
+        const broken = cleanText(raw.broken, 200);
+        if (broken && broken.toLowerCase() !== sanitized.correctAnswer.toLowerCase()) sanitized.broken = broken;
+    }
     if (raw.carriedFrom) {
         sanitized.carriedFrom = {
             weekKey: cleanText(raw.carriedFrom.weekKey, 20),
@@ -48,6 +75,19 @@ export function sanitizeQuizQuestion(raw = {}, fallbackId = 'q1') {
         };
     }
     return sanitized;
+}
+
+/** What a stats row keeps of a question's kind, so a missed question comes back the same way. */
+function kindFields(question = {}) {
+    const kind = questionKind(question);
+    const fields = { kind };
+    if (kind === 'listen' && question.listen) fields.listen = question.listen;
+    if (kind === 'picture') {
+        if (Array.isArray(question.optionImages)) fields.optionImages = question.optionImages;
+        if (Array.isArray(question.picturePrompts)) fields.picturePrompts = question.picturePrompts;
+    }
+    if (kind === 'fix' && question.broken) fields.broken = question.broken;
+    return fields;
 }
 
 /**
@@ -82,6 +122,7 @@ export function computeQuestionStats(questions = [], attempts = []) {
             correctIndex: question.correctIndex,
             correctAnswer: question.correctAnswer || (question.options || [])[question.correctIndex] || '',
             explanation: question.explanation || '',
+            ...kindFields(question),
             attemptCount: list.length,
             asked: list.length > 0,
             firstTryCorrect: Boolean(first?.correct),
@@ -113,19 +154,19 @@ export function statToCarriedQuestion(stat, weekKey, index = 0) {
         correctIndex: stat.correctIndex,
         correctAnswer: stat.correctAnswer,
         explanation: stat.explanation,
+        ...kindFields(stat),
         carriedFrom: { weekKey, questionId: stat.questionId }
     }, `r${index + 1}`);
 }
 
-/** Shuffle the options of a question while keeping the right answer right. */
+/** Shuffle the options of a question while keeping the right answer right (pictures move with their answers). */
 export function shuffleQuestionOptions(question, random = Math.random) {
-    const options = question.options.map((text, index) => ({ text, isCorrect: index === question.correctIndex }));
-    for (let i = options.length - 1; i > 0; i--) {
+    const order = question.options.map((_, index) => index);
+    for (let i = order.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1));
-        [options[i], options[j]] = [options[j], options[i]];
+        [order[i], order[j]] = [order[j], order[i]];
     }
-    const correctIndex = options.findIndex((option) => option.isCorrect);
-    return { ...question, options: options.map((option) => option.text), correctIndex, correctAnswer: options[correctIndex].text };
+    return reorderQuestionOptions(question, order);
 }
 
 /**

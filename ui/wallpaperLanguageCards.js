@@ -111,17 +111,22 @@ async function quizRewindCard(classId) {
         const { getPreviousQuizReview } = await import('../db/actions/quizOfTheWeek.js');
         return getPreviousQuizReview(classId).catch(() => null);
     });
-    const candidate = pickOne(review?.carryCandidates || []);
+    // Listen and choose needs the voice of the quiz show, so the wall card skips those.
+    const candidate = pickOne((review?.carryCandidates || []).filter((c) => c?.question?.kind !== 'listen'));
     const question = candidate?.question;
     if (!question) return null;
     const letters = ['A', 'B', 'C', 'D'];
+    const pictures = question.kind === 'picture' && Array.isArray(question.optionImages) ? question.optionImages : null;
     return {
         html: `<div class="text-center w-full">
             <div class="badge-pill bg-amber-100 text-amber-800">Quiz rewind</div>
             <p class="wall-lang-kicker">Last quiz, this one was tricky. Can we get it now?</p>
             <h3 class="font-title text-3xl text-amber-900 my-3">${esc(question.question)}</h3>
-            <div class="wall-lang-options">
-                ${question.options.filter(Boolean).map((option, index) => `<span><b>${letters[index]}</b> ${esc(option)}</span>`).join('')}
+            ${question.kind === 'fix' && question.broken ? `<p class="wall-lang-kicker">Fix it: <s>${esc(question.broken)}</s></p>` : ''}
+            <div class="wall-lang-options${pictures ? ' wall-lang-options--pictures' : ''}">
+                ${question.options.filter(Boolean).map((option, index) => (pictures?.[index]
+                    ? `<span><b>${letters[index]}</b><img src="${esc(pictures[index])}" alt="" loading="lazy" decoding="async"></span>`
+                    : `<span><b>${letters[index]}</b> ${esc(option)}</span>`)).join('')}
             </div>
             <div class="wallpaper-card-answer-blur mt-4 pt-3 border-t border-amber-200">
                 <div class="text-xs font-bold text-amber-500 uppercase tracking-widest mb-1">Answer</div>

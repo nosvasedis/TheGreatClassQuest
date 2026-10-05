@@ -20,6 +20,7 @@ import {
     targetWeekMonday,
     unitDisplayLine
 } from '../../features/quizCurriculumCore.mjs';
+import { describeKindMix, quizAgeBand, quizKindMix } from '../../features/quizKindsCore.mjs';
 import {
     QUIZ_TYPES,
     describeQuizWeek,
@@ -556,7 +557,7 @@ function renderCarryList(preselectedIds = null) {
             <label class="qwk-carry__item">
                 <input type="checkbox" class="qwk-carry__check" data-carry-index="${index}"${checked ? ' checked' : ''} />
                 <span class="qwk-carry__copy">
-                    <span class="qwk-carry__question">${escapeQuizText(question.question)}</span>
+                    <span class="qwk-carry__question">${question.kind === 'listen' && question.listen ? `<i class="fas fa-ear-listen" aria-hidden="true"></i> “${escapeQuizText(question.listen)}”` : escapeQuizText(question.question)}</span>
                     <span class="qwk-carry__meta"><span class="qwk-carry__answer"><i class="fas fa-check" aria-hidden="true"></i> ${escapeQuizText(question.correctAnswer)}</span>${wrong}</span>
                 </span>
             </label>`;
@@ -698,6 +699,14 @@ function updateGoSummary() {
     }
     const carried = selectedCarryQuestions().length;
     if (carried) parts.push(`${carried} back from last time`);
+    // The formats the AI will write for this league (younger leagues hear and see more).
+    const mix = quizKindMix({
+        count: Math.max(0, count - carried),
+        band: quizAgeBand(utils.getAgeCategoryForLeague(classData.questLevel)),
+        type: selectedType()
+    });
+    const formats = describeKindMix(mix);
+    if (formats) parts.push(formats);
     el.textContent = parts.filter(Boolean).join(' · ');
     const words = $('qwk-words-count');
     if (words && lessonFocus) words.textContent = `${selectedLessonWords().length} of ${(lessonFocus.words || []).length}`;
@@ -852,8 +861,7 @@ async function generate() {
             reviewBeforeLive,
             carryForward
         });
-        setGenStep(2);
-        result = await generateQuizQuestions(classId);
+        result = await generateQuizQuestions(classId, { onProgress: showGenProgress });
         setGenStep(3);
         await new Promise((r) => setTimeout(r, 600));
     } catch (error) {
@@ -872,7 +880,22 @@ async function generate() {
     else if (result) showToast(`Quiz ready: ${result.questionCount} questions.`, 'success');
 }
 
+const GEN_STEP_LABELS = { 1: 'Writing questions', 2: 'Drawing pictures', 3: 'Saving to the class' };
+
+/** Live progress while the quiz is made: which part is being written, how many pictures are drawn. */
+function showGenProgress({ stage, done = 0, total = 0 } = {}) {
+    const step = stage === 'pictures' ? 2 : stage === 'saving' ? 3 : 1;
+    setGenStep(step);
+    const el = document.querySelector(`#qwk-gen [data-gen-step="${step}"]`);
+    if (!el) return;
+    if (stage === 'writing' && total > 1) el.textContent = `Writing questions (part ${Math.min(done + 1, total)} of ${total})`;
+    else if (stage === 'pictures' && total) el.textContent = `Drawing pictures ${done} of ${total}`;
+}
+
 function setGenStep(n) {
+    if (n === 1) {
+        document.querySelectorAll('#qwk-gen [data-gen-step]').forEach((el) => { el.textContent = GEN_STEP_LABELS[el.dataset.genStep] || el.textContent; });
+    }
     document.querySelectorAll('#qwk-gen [data-gen-step]').forEach((el) => {
         const step = Number(el.dataset.genStep);
         el.classList.toggle('is-done', step < n);

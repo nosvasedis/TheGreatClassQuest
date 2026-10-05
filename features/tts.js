@@ -3,6 +3,7 @@ let activeSpeech = null;
 let narrationAudio = null;
 let cloudUnavailableUntil = 0;
 const audioCache = new Map();
+const pendingAudio = new Map();
 const MAX_CACHE_BYTES = 12 * 1024 * 1024;
 let cacheBytes = 0;
 
@@ -59,6 +60,25 @@ function rememberAudio(text, blob) {
     }
     audioCache.set(text, blob);
     cacheBytes += blob.size;
+}
+
+/**
+ * Fetch the cloud voice for `text` ahead of time (for example while the quiz spotlight spins),
+ * so speakText can start at once. Quietly does nothing when cloud speech is unavailable.
+ */
+export function prefetchSpeech(text) {
+    const cleanText = String(text || '').trim();
+    if (!cleanText || typeof Audio === 'undefined' || Date.now() < cloudUnavailableUntil) return;
+    if (/[\u0370-\u03ff\u1f00-\u1fff]/u.test(cleanText)) return;
+    for (const chunk of splitSpeechText(cleanText)) {
+        if (audioCache.has(chunk) || pendingAudio.has(chunk)) continue;
+        const request = import('../api.js')
+            .then(({ callSpeechApi }) => callSpeechApi(chunk))
+            .then((blob) => { rememberAudio(chunk, blob); return blob; })
+            .catch(() => { cloudUnavailableUntil = Date.now() + 60000; return null; })
+            .finally(() => pendingAudio.delete(chunk));
+        pendingAudio.set(chunk, request);
+    }
 }
 
 function alive(job) { return activeSpeech === job && !job.controller.signal.aborted; }
@@ -149,6 +169,10 @@ async function narrate(job, text) {
         if (!alive(job)) return;
         if (cloud) {
             let blob = audioCache.get(chunk);
+            if (!blob && pendingAudio.has(chunk)) {
+                blob = await pendingAudio.get(chunk);
+                if (!alive(job)) return;
+            }
             try {
                 if (!blob) {
                     if (Date.now() < cloudUnavailableUntil) throw new Error('Cloud speech cooling down');

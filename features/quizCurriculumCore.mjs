@@ -4,6 +4,7 @@
  * Covered by tests/quiz-curriculum-core.test.mjs.
  */
 import { cleanCampfireText, lessonThemeFromUnit } from './heroCampfireCore.mjs';
+import { buildKindsPromptBody, mixTotal } from './quizKindsCore.mjs';
 
 export const QUIZ_WORD_CAP = 16;
 export const QUIZ_EXAMPLE_CAP = 4;
@@ -387,10 +388,14 @@ export function formatQuizFocusForPrompt(focus = {}) {
     return lines.join('\n');
 }
 
-export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'primary learners', questionCount = 7 } = {}) {
-    const type = curriculum.type === 'grammar' ? 'English Grammar'
-        : curriculum.type === 'vocabulary' ? 'English Vocabulary'
-            : 'English (Grammar and Vocabulary mix)';
+/**
+ * The user prompt for one AI request. `mix` says how many of each question kind to write
+ * (see features/quizKindsCore.mjs); without it the request is all classic choice questions.
+ */
+export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'primary learners', questionCount = 7, band = 'mid', mix = null, avoid = [] } = {}) {
+    const subject = curriculum.type === 'grammar' ? 'English grammar'
+        : curriculum.type === 'vocabulary' ? 'English vocabulary'
+            : 'English (grammar and vocabulary mixed)';
     const focus = curriculum.lessonFocus;
     const grounded = focus && focus.source === 'book-atlas' && (hasUsableLessonFocus(focus) || focus.note);
     const focusBlock = grounded
@@ -400,23 +405,17 @@ export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'prim
             curriculum.keywords ? `Specific focus: "${curriculum.keywords}".` : ''
         ].filter(Boolean).join('\n');
     const groundingRules = grounded
-        ? `- Vocabulary questions must test only the listed words. Never invent a vocabulary item that is not in that list.
-- Grammar questions must test the listed grammar. Use the listed words in stems and options when you can.
-- Do not invent unrelated topics.`
-        : `- Make every question directly relevant to the topics/focus listed above.`;
-
-    return `Create a weekly English quiz for ${ageDesc}.
-Subject: ${type}.
-${focusBlock}
-
-Rules:
-- Generate exactly ${questionCount} questions (no more, no less).
-- Use only this question type: "mcq" (4-option multiple choice).
-${groundingRules}
-- Keep language appropriate for ${ageDesc}.
-- Keep explanations very short (max 10 words each).
-- Do NOT produce any text outside the JSON object.
-
-Output this exact JSON shape (nothing else):
-{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"mcq","question":"Which word means happy?","options":["Sad","Joyful","Angry","Tired"],"correctIndex":1,"correctAnswer":"Joyful","explanation":"synonym for happy"},{"type":"mcq","question":"Choose the correct sentence.","options":["He are reading.","He is reading.","He reading.","He am reading."],"correctIndex":1,"correctAnswer":"He is reading.","explanation":"subject and verb agree"}]}`;
+        ? `- Vocabulary questions test only the listed words. Never invent a vocabulary item that is not in that list.
+- Grammar questions test the listed grammar, using the listed words in sentences and answers when you can.
+- Do not drift into unrelated topics.`
+        : '- Every question is directly about the topics and focus listed above.';
+    return buildKindsPromptBody({
+        subject,
+        focusBlock,
+        groundingRules,
+        ageDesc,
+        band,
+        mix: mix && mixTotal(mix) > 0 ? mix : { choice: Math.max(1, Number(questionCount) || 7) },
+        avoid
+    });
 }

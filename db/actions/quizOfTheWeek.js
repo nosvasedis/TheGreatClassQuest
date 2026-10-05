@@ -1,8 +1,8 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
-import { compressImageBase64, getTodayDateString, getLeagueAiAudience, getLeagueAiVisualStyle } from '../../utils.js';
+import { compressImageBase64, getTodayDateString, getLeagueAiAudience, getLeagueAiVisualStyle, getAgeCategoryForLeague } from '../../utils.js';
 import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
-import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
+import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { playSound } from '../../audio.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
@@ -17,7 +17,16 @@ import {
     shuffleQuestionOptions,
     statToCarriedQuestion
 } from '../../features/quizReviewCore.mjs';
-import { buildQuizGenerationUserPrompt, sanitizeLessonFocus } from '../../features/quizCurriculumCore.mjs';
+import { sanitizeLessonFocus } from '../../features/quizCurriculumCore.mjs';
+import {
+    QUIZ_PICTURE_NEGATIVE_PROMPT,
+    countKinds,
+    pictureToListenQuestion,
+    questionKind,
+    quizAgeBand,
+    quizPicturePrompt
+} from '../../features/quizKindsCore.mjs';
+import { writeQuizQuestions } from '../../features/quizWriterCore.mjs';
 import {
     QUIZ_PRIZE_FALLBACK_GOLD,
     QUIZ_TEAM_BONUS,
@@ -174,74 +183,80 @@ export async function getQuizParticipationHistory(classId, limitCount = 8) {
 
 // =============================================================================
 // 2. AI QUESTION GENERATION
+// Rules for the four question kinds and the prompt live in features/quizKindsCore.mjs.
 // =============================================================================
 
-function buildGenerationPrompt() {
-    return `You are a JSON API for an English language teaching application.
-Your ONLY job is to output a single valid JSON object — no markdown, no code fences, no prose, no explanation.
-The JSON object MUST have exactly one top-level key: "questions", whose value is a JSON array.
-Do NOT wrap it in any other key. Do NOT add any text before or after the JSON.`;
-}
-
-function buildGenerationUserPrompt(curriculum, questLevel, questionCount = 7) {
-    return buildQuizGenerationUserPrompt({
+/**
+ * Ask the AI for fresh questions in parts (rules in features/quizWriterCore.mjs).
+ */
+async function writeFreshQuestions({ curriculum, questLevel, freshCount, avoid = [], onProgress }) {
+    return writeQuizQuestions({
         curriculum,
+        freshCount,
+        avoid,
+        onProgress,
+        band: quizAgeBand(getAgeCategoryForLeague(questLevel)),
         ageDesc: getLeagueAiAudience(questLevel),
-        questionCount
+        askAi: (systemPrompt, userPrompt) => callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 })
     });
 }
 
-// Recursively search a parsed object for the first array whose items look like questions.
-function deepFindQuestions(obj, depth = 0) {
-    if (depth > 4 || obj === null || typeof obj !== 'object') return [];
-    if (Array.isArray(obj)) {
-        // If every item has a 'question' or 'type' field, treat as questions array
-        if (obj.length > 0 && obj.every(item => item && (item.question || item.type))) return obj;
-        for (const item of obj) {
-            const found = deepFindQuestions(item, depth + 1);
-            if (found.length > 0) return found;
+/**
+ * Draw the four small pictures of every picture question, once, when the quiz is made.
+ * A question whose pictures cannot all be drawn becomes Listen and choose instead.
+ */
+async function drawQuizPictures(classId, questions, { questLevel, onProgress } = {}) {
+    const pictureQuestions = questions.filter((question) => questionKind(question) === 'picture');
+    if (!pictureQuestions.length) return { questions, drawn: 0 };
+    const { uploadImageToStorage, isLikelyBlackImageBase64 } = await import('../../utils.js');
+    const style = getLeagueAiVisualStyle(questLevel);
+    const stamp = Date.now().toString(36);
+    const total = pictureQuestions.length * 4;
+    let done = 0;
+    onProgress?.({ stage: 'pictures', done, total });
+
+    const drawOne = async (question, index) => {
+        const prompt = quizPicturePrompt(question.picturePrompts?.[index] || question.options[index], style);
+        try {
+            const draw = () => callCloudflareAiImageApi(prompt, QUIZ_PICTURE_NEGATIVE_PROMPT, {}, { retries: 1, timeoutMs: 45000 });
+            let raw = await draw();
+            // The image model sometimes returns a blank black square: one more try, then give up.
+            if (await isLikelyBlackImageBase64(raw).catch(() => false)) raw = await draw();
+            if (await isLikelyBlackImageBase64(raw).catch(() => false)) throw new Error('Blank picture');
+            const base64 = await compressImageBase64(raw, 320, 320, 0.8);
+            const path = `quiz_images/${state.get('currentUserId')}/${quizDocId(classId)}_${stamp}_${question.id}_${index + 1}.jpg`;
+            return await uploadImageToStorage(base64, path, { cacheControl: 'public, max-age=31536000' });
+        } finally {
+            done += 1;
+            onProgress?.({ stage: 'pictures', done, total });
         }
-        return [];
-    }
-    for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        if (Array.isArray(val) && val.length > 0 && val.every(item => item && (item.question || item.type))) {
-            return val;
+    };
+
+    const drawn = await Promise.all(pictureQuestions.map(async (question) => {
+        const results = await Promise.allSettled(question.options.map((_, index) => drawOne(question, index)));
+        const urls = results.map((result) => (result.status === 'fulfilled' ? result.value : null));
+        return { id: question.id, urls };
+    }));
+    const byId = new Map(drawn.map((entry) => [entry.id, entry.urls]));
+    let complete = 0;
+    const out = questions.map((question) => {
+        if (!byId.has(question.id)) return question;
+        const urls = byId.get(question.id);
+        if (urls.every(Boolean)) {
+            complete += 1;
+            return { ...question, optionImages: urls };
         }
-        if (val && typeof val === 'object') {
-            const found = deepFindQuestions(val, depth + 1);
-            if (found.length > 0) return found;
-        }
-    }
-    return [];
+        console.warn('Quiz: pictures missing for a picture question, it becomes Listen and choose:', question.question);
+        return pictureToListenQuestion(question);
+    });
+    return { questions: out, drawn: complete };
 }
 
-// Walk the raw AI text character-by-character and recover every complete {…} object
-// that looks like a question. Handles truncated responses gracefully.
-function extractPartialQuestions(rawText) {
-    const found = [];
-    let depth = 0;
-    let start = -1;
-    for (let i = 0; i < rawText.length; i++) {
-        const ch = rawText[i];
-        if (ch === '{') {
-            if (depth === 0) start = i;
-            depth++;
-        } else if (ch === '}') {
-            depth--;
-            if (depth === 0 && start !== -1) {
-                try {
-                    const obj = JSON.parse(rawText.slice(start, i + 1));
-                    if (obj && obj.type && obj.question) found.push(obj);
-                } catch (_) { /* incomplete or invalid — skip */ }
-                start = -1;
-            }
-        }
-    }
-    return found;
-}
-
-export async function generateQuizQuestions(classId) {
+/**
+ * Write this week's questions. `onProgress({ stage: 'writing'|'pictures'|'saving', done, total })`
+ * lets Settings show how far it has got.
+ */
+export async function generateQuizQuestions(classId, { onProgress } = {}) {
     const quiz = await getQuizForClass(classId);
     if (!quiz || !quiz.curriculum) throw new Error('No quiz curriculum found');
 
@@ -265,82 +280,42 @@ export async function generateQuizQuestions(classId) {
 
         if (freshCount === 0) {
             const processedOnlyReview = mergeCarriedQuestions([], carried, questionCount);
+            onProgress?.({ stage: 'saving' });
             await updateQuizStatus(classId, finalStatus, processedOnlyReview);
             await setDoc(quizDocRef(classId), { expectedQuestionCount: questionCount, updatedAt: serverTimestamp() }, { merge: true });
-            return { success: true, questionCount: processedOnlyReview.length, expectedQuestionCount: questionCount, imageCount: 0, carriedCount: carried.length, status: finalStatus };
+            return { success: true, questionCount: processedOnlyReview.length, expectedQuestionCount: questionCount, imageCount: 0, carriedCount: carried.length, status: finalStatus, kinds: countKinds(processedOnlyReview) };
         }
 
-        const systemPrompt = buildGenerationPrompt();
-        const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel, freshCount);
-
-        const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
-        let parsed = null;
-        try {
-            parsed = extractJsonFromAiText(aiResult);
-        } catch (parseErr) {
-            // JSON couldn't be parsed at all — fall through to partial recovery below
-        }
-
-        // Accept { questions: [...] }, a bare array, a deeply-nested questions key,
-        // or — if the response was truncated — recover all complete question objects.
-        let questions = parsed == null ? [] :
-            Array.isArray(parsed)
-                ? parsed
-                : (Array.isArray(parsed?.questions) ? parsed.questions : deepFindQuestions(parsed));
-
-        if (questions.length === 0) {
-            // Last resort: scan the raw string for complete question objects
-            questions = extractPartialQuestions(aiResult);
-        }
-
-        const minimumFresh = Math.min(QUIZ_MIN_QUESTIONS, freshCount);
-        if (questions.length < minimumFresh || (questions.length + carried.length) < QUIZ_MIN_QUESTIONS) {
-            console.error('Quiz: not enough questions recovered. Raw AI response:', aiResult, 'Parsed:', parsed, 'Recovered:', questions);
-            throw new Error(`Only ${questions.length} question(s) recovered from AI response (need at least ${minimumFresh}). Raw response logged to console.`);
-        }
-
-        const processed = questions.slice(0, freshCount).map((q, i) => ({
-            id: `q${i + 1}`,
-            type: q.type || 'mcq',
-            question: q.question || '',
-            options: q.type === 'mcq' ? (q.options || ['A', 'B', 'C', 'D']) : [],
-            correctIndex: q.type === 'mcq' ? Math.max(0, Math.min(3, q.correctIndex || 0)) : null,
-            correctAnswer: q.correctAnswer || (q.type === 'mcq' ? ((q.options || [])[q.correctIndex || 0] || '') : ''),
-            imagePrompt: q.type === 'image' ? q.imagePrompt || '' : '',
-            imageUrl: null,
-            explanation: q.explanation || ''
-        }));
-
-        // Generate images for image-type questions and upload to Storage
-        const { uploadImageToStorage } = await import('../../utils.js');
-        const imagePromises = processed.map(async (q) => {
-            if (q.type === 'image' && q.imagePrompt) {
-                try {
-                    const ageStyle = getLeagueAiVisualStyle(quiz.questLevel);
-                    const fullPrompt = `${q.imagePrompt}, ${ageStyle}`;
-                    const rawBase64 = await callCloudflareAiImageApi(fullPrompt, '', {}, { retries: 1, timeoutMs: 30000 });
-                    const base64 = await compressImageBase64(rawBase64, 768, 768, 0.82);
-                    const storagePath = `quiz_images/${state.get('currentUserId')}/${quizDocId(classId)}_${q.id}.jpg`;
-                    q.imageUrl = await uploadImageToStorage(base64, storagePath);
-                } catch (e) {
-                    console.warn('Quiz image generation failed for question:', q.id, e);
-                }
-            }
+        const { questions: written, mix } = await writeFreshQuestions({
+            curriculum: quiz.curriculum,
+            questLevel: quiz.questLevel,
+            freshCount,
+            avoid: carried.map((question) => question.correctAnswer),
+            onProgress
         });
 
-        await Promise.allSettled(imagePromises);
+        const minimumFresh = Math.min(QUIZ_MIN_QUESTIONS, freshCount);
+        if (written.length < minimumFresh || (written.length + carried.length) < QUIZ_MIN_QUESTIONS) {
+            throw new Error(`Only ${written.length} usable question${written.length === 1 ? '' : 's'} came back from the AI (need at least ${minimumFresh}). Please try again.`);
+        }
 
+        const { questions: pictured, drawn } = await drawQuizPictures(classId, written, { questLevel: quiz.questLevel, onProgress });
+        const processed = pictured
+            .map((question, index) => sanitizeQuizQuestion(question, `q${index + 1}`))
+            .filter(Boolean);
+
+        onProgress?.({ stage: 'saving' });
         const finalQuestions = mergeCarriedQuestions(processed, carried, questionCount);
         await updateQuizStatus(classId, finalStatus, finalQuestions);
-        // Store expected question count for reference
-        await setDoc(quizDocRef(classId), { expectedQuestionCount: questionCount, updatedAt: serverTimestamp() }, { merge: true });
+        await setDoc(quizDocRef(classId), { expectedQuestionCount: questionCount, kindPlan: mix, updatedAt: serverTimestamp() }, { merge: true });
         return {
             success: true,
             questionCount: finalQuestions.length,
             expectedQuestionCount: questionCount,
-            imageCount: finalQuestions.filter(q => q.imageUrl).length,
+            imageCount: drawn * 4,
             carriedCount: carried.length,
-            status: finalStatus
+            status: finalStatus,
+            kinds: countKinds(finalQuestions)
         };
 
     } catch (error) {

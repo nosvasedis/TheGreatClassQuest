@@ -105,14 +105,31 @@ Quiz of the Week is a **live game-show review**, not a paper test. It does not r
 The page opens on a **This week** ticket: where the quiz stands (Plan, Create, Check, Play), the class's next lesson, and the one button that matters now (**Check & approve**, **Open the quiz show** or **See the results**). Below it is the plan, which folds away once questions exist (**Change the plan** opens it) and locks once the quiz has been played.
 
 1. Select the class in the header.
-2. If you have been saving Quest Assignments for this class, part 1 of the plan already shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch between Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the multiple-choice questions from that list, and the AI keeps to those words.
+2. If you have been saving Quest Assignments for this class, part 1 of the plan already shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch between Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the questions from that list, and the AI keeps to those words.
 3. If there is no book history yet, you still pick **grammar**, **vocabulary**, or a **mix**, plus topic chips and optional keywords, then Generate.
-4. The number of questions scales with class size (about three-quarters of the roster, at least 5, at most 15).
+4. The number of questions scales with class size (about three-quarters of the roster, at least 5, at most 15). The line beside **Create the quiz** shows how many of each kind of question the class will get (see **Four kinds of question** below).
 5. You can reset and generate again if the set is wrong for this week.
 6. **Use my own topics instead** opens the general topic chips for when you want to choose the focus yourself.
 7. **Before it goes live** (part 3, both off unless you tick them; the app remembers your choice per class):
-   - **Let me check the questions first.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
-   - **Bring back questions they missed.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. This is spaced review of real weak spots.
+   - **Let me check the questions first.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A Listen and choose question also shows the words the class will hear, which you can change and play with the speaker button; a Fix the sentence question shows the sentence with the mistake. A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
+   - **Bring back questions they missed.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. A question comes back as the same kind, pictures included. This is spaced review of real weak spots.
+
+### Four kinds of question
+
+Every question is still answered with A, B, C or D, so the show plays the same way. The AI mixes four kinds:
+
+| Kind | What the class sees and hears |
+|------|-------------------------------|
+| **Choose the answer** | The classic question with four written answers. |
+| **Listen and choose** | The app reads a word, a sentence or a short message aloud, and the screen shows only the question. The speaker button (or **L**) plays it again. Once the question is over, the screen shows what was said. |
+| **Picture question** | For example "Which one is a ladder?" with four small pictures. The pictures are drawn once, when the quiz is made, and their names appear only after the answer. |
+| **Fix the sentence** | A sentence with a mistake, and four versions of it below: only one is correct. |
+
+- **Younger leagues hear and see more.** Pre-Junior quizzes are mostly Listen and Picture questions and never Fix the sentence; Junior A and B get a good share of both; A to D get more Fix the sentence. A Grammar quiz leans towards Fix the sentence, a Vocabulary quiz towards pictures.
+- A quiz has **at most four picture questions**. If a picture cannot be drawn, that question becomes Listen and choose, so the class never sees a half-drawn question.
+- The app checks every question before it is saved: four different answers, exactly one marked right, and the right answers spread fairly over A, B, C and D. Long quizzes are written in a few parts, so this can take a minute or two.
+- **Test the sound** on the first screen of the show checks the projector's speakers. If the sound does not play during a question, press **L** to try again, or **show the words** and read them aloud yourself.
+- Quizzes made before these kinds existed play exactly as before.
 
 ### When it appears on Home
 
@@ -131,7 +148,7 @@ If the quiz is already **completed**, the ticket turns green and reads **See the
 The quiz opens as a **quiz-show stage** made for the projector. The first screen shows how many questions there are, the heroes on stage today (children marked absent are left out), and the three rules. Press **Raise the curtain** to start.
 
 - **The spotlight picks a hero** for each question. The names flicker for a moment, then land on one child. The choice is fair, not luck: children who have not answered in recent quizzes are called first, and nobody gets a second turn until everyone present has had one.
-- **Answer A, B, C or D.** You can click, or press the keys **1** to **4**; **Enter** moves on.
+- **Answer A, B, C or D.** You can click, or press the keys **1** to **4**; **Enter** moves on. On a Listen and choose question, the speaker button or **L** plays the words again.
 - **A wrong answer passes the question on.** The tried answer is crossed out, and the spotlight picks someone new for the same question. If nobody gets it, the stage shows the right answer and its short explanation.
 - **Skip question** is there when a question should not be played.
 - The **lights at the top** show how each question went: gold for right on the first try, green for solved after a pass, red when nobody got it. The star counter beside them counts the first tries.
@@ -139,7 +156,7 @@ The quiz opens as a **quiz-show stage** made for the projector. The first screen
 
 At the end the judges tally up, and the **curtain call** shows the class’s tier medal, first-try accuracy, stars granted and the Team Quest bonus, the **stars of the show** with what each earned, **Glory for the guilds**, the **Quiz Champion** and their treasure, and a **recap of every question** with its answer. Tapping the curtain call skips the reveal. For the rest of the week, **See the results** on Home opens the same curtain call again.
 
-Rewards land automatically, once, when the show ends. Each child is rewarded for **their own answers**, never for how the rest of the class did:
+Rewards land automatically, once, when the show ends. Every kind of question earns exactly the same. Each child is rewarded for **their own answers**, never for how the rest of the class did:
 
 | What happened | Reward |
 |---------------|--------|

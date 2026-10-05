@@ -1,6 +1,6 @@
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
-import { BOOK_ATLAS, resolveLessonTarget, buildLessonTargetSummary, parsePages, unitForPage, pageRangeForUnit, bookComponents, unitPageSets, PART_LABELS, extractAssignmentVocabulary, lessonHistoryEntry, appendLessonHistory } from './bookAtlas.mjs';
+import { BOOK_ATLAS, resolveLessonTarget, buildLessonTargetSummary, parsePages, unitForPage, bookPartOptions, hasPageMap, syncLessonRow, unitPageSets, PART_LABELS, extractAssignmentVocabulary, lessonHistoryEntry, appendLessonHistory } from './bookAtlas.mjs';
 import { getLocalIsoDateString as getTodayDateString } from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { cleanCampfireText } from './heroCampfireCore.mjs';
@@ -32,7 +32,8 @@ export async function updateBookProgressFromAssignment({ classId, text, assignme
     const entry = lessonHistoryEntry({ text, date: getTodayDateString(), assignmentId, bookPlan: old, confirmedTargets });
     history = appendLessonHistory(history, entry);
     const moveBook = !entry.unconfirmed && entry.bookId;
-    const primary = confirmedTargets?.find(t => t.bookId === entry.bookId) || null;
+    const primary = confirmedTargets?.find(t => t.bookId === entry.bookId && (t.component || 'sb') === entry.component)
+        || confirmedTargets?.find(t => t.bookId === entry.bookId) || null;
     const targets = entry.books?.length ? entry.books : old.targets || [];
     const bookPlan = moveBook ? {
         currentBookId: entry.bookId, previousBookId: old.currentBookId !== entry.bookId ? old.currentBookId || null : old.previousBookId || null,
@@ -69,6 +70,7 @@ export function attachBookRecognition(classId, { force = false } = {}) {
         const book = BOOK_ATLAS.find(b => b.id === row.bookId);
         return book?.kind === 'grammar' ? 'grammar' : 'sb';
     };
+    const partsFor = row => bookPartOptions(BOOK_ATLAS.find(b => b.id === row.bookId) || null);
     const bookOptions = selected => BOOK_ATLAS.map(b => '<option value="' + b.id + '"' + (b.id === selected ? ' selected' : '') + '>' + escape(b.title) + '</option>').join('')
         + '<option value="custom"' + (selected === 'custom' ? ' selected' : '') + '>Another book…</option>';
     const render = () => {
@@ -106,8 +108,11 @@ export function attachBookRecognition(classId, { force = false } = {}) {
     const rowFromTarget = (t = {}) => ({
         bookId: BOOK_ATLAS.some(b => b.id === t.bookId) ? t.bookId : (t.customTitle ? 'custom' : BOOK_ATLAS[0].id),
         component: t.component || 'sb', unit: t.unit || '',
-        pageText: t.pageFrom ? (t.pageTo && t.pageTo !== t.pageFrom ? t.pageFrom + '-' + t.pageTo : String(t.pageFrom)) : (t.page || ''),
-        customTitle: t.customTitle || '', customTheme: t.customTheme || ''
+        pageText: Array.isArray(t.pages) && t.pages.length ? formatPageList(t.pages)
+            : t.pageFrom ? (t.pageTo && t.pageTo !== t.pageFrom ? t.pageFrom + '-' + t.pageTo : String(t.pageFrom)) : String(t.page || ''),
+        customTitle: t.customTitle || '', customTheme: t.customTheme || '',
+        // Which of Unit / Pages the app filled in from the other (the teacher's own entry is the one to keep).
+        unitAuto: Boolean(t.unitFromPage), pagesAuto: false
     });
     const collect = () => rows.forEach((r, i) => {
         const get = name => chip.querySelector('[data-' + name + '="' + i + '"]');
@@ -118,7 +123,9 @@ export function attachBookRecognition(classId, { force = false } = {}) {
         if (get('title')) r.customTitle = get('title').value;
         if (get('theme')) r.customTheme = get('theme').value;
     });
-    const partOptions = row => bookComponents(BOOK_ATLAS.find(b => b.id === row.bookId) || null)
+    // The part already chosen always stays on the list, so the dropdown can never quietly turn it into another part.
+    const partList = row => { const parts = partsFor(row); return row.component && !parts.includes(row.component) ? [...parts, row.component] : parts; };
+    const partOptions = row => partList(row)
         .map(p => '<option value="' + p + '"' + (p === (row.component || 'sb') ? ' selected' : '') + '>' + escape(PART_LABELS[p] || p) + '</option>').join('');
     // Compress a page list back into text ("30-33, 36") so the Pages field stays editable.
     const formatPageList = list => {
@@ -142,36 +149,33 @@ export function attachBookRecognition(classId, { force = false } = {}) {
                 '<label class="text-xs font-bold text-slate-500">Part<select data-part="' + i + '" class="' + field + '">' + partOptions(row) + '</select></label>' +
                 '<label class="text-xs font-bold text-slate-500">Unit<input data-unit="' + i + '" type="number" min="1" max="99" placeholder="e.g. 4" class="' + field + '" value="' + escape(row.unit || '') + '"></label>' +
                 '<label class="text-xs font-bold text-slate-500 sm:col-span-2">Pages<input data-page="' + i + '" placeholder="e.g. 78-80" class="' + field + '" value="' + escape(row.pageText || '') + '"></label>' +
+                '<p data-maphint="' + i + '" class="text-xs text-slate-400 sm:col-span-2" hidden>This part has no page list here, so Unit and Pages do not fill each other. Type both.</p>' +
                 '<div data-sets="' + i + '" class="flex flex-wrap items-center gap-1.5 sm:col-span-2"></div>' +
                 '<label data-custom="' + i + '" class="text-xs font-bold text-slate-500 sm:col-span-2"' + customHidden + '>Book title<input data-title="' + i + '" maxlength="100" class="' + field + '" value="' + escape(row.customTitle || '') + '"></label>' +
                 '<label data-custom="' + i + '" class="text-xs font-bold text-slate-500 sm:col-span-2"' + customHidden + '>What is this unit about? (Campfire question)<input data-theme="' + i + '" maxlength="120" placeholder="e.g. my town" class="' + field + '" value="' + escape(row.customTheme || '') + '"></label>' +
                 '</div></div>';
         }).join('');
         chip.innerHTML = '<p class="mb-1 font-black text-purple-700">📘 Which books and parts did the class use?</p>' +
-            '<p class="mb-3 text-xs text-slate-500">Add a second row for a grammar book, activity book or companion. Typing pages fills the unit automatically when that part has a page map.</p>' +
+            '<p class="mb-3 text-xs text-slate-500">Add a row for each part used: Student’s Book, Activity Book, Language Booster, grammar book… When a part has a page list, typing the unit fills its pages and typing a page fills its unit.</p>' +
             '<div class="grid gap-3">' + rowHtml + '</div>' +
             '<div class="mt-3"><button type="button" data-add class="rounded-xl border-2 border-dashed border-purple-300 px-3 py-2 text-xs font-bold text-purple-600 hover:bg-purple-50">＋ Add another book</button></div>' +
             '<div class="mt-4 flex flex-wrap items-center justify-end gap-2"><button type="button" data-cancel class="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100">Cancel</button>' +
             '<button type="button" data-apply class="bubbly-button rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md">✓ Save these lessons</button></div>';
         rows.forEach((row, i) => {
             const get = name => chip.querySelector('[data-' + name + '="' + i + '"]');
-            const bookSelect = get('book'), partSelect = get('part'), unitInput = get('unit'), pageInput = get('page');
+            const bookSelect = get('book'), partSelect = get('part'), unitInput = get('unit'), pageInput = get('page'), mapHint = get('maphint');
             // Unit and Pages stay in step for THIS row's book and part, so an activity-book or companion page
-            // still lands on the right unit.
-            const unitFromPage = () => {
-                if (row.bookId === 'custom') return;
-                const page = parsePages('pp ' + pageInput.value).from;
-                if (!page) return;
-                const unit = unitForPage(row.bookId, page, row.component);
-                if (unit) { row.unit = String(unit); unitInput.value = unit; }
+            // lands on its own unit and a unit shows that part's own pages (syncLessonRow holds the rules).
+            const sync = change => {
+                row.unit = unitInput.value; row.pageText = pageInput.value;
+                Object.assign(row, syncLessonRow(row, change));
+                // Never rewrite the field the teacher is typing in.
+                if (change !== 'unit' && unitInput.value !== row.unit) unitInput.value = row.unit;
+                if (change !== 'pages' && pageInput.value !== row.pageText) pageInput.value = row.pageText;
             };
-            const pagesFromUnit = () => {
-                if (row.bookId === 'custom') return;
-                const unit = Number(unitInput.value) || null;
-                const range = unit ? pageRangeForUnit(row.bookId, unit, row.component) : null;
-                if (!range || unitForPage(row.bookId, range[0], row.component) !== unit) return;
-                row.pageText = range[0] === range[1] ? String(range[0]) : range[0] + '-' + range[1];
-                pageInput.value = row.pageText;
+            const showMapHint = () => {
+                if (!mapHint) return;
+                mapHint.hidden = row.bookId === 'custom' || hasPageMap(row.bookId, row.component);
             };
             // Senior books put a different vocabulary set on each page set. Offer those sets as chips so the
             // teacher picks the set taught; junior books (no pinned pages) show none and stay whole-unit.
@@ -186,22 +190,26 @@ export function attachBookRecognition(classId, { force = false } = {}) {
                     setEl.innerHTML = '<span class="text-xs font-bold text-slate-400">Vocabulary pages:</span>' + sets.map(s =>
                         '<button type="button" data-set="' + i + ':' + s.page + '" class="rounded-full border border-purple-200 bg-white px-2.5 py-0.5 text-xs font-bold text-purple-700 hover:bg-purple-50">p.' + s.page + ' <span class="text-slate-400">·' + s.count + '</span></button>').join('');
                     sets.forEach(s => chip.querySelector('[data-set="' + i + ':' + s.page + '"]')?.addEventListener('click', () => {
-                        const current = new Set(parsePages('pp ' + pageInput.value).list);
+                        // Pages the app filled for the whole unit are not a choice yet: the first set picked replaces them.
+                        const current = new Set(row.pagesAuto ? [] : parsePages('pp ' + pageInput.value).list);
                         if (current.has(s.page)) current.delete(s.page); else current.add(s.page);
                         pageInput.value = formatPageList([...current].sort((a, b) => a - b));
                         row.pageText = pageInput.value;
+                        row.pagesAuto = false;
                     }));
                 }).catch(() => {});
             };
             bookSelect.onchange = () => {
                 collect();
                 row.bookId = bookSelect.value;
-                if (!bookComponents(BOOK_ATLAS.find(b => b.id === row.bookId) || null).includes(row.component)) row.component = primaryComponent(row);
+                if (!partsFor(row).includes(row.component)) row.component = primaryComponent(row);
+                Object.assign(row, syncLessonRow(row, 'book'));
                 drawPicker();
             };
-            partSelect.onchange = () => { row.component = partSelect.value; unitFromPage(); enrichRow(); };
-            unitInput.oninput = () => { pagesFromUnit(); enrichRow(); };
-            pageInput.oninput = unitFromPage;
+            partSelect.onchange = () => { row.component = partSelect.value; sync('part'); showMapHint(); enrichRow(); };
+            unitInput.oninput = () => { sync('unit'); enrichRow(); };
+            pageInput.oninput = () => { const before = unitInput.value; sync('pages'); if (row.unit !== before) enrichRow(); };
+            showMapHint();
             get('remove')?.addEventListener('click', () => { collect(); rows.splice(i, 1); drawPicker(); });
             enrichRow();
         });
@@ -221,10 +229,10 @@ export function attachBookRecognition(classId, { force = false } = {}) {
                 const row = rows[i], customTitle = (row.customTitle || '').trim();
                 if (row.bookId === 'custom' && !customTitle) { chip.querySelector('[data-title="' + i + '"]')?.focus(); return; }
                 const pages = parsePages('pp ' + (row.pageText || ''));
-                const component = bookComponents(BOOK_ATLAS.find(b => b.id === row.bookId) || null).includes(row.component) ? row.component : primaryComponent(row);
+                const component = partList(row).includes(row.component) ? row.component : primaryComponent(row);
                 const unit = Number(row.unit) || (pages.from ? unitForPage(row.bookId, pages.from, component) : null) || null;
                 built.push({ bookId: row.bookId, customTitle, customTheme: cleanCampfireText(row.customTheme || '', 120), component,
-                    unit, page: pages.from, pageFrom: pages.from, pageTo: pages.to, pages: pages.list, confidence: 'high', needsConfirm: false });
+                    unit, unitFromPage: Boolean(row.unitAuto || (!Number(row.unit) && unit)), page: pages.from, pageFrom: pages.from, pageTo: pages.to, pages: pages.list, confidence: 'high', needsConfirm: false });
             }
             if (!built.length) return;
             targetsOverride = built; picking = false; confirmed = true;

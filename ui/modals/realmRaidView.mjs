@@ -1,7 +1,7 @@
 // ui/modals/realmRaidView.mjs — Realm Raid markup: the Raid Hall, the victory moment, the
 // "How it works" page. Pure string builders from a raid view (features/realmRaid.js#buildRaidView);
 // no state, no Firebase, so the preview page can use them as they are.
-import { guardianSvg, shieldSvg, ringSvg } from '../../features/realmRaidArt.mjs';
+import { guardianSvg, shieldSvg, ringSvg, gateSvg, raysSvg, crackSvg, peaksSvg } from '../../features/realmRaidArt.mjs';
 import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, guardianMood, raidCountdown, readDate } from '../../features/realmRaidCore.mjs';
 
 export function esc(value) {
@@ -26,6 +26,44 @@ function shortDate(date) {
 
 const PARTICLES = { winter: 22, carnival: 26, summer: 18 };
 
+/** The season's sky: northern lights in winter, fireworks at Carnival, a low sun in summer. */
+function skyFeature(seasonId, { lite = false } = {}) {
+    if (seasonId === 'winter') {
+        return '<span class="rr-sky__aurora rr-sky__aurora--a"></span><span class="rr-sky__aurora rr-sky__aurora--b"></span>';
+    }
+    if (seasonId === 'carnival') {
+        if (lite) return '';
+        const spots = [[14, 16, '#f472b6'], [80, 12, '#fbbf24'], [62, 30, '#38bdf8'], [30, 34, '#a3e635']];
+        return spots.map(([x, y, col], i) => `<span class="rr-sky__fw" style="--x:${x}%;--y:${y}%;--i:${i};--c:${col}">${fireworkSvg()}</span>`).join('');
+    }
+    return '<span class="rr-sky__sun"></span>';
+}
+
+function fireworkSvg() {
+    const dots = Array.from({ length: 14 }, (_, i) => {
+        const a = (i / 14) * Math.PI * 2;
+        return `<circle cx="${(50 + Math.cos(a) * 40).toFixed(1)}" cy="${(50 + Math.sin(a) * 40).toFixed(1)}" r="${i % 2 ? 2.6 : 3.6}"/>`;
+    }).join('');
+    const trails = Array.from({ length: 7 }, (_, i) => {
+        const a = (i / 7) * Math.PI * 2 + 0.2;
+        return `<path d="M${(50 + Math.cos(a) * 12).toFixed(1)},${(50 + Math.sin(a) * 12).toFixed(1)} L${(50 + Math.cos(a) * 30).toFixed(1)},${(50 + Math.sin(a) * 30).toFixed(1)}"/>`;
+    }).join('');
+    return `<svg viewBox="0 0 100 100"><g fill="var(--c)">${dots}</g><g stroke="var(--c)" stroke-width="2" stroke-linecap="round" opacity=".7">${trails}</g></svg>`;
+}
+
+/**
+ * Eldhorn at his Gate: the arch, the beams of light, the Guardian and the shield, placed in one
+ * box shaped like the Gate (1000 × 820) so every screen frames him the same way.
+ */
+export function stageHtml(season, { mood = 'proud', crown = false, rows = [], pct = 0, broken = false, focusId = '', prefix = 'rrh', lite = false, showLogos = true, coreBig = '', coreCap = '', extra = '', guardians = null } = {}) {
+    const guardian = guardians || `<div class="rr-stage__guardian">${guardianSvg(season.id, { mood, crown, id: `${prefix}g`, title: season.title })}</div>`;
+    return `<div class="rr-stage__gate">${gateSvg(season.id, { id: `${prefix}gate`, lit: broken })}</div>
+        ${lite ? '' : `<div class="rr-stage__rays">${raysSvg(season.id, { id: `${prefix}rays` })}</div>`}
+        ${guardian}
+        <div class="rr-stage__shield">${shieldSvg(season.id, rows, { pct, broken, focusId, id: `${prefix}s`, showLogos, coreBig, coreCap })}</div>
+        ${extra}`;
+}
+
 /** Sky behind the Guardian: gradient, festival light, falling snow / confetti / fireflies. */
 export function skyHtml(seasonId, { lite = false } = {}) {
     const count = lite ? 0 : PARTICLES[seasonId] || 18;
@@ -40,6 +78,8 @@ export function skyHtml(seasonId, { lite = false } = {}) {
         <span class="rr-sky__glow rr-sky__glow--a"></span>
         <span class="rr-sky__glow rr-sky__glow--b"></span>
         <span class="rr-sky__stars"></span>
+        ${skyFeature(seasonId, { lite })}
+        <div class="rr-sky__peaks">${peaksSvg(seasonId)}</div>
         <span class="rr-sky__hills"></span>
         <div class="rr-sky__bits">${bits}</div>
     </div>`;
@@ -205,10 +245,18 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
             <button type="button" class="rr-icon-btn" data-rr-close aria-label="Close" title="Close (Esc)"><i class="fas fa-xmark" aria-hidden="true"></i></button>
         </header>
         <main class="rr-main">
-            <div class="rr-arena">
-                <div class="rr-arena__guardian">${guardianSvg(season.id, { mood, id: 'rrh', title: season.title })}</div>
-                <div class="rr-arena__shield">${shieldSvg(season.id, shieldRows, { pct: status.hp ? status.dealt / status.hp : 0, broken: status.broken, focusId, id: 'rrhs' })}</div>
-                ${raid.phase === 'herald' ? `<div class="rr-arena__herald"><b>${raid.daysToStart}</b><span>${raid.daysToStart === 1 ? 'day' : 'days'} to go</span></div>` : ''}
+            <div class="rr-arena rr-stage">
+                ${stageHtml(season, {
+                    mood,
+                    crown: status.legendary,
+                    rows: shieldRows,
+                    pct: status.hp ? status.dealt / status.hp : 0,
+                    broken: status.broken,
+                    focusId,
+                    prefix: 'rrh',
+                    lite,
+                    ...(raid.phase === 'herald' ? { coreBig: String(raid.daysToStart), coreCap: raid.daysToStart === 1 ? 'day' : 'days' } : {})
+                })}
                 ${view.loading ? '<span class="rr-arena__loading"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Counting the stars…</span>' : ''}
             </div>
             ${meterHtml(view)}
@@ -259,14 +307,24 @@ export function victoryHtml(view, { legendary = false, lite = false } = {}) {
     const classes = view.rows.filter((row) => row.share > 0 || row.stars > 0).length;
     return `<div class="rr-victory rr-hall--${season.id}${legendary ? ' is-legendary' : ''}${lite ? ' rr-lite' : ''}" role="dialog" aria-modal="true" aria-labelledby="rr-victory-title">
         ${skyHtml(season.id, { lite })}
-        <div class="rr-victory__flash" aria-hidden="true"></div>
-        <div class="rr-victory__stage">
-            <div class="rr-victory__guardian rr-victory__guardian--before">${guardianSvg(season.id, { mood: 'strain', id: 'rrv1', title: season.title })}</div>
-            <div class="rr-victory__guardian rr-victory__guardian--after">${guardianSvg(season.id, { mood: 'bow', id: 'rrv2', title: season.title })}</div>
-            <div class="rr-victory__pool" aria-hidden="true"></div>
-            <div class="rr-victory__shield">${shieldSvg(season.id, view.rows, { pct: status.hp ? status.dealt / status.hp : 1, broken: true, id: 'rrvs', showLogos: !lite })}</div>
-            ${lite ? '' : `<div class="rr-victory__burst" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="--a:${i * 20}deg;--i:${i}"></i>`).join('')}</div>`}
+        <div class="rr-victory__stage rr-stage">
+            ${stageHtml(season, {
+                rows: view.rows,
+                pct: status.hp ? status.dealt / status.hp : 1,
+                broken: true,
+                prefix: 'rrv',
+                lite,
+                showLogos: !lite,
+                guardians: `<div class="rr-stage__guardian rr-victory__guardian--before">${guardianSvg(season.id, { mood: 'strain', id: 'rrv1', title: season.title })}</div>
+                    <div class="rr-stage__guardian rr-victory__guardian--after">${guardianSvg(season.id, { mood: 'bow', crown: legendary, id: 'rrv2', title: season.title })}</div>`,
+                extra: `<span class="rr-victory__glow" aria-hidden="true"></span>
+                    <div class="rr-victory__cracks">${crackSvg()}</div>
+                    <span class="rr-victory__flash" aria-hidden="true"></span>
+                    <span class="rr-victory__wave" aria-hidden="true"></span>
+                    ${lite ? '' : `<div class="rr-victory__burst" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="--a:${i * 20}deg;--i:${i}"></i>`).join('')}</div>`}`
+            })}
         </div>
+        ${lite ? '' : `<div class="rr-victory__coins" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="--x:${(i * 53 + 7) % 100}%;--d:${(2.6 + (i % 6) * 0.35).toFixed(2)}s;--t:${(2.4 + (i % 4) * 0.5).toFixed(1)}s;--r:${(i % 2 ? 1 : -1) * (200 + i * 30)}deg"></i>`).join('')}</div>`}
         <div class="rr-victory__copy">
             <span class="rr-victory__kicker">${esc(season.name)} · ${classes} ${classes === 1 ? 'class' : 'classes'} together</span>
             <h2 id="rr-victory-title" class="rr-victory__title">${legendary ? 'Legendary victory!' : 'The shield is broken!'}</h2>
@@ -295,8 +353,21 @@ export function raidCardHtml(view, { focusId = '' } = {}) {
         : raid.phase === 'herald' ? `The whole school against one shield` : `${fmt(status.dealt)} stars from ${view.rows.filter((r) => r.stars > 0).length} classes`;
     return `<div class="rr-qc rr-hall--${season.id}">
         <div class="rr-qc__art">
-            <div class="rr-qc__guardian">${guardianSvg(season.id, { mood, id: 'rrqc' })}</div>
-            <div class="rr-qc__shield">${shieldSvg(season.id, view.rows, { pct: p, broken: status.broken, focusId, id: 'rrqcs', showLogos: view.rows.length <= 12 })}</div>
+            <div class="rr-qc__sky" aria-hidden="true"><div class="rr-sky__peaks">${peaksSvg(season.id)}</div></div>
+            <div class="rr-stage rr-qc__stage">
+                ${stageHtml(season, {
+                    mood,
+                    crown: status.legendary,
+                    rows: view.rows,
+                    pct: p,
+                    broken: status.broken,
+                    focusId,
+                    prefix: 'rrqc',
+                    lite: true,
+                    showLogos: view.rows.length <= 12,
+                    ...(raid.phase === 'herald' ? { coreBig: String(raid.daysToStart), coreCap: raid.daysToStart === 1 ? 'day' : 'days' } : {})
+                })}
+            </div>
         </div>
         <div class="rr-qc__copy">
             <p class="sc-big sc-big--sm">${esc(big)}</p>

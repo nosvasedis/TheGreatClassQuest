@@ -3,9 +3,8 @@
 //   &view=hall|victory|card|help[&lite=1][&shot=1][&focus=<classId>]
 import './styles/realm_raid.css';
 import './styles/realm_raid_card.css';
-import { raidWindow, findRaid, computeShares, raidStatus, addDays, dayKey } from './features/realmRaidCore.mjs';
-import { hallHtml, howItWorksHtml, victoryHtml, raidCardHtml, skyHtml } from './ui/modals/realmRaidView.mjs';
-import { guardianSvg } from './features/realmRaidArt.mjs';
+import { raidWindow, findRaid, computeShares, raidStatus, addDays, dayKey, getRaidSeason } from './features/realmRaidCore.mjs';
+import { hallHtml, howItWorksHtml, victoryHtml, raidCardHtml, skyHtml, stageHtml } from './ui/modals/realmRaidView.mjs';
 
 const params = new URLSearchParams(location.search);
 const seasonId = ['winter', 'carnival', 'summer'].includes(params.get('season')) ? params.get('season') : 'winter';
@@ -76,8 +75,8 @@ if (viewName === 'coats') {
     root.innerHTML = `<div style="position:fixed;inset:0;display:grid;grid-template-columns:repeat(3,1fr);">${['winter', 'carnival', 'summer'].map((s, i) => `
         <div class="rr-hall--${s}" style="position:relative;overflow:hidden;display:grid;place-items:center;">
             ${skyHtml(s, { lite })}
-            <div style="position:relative;width:86%;">${guardianSvg(s, { mood: i === 1 ? 'brace' : 'proud', id: 'pc' + s })}</div>
-            <p style="position:absolute;bottom:4%;left:0;right:0;text-align:center;color:#fff;font:400 1.4rem 'Fredoka One',sans-serif;">${s[0].toUpperCase() + s.slice(1)} Coat</p>
+            <div class="rr-stage" style="width:96%;">${stageHtml(getRaidSeason(s), { mood: i === 1 ? 'brace' : 'proud', rows, pct: [0.35, 0.6, 0.8][i], prefix: 'pc' + s, lite })}</div>
+            <p style="position:absolute;bottom:4%;left:0;right:0;text-align:center;color:#fff;font:400 1.4rem 'Fredoka One',sans-serif;">${getRaidSeason(s).coat}</p>
         </div>`).join('')}</div>`;
 } else if (viewName === 'victory') {
     root.innerHTML = `<div class="rr-host rr-host--victory is-open">${victoryHtml(view, { legendary: phase === 'legendary', lite })}</div>`;

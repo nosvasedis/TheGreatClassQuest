@@ -2,33 +2,46 @@
 // stock exactly like a purchase for 0 Gold. Used by the Quiz Champion and the Realm Raid Hero.
 import { db, doc, getDocs, collection, runTransaction, where, query } from '../../firebase.js';
 import * as state from '../../state.js';
-import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemStock } from '../../utils/shopRestock.js';
+import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemShelf, shopItemStock } from '../../utils/shopRestock.js';
 import { shopMonthKey, getActiveFestival } from '../../utils/shopCalendar.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
-/** The league's current Mystic Market stall (this month's treasures and any festival stall). */
-export async function loadLeagueStall(league) {
+/**
+ * The league's current Mystic Market stall (this month's treasures and any festival stall).
+ * `festivalId` (for example `christmas-2026`) also brings in that festival's stall when it is no
+ * longer the active one, so a prize can still come from the festival it belongs to.
+ */
+export async function loadLeagueStall(league, { festivalId = '' } = {}) {
     const teacherId = state.get('currentUserId');
-    const scope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId || '' };
+    const activeFestival = getActiveFestival()?.festivalId || '';
+    const scope = { league, monthKey: shopMonthKey(), festivalId: activeFestival };
     const byId = new Map();
-    try {
+    const read = async (field, value) => {
         const snap = await getDocs(query(
             collection(db, `${PUBLIC_DATA_PATH}/shop_items`),
             where('league', '==', league),
-            where('monthKey', '==', scope.monthKey),
+            where(field, '==', value),
             where('teacherId', '==', teacherId)
         ));
         snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+    };
+    try {
+        await read('monthKey', scope.monthKey);
     } catch (error) {
         console.warn('Stall treasure: could not read the stall, using the loaded one.', error);
+    }
+    if (festivalId && festivalId !== activeFestival) {
+        await read('festivalId', festivalId).catch((error) => console.warn('Stall treasure: could not read the festival stall.', error));
     }
     // Festival stalls can belong to the month before; the live listener already holds them.
     for (const item of state.get('currentShopItems') || []) {
         if (item?.id && !byId.has(item.id) && isCurrentStallItem(item, scope)) byId.set(item.id, item);
     }
-    return [...byId.values()].filter((item) => isCurrentStallItem(item, scope) && isCompleteShopItem(item) && !item.incoming && shopItemInStock(item));
+    const wanted = (item) => isCurrentStallItem(item, scope)
+        || (festivalId && shopItemShelf(item) === 'festival' && String(item?.festivalId || '') === festivalId && item?.league === league);
+    return [...byId.values()].filter((item) => wanted(item) && isCompleteShopItem(item) && !item.incoming && shopItemInStock(item));
 }
 
 /**

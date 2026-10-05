@@ -99,7 +99,7 @@ A week before, a **Realm Raid** pill appears on Home ("Eldhorn arrives in 5 days
 | **Legendary** (120% of the shield) | Every class | **+3 Gold** more for every hero and another **2.5% step** |
 | **Valor** (a class breaks its own shard) | That class | **+2 Gold** for every hero, even if the shield holds |
 
-The **Raid Hero** is the child who struck the shield in the most of the class's raid lessons, then the most stars, then the fewest Raid Hero prizes before. Open the Raid Hall in the class's last raid lesson and press **Reveal our Raid Hero**. The treasure comes out of the class's own Mystic Market stall like a purchase (10 Gold if the stall is empty). If nobody reveals it, the app picks the hero quietly three days after the raid.
+The **Raid Hero** is the child who struck the shield in the most of the class's raid lessons, then the most stars, then the fewest Raid Hero prizes before. Open the Raid Hall in the class's last raid lesson and press **Reveal our Raid Hero**. The treasure comes from the raid's own festival stall (Christmas, Carnival or the End of Year Fair) when it has stock, otherwise from this month's stall, and is taken out of stock like a purchase (10 Gold if both are empty). If nobody reveals it, the app picks the hero quietly three days after the raid.
 
 Each teacher's app pays its own classes, once, and you get the usual notification when it does. **Nothing is ever taken away**: if the shield holds, Eldhorn bows and comes back next term.
 

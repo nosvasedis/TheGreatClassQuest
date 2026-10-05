@@ -346,7 +346,12 @@ export async function revealRaidHero(classId, v = view) {
     try {
         const { loadLeagueStall, grantStallTreasure } = await import('../db/actions/stallTreasure.js');
         const league = data.questLevel || 'A';
-        const candidates = quizPrizeCandidates(await loadLeagueStall(league), 'epic').slice(0, 5);
+        // The prize comes from the raid's own festival stall when it has stock, else this month's stall.
+        const festivalId = `${v.raid.season.festival}-${readDate(v.raid.end).getFullYear()}`;
+        const stall = await loadLeagueStall(league, { festivalId });
+        const fromFestival = stall.filter((item) => String(item.festivalId || '') === festivalId);
+        const others = stall.filter((item) => String(item.festivalId || '') !== festivalId);
+        const candidates = [...quizPrizeCandidates(fromFestival, 'epic'), ...quizPrizeCandidates(others, 'epic')].slice(0, 6);
         prize = await grantStallTreasure(entry.studentId, candidates, { league, source: 'realm_raid_hero', fallbackGold: RAID_REWARDS.heroFallbackGold });
     } catch (error) {
         console.warn('Realm Raid: the hero prize could not be given.', error);

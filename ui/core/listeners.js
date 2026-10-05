@@ -26,6 +26,7 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { showToast, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { triggerAwardEffects, playVirtuePick } from '../awardFx.js';
+import { confirmAwardPending, markAwardPending, settleAwardPending } from '../../features/awardPending.mjs';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { setupCloudDock } from './cloudDock.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
@@ -636,6 +637,26 @@ export function setupUIListeners() {
     });
 
     // --- AWARD STARS & ABSENCE HANDLING ---
+    // The cloud seals (or reopens) at once and stays that way through any redraw while the
+    // save runs; if the save fails it goes back to what is really saved, and the teacher
+    // sees the error toast.
+    const saveAwardWithOptimisticCloud = (studentId, starValue, reason) => {
+        const token = markAwardPending(studentId, starValue, reason);
+        tabs.updateAwardCardState(studentId);
+        return setStudentStarsForToday(studentId, starValue, reason)
+            .catch((error) => {
+                console.error('Star save failed:', error);
+                return false;
+            })
+            .then((saved) => {
+                const current = saved
+                    ? confirmAwardPending(studentId, token, saved)
+                    : settleAwardPending(studentId, token);
+                if (current) tabs.updateAwardCardState(studentId);
+                return saved;
+            });
+    };
+
     document.getElementById('award-stars-student-list').addEventListener('click', async (e) => {
 
         const boonBtn = e.target.closest('.boon-btn');
@@ -777,9 +798,8 @@ export function setupUIListeners() {
         // 3. Handle Undo Button
         if (undoBtn) {
             const studentId = undoBtn.closest('.student-cloud-card').dataset.studentid;
-            setStudentStarsForToday(studentId, 0, null);
             playSound('award_undo');
-            tabs.updateAwardCardState(studentId, 0, null);
+            saveAwardWithOptimisticCloud(studentId, 0, null);
             return;
         }
 
@@ -788,7 +808,7 @@ export function setupUIListeners() {
             const studentCard = reasonBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
 
-            if (state.get('todaysStars')[studentId]?.stars > 0) {
+            if (tabs.getEffectiveTodayStarsFor(studentId)?.stars > 0) {
                 showToast('Please use the undo button to change today\'s stars.', 'info');
                 return;
             }
@@ -832,6 +852,8 @@ export function setupUIListeners() {
                 showToast('Please select a reason first!', 'info');
                 return;
             }
+            // A second tap (or a tap on a cloud that just sealed) never awards twice.
+            if (studentCard.classList.contains('is-locked') || tabs.getEffectiveTodayStarsFor(studentId)?.stars > 0) return;
 
             const student = state.get('allStudents').find(s => s.id === studentId);
             const cls = state.get('allSchoolClasses').find(c => c.id === student.classId);
@@ -846,9 +868,7 @@ export function setupUIListeners() {
 
             // Optimistic UI update — respond instantly, DB transaction runs in background
             triggerDynamicPraise(student.name, starValue, reason);
-            tabs.updateAwardCardState(studentId, starValue, reason);
-
-            setStudentStarsForToday(studentId, starValue, reason);
+            saveAwardWithOptimisticCloud(studentId, starValue, reason);
 
             // --- BIRTHDAY CHECK ---
             if (utils.isSpecialOccasion(student.birthday, schedule)) {

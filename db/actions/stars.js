@@ -62,6 +62,7 @@ import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.
 import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
 import { TRAINING_HERO, normalizeHeroClass } from "../../features/heroClassNames.mjs";
+import { runAwardWriteInOrder, withWriteRetries } from "../../features/awardPending.mjs";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -75,7 +76,16 @@ export function getDailyAwardLogDocId(teacherId, studentId, date) {
     return `daily_${teacherId}_${studentId}_${date}`;
 }
 
-export async function setStudentStarsForToday(
+/**
+ * Sets a student's stars for today from this teacher. One student's writes run one after
+ * another, so an undo tapped while an award is still saving can't skip past it.
+ * Resolves to today's saved { stars, reason }, or false when the save failed (the teacher is told).
+ */
+export function setStudentStarsForToday(studentId, starValue, reason = null) {
+    return runAwardWriteInOrder(studentId, () => writeStudentStarsForToday(studentId, starValue, reason));
+}
+
+async function writeStudentStarsForToday(
     studentId,
     starValue,
     reason = null,
@@ -140,18 +150,10 @@ export async function setStudentStarsForToday(
         let isHeroBoonEligible = false;
         let heroBoonNote = "";
         const reigningHero = state.get("reigningHero");
-
-        // If they are the hero, and this is a positive star award...
-        if (reigningHero && reigningHero.id === studentId && starValue > 0) {
-            // Check if they already have stars today (we only give the bonus once)
-            const hasStarsAlready =
-                state.get("todaysStars")[studentId]?.stars > 0;
-            if (!hasStarsAlready) {
-                isHeroBoonEligible = true;
-                finalStarValue += 1; // Add the bonus star to the total
-                heroBoonNote = "🛡️ Includes Hero's Boon (+1 Bonus Star)";
-            }
-        }
+        // The Hero's Boon (+1) goes with the hero's first stars of the day. Whether stars
+        // were already given is read inside the transaction, not from local state that
+        // may not have caught up with a save still in flight.
+        const heroBoonCandidate = Boolean(reigningHero && reigningHero.id === studentId && starValue > 0);
 
         const currentTeacherId = state.get("currentUserId");
         // Values below are mutated inside the transaction (Elixir of Luck etc.),
@@ -168,10 +170,15 @@ export async function setStudentStarsForToday(
             getDailyAwardLogDocId(currentTeacherId, studentId, today),
         );
 
-        await runTransaction(db, async (transaction) => {
+        // Firestore already retries contention a few times; a busy lesson with several
+        // teachers awarding at once (or a wobbly classroom connection) gets a couple more
+        // tries before the teacher is asked to try again.
+        await withWriteRetries(() => runTransaction(db, async (transaction) => {
             /** Actual star delta applied to totalStars/monthlyStars for the daily performance log row (includes skill bonuses). */
             let appliedCreditForDailyLog = null;
             finalStarValue = baseFinalStarValue;
+            isHeroBoonEligible = false;
+            heroBoonNote = "";
             difference = 0;
             guildStarCredit = 0;
             dailyLogIdForGlory = null;
@@ -216,6 +223,12 @@ export async function setStudentStarsForToday(
                 }
             }
             const dailyAwardLogSnap = await transaction.get(dailyAwardLogRef);
+
+            if (heroBoonCandidate && !(oldStars > 0)) {
+                isHeroBoonEligible = true;
+                finalStarValue += 1; // Add the bonus star to the total
+                heroBoonNote = "🛡️ Includes Hero's Boon (+1 Bonus Star)";
+            }
 
             difference = finalStarValue - oldStars;
 
@@ -465,7 +478,7 @@ export async function setStudentStarsForToday(
                 }
                 dailyLogIdForGlory = dailyPerformanceLog ? dailyPerformanceLog.id : dailyAwardLogRef.id;
             }
-        });
+        }));
 
         if (isHeroBoonEligible) {
             const student = state
@@ -533,9 +546,18 @@ export async function setStudentStarsForToday(
         if (levelUpInfo) {
             showHeroLevelUpCelebration(levelUpInfo);
         }
+        // What today's row now says, so the cloud can show the real result straight away.
+        return {
+            stars: finalStarValue,
+            reason: finalStarValue > 0 || reason === "marked_present" ? reason : null,
+        };
     } catch (error) {
         console.error("Star update transaction failed:", error);
-        showToast("Error saving stars! Please try again.", "error");
+        const name = (state.get("allStudents") || []).find((s) => s.id === studentId)?.name;
+        showToast(name
+            ? `${name}'s stars didn't save. Please try again.`
+            : "Error saving stars! Please try again.", "error");
+        return false;
     }
 }
 

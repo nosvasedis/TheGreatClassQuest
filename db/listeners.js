@@ -14,6 +14,7 @@ import {
     updateDoc,
 } from "../firebase.js";
 import { isLegacyHeroClass, normalizeHeroClass } from "../features/heroClassNames.mjs";
+import { buildTodaysStarsMap, changedTodaysStarIds } from "../features/awardPending.mjs";
 import * as state from "../state.js";
 import { getStartOfMonthString, getTodayDateString } from "../utils.js";
 import {
@@ -1276,34 +1277,18 @@ export async function setupDataListeners(
                 const isAdventureLogVisible =
                     adventureLogTab &&
                     !adventureLogTab.classList.contains("hidden");
-                const currentTodaysStars = state.get("todaysStars");
-
-                snapshot.docChanges().forEach((change) => {
-                    const starData = change.doc.data();
-                    const studentId = starData.studentId;
-
-                    if (change.type === "added" || change.type === "modified") {
-                        currentTodaysStars[studentId] = {
-                            docId: change.doc.id,
-                            stars: starData.stars,
-                            reason: starData.reason,
-                        };
-                        if (isTabVisible) {
-                            updateAwardCardState(
-                                studentId,
-                                starData.stars,
-                                starData.reason,
-                            );
-                        }
-                    } else if (change.type === "removed") {
-                        delete currentTodaysStars[studentId];
-                        if (isTabVisible) {
-                            updateAwardCardState(studentId, 0, null);
-                        }
-                    }
-                });
-
-                state.set("todaysStars", currentTodaysStars);
+                // Rebuilt from every row (not patched per change), so a student with two
+                // rows today (an old Welcome Back marker and the award) never loses the award
+                // when one of them goes away.
+                const previousTodaysStars = state.get("todaysStars") || {};
+                const nextTodaysStars = buildTodaysStarsMap(
+                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                );
+                state.set("todaysStars", nextTodaysStars);
+                if (isTabVisible) {
+                    changedTodaysStarIds(previousTodaysStars, nextTodaysStars)
+                        .forEach((studentId) => updateAwardCardState(studentId));
+                }
                 if (isAdventureLogVisible) renderAdventureLogTab();
                 scheduleHomeRender();
             },

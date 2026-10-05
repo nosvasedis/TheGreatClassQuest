@@ -27,6 +27,7 @@ import {
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
+import { withPendingAwards } from '../../features/awardPending.mjs';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -35,6 +36,10 @@ let awardVisualSessionId = 0;
 let awardVisualClassId = null;
 const awardVisualCache = new Map();
 const awardStudentOrderCache = new Map();
+// What each cloud was last drawn from (studentId -> card HTML without the live numbers),
+// so a redraw only touches the clouds whose content actually changed.
+const awardCardSignatures = new Map();
+let awardSkySummaryHtml = null;
 
 async function getReigningProdigyForClass(classId) {
     const now = new Date();
@@ -242,7 +247,7 @@ function buildAwardClassContext(classId, studentsInClass) {
         dailyLimitReached,
         absentTodaySet,
         absentPrevSet,
-        todaysStars: state.get('todaysStars') || {},
+        todaysStars: getEffectiveTodaysStars(),
         reigningHero: state.get('reigningHero'),
         prodigySet: getCachedProdigySet(classId) || new Set(),
         prodigyMonth: getProdigyMonthName(),
@@ -335,6 +340,16 @@ function buildStudentCloudView(student, ctx, index = 0) {
     };
 }
 
+/** Today's stars as this teacher sees them, awards still saving included. */
+function getEffectiveTodaysStars() {
+    return withPendingAwards(state.get('todaysStars') || {});
+}
+
+/** The stars a hero shows today (awards still saving included). */
+export function getEffectiveTodayStarsFor(studentId) {
+    return getEffectiveTodaysStars()[studentId] || null;
+}
+
 function getClassStudents(classId) {
     return (state.get('allStudents') || []).filter((s) => s.classId === classId);
 }
@@ -347,9 +362,10 @@ function renderAwardSkySummary(classId) {
     if (!students.length) {
         el.classList.add('hidden');
         el.innerHTML = '';
+        awardSkySummaryHtml = null;
         return;
     }
-    const todaysStars = state.get('todaysStars') || {};
+    const todaysStars = getEffectiveTodaysStars();
     const today = utils.getTodayDateString();
     const awayToday = new Set((state.get('allAttendanceRecords') || []).filter((r) => r.date === today).map((r) => r.studentId));
     let shining = 0;
@@ -364,13 +380,17 @@ function renderAwardSkySummary(classId) {
             awaiting += 1;
         }
     }
-    el.innerHTML = buildAwardSkySummaryHtml({
+    const html = buildAwardSkySummaryHtml({
         shining,
         heroes: students.length,
         starsToday,
         awaiting,
         modifier: getAwardDayModifier(classId)
     });
+    if (html !== awardSkySummaryHtml || !el.firstChild) {
+        el.innerHTML = html;
+        awardSkySummaryHtml = html;
+    }
     el.classList.remove('hidden');
 }
 
@@ -391,7 +411,92 @@ function observeAwardFloat(listContainer) {
 }
 
 function renderAwardEmptyState(listContainer, message) {
+    awardCardSignatures.clear();
     listContainer.innerHTML = `<p class="aw-empty col-span-full"><i class="fas fa-cloud" aria-hidden="true"></i> ${message}</p>`;
+}
+
+/**
+ * A cloud's content without the numbers the score listener updates in place (Gold,
+ * month and year stars) or the entrance timing, so those never force a redraw.
+ */
+function awardCardSignature(view) {
+    return buildAwardCloudCardHtml({ ...view, gold: 0, month: 0, total: 0, riseDelay: 0, boon: null });
+}
+
+/** Which virtue each open (not yet sealed) cloud has picked, by student. */
+function captureAwardOpenClouds(root) {
+    const open = new Map();
+    root.querySelectorAll('.student-cloud-card').forEach((card) => {
+        const active = card.querySelector('.reason-btn.active');
+        if (active && !card.classList.contains('is-locked')) open.set(card.dataset.studentid, active.dataset.reason);
+    });
+    return open;
+}
+
+/** Reopens a redrawn cloud on the virtue the teacher had picked, quietly (no sound, no burst). */
+function restoreAwardOpenCloud(card, reason) {
+    if (!card || !reason || card.classList.contains('is-locked')) return;
+    const reasonBtn = [...card.querySelectorAll('.reason-btn')].find((btn) => btn.dataset.reason === reason);
+    const starSelector = card.querySelector('.star-selector-container');
+    if (!reasonBtn || !starSelector) return;
+    reasonBtn.classList.add('active');
+    reasonBtn.setAttribute('aria-pressed', 'true');
+    starSelector.classList.add('visible');
+    starSelector.setAttribute('data-aura', reason);
+    card.dataset.aura = reason;
+}
+
+function mountFromHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return template.content.firstElementChild;
+}
+
+/**
+ * Brings the cloud list up to date without wiping it: clouds whose content is unchanged
+ * stay exactly as they are (open virtue, float, effects), changed ones are swapped one
+ * by one and keep an open virtue, and the order follows `views`.
+ */
+function patchAwardCloudList(listContainer, views) {
+    const existing = new Map();
+    listContainer.querySelectorAll('.award-card-mount').forEach((mount) => {
+        const id = mount.querySelector('.student-cloud-card')?.dataset.studentid;
+        if (id) existing.set(id, mount);
+    });
+    if (!existing.size) listContainer.innerHTML = '';
+    const openClouds = captureAwardOpenClouds(listContainer);
+    const keep = new Set();
+    let previous = null;
+
+    for (const view of views) {
+        const id = String(view.id);
+        const signature = awardCardSignature(view);
+        let mount = existing.get(id);
+        if (!mount || awardCardSignatures.get(id) !== signature) {
+            const fresh = mountFromHtml(buildAwardCloudCardHtml(view));
+            if (!fresh) continue;
+            fresh.classList.remove('tab-mount-rise');
+            const oldCard = mount?.querySelector('.student-cloud-card');
+            const newCard = fresh.querySelector('.student-cloud-card');
+            if (oldCard?.classList.contains('is-afloat')) newCard?.classList.add('is-afloat');
+            if (mount) mount.replaceWith(fresh);
+            mount = fresh;
+            restoreAwardOpenCloud(newCard, openClouds.get(id));
+            if (newCard) awardFloatObserver?.observe(newCard);
+        }
+        awardCardSignatures.set(id, signature);
+        keep.add(mount);
+        const expected = previous ? previous.nextSibling : listContainer.firstChild;
+        if (expected !== mount) listContainer.insertBefore(mount, expected);
+        previous = mount;
+    }
+
+    [...listContainer.children].forEach((child) => {
+        if (keep.has(child)) return;
+        const id = child.querySelector?.('.student-cloud-card')?.dataset.studentid;
+        if (id) awardCardSignatures.delete(id);
+        child.remove();
+    });
 }
 
 export function renderAwardStarsTab(options = {}) {
@@ -455,12 +560,20 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         }
 
         const ctx = buildAwardClassContext(selectedClassId, studentsInClass);
-        listContainer.innerHTML = studentsInClass
-            .map((s, index) => buildAwardCloudCardHtml(buildStudentCloudView(s, ctx, fullRender ? index : 0)))
-            .join('');
-        // An in-place refresh keeps the clouds still; only a fresh visit replays the rise.
-        if (!fullRender) listContainer.querySelectorAll('.award-card-mount').forEach((m) => m.classList.remove('tab-mount-rise'));
-        observeAwardFloat(listContainer);
+        const views = studentsInClass.map((s, index) => buildStudentCloudView(s, ctx, fullRender ? index : 0));
+        if (fullRender) {
+            listContainer.innerHTML = views.map((view) => buildAwardCloudCardHtml(view)).join('');
+            awardCardSignatures.clear();
+            views.forEach((view) => awardCardSignatures.set(String(view.id), awardCardSignature(view)));
+            observeAwardFloat(listContainer);
+        } else {
+            // Live updates (often another teacher's change) patch only the clouds that
+            // changed, so an open cloud never snaps shut or flashes under the teacher.
+            const hadCards = Boolean(listContainer.querySelector('.award-card-mount'));
+            patchAwardCloudList(listContainer, views);
+            syncAwardBoonButtons(ctx);
+            if (!hadCards) observeAwardFloat(listContainer);
+        }
 
         // Last month's Prodigy comes from the network on the first visit of a month:
         // paint the clouds now, crown the prodigy when the answer lands.
@@ -504,12 +617,18 @@ export function refreshAwardCloud(studentId) {
     if (!card || !student || student.classId !== classId) return;
 
     const ctx = buildAwardClassContext(classId, getClassStudents(classId));
+    const view = buildStudentCloudView(student, ctx);
+    const signature = awardCardSignature(view);
+    if (awardCardSignatures.get(String(studentId)) === signature) return;
     const template = document.createElement('template');
-    template.innerHTML = buildAwardCloudCardHtml(buildStudentCloudView(student, ctx));
+    template.innerHTML = buildAwardCloudCardHtml(view);
     const fresh = template.content.querySelector('.student-cloud-card');
     if (!fresh) return;
+    const openReason = card.classList.contains('is-locked') ? null : card.querySelector('.reason-btn.active')?.dataset.reason;
     if (card.classList.contains('is-afloat')) fresh.classList.add('is-afloat');
     card.replaceWith(fresh);
+    restoreAwardOpenCloud(fresh, openReason);
+    awardCardSignatures.set(String(studentId), signature);
     awardFloatObserver?.observe(fresh);
     renderAwardSkySummary(classId);
 }
@@ -522,11 +641,18 @@ export function updateStudentCardAttendanceState(studentId) {
     if (activeTab && activeTab.id === 'award-stars-tab') refreshAwardCloud(studentId);
 }
 
-/** After an award or an undo: seal or reopen the cloud without redrawing it (effects are still flying). */
-export function updateAwardCardState(studentId, starsToday, reason) {
+/**
+ * After an award or an undo: seal or reopen the cloud without redrawing it (effects are
+ * still flying). The cloud always shows today's stars as this teacher sees them, an award
+ * still saving included, so a late or stale snapshot can't flip it back for a moment.
+ */
+export function updateAwardCardState(studentId) {
     const studentCard = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
     if (!studentCard) return;
 
+    const shownToday = getEffectiveTodaysStars()[studentId];
+    const starsToday = shownToday?.stars ?? 0;
+    const reason = shownToday?.reason ?? null;
     const stars = Number(starsToday) || 0;
     const locked = stars > 0 && reason !== 'welcome_back';
     const wasLocked = studentCard.classList.contains('is-locked');
@@ -570,6 +696,13 @@ export function updateAwardCardState(studentId, starsToday, reason) {
         if (finale) finale.innerHTML = buildAwardFinaleHtml(sealView);
         studentCard.querySelector('.post-award-undo-btn')?.classList.toggle('hidden', !locked);
         studentCard.removeAttribute('data-aura');
+    } else if (locked) {
+        // The saved award can be bigger than the tap (a 2x day, the Hero's Boon): keep the seal honest.
+        const sealStars = studentCard.querySelector('.aw-seal__stars');
+        if (sealStars && sealStars.textContent.trim() !== `+${shown}`) {
+            const finale = studentCard.querySelector('.aw-card__finale');
+            if (finale) finale.innerHTML = buildAwardFinaleHtml({ ...(view || {}), id: studentId, today: stars, todayReason: reason, locked });
+        }
     }
 
     if (view) {
@@ -579,6 +712,8 @@ export function updateAwardCardState(studentId, starsToday, reason) {
         const honours = studentCard.querySelector('.aw-card__honours');
         const honoursHtml = buildAwardHonoursHtml(view.honours);
         if (honours && honours.innerHTML !== honoursHtml) honours.innerHTML = honoursHtml;
+        // The cloud now matches this view, so the next live redraw leaves it (and its effects) alone.
+        awardCardSignatures.set(String(studentId), awardCardSignature(view));
     }
 
     renderAwardSkySummary(classId);
@@ -599,6 +734,15 @@ export function updateAwardBoonButtons(selectedClassId) {
     if (!studentsInClass.length) return;
 
     const ctx = buildAwardClassContext(selectedClassId, studentsInClass);
+    syncAwardBoonButtons(ctx);
+
+    // Refresh teacher boon launch button
+    renderTeacherBoonLaunchState(selectedClassId);
+    renderAwardSkySummary(selectedClassId);
+}
+
+/** Hero's Boon buttons follow the class standings in place (they are not part of a cloud's redraw signature). */
+function syncAwardBoonButtons(ctx) {
     document.querySelectorAll('#award-stars-student-list .boon-btn[data-receiver-id]').forEach((btn) => {
         const receiverId = btn.dataset.receiverId;
         const eligible = isBoonEligible(ctx, receiverId);
@@ -609,8 +753,4 @@ export function updateAwardBoonButtons(selectedClassId) {
         fresh.dataset.limit = String(ctx.dailyLimitReached);
         btn.replaceWith(fresh);
     });
-
-    // Refresh teacher boon launch button
-    renderTeacherBoonLaunchState(selectedClassId);
-    renderAwardSkySummary(selectedClassId);
 }

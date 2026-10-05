@@ -763,8 +763,6 @@
 .wall-remote button:focus-visible { outline: 3px solid #fde68a; outline-offset: 1px; }
 .wall-remote button:disabled { opacity: 0.35; cursor: default; transform: none; background: transparent; }
 .wall-remote button.is-on { color: #1e1b4b; background: #fcd34d; }
-/* The Quiet Dragon's way in (ui/quietDragonButton.js) */
-.wall-remote [data-wall-action="dragon"] { color: #fde68a; font-size: 1.15em; }
 .wall-remote .wall-remote__exit:hover { background: #ef4444; }
 .wall-remote__sep { width: 1px; height: 24px; margin: 0 4px; background: rgba(255, 255, 255, 0.35); }
 

@@ -223,3 +223,75 @@ test('speech API authenticates, refreshes rejected login once, and does not retr
     await assert.rejects(callSpeechApi('Hello'), /429/);
     assert.equal(calls, 1);
 });
+
+function memoryKv() {
+    const store = new Map();
+    return { store, async get(key) { return store.get(key) ?? null; }, async put(key, value) { store.set(key, value); } };
+}
+
+test('a named quiz voice uses Aura with that speaker and reports who spoke', async () => {
+    const worker = await workerModule();
+    const env = { ...environment(async (model, input, options) => {
+        assert.equal(model, '@cf/deepgram/aura-1');
+        assert.deepEqual(input, { text: 'The cat is under the table.', speaker: 'luna', encoding: 'mp3' });
+        assert.deepEqual(options, { returnRawResponse: true });
+        return new Response(mp3);
+    }), QUOTE_CACHE: memoryKv() };
+    const response = await worker.fetch(request({ text: 'The cat is under the table.', voice: 'Luna' }), env, {});
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Content-Type'), 'audio/mpeg');
+    assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:luna');
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), 'http://localhost:3000');
+    assert.deepEqual(new Uint8Array(await response.arrayBuffer()), mp3);
+});
+
+test('MeloTTS speaks when a voice is unknown, fails, is too long, or the daily voice budget is spent', async () => {
+    for (const scenario of ['unknown', 'fails', 'long', 'budget', 'no-kv']) {
+        const worker = await workerModule();
+        const models = [];
+        const kv = memoryKv();
+        if (scenario === 'budget') kv.store.set(`voice-chars:${new Date().toISOString().slice(0, 10)}`, '3990');
+        const env = { ...environment(async (model) => {
+            models.push(model);
+            if (model.includes('aura')) throw new Error('Voice unavailable');
+            return mp3;
+        }), QUOTE_CACHE: scenario === 'no-kv' ? undefined : kv };
+        const text = scenario === 'long' ? 'a'.repeat(401) : 'Hello there, class.';
+        const response = await worker.fetch(request({ text, voice: scenario === 'unknown' ? 'robot' : 'orion' }), env, {});
+        assert.equal(response.status, 200, scenario);
+        assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts', scenario);
+        assert.deepEqual(models, scenario === 'fails' ? ['@cf/deepgram/aura-1', '@cf/myshell-ai/melotts'] : ['@cf/myshell-ai/melotts'], scenario);
+    }
+});
+
+test('named voices count their characters against the daily budget', async () => {
+    const worker = await workerModule();
+    const kv = memoryKv();
+    const env = { ...environment(async () => new Response(mp3)), QUOTE_CACHE: kv, SPEECH_VOICE_DAILY_CHARS: '30' };
+    const first = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'stella' }), env, {});
+    assert.equal(first.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:stella');
+    const second = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'stella' }), env, {});
+    assert.equal(second.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
+    assert.equal([...kv.store.values()][0], '20');
+});
+
+test('quiz voices cache apart, name the speaker, and MeloTTS plays slower than a named voice', async t => {
+    const calls = [];
+    const narrator = await setupNarrator(t, async (text, opts) => {
+        calls.push(opts?.voice || '');
+        const blob = new Blob([mp3]);
+        blob.speechProvider = opts?.voice === 'luna' ? '@cf/deepgram/aura-1:luna' : '@cf/myshell-ai/melotts';
+        return blob;
+    });
+    const speak = (opts) => new Promise((resolve) => {
+        let info = null;
+        narrator.speakText('Same words.', { ...opts, onStart(i) { info = i; }, onEnd() { resolve(info); } });
+    });
+    assert.deepEqual(await speak({ voice: 'luna', rate: 1 }), { speaker: 'Luna' });
+    assert.equal(narrator.audios[0].playbackRate, 1);
+    assert.equal(narrator.audios[0].preservesPitch, true);
+    assert.deepEqual(await speak({ voice: 'orion', rate: 1 }), { speaker: '' });
+    assert.equal(narrator.audios[0].playbackRate, 0.88);
+    await speak({ voice: 'luna', rate: 1 });
+    assert.deepEqual(calls, ['luna', 'orion']);
+});

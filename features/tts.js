@@ -1,4 +1,5 @@
-// English narration uses MeloTTS; device voices remain the free fallback.
+// English narration uses MeloTTS, or a named cloud voice when the caller asks for one
+// (the quiz cast); device voices remain the free fallback.
 let activeSpeech = null;
 let narrationAudio = null;
 let cloudUnavailableUntil = 0;
@@ -6,6 +7,17 @@ const audioCache = new Map();
 const pendingAudio = new Map();
 const MAX_CACHE_BYTES = 12 * 1024 * 1024;
 let cacheBytes = 0;
+// MeloTTS reads quickly for young language learners; its audio plays a little slower
+// (pitch kept). Named voices already speak at a natural pace.
+const MELO_PACE = 0.88;
+
+function cacheKey(chunk, voice) { return voice ? `${voice}|${chunk}` : chunk; }
+
+/** A friendly name for whoever spoke: the named voice, or '' for MeloTTS and device voices. */
+function speakerName(provider) {
+    const voice = String(provider || '').match(/aura[^:]*:([a-z]+)/i)?.[1] || '';
+    return voice ? voice[0].toUpperCase() + voice.slice(1) : '';
+}
 
 function deviceSupported() {
     return typeof window !== 'undefined' && !!window.speechSynthesis
@@ -51,14 +63,14 @@ export function splitSpeechText(text, maxLength = 650) {
     return chunks;
 }
 
-function rememberAudio(text, blob) {
+function rememberAudio(key, blob) {
     if (blob.size > MAX_CACHE_BYTES) return;
     while (audioCache.size && (cacheBytes + blob.size > MAX_CACHE_BYTES || audioCache.size >= 48)) {
         const oldest = audioCache.keys().next().value;
         cacheBytes -= audioCache.get(oldest).size;
         audioCache.delete(oldest);
     }
-    audioCache.set(text, blob);
+    audioCache.set(key, blob);
     cacheBytes += blob.size;
 }
 
@@ -66,27 +78,28 @@ function rememberAudio(text, blob) {
  * Fetch the cloud voice for `text` ahead of time (for example while the quiz spotlight spins),
  * so speakText can start at once. Quietly does nothing when cloud speech is unavailable.
  */
-export function prefetchSpeech(text) {
+export function prefetchSpeech(text, { voice = '' } = {}) {
     const cleanText = String(text || '').trim();
     if (!cleanText || typeof Audio === 'undefined' || Date.now() < cloudUnavailableUntil) return;
     if (/[\u0370-\u03ff\u1f00-\u1fff]/u.test(cleanText)) return;
     for (const chunk of splitSpeechText(cleanText)) {
-        if (audioCache.has(chunk) || pendingAudio.has(chunk)) continue;
+        const key = cacheKey(chunk, voice);
+        if (audioCache.has(key) || pendingAudio.has(key)) continue;
         const request = import('../api.js')
-            .then(({ callSpeechApi }) => callSpeechApi(chunk))
-            .then((blob) => { rememberAudio(chunk, blob); return blob; })
+            .then(({ callSpeechApi }) => callSpeechApi(chunk, voice ? { voice } : undefined))
+            .then((blob) => { rememberAudio(key, blob); return blob; })
             .catch(() => { cloudUnavailableUntil = Date.now() + 60000; return null; })
-            .finally(() => pendingAudio.delete(chunk));
-        pendingAudio.set(chunk, request);
+            .finally(() => pendingAudio.delete(key));
+        pendingAudio.set(key, request);
     }
 }
 
 function alive(job) { return activeSpeech === job && !job.controller.signal.aborted; }
 
-function start(job) {
+function start(job, info = {}) {
     if (!alive(job) || job.started) return;
     job.started = true;
-    job.opts.onStart?.();
+    job.opts.onStart?.(info);
 }
 
 function playAudio(job, blob) {
@@ -106,11 +119,16 @@ function playAudio(job, blob) {
         };
         job.cancelPlayback = () => finish(new DOMException('Stopped', 'AbortError'));
         const timer = setTimeout(() => finish(new Error('Audio playback stalled')), 180000);
-        audio.onplaying = () => start(job);
+        audio.onplaying = () => start(job, { speaker: speakerName(blob.speechProvider) });
         audio.onended = () => finish();
         audio.onerror = () => finish(new Error('Audio playback failed'));
         audio.src = job.url;
-        audio.playbackRate = Math.max(0.7, Math.min(1.3, Number(job.opts.rate) || 1));
+        const pace = speakerName(blob.speechProvider) ? 1 : MELO_PACE;
+        const rate = Math.max(0.7, Math.min(1.3, (Number(job.opts.rate) || 1) * pace));
+        // Set after src: loading a new source resets playbackRate to defaultPlaybackRate.
+        audio.preservesPitch = true;
+        audio.defaultPlaybackRate = rate;
+        audio.playbackRate = rate;
         try { Promise.resolve(audio.play()).catch(finish); }
         catch (error) { finish(error); }
     });
@@ -165,12 +183,14 @@ function synthCancel() { if (deviceSupported()) window.speechSynthesis.cancel();
 async function narrate(job, text) {
     const hint = String(job.opts.lang || job.opts.voiceHint || 'en').toLowerCase();
     let cloud = !!job.audio && hint.startsWith('en') && !/[\u0370-\u03ff\u1f00-\u1fff]/u.test(text);
+    const voice = String(job.opts.voice || '');
     for (const chunk of splitSpeechText(text)) {
         if (!alive(job)) return;
         if (cloud) {
-            let blob = audioCache.get(chunk);
-            if (!blob && pendingAudio.has(chunk)) {
-                blob = await pendingAudio.get(chunk);
+            const key = cacheKey(chunk, voice);
+            let blob = audioCache.get(key);
+            if (!blob && pendingAudio.has(key)) {
+                blob = await pendingAudio.get(key);
                 if (!alive(job)) return;
             }
             try {
@@ -178,9 +198,9 @@ async function narrate(job, text) {
                     if (Date.now() < cloudUnavailableUntil) throw new Error('Cloud speech cooling down');
                     const { callSpeechApi } = await import('../api.js');
                     if (!alive(job)) return;
-                    blob = await callSpeechApi(chunk, { signal: job.controller.signal });
+                    blob = await callSpeechApi(chunk, voice ? { signal: job.controller.signal, voice } : { signal: job.controller.signal });
                     if (!alive(job)) return;
-                    rememberAudio(chunk, blob);
+                    rememberAudio(key, blob);
                 }
             } catch (error) {
                 if (!alive(job)) return;

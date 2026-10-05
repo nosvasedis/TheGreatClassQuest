@@ -17,6 +17,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { getAgeCategoryForLeague } from '../../utils.js';
 import { prefetchSpeech, speakText, stopSpeech } from '../../features/tts.js';
 import { countKinds, questionKind } from '../../features/quizKindsCore.mjs';
+import { quizSpeechRate, quizVoiceFor } from '../../features/quizVoices.mjs';
 import {
     computeQuizTier,
     computeQuizTrail,
@@ -210,9 +211,14 @@ function renderIntroScreen(quiz, qs, { resume = false } = {}) {
             soundBtn.classList.remove('is-speaking');
             if (label) label.textContent = text;
         };
-        speakText('Ready, Quest Heroes? Listen carefully!', {
+        // A different narrator greets the class each time, a taste of this week's cast.
+        const voice = quizVoiceFor(`sound-check-${Date.now()}`, speechBand());
+        let heard = '';
+        speakText(`Ready, Quest Heroes? I'm ${voice.name}. Listen carefully!`, {
             rate: speechRate(),
-            onEnd: () => done('Sound is working'),
+            voice: voice.id,
+            onStart: (info) => { heard = info?.speaker || ''; },
+            onEnd: () => done(heard ? `Sound is working: ${heard} spoke` : 'Sound is working'),
             onError: () => done('No sound: check the speakers')
         });
     });
@@ -222,11 +228,19 @@ function renderIntroScreen(quiz, qs, { resume = false } = {}) {
 // LISTEN AND CHOOSE
 // =============================================================================
 
-/** Slower speech for the youngest leagues. */
-function speechRate() {
+function speechBand() {
     const classData = (state.get('allSchoolClasses') || []).find((c) => c.id === currentClassId);
-    const band = getAgeCategoryForLeague(classData?.questLevel);
-    return band === 'early' ? 0.82 : band === 'junior' ? 0.9 : 0.97;
+    return getAgeCategoryForLeague(classData?.questLevel);
+}
+
+/** A natural pace, with a little more time for the younger leagues. */
+function speechRate() {
+    return quizSpeechRate(speechBand());
+}
+
+/** Each Listen and choose question has its own narrator, the same on every replay. */
+function questionVoice(question) {
+    return quizVoiceFor(question?.id || question?.listen, speechBand());
 }
 
 /** Speak the hidden words of a Listen and choose question. The class hears them; the screen never shows them until the question is over. */
@@ -236,9 +250,19 @@ function speakListen(question) {
     const help = document.querySelector('[data-quiz-listen-help]');
     help?.classList.add('hidden');
     btn?.classList.add('is-loading');
+    const narrator = document.querySelector('[data-quiz-narrator]');
     const started = speakText(question.listen, {
         rate: speechRate(),
-        onStart: () => { btn?.classList.remove('is-loading'); btn?.classList.add('is-speaking'); },
+        voice: questionVoice(question).id,
+        onStart: (info) => {
+            btn?.classList.remove('is-loading');
+            btn?.classList.add('is-speaking');
+            // Name the narrator only when that voice really spoke (not the backup voice).
+            if (narrator && info?.speaker) {
+                narrator.querySelector('b').textContent = info.speaker;
+                narrator.classList.remove('hidden');
+            }
+        },
         onEnd: () => btn?.classList.remove('is-speaking', 'is-loading'),
         onError: () => {
             btn?.classList.remove('is-speaking', 'is-loading');
@@ -310,7 +334,7 @@ function renderTurn(turn) {
     stage.querySelectorAll('.qs-answer').forEach((btn) => btn.addEventListener('click', () => handleMcqAnswer(btn, q)));
     document.getElementById('quiz-skip-btn')?.addEventListener('click', handleSkip);
     if (questionKind(q) === 'listen') {
-        prefetchSpeech(q.listen);
+        prefetchSpeech(q.listen, { voice: questionVoice(q).id });
         document.getElementById('quiz-listen-btn')?.addEventListener('click', () => {
             if (busy || document.querySelector('.qs-podium')?.classList.contains('is-rolling')) return;
             speakListen(q);

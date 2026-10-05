@@ -4,12 +4,15 @@ import { showToast } from '../effects.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { QUIZ_MIN_QUESTIONS, QUIZ_OPTION_COUNT } from '../../features/quizReviewCore.mjs';
 import { QUIZ_KIND_INFO, questionKind } from '../../features/quizKindsCore.mjs';
+import { quizSpeechRate, quizVoiceFor } from '../../features/quizVoices.mjs';
+import { getAgeCategoryForLeague } from '../../utils.js';
 
 const OVERLAY_ID = 'qow-review-overlay';
 const LETTERS = ['A', 'B', 'C', 'D'];
 
-function questionCardHtml(question, index) {
+function questionCardHtml(question, index, band = '') {
     const kind = questionKind(question);
+    const voice = kind === 'listen' ? quizVoiceFor(question.id || question.listen, band) : null;
     const info = QUIZ_KIND_INFO[kind];
     const pictures = kind === 'picture' && Array.isArray(question.optionImages) ? question.optionImages : null;
     const options = Array.from({ length: QUIZ_OPTION_COUNT }, (_, i) => question.options?.[i] || '');
@@ -18,10 +21,10 @@ function questionCardHtml(question, index) {
         : '';
     const kindBadge = `<span class="qow-review-kind qow-review-kind--${kind}"><i class="fas ${info.icon}" aria-hidden="true"></i> ${escapeHtml(info.label)}</span>`;
     const listenField = kind === 'listen' ? `
-            <label class="qow-review-label">What the class hears (spoken aloud, not shown on screen)
+            <label class="qow-review-label">What the class hears (spoken aloud by ${escapeHtml(voice.name)}, not shown on screen)
                 <span class="qow-review-listen-row">
                     <textarea class="qow-review-question" rows="2" maxlength="280" data-field="listen">${escapeHtml(question.listen || '')}</textarea>
-                    <button type="button" class="qow-review-hear" data-review-hear title="Hear it" aria-label="Hear it"><i class="fas fa-volume-high"></i></button>
+                    <button type="button" class="qow-review-hear" data-review-hear data-voice="${voice.id}" title="Hear ${escapeHtml(voice.name)} read it" aria-label="Hear it"><i class="fas fa-volume-high"></i></button>
                 </span>
             </label>` : '';
     const fixField = kind === 'fix' ? `
@@ -115,6 +118,7 @@ export async function openQuizReviewEditor(classId, { onSaved, quiz: preloadedQu
 
     document.getElementById(OVERLAY_ID)?.remove();
     const classData = (state.get('allTeachersClasses') || []).find((c) => c.id === classId);
+    const band = getAgeCategoryForLeague(classData?.questLevel);
     const inReview = quiz.status === 'review';
     const originals = quiz.questions.map((question) => ({ ...question }));
 
@@ -137,7 +141,7 @@ export async function openQuizReviewEditor(classId, { onSaved, quiz: preloadedQu
                 <button type="button" class="qow-review-close" data-review-close aria-label="Close review">&times;</button>
             </header>
             <div class="qow-review-list" data-review-list>
-                ${originals.map((question, index) => questionCardHtml(question, index).replace('data-review-card', `data-review-card data-original-index="${index}"`)).join('')}
+                ${originals.map((question, index) => questionCardHtml(question, index, band).replace('data-review-card', `data-review-card data-original-index="${index}"`)).join('')}
             </div>
             <p class="qow-review-error hidden" data-review-error role="alert"></p>
             <footer class="qow-review-footer">
@@ -176,7 +180,8 @@ export async function openQuizReviewEditor(classId, { onSaved, quiz: preloadedQu
         const hear = event.target.closest('[data-review-hear]');
         if (hear) {
             const text = hear.closest('[data-review-card]')?.querySelector('[data-field="listen"]')?.value || '';
-            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: 0.95 })).catch(() => {});
+            const voice = hear.dataset.voice || '';
+            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: quizSpeechRate(band), voice })).catch(() => {});
             return;
         }
         const deleteBtn = event.target.closest('[data-review-delete]');

@@ -33,7 +33,7 @@ async function getAuthenticatedProxyHeaders(forceRefresh = false) {
 
 // Speech has its own deadline and no generation retries: repeating a timed-out
 // request can waste the shared free AI allocation. Only rejected login tokens refresh.
-export async function callSpeechApi(text, { signal } = {}) {
+export async function callSpeechApi(text, { signal, voice = '' } = {}) {
     const controller = new AbortController();
     const abort = () => controller.abort(signal?.reason);
     if (signal?.aborted) abort();
@@ -44,7 +44,7 @@ export async function callSpeechApi(text, { signal } = {}) {
             const headers = await getAuthenticatedProxyHeaders(attempt === 1);
             const response = await fetch(cloudflareWorkerUrl, {
                 method: 'POST', headers, signal: controller.signal,
-                body: JSON.stringify({ text, lang: 'en' })
+                body: JSON.stringify(voice ? { text, lang: 'en', voice } : { text, lang: 'en' })
             });
             if (attempt === 0 && response.status === 401 && response.headers.get('X-GCQ-Error-Source') === 'firebase-token') {
                 await response.body?.cancel();
@@ -56,6 +56,8 @@ export async function callSpeechApi(text, { signal } = {}) {
             }
             const blob = await response.blob();
             if (!blob.size) throw new Error('Empty speech audio');
+            // Which model spoke (a named voice or MeloTTS) sets the playback pace.
+            blob.speechProvider = response.headers.get('X-GCQ-AI-Provider') || '';
             return blob;
         }
     } finally {

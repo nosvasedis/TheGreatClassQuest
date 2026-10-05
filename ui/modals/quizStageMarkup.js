@@ -222,6 +222,7 @@ function cueHtml(question, kind, { questionNumber, total, passed, attemptNumber 
                     </button>
                     ${text}
                 </div>
+                <p class="qs-narrator hidden" data-quiz-narrator><i class="fas fa-microphone-lines" aria-hidden="true"></i>Read by <b></b></p>
                 <p class="qs-heard hidden" data-quiz-heard><span>You heard</span>“${esc(question.listen || '')}”</p>
                 <p class="qs-listen-help hidden" data-quiz-listen-help role="status"></p>
             </section>`;

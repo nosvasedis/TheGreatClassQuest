@@ -1731,6 +1731,25 @@
     50% { opacity: 0.45; }
 }
 
+/* The narrator of this question, named once their voice is heard */
+.qs-narrator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.55rem 0 0;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+    color: #0e5a8a;
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    animation: qs-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.qs-narrator b { font-weight: 700; }
+
 /* What was heard, shown once the question is over */
 .qs-heard {
     margin: 0.75rem 0 0;

@@ -6,6 +6,15 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_FALLBACK_MODEL = 'google/gemini-3.1-flash-lite';
 const OPENROUTER_TIMEOUT_MS = 20_000;
 const SPEECH_MODEL = '@cf/myshell-ai/melotts';
+// Named voices for short lines (the quiz cast). MeloTTS answers whenever a voice is
+// unavailable or today's character budget is spent, so narration never stops.
+const VOICE_MODEL = '@cf/deepgram/aura-1';
+const VOICE_SPEAKERS = new Set(['angus', 'asteria', 'arcas', 'orion', 'orpheus', 'athena', 'luna', 'zeus', 'perseus', 'helios', 'hera', 'stella']);
+const VOICE_MAX_TEXT = 400;
+// Aura-1 costs about 1,364 neurons per 1,000 characters; the default 4,000 characters
+// keeps named voices to roughly half of the free 10,000 neurons a day, leaving pictures room.
+const VOICE_DAILY_CHARS = 4_000;
+const VOICE_TIMEOUT_MS = 12_000;
 // FLUX.2 [klein] 4B paints every image; the unmetered SDXL betas take over when FLUX
 // fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
@@ -707,6 +716,51 @@ async function handleImage(payload, env, corsHeaders) {
   return imageUnavailable(corsHeaders, quotaSpent, reason);
 }
 
+// Detect the bytes; never play an empty response or a JSON error as audio.
+function speechAudioResponse(bytes, provider, corsHeaders) {
+  const isMp3 = (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+    || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
+  const isWav = new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF'
+    && new TextDecoder().decode(bytes.slice(8, 12)) === 'WAVE';
+  if (bytes.length < 32 || bytes.length > 8 * 1024 * 1024 || !(isMp3 || isWav)) throw new Error('Invalid speech audio.');
+  return new Response(bytes, { headers: {
+    ...corsHeaders, 'Content-Type': isWav ? 'audio/wav' : 'audio/mpeg', 'Cache-Control': 'no-store',
+    'X-GCQ-AI-Provider': provider,
+  } });
+}
+
+async function reserveVoiceChars(env, length) {
+  const limit = Math.round(boundedNumber(env.SPEECH_VOICE_DAILY_CHARS, VOICE_DAILY_CHARS, 0, 50_000));
+  if (!env.QUOTE_CACHE || limit <= 0) return false;
+  const key = `voice-chars:${new Date().toISOString().slice(0, 10)}`;
+  const used = Math.max(0, Number(await env.QUOTE_CACHE.get(key)) || 0);
+  if (used + length > limit) return false;
+  await env.QUOTE_CACHE.put(key, String(used + length), { expirationTtl: 172800 });
+  return true;
+}
+
+/** A named Aura voice for a short line, or null so MeloTTS speaks instead. */
+async function namedVoice(payload, text, env, corsHeaders) {
+  const speaker = String(payload.voice || '').toLowerCase();
+  if (!VOICE_SPEAKERS.has(speaker) || text.length > VOICE_MAX_TEXT) return null;
+  try {
+    if (!(await reserveVoiceChars(env, text.length))) return null;
+    const bytes = await withDeadline((async () => {
+      const result = await env.AI.run(VOICE_MODEL, { text, speaker, encoding: 'mp3' }, { returnRawResponse: true });
+      if (result instanceof Response && !result.ok) throw new Error(`Voice inference failed (${result.status}).`);
+      const encoded = result?.audio ?? result?.result?.audio;
+      if (typeof encoded === 'string') return Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+      if (!(result instanceof Response || result instanceof ReadableStream || result instanceof Blob
+        || result instanceof ArrayBuffer || ArrayBuffer.isView(result))) throw new Error('Invalid voice result.');
+      return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
+    })(), VOICE_TIMEOUT_MS, VOICE_MODEL);
+    return speechAudioResponse(bytes, `${VOICE_MODEL}:${speaker}`, corsHeaders);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: 'gcq_voice_fallback', speaker, reason: describeAiError(error) }));
+    return null;
+  }
+}
+
 async function handleSpeech(payload, env, corsHeaders) {
   // Fail closed until this account's Workers Free plan has been verified.
   // Free accounts stop inference at the shared daily allowance; Paid accounts bill overages.
@@ -720,6 +774,8 @@ async function handleSpeech(payload, env, corsHeaders) {
   if (String(payload.lang || 'en').toLowerCase() !== 'en') {
     return json({ error: 'This narration language needs a device voice.' }, 400, corsHeaders);
   }
+  const voiced = await namedVoice(payload, text, env, corsHeaders);
+  if (voiced) return voiced;
   try {
     const bytes = await withDeadline((async () => {
       const result = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'en' });
@@ -733,16 +789,7 @@ async function handleSpeech(payload, env, corsHeaders) {
       return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
     })(), 25_000, SPEECH_MODEL);
     // The live model returns base64 WAV despite the catalog also advertising MP3.
-    // Detect the bytes; never play an empty response or a JSON error as audio.
-    const isMp3 = (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
-      || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
-    const isWav = new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF'
-      && new TextDecoder().decode(bytes.slice(8, 12)) === 'WAVE';
-    if (bytes.length < 32 || bytes.length > 8 * 1024 * 1024 || !(isMp3 || isWav)) throw new Error('Invalid speech audio.');
-    return new Response(bytes, { headers: {
-      ...corsHeaders, 'Content-Type': isWav ? 'audio/wav' : 'audio/mpeg', 'Cache-Control': 'no-store',
-      'X-GCQ-AI-Provider': SPEECH_MODEL,
-    } });
+    return speechAudioResponse(bytes, SPEECH_MODEL, corsHeaders);
   } catch (error) {
     const quota = isWorkersAiQuotaError(error);
     return json({ error: quota ? 'Free speech allowance is temporarily unavailable.' : 'Speech generation is temporarily unavailable.' },

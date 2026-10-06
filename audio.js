@@ -428,7 +428,7 @@ function getHeroVoices() {
         envelope: { attack: 0.03, decay: 0.2, sustain: 0.75, release: 0.6 },
         volume: -17
     }).connect(brassFilter);
-    brass.maxPolyphony = 20;
+    brass.maxPolyphony = 28;
     // A choir-like "aah" under the fanfare: slow sawtooth pad through a vowel-ish band.
     const choirFilter = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }).connect(bus);
     const choir = new Tone.PolySynth(Tone.Synth, {
@@ -436,7 +436,7 @@ function getHeroVoices() {
         envelope: { attack: 0.35, decay: 0.3, sustain: 0.85, release: 1.6 },
         volume: -21
     }).connect(choirFilter);
-    choir.maxPolyphony = 10;
+    choir.maxPolyphony = 20;
     const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 4200 }).connect(bus);
     const cymbal = new Tone.NoiseSynth({
         noise: { type: 'white' },
@@ -450,10 +450,31 @@ function getHeroVoices() {
         modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0, release: 0.4 },
         volume: -19
     }).connect(bus);
-    bell.maxPolyphony = 16;
+    bell.maxPolyphony = 32;
+    // The anthem's band: a singing lead with a little vibrato, a round bass and a march snare.
+    const leadFilter = new Tone.Filter({ type: 'lowpass', frequency: 3200, Q: 0.6 }).connect(bus);
+    const leadVibrato = new Tone.Vibrato({ frequency: 5.2, depth: 0.08 }).connect(leadFilter);
+    const lead = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 3, spread: 12 },
+        envelope: { attack: 0.025, decay: 0.15, sustain: 0.8, release: 0.35 },
+        volume: -15
+    }).connect(leadVibrato);
+    lead.maxPolyphony = 10;
+    const bassFilter = new Tone.Filter({ type: 'lowpass', frequency: 650, Q: 1 }).connect(bus);
+    const bass = new Tone.Synth({
+        oscillator: { type: 'fatsawtooth', count: 2, spread: 10 },
+        envelope: { attack: 0.01, decay: 0.25, sustain: 0.35, release: 0.2 },
+        volume: -10
+    }).connect(bassFilter);
+    const snareFilter = new Tone.Filter({ type: 'highpass', frequency: 1600 }).connect(bus);
+    const snare = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.002, decay: 0.13, sustain: 0, release: 0.05 },
+        volume: -19
+    }).connect(snareFilter);
     heroVoices = {
         bus, drawBus, quill, quillFilter, harp, roll, tension, tensionFilter, riser, riserFilter,
-        heartbeat, timpani, sub, brass, choir, cymbal, bell
+        heartbeat, timpani, sub, brass, choir, cymbal, bell, lead, bass, snare
     };
     return heroVoices;
 }
@@ -589,46 +610,116 @@ export function stopHeroDrawSound() {
 }
 
 /**
- * The crowning: a ground-shaking boom and a blazing D-major chord as the crown
- * lands, a herald fanfare, a timpani roll into a full final chord, a cymbal
- * wash, a choir swell and a cascade of bells.
+ * "The Hero's March": the music that bursts in the moment the hero is revealed.
+ * One bar of impact and herald call, four bars of a singing D-major theme over a
+ * march band (oom-pah brass, snare, timpani, choir, glockenspiel), then a final
+ * chord that rings out. Bars are HERO_ANTHEM_BAR seconds long so the reveal's
+ * visuals can pulse in time with it.
  */
+export const HERO_ANTHEM_BPM = 126;
+export const HERO_ANTHEM_BAR = (60 / HERO_ANTHEM_BPM) * 4;
+export const HERO_ANTHEM_FINAL_BAR = 5;
+
+// [beat within the piece, note, length in beats]; bar 1 starts at beat 4.
+const HERO_ANTHEM_MELODY = [
+    [3, 'A4', 0.3], [3.333, 'A4', 0.3], [3.667, 'A4', 0.3],
+    [4, 'D5', 1.5], [5.5, 'A4', 0.5], [6, 'D5', 0.5], [6.5, 'E5', 0.5], [7, 'F#5', 1],
+    [8, 'G5', 1.5], [9.5, 'F#5', 0.5], [10, 'E5', 1], [11, 'A4', 1],
+    [12, 'F#5', 1.5], [13.5, 'E5', 0.5], [14, 'D5', 1], [15, 'B4', 1],
+    [16, 'E5', 1], [17, 'F#5', 0.5], [17.5, 'G5', 0.5], [18, 'A5', 1], [19, 'C#6', 1],
+    [20, 'D6', 3.5]
+];
+// One chord per half bar through the theme: [chord tones, bass root].
+const HERO_ANTHEM_CHORDS = [
+    [['D4', 'F#4', 'A4'], 'D2'], [['D4', 'F#4', 'A4'], 'A1'],
+    [['D4', 'G4', 'B4'], 'G1'], [['C#4', 'E4', 'A4'], 'A1'],
+    [['D4', 'F#4', 'B4'], 'B1'], [['D4', 'G4', 'B4'], 'G1'],
+    [['E4', 'G4', 'B4'], 'E2'], [['C#4', 'E4', 'G4', 'A4'], 'A1']
+];
+
+let heroAnthemEndsAt = 0;
+
+/** Rebuild the reveal voices, dropping anything still scheduled on them. */
+function resetHeroVoices() {
+    if (!heroVoices) return;
+    Object.values(heroVoices).forEach(node => {
+        try { node.dispose?.(); } catch (_) { /* already disposed */ }
+    });
+    heroVoices = null;
+}
+
 export function playHeroCrowningSound() {
     if (ceremonyMuted || !isAudioReady()) return;
+    // A second crowning while the last anthem is still scheduled would collide on
+    // the one-voice synths, so start from fresh voices in that rare case.
+    if (heroVoices && Tone.now() < heroAnthemEndsAt) resetHeroVoices();
     const v = heroBusUp();
     if (!v) return;
-    const t0 = Tone.now() + 0.03;
-    const fifth = note => Tone.Frequency(note).transpose(7).toNote();
+    try {
+        scheduleHeroAnthem(v);
+    } catch (error) {
+        console.warn('Hero anthem could not be scheduled:', error);
+    }
+}
 
-    // Impact.
+function scheduleHeroAnthem(v) {
+    const t0 = Tone.now() + 0.03;
+    const beat = 60 / HERO_ANTHEM_BPM;
+    const at = b => t0 + b * beat;
+    const up = (note, n) => Tone.Frequency(note).transpose(n).toNote();
+
+    // Bar 0, the moment of the reveal: a ground-shaking boom, a blazing chord and bells.
     v.sub.triggerAttackRelease('D1', 1.2, t0, 1);
     v.timpani.triggerAttackRelease('D2', 0.6, t0, 1);
     v.cymbal.triggerAttackRelease(2.6, t0, 1);
-    v.brass.triggerAttackRelease(['D3', 'A3', 'D4', 'F#4', 'A4'], 0.5, t0, 0.95);
-    v.choir.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], 3.6, t0, 0.7);
+    v.brass.triggerAttackRelease(['D3', 'A3', 'D4', 'F#4', 'A4'], beat * 2.5, t0, 0.95);
+    v.choir.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], beat * 3, t0, 0.7);
     ['A5', 'D6', 'F#6', 'A6', 'D7'].forEach((note, i) => v.bell.triggerAttackRelease(note, 0.9, t0 + 0.05 + i * 0.06, 0.55));
+    // A snare build under the herald's pickup.
+    for (let b = 2, i = 0; b < 4; b += 0.25, i++) v.snare.triggerAttackRelease(0.05, at(b), 0.25 + i * 0.07);
 
-    // Herald call: ta-ta-ta TAAA, ta-ta-ta TAAA, climbing.
-    const call = [
-        [0.62, 'A4', 0.09], [0.74, 'A4', 0.09], [0.86, 'A4', 0.09], [0.98, 'D5', 0.3],
-        [1.34, 'A4', 0.09], [1.46, 'B4', 0.09], [1.58, 'C#5', 0.09], [1.7, 'E5', 0.3]
-    ];
-    call.forEach(([dt, note, dur]) => v.brass.triggerAttackRelease([note, fifth(note)], dur, t0 + dt, 0.82));
-    v.timpani.triggerAttackRelease('A1', 0.5, t0 + 0.98, 0.85);
-    v.timpani.triggerAttackRelease('A1', 0.5, t0 + 1.7, 0.85);
+    // The theme: lead brass with a glockenspiel an octave above.
+    HERO_ANTHEM_MELODY.forEach(([b, note, len]) => {
+        const dur = Math.max(0.12, len * beat * 0.92);
+        v.lead.triggerAttackRelease(b < 4 ? [note, up(note, 7)] : [note, up(note, -12)], dur, at(b), b >= 20 ? 1 : 0.85);
+        if (b >= 4) v.bell.triggerAttackRelease(up(note, 12), Math.min(dur, 0.6), at(b), 0.32);
+    });
 
-    // Roll into the final chord.
-    for (let t = 2.0, i = 0; t < 2.38; t += 0.04, i++) {
-        v.timpani.triggerAttackRelease(i % 2 ? 'A1' : 'D2', 0.1, t0 + t, 0.35 + i * 0.06);
+    // The march band, bars 1 to 4.
+    HERO_ANTHEM_CHORDS.forEach(([chord, root], half) => {
+        const hb = 4 + half * 2;
+        // Oom on the strong beat, pah on the off beat.
+        v.bass.triggerAttackRelease(root, beat * 0.8, at(hb), 0.9);
+        v.brass.triggerAttackRelease(chord, beat * 0.35, at(hb + 1), 0.45);
+        v.choir.triggerAttackRelease(chord, beat * 1.9, at(hb), 0.5);
+        v.timpani.triggerAttackRelease(root, 0.3, at(hb), 0.6);
+        // (The last half bar's snare is the roll below; one-voice synths must be scheduled in order.)
+        if (half < HERO_ANTHEM_CHORDS.length - 1) {
+            v.snare.triggerAttackRelease(0.06, at(hb + 1), 0.55);
+            v.snare.triggerAttackRelease(0.04, at(hb + 1.5), 0.25);
+        }
+        // Glockenspiel sparkle: the chord broken upwards in eighths.
+        chord.slice(0, 4).forEach((n, i) => v.bell.triggerAttackRelease(up(n, 24), 0.3, at(hb + i * 0.5), 0.14));
+    });
+    v.cymbal.triggerAttackRelease(1.8, at(4), 0.7);
+    v.cymbal.triggerAttackRelease(1.4, at(12), 0.55);
+    // A snare and timpani roll that pours into the last chord.
+    for (let b = 18, i = 0; b < 20; b += 0.125, i++) {
+        v.snare.triggerAttackRelease(0.04, at(b), 0.2 + i * 0.045);
+        if (i > 0 && i % 2 === 0) v.timpani.triggerAttackRelease(i % 4 ? 'A1' : 'D2', 0.12, at(b), 0.3 + i * 0.035);
     }
-    const fin = t0 + 2.4;
-    v.sub.triggerAttackRelease('D1', 1.4, fin, 0.95);
-    v.timpani.triggerAttackRelease('D2', 0.8, fin, 1);
-    v.cymbal.triggerAttackRelease(3, fin, 0.95);
-    v.brass.triggerAttackRelease(['D3', 'A3', 'D4', 'F#4', 'A4', 'D5'], 2.2, fin, 0.95);
-    v.choir.triggerAttackRelease(['A3', 'D4', 'F#4', 'A4', 'D5', 'F#5'], 3, fin, 0.8);
-    ['D6', 'F#6', 'A6', 'D7', 'F#7', 'A7', 'D7', 'A6'].forEach((note, i) =>
-        v.bell.triggerAttackRelease(note, 1, fin + 0.08 + i * 0.08, 0.6 - i * 0.03));
+
+    // The final chord (bar 5): everything at once, then the bells cascade down.
+    const fin = at(HERO_ANTHEM_FINAL_BAR * 4);
+    heroAnthemEndsAt = fin + 3.5;
+    v.sub.triggerAttackRelease('D1', 1.6, fin, 0.95);
+    v.timpani.triggerAttackRelease('D2', 0.9, fin, 1);
+    v.cymbal.triggerAttackRelease(3.2, fin, 1);
+    v.bass.triggerAttackRelease('D2', 2.4, fin, 1);
+    v.brass.triggerAttackRelease(['D3', 'A3', 'D4', 'F#4', 'A4', 'D5'], 2.6, fin, 0.95);
+    v.choir.triggerAttackRelease(['A3', 'D4', 'F#4', 'A4', 'D5', 'F#5'], 3.4, fin, 0.8);
+    ['D7', 'A6', 'F#6', 'D6', 'A5', 'F#6', 'A6', 'D7'].forEach((note, i) =>
+        v.bell.triggerAttackRelease(note, 1.1, fin + 0.1 + i * 0.09, 0.55 - i * 0.03));
 }
 
 /** Fade out whatever the Hero of the Day reveal still has scheduled. */

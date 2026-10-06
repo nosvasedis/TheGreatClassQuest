@@ -29,6 +29,14 @@ const HOD_PETALS = Array.from({ length: 28 }, (_, i) =>
 const HOD_SPARKS = Array.from({ length: 16 }, (_, i) =>
     `<i class="hod-spark" style="--a:${i * 22.5}deg;--d:${i % 2 ? 118 : 150}px"></i>`).join('');
 
+/** Confetti that fires up from the banner on the anthem's final chord. */
+const HOD_CONFETTI = Array.from({ length: 22 }, (_, i) =>
+    `<i class="hod-confetti__bit" style="--a:${(i * 163) % 360}deg;--d:${150 + (i * 53) % 170}px;--r:${(i * 97) % 720}deg;--i:${i}"></i>`).join('');
+
+/** Music notes that drift up beside the banner while the anthem plays. */
+const HOD_NOTES = Array.from({ length: 10 }, (_, i) =>
+    `<i class="hod-note" style="--n:${i};--side:${i % 2 ? 1 : -1}">${i % 3 ? '♪' : '♫'}</i>`).join('');
+
 export const heroModalsHTML = `
     <div id="hero-celebration-modal" class="hod-modal fixed inset-0 z-[95] hidden" role="dialog" aria-modal="true" aria-labelledby="hero-celebration-name">
         <!-- Tournament pavilion: striped canvas, scalloped valance, bunting -->
@@ -102,6 +110,8 @@ export const heroModalsHTML = `
                 </div>
             </div>
             <p class="hod-skip" id="hero-celebration-skip">Tap to reveal now</p>
+            <div class="hod-notes" aria-hidden="true">${HOD_NOTES}</div>
+            <div class="hod-confetti" aria-hidden="true">${HOD_CONFETTI}</div>
         </div>
     </div>
 

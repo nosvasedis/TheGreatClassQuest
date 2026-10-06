@@ -107,6 +107,28 @@ export function startHeroOfDayReveal({ hero, contenders = [], reasonText = 'The 
     if (dateEl) dateEl.textContent = formatToday();
     avatarEl.innerHTML = faceHtml(hero);
 
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const crest = modal.querySelector('.hod-crest');
+    modal.classList.remove('hod-finale');
+
+    // The Hero's March plays from the moment of the reveal: the crest thumps on
+    // every bar of the theme and confetti fires on the final chord.
+    const keepTimeWithAnthem = () => {
+        const bar = (audio?.HERO_ANTHEM_BAR || 1.905) * 1000;
+        const finalBar = audio?.HERO_ANTHEM_FINAL_BAR || 5;
+        for (let n = 1; n <= finalBar; n++) {
+            later(() => {
+                if (token !== runToken) return;
+                if (crest) {
+                    crest.classList.remove('is-beat');
+                    void crest.offsetWidth;
+                    crest.classList.add('is-beat');
+                }
+                if (n === finalBar) modal.classList.add('hod-finale');
+            }, n * bar);
+        }
+    };
+
     const reveal = (skipped = false) => {
         if (token !== runToken || modal.dataset.phase === 'reveal') return;
         clearTimers();
@@ -116,11 +138,11 @@ export function startHeroOfDayReveal({ hero, contenders = [], reasonText = 'The 
         modal.dataset.phase = 'reveal';
         audio?.playHeroCrowningSound?.();
         if (stage) stage.onclick = null;
+        if (!reduceMotion) keepTimeWithAnthem();
         later(() => document.getElementById('hero-celebration-close-btn')?.focus({ preventScroll: true }), 1200);
     };
 
     const ring = pickContenders(hero, contenders);
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (ring.length < 2 || reduceMotion) {
         drawEl.innerHTML = '';
         modal.classList.remove('hod-tense');
@@ -201,6 +223,6 @@ export function stopHeroOfDayReveal(audio = null) {
     const modal = document.getElementById('hero-celebration-modal');
     const stage = modal?.querySelector('.hod-stage');
     if (stage) stage.onclick = null;
-    modal?.classList.remove('hod-tense');
+    modal?.classList.remove('hod-tense', 'hod-finale');
     audio?.stopHeroRevealSound?.();
 }

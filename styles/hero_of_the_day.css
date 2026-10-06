@@ -508,6 +508,9 @@
 }
 
 /* ── Phases ── */
+/* One bar of the Hero's March (audio.js HERO_ANTHEM_BAR at 126 bpm); the second wave of
+   the crowning lands on bar 1, where the theme comes in. */
+.hod-modal { --hod-bar: 1.905s; }
 .hod-modal[data-phase="draw"] .hod-stage { cursor: pointer; }
 .hod-modal[data-phase="reveal"] .hod-skip { opacity: 0; }
 .hod-modal[data-phase="reveal"] .hod-draw { opacity: 0; transform: scale(0.85); pointer-events: none; }
@@ -520,21 +523,21 @@
 .hod-modal[data-phase="reveal"] .hod-banner {
     animation:
         hod-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97),
-        hod-shake-soft 0.4s 2.4s cubic-bezier(0.36, 0.07, 0.19, 0.97),
+        hod-shake-soft 0.4s var(--hod-bar) cubic-bezier(0.36, 0.07, 0.19, 0.97),
         hod-sway 7s 3s ease-in-out infinite;
 }
 .hod-modal[data-phase="reveal"] .hod-flash { animation: hod-flash 1s ease-out; }
 .hod-modal[data-phase="reveal"] .hod-rays {
     animation:
         hod-rays-in 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) forwards,
-        hod-rays-pulse 0.9s 2.4s ease-out;
+        hod-rays-pulse 0.9s var(--hod-bar) ease-out;
 }
 .hod-modal[data-phase="reveal"] .hod-shock::before { animation: hod-shock 0.85s ease-out; }
-.hod-modal[data-phase="reveal"] .hod-shock::after { animation: hod-shock 0.85s 2.4s ease-out; }
+.hod-modal[data-phase="reveal"] .hod-shock::after { animation: hod-shock 0.85s var(--hod-bar) ease-out; }
 .hod-modal[data-phase="reveal"] .hod-spark { animation: hod-spark 1s 0.05s cubic-bezier(0.15, 0.7, 0.3, 1) forwards; }
 .hod-modal[data-phase="reveal"] .hod-avatar { animation: hod-avatar-glow 1.6s 0.6s ease-in-out infinite alternate; }
-.hod-modal[data-phase="reveal"] .hod-name { animation: hod-name-slam 0.5s 2.4s cubic-bezier(0.3, 1.6, 0.5, 1); }
-.hod-modal[data-phase="reveal"] .hod-name::after { animation: hod-gleam 3.6s 2.4s ease-in-out infinite; }
+.hod-modal[data-phase="reveal"] .hod-name { animation: hod-name-slam 0.5s var(--hod-bar) cubic-bezier(0.3, 1.6, 0.5, 1); }
+.hod-modal[data-phase="reveal"] .hod-name::after { animation: hod-gleam 3.6s var(--hod-bar) ease-in-out infinite; }
 @keyframes hod-flash {
     0% { opacity: 0; }
     7% { opacity: 1; }
@@ -569,6 +572,10 @@
 @keyframes hod-shock {
     0% { opacity: 1; transform: scale(0.5); }
     100% { opacity: 0; transform: scale(3.2); }
+}
+@keyframes hod-shock-finale {
+    0% { opacity: 1; transform: scale(0.5); }
+    100% { opacity: 0; transform: scale(3.6); }
 }
 @keyframes hod-spark {
     0% { opacity: 1; transform: rotate(var(--a)) translateX(30px) scaleX(1.6); }
@@ -619,12 +626,90 @@
 .hod-petal:nth-child(3n) { background: #c4432b; }
 .hod-petal:nth-child(3n + 1) { background: #fff3c4; width: 9px; height: 12px; }
 .hod-modal[data-phase="reveal"] .hod-petal {
-    animation: hod-petal-fall 3.4s calc(0.3s + var(--i) * 0.09s + var(--wave, 0) * 2.3s) ease-in forwards;
+    animation: hod-petal-fall 3.4s calc(0.3s + var(--i) * 0.09s + var(--wave, 0) * (var(--hod-bar) - 0.1s)) ease-in forwards;
 }
 .hod-petal:nth-child(even) { --drift: -60px; }
 @keyframes hod-petal-fall {
     0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
     100% { opacity: 0.9; transform: translate(var(--drift, 60px), 108vh) rotate(540deg); }
+}
+
+/* ── In time with the Hero's March ── */
+/* Each bar's downbeat: the crest thumps and the sunburst flares (class toggled by heroOfDayReveal.js). */
+.hod-crest.is-beat { animation: hod-thump 0.42s cubic-bezier(0.3, 1.5, 0.5, 1); }
+@keyframes hod-thump {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.07); }
+    100% { transform: scale(1); }
+}
+
+/* Music notes drifting up beside the banner while the theme plays. */
+.hod-notes {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+.hod-note {
+    position: absolute;
+    left: calc(var(--side) * min(206px, 40vw) - 10px);
+    top: calc(var(--n) * 14px - 60px);
+    font-style: normal;
+    font-size: 2.1rem;
+    line-height: 1;
+    color: #fff3c4;
+    text-shadow: 0 2px 0 #8a5512, 0 0 10px rgba(242, 193, 78, 0.8);
+    opacity: 0;
+}
+.hod-note:nth-child(3n) { color: #f2c14e; }
+.hod-modal[data-phase="reveal"] .hod-note {
+    animation: hod-note-rise 2.6s calc(var(--hod-bar) + var(--n) * (var(--hod-bar) / 2.5)) ease-out forwards;
+}
+@keyframes hod-note-rise {
+    0% { opacity: 0; transform: translate(0, 30px) rotate(0deg) scale(0.6); }
+    15% { opacity: 1; transform: translate(calc(var(--side) * 8px), 0) rotate(calc(var(--side) * -8deg)) scale(1); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: translate(calc(var(--side) * 30px), -170px) rotate(calc(var(--side) * 14deg)) scale(0.9); }
+}
+
+/* Confetti fired up from the medallion on the final chord. */
+.hod-confetti {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+.hod-confetti__bit {
+    position: absolute;
+    width: 10px;
+    height: 6px;
+    margin: -3px 0 0 -5px;
+    border-radius: 1px;
+    background: #f2c14e;
+    opacity: 0;
+}
+.hod-confetti__bit:nth-child(4n) { background: #c4432b; }
+.hod-confetti__bit:nth-child(4n + 1) { background: #fff3c4; }
+.hod-confetti__bit:nth-child(4n + 2) { background: #2a4fa3; }
+.hod-modal.hod-finale .hod-confetti__bit {
+    animation: hod-confetti 2.4s calc(var(--i) * 0.012s) cubic-bezier(0.15, 0.75, 0.35, 1) forwards;
+}
+@keyframes hod-confetti {
+    0% { opacity: 1; transform: rotate(var(--a)) translateY(0) rotate(0deg); }
+    55% { opacity: 1; transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) rotate(var(--r)); }
+    100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--d) * -1.1)) translateX(20px) rotate(calc(var(--r) * 1.5)); }
+}
+.hod-modal.hod-finale .hod-shock::before { animation: hod-shock-finale 0.9s ease-out; }
+.hod-modal.hod-finale .hod-flash { animation: hod-flash-soft 0.9s ease-out; }
+@keyframes hod-flash-soft {
+    0% { opacity: 0.55; }
+    100% { opacity: 0; }
 }
 
 @media (max-width: 480px) {
@@ -652,5 +737,10 @@
     .hod-modal[data-phase="reveal"] .hod-name::after,
     .hod-rays::before { animation: none; }
     .hod-modal[data-phase="reveal"] .hod-rays { animation: none; opacity: 0.6; transform: none; }
+    .hod-crest.is-beat,
+    .hod-modal[data-phase="reveal"] .hod-note,
+    .hod-modal.hod-finale .hod-confetti__bit,
+    .hod-modal.hod-finale .hod-shock::before,
+    .hod-modal.hod-finale .hod-flash { animation: none; }
     .hod-modal[data-phase="reveal"] .hod-crown { animation: none; opacity: 1; transform: none; }
 }

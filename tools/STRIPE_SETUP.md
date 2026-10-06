@@ -38,6 +38,13 @@ with your accountant or invoicing app. Checkout collects the school's address an
 5. For real payments: repeat with your **live** key and `npm run stripe:setup -- --live`, then
    deploy Functions again.
 
+**Important when only keys or ids changed:** Firebase skips functions whose code did not change,
+so after `stripe:setup` force the payment functions to redeploy:
+
+```bash
+FUNCTIONS_DEPLOY_UNCHANGED=true npm run deploy:functions -- --only functions:billingCreateCheckout,functions:billingCreatePortal,functions:stripeWebhook,functions:stripeSummerPause,functions:opDeleteSchool
+```
+
 The manual steps below are the same thing done by hand.
 
 ## Manual way

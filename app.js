@@ -576,22 +576,22 @@ async function openSecretaryConsole({ loadingScreen, authScreen }) {
 // What the plan screen says for each situation. Families never see prices.
 const PLAN_SCREEN_COPY = {
     pending: {
-        eyebrow: 'Choose your plan',
-        headline: 'Bring the Quest to your whole school',
-        lead: 'Your school is ready. Pick the plan that fits; you can change it any time.'
+        eyebrow: 'Your adventure starts here',
+        headline: 'Make every lesson an adventure',
+        lead: 'Your school is ready. Choose the plan that fits and start your Quest today.'
     },
     expired: {
-        eyebrow: 'Your plan has ended',
-        headline: 'Pick up right where you left off',
-        lead: 'Renew to unlock the app again. Everything your school created is safe and waiting.'
+        eyebrow: 'Welcome back',
+        headline: 'Your Quest is waiting for you',
+        lead: 'Renew your plan and pick up exactly where you left off. Every star, story and diary page is safe and waiting.'
     },
     suspended: {
-        eyebrow: 'Access paused',
-        paused: 'Your school’s access is paused for now. Nothing has been deleted. Please contact us to turn it back on.'
+        eyebrow: 'A short pause',
+        paused: 'Your school’s access is paused for now, and everything you have created is safe. Get in touch with us and we will have you back on your Quest in no time.'
     },
     family: {
         eyebrow: 'A short pause',
-        paused: 'Your child’s school has paused The Great Class Quest for now. Please contact the school office. Nothing has been lost.'
+        paused: 'Your child’s school has paused The Great Class Quest for a little while. Every star and story is safe. Please contact the school office for more.'
     }
 };
 
@@ -626,6 +626,8 @@ function showSubscribeScreen(loadingScreen, authScreen, { audience = 'staff' } =
     }
     byId('subscribe-refresh-hint')?.classList.toggle('hidden', !canBuy);
     byId('subscribe-signout-btn').onclick = () => signOut(auth).catch(() => {});
+    const backToPlans = byId('subscribe-back-to-plans');
+    if (backToPlans) backToPlans.onclick = () => byId('subscribe-plan-cards')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Yearly / Monthly switch: shows that price on every plan and is what checkout uses.
     let billingInterval = 'year';

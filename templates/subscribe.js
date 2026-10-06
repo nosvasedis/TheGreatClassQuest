@@ -8,46 +8,46 @@ const PLANS = [
     {
         tier: 'starter',
         name: 'Starter',
-        tagline: 'The heart of the Quest for a small school.',
+        tagline: 'Turn every lesson into an adventure your students can’t wait for.',
         accent: { ring: 'ring-slate-200', chip: 'bg-slate-100 text-slate-700', check: 'text-slate-500', button: 'bg-slate-800 hover:bg-slate-900 text-white' },
         features: [
-            'Award Stars for the four virtues',
-            'Team Quest map & Hero’s Challenge',
-            'Ceremony of the Month',
-            'Mystic Market & Quest Bounties',
-            'Projector Mode for the classroom',
-            'Up to 3 teachers · 6 classes'
+            'Stars for teamwork, creativity, respect and focus',
+            'A Team Quest map your classes race across',
+            'A monthly Ceremony your students count the days to',
+            'A Mystic Market where hard-earned gold buys real rewards',
+            'Projector Mode that brings your board to life',
+            'Up to 3 teachers and 6 classes'
         ]
     },
     {
         tier: 'pro',
         name: 'Pro',
-        tagline: 'Everything most φροντιστήρια need.',
+        tagline: 'The complete Quest for a thriving language school, with parents on board.',
         popular: true,
         accent: { ring: 'ring-indigo-400', chip: 'bg-indigo-100 text-indigo-700', check: 'text-indigo-500', button: 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white' },
         features: [
-            'Everything in Starter',
-            'Guilds & the Sorting Ceremony',
-            'Hero Classes & Skill Tree',
-            'Adventure Log, Calendar & Attendance',
-            'Scholar’s Scroll for tests & dictations',
-            'Family Portal for parents',
-            'Up to 6 teachers · 10 classes'
+            'Everything in Starter, plus:',
+            'Four Guilds and a magical Sorting Ceremony',
+            'Hero Classes and Skill Trees that reward real growth',
+            'A class diary, calendar and attendance in one place',
+            'Scholar’s Scroll for tests and dictations',
+            'A Family Portal where parents follow every step',
+            'Up to 6 teachers and 10 classes'
         ]
     },
     {
         tier: 'elite',
         name: 'Elite',
-        tagline: 'The whole school, with AI that saves hours.',
+        tagline: 'The full magic for your whole school, with AI that gives you hours back every week.',
         accent: { ring: 'ring-fuchsia-300', chip: 'bg-fuchsia-100 text-fuchsia-700', check: 'text-fuchsia-500', button: 'bg-gradient-to-r from-fuchsia-600 to-rose-500 hover:from-fuchsia-700 hover:to-rose-600 text-white' },
         features: [
-            'Everything in Pro',
-            'AI Adventure Log, reports & certificates',
-            'Quiz of the Week & Story Weavers',
-            'Familiars & AI hero avatars',
-            'School Office for your secretary',
-            'Unlimited teachers & classes',
-            'Priority support'
+            'Everything in Pro, plus:',
+            'AI that writes the class diary, reports and certificates',
+            'Quiz of the Week and Story Weavers',
+            'Familiars and a hero portrait for every student',
+            'A School Office for your secretary',
+            'Unlimited teachers and classes',
+            'Priority support from a real person'
         ]
     }
 ];
@@ -81,23 +81,32 @@ function planCard(plan) {
                 Choose ${plan.name}
             </button>
             <ul class="space-y-2.5 text-sm text-slate-700">
-                ${plan.features.map((feature) => `<li class="flex gap-2.5"><i class="fas fa-check mt-0.5 ${accent.check}" aria-hidden="true"></i><span>${feature}</span></li>`).join('')}
+                ${plan.features.map((feature) => (feature.endsWith('plus:')
+                    ? `<li class="pb-1 text-xs font-black uppercase tracking-wider text-slate-500">${feature}</li>`
+                    : `<li class="flex gap-2.5"><i class="fas fa-check mt-0.5 ${accent.check}" aria-hidden="true"></i><span>${feature}</span></li>`)).join('')}
             </ul>
         </article>`;
 }
 
+const OUTCOMES = [
+    ['🌟', 'Students who can’t wait for English', 'Stars, guilds and quests turn effort and kindness into something every child wants to earn.'],
+    ['⏳', 'Teachers with hours back', 'Diaries, reports and quizzes that used to take evenings are ready in minutes.'],
+    ['💌', 'Parents who see it all', 'Families follow progress, homework and every proud moment from home.']
+];
+
 const PROMISES = [
-    ['fa-sun', 'Summer is free', 'Monthly plans are charged September to June only. Access stays on all summer.'],
-    ['fa-calendar-check', 'Built for the school year', 'Yearly renews every 1 September. Join mid-year and pay only for the months left.'],
-    ['fa-arrow-right-arrow-left', 'Change any time', 'Switch plan or cancel from School Office. Cancelling ends at the close of what you paid for.'],
-    ['fa-lock', 'Secure payment', 'Cards are handled by Stripe. We never see your card details.']
+    ['fa-sun', 'Summer is on us', 'Monthly plans are charged September to June only, and your school stays open all summer.'],
+    ['fa-calendar-check', 'Made for the school year', 'Yearly renews every 1 September. Join mid-year and pay only for the months left.'],
+    ['fa-arrow-right-arrow-left', 'Free to change', 'Move up a plan or cancel any time. Cancelling simply ends with the period you paid for.'],
+    ['fa-shield-heart', 'Safe and secure', 'Payments are handled by Stripe. Your school’s work is never deleted if a plan ends.']
 ];
 
 const FAQ = [
-    ['When am I charged?', 'Yearly: today for the rest of this school year, then every 1 September. Monthly: on the 1st of each month from September to June. If you start in July or August, the first charge is on 1 September.'],
-    ['Do prices include VAT?', 'Prices are before VAT. Greek VAT (24%) is added at checkout, where you can also enter your ΑΦΜ for the invoice.'],
-    ['Is our work safe if a plan ends?', 'Yes. If a plan ends or a payment fails, the app locks, but nothing your school created is deleted. Renew and everything is exactly where you left it.'],
-    ['Do you have a founding-school offer?', 'The first schools that join get a code for an extra discount on their first year. Enter it on the payment page.']
+    ['When will we be charged?', 'Yearly: today for the rest of this school year, then once every 1 September. Monthly: on the 1st of each month from September to June. Starting in July or August? Your first charge waits until 1 September.'],
+    ['Do prices include VAT?', 'Prices are before VAT. Greek VAT (24%) is added at checkout, where you can also add your ΑΦΜ so your invoice is ready for your accountant.'],
+    ['What happens to our work if a plan ends?', 'Nothing is lost. The app simply pauses, and the moment you renew, every star, story and diary page is exactly where you left it.'],
+    ['Can we change plans later?', 'Of course. Move up when your school grows, or switch between monthly and yearly, straight from your School Office.'],
+    ['Is there a founding-school offer?', 'Yes. The first schools to join receive a code for an extra discount on their first year. Enter it on the payment page.']
 ];
 
 export const subscribeHTML = `
@@ -122,12 +131,21 @@ export const subscribeHTML = `
 
             <section class="mx-auto mt-6 max-w-3xl text-center">
                 <p id="subscribe-eyebrow" class="text-sm font-black uppercase tracking-[0.25em] text-indigo-500">Choose your plan</p>
-                <h1 id="subscribe-headline" class="mt-3 font-title text-4xl leading-tight text-indigo-950 sm:text-5xl">Bring the Quest to your whole school</h1>
-                <p id="subscribe-lead" class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">Pick the plan that fits. You can change it any time.</p>
+                <h1 id="subscribe-headline" class="mt-3 font-title text-4xl leading-tight text-indigo-950 sm:text-5xl">Make every lesson an adventure</h1>
+                <p id="subscribe-lead" class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">Your school is ready. Choose the plan that fits and start your Quest today.</p>
             </section>
 
             <div id="subscribe-plans">
-                <div class="mt-8 flex justify-center">
+                <div class="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-3">
+                    ${OUTCOMES.map(([emoji, title, text]) => `
+                        <div class="rounded-2xl bg-white/70 p-4 text-center ring-1 ring-white">
+                            <div class="text-3xl" aria-hidden="true">${emoji}</div>
+                            <h3 class="mt-2 font-bold text-indigo-950">${title}</h3>
+                            <p class="mt-1 text-sm text-slate-600">${text}</p>
+                        </div>`).join('')}
+                </div>
+
+                <div class="mt-10 flex justify-center">
                     <div id="subscribe-interval-switch" class="inline-flex rounded-full bg-white p-1.5 shadow-sm ring-1 ring-slate-200" role="group" aria-label="How would you like to pay?">
                         <button type="button" data-billing-interval="year" aria-pressed="true" class="rounded-full px-5 py-2 text-sm font-bold">
                             Yearly <span class="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">save ~20%</span>
@@ -138,7 +156,7 @@ export const subscribeHTML = `
                     </div>
                 </div>
 
-                <div class="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
+                <div id="subscribe-plan-cards" class="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3 md:items-start">
                     ${PLANS.map(planCard).join('')}
                 </div>
 
@@ -167,8 +185,14 @@ export const subscribeHTML = `
                                 <p class="mt-2 text-sm text-slate-600">${answer}</p>
                             </details>`).join('')}
                     </div>
-                    <p class="mt-6 text-center text-xs text-slate-500">All prices are per school and before VAT (24%).</p>
                 </section>
+
+                <section class="mx-auto mt-12 max-w-3xl rounded-3xl bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 p-8 text-center text-white shadow-xl">
+                    <h2 class="font-title text-3xl">Tomorrow’s lesson could be the first chapter</h2>
+                    <p class="mx-auto mt-2 max-w-xl text-white/85">Choose your plan in a minute and watch your students light up on their very first quest.</p>
+                    <button type="button" id="subscribe-back-to-plans" class="mt-5 rounded-2xl bg-white px-6 py-3 font-title text-lg text-indigo-700 shadow-md hover:bg-indigo-50">Choose my plan</button>
+                </section>
+                <p class="mt-6 text-center text-xs text-slate-500">All prices are per school and before VAT (24%).</p>
             </div>
 
             <div id="subscribe-paused" class="mx-auto mt-10 hidden max-w-xl rounded-3xl bg-white p-8 text-center shadow-xl ring-1 ring-slate-200">

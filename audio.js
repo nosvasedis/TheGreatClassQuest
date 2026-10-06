@@ -846,3 +846,219 @@ export function playFamiliarVoice(voice = {}) {
         if (voice.shiny) [2093, 2637, 3136, 4186].forEach((freq, i) => v.bell.triggerAttackRelease(freq, 0.3, t + 0.45 + i * 0.07, 0.35));
     } catch (_) { /* overlapping triggers are harmless */ }
 }
+
+// ─── Quiz of the Week show ────────────────────────────────────────────────────
+// A small game-show band, synthesised on first use (no files): a wood-block tick
+// and snare for the spotlight roulette, a "ta-daa" when it lands, a buzzer, a
+// gentle "wah-wah" for a missed question, whooshes, and a drum roll before the
+// curtain call. Everything runs through one bus so closing the stage can fade it.
+let quizVoices = null;
+function getQuizVoices() {
+    if (quizVoices || !Tone) return quizVoices;
+    const bus = new Tone.Gain(0.9).toDestination();
+    const reverb = new Tone.Reverb({ decay: 1.8, wet: 0.24 }).connect(bus);
+    const block = new Tone.MembraneSynth({
+        pitchDecay: 0.008,
+        octaves: 1.4,
+        envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.03 },
+        volume: -12
+    }).connect(bus);
+    const mallet = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.002, decay: 0.22, sustain: 0, release: 0.2 },
+        volume: -9
+    }).connect(reverb);
+    mallet.maxPolyphony = 12;
+    const snareFilter = new Tone.Filter({ type: 'highpass', frequency: 1700 }).connect(bus);
+    const snare = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.03 },
+        volume: -20
+    }).connect(snareFilter);
+    const boom = new Tone.MembraneSynth({
+        pitchDecay: 0.06,
+        octaves: 3,
+        envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.3 },
+        volume: -8
+    }).connect(bus);
+    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 2600, Q: 0.7 }).connect(reverb);
+    const brass = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fatsawtooth', count: 3, spread: 18 },
+        envelope: { attack: 0.02, decay: 0.15, sustain: 0.7, release: 0.4 },
+        volume: -19
+    }).connect(brassFilter);
+    brass.maxPolyphony = 16;
+    const bell = new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity: 3.01,
+        modulationIndex: 5,
+        envelope: { attack: 0.002, decay: 0.7, sustain: 0, release: 0.8 },
+        modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.3 },
+        volume: -14
+    }).connect(reverb);
+    bell.maxPolyphony = 20;
+    const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 5000 }).connect(reverb);
+    const cymbal = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 0.4 },
+        volume: -26
+    }).connect(cymbalFilter);
+    const whooshFilter = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.7 }).connect(reverb);
+    const whoosh = new Tone.NoiseSynth({
+        noise: { type: 'pink' },
+        envelope: { attack: 0.12, decay: 0.3, sustain: 0, release: 0.1 },
+        volume: 1
+    }).connect(whooshFilter);
+    const buzzFilter = new Tone.Filter({ type: 'lowpass', frequency: 900, Q: 1 }).connect(bus);
+    const buzz = new Tone.Synth({
+        oscillator: { type: 'square' },
+        envelope: { attack: 0.005, decay: 0.05, sustain: 0.8, release: 0.06 },
+        volume: -15
+    }).connect(buzzFilter);
+    // The "wah": a muted horn whose filter opens and closes on every note.
+    const hornFilter = new Tone.Filter({ type: 'lowpass', frequency: 500, Q: 2.5 }).connect(reverb);
+    const horn = new Tone.Synth({
+        oscillator: { type: 'sawtooth' },
+        envelope: { attack: 0.04, decay: 0.1, sustain: 0.85, release: 0.2 },
+        volume: -12
+    }).connect(hornFilter);
+    quizVoices = { bus, block, mallet, snare, boom, brass, bell, cymbal, whoosh, whooshFilter, buzz, horn, hornFilter };
+    return quizVoices;
+}
+
+// A C-major ladder the roulette climbs, one rung per name.
+const QUIZ_SPIN_LADDER = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6', 'C7'];
+
+/** Builds the quiz voices ahead of time (the reverb takes a moment), so the first sound doesn't stall a frame. */
+export function warmQuizShowAudio() {
+    if (!isAudioReady()) return;
+    getQuizVoices();
+}
+
+/**
+ * Quiz of the Week sound effects.
+ * 'curtain' the stage opens · 'flick' one name under the roulette ({ step, steps, gap } with gap in seconds
+ * until the next name) · 'land' the spotlight lands ({ passed }) · 'buzz' a wrong answer · 'pass' the question
+ * moves on · 'missed' nobody got it · 'cheer' a right answer ({ firstTry }) · 'skip' · 'trick' a Familiar's
+ * trick · 'pause' / 'resume' · 'tally' drum roll ({ seconds }) · 'count' the curtain-call numbers ({ seconds })
+ * · 'fanfare' the medal ({ tier }).
+ */
+export function playQuizShowSfx(name, opts = {}) {
+    if (!isAudioReady()) return;
+    const v = getQuizVoices();
+    if (!v) return;
+    const now = Tone.now();
+    v.bus.gain.cancelScheduledValues(now);
+    v.bus.gain.setValueAtTime(0.9, now);
+    const t = now + 0.03;
+    try {
+        if (name === 'curtain') {
+            v.whooshFilter.frequency.setValueAtTime(300, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(2400, t + 0.5);
+            v.whoosh.triggerAttackRelease(0.45, t, 0.8);
+            ['G5', 'C6', 'E6', 'G6', 'C7'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.6, t + 0.25 + i * 0.07, 0.4));
+        } else if (name === 'flick') {
+            const steps = Math.max(1, opts.steps || 1);
+            const step = Math.max(0, Math.min(opts.step || 0, steps - 1));
+            const k = step / steps;
+            v.block.triggerAttackRelease(step % 2 ? 'G4' : 'C5', 0.05, t, 0.7);
+            v.mallet.triggerAttackRelease(QUIZ_SPIN_LADDER[step % QUIZ_SPIN_LADDER.length], 0.12, t, 0.45 + 0.4 * k);
+            // A snare roll fills the gap to the next name, swelling as the wheel slows.
+            const gap = Math.max(0.04, Number(opts.gap) || 0.06);
+            for (let dt = 0.035; dt < gap - 0.01; dt += 0.035) {
+                v.snare.triggerAttackRelease(0.04, t + dt, 0.2 + 0.55 * k);
+            }
+        } else if (name === 'land') {
+            // "Ta-daa": a short pickup chord, then the full chord with a boom, a crash and bells.
+            const [pick, chord, bells] = opts.passed
+                ? [['C4', 'F4', 'A4'], ['F3', 'C4', 'F4', 'A4', 'C5'], ['C6', 'F6', 'A6', 'C7']]
+                : [['D4', 'G4', 'B4'], ['C3', 'G3', 'C4', 'E4', 'G4', 'C5'], ['E6', 'G6', 'C7', 'E7']];
+            v.brass.triggerAttackRelease(pick, 0.1, t, 0.75);
+            v.brass.triggerAttackRelease(chord, 0.75, t + 0.14, 0.95);
+            v.boom.triggerAttackRelease(opts.passed ? 'F1' : 'C2', 0.4, t + 0.14, 0.9);
+            v.cymbal.triggerAttackRelease(1.2, t + 0.14, 0.9);
+            bells.forEach((n, i) => v.bell.triggerAttackRelease(n, 0.7, t + 0.2 + i * 0.06, 0.5));
+        } else if (name === 'buzz') {
+            v.buzz.triggerAttackRelease('D#3', 0.16, t, 0.9);
+            v.buzz.triggerAttackRelease('D#3', 0.32, t + 0.22, 0.9);
+        } else if (name === 'pass') {
+            v.whooshFilter.frequency.setValueAtTime(1800, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(350, t + 0.55);
+            v.whoosh.triggerAttackRelease(0.4, t, 0.9);
+            v.mallet.triggerAttackRelease(['E5', 'C5'], 0.15, t + 0.1, 0.45);
+        } else if (name === 'missed') {
+            // A friendly "wah, wah, wah, waaah", soft enough not to sting.
+            const notes = [['G3', 0, 0.32], ['F#3', 0.38, 0.32], ['F3', 0.76, 0.32], ['E3', 1.14, 0.95]];
+            notes.forEach(([note, at, len]) => {
+                v.horn.triggerAttackRelease(note, len, t + at, 0.8);
+                v.hornFilter.frequency.setValueAtTime(380, t + at);
+                v.hornFilter.frequency.exponentialRampToValueAtTime(1300, t + at + 0.12);
+                v.hornFilter.frequency.exponentialRampToValueAtTime(420, t + at + len);
+            });
+        } else if (name === 'cheer') {
+            // The game-show "ding-ding" over the right-answer chime.
+            v.bell.triggerAttackRelease(['C6', 'E6'], 0.5, t + 0.22, 0.6);
+            v.bell.triggerAttackRelease(['G6', 'C7'], 0.8, t + 0.4, 0.65);
+            if (opts.firstTry) {
+                v.brass.triggerAttackRelease(['G4', 'C5', 'E5'], 0.12, t + 0.32, 0.6);
+                v.brass.triggerAttackRelease(['C5', 'E5', 'G5'], 0.5, t + 0.46, 0.7);
+                v.cymbal.triggerAttackRelease(0.9, t + 0.46, 0.6);
+            }
+        } else if (name === 'skip') {
+            v.whooshFilter.frequency.setValueAtTime(500, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(3000, t + 0.35);
+            v.whoosh.triggerAttackRelease(0.3, t, 0.7);
+        } else if (name === 'trick') {
+            v.whooshFilter.frequency.setValueAtTime(2600, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(700, t + 0.4);
+            v.whoosh.triggerAttackRelease(0.3, t, 0.6);
+            ['C7', 'G6', 'E6', 'C6', 'G5'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.4, t + i * 0.05, 0.45));
+            v.mallet.triggerAttackRelease('C4', 0.2, t + 0.3, 0.5);
+        } else if (name === 'pause') {
+            v.mallet.triggerAttackRelease('G5', 0.2, t, 0.45);
+            v.mallet.triggerAttackRelease('C5', 0.35, t + 0.12, 0.45);
+        } else if (name === 'resume') {
+            v.mallet.triggerAttackRelease('C5', 0.2, t, 0.45);
+            v.mallet.triggerAttackRelease('G5', 0.35, t + 0.12, 0.45);
+        } else if (name === 'tally') {
+            const seconds = Math.max(0.4, Number(opts.seconds) || 1.4);
+            for (let dt = 0, i = 0; dt < seconds; dt += 0.045, i++) {
+                const k = dt / seconds;
+                v.snare.triggerAttackRelease(0.04, t + dt, 0.15 + 0.75 * k * k);
+                if (i % 6 === 0) v.boom.triggerAttackRelease('G1', 0.15, t + dt, 0.2 + 0.4 * k);
+            }
+        } else if (name === 'count') {
+            // Ticks that slow down with the eased count-up.
+            const seconds = Math.max(0.3, Number(opts.seconds) || 0.9);
+            for (let x = 0, i = 0; x < 1; x += 1 / 14, i++) {
+                const at = seconds * (1 - Math.cbrt(1 - x));
+                v.block.triggerAttackRelease(i % 2 ? 'E5' : 'A5', 0.04, t + at, 0.6);
+            }
+            v.bell.triggerAttackRelease(['E6', 'B6'], 0.5, t + seconds, 0.45);
+        } else if (name === 'fanfare') {
+            const big = opts.tier === 'legendary' || opts.tier === 'epic';
+            v.boom.triggerAttackRelease('C2', 0.5, t, 0.9);
+            v.cymbal.triggerAttackRelease(big ? 1.8 : 1.1, t, big ? 1 : 0.7);
+            v.brass.triggerAttackRelease(['G3', 'C4', 'E4'], 0.12, t, 0.7);
+            v.brass.triggerAttackRelease(['G3', 'C4', 'E4'], 0.12, t + 0.16, 0.7);
+            v.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], big ? 1.1 : 0.7, t + 0.32, 0.95);
+            if (big) {
+                v.brass.triggerAttackRelease(['C4', 'F4', 'A4', 'C5'], 0.3, t + 0.9, 0.85);
+                v.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5', 'E5'], 1.3, t + 1.2, 1);
+                v.boom.triggerAttackRelease('C2', 0.6, t + 1.2, 0.9);
+                v.cymbal.triggerAttackRelease(2, t + 1.2, 0.8);
+            }
+            const sparkle = big ? ['C6', 'E6', 'G6', 'C7', 'E7', 'G7'] : ['C6', 'E6', 'G6', 'C7'];
+            sparkle.forEach((n, i) => v.bell.triggerAttackRelease(n, 0.8, t + 0.36 + i * 0.07, 0.45));
+        }
+    } catch (_) { /* overlapping triggers are harmless */ }
+}
+
+/** Fade out whatever the quiz still has scheduled (the stage closed). */
+export function stopQuizShowSound() {
+    const gain = quizVoices?.bus?.gain;
+    if (!gain || !Tone) return;
+    const now = Tone.now();
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(0, now + 0.25);
+}

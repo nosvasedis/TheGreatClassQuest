@@ -1,6 +1,6 @@
 import { showAnimatedModal, hideModal } from './base.js';
 import * as state from '../../state.js';
-import { playSound } from '../../audio.js';
+import { playSound, playQuizShowSfx, stopQuizShowSound, warmQuizShowAudio, ensureAudioReady } from '../../audio.js';
 import {
     loadQuizForClass,
     getCurrentQuestion,
@@ -297,10 +297,10 @@ function guardPictures() {
 
 /** The spotlight has landed (or there was nothing to spin): the turn can begin. */
 function beginTurn(turn) {
-    playSound('quiz_student_reveal');
+    playQuizShowSfx('land', { passed: (turn.attemptNumber || 1) > 1 });
     offerFamiliarTrick(turn);
-    // Let the reveal sound finish before the question is spoken.
-    if (questionKind(turn.question) === 'listen') later(() => speakListen(turn.question), reducedMotion() ? 150 : 650);
+    // Let the "ta-daa" finish before the question is spoken.
+    if (questionKind(turn.question) === 'listen') later(() => speakListen(turn.question), reducedMotion() ? 300 : 1000);
 }
 
 function renderTurn(turn) {
@@ -381,6 +381,7 @@ async function offerFamiliarTrick(turn) {
         gone.disabled = true;
         gone.setAttribute('aria-disabled', 'true');
         gone.classList.add('is-tried', 'is-trick-gone');
+        playQuizShowSfx('trick');
         btn.querySelector('span:last-child').textContent = `${ready.name} ${ready.trick.verb}!`;
         later(() => btn.remove(), 2600);
     });
@@ -397,8 +398,11 @@ function spinSpotlight(pool, turn) {
     let elapsed = 0;
     steps.forEach((gap, i) => {
         elapsed += gap;
+        // Each name gets a tick, and a snare roll fills the wait for the next one.
+        const untilNext = (steps[i + 1] ?? 240) / 1000;
         later(() => {
             if (!document.contains(nameEl)) return;
+            playQuizShowSfx('flick', { step: i, steps: steps.length, gap: untilNext });
             index = (index + 1 + Math.floor(Math.random() * Math.max(1, others.length - 1))) % others.length;
             nameEl.textContent = others[index]?.name || '…';
             nameEl.classList.remove('is-flick');
@@ -445,8 +449,11 @@ function renderResultsScreen(results, { replay = false } = {}) {
     stage?.addEventListener('pointerdown', () => stage.classList.add('is-instant'), { once: true });
 
     const tier = results.rewards?.tier || results.tier || computeQuizTier(results.firstTryCorrectPct);
-    playSound('quiz_tier_reveal');
-    el.querySelectorAll('[data-count-to]').forEach((node, i) => later(() => animateCount(node, node.dataset.countTo, 900 + i * 120), 420));
+    if (replay) playSound('quiz_tier_reveal');
+    else playQuizShowSfx('fanfare', { tier });
+    const counters = el.querySelectorAll('[data-count-to]');
+    counters.forEach((node, i) => later(() => animateCount(node, node.dataset.countTo, 900 + i * 120), 420));
+    if (counters.length && !reducedMotion()) later(() => playQuizShowSfx('count', { seconds: (900 + (counters.length - 1) * 120) / 1000 }), 420);
     if (!replay && ['legendary', 'epic', 'rare'].includes(tier)) {
         later(() => { spawnConfetti(tier); playSound('quiz_confetti_pop'); }, 650);
         if (tier === 'legendary') later(() => { spawnConfetti(tier); playSound('quiz_confetti_pop'); }, 1400);
@@ -477,10 +484,11 @@ async function handleMcqAnswer(btn, question) {
     if (isCorrect) {
         btn.classList.add('is-correct');
         playSound('quiz_correct');
+        playQuizShowSfx('cheer', { firstTry: turnAttempt === 1 });
         spawnParticleBurst(btn);
     } else {
         btn.classList.add('is-wrong');
-        playSound('quiz_wrong');
+        playQuizShowSfx('buzz');
     }
 
     const result = await handleAnswer(currentClassId, selectedAnswer, isCorrect);
@@ -493,9 +501,11 @@ async function handleMcqAnswer(btn, question) {
         stage.classList.add('is-solved');
         verdict = quizVerdictHtml({ kind: 'correct', attemptNumber: turnAttempt, explanation: question.explanation });
     } else if (result?.questionPassedToNextStudent) {
+        later(() => playQuizShowSfx('pass'), 450);
         verdict = quizVerdictHtml({ kind: 'pass' });
     } else {
         stage.querySelector(`.qs-answer[data-answer-index="${question.correctIndex}"]`)?.classList.add('is-reveal');
+        later(() => playQuizShowSfx('missed'), 550);
         verdict = quizVerdictHtml({
             kind: 'missed',
             correctLetter: LETTERS[question.correctIndex] || '',
@@ -551,6 +561,7 @@ function handleSkip() {
     stopSpeech();
     const progress = skipQuestion(currentClassId);
     if (!progress) return;
+    playQuizShowSfx('skip');
     if (progress.isComplete) finishQuiz();
     else showNextQuestion();
 }
@@ -575,6 +586,7 @@ async function finishQuiz() {
     if (!progress?.isComplete || screen === 'tally' || screen === 'results') return;
     clearTimers();
     renderTallyScreen();
+    if (!reducedMotion()) playQuizShowSfx('tally', { seconds: 1.4 });
     const classId = currentClassId;
     const [results] = await Promise.all([
         finalizeQuiz(classId),
@@ -602,13 +614,21 @@ function openPauseCard() {
     const stage = document.getElementById('quiz-modal-inner');
     if (!stage || document.getElementById('quiz-pause-card')) return;
     stage.insertAdjacentHTML('beforeend', quizPauseCardHtml());
+    playQuizShowSfx('pause');
     const card = document.getElementById('quiz-pause-card');
-    document.getElementById('quiz-pause-stay')?.addEventListener('click', closePauseCard);
+    document.getElementById('quiz-pause-stay')?.addEventListener('click', () => {
+        closePauseCard();
+        playQuizShowSfx('resume');
+    });
     document.getElementById('quiz-pause-leave')?.addEventListener('click', () => {
         closePauseCard();
         closeQuizModal(false);
     });
-    card?.addEventListener('click', (e) => { if (e.target === card) closePauseCard(); });
+    card?.addEventListener('click', (e) => {
+        if (e.target !== card) return;
+        closePauseCard();
+        playQuizShowSfx('resume');
+    });
 }
 
 function closePauseCard() {
@@ -622,7 +642,7 @@ function onKeydown(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (document.getElementById('quiz-pause-card')) {
-        if (e.key === 'Escape') { e.preventDefault(); closePauseCard(); }
+        if (e.key === 'Escape') { e.preventDefault(); closePauseCard(); playQuizShowSfx('resume'); }
         return;
     }
     if (e.key === 'Escape') {
@@ -664,6 +684,8 @@ export async function openQuizModal(classId) {
     busy = false;
     clearTimers();
     ensureModalInDOM();
+    // Opened by a tap, so the browser lets the show's sounds start now.
+    ensureAudioReady().then((ok) => { if (ok) warmQuizShowAudio(); }).catch(() => {});
 
     const triggerBtn = document.getElementById('quiz-week-trigger-btn');
     const quiz = await getQuizForClass(classId);
@@ -696,6 +718,7 @@ function showStage(triggerBtn) {
     document.removeEventListener('keydown', onKeydown);
     document.addEventListener('keydown', onKeydown);
     spawnSparkleBurst(triggerBtn);
+    playQuizShowSfx('curtain');
     const inner = document.getElementById('quiz-modal-inner');
     if (inner && !reducedMotion()) {
         inner.classList.remove('qs-stage--entering');
@@ -708,6 +731,7 @@ function showStage(triggerBtn) {
 export function closeQuizModal(wasCompleted = false) {
     clearTimers();
     stopSpeech();
+    stopQuizShowSound();
     closePauseCard();
     document.removeEventListener('keydown', onKeydown);
     hideModal(MODAL_ID);

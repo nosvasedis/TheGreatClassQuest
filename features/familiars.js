@@ -30,8 +30,8 @@ import {
     resolveFamiliarLook,
     trickMonthKey
 } from './familiarForge.mjs';
+import { PUBLIC_DATA_PATH as publicDataPath } from '../utils/tenant.mjs';
 
-const publicDataPath = 'artifacts/great-class-quest/public/data';
 const familiarOps = new Map();
 const FAMILIAR_SCHEMA_VERSION = 3;
 

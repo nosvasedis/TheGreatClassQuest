@@ -18,6 +18,7 @@ import {
     FORGE_IMAGE_OPTIONS, normalizeForgeRecipe, isLegacyForgeRecipe, buildForgeWriterMessages,
     cleanWriterSubject, composeForgeImagePrompt, cleanSpecialTouch
 } from '../functions/avatarForgeRecipe.mjs';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 // --- LOCAL STATE ---
 const REQUIRED_POOLS = ['creature', 'color', 'accessory'];
@@ -466,7 +467,7 @@ export async function handleSaveAvatar() {
             console.warn('Avatar save callable is not deployed; uploading from the browser.', serverError?.code || serverError);
             const { uploadImageToStorage } = await import('../utils.js');
             imageUrl = await uploadImageToStorage(compressedAvatar, studentAvatarStoragePath(studentId), { cacheControl: AVATAR_IMAGE_CACHE_CONTROL });
-            const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
+            const studentRef = doc(db, `${PUBLIC_DATA_PATH}/students`, studentId);
             await updateDoc(studentRef, { avatar: imageUrl });
         }
 
@@ -500,7 +501,7 @@ export async function handleDeleteAvatar() {
             deleteBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>Melting…</span>`;
 
             try {
-                const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
+                const studentRef = doc(db, `${PUBLIC_DATA_PATH}/students`, studentId);
                 await updateDoc(studentRef, {
                     avatar: null 
                 });

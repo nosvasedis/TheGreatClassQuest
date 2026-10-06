@@ -4,6 +4,7 @@ import { BOOK_ATLAS, resolveLessonTarget, buildLessonTargetSummary, parsePages, 
 import { getLocalIsoDateString as getTodayDateString } from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { cleanCampfireText } from './heroCampfireCore.mjs';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 const confirmations = new Map();
 window.addEventListener('gcq:campfire-reset', () => confirmations.clear());
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -40,7 +41,7 @@ export async function updateBookProgressFromAssignment({ classId, text, assignme
         component: entry.component, unit: entry.unit || null, page: entry.page || null, customTitle: primary?.customTitle || '',
         customTheme: primary?.customTheme || '', source: confirmedTargets ? 'teacher' : 'detected', updatedAt: new Date().toISOString(), history, targets
     } : { ...stripPlan(old), history, targets, updatedAt: new Date().toISOString() };
-    await updateDoc(doc(db, 'artifacts/great-class-quest/public/data/classes', classId), { bookPlan });
+    await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/classes`, classId), { bookPlan });
     state.setAllTeachersClasses(state.get('allTeachersClasses').map(c => c.id === classId ? { ...c, bookPlan } : c));
     confirmations.delete(classId);
 }

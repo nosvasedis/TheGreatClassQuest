@@ -11,8 +11,8 @@ import { chapterName, isChapterOfSchoolYear } from './guildScoringCore.js';
 import { chapterFacts, chroniclerPrompt, heraldChronicleLines, parseChroniclerLines, sealedChapterKeys, storedChronicle } from './guildChronicleText.js';
 import { getFirstCrownChapter } from './guildScoring.js';
 import { isGameplaySeasonLiveFromAppState } from '../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH as PUBLIC } from '../utils/tenant.mjs';
 
-const PUBLIC = 'artifacts/great-class-quest/public/data';
 
 /** The chronicle shown for a Chapter: the stored AI lines, else the herald's record. */
 export function chronicleFor(allGuildScores, key, options) {

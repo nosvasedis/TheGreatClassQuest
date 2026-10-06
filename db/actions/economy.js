@@ -26,6 +26,7 @@ import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/sc
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -384,7 +385,7 @@ export async function handleBulkSaveTrial() {
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
 
     const batch = writeBatch(db);
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
 
     let operationsCount = 0;
@@ -565,7 +566,7 @@ export async function handleBuyItem(studentId, itemId) {
     const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
 
     // 3. DB Transaction
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
 
     try {
@@ -779,7 +780,7 @@ function getClosingMonthKey(lastMonthlyResetDate, currentMonthStart) {
 }
 
 export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
     try {
         await runTransaction(db, async (transaction) => {
@@ -819,7 +820,7 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
 
 /** Persists the current guild champion for the student's guild to guild_champions collection. */
 async function _checkAndPersistGuildChampion(studentId, currentMonthStart) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student?.guildId) return;
 
@@ -871,7 +872,7 @@ export async function handleManualGoldUpdate() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
     try {
-        const publicDataPath = "artifacts/great-class-quest/public/data";
+        const publicDataPath = PUBLIC_DATA_PATH;
         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
 
         await updateDoc(scoreRef, {
@@ -911,7 +912,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
         let alreadyGiven = false;
         await runTransaction(db, async (transaction) => {
             alreadyGiven = false;
-            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const publicDataPath = PUBLIC_DATA_PATH;
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
             // One celebration per student, occasion and day: a double-click or a
             // retried request lands on the same log document.
@@ -990,7 +991,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) { showToast('Student not found.', 'error'); return; }
 
-    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const publicDataPath = PUBLIC_DATA_PATH;
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
 
     try {
@@ -1112,7 +1113,7 @@ export async function resolveMissingGenders() {
 
         Object.entries(resultMap).forEach(([id, gender]) => {
             if (listToAnalyze.find(s => s.id === id)) {
-                const docRef = doc(db, "artifacts/great-class-quest/public/data/students", id);
+                const docRef = doc(db, `${PUBLIC_DATA_PATH}/students`, id);
                 batch.update(docRef, { gender: gender.toLowerCase() });
                 count++;
             }

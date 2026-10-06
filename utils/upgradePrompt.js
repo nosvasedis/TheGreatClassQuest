@@ -1,34 +1,30 @@
 // utils/upgradePrompt.js
 // Single place for "upgrade to Pro/Elite" prompts. Uses the app's confirmation modal.
-// When BILLING_BASE_URL is set, shows an "Upgrade" button that redirects to Stripe Checkout.
+// For schools that pay online, shows an "Upgrade" button that opens Stripe Checkout.
 
 import * as modals from '../ui/modals.js';
 import { canUseFeature } from './subscription.js';
 import { getUpgradeMessage } from '../config/tiers/features.js';
-import { BILLING_BASE_URL, BILLING_SCHOOL_ID, firebaseConfig } from '../constants.js';
-import { requestCheckoutSession } from './billingCheckout.js';
+import { isOnlineBillingAvailable, requestCheckoutSession } from './billingCheckout.js';
 
 /**
  * Show a modal prompting the user to upgrade for a gated feature.
- * If BILLING_BASE_URL is set, "Upgrade" opens Stripe Checkout; otherwise the modal just explains the required tier.
+ * For schools that pay online, "Upgrade" opens Stripe Checkout; otherwise the modal just explains the required tier.
  * @param {object} opts - { feature: string, tier: 'Pro' | 'Elite', message?: string }
  */
 export function showUpgradePrompt(opts) {
     const { feature, tier = 'Pro', message = '' } = opts;
     const title = `🔒 ${feature}`;
-    const billingEnabled = BILLING_BASE_URL && (BILLING_SCHOOL_ID || firebaseConfig?.projectId);
-    const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
+    const billingEnabled = isOnlineBillingAvailable();
     const body = message
         ? `${message}<br><br><strong>Available on the ${tier} plan.</strong>`
         : `This feature is available on the <strong>${tier}</strong> plan.`;
 
-    if (billingEnabled && schoolId) {
+    if (billingEnabled) {
         const confirmText = `Upgrade to ${tier}`;
         modals.showModal(title, body, async () => {
             try {
                 const data = await requestCheckoutSession({
-                    billingBaseUrl: BILLING_BASE_URL,
-                    schoolId,
                     tier: tier.toLowerCase(),
                     successUrl: window.location.href,
                     cancelUrl: window.location.href

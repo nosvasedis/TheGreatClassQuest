@@ -1,11 +1,18 @@
-import { BILLING_SCHOOL_ID, firebaseConfig } from '../constants.js';
+import { firebaseConfig } from '../constants.js';
+import { DEFAULT_SCHOOL_ID, getSchoolId } from './tenant.mjs';
 
 export const ROLE_TEACHER = 'teacher';
 export const ROLE_PARENT = 'parent';
 export const ROLE_SECRETARY = 'secretary';
 
+// Family and office logins are `{role}.{username}@{domain}.gcq.local`. The founding school keeps
+// the domain its logins already use (the Firebase project id, as the server has always built
+// them); every other school's domain is its school id, so the same username can exist in two
+// schools. Must match functions/index.js#schoolLoginDomain.
 export function getProjectRoleDomain() {
-    return (BILLING_SCHOOL_ID || firebaseConfig?.projectId || 'gcq-school').toLowerCase();
+    const schoolId = getSchoolId();
+    if (schoolId !== DEFAULT_SCHOOL_ID) return schoolId;
+    return (firebaseConfig?.projectId || 'gcq-school').toLowerCase();
 }
 
 export function buildSyntheticRoleEmail(role, username) {

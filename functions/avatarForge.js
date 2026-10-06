@@ -111,7 +111,7 @@ function createAvatarForgeHandlers({ requireStudentManager, requireFeatureEnable
       console.error('saveStudentAvatar upload failed:', error?.message || error);
       throw new HttpsError('unavailable', 'The portrait could not be stored. Try again in a moment.');
     }
-    await getFirestore().doc(`${publicDataPath}/students/${studentId}`).update({
+    await getFirestore().doc(`${publicDataPath()}/students/${studentId}`).update({
       avatar,
       updatedAt: FieldValue.serverTimestamp()
     });

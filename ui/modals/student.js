@@ -18,6 +18,7 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { isSecretaryOfficeActive } from '../../features/secretary/officeModal.js';
 import { openMoveStudentModal } from './moveStudent.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -624,7 +625,7 @@ export async function openQuestAssignmentModal() {
 
     try {
         const q = query(
-            collection(db, `artifacts/great-class-quest/public/data/quest_assignments`),
+            collection(db, `${PUBLIC_DATA_PATH}/quest_assignments`),
             where("classId", "==", classId),
             where("createdBy.uid", "==", state.get('currentUserId')),
             orderBy("createdAt", "desc"),

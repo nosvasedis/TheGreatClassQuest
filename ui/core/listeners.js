@@ -66,6 +66,7 @@ import {
     updateFamiliarOptionsState,
     handleRegenerateFamiliarFromOptions
 } from '../../features/familiars.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -749,7 +750,7 @@ export function setupUIListeners() {
 
 
                 try {
-                    const publicDataPath = "artifacts/great-class-quest/public/data";
+                    const publicDataPath = PUBLIC_DATA_PATH;
                     let levelUpInfo = null;
                     await runTransaction(db, async (transaction) => {
                         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);

@@ -5,8 +5,8 @@
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, serverTimestamp } from '../../firebase.js';
 import * as state from '../../state.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { dataPath } from '../../utils/tenant.mjs';
 
-const NOTES_PATH = 'artifacts/great-class-quest/public/data/hero_chronicle_notes';
 
 export async function saveOfficeNote({ studentId, text, category, noteId = null }) {
     const noteText = String(text || '').trim();
@@ -21,14 +21,14 @@ export async function saveOfficeNote({ studentId, text, category, noteId = null 
         updatedAt: serverTimestamp()
     };
     if (noteId) {
-        await updateDoc(doc(db, NOTES_PATH, noteId), payload);
+        await updateDoc(doc(db, dataPath('hero_chronicle_notes'), noteId), payload);
         return noteId;
     }
-    const ref = await addDoc(collection(db, NOTES_PATH), withSchoolYear({ ...payload, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
+    const ref = await addDoc(collection(db, dataPath('hero_chronicle_notes')), withSchoolYear({ ...payload, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));
     return ref?.id || null;
 }
 
 export async function deleteOfficeNote(noteId) {
     if (!noteId) return;
-    await deleteDoc(doc(db, NOTES_PATH, noteId));
+    await deleteDoc(doc(db, dataPath('hero_chronicle_notes'), noteId));
 }

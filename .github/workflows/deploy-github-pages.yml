@@ -3,10 +3,10 @@ name: Deploy GitHub Pages
 on:
   workflow_dispatch:
   schedule:
-    # GitHub cron is UTC-only. Fire at both candidate UTC hours for
-    # Europe/Athens midnight (EEST=UTC+3 → 21:00, EET=UTC+2 → 22:00),
-    # then gate the real deploy on the Athens clock below.
-    - cron: '0 21,22 * * *'
+    # Once a night, after lessons: 22:00 UTC is 00:00 Athens in winter (EET) and 01:00 in
+    # summer (EEST). GitHub often starts scheduled runs hours late, so the gate below accepts
+    # the whole night (an exact-midnight check used to skip every night).
+    - cron: '0 22 * * *'
 
 concurrency:
   group: github-pages
@@ -27,21 +27,23 @@ jobs:
       - name: Decide whether to deploy
         id: check
         run: |
+          athens_now="$(TZ=Europe/Athens date -Iseconds)"
+          athens_hour="$((10#$(TZ=Europe/Athens date +%H)))"
+          echo "Event: ${{ github.event_name }}; Athens time: ${athens_now}"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual run — deploying."
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          athens_hour="$(TZ=Europe/Athens date +%H)"
-          athens_now="$(TZ=Europe/Athens date -Iseconds)"
-          echo "Athens time: ${athens_now} (hour=${athens_hour})"
-
-          if [ "$athens_hour" = "00" ]; then
-            echo "Midnight Athens — deploying."
+          # The nightly run deploys whenever it starts between 22:00 and 07:59 Athens time;
+          # only a run delayed into the school day is skipped (tomorrow night catches up).
+          if [ "$athens_hour" -ge 22 ] || [ "$athens_hour" -lt 8 ]; then
+            echo "Night in Athens — deploying."
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Not midnight Athens — skipping this UTC cron slot."
+            echo "Daytime in Athens — skipping so open classroom tabs are not updated mid-lesson."
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
           fi
 

@@ -10,8 +10,8 @@ import * as utils from '../../utils.js';
 import { LEGENDARY_ARTIFACTS } from '../../features/powerUps.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
+import { PUBLIC_DATA_PATH as publicDataPath } from '../../utils/tenant.mjs';
 
-const publicDataPath = 'artifacts/great-class-quest/public/data';
 
 function shuffleArray(arr) {
     for (let i = arr.length - 1; i > 0; i--) {

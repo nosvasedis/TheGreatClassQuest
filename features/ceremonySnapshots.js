@@ -1,8 +1,8 @@
 import { db, doc, getDoc, setDoc, updateDoc, serverTimestamp } from '../firebase.js';
 import * as state from '../state.js';
 import { buildCeremonySnapshot } from './ceremonyDomain.js';
+import { dataPath } from '../utils/tenant.mjs';
 
-const PATH = 'artifacts/great-class-quest/public/data/ceremony_snapshots';
 export const ceremonySnapshotId = (classId, monthKey) => `${classId}__${monthKey}`;
 
 /** Firestore rejects `undefined`; drop such keys from plain objects/arrays (e.g. a student with no avatar). */
@@ -18,7 +18,7 @@ export function stripUndefinedDeep(value) {
 
 export async function prepareCeremonySnapshot(input) {
   const snapshot = buildCeremonySnapshot({ ...input, createdBy: input.createdBy || state.get('currentUserId') });
-  const ref = doc(db, PATH, input.snapshotId || ceremonySnapshotId(input.classId, input.monthKey));
+  const ref = doc(db, dataPath('ceremony_snapshots'), input.snapshotId || ceremonySnapshotId(input.classId, input.monthKey));
   const existing = await getDoc(ref);
   if (existing.exists() && ['locked', 'completed'].includes(existing.data().status)) return { id: ref.id, ...existing.data() };
   await setDoc(ref, { ...stripUndefinedDeep(snapshot), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
@@ -26,7 +26,7 @@ export async function prepareCeremonySnapshot(input) {
 }
 
 export async function lockCeremonySnapshot(classId, monthKey, lockedBy = state.get('currentUserId')) {
-  const ref = doc(db, PATH, ceremonySnapshotId(classId, monthKey)); const snapshot = await getDoc(ref);
+  const ref = doc(db, dataPath('ceremony_snapshots'), ceremonySnapshotId(classId, monthKey)); const snapshot = await getDoc(ref);
   if (!snapshot.exists()) throw new Error('Prepare the ceremony before locking it.');
   if (snapshot.data().status === 'completed') return { id: ref.id, ...snapshot.data() };
   await updateDoc(ref, { status: 'locked', lockedBy, lockedAt: serverTimestamp(), updatedAt: serverTimestamp() });
@@ -34,7 +34,7 @@ export async function lockCeremonySnapshot(classId, monthKey, lockedBy = state.g
 }
 
 export async function saveCeremonyPlayback(classId, monthKey, playback) {
-  const ref = doc(db, PATH, ceremonySnapshotId(classId, monthKey)); const snapshot = await getDoc(ref);
+  const ref = doc(db, dataPath('ceremony_snapshots'), ceremonySnapshotId(classId, monthKey)); const snapshot = await getDoc(ref);
   if (!snapshot.exists()) throw new Error('Snapshot not found.');
   if (!['locked', 'completed'].includes(snapshot.data().status)) throw new Error('Snapshot must be locked before playback.');
   await updateDoc(ref, { playback: { ...playback, updatedAt: serverTimestamp() } });
@@ -42,7 +42,7 @@ export async function saveCeremonyPlayback(classId, monthKey, playback) {
 
 export async function createCeremonyCorrection(input, correctionReason) {
   if (!String(correctionReason || '').trim()) throw new Error('A correction reason is required.');
-  const previousId = ceremonySnapshotId(input.classId, input.monthKey); const previous = await getDoc(doc(db, PATH, previousId));
+  const previousId = ceremonySnapshotId(input.classId, input.monthKey); const previous = await getDoc(doc(db, dataPath('ceremony_snapshots'), previousId));
   const version = Number(previous.data()?.snapshotVersion || 1) + 1;
   return prepareCeremonySnapshot({ ...input, snapshotVersion: version, correctionReason, snapshotId: `${previousId}__v${version}` });
 }

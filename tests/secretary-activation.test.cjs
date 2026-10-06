@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createSecretaryActivation } = require('../tools/onboarding-console/lib.js');
+const { createSecretaryActivation } = require('../scripts/lib/schoolAdmin.cjs');
 
 function fakeDb(role = null) {
   const writes = [];

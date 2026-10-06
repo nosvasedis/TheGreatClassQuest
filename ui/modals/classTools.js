@@ -4,8 +4,8 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { db, doc, updateDoc } from '../../firebase.js';
 import { escapeHtml } from '../../features/roles/shared.js';
+import { dataPath } from '../../utils/tenant.mjs';
 
-const CLASSES_PATH = 'artifacts/great-class-quest/public/data/classes';
 const AVATAR_TONES = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'];
 
 export const esc = escapeHtml;
@@ -70,7 +70,7 @@ export function readClassField(classId, field) {
 export async function saveClassField(classId, field, value) {
     pending.set(`${classId}|${field}`, value);
     try {
-        await updateDoc(doc(db, CLASSES_PATH, classId), { [field]: value });
+        await updateDoc(doc(db, dataPath('classes'), classId), { [field]: value });
         return true;
     } catch (error) {
         console.warn(`Could not save ${field} for class`, classId, error);

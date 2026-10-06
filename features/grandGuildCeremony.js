@@ -42,6 +42,7 @@ import {
     grandHallHtml,
     grandFarewellHtml
 } from './grandCeremonyView.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 const $ = (id) => document.getElementById(id);
 
@@ -949,11 +950,11 @@ async function saveCeremonyCompletion() {
             ceremonyVersion: 'midsummer-2026'
         };
         const batch = writeBatch(db);
-        batch.set(doc(db, 'artifacts/great-class-quest/public/data/teachers', teacherId), {
+        batch.set(doc(db, `${PUBLIC_DATA_PATH}/teachers`, teacherId), {
             grandCeremonyHistory: { [ceremony.ceremonyDate]: record }
         }, { merge: true });
         ceremony.participatingClasses.forEach((classId) => {
-            batch.set(doc(db, 'artifacts/great-class-quest/public/data/classes', classId), {
+            batch.set(doc(db, `${PUBLIC_DATA_PATH}/classes`, classId), {
                 grandCeremonyHistory: { [ceremony.ceremonyDate]: { ...record, participatingClasses: [classId] } }
             }, { merge: true });
         });

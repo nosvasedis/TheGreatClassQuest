@@ -6,8 +6,8 @@ import { buildAdventureLogContext, adventureDateKey } from './adventureLogContex
 import { collectLearnedToday } from './learnedTodayCore.mjs';
 import { QUEST_TYPE_LABELS, normalizeQuestType } from './specialQuestEngine.js';
 import { getISOWeekKey } from './guildScoring.js';
+import { dataPath } from '../utils/tenant.mjs';
 
-const ROOT = 'artifacts/great-class-quest/public/data/';
 const dayDate = key => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); };
 
 export async function gatherAdventureLogContext(classId, { date = new Date(), hero = '' } = {}) {
@@ -30,15 +30,15 @@ export async function gatherAdventureLogContext(classId, { date = new Date(), he
             return fallback;
         } finally { clearTimeout(timer); }
     };
-    const documents = async (path, constraints) => (await getDocs(query(collection(db, ROOT + path), ...constraints))).docs.map(d => ({ id: d.id, ...d.data() }));
+    const documents = async (path, constraints) => (await getDocs(query(collection(db, dataPath(path)), ...constraints))).docs.map(d => ({ id: d.id, ...d.data() }));
     const classRead = (path, daily = false) => documents(path, [where('classId', '==', classId), ...(daily ? [where('date', 'in', [...new Set([dateString, dateKey, dateString.replaceAll('-', '/')])])] : [where('schoolYearKey', '==', schoolYearKey)])]);
     const teacherRead = path => documents(path, [where('teacherId', '==', teacherId), where('schoolYearKey', '==', schoolYearKey)]);
     const cached = key => state.get(key) || [];
     const sources = {
-        classData: () => read('classData', async () => { const s = await getDoc(doc(db, ROOT + 'classes', classId)); return s.exists() ? { id: s.id, ...s.data() } : null; }, cached('allTeachersClasses').find(c => c.id === classId)),
+        classData: () => read('classData', async () => { const s = await getDoc(doc(db, dataPath('classes'), classId)); return s.exists() ? { id: s.id, ...s.data() } : null; }, cached('allTeachersClasses').find(c => c.id === classId)),
         students: () => read('students', () => documents('students', [where('classId', '==', classId)]), cached('allStudents')),
         events: () => read('events', () => documents('quest_events', [where('schoolYearKey', '==', schoolYearKey)]), cached('allQuestEvents')),
-        holidays: () => read('holidays', async () => { const s = await getDoc(doc(db, ROOT + 'school_settings', 'holidays')); return s.data()?.ranges || []; }, cached('schoolHolidayRanges')),
+        holidays: () => read('holidays', async () => { const s = await getDoc(doc(db, dataPath('school_settings'), 'holidays')); return s.data()?.ranges || []; }, cached('schoolHolidayRanges')),
         awards: () => read('awards', () => classRead('award_log', true), cached('allAwardLogs')),
         attendance: () => read('attendance', () => classRead('attendance', true), cached('allAttendanceRecords')),
         trials: () => read('trials', () => classRead('written_scores', true), cached('allWrittenScores')),
@@ -48,7 +48,7 @@ export async function gatherAdventureLogContext(classId, { date = new Date(), he
         wheel: () => read('wheel', () => classRead('fortune_wheel_log'), cached('fortuneWheelLog')),
         bounties: () => read('bounties', () => classRead('quest_bounties'), cached('allQuestBounties')),
         ceremonies: () => read('ceremonies', () => classRead('ceremony_snapshots'), null),
-        campfires: () => read('campfires', async () => { const s = await getDoc(doc(db, ROOT + 'campfire_sessions', `${classId}_${dateKey}`)); return s.exists() ? [{ id: s.id, ...s.data() }] : []; }, null),
+        campfires: () => read('campfires', async () => { const s = await getDoc(doc(db, dataPath('campfire_sessions'), `${classId}_${dateKey}`)); return s.exists() ? [{ id: s.id, ...s.data() }] : []; }, null),
         oaths: () => read('oaths', () => teacherRead('ember_oaths'), cached('allEmberOaths')),
         completedStories: () => read('completedStories', () => documents('completed_stories', [where('classId', '==', classId)]), cached('allCompletedStories')),
         storyChapters: () => read('storyChapters', () => documents(`story_data/${classId}/story_history`, [where('createdAt', '>=', day), where('createdAt', '<', new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1))]), null),

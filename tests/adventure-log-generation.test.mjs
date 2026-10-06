@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildAdventureLogContext, parseChroniclerDiary, buildChroniclerPrompts, requiredAdventureSections } from '../features/adventureLogContextCore.mjs';
@@ -10,7 +11,7 @@ function harness(results) {
     const page = { createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027', generationRequestId: 'request', generationStatus: 'generating', text: 'Saved placeholder' };
     const source = fs.readFileSync(new URL('../db/actions/quests.js', import.meta.url), 'utf8').replace(/^import [\s\S]*?;\r?\n/gm, '').replace(/export /g, '').replaceAll("import('../../features/adventureLogContextCore.mjs')", 'Promise.resolve(core)');
     let calls = 0;
-    const deps = { core: { parseChroniclerDiary, buildChroniclerPrompts }, db: {}, doc: () => ({}), runTransaction: async (_, callback) => callback({ get: async () => ({ exists: () => true, data: () => ({ ...page }) }), update: (_, updates) => Object.assign(page, updates) }), serverTimestamp: () => 'timestamp', state: { get: key => key === 'currentUserId' ? 'teacher' : null, getActiveSchoolYearKey: () => '2026-2027' }, callGeminiApiDetailed: async () => { const result = results[calls++]; return typeof result === 'function' ? result() : result; } };
+    const deps = { PUBLIC_DATA_PATH, core: { parseChroniclerDiary, buildChroniclerPrompts }, db: {}, doc: () => ({}), runTransaction: async (_, callback) => callback({ get: async () => ({ exists: () => true, data: () => ({ ...page }) }), update: (_, updates) => Object.assign(page, updates) }), serverTimestamp: () => 'timestamp', state: { get: key => key === 'currentUserId' ? 'teacher' : null, getActiveSchoolYearKey: () => '2026-2027' }, callGeminiApiDetailed: async () => { const result = results[calls++]; return typeof result === 'function' ? result() : result; } };
     const api = new Function(...Object.keys(deps), source + '\nreturn { finalizeAdventureLogGeneration, updateAdventureLogGenerationState };')(...Object.values(deps));
     return { ...api, page, calls: () => calls, payload: { logId: 'page', context, requestId: 'request', aiPrompts: buildChroniclerPrompts(context), ageTier: 'mid', totalStars: 2, allowArtwork: false } };
 }

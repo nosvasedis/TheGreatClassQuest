@@ -587,6 +587,36 @@
 .auth-toggle-link:hover { background: var(--auth-accent-wash); }
 .auth-toggle-link:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Which school this device signs in to (founding school: only the quiet "Another school?" link). */
+.auth-school-line {
+    margin-top: 0.35rem;
+    text-align: center;
+}
+.auth-school-line.hidden,
+.auth-school-current.hidden,
+.auth-school-form.hidden,
+.auth-school-change.hidden { display: none; }
+.auth-school-current {
+    margin: 0 0 0.1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--auth-accent-text);
+}
+.auth-school-change {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+.auth-school-form {
+    margin-top: 0.4rem;
+    text-align: left;
+}
+.auth-school-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
 /* ── Submit ──────────────────────────────────────────────────────────────── */
 .auth-submit-btn {
     position: relative;

@@ -21,8 +21,39 @@ service cloud.firestore {
       return hasProfile() ? currentProfile().role : null;
     }
 
+    // Profiles written before schools shared one project carry no schoolId: they are the
+    // founding school's, whose data has always lived at artifacts/great-class-quest.
+    // Kept to a single lookup: rules allow 1000 evaluated expressions per request and these
+    // helpers run inside many others. Without a profile the get() fails, which denies.
+    function profileSchoolId() {
+      return get(profilePath()).data.get('schoolId', 'great-class-quest');
+    }
+
+    function inSchool(schoolId) {
+      return profileSchoolId() == schoolId;
+    }
+
+    function isFoundingSchool() {
+      return profileSchoolId() == 'great-class-quest';
+    }
+
+    function schoolDocPath() {
+      return /databases/$(database)/documents/schools/$(profileSchoolId());
+    }
+
+    // The founding school keeps its plan at appConfig/subscription; every other school's plan
+    // is the subscription map on its own schools/{schoolId} doc.
+    function schoolPlan() {
+      let schoolPath = schoolDocPath();
+      return isFoundingSchool()
+        ? (exists(subscriptionPath()) ? get(subscriptionPath()).data : {})
+        : (exists(schoolPath) && get(schoolPath).data.get('status', 'active') == 'active'
+            ? get(schoolPath).data.get('subscription', {})
+            : {});
+    }
+
     function secretaryRolePath() {
-      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/school_roles/secretary;
+      return /databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/school_roles/secretary;
     }
 
     function subscriptionPath() {
@@ -44,11 +75,22 @@ service cloud.firestore {
     }
 
     function isSecretary() {
+      let rolePath = secretaryRolePath();
       return hasActiveProfile() &&
         currentRole() == 'secretary' &&
-        exists(secretaryRolePath()) &&
-        get(secretaryRolePath()).data.uid == request.auth.uid &&
-        get(secretaryRolePath()).data.status == 'active';
+        exists(rolePath) &&
+        get(rolePath).data.uid == request.auth.uid &&
+        get(rolePath).data.status == 'active';
+    }
+
+    function hasActiveSecretaryIn(schoolId) {
+      let rolePath = /databases/$(database)/documents/artifacts/$(schoolId)/public/data/school_roles/secretary;
+      return exists(rolePath) &&
+        get(rolePath).data.status == 'active' &&
+        get(rolePath).data.uid is string &&
+        exists(/databases/$(database)/documents/user_profiles/$(get(rolePath).data.uid)) &&
+        get(/databases/$(database)/documents/user_profiles/$(get(rolePath).data.uid)).data.role == 'secretary' &&
+        get(/databases/$(database)/documents/user_profiles/$(get(rolePath).data.uid)).data.status == 'active';
     }
 
     function hasActiveSecretary() {
@@ -61,10 +103,11 @@ service cloud.firestore {
     }
 
     function hasFullSecretaryConsole() {
-      return isSecretary() && exists(subscriptionPath()) && (
-        get(subscriptionPath()).data.secretaryAccess == true ||
-        get(subscriptionPath()).data.tier == 'elite'
-      );
+      return isSecretary() && hasFullSecretaryPlan(schoolPlan());
+    }
+
+    function hasFullSecretaryPlan(plan) {
+      return plan.get('secretaryAccess', false) == true || plan.get('tier', '') == 'elite';
     }
 
     function isStaff() {
@@ -76,13 +119,12 @@ service cloud.firestore {
     }
 
     function currentYearStatePath() {
-      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/school_year_state/current;
+      return /databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/school_year_state/current;
     }
 
     function activeYearKey() {
-      return exists(currentYearStatePath())
-        ? get(currentYearStatePath()).data.activeYearKey
-        : null;
+      let yearPath = currentYearStatePath();
+      return exists(yearPath) ? get(yearPath).data.activeYearKey : null;
     }
 
     function isCoreSchoolSettingsCreate(collection) {
@@ -100,19 +142,20 @@ service cloud.firestore {
     }
 
     function isActiveSchoolYearCreate() {
-      return activeYearKey() != null &&
-        request.resource.data.schoolYearKey == activeYearKey();
+      let year = activeYearKey();
+      return year != null && request.resource.data.schoolYearKey == year;
     }
 
     function isActiveStudentYearCreate() {
-      return activeYearKey() != null &&
-        request.resource.data.activeSchoolYearKey == activeYearKey();
+      let year = activeYearKey();
+      return year != null && request.resource.data.activeSchoolYearKey == year;
     }
 
     function isActiveMutableData(data) {
-      return activeYearKey() != null &&
-        (!('schoolYearKey' in data) || data.schoolYearKey == activeYearKey()) &&
-        (!('activeSchoolYearKey' in data) || data.activeSchoolYearKey == activeYearKey()) &&
+      let year = activeYearKey();
+      return year != null &&
+        (!('schoolYearKey' in data) || data.schoolYearKey == year) &&
+        (!('activeSchoolYearKey' in data) || data.activeSchoolYearKey == year) &&
         (!('status' in data) || !(data.status in ['archived', 'closed']));
     }
 
@@ -132,7 +175,7 @@ service cloud.firestore {
     }
 
     function studentPath(studentId) {
-      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(studentId);
+      return /databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/students/$(studentId);
     }
 
     function studentExists(studentId) {
@@ -160,7 +203,7 @@ service cloud.firestore {
     }
 
     function threadPath(threadId) {
-      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/communication_threads/$(threadId);
+      return /databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/communication_threads/$(threadId);
     }
 
     function threadExists(threadId) {
@@ -176,20 +219,32 @@ service cloud.firestore {
     }
 
     match /appConfig/subscription {
-      allow read: if hasActiveProfile();
+      allow read: if hasActiveProfile() && isFoundingSchool();
       allow write: if false;
+    }
+
+    match /schools/{schoolId} {
+      allow read: if hasActiveProfile() && inSchool(schoolId);
+      allow write: if false;
+    }
+
+    // Root per-user docs carry no school; a user belongs to the school on their profile.
+    function sameSchoolUser(userId) {
+      return exists(/databases/$(database)/documents/user_profiles/$(userId)) &&
+        get(/databases/$(database)/documents/user_profiles/$(userId)).data.get('schoolId', 'great-class-quest') == profileSchoolId();
     }
 
     match /user_profiles/{userId} {
       allow read: if signedIn() && (
         request.auth.uid == userId ||
-        isSecretary()
+        (isSecretary() && resource.data.get('schoolId', 'great-class-quest') == profileSchoolId())
       );
       allow create: if signedIn() &&
         request.auth.uid == userId &&
-        hasActiveSecretary() &&
+        request.resource.data.get('schoolId', 'great-class-quest') == 'great-class-quest' &&
+        hasActiveSecretaryIn('great-class-quest') &&
         request.resource.data.keys().hasOnly([
-          'role', 'displayName', 'loginMode', 'status',
+          'role', 'displayName', 'loginMode', 'status', 'schoolId',
           'linkedStudentId', 'createdBy', 'createdAt', 'lastSeenAt'
         ]) &&
         request.resource.data.role == 'teacher' &&
@@ -205,28 +260,28 @@ service cloud.firestore {
     }
 
     match /teacher_metadata/{userId} {
-      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary());
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || (isSecretary() && sameSchoolUser(userId)));
       allow write: if hasActiveProfile() && request.auth.uid == userId;
     }
 
     match /teachers/{userId} {
-      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary());
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || (isSecretary() && sameSchoolUser(userId)));
       allow create: if hasActiveProfile() && request.auth.uid == userId;
       allow update: if hasActiveProfile() && (
         request.auth.uid == userId ||
-        hasFullSecretaryConsole()
+        (hasFullSecretaryConsole() && sameSchoolUser(userId))
       );
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/school_roles/{docId} {
-      allow read: if signedIn() && isStaff();
+    match /artifacts/{schoolId}/public/data/school_roles/{docId} {
+      allow read: if inSchool(schoolId) && (signedIn() && isStaff());
       allow write: if false;
     }
 
     function ownsClass(classId) {
-      return signedIn() && exists(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(classId)) &&
-        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data.createdBy.uid == request.auth.uid;
+      return signedIn() && exists(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/classes/$(classId)) &&
+        get(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/classes/$(classId)).data.createdBy.uid == request.auth.uid;
     }
 
     function canScheduleClass(classId) {
@@ -237,132 +292,131 @@ service cloud.firestore {
       return isTeacher() && ownsClass(classId);
     }
 
-    match /artifacts/great-class-quest/public/data/admin_bootstrap/{docId} {
+    match /artifacts/{schoolId}/public/data/admin_bootstrap/{docId} {
       allow read, write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/school_years/{yearKey} {
-      allow read: if hasActiveProfile();
-      allow create, update: if isYearOperator();
+    match /artifacts/{schoolId}/public/data/school_years/{yearKey} {
+      allow read: if inSchool(schoolId) && (hasActiveProfile());
+      allow create, update: if inSchool(schoolId) && (isYearOperator());
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/school_year_state/{docId} {
-      allow read: if hasActiveProfile();
-      allow create, update: if isYearOperator();
+    match /artifacts/{schoolId}/public/data/school_year_state/{docId} {
+      allow read: if inSchool(schoolId) && (hasActiveProfile());
+      allow create, update: if inSchool(schoolId) && (isYearOperator());
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/rollover_jobs/{jobId} {
-      allow read: if isStaff();
-      allow create, update: if isYearOperator();
+    match /artifacts/{schoolId}/public/data/rollover_jobs/{jobId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow create, update: if inSchool(schoolId) && (isYearOperator());
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/student_year_snapshots/{snapshotId} {
-      allow read: if isStaff();
+    match /artifacts/{schoolId}/public/data/student_year_snapshots/{snapshotId} {
+      allow read: if inSchool(schoolId) && (isStaff());
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/class_year_snapshots/{snapshotId} {
-      allow read: if isStaff();
+    match /artifacts/{schoolId}/public/data/class_year_snapshots/{snapshotId} {
+      allow read: if inSchool(schoolId) && (isStaff());
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/guild_year_snapshots/{snapshotId} {
-      allow read: if isStaff();
+    match /artifacts/{schoolId}/public/data/guild_year_snapshots/{snapshotId} {
+      allow read: if inSchool(schoolId) && (isStaff());
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/student_year_enrollments/{enrollmentId} {
-      allow read: if isStaff();
+    match /artifacts/{schoolId}/public/data/student_year_enrollments/{enrollmentId} {
+      allow read: if inSchool(schoolId) && (isStaff());
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/parent_snapshots/{studentId} {
-      allow read: if canReadParentStudent(studentId);
+    match /artifacts/{schoolId}/public/data/parent_snapshots/{studentId} {
+      allow read: if inSchool(schoolId) && (canReadParentStudent(studentId));
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/parent_links/{studentId} {
-      allow read: if canManageStudent(studentId);
+    match /artifacts/{schoolId}/public/data/parent_links/{studentId} {
+      allow read: if inSchool(schoolId) && (canManageStudent(studentId));
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/parent_homework/{docId} {
-      allow read: if hasActiveProfile() && (
+    match /artifacts/{schoolId}/public/data/parent_homework/{docId} {
+      allow read: if inSchool(schoolId) && (hasActiveProfile() && (
         isSecretary() ||
         isParentLinkedTo(resource.data.studentId) ||
         ownsStudent(resource.data.studentId)
-      );
+      ));
       allow create, update, delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/quest_events/{eventId} {
-      allow read: if isStaff();
-      allow create: if canScheduleClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.schemaVersion == 2;
-      allow update: if canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'dateKey', 'date', 'goalSpec', 'rewardSpec', 'presentation', 'updatedAt']);
-      allow delete: if canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data);
+    match /artifacts/{schoolId}/public/data/quest_events/{eventId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow create: if inSchool(schoolId) && (canScheduleClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.schemaVersion == 2);
+      allow update: if inSchool(schoolId) && (canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'dateKey', 'date', 'goalSpec', 'rewardSpec', 'presentation', 'updatedAt']));
+      allow delete: if inSchool(schoolId) && (canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data));
     }
 
-    match /artifacts/great-class-quest/public/data/quest_event_runs/{runId} {
-      allow read: if isStaff();
-      allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate();
-      allow update: if canRunClass(resource.data.classId) && resource.data.eventId == request.resource.data.eventId && resource.data.classId == request.resource.data.classId && resource.data.runVersion == request.resource.data.runVersion && resource.data.schoolYearKey == request.resource.data.schoolYearKey && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'progress', 'finalRecipientIds', 'completedBy', 'completedAt', 'completionActionId', 'rewardSummary', 'updatedAt']);
+    match /artifacts/{schoolId}/public/data/quest_event_runs/{runId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow create: if inSchool(schoolId) && (canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate());
+      allow update: if inSchool(schoolId) && (canRunClass(resource.data.classId) && resource.data.eventId == request.resource.data.eventId && resource.data.classId == request.resource.data.classId && resource.data.runVersion == request.resource.data.runVersion && resource.data.schoolYearKey == request.resource.data.schoolYearKey && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'progress', 'finalRecipientIds', 'completedBy', 'completedAt', 'completionActionId', 'rewardSummary', 'updatedAt']));
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/quest_event_actions/{actionId} {
-      allow read: if isStaff();
-      allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.coreStatus == 'applied';
+    match /artifacts/{schoolId}/public/data/quest_event_actions/{actionId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow create: if inSchool(schoolId) && (canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.coreStatus == 'applied');
       // Only the retryable effect status may change; core reward fields stay immutable.
-      allow update: if canRunClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['effects', 'updatedAt']);
+      allow update: if inSchool(schoolId) && (canRunClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['effects', 'updatedAt']));
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/quest_effect_receipts/{receiptId} {
-      allow read: if isStaff();
+    match /artifacts/{schoolId}/public/data/quest_effect_receipts/{receiptId} {
+      allow read: if inSchool(schoolId) && (isStaff());
       allow write: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/ceremony_snapshots/{snapshotId} {
-      allow read: if isStaff();
-      allow create: if canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate();
-      allow update: if canRunClass(resource.data.classId) && resource.data.snapshotVersion == request.resource.data.snapshotVersion && ((resource.data.status == 'draft' && request.resource.data.status == 'draft' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'schoolYearKey', 'classId', 'className', 'classLogo', 'questLeague', 'monthKey', 'mode', 'status', 'classResults', 'studentResultsPrivate', 'classWinner', 'prodigyWinners', 'publicSequence', 'spotlights', 'sourceFingerprint', 'sourceGeneratedAt', 'snapshotVersion', 'playback', 'createdBy', 'updatedAt', 'createdAt'])) || (resource.data.status in ['locked', 'completed'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'playback', 'completedAt', 'completedBy'])));
+    match /artifacts/{schoolId}/public/data/ceremony_snapshots/{snapshotId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow create: if inSchool(schoolId) && (canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate());
+      allow update: if inSchool(schoolId) && (canRunClass(resource.data.classId) && resource.data.snapshotVersion == request.resource.data.snapshotVersion && ((resource.data.status == 'draft' && request.resource.data.status == 'draft' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'schoolYearKey', 'classId', 'className', 'classLogo', 'questLeague', 'monthKey', 'mode', 'status', 'classResults', 'studentResultsPrivate', 'classWinner', 'prodigyWinners', 'publicSequence', 'spotlights', 'sourceFingerprint', 'sourceGeneratedAt', 'snapshotVersion', 'playback', 'createdBy', 'updatedAt', 'createdAt'])) || (resource.data.status in ['locked', 'completed'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'playback', 'completedAt', 'completedBy']))));
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/communication_threads/{threadId} {
-      allow read: if hasActiveProfile() && (
+    match /artifacts/{schoolId}/public/data/communication_threads/{threadId} {
+      allow read: if inSchool(schoolId) && (hasActiveProfile() && (
         hasFullSecretaryConsole() ||
         isThreadParticipant(threadId) ||
         ownsStudent(resource.data.studentId)
-      );
+      ));
       allow create, update: if false;
       allow delete: if false;
     }
 
-    match /artifacts/great-class-quest/public/data/communication_messages/{messageId} {
-      allow read: if hasActiveProfile() && (
+    match /artifacts/{schoolId}/public/data/communication_messages/{messageId} {
+      allow read: if inSchool(schoolId) && (hasActiveProfile() && (
         hasFullSecretaryConsole() ||
         isThreadParticipant(resource.data.threadId) ||
         ownsStudent(resource.data.studentId)
-      );
+      ));
       allow create: if false;
       allow update, delete: if false;
     }
 
     function campfirePlan() {
-      return exists(subscriptionPath()) &&
-        get(subscriptionPath()).data.tier in ['pro', 'elite'] &&
-        (!('heroCampfire' in get(subscriptionPath()).data) || get(subscriptionPath()).data.heroCampfire == true);
+      let plan = schoolPlan();
+      return plan.get('tier', '') in ['pro', 'elite'] && plan.get('heroCampfire', true) == true;
     }
     function campfireOwner(data) {
       return isTeacher() && data.teacherId == request.auth.uid &&
         data.createdBy.uid == request.auth.uid && data.schoolYearKey == activeYearKey();
     }
     function ownsCampfireClass(classId) {
-      let c = get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data;
+      let c = get(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/classes/$(classId)).data;
       return classId is string && c.createdBy.uid == request.auth.uid && c.schoolYearKey == activeYearKey();
     }
     function shortText(value, max) { return value is string && value.size() <= max; }
@@ -378,7 +432,7 @@ service cloud.firestore {
         shortText(e.refId, 300) && e.date is string && e.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));
     }
     function validOath(data) {
-      let student = get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(data.studentId)).data;
+      let student = get(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/students/$(data.studentId)).data;
       let checks = data.checkIns;
       let evidence = data.evidence;
       return data.keys().hasOnly(['studentId','classId','teacherId','createdBy','schoolYearKey','templateId','text','projectorText','category','band','target','evidenceRule','startDate','dueDate','status','private','checkIns','evidence','reflection','legendLine','keptAt','createdAt','updatedAt']) &&
@@ -431,35 +485,35 @@ service cloud.firestore {
           (data.script.pattern is map && data.script.pattern.keys().hasOnly(['label','example']) &&
            shortText(data.script.pattern.label, 60) && shortText(data.script.pattern.example, 140)));
     }
-    match /artifacts/great-class-quest/public/data/ember_oaths/{id} {
-      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey();
-      allow create: if campfirePlan() && campfireOwner(request.resource.data) && validOath(request.resource.data) && request.resource.data.status == 'active';
-      allow update: if campfirePlan() && campfireOwner(resource.data) &&
-        validOathProgress(request.resource.data) && resource.data.status == 'active';
+    match /artifacts/{schoolId}/public/data/ember_oaths/{id} {
+      allow read: if inSchool(schoolId) && (isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey());
+      allow create: if inSchool(schoolId) && (campfirePlan() && campfireOwner(request.resource.data) && validOath(request.resource.data) && request.resource.data.status == 'active');
+      allow update: if inSchool(schoolId) && (campfirePlan() && campfireOwner(resource.data) &&
+        validOathProgress(request.resource.data) && resource.data.status == 'active');
       allow delete: if false;
     }
-    match /artifacts/great-class-quest/public/data/campfire_sessions/{id} {
-      allow get: if isTeacher() && (resource == null ||
-        (resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey()));
-      allow list: if isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey();
-      allow create: if campfirePlan() && campfireOwner(request.resource.data) && validCampfire(request.resource.data) &&
-        id == request.resource.data.classId + '_' + request.resource.data.date;
-      allow update: if campfirePlan() && campfireOwner(resource.data) &&
+    match /artifacts/{schoolId}/public/data/campfire_sessions/{id} {
+      allow get: if inSchool(schoolId) && (isTeacher() && (resource == null ||
+        (resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey())));
+      allow list: if inSchool(schoolId) && (isTeacher() && resource.data.teacherId == request.auth.uid && resource.data.schoolYearKey == activeYearKey());
+      allow create: if inSchool(schoolId) && (campfirePlan() && campfireOwner(request.resource.data) && validCampfire(request.resource.data) &&
+        id == request.resource.data.classId + '_' + request.resource.data.date);
+      allow update: if inSchool(schoolId) && (campfirePlan() && campfireOwner(resource.data) &&
         keepsOwnershipAndYearFields() && validCampfire(request.resource.data) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['classId','date']) &&
-        (resource.data.status != 'completed' || request.resource.data.status == 'completed');
+        (resource.data.status != 'completed' || request.resource.data.status == 'completed'));
       allow delete: if false;
     }
-    match /artifacts/great-class-quest/public/data/{collection}/{docId} {
-      allow read: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && (
+    match /artifacts/{schoolId}/public/data/{collection}/{docId} {
+      allow read: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && (
         isStaff() ||
         (collection == 'school_settings') ||
         (collection == 'guild_scores' && isParent()) ||
         (collection == 'guild_glory_events' && isParent()) ||
         (collection == 'guild_champions' && isParent())
-      );
+      ));
 
-      allow create: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(request.resource.data) && (
+      allow create: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(request.resource.data) && (
         (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsCreate(collection))) ||
         (isTeacher() && (
         (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
@@ -490,9 +544,9 @@ service cloud.firestore {
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
         ))
-      );
+      ));
 
-      allow update: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) &&
+      allow update: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) &&
         isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && (
         (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsUpdate(collection))) ||
         (isTeacher() && (
@@ -517,9 +571,9 @@ service cloud.firestore {
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
         ))
-      );
+      ));
 
-      allow delete: if !(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) && (
+      allow delete: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) && (
         hasFullSecretaryConsole() ||
         (isTeacher() && (
         resource.data.createdBy.uid == request.auth.uid ||
@@ -534,42 +588,39 @@ service cloud.firestore {
         (collection == 'class_sanctuaries' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache')
         ))
-      );
+      ));
     }
 
-    match /artifacts/great-class-quest/public/data/quiz_of_the_week/{quizDocId}/attempts/{attemptId} {
-      allow read: if isStaff();
-      allow create: if hasActiveProfile() && (
+    match /artifacts/{schoolId}/public/data/quiz_of_the_week/{quizDocId}/attempts/{attemptId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow create: if inSchool(schoolId) && (hasActiveProfile() && (
         hasFullSecretaryConsole() ||
         (isTeacher() && request.resource.data.teacherId == request.auth.uid)
-      );
+      ));
       allow update, delete: if false;
     }
 
-    match /{path=**}/monthly_history/{monthId} {
-      allow read: if isStaff();
+    match /artifacts/{schoolId}/public/data/student_scores/{studentId}/monthly_history/{monthId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow write: if inSchool(schoolId) && (hasFullSecretaryConsole() || ownsStudent(studentId));
     }
 
-    match /artifacts/great-class-quest/public/data/student_scores/{studentId}/monthly_history/{monthId} {
-      allow write: if hasFullSecretaryConsole() || ownsStudent(studentId);
-    }
-
-    match /artifacts/great-class-quest/public/data/story_data/{classId}/story_history/{historyId} {
-      allow read: if isStaff();
-      allow write, delete: if hasFullSecretaryConsole() || (
+    match /artifacts/{schoolId}/public/data/story_data/{classId}/story_history/{historyId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow write, delete: if inSchool(schoolId) && (hasFullSecretaryConsole() || (
         isTeacher() &&
-        exists(/databases/$(database)/documents/artifacts/great-class-quest/public/data/story_data/$(classId)) &&
-        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/story_data/$(classId)).data.createdBy.uid == request.auth.uid
-      );
+        exists(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/story_data/$(classId)) &&
+        get(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/story_data/$(classId)).data.createdBy.uid == request.auth.uid
+      ));
     }
 
-    match /artifacts/great-class-quest/public/data/completed_stories/{storyId}/chapters/{chapterId} {
-      allow read: if isStaff();
-      allow write, delete: if hasFullSecretaryConsole() || (
+    match /artifacts/{schoolId}/public/data/completed_stories/{storyId}/chapters/{chapterId} {
+      allow read: if inSchool(schoolId) && (isStaff());
+      allow write, delete: if inSchool(schoolId) && (hasFullSecretaryConsole() || (
         isTeacher() &&
-        exists(/databases/$(database)/documents/artifacts/great-class-quest/public/data/completed_stories/$(storyId)) &&
-        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/completed_stories/$(storyId)).data.createdBy.uid == request.auth.uid
-      );
+        exists(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/completed_stories/$(storyId)) &&
+        get(/databases/$(database)/documents/artifacts/$(profileSchoolId())/public/data/completed_stories/$(storyId)).data.createdBy.uid == request.auth.uid
+      ));
     }
   }
 }

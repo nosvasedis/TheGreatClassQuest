@@ -34,13 +34,13 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   // This month's items plus the active festival's items. A festival window can start in the
   // month before its feast, so its stall is found by festivalId rather than by month.
   async function loadStock(teacherId, league, monthKey, festivalId = '') {
-    const monthQuery = db.collection(`${publicDataPath}/shop_items`)
+    const monthQuery = db.collection(`${publicDataPath()}/shop_items`)
       .where('league', '==', league)
       .where('monthKey', '==', monthKey)
       .where('teacherId', '==', teacherId)
       .get();
     const festivalQuery = festivalId
-      ? db.collection(`${publicDataPath}/shop_items`).where('festivalId', '==', festivalId).get()
+      ? db.collection(`${publicDataPath()}/shop_items`).where('festivalId', '==', festivalId).get()
       : Promise.resolve(null);
     const [monthSnap, festivalSnap] = await Promise.all([monthQuery, festivalQuery]);
     const byId = new Map();
@@ -57,7 +57,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     const unique = [...new Set((ids || []).filter(Boolean))];
     for (const group of chunk(unique, 400)) {
       const batch = db.batch();
-      group.forEach((id) => batch.delete(db.doc(`${publicDataPath}/shop_items/${id}`)));
+      group.forEach((id) => batch.delete(db.doc(`${publicDataPath()}/shop_items/${id}`)));
       await batch.commit();
     }
   }
@@ -126,7 +126,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     if (item.look) payload.look = item.look;
     if (item.collection) payload.collection = item.collection;
     if (item.id) {
-      await db.doc(`${publicDataPath}/shop_items/${item.id}`).update({
+      await db.doc(`${publicDataPath()}/shop_items/${item.id}`).update({
         image: imageUrl || '',
         incoming: Boolean(incoming),
         description: item.desc,
@@ -138,7 +138,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       });
       return item.id;
     }
-    const ref = db.collection(`${publicDataPath}/shop_items`).doc();
+    const ref = db.collection(`${publicDataPath()}/shop_items`).doc();
     await ref.set(payload);
     return ref.id;
   }
@@ -262,10 +262,10 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     if (nextPlan.mode === 'swap') {
       const batch = db.batch();
       nextPlan.swapIncomingIds.forEach((id) => {
-        batch.update(db.doc(`${publicDataPath}/shop_items/${id}`), { incoming: false });
+        batch.update(db.doc(`${publicDataPath()}/shop_items/${id}`), { incoming: false });
       });
       nextPlan.retireIds.forEach((id) => {
-        batch.delete(db.doc(`${publicDataPath}/shop_items/${id}`));
+        batch.delete(db.doc(`${publicDataPath()}/shop_items/${id}`));
       });
       await batch.commit();
       return { mode: 'swap', savedThisRun: 0, completeCount: nextPlan.targetCount };
@@ -290,10 +290,10 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     if (latestPlan.mode === 'swap') {
       const batch = db.batch();
       latestPlan.swapIncomingIds.forEach((id) => {
-        batch.update(db.doc(`${publicDataPath}/shop_items/${id}`), { incoming: false });
+        batch.update(db.doc(`${publicDataPath()}/shop_items/${id}`), { incoming: false });
       });
       latestPlan.retireIds.forEach((id) => {
-        batch.delete(db.doc(`${publicDataPath}/shop_items/${id}`));
+        batch.delete(db.doc(`${publicDataPath()}/shop_items/${id}`));
       });
       await batch.commit();
     }
@@ -327,7 +327,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   }
 
   async function withLock(lockId, fn, { waitMs = 0 } = {}) {
-    const ref = db.doc(`${publicDataPath}/shop_restock_locks/${lockId}`);
+    const ref = db.doc(`${publicDataPath()}/shop_restock_locks/${lockId}`);
     const deadline = Date.now() + Math.max(0, Number(waitMs) || 0);
     while (true) {
       const snap = await ref.get();
@@ -410,7 +410,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     async function manageItem({ teacherId, teacherName, yearKey, itemId, action }) {
       const calendar = await calendarP;
       const restock = await restockP;
-      const ref = db.doc(`${publicDataPath}/shop_items/${itemId}`);
+      const ref = db.doc(`${publicDataPath()}/shop_items/${itemId}`);
       const snap = await ref.get();
       if (!snap.exists) {
         const error = new Error('That treasure is no longer on the stall.');

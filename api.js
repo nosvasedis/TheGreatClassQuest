@@ -1,7 +1,7 @@
 import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, DEEPSEEK_MODEL_ID, cloudflareWorkerUrl } from './constants.js';
 import { createConcurrencyQueue } from './utils/asyncQueue.js';
-import { isFinalAiErrorSource, isRetryableHttpStatus, shouldCountAsCircuitFailure } from './utils/aiResilience.js';
+import { isFinalAiErrorSource, isRetryableHttpStatus, schoolAiLimitMessage, shouldCountAsCircuitFailure } from './utils/aiResilience.js';
 
 const GEMINI_REQUEST_SPACING_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 60000;
@@ -375,6 +375,13 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
             if (error?.errorSource === 'firebase-token' || error?.errorSource === 'app-check') {
                 break;
             }
+            // The school's own allowance or plan: every provider would refuse the same way, and it
+            // says nothing about AI health, so pass the plain message on without tripping the breaker.
+            if (schoolAiLimitMessage(error?.errorSource)) {
+                error.isRetryable = false;
+                error.providerFailures = failures;
+                throw error;
+            }
             // 429 usually applies account-wide for free-tier usage. Stop chain to avoid bursts.
             if (failureMeta.isRateLimited) {
                 break;
@@ -468,7 +475,9 @@ async function fetchWithBackoff(url, options, config = {}) {
                 error.authReason = response.headers?.get?.('X-GCQ-Auth-Reason') || '';
                 error.aiReason = response.headers?.get?.('X-GCQ-AI-Reason') || '';
                 error.retryable = false;
-                if (error.errorSource) {
+                if (schoolAiLimitMessage(error.errorSource)) {
+                    error.message = schoolAiLimitMessage(error.errorSource);
+                } else if (error.errorSource) {
                     error.message = `API failed with status ${response.status} (${error.errorSource}${error.authReason ? `: ${error.authReason}` : ''})${error.aiReason ? ` — ${error.aiReason}` : ''}`;
                 }
                 throw error;

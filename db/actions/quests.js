@@ -27,6 +27,7 @@ import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { nextHeroOfDayWinWrite, getYearLegendContextFromState } from '../../utils/yearLegend.js';
 import { classUsesTests } from '../../features/assessmentConfig.js';
 import { PAGE_AWAITING, PAGE_WRITTEN, buildAwaitingPagePayload, isAwaitingAdventurePage } from '../../features/adventurePageCore.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
@@ -55,7 +56,7 @@ export async function handleSaveQuestAssignment() {
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
 
     try {
-        const publicDataPath = "artifacts/great-class-quest/public/data";
+        const publicDataPath = PUBLIC_DATA_PATH;
 
         // 1. Look up existing assignments from already-loaded state (avoids a slow Firestore query)
         const existingDocs = (state.get('allQuestAssignments') || [])
@@ -214,7 +215,7 @@ async function crownHeroOfTheDay(classId, classData) {
     try {
         const lessonDate = getTodayDateString();
         const presentStudents = getPresentStudentsForClass(classId);
-        const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
+        const classRef = doc(db, `${PUBLIC_DATA_PATH}/classes`, classId);
         const [learnedModule, reasonMeta] = await Promise.all([
             import('../../features/learnedToday.js'),
             import('../../features/awardLogReasonMeta.js')
@@ -269,7 +270,7 @@ export async function writeAdventurePageWithChronicler(logId, { onStatus } = {})
     const { canUseFeature } = await import('../../utils/subscription.js');
     if (!canUseFeature('eliteAI')) throw new Error('The AI Chronicler is part of the Elite plan.');
 
-    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
     const snap = await getDoc(logRef);
     if (!snap.exists()) throw new Error('This diary page could not be found.');
     const log = { id: snap.id, ...snap.data() };
@@ -434,7 +435,7 @@ function describeAdventureLogGenerationStatus(status) {
 }
 
 async function updateAdventureLogGenerationState(logId, updates, expectedRequestId = null) {
-    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
     return runTransaction(db, async tx => {
         const snap = await tx.get(logRef);
         if (!snap.exists() || (expectedRequestId && snap.data().generationRequestId !== expectedRequestId)) return false;
@@ -467,7 +468,7 @@ export async function retryAdventureLogGeneration(logId, options = {}) {
     if (!canUseFeature('eliteAI')) throw new Error('The AI Chronicler requires Elite.');
 
     const existing = (state.get('allAdventureLogs') || []).find((l) => l.id === logId) || null;
-    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
     let resolvedLog = existing;
     {
         const snap = await getDoc(logRef);
@@ -580,7 +581,7 @@ async function finalizeAdventureLogGeneration({
     }
     if (!finalDiary) throw new Error('The Chronicler returned an incomplete diary. The saved lesson will be retried.');
     const applied = await runTransaction(db, async tx => {
-        const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+        const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
         const snap = await tx.get(logRef);
         if (!snap.exists() || snap.data().generationRequestId !== requestId) return false;
         if (snap.data().createdBy?.uid !== state.get('currentUserId') || snap.data().schoolYearKey !== state.getActiveSchoolYearKey()) return false;
@@ -653,7 +654,7 @@ function scheduleAdventureLogRetry(payload, delayMs, retryIndex) {
 }
 
 async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
-    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const publicDataPath = PUBLIC_DATA_PATH;
     const logRef = doc(collection(db, `${publicDataPath}/adventure_logs`));
 
     await runTransaction(db, async (transaction) => {
@@ -764,7 +765,7 @@ async function _selectHeroOfTheDay(classId, presentStudents, classRef, classDocP
     cycleHeroIds = selection.cycleIds;
     if (protagonist) {
         // Fire-and-forget: clear the flag — does not need to block the AI call
-        const protagonistScoreRef = doc(db, 'artifacts/great-class-quest/public/data/student_scores', protagonist.id);
+        const protagonistScoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, protagonist.id);
         updateDoc(protagonistScoreRef, { pendingHeroStatus: false }).catch(e =>
             console.error('Failed to clear pendingHeroStatus:', e));
     }

@@ -16,8 +16,8 @@ import {
     wireAssessmentEditor
 } from '../ui/assessmentEditor.js';
 import { withActiveScoreYear, withActiveStudentYear, withSchoolYear } from '../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const SCORE_DEFAULTS = {
     totalStars: 0,
     monthlyStars: 0,

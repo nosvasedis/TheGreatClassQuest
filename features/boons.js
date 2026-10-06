@@ -18,6 +18,7 @@ import {
 } from './heroClasses.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { withSchoolYear } from '../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 export const TEACHER_BOON_PRESETS = [
     { key: 'leadership', label: 'Leadership', icon: '👑', accent: 'from-fuchsia-500 via-rose-500 to-orange-400' },
@@ -60,7 +61,7 @@ export async function handleBestowBoon(senderId, receiverId) {
     // Enforce 4-per-class-per-day peer boon limit before entering the transaction
     const todayStr = utils.getTodayDateString();
     const logsQuery = query(
-        collection(db, 'artifacts/great-class-quest/public/data/award_log'),
+        collection(db, `${PUBLIC_DATA_PATH}/award_log`),
         where('classId', '==', receiver.classId),
         where('date', '==', todayStr),
         where('reason', '==', 'peer_boon')
@@ -80,8 +81,8 @@ export async function handleBestowBoon(senderId, receiverId) {
         let logRef = null;
 
         await runTransaction(db, async (transaction) => {
-            const senderScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", senderId);
-            const receiverScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", receiverId);
+            const senderScoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, senderId);
+            const receiverScoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, receiverId);
 
             const senderDoc = await transaction.get(senderScoreRef);
             const senderData = senderDoc.data() || {};
@@ -90,7 +91,7 @@ export async function handleBestowBoon(senderId, receiverId) {
             // class's deterministic daily slots, so concurrent boons contend on
             // the same documents and the loser is retried against the new count.
             const legacyCount = existingSnap.docs.filter((item) => !item.id.startsWith(slotPrefix)).length;
-            const slotRefs = Array.from({ length: PEER_BOON_DAILY_CAP }, (_, index) => doc(db, 'artifacts/great-class-quest/public/data/award_log', `${slotPrefix}${index}`));
+            const slotRefs = Array.from({ length: PEER_BOON_DAILY_CAP }, (_, index) => doc(db, `${PUBLIC_DATA_PATH}/award_log`, `${slotPrefix}${index}`));
             const slotSnaps = [];
             for (const slotRef of slotRefs) slotSnaps.push(await transaction.get(slotRef));
             const occupiedSlots = slotSnaps.filter((snap) => snap.exists()).length;
@@ -253,7 +254,7 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
     const storedPresetLabel = preset?.label || 'Custom Reason';
     const today = utils.getTodayDateString();
     const monthKey = utils.getLocalMonthKey();
-    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const publicDataPath = PUBLIC_DATA_PATH;
     let levelUpInfo = null;
     let appliedGuildStars = numericStars;
 

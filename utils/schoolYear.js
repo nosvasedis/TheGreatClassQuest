@@ -1,7 +1,8 @@
 import { where } from '../firebase.js';
 import { getLatestCompletedMonthStart, normalizeToDateString, parseFlexibleDate, toHtmlDateInputValue } from '../utils.js';
 
-export const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
+// Live binding: follows the signed-in user's school (see utils/tenant.mjs).
+export { PUBLIC_DATA_PATH } from './tenant.mjs';
 export const SCHOOL_YEAR_STATE_DOC_ID = 'current';
 
 export function getDefaultSchoolYearState() {

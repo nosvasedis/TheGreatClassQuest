@@ -34,9 +34,9 @@ import {
     hasEnoughStoryForPicture,
     rankVirtueReasons
 } from './adventurePageCore.mjs';
+import { dataPath } from '../utils/tenant.mjs';
 
 const OVERLAY_ID = 'adventure-log-new-modal';
-const LOGS_PATH = 'artifacts/great-class-quest/public/data/adventure_logs';
 const draftKey = logId => `gcq_diary_draft_${logId}`;
 
 function readDraft(logId) {
@@ -62,7 +62,7 @@ function clearDraft(logId) {
 
 async function loadLog(logId) {
     try {
-        const snap = await getDoc(doc(db, LOGS_PATH, logId));
+        const snap = await getDoc(doc(db, dataPath('adventure_logs'), logId));
         if (snap.exists()) return { id: snap.id, ...snap.data() };
     } catch { /* fall back to the live snapshot */ }
     return (state.get('allAdventureLogs') || []).find(l => l.id === logId) || null;
@@ -343,7 +343,7 @@ async function savePage(log, overlay, { title, text, learned, pictureDraft }) {
             writtenBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         };
         await runTransaction(db, async tx => {
-            const logRef = doc(db, LOGS_PATH, log.id);
+            const logRef = doc(db, dataPath('adventure_logs'), log.id);
             const snap = await tx.get(logRef);
             if (!snap.exists()) throw friendlyError('This diary page could not be found.');
             const data = snap.data();

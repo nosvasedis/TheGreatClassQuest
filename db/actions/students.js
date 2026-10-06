@@ -23,8 +23,8 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { withActiveScoreYear, withActiveStudentYear } from '../../utils/schoolYear.js';
 import { allocateReturningStudents, purgeStudent } from '../../utils/adminRuntime.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 const SCORE_DEFAULTS = {
     totalStars: 0,
@@ -169,7 +169,7 @@ export async function saveStudentHeroClass(studentId, heroClass) {
         return { saved: false, reason: 'locked' };
     }
 
-    const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
+    const studentRef = doc(db, `${PUBLIC_DATA_PATH}/students`, studentId);
     const lockYear = heroClassLockYearKey || activeYearKey || '';
     const changeCount = Number(heroClassChangeCount) || 0;
     await updateDoc(studentRef, {
@@ -217,7 +217,7 @@ export async function handleSaveStudentDetails() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
     try {
-        const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
+        const studentRef = doc(db, `${PUBLIC_DATA_PATH}/students`, studentId);
         await updateDoc(studentRef, {
             name: newName,
             birthday: birthday,
@@ -319,7 +319,7 @@ export async function handleSaveTeacherName() {
 }
 
 async function updateTeacherNameInClasses(newName) {
-    const q = query(collection(db, `artifacts/great-class-quest/public/data/classes`), where("createdBy.uid", "==", state.get('currentUserId')));
+    const q = query(collection(db, `${PUBLIC_DATA_PATH}/classes`), where("createdBy.uid", "==", state.get('currentUserId')));
     const snapshot = await getDocs(q);
     const batch = writeBatch(db);
     snapshot.forEach(doc => batch.update(doc.ref, { "createdBy.name": newName }));
@@ -327,7 +327,7 @@ async function updateTeacherNameInClasses(newName) {
 }
 
 async function updateTeacherNameInStudents(newName) {
-    const q = query(collection(db, `artifacts/great-class-quest/public/data/students`), where("createdBy.uid", "==", state.get('currentUserId')));
+    const q = query(collection(db, `${PUBLIC_DATA_PATH}/students`), where("createdBy.uid", "==", state.get('currentUserId')));
     const snapshot = await getDocs(q);
     const batch = writeBatch(db);
     snapshot.forEach(doc => batch.update(doc.ref, { "createdBy.name": newName }));

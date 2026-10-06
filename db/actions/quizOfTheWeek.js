@@ -38,8 +38,8 @@ import {
 } from '../../features/quizRewardsCore.mjs';
 import { grantStallTreasure, loadLeagueStall } from './stallTreasure.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 function weekKey() {
     return getTargetWeekKey();

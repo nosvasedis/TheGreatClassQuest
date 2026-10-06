@@ -17,6 +17,7 @@ import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
 import { ensureAudioReady, playSound, playHeroFanfare, playWheelSfx, warmWheelAudio, playDrumRoll, stopDrumRoll } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 /** Compute relative luminance from a hex color for text contrast decisions */
 function _luminance(hex) {
@@ -576,7 +577,7 @@ async function _spendFortuneFavor(guildId, classId) {
     const holder = _favorHolders(guildId, classId)[0];
     if (!holder) return;
     try {
-        await updateDoc(doc(db, 'artifacts/great-class-quest/public/data/student_scores', holder), { fortuneFavorArmed: false });
+        await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/student_scores`, holder), { fortuneFavorArmed: false });
         state.setAllStudentScores((state.get('allStudentScores') || []).map((sc) => (sc.id === holder ? { ...sc, fortuneFavorArmed: false } : sc)));
     } catch (err) {
         console.warn("Fortune's Favor could not be spent:", err);

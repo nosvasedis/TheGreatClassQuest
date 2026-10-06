@@ -20,8 +20,8 @@ import { GUILDS, GUILD_IDS } from '../../features/guilds.js';
 import { getISOWeekKey, recordGuildGloryEvent } from '../../features/guildScoring.js';
 import { GLORY_PER_STAR } from '../../constants.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH as publicDataPath } from '../../utils/tenant.mjs';
 
-const publicDataPath = 'artifacts/great-class-quest/public/data';
 
 /**
  * Assign a student to a guild. Updates student doc and ensures guild_scores doc exists with member tracking.

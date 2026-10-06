@@ -35,8 +35,8 @@ import {
     sealArtHtml,
     sealDateKey,
 } from './heroSealsCore.mjs';
+import { PUBLIC_DATA_PATH as ROOT } from '../utils/tenant.mjs';
 
-const ROOT = 'artifacts/great-class-quest/public/data';
 const SETTLE_MS = 6000;
 const DEBOUNCE_MS = 4000;
 /** A star younger than this may still be undone; it waits for the next look. */

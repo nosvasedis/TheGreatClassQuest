@@ -1,85 +1,46 @@
-function buildBillingErrorMessage(error) {
-    const message = String(error?.message || '').trim();
-    if (!message) {
-        return 'Could not open checkout right now.';
-    }
-    if (error?.name === 'AbortError') {
-        return 'The billing server took too long to respond. If Render is waking up, wait a few seconds and try again.';
-    }
-    return message;
+// Online payment (Stripe) through Cloud Functions (functions/billing/billing.js).
+// The founding school's plan is managed directly, so it never sees online payment.
+import { auth } from '../firebaseAuth.js';
+import { DEFAULT_SCHOOL_ID, getSchoolId } from './tenant.mjs';
+
+function callBilling(name, payload) {
+    return import('./adminRuntime.js').then(({ callBillingFunction }) => callBillingFunction(name, payload));
 }
 
-async function parseBillingResponse(response) {
-    const text = await response.text();
-    if (!text) return {};
-    try {
-        return JSON.parse(text);
-    } catch (error) {
-        if (!response.ok) {
-            throw new Error(`Billing server returned ${response.status} ${response.statusText}.`);
-        }
-        throw new Error('Billing server returned an unexpected response.');
-    }
+/** True when this school can pay online (every school except the founding one). */
+export function isOnlineBillingAvailable() {
+    return getSchoolId() !== DEFAULT_SCHOOL_ID;
 }
 
-export async function requestCheckoutSession({
-    billingBaseUrl,
-    schoolId,
-    tier,
-    successUrl,
-    cancelUrl,
-    timeoutMs = 35000
-}) {
-    const baseUrl = String(billingBaseUrl || '').trim().replace(/\/$/, '');
-    if (!baseUrl) {
-        throw new Error('Billing is not configured for this school yet.');
-    }
-    if (!schoolId) {
-        throw new Error('This school is missing its billing ID.');
-    }
+function billingErrorMessage(error) {
+    const code = String(error?.code || '');
+    // The billing functions are not deployed or switched on yet.
+    if (code === 'functions/not-found' || code === 'functions/unimplemented') return 'Online payment is not switched on yet. Contact us to choose a plan.';
+    return String(error?.message || '').trim() || 'Could not open checkout right now.';
+}
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-
+export async function requestCheckoutSession({ tier, successUrl, cancelUrl } = {}) {
+    if (!auth.currentUser) throw new Error('Sign in again before choosing a plan.');
+    if (!isOnlineBillingAvailable()) throw new Error('This school’s plan is managed directly. Contact us to change it.');
+    const requestId = typeof crypto?.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     try {
-        const requestId = typeof crypto?.randomUUID === 'function'
-            ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        const response = await fetch(`${baseUrl}/create-checkout-session`, {
-            method: 'POST',
-            headers: await getBillingAuthHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({
-                schoolId,
-                tier,
-                successUrl,
-                cancelUrl,
-                requestId
-            }),
-            signal: controller.signal
-        });
-
-        const data = await parseBillingResponse(response);
-        if (!response.ok) {
-            throw new Error(data?.error || `Billing server returned ${response.status} ${response.statusText}.`);
-        }
-        if (!data?.url) {
-            throw new Error(data?.error || 'Billing server did not return a Stripe checkout link.');
-        }
+        const data = await callBilling('billingCreateCheckout', { tier, successUrl, cancelUrl, requestId });
+        if (!data?.url) throw new Error('Stripe did not return a checkout link.');
         return data;
     } catch (error) {
-        throw new Error(buildBillingErrorMessage(error));
-    } finally {
-        window.clearTimeout(timeoutId);
+        throw new Error(billingErrorMessage(error));
     }
 }
-import { auth } from '../firebaseAuth.js';
 
-export async function getBillingAuthHeaders(extraHeaders = {}) {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Sign in again before opening billing.');
-    const token = await user.getIdToken();
-    return {
-        ...extraHeaders,
-        Authorization: `Bearer ${token}`
-    };
+export async function requestBillingPortal({ returnUrl } = {}) {
+    if (!isOnlineBillingAvailable()) throw new Error('This school’s plan is managed directly. Contact us to change it.');
+    try {
+        const data = await callBilling('billingCreatePortal', { returnUrl });
+        if (!data?.url) throw new Error('Stripe did not return a portal link.');
+        return data;
+    } catch (error) {
+        throw new Error(billingErrorMessage(error));
+    }
 }

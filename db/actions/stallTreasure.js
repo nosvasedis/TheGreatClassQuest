@@ -5,8 +5,8 @@ import * as state from '../../state.js';
 import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemShelf, shopItemStock } from '../../utils/shopRestock.js';
 import { shopMonthKey, getActiveFestival } from '../../utils/shopCalendar.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 /**
  * The league's current Mystic Market stall (this month's treasures and any festival stall).

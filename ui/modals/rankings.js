@@ -32,6 +32,7 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
 import { getYearLegendContextFromState, getYearScopedHeroOfDayWins } from '../../utils/yearLegend.js';
 import { getSchoolYearStartMonthDate, getViewableCompletedMonthStart, withActiveScoreYear } from '../../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 let rankingsViewDate = new Date();
 
@@ -510,7 +511,7 @@ async function syncHeroLegendWins(classId, legendRows) {
             ...(yearKey ? { heroOfDayWinsYearKey: yearKey } : {})
         };
         batch.set(
-            doc(db, 'artifacts/great-class-quest/public/data/student_scores', row.student.id),
+            doc(db, `${PUBLIC_DATA_PATH}/student_scores`, row.student.id),
             yearKey ? withActiveScoreYear(payload, yearKey) : payload,
             { merge: true }
         );

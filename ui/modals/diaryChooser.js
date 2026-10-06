@@ -10,6 +10,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { showToast } from '../effects.js';
 import { buildDiaryChooserModel, isAwaitingAdventurePage, rankVirtueReasons } from '../../features/adventurePageCore.mjs';
 import { diaryChooserHtml } from './diaryChooserView.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const MODAL_ID = 'diary-chooser-modal';
 
@@ -17,7 +18,7 @@ async function loadLog(logId) {
     const cached = (state.get('allAdventureLogs') || []).find(l => l.id === logId);
     if (cached) return cached;
     try {
-        const snap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId));
+        const snap = await getDoc(doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId));
         return snap.exists() ? { id: snap.id, ...snap.data() } : null;
     } catch {
         return null;

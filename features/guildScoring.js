@@ -35,8 +35,8 @@ import {
     roundTo,
     schoolYearChapterKeys,
 } from './guildScoringCore.js';
+import { PUBLIC_DATA_PATH as publicDataPath } from '../utils/tenant.mjs';
 
-const publicDataPath = 'artifacts/great-class-quest/public/data';
 
 /**
  * First Chapter that pays Crowns in a school year. Any year not listed starts with its

@@ -13,8 +13,7 @@ import {
 import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions/log.js';
 import { renderHolidayList } from '../ui/core/misc.js';
 import { auth, EmailAuthProvider, reauthenticateWithCredential } from '../firebaseAuth.js';
-import { getBillingAuthHeaders } from '../utils/billingCheckout.js';
-import { BILLING_BASE_URL, BILLING_SCHOOL_ID, firebaseConfig } from '../constants.js';
+import { isOnlineBillingAvailable, requestBillingPortal } from '../utils/billingCheckout.js';
 import {
     readAssessmentCardValue,
     readAssessmentDefaultsFromContainer,
@@ -47,8 +46,8 @@ import {
     setFormerStudentsListener
 } from './secretary/formerStudents.js';
 import { handleFamilyLoginsClick, setFamilyLoginsListener } from './secretary/familyLogins.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 let listenersWired = false;
 let secretaryCallbacks = {
@@ -200,6 +199,18 @@ function refreshSecretarySearch(tabKey) {
     });
 }
 
+// Desks load on first use. If loading or opening one fails (a stale tab after a deploy, a
+// dropped connection), say so instead of leaving the button doing nothing.
+function openOfficeDesk(load, open) {
+    Promise.resolve()
+        .then(load)
+        .then(open)
+        .catch((error) => {
+            console.error('Secretary Office: a desk could not open:', error);
+            showToast('That window could not open. Check the connection, reload the page and try again.', 'error');
+        });
+}
+
 function openRegistry(lane = 'students') {
     state.setSecretaryView({ activeTab: 'admin', adminSubTab: 'registry', registryLane: lane, registrySearch: '' });
     if (lane === 'former') void loadFormerStudents();
@@ -224,25 +235,13 @@ export function renderSecretaryConsole(tabKey) {
 }
 
 async function openSecretaryBillingPortal(button) {
-    let billingUrl = String(BILLING_BASE_URL || '').trim().replace(/\/$/, '');
-    if (billingUrl && !/^https?:\/\//i.test(billingUrl)) billingUrl = `https://${billingUrl}`;
-    const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
-    if (!billingUrl || !schoolId) {
-        modals.showModal('Subscription', 'Billing is not configured for this school yet.', null, 'OK', 'Close');
+    if (!isOnlineBillingAvailable()) {
+        modals.showModal('Subscription', 'This school’s plan is managed directly, not through online payment.', null, 'OK', 'Close');
         return;
     }
     try {
         setBusyState(button, true, 'Opening Stripe...');
-        const response = await fetch(`${billingUrl}/create-portal-session`, {
-            method: 'POST',
-            headers: await getBillingAuthHeaders({
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': '1'
-            }),
-            body: JSON.stringify({ schoolId, returnUrl: window.location.href })
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data?.url) throw new Error(data?.error || 'Stripe did not return a billing portal link.');
+        const data = await requestBillingPortal({ returnUrl: window.location.href });
         window.location.href = data.url;
     } catch (error) {
         console.error('Could not open Secretary billing portal:', error);
@@ -341,7 +340,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
     setFormerStudentsListener(() => {
         const tab = getActiveTabKey();
         if (tab === 'admin' || tab === 'school' || tab === 'home') renderSecretaryTab(tab);
-        import('./placementWizard.js').then(({ refreshPlacementWizardIfOpen }) => refreshPlacementWizardIfOpen());
+        import('./placementWizard.js').then(({ refreshPlacementWizardIfOpen }) => refreshPlacementWizardIfOpen()).catch(() => { /* refresh only; the desk reloads on next open */ });
     });
     setFamilyLoginsListener(() => {
         const view = state.get('secretaryView') || {};
@@ -427,12 +426,10 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
             }
             const classId = openDeskBtn.dataset.secretaryOpenClassDesk;
             if (getActiveTabKey() !== 'admin') openRegistry('classes');
-            import('./classWizard.js').then(({ openClassWizard }) => {
-                openClassWizard({
-                    classId,
-                    onRerender: () => renderSecretaryTab('admin')
-                });
-            });
+            openOfficeDesk(() => import('./classWizard.js'), ({ openClassWizard }) => openClassWizard({
+                classId,
+                onRerender: () => renderSecretaryTab('admin')
+            }));
             return;
         }
 
@@ -452,9 +449,9 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         }
 
         if (event.target.closest('[data-secretary-registry-seat]')) {
-            import('./placementWizard.js').then(({ openPlacementWizard }) => {
-                openPlacementWizard({ onRerender: () => renderSecretaryTab(getActiveTabKey()) });
-            });
+            openOfficeDesk(() => import('./placementWizard.js'), ({ openPlacementWizard }) => (
+                openPlacementWizard({ onRerender: () => renderSecretaryTab(getActiveTabKey()) })
+            ));
             return;
         }
 
@@ -463,20 +460,18 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
                 showToast('Creating and editing classes needs the Elite School Office.', 'info');
                 return;
             }
-            import('./classWizard.js').then(({ openClassWizard }) => {
-                openClassWizard({ create: true, onRerender: () => renderSecretaryTab('admin') });
-            });
+            openOfficeDesk(() => import('./classWizard.js'), ({ openClassWizard }) => (
+                openClassWizard({ create: true, onRerender: () => renderSecretaryTab('admin') })
+            ));
             return;
         }
 
         const enrolBtn = event.target.closest('[data-secretary-enrol-in]');
         if (enrolBtn) {
-            import('./studentWizard.js').then(({ openStudentWizard }) => {
-                openStudentWizard({
-                    classId: enrolBtn.dataset.secretaryEnrolIn || '',
-                    onRerender: () => renderSecretaryTab(getActiveTabKey())
-                });
-            });
+            openOfficeDesk(() => import('./studentWizard.js'), ({ openStudentWizard }) => openStudentWizard({
+                classId: enrolBtn.dataset.secretaryEnrolIn || '',
+                onRerender: () => renderSecretaryTab(getActiveTabKey())
+            }));
             return;
         }
 
@@ -576,7 +571,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         // The office keeps its own notes on a student's file, and reads the teachers' notes there too.
         const notesBtn = event.target.closest('[data-secretary-notes]');
         if (notesBtn) {
-            import('./secretary/studentDesk.js').then(({ openStudentNotes }) => openStudentNotes(notesBtn.dataset.secretaryNotes));
+            openOfficeDesk(() => import('./secretary/studentDesk.js'), ({ openStudentNotes }) => openStudentNotes(notesBtn.dataset.secretaryNotes));
             return;
         }
 

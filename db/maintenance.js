@@ -1,6 +1,6 @@
 import { collection, db, getDocs, query, where, writeBatch } from '../firebase.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 let lastDailyCleanupKey = null;
 
 /**

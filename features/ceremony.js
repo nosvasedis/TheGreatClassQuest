@@ -60,6 +60,7 @@ import {
     gardenEndHtml,
     gardenSprigHtml
 } from './ceremonyGardenView.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 let ceremonyData = {
     active: false,
@@ -152,7 +153,7 @@ export async function checkAndInitCeremony(classId, { replay = false } = {}) {
     const { monthKey, monthName } = pending;
 
     const history = classData.ceremonyHistory || {};
-    const snapshotSnap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/ceremony_snapshots', ceremonySnapshotId(classId, monthKey))).catch(() => null);
+    const snapshotSnap = await getDoc(doc(db, `${PUBLIC_DATA_PATH}/ceremony_snapshots`, ceremonySnapshotId(classId, monthKey))).catch(() => null);
     const snapshot = snapshotSnap?.exists?.() ? { id: snapshotSnap.id, ...snapshotSnap.data() } : null;
     if (history[monthKey] && history[monthKey].complete && !replay) return null;
 
@@ -203,7 +204,7 @@ async function loadCeremonyResults() {
         const archived = await fetchMonthlyHistory(ceremonyData.monthKey).catch(() => ({}));
         const activeYearKey = state.getActiveSchoolYearKey();
         const questHistorySnap = await getDocs(query(
-            collection(db, 'artifacts/great-class-quest/public/data/quest_history'),
+            collection(db, `${PUBLIC_DATA_PATH}/quest_history`),
             where('schoolYearKey', '==', activeYearKey)
         ));
         const questHistoryRecords = questHistorySnap.docs.map(docSnap => docSnap.data());
@@ -1515,9 +1516,9 @@ async function saveCeremonyComplete() {
     const classId = ceremonyData.classId;
     const monthKey = ceremonyData.monthKey;
     try {
-        const classRef = doc(db, `artifacts/great-class-quest/public/data/classes`, classId);
+        const classRef = doc(db, `${PUBLIC_DATA_PATH}/classes`, classId);
         const snapshotId = `${classId}__${monthKey}`;
-        const snapshotRef = doc(db, 'artifacts/great-class-quest/public/data/ceremony_snapshots', snapshotId);
+        const snapshotRef = doc(db, `${PUBLIC_DATA_PATH}/ceremony_snapshots`, snapshotId);
         const snapshotPayload = {
             schemaVersion: 1,
             schoolYearKey: state.getActiveSchoolYearKey(),

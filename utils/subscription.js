@@ -1,11 +1,27 @@
 // utils/subscription.js
-// Tier-based feature gating. Reads from Firestore appConfig/subscription.
-// If doc is missing, defaults to Starter (safe fallback).
+// Tier-based feature gating. The founding school reads appConfig/subscription, exactly as
+// before schools shared one project; every other school reads the `subscription` map on its
+// own schools/{schoolId} doc. A missing plan means "pending" (safe fallback).
 
 import { db, doc, getDoc, onSnapshot } from '../firebase.js';
 import { auth } from '../firebaseAuth.js';
+import { DEFAULT_SCHOOL_ID, getSchoolId } from './tenant.mjs';
 
-const SUBSCRIPTION_PATH = 'appConfig/subscription';
+const LEGACY_SUBSCRIPTION_PATH = 'appConfig/subscription';
+const SCHOOLS_COLLECTION = 'schools';
+
+function subscriptionRefForSchool(schoolId) {
+    return schoolId === DEFAULT_SCHOOL_ID
+        ? { ref: doc(db, LEGACY_SUBSCRIPTION_PATH), fromSchoolDoc: false }
+        : { ref: doc(db, SCHOOLS_COLLECTION, schoolId), fromSchoolDoc: true };
+}
+
+// A school doc holds the plan under `subscription`; a suspended school has no plan.
+export function planFromSchoolDoc(data) {
+    if (!data || (data.status && data.status !== 'active')) return null;
+    const plan = data.subscription;
+    return plan && typeof plan === 'object' ? plan : null;
+}
 
 let subscriptionConfig = null;
 let subscriptionUnsubscribe = null;
@@ -178,9 +194,10 @@ function resolveSubscriptionConfig(rawConfig) {
     };
 }
 
-function applySubscriptionSnapshot(snap) {
-    if (snap.exists()) {
-        subscriptionConfig = resolveSubscriptionConfig(snap.data());
+function applySubscriptionSnapshot(snap, fromSchoolDoc = false) {
+    const plan = snap.exists() ? (fromSchoolDoc ? planFromSchoolDoc(snap.data()) : snap.data()) : null;
+    if (plan) {
+        subscriptionConfig = resolveSubscriptionConfig(plan);
     } else {
         subscriptionConfig = getStarterDefaults();
     }
@@ -217,7 +234,7 @@ export function stopSubscription() {
     subscriptionConfig = null;
 }
 
-function listenToSubscription(ref, { onFirstResult, allowRetry }) {
+function listenToSubscription(ref, { onFirstResult, allowRetry, fromSchoolDoc = false }) {
     const uid = auth.currentUser?.uid || null;
     let settled = false;
     const settle = () => {
@@ -226,7 +243,7 @@ function listenToSubscription(ref, { onFirstResult, allowRetry }) {
         onFirstResult();
     };
     const unsubscribe = onSnapshot(ref, (snap) => {
-        applySubscriptionSnapshot(snap);
+        applySubscriptionSnapshot(snap, fromSchoolDoc);
         settle();
     }, async (err) => {
         if (subscriptionUnsubscribe === unsubscribe) subscriptionUnsubscribe = null;
@@ -242,7 +259,7 @@ function listenToSubscription(ref, { onFirstResult, allowRetry }) {
                 await auth.currentUser.getIdToken(true);
             } catch (_) { /* the retry below reports the real outcome */ }
             if (auth.currentUser?.uid === uid && !subscriptionUnsubscribe) {
-                subscriptionUnsubscribe = listenToSubscription(ref, { onFirstResult: settle, allowRetry: false });
+                subscriptionUnsubscribe = listenToSubscription(ref, { onFirstResult: settle, allowRetry: false, fromSchoolDoc });
                 return;
             }
         }
@@ -254,16 +271,16 @@ function listenToSubscription(ref, { onFirstResult, allowRetry }) {
     return unsubscribe;
 }
 
-export async function loadSubscription() {
+export async function loadSubscription(schoolId = getSchoolId()) {
     if (subscriptionUnsubscribe) {
         subscriptionUnsubscribe();
         subscriptionUnsubscribe = null;
     }
     subscriptionConfig = null;
     try {
-        const ref = doc(db, SUBSCRIPTION_PATH);
+        const { ref, fromSchoolDoc } = subscriptionRefForSchool(schoolId);
         await new Promise((resolve) => {
-            subscriptionUnsubscribe = listenToSubscription(ref, { onFirstResult: resolve, allowRetry: true });
+            subscriptionUnsubscribe = listenToSubscription(ref, { onFirstResult: resolve, allowRetry: true, fromSchoolDoc });
         });
         if (!subscriptionConfig) subscriptionConfig = getStarterDefaults();
         return subscriptionConfig;

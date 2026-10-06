@@ -10,8 +10,8 @@ import * as utils from '../utils.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { buildRealmStamp, getRealmStop, realmMonthKey, unstampedRealms } from './realmMomentsCore.mjs';
+import { dataPath } from '../utils/tenant.mjs';
 
-const CLASSES_PATH = 'artifacts/great-class-quest/public/data/classes';
 const SETTLE_MS = 6000;
 const DEBOUNCE_MS = 1200;
 const BANNER_MS = 3200;
@@ -89,7 +89,7 @@ function evaluate() {
             patch[`mapJournal.${monthKey}.${id}`] = buildRealmStamp(id, { date: now, stars, late: !live.includes(id) });
         });
         // The banner plays only once the stamp is saved (a closed school year cannot be stamped).
-        updateDoc(doc(db, CLASSES_PATH, classData.id), patch).then(() => {
+        updateDoc(doc(db, dataPath('classes'), classData.id), patch).then(() => {
             if (!live.length) return;
             queue.push({ classData, realmId: live[live.length - 1] });
             playNext();

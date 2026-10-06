@@ -15,6 +15,17 @@ binding = "AI"
 binding = "QUOTE_CACHE"
 id = "f75e296a94754121b221eafac8e72ec2"
 
+# Monthly AI allowance per school (never the founding school). SQLite-backed Durable Objects are
+# available on Workers Free. Limits per plan: DEFAULT_SCHOOL_AI_LIMITS in src/worker.js, or the
+# optional SCHOOL_AI_MONTHLY_LIMITS JSON var, e.g. {"pro":{"chat":2000}}.
+[[durable_objects.bindings]]
+name = "SCHOOL_AI_USAGE"
+class_name = "SchoolAiUsage"
+
+[[migrations]]
+tag = "v1-school-ai-usage"
+new_sqlite_classes = ["SchoolAiUsage"]
+
 [vars]
 FIREBASE_PROJECT_ID = "the-great-class-quest"
 FIREBASE_PROJECT_NUMBER = "1021026433595"

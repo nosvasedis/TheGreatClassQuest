@@ -7,6 +7,7 @@ import * as utils from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { applyLearnedTodayEdits, collectLearnedToday, LEARNED_TODAY_SOURCES } from './learnedTodayCore.mjs';
 import { isSpecialQuestType, normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 export { applyLearnedTodayEdits, LEARNED_TODAY_SOURCES };
 
@@ -44,7 +45,7 @@ async function readStoryInput(classId, today) {
     if (!story) {
         // Story data is only live while Story Weavers is open; read it once otherwise.
         try {
-            const snap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/story_data', classId));
+            const snap = await getDoc(doc(db, `${PUBLIC_DATA_PATH}/story_data`, classId));
             story = snap.exists() ? snap.data() : null;
         } catch (error) {
             console.warn('What we learned: story lookup skipped.', error);

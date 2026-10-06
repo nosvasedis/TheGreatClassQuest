@@ -198,6 +198,14 @@ export const authHTML = `
                                 <div class="auth-strength" data-auth-strength aria-hidden="true"><span></span><span></span><span></span></div>
                                 <p class="auth-field-hint auth-field-hint--caps hidden" data-auth-caps-for="signup-password"><i class="fas fa-arrow-up" aria-hidden="true"></i> Caps Lock is on</p>
                             </div>
+                            <div class="auth-field hidden" id="signup-join-code-wrap">
+                                <label for="signup-join-code" class="auth-field-label">Teacher code <span class="auth-field-label__aside">(from your school office)</span></label>
+                                <div class="auth-field-input-wrap">
+                                    <i class="fas fa-key auth-field-icon" aria-hidden="true"></i>
+                                    <input type="text" id="signup-join-code" class="auth-field-input" placeholder="ABCDE-FGHJK"
+                                        autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+                                </div>
+                            </div>
                             <button type="submit" id="signup-submit-btn" class="auth-submit-btn auth-submit-btn--signup">
                                 <span class="auth-submit-label">Create my account</span>
                             </button>
@@ -206,6 +214,25 @@ export const authHTML = `
                         <div class="auth-switch">
                             <button id="toggle-auth-mode" type="button" class="auth-toggle-link">New teacher? Create an account</button>
                         </div>
+                    </div>
+
+                    <div id="auth-school-line" class="auth-school-line">
+                        <p id="auth-school-current" class="auth-school-current hidden"></p>
+                        <button type="button" id="auth-school-change" class="auth-toggle-link auth-school-change">Another school? Enter its school code</button>
+                        <form id="auth-school-form" class="auth-school-form hidden" novalidate>
+                            <div class="auth-field">
+                                <label for="auth-school-code" class="auth-field-label">School code</label>
+                                <div class="auth-field-input-wrap">
+                                    <i class="fas fa-school auth-field-icon" aria-hidden="true"></i>
+                                    <input type="text" id="auth-school-code" class="auth-field-input" placeholder="e.g. alpha-patras"
+                                        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                                </div>
+                            </div>
+                            <div class="auth-school-actions">
+                                <button type="submit" class="auth-toggle-link auth-school-use">Use this school</button>
+                                <button type="button" id="auth-school-cancel" class="auth-toggle-link">Cancel</button>
+                            </div>
+                        </form>
                     </div>
 
                     <form id="secretary-activation-form" class="hidden" novalidate>

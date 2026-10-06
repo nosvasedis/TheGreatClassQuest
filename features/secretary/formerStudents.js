@@ -9,8 +9,8 @@ import { markStudentLeftSchool, restoreFormerStudent, purgeStudent } from '../..
 import { escapeHtml, setBusyState } from '../roles/shared.js';
 import { liveSchoolClasses, renderOfficeAvatar } from './helpers.js';
 import { openOfficeModal, closeOfficeModal, releaseOfficeScrollLock } from './officeModal.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const DIALOG_ID = 'secretary-office-dialog';
 const UNDO_ID = 'secretary-undo-bar';
 const UNDO_MS = 9000;

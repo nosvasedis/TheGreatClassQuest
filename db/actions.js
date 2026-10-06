@@ -25,6 +25,7 @@ import { updateGuildScores } from '../features/guildScoring.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './actions/stars.js';
 import { heroClassEarnsFrom } from '../features/heroSkillTree.js';
 import { TRAINING_BONUS_STARS, TRAINING_GAMES } from '../features/trainingGroundsCore.mjs';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 export * from './actions/index.js';
 
@@ -62,7 +63,7 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
     trainingBonusInFlight.add(flightKey);
 
     try {
-        const publicDataPath = "artifacts/great-class-quest/public/data";
+        const publicDataPath = PUBLIC_DATA_PATH;
         let awards = [];
 
         // A transaction (not read-then-batch) so a concurrent award cannot make
@@ -154,7 +155,7 @@ export async function ensureHistoryLoaded() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const schoolYearState = normalizeSchoolYearState(state.get('schoolYearState'));
     const activeYearKey = schoolYearState.activeYearKey;
     const enforceActiveYearQueries = schoolYearState.enforceActiveYearQueries === true;

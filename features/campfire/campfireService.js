@@ -7,7 +7,7 @@ import { buildCampfireScript, sanitizeCampfireScript, campfireSessionId, shouldK
     questionKey, rememberQuestion, stripUndefined, kindlingSparkCount, lessonThemeFromUnit, curateCampfireWords, unitContinuity, buildTomorrowSpark, keepOnlyKnownWords } from '../heroCampfireCore.mjs';
 import { oathContext, ensureEmberOathsListener, loadEmberOaths, getOathFacts } from '../../db/actions/emberOaths.js';
 import { evaluateOathEvidence, oathDate } from '../emberOathCore.mjs';
-const ROOT = 'artifacts/great-class-quest/public/data/';
+import { dataPath } from '../../utils/tenant.mjs';
 const sessions = new Map(), inFlight = new Map();
 let generation = 0;
 const storageKey = (context, id) => 'gcq_campfire_' + context.teacherId + '_' + context.schoolYearKey + '_' + id;
@@ -133,7 +133,7 @@ const withoutNewerKeys = script => script ? Object.fromEntries(Object.entries(sc
 export async function saveCampfireSession(session, patch = {}) {
     const context = oathContext();
     if (session.teacherId !== context.teacherId || session.schoolYearKey !== context.schoolYearKey) throw new Error('The active lesson changed. Reopen Campfire.');
-    const ref = doc(db, ROOT + 'campfire_sessions', session.id);
+    const ref = doc(db, dataPath('campfire_sessions'), session.id);
     const write = trimScript => runTransaction(db, async tx => {
         const snap = await tx.get(ref);
         const previous = snap.exists() ? { id: snap.id, ...snap.data() } : session;
@@ -192,7 +192,7 @@ export async function kindleCampfire(classId, { ai = false, learnedToday = null,
     }
     const task = (async () => {
         let session = getCachedCampfire(classId);
-        try { const snap = await getDoc(doc(db, ROOT + 'campfire_sessions', id)); if (snap.exists()) session = { id, ...snap.data() }; }
+        try { const snap = await getDoc(doc(db, dataPath('campfire_sessions'), id)); if (snap.exists()) session = { id, ...snap.data() }; }
         catch (error) { if (!session) console.warn('Campfire will use the local question bank.', error.code); }
         if (session && !refresh) { cache(session, context); return session; }
         const learned = learnedToday || await import('../learnedToday.js').then(m => m.gatherLearnedToday(classId)).catch(() => ({}));
@@ -320,7 +320,7 @@ export async function openCampfire(classId) {
         onSave: patch => saveCampfireSession(session, patch),
         onComplete: async patch => {
             const context = oathContext();
-            const ref = doc(db, ROOT + 'classes', classId);
+            const ref = doc(db, dataPath('classes'), classId);
             await runTransaction(db, async tx => {
                 const snap = await tx.get(ref);
                 if (!snap.exists() || !currentContext(context)) throw new Error('The active class changed.');

@@ -12,6 +12,7 @@ import { suggestOaths, oathTemplates, evaluateOathEvidence, oathDate, CATEGORY_M
 import { cleanCampfireText } from '../../features/heroCampfireCore.mjs';
 import { getGuildById } from '../../features/guilds.js';
 import * as oathActions from '../../db/actions/emberOaths.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 const { loadEmberOaths } = oathActions;
 import { showAnimatedModal, hideModal, showModal } from './base.js';
 import { showToast } from '../effects.js';
@@ -440,7 +441,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     }
     async function saveClassPromise(raw) {
         const text = cleanCampfireText(raw || '', 200); if (!text) return;
-        if (!preview) await updateDoc(doc(db, 'artifacts/great-class-quest/public/data/classes', classId), { classOath: { text, updatedAt: new Date().toISOString() } });
+        if (!preview) await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/classes`, classId), { classOath: { text, updatedAt: new Date().toISOString() } });
         c.classOath = { text }; renderBoard(); showToast('Class promise saved 🤝', 'success');
     }
     function onSubmit(event) {

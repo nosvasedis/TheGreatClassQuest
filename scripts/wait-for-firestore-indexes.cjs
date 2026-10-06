@@ -7,7 +7,7 @@ const {
   compareRequiredIndexes,
   formatRequiredIndexLabel,
   getActiveYearQueryIndexes,
-} = require('../tools/onboarding-console/lib.js');
+} = require('./lib/schoolAdmin.cjs');
 
 const repoRoot = path.resolve(__dirname, '..');
 const projectId = process.env.FIREBASE_PROJECT || 'the-great-class-quest';

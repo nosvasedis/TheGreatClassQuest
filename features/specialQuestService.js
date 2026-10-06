@@ -5,13 +5,8 @@ import { withSchoolYear } from '../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { updateGuildScores } from './guildScoring.js';
 import { reconcileFamiliarLifecycle } from './familiars.js';
+import { dataPath } from '../utils/tenant.mjs';
 
-const DATA = 'artifacts/great-class-quest/public/data';
-const RUNS = `${DATA}/quest_event_runs`;
-const ACTIONS = `${DATA}/quest_event_actions`;
-const SCORES = `${DATA}/student_scores`;
-const STUDENTS = `${DATA}/students`;
-const AWARDS = `${DATA}/award_log`;
 
 export function questRunId(eventId) { return String(eventId); }
 export function completionActionId(eventId, runVersion = 1) { return `${eventId}__complete__v${runVersion}`; }
@@ -30,7 +25,7 @@ export async function startQuestRun(event, { startedBy = state.get('currentUserI
     if (!normalized.classId) throw new Error('This legacy quest needs a class assignment before it can start.');
     const roster = studentRoster(normalized.classId, attendance);
     const recipients = Array.isArray(recipientIds) ? recipientIds.filter((id) => roster.eligible.includes(id)) : roster.eligible;
-    const runRef = doc(db, RUNS, questRunId(event.id));
+    const runRef = doc(db, dataPath('quest_event_runs'), questRunId(event.id));
     const existing = await getDoc(runRef);
     if (existing.exists() && ['active', 'completed'].includes(existing.data().status)) return { id: runRef.id, ...existing.data() };
     const data = withSchoolYear({ schemaVersion: 1, eventId: event.id, eventGroupId: normalized.eventGroupId || null, classId: normalized.classId, type: normalized.type, dateKey: normalized.dateKey || normalized.date, status: 'active', runVersion: (existing.data()?.runVersion || 0) + 1, progress: getDefaultProgress(normalized), eligibleStudentIds: roster.eligible, excludedStudentIds: roster.excluded, finalRecipientIds: recipients, startedBy, startedAt: serverTimestamp(), updatedAt: serverTimestamp() }, state.getActiveSchoolYearKey());
@@ -38,7 +33,7 @@ export async function startQuestRun(event, { startedBy = state.get('currentUserI
         const snapshot = await transaction.get(runRef);
         if (snapshot.exists() && ['active', 'completed'].includes(snapshot.data().status)) return;
         const activeRuns = await transaction.get(query(
-            collection(db, RUNS),
+            collection(db, dataPath('quest_event_runs')),
             where('classId', '==', normalized.classId),
             where('status', '==', 'active')
         ));
@@ -51,7 +46,7 @@ export async function startQuestRun(event, { startedBy = state.get('currentUserI
 }
 
 export async function updateQuestProgress(eventId, action, { runVersion } = {}) {
-    const runRef = doc(db, RUNS, questRunId(eventId));
+    const runRef = doc(db, dataPath('quest_event_runs'), questRunId(eventId));
     await runTransaction(db, async (transaction) => {
         const snapshot = await transaction.get(runRef);
         if (!snapshot.exists()) throw new Error('Quest run not found. Start the quest first.');
@@ -68,7 +63,7 @@ export async function updateQuestProgress(eventId, action, { runVersion } = {}) 
 
 export async function completeQuestRun(event, { recipientIds, completedBy = state.get('currentUserId') } = {}) {
     const normalized = normalizeLegacyQuestEvent(event);
-    const runRef = doc(db, RUNS, questRunId(event.id));
+    const runRef = doc(db, dataPath('quest_event_runs'), questRunId(event.id));
     const runSnapshot = await getDoc(runRef);
     if (!runSnapshot.exists()) throw new Error('Quest run not found.');
     const run = runSnapshot.data();
@@ -77,8 +72,8 @@ export async function completeQuestRun(event, { recipientIds, completedBy = stat
     if (!recipients.length) throw new Error('Select at least one recipient.');
     const stars = Number(normalized.rewardSpec?.starsPerRecipient || 1);
     const actionId = completionActionId(event.id, run.runVersion || 1);
-    const actionRef = doc(db, ACTIONS, actionId);
-    const rewardWrites = recipients.map((studentId) => ({ studentId, scoreRef: doc(db, SCORES, studentId), studentRef: doc(db, STUDENTS, studentId), awardRef: doc(db, AWARDS, awardId(actionId, studentId)) }));
+    const actionRef = doc(db, dataPath('quest_event_actions'), actionId);
+    const rewardWrites = recipients.map((studentId) => ({ studentId, scoreRef: doc(db, dataPath('student_scores'), studentId), studentRef: doc(db, dataPath('students'), studentId), awardRef: doc(db, dataPath('award_log'), awardId(actionId, studentId)) }));
     await runTransaction(db, async (transaction) => {
         const freshRun = await transaction.get(runRef);
         if (!freshRun.exists()) throw new Error('Quest run not found.');
@@ -110,14 +105,14 @@ export async function completeQuestRun(event, { recipientIds, completedBy = stat
 }
 
 export async function reverseQuestCompletion(eventId, { reversedBy = state.get('currentUserId') } = {}) {
-    const runRef = doc(db, RUNS, questRunId(eventId));
+    const runRef = doc(db, dataPath('quest_event_runs'), questRunId(eventId));
     const runSnapshot = await getDoc(runRef); if (!runSnapshot.exists()) throw new Error('Quest run not found.');
     const run = runSnapshot.data(); if (run.status !== 'completed' || !run.completionActionId) throw new Error('Only a completed run can be undone.');
-    const actionRef = doc(db, ACTIONS, run.completionActionId); const actionSnapshot = await getDoc(actionRef); if (!actionSnapshot.exists()) throw new Error('Completion action not found.');
-    const action = actionSnapshot.data(); const reverseId = reversalActionId(eventId, run.runVersion || 1); const reverseRef = doc(db, ACTIONS, reverseId);
+    const actionRef = doc(db, dataPath('quest_event_actions'), run.completionActionId); const actionSnapshot = await getDoc(actionRef); if (!actionSnapshot.exists()) throw new Error('Completion action not found.');
+    const action = actionSnapshot.data(); const reverseId = reversalActionId(eventId, run.runVersion || 1); const reverseRef = doc(db, dataPath('quest_event_actions'), reverseId);
     await runTransaction(db, async (transaction) => {
         const existing = await transaction.get(reverseRef); if (existing.exists()) return;
-        const scoreSnapshots = []; for (const studentId of action.recipientIds || []) scoreSnapshots.push({ studentId, ref: doc(db, SCORES, studentId), snapshot: await transaction.get(doc(db, SCORES, studentId)) });
+        const scoreSnapshots = []; for (const studentId of action.recipientIds || []) scoreSnapshots.push({ studentId, ref: doc(db, dataPath('student_scores'), studentId), snapshot: await transaction.get(doc(db, dataPath('student_scores'), studentId)) });
         for (const item of scoreSnapshots) {
             const data = item.snapshot.data() || {};
             const amount = Number(action.starsPerRecipient);
@@ -200,7 +195,7 @@ async function runPendingQuestEffectReconcile() {
     // teachers' actions to them.
     const ownClassIds = new Set((state.get('allTeachersClasses') || []).map((item) => item.id));
     if (!ownClassIds.size) return { processed: 0 };
-    const snapshot = await getDocs(query(collection(db, ACTIONS), where('schoolYearKey', '==', year)));
+    const snapshot = await getDocs(query(collection(db, dataPath('quest_event_actions')), where('schoolYearKey', '==', year)));
     let processed = 0;
     for (const actionDoc of snapshot.docs) {
         const action = actionDoc.data();
@@ -217,7 +212,7 @@ async function runPendingQuestEffectReconcile() {
             await reconcileFamiliarLifecycle(studentId, { announce: false, source: 'special-quest-retry' });
         }));
         if (results.every((result) => result.status === 'fulfilled')) {
-            await markQuestEffectsComplete(doc(db, ACTIONS, actionDoc.id));
+            await markQuestEffectsComplete(doc(db, dataPath('quest_event_actions'), actionDoc.id));
             processed += 1;
         }
     }

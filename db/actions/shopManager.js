@@ -10,8 +10,8 @@ import {
     shopItemStock
 } from '../../utils/shopRestock.js';
 import { manageShopItem } from '../../utils/adminRuntime.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 function assertSeasonLive() {
     if (isGameplaySeasonLiveFromAppState(state)) return true;

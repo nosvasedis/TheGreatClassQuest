@@ -13,6 +13,7 @@ import { buildPortalView } from '../../features/crystalPortalCore.mjs';
 import { portalModalHtml, keepersHtml } from './crystalPortalView.mjs';
 import { collectLeagueParties, openZoneOverviewModal } from './realmOverview.js';
 import { showAnimatedModal } from './base.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const MODAL_ID = 'milestone-details-modal';
 const HISTORY_TTL_MS = 60 * 1000;
@@ -27,7 +28,7 @@ async function loadQuestHistory() {
         return historyCache.rows;
     }
     const snap = await getDocs(query(
-        collection(db, 'artifacts/great-class-quest/public/data/quest_history'),
+        collection(db, `${PUBLIC_DATA_PATH}/quest_history`),
         where('schoolYearKey', '==', yearKey)
     ));
     const rows = snap.docs.map((d) => d.data());

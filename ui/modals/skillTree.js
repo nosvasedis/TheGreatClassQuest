@@ -17,8 +17,8 @@ import { legendQuestState, addLegendStep, removeLatestLegendStep } from '../../f
 import { renderLegendCrownHtml, renderLegendBornHtml } from './legendQuestView.mjs';
 import { db, doc, updateDoc } from '../../firebase.js';
 import { requireProHeroProgression } from '../../utils/upgradePrompt.js';
+import { PUBLIC_DATA_PATH as publicDataPath } from '../../utils/tenant.mjs';
 
-const publicDataPath = 'artifacts/great-class-quest/public/data';
 
 let legendStylesLoaded = null;
 const loadLegendStyles = () => (legendStylesLoaded ||= import('../../styles/legend_quest.css').catch(() => { legendStylesLoaded = null; }));

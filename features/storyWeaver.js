@@ -21,6 +21,7 @@ import {
     shelfBookHtml, shelfEmptyHtml, storyThreadHtml
 } from './storyWeaverView.js';
 import { knotsHtml } from './trainingGroundsView.mjs';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
 }
@@ -67,11 +68,11 @@ const sw = {
 const LOOM_STEPS = ['Writing the page into the book...', 'The Chronicler is illustrating...', 'Painting the colours...', 'Binding it into the story...'];
 
 function storyRef(classId) {
-    return doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
+    return doc(db, `${PUBLIC_DATA_PATH}/story_data`, classId);
 }
 
 function historyRef(classId) {
-    return collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`);
+    return collection(db, `${PUBLIC_DATA_PATH}/story_data/${classId}/story_history`);
 }
 
 function currentPages(classId = storyWeaverClassId()) {
@@ -1029,7 +1030,7 @@ async function ensureStorybookCover(storyId) {
     storybookCoverInflight.add(storyId);
     try {
         const chaptersQuery = query(
-            collection(db, `artifacts/great-class-quest/public/data/completed_stories/${storyId}/chapters`),
+            collection(db, `${PUBLIC_DATA_PATH}/completed_stories/${storyId}/chapters`),
             orderBy('chapterNumber', 'asc'),
             limit(1)
         );
@@ -1039,7 +1040,7 @@ async function ensureStorybookCover(storyId) {
         const coverImageBase64 = !coverImageUrl ? (first?.imageBase64 || null) : null;
         if (!coverImageUrl && !coverImageBase64) return;
 
-        const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/completed_stories`, storyId);
+        const storyDocRef = doc(db, `${PUBLIC_DATA_PATH}/completed_stories`, storyId);
         await updateDoc(storyDocRef, { coverImageUrl, coverImageBase64 });
     } catch {
     } finally {
@@ -1065,7 +1066,7 @@ export async function openStorybookViewer(storyId) {
     });
 
     try {
-        const chaptersQuery = query(collection(db, `artifacts/great-class-quest/public/data/completed_stories/${storyId}/chapters`), orderBy("chapterNumber", "asc"));
+        const chaptersQuery = query(collection(db, `${PUBLIC_DATA_PATH}/completed_stories/${storyId}/chapters`), orderBy("chapterNumber", "asc"));
         const snapshot = await getDocs(chaptersQuery);
         const chapters = snapshot.docs.map(doc => doc.data());
 

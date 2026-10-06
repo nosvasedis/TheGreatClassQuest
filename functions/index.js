@@ -30,11 +30,14 @@ const AUTO_PURGE_LEFT_STUDENTS = false;
 const FORMER_STUDENT_REASONS = ['moved', 'graduated', 'other'];
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
+const { FOUNDING_SCHOOL_ID, normalizeSchoolId, resolveProfileSchoolId, runInSchool, currentSchoolId, dataRoot, isFoundingSchool } = require('./tenant');
 const PROFILE_COLLECTION = 'user_profiles';
-const SUBSCRIPTION_DOC = 'appConfig/subscription';
-const SECRETARY_ROLE_DOC = `${PUBLIC_DATA_PATH}/school_roles/secretary`;
-const SECRETARY_BOOTSTRAP_DOC = `${PUBLIC_DATA_PATH}/admin_bootstrap/secretary`;
+// The founding school keeps its plan where it always was; every other school's plan lives on
+// its own schools/{schoolId} doc.
+const LEGACY_SUBSCRIPTION_DOC = 'appConfig/subscription';
+const SCHOOLS_COLLECTION = 'schools';
+const secretaryRoleDoc = () => `${dataRoot()}/school_roles/secretary`;
+const secretaryBootstrapDoc = () => `${dataRoot()}/admin_bootstrap/secretary`;
 const RECENT_AUTH_WINDOW_SECONDS = 10 * 60;
 
 /**
@@ -44,13 +47,13 @@ const RECENT_AUTH_WINDOW_SECONDS = 10 * 60;
  * action reached the backend without falsely marking failed effects complete.
  */
 exports.reconcileSpecialQuestEffects = onDocumentCreated({
-  document: `${PUBLIC_DATA_PATH}/quest_event_actions/{actionId}`,
+  document: 'artifacts/{schoolId}/public/data/quest_event_actions/{actionId}',
   region: FUNCTIONS_REGION,
-}, async (event) => {
+}, (event) => runInSchool(event.params.schoolId, async () => {
   const action = event.data?.data();
   if (!action || action.coreStatus !== 'applied') return null;
-  const actionRef = db.doc(`${PUBLIC_DATA_PATH}/quest_event_actions/${event.params.actionId}`);
-  const receiptRef = db.doc(`${PUBLIC_DATA_PATH}/quest_effect_receipts/${event.params.actionId}`);
+  const actionRef = db.doc(`${dataRoot()}/quest_event_actions/${event.params.actionId}`);
+  const receiptRef = db.doc(`${dataRoot()}/quest_effect_receipts/${event.params.actionId}`);
   await db.runTransaction(async (transaction) => {
     const receipt = await transaction.get(receiptRef);
     if (receipt.exists) return;
@@ -67,7 +70,7 @@ exports.reconcileSpecialQuestEffects = onDocumentCreated({
     });
   });
   return null;
-});
+}));
 
 function getProjectId() {
   return getApp().options.projectId || process.env.GCLOUD_PROJECT || 'gcq-school';
@@ -81,8 +84,12 @@ function sanitizeUsername(value) {
     .replace(/^\.+|\.+$/g, '');
 }
 
+function schoolLoginDomain() {
+  return isFoundingSchool() ? getProjectId().toLowerCase() : currentSchoolId();
+}
+
 function buildSyntheticRoleEmail(role, username) {
-  return `${role}.${sanitizeUsername(username)}@${getProjectId().toLowerCase()}.gcq.local`;
+  return `${role}.${sanitizeUsername(username)}@${schoolLoginDomain()}.gcq.local`;
 }
 
 function hashSecretarySetupToken(value) {
@@ -129,8 +136,8 @@ function prefetchCallerReads(request) {
   if (!request.auth?.uid || request.callerReads) return;
   void getSubscriptionConfig().catch(() => {});
   const reads = Promise.all([
-    db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get(),
-    db.doc(SECRETARY_ROLE_DOC).get()
+    request.profileRead || db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get(),
+    db.doc(secretaryRoleDoc()).get()
   ]);
   reads.catch(() => {});
   request.callerReads = reads;
@@ -162,7 +169,7 @@ async function resolveAuthedCaller(request) {
 
 async function isCanonicalSecretaryCaller(caller) {
   if (!caller || caller.profile?.role !== 'secretary') return false;
-  const roleSnap = caller.secretaryRoleSnap || await db.doc(SECRETARY_ROLE_DOC).get();
+  const roleSnap = caller.secretaryRoleSnap || await db.doc(secretaryRoleDoc()).get();
   return roleSnap.exists &&
     roleSnap.data()?.uid === caller.uid &&
     roleSnap.data()?.status === 'active';
@@ -178,20 +185,32 @@ async function requireCanonicalSecretaryCaller(caller) {
 // The school plan changes rarely; a warm instance reuses it for a short while instead of
 // reading it again on every call.
 const SUBSCRIPTION_CACHE_MS = 30 * 1000;
-let subscriptionCache = null;
+const subscriptionCache = new Map();
+function readSchoolSubscription(schoolId) {
+  if (isFoundingSchool(schoolId)) {
+    return db.doc(LEGACY_SUBSCRIPTION_DOC).get().then((snap) => (snap.exists ? (snap.data() || {}) : {}));
+  }
+  return db.collection(SCHOOLS_COLLECTION).doc(schoolId).get().then((snap) => {
+    const school = snap.exists ? (snap.data() || {}) : {};
+    if (school.status && school.status !== 'active') return {};
+    return school.subscription && typeof school.subscription === 'object' ? school.subscription : {};
+  });
+}
 function getSubscriptionConfig() {
+  const schoolId = currentSchoolId();
   const now = Date.now();
-  if (subscriptionCache && now - subscriptionCache.at < SUBSCRIPTION_CACHE_MS) return subscriptionCache.promise;
-  const promise = db.doc(SUBSCRIPTION_DOC).get().then((snap) => (snap.exists ? (snap.data() || {}) : {}));
-  subscriptionCache = { at: now, promise };
+  const cached = subscriptionCache.get(schoolId);
+  if (cached && now - cached.at < SUBSCRIPTION_CACHE_MS) return cached.promise;
+  const promise = readSchoolSubscription(schoolId);
+  subscriptionCache.set(schoolId, { at: now, promise });
   promise.catch(() => {
-    if (subscriptionCache?.promise === promise) subscriptionCache = null;
+    if (subscriptionCache.get(schoolId)?.promise === promise) subscriptionCache.delete(schoolId);
   });
   return promise;
 }
 
 async function getActiveSchoolYearKey() {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const snap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
   const yearKey = snap.exists ? String(snap.data()?.activeYearKey || '').trim() : '';
   if (!/^\d{4}-\d{4}$/.test(yearKey)) {
     throw new HttpsError('failed-precondition', 'The active school year is not configured. Year-scoped writes are blocked.');
@@ -200,7 +219,7 @@ async function getActiveSchoolYearKey() {
 }
 
 async function getPlannedSchoolYearKey() {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const snap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
   const yearKey = snap.exists ? String(snap.data()?.nextYearKey || '').trim() : '';
   if (!/^\d{4}-\d{4}$/.test(yearKey)) {
     throw new HttpsError('failed-precondition', 'The planned school year is not configured.');
@@ -241,13 +260,58 @@ function callable(handler, options = {}) {
       auth: context.auth || null,
       rawRequest: context.rawRequest || null
     };
-    prefetchCallerReads(request);
-    return handler(request);
+    const schoolId = await resolveCallSchoolId(request);
+    return runInSchool(schoolId, () => {
+      prefetchCallerReads(request);
+      return handler(request);
+    });
   });
 }
 
+// Nightly jobs visit every school in turn: the founding school, then each active school doc.
+// One school's failure is logged and never stops the others.
+async function listActiveSchoolIds() {
+  const ids = [FOUNDING_SCHOOL_ID];
+  const snap = await db.collection(SCHOOLS_COLLECTION).where('status', '==', 'active').get();
+  snap.docs.forEach((schoolDoc) => {
+    const id = normalizeSchoolId(schoolDoc.id);
+    if (id && !ids.includes(id)) ids.push(id);
+  });
+  return ids;
+}
+
+async function forEachSchool(job) {
+  for (const schoolId of await listActiveSchoolIds()) {
+    try {
+      await runInSchool(schoolId, job);
+    } catch (error) {
+      console.error(`Scheduled job failed for school ${schoolId}:`, error);
+    }
+  }
+  return null;
+}
+
+// A signed-in caller's school comes only from their own profile. Calls made before sign-in (the
+// Secretary setup link) name their school; the setup token is then checked inside that school.
+async function resolveCallSchoolId(request) {
+  if (!request.auth?.uid) {
+    const named = request.data?.schoolId;
+    if (named === undefined || named === null || named === '') return FOUNDING_SCHOOL_ID;
+    const id = normalizeSchoolId(named);
+    if (!id) throw new HttpsError('invalid-argument', 'That school code is not valid.');
+    return id;
+  }
+  const profileRead = db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get();
+  request.profileRead = profileRead;
+  const profileSnap = await profileRead;
+  if (!profileSnap.exists) return FOUNDING_SCHOOL_ID;
+  const schoolId = resolveProfileSchoolId(profileSnap.data());
+  if (!schoolId) throw new HttpsError('permission-denied', 'This account is linked to an unknown school.');
+  return schoolId;
+}
+
 async function getStudent(studentId) {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).get();
+  const snap = await db.doc(`${dataRoot()}/students/${studentId}`).get();
   if (!snap.exists) {
     throw new HttpsError('not-found', 'That student could not be found.');
   }
@@ -278,7 +342,7 @@ async function requireStudentManager(request, studentId) {
 }
 
 async function requireClassManager(request, classId) {
-  const [caller, classSnap] = await callerAnd(request, db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get());
+  const [caller, classSnap] = await callerAnd(request, db.doc(`${dataRoot()}/classes/${classId}`).get());
   if (!classSnap.exists) {
     throw new HttpsError('not-found', 'That class could not be found.');
   }
@@ -291,7 +355,7 @@ async function requireClassManager(request, classId) {
 }
 
 async function getParentLink(studentId) {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).get();
+  const snap = await db.doc(`${dataRoot()}/parent_links/${studentId}`).get();
   return snap.exists ? { id: snap.id, ...snap.data() } : null;
 }
 
@@ -312,7 +376,7 @@ async function disableParentAccessForStudent(studentId, { reason = null } = {}) 
     }
     await db.collection(PROFILE_COLLECTION).doc(link.parentUid).set({ status: 'disabled' }, { merge: true });
   }
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
+  await db.doc(`${dataRoot()}/parent_links/${studentId}`).set({
     status: 'disabled',
     disabledReason: reason || FieldValue.delete(),
     updatedAt: FieldValue.serverTimestamp()
@@ -333,7 +397,7 @@ async function restoreParentAccessAfterReturn(studentId) {
       return { restored: false };
     }
   }
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
+  await db.doc(`${dataRoot()}/parent_links/${studentId}`).set({
     status: 'active',
     disabledReason: FieldValue.delete(),
     updatedAt: FieldValue.serverTimestamp()
@@ -342,7 +406,7 @@ async function restoreParentAccessAfterReturn(studentId) {
 }
 
 async function deleteCollectionDocsByStudentId(collectionName, studentId) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/${collectionName}`)
+  const snap = await db.collection(`${dataRoot()}/${collectionName}`)
     .where('studentId', '==', studentId)
     .get();
   if (snap.empty) return 0;
@@ -359,8 +423,8 @@ async function deleteSubcollection(parentRef, subcollectionName) {
 
 async function scrubStudentFromGuildArchives(studentId) {
   const [liveGuilds, yearGuilds] = await Promise.all([
-    db.collection(`${PUBLIC_DATA_PATH}/guild_scores`).get(),
-    db.collection(`${PUBLIC_DATA_PATH}/guild_year_snapshots`).get()
+    db.collection(`${dataRoot()}/guild_scores`).get(),
+    db.collection(`${dataRoot()}/guild_year_snapshots`).get()
   ]);
   const writes = [];
   [...liveGuilds.docs, ...yearGuilds.docs].forEach((docSnap) => {
@@ -395,7 +459,7 @@ async function deleteStudentStorageFiles(studentId) {
 }
 
 async function syncStudentThreadParticipants(studentId, { addUid = null, removeUid = null, keepUids = [] } = {}) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/communication_threads`)
+  const snap = await db.collection(`${dataRoot()}/communication_threads`)
     .where('studentId', '==', studentId)
     .get();
   if (snap.empty) return 0;
@@ -461,14 +525,14 @@ async function purgeStudentData(studentId) {
     await deleteCollectionDocsByStudentId(collectionName, id);
   }
 
-  const scoreRef = db.doc(`${PUBLIC_DATA_PATH}/student_scores/${id}`);
+  const scoreRef = db.doc(`${dataRoot()}/student_scores/${id}`);
   await deleteSubcollection(scoreRef, 'monthly_history');
 
   const directDeletes = [
-    db.doc(`${PUBLIC_DATA_PATH}/parent_links/${id}`),
-    db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${id}`),
+    db.doc(`${dataRoot()}/parent_links/${id}`),
+    db.doc(`${dataRoot()}/parent_snapshots/${id}`),
     scoreRef,
-    db.doc(`${PUBLIC_DATA_PATH}/students/${id}`)
+    db.doc(`${dataRoot()}/students/${id}`)
   ];
   await commitBatchChunks(directDeletes.map((ref) => ({ ref })), 'delete');
 
@@ -499,12 +563,12 @@ async function deleteAuthUserIfExists(uid) {
 }
 
 async function getScore(studentId) {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`).get();
+  const snap = await db.doc(`${dataRoot()}/student_scores/${studentId}`).get();
   return snap.exists ? snap.data() : {};
 }
 
 async function getRecentAssessments(studentId) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/written_scores`)
+  const snap = await db.collection(`${dataRoot()}/written_scores`)
     .where('studentId', '==', studentId)
     .orderBy('date', 'desc')
     .limit(10)
@@ -540,7 +604,7 @@ function isoDaysAgo(days) {
 
 async function getAttendanceSummary(studentId) {
   // Only absences are stored, so the few docs a child has are cheap to read in full.
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/attendance`)
+  const snap = await db.collection(`${dataRoot()}/attendance`)
     .where('studentId', '==', studentId)
     .limit(60)
     .get();
@@ -559,7 +623,7 @@ async function getAttendanceSummary(studentId) {
 }
 
 async function getRecentAwardLogs(studentId) {
-  const collectionRef = db.collection(`${PUBLIC_DATA_PATH}/award_log`);
+  const collectionRef = db.collection(`${dataRoot()}/award_log`);
   try {
     // Newest first by creation time (the DD-MM-YYYY date field cannot be ordered).
     const snap = await collectionRef
@@ -605,7 +669,7 @@ function summarizeAwardLogs(logs) {
 }
 
 async function getStarsHistory(studentId) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/student_scores/${studentId}/monthly_history`)
+  const snap = await db.collection(`${dataRoot()}/student_scores/${studentId}/monthly_history`)
     .orderBy(FieldPath.documentId(), 'desc')
     .limit(6)
     .get();
@@ -624,7 +688,7 @@ function currentMonthStars(score) {
 }
 
 async function getSchoolSettings() {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_settings/holidays`).get();
+  const snap = await db.doc(`${dataRoot()}/school_settings/holidays`).get();
   return snap.exists ? (snap.data() || {}) : {};
 }
 
@@ -655,7 +719,7 @@ function resolveClassAssessmentUses(classData = {}, schoolSettings = {}) {
 }
 
 async function countPublishedHomework(studentId) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`)
+  const snap = await db.collection(`${dataRoot()}/parent_homework`)
     .where('studentId', '==', studentId)
     .where('status', '==', 'published')
     .where('sourceType', '==', 'quest-assignment')
@@ -680,7 +744,7 @@ function assessmentScoreLabel(item) {
 async function buildParentSnapshot(studentId, extra = {}) {
   // Everything except the class is read at once; the class waits only for the student record.
   const studentPromise = getStudent(studentId);
-  const classPromise = studentPromise.then((student) => db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get());
+  const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
   const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
@@ -692,7 +756,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
     getParentLink(studentId),
     getSchoolSettings(),
     countPublishedHomework(studentId),
-    db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).get()
+    db.doc(`${dataRoot()}/parent_snapshots/${studentId}`).get()
   ]);
   const classData = classSnap.exists ? classSnap.data() : {};
   const assessmentUses = resolveClassAssessmentUses(classData, schoolSettings);
@@ -764,7 +828,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
 
 async function upsertParentSnapshot(studentId, extra = {}) {
   const payload = await buildParentSnapshot(studentId, extra);
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set(payload, { merge: true });
+  await db.doc(`${dataRoot()}/parent_snapshots/${studentId}`).set(payload, { merge: true });
   return payload;
 }
 
@@ -840,7 +904,7 @@ function buildThreadId(studentId, threadType) {
 
 async function ensureCommunicationThread({ studentId, threadType, participantUids = [], participantRoles = [], createdBy, scopeType = 'student', scopeId = null }) {
   const threadId = buildThreadId(studentId, threadType);
-  const threadRef = db.doc(`${PUBLIC_DATA_PATH}/communication_threads/${threadId}`);
+  const threadRef = db.doc(`${dataRoot()}/communication_threads/${threadId}`);
   const existing = await threadRef.get();
   if (!existing.exists) {
     const schoolYearKey = await getActiveSchoolYearKey();
@@ -863,13 +927,13 @@ async function ensureCommunicationThread({ studentId, threadType, participantUid
 }
 
 async function addCommunicationMessage({ threadId, studentId, body, authorUid, authorRole, messageType, requiresReply = false }) {
-  const threadRef = db.doc(`${PUBLIC_DATA_PATH}/communication_threads/${threadId}`);
+  const threadRef = db.doc(`${dataRoot()}/communication_threads/${threadId}`);
   const threadSnap = await threadRef.get();
   if (!threadSnap.exists) {
     throw new HttpsError('not-found', 'That communication thread no longer exists.');
   }
   const thread = threadSnap.data() || {};
-  const messageRef = db.collection(`${PUBLIC_DATA_PATH}/communication_messages`).doc();
+  const messageRef = db.collection(`${dataRoot()}/communication_messages`).doc();
   const schoolYearKey = thread.schoolYearKey || await getActiveSchoolYearKey();
   // The message and the thread's preview are saved in one commit.
   const batch = db.batch();
@@ -917,15 +981,27 @@ async function notifyLinkedParent({ caller, studentId, parentUid, threadType, bo
   });
 }
 
+// Any school other than the founding one exists only once the operator has created it, and
+// stays closed while suspended.
+async function readNonFoundingSchool() {
+  if (isFoundingSchool()) return { known: true, name: '' };
+  const snap = await db.collection(SCHOOLS_COLLECTION).doc(currentSchoolId()).get();
+  const data = snap.exists ? (snap.data() || {}) : null;
+  return { known: Boolean(data) && (data.status || 'active') === 'active', name: data?.name || '' };
+}
+
 exports.getSecretaryBootstrapStatus = callable(async () => {
+  const school = await readNonFoundingSchool();
+  if (!school.known) return { state: 'unknown', requiresToken: true };
+  const schoolName = school.name;
   const [roleSnap, bootstrapSnap] = await Promise.all([
-    db.doc(SECRETARY_ROLE_DOC).get(),
-    db.doc(SECRETARY_BOOTSTRAP_DOC).get()
+    db.doc(secretaryRoleDoc()).get(),
+    db.doc(secretaryBootstrapDoc()).get()
   ]);
   if (roleSnap.exists && roleSnap.data()?.uid && roleSnap.data()?.status === 'active') {
     const profileSnap = await db.collection(PROFILE_COLLECTION).doc(roleSnap.data().uid).get();
     if (profileSnap.exists && profileSnap.data()?.role === 'secretary' && profileSnap.data()?.status === 'active') {
-      return { state: 'active', requiresToken: false };
+      return { state: 'active', requiresToken: false, schoolName };
     }
   }
 
@@ -935,7 +1011,8 @@ exports.getSecretaryBootstrapStatus = callable(async () => {
   const claimState = bootstrap.status === 'claiming' ? 'claiming' : 'unclaimed';
   return {
     state: expired || bootstrap.status === 'consumed' ? 'unclaimed' : claimState,
-    requiresToken: true
+    requiresToken: true,
+    schoolName
   };
 });
 
@@ -948,9 +1025,12 @@ exports.activateSecretaryAdmin = callable(async (request) => {
   if (token.length < 32 || !username || password.length < 6) {
     throw new HttpsError('invalid-argument', 'A valid setup link, username, and password of at least 6 characters are required.');
   }
+  if (!(await readNonFoundingSchool()).known) {
+    throw new HttpsError('permission-denied', 'This Secretary setup link is invalid or no longer available.');
+  }
 
-  const bootstrapRef = db.doc(SECRETARY_BOOTSTRAP_DOC);
-  const roleRef = db.doc(SECRETARY_ROLE_DOC);
+  const bootstrapRef = db.doc(secretaryBootstrapDoc());
+  const roleRef = db.doc(secretaryRoleDoc());
   const tokenHash = hashSecretarySetupToken(token);
   let bootstrapData;
 
@@ -1025,7 +1105,9 @@ exports.activateSecretaryAdmin = callable(async (request) => {
       await bootstrapRef.set({ claimUid: secretaryUid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     }
 
-    const legacyAdminSnap = await db.collection(PROFILE_COLLECTION).where('schoolAdmin', '==', true).get();
+    const legacyAdminSnap = isFoundingSchool()
+      ? await db.collection(PROFILE_COLLECTION).where('schoolAdmin', '==', true).get()
+      : { docs: [] };
     const batch = db.batch();
     batch.set(roleRef, {
       uid: secretaryUid,
@@ -1036,6 +1118,7 @@ exports.activateSecretaryAdmin = callable(async (request) => {
     }, { merge: false });
     batch.set(db.collection(PROFILE_COLLECTION).doc(secretaryUid), {
       role: 'secretary',
+      schoolId: currentSchoolId(),
       displayName,
       loginMode: 'username',
       status: 'active',
@@ -1054,13 +1137,13 @@ exports.activateSecretaryAdmin = callable(async (request) => {
         throw new HttpsError('invalid-argument', 'School name is required for the founding Secretary activation.');
       }
       const { activeYearKey, nextYearKey } = getAcademicYearKeys();
-      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_settings/holidays`), {
+      batch.set(db.doc(`${dataRoot()}/school_settings/holidays`), {
         schoolName,
         ranges: [],
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       }, { merge: true });
-      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`), {
+      batch.set(db.doc(`${dataRoot()}/school_year_state/current`), {
         activeYearKey,
         nextYearKey,
         closeDate: null,
@@ -1068,12 +1151,12 @@ exports.activateSecretaryAdmin = callable(async (request) => {
         status: 'active',
         updatedAt: FieldValue.serverTimestamp()
       }, { merge: false });
-      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_years/${activeYearKey}`), {
+      batch.set(db.doc(`${dataRoot()}/school_years/${activeYearKey}`), {
         yearKey: activeYearKey,
         status: 'active',
         createdAt: FieldValue.serverTimestamp()
       }, { merge: true });
-      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_years/${nextYearKey}`), {
+      batch.set(db.doc(`${dataRoot()}/school_years/${nextYearKey}`), {
         yearKey: nextYearKey,
         status: 'planned',
         createdAt: FieldValue.serverTimestamp()
@@ -1125,7 +1208,7 @@ exports.updateSecretaryCredentials = callable(async (request) => {
   if (caller.profile.role !== 'secretary') {
     throw new HttpsError('permission-denied', 'Only the active Secretary/admin can change these credentials.');
   }
-  const roleRef = db.doc(SECRETARY_ROLE_DOC);
+  const roleRef = db.doc(secretaryRoleDoc());
   const roleSnap = await roleRef.get();
   if (!roleSnap.exists || roleSnap.data()?.uid !== caller.uid || roleSnap.data()?.status !== 'active') {
     throw new HttpsError('permission-denied', 'This account is not the canonical Secretary/admin.');
@@ -1193,7 +1276,7 @@ exports.createParentAccess = callable(async (request) => {
 
   // The link and the parent's profile are saved in one commit.
   const accessBatch = db.batch();
-  accessBatch.set(db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`), {
+  accessBatch.set(db.doc(`${dataRoot()}/parent_links/${studentId}`), {
     studentId,
     classId: student.classId,
     parentUid,
@@ -1205,6 +1288,7 @@ exports.createParentAccess = callable(async (request) => {
   }, { merge: true });
   accessBatch.set(db.collection(PROFILE_COLLECTION).doc(parentUid), {
     role: 'parent',
+    schoolId: currentSchoolId(),
     displayName,
     loginMode: 'username',
     status: 'active',
@@ -1235,7 +1319,7 @@ exports.resetParentAccessPassword = callable(async (request) => {
     throw new HttpsError('not-found', 'No parent account is linked to this student.');
   }
   await auth.updateUser(link.parentUid, { password, disabled: false });
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
+  await db.doc(`${dataRoot()}/parent_links/${studentId}`).set({
     lastPasswordResetAt: FieldValue.serverTimestamp(),
     status: 'active'
   }, { merge: true });
@@ -1264,8 +1348,8 @@ exports.deleteParentAccess = callable(async (request) => {
   if (parentUid) await deleteAuthUserIfExists(parentUid);
   const deleteBatch = db.batch();
   if (parentUid) deleteBatch.delete(db.collection(PROFILE_COLLECTION).doc(parentUid));
-  deleteBatch.delete(db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`));
-  deleteBatch.set(db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`), {
+  deleteBatch.delete(db.doc(`${dataRoot()}/parent_links/${studentId}`));
+  deleteBatch.set(db.doc(`${dataRoot()}/parent_snapshots/${studentId}`), {
     linkedParentUid: FieldValue.delete(),
     parentAccessDeletedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp()
@@ -1302,7 +1386,7 @@ exports.publishParentSummary = callable(async (request) => {
 
   // The refreshed snapshot and the new summary are one write; the parent's message goes out alongside it.
   await Promise.all([
-    db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set({
+    db.doc(`${dataRoot()}/parent_snapshots/${studentId}`).set({
       ...snapshot,
       latestParentSummary: summary,
       publishedNotes: nextNotes
@@ -1323,16 +1407,16 @@ exports.publishEmberOath = callable(async (request) => {
   let note;
   try { note = publicEmberNote({ oathId: request.data?.oathId, summary: request.data?.summary, date: new Date().toISOString(), schoolYearKey }); }
   catch (error) { throw new HttpsError('invalid-argument', error.message); }
-  const oathRef = db.doc(PUBLIC_DATA_PATH + '/ember_oaths/' + note.oathId);
+  const oathRef = db.doc(dataRoot() + '/ember_oaths/' + note.oathId);
   const oathSnap = await oathRef.get(), oath = oathSnap.data();
   if (!oath || caller.profile.role !== 'teacher' || oath.teacherId !== caller.uid || oath.schoolYearKey !== schoolYearKey) throw new HttpsError('permission-denied', 'Only the current teacher can publish this oath.');
   if (oath.status !== 'kept') throw new HttpsError('failed-precondition', 'Only a kept promise can be shared.');
   const { student } = await requireStudentManager(request, oath.studentId);
   if (student.activeSchoolYearKey !== schoolYearKey) throw new HttpsError('failed-precondition', 'This student belongs to another school year.');
   await upsertParentSnapshot(oath.studentId);
-  const parentRef = db.doc(PUBLIC_DATA_PATH + '/parent_snapshots/' + oath.studentId);
+  const parentRef = db.doc(dataRoot() + '/parent_snapshots/' + oath.studentId);
   await db.runTransaction(async tx => {
-    const [currentOath, currentStudent, snapshot] = await Promise.all([tx.get(oathRef), tx.get(db.doc(PUBLIC_DATA_PATH + '/students/' + oath.studentId)), tx.get(parentRef)]);
+    const [currentOath, currentStudent, snapshot] = await Promise.all([tx.get(oathRef), tx.get(db.doc(dataRoot() + '/students/' + oath.studentId)), tx.get(parentRef)]);
     if (currentOath.data()?.teacherId !== caller.uid || currentOath.data()?.status !== 'kept' ||
       currentStudent.data()?.createdBy?.uid !== caller.uid) throw new HttpsError('permission-denied', 'Ownership changed. Reopen the student record.');
     tx.set(parentRef, { publishedNotes: mergePublishedEmber(snapshot.data()?.publishedNotes, note), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -1355,7 +1439,7 @@ exports.publishParentHomework = callable(async (request) => {
     getParentLink(studentId),
     getActiveSchoolYearKey()
   ]);
-  await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`).add({
+  await db.collection(`${dataRoot()}/parent_homework`).add({
     studentId,
     classId,
     schoolYearKey,
@@ -1422,7 +1506,7 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
   }
 
   const [studentsSnap, schoolYearKey] = await Promise.all([
-    db.collection(`${PUBLIC_DATA_PATH}/students`).where('classId', '==', classId).get(),
+    db.collection(`${dataRoot()}/students`).where('classId', '==', classId).get(),
     classData.schoolYearKey || getActiveSchoolYearKey()
   ]);
 
@@ -1431,7 +1515,7 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
   let syncedCount = 0;
   await forEachLimited(studentsSnap.docs, HOMEWORK_SYNC_CONCURRENCY, async (studentDoc) => {
     const studentId = studentDoc.id;
-    const existingSnap = await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`)
+    const existingSnap = await db.collection(`${dataRoot()}/parent_homework`)
       .where('studentId', '==', studentId)
       .where('sourceType', '==', 'quest-assignment')
       .where('sourceClassId', '==', classId)
@@ -1455,7 +1539,7 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
     };
 
     if (existingSnap.empty) {
-      await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`).add(payload);
+      await db.collection(`${dataRoot()}/parent_homework`).add(payload);
     } else {
       await existingSnap.docs[0].ref.set(payload, { merge: true });
     }
@@ -1481,7 +1565,7 @@ exports.postCommunicationMessage = callable(async (request) => {
     throw new HttpsError('invalid-argument', 'Thread, student, and body are required.');
   }
 
-  const threadRef = db.doc(`${PUBLIC_DATA_PATH}/communication_threads/${threadId}`);
+  const threadRef = db.doc(`${dataRoot()}/communication_threads/${threadId}`);
   const isParent = caller.profile.role === 'parent';
   const [threadSnap, student] = await Promise.all([
     threadRef.get(),
@@ -1534,7 +1618,7 @@ const FAMILY_REFRESH_MIN_MS = 5 * 60 * 1000;
 
 exports.refreshFamilySnapshot = callable(async (request) => {
   const [{ studentId }] = await allInOrder([requireLinkedParent(request), requireFeatureEnabled('parentAccess')]);
-  const snapRef = db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`);
+  const snapRef = db.doc(`${dataRoot()}/parent_snapshots/${studentId}`);
   const current = await snapRef.get();
   const refreshedAt = current.exists ? current.data()?.refreshedAt : null;
   const refreshedMs = refreshedAt?.toMillis ? refreshedAt.toMillis() : 0;
@@ -1592,7 +1676,7 @@ exports.backfillRoleAccessData = callable(async (request) => {
   await requireCanonicalSecretaryCaller(caller);
   await requireFeatureEnabled('secretaryAccess');
 
-  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`).get();
+  const studentsSnap = await db.collection(`${dataRoot()}/students`).get();
   const studentDocs = studentsSnap.docs;
   const concurrency = 6;
   let snapshotCount = 0;
@@ -1684,7 +1768,7 @@ async function commitBatchChunks(refsAndPayloads, mode = 'set', chunkSize = 400)
 }
 
 async function getConfiguredCloseDate() {
-  const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const snap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
   const closeDate = snap.data()?.closeDate;
   if (!parseCloseDateFlexible(closeDate)) {
     throw new HttpsError('failed-precondition', 'The school-year close date is not configured.');
@@ -1693,9 +1777,9 @@ async function getConfiguredCloseDate() {
 }
 
 async function ensureSchoolYears(closingYearKey, nextYearKey, rolloverStatus = 'preparing') {
-  const stateRef = db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`);
-  const closingRef = db.doc(`${PUBLIC_DATA_PATH}/school_years/${closingYearKey}`);
-  const nextRef = db.doc(`${PUBLIC_DATA_PATH}/school_years/${nextYearKey}`);
+  const stateRef = db.doc(`${dataRoot()}/school_year_state/current`);
+  const closingRef = db.doc(`${dataRoot()}/school_years/${closingYearKey}`);
+  const nextRef = db.doc(`${dataRoot()}/school_years/${nextYearKey}`);
   const [stateSnap, closingSnap, nextSnap] = await Promise.all([
     stateRef.get(),
     closingRef.get(),
@@ -1755,7 +1839,7 @@ function getFollowingSchoolYearKey(yearKey) {
 }
 
 async function ensurePlannedSchoolYearRecord(yearKey) {
-  const yearRef = db.doc(`${PUBLIC_DATA_PATH}/school_years/${yearKey}`);
+  const yearRef = db.doc(`${dataRoot()}/school_years/${yearKey}`);
   const yearSnap = await yearRef.get();
   if (yearSnap.exists) return { created: false };
   try {
@@ -1775,7 +1859,7 @@ async function ensurePlannedSchoolYearRecord(yearKey) {
 }
 
 async function countCollection(collectionName) {
-  const snap = await db.collection(`${PUBLIC_DATA_PATH}/${collectionName}`).count().get();
+  const snap = await db.collection(`${dataRoot()}/${collectionName}`).count().get();
   return snap.data().count || 0;
 }
 
@@ -1787,11 +1871,11 @@ async function buildRolloverPreview({ closingYearKey, nextYearKey }) {
     countCollection('parent_links'),
     countCollection('guild_scores'),
     countCollection('award_log'),
-    db.collection(`${PUBLIC_DATA_PATH}/students`).limit(500).get(),
-    db.collection(`${PUBLIC_DATA_PATH}/students`).where('guildId', '==', null).limit(25).get().catch(() => ({ docs: [] }))
+    db.collection(`${dataRoot()}/students`).limit(500).get(),
+    db.collection(`${dataRoot()}/students`).where('guildId', '==', null).limit(25).get().catch(() => ({ docs: [] }))
   ]);
 
-  const scoreRefs = await Promise.all(missingScoresSnap.docs.map((studentDoc) => db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentDoc.id}`).get()));
+  const scoreRefs = await Promise.all(missingScoresSnap.docs.map((studentDoc) => db.doc(`${dataRoot()}/student_scores/${studentDoc.id}`).get()));
   const missingScores = missingScoresSnap.docs
     .filter((studentDoc, index) => !scoreRefs[index].exists)
     .map((studentDoc) => ({ id: studentDoc.id, name: studentDoc.data().name || 'Unnamed student' }));
@@ -1848,7 +1932,7 @@ exports.previewYearRollover = callable(async (request) => {
 
 exports.ensureOpenSchoolYears = callable(async (request) => {
   await requireYearOperator(request);
-  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const stateSnap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
   const configured = stateSnap.data() || {};
   const activeYearKey = String(configured.activeYearKey || '').trim();
   const nextYearKey = String(configured.nextYearKey || '').trim();
@@ -1870,7 +1954,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
   await ensureSchoolYears(closingYearKey, nextYearKey, 'preparing');
 
   const writes = [];
-  const classesSnap = await db.collection(`${PUBLIC_DATA_PATH}/classes`).get();
+  const classesSnap = await db.collection(`${dataRoot()}/classes`).get();
   classesSnap.docs.forEach((docSnap) => {
     const data = docSnap.data() || {};
     writes.push({
@@ -1883,7 +1967,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
     });
   });
 
-  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`).get();
+  const studentsSnap = await db.collection(`${dataRoot()}/students`).get();
   studentsSnap.docs.forEach((docSnap) => {
     const data = docSnap.data() || {};
     writes.push({
@@ -1898,7 +1982,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
 
   const classById = new Map(classesSnap.docs.map((docSnap) => [docSnap.id, docSnap.data() || {}]));
   const studentById = new Map(studentsSnap.docs.map((docSnap) => [docSnap.id, docSnap.data() || {}]));
-  const scoreSnap = await db.collection(`${PUBLIC_DATA_PATH}/student_scores`).get();
+  const scoreSnap = await db.collection(`${dataRoot()}/student_scores`).get();
   const existingScoreIds = new Set(scoreSnap.docs.map((docSnap) => docSnap.id));
   scoreSnap.docs.forEach((docSnap) => {
     const student = studentById.get(docSnap.id) || {};
@@ -1915,7 +1999,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
     if (existingScoreIds.has(studentDoc.id)) return;
     const student = studentDoc.data() || {};
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentDoc.id}`),
+      ref: db.doc(`${dataRoot()}/student_scores/${studentDoc.id}`),
       payload: withActiveYear({
         totalStars: 0,
         monthlyStars: 0,
@@ -1954,7 +2038,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
   ];
 
   for (const collectionName of yearCollections) {
-    const snap = await db.collection(`${PUBLIC_DATA_PATH}/${collectionName}`).get();
+    const snap = await db.collection(`${dataRoot()}/${collectionName}`).get();
     snap.docs.forEach((docSnap) => {
       if (docSnap.data()?.schoolYearKey) return;
       writes.push({
@@ -1964,7 +2048,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
     });
   }
 
-  const parentLinkSnap = await db.collection(`${PUBLIC_DATA_PATH}/parent_links`).get();
+  const parentLinkSnap = await db.collection(`${dataRoot()}/parent_links`).get();
   parentLinkSnap.docs.forEach((docSnap) => {
     const student = studentById.get(docSnap.id);
     if (!student) return;
@@ -1988,7 +2072,7 @@ exports.backfillSchoolYearData = callable(async (request) => {
     parentSnapshotsUpdated += 1;
   }
 
-  await db.doc(`${PUBLIC_DATA_PATH}/rollover_jobs/backfill_${closingYearKey}`).set({
+  await db.doc(`${dataRoot()}/rollover_jobs/backfill_${closingYearKey}`).set({
     type: 'backfill',
     closingYearKey,
     nextYearKey,
@@ -2023,7 +2107,7 @@ exports.closeSchoolYear = callable(async (request) => {
   }
 
   const jobId = `close_${closingYearKey}_${nextYearKey}`;
-  const jobRef = db.doc(`${PUBLIC_DATA_PATH}/rollover_jobs/${jobId}`);
+  const jobRef = db.doc(`${dataRoot()}/rollover_jobs/${jobId}`);
   const jobSnap = await jobRef.get();
   if (jobSnap.exists && jobSnap.data()?.status === 'completed') {
     return { ok: true, jobId, alreadyCompleted: true };
@@ -2043,10 +2127,10 @@ exports.closeSchoolYear = callable(async (request) => {
   await ensureSchoolYears(closingYearKey, nextYearKey, 'closing');
 
   const [classesSnap, studentsSnap, scoresSnap, guildScoresSnap] = await Promise.all([
-    db.collection(`${PUBLIC_DATA_PATH}/classes`).get(),
-    db.collection(`${PUBLIC_DATA_PATH}/students`).get(),
-    db.collection(`${PUBLIC_DATA_PATH}/student_scores`).get(),
-    db.collection(`${PUBLIC_DATA_PATH}/guild_scores`).get()
+    db.collection(`${dataRoot()}/classes`).get(),
+    db.collection(`${dataRoot()}/students`).get(),
+    db.collection(`${dataRoot()}/student_scores`).get(),
+    db.collection(`${dataRoot()}/guild_scores`).get()
   ]);
 
   const classById = new Map(classesSnap.docs.map((docSnap) => [docSnap.id, { id: docSnap.id, ...docSnap.data() }]));
@@ -2061,7 +2145,7 @@ exports.closeSchoolYear = callable(async (request) => {
   classesSnap.docs.forEach((classDoc) => {
     const cls = classDoc.data() || {};
     snapshotWrites.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/class_year_snapshots/${classDoc.id}_${closingYearKey}`),
+      ref: db.doc(`${dataRoot()}/class_year_snapshots/${classDoc.id}_${closingYearKey}`),
       payload: withYear({
         classId: classDoc.id,
         name: cls.name || '',
@@ -2087,7 +2171,7 @@ exports.closeSchoolYear = callable(async (request) => {
     const score = scoreById.get(studentDoc.id) || {};
     const classData = classById.get(student.classId) || {};
     snapshotWrites.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_snapshots/${studentDoc.id}_${closingYearKey}`),
+      ref: db.doc(`${dataRoot()}/student_year_snapshots/${studentDoc.id}_${closingYearKey}`),
       payload: withYear({
         studentId: studentDoc.id,
         name: student.name || '',
@@ -2129,7 +2213,7 @@ exports.closeSchoolYear = callable(async (request) => {
       }
     });
     scoreWrites.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentDoc.id}`),
+      ref: db.doc(`${dataRoot()}/student_scores/${studentDoc.id}`),
       payload: withActiveYear({
         totalStars: 0,
         monthlyStars: 0,
@@ -2156,7 +2240,7 @@ exports.closeSchoolYear = callable(async (request) => {
   guildScoresSnap.docs.forEach((guildDoc) => {
     const guild = guildDoc.data() || {};
     snapshotWrites.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/guild_year_snapshots/${guildDoc.id}_${closingYearKey}`),
+      ref: db.doc(`${dataRoot()}/guild_year_snapshots/${guildDoc.id}_${closingYearKey}`),
       payload: withYear({
         guildId: guildDoc.id,
         guildName: guild.guildName || guildDoc.id,
@@ -2189,7 +2273,7 @@ exports.closeSchoolYear = callable(async (request) => {
     });
   });
 
-  const todayStarsSnap = await db.collection(`${PUBLIC_DATA_PATH}/today_stars`).get();
+  const todayStarsSnap = await db.collection(`${dataRoot()}/today_stars`).get();
   todayStarsSnap.docs.forEach((docSnap) => deleteWrites.push({ ref: docSnap.ref }));
 
   await jobRef.set({ stage: 'writing_snapshots', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -2201,18 +2285,18 @@ exports.closeSchoolYear = callable(async (request) => {
   await commitBatchChunks(guildWrites);
   await commitBatchChunks(deleteWrites, 'delete');
 
-  await db.doc(`${PUBLIC_DATA_PATH}/school_years/${closingYearKey}`).set({
+  await db.doc(`${dataRoot()}/school_years/${closingYearKey}`).set({
     status: 'closed',
     closedAt: FieldValue.serverTimestamp(),
     rolloverJobId: jobId
   }, { merge: true });
-  await db.doc(`${PUBLIC_DATA_PATH}/school_years/${nextYearKey}`).set({
+  await db.doc(`${dataRoot()}/school_years/${nextYearKey}`).set({
     status: 'active',
     activatedAt: FieldValue.serverTimestamp(),
     rolloverJobId: jobId
   }, { merge: true });
   await ensurePlannedSchoolYearRecord(followingYearKey);
-  await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).set({
+  await db.doc(`${dataRoot()}/school_year_state/current`).set({
     activeYearKey: nextYearKey,
     nextYearKey: followingYearKey,
     rolloverStatus: 'september_setup',
@@ -2258,7 +2342,7 @@ async function archiveCarriedLiveGoldBalances(stateData = {}) {
   const lastClosedYearKey = String(stateData.lastClosedYearKey || '').trim();
   if (!lastClosedYearKey) return { archivedCount: 0 };
 
-  const scoresSnap = await db.collection(`${PUBLIC_DATA_PATH}/student_scores`).get();
+  const scoresSnap = await db.collection(`${dataRoot()}/student_scores`).get();
   const scoreWrites = [];
   const parentWrites = [];
   scoresSnap.docs.forEach((docSnap) => {
@@ -2270,7 +2354,7 @@ async function archiveCarriedLiveGoldBalances(stateData = {}) {
       payload.gold = 0;
       changed = true;
       parentWrites.push({
-        ref: db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${docSnap.id}`),
+        ref: db.doc(`${dataRoot()}/parent_snapshots/${docSnap.id}`),
         payload: {
           'progress.gold': 0,
           updatedAt: FieldValue.serverTimestamp()
@@ -2296,7 +2380,7 @@ async function archiveCarriedLiveGoldBalances(stateData = {}) {
 
 exports.archiveCarriedYearGold = callable(async (request) => {
   await requireYearOperator(request);
-  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const stateSnap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
   const stateData = stateSnap.exists ? (stateSnap.data() || {}) : {};
   const result = await archiveCarriedLiveGoldBalances(stateData);
   return { ok: true, ...result };
@@ -2304,7 +2388,7 @@ exports.archiveCarriedYearGold = callable(async (request) => {
 
 exports.openSchoolYear = callable(async (request) => {
   const caller = await requireYearOperator(request);
-  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const stateSnap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
   const stateData = stateSnap.exists ? (stateSnap.data() || {}) : {};
   const activeYearKey = String(request.data?.schoolYearKey || stateData.activeYearKey || '').trim();
   if (!/^\d{4}-\d{4}$/.test(activeYearKey)) {
@@ -2337,8 +2421,8 @@ exports.openSchoolYear = callable(async (request) => {
     yearPayload.startsAt = startsAtInput;
   }
 
-  await db.doc(`${PUBLIC_DATA_PATH}/school_years/${activeYearKey}`).set(yearPayload, { merge: true });
-  await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).set({
+  await db.doc(`${dataRoot()}/school_years/${activeYearKey}`).set(yearPayload, { merge: true });
+  await db.doc(`${dataRoot()}/school_year_state/current`).set({
     activeYearKey,
     rolloverStatus: 'active',
     openedAt: FieldValue.serverTimestamp(),
@@ -2362,7 +2446,7 @@ exports.allocateReturningStudents = callable(async (request) => {
   if (!studentIds.length || !classId) {
     throw new HttpsError('invalid-argument', 'Choose students and a September class.');
   }
-  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get();
+  const classSnap = await db.doc(`${dataRoot()}/classes/${classId}`).get();
   if (!classSnap.exists) throw new HttpsError('not-found', 'That September class was not found.');
   const classData = classSnap.data() || {};
   if (classData.status === 'archived') throw new HttpsError('failed-precondition', 'Choose an active September class.');
@@ -2377,7 +2461,7 @@ exports.allocateReturningStudents = callable(async (request) => {
   const writes = [];
   const placementMeta = [];
   for (const studentId of studentIds) {
-    const studentSnap = await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).get();
+    const studentSnap = await db.doc(`${dataRoot()}/students/${studentId}`).get();
     if (!studentSnap.exists) {
       throw new HttpsError('not-found', 'One of the selected students was not found.');
     }
@@ -2397,7 +2481,7 @@ exports.allocateReturningStudents = callable(async (request) => {
       releasedThisYear
     });
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
+      ref: db.doc(`${dataRoot()}/students/${studentId}`),
       payload: {
         classId,
         createdBy: owner,
@@ -2411,7 +2495,7 @@ exports.allocateReturningStudents = callable(async (request) => {
       }
     });
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`),
+      ref: db.doc(`${dataRoot()}/student_scores/${studentId}`),
       payload: releasedThisYear ? {
         createdBy: owner,
         activeSchoolYearKey: yearKey,
@@ -2432,7 +2516,7 @@ exports.allocateReturningStudents = callable(async (request) => {
       }
     });
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`),
+      ref: db.doc(`${dataRoot()}/student_year_enrollments/${studentId}_${yearKey}`),
       payload: withYear({
         studentId,
         classId,
@@ -2444,14 +2528,14 @@ exports.allocateReturningStudents = callable(async (request) => {
     });
     if (releasedThisYear) {
       // This year's Ember Oaths follow them to the new class, as they do on a direct transfer.
-      const oathsSnap = await db.collection(PUBLIC_DATA_PATH + '/ember_oaths')
+      const oathsSnap = await db.collection(dataRoot() + '/ember_oaths')
         .where('studentId', '==', studentId).where('schoolYearKey', '==', yearKey).get();
       oathsSnap.docs.forEach((oath) => writes.push({
         ref: oath.ref,
         payload: { classId, teacherId: owner?.uid || null, createdBy: owner, updatedAt: FieldValue.serverTimestamp() }
       }));
     }
-    const parentLinkSnap = await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).get();
+    const parentLinkSnap = await db.doc(`${dataRoot()}/parent_links/${studentId}`).get();
     if (parentLinkSnap.exists && (parentLinkSnap.data()?.parentUid || parentLinkSnap.data()?.username)) {
       writes.push({
         ref: parentLinkSnap.ref,
@@ -2488,7 +2572,7 @@ exports.assignClassTeacher = callable(async (request) => {
   }
 
   const [classSnap, profileSnap] = await Promise.all([
-    db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get(),
+    db.doc(`${dataRoot()}/classes/${classId}`).get(),
     db.collection(PROFILE_COLLECTION).doc(teacherUid).get()
   ]);
   if (!classSnap.exists) throw new HttpsError('not-found', 'That class was not found.');
@@ -2509,7 +2593,7 @@ exports.assignClassTeacher = callable(async (request) => {
 
   const [yearKey, studentsSnap] = await Promise.all([
     classData.schoolYearKey || getActiveSchoolYearKey(),
-    db.collection(`${PUBLIC_DATA_PATH}/students`).where('classId', '==', classId).get()
+    db.collection(`${dataRoot()}/students`).where('classId', '==', classId).get()
   ]);
   const writes = [{
     ref: classSnap.ref,
@@ -2534,14 +2618,14 @@ exports.assignClassTeacher = callable(async (request) => {
       }
     });
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentDoc.id}`),
+      ref: db.doc(`${dataRoot()}/student_scores/${studentDoc.id}`),
       payload: {
         createdBy: owner,
         updatedAt: FieldValue.serverTimestamp()
       }
     });
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentDoc.id}_${yearKey}`),
+      ref: db.doc(`${dataRoot()}/student_year_enrollments/${studentDoc.id}_${yearKey}`),
       payload: withYear({
         studentId: studentDoc.id,
         classId,
@@ -2582,13 +2666,13 @@ exports.markStudentLeftSchool = callable(async (request) => {
   const note = String(request.data?.note || '').trim().slice(0, 240);
   let formerClassName = '';
   if (student.classId) {
-    const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get();
+    const classSnap = await db.doc(`${dataRoot()}/classes/${student.classId}`).get();
     formerClassName = classSnap.exists ? String(classSnap.data()?.name || '') : '';
   }
   const purgeAfterAt = AUTO_PURGE_LEFT_STUDENTS ? buildPurgeAfterAt() : FieldValue.delete();
   // Both records change in one commit, then parent access and the family snapshot update together.
   const leaveBatch = db.batch();
-  leaveBatch.set(db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`), {
+  leaveBatch.set(db.doc(`${dataRoot()}/students/${studentId}`), {
     activeSchoolYearKey: yearKey,
     enrollmentStatus: 'inactive',
     classId: null,
@@ -2602,7 +2686,7 @@ exports.markStudentLeftSchool = callable(async (request) => {
     purgeAfterAt,
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
-  leaveBatch.set(db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`), withYear({
+  leaveBatch.set(db.doc(`${dataRoot()}/student_year_enrollments/${studentId}_${yearKey}`), withYear({
     studentId,
     enrollmentStatus: 'inactive',
     leftReason: reason,
@@ -2637,7 +2721,7 @@ exports.restoreFormerStudent = callable(async (request) => {
   const candidateClassId = toPlacement ? '' : (requestedClassId || String(student.formerClassId || '').trim());
   let classData = null;
   if (candidateClassId) {
-    const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${candidateClassId}`).get();
+    const classSnap = await db.doc(`${dataRoot()}/classes/${candidateClassId}`).get();
     const data = classSnap.exists ? classSnap.data() || {} : null;
     const live = data && data.status !== 'archived' && data.status !== 'closed' &&
       (!data.schoolYearKey || data.schoolYearKey === activeYearKey) && data.createdBy?.uid;
@@ -2657,13 +2741,13 @@ exports.restoreFormerStudent = callable(async (request) => {
 
   if (!classData) {
     const pendingBatch = db.batch();
-    pendingBatch.set(db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`), {
+    pendingBatch.set(db.doc(`${dataRoot()}/students/${studentId}`), {
       ...clearLeaving,
       classId: null,
       activeSchoolYearKey: activeYearKey,
       enrollmentStatus: 'pendingPlacement'
     }, { merge: true });
-    pendingBatch.set(db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${activeYearKey}`), withYear({
+    pendingBatch.set(db.doc(`${dataRoot()}/student_year_enrollments/${studentId}_${activeYearKey}`), withYear({
       studentId,
       enrollmentStatus: 'pendingPlacement',
       leftSchoolAt: FieldValue.delete(),
@@ -2701,7 +2785,7 @@ exports.restoreFormerStudent = callable(async (request) => {
   }
   const writes = [
     {
-      ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
+      ref: db.doc(`${dataRoot()}/students/${studentId}`),
       payload: {
         ...clearLeaving,
         classId: classData.id,
@@ -2710,9 +2794,9 @@ exports.restoreFormerStudent = callable(async (request) => {
         enrollmentStatus: 'active'
       }
     },
-    { ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`), payload: scorePayload },
+    { ref: db.doc(`${dataRoot()}/student_scores/${studentId}`), payload: scorePayload },
     {
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${activeYearKey}`),
+      ref: db.doc(`${dataRoot()}/student_year_enrollments/${studentId}_${activeYearKey}`),
       payload: withYear({
         studentId,
         classId: classData.id,
@@ -2727,7 +2811,7 @@ exports.restoreFormerStudent = callable(async (request) => {
   ];
   if (parentLink?.parentUid || parentLink?.username) {
     writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
+      ref: db.doc(`${dataRoot()}/parent_links/${studentId}`),
       payload: { classId: classData.id, updatedAt: FieldValue.serverTimestamp() }
     });
   }
@@ -2761,7 +2845,7 @@ exports.transferStudentToClass = callable(async (request) => {
   // Independent reads run together so a move waits for one round trip, not three.
   const [student, classSnap, isSecretary] = await Promise.all([
     getStudent(studentId),
-    db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get(),
+    db.doc(`${dataRoot()}/classes/${classId}`).get(),
     isCanonicalSecretaryCaller(caller)
   ]);
   if (!classSnap.exists) throw new HttpsError('not-found', 'Target class was not found.');
@@ -2778,12 +2862,12 @@ exports.transferStudentToClass = callable(async (request) => {
   const schoolYearKey = classData.schoolYearKey || student.activeSchoolYearKey || await getActiveSchoolYearKey();
   const [parentLink, transferredOaths] = await Promise.all([
     getParentLink(studentId),
-    db.collection(PUBLIC_DATA_PATH + '/ember_oaths')
+    db.collection(dataRoot() + '/ember_oaths')
       .where('studentId', '==', studentId).where('schoolYearKey', '==', schoolYearKey).get()
   ]);
   const transferWrites = [
     {
-      ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
+      ref: db.doc(`${dataRoot()}/students/${studentId}`),
       payload: {
         classId,
         createdBy: owner,
@@ -2793,7 +2877,7 @@ exports.transferStudentToClass = callable(async (request) => {
       }
     },
     {
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`),
+      ref: db.doc(`${dataRoot()}/student_scores/${studentId}`),
       payload: {
         createdBy: owner,
         activeSchoolYearKey: schoolYearKey,
@@ -2801,7 +2885,7 @@ exports.transferStudentToClass = callable(async (request) => {
       }
     },
     {
-      ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${schoolYearKey}`),
+      ref: db.doc(`${dataRoot()}/student_year_enrollments/${studentId}_${schoolYearKey}`),
       payload: withYear({
         studentId,
         classId,
@@ -2817,7 +2901,7 @@ exports.transferStudentToClass = callable(async (request) => {
   }));
   if (parentLink?.parentUid || parentLink?.username) {
     transferWrites.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
+      ref: db.doc(`${dataRoot()}/parent_links/${studentId}`),
       payload: { classId, updatedAt: FieldValue.serverTimestamp() }
     });
   }
@@ -2862,14 +2946,14 @@ exports.releaseStudentToPlacement = callable(async (request) => {
     throw new HttpsError('failed-precondition', `${student.name || 'That student'} is already waiting for a class.`);
   }
   const [classSnap, activeYearKey] = await Promise.all([
-    db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get(),
+    db.doc(`${dataRoot()}/classes/${student.classId}`).get(),
     getActiveSchoolYearKey()
   ]);
   const classData = classSnap.exists ? classSnap.data() || {} : {};
   const yearKey = student.activeSchoolYearKey || classData.schoolYearKey || activeYearKey;
 
   const batch = db.batch();
-  batch.set(db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`), {
+  batch.set(db.doc(`${dataRoot()}/students/${studentId}`), {
     classId: null,
     enrollmentStatus: 'pendingPlacement',
     activeSchoolYearKey: yearKey,
@@ -2882,7 +2966,7 @@ exports.releaseStudentToPlacement = callable(async (request) => {
     releasedBy: { uid: caller.uid, role: isSecretary ? 'secretary' : 'teacher' },
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
-  batch.set(db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`), withYear({
+  batch.set(db.doc(`${dataRoot()}/student_year_enrollments/${studentId}_${yearKey}`), withYear({
     studentId,
     classId: null,
     className: '',
@@ -2912,11 +2996,11 @@ exports.purgeLeftSchoolStudents = functionsV1.region(FUNCTIONS_REGION)
   .runWith({ timeoutSeconds: 540, memory: '512MB' })
   .pubsub.schedule('every 24 hours')
   .timeZone('Europe/Athens')
-  .onRun(async () => {
+  .onRun(() => forEachSchool(async () => {
     if (!AUTO_PURGE_LEFT_STUDENTS) {
       // Automatic deletion is off: clear any removal dates set by the old policy
       // so former students are only ever deleted by the Secretary.
-      const markedSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+      const markedSnap = await db.collection(`${dataRoot()}/students`)
         .where('purgeAfterAt', '>', Timestamp.fromMillis(0))
         .get();
       if (!markedSnap.empty) {
@@ -2929,7 +3013,7 @@ exports.purgeLeftSchoolStudents = functionsV1.region(FUNCTIONS_REGION)
       return null;
     }
     const now = Timestamp.now();
-    const dueSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+    const dueSnap = await db.collection(`${dataRoot()}/students`)
       .where('purgeAfterAt', '<=', now)
       .get();
     let purged = 0;
@@ -2957,13 +3041,13 @@ exports.purgeLeftSchoolStudents = functionsV1.region(FUNCTIONS_REGION)
       errorCount: errors.length
     }));
     return null;
-  });
+  }));
 
 exports.finalizeRollover = callable(async (request) => {
   const caller = await requireYearOperator(request);
   const jobId = String(request.data?.jobId || '').trim() || `finalize_${Date.now()}`;
   const yearKey = String(request.data?.schoolYearKey || await getPlannedSchoolYearKey()).trim();
-  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+  const studentsSnap = await db.collection(`${dataRoot()}/students`)
     .where('activeSchoolYearKey', '==', yearKey)
     .where('enrollmentStatus', '==', 'active')
     .get();
@@ -2977,7 +3061,7 @@ exports.finalizeRollover = callable(async (request) => {
     await upsertParentSnapshot(studentDoc.id, { activeSchoolYearKey: yearKey });
   }
 
-  const guildSnap = await db.collection(`${PUBLIC_DATA_PATH}/guild_scores`).get();
+  const guildSnap = await db.collection(`${dataRoot()}/guild_scores`).get();
   const writes = guildSnap.docs.map((guildDoc) => {
     const memberIds = guildMembers[guildDoc.id] || [];
     return {
@@ -2992,7 +3076,7 @@ exports.finalizeRollover = callable(async (request) => {
   });
   await commitBatchChunks(writes);
 
-  await db.doc(`${PUBLIC_DATA_PATH}/rollover_jobs/${jobId}`).set({
+  await db.doc(`${dataRoot()}/rollover_jobs/${jobId}`).set({
     type: 'finalize',
     status: 'completed',
     schoolYearKey: yearKey,
@@ -3010,7 +3094,7 @@ const shopEngine = createShopEngine({
   db,
   storage,
   FieldValue,
-  publicDataPath: PUBLIC_DATA_PATH
+  publicDataPath: dataRoot
 });
 
 // Checks the teacher, the plan and the season together and returns the active year, so the
@@ -3024,7 +3108,7 @@ async function requireEliteShopCaller(request) {
       return resolved;
     }),
     requireFeatureEnabled('eliteAI'),
-    db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get()
+    db.doc(`${dataRoot()}/school_year_state/current`).get()
   ]);
   const yearData = yearSnap.data() || {};
   const rolloverStatus = String(yearData.rolloverStatus || '').toLowerCase();
@@ -3039,7 +3123,7 @@ async function requireEliteShopCaller(request) {
 }
 
 async function listShopStalls(yearKey) {
-  const classesSnap = await db.collection(`${PUBLIC_DATA_PATH}/classes`).get();
+  const classesSnap = await db.collection(`${dataRoot()}/classes`).get();
   const stalls = new Map();
   classesSnap.docs.forEach((classDoc) => {
     const data = classDoc.data() || {};
@@ -3078,8 +3162,8 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
   // stocked before the first lesson (the Market itself switches months at Athens midnight).
   .pubsub.schedule('10 0 * * *')
   .timeZone('Europe/Athens')
-  .onRun(async () => {
-    const yearSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  .onRun(() => forEachSchool(async () => {
+    const yearSnap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
     const yearData = yearSnap.data() || {};
     if (String(yearData.rolloverStatus || '').toLowerCase() !== 'active') {
       console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'season-sealed' }));
@@ -3119,9 +3203,9 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
       }
     };
     await Promise.all([runNext(), runNext()]);
-    console.log(JSON.stringify({ event: 'maintainShopStock', stallCount: stalls.length, results }));
+    console.log(JSON.stringify({ event: 'maintainShopStock', schoolId: currentSchoolId(), stallCount: stalls.length, results }));
     return null;
-  });
+  }));
 
 exports.manageShopItem = callable(async (request) => {
   const { caller, yearKey } = await requireEliteShopCaller(request);
@@ -3162,7 +3246,7 @@ function getAvatarForge() {
     avatarForge = createAvatarForgeHandlers({
       requireStudentManager,
       requireFeatureEnabled,
-      publicDataPath: PUBLIC_DATA_PATH
+      publicDataPath: dataRoot
     });
   }
   return avatarForge;
@@ -3177,3 +3261,67 @@ exports.forgeStudentAvatar = callable((request) => getAvatarForge().forgeStudent
 exports.saveStudentAvatar = callable((request) => getAvatarForge().saveStudentAvatar(request), {
   timeoutSeconds: 60
 });
+
+// ---- Operator console and teacher join codes (functions/platform.js) ----
+let platformHandlers = null;
+function getPlatform() {
+  if (!platformHandlers) {
+    const { createPlatformHandlers } = require('./platform');
+    platformHandlers = createPlatformHandlers({
+      db, FieldValue, Timestamp, HttpsError,
+      requireAuthedCaller, isCanonicalSecretaryCaller, hashSecretarySetupToken,
+      PROFILE_COLLECTION, SCHOOLS_COLLECTION,
+    });
+  }
+  return platformHandlers;
+}
+
+exports.getOperatorStatus = callable((request) => getPlatform().getOperatorStatus(request));
+exports.claimOperator = callable((request) => getPlatform().claimOperator(request));
+exports.opListSchools = callable((request) => getPlatform().listSchools(request));
+exports.opCreateSchool = callable((request) => getPlatform().createSchool(request));
+exports.opUpdateSchool = callable((request) => getPlatform().updateSchool(request));
+exports.opIssueSecretaryLink = callable((request) => getPlatform().issueSecretaryLink(request));
+exports.opResetTeacherJoinCode = callable((request) => getPlatform().resetTeacherJoinCode(request));
+exports.verifyTeacherJoinCode = callable((request) => getPlatform().verifyTeacherJoinCode(request));
+exports.joinSchoolAsTeacher = callable((request) => getPlatform().joinSchoolAsTeacher(request));
+
+// The class desk's teacher list: only the caller's own school, for its canonical Secretary.
+// Browsers cannot list user_profiles across schools under the shared-project rules.
+exports.listSchoolTeachers = callable(async (request) => {
+  const caller = await requireCanonicalSecretaryCaller(await requireAuthedCaller(request));
+  const schoolId = resolveProfileSchoolId(caller.profile);
+  const base = db.collection(PROFILE_COLLECTION).where('role', '==', 'teacher');
+  // Founding-school profiles may carry no schoolId, so that school filters after reading.
+  const snap = isFoundingSchool(schoolId) ? await base.get() : await base.where('schoolId', '==', schoolId).get();
+  const teachers = snap.docs
+    .filter((profileDoc) => resolveProfileSchoolId(profileDoc.data()) === schoolId)
+    .filter((profileDoc) => (profileDoc.data()?.status || 'active') === 'active')
+    .map((profileDoc) => ({ uid: profileDoc.id, name: String(profileDoc.data()?.displayName || 'Teacher').slice(0, 120) }));
+  return { teachers };
+});
+
+// ---- Stripe billing (functions/billing/billing.js) ----
+// Off until GCQ_ENABLE_STRIPE=true is set in functions/.env together with the secrets
+// STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET (firebase functions:secrets:set ...), so deploying
+// everything else never asks for Stripe keys. Price ids: GCQ_STRIPE_PRICE_STARTER / _PRO / _ELITE.
+if (String(process.env.GCQ_ENABLE_STRIPE || '').toLowerCase() === 'true') {
+  const STRIPE_SECRETS = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'];
+  let billingHandlers = null;
+  const getBilling = () => {
+    if (!billingHandlers) {
+      const { createBillingHandlers } = require('./billing/billing');
+      billingHandlers = createBillingHandlers({
+        db, FieldValue, HttpsError,
+        requireAuthedCaller, isCanonicalSecretaryCaller,
+        SCHOOLS_COLLECTION,
+      });
+    }
+    return billingHandlers;
+  };
+  exports.billingCreateCheckout = callable((request) => getBilling().createCheckout(request), { secrets: STRIPE_SECRETS });
+  exports.billingCreatePortal = callable((request) => getBilling().createPortal(request), { secrets: STRIPE_SECRETS });
+  exports.stripeWebhook = functionsV1.region(FUNCTIONS_REGION)
+    .runWith({ secrets: STRIPE_SECRETS, memory: '256MB' })
+    .https.onRequest((req, res) => getBilling().handleWebhook(req, res));
+}

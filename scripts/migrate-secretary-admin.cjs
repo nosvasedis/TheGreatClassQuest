@@ -5,7 +5,7 @@ const path = require('path');
 const { initializeApp, cert, applicationDefault } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
-const { createSecretaryActivation } = require('../tools/onboarding-console/lib.js');
+const { createSecretaryActivation } = require('./lib/schoolAdmin.cjs');
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const ROLE_PATH = `${PUBLIC_DATA_PATH}/school_roles/secretary`;

@@ -746,23 +746,25 @@ export async function fetchMonthlyHistory(monthKey, options = {}) {
         contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
     }
 
-    const { collectionGroup, query, where, getDocs, db } =
-        await import("./firebase.js");
+    const { doc: docRef, getDoc, db } = await import("./firebase.js");
+    const { PUBLIC_DATA_PATH } = await import("./utils/tenant.mjs");
 
     if (!activeYearKey) {
         throw new Error("School year unavailable; historical reads are blocked.");
     }
 
-    const historyQuery = query(
-        collectionGroup(db, "monthly_history"),
-        where("schoolYearKey", "==", activeYearKey),
-        where("month", "==", monthKey),
-    );
+    // One read per student of this school (each history doc is named by its month), instead
+    // of a collection-group query that would span every school in the project.
+    const studentIds = [...new Set((get("allStudents") || []).map((student) => student?.id).filter(Boolean))];
     try {
-        const snapshot = await getDocs(historyQuery);
+        const snaps = await Promise.all(studentIds.map((studentId) => getDoc(
+            docRef(db, `${PUBLIC_DATA_PATH}/student_scores/${studentId}/monthly_history/${monthKey}`)
+        )));
         const scores = {};
-        snapshot.forEach((doc) => {
+        snaps.forEach((doc) => {
+            if (!doc.exists()) return;
             const data = doc.data();
+            if (data.schoolYearKey !== activeYearKey || data.month !== monthKey) return;
             if (
                 options.schoolYearKey &&
                 data.schoolYearKey &&

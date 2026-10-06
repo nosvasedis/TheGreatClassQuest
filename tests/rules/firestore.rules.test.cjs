@@ -418,3 +418,113 @@ rulesTest('diary picture objects allow owner upload and cleanup while blocking o
   await assertFails(uploadBytes(ref(teacherStorage, 'adventure_logs/teacher/diary-page/large.jpg'), new Uint8Array(1024 * 1024 + 1), { contentType: 'image/jpeg' }));
   await assertSucceeds(deleteObject(picture));
 });
+
+// ---- Two schools in one project: every school sees and changes only its own data. ----
+const DATA_B = 'artifacts/school-b/public/data';
+
+async function seedSchoolB({ tier = 'elite', status = 'active' } = {}) {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await Promise.all([
+      setDoc(doc(db, 'schools/school-b'), { name: 'School B', status, subscription: { tier } }),
+      setDoc(doc(db, 'user_profiles/teacher-b'), { role: 'teacher', status: 'active', schoolId: 'school-b' }),
+      setDoc(doc(db, 'user_profiles/secretary-b'), { role: 'secretary', status: 'active', schoolId: 'school-b' }),
+      setDoc(doc(db, 'user_profiles/parent-b'), { role: 'parent', status: 'active', schoolId: 'school-b', linkedStudentId: 'student-1' }),
+      setDoc(doc(db, `${DATA_B}/school_roles/secretary`), { uid: 'secretary-b', status: 'active', username: 'office' }),
+      setDoc(doc(db, `${DATA_B}/school_year_state/current`), { activeYearKey: '2026-2027', status: 'active' }),
+      setDoc(doc(db, `${DATA_B}/school_settings/holidays`), { ranges: [] }),
+      setDoc(doc(db, `${DATA_B}/students/student-b`), {
+        name: 'B Student', schoolYearKey: '2026-2027', activeSchoolYearKey: '2026-2027',
+        createdBy: { uid: 'teacher-b' }, enrollmentStatus: 'active',
+      }),
+      setDoc(doc(db, `${DATA_B}/parent_snapshots/student-1`), { name: 'Same id, other school' }),
+      setDoc(doc(db, `${DATA}/student_scores/student-1/monthly_history/2026-09`), { stars: 4, month: '2026-09', schoolYearKey: '2026-2027' }),
+      setDoc(doc(db, `${DATA_B}/student_scores/student-b/monthly_history/2026-09`), { stars: 7, month: '2026-09', schoolYearKey: '2026-2027' }),
+    ]);
+  });
+}
+
+rulesTest('a teacher reads and writes only their own school', async () => {
+  await seedSchoolB();
+  const teacherA = env.authenticatedContext('teacher').firestore();
+  const teacherB = env.authenticatedContext('teacher-b').firestore();
+  await assertSucceeds(getDoc(doc(teacherA, `${DATA}/students/student-1`)));
+  await assertFails(getDoc(doc(teacherA, `${DATA_B}/students/student-b`)));
+  await assertSucceeds(getDoc(doc(teacherB, `${DATA_B}/students/student-b`)));
+  await assertFails(getDoc(doc(teacherB, `${DATA}/students/student-1`)));
+  await assertFails(getDocs(collection(teacherB, `${DATA}/students`)));
+  await assertSucceeds(updateDoc(doc(teacherB, `${DATA_B}/students/student-b`), { name: 'Renamed' }));
+  await assertFails(setDoc(doc(teacherB, `${DATA}/students/forged`), {
+    name: 'Forged', activeSchoolYearKey: '2026-2027', createdBy: { uid: 'teacher-b' },
+  }));
+  await assertFails(setDoc(doc(teacherA, `${DATA_B}/students/forged`), {
+    name: 'Forged', activeSchoolYearKey: '2026-2027', createdBy: { uid: 'teacher' },
+  }));
+  await assertSucceeds(getDoc(doc(teacherA, `${DATA}/student_scores/student-1/monthly_history/2026-09`)));
+  await assertFails(getDoc(doc(teacherB, `${DATA}/student_scores/student-1/monthly_history/2026-09`)));
+});
+
+rulesTest('a secretary and a parent stay inside their own school', async () => {
+  await seedSchoolB();
+  const secretaryA = env.authenticatedContext('secretary').firestore();
+  const secretaryB = env.authenticatedContext('secretary-b').firestore();
+  const parentA = env.authenticatedContext('parent').firestore();
+  await assertFails(getDoc(doc(secretaryA, 'user_profiles/teacher-b')));
+  await assertSucceeds(getDoc(doc(secretaryB, 'user_profiles/teacher-b')));
+  await assertFails(getDoc(doc(secretaryB, 'user_profiles/teacher')));
+  // School B is Elite on its own schools doc, so its Secretary has the full console there only.
+  await assertSucceeds(updateDoc(doc(secretaryB, `${DATA_B}/students/student-b`), { name: 'Edited by B office' }));
+  await assertFails(updateDoc(doc(secretaryB, `${DATA}/students/student-1`), { name: 'Edited by B office' }));
+  await assertFails(updateDoc(doc(secretaryA, `${DATA_B}/school_settings/holidays`), { schoolName: 'Taken over' }));
+  // Same linked student id in another school is still out of reach.
+  await assertFails(getDoc(doc(parentA, `${DATA_B}/parent_snapshots/student-1`)));
+});
+
+rulesTest('each school reads only its own plan, and nobody can move schools', async () => {
+  await seedSchoolB();
+  const teacherA = env.authenticatedContext('teacher').firestore();
+  const teacherB = env.authenticatedContext('teacher-b').firestore();
+  await assertSucceeds(getDoc(doc(teacherA, 'appConfig/subscription')));
+  await assertFails(getDoc(doc(teacherA, 'schools/school-b')));
+  await assertSucceeds(getDoc(doc(teacherB, 'schools/school-b')));
+  await assertFails(getDoc(doc(teacherB, 'appConfig/subscription')));
+  await assertFails(setDoc(doc(teacherB, 'schools/school-b'), { name: 'School B', status: 'active', subscription: { tier: 'elite' } }));
+  await assertFails(updateDoc(doc(teacherA, 'user_profiles/teacher'), { schoolId: 'school-b' }));
+  await assertFails(updateDoc(doc(teacherB, 'user_profiles/teacher-b'), { schoolId: 'great-class-quest' }));
+  // Open teacher signup exists only for the founding school.
+  const stranger = env.authenticatedContext('stranger').firestore();
+  await assertFails(setDoc(doc(stranger, 'user_profiles/stranger'), {
+    role: 'teacher', displayName: 'Stranger', loginMode: 'email', status: 'active', schoolId: 'school-b',
+    linkedStudentId: null, createdBy: null, createdAt: serverTimestamp(), lastSeenAt: null,
+  }));
+});
+
+rulesTest('a suspended school loses its plan-gated access', async () => {
+  await seedSchoolB({ status: 'suspended' });
+  const secretaryB = env.authenticatedContext('secretary-b').firestore();
+  await assertFails(updateDoc(doc(secretaryB, `${DATA_B}/students/student-b`), { name: 'Edited while suspended' }));
+});
+
+rulesTest('storage uploads check ownership inside the uploader\'s school', async () => {
+  await seedSchoolB();
+  const teacherB = env.authenticatedContext('teacher-b').storage();
+  const teacherA = env.authenticatedContext('teacher').storage();
+  const png = new Uint8Array([137, 80, 78, 71]);
+  await assertSucceeds(uploadBytes(ref(teacherB, 'avatars/student-b/avatar.webp'), png, { contentType: 'image/webp' }));
+  await assertFails(uploadBytes(ref(teacherB, 'avatars/student-1/avatar.webp'), png, { contentType: 'image/webp' }));
+  await assertSucceeds(uploadBytes(ref(teacherA, 'avatars/student-1/avatar.webp'), png, { contentType: 'image/webp' }));
+  await assertFails(uploadBytes(ref(teacherA, 'avatars/student-b/avatar.webp'), png, { contentType: 'image/webp' }));
+});
+
+rulesTest('platform records (operators, schools) are server-only', async () => {
+  await seedSchoolB();
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), 'platform/operators'), { uids: ['secretary'] });
+  });
+  for (const uid of ['teacher', 'secretary', 'teacher-b', 'secretary-b']) {
+    const db = env.authenticatedContext(uid).firestore();
+    await assertFails(getDoc(doc(db, 'platform/operators')));
+    await assertFails(setDoc(doc(db, 'platform/operators'), { uids: [uid] }));
+    await assertFails(setDoc(doc(db, 'schools/school-c'), { name: 'Self-made', status: 'active', subscription: { tier: 'elite' } }));
+  }
+});

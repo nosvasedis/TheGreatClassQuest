@@ -13,8 +13,8 @@ import {
     readAssessmentCardValue,
     wireAssessmentEditor
 } from '../../ui/assessmentEditor.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 let optionsLocationSearchResults = [];
 
 function normalizeGeocodingResult(raw) {

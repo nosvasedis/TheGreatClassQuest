@@ -34,6 +34,7 @@ import { normalizeChroniclerText } from '../../features/adventurePageCore.mjs';
 import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
 import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSchoolWideModifierType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -51,12 +52,12 @@ export async function addOrUpdateHeroChronicleNote(studentId, noteText, category
 
     try {
         if (noteId) {
-            const noteRef = doc(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`, noteId);
+            const noteRef = doc(db, `${PUBLIC_DATA_PATH}/hero_chronicle_notes`, noteId);
             await updateDoc(noteRef, noteData);
             showToast("Note updated successfully!", "success");
         } else {
             noteData.createdAt = serverTimestamp();
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`), noteData);
+            await addDoc(collection(db, `${PUBLIC_DATA_PATH}/hero_chronicle_notes`), noteData);
             showToast("Note added to Hero's Chronicle!", "success");
         }
     } catch (error) {
@@ -67,7 +68,7 @@ export async function addOrUpdateHeroChronicleNote(studentId, noteText, category
 
 export async function deleteHeroChronicleNote(noteId) {
     try {
-        await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`, noteId));
+        await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/hero_chronicle_notes`, noteId));
         showToast("Note deleted.", "success");
     } catch (error) {
         console.error("Error deleting Hero's Chronicle note:", error);
@@ -78,7 +79,7 @@ export async function deleteHeroChronicleNote(noteId) {
 export async function deleteAdventureLog(logId) {
     showModal('Delete Log Entry?', 'Are you sure you want to permanently delete this entry from the Adventure Log?', async () => {
         try {
-            await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId));
+            await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId));
             showToast('Log entry deleted.', 'success');
         } catch (error) {
             console.error("Error deleting log entry:", error);
@@ -103,7 +104,7 @@ export async function handleEndStory() {
         endBtn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Binding...</span>`;
 
         try {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const publicDataPath = PUBLIC_DATA_PATH;
             const storyDocRef = doc(db, `${publicDataPath}/story_data`, classId);
             const historyCollectionRef = collection(db, `${storyDocRef.path}/story_history`);
             const historySnapshot = await getDocs(query(historyCollectionRef, orderBy("createdAt", "asc")));
@@ -173,7 +174,7 @@ export async function handleDeleteCompletedStory(storyId) {
 
     showModal('Delete This Storybook?', `Are you sure you want to permanently delete "${story.title}"? This cannot be undone.`, async () => {
         try {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const publicDataPath = PUBLIC_DATA_PATH;
             const storyDocRef = doc(db, `${publicDataPath}/completed_stories`, storyId);
             const chaptersSnapshot = await getDocs(collection(db, `${storyDocRef.path}/chapters`));
 
@@ -193,7 +194,7 @@ export async function handleDeleteCompletedStory(storyId) {
 export function handleDeleteTrial(trialId, onDeleted = null) {
     showModal('Delete Trial Record?', 'Are you sure you want to permanently delete this score? This cannot be undone.', async () => {
         try {
-            await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/written_scores", trialId));
+            await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/written_scores`, trialId));
             showToast('Trial record deleted.', 'success');
             if (typeof onDeleted === 'function') onDeleted(trialId);
         } catch (error) {
@@ -215,7 +216,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
 
     try {
         await runTransaction(db, async (transaction) => {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const publicDataPath = PUBLIC_DATA_PATH;
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
             const scoreDoc = await transaction.get(scoreRef);
 
@@ -267,7 +268,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
 
 export async function handleBatchAwardBonus(students) {
     playSound('star3');
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const today = getTodayDateString();
     const levelUps = [];
 
@@ -331,7 +332,7 @@ export async function saveAdventureLogNote() {
     const log = state.get('allAdventureLogs').find(l => l.id === logId);
 
     try {
-        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId), {
+        await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId), {
             note: newNote,
             noteBy: state.get('currentTeacherName')
         });
@@ -350,7 +351,7 @@ export async function editAdventureLogEntry(logId) {
     let log = state.get('allAdventureLogs').find(l => l.id === logId);
     if (!log) {
         try {
-            const snap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId));
+            const snap = await getDoc(doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId));
             if (snap.exists()) log = { id: snap.id, ...snap.data() };
         } catch { showToast('This diary page could not be opened. Please try again.', 'error'); return; }
     }
@@ -557,7 +558,7 @@ function openAdventureLogEditor(logId, log, learnedModule, artwork) {
             try {
                 // Only the teacher's own changes count as a draft; untouched text is the Chronicler's earlier output.
                 await retryAdventureLogGeneration(logId, { allowArtwork: false, previousText: storyInput.value.trim() !== loadedStory.trim() ? storyInput.value : '' });
-                const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+                const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
                 const snap = await getDoc(logRef);
                 if (snap.exists()) {
                     const d = snap.data();
@@ -648,7 +649,7 @@ async function saveEditedLogEntry(logId, rootEl = document) {
             editedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         };
         await runTransaction(db, async tx => {
-            const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+            const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
             const snap = await tx.get(logRef);
             if (!snap.exists() || !canEditAdventureLog(snap.data())) throw new Error('This diary page can no longer be edited.');
             tx.update(logRef, updates);
@@ -683,7 +684,7 @@ export async function saveAwardNote() {
     const newNote = document.getElementById('award-note-textarea').value;
 
     try {
-        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), {
+        await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/award_log`, logId), {
             note: newNote,
         });
         showToast('Note saved!', 'success');
@@ -701,7 +702,7 @@ export async function saveAwardNote() {
 export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate = getTodayDateString(), options = {}) {
     const silent = !!options.silent;
     const today = normalizeToDateString(targetDate) || targetDate || getTodayDateString();
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const attendanceCollectionRef = collection(db, `${publicDataPath}/attendance`);
 
     try {
@@ -919,7 +920,7 @@ export async function handleAddQuestEvent() {
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
         }));
         for (const eventDocument of docs) {
-            await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), { ...eventDocument, details: { ...details, title } });
+            await addDoc(collection(db, `${PUBLIC_DATA_PATH}/quest_events`), { ...eventDocument, details: { ...details, title } });
         }
         
         showToast('Quest Event added to calendar!', 'success');
@@ -939,7 +940,7 @@ export async function handleAddQuestEvent() {
 
 export async function handleDeleteQuestEvent(eventId) {
     try {
-        await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/quest_events", eventId));
+        await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/quest_events`, eventId));
         showToast('Event deleted!', 'success');
     } catch (error) {
         console.error("Error deleting event:", error);
@@ -951,9 +952,9 @@ export async function handleCancelLesson(dateString, classId) {
     const override = state.get('allScheduleOverrides').find(o => o.date === dateString && o.classId === classId);
     try {
         if (override && override.type === 'one-time') {
-            await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
+            await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/schedule_overrides`, override.id));
         } else {
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), withSchoolYear({
+            await addDoc(collection(db, `${PUBLIC_DATA_PATH}/schedule_overrides`), withSchoolYear({
                 date: dateString, 
                 classId, 
                 type: 'cancelled', 
@@ -983,7 +984,7 @@ export async function handleAddHolidayRange() {
     const btn = document.getElementById('add-holiday-btn');
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const settingsRef = doc(db, `${publicDataPath}/school_settings`, 'holidays');
 
     try {
@@ -1011,7 +1012,7 @@ export async function handleAddHolidayRange() {
 }
 
 export async function handleDeleteHolidayRange(rangeId) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const settingsRef = doc(db, `${publicDataPath}/school_settings`, 'holidays');
 
     try {
@@ -1031,7 +1032,7 @@ export async function handleDeleteHolidayRange(rangeId) {
 }
 
 export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal = false) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     
     try {
         const batch = writeBatch(db);
@@ -1093,9 +1094,9 @@ export async function handleAddOneTimeLesson(dateString) {
     const override = state.get('allScheduleOverrides').find(o => o.date === dateString && o.classId === classId);
     try {
         if (override && override.type === 'cancelled') {
-            await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
+            await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/schedule_overrides`, override.id));
         } else {
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), withSchoolYear({
+            await addDoc(collection(db, `${PUBLIC_DATA_PATH}/schedule_overrides`), withSchoolYear({
                 date: dateString, 
                 classId, 
                 type: 'one-time', 

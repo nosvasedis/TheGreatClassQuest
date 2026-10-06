@@ -48,6 +48,7 @@ import {
 import { fetchLiveWeather, applyLiveSky, isWeatherForActiveLocation } from './liveWeather.js';
 import { getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
 import { getWeatherCardHtml, getClockHandAngles, formatClockTime, refreshWeatherCardInPlace } from './weatherCard.js';
+import { PUBLIC_DATA_PATH, dataPath } from '../utils/tenant.mjs';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -540,7 +541,7 @@ function getActiveDashboard(classData, name, theme, spice) {
 
     // Fetch story when missing; patch chronicle text only (avoid full home DOM swap / flash)
     if (!state.get('currentStoryData')[classId]) {
-        const storyRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
+        const storyRef = doc(db, `${PUBLIC_DATA_PATH}/story_data`, classId);
         getDoc(storyRef).then((docSnap) => {
             if (docSnap.exists()) {
                 const currentData = state.get('currentStoryData');
@@ -1438,7 +1439,6 @@ function getReminderPills(classId) {
 }
 
 // --- Daily Wisdom quote (shared Firestore cache, one generation per day) ---
-const DAILY_CACHE_PATH = "artifacts/great-class-quest/public/data/daily_cache";
 
 function dailyQuoteDocId(dayKey) {
     return `daily_content_${dayKey}_${DAILY_QUOTE_TYPE}`;
@@ -1471,7 +1471,7 @@ async function collectRecentQuotes(todayKey) {
     const recent = readQuoteHistory().filter((entry) => entry.day !== todayKey).map((entry) => entry.text);
     const dayKeys = Array.from({ length: DAILY_QUOTE_LOOKBACK_DAYS }, (_, i) => shiftDayKey(todayKey, -(i + 1)));
     const snaps = await Promise.all(dayKeys.map((key) =>
-        getDoc(doc(db, DAILY_CACHE_PATH, dailyQuoteDocId(key))).catch(() => null)
+        getDoc(doc(db, dataPath('daily_cache'), dailyQuoteDocId(key))).catch(() => null)
     ));
     snaps.forEach((snap) => {
         const text = snap?.exists?.() ? String(snap.data()?.content || '').trim() : '';
@@ -1547,7 +1547,7 @@ async function getDailyQuote() {
     }
 
     const requestPromise = (async () => {
-        const docRef = doc(db, DAILY_CACHE_PATH, docId);
+        const docRef = doc(db, dataPath('daily_cache'), docId);
         const keep = (text) => {
             try { localStorage.setItem(localKey, text); } catch (_) { /* ignore */ }
             rememberQuote(todayKey, text);

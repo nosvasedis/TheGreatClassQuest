@@ -8,6 +8,7 @@ import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
 import { bountyAudienceTagHtml } from '../bountyAudienceTag.js';
 import { normalizeAudience } from '../../features/bountyAudience.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 function audienceTag(bounty, tone) {
     const audience = normalizeAudience(bounty);
@@ -293,7 +294,7 @@ export async function saveClassEndDates() {
     }
 
     try {
-        const teacherRef = doc(db, 'artifacts/great-class-quest/public/data/teachers', teacherId);
+        const teacherRef = doc(db, `${PUBLIC_DATA_PATH}/teachers`, teacherId);
         await setDoc(teacherRef, {
             schoolYearSettings: { classEndDates }
         }, { merge: true });
@@ -518,7 +519,7 @@ function startBountyTimer() {
                     completingTimerBounties.add(bountyId);
                     window.setTimeout(async () => {
                         try {
-                            await updateDoc(doc(db, 'artifacts/great-class-quest/public/data/quest_bounties', bountyId), { status: 'completed' });
+                            await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/quest_bounties`, bountyId), { status: 'completed' });
                             playSound('magic_chime');
                         } catch (error) {
                             console.error('Error completing expired timer bounty:', error);

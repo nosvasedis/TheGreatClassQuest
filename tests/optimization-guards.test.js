@@ -39,8 +39,10 @@ test('normal startup is fail-closed and server-filtered to the active year', () 
 
 test('historical monthly reads include an explicit school-year constraint', () => {
   const state = read('state.js');
-  assert.match(state, /where\("schoolYearKey", "==", activeYearKey\)/);
-  assert.match(state, /where\("month", "==", monthKey\)/);
+  // Per-student reads inside this school's root, never a collection group spanning every school.
+  assert.doesNotMatch(state, /collectionGroup\(/);
+  assert.match(state, /\/monthly_history\/\$\{monthKey\}/);
+  assert.match(state, /data\.schoolYearKey !== activeYearKey \|\| data\.month !== monthKey/);
   assert.doesNotMatch(state, /offset\s*\(/);
 });
 
@@ -134,10 +136,14 @@ test('authorization rules deny missing profiles and archived-year mutations', ()
 });
 
 test('billing and generation requests require verified identities and idempotency', () => {
-  const billing = read('billing/server.js');
+  // Billing runs as Cloud Functions: callables carry the verified Firebase identity, the
+  // webhook checks Stripe's signature and records each event once.
+  const billing = read('functions/billing/billing.js');
+  const stripeCore = read('functions/billing/stripeCore.cjs');
   const api = read('api.js');
-  assert.match(billing, /verifyIdToken/);
-  assert.match(billing, /stripe\.webhooks\.constructEvent/);
+  assert.match(billing, /requireAuthedCaller\(request\)/);
+  assert.match(billing, /verifyStripeSignature\(req\.rawBody/);
+  assert.match(stripeCore, /crypto\.timingSafeEqual/);
   assert.match(billing, /billing_webhook_events/);
   assert.match(billing, /idempotencyKey/);
   assert.match(api, /Authorization: `Bearer \$\{token\}`/);
@@ -148,7 +154,7 @@ test('billing and generation requests require verified identities and idempotenc
   assert.match(api, /error\?\.errorSource === 'app-check'/);
   assert.match(api, /normalizedError\?\.retryable === false/);
   const functionsSource = read('functions/index.js');
-  assert.match(functionsSource, /SECRETARY_ROLE_DOC/);
+  assert.match(functionsSource, /secretaryRoleDoc\(\)/);
   assert.match(functionsSource, /roleSnap\.data\(\)\?\.uid !== caller\.uid/);
   assert.doesNotMatch(functionsSource, /profile\.schoolAdmin\s*===\s*true/);
 });
@@ -183,7 +189,9 @@ test('auth screen gates login behind school activation without the old signup ba
   assert.match(authTemplate, /id="auth-availability-retry"/);
   // A device that has seen the school open shows the login form at once; others wait for the check.
   assert.match(app, /schoolAuthState = knownOpen \? 'active' : 'checking'/);
-  assert.match(app, /nextState = status\?\.state === 'active' \? 'active' : 'locked'/);
+  // An unknown school code gets its own message instead of "awaiting activation".
+  assert.match(app, /nextState = status\?\.state === 'active' \? 'active' : \(status\?\.state === 'unknown' \? 'unknown' : 'locked'\)/);
+  assert.match(app, /getSecretaryBootstrapStatus\(\{ schoolId: getSchoolId\(\) \}\)/);
   assert.match(app, /nextState = knownOpen \? 'active' : 'error'/);
   assert.match(app, /Awaiting school activation/);
   assert.match(app, /Couldn't confirm school activation/);

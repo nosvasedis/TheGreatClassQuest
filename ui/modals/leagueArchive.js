@@ -26,6 +26,7 @@ import { db, query, collection, where, getDocs } from '../../firebase.js';
 import { showAnimatedModal, hideModal } from './base.js';
 import { playSound } from '../../audio.js';
 import { getSchoolYearStartMonthDate, getViewableCompletedMonthStart } from '../../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const MODAL_ID = 'league-archive-modal';
 const ALL = 'all';
@@ -104,7 +105,7 @@ async function loadQuestHistory() {
     const yearKey = state.getActiveSchoolYearKey();
     if (!yearKey) throw new Error('School year unavailable; quest history reads are blocked.');
     const snap = await getDocs(query(
-        collection(db, 'artifacts/great-class-quest/public/data/quest_history'),
+        collection(db, `${PUBLIC_DATA_PATH}/quest_history`),
         where('schoolYearKey', '==', yearKey)
     ));
     questHistoryRows = snap.docs.map((d) => d.data());

@@ -21,8 +21,8 @@ import {
 import { escapeHtml, setBusyState } from '../roles/shared.js';
 import { liveSchoolClasses, liveStudents, renderOfficeAvatar } from './helpers.js';
 import { closeOfficeModal, openOfficeModal, releaseOfficeScrollLock } from './officeModal.js';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const DIALOG_ID = 'secretary-family-key-dialog';
 
 export const FAMILY_FILTERS = Object.freeze([

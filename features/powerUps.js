@@ -7,6 +7,7 @@ import { showModal } from '../ui/modals/base.js';
 import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
 import { PATHFINDER_CLASS_QUEST_BONUS_STARS, PATHFINDER_AWARD_REASON } from './awardLogReasonMeta.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_clarity', name: 'Crystal of Clarity', price: 15, description: 'Pulsing gem for a hint pass. Used on your card.', icon: '💎' },
@@ -115,7 +116,7 @@ const POWER_UP_EFFECTS = {
             const newDeadline = new Date(bounty.deadline);
             newDeadline.setMinutes(newDeadline.getMinutes() + 5);
             updatedDeadlines[bounty.id] = newDeadline.toISOString();
-            context.transaction.update(doc(db, 'artifacts/great-class-quest/public/data/quest_bounties', bounty.id), {
+            context.transaction.update(doc(db, `${PUBLIC_DATA_PATH}/quest_bounties`, bounty.id), {
                 deadline: updatedDeadlines[bounty.id]
             });
         });
@@ -191,7 +192,7 @@ const POWER_UP_EFFECTS = {
             return { success: false, errorMessage: 'This student is not attached to a valid class.' };
         }
 
-        const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classData.id);
+        const classRef = doc(db, `${PUBLIC_DATA_PATH}/classes`, classData.id);
         const classDoc = await context.transaction.get(classRef);
         if (!classDoc.exists()) {
             return { success: false, errorMessage: 'Class not found for Pathfinder bonus.' };
@@ -216,7 +217,7 @@ const POWER_UP_EFFECTS = {
             lastPathfinderByName: student.name
         });
 
-        context.transaction.set(doc(collection(db, 'artifacts/great-class-quest/public/data/award_log')), {
+        context.transaction.set(doc(collection(db, `${PUBLIC_DATA_PATH}/award_log`)), {
             studentId: student.id,
             classId: classData.id,
             teacherId: state.get('currentUserId'),
@@ -296,7 +297,7 @@ const POWER_UP_EFFECTS = {
             return { success: false, errorMessage: 'This student is not in a guild.' };
         }
         const chapterKey = chapterKeyFor(new Date());
-        const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
+        const guildRef = doc(db, `${PUBLIC_DATA_PATH}/guild_scores`, guildId);
         context.transaction.update(guildRef, {
             [`chapters.${chapterKey}.standards`]: arrayUnion({ studentId: student.id, name: student.name, at: Date.now() }),
         });
@@ -411,7 +412,7 @@ export async function handleUseItem(studentId, itemIndex) {
                         || state.get('allSchoolClasses').find((entry) => entry.id === student.classId);
 
                     const result = await runTransaction(db, async (transaction) => {
-                        const scoreRef = doc(db, 'artifacts/great-class-quest/public/data/student_scores', studentId);
+                        const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
                         const scoreDoc = await transaction.get(scoreRef);
                         if (!scoreDoc.exists()) {
                             return { success: false, errorMessage: 'Student score data is missing.' };

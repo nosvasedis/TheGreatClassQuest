@@ -3,6 +3,8 @@
 import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen } from './templates/loading.js';
 import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival, playAuthGateExit, consumeGateExit, walkOutThroughGate } from './ui/authGate.js';
+import { DEFAULT_SCHOOL_ID, PUBLIC_DATA_PATH, getSchoolId, normalizeSchoolId, resolveProfileSchoolId, setSchoolId } from './utils/tenant.mjs';
+import { readDeviceSchoolId, rememberDeviceSchoolId } from './utils/deviceSchool.mjs';
 injectHTML();
 
 // Browser DevTools helper (not the npm terminal). Available even before theater auto-starts.
@@ -26,7 +28,6 @@ import {
     updateProfile,
     signOut
 } from './firebaseAuth.js';
-import { firebaseConfig, BILLING_BASE_URL, BILLING_SCHOOL_ID } from './constants.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
 import * as utils from './utils.js';
 import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
@@ -68,6 +69,7 @@ let showSetupScreen;
 let loadTeacherJourneyState;
 let startSchoolGracePeriod;
 let requestCheckoutSession;
+let isOnlineBillingAvailable;
 let ensureTeacherUserProfile;
 let loadUserProfile;
 let renderParentPortal;
@@ -84,8 +86,10 @@ let pendingSignupBootstrap = null;
 let signupRecoveryContext = null;
 let secretaryAdminRuntimePromise = null;
 let secretarySetupToken = '';
-/** @type {'checking' | 'active' | 'locked' | 'error'} */
+/** @type {'checking' | 'active' | 'locked' | 'error' | 'unknown'} */
 let schoolAuthState = 'checking';
+// The name the server returned for this device's school (empty for the founding school).
+let deviceSchoolName = '';
 
 const AUTH_AVAILABILITY_COPY = {
     checking: {
@@ -99,6 +103,12 @@ const AUTH_AVAILABILITY_COPY = {
         iconHtml: '<i class="fas fa-scroll" aria-hidden="true"></i>',
         title: 'Awaiting school activation',
         text: 'Login and signup open after the school Secretary/admin activates this school.'
+    },
+    unknown: {
+        eyebrow: 'School code',
+        iconHtml: '<i class="fas fa-school" aria-hidden="true"></i>',
+        title: 'We don’t know that school code',
+        text: 'Check the code your school gave you, or choose another school below.'
     },
     error: {
         eyebrow: 'School activation',
@@ -119,6 +129,85 @@ function readSecretarySetupToken() {
     const fragment = String(window.location.hash || '').replace(/^#/, '');
     const params = new URLSearchParams(fragment);
     return String(params.get('secretary-setup') || params.get('admin-setup') || '').trim();
+}
+
+// A teacher joining a school other than the founding one: the server checks the teacher code
+// and writes the profile (rules let browsers create founding-school profiles only).
+async function joinTeacherToSchool(user, { schoolId, joinCode, displayName }) {
+    const { joinSchoolAsTeacher } = await loadSecretaryAdminRuntime();
+    try {
+        await joinSchoolAsTeacher({ schoolId, joinCode, displayName });
+    } catch (error) {
+        // A retry after a lost response finds the profile already written: that is success.
+        if (error?.code !== 'functions/already-exists') throw error;
+    }
+    return loadUserProfile(user);
+}
+
+// The operator console opens with #operator while signed in (staff accounts only; the server
+// decides who is the operator).
+function maybeOpenOperatorConsole() {
+    if (!auth.currentUser || window.location.hash !== '#operator') return;
+    if (![ROLE_TEACHER, ROLE_SECRETARY].includes(state?.get?.('currentUserRole'))) return;
+    import('./features/operatorConsole.js')
+        .then(({ openOperatorConsole }) => openOperatorConsole())
+        .catch((error) => console.warn('Operator console could not open:', error?.message || error));
+}
+window.addEventListener('hashchange', maybeOpenOperatorConsole);
+
+function syncAuthSchoolUi() {
+    const schoolId = getSchoolId();
+    const isFounding = schoolId === DEFAULT_SCHOOL_ID;
+    const current = document.getElementById('auth-school-current');
+    const change = document.getElementById('auth-school-change');
+    const form = document.getElementById('auth-school-form');
+    const line = document.getElementById('auth-school-line');
+    line?.classList.toggle('hidden', Boolean(secretarySetupToken));
+    if (current) {
+        current.textContent = isFounding ? '' : `School: ${deviceSchoolName || schoolId}`;
+        current.classList.toggle('hidden', isFounding);
+    }
+    if (change) {
+        change.textContent = isFounding ? 'Another school? Enter its school code' : 'Change school';
+        change.classList.toggle('hidden', !form?.classList.contains('hidden'));
+    }
+    document.getElementById('signup-join-code-wrap')?.classList.toggle('hidden', isFounding);
+}
+
+function useDeviceSchool(schoolId) {
+    const id = setSchoolId(schoolId);
+    rememberDeviceSchoolId(id);
+    deviceSchoolName = '';
+    clearAuthError();
+    document.getElementById('auth-school-form')?.classList.add('hidden');
+    syncAuthSchoolUi();
+    void initializeAuthAvailability();
+}
+
+function wireAuthSchoolPicker() {
+    const form = document.getElementById('auth-school-form');
+    const input = document.getElementById('auth-school-code');
+    document.getElementById('auth-school-change')?.addEventListener('click', () => {
+        form?.classList.remove('hidden');
+        if (input) input.value = getSchoolId() === DEFAULT_SCHOOL_ID ? '' : getSchoolId();
+        syncAuthSchoolUi();
+        input?.focus();
+    });
+    document.getElementById('auth-school-cancel')?.addEventListener('click', () => {
+        form?.classList.add('hidden');
+        syncAuthSchoolUi();
+    });
+    form?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const typed = String(input?.value || '').trim();
+        // An empty code goes back to the founding school.
+        const id = typed ? normalizeSchoolId(typed) : DEFAULT_SCHOOL_ID;
+        if (!id) {
+            showAuthError({ title: 'That school code doesn’t look right', text: 'It uses lowercase letters, numbers and dashes, like alpha-patras.', field: '' }, { role: activeAuthRole });
+            return;
+        }
+        useDeviceSchool(id);
+    });
 }
 
 function showSignupProfileRecovery(user, displayName, originalError) {
@@ -150,7 +239,10 @@ function showSignupProfileRecovery(user, displayName, originalError) {
         try {
             if (displayName && user.displayName !== displayName) await updateProfile(user, { displayName });
             await loadAuthenticatedRuntime();
-            const profile = await ensureTeacherUserProfile(user);
+            const join = signupRecoveryContext?.join;
+            const profile = join
+                ? await joinTeacherToSchool(user, { ...join, displayName: displayName || user.displayName || '' })
+                : await ensureTeacherUserProfile(user);
             if (!profile || profile.role !== ROLE_TEACHER || profile.status !== 'active') {
                 throw new Error('The fixed teacher profile could not be verified.');
             }
@@ -212,7 +304,7 @@ async function loadAuthenticatedRuntime() {
         ({ loadSubscription, stopSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } = subscriptionModule);
         ({ showSetupScreen } = schoolSetupModule);
         ({ loadTeacherJourneyState, startSchoolGracePeriod } = teacherJourneyModule);
-        ({ requestCheckoutSession } = billingModule);
+        ({ requestCheckoutSession, isOnlineBillingAvailable } = billingModule);
         ({ ensureTeacherUserProfile, loadUserProfile } = userProfilesModule);
         ({ renderParentPortal, activateParentTab, wireParentPortalListeners } = parentPortalModule);
         ({ renderSecretaryConsole, activateSecretaryTab, wireSecretaryConsoleListeners } = secretaryConsoleModule);
@@ -566,9 +658,6 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
     if (setupScreen) setupScreen.classList.add('hidden');
     updateSubscribeGraceBanner(options.graceWindow, options);
 
-    const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
-    const billingUrl = (BILLING_BASE_URL || '').replace(/\/$/, '');
-
     // Show refresh hint since buttons are now in the HTML template
     if (refreshHint) refreshHint.classList.remove('hidden');
 
@@ -610,7 +699,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
         }
     }
 
-    if (billingUrl && schoolId) {
+    if (isOnlineBillingAvailable()) {
         const goCheckout = async (tier) => {
             if (status) {
                 status.classList.add('hidden');
@@ -623,8 +712,6 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
             }
             try {
                 const data = await requestCheckoutSession({
-                    billingBaseUrl: billingUrl,
-                    schoolId,
                     tier,
                     successUrl: window.location.href,
                     cancelUrl: window.location.href
@@ -654,12 +741,12 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
         if (proBtn) proBtn.onclick = () => goCheckout('pro');
         if (eliteBtn) eliteBtn.onclick = () => goCheckout('elite');
     } else {
-        // Hide all plan buttons if billing is not configured
-        const buttons = subscribeScreen.querySelectorAll('button[id^="subscribe-"]');
+        // Hide the plan buttons when this school cannot pay online (the grace button stays)
+        const buttons = subscribeScreen.querySelectorAll('button[id^="subscribe-"]:not(#subscribe-start-grace-btn)');
         buttons.forEach(btn => btn.classList.add('hidden'));
         const msg = document.createElement('p');
         msg.className = 'text-gray-600 text-center mt-4';
-        msg.textContent = 'Billing is not configured. Please contact support.';
+        msg.textContent = 'Online payment is not available for this school. Please contact us to choose a plan.';
         subscribeScreen.querySelector('.max-w-6xl')?.appendChild(msg);
     }
 
@@ -888,9 +975,14 @@ let authAvailabilityPromise = null;
 // server check runs in the background, instead of every visit waiting on it.
 const SCHOOL_AUTH_OPEN_KEY = 'gcq.schoolAuthOpen';
 
+function schoolAuthOpenKey() {
+    const schoolId = getSchoolId();
+    return schoolId === DEFAULT_SCHOOL_ID ? SCHOOL_AUTH_OPEN_KEY : `${SCHOOL_AUTH_OPEN_KEY}.${schoolId}`;
+}
+
 function readSchoolAuthOpenHint() {
     try {
-        return localStorage.getItem(SCHOOL_AUTH_OPEN_KEY) === '1';
+        return localStorage.getItem(schoolAuthOpenKey()) === '1';
     } catch (_) {
         return false;
     }
@@ -898,8 +990,8 @@ function readSchoolAuthOpenHint() {
 
 function writeSchoolAuthOpenHint(isOpen) {
     try {
-        if (isOpen) localStorage.setItem(SCHOOL_AUTH_OPEN_KEY, '1');
-        else localStorage.removeItem(SCHOOL_AUTH_OPEN_KEY);
+        if (isOpen) localStorage.setItem(schoolAuthOpenKey(), '1');
+        else localStorage.removeItem(schoolAuthOpenKey());
     } catch (_) { /* storage unavailable: the server check still decides */ }
 }
 
@@ -909,6 +1001,7 @@ async function initializeAuthAvailability() {
     secretarySetupToken = readSecretarySetupToken();
     if (secretarySetupToken) {
         syncAuthRoleUi();
+        syncAuthSchoolUi();
         return;
     }
     const knownOpen = readSchoolAuthOpenHint();
@@ -917,9 +1010,11 @@ async function initializeAuthAvailability() {
     let nextState;
     try {
         const { getSecretaryBootstrapStatus } = await loadSecretaryAdminRuntime();
-        const status = await getSecretaryBootstrapStatus();
-        nextState = status?.state === 'active' ? 'active' : 'locked';
+        const status = await getSecretaryBootstrapStatus({ schoolId: getSchoolId() });
+        nextState = status?.state === 'active' ? 'active' : (status?.state === 'unknown' ? 'unknown' : 'locked');
+        deviceSchoolName = String(status?.schoolName || '');
         writeSchoolAuthOpenHint(nextState === 'active');
+        syncAuthSchoolUi();
     } catch (error) {
         console.warn('Could not verify Secretary activation status:', error?.message || error);
         nextState = knownOpen ? 'active' : 'error';
@@ -1004,7 +1099,10 @@ async function sendTeacherPasswordReset(button) {
 }
 
 function setupAuthListeners() {
+    setSchoolId(readDeviceSchoolId());
     wireAuthFieldHelpers();
+    wireAuthSchoolPicker();
+    syncAuthSchoolUi();
     document.querySelectorAll('.auth-role-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
             authArrivedByLink = false;
@@ -1044,7 +1142,7 @@ function setupAuthListeners() {
             beginAuthSubmit('activation');
             clearAuthError();
             const { activateSecretaryAdmin } = await loadSecretaryAdminRuntime();
-            await activateSecretaryAdmin({ token: secretarySetupToken, username, password, displayName, schoolName });
+            await activateSecretaryAdmin({ token: secretarySetupToken, username, password, displayName, schoolName, schoolId: getSchoolId() });
             const identifier = buildSyntheticRoleEmail(ROLE_SECRETARY, username);
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
             secretarySetupToken = '';
@@ -1106,6 +1204,10 @@ function setupAuthListeners() {
         if (!name) return showAuthError({ title: 'Please tell us your name', text: 'Students will see it as their teacher’s name.', field: 'name' }, signupOptions);
         if (!looksLikeEmail(email)) return showAuthError({ title: 'That email address doesn’t look right', text: 'It should look like name@example.com.', field: 'email' }, signupOptions);
         if (password.length < 6) return showAuthError({ title: 'Choose a longer password', text: 'Use at least 6 characters.', field: 'password' }, signupOptions);
+        const signupSchoolId = getSchoolId();
+        const joinCode = document.getElementById('signup-join-code')?.value?.trim() || '';
+        const joiningSchool = signupSchoolId !== DEFAULT_SCHOOL_ID;
+        if (joiningSchool && !joinCode) return showAuthError({ title: 'Type your teacher code', text: 'Your school office gives every new teacher this code.', field: '' }, signupOptions);
         let resolveBootstrap;
         const bootstrapPromise = new Promise((resolve) => {
             resolveBootstrap = resolve;
@@ -1116,11 +1218,18 @@ function setupAuthListeners() {
             beginAuthSubmit('signup');
             clearAuthError();
             resetPasswordPeeks();
+            if (joiningSchool) {
+                // Check both codes before the login exists, so a typo never leaves a half-made account.
+                const { verifyTeacherJoinCode } = await loadSecretaryAdminRuntime();
+                await verifyTeacherJoinCode({ schoolId: signupSchoolId, joinCode });
+            }
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             createdUser = userCredential.user;
             await updateProfile(userCredential.user, { displayName: name });
             await loadAuthenticatedRuntime();
-            const profile = await ensureTeacherUserProfile(userCredential.user);
+            const profile = joiningSchool
+                ? await joinTeacherToSchool(userCredential.user, { schoolId: signupSchoolId, joinCode, displayName: name })
+                : await ensureTeacherUserProfile(userCredential.user);
             rememberAuthRole(ROLE_TEACHER);
             resolveBootstrap(profile);
         } catch (error) {
@@ -1129,7 +1238,7 @@ function setupAuthListeners() {
             resetAuthSubmitState();
             showAuthError(error, signupOptions);
             if (createdUser && auth.currentUser?.uid === createdUser.uid) {
-                signupRecoveryContext = { uid: createdUser.uid, displayName: name, error };
+                signupRecoveryContext = { uid: createdUser.uid, displayName: name, error, join: joiningSchool ? { schoolId: signupSchoolId, joinCode } : null };
                 showSignupProfileRecovery(createdUser, name, error);
             }
         }
@@ -1173,14 +1282,16 @@ function setupAuthListeners() {
 
                 const signupBootstrap = pendingSignupBootstrap;
                 let profile;
+                let planSchoolId = getSchoolId();
                 if (signupBootstrap) {
                     // Security rules intentionally deny configuration reads until
                     // the fixed-role signup profile exists.
                     profile = await signupBootstrap;
                     if (profile) await loadSubscription();
                 } else {
+                    planSchoolId = getSchoolId();
                     const [subscriptionResult, profileResult] = await Promise.allSettled([
-                        loadSubscription(),
+                        loadSubscription(planSchoolId),
                         loadUserProfile(user)
                     ]);
                     if (profileResult.status === 'rejected') throw profileResult.reason;
@@ -1198,7 +1309,9 @@ function setupAuthListeners() {
                 }
 
                 const validRoles = new Set([ROLE_TEACHER, ROLE_SECRETARY, ROLE_PARENT]);
-                if (!profile || profile.status !== 'active' || !validRoles.has(profile.role)) {
+                // Every read and write below goes to this school's data root.
+                const profileSchoolId = profile ? resolveProfileSchoolId(profile) : null;
+                if (!profile || !profileSchoolId || profile.status !== 'active' || !validRoles.has(profile.role)) {
                     const inferredRole = getRoleFromSyntheticEmail(user.email);
                     const problemRole = inferredRole || profile?.role || activeAuthRole;
                     const message = !profile
@@ -1235,6 +1348,14 @@ function setupAuthListeners() {
                     await gateHandoff;
                     if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;
                 }
+                setSchoolId(profileSchoolId);
+                rememberDeviceSchoolId(profileSchoolId);
+                // The plan was read in parallel with the profile, for the device's school. When the
+                // profile belongs to another school, read that school's plan instead.
+                if (profileSchoolId !== planSchoolId) {
+                    await loadSubscription(profileSchoolId);
+                    if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;
+                }
                 rememberAuthRole(profile.role);
                 initializeHeaderQuote();
                 state.setCurrentUserProfile(profile);
@@ -1249,7 +1370,7 @@ function setupAuthListeners() {
                         if (linkedStudentId) {
                             try {
                                 const { db, doc, getDoc } = await import('./firebase.js');
-                                const studentSnap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/students', linkedStudentId));
+                                const studentSnap = await getDoc(doc(db, `${PUBLIC_DATA_PATH}/students`, linkedStudentId));
                                 const enrollmentStatus = studentSnap.exists()
                                     ? (studentSnap.data()?.enrollmentStatus || 'active')
                                     : 'missing';
@@ -1281,6 +1402,7 @@ function setupAuthListeners() {
                         }
                         await waitForLoadingScreenSettled(loadingScreen);
                         if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
+                        if (isCurrentSession()) maybeOpenOperatorConsole();
                     }, {
                         role: profile.role,
                         profile,
@@ -1301,6 +1423,8 @@ function setupAuthListeners() {
             resetAuthSubmitState();
             stopSubscription?.();
             if (state) state.resetState();
+            setSchoolId(readDeviceSchoolId());
+            syncAuthSchoolUi();
             if (audioModulePromise) {
                 audioModulePromise.then((audio) => {
                     audio.stopAllCeremonyAudio?.();

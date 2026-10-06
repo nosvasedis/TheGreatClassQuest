@@ -5,6 +5,7 @@ import { showToast } from '../../ui/effects.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { normalizeAudience, bountyStarsFromAward } from '../../features/bountyAudience.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 function readPosterAudience() {
     try {
@@ -61,7 +62,7 @@ export async function handleCreateBounty() {
     btn.innerHTML = `<span class="bp-submit__seal" aria-hidden="true"><i class="fas fa-circle-notch fa-spin"></i></span><span class="bp-submit__label">${type === 'timer' ? 'Turning the hourglass…' : 'Pinning…'}</span>`;
 
     try {
-        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_bounties"), withSchoolYear({
+        await addDoc(collection(db, `${PUBLIC_DATA_PATH}/quest_bounties`), withSchoolYear({
             classId,
             title,
             target: type === 'standard' ? target : 0,
@@ -88,7 +89,7 @@ export async function handleCreateBounty() {
 
 export async function handleDeleteBounty(bountyId) {
     try {
-        await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", bountyId));
+        await deleteDoc(doc(db, `${PUBLIC_DATA_PATH}/quest_bounties`, bountyId));
         showToast('Bounty removed.', 'info');
     } catch (e) {
         showToast('Error deleting bounty', 'error');
@@ -97,7 +98,7 @@ export async function handleDeleteBounty(bountyId) {
 
 export async function handleClaimBounty(bountyId, classId, rewardText) {
     try {
-        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", bountyId), {
+        await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/quest_bounties`, bountyId), {
             status: 'completed',
             claimedAt: serverTimestamp() // <--- This adds the "Time of Victory"
         });
@@ -132,7 +133,7 @@ export async function checkBountyProgress(classId, starsAdded, studentIds = null
 
         const previousProgress = Number(b.currentProgress) || 0;
         const newProgress = previousProgress + added;
-        const bountyRef = doc(db, "artifacts/great-class-quest/public/data/quest_bounties", b.id);
+        const bountyRef = doc(db, `${PUBLIC_DATA_PATH}/quest_bounties`, b.id);
 
         try {
             // increment() keeps concurrent awards from overwriting each other's

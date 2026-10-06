@@ -63,6 +63,7 @@ import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
 import { TRAINING_HERO, normalizeHeroClass } from "../../features/heroClassNames.mjs";
 import { runAwardWriteInOrder, withWriteRetries } from "../../features/awardPending.mjs";
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -91,7 +92,7 @@ async function writeStudentStarsForToday(
     reason = null,
 ) {
     const today = getTodayDateString();
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const activeYearKey = state.getActiveSchoolYearKey();
 
     // Date-bound maintenance happens only when the teacher performs the first
@@ -677,7 +678,7 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
         .filter((student) => ["Scholar", "Nomad", "Patron", TRAINING_HERO].includes(normalizeHeroClass(student.heroClass)));
     if (targetStudents.length === 0) return;
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const schoolYearState = state.get("schoolYearState") || {};
     const enforceActiveYearQueries =
         schoolYearState.enforceActiveYearQueries === true;
@@ -768,7 +769,7 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
 export async function checkAndRecordQuestCompletion(classId) {
     const classRef = doc(
         db,
-        "artifacts/great-class-quest/public/data/classes",
+        `${PUBLIC_DATA_PATH}/classes`,
         classId,
     );
     const classDoc = await getDoc(classRef);
@@ -827,7 +828,7 @@ export async function checkAndRecordQuestCompletion(classId) {
         const historyRef = doc(
             collection(
                 db,
-                "artifacts/great-class-quest/public/data/quest_history",
+                `${PUBLIC_DATA_PATH}/quest_history`,
             ),
         );
         batch.set(historyRef, withSchoolYear({
@@ -853,7 +854,7 @@ export async function checkAndRecordQuestCompletion(classId) {
 function _noteDailyLogGlory(logId, gloryDelta) {
     const amount = Number(gloryDelta);
     if (!logId || !Number.isFinite(amount) || amount === 0) return;
-    updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), {
+    updateDoc(doc(db, `${PUBLIC_DATA_PATH}/award_log`, logId), {
         guildGlory: increment(amount),
     }).catch(() => { /* the row may have been removed meanwhile */ });
 }
@@ -864,7 +865,7 @@ const debouncedCheckAndRecordQuestCompletion = debounce(
 );
 
 export async function handleDeleteAwardLog(logId) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     let deletedGuildEvent = null;
     let deletedLogMonthKey = null;
     try {
@@ -983,7 +984,7 @@ export async function handleSaveAwardNote() {
     const newNote = document.getElementById("award-note-textarea").value;
     try {
         await updateDoc(
-            doc(db, "artifacts/great-class-quest/public/data/award_log", logId),
+            doc(db, `${PUBLIC_DATA_PATH}/award_log`, logId),
             { note: newNote },
         );
         showToast("Note saved!", "success");
@@ -1024,7 +1025,7 @@ export async function handleAddStarsManually() {
 
     try {
         await runTransaction(db, async (transaction) => {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const publicDataPath = PUBLIC_DATA_PATH;
             const scoreRef = doc(
                 db,
                 `${publicDataPath}/student_scores`,
@@ -1130,7 +1131,7 @@ export async function handleSetStudentScores() {
 
     try {
         await runTransaction(db, async (transaction) => {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const publicDataPath = PUBLIC_DATA_PATH;
             const scoreRef = doc(
                 db,
                 `${publicDataPath}/student_scores`,
@@ -1244,7 +1245,7 @@ async function _applyOutwardSkillEffects(
     );
     if (!outwardEffects.length) return;
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const allStudents = state.get("allStudents");
     const giftReceiverId = String(options.giftReceiverId || "").trim();
 

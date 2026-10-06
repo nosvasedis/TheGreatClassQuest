@@ -151,3 +151,50 @@ export function refreshFamilySnapshot(payload = {}) {
 export function sendFamilyMessage(payload) {
     return callAdmin('sendFamilyMessage', payload);
 }
+
+// Operator console and teacher join codes (functions/platform.js).
+export function getOperatorStatus() {
+    return callAdmin('getOperatorStatus', {});
+}
+
+export function claimOperator() {
+    return callAdmin('claimOperator', {});
+}
+
+export function opListSchools() {
+    return callAdmin('opListSchools', {});
+}
+
+export function opCreateSchool(payload) {
+    return callAdmin('opCreateSchool', payload);
+}
+
+export function opUpdateSchool(payload) {
+    return callAdmin('opUpdateSchool', payload);
+}
+
+export function opIssueSecretaryLink(payload) {
+    return callAdmin('opIssueSecretaryLink', payload);
+}
+
+export function opResetTeacherJoinCode(payload) {
+    return callAdmin('opResetTeacherJoinCode', payload);
+}
+
+export function verifyTeacherJoinCode(payload) {
+    return callAdmin('verifyTeacherJoinCode', payload);
+}
+
+export function joinSchoolAsTeacher(payload) {
+    return callAdmin('joinSchoolAsTeacher', payload);
+}
+
+export function listSchoolTeachers() {
+    return callAdmin('listSchoolTeachers', {});
+}
+
+// Billing calls keep the Functions error code (e.g. functions/not-found before Stripe is on).
+export async function callBillingFunction(name, payload = {}) {
+    const result = await callable(name)(payload);
+    return result?.data || null;
+}

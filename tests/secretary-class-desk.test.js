@@ -19,11 +19,9 @@ test('createClass assigns the chosen teacher instead of always using the signed-
 test('assignClassTeacher callable exists for secretary reassignment', () => {
     const functions = read('functions/index.js');
     const runtime = read('utils/adminRuntime.js');
-    const onboarding = read('tools/onboarding-console/lib.js');
     assert.match(functions, /exports\.assignClassTeacher/);
     assert.match(functions, /createdBy: owner/);
     assert.match(runtime, /assignClassTeacher/);
-    assert.match(onboarding, /assignClassTeacher/);
 });
 
 test('student placement launcher has no redundant fact badges and uses Student placement', () => {
@@ -171,4 +169,32 @@ test('Office searches swap only their results, never the whole tab', () => {
     assert.match(read('features/secretary/registry.js'), /data-secretary-live="registry-results"/);
     assert.match(read('features/secretary/school.js'), /data-secretary-live="school-students"/);
     assert.match(read('features/secretary/gradesBoard.js'), /data-secretary-live="grades-results"/);
+});
+
+test('the class desk opens at once and never waits on the teacher list', () => {
+    const wizard = read('features/classWizard.js').replace(/\r\n/g, '\n');
+    const open = wizard.slice(wizard.indexOf('export async function openClassWizard'), wizard.indexOf('export function closeClassWizard'));
+    const modalOpens = open.indexOf('openOfficeModal(modal)');
+    const awaitsTeachers = open.indexOf('await loadingTeachers');
+    assert.ok(modalOpens > 0 && awaitsTeachers > modalOpens, 'the modal must open before the teacher list is awaited');
+    assert.doesNotMatch(open.slice(0, modalOpens), /await /);
+    assert.match(wizard, /TEACHER_LIST_TIMEOUT_MS/);
+    assert.match(wizard, /listSchoolTeachers\(\)/);
+});
+
+test('Secretary Office desks report a failed open instead of doing nothing', () => {
+    const office = read('features/secretaryConsole.js');
+    assert.match(office, /function openOfficeDesk\(load, open\)/);
+    assert.match(office, /\.catch\(\(error\) => \{[\s\S]*?showToast\('That window could not open/);
+    // Any remaining direct desk import must carry its own catch on the same line.
+    for (const line of office.split(/\r?\n/).filter((text) => /import\('\.\/(classWizard|studentWizard|placementWizard)\.js'\)\.then/.test(text))) {
+        assert.match(line, /\.catch\(/, line.trim());
+    }
+});
+
+test('the teacher list for the class desk is school-scoped on the server', () => {
+    const functions = read('functions/index.js');
+    assert.match(functions, /exports\.listSchoolTeachers = callable/);
+    assert.match(functions, /requireCanonicalSecretaryCaller\(await requireAuthedCaller\(request\)\)/);
+    assert.match(functions, /resolveProfileSchoolId\(profileDoc\.data\(\)\) === schoolId/);
 });

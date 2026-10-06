@@ -23,10 +23,10 @@ import {
     knotsHtml, milestoneHtml, noClassHtml, hoardStageHtml, mapStageHtml, councilStageHtml,
     controlsHtml, controlsNoClassHtml, logHtml, shelfHtml, printableScrapsHtml, howToHtml
 } from './trainingGroundsView.mjs';
+import { dataPath } from '../utils/tenant.mjs';
 
 const TAB_KEY = 'tg-active-game';
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
-const PATH = 'artifacts/great-class-quest/public/data/classes';
 
 const tg = {
     bound: false,
@@ -273,7 +273,7 @@ async function saveRound(gameKey, { success, piece = null, note = '', usedId = '
     let outcome = recordRound(gameKey, before, { today, success, piece, note, usedId });
     tg.saving = true;
     try {
-        const classRef = doc(db, PATH, classId);
+        const classRef = doc(db, dataPath('classes'), classId);
         await runTransaction(db, async (transaction) => {
             const snap = await transaction.get(classRef);
             if (!snap.exists()) throw new Error('Class not found');

@@ -1,54 +1,44 @@
-# GCQ onboarding tools
+# GCQ tools
 
-## Recommended: onboarding console
+## Adding a school: the operator console
 
-Run this from the project root:
+Every school uses the same site and the same Firebase project; each school's data lives under
+its own `artifacts/{schoolId}/public/data`. There is nothing to deploy for a new school.
 
-```bash
-npm run onboarding-console
-```
+1. Sign in to the app as the operator and open `#operator` (for example
+   `https://great-class-quest-school.pages.dev/#operator`). The first time, the founding school's
+   Secretary claims the console once.
+2. **Add a school**: name, school code (used in links and family logins; it cannot change),
+   plan and optional end date.
+3. Send the school the **office setup link** (one use, 7 days) and the **school link + teacher
+   code**. The office activates its Secretary account with the link; teachers create their
+   accounts on the school link and type the teacher code.
+4. Change a plan, suspend or reactivate a school, or issue a new office link or teacher code from
+   the same console.
 
-Then open the local address shown in the terminal, usually:
+Online payment (Stripe) is optional and off by default: see `functions/.env.example`.
 
-```text
-http://127.0.0.1:3020
-```
-
-This is the main noob-friendly setup quest. It:
-
-- saves the school in your local billing records
-- stores the Firebase key safely on your machine
-- checks that Cloud Firestore is enabled
-- deploys the repo's Firestore rules
-- writes the school subscription as `pending`
-- checks and creates Firestore indexes from `firestore.indexes.json` (including active-year startup indexes used after year close)
-- creates Firebase Storage and deploys Storage rules when preparing Pro / Parent Access
-- for Pro+: enables Functions APIs, deploys/verifies Family Access Cloud Functions (`createParentAccess`, `purgeStudent`, transfers, messaging, …)
-- for Parent Access + Secretary: also enables Cloud Scheduler, verifies `purgeLeftSchoolStudents`, and creates a founding Secretary activation link
-- rebuilds the Render billing JSON
-- prepares the hosting values for Netlify, GitHub Pages, and Cloudflare Pages
-
-Readiness targets:
-
-- **Starter / paywall only** — billing + Firestore basics
-- **Pro ready (Storage + Parent Access)** — Storage + Parent Portal / Family Access Functions
-- **Parent Access + Secretary ready** — everything above + Secretary activation, year tools, leave-school 30-day purge schedule
+The local onboarding console, the Render billing server and `tools/billing-setup.html` were
+retired on 2026-10-06 (they are in git history).
 
 ## Hosting notes
 
-- Netlify uses `netlify.toml` and the shared static build command `node scripts/build-static-site.js`.
-- GitHub Pages uses the included workflow at `.github/workflows/deploy-github-pages.yml` and expects the `GCQ_*` values as repository Actions secrets.
-- Cloudflare Pages should use:
+- The live site is Cloudflare Pages (`great-class-quest-school.pages.dev`), built from `main` on
+  every push:
   - Framework preset: `None`
   - Build command: `node scripts/build-static-site.js`
   - Build output directory: `dist`
-- All three hosting targets generate the same school-specific `config.json` from the `GCQ_*` values during build.
+- GitHub Pages mirrors it nightly through `.github/workflows/deploy-github-pages.yml` (repository
+  Actions secrets `GCQ_*`).
+- Both builds write one `config.json` (the shared Firebase project) from the `GCQ_*` values.
 
-## Older helper: billing-setup.html
+## Founding school helpers
 
-You can still open **`tools/billing-setup.html`** directly in the browser if you only want a quick copy-paste generator.
-
-That older helper does **not** do the full automatic setup. It only prepares values for manual copy-paste.
+- `npm run migrate:secretary-admin` makes a one-use Secretary setup or recovery link for the
+  founding school (the operator console never manages the founding school).
+- `npm run set-subscription` sets the founding school's plan document with a service-account key.
+- Shared code for these and for `scripts/wait-for-firestore-indexes.cjs` is in
+  `scripts/lib/schoolAdmin.cjs`.
 
 ## Emergency helper: year-end-recovery.html
 

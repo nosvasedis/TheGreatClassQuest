@@ -10,8 +10,8 @@ import { showToast } from '../ui/effects.js';
 import { showModal } from '../ui/modals.js';
 import { friendlyActionError } from '../utils/friendlyErrors.js';
 import { generateFamilyPassword, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 let selectedStudentId = '';
 // The details just saved, kept only so the teacher can print the family's slip; never stored.

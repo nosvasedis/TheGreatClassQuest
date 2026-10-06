@@ -24,8 +24,8 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { normalizeClassAssessmentConfig } from '../../features/assessmentConfig.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { PUBLIC_DATA_PATH as publicDataPath } from '../../utils/tenant.mjs';
 
-const publicDataPath = 'artifacts/great-class-quest/public/data';
 
 function normalizeCreatedBy(createdBy) {
     const uid = String(createdBy?.uid || state.get('currentUserId') || '').trim();

@@ -240,7 +240,15 @@ async function requireActiveProfile(identity) {
   } catch (_) {
     // Cache API availability is an optimization, never an authorization result.
   }
-  if (cached?.ok) return;
+  if (cached?.ok) {
+    // Entries cached before schools shared one project hold "ok": those users are the founding school's.
+    const body = await cached.text().catch(() => '');
+    try {
+      return { schoolId: normalizeSchoolId(JSON.parse(body).schoolId) || FOUNDING_SCHOOL_ID };
+    } catch (_) {
+      return { schoolId: FOUNDING_SCHOOL_ID };
+    }
+  }
 
   const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(identity.projectId)}/databases/(default)/documents/user_profiles/${encodeURIComponent(identity.uid)}`;
   const response = await fetchNoRedirect(url, {
@@ -261,10 +269,178 @@ async function requireActiveProfile(identity) {
     error.code = 'profile-inactive';
     throw error;
   }
+  const rawSchoolId = firestoreString(document.fields, 'schoolId');
+  const schoolId = rawSchoolId ? normalizeSchoolId(rawSchoolId) : FOUNDING_SCHOOL_ID;
+  if (!schoolId) {
+    const error = new Error('Unknown school.');
+    error.code = 'profile-inactive';
+    throw error;
+  }
   try {
-    await caches.default.put(cacheKey, new Response('ok', { headers: { 'Cache-Control': `public, max-age=${PROFILE_CACHE_SECONDS}` } }));
+    await caches.default.put(cacheKey, new Response(JSON.stringify({ schoolId }), { headers: { 'Cache-Control': `public, max-age=${PROFILE_CACHE_SECONDS}` } }));
   } catch (_) {
     // A successful verified profile remains valid when cache persistence fails.
+  }
+  return { schoolId };
+}
+
+// ---- Per-school monthly AI allowance ----
+// The founding school is never metered. Every other school gets a monthly allowance per route,
+// set by its plan on schools/{schoolId}.subscription (read with the caller's own token, which the
+// rules allow for members). Counters live in one SchoolAiUsage Durable Object per school, which
+// is exact and fits the Workers Free plan (KV allows only 1,000 writes a day).
+export const FOUNDING_SCHOOL_ID = 'great-class-quest';
+const SCHOOL_ID_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const SCHOOL_PLAN_CACHE_SECONDS = 300;
+export const DEFAULT_SCHOOL_AI_LIMITS = {
+  pending: { chat: 0, image: 0, speech: 0 },
+  expired: { chat: 0, image: 0, speech: 0 },
+  starter: { chat: 300, image: 20, speech: 0 },
+  pro: { chat: 1500, image: 100, speech: 0 },
+  elite: { chat: 5000, image: 600, speech: 200 },
+};
+
+export function normalizeSchoolId(value) {
+  const id = String(value ?? '').trim().toLowerCase();
+  return SCHOOL_ID_PATTERN.test(id) ? id : null;
+}
+
+// SCHOOL_AI_MONTHLY_LIMITS (optional JSON var) overrides any tier/route number.
+export function resolveSchoolAiLimits(env = {}) {
+  let overrides = {};
+  try {
+    overrides = env.SCHOOL_AI_MONTHLY_LIMITS ? JSON.parse(env.SCHOOL_AI_MONTHLY_LIMITS) : {};
+  } catch (_) {
+    overrides = {};
+  }
+  const limits = {};
+  for (const [tier, routes] of Object.entries(DEFAULT_SCHOOL_AI_LIMITS)) {
+    limits[tier] = { ...routes };
+    for (const route of Object.keys(routes)) {
+      const value = Number(overrides?.[tier]?.[route]);
+      if (Number.isFinite(value) && value >= 0) limits[tier][route] = Math.floor(value);
+    }
+  }
+  return limits;
+}
+
+// A Firestore REST document for schools/{id} -> the few fields the allowance needs.
+export function schoolPlanFromDocument(document) {
+  const fields = document?.fields || {};
+  const plan = fields.subscription?.mapValue?.fields || {};
+  return {
+    status: firestoreString(fields, 'status') || 'active',
+    tier: firestoreString(plan, 'tier') || 'pending',
+    startsAt: firestoreString(plan, 'startsAt') || null,
+    endsAt: firestoreString(plan, 'endsAt') || null,
+  };
+}
+
+// Mirrors utils/subscription.js#resolveSubscriptionConfig: not started = pending, ended = expired.
+export function effectiveSchoolTier(plan, now = Date.now()) {
+  if (!plan || plan.status !== 'active') return 'expired';
+  const startsAt = plan.startsAt ? Date.parse(plan.startsAt) : NaN;
+  const endsAt = plan.endsAt ? Date.parse(plan.endsAt) : NaN;
+  if (Number.isFinite(startsAt) && startsAt > now) return 'pending';
+  if (Number.isFinite(endsAt) && endsAt <= now) return 'expired';
+  return Object.hasOwn(DEFAULT_SCHOOL_AI_LIMITS, plan.tier) ? plan.tier : 'pending';
+}
+
+// Months follow Athens time, so "renews on the 1st" is the 1st the school sees.
+export function schoolUsageMonth(now = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Athens', year: 'numeric', month: '2-digit' }).formatToParts(new Date(now));
+  return `${parts.find((p) => p.type === 'year').value}-${parts.find((p) => p.type === 'month').value}`;
+}
+
+async function readSchoolPlan(identity, schoolId) {
+  const cacheKey = new Request(`https://gcq-school-plan-cache.invalid/${encodeURIComponent(identity.projectId)}/${encodeURIComponent(schoolId)}`);
+  try {
+    const cached = await caches.default.match(cacheKey);
+    if (cached?.ok) return await cached.json();
+  } catch (_) {
+    // The cache is an optimization only.
+  }
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(identity.projectId)}/databases/(default)/documents/schools/${encodeURIComponent(schoolId)}`;
+  const response = await fetchNoRedirect(url, { headers: { Authorization: `Bearer ${identity.token}` } });
+  if (response.status === 404) {
+    response.body?.cancel();
+    return { status: 'missing', tier: 'pending', startsAt: null, endsAt: null };
+  }
+  if (!response.ok) {
+    response.body?.cancel();
+    const error = new Error('School plan unavailable.');
+    error.code = 'school-plan-service';
+    throw error;
+  }
+  const plan = schoolPlanFromDocument(await response.json());
+  try {
+    await caches.default.put(cacheKey, new Response(JSON.stringify(plan), { headers: { 'Cache-Control': `public, max-age=${SCHOOL_PLAN_CACHE_SECONDS}` } }));
+  } catch (_) {
+    // The cache is an optimization only.
+  }
+  return plan;
+}
+
+// Returns null when the call may go ahead, or a Response that refuses it.
+export async function enforceSchoolAiAllowance(identity, schoolId, route, env, corsHeaders = {}, now = Date.now()) {
+  if (!schoolId || schoolId === FOUNDING_SCHOOL_ID) return null;
+  let plan;
+  try {
+    plan = await readSchoolPlan(identity, schoolId);
+  } catch (_) {
+    return json({ error: 'The school plan could not be checked. Try again in a moment.' }, 503, corsHeaders,
+      { 'X-GCQ-Error-Source': 'school-plan-service', 'Retry-After': '30' });
+  }
+  const tier = effectiveSchoolTier(plan, now);
+  const limit = resolveSchoolAiLimits(env)[tier]?.[route] ?? 0;
+  if (limit <= 0) {
+    return json({ error: 'This school plan does not include this AI feature.' }, 403, corsHeaders,
+      { 'X-GCQ-Error-Source': 'school-ai-plan' });
+  }
+  if (!env.SCHOOL_AI_USAGE) return null;
+  try {
+    const stub = env.SCHOOL_AI_USAGE.get(env.SCHOOL_AI_USAGE.idFromName(schoolId));
+    const answer = await stub.fetch('https://school-ai-usage/consume', {
+      method: 'POST',
+      body: JSON.stringify({ month: schoolUsageMonth(now), route, limit }),
+    });
+    const result = await answer.json();
+    if (result?.allowed === false) {
+      console.warn(JSON.stringify({ event: 'gcq_school_ai_quota', schoolId, route, used: result.used, limit }));
+      return json({ error: 'This school has used this month’s AI allowance.' }, 403, corsHeaders,
+        { 'X-GCQ-Error-Source': 'school-ai-quota' });
+    }
+  } catch (error) {
+    // The allowance protects costs; a counter outage must not stop a lesson.
+    console.warn(JSON.stringify({ event: 'gcq_school_ai_usage_unavailable', schoolId, route, reason: String(error?.message || error).slice(0, 120) }));
+  }
+  return null;
+}
+
+// One instance per school (idFromName(schoolId)). A Durable Object handles its requests one at
+// a time, and storage reads/writes hold incoming events, so read-then-write cannot double count.
+export class SchoolAiUsage {
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+    const month = String(body.month || url.searchParams.get('month') || '');
+    if (!/^\d{4}-\d{2}$/.test(month)) return Response.json({ error: 'month required' }, { status: 400 });
+    if (url.pathname === '/usage') {
+      const entries = await this.ctx.storage.list({ prefix: `${month}:` });
+      return Response.json({ month, usage: Object.fromEntries([...entries].map(([key, value]) => [key.slice(month.length + 1), value])) });
+    }
+    const route = ['chat', 'image', 'speech'].includes(body.route) ? body.route : '';
+    const limit = Math.max(0, Math.floor(Number(body.limit) || 0));
+    if (!route) return Response.json({ error: 'route required' }, { status: 400 });
+    const key = `${month}:${route}`;
+    const used = Number(await this.ctx.storage.get(key)) || 0;
+    if (used >= limit) return Response.json({ allowed: false, used, limit });
+    await this.ctx.storage.put(key, used + 1);
+    return Response.json({ allowed: true, used: used + 1, limit });
   }
 }
 
@@ -930,7 +1106,8 @@ export default {
       }
 
       try {
-        await requireActiveProfile(identity);
+        const profile = await requireActiveProfile(identity);
+        identity.schoolId = profile?.schoolId || FOUNDING_SCHOOL_ID;
       } catch (error) {
         const isAccessFailure = error?.code === 'profile-missing' || error?.code === 'profile-inactive';
         console.warn(JSON.stringify({
@@ -959,6 +1136,10 @@ export default {
     }
     const route = routeForPayload(payload);
     if (!route) return json({ error: 'Invalid payload.' }, 400, corsHeaders);
+    if (!isService) {
+      const refusal = await enforceSchoolAiAllowance(identity, identity.schoolId, route, env, corsHeaders);
+      if (refusal) return refusal;
+    }
 
     const suppliedRequestId = String(request.headers.get('X-GCQ-Request-ID') || '').trim();
     const requestId = /^[A-Za-z0-9._:-]{8,128}$/.test(suppliedRequestId) ? suppliedRequestId : crypto.randomUUID();

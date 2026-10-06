@@ -31,8 +31,8 @@ import {
     startOfDay,
     tallyRaidStars
 } from './realmRaidCore.mjs';
+import { PUBLIC_DATA_PATH as DATA } from '../utils/tenant.mjs';
 
-const DATA = 'artifacts/great-class-quest/public/data';
 const RECORDS = 'world_boss';
 const SETTLE_MS = 6000;
 const DEBOUNCE_MS = 1500;

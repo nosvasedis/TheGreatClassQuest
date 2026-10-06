@@ -62,8 +62,8 @@ import {
 import { getLiveYearGoldFromAppState } from "../utils/yearGold.js";
 import { cancelScheduledRenders, scheduleRender } from "../utils/renderScheduler.js";
 import { getDeviceCacheChoice } from "../utils/deviceCache.js";
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = "artifacts/great-class-quest/public/data";
 const OPEN_YEAR_CACHE_KEY = "gcq_open_school_years_v1";
 const OPEN_YEAR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 let activeListenerUserId = null;
@@ -430,7 +430,7 @@ export async function refreshParentPortalData() {
     const studentId = profile?.linkedStudentId;
     if (!studentId) return;
     await requestFamilySnapshotRefresh();
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const snapshotRef = doc(db, `${publicDataPath}/parent_snapshots`, studentId);
     const snapshot = await getDoc(snapshotRef);
     state.setCurrentParentSnapshot(
@@ -504,7 +504,7 @@ export function watchCommunicationThread(threadId) {
     state.setCurrentCommunicationMessages([]);
     if (!threadId) return;
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const messagesQuery = query(
         collection(db, `${publicDataPath}/communication_messages`),
         where("threadId", "==", threadId),
@@ -547,7 +547,7 @@ export function watchCommunicationThread(threadId) {
 }
 
 function subscribeCommunicationThreads({ userId, isSecretary = false }) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const threadsQuery = isSecretary
         ? query(
               collection(db, `${publicDataPath}/communication_threads`),
@@ -606,7 +606,7 @@ function subscribeCommunicationThreads({ userId, isSecretary = false }) {
 export function setupParentSession(userId, profile, onInitialDataReady) {
     clearDataListeners();
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const studentId = profile?.linkedStudentId;
     if (!studentId) {
         state.setCurrentParentSnapshot(null);
@@ -748,7 +748,7 @@ export async function setupDataListeners(
             onInitialDataReady();
         }
     }
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const schoolYearStateRef = doc(
         db,
         `${publicDataPath}/school_year_state`,

@@ -11,8 +11,8 @@ import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { normalizeGift, describeGift, levelByKey } from '../../features/quietDragonCore.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const ALREADY_PAID = 'quiet-dragon-already-paid';
 export const QUIET_DRAGON_REASON = 'quiet_dragon';
 

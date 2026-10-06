@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { webcrypto } from 'node:crypto';
@@ -9,7 +10,7 @@ function harness(imageOperation = async () => 'data:image/jpeg;base64,aGVsbG8=')
     const removed = [], uploaded = [];
     const values = { currentUserId: 'teacher', currentUserRole: 'teacher', allTeachersClasses: [{ id: 'class-1', questLevel: 'C' }] };
     const snapshot = () => ({ exists: () => true, id: page.id, data: () => ({ ...page }) });
-    const deps = { db: {}, storage: {}, doc: () => ({}), getDoc: async () => snapshot(), runTransaction: async (_, callback) => callback({ get: async () => snapshot(), update: (_, updates) => Object.assign(page, updates) }), serverTimestamp: () => 'timestamp', ref: (_, path) => path, deleteObject: async path => removed.push(path), state: { get: key => values[key], getActiveSchoolYearKey: () => '2026-2027' }, compressImageBase64: async value => value, uploadImageToStorage: async (_, path) => { uploaded.push(path); return 'https://example.test/' + path; }, getLeagueAiVisualStyle: () => 'storybook', callCloudflareAiImageApi: imageOperation, crypto: webcrypto };
+    const deps = { PUBLIC_DATA_PATH, db: {}, storage: {}, doc: () => ({}), getDoc: async () => snapshot(), runTransaction: async (_, callback) => callback({ get: async () => snapshot(), update: (_, updates) => Object.assign(page, updates) }), serverTimestamp: () => 'timestamp', ref: (_, path) => path, deleteObject: async path => removed.push(path), state: { get: key => values[key], getActiveSchoolYearKey: () => '2026-2027' }, compressImageBase64: async value => value, uploadImageToStorage: async (_, path) => { uploaded.push(path); return 'https://example.test/' + path; }, getLeagueAiVisualStyle: () => 'storybook', callCloudflareAiImageApi: imageOperation, crypto: webcrypto };
     const source = fs.readFileSync(new URL('../features/adventureLogArtwork.js', import.meta.url), 'utf8').replace(/^import .*;\r?$/gm, '').replace(/export /g, '').replace("import('../utils/subscription.js')", 'Promise.resolve({ canUseFeature: () => true })');
     const api = new Function(...Object.keys(deps), source + '\nreturn { prepareAdventurePictureSave, generateAdventureLogArtwork, readAdventurePicture, diaryPictureControlsHtml };')(...Object.values(deps));
     return { ...api, page, uploaded, removed, values };

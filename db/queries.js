@@ -3,6 +3,7 @@
 import { db, collection, query, where, getDocs, orderBy } from '../firebase.js';
 import { parseDDMMYYYY, getLocalIsoDateString } from '../utils.js';
 import * as state from '../state.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 function resolveYearKey(options = {}) {
     if (options.schoolYearKey) return options.schoolYearKey;
@@ -32,7 +33,7 @@ export async function fetchLogsForDate(dateString, options = {}) {
     const nextDay = new Date(day);
     nextDay.setDate(day.getDate() + 1);
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     // 3. Query using the 'createdAt' timestamp field
     const logsQuery = query(
         collection(db, `${publicDataPath}/award_log`),
@@ -57,7 +58,7 @@ export async function fetchLogsForDate(dateString, options = {}) {
  * @returns {Promise<Array>} A promise that resolves to an array of score documents.
  */
 export async function fetchAllTrialsForClass(classId, options = {}) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const trialsQuery = query(
         collection(db, `${publicDataPath}/written_scores`),
         ...yearWhere(options),
@@ -81,7 +82,7 @@ export async function fetchAllTrialsForClass(classId, options = {}) {
  * @returns {Promise<Array<{ id: string } & Record<string, unknown>>}
  */
 export async function fetchAllWrittenScoresForStudent(studentId, options = {}) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const scoresQuery = query(
         collection(db, `${publicDataPath}/written_scores`),
         ...yearWhere(options),
@@ -109,7 +110,7 @@ export async function fetchLogsForMonth(year, month, options = {}) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1); // The start of the NEXT month
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     // 2. Query using the 'createdAt' timestamp field for a precise range
     const logsQuery = query(
         collection(db, `${publicDataPath}/award_log`),
@@ -143,7 +144,7 @@ export async function fetchAttendanceForMonth(classId, year, month, options = {}
     const startDate = new Date(year, month - 1, 1); 
     const endDate = new Date(year, month, 0, 23, 59, 59); 
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const attendanceQuery = query(
         collection(db, `${publicDataPath}/attendance`),
         ...yearWhere(options),
@@ -174,7 +175,7 @@ export async function fetchTrialsForMonth(classId, monthKey, options = {}) {
     const startDateString = getLocalIsoDateString(startDate); 
     const endDateString = getLocalIsoDateString(endDate);     
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const trialsQuery = query(
         collection(db, `${publicDataPath}/written_scores`),
         ...yearWhere(options),
@@ -197,7 +198,7 @@ export async function fetchAdventureLogsForMonth(classId, year, month, options =
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const publicDataPath = PUBLIC_DATA_PATH;
     const logsQuery = query(
         collection(db, `${publicDataPath}/adventure_logs`),
         ...yearWhere(options),

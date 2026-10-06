@@ -1,7 +1,6 @@
 import { db, doc, getDoc, setDoc } from '../firebase.js';
+import { dataPath } from '../utils/tenant.mjs';
 
-const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
-const SCHOOL_SETTINGS_DOC = `${PUBLIC_DATA_PATH}/school_settings/holidays`;
 const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000;
 
 function toIsoString(value) {
@@ -17,7 +16,7 @@ export function getTeacherMetadataRef(userId) {
 }
 
 export function getSchoolSettingsRef() {
-    return doc(db, SCHOOL_SETTINGS_DOC);
+    return doc(db, dataPath('school_settings/holidays'));
 }
 
 export async function loadTeacherJourneyState(user) {

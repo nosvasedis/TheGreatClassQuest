@@ -39,6 +39,7 @@ import {
 } from './wallpaperDeck.mjs';
 import { playPortalOpen, playPortalClose, enterFullscreen, leaveFullscreen } from './wallpaperPortal.js';
 import { openQuietDragonFrom } from './quietDragonButton.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -886,7 +887,7 @@ async function initializeDailyAIContent() {
     }
 
     try {
-        const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+        const contentCollection = collection(db, `${PUBLIC_DATA_PATH}/daily_ai_content`);
         const q = query(contentCollection, where("date", "==", today));
         const snapshot = await getDocs(q);
 
@@ -953,7 +954,7 @@ async function initializeDailyAIContent() {
 
 async function cleanupOldAIContent() {
     const today = utils.getTodayDateString();
-    const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+    const contentCollection = collection(db, `${PUBLIC_DATA_PATH}/daily_ai_content`);
     const q = query(contentCollection, where("date", "!=", today), limit(50));
     const snapshot = await getDocs(q);
 
@@ -966,7 +967,7 @@ async function cleanupOldAIContent() {
 
 async function fetchRandomDailyAI(typeFilter = null) {
     const today = utils.getTodayDateString();
-    const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+    const contentCollection = collection(db, `${PUBLIC_DATA_PATH}/daily_ai_content`);
     const q = query(contentCollection, where("date", "==", today));
     const snapshot = await getDocs(q);
 
@@ -1047,7 +1048,7 @@ async function directorGameLoop({ skipGap = false } = {}) {
 
                 // 1. Mark complete in DB
                 const { updateDoc, doc } = await import('../firebase.js');
-                updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' })
+                updateDoc(doc(db, `${PUBLIC_DATA_PATH}/quest_bounties`, activeTimer.id), { status: 'completed' })
                     .catch((e) => console.warn('Could not mark the timer bounty complete:', e));
 
                 // 2. Play Sound

@@ -3,6 +3,7 @@ import { db, doc, runTransaction, serverTimestamp, storage, ref, deleteObject } 
 import * as state from '../state.js';
 import { compressImageBase64, uploadImageToStorage, getLeagueAiVisualStyle } from '../utils.js';
 import { callCloudflareAiImageApi } from '../api.js';
+import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 export const newAdventureRequestId = () => crypto.randomUUID();
 
@@ -54,7 +55,7 @@ export async function discardAdventurePictureObject(path, log) {
 }
 
 export async function generateAdventureLogArtwork(logId) {
-    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
     const requestId = newAdventureRequestId();
     let log;
     const claimed = await runTransaction(db, async tx => {

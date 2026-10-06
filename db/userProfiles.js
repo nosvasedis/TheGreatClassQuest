@@ -21,6 +21,8 @@ export function normalizeUserProfile(user, rawProfile = null) {
         loginMode: profile.loginMode || 'email',
         status: profile.status || null,
         linkedStudentId: profile.linkedStudentId || null,
+        // Absent on profiles from before schools shared one project (= the founding school).
+        schoolId: profile.schoolId || null,
         createdBy: profile.createdBy || null,
         createdAt: profile.createdAt || null,
         lastSeenAt: profile.lastSeenAt || null

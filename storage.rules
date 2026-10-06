@@ -28,12 +28,23 @@ service firebase.storage {
         currentRole() in ['teacher', 'secretary', 'parent'];
     }
 
+    // Profiles without a schoolId belong to the founding school (artifacts/great-class-quest).
+    function profileSchoolId() {
+      return currentProfile().get('schoolId', 'great-class-quest');
+    }
+
+    function sameSchoolUser(userId) {
+      let other = /databases/(default)/documents/user_profiles/$(userId);
+      return firestore.exists(other) &&
+        firestore.get(other).data.get('schoolId', 'great-class-quest') == profileSchoolId();
+    }
+
     function isTeacher() {
       return hasActiveProfile() && currentRole() == 'teacher';
     }
 
     function isSecretary() {
-      let rolePath = /databases/(default)/documents/artifacts/great-class-quest/public/data/school_roles/secretary;
+      let rolePath = /databases/(default)/documents/artifacts/$(profileSchoolId())/public/data/school_roles/secretary;
       return hasActiveProfile() &&
         currentRole() == 'secretary' &&
         firestore.exists(rolePath) &&
@@ -41,22 +52,35 @@ service firebase.storage {
         firestore.get(rolePath).data.status == 'active';
     }
 
+    // The founding school's plan stays at appConfig/subscription; other schools keep theirs on
+    // schools/{schoolId}.subscription.
+    function schoolPlan() {
+      let legacyPath = /databases/(default)/documents/appConfig/subscription;
+      let schoolPath = /databases/(default)/documents/schools/$(profileSchoolId());
+      return profileSchoolId() == 'great-class-quest'
+        ? (firestore.exists(legacyPath) ? firestore.get(legacyPath).data : {})
+        : (firestore.exists(schoolPath) ? firestore.get(schoolPath).data.get('subscription', {}) : {});
+    }
+
     function hasFullSecretaryConsole() {
-      let subscriptionPath = /databases/(default)/documents/appConfig/subscription;
-      return isSecretary() && firestore.exists(subscriptionPath) && (
-        firestore.get(subscriptionPath).data.secretaryAccess == true ||
-        firestore.get(subscriptionPath).data.tier == 'elite'
+      return isSecretary() && (
+        schoolPlan().get('secretaryAccess', false) == true ||
+        schoolPlan().get('tier', '') == 'elite'
       );
     }
 
     function canManageStudent(studentId) {
-      let student = firestore.get(/databases/(default)/documents/artifacts/great-class-quest/public/data/students/$(studentId)).data;
-      return hasFullSecretaryConsole() || (isTeacher() && student.createdBy.uid == request.auth.uid);
+      let studentPath = /databases/(default)/documents/artifacts/$(profileSchoolId())/public/data/students/$(studentId);
+      return hasActiveProfile() && firestore.exists(studentPath) && (
+        hasFullSecretaryConsole() || (isTeacher() && firestore.get(studentPath).data.createdBy.uid == request.auth.uid)
+      );
     }
 
     function canManageClass(classId) {
-      let classData = firestore.get(/databases/(default)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data;
-      return hasFullSecretaryConsole() || (isTeacher() && classData.createdBy.uid == request.auth.uid);
+      let classPath = /databases/(default)/documents/artifacts/$(profileSchoolId())/public/data/classes/$(classId);
+      return hasActiveProfile() && firestore.exists(classPath) && (
+        hasFullSecretaryConsole() || (isTeacher() && firestore.get(classPath).data.createdBy.uid == request.auth.uid)
+      );
     }
 
     function isValidImageWrite() {
@@ -68,7 +92,7 @@ service firebase.storage {
 
     match /adventure_logs/{userId}/{allPaths=**} {
       allow read: if hasActiveProfile();
-      allow write: if hasActiveProfile() && isValidImageWrite() && (request.auth.uid == userId || hasFullSecretaryConsole());
+      allow write: if hasActiveProfile() && isValidImageWrite() && (request.auth.uid == userId || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
     }
 
     match /avatars/{studentId}/{fileName} {
@@ -93,7 +117,7 @@ service firebase.storage {
 
     match /shop_items/{userId}/{allPaths=**} {
       allow read: if hasActiveProfile();
-      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || hasFullSecretaryConsole());
+      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
     }
 
     match /familiars/{studentId}/{fileName} {
@@ -108,7 +132,7 @@ service firebase.storage {
 
     match /quiz_images/{userId}/{fileName} {
       allow read: if hasActiveProfile();
-      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || hasFullSecretaryConsole());
+      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
     }
 
     match /{allPaths=**} {

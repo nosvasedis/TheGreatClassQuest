@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { dataPath } from '../utils/tenant.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildAdventureLogContext, adventureDateKey } from '../features/adventureLogContextCore.mjs';
@@ -20,7 +21,7 @@ function harness({ unavailable = '', owner = 'teacher', changeYear = false } = {
     const modules = { './worldMap.js': { getClassQuestProgressData: () => ({ pct: 40 }) }, './guilds.js': { GUILDS: {} }, './heroSkillTree.js': { getActiveSkills: () => [], getHeroTitle: () => '' }, './bookAtlas.data.mjs': { BOOK_ATLAS: [] }, '../utils/shopCalendar.js': { getActiveFestival: () => null }, './liveWeather.js': { getCachedWeather: () => null }, './weatherTheme.js': { resolveWeatherTheme: () => ({}) } };
     const snapshot = (value, id = '') => ({ id, exists: () => Boolean(value), data: () => value });
     const deps = {
-        db: {}, doc: (_, path, id) => path + '/' + id, collection: (_, path) => path, query: (path, ...constraints) => ({ path, constraints }), where: (key, operator, value) => ({ key, operator, value }),
+        dataPath, db: {}, doc: (_, path, id) => path + '/' + id, collection: (_, path) => path, query: (path, ...constraints) => ({ path, constraints }), where: (key, operator, value) => ({ key, operator, value }),
         getDoc: async path => { calls.push(path); return snapshot(data[path], path.split('/').at(-1)); },
         getDocs: async q => {
             calls.push(q.path);

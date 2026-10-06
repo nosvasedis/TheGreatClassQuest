@@ -8,7 +8,7 @@ import { callGeminiApi } from '../api.js';
 import { getAgeGroupForLeague } from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { requireEliteAI } from '../utils/upgradePrompt.js';
-import { assignClassTeacher } from '../utils/adminRuntime.js';
+import { assignClassTeacher, listSchoolTeachers } from '../utils/adminRuntime.js';
 import {
     createClass,
     deleteEmptyClass,
@@ -159,20 +159,58 @@ function renderLeagueChip(leagueName) {
     `;
 }
 
-async function ensureTeachers() {
-    if (wizardState.teachersLoaded || wizardState.teachersLoading) return;
+// A teacher list read must never hold the desk shut: give up after this long and use
+// the teachers who already have classes.
+const TEACHER_LIST_TIMEOUT_MS = 8000;
+
+function withTimeout(promise, ms) {
+    let timer;
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('The teacher list took too long to load.')), ms);
+        })
+    ]).finally(() => clearTimeout(timer));
+}
+
+// The school's teachers: the server lists only this school's (needed once schools share one
+// project); before that function is deployed, the direct read the desk always used.
+async function loadTeacherProfiles() {
+    try {
+        const result = await listSchoolTeachers();
+        if (Array.isArray(result?.teachers)) {
+            return result.teachers.map((teacher) => ({ uid: String(teacher.uid), name: String(teacher.name || 'Teacher') }));
+        }
+    } catch (error) {
+        console.warn('School teacher list unavailable, reading profiles directly:', error?.code || error?.message || error);
+    }
+    const snap = await getDocs(query(collection(db, 'user_profiles'), where('role', '==', 'teacher')));
+    return snap.docs.map((docSnap) => {
+        const data = docSnap.data() || {};
+        if (data.status && data.status !== 'active') return null;
+        return { uid: docSnap.id, name: String(data.displayName || 'Teacher') };
+    }).filter(Boolean);
+}
+
+// Every caller waits on the same load, so each one can repaint when the list arrives.
+let teachersInFlight = null;
+
+function ensureTeachers() {
+    if (wizardState.teachersLoaded) return Promise.resolve();
+    if (!teachersInFlight) {
+        teachersInFlight = loadTeachers().finally(() => { teachersInFlight = null; });
+    }
+    return teachersInFlight;
+}
+
+async function loadTeachers() {
     wizardState.teachersLoading = true;
     try {
-        const snap = await getDocs(query(collection(db, 'user_profiles'), where('role', '==', 'teacher')));
-        const fromProfiles = snap.docs.map((docSnap) => {
-            const data = docSnap.data() || {};
-            if (data.status && data.status !== 'active') return null;
-            return { uid: docSnap.id, name: data.displayName || 'Teacher' };
-        }).filter(Boolean);
+        const fromProfiles = await withTimeout(loadTeacherProfiles(), TEACHER_LIST_TIMEOUT_MS);
         const fromClasses = (state.get('allSchoolClasses') || [])
             .map((item) => item.createdBy)
             .filter((owner) => owner?.uid)
-            .map((owner) => ({ uid: owner.uid, name: owner.name || 'Teacher' }));
+            .map((owner) => ({ uid: owner.uid, name: String(owner.name || 'Teacher') }));
         const map = new Map();
         for (const teacher of [...fromProfiles, ...fromClasses]) {
             if (!map.has(teacher.uid)) map.set(teacher.uid, teacher);
@@ -186,7 +224,7 @@ async function ensureTeachers() {
             if (item.createdBy?.uid && !fallback.has(item.createdBy.uid)) {
                 fallback.set(item.createdBy.uid, {
                     uid: item.createdBy.uid,
-                    name: item.createdBy.name || 'Teacher'
+                    name: String(item.createdBy.name || 'Teacher')
                 });
             }
         }
@@ -1077,19 +1115,25 @@ export async function openClassWizard({ onRerender, classId, create = false, onC
     wizardState.createdClassId = '';
     resetCreateDraft();
     const modal = ensureWizard();
-    await ensureTeachers();
     if (classId) {
         const classData = classById(classId);
         if (classData) {
             loadEditDraft(classData);
             wizardState.step = STEPS.EDIT;
+        } else {
+            showToast('That class is not in this year’s list any more. Choose it again below.', 'info');
         }
     } else if (create) {
         wizardState.step = STEPS.TEACHER;
     }
+    // Open straight away; the teacher list fills in when it arrives (its section shows a
+    // spinner meanwhile), so a slow read can never leave the button doing nothing.
+    const loadingTeachers = ensureTeachers();
     paintWizard();
     document.body.classList.add('placement-wizard-open');
     openOfficeModal(modal);
+    await loadingTeachers;
+    if (isClassWizardOpen()) paintWizard();
 }
 
 export function closeClassWizard() {

@@ -64,10 +64,9 @@ let hasActiveSubscription;
 let canUseFeature;
 let getTier;
 let getSubscriptionSnapshot;
-let setSchoolGraceConfig;
+let getSchoolAccessState;
 let showSetupScreen;
 let loadTeacherJourneyState;
-let startSchoolGracePeriod;
 let requestCheckoutSession;
 let isOnlineBillingAvailable;
 let ensureTeacherUserProfile;
@@ -301,9 +300,9 @@ async function loadAuthenticatedRuntime() {
         ({ setupUIListeners } = coreModule);
         ({ toggleWallpaperMode } = wallpaperModule);
         ({ initializeHeaderQuote, maybeAutoShowGuideForTeacher } = homeModule);
-        ({ loadSubscription, stopSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } = subscriptionModule);
+        ({ loadSubscription, stopSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, getSchoolAccessState } = subscriptionModule);
         ({ showSetupScreen } = schoolSetupModule);
-        ({ loadTeacherJourneyState, startSchoolGracePeriod } = teacherJourneyModule);
+        ({ loadTeacherJourneyState } = teacherJourneyModule);
         ({ requestCheckoutSession, isOnlineBillingAvailable } = billingModule);
         ({ ensureTeacherUserProfile, loadUserProfile } = userProfilesModule);
         ({ renderParentPortal, activateParentTab, wireParentPortalListeners } = parentPortalModule);
@@ -323,76 +322,6 @@ let activeAuthMode = 'login';
 let authArrivedByLink = false;
 
 const INITIALIZATION_TIMEOUT_MS = 8000;
-let subscribeGraceTicker = null;
-
-function clearSubscribeGraceTicker() {
-    if (subscribeGraceTicker) {
-        window.clearInterval(subscribeGraceTicker);
-        subscribeGraceTicker = null;
-    }
-}
-
-function formatRemainingTime(endsAt) {
-    const compact = utils.formatCountdownCompact(endsAt, 'Grace time has ended');
-    const tone = utils.getCountdownTone(endsAt);
-    const toneClass = tone === 'critical'
-        ? 'bg-rose-100 text-rose-700 border-rose-200'
-        : tone === 'warning'
-            ? 'bg-amber-100 text-amber-700 border-amber-200'
-            : 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    return `<span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 ${toneClass}"><i class="fas fa-hourglass-half"></i><span>${compact}</span></span>`;
-}
-
-function updateSubscribeGraceBanner(graceWindow, options = {}) {
-    const banner = document.getElementById('subscribe-grace-banner');
-    const title = document.getElementById('subscribe-grace-title');
-    const copy = document.getElementById('subscribe-grace-copy');
-    const countdown = document.getElementById('subscribe-grace-countdown');
-    const lead = document.getElementById('subscribe-status-lead');
-    const meta = document.getElementById('subscribe-status-meta');
-
-    clearSubscribeGraceTicker();
-
-    if (!banner || !title || !copy || !countdown || !lead || !meta) return;
-
-    if (graceWindow?.active && graceWindow?.endsAt) {
-        banner.classList.remove('hidden');
-        title.textContent = '1-day setup grace is active';
-        copy.textContent = 'The school is temporarily unlocked so staff can finish initial setup before payment is required.';
-        lead.textContent = 'This brand-new school is currently inside its setup grace period. Finish setup before the timer runs out, or complete payment now to keep access seamless.';
-        meta.textContent = 'Grace timer is running';
-
-        const refresh = () => {
-            countdown.innerHTML = formatRemainingTime(graceWindow.endsAt);
-            if (new Date(graceWindow.endsAt).getTime() <= Date.now()) {
-                clearSubscribeGraceTicker();
-            }
-        };
-        refresh();
-        subscribeGraceTicker = window.setInterval(() => {
-            const subscribeScreen = document.getElementById('subscribe-screen');
-            if (!subscribeScreen || subscribeScreen.classList.contains('hidden')) {
-                clearSubscribeGraceTicker();
-                return;
-            }
-            refresh();
-        }, 30000);
-        return;
-    }
-
-    banner.classList.add('hidden');
-    if (options.graceExpired) {
-        lead.textContent = 'The school already used its 1-day setup grace period. Choose a plan below to unlock the app again.';
-        meta.textContent = 'Grace period already used';
-    } else if (options.canStartGrace) {
-        lead.textContent = 'Choose a plan to unlock your school’s adventure, or begin the first-day setup grace period if this is a brand-new school.';
-        meta.textContent = '1-day setup grace available';
-    } else {
-        lead.textContent = 'Choose a plan to unlock your school’s adventure.';
-        meta.textContent = 'Payment unlocks the Quest';
-    }
-}
-
 // How long the personalized "Welcome, Name!" greeting stays fully legible
 // before the loading screen begins its exit/zoom-out animation.
 const WELCOME_HOLD_MS = 2300;
@@ -644,60 +573,59 @@ async function openSecretaryConsole({ loadingScreen, authScreen }) {
     animateLoadingScreenOut(loadingScreen);
 }
 
-function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
+// What the plan screen says for each situation. Families never see prices.
+const PLAN_SCREEN_COPY = {
+    pending: {
+        eyebrow: 'Choose your plan',
+        headline: 'Bring the Quest to your whole school',
+        lead: 'Your school is ready. Pick the plan that fits; you can change it any time.'
+    },
+    expired: {
+        eyebrow: 'Your plan has ended',
+        headline: 'Pick up right where you left off',
+        lead: 'Renew to unlock the app again. Everything your school created is safe and waiting.'
+    },
+    suspended: {
+        eyebrow: 'Access paused',
+        paused: 'Your school’s access is paused for now. Nothing has been deleted. Please contact us to turn it back on.'
+    },
+    family: {
+        eyebrow: 'A short pause',
+        paused: 'Your child’s school has paused The Great Class Quest for now. Please contact the school office. Nothing has been lost.'
+    }
+};
+
+function showSubscribeScreen(loadingScreen, authScreen, { audience = 'staff' } = {}) {
     resetAuthSubmitState();
     authScreen.classList.add('hidden');
-    const appScreen = document.getElementById('app-screen');
-    const setupScreen = document.getElementById('setup-screen');
+    document.getElementById('app-screen')?.classList.add('hidden');
+    document.getElementById('setup-screen')?.classList.add('hidden');
     const subscribeScreen = document.getElementById('subscribe-screen');
-    const refreshHint = document.getElementById('subscribe-refresh-hint');
-    const actions = document.getElementById('subscribe-actions');
-    const status = document.getElementById('subscribe-status');
     if (!subscribeScreen) return;
-    if (appScreen) appScreen.classList.add('hidden');
-    if (setupScreen) setupScreen.classList.add('hidden');
-    updateSubscribeGraceBanner(options.graceWindow, options);
+    const byId = (id) => document.getElementById(id);
+    const status = byId('subscribe-status');
 
-    // Show refresh hint since buttons are now in the HTML template
-    if (refreshHint) refreshHint.classList.remove('hidden');
-
-    if (actions) {
-        actions.classList.add('hidden');
-        actions.innerHTML = '';
-        if (options.canStartGrace || options.graceExpired) {
-            actions.classList.remove('hidden');
-            actions.innerHTML = `
-                <div class="rounded-[1.6rem] border ${options.graceExpired ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50' : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'} p-6 text-left shadow-sm">
-                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div>
-                            <p class="text-xs uppercase tracking-[0.24em] font-black ${options.graceExpired ? 'text-amber-600' : 'text-emerald-600'} mb-2">
-                                ${options.graceExpired ? 'Grace finished' : 'First-day setup option'}
-                            </p>
-                            <h3 class="font-title text-2xl ${options.graceExpired ? 'text-amber-800' : 'text-emerald-800'} mb-2">
-                                ${options.graceExpired ? 'The 1-day grace period has ended' : 'Brand-new school? Start a 1-day grace period'}
-                            </h3>
-                            <p class="text-sm text-slate-700 leading-relaxed">
-                                ${options.graceExpired
-                                    ? 'This school already used its free setup day. To unlock the app again, choose a plan below and complete payment.'
-                                    : 'Use this only for the first setup of a brand-new school. GCQ unlocks Starter-level access for 24 hours so the Secretary/admin and teaching staff can finish setup before paying.'
-                                }
-                            </p>
-                        </div>
-                        <div class="rounded-2xl ${options.graceExpired ? 'bg-white/85 border border-amber-200 text-amber-700' : 'bg-white/85 border border-emerald-200 text-emerald-700'} px-4 py-3 min-w-[220px] shadow-sm">
-                            <p class="text-[11px] uppercase tracking-[0.24em] font-black mb-1">What it means</p>
-                            <p class="text-sm font-medium">${options.graceExpired ? 'Payment is now required before the app can open again.' : 'You get one temporary 24-hour setup window for this school.'}</p>
-                        </div>
-                    </div>
-                    ${options.canStartGrace ? `
-                        <button type="button" id="subscribe-start-grace-btn" class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white font-title text-lg py-3 px-5 rounded-xl bubbly-button flex items-center gap-2 shadow-md">
-                            <i class="fas fa-hourglass-start"></i>
-                            <span>Start 1-Day Grace Period</span>
-                        </button>
-                    ` : ''}
-                </div>
-            `;
-        }
+    const accessState = getSchoolAccessState();
+    const situation = audience === 'family' ? 'family' : (accessState === 'suspended' ? 'suspended' : accessState === 'expired' ? 'expired' : 'pending');
+    const canBuy = situation === 'pending' || situation === 'expired';
+    const copy = PLAN_SCREEN_COPY[situation];
+    byId('subscribe-eyebrow').textContent = copy.eyebrow;
+    byId('subscribe-headline').classList.toggle('hidden', !canBuy);
+    byId('subscribe-lead').classList.toggle('hidden', !canBuy);
+    if (canBuy) {
+        byId('subscribe-headline').textContent = copy.headline;
+        byId('subscribe-lead').textContent = copy.lead;
     }
+    byId('subscribe-school-name').textContent = state.get('schoolName') || '';
+    byId('subscribe-plans').classList.toggle('hidden', !canBuy);
+    byId('subscribe-paused').classList.toggle('hidden', canBuy);
+    byId('subscribe-paused-text').textContent = copy.paused || '';
+    if (status) {
+        status.classList.add('hidden');
+        status.textContent = '';
+    }
+    byId('subscribe-refresh-hint')?.classList.toggle('hidden', !canBuy);
+    byId('subscribe-signout-btn').onclick = () => signOut(auth).catch(() => {});
 
     // Yearly / Monthly switch: shows that price on every plan and is what checkout uses.
     let billingInterval = 'year';
@@ -707,10 +635,10 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
         intervalButtons.forEach((button) => {
             const on = button.dataset.billingInterval === billingInterval;
             button.setAttribute('aria-pressed', on ? 'true' : 'false');
-            button.classList.toggle('bg-white', on);
-            button.classList.toggle('text-indigo-700', on);
+            button.classList.toggle('bg-indigo-600', on);
+            button.classList.toggle('text-white', on);
             button.classList.toggle('shadow', on);
-            button.classList.toggle('text-slate-500', !on);
+            button.classList.toggle('text-slate-600', !on);
         });
         subscribeScreen.querySelectorAll('[data-price-interval]').forEach((block) => {
             block.classList.toggle('hidden', block.dataset.priceInterval !== billingInterval);
@@ -721,74 +649,47 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
     });
     showInterval('year');
 
-    if (isOnlineBillingAvailable()) {
-        const goCheckout = async (tier) => {
-            if (status) {
-                status.classList.add('hidden');
-                status.textContent = '';
-            }
-            const btn = document.getElementById(`subscribe-${tier}-btn`);
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Opening Stripe...';
-            }
-            try {
-                const data = await requestCheckoutSession({
-                    tier,
-                    interval: billingInterval,
-                    successUrl: window.location.href,
-                    cancelUrl: window.location.href
-                });
-                window.location.assign(data.url);
-            } catch (e) {
-                console.error(e);
+    const planButtons = ['starter', 'pro', 'elite'].map((tier) => byId(`subscribe-${tier}-btn`)).filter(Boolean);
+    if (canBuy && isOnlineBillingAvailable()) {
+        planButtons.forEach((button) => {
+            const tier = button.id.replace('subscribe-', '').replace('-btn', '');
+            button.classList.remove('hidden');
+            button.onclick = async () => {
                 if (status) {
-                    status.textContent = e.message || 'Could not open checkout right now.';
-                    status.classList.remove('hidden');
-                } else {
-                    import('./ui/effects.js').then(({ showToast }) => showToast('Could not open checkout. Please try again or contact support.', 'error'));
+                    status.classList.add('hidden');
+                    status.textContent = '';
                 }
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = tier === 'starter' ? 'Choose Starter' : tier === 'pro' ? 'Choose Pro' : 'Choose Elite';
+                planButtons.forEach((other) => { other.disabled = true; });
+                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Opening secure payment…';
+                try {
+                    const data = await requestCheckoutSession({
+                        tier,
+                        interval: billingInterval,
+                        successUrl: window.location.href,
+                        cancelUrl: window.location.href
+                    });
+                    window.location.assign(data.url);
+                } catch (e) {
+                    console.error(e);
+                    if (status) {
+                        status.textContent = e.message || 'Could not open checkout right now.';
+                        status.classList.remove('hidden');
+                    }
+                    planButtons.forEach((other) => { other.disabled = false; });
+                    button.textContent = button.dataset.planLabel || 'Choose';
                 }
-            }
-        };
-
-        // Attach listeners to the buttons in the template
-        const starterBtn = document.getElementById('subscribe-starter-btn');
-        const proBtn = document.getElementById('subscribe-pro-btn');
-        const eliteBtn = document.getElementById('subscribe-elite-btn');
-
-        if (starterBtn) starterBtn.onclick = () => goCheckout('starter');
-        if (proBtn) proBtn.onclick = () => goCheckout('pro');
-        if (eliteBtn) eliteBtn.onclick = () => goCheckout('elite');
-    } else {
-        // Hide the plan buttons when this school cannot pay online (the grace button stays)
-        const buttons = subscribeScreen.querySelectorAll('button[id^="subscribe-"]:not(#subscribe-start-grace-btn)');
-        buttons.forEach(btn => btn.classList.add('hidden'));
-        const msg = document.createElement('p');
-        msg.className = 'text-gray-600 text-center mt-4';
-        msg.textContent = 'Online payment is not available for this school. Please contact us to choose a plan.';
-        subscribeScreen.querySelector('.max-w-6xl')?.appendChild(msg);
+            };
+        });
+    } else if (canBuy) {
+        // Only the founding school cannot pay online, and it never reaches this screen.
+        planButtons.forEach((button) => button.classList.add('hidden'));
+        if (status) {
+            status.textContent = 'Online payment is not available for this school. Please contact us to choose a plan.';
+            status.classList.remove('hidden');
+        }
     }
 
-    const graceBtn = document.getElementById('subscribe-start-grace-btn');
-    if (graceBtn && typeof options.onStartGrace === 'function') {
-        graceBtn.onclick = async () => {
-            graceBtn.disabled = true;
-            graceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Opening your grace day...</span>';
-            try {
-                await options.onStartGrace();
-            } catch (error) {
-                console.error(error);
-                import('./ui/effects.js').then(({ showToast }) => showToast('Could not start the grace period right now. Please try again.', 'error'));
-                graceBtn.disabled = false;
-                graceBtn.innerHTML = '<i class="fas fa-hourglass-start"></i><span>Start 1-Day Grace Period</span>';
-            }
-        };
-    }
-
+    subscribeScreen.scrollTop = 0;
     subscribeScreen.classList.remove('hidden');
     if (loadingScreen) animateLoadingScreenOut(loadingScreen);
 }
@@ -804,19 +705,7 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
     }
 
     if (!hasActiveSubscription()) {
-        const schoolGrace = state.get('schoolBillingGrace');
-        const canStartGrace = !schoolGrace?.used && allSchoolClasses.length === 0;
-        showSubscribeScreen(loadingScreen, authScreen, {
-            canStartGrace,
-            graceExpired: Boolean(schoolGrace?.expired),
-            graceWindow: schoolGrace,
-            onStartGrace: async () => {
-                const graceWindow = await startSchoolGracePeriod();
-                state.setSchoolBillingGrace(graceWindow);
-                setSchoolGraceConfig(graceWindow);
-                await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
-            }
-        });
+        showSubscribeScreen(loadingScreen, authScreen);
         return;
     }
 
@@ -838,19 +727,7 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
 
 async function routeAuthenticatedSecretary({ user, loadingScreen, authScreen }) {
     if (!hasActiveSubscription()) {
-        const schoolGrace = state.get('schoolBillingGrace');
-        const canStartGrace = !schoolGrace?.used && (state.get('allSchoolClasses') || []).length === 0;
-        showSubscribeScreen(loadingScreen, authScreen, {
-            canStartGrace,
-            graceExpired: Boolean(schoolGrace?.expired),
-            graceWindow: schoolGrace,
-            onStartGrace: async () => {
-                const graceWindow = await startSchoolGracePeriod();
-                state.setSchoolBillingGrace(graceWindow);
-                setSchoolGraceConfig(graceWindow);
-                await routeAuthenticatedSecretary({ user, loadingScreen, authScreen });
-            }
-        });
+        showSubscribeScreen(loadingScreen, authScreen);
         return;
     }
     await openSecretaryConsole({ loadingScreen, authScreen });
@@ -858,11 +735,7 @@ async function routeAuthenticatedSecretary({ user, loadingScreen, authScreen }) 
 
 async function routeAuthenticatedParent({ loadingScreen, authScreen }) {
     if (!hasActiveSubscription() || !canUseFeature('parentAccess')) {
-        showSubscribeScreen(loadingScreen, authScreen, {
-            canStartGrace: false,
-            graceExpired: false,
-            graceWindow: state.get('schoolBillingGrace')
-        });
+        showSubscribeScreen(loadingScreen, authScreen, { audience: 'family' });
         return;
     }
     await openParentPortal({ loadingScreen, authScreen });

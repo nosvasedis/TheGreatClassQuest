@@ -284,3 +284,146 @@ platformTest('Stripe summer pause: monthly plans pause once per summer until 15 
   assert.equal((await handlers.pauseMonthlyPlansForSummer(june + 86400000)).paused, 0, 'once per summer');
   assert.equal(calls.length, 1);
 });
+
+// ---- Operator management: details, teachers, export, delete (functions/platformAdmin.js) ----
+const { createPlatformAdminHandlers } = require(path.join(FUNCTIONS, 'platformAdmin.js'));
+
+function fakeAuth() {
+  const users = new Map();
+  return {
+    users,
+    add(uid, email) { users.set(uid, { uid, email, disabled: false, metadata: {} }); },
+    async getUsers(ids) { return { users: ids.map(({ uid }) => users.get(uid)).filter(Boolean) }; },
+    async getUser(uid) { return users.get(uid); },
+    async updateUser(uid, patch) { Object.assign(users.get(uid), patch); },
+    async revokeRefreshTokens() {},
+    async generatePasswordResetLink(email) { return `https://reset.test/?email=${encodeURIComponent(email)}`; },
+    async deleteUsers(ids) { ids.forEach((uid) => users.delete(uid)); return { successCount: ids.length }; },
+  };
+}
+
+function fakeBucket() {
+  const files = new Map();
+  return {
+    name: 'demo-bucket',
+    files,
+    file(name) { return { save: async (data) => files.set(name, data), delete: async () => files.delete(name) }; },
+    async getFiles({ prefix }) {
+      return [[...files.keys()].filter((name) => name.startsWith(prefix)).map((name) => ({ delete: async () => files.delete(name) }))];
+    },
+  };
+}
+
+function adminHandlers({ authFake, bucket, cancels }) {
+  return createPlatformAdminHandlers({
+    db, auth: authFake, FieldValue, HttpsError,
+    getBucket: () => bucket,
+    requireOperator: async (request) => {
+      if (request.auth?.uid !== 'office') throw new HttpsError('permission-denied', 'Only the platform operator can do this.');
+      return { uid: 'office' };
+    },
+    PROFILE_COLLECTION: 'user_profiles',
+    SCHOOLS_COLLECTION: 'schools',
+    cancelStripeSubscription: cancels ? async (id) => { cancels.push(id); return { cancelled: true }; } : null,
+  });
+}
+
+async function seedFullSchool(authFake, bucket) {
+  const root = 'artifacts/alpha/public/data';
+  await Promise.all([
+    db.doc('schools/alpha').set({ name: 'Alpha', status: 'active', subscription: { tier: 'pro' }, billing: { stripeSubscriptionId: 'sub_alpha', interval: 'year' } }),
+    db.doc('user_profiles/alpha-office').set({ role: 'secretary', status: 'active', schoolId: 'alpha' }),
+    db.doc('user_profiles/alpha-t1').set({ role: 'teacher', status: 'active', schoolId: 'alpha', displayName: 'Maria' }),
+    db.doc('user_profiles/alpha-p1').set({ role: 'parent', status: 'active', schoolId: 'alpha', linkedStudentId: 's1' }),
+    db.doc('teachers/alpha-t1').set({ displayName: 'Maria' }),
+    db.doc(`${root}/school_roles/secretary`).set({ uid: 'alpha-office', status: 'active', username: 'office' }),
+    db.doc(`${root}/classes/c1`).set({ name: 'Stars' }),
+    db.doc(`${root}/students/s1`).set({ name: 'Anna', enrollmentStatus: 'active', classId: 'c1' }),
+    db.doc(`${root}/student_scores/s1/monthly_history/2026-09`).set({ stars: 4 }),
+    db.doc('billing_webhook_events/evt_alpha').set({ schoolId: 'alpha' }),
+    // Another school and the founding school must not be touched.
+    db.doc('schools/beta').set({ name: 'Beta', status: 'active' }),
+    db.doc('user_profiles/beta-t1').set({ role: 'teacher', status: 'active', schoolId: 'beta' }),
+    db.doc('artifacts/beta/public/data/students/sb').set({ name: 'Ben' }),
+  ]);
+  ['alpha-office', 'alpha-t1', 'alpha-p1', 'beta-t1'].forEach((uid) => authFake.add(uid, `${uid}@example.test`));
+  for (const name of ['avatars/s1/avatar.webp', 'story_images/c1/1.jpg', 'adventure_logs/alpha-t1/p/1.jpg', 'avatars/sb/avatar.webp', 'avatars/student-1/avatar.webp']) bucket.files.set(name, 'x');
+}
+
+platformTest('operator management: details, teacher switch-off and reset link; founding school is view-only', async () => {
+  const authFake = fakeAuth();
+  const bucket = fakeBucket();
+  await seedFullSchool(authFake, bucket);
+  const admin = adminHandlers({ authFake, bucket });
+  await assert.rejects(admin.getSchoolDetails(as('teacher', { schoolId: 'alpha' })), { code: 'permission-denied' });
+
+  const details = await admin.getSchoolDetails(as('office', { schoolId: 'alpha' }));
+  assert.equal(details.name, 'Alpha');
+  assert.deepEqual(details.counts, { classes: 1, students: 1, teachers: 1, familyLogins: 1 });
+  assert.equal(details.office.username, 'office');
+  assert.deepEqual(details.teachers.map((t) => [t.name, t.email, t.status]), [['Maria', 'alpha-t1@example.test', 'active']]);
+  assert.equal(details.billing.interval, 'year');
+
+  await admin.setTeacherStatus(as('office', { schoolId: 'alpha', uid: 'alpha-t1', status: 'disabled' }));
+  assert.equal(authFake.users.get('alpha-t1').disabled, true);
+  assert.equal((await db.doc('user_profiles/alpha-t1').get()).data().status, 'disabled');
+  await assert.rejects(admin.setTeacherStatus(as('office', { schoolId: 'alpha', uid: 'beta-t1', status: 'disabled' })), { code: 'not-found' }, 'only teachers of that school');
+  assert.match((await admin.teacherPasswordLink(as('office', { schoolId: 'alpha', uid: 'alpha-t1' }))).link, /reset\.test/);
+
+  const founding = await admin.getSchoolDetails(as('office', { schoolId: 'great-class-quest' }));
+  assert.equal(founding.founding, true);
+  await assert.rejects(admin.setTeacherStatus(as('office', { schoolId: 'great-class-quest', uid: 'teacher', status: 'disabled' })), { code: 'failed-precondition' });
+  await assert.rejects(admin.deleteSchool(as('office', { schoolId: 'great-class-quest', confirm: 'great-class-quest' })), { code: 'failed-precondition' });
+});
+
+platformTest('operator export and delete: everything of one school goes, nothing of any other school', async () => {
+  const authFake = fakeAuth();
+  const bucket = fakeBucket();
+  const cancels = [];
+  await seedFullSchool(authFake, bucket);
+  const admin = adminHandlers({ authFake, bucket, cancels });
+
+  const exported = await admin.exportSchool(as('office', { schoolId: 'alpha' }));
+  assert.ok(exported.documents >= 4, `exported ${exported.documents} documents`);
+  assert.equal(exported.profiles, 3);
+  const exportFile = [...bucket.files.keys()].find((name) => name.startsWith('exports/alpha/'));
+  const parsed = JSON.parse(bucket.files.get(exportFile));
+  assert.ok(parsed.documents.some((doc) => doc.path.endsWith('monthly_history/2026-09')), 'nested history is included');
+
+  await assert.rejects(admin.deleteSchool(as('office', { schoolId: 'alpha', confirm: 'alph' })), { code: 'invalid-argument' });
+  assert.equal((await db.doc('schools/alpha').get()).data().status, 'active', 'a wrong code changes nothing');
+
+  const result = await admin.deleteSchool(as('office', { schoolId: 'alpha', confirm: 'Alpha' }));
+  assert.deepEqual(cancels, ['sub_alpha'], 'billing stopped first');
+  assert.equal(result.logins, 3);
+  assert.equal((await db.doc('schools/alpha').get()).exists, false);
+  assert.equal((await db.doc('artifacts/alpha/public/data/students/s1').get()).exists, false);
+  assert.equal((await db.doc('artifacts/alpha/public/data/student_scores/s1/monthly_history/2026-09').get()).exists, false);
+  for (const uid of ['alpha-office', 'alpha-t1', 'alpha-p1']) {
+    assert.equal((await db.doc(`user_profiles/${uid}`).get()).exists, false, uid);
+    assert.equal(authFake.users.has(uid), false, `${uid} login deleted`);
+  }
+  assert.equal((await db.doc('teachers/alpha-t1').get()).exists, false);
+  assert.equal((await db.doc('billing_webhook_events/evt_alpha').get()).exists, false);
+  assert.deepEqual([...bucket.files.keys()].sort(), ['avatars/sb/avatar.webp', 'avatars/student-1/avatar.webp'], 'only other schools\' pictures remain');
+  const record = await db.collection('platform/deletions/schools').get();
+  assert.equal(record.size, 1);
+  assert.equal(record.docs[0].data().schoolId, 'alpha');
+
+  // Untouched: the other school and the founding school.
+  assert.equal((await db.doc('schools/beta').get()).exists, true);
+  assert.equal((await db.doc('user_profiles/beta-t1').get()).exists, true);
+  assert.equal(authFake.users.has('beta-t1'), true);
+  assert.equal((await db.doc('artifacts/beta/public/data/students/sb').get()).exists, true);
+  assert.equal((await db.doc('user_profiles/teacher').get()).exists, true);
+  assert.equal((await db.doc(`${ROOT}/school_roles/secretary`).get()).exists, true);
+});
+
+platformTest('a school that pays online cannot be deleted while online payment is switched off', async () => {
+  const authFake = fakeAuth();
+  const bucket = fakeBucket();
+  await seedFullSchool(authFake, bucket);
+  const admin = adminHandlers({ authFake, bucket, cancels: null });
+  await assert.rejects(admin.deleteSchool(as('office', { schoolId: 'alpha', confirm: 'alpha' })), { code: 'failed-precondition' });
+  assert.equal((await db.doc('artifacts/alpha/public/data/students/s1').get()).exists, true, 'nothing deleted');
+});

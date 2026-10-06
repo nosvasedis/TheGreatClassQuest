@@ -25,7 +25,6 @@ export function planFromSchoolDoc(data) {
 
 let subscriptionConfig = null;
 let subscriptionUnsubscribe = null;
-let schoolGraceConfig = null;
 
 function getTierDefaults(tier) {
     switch ((tier || '').toLowerCase()) {
@@ -194,7 +193,11 @@ function resolveSubscriptionConfig(rawConfig) {
     };
 }
 
+// 'active' unless the operator suspended the school (only schools other than the founding one).
+let schoolStatus = 'active';
+
 function applySubscriptionSnapshot(snap, fromSchoolDoc = false) {
+    schoolStatus = fromSchoolDoc && snap.exists() ? String(snap.data()?.status || 'active') : 'active';
     const plan = snap.exists() ? (fromSchoolDoc ? planFromSchoolDoc(snap.data()) : snap.data()) : null;
     if (plan) {
         subscriptionConfig = resolveSubscriptionConfig(plan);
@@ -206,23 +209,10 @@ function applySubscriptionSnapshot(snap, fromSchoolDoc = false) {
     }
 }
 
+// A school without a paid plan stays locked until it has one (there is no free grace period).
 function getRuntimeSubscriptionConfig() {
     if (!subscriptionConfig) return null;
-    if (subscriptionConfig.tier === 'pending' && schoolGraceConfig?.active) {
-        return {
-            ...getTierDefaults('starter'),
-            ...subscriptionConfig,
-            tier: 'starter',
-            effectiveTier: 'pending',
-            isGracePeriod: true,
-            graceEndsAt: schoolGraceConfig.endsAt || null
-        };
-    }
-    return {
-        ...subscriptionConfig,
-        isGracePeriod: false,
-        graceEndsAt: null
-    };
+    return { ...subscriptionConfig };
 }
 
 /** Detach the live plan listener; called on sign-out so it is not rejected mid-logout. */
@@ -335,6 +325,17 @@ export function getLimit(limitKey) {
  * Current tier name for display or logic.
  * @returns {string} 'pending' | 'starter' | 'pro' | 'elite'
  */
+/**
+ * Why the app is locked, for the plan screen: 'suspended' (paused by us), 'expired' (plan ended)
+ * or 'pending' (no plan chosen yet). 'active' when the school has a paid plan.
+ */
+export function getSchoolAccessState() {
+    if (schoolStatus !== 'active') return 'suspended';
+    const tier = getTier();
+    if (tier === 'expired') return 'expired';
+    return hasActiveSubscription() ? 'active' : 'pending';
+}
+
 export function getTier() {
     // Fail closed until the subscription document has loaded, matching
     // getStarterDefaults(): an unknown school is not treated as subscribed.
@@ -353,22 +354,6 @@ export function hasActiveSubscription() {
 
 export function getSubscriptionSnapshot() {
     return getRuntimeSubscriptionConfig();
-}
-
-export function setSchoolGraceConfig(grace) {
-    const startsAt = grace?.startsAt ? new Date(grace.startsAt).getTime() : null;
-    const endsAt = grace?.endsAt ? new Date(grace.endsAt).getTime() : null;
-    schoolGraceConfig = {
-        startsAt: grace?.startsAt || null,
-        endsAt: grace?.endsAt || null,
-        active: Boolean(endsAt && endsAt > Date.now()),
-        expired: Boolean(endsAt && endsAt <= Date.now()),
-        used: Boolean(startsAt || endsAt)
-    };
-
-    if (typeof window !== 'undefined' && window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent('gcq-subscription-updated', { detail: getRuntimeSubscriptionConfig() }));
-    }
 }
 
 /**

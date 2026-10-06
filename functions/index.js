@@ -3284,6 +3284,34 @@ exports.opUpdateSchool = callable((request) => getPlatform().updateSchool(reques
 exports.opIssueSecretaryLink = callable((request) => getPlatform().issueSecretaryLink(request));
 exports.opResetTeacherJoinCode = callable((request) => getPlatform().resetTeacherJoinCode(request));
 exports.verifyTeacherJoinCode = callable((request) => getPlatform().verifyTeacherJoinCode(request));
+
+// ---- Operator management of one school (functions/platformAdmin.js) ----
+let platformAdminHandlers = null;
+function getPlatformAdmin() {
+  if (!platformAdminHandlers) {
+    const { createPlatformAdminHandlers } = require('./platformAdmin');
+    platformAdminHandlers = createPlatformAdminHandlers({
+      db, auth, FieldValue, HttpsError,
+      getBucket: () => storage.bucket(),
+      requireOperator: (request) => getPlatform().requireOperator(request),
+      PROFILE_COLLECTION, SCHOOLS_COLLECTION,
+      // Only when online payment is switched on (and its secret is attached to this function).
+      cancelStripeSubscription: stripeEnabled() ? (id) => getStripeCanceller()(id) : null,
+    });
+  }
+  return platformAdminHandlers;
+}
+function getStripeCanceller() {
+  const { createBillingHandlers } = require('./billing/billing');
+  const billing = createBillingHandlers({ db, FieldValue, HttpsError, requireAuthedCaller, isCanonicalSecretaryCaller, SCHOOLS_COLLECTION });
+  return (id) => billing.cancelSubscriptionNow(id);
+}
+const OPERATOR_HEAVY = { timeoutSeconds: 540, ...(stripeEnabled() ? { secrets: ['STRIPE_SECRET_KEY'] } : {}) };
+exports.opGetSchoolDetails = callable((request) => getPlatformAdmin().getSchoolDetails(request));
+exports.opSetTeacherStatus = callable((request) => getPlatformAdmin().setTeacherStatus(request));
+exports.opTeacherPasswordLink = callable((request) => getPlatformAdmin().teacherPasswordLink(request));
+exports.opExportSchool = callable((request) => getPlatformAdmin().exportSchool(request), { timeoutSeconds: 540 });
+exports.opDeleteSchool = callable((request) => getPlatformAdmin().deleteSchool(request), OPERATOR_HEAVY);
 exports.joinSchoolAsTeacher = callable((request) => getPlatform().joinSchoolAsTeacher(request));
 
 // The class desk's teacher list: only the caller's own school, for its canonical Secretary.

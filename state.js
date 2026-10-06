@@ -22,7 +22,6 @@ function getDefaultState() {
         currentUserRole: "teacher",
         currentUserProfile: null,
         teacherSettings: {},
-        schoolBillingGrace: null,
         schoolYearState: getDefaultSchoolYearState(),
         allSchoolYears: getDefaultSchoolYears(),
         currentRolloverJob: null,
@@ -256,9 +255,6 @@ export function setTeacherSettings(settings) {
 }
 export function setUnsubscribeTeacherSettings(func) {
     state.unsubscribeTeacherSettings = func;
-}
-export function setSchoolBillingGrace(grace) {
-    state.schoolBillingGrace = grace || null;
 }
 export function setSchoolYearState(nextState) {
     state.schoolYearState = normalizeSchoolYearState(nextState);

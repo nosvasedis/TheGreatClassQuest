@@ -1,131 +1,34 @@
-// Operator console: create schools, change their plan, suspend them, and issue the links and
-// codes their office and teachers need. Opened with #operator while signed in; lazily loaded.
-// Every action is checked again by the server (functions/platform.js), so this file only shows.
+// Operator console: an overview of every school, and a page per school to manage its plan,
+// access, office, teachers and data, or delete it. Opened with #operator while signed in;
+// lazily loaded. Every action is checked again by the server (functions/platform*.js).
 import {
     claimOperator,
     getOperatorStatus,
     opCreateSchool,
+    opDeleteSchool,
+    opExportSchool,
+    opGetSchoolDetails,
     opIssueSecretaryLink,
     opListSchools,
     opResetTeacherJoinCode,
+    opSetTeacherStatus,
+    opTeacherPasswordLink,
     opUpdateSchool
 } from '../utils/adminRuntime.js';
 import { suggestSchoolCode } from './operatorConsoleCore.mjs';
+import { detailPageHtml, listPageHtml, shellHtml } from './operatorConsoleView.mjs';
 
 const OVERLAY_ID = 'operator-console';
-const TIERS = [['pending', 'Pending (locked)'], ['starter', 'Starter'], ['pro', 'Pro'], ['elite', 'Elite']];
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 function siteBase() {
     return `${window.location.origin}${window.location.pathname}`;
 }
-
-function officeLink(schoolId, token) {
-    return `${siteBase()}?school=${encodeURIComponent(schoolId)}#secretary-setup=${encodeURIComponent(token)}`;
-}
-
-function schoolLink(schoolId) {
-    return `${siteBase()}?school=${encodeURIComponent(schoolId)}`;
-}
-
-function tierOptions(selected) {
-    return TIERS.map(([value, label]) => `<option value="${value}"${value === selected ? ' selected' : ''}>${label}</option>`).join('');
-}
-
-function copyRow(label, value) {
-    return `
-        <div class="mt-2">
-            <div class="text-xs font-bold uppercase tracking-wide text-slate-500">${esc(label)}</div>
-            <div class="mt-1 flex gap-2">
-                <input readonly class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-sm" value="${esc(value)}">
-                <button type="button" data-copy="${esc(value)}" class="rounded-lg bg-slate-800 px-3 py-1 text-sm font-bold text-white">Copy</button>
-            </div>
-        </div>`;
-}
-
-function resultHtml(result) {
-    if (!result) return '';
-    const parts = [];
-    if (result.setupToken) parts.push(copyRow(`Office setup link (one use, until ${result.expiresAt?.slice(0, 10) || 'soon'})`, officeLink(result.schoolId, result.setupToken)));
-    if (result.joinCode) {
-        parts.push(copyRow('School link for teachers, parents and the office', schoolLink(result.schoolId)));
-        parts.push(copyRow('Teacher code (teachers type it when they create their account)', result.joinCode));
-    }
-    return `
-        <div class="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3">
-            <div class="font-bold text-emerald-800">${esc(result.title || 'Done')}</div>
-            <p class="text-sm text-emerald-900">Send these to the school now. The link and the code are shown only this once; you can always issue new ones.</p>
-            ${parts.join('')}
-        </div>`;
-}
-
-function schoolRowHtml(school) {
-    const suspended = school.status === 'suspended';
-    return `
-        <li class="rounded-xl border border-slate-200 p-3" data-school-id="${esc(school.schoolId)}">
-            <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <div>
-                    <span class="font-bold text-slate-800">${esc(school.name)}</span>
-                    <span class="ml-1 text-sm text-slate-500">${esc(school.schoolId)}</span>
-                </div>
-                <div class="text-xs text-slate-600">
-                    <span class="rounded-full px-2 py-0.5 ${suspended ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${suspended ? 'Suspended' : 'Active'}</span>
-                    <span class="ml-1">${school.officeActive ? 'Office activated' : 'Office not activated yet'}</span>
-                    <span class="ml-1">· ${school.teacherCount ?? '?'} teacher(s)</span>
-                </div>
-            </div>
-            <div class="mt-2 flex flex-wrap items-end gap-2">
-                <label class="text-xs font-bold text-slate-600">Plan
-                    <select data-field="tier" class="mt-1 block rounded-lg border border-slate-300 px-2 py-1 text-sm">${tierOptions(school.tier)}</select>
-                </label>
-                <label class="text-xs font-bold text-slate-600">Plan ends (optional)
-                    <input data-field="endsAt" type="date" value="${esc(school.endsAt ? school.endsAt.slice(0, 10) : '')}" class="mt-1 block rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                </label>
-                <button type="button" data-action="save-plan" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-bold text-white">Save plan</button>
-                <button type="button" data-action="${suspended ? 'reactivate' : 'suspend'}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold text-slate-700">${suspended ? 'Reactivate' : 'Suspend'}</button>
-                <button type="button" data-action="office-link" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold text-slate-700">New office link</button>
-                <button type="button" data-action="join-code" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-bold text-slate-700">New teacher code</button>
-            </div>
-        </li>`;
-}
-
-function shellHtml() {
-    return `
-        <div class="my-6 w-full max-w-3xl rounded-2xl bg-white p-5 text-left shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="operator-console-title">
-            <div class="flex items-center justify-between gap-3">
-                <h2 id="operator-console-title" class="font-title text-2xl text-slate-800">Operator console</h2>
-                <button type="button" data-action="close" class="rounded-full px-3 py-1 text-xl text-slate-500 hover:bg-slate-100" aria-label="Close">✕</button>
-            </div>
-            <p data-role="message" class="mt-2 text-sm text-slate-600">Loading…</p>
-            <div data-role="body"></div>
-        </div>`;
-}
-
-function createFormHtml() {
-    return `
-        <form data-role="create" class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-3" novalidate>
-            <div class="font-bold text-indigo-900">Add a school</div>
-            <div class="mt-2 grid gap-2 sm:grid-cols-2">
-                <label class="text-xs font-bold text-slate-600">School name
-                    <input name="name" required maxlength="80" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1 text-sm" placeholder="Φροντιστήριο Άλφα">
-                </label>
-                <label class="text-xs font-bold text-slate-600">School code (in links and logins; cannot change later)
-                    <input name="schoolId" required maxlength="63" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1 text-sm" placeholder="alfa-patras">
-                </label>
-                <label class="text-xs font-bold text-slate-600">Plan
-                    <select name="tier" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1 text-sm">${tierOptions('pro')}</select>
-                </label>
-                <label class="text-xs font-bold text-slate-600">Plan ends (optional)
-                    <input name="endsAt" type="date" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                </label>
-            </div>
-            <button type="submit" class="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white">Create school</button>
-        </form>`;
-}
+const officeLink = (schoolId, token) => `${siteBase()}?school=${encodeURIComponent(schoolId)}#secretary-setup=${encodeURIComponent(token)}`;
+const schoolLink = (schoolId) => `${siteBase()}?school=${encodeURIComponent(schoolId)}`;
 
 function closeConsole() {
     document.getElementById(OVERLAY_ID)?.remove();
+    document.body.style.overflow = '';
     if (window.location.hash === '#operator') {
         window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
     }
@@ -135,41 +38,72 @@ export async function openOperatorConsole() {
     if (document.getElementById(OVERLAY_ID)) return;
     const overlay = document.createElement('div');
     overlay.id = OVERLAY_ID;
-    overlay.className = 'fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4';
+    overlay.className = 'fixed inset-0 z-[120] overflow-y-auto bg-slate-950/70 p-3 backdrop-blur-sm sm:p-6';
     overlay.innerHTML = shellHtml();
     document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
 
     const message = overlay.querySelector('[data-role="message"]');
     const body = overlay.querySelector('[data-role="body"]');
-    let lastResult = null;
-    let schoolCodeEdited = false;
+    const view = {
+        page: 'list', schools: [], founding: null, query: '', createOpen: false,
+        result: null, details: null, schoolId: '', deleteCode: '', codeEdited: false
+    };
 
     const say = (text, tone = 'info') => {
         message.textContent = text;
-        message.className = `mt-2 text-sm ${tone === 'error' ? 'font-bold text-rose-700' : 'text-slate-600'}`;
+        message.className = `text-sm ${tone === 'error' ? 'font-bold text-rose-300' : 'text-white/70'}`;
     };
 
-    async function renderOperator() {
-        const { schools = [] } = await opListSchools();
-        body.innerHTML = `
-            ${resultHtml(lastResult)}
-            ${createFormHtml()}
-            <h3 class="mt-5 font-bold text-slate-800">Schools (${schools.length})</h3>
-            <p class="text-xs text-slate-500">Your own school is managed as before and is not listed here.</p>
-            <ul class="mt-2 space-y-2">${schools.map(schoolRowHtml).join('') || '<li class="text-sm text-slate-500">No schools yet.</li>'}</ul>`;
-        say('Signed in as the platform operator.');
+    function render() {
+        body.innerHTML = view.page === 'detail'
+            ? detailPageHtml(view.details, { result: view.result, deleteCode: view.deleteCode })
+            : listPageHtml(view);
     }
 
-    async function render() {
+    async function loadList() {
+        const { schools = [], founding = null } = await opListSchools();
+        view.schools = schools;
+        view.founding = founding;
+    }
+
+    async function loadDetails() {
+        view.details = await opGetSchoolDetails({ schoolId: view.schoolId });
+    }
+
+    async function showList({ reload = true } = {}) {
+        view.page = 'list';
+        view.details = null;
+        view.deleteCode = '';
+        if (reload) await loadList();
+        render();
+        say('Every school at a glance. Open one to manage it.');
+    }
+
+    async function showSchool(schoolId) {
+        view.page = 'detail';
+        view.schoolId = schoolId;
+        view.details = null;
+        view.deleteCode = '';
+        render();
+        await loadDetails();
+        render();
+        say(`Managing ${view.details.name}.`);
+    }
+
+    async function start() {
         const status = await getOperatorStatus();
-        if (status?.isOperator) return renderOperator();
+        if (status?.isOperator) return showList();
         if (status?.canClaim) {
-            say('No operator has been set up yet. As your school’s Secretary you can claim the operator console once.');
-            body.innerHTML = '<button type="button" data-action="claim" class="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white">Claim the operator console</button>';
-            return;
+            say('No operator has been set up yet.');
+            body.innerHTML = `
+                <p class="text-sm text-slate-700">As your school's Secretary you can claim the operator console once. After that, only this account can open it.</p>
+                <button type="button" data-action="claim" class="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white">Claim the operator console</button>`;
+            return undefined;
         }
-        say(`This account is not the platform operator. Account id: ${status?.uid || 'unknown'}`, 'error');
-        body.innerHTML = '';
+        say('This account is not the platform operator.', 'error');
+        body.innerHTML = `<p class="text-sm text-slate-600">Account id: <code>${status?.uid || 'unknown'}</code></p>`;
+        return undefined;
     }
 
     async function run(button, work) {
@@ -178,10 +112,85 @@ export async function openOperatorConsole() {
             await work();
         } catch (error) {
             say(error?.message || 'That did not work. Try again.', 'error');
-        } finally {
             if (button?.isConnected) button.disabled = false;
         }
     }
+
+    const setResult = (result) => { view.result = result; };
+
+    const actions = {
+        close: () => closeConsole(),
+        claim: (button) => run(button, async () => { await claimOperator(); await start(); }),
+        'dismiss-result': () => { view.result = null; render(); },
+        refresh: (button) => run(button, () => showList()),
+        'toggle-create': () => { view.createOpen = !view.createOpen; view.codeEdited = false; render(); },
+        back: () => run(null, () => showList()),
+        'save-plan': (button) => run(button, async () => {
+            const tier = body.querySelector('[data-field="tier"]').value;
+            const endsAt = body.querySelector('[data-field="endsAt"]').value || null;
+            await opUpdateSchool({ schoolId: view.schoolId, tier, endsAt });
+            setResult({ title: 'Plan saved', text: endsAt ? `Runs until ${endsAt}.` : 'No end date: it runs until you change it.' });
+            await showSchool(view.schoolId);
+        }),
+        suspend: (button) => {
+            if (!window.confirm('Suspend this school? Its office, teachers and families lose access until you reactivate it. Nothing is deleted.')) return;
+            run(button, async () => {
+                await opUpdateSchool({ schoolId: view.schoolId, status: 'suspended' });
+                setResult({ title: 'School suspended', text: 'Reactivate it any time; everything is kept.', tone: 'warn' });
+                await showSchool(view.schoolId);
+            });
+        },
+        reactivate: (button) => run(button, async () => {
+            await opUpdateSchool({ schoolId: view.schoolId, status: 'active' });
+            setResult({ title: 'School reactivated' });
+            await showSchool(view.schoolId);
+        }),
+        'office-link': (button) => run(button, async () => {
+            const result = await opIssueSecretaryLink({ schoolId: view.schoolId });
+            setResult({
+                title: result.purpose === 'recovery' ? 'Office recovery link' : 'Office setup link',
+                text: `One use, valid until ${result.expiresAt?.slice(0, 10) || 'soon'}. Send it to the school office.`,
+                rows: [['Office link', officeLink(view.schoolId, result.setupToken)]]
+            });
+            render();
+        }),
+        'join-code': (button) => {
+            if (!window.confirm('Make a new teacher code? The old one stops working; teachers who already joined are not affected.')) return;
+            run(button, async () => {
+                const result = await opResetTeacherJoinCode({ schoolId: view.schoolId });
+                setResult({ title: 'New teacher code', text: 'Teachers type it when they create their account on the school link.', rows: [['School link', schoolLink(view.schoolId)], ['Teacher code', result.joinCode]] });
+                render();
+            });
+        },
+        'teacher-status': (button) => run(button, async () => {
+            await opSetTeacherStatus({ schoolId: view.schoolId, uid: button.dataset.uid, status: button.dataset.status });
+            setResult({ title: button.dataset.status === 'active' ? 'Teacher switched on' : 'Teacher switched off', text: button.dataset.status === 'active' ? 'They can sign in again.' : 'They are signed out and cannot sign in. Their classes are kept.' });
+            await showSchool(view.schoolId);
+        }),
+        'teacher-reset': (button) => run(button, async () => {
+            const result = await opTeacherPasswordLink({ schoolId: view.schoolId, uid: button.dataset.uid });
+            setResult({ title: 'Password reset link', text: `Send it to ${result.email}. It lets them choose a new password.`, rows: [['Reset link', result.link]] });
+            render();
+        }),
+        export: (button) => run(button, async () => {
+            say('Collecting all of this school’s data…');
+            const result = await opExportSchool({ schoolId: view.schoolId });
+            setResult({ title: 'Data export ready', text: `${result.documents} records and ${result.profiles} logins. The link downloads one JSON file; keep it somewhere safe.`, rows: [['Download link', result.url]] });
+            render();
+            window.open(result.url, '_blank', 'noopener');
+            say(`Managing ${view.details.name}.`);
+        }),
+        delete: (button) => {
+            const { schoolId, name } = view.details;
+            if (!window.confirm(`Delete ${name} (${schoolId}) permanently? This cannot be undone.`)) return;
+            run(button, async () => {
+                say(`Deleting ${name}… this can take a minute.`);
+                const result = await opDeleteSchool({ schoolId, confirm: view.deleteCode });
+                setResult({ title: `${name} was deleted`, text: `${result.logins} logins, ${result.classes} classes, ${result.students} students and ${result.files} pictures removed.` });
+                await showList();
+            });
+        }
+    };
 
     overlay.addEventListener('click', (event) => {
         if (event.target === overlay) return closeConsole();
@@ -190,80 +199,73 @@ export async function openOperatorConsole() {
             navigator.clipboard?.writeText(copy.dataset.copy).then(() => { copy.textContent = 'Copied'; }).catch(() => {});
             return;
         }
+        const row = event.target.closest('[data-open-school]');
+        if (row) {
+            run(null, () => showSchool(row.dataset.openSchool));
+            return;
+        }
         const button = event.target.closest('[data-action]');
-        if (!button) return;
-        const action = button.dataset.action;
-        if (action === 'close') return closeConsole();
-        if (action === 'claim') return run(button, async () => { await claimOperator(); await render(); });
-        const row = button.closest('[data-school-id]');
-        const schoolId = row?.dataset.schoolId;
-        if (!schoolId) return;
-        if (action === 'save-plan') {
-            return run(button, async () => {
-                const tier = row.querySelector('[data-field="tier"]').value;
-                const endsAt = row.querySelector('[data-field="endsAt"]').value || null;
-                await opUpdateSchool({ schoolId, tier, endsAt });
-                lastResult = null;
-                await renderOperator();
-                say(`Saved the plan for ${schoolId}.`);
-            });
-        }
-        if (action === 'suspend' || action === 'reactivate') {
-            if (action === 'suspend' && !window.confirm(`Suspend ${schoolId}? Its teachers, office and families lose access until you reactivate it. No data is deleted.`)) return;
-            return run(button, async () => {
-                await opUpdateSchool({ schoolId, status: action === 'suspend' ? 'suspended' : 'active' });
-                lastResult = null;
-                await renderOperator();
-            });
-        }
-        if (action === 'office-link') {
-            return run(button, async () => {
-                const result = await opIssueSecretaryLink({ schoolId });
-                lastResult = { ...result, title: result.purpose === 'recovery' ? `New office recovery link for ${schoolId}` : `Office setup link for ${schoolId}` };
-                await renderOperator();
-            });
-        }
-        if (action === 'join-code') {
-            if (!window.confirm(`Make a new teacher code for ${schoolId}? The old code stops working. Teachers who already joined are not affected.`)) return;
-            return run(button, async () => {
-                const result = await opResetTeacherJoinCode({ schoolId });
-                lastResult = { ...result, title: `New teacher code for ${schoolId}` };
-                await renderOperator();
-            });
-        }
+        const action = button && actions[button.dataset.action];
+        if (action) action(button);
+    });
+
+    overlay.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeConsole();
+        const row = event.target.closest?.('[data-open-school]');
+        if (row && event.key === 'Enter') run(null, () => showSchool(row.dataset.openSchool));
     });
 
     overlay.addEventListener('input', (event) => {
-        const form = event.target.closest('[data-role="create"]');
+        const target = event.target;
+        if (target.matches('[data-role="search"]')) {
+            view.query = target.value;
+            const caret = target.selectionStart;
+            render();
+            const search = body.querySelector('[data-role="search"]');
+            search?.focus();
+            search?.setSelectionRange(caret, caret);
+            return;
+        }
+        if (target.matches('[data-role="delete-code"]')) {
+            view.deleteCode = target.value;
+            const deleteButton = body.querySelector('[data-action="delete"]');
+            if (deleteButton) deleteButton.disabled = target.value.trim().toLowerCase() !== view.details?.schoolId;
+            return;
+        }
+        const form = target.closest('[data-role="create"]');
         if (!form) return;
-        if (event.target.name === 'schoolId') schoolCodeEdited = true;
-        if (event.target.name === 'name' && !schoolCodeEdited) form.elements.schoolId.value = suggestSchoolCode(event.target.value);
+        if (target.name === 'schoolId') view.codeEdited = true;
+        if (target.name === 'name' && !view.codeEdited) form.elements.schoolId.value = suggestSchoolCode(target.value);
     });
 
     overlay.addEventListener('submit', (event) => {
         const form = event.target.closest('[data-role="create"]');
         if (!form) return;
         event.preventDefault();
-        const button = form.querySelector('button[type="submit"]');
-        run(button, async () => {
+        run(form.querySelector('button[type="submit"]'), async () => {
             const result = await opCreateSchool({
                 name: form.elements.name.value,
                 schoolId: form.elements.schoolId.value.trim().toLowerCase(),
                 tier: form.elements.tier.value,
                 endsAt: form.elements.endsAt.value || null
             });
-            lastResult = { ...result, title: `Created ${result.name} (${result.schoolId})` };
-            schoolCodeEdited = false;
-            await renderOperator();
+            view.createOpen = false;
+            view.codeEdited = false;
+            setResult({
+                title: `Created ${result.name} (${result.schoolId})`,
+                text: 'Send these to the school now. They are shown only once; you can always make new ones from the school’s page.',
+                rows: [
+                    [`Office setup link (one use, until ${result.expiresAt?.slice(0, 10) || 'soon'})`, officeLink(result.schoolId, result.setupToken)],
+                    ['School link for teachers, the office and families', schoolLink(result.schoolId)],
+                    ['Teacher code', result.joinCode]
+                ]
+            });
+            await showList();
         });
     });
 
-    overlay.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeConsole();
-    });
-
     try {
-        await render();
+        await start();
     } catch (error) {
         say(error?.message || 'The operator console could not load.', 'error');
     }

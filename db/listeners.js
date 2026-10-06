@@ -50,8 +50,6 @@ import * as modals from "../ui/modals.js";
 import { renderFamiliarOptionsUi } from "../features/familiars.js";
 import { renderHomeTab } from "../features/home.js";
 import { refreshSetupClassesList } from "../features/schoolSetup.js";
-import { setSchoolGraceConfig } from "../utils/subscription.js";
-import { parseGraceWindow } from "../features/teacherJourney.js";
 import {
     isActiveStudent,
     isActiveYearDoc,
@@ -1531,9 +1529,6 @@ export async function setupDataListeners(
                 const data = docSnapshot.data();
                 state.setSchoolHolidayRanges(data.ranges || []);
                 state.setSchoolName(data.schoolName || null);
-                const graceWindow = parseGraceWindow(data);
-                state.setSchoolBillingGrace(graceWindow);
-                setSchoolGraceConfig(graceWindow);
                 const weatherLocation = utils.normalizeWeatherLocation(
                     data.weatherLocation,
                 );
@@ -1549,8 +1544,6 @@ export async function setupDataListeners(
             } else {
                 state.setSchoolHolidayRanges([]);
                 state.setSchoolName(null);
-                state.setSchoolBillingGrace(null);
-                setSchoolGraceConfig(null);
                 state.setSchoolWeatherLocation(null);
                 state.setSchoolAssessmentDefaults(null);
                 state.setSchoolAssessmentNoneMigrated(false);

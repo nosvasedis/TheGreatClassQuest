@@ -1,4 +1,4 @@
-// Teacher onboarding setup screen (shown after payment/grace when a teacher still needs setup).
+// Teacher onboarding setup screen (shown after payment when a teacher still needs setup).
 
 export const setupHTML = `
     <div id="setup-screen" class="fixed inset-0 z-40 hidden overflow-y-auto p-4 md:p-6"

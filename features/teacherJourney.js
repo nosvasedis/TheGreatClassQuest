@@ -1,7 +1,6 @@
 import { db, doc, getDoc, setDoc } from '../firebase.js';
 import { dataPath } from '../utils/tenant.mjs';
 
-const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000;
 
 function toIsoString(value) {
     if (!value) return null;
@@ -69,29 +68,3 @@ export async function markTeacherGuideSeen(user) {
     });
 }
 
-export function parseGraceWindow(raw) {
-    const startsAt = toIsoString(raw?.onboardingGraceStartedAt);
-    const endsAt = toIsoString(raw?.onboardingGraceEndsAt);
-    const startMs = startsAt ? new Date(startsAt).getTime() : null;
-    const endMs = endsAt ? new Date(endsAt).getTime() : null;
-    const now = Date.now();
-
-    return {
-        startsAt,
-        endsAt,
-        active: Boolean(endMs && endMs > now),
-        expired: Boolean(endMs && endMs <= now),
-        used: Boolean(startsAt || endsAt)
-    };
-}
-
-export async function startSchoolGracePeriod() {
-    const now = Date.now();
-    const grace = {
-        onboardingGraceStartedAt: new Date(now).toISOString(),
-        onboardingGraceEndsAt: new Date(now + GRACE_PERIOD_MS).toISOString()
-    };
-
-    await setDoc(getSchoolSettingsRef(), grace, { merge: true });
-    return parseGraceWindow(grace);
-}

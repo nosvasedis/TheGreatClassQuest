@@ -97,6 +97,28 @@ function createPlatformHandlers({
     return { schoolId, school };
   }
 
+  // The founding school's row in the console: shown for the overview, never managed from it.
+  async function readFoundingSummary() {
+    const root = schoolRoot(FOUNDING_SCHOOL_ID);
+    const [settingsSnap, planSnap, teachers] = await Promise.all([
+      db.doc(`${root}/school_settings/holidays`).get(),
+      db.doc('appConfig/subscription').get(),
+      // Founding profiles may carry no schoolId: count all teachers minus the other schools'.
+      Promise.all([
+        db.collection(PROFILE_COLLECTION).where('role', '==', 'teacher').count().get(),
+        db.collection(PROFILE_COLLECTION).where('role', '==', 'teacher').where('schoolId', '!=', FOUNDING_SCHOOL_ID).count().get(),
+      ]).then(([all, others]) => all.data().count - others.data().count).catch(() => null),
+    ]);
+    return {
+      schoolId: FOUNDING_SCHOOL_ID,
+      name: settingsSnap.data()?.schoolName || 'Founding school',
+      status: 'active',
+      tier: planSnap.data()?.tier || 'elite',
+      teacherCount: teachers,
+      founding: true,
+    };
+  }
+
   return {
     async getOperatorStatus(request) {
       const caller = await requireAuthedCaller(request);
@@ -141,11 +163,19 @@ function createPlatformHandlers({
           officeActive: roleSnap.data()?.status === 'active',
           teacherCount,
           createdAt: data.createdAt?.toDate?.().toISOString() || null,
+          billing: {
+            interval: data.billing?.interval || null,
+            stripeStatus: data.billing?.stripeStatus || null,
+            paysOnline: Boolean(data.billing?.stripeSubscriptionId),
+          },
         };
       }));
       schools.sort((a, b) => a.name.localeCompare(b.name));
-      return { schools };
+      return { schools, founding: await readFoundingSummary() };
     },
+
+    // Exposed for platformAdmin.js, which adds the heavier management actions.
+    requireOperator,
 
     async createSchool(request) {
       const caller = await requireOperator(request);

@@ -198,3 +198,24 @@ export async function callBillingFunction(name, payload = {}) {
     const result = await callable(name)(payload);
     return result?.data || null;
 }
+
+// Operator management of one school (functions/platformAdmin.js).
+export function opGetSchoolDetails(payload) {
+    return callAdmin('opGetSchoolDetails', payload);
+}
+
+export function opSetTeacherStatus(payload) {
+    return callAdmin('opSetTeacherStatus', payload);
+}
+
+export function opTeacherPasswordLink(payload) {
+    return callAdmin('opTeacherPasswordLink', payload);
+}
+
+export function opExportSchool(payload) {
+    return callAdmin('opExportSchool', payload);
+}
+
+export function opDeleteSchool(payload) {
+    return callAdmin('opDeleteSchool', payload);
+}

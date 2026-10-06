@@ -149,6 +149,24 @@ function createBillingHandlers({
       return { url: session.url };
     },
 
+    // Used when the operator deletes a school: end its subscription now, without a refund.
+    // Already cancelled or missing counts as done.
+    async cancelSubscriptionNow(subscriptionId) {
+      const secretKey = String(env.STRIPE_SECRET_KEY || '').trim();
+      if (!secretKey) fail('failed-precondition', 'Online payment is not set up, so the Stripe subscription could not be cancelled.');
+      const response = await fetchImpl(`${STRIPE_API}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${secretKey}`, 'Stripe-Version': STRIPE_API_VERSION },
+      });
+      if (response.ok) return { cancelled: true };
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 404 || data?.error?.code === 'resource_missing' || /cancel/i.test(data?.error?.message || '')) {
+        return { cancelled: false, alreadyGone: true };
+      }
+      console.error(JSON.stringify({ event: 'gcq_stripe_cancel_failed', subscriptionId, status: response.status, message: data?.error?.message || '' }));
+      fail('internal', 'Stripe could not cancel the subscription. Nothing was deleted; try again in a minute.');
+    },
+
     // Nightly: between 15 June and 14 August, pause each monthly plan's billing until 15 August,
     // so its 1 July and 1 August payments are skipped (Stripe voids them) while access stays on.
     // Once per school per summer; safe to run any number of times.
@@ -214,6 +232,7 @@ function createBillingHandlers({
               'billing.stripeStatus': change.status || '',
               'billing.lastEventCreated': created,
               'billing.lastEventType': event.type,
+              'billing.livemode': event.livemode === true,
               updatedAt: FieldValue.serverTimestamp(),
             });
           }

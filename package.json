@@ -19,7 +19,8 @@
     "sync-version": "node scripts/sync-app-version.js",
     "guidebook": "node docs/product/guidebook/build-all.mjs",
     "guidebook:site": "node docs/product/guidebook/build-all.mjs && node docs/product/guidebook/stage-site.mjs",
-    "test:platform": "node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project demo-gcq \"node --test tests/rules/platform.emulator.test.cjs\""
+    "test:platform": "node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project demo-gcq \"node --test tests/rules/platform.emulator.test.cjs\"",
+    "stripe:setup": "node scripts/stripe-setup.mjs"
   },
   "keywords": [],
   "author": "",

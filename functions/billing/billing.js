@@ -8,6 +8,9 @@
 // The founding school's plan is never touched here.
 const {
   PAID_TIERS,
+  BILLING_INTERVALS,
+  checkoutSchedule,
+  summerPauseWindow,
   encodeStripeForm,
   verifyStripeSignature,
   readPriceIds,
@@ -19,6 +22,9 @@ const TIER_PRESETS = require('../tierPresets');
 const { FOUNDING_SCHOOL_ID, currentSchoolId, normalizeSchoolId } = require('../tenant');
 
 const STRIPE_API = 'https://api.stripe.com/v1';
+// Pinned so a change to the Stripe account's default API version never changes these calls.
+// scripts/stripe-setup.mjs registers the webhook with the same version.
+const STRIPE_API_VERSION = '2024-06-20';
 
 function createBillingHandlers({
   db, FieldValue, HttpsError,
@@ -30,7 +36,7 @@ function createBillingHandlers({
   async function stripe(method, path, params = null, { idempotencyKey = '' } = {}) {
     const secretKey = String(env.STRIPE_SECRET_KEY || '').trim();
     if (!secretKey) fail('failed-precondition', 'Online payment is not set up yet.');
-    const headers = { Authorization: `Bearer ${secretKey}` };
+    const headers = { Authorization: `Bearer ${secretKey}`, 'Stripe-Version': STRIPE_API_VERSION };
     let url = `${STRIPE_API}${path}`;
     let body;
     if (params && method === 'GET') url += `?${encodeStripeForm(params)}`;
@@ -79,8 +85,10 @@ function createBillingHandlers({
       const schoolId = billedSchoolId();
       const tier = String(request.data?.tier || '').toLowerCase();
       if (!PAID_TIERS.includes(tier)) fail('invalid-argument', 'Choose Starter, Pro or Elite.');
-      const priceId = readPriceIds(env)[tier];
-      if (!priceId) fail('failed-precondition', `Online payment for ${tier} is not set up yet.`);
+      const interval = String(request.data?.interval || 'year').toLowerCase();
+      if (!BILLING_INTERVALS.includes(interval)) fail('invalid-argument', 'Choose yearly or monthly payment.');
+      const priceId = readPriceIds(env)[tier]?.[interval];
+      if (!priceId) fail('failed-precondition', `Online ${interval === 'year' ? 'yearly' : 'monthly'} payment for ${tier} is not set up yet.`);
       const origins = readAllowedOrigins(env);
       let successUrl;
       let cancelUrl;
@@ -93,14 +101,26 @@ function createBillingHandlers({
       const school = await readSchool(schoolId);
       const customerId = await ensureCustomer(schoolId, school);
       const requestId = String(request.data?.requestId || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80);
+      // VAT is added on top through one Stripe tax rate (Greek VAT 24%, exclusive).
+      const taxRate = String(env.GCQ_STRIPE_TAX_RATE || '').trim();
       const session = await stripe('POST', '/checkout/sessions', {
         customer: customerId,
         mode: 'subscription',
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1, ...(taxRate ? { tax_rates: [taxRate] } : {}) }],
         success_url: successUrl,
         cancel_url: cancelUrl,
-        metadata: { gcqSchoolId: schoolId, tier },
-        subscription_data: { metadata: { gcqSchoolId: schoolId, tier } },
+        // The founding-schools code (and any later offer) is typed on Stripe's page.
+        allow_promotion_codes: 'true',
+        // Greek invoices need the school's address and ΑΦΜ.
+        billing_address_collection: 'required',
+        tax_id_collection: { enabled: 'true' },
+        customer_update: { address: 'auto', name: 'auto' },
+        metadata: { gcqSchoolId: schoolId, tier, interval },
+        subscription_data: {
+          metadata: { gcqSchoolId: schoolId, tier, interval },
+          // Monthly on the 1st, yearly on 1 September; nothing to pay until 1 September in summer.
+          ...checkoutSchedule(interval),
+        },
       }, { idempotencyKey: requestId ? `gcq-checkout-${schoolId}-${caller.uid}-${requestId}` : '' });
       if (!session?.url) fail('internal', 'Stripe did not return a checkout link.');
       return { url: session.url };
@@ -127,6 +147,33 @@ function createBillingHandlers({
       });
       if (!session?.url) fail('internal', 'Stripe did not return a portal link.');
       return { url: session.url };
+    },
+
+    // Nightly: between 15 June and 14 August, pause each monthly plan's billing until 15 August,
+    // so its 1 July and 1 August payments are skipped (Stripe voids them) while access stays on.
+    // Once per school per summer; safe to run any number of times.
+    async pauseMonthlyPlansForSummer(nowMs = Date.now()) {
+      const window = summerPauseWindow(nowMs);
+      if (!window.active) return { paused: 0, skipped: 'not-summer' };
+      const snap = await db.collection(SCHOOLS_COLLECTION).where('billing.interval', '==', 'month').get();
+      let paused = 0;
+      const failures = [];
+      for (const schoolDoc of snap.docs) {
+        const billing = schoolDoc.data()?.billing || {};
+        const subscriptionId = String(billing.stripeSubscriptionId || '');
+        if (!subscriptionId || schoolDoc.id === FOUNDING_SCHOOL_ID || billing.summerPauseYear === window.year) continue;
+        try {
+          await stripe('POST', `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+            pause_collection: { behavior: 'void', resumes_at: window.resumesAt },
+          }, { idempotencyKey: `gcq-summer-${subscriptionId}-${window.year}` });
+          await schoolDoc.ref.update({ 'billing.summerPauseYear': window.year });
+          paused += 1;
+        } catch (error) {
+          failures.push({ schoolId: schoolDoc.id, message: error?.message || String(error) });
+        }
+      }
+      console.log(JSON.stringify({ event: 'gcq_stripe_summer_pause', year: window.year, paused, failures }));
+      return { paused, failures };
     },
 
     // Express-style handler for an https.onRequest function. Firebase keeps the raw body.
@@ -163,6 +210,7 @@ function createBillingHandlers({
               subscription: { ...preset },
               ...(change.customerId ? { 'billing.stripeCustomerId': change.customerId } : {}),
               ...(change.subscriptionId ? { 'billing.stripeSubscriptionId': change.subscriptionId } : {}),
+              ...(change.interval ? { 'billing.interval': change.interval } : {}),
               'billing.stripeStatus': change.status || '',
               'billing.lastEventCreated': created,
               'billing.lastEventType': event.type,

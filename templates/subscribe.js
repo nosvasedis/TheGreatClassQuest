@@ -1,5 +1,19 @@
 // templates/subscribe.js
 // Shown when tier is "pending" — school must subscribe before using the app.
+import { PLAN_PRICES, planPriceCopy } from '../config/tiers/pricing.mjs';
+
+// Both prices are in the page; the Yearly / Monthly switch (app.js) shows one of them.
+function planPriceHtml(tier, amountClass, unitClass) {
+    if (!PLAN_PRICES[tier]) return '';
+    return ['year', 'month'].map((interval) => {
+        const copy = planPriceCopy(tier, interval);
+        return `
+                        <div data-price-interval="${interval}" class="${interval === 'year' ? '' : 'hidden'}">
+                            <div class="text-4xl font-bold ${amountClass}">${copy.amount}<span class="text-lg font-normal ${unitClass}">${copy.unit}</span></div>
+                            <p class="text-xs font-bold text-slate-500 mt-1">${copy.vat} · ${copy.note}</p>
+                        </div>`;
+    }).join('');
+}
 
 export const subscribeHTML = `
     <div id="subscribe-screen"
@@ -64,13 +78,25 @@ export const subscribeHTML = `
                     </div>
                 </div>
 
+                <div class="flex justify-center mb-6 relative">
+                    <div id="subscribe-interval-switch" class="inline-flex rounded-full bg-slate-100 p-1 border border-slate-200 shadow-inner" role="group" aria-label="How would you like to pay?">
+                        <button type="button" data-billing-interval="year" aria-pressed="true" class="px-5 py-2 rounded-full font-bold text-sm bg-white text-indigo-700 shadow">
+                            Yearly <span class="ml-1 text-emerald-600">save about 20%</span>
+                        </button>
+                        <button type="button" data-billing-interval="month" aria-pressed="false" class="px-5 py-2 rounded-full font-bold text-sm text-slate-500">
+                            Monthly <span class="ml-1 font-normal">Sept–June</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-center text-sm text-slate-500 -mt-3 mb-6 relative">Summer is always free: monthly plans are charged September to June only, and access stays on all summer.</p>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 relative">
                 <!-- Starter Plan -->
                 <div class="bg-gradient-to-b from-slate-50 to-white rounded-[1.75rem] border-2 border-slate-200 p-6 flex flex-col shadow-lg">
                     <div class="text-center mb-4">
                         <div class="inline-flex px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-[0.2em] mb-3">Simple launch</div>
                         <h2 class="font-title text-2xl text-slate-700 mb-1">Starter</h2>
-                        <div class="text-4xl font-bold text-slate-800">€20<span class="text-lg font-normal text-slate-500">/month</span></div>
+${planPriceHtml('starter', 'text-slate-800', 'text-slate-500')}
                     </div>
                     <ul class="text-sm text-slate-600 space-y-2 mb-6 flex-grow">
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Award Stars system</li>
@@ -93,7 +119,7 @@ export const subscribeHTML = `
                     <div class="text-center mb-4">
                         <div class="inline-flex px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-xs font-black uppercase tracking-[0.2em] mb-3">School growth</div>
                         <h2 class="font-title text-2xl text-indigo-700 mb-1">Pro</h2>
-                        <div class="text-4xl font-bold text-indigo-800">€40<span class="text-lg font-normal text-indigo-500">/month</span></div>
+${planPriceHtml('pro', 'text-indigo-800', 'text-indigo-500')}
                     </div>
                     <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
                         <li class="flex items-center gap-2"><i class="fas fa-check text-indigo-500"></i> Everything in Starter</li>
@@ -114,7 +140,7 @@ export const subscribeHTML = `
                     <div class="text-center mb-4">
                         <div class="inline-flex px-3 py-1 rounded-full bg-fuchsia-100 text-fuchsia-600 text-xs font-black uppercase tracking-[0.2em] mb-3">Full magic</div>
                         <h2 class="font-title text-2xl text-purple-700 mb-1">Elite</h2>
-                        <div class="text-4xl font-bold text-purple-800">€60<span class="text-lg font-normal text-purple-500">/month</span></div>
+${planPriceHtml('elite', 'text-purple-800', 'text-purple-500')}
                     </div>
                     <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-grow">
                         <li class="flex items-center gap-2"><i class="fas fa-check text-purple-500"></i> Everything in Pro</li>
@@ -135,7 +161,7 @@ export const subscribeHTML = `
                 <div class="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-black mb-1">Secure Billing Promise</p>
-                        <p class="text-sm text-slate-600">Stripe handles payment securely. GCQ only uses the result to unlock the correct school tier.</p>
+                        <p class="text-sm text-slate-600">Stripe handles payment securely. Prices are before VAT (24%), which is added at checkout. Have a founding-school code? Enter it on the payment page.</p>
                     </div>
                     <div class="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
                         <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Upgrade anytime</span>

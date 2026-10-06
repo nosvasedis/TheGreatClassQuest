@@ -141,7 +141,10 @@ const crypto = require('node:crypto');
 const { createBillingHandlers } = require(path.join(FUNCTIONS, 'billing', 'billing.js'));
 const BILLING_ENV = {
   STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake',
+  // Monthly prices under the first setup's bare names (still read as monthly), yearly under the new ones.
   GCQ_STRIPE_PRICE_STARTER: 'price_s', GCQ_STRIPE_PRICE_PRO: 'price_p', GCQ_STRIPE_PRICE_ELITE: 'price_e',
+  GCQ_STRIPE_PRICE_STARTER_YEARLY: 'price_sy', GCQ_STRIPE_PRICE_PRO_YEARLY: 'price_py', GCQ_STRIPE_PRICE_ELITE_YEARLY: 'price_ey',
+  GCQ_STRIPE_TAX_RATE: 'txr_gr24',
 };
 
 function billingHandlers(stripeCalls = []) {
@@ -159,6 +162,7 @@ function billingHandlers(stripeCalls = []) {
       if (url.endsWith('/customers')) return Response.json({ id: 'cus_new' });
       if (url.endsWith('/checkout/sessions')) return Response.json({ id: 'cs_1', url: 'https://checkout.stripe.test/cs_1' });
       if (url.endsWith('/billing_portal/sessions')) return Response.json({ url: 'https://billing.stripe.test/p' });
+      if (url.includes('/subscriptions/')) return Response.json({ id: url.split('/').pop() });
       return Response.json({ error: { message: 'unexpected' } }, { status: 400 });
     },
   });
@@ -230,9 +234,22 @@ platformTest('Stripe checkout and portal: school-scoped, one customer per school
   })));
   assert.equal(checkout.url, 'https://checkout.stripe.test/cs_1');
   const session = calls.find((call) => call.url.endsWith('/checkout/sessions'));
-  assert.equal(session.body.get('line_items[0][price]'), 'price_p');
+  assert.equal(session.body.get('line_items[0][price]'), 'price_py', 'yearly is the default');
+  assert.equal(session.body.get('line_items[0][tax_rates][0]'), 'txr_gr24', 'VAT added on top');
+  assert.equal(session.body.get('allow_promotion_codes'), 'true', 'founding-school code box');
+  assert.equal(session.body.get('billing_address_collection'), 'required');
+  assert.equal(session.body.get('tax_id_collection[enabled]'), 'true', 'ΑΦΜ for the invoice');
   assert.equal(session.body.get('metadata[gcqSchoolId]'), 'alpha');
   assert.equal(session.body.get('subscription_data[metadata][gcqSchoolId]'), 'alpha');
+  assert.equal(session.body.get('subscription_data[metadata][interval]'), 'year');
+  const anchorOrTrial = Number(session.body.get('subscription_data[billing_cycle_anchor]') || session.body.get('subscription_data[trial_end]'));
+  assert.ok(anchorOrTrial > Date.now() / 1000, 'the first full charge is on a school-calendar date');
+
+  await runInSchool('alpha', () => handlers.createCheckout(as('alpha-teacher', { tier: 'pro', interval: 'month' })));
+  const monthly = calls.filter((call) => call.url.endsWith('/checkout/sessions')).at(-1);
+  assert.equal(monthly.body.get('line_items[0][price]'), 'price_p');
+  assert.equal(monthly.body.get('subscription_data[metadata][interval]'), 'month');
+  await assert.rejects(runInSchool('alpha', () => handlers.createCheckout(as('alpha-teacher', { tier: 'pro', interval: 'weekly' }))), { code: 'invalid-argument' });
   assert.equal((await db.doc('schools/alpha').get()).data().billing.stripeCustomerId, 'cus_new');
 
   await runInSchool('alpha', () => handlers.createCheckout(as('alpha-teacher', { tier: 'elite' })));
@@ -243,4 +260,27 @@ platformTest('Stripe checkout and portal: school-scoped, one customer per school
   await assert.rejects(runInSchool('alpha', () => handlers.createPortal(as('alpha-teacher'))), { code: 'permission-denied' });
   assert.equal((await runInSchool('alpha', () => handlers.createPortal(as('alpha-office')))).url, 'https://billing.stripe.test/p');
   await assert.rejects(handlers.createCheckout(as('teacher', { tier: 'pro' })), { code: 'failed-precondition' }, 'founding school never pays online');
+});
+
+platformTest('Stripe summer pause: monthly plans pause once per summer until 15 August; yearly plans and the founding school are left alone', async () => {
+  await db.doc('schools/alpha').set({ name: 'Alpha', status: 'active', billing: { interval: 'month', stripeSubscriptionId: 'sub_month' } });
+  await db.doc('schools/beta').set({ name: 'Beta', status: 'active', billing: { interval: 'year', stripeSubscriptionId: 'sub_year' } });
+  await db.doc('schools/gamma').set({ name: 'Gamma', status: 'active', billing: { interval: 'month' } });
+  const calls = [];
+  const handlers = billingHandlers(calls);
+
+  assert.equal((await handlers.pauseMonthlyPlansForSummer(Date.parse('2027-05-20T10:00:00Z'))).skipped, 'not-summer');
+  assert.equal(calls.length, 0);
+
+  const june = Date.parse('2027-06-20T10:00:00Z');
+  assert.equal((await handlers.pauseMonthlyPlansForSummer(june)).paused, 1);
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].url.endsWith('/subscriptions/sub_month'), calls[0].url);
+  assert.equal(calls[0].body.get('pause_collection[behavior]'), 'void');
+  const resumesAt = Number(calls[0].body.get('pause_collection[resumes_at]'));
+  assert.equal(new Date(resumesAt * 1000).toISOString(), '2027-08-14T21:00:00.000Z', '15 August, midnight in Athens');
+  assert.equal((await db.doc('schools/alpha').get()).data().billing.summerPauseYear, 2027);
+
+  assert.equal((await handlers.pauseMonthlyPlansForSummer(june + 86400000)).paused, 0, 'once per summer');
+  assert.equal(calls.length, 1);
 });

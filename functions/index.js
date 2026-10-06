@@ -3324,4 +3324,10 @@ if (String(process.env.GCQ_ENABLE_STRIPE || '').toLowerCase() === 'true') {
   exports.stripeWebhook = functionsV1.region(FUNCTIONS_REGION)
     .runWith({ secrets: STRIPE_SECRETS, memory: '256MB' })
     .https.onRequest((req, res) => getBilling().handleWebhook(req, res));
+  // Monthly plans are free in July and August: pause their billing each summer.
+  exports.stripeSummerPause = functionsV1.region(FUNCTIONS_REGION)
+    .runWith({ secrets: STRIPE_SECRETS, memory: '256MB', timeoutSeconds: 300 })
+    .pubsub.schedule('30 4 * * *')
+    .timeZone('Europe/Athens')
+    .onRun(() => getBilling().pauseMonthlyPlansForSummer());
 }

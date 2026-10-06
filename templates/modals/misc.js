@@ -1,6 +1,15 @@
 // templates/modals/misc.js
 // Quest update, milestone, welcome back, celebration bonus, quest assignment,
 // starfall, overview, bounty, bestow boon
+import { planPriceCopy } from '../../config/tiers/pricing.mjs';
+
+// Pricing modal header price: the school-year price first, then the monthly option.
+function pricingHeaderPrice(tier) {
+    const year = planPriceCopy(tier, 'year');
+    const month = planPriceCopy(tier, 'month');
+    return `<div class="text-3xl font-bold">${year.amount}<span class="text-lg font-normal">${year.unit}</span></div>
+                            <p class="text-sm font-semibold opacity-90 mb-2">or ${month.amount}/month, Sept–June · ${year.vat}</p>`;
+}
 
 export const miscModalsHTML = `
     <div id="quest-update-modal"
@@ -553,7 +562,7 @@ export const miscModalsHTML = `
                     <div class="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
                         <div class="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-4 text-center">
                             <h3 class="font-title text-2xl mb-1">Starter</h3>
-                            <div class="text-3xl font-bold mb-2">€20<span class="text-lg font-normal">/month</span></div>
+                            ${pricingHeaderPrice('starter')}
                             <p class="text-gray-100 text-sm">Perfect for getting started</p>
                         </div>
                         <div class="p-4">
@@ -578,7 +587,7 @@ export const miscModalsHTML = `
                         <div class="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-3 py-1 rounded-bl-xl">MOST POPULAR</div>
                         <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4 text-center">
                             <h3 class="font-title text-2xl mb-1">Pro</h3>
-                            <div class="text-3xl font-bold mb-2">€40<span class="text-lg font-normal">/month</span></div>
+                            ${pricingHeaderPrice('pro')}
                             <p class="text-indigo-100 text-sm">Complete classroom management</p>
                         </div>
                         <div class="p-4">
@@ -603,7 +612,7 @@ export const miscModalsHTML = `
                     <div class="bg-white rounded-2xl border-2 border-purple-400 shadow-lg overflow-hidden">
                         <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-center">
                             <h3 class="font-title text-2xl mb-1">Elite</h3>
-                            <div class="text-3xl font-bold mb-2">€60<span class="text-lg font-normal">/month</span></div>
+                            ${pricingHeaderPrice('elite')}
                             <p class="text-purple-100 text-sm">Ultimate AI-powered experience</p>
                         </div>
                         <div class="p-4">
@@ -629,7 +638,7 @@ export const miscModalsHTML = `
                 
                 <div class="mt-6 p-4 bg-gray-50 rounded-xl">
                     <h4 class="font-semibold text-gray-700 mb-2">💡 Why upgrade?</h4>
-                    <p class="text-sm text-gray-600 mb-3">Each tier builds upon the previous one, giving you more powerful tools to engage your students and save time.</p>
+                    <p class="text-sm text-gray-600 mb-3">Each tier builds upon the previous one, giving you more powerful tools to engage your students and save time. Summer is always free: monthly plans are charged September to June only; yearly covers the whole school year for about 20% less. Prices are before VAT (24%).</p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div class="text-center">
                             <div class="text-2xl mb-1">🌱</div>

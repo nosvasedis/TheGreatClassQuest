@@ -6,37 +6,61 @@ import * as modals from '../ui/modals.js';
 import { canUseFeature } from './subscription.js';
 import { getUpgradeMessage } from '../config/tiers/features.js';
 import { isOnlineBillingAvailable, requestCheckoutSession } from './billingCheckout.js';
+import { planPriceCopy } from '../config/tiers/pricing.mjs';
+
+async function openUpgradeCheckout(tier, interval) {
+    try {
+        const data = await requestCheckoutSession({
+            tier,
+            interval,
+            successUrl: window.location.href,
+            cancelUrl: window.location.href
+        });
+        window.location.assign(data.url);
+    } catch (e) {
+        console.error('Billing checkout error:', e);
+        modals.showModal('Checkout unavailable', e.message || 'Could not open the upgrade page. Please try again or contact support.', null, 'OK', 'Close');
+    }
+}
+
+// "or pay monthly" inside the prompt: one listener for every prompt this session.
+let monthlyLinkWired = false;
+function wireMonthlyLink() {
+    if (monthlyLinkWired) return;
+    monthlyLinkWired = true;
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest?.('[data-upgrade-monthly]');
+        if (!link) return;
+        event.preventDefault();
+        modals.hideModal('confirmation-modal');
+        void openUpgradeCheckout(link.dataset.upgradeMonthly, 'month');
+    });
+}
 
 /**
  * Show a modal prompting the user to upgrade for a gated feature.
- * For schools that pay online, "Upgrade" opens Stripe Checkout; otherwise the modal just explains the required tier.
+ * For schools that pay online, "Upgrade" opens Stripe Checkout for the school year (the
+ * monthly option is a link in the message); otherwise the modal just explains the required tier.
  * @param {object} opts - { feature: string, tier: 'Pro' | 'Elite', message?: string }
  */
 export function showUpgradePrompt(opts) {
     const { feature, tier = 'Pro', message = '' } = opts;
     const title = `🔒 ${feature}`;
     const billingEnabled = isOnlineBillingAvailable();
-    const body = message
+    const tierKey = tier.toLowerCase();
+    const yearly = planPriceCopy(tierKey, 'year');
+    const monthly = planPriceCopy(tierKey, 'month');
+    const intro = message
         ? `${message}<br><br><strong>Available on the ${tier} plan.</strong>`
         : `This feature is available on the <strong>${tier}</strong> plan.`;
 
-    if (billingEnabled) {
-        const confirmText = `Upgrade to ${tier}`;
-        modals.showModal(title, body, async () => {
-            try {
-                const data = await requestCheckoutSession({
-                    tier: tier.toLowerCase(),
-                    successUrl: window.location.href,
-                    cancelUrl: window.location.href
-                });
-                window.location.assign(data.url);
-            } catch (e) {
-                console.error('Billing checkout error:', e);
-                modals.showModal('Checkout unavailable', e.message || 'Could not open the upgrade page. Please try again or contact support.', null, 'OK', 'Close');
-            }
-        }, confirmText, 'Close');
+    if (billingEnabled && yearly && monthly) {
+        wireMonthlyLink();
+        const body = `${intro}<br><br>${yearly.amount} per school year (${yearly.note.toLowerCase()}) ${yearly.vat}.`
+            + `<br><button type="button" data-upgrade-monthly="${tierKey}" class="mt-2 underline font-bold text-indigo-600">or pay ${monthly.amount}/month, September–June</button>`;
+        modals.showModal(title, body, () => openUpgradeCheckout(tierKey, 'year'), `Upgrade to ${tier} (yearly)`, 'Close');
     } else {
-        modals.showModal(title, body, null, 'OK', 'Close');
+        modals.showModal(title, intro, null, 'OK', 'Close');
     }
 }
 

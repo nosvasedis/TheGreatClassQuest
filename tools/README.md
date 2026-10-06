@@ -16,7 +16,7 @@ its own `artifacts/{schoolId}/public/data`. There is nothing to deploy for a new
 4. Change a plan, suspend or reactivate a school, or issue a new office link or teacher code from
    the same console.
 
-Online payment (Stripe) is optional and off by default: see `functions/.env.example`.
+Online payment (Stripe) is optional and off by default: see `tools/STRIPE_SETUP.md`.
 
 The local onboarding console, the Render billing server and `tools/billing-setup.html` were
 retired on 2026-10-06 (they are in git history).

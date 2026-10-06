@@ -19,14 +19,15 @@ function billingErrorMessage(error) {
     return String(error?.message || '').trim() || 'Could not open checkout right now.';
 }
 
-export async function requestCheckoutSession({ tier, successUrl, cancelUrl } = {}) {
+/** interval: 'year' (the school year, renews 1 September) or 'month' (charged September–June). */
+export async function requestCheckoutSession({ tier, interval = 'year', successUrl, cancelUrl } = {}) {
     if (!auth.currentUser) throw new Error('Sign in again before choosing a plan.');
     if (!isOnlineBillingAvailable()) throw new Error('This school’s plan is managed directly. Contact us to change it.');
     const requestId = typeof crypto?.randomUUID === 'function'
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     try {
-        const data = await callBilling('billingCreateCheckout', { tier, successUrl, cancelUrl, requestId });
+        const data = await callBilling('billingCreateCheckout', { tier, interval: interval === 'month' ? 'month' : 'year', successUrl, cancelUrl, requestId });
         if (!data?.url) throw new Error('Stripe did not return a checkout link.');
         return data;
     } catch (error) {

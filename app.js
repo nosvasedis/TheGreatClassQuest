@@ -699,6 +699,28 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
         }
     }
 
+    // Yearly / Monthly switch: shows that price on every plan and is what checkout uses.
+    let billingInterval = 'year';
+    const intervalButtons = subscribeScreen.querySelectorAll('#subscribe-interval-switch [data-billing-interval]');
+    const showInterval = (interval) => {
+        billingInterval = interval === 'month' ? 'month' : 'year';
+        intervalButtons.forEach((button) => {
+            const on = button.dataset.billingInterval === billingInterval;
+            button.setAttribute('aria-pressed', on ? 'true' : 'false');
+            button.classList.toggle('bg-white', on);
+            button.classList.toggle('text-indigo-700', on);
+            button.classList.toggle('shadow', on);
+            button.classList.toggle('text-slate-500', !on);
+        });
+        subscribeScreen.querySelectorAll('[data-price-interval]').forEach((block) => {
+            block.classList.toggle('hidden', block.dataset.priceInterval !== billingInterval);
+        });
+    };
+    intervalButtons.forEach((button) => {
+        button.onclick = () => showInterval(button.dataset.billingInterval);
+    });
+    showInterval('year');
+
     if (isOnlineBillingAvailable()) {
         const goCheckout = async (tier) => {
             if (status) {
@@ -713,6 +735,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
             try {
                 const data = await requestCheckoutSession({
                     tier,
+                    interval: billingInterval,
                     successUrl: window.location.href,
                     cancelUrl: window.location.href
                 });

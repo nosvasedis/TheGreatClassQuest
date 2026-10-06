@@ -19,6 +19,7 @@ import { escapeHtml } from '../../features/roles/shared.js';
 import { isSecretaryOfficeActive } from '../../features/secretary/officeModal.js';
 import { openMoveStudentModal } from './moveStudent.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { setupLeagueHomeworkImport } from './questBoardImport.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -620,6 +621,7 @@ export async function openQuestAssignmentModal() {
         if (labelEl) labelEl.textContent = getTodayAssignmentChipText();
     }
 
+    setupLeagueHomeworkImport(classId);
     showAnimatedModal('quest-assignment-modal');
     import('../../features/bookProgress.js').then(m => m.attachBookRecognition(classId)).catch(console.error);
 

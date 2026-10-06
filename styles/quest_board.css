@@ -589,3 +589,127 @@
     .qb-footer .qb-btn { flex: 1 1 auto; }
     .qb-btn--pin { min-width: 0; flex-grow: 2 !important; }
 }
+
+/* ── Copy from league: borrow the homework another class in the league has right now ── */
+.qb-col__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.qb-import-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1.5px dashed rgba(255, 253, 247, 0.85);
+    background: rgba(31, 42, 61, 0.35);
+    color: #fffdf7;
+    font-family: var(--qb-round);
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.qb-import-btn:hover,
+.qb-import-btn.is-open { background: rgba(31, 42, 61, 0.6); transform: translateY(-1px); }
+.qb-import-btn:focus-visible { outline: 3px solid rgba(47, 95, 179, 0.7); outline-offset: 2px; }
+.qb-import-btn i { font-size: 0.75rem; }
+
+.qb-import {
+    position: relative;
+    padding: 0.75rem 0.8rem 0.8rem;
+    border-radius: 0.3rem;
+    background: #fff8d9;
+    box-shadow: 0 10px 18px -10px rgba(0, 0, 0, 0.6);
+    transform: rotate(0.4deg);
+    animation: qb-import-drop 0.22s ease-out;
+}
+@keyframes qb-import-drop {
+    from { opacity: 0; transform: translateY(-6px) rotate(0.4deg); }
+    to { opacity: 1; transform: translateY(0) rotate(0.4deg); }
+}
+
+.qb-import__hint,
+.qb-import__empty,
+.qb-import__loading {
+    margin: 0 0 0.5rem;
+    font-size: 0.82rem;
+    color: var(--qb-ink-soft);
+}
+.qb-import__empty,
+.qb-import__loading { margin: 0; }
+
+.qb-import__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 14rem;
+    overflow-y: auto;
+}
+
+.qb-import__row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.5rem;
+    border: 1.5px solid rgba(31, 42, 61, 0.12);
+    background: var(--qb-paper);
+    color: var(--qb-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.qb-import__row:hover,
+.qb-import__row:focus-visible {
+    border-color: var(--qb-blue);
+    box-shadow: 0 6px 12px -8px rgba(47, 95, 179, 0.7);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.qb-import__logo { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+.qb-import__body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.qb-import__name { font-family: var(--qb-round); font-weight: 600; font-size: 0.95rem; }
+.qb-import__meta { font-size: 0.75rem; color: var(--qb-ink-soft); }
+.qb-import__preview {
+    font-family: var(--qb-hand);
+    font-size: 1.05rem;
+    line-height: 1.15;
+    color: var(--qb-blue);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.qb-import__go {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: var(--qb-blue);
+    font-family: var(--qb-round);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+/* the notepad glows briefly after a copy */
+.qb-notepad--imported { animation: qb-notepad-imported 1.1s ease-out; }
+@keyframes qb-notepad-imported {
+    0% { box-shadow: 0 0 0 0 rgba(47, 95, 179, 0.7), 0 16px 26px -12px rgba(0, 0, 0, 0.6); }
+    100% { box-shadow: 0 0 0 14px rgba(47, 95, 179, 0), 0 16px 26px -12px rgba(0, 0, 0, 0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qb-import, .qb-notepad--imported { animation: none; }
+}

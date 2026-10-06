@@ -139,7 +139,15 @@ export const miscModalsHTML = `
 
                     <!-- The new note for next lesson -->
                     <section class="qb-col" aria-labelledby="qb-next-heading">
-                        <h3 id="qb-next-heading" class="qb-col__label"><i class="fas fa-pen-nib" aria-hidden="true"></i> For next lesson</h3>
+                        <div class="qb-col__head">
+                            <h3 id="qb-next-heading" class="qb-col__label"><i class="fas fa-pen-nib" aria-hidden="true"></i> For next lesson</h3>
+                            <button id="qb-league-import-btn" type="button" class="qb-import-btn hidden"
+                                aria-expanded="false" aria-controls="qb-league-import-panel"
+                                title="Copy the homework another class in this league has right now">
+                                <i class="fas fa-copy" aria-hidden="true"></i><span>Copy from league</span>
+                            </button>
+                        </div>
+                        <div id="qb-league-import-panel" class="qb-import hidden" role="region" aria-label="Homework from other classes in this league"></div>
                         <div class="notebook-container qb-notepad">
                             <span class="qb-notepad__clip" aria-hidden="true"></span>
                             <div id="quest-assignment-date-chip" class="qb-notepad__date">

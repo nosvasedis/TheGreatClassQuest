@@ -3305,7 +3305,19 @@ exports.listSchoolTeachers = callable(async (request) => {
 // Off until GCQ_ENABLE_STRIPE=true is set in functions/.env together with the secrets
 // STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET (firebase functions:secrets:set ...), so deploying
 // everything else never asks for Stripe keys. Price ids: GCQ_STRIPE_PRICE_STARTER / _PRO / _ELITE.
-if (String(process.env.GCQ_ENABLE_STRIPE || '').toLowerCase() === 'true') {
+// The deploy decides which functions exist before it loads functions/.env into process.env, so
+// the flag is also read from that file; in the cloud it arrives as a normal environment variable.
+function stripeEnabled() {
+  if (String(process.env.GCQ_ENABLE_STRIPE || '').trim().toLowerCase() === 'true') return true;
+  try {
+    const text = require('node:fs').readFileSync(require('node:path').join(__dirname, '.env'), 'utf8');
+    return /^\s*GCQ_ENABLE_STRIPE\s*=\s*["']?true["']?\s*$/im.test(text);
+  } catch (_) {
+    return false;
+  }
+}
+
+if (stripeEnabled()) {
   const STRIPE_SECRETS = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'];
   let billingHandlers = null;
   const getBilling = () => {

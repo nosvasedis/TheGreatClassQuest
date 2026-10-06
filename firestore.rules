@@ -93,15 +93,6 @@ service cloud.firestore {
         get(/databases/$(database)/documents/user_profiles/$(get(rolePath).data.uid)).data.status == 'active';
     }
 
-    function hasActiveSecretary() {
-      return exists(secretaryRolePath()) &&
-        get(secretaryRolePath()).data.status == 'active' &&
-        get(secretaryRolePath()).data.uid is string &&
-        exists(/databases/$(database)/documents/user_profiles/$(get(secretaryRolePath()).data.uid)) &&
-        get(/databases/$(database)/documents/user_profiles/$(get(secretaryRolePath()).data.uid)).data.role == 'secretary' &&
-        get(/databases/$(database)/documents/user_profiles/$(get(secretaryRolePath()).data.uid)).data.status == 'active';
-    }
-
     function hasFullSecretaryConsole() {
       return isSecretary() && hasFullSecretaryPlan(schoolPlan());
     }
@@ -426,7 +417,9 @@ service cloud.firestore {
         list[i].mood in ['flame', 'candle', 'moon']);
     }
     function oathEvidence(list, i) {
-      let e = list.size() > i ? list[i] : null;
+      // {} (not null) when the list is shorter: that branch is never read, and the rules
+      // checker can then see e is always a map.
+      let e = list.size() > i ? list[i] : {};
       return list.size() <= i || (e is map && e.keys().hasOnly(['kind', 'label', 'date', 'refId']) &&
         e.kind in ['manual', 'virtue', 'practice', 'quiz'] && shortText(e.label, 160) &&
         shortText(e.refId, 300) && e.date is string && e.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'));

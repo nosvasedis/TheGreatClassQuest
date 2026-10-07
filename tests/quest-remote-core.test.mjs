@@ -224,6 +224,8 @@ test('the projector executes through the app\'s own controls', () => {
     assert.doesNotMatch(host, /runTransaction|setStudentStarsForToday|student_scores/);
     assert.doesNotMatch(read('features/questRemote/remoteWand.js'), /runTransaction|setDoc|student_scores/);
     assert.doesNotMatch(read('features/questRemote/showdown.js'), /runTransaction|student_scores|handleBatchAwardBonus/);
+    // the projector's command listener names the owner (rules are not filters)
+    assert.ok(read('features/questRemote/remoteChannel.js').includes("query(commandsCol(sessionId), where('teacherId', '==', uid())"));
     // tenant-safe paths
     assert.doesNotMatch(read('features/questRemote/remoteChannel.js'), /artifacts\/great-class-quest/);
 });

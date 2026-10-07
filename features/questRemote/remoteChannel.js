@@ -5,7 +5,7 @@
 
 import {
     db, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, addDoc, collection, query, where,
-    orderBy, limit, onSnapshot, serverTimestamp
+    limit, onSnapshot, serverTimestamp
 } from '../../firebase.js';
 import { dataPath } from '../../utils/tenant.mjs';
 import * as state from '../../state.js';
@@ -71,9 +71,16 @@ export function watchSession(sessionId, onData, onError) {
  */
 export function watchCommands(sessionId, onCommand, onError) {
     let first = true;
-    const q = query(commandsCol(sessionId), orderBy('createdAt', 'asc'), limit(50));
+    // Rules are not filters: the query must say whose commands it wants, or Firestore refuses it.
+    // No orderBy (that would need a composite index): new commands are sorted here instead.
+    const q = query(commandsCol(sessionId), where('teacherId', '==', uid()), limit(50));
     return onSnapshot(q, (snap) => {
-        const changes = snap.docChanges().filter((c) => c.type === 'added');
+        const changes = snap.docChanges().filter((c) => c.type === 'added')
+            .sort((a, b) => {
+                const da = a.doc.data({ serverTimestamps: 'estimate' });
+                const dbb = b.doc.data({ serverTimestamps: 'estimate' });
+                return (toMs(da.createdAt) - toMs(dbb.createdAt)) || ((da.clientSeq || 0) - (dbb.clientSeq || 0));
+            });
         if (first) {
             first = false;
             changes.forEach((c) => deleteDoc(c.doc.ref).catch(() => {}));

@@ -217,7 +217,8 @@
 .qr-bind__hint { margin: 14px 0 0; font: 400 0.82rem/1.4 'Fredoka', system-ui, sans-serif; color: #a5b4fc; }
 
 /* ── The Wand glyph (bottom-left while hosting) ─────────── */
-#qr-glyph-host { position: fixed; left: 16px; bottom: 16px; z-index: 1500; }
+/* Sits just above the cloud dock (remoteHost.js measures the dock and sets --qr-glyph-bottom). */
+#qr-glyph-host { position: fixed; left: 16px; bottom: var(--qr-glyph-bottom, 118px); z-index: 1500; transition: bottom 0.3s ease; }
 .qr-glyph {
     position: relative;
     display: grid;

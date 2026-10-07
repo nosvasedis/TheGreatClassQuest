@@ -75,6 +75,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     setBlackout(false);
     (await import('./showdown.js').catch(() => null))?.closeShowdown?.({ silent: true });
     document.getElementById('qr-glyph-host')?.remove();
+    window.removeEventListener('resize', placeGlyph);
     closeBindingCircle();
     syncLaunchButtons();
     await channel.closeHostSession(h.id);
@@ -242,8 +243,22 @@ function mountGlyph() {
         slot.dataset.qrIgnore = '';
         document.body.appendChild(slot);
         slot.addEventListener('click', () => openBindingCircle());
+        window.addEventListener('resize', placeGlyph, { passive: true });
     }
+    placeGlyph();
     syncGlyph();
+}
+
+/** Keeps the medallion clear of the cloud dock at the bottom of the screen. */
+function placeGlyph() {
+    const slot = document.getElementById('qr-glyph-host');
+    if (!slot) return;
+    const dock = document.getElementById('bottom-nav-bar');
+    // offsetHeight ignores the dock's sink-when-idle transform, so the medallion never ends up under
+    // the clouds when they float back up.
+    const height = dock && dock.getClientRects().length ? dock.offsetHeight : 0;
+    const clear = height > 0 ? height + 14 : 16;
+    slot.style.setProperty('--qr-glyph-bottom', `${Math.round(clear)}px`);
 }
 
 function syncGlyph() {

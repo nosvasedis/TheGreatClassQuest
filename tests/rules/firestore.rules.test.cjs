@@ -560,6 +560,11 @@ rulesTest('Quest Remote: the owner hosts and commands; nobody else reads or writ
   const cmd = doc(mine, DATA + '/quest_remote/wand-session-1/commands/c1');
   await assertSucceeds(setDoc(cmd, remoteCommand()));
   await assertSucceeds(getDoc(cmd));
+  // The projector's live listener (remoteChannel.js#watchCommands): the query names the owner.
+  const commands = collection(mine, DATA + '/quest_remote/wand-session-1/commands');
+  await assertSucceeds(getDocs(query(commands, where('teacherId', '==', 'teacher'))));
+  await assertFails(getDocs(query(commands)), 'an unfiltered list is refused (rules are not filters)');
+  await assertFails(getDocs(query(collection(other, DATA + '/quest_remote/wand-session-1/commands'), where('teacherId', '==', 'teacher'))), 'nobody else can ask for your commands');
   await assertFails(updateDoc(cmd, { clientSeq: 2 }), 'commands are never edited');
   await assertSucceeds(deleteDoc(cmd));
   await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c2'), remoteCommand('teacher', { type: 'deleteEverything' })));

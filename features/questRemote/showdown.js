@@ -108,6 +108,17 @@ function update(scoredIndex = -1) {
     });
     const round = el.querySelector('[data-qr-round]');
     if (round) round.textContent = String(sd.round);
+    syncGolden();
+}
+
+/** The Golden Question banner under the title: shown while the next point counts double. */
+function syncGolden() {
+    const banner = root()?.querySelector('[data-qr-golden]');
+    if (!banner || !sd) return;
+    const was = !banner.hidden;
+    banner.hidden = !sd.golden;
+    root().classList.toggle('is-golden', Boolean(sd.golden));
+    if (sd.golden && !was) restartAnim(banner, 'is-in');
 }
 
 function restartAnim(el, cls) {
@@ -219,6 +230,7 @@ export async function runShowdownCommand(p, ctx) {
             const lane = root()?.querySelector(`.qr-lane[data-team="${p.team}"]`);
             const target = lane?.querySelector('.qr-lane__bar, .qr-lane__flower') || lane;
             if (up && target) await ctx.sparkTo(target, { color: team.color, size: 24, duration: 520, burst: 16 });
+            const golden = up && sd.golden;
             sd = scoreShowdown(sd, p.team, up ? 1 : -1);
             stopCount();
             update(up ? p.team : -1);
@@ -229,7 +241,20 @@ export async function runShowdownCommand(p, ctx) {
                 if (lane) burstOn(lane.querySelector('.qr-lane__name') || lane, { color: team.color, count: t.streak >= 3 ? 26 : 14 });
             } else playQuizShowSfx('missed');
             ctx.scheduleStage(0);
+            if (golden) return sd.growth ? `${team.name}'s flower grows twice` : `+2 ${team.name} · golden!`;
             return up ? (sd.growth ? `${team.name}'s flower grows` : `+1 ${team.name}`) : `−1 ${team.name}`;
+        }
+        case 'golden': {
+            if (!sd || sd.finished) return '';
+            sd = { ...sd, golden: !sd.golden };
+            syncGolden();
+            if (sd.golden) {
+                playQuizShowSfx('trick');
+                const banner = root()?.querySelector('[data-qr-golden]');
+                if (banner) burstOn(banner, { color: '#fcd34d', count: 18 });
+            }
+            ctx.scheduleStage(0);
+            return sd.golden ? 'Golden question: the next point counts double' : 'Golden question off';
         }
         case 'timer': {
             if (!sd) return '';

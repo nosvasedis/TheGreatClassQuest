@@ -16,10 +16,10 @@ import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import * as channel from './remoteChannel.js';
 import {
     validateCommand, classifyFlick, slingshotPower, SLINGSHOT_MIN_POWER, createShakeDetector,
-    isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock
+    isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock, clampTimerMinutes, pushSpellLog
 } from './remoteCore.mjs';
 import {
-    wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, showHtml
+    wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, showHtml, spellsSheetHtml
 } from './remoteWandView.mjs';
 
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
@@ -83,7 +83,10 @@ export async function openWand({ sessionId = '' } = {}) {
         unsub: null,
         wakeLock: null,
         shake: createShakeDetector(),
-        motionOn: false
+        motionOn: false,
+        waiting: savedFlag(WAITING_KEY),
+        customMinutes: savedMinutes(),
+        spells: []
     };
     wireEvents(root);
     requestAnimationFrame(() => root.classList.add('is-in'));
@@ -272,6 +275,8 @@ function showResult(result) {
     if (!wand || !result || !Number.isInteger(result.seq) || result.seq <= wand.lastResultSeq) return;
     if (result.seq > wand.seq) return; // a result for an earlier Wand on this session
     wand.lastResultSeq = result.seq;
+    if (result.message) wand.spells = pushSpellLog(wand.spells, { at: Date.now(), ok: result.ok, text: result.message });
+    if (wand.sheetKind === 'spells') wand.sheet.innerHTML = spellsSheetHtml(wand.spells);
     if (!result.ok) {
         // The projector said no: undo anything shown optimistically.
         wand.pending.clear();
@@ -300,6 +305,20 @@ function send(type, payload = {}) {
 // ─── Rendering ──────────────────────────────────────────────────────────────
 
 const MODE_KEY = 'gcq.questRemote.mode';
+const WAITING_KEY = 'gcq.questRemote.waiting';
+const MINUTES_KEY = 'gcq.questRemote.minutes';
+
+function savedFlag(key) {
+    try { return localStorage.getItem(key) === '1'; } catch { return false; }
+}
+
+function savedMinutes() {
+    try { return clampTimerMinutes(localStorage.getItem(MINUTES_KEY) ?? 3); } catch { return 3; }
+}
+
+function remember(key, value) {
+    try { localStorage.setItem(key, String(value)); } catch { /* this session only */ }
+}
 const MODES = new Set(['stars', 'stage', 'magic', 'show']);
 
 function savedMode() {
@@ -340,12 +359,12 @@ function render({ fresh = false } = {}) {
     if (wand.mode === 'stars') {
         html = starsHtml(heroesNow(), {
             className: classLabel(), empty: 'Choose a class (top right) to see its heroes.',
-            multi: wand.multi, picked: [...wand.picked], note: starsNote(wand.stage)
+            multi: wand.multi, picked: [...wand.picked], note: starsNote(wand.stage), waiting: wand.waiting
         });
     } else if (wand.mode === 'stage') {
         html = stageHtml(stage, { secret: wand.secret, castAllowed: (t) => !TAB_FEATURE_FLAGS[t.tab] || canUseFeature(TAB_FEATURE_FLAGS[t.tab]), padOpen: wand.padOpen });
     } else if (wand.mode === 'magic') {
-        html = magicHtml(stage, { canCrown: canUseFeature('adventureLog'), canWheel: canUseFeature('guilds') });
+        html = magicHtml(stage, { canCrown: canUseFeature('adventureLog'), canWheel: canUseFeature('guilds'), customMinutes: wand.customMinutes });
     } else {
         html = showHtml(stage, { secret: wand.secret });
     }
@@ -512,6 +531,8 @@ function datasetPayload(el) {
     if (d.on) p.on = d.on === 'true';
     if (d.team) p.team = Number(d.team);
     if (d.index) p.index = Number(d.index);
+    if (d.sound) p.sound = d.sound;
+    if (d.student) p.studentId = d.student;
     return p;
 }
 
@@ -552,6 +573,22 @@ function wireEvents(root) {
             return;
         }
         if (act === 'shake-pick') { enableMotionPermission(); summon(); return; }
+        if (act === 'waiting') { wand.waiting = !wand.waiting; remember(WAITING_KEY, wand.waiting ? '1' : '0'); buzz(6); render({ fresh: true }); return; }
+        if (act === 'tmin-down' || act === 'tmin-up') {
+            wand.customMinutes = clampTimerMinutes(wand.customMinutes + (act === 'tmin-up' ? 1 : -1));
+            remember(MINUTES_KEY, wand.customMinutes);
+            buzz(6);
+            render();
+            return;
+        }
+        if (act === 'spells') {
+            if (wand.root.dataset.phase !== 'bound') return;
+            buzz(6);
+            openSheet('spells', spellsSheetHtml(wand.spells));
+            return;
+        }
+        const map = t.closest('[data-qw-map]');
+        if (map) { pointAt(map, e); return; }
         if (t === wand.sheet) { closeSheet(); return; }
 
         const session = t.closest('[data-qw-session]');
@@ -580,7 +617,11 @@ function wireEvents(root) {
         if (cmdEl && !cmdEl.disabled) {
             const type = cmdEl.dataset.qwCmd;
             const payload = datasetPayload(cmdEl);
-            if (send(type, payload)) pressFeedback(cmdEl);
+            if (send(type, payload)) {
+                pressFeedback(cmdEl);
+                // A hero called into the spotlight: the sheet steps away so the teacher sees the room.
+                if (type === 'charm' && payload.action === 'spotlight' && wand.sheetKind === 'award') closeSheet();
+            }
         }
     });
 
@@ -617,6 +658,7 @@ function wireEvents(root) {
     // Star Flick, Hold to Crown, Wheel Slingshot, deck swipe: pointer gestures.
     root.addEventListener('pointerdown', (e) => {
         if (!wand) return;
+        sparkle(e);
         const star = e.target.closest('[data-qw-star]');
         if (star && !star.disabled) { startFlick(e, star); return; }
         const hold = e.target.closest('[data-qw-hold]');
@@ -626,6 +668,39 @@ function wireEvents(root) {
         const swipe = e.target.closest('[data-qw-swipe]');
         if (swipe && !e.target.closest('button')) startSwipe(e, swipe);
     });
+}
+
+/** "Look here": where on the projector the teacher tapped (0..1 of the map), sent as a beacon. */
+function pointAt(map, e) {
+    const r = map.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const cx = Number.isFinite(e.clientX) && e.clientX ? e.clientX : r.left + r.width / 2;
+    const cy = Number.isFinite(e.clientY) && e.clientY ? e.clientY : r.top + r.height / 2;
+    const x = Math.round(Math.max(0, Math.min(1, (cx - r.left) / r.width)) * 1000) / 1000;
+    const y = Math.round(Math.max(0, Math.min(1, (cy - r.top) / r.height)) * 1000) / 1000;
+    if (!send('charm', { action: 'point', x, y })) return;
+    buzz([12, 30, 12]);
+    const ping = document.createElement('span');
+    ping.className = 'qw-look__ping';
+    ping.style.left = `${x * 100}%`;
+    ping.style.top = `${y * 100}%`;
+    map.appendChild(ping);
+    setTimeout(() => ping.remove(), 1200);
+}
+
+/** A few sparks fly off the fingertip on every touch: the phone feels like a wand (skipped on weak phones). */
+function sparkle(e) {
+    if (LITE || STILL || !wand || e.pointerType === 'mouse' && e.button !== 0) return;
+    const layer = wand.root.querySelector('[data-qw-sparks]');
+    if (!layer) return;
+    if (layer.childElementCount > 18) layer.firstElementChild?.remove();
+    const burst = document.createElement('span');
+    burst.className = 'qw-spark';
+    burst.style.left = `${e.clientX}px`;
+    burst.style.top = `${e.clientY}px`;
+    burst.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
+    layer.appendChild(burst);
+    setTimeout(() => burst.remove(), 650);
 }
 
 function pressFeedback(el) {

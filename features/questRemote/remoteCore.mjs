@@ -7,7 +7,7 @@
 /** Every command the Wand may send. firestore.rules keeps the same list (validRemoteCommand). */
 export const REMOTE_COMMAND_TYPES = Object.freeze([
     'bind', 'pad', 'key', 'cast', 'class', 'scroll', 'award', 'undo', 'attendance', 'crown',
-    'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz'
+    'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz', 'charm'
 ]);
 
 /** Keys the Wand may press on the projector (the app's own keyboard shortcuts). */
@@ -55,6 +55,31 @@ export const TIMER_PRESETS = Object.freeze([
     { id: 'two', label: '2 min', seconds: 120, icon: 'fa-hourglass-half' },
     { id: 'five', label: '5 min', seconds: 300, icon: 'fa-hourglass' }
 ]);
+
+/** Custom timer: whole minutes the teacher can dial on the Wand. */
+export const CUSTOM_TIMER_MIN = 1;
+export const CUSTOM_TIMER_MAX = 30;
+
+/** Keeps a dialled timer inside 1–30 minutes. */
+export function clampTimerMinutes(minutes) {
+    const n = Math.round(Number(minutes));
+    if (!Number.isFinite(n)) return 3;
+    return Math.max(CUSTOM_TIMER_MIN, Math.min(CUSTOM_TIMER_MAX, n));
+}
+
+/**
+ * Sound Charms: classroom stings the Wand plays on the projector's speakers. `sfx` names the
+ * existing game-show voice (audio.js playQuizShowSfx); `word` is the comic burst the class sees.
+ */
+export const CHARM_SOUNDS = Object.freeze([
+    { id: 'tada', label: 'Ta-daa!', icon: 'fa-wand-magic-sparkles', sfx: 'land', word: 'TA-DAA!', from: '#f59e0b', to: '#fde047' },
+    { id: 'drumroll', label: 'Drum roll', icon: 'fa-drum', sfx: 'tally', word: 'Drum roll…', from: '#7c3aed', to: '#c084fc' },
+    { id: 'fanfare', label: 'Fanfare', icon: 'fa-crown', sfx: 'fanfare', word: 'Hooray!', from: '#e11d48', to: '#fb7185' },
+    { id: 'ding', label: 'Ding ding', icon: 'fa-bell', sfx: 'cheer', word: 'Ding ding!', from: '#0891b2', to: '#67e8f9' },
+    { id: 'buzzer', label: 'Buzzer', icon: 'fa-circle-xmark', sfx: 'buzz', word: 'BZZZT!', from: '#475569', to: '#94a3b8' },
+    { id: 'wahwah', label: 'Wah-wah', icon: 'fa-face-grin-tears', sfx: 'missed', word: 'Wah-wah…', from: '#0f766e', to: '#5eead4' }
+]);
+const CHARM_SOUND_IDS = new Set(CHARM_SOUNDS.map((c) => c.id));
 
 /**
  * A command that reached the server this long after the phone sent it is never run (a tap queued
@@ -128,12 +153,18 @@ export function validateCommand(cmd) {
         case 'dragon': return ['open', 'close'].includes(p.action) ? { ok: true } : fail('bad-action');
         case 'wall': return ['toggle', 'next', 'prev', 'pin', 'reveal', 'deck'].includes(p.action) ? { ok: true } : fail('bad-action');
         case 'showdown':
-            if (!['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer'].includes(p.action)) return fail('bad-action');
+            if (!['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden'].includes(p.action)) return fail('bad-action');
             if (p.team != null && !(Number.isInteger(p.team) && p.team >= 0 && p.team < 8)) return fail('bad-team');
             return { ok: true };
         case 'quiz': return ['answer', 'next', 'skip', 'listen', 'close'].includes(p.action)
             && (p.action !== 'answer' || [0, 1, 2, 3].includes(p.index)) ? { ok: true } : fail('bad-quiz');
         case 'crown': return ['crown', 'huzzah'].includes(p.action ?? 'crown') ? { ok: true } : fail('bad-action');
+        case 'charm':
+            if (p.action === 'sound') return CHARM_SOUND_IDS.has(p.sound) ? { ok: true } : fail('bad-sound');
+            if (p.action === 'point') return finiteIn(p.x, 0, 1) && finiteIn(p.y, 0, 1) ? { ok: true } : fail('bad-point');
+            if (p.action === 'spotlight') return shortString(p.studentId, 64) ? { ok: true } : fail('bad-student');
+            if (p.action === 'unspot') return { ok: true };
+            return fail('bad-action');
         case 'bind': return { ok: true };
         default: return fail('unknown-type');
     }
@@ -385,6 +416,22 @@ export function buildStageSummary({ surface = 'tab', tab = '', title = '', class
 
 const PANEL_KINDS = new Set(['wheel', 'picker', 'quiz', 'showdown', 'wall', 'dragon', 'timer', 'crown']);
 
+/** The label a timer of `seconds` carries on the projector (presets keep their routine names). */
+export function timerLabelFor(seconds) {
+    const preset = { 30: 'Think', 60: 'Pair', 90: 'Share' }[seconds];
+    if (preset) return preset;
+    const m = Math.round(seconds / 60);
+    return seconds % 60 === 0 && m >= 1 ? `${m} min` : 'Timer';
+}
+
+/** Recent spells: newest first, at most `max`, each { at, ok, text }. Pure, so the Wand and tests share it. */
+export function pushSpellLog(log, entry, max = 12) {
+    const text = cleanPadLabel(entry?.text, 90);
+    if (!text) return Array.isArray(log) ? log : [];
+    const next = [{ at: Number(entry.at) || 0, ok: entry.ok !== false, text }, ...(Array.isArray(log) ? log : [])];
+    return next.slice(0, max);
+}
+
 function sanitizePanel(panel) {
     if (!PANEL_KINDS.has(panel.kind)) return null;
     const out = { kind: panel.kind };
@@ -431,6 +478,7 @@ export function createShowdown(teams, { growth = false, title = 'Showdown' } = {
         growth: Boolean(growth),
         round: 1,
         finished: false,
+        golden: false,
         teams: list.map((t, i) => ({
             name: cleanPadLabel(t?.name, 28) || `Team ${i + 1}`,
             members: (Array.isArray(t?.members) ? t.members : []).slice(0, 12),
@@ -444,16 +492,23 @@ export function createShowdown(teams, { growth = false, title = 'Showdown' } = {
     };
 }
 
-/** One point (or `points`) to a team; the streak grows when the same team scores again. */
+/**
+ * One point (or `points`) to a team; the streak grows when the same team scores again.
+ * A Golden Question (sd.golden) doubles the next point and is then spent.
+ */
 export function scoreShowdown(sd, teamIndex, points = 1) {
     if (!sd || sd.finished || !sd.teams[teamIndex]) return sd;
+    if (points > 0 && sd.golden) points *= 2;
     const teams = sd.teams.map((t, i) => {
         if (i !== teamIndex) return { ...t, streak: points > 0 ? 0 : t.streak };
         const score = Math.max(0, t.score + points);
         const streak = points > 0 ? (sd.lastScorer === teamIndex ? t.streak + 1 : 1) : 0;
         return { ...t, score, streak };
     });
-    return { ...sd, teams, lastScorer: points > 0 ? teamIndex : sd.lastScorer, round: points > 0 ? sd.round + 1 : sd.round };
+    return {
+        ...sd, teams, lastScorer: points > 0 ? teamIndex : sd.lastScorer,
+        round: points > 0 ? sd.round + 1 : sd.round, golden: points > 0 ? false : Boolean(sd.golden)
+    };
 }
 
 /** Standings with shared places for ties (1, 1, 3). */
@@ -489,6 +544,7 @@ export function showdownPanel(sd) {
         growth: sd.growth,
         finished: sd.finished,
         round: sd.round,
+        golden: Boolean(sd.golden),
         teams: sd.teams.map((t) => (sd.growth
             ? { name: t.name, color: t.color, shape: t.shape, emoji: t.emoji }
             : { name: t.name, color: t.color, shape: t.shape, emoji: t.emoji, score: t.score, streak: t.streak }))

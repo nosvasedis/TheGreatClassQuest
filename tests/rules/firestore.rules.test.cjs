@@ -567,6 +567,8 @@ rulesTest('Quest Remote: the owner hosts and commands; nobody else reads or writ
   await assertFails(getDocs(query(collection(other, DATA + '/quest_remote/wand-session-1/commands'), where('teacherId', '==', 'teacher'))), 'nobody else can ask for your commands');
   await assertFails(updateDoc(cmd, { clientSeq: 2 }), 'commands are never edited');
   await assertSucceeds(deleteDoc(cmd));
+  await assertSucceeds(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c6'),
+    remoteCommand('teacher', { type: 'charm', payload: { action: 'sound', sound: 'tada' } })), 'Sound Charms and Look here travel as charm commands');
   await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c2'), remoteCommand('teacher', { type: 'deleteEverything' })));
   await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c3'), remoteCommand('teacher', { clientSeq: 'one' })));
   await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c4'),

@@ -415,7 +415,7 @@ service cloud.firestore {
       return d.teacherId == request.auth.uid &&
         d.keys().hasOnly(['teacherId', 'type', 'payload', 'clientSeq', 'wandId', 'sentAt', 'createdAt']) &&
         d.type in ['bind', 'pad', 'key', 'cast', 'class', 'scroll', 'award', 'undo', 'attendance', 'crown',
-          'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz'] &&
+          'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz', 'charm'] &&
         (!('payload' in d) || (d.payload is map && d.payload.size() <= 12)) &&
         d.clientSeq is int;
     }

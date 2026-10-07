@@ -345,3 +345,103 @@ test('the projector types into real fields the way a keyboard would', () => {
     assert.match(host, /new Event\('change', \{ bubbles: true \}\)/);
     assert.match(host, /input:not\(\[type="hidden"\]\):not\(\[type="password"\]\)/, 'passwords never travel to the phone');
 });
+
+test('charms: sound, look here and spotlight are checked before the projector runs them', async () => {
+    const { CHARM_SOUNDS } = await import('../features/questRemote/remoteCore.mjs');
+    const ok = (payload) => validateCommand({ type: 'charm', clientSeq: 1, payload }).ok;
+    assert.equal(ok({ action: 'sound', sound: 'tada' }), true);
+    assert.equal(ok({ action: 'sound', sound: 'siren' }), false, 'only the listed charms play');
+    assert.equal(ok({ action: 'point', x: 0.5, y: 0.25 }), true);
+    assert.equal(ok({ action: 'point', x: 1.5, y: 0.25 }), false, 'points stay on the screen');
+    assert.equal(ok({ action: 'point', x: 0.5 }), false);
+    assert.equal(ok({ action: 'spotlight', studentId: 's1' }), true);
+    assert.equal(ok({ action: 'spotlight' }), false);
+    assert.equal(ok({ action: 'unspot' }), true);
+    assert.equal(ok({ action: 'explode' }), false);
+    // Every charm names a sound the projector already has (audio.js playQuizShowSfx).
+    const audio = read('audio.js');
+    for (const c of CHARM_SOUNDS) assert.match(audio, new RegExp(`name === '${c.sfx}'`), `${c.id} → ${c.sfx}`);
+});
+
+test('a Golden Question doubles the next point, then is spent', () => {
+    let sd = createShowdown([{ name: 'A' }, { name: 'B' }]);
+    assert.equal(sd.golden, false);
+    assert.equal(validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'golden' } }).ok, true);
+    sd = { ...sd, golden: true };
+    sd = scoreShowdown(sd, 1);
+    assert.equal(sd.teams[1].score, 2);
+    assert.equal(sd.golden, false, 'one golden question at a time');
+    sd = scoreShowdown(sd, 1);
+    assert.equal(sd.teams[1].score, 3);
+    sd = scoreShowdown({ ...sd, golden: true }, 0, -1);
+    assert.equal(sd.teams[0].score, 0, 'a minus never doubles');
+    assert.equal(sd.golden, true, 'and does not spend the golden question');
+    assert.equal(showdownPanel(sd).golden, true);
+    assert.match(showHtml({ panel: showdownPanel(sd) }), /class="qw-golden is-on"/);
+    assert.match(showdownHtml(sd), /data-qr-golden>/);
+    assert.match(showdownHtml({ ...sd, golden: false }), /data-qr-golden hidden/);
+});
+
+test('timers: dialled minutes stay in range and carry a readable label', async () => {
+    const { clampTimerMinutes, timerLabelFor } = await import('../features/questRemote/remoteCore.mjs');
+    assert.equal(clampTimerMinutes(0), 1);
+    assert.equal(clampTimerMinutes(45), 30);
+    assert.equal(clampTimerMinutes('7'), 7);
+    assert.equal(clampTimerMinutes('x'), 3);
+    assert.equal(timerLabelFor(30), 'Think');
+    assert.equal(timerLabelFor(600), '10 min');
+    assert.equal(timerLabelFor(330), 'Timer');
+    const { magicHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    const html = magicHtml({}, { customMinutes: 10 });
+    assert.match(html, /data-action="start" data-seconds="600"/);
+    assert.match(html, /data-qw-cmd="charm" data-action="sound" data-sound="tada"/);
+    assert.match(html, /data-qw-map/);
+    assert.match(magicHtml({}, { customMinutes: 30 }), /data-qw="tmin-up" aria-label="One minute more" disabled/);
+});
+
+test('Look here shows the buttons in sight as dots on the map', async () => {
+    const { lookHereHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    const html = lookHereHtml({ title: '<b>Market</b>', pad: [{ id: 'a', x: 0.25, y: 0.5, inView: true }, { id: 'b', x: 0.5, y: 1.4, inView: false }] });
+    assert.equal((html.match(/<i style="left:/g) || []).length, 1, 'only buttons in sight');
+    assert.match(html, /left:25%;top:50%/);
+    assert.doesNotMatch(html, /<b>Market<\/b>/, 'titles are escaped');
+});
+
+test('Stars: "Still to shine" keeps only present heroes without a star today', () => {
+    const heroes = [
+        { id: 'a', first: 'Alex', stars: 2 }, { id: 'b', first: 'Maya', stars: 0 },
+        { id: 'c', first: 'Nikos', stars: 0, away: true }, { id: 'd', first: 'Robin', stars: 0 }
+    ];
+    const html = starsHtml(heroes, { waiting: true });
+    assert.match(html, /data-qw-hero="b"/);
+    assert.match(html, /data-qw-hero="d"/);
+    assert.doesNotMatch(html, /data-qw-hero="a"/);
+    assert.doesNotMatch(html, /data-qw-hero="c"/);
+    assert.match(html, /Still to shine|still to shine/);
+    assert.match(html, /style="--pct:33"/, 'one of three present heroes shines');
+    assert.match(starsHtml([{ id: 'a', first: 'A', stars: 1 }], { waiting: true }), /Every hero in the room shines today/);
+    assert.match(awardSheetHtml({ id: 'b', first: 'Maya', stars: 0 }), /data-action="spotlight" data-student="b"/);
+    assert.doesNotMatch(awardSheetHtml({ id: 'c', first: 'Nikos', stars: 0, away: true }), /data-action="spotlight"/, 'no spotlight for a hero who is away');
+});
+
+test('Recent spells keep the newest dozen, cleaned', async () => {
+    const { pushSpellLog } = await import('../features/questRemote/remoteCore.mjs');
+    const { spellsSheetHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    let log = [];
+    for (let i = 0; i < 15; i += 1) log = pushSpellLog(log, { at: i, ok: i % 2 === 0, text: `spell ${i}` });
+    assert.equal(log.length, 12);
+    assert.equal(log[0].text, 'spell 14');
+    assert.equal(pushSpellLog(log, { text: '   ' }), log, 'empty results are not logged');
+    const html = spellsSheetHtml([{ at: 0, ok: false, text: '<i>nope</i>' }], 90_000);
+    assert.match(html, /qw-spell is-warn/);
+    assert.match(html, /2 min ago/);
+    assert.doesNotMatch(html, /<i>nope<\/i>/);
+});
+
+test('projector charms: burst, beacon and spotlight markup', async () => {
+    const { charmBurstHtml, beaconHtml, spotlightHtml } = await import('../features/questRemote/remoteStageView.mjs');
+    assert.match(charmBurstHtml({ word: 'TA-DAA!' }), /qr-charm__word[\s\S]*TA-DAA!/);
+    assert.match(beaconHtml(), /Look here!/);
+    assert.match(spotlightHtml({ name: 'Maya' }), /qr-spot__name">Maya</);
+    assert.doesNotMatch(spotlightHtml({ name: '<x>' }), /<x>/);
+});

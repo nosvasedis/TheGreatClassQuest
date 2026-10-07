@@ -154,6 +154,7 @@ export function showdownHtml(sd, { secondsLeft = null } = {}) {
         <p class="qr-sd__eyebrow"><i class="fas fa-bolt" aria-hidden="true"></i> ${sd.growth ? 'Garden Showdown' : 'Showdown Arena'}</p>
         <h2 class="qr-sd__title">${esc(sd.title)}</h2>
         ${sd.growth ? '<p class="qr-sd__round">Every good answer helps your flower grow</p>' : `<p class="qr-sd__round">Question <b data-qr-round>${sd.round}</b></p>`}
+        <p class="qr-sd__golden" data-qr-golden${sd.golden ? '' : ' hidden'}><i class="fas fa-coins" aria-hidden="true"></i> ${sd.growth ? 'Golden question · flowers grow twice' : 'Golden question · double points'}</p>
         ${secondsLeft != null ? `<div class="qr-sd__count" data-qr-count>${secondsLeft}</div>` : ''}
     </header>
     <ol class="qr-sd__lanes" style="--n:${sd.teams.length}">${lanes}</ol>
@@ -189,4 +190,37 @@ export function showdownFinaleHtml(sd) {
         <h2 class="qr-sd__title">${champion || 'A draw!'}</h2>
         <ol class="qr-podium">${order.map(step).join('')}</ol>
     </div>`;
+}
+
+// ─── Charms (Sound Charms, Look here, Spotlight) ────────────────────────────
+
+/** The comic word a Sound Charm bursts onto the projector ("TA-DAA!"), with a ring of rays. */
+export function charmBurstHtml({ word = '', icon = 'fa-wand-magic-sparkles', from = '#f59e0b', to = '#fde047' } = {}) {
+    const rays = Array.from({ length: 12 }, (_, i) => `<i style="--r:${i * 30}deg"></i>`).join('');
+    return `<div class="qr-charm__burst" style="--qr-from:${esc(from)};--qr-to:${esc(to)}">
+        <span class="qr-charm__rays" aria-hidden="true">${rays}</span>
+        <span class="qr-charm__word"><i class="fas ${esc(icon)}" aria-hidden="true"></i> ${esc(word)}</span>
+    </div>`;
+}
+
+/** "Look here": a pulsing beacon of rings where the teacher pointed on the Wand's map. */
+export function beaconHtml() {
+    return `<span class="qr-beacon__ring" aria-hidden="true"></span>
+        <span class="qr-beacon__ring qr-beacon__ring--2" aria-hidden="true"></span>
+        <span class="qr-beacon__core" aria-hidden="true"><i class="fas fa-wand-magic-sparkles"></i></span>
+        <span class="qr-beacon__label">Look here!</span>`;
+}
+
+/** Hero Spotlight: the room dims, a beam falls on one hero ("your turn"). */
+export function spotlightHtml({ name = 'Hero', avatar = '', line = 'Your turn!' } = {}) {
+    const face = avatar
+        ? `<img src="${esc(avatar)}" alt="" decoding="async">`
+        : `<span>${esc(String(name).charAt(0).toUpperCase())}</span>`;
+    return `<div class="qr-spot__beam" aria-hidden="true"></div>
+    <div class="qr-spot__stage">
+        <span class="qr-spot__face">${face}</span>
+        <strong class="qr-spot__name">${esc(name)}</strong>
+        <span class="qr-spot__line"><i class="fas fa-star" aria-hidden="true"></i> ${esc(line)} <i class="fas fa-star" aria-hidden="true"></i></span>
+    </div>
+    <p class="qr-spot__hint">Click anywhere to close</p>`;
 }

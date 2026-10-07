@@ -16,7 +16,7 @@ import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { FEATURE_DEFINITIONS, getUpgradeMessage, TAB_FEATURE_FLAGS } from '../../config/tiers/features.js';
-import { playSound, ensureAudioReady } from '../../audio.js';
+import { playSound, ensureAudioReady, playQuizShowSfx, warmQuizShowAudio } from '../../audio.js';
 import { showToast } from '../../ui/effects.js';
 import { getSchoolId, DEFAULT_SCHOOL_ID } from '../../utils/tenant.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
@@ -24,9 +24,9 @@ import { getTodayDateString } from '../../utils.js';
 import * as channel from './remoteChannel.js';
 import {
     validateCommand, createCommandLedger, isStaleCommand, makeSessionCode, makeSessionId, buildWandLink,
-    buildStageSummary, stageFingerprint, formatTimerClock, CAST_TABS, HEARTBEAT_MS, HOST_LIVE_MS, STAGE_MIN_INTERVAL_MS
+    buildStageSummary, stageFingerprint, formatTimerClock, timerLabelFor, CAST_TABS, CHARM_SOUNDS, HEARTBEAT_MS, HOST_LIVE_MS, STAGE_MIN_INTERVAL_MS
 } from './remoteCore.mjs';
-import { bindingHtml, timerHtml, curtainHtml, starRibbonHtml } from './remoteStageView.mjs';
+import { bindingHtml, timerHtml, curtainHtml, starRibbonHtml, charmBurstHtml, beaconHtml, spotlightHtml } from './remoteStageView.mjs';
 import { sparkTo, starComet, burstOn, bindBeam, isStillFx, touchRing } from './remoteFx.js';
 
 const STORE_KEY = 'gcq.questRemote.host';
@@ -75,6 +75,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     document.removeEventListener('scroll', h.onScroll, { capture: true });
     stopTimer();
     setBlackout(false);
+    closeSpotlight({ quiet: true });
     (await import('./showdown.js').catch(() => null))?.closeShowdown?.({ silent: true });
     document.getElementById('qr-star-ribbon')?.remove();
     closeBindingCircle();
@@ -445,6 +446,7 @@ async function run(cmd) {
             return report(cmd, true, message || '');
         }
         case 'quiz': return runQuiz(cmd, p);
+        case 'charm': return runCharm(cmd, p);
         default: return report(cmd, false, 'Unknown command');
     }
 }
@@ -564,6 +566,8 @@ async function runAward(cmd, { studentId, reason, stars }) {
 
 /** One star award through the hero's own cloud on the Award Stars screen (same path as the mouse). */
 async function awardHero(studentId, reason, stars) {
+    // A hero in the spotlight who earns a star: the room lights up again so the class sees it land.
+    if (document.getElementById('qr-spotlight')) { closeSpotlight(); await wait(isStillFx() ? 0 : 320); }
     const { card, student, covered, error } = await cardFor(studentId);
     if (error) return { ok: false, message: error };
     if (card.classList.contains('is-locked')) return { ok: false, message: `${firstName(student)} already has today's stars` };
@@ -759,7 +763,7 @@ function runTimer(cmd, p) {
 }
 
 function timerLabel(seconds) {
-    return { 30: 'Think', 60: 'Pair', 90: 'Share' }[seconds] || 'Timer';
+    return timerLabelFor(Math.round(seconds));
 }
 
 function startTimer(seconds, label, totalSeconds = seconds) {
@@ -794,6 +798,12 @@ function tickTimer() {
     const text = formatTimerClock(left);
     if (clock && clock.textContent !== text) clock.textContent = text;
     timer.el.classList.toggle('is-final', left > 0 && left <= 5000);
+    // The last five seconds tick out loud, once each, so the room hears time running out.
+    const sec = Math.ceil(left / 1000);
+    if (left > 0 && sec <= 5 && sec !== timer.lastTick && timer.pausedLeft == null) {
+        timer.lastTick = sec;
+        playSound('click');
+    }
     if (left <= 0 && !timer.done) {
         timer.done = true;
         timer.el.classList.add('is-done');
@@ -857,6 +867,103 @@ function setBlackout(on) {
         el.classList.add('is-lifting');
         setTimeout(() => el.remove(), isStillFx() ? 0 : 700);
     }
+    scheduleStage(0);
+}
+
+// ─── Charms: Sound Charms, Look here, Hero Spotlight ────────────────────────
+
+async function runCharm(cmd, p) {
+    if (p.action === 'sound') {
+        const charm = CHARM_SOUNDS.find((c) => c.id === p.sound);
+        if (!charm) return report(cmd, false, 'Unknown charm');
+        try { warmQuizShowAudio(); } catch { /* sounds are optional */ }
+        playQuizShowSfx(charm.sfx, charm.sfx === 'tally' ? { seconds: 2.4 } : charm.sfx === 'fanfare' ? { tier: 'epic' } : charm.sfx === 'cheer' ? { firstTry: true } : {});
+        showCharmBurst(charm);
+        return report(cmd, true, charm.label);
+    }
+    if (p.action === 'point') {
+        await showBeacon(p.x, p.y);
+        return report(cmd, true, 'Look here!');
+    }
+    if (p.action === 'unspot') { closeSpotlight(); return report(cmd, true, ''); }
+    const student = studentById(p.studentId);
+    if (!student) return report(cmd, false, 'Hero not found');
+    await openSpotlight(student);
+    return report(cmd, true, `Spotlight on ${firstName(student)}`);
+}
+
+let charmTimer = 0;
+
+/** The charm's word bursts in the lower middle of the screen and fades (CSS only, no loop). */
+function showCharmBurst(charm) {
+    document.getElementById('qr-charm')?.remove();
+    clearTimeout(charmTimer);
+    const el = document.createElement('div');
+    el.id = 'qr-charm';
+    el.className = `qr-charm${LITE ? ' qr-lite' : ''}`;
+    el.dataset.qrIgnore = '';
+    el.setAttribute('role', 'status');
+    el.innerHTML = charmBurstHtml(charm);
+    document.body.appendChild(el);
+    if (!isStillFx()) burstOn(el.querySelector('.qr-charm__word') || el, { color: charm.to, count: LITE ? 10 : 22 });
+    charmTimer = setTimeout(() => el.remove(), charm.id === 'drumroll' ? 2900 : 1900);
+}
+
+/** "Look here": a spark flies to the spot the teacher tapped on the Wand's map, then a beacon pulses there. */
+async function showBeacon(x, y) {
+    document.getElementById('qr-beacon')?.remove();
+    const el = document.createElement('div');
+    el.id = 'qr-beacon';
+    el.className = `qr-beacon${LITE ? ' qr-lite' : ''}`;
+    el.dataset.qrIgnore = '';
+    el.setAttribute('aria-hidden', 'true');
+    el.style.left = `${Math.round(Math.max(0.03, Math.min(0.97, x)) * 100)}%`;
+    el.style.top = `${Math.round(Math.max(0.04, Math.min(0.96, y)) * 100)}%`;
+    el.classList.toggle('is-low', y < 0.16);
+    el.innerHTML = beaconHtml();
+    document.body.appendChild(el);
+    await sparkTo(el.querySelector('.qr-beacon__core') || el, { color: '#fcd34d', size: 22, duration: 520, burst: 18 });
+    playSound('magic_chime_short');
+    el.classList.add('is-on');
+    setTimeout(() => { el.classList.add('is-leaving'); setTimeout(() => el.remove(), 500); }, 3600);
+}
+
+let spotTimer = 0;
+
+/** Hero Spotlight: the room dims and a beam falls on one hero, to call them up or celebrate them. */
+async function openSpotlight(student) {
+    let el = document.getElementById('qr-spotlight');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'qr-spotlight';
+        el.className = `qr-spot${LITE ? ' qr-lite' : ''}`;
+        el.dataset.qrIgnore = '';
+        el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-label', 'Hero Spotlight');
+        el.addEventListener('click', () => closeSpotlight());
+        document.body.appendChild(el);
+    }
+    clearTimeout(spotTimer);
+    el.innerHTML = spotlightHtml({ name: firstName(student), avatar: student.avatar || '' });
+    el.classList.remove('is-leaving', 'is-on');
+    void el.offsetWidth;
+    el.classList.add('is-on');
+    try { warmQuizShowAudio(); } catch { /* optional */ }
+    playQuizShowSfx('land');
+    await wait(isStillFx() ? 0 : 420);
+    burstOn(el.querySelector('.qr-spot__face') || el, { color: '#fde047', count: LITE ? 10 : 24 });
+    spotTimer = setTimeout(() => closeSpotlight(), 9000);
+    scheduleStage(0);
+}
+
+function closeSpotlight({ quiet = false } = {}) {
+    clearTimeout(spotTimer);
+    const el = document.getElementById('qr-spotlight');
+    if (!el) return;
+    if (quiet || isStillFx()) { el.remove(); scheduleStage(0); return; }
+    el.classList.remove('is-on');
+    el.classList.add('is-leaving');
+    setTimeout(() => el.remove(), 450);
     scheduleStage(0);
 }
 
@@ -1128,6 +1235,7 @@ async function publishStage() {
     // What the class actually sees: a covering window hides the tab underneath (the Wand words its hints by this).
     stage.covered = !sdPanel && surface.kind === 'overlay';
     stage.blackout = Boolean(document.getElementById('qr-curtain'));
+    stage.spotlight = Boolean(document.getElementById('qr-spotlight'));
     stage.wall = Boolean(document.getElementById('dynamic-wallpaper-screen') && !document.getElementById('dynamic-wallpaper-screen').classList.contains('hidden'));
     // timer remaining changes every tick: leave it out of the "did anything change" check
     const fp = stageFingerprint({ ...stage, timer: stage.timer ? { ...stage.timer, remainingMs: Math.round(stage.timer.remainingMs / 5000) } : null, secret });

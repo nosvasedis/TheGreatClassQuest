@@ -3,7 +3,7 @@
 // Built for one thumb on a 360–430px phone: 48px+ targets, one scroll column, the four modes at the
 // bottom, and the projector's screens drawn as the same clouds the class sees in the dock.
 
-import { WAND_VIRTUES, CAST_TABS, TIMER_PRESETS, formatTimerClock } from './remoteCore.mjs';
+import { WAND_VIRTUES, CAST_TABS, TIMER_PRESETS, CHARM_SOUNDS, CUSTOM_TIMER_MIN, CUSTOM_TIMER_MAX, formatTimerClock } from './remoteCore.mjs';
 
 export function esc(value) {
     return String(value ?? '')
@@ -29,13 +29,13 @@ export function wandShellHtml({ lite = false } = {}) {
     <div class="qw-sky" aria-hidden="true">${lite ? '' : '<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>'}</div>
     <header class="qw-top">
         <button type="button" class="qw-iconbtn" data-qw="leave" aria-label="Put the Wand down"><i class="fas fa-xmark" aria-hidden="true"></i></button>
-        <div class="qw-brand">
-            <span class="qw-brand__gem" aria-hidden="true"><i class="fas fa-wand-magic-sparkles"></i></span>
+        <button type="button" class="qw-brand" data-qw="spells" aria-label="Recent spells">
+            <span class="qw-brand__seal" aria-hidden="true"><span class="qw-brand__gem"><i class="fas fa-wand-magic-sparkles"></i><span class="qw-brand__glint"></span></span><i class="fas fa-clock-rotate-left qw-brand__log"></i></span>
             <span class="qw-brand__text">
                 <b>Quest Remote</b>
                 <span class="qw-link" data-qw-link data-state="connecting"><span class="qw-link__dot" aria-hidden="true"></span><span data-qw-link-text>Connecting…</span></span>
             </span>
-        </div>
+        </button>
         <button type="button" class="qw-classchip" data-qw="class" aria-label="Choose the class"><span data-qw-class>Class</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
     </header>
     <button type="button" class="qw-now" data-qw="to-stage" data-qw-now aria-label="What is on the projector"></button>
@@ -44,7 +44,8 @@ export function wandShellHtml({ lite = false } = {}) {
     <nav class="qw-modes" aria-label="Wand modes">
         ${WAND_MODES.map((m) => `<button type="button" class="qw-mode" data-qw-mode="${m.key}" aria-label="${m.label}"><span class="qw-mode__pill" aria-hidden="true"><i class="fas ${m.icon}"></i></span><span class="qw-mode__label">${m.label}</span></button>`).join('')}
     </nav>
-    <div class="qw-sheet" data-qw-sheet aria-hidden="true"></div>`;
+    <div class="qw-sheet" data-qw-sheet aria-hidden="true"></div>
+    <div class="qw-sparks" data-qw-sparks aria-hidden="true"></div>`;
 }
 
 /** The strip under the header: what the class sees right now (tap → Screen mode). */
@@ -93,22 +94,32 @@ function face(hero, cls = 'qw-face') {
  * Stars mode: the class as orbs. `multi` turns taps into a selection (several heroes, one virtue);
  * `note` is a one-line hint about where the stars will appear on the projector.
  */
-export function starsHtml(heroes, { className = '', empty = '', multi = false, picked = [], note = '' } = {}) {
-    if (!heroes.length) {
+export function starsHtml(allHeroes, { className = '', empty = '', multi = false, picked = [], note = '', waiting = false } = {}) {
+    if (!allHeroes.length) {
         return `<section class="qw-empty"><span class="qw-empty__icon" aria-hidden="true"><i class="fas fa-users"></i></span><p>${esc(empty || 'Choose a class to see its heroes.')}</p></section>`;
     }
     const chosen = new Set(picked);
-    const shining = heroes.filter((h) => h.stars > 0).length;
+    const shining = allHeroes.filter((h) => h.stars > 0).length;
+    const present = allHeroes.filter((h) => !h.away).length;
+    const toShine = allHeroes.filter((h) => !(h.stars > 0) && !h.away);
+    // "Still to shine": only the present heroes without a star today, so nobody is forgotten.
+    const heroes = waiting ? toShine : allHeroes;
+    const pct = present ? Math.round((Math.min(shining, present) / present) * 100) : 0;
     return `<section class="qw-stars${multi ? ' is-multi' : ''}">
         <div class="qw-bar">
             <div class="qw-seg" role="radiogroup" aria-label="Give stars to">
                 <button type="button" role="radio" aria-checked="${!multi}" class="qw-seg__btn${multi ? '' : ' is-on'}" data-qw-pick="one">One hero</button>
                 <button type="button" role="radio" aria-checked="${multi}" class="qw-seg__btn${multi ? ' is-on' : ''}" data-qw-pick="many">Several</button>
             </div>
-            <span class="qw-shine" aria-label="${shining} of ${heroes.length} shine today"><i class="fas fa-star" aria-hidden="true"></i> ${shining}<small>/${heroes.length}</small></span>
+            <span class="qw-shine" style="--pct:${pct}" aria-label="${shining} of ${allHeroes.length} shine today"><span class="qw-shine__ring" aria-hidden="true"><i class="fas fa-star"></i></span>${shining}<small>/${allHeroes.length}</small></span>
         </div>
+        <button type="button" class="qw-waitchip${waiting ? ' is-on' : ''}" data-qw="waiting" aria-pressed="${waiting}">
+            <i class="fas ${waiting ? 'fa-filter-circle-xmark' : 'fa-hourglass-half'}" aria-hidden="true"></i>
+            ${waiting ? 'Showing who is still to shine' : 'Still to shine'} <b>${toShine.length}</b>
+        </button>
         ${note ? `<p class="qw-note"><i class="fas fa-circle-info" aria-hidden="true"></i> ${esc(note)}</p>` : ''}
-        <p class="qw-hint">${multi ? 'Tap the heroes who earned it together, then give the star.' : 'Tap a hero to give a star.'}</p>
+        <p class="qw-hint">${multi ? 'Tap the heroes who earned it together, then give the star.' : 'Tap a hero to give a star, or to call them into the spotlight.'}</p>
+        ${waiting && !heroes.length ? '<p class="qw-allshine"><i class="fas fa-sun" aria-hidden="true"></i> Every hero in the room shines today!</p>' : ''}
         <ul class="qw-orbs">${heroes.map((h, i) => {
         const isPicked = chosen.has(h.id);
         const locked = h.stars > 0 || h.away;
@@ -159,6 +170,7 @@ export function awardSheetHtml(heroOrHeroes, { reason = '', size = 'auto' } = {}
             <p class="qw-flick__hint">${reason ? (size === 'auto' ? 'Flick up · faster flick, more stars' : 'Flick up or tap to send') : 'Choose a virtue first'}</p>
         </div>`}
         ${many ? '' : `<div class="qw-award__more">
+            ${hero.away ? '' : `<button type="button" class="qw-chip qw-chip--spot" data-qw-cmd="charm" data-action="spotlight" data-student="${esc(hero.id)}"><i class="fas fa-lightbulb" aria-hidden="true"></i> Spotlight</button>`}
             ${hero.away
         ? `<button type="button" class="qw-chip" data-qw-att="welcome-back" data-id="${esc(hero.id)}"><i class="fas fa-door-open" aria-hidden="true"></i> Welcome back</button>
                <button type="button" class="qw-chip" data-qw-att="mark-present" data-id="${esc(hero.id)}"><i class="fas fa-user-check" aria-hidden="true"></i> Present</button>`
@@ -383,8 +395,45 @@ export function stageHtml(stage, { secret = null, castAllowed = () => true, padO
     </section>`;
 }
 
-/** Magic mode: crown, wheel, picker, dragon, projector mode, timers, curtain. */
-export function magicHtml(stage, { canCrown = true, canWheel = true } = {}) {
+/** Sound Charms: classroom stings on the projector's speakers, each with its own colour. */
+export function charmsHtml() {
+    return `<div class="qw-charms">${CHARM_SOUNDS.map((c) => `<button type="button" class="qw-charm" data-qw-cmd="charm" data-action="sound" data-sound="${c.id}" style="--c-from:${c.from};--c-to:${c.to}">
+        <span class="qw-charm__orb" aria-hidden="true"><i class="fas ${c.icon}"></i></span><span class="qw-charm__label">${esc(c.label)}</span></button>`).join('')}</div>`;
+}
+
+/**
+ * "Look here": a small map of the projector (16:9). Tap a spot and a beacon pulses there on the
+ * big screen. The screen's buttons in sight show as faint dots so the teacher can find their way.
+ */
+export function lookHereHtml(stage) {
+    const pad = Array.isArray(stage?.pad) ? stage.pad : [];
+    const dots = pad.filter((a) => a.inView && Number.isFinite(a.x) && Number.isFinite(a.y))
+        .slice(0, 24)
+        .map((a) => `<i style="left:${Math.round(Math.max(0, Math.min(1, a.x)) * 100)}%;top:${Math.round(Math.max(0, Math.min(1, a.y)) * 100)}%"></i>`).join('');
+    const cast = castOf(stage?.tab);
+    const title = stage?.title || cast?.label || 'The projector';
+    return `<div class="qw-look">
+        <button type="button" class="qw-look__map" data-qw-map aria-label="Tap where the class should look">
+            <span class="qw-look__dots" aria-hidden="true">${dots}</span>
+            <span class="qw-look__title" aria-hidden="true">${esc(title)}</span>
+            <span class="qw-look__dock" aria-hidden="true"></span>
+        </button>
+        <p class="qw-look__hint"><i class="fas fa-hand-pointer" aria-hidden="true"></i> Tap the spot: a beacon pulses there on the big screen</p>
+    </div>`;
+}
+
+/** Dial any timer from 1 to 30 minutes. */
+export function customTimerHtml(minutes = 3) {
+    return `<div class="qw-custom" role="group" aria-label="Your own timer">
+        <button type="button" class="qw-roundbtn" data-qw="tmin-down" aria-label="One minute less"${minutes <= CUSTOM_TIMER_MIN ? ' disabled' : ''}><i class="fas fa-minus"></i></button>
+        <span class="qw-custom__val"><b>${esc(minutes)}</b><small>min</small></span>
+        <button type="button" class="qw-roundbtn" data-qw="tmin-up" aria-label="One minute more"${minutes >= CUSTOM_TIMER_MAX ? ' disabled' : ''}><i class="fas fa-plus"></i></button>
+        <button type="button" class="qw-btn qw-btn--ember" data-qw-cmd="timer" data-action="start" data-seconds="${minutes * 60}"><i class="fas fa-play" aria-hidden="true"></i> Start</button>
+    </div>`;
+}
+
+/** Magic mode: crown, wheel, picker, dragon, projector mode, timers, charms, look here, curtain. */
+export function magicHtml(stage, { canCrown = true, canWheel = true, customMinutes = 3 } = {}) {
     const t = stage?.timer && !stage.timer.done ? stage.timer : null;
     const pct = t ? Math.max(0, Math.min(1, t.remainingMs / (t.total * 1000 || 1))) : 0;
     return `<section class="qw-magic">
@@ -412,6 +461,13 @@ export function magicHtml(stage, { canCrown = true, canWheel = true } = {}) {
         </div>` : ''}
         <div class="qw-dials">${TIMER_PRESETS.map((p) => `<button type="button" class="qw-dial" data-qw-cmd="timer" data-action="start" data-seconds="${p.seconds}">
             <span class="qw-dial__face" aria-hidden="true"><i class="fas ${p.icon}"></i></span><b>${esc(p.label)}</b>${p.seconds < 120 ? `<small>${p.seconds}s</small>` : ''}</button>`).join('')}</div>
+        ${customTimerHtml(customMinutes)}
+        <h3 class="qw-sub"><i class="fas fa-music" aria-hidden="true"></i> Sound charms</h3>
+        ${charmsHtml()}
+        <h3 class="qw-sub"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> Look here</h3>
+        ${lookHereHtml(stage)}
+        ${stage?.spotlight ? `<button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw-cmd="charm" data-action="unspot"><i class="fas fa-lightbulb" aria-hidden="true"></i> Close the spotlight</button>` : ''}
+        <h3 class="qw-sub"><i class="fas fa-eye" aria-hidden="true"></i> Attention</h3>
         <button type="button" class="qw-blackout${stage?.blackout ? ' is-on' : ''}" data-qw-cmd="blackout" data-on="${stage?.blackout ? 'false' : 'true'}">
             <span class="qw-blackout__icon" aria-hidden="true"><i class="fas ${stage?.blackout ? 'fa-sun' : 'fa-eye'}"></i></span>
             <span><b>${stage?.blackout ? 'Lift the curtain' : 'Eyes on me'}</b><small>${stage?.blackout ? 'Show the screen again' : 'Curtains close over the projector'}</small></span>
@@ -457,10 +513,34 @@ export function showHtml(stage, { secret = null } = {}) {
                 </button>
                 ${panel.growth ? '' : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
             </div>`).join('')}</div>
+        <button type="button" class="qw-golden${panel.golden ? ' is-on' : ''}" data-qw-cmd="showdown" data-action="golden" aria-pressed="${Boolean(panel.golden)}">
+            <span class="qw-golden__coin" aria-hidden="true"><i class="fas fa-coins"></i></span>
+            <span><b>${panel.golden ? 'Golden question is on' : 'Golden question'}</b><small>${panel.golden ? 'The next point counts double · tap to cancel' : (panel.growth ? 'The next good answer grows the flower twice' : 'The next point counts double')}</small></span>
+        </button>
         <div class="qw-showctrl">
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="timer" aria-label="Ten second clock"><i class="fas fa-stopwatch"></i><small>10s</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="next" aria-label="Next question"><i class="fas fa-forward"></i><small>Next</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg qw-roundbtn--gold" data-qw-cmd="showdown" data-action="finish" aria-label="Finish"><i class="fas fa-trophy"></i><small>Finish</small></button>
         </div>
     </section>`;
+}
+
+/** Recent spells: what the projector did with the Wand's last commands (this phone only). */
+export function spellsSheetHtml(log = [], nowMs = Date.now()) {
+    const ago = (at) => {
+        const s = Math.max(0, Math.round((nowMs - at) / 1000));
+        if (s < 10) return 'just now';
+        if (s < 60) return `${s}s ago`;
+        const m = Math.round(s / 60);
+        return m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;
+    };
+    return `<div class="qw-sheet__panel qw-spells" role="dialog" aria-label="Recent spells">
+        <button type="button" class="qw-sheet__grab" data-qw="sheet-close" aria-label="Close"></button>
+        <div class="qw-spells__head"><h3 class="qw-h3"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Recent spells</h3>
+            <button type="button" class="qw-iconbtn qw-iconbtn--sm" data-qw="sheet-close" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+        ${log.length ? `<ol class="qw-spells__list">${log.map((e) => `<li class="qw-spell${e.ok ? '' : ' is-warn'}">
+            <span class="qw-spell__icon" aria-hidden="true"><i class="fas ${e.ok ? 'fa-wand-magic-sparkles' : 'fa-triangle-exclamation'}"></i></span>
+            <span class="qw-spell__text">${esc(e.text)}</span><small class="qw-spell__time">${ago(e.at)}</small></li>`).join('')}</ol>`
+        : '<p class="qw-hint qw-hint--center">Nothing cast yet. Every star, spin and charm the projector performs shows here.</p>'}
+    </div>`;
 }

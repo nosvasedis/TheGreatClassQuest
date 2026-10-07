@@ -16,18 +16,21 @@ export const REMOTE_KEYS = Object.freeze([
     '1', '2', '3', '4', 'a', 'b', 'c', 'd', 'r', 'q', 'l'
 ]);
 
-/** Screens the Wand can cast to the projector: tab id → label + icon. */
+/**
+ * Screens the Wand can cast to the projector, in the order, icons and cloud colours of the real dock
+ * (templates/app/nav.js + styles/nav.css), so the phone shows the same clouds the class sees.
+ */
 export const CAST_TABS = Object.freeze([
-    { tab: 'about-tab', label: 'Home', icon: 'fa-house' },
-    { tab: 'award-stars-tab', label: 'Award Stars', icon: 'fa-star' },
-    { tab: 'class-leaderboard-tab', label: 'Team Quest', icon: 'fa-map' },
-    { tab: 'student-leaderboard-tab', label: "Hero's Challenge", icon: 'fa-trophy' },
-    { tab: 'guilds-tab', label: 'Guild Hall', icon: 'fa-shield-halved', flag: 'guilds' },
-    { tab: 'adventure-log-tab', label: 'Adventure Log', icon: 'fa-book-open', flag: 'adventureLog' },
-    { tab: 'shop-tab', label: 'Mystic Market', icon: 'fa-store' },
-    { tab: 'reward-ideas-tab', label: 'Training Grounds', icon: 'fa-feather', flag: 'storyWeavers' },
-    { tab: 'scholars-scroll-tab', label: "Scholar's Scroll", icon: 'fa-scroll', flag: 'scholarScroll' },
-    { tab: 'calendar-tab', label: 'Quest Calendar', icon: 'fa-calendar-days', flag: 'calendar' }
+    { tab: 'about-tab', label: 'Home', icon: 'fa-home', from: '#06b6d4', to: '#22d3ee' },
+    { tab: 'class-leaderboard-tab', label: 'Team Quest', icon: 'fa-route', from: '#f59e0b', to: '#fbbf24' },
+    { tab: 'student-leaderboard-tab', label: "Hero's Challenge", icon: 'fa-user-graduate', from: '#a855f7', to: '#c084fc' },
+    { tab: 'shop-tab', label: 'Mystic Market', icon: 'fa-store', from: '#65a30d', to: '#84cc16' },
+    { tab: 'guilds-tab', label: 'Guild Hall', icon: 'fa-shield-alt', flag: 'guilds', from: '#c2410c', to: '#f97316' },
+    { tab: 'award-stars-tab', label: 'Award Stars', icon: 'fa-star', from: '#f43f5e', to: '#fb7185' },
+    { tab: 'adventure-log-tab', label: 'Adventure Log', icon: 'fa-book-open', from: '#14b8a6', to: '#2dd4bf' },
+    { tab: 'scholars-scroll-tab', label: "Scholar's Scroll", icon: 'fa-scroll', flag: 'scholarScroll', from: '#be185d', to: '#db2777' },
+    { tab: 'calendar-tab', label: 'Quest Calendar', icon: 'fa-calendar-alt', flag: 'calendar', from: '#3b82f6', to: '#60a5fa' },
+    { tab: 'reward-ideas-tab', label: 'Training Grounds', icon: 'fa-bullseye', flag: 'storyWeavers', from: '#6366f1', to: '#818cf8' }
 ]);
 
 export const CAST_TAB_IDS = Object.freeze(CAST_TABS.map((t) => t.tab));
@@ -63,7 +66,7 @@ export const COMMAND_MAX_AGE_MS = 30_000;
 export const HOST_LIVE_MS = 45_000;
 export const HEARTBEAT_MS = 15_000;
 /** Stage summaries are written at most this often. */
-export const STAGE_MIN_INTERVAL_MS = 900;
+export const STAGE_MIN_INTERVAL_MS = 1000;
 export const MAX_PAD_ACTIONS = 30;
 
 function isPlainObject(value) {

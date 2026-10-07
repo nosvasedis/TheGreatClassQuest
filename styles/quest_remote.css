@@ -1,5 +1,5 @@
 /* styles/quest_remote.css — Quest Remote on the projector (loaded with features/questRemote/remoteHost.js).
-   Binding rune circle, Wand glyph, spark layer, stage timer, Blackout curtain, Showdown Arena.
+   Binding rune circle, header wand states, star ribbon, spark layer, stage timer, Blackout curtain, Showdown Arena.
    Performance rules: animate only transform and opacity; no animated blur, filter or box-shadow;
    `.qr-lite` (low-power laptops) drops the decorative layers; reduced motion keeps only fades. */
 
@@ -39,19 +39,28 @@
 }
 
 /* ── Header + Projector Mode buttons while a Wand is awake ─ */
+/* The header wand is the Wand's status light: a waiting lilac ring while the circle is open and
+   no phone has bound yet; a warm gold wand with a breathing halo while a phone is bound. */
 #quest-remote-btn { position: relative; }
-#quest-remote-btn.is-wand-awake { color: var(--qr-gold); border-color: rgba(252, 211, 77, 0.8); }
-#quest-remote-btn.is-wand-awake::after {
+#quest-remote-btn::after {
     content: '';
     position: absolute;
     inset: -4px;
     border-radius: 999px;
-    border: 2px solid rgba(252, 211, 77, 0.75);
-    opacity: 0.25;
+    border: 2px dashed rgba(196, 181, 253, 0.85);
+    opacity: 0;
     pointer-events: none;
+    transition: opacity 0.3s ease;
 }
-#quest-remote-btn.is-wand-bound::after { animation: qr-breathe 2.6s ease-in-out infinite; }
-.wall-remote [data-wall-action="wand"].is-wand-awake { color: var(--qr-gold); }
+#quest-remote-btn.is-wand-awake::after { opacity: 1; animation: qr-spin 9s linear infinite; }
+#quest-remote-btn.is-wand-bound {
+    color: #422006;
+    background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 70%);
+    border-color: #fde68a;
+}
+#quest-remote-btn.is-wand-bound::after { border: 2px solid rgba(252, 211, 77, 0.85); animation: qr-breathe 2.6s ease-in-out infinite; }
+.wall-remote [data-wall-action="wand"].is-wand-awake { color: var(--qr-lilac); }
+.wall-remote [data-wall-action="wand"].is-wand-bound { color: var(--qr-gold); }
 @keyframes qr-breathe { 0%, 100% { opacity: 0.2; transform: scale(0.96); } 50% { opacity: 0.95; transform: scale(1.06); } }
 
 /* ── Binding circle ──────────────────────────────────────── */
@@ -216,34 +225,68 @@
 .qr-btn--ghost { color: #e0e7ff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); }
 .qr-bind__hint { margin: 14px 0 0; font: 400 0.82rem/1.4 'Fredoka', system-ui, sans-serif; color: #a5b4fc; }
 
-/* ── The Wand glyph (bottom-left while hosting) ─────────── */
-/* Sits just above the cloud dock (remoteHost.js measures the dock and sets --qr-glyph-bottom). */
-#qr-glyph-host { position: fixed; left: 16px; bottom: var(--qr-glyph-bottom, 118px); z-index: 1500; transition: bottom 0.3s ease; }
-.qr-glyph {
-    position: relative;
+/* ── One dock cloud rises for the Wand ──────────────────────
+   When the cloud dock has sunk (idle mouse), only the cloud the Wand touches floats up, then sinks
+   back with the others (remoteHost.js#riseCloud). */
+#bottom-nav-bar.cloud-dock--asleep .nav-button.qr-summoned {
+    top: 0;
+    opacity: 1;
+    pointer-events: auto;
+    transition:
+        top 560ms cubic-bezier(0.34, 1.4, 0.64, 1),
+        opacity 240ms ease,
+        transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        filter 300ms ease;
+}
+
+/* ── Star ribbon (a star given while a window covers Award Stars) ── */
+.qr-ribbon {
+    position: fixed;
+    left: 50%;
+    top: 22px;
+    z-index: 1680;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -140%);
+}
+.qr-ribbon.is-in { animation: qr-ribbon-in 0.6s cubic-bezier(0.22, 1.35, 0.36, 1) forwards; }
+.qr-ribbon.is-out { animation: qr-ribbon-out 0.5s ease-in forwards; }
+@keyframes qr-ribbon-in { from { opacity: 0; transform: translate(-50%, -140%); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes qr-ribbon-out { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -140%); } }
+.qr-ribbon__band {
+    --qr-virtue: var(--qr-gold);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 22px 10px 10px;
+    border-radius: 999px;
+    color: #fff7d6;
+    background: linear-gradient(180deg, #312e81, #1e1b4b);
+    border: 2px solid var(--qr-gold);
+    box-shadow: 0 16px 40px rgba(2, 6, 23, 0.55), inset 0 0 0 4px rgba(252, 211, 77, 0.12);
+}
+.qr-ribbon__face {
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
+    width: clamp(52px, 7vmin, 76px);
+    aspect-ratio: 1;
     border-radius: 50%;
-    color: var(--qr-gold);
-    background: radial-gradient(circle at 35% 30%, #4338ca, #1e1b4b);
-    border: 1.5px solid rgba(252, 211, 77, 0.6);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.45);
-    transition: transform 0.2s ease, opacity 0.3s ease;
+    overflow: hidden;
+    background: linear-gradient(160deg, #4338ca, #1e1b4b);
+    border: 3px solid var(--qr-virtue);
+    font: 400 1.8rem/1 var(--qr-ui);
 }
-.qr-glyph:hover { transform: scale(1.08); }
-.qr-glyph[data-state="waiting"] { opacity: 0.6; color: var(--qr-lilac); border-color: rgba(196, 181, 253, 0.5); }
-.qr-glyph__halo {
-    position: absolute;
-    inset: -7px;
-    border-radius: 50%;
-    border: 2px solid rgba(252, 211, 77, 0.6);
-    opacity: 0;
-    pointer-events: none;
-}
-.qr-glyph[data-state="bound"] .qr-glyph__halo { animation: qr-breathe 2.8s ease-in-out infinite; }
-body.gcq-mobile #qr-glyph-host { display: none; }
+.qr-ribbon__face img { width: 100%; height: 100%; object-fit: cover; }
+.qr-ribbon__text { display: grid; gap: 2px; }
+.qr-ribbon__text strong { font: 400 clamp(1.4rem, 3.4vmin, 2.2rem)/1.05 var(--qr-ui); }
+.qr-ribbon__text small { font: 600 clamp(0.85rem, 1.8vmin, 1.15rem)/1.2 'Fredoka', sans-serif; color: var(--qr-virtue); color: color-mix(in srgb, var(--qr-virtue) 60%, #fff); }
+.qr-ribbon__stars { display: inline-flex; gap: 4px; margin-left: 6px; font-size: clamp(1.4rem, 3.6vmin, 2.4rem); color: #fde047; }
+.qr-ribbon__stars i { animation: qr-ribbon-star 0.5s cubic-bezier(0.22, 1.6, 0.36, 1) both; animation-delay: calc(0.75s + var(--n, 0) * 0.12s); }
+.qr-ribbon__stars i:nth-child(2) { --n: 1; }
+.qr-ribbon__stars i:nth-child(3) { --n: 2; }
+.qr-ribbon__stars--note i { color: var(--qr-lilac); animation: none; }
+@keyframes qr-ribbon-star { from { opacity: 0; transform: scale(0.2) rotate(-40deg); } to { opacity: 1; transform: none; } }
+.qr-lite .qr-ribbon__band, .qr-ribbon.qr-lite .qr-ribbon__band { box-shadow: none; }
 
 /* ── Stage timer ─────────────────────────────────────────── */
 .qr-timer {
@@ -545,7 +588,9 @@ body.gcq-mobile #qr-glyph-host { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
     .qr-ring, .qr-circle__halo, .qr-bind__sky i, .qr-sd__lights i, .qr-lane__shine, .qr-lane__streak,
-    .qr-dots i, .qr-glyph__halo, #quest-remote-btn::after, .qr-curtain__glow { animation: none !important; }
+    .qr-dots i, #quest-remote-btn::after, .qr-curtain__glow, .qr-ribbon__stars i { animation: none !important; }
+    .qr-ribbon.is-in { animation: none; opacity: 1; transform: translate(-50%, 0); }
+    .qr-ribbon.is-out { animation: none; opacity: 0; }
     .qr-circle.is-bound .qr-ring__rune, .qr-lane.is-scored .qr-lane__name, .qr-lane.is-scored .qr-lane__score,
     .qr-lane__flower.is-bloom, .qr-podium__step, .qr-garden li, .qr-timer.is-final .qr-timer__face,
     .qr-timer.is-done .qr-timer__face, .qr-sd__head.is-next, .qr-sd__count.is-tick { animation: none !important; }

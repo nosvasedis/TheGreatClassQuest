@@ -10,16 +10,16 @@ import '../../styles/quest_remote_wand.css';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
-import { FEATURE_DEFINITIONS, getUpgradeMessage } from '../../config/tiers/features.js';
+import { FEATURE_DEFINITIONS, getUpgradeMessage, TAB_FEATURE_FLAGS } from '../../config/tiers/features.js';
 import { getTodayDateString } from '../../utils.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import * as channel from './remoteChannel.js';
 import {
     validateCommand, classifyFlick, slingshotPower, SLINGSHOT_MIN_POWER, createShakeDetector,
-    isHostLive, HEARTBEAT_MS, HOST_LIVE_MS
+    isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock
 } from './remoteCore.mjs';
 import {
-    wandShellHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, showHtml
+    wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, showHtml
 } from './remoteWandView.mjs';
 
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
@@ -57,7 +57,12 @@ export async function openWand({ sessionId = '' } = {}) {
         root,
         main: root.querySelector('[data-qw-main]'),
         sheet: root.querySelector('[data-qw-sheet]'),
-        mode: 'stars',
+        mode: savedMode(),
+        multi: false,
+        picked: new Set(),
+        padOpen: false,
+        lastHtml: '',
+        lastNow: '',
         sessionId: '',
         code: '',
         wandId: `wand${Math.random().toString(36).slice(2, 10)}`,
@@ -69,12 +74,11 @@ export async function openWand({ sessionId = '' } = {}) {
         lastResultSeq: 0,
         lastPanelKind: '',
         sheetKind: '',
-        award: { heroId: '', reason: '', size: 'auto' },
+        award: { heroIds: [], reason: '', size: 'auto' },
         pending: new Map(),
         classOverride: '',
         gesture: false,
         renderQueued: false,
-        rosterFp: '',
         timers: [],
         unsub: null,
         wakeLock: null,
@@ -295,33 +299,76 @@ function send(type, payload = {}) {
 
 // ─── Rendering ──────────────────────────────────────────────────────────────
 
+const MODE_KEY = 'gcq.questRemote.mode';
+const MODES = new Set(['stars', 'stage', 'magic', 'show']);
+
+function savedMode() {
+    try { const m = localStorage.getItem(MODE_KEY); return MODES.has(m) ? m : 'stars'; } catch { return 'stars'; }
+}
+
 function setMode(mode) {
     if (!wand) return;
     wand.mode = mode;
+    wand.root.dataset.mode = mode;
+    try { localStorage.setItem(MODE_KEY, mode); } catch { /* this session only */ }
     wand.root.querySelectorAll('[data-qw-mode]').forEach((b) => {
         const on = b.dataset.qwMode === mode;
         b.classList.toggle('is-on', on);
         b.setAttribute('aria-current', on ? 'page' : 'false');
     });
+    if (mode !== 'stars') { wand.multi = false; wand.picked.clear(); }
+    wand.padOpen = false;
+    wand.lastHtml = '';
     wand.main.scrollTop = 0;
     if (mode === 'magic' || wand.stage?.panel?.kind === 'picker') startMotion(); else stopMotion(wand);
     render({ fresh: true });
 }
 
+/** Where a star will show on the projector, in one line (empty when it simply lands on the cloud). */
+function starsNote(stage) {
+    if (!stage) return '';
+    if (stage.covered) return `Stars show as a golden ribbon over “${stage.title || 'the window'}”.`;
+    if (stage.tab !== 'award-stars-tab') return 'Award Stars opens on the projector with your first star.';
+    return '';
+}
+
 function render({ fresh = false } = {}) {
     if (!wand || wand.root.dataset.phase !== 'bound') return;
     if (wand.gesture) { wand.renderQueued = true; return; }
-    const keep = fresh ? 0 : wand.main.scrollTop;
     const stage = wand.stage || {};
     let html = '';
-    if (wand.mode === 'stars') html = starsHtml(heroesNow(), { className: classLabel(), empty: 'Choose a class (top right) to see its heroes.' });
-    else if (wand.mode === 'stage') html = stageHtml(stage, { secret: wand.secret, castAllowed: (t) => !t.flag || canUseFeature(t.flag) });
-    else if (wand.mode === 'magic') html = magicHtml(stage, { canCrown: canUseFeature('adventureLog'), canWheel: canUseFeature('guilds') });
-    else html = showHtml(stage, { secret: wand.secret });
-    wand.main.innerHTML = `<div class="qw-view qw-view--${wand.mode}${fresh ? ' is-fresh' : ''}">${html}</div>`;
-    wand.main.scrollTop = keep;
+    if (wand.mode === 'stars') {
+        html = starsHtml(heroesNow(), {
+            className: classLabel(), empty: 'Choose a class (top right) to see its heroes.',
+            multi: wand.multi, picked: [...wand.picked], note: starsNote(wand.stage)
+        });
+    } else if (wand.mode === 'stage') {
+        html = stageHtml(stage, { secret: wand.secret, castAllowed: (t) => !TAB_FEATURE_FLAGS[t.tab] || canUseFeature(TAB_FEATURE_FLAGS[t.tab]), padOpen: wand.padOpen });
+    } else if (wand.mode === 'magic') {
+        html = magicHtml(stage, { canCrown: canUseFeature('adventureLog'), canWheel: canUseFeature('guilds') });
+    } else {
+        html = showHtml(stage, { secret: wand.secret });
+    }
+    // Only touch the page when something changed: no flicker, no lost taps, less work.
+    if (fresh || html !== wand.lastHtml) {
+        const keep = fresh ? 0 : wand.main.scrollTop;
+        wand.lastHtml = html;
+        wand.main.innerHTML = `<div class="qw-view qw-view--${wand.mode}${fresh ? ' is-fresh' : ''}">${html}</div>`;
+        wand.main.scrollTop = keep;
+        // The cloud of the screen on the projector is always in sight in the row of screens.
+        const onCloud = wand.main.querySelector('.qw-screens .qw-cloud.is-on');
+        const row = onCloud?.parentElement;
+        if (onCloud && row) row.scrollLeft = Math.max(0, onCloud.offsetLeft - (row.clientWidth - onCloud.offsetWidth) / 2);
+    }
+    const now = nowStripHtml(wand.stage);
+    if (now !== wand.lastNow) {
+        wand.lastNow = now;
+        const strip = wand.root.querySelector('[data-qw-now]');
+        if (strip) { strip.innerHTML = now; strip.hidden = !now; }
+    }
     const chip = wand.root.querySelector('[data-qw-class]');
-    if (chip) chip.textContent = classLabel() || 'Class';
+    const label = classLabel() || 'Class';
+    if (chip && chip.textContent !== label) chip.textContent = label;
 }
 
 function currentClassId() {
@@ -362,22 +409,19 @@ function heroesNow() {
 
 function refreshRosterIfChanged() {
     if (!wand) return;
-    const fp = JSON.stringify(heroesNow().map((h) => [h.id, h.stars, h.away, h.pending]));
-    if (fp === wand.rosterFp) return;
-    wand.rosterFp = fp;
-    // a saved star replaces the optimistic one
     const stars = state.get('todaysStars') || {};
     for (const id of wand.pending.keys()) if (Number(stars[id]?.stars) > 0) wand.pending.delete(id);
     render();
 }
 
 function tickTimerBadge() {
-    const badge = wand?.root.querySelector('[data-qw-timer-left]');
     const t = wand?.stage?.timer;
-    if (!badge || !t || t.paused || t.done) return;
+    if (!t || t.paused || t.done) return;
     t.remainingMs = Math.max(0, t.remainingMs - 1000);
-    const total = Math.ceil(t.remainingMs / 1000);
-    badge.textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+    const text = formatTimerClock(t.remainingMs);
+    wand.root.querySelectorAll('[data-qw-timer-left]').forEach((el) => { if (el.textContent !== text) el.textContent = text; });
+    const card = wand.root.querySelector('.qw-timer');
+    card?.style.setProperty('--p', (t.remainingMs / ((t.total || 1) * 1000)).toFixed(3));
 }
 
 // ─── Sheets ─────────────────────────────────────────────────────────────────
@@ -398,35 +442,53 @@ function closeSheet() {
     setTimeout(() => { if (wand && !wand.sheetKind) wand.sheet.innerHTML = ''; }, 320);
 }
 
-function renderAwardSheet() {
-    const hero = heroesNow().find((h) => h.id === wand.award.heroId);
-    if (!hero) { closeSheet(); return; }
-    wand.sheet.innerHTML = awardSheetHtml(hero, { reason: wand.award.reason, size: wand.award.size });
+function awardHeroes() {
+    const all = heroesNow();
+    return wand.award.heroIds.map((id) => all.find((h) => h.id === id)).filter(Boolean);
 }
 
-function openAward(heroId) {
-    wand.award = { heroId, reason: '', size: wand.award.size || 'auto' };
-    const hero = heroesNow().find((h) => h.id === heroId);
-    if (!hero) return;
-    openSheet('award', awardSheetHtml(hero, { reason: '', size: wand.award.size }));
+function renderAwardSheet() {
+    const heroes = awardHeroes();
+    if (!heroes.length) { closeSheet(); return; }
+    wand.sheet.innerHTML = awardSheetHtml(heroes.length > 1 ? heroes : heroes[0], { reason: wand.award.reason, size: wand.award.size });
+}
+
+function openAward(heroIds) {
+    // A fresh award starts with no virtue picked: the teacher names it each time; the size is remembered.
+    wand.award = { heroIds, reason: '', size: wand.award.size || 'auto' };
+    const heroes = awardHeroes();
+    if (!heroes.length) return;
+    openSheet('award', awardSheetHtml(heroes.length > 1 ? heroes : heroes[0], { reason: '', size: wand.award.size }));
     buzz(8);
 }
 
 function sendStar(stars) {
-    const { heroId, reason } = wand.award;
-    if (!heroId || !reason || ![1, 2, 3].includes(stars)) return;
-    const hero = heroesNow().find((h) => h.id === heroId);
-    if (!send('award', { studentId: heroId, reason, stars })) return;
-    wand.pending.set(heroId, { stars, at: Date.now() });
+    const { reason } = wand.award;
+    const heroes = awardHeroes().filter((h) => !(h.stars > 0) && !h.away);
+    if (!reason || ![1, 2, 3].includes(stars) || !heroes.length) return;
+    let sent = 0;
+    for (const hero of heroes) {
+        if (!send('award', { studentId: hero.id, reason, stars })) continue;
+        wand.pending.set(hero.id, { stars, at: Date.now() });
+        sent += 1;
+    }
+    if (!sent) return;
     buzz(stars >= 3 ? [20, 30, 20, 30, 60] : stars === 2 ? [20, 30, 40] : [30]);
     const starEl = wand.sheet.querySelector('[data-qw-star]');
     starEl?.classList.add('is-flying', `is-flying--${stars}`);
-    wand.suppressNextOk = true;
+    wand.suppressNextOk = sent === 1;
+    const ids = heroes.map((h) => h.id);
+    const who = sent === 1 ? heroes[0].first : `${sent} heroes`;
     setTimeout(() => {
         closeSheet();
+        wand.multi = false;
+        wand.picked.clear();
         render();
-        toast(`${'★'.repeat(stars)} on its way to ${hero?.first || 'the hero'}`, 'ok', {
-            action: { label: 'Undo', run: () => { send('undo', { studentId: heroId }); wand.pending.delete(heroId); render(); buzz(15); } }
+        toast(`${'★'.repeat(stars)} on its way to ${who}`, 'ok', {
+            action: {
+                label: 'Undo',
+                run: () => { ids.forEach((id) => { send('undo', { studentId: id }); wand.pending.delete(id); }); render(); buzz(15); }
+            }
         });
     }, STILL ? 60 : 420);
 }
@@ -447,6 +509,20 @@ function datasetPayload(el) {
     return p;
 }
 
+function onHeroTap(heroId) {
+    if (!wand.multi) { openAward([heroId]); return; }
+    const hero = heroesNow().find((h) => h.id === heroId);
+    if (!hero) return;
+    if (hero.stars > 0 || hero.away) {
+        buzz([30, 40, 30]);
+        toast(hero.away ? `${hero.first} is away today` : `${hero.first} already shines today`, 'warn');
+        return;
+    }
+    if (wand.picked.has(heroId)) wand.picked.delete(heroId); else wand.picked.add(heroId);
+    buzz(6);
+    render();
+}
+
 function wireEvents(root) {
     root.addEventListener('click', (e) => {
         if (!wand) return;
@@ -455,6 +531,10 @@ function wireEvents(root) {
         if (act === 'leave') { buzz(10); closeWand(); return; }
         if (act === 'refresh') { showChooser(); return; }
         if (act === 'sheet-close') { closeSheet(); return; }
+        if (act === 'to-stage') { buzz(6); setMode('stage'); return; }
+        if (act === 'pad-toggle') { wand.padOpen = !wand.padOpen; render(); return; }
+        if (act === 'multi-clear') { wand.picked.clear(); render(); return; }
+        if (act === 'multi-go') { if (wand.picked.size) openAward([...wand.picked]); return; }
         if (act === 'class') {
             const classes = [...(state.get('allTeachersClasses') || [])].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
             openSheet('class', classSheetHtml(classes, currentClassId()));
@@ -472,8 +552,10 @@ function wireEvents(root) {
         if (session) { connect(session.dataset.qwSession); return; }
         const mode = t.closest('[data-qw-mode]');
         if (mode) { buzz(6); setMode(mode.dataset.qwMode); if (mode.dataset.qwMode === 'magic') enableMotionPermission(); return; }
+        const pick = t.closest('[data-qw-pick]');
+        if (pick) { wand.multi = pick.dataset.qwPick === 'many'; wand.picked.clear(); buzz(6); render(); return; }
         const hero = t.closest('[data-qw-hero]');
-        if (hero) { openAward(hero.dataset.qwHero); return; }
+        if (hero) { onHeroTap(hero.dataset.qwHero); return; }
         const virtue = t.closest('[data-qw-virtue]');
         if (virtue) { wand.award.reason = virtue.dataset.qwVirtue; buzz(8); renderAwardSheet(); return; }
         const size = t.closest('[data-qw-size]');
@@ -483,7 +565,7 @@ function wireEvents(root) {
         const classOpt = t.closest('[data-qw-classid]');
         if (classOpt) {
             const id = classOpt.dataset.qwClassid;
-            if (send('class', { classId: id })) { wand.classOverride = id; buzz(10); closeSheet(); render(); }
+            if (send('class', { classId: id })) { wand.classOverride = id; wand.picked.clear(); buzz(10); closeSheet(); render(); }
             return;
         }
         const pad = t.closest('[data-qw-pad]');

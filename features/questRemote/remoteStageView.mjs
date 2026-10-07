@@ -1,5 +1,5 @@
 // features/questRemote/remoteStageView.mjs — Quest Remote projector markup (pure strings, no DOM, no
-// state): the binding rune circle, the Wand glyph, the stage timer, the Blackout curtain and the
+// state): the binding rune circle, the star ribbon, the stage timer, the Blackout curtain and the
 // Showdown Arena. Styles: styles/quest_remote.css. Driven by remoteHost.js and showdown.js.
 
 import { runeForCodeChar, formatTimerClock, showdownBarLevels, showdownStandings, showdownWinners } from './remoteCore.mjs';
@@ -53,13 +53,34 @@ export function bindingHtml({ qrSvg = '', code = '', lite = false, bound = false
     </div>`;
 }
 
-/** The little medallion in the corner while a Wand is bound. */
-export function glyphHtml({ state = 'waiting' } = {}) {
-    const label = state === 'bound' ? 'Quest Remote: the Wand is bound' : 'Quest Remote: waiting for the Wand';
-    return `<button type="button" class="qr-glyph" data-state="${esc(state)}" aria-label="${esc(label)}" title="${esc(label)}">
-        <span class="qr-glyph__halo" aria-hidden="true"></span>
-        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
-    </button>`;
+const RIBBON_VIRTUES = {
+    teamwork: { name: 'Teamwork', icon: 'fa-users', color: '#8b5cf6' },
+    creativity: { name: 'Creativity', icon: 'fa-lightbulb', color: '#ec4899' },
+    respect: { name: 'Respect', icon: 'fa-hands-helping', color: '#10b981' },
+    focus: { name: 'Focus', icon: 'fa-brain', color: '#f59e0b' }
+};
+
+/**
+ * The star ribbon: drops over a covering window (Projector Mode, a show) when the Wand gives a star,
+ * because the hero's Award Stars cloud is hidden underneath. The comet lands on [data-qr-ribbon-target].
+ */
+export function starRibbonHtml({ name = 'Hero', avatar = '', stars = 0, reason = '', note = '' } = {}) {
+    const v = RIBBON_VIRTUES[reason];
+    const face = avatar
+        ? `<img src="${esc(avatar)}" alt="" decoding="async">`
+        : `<span>${esc(String(name).charAt(0).toUpperCase())}</span>`;
+    const starRow = stars > 0
+        ? `<span class="qr-ribbon__stars" data-qr-ribbon-target aria-label="${stars} star${stars === 1 ? '' : 's'}">${'<i class="fas fa-star"></i>'.repeat(Math.min(3, stars))}</span>`
+        : `<span class="qr-ribbon__stars qr-ribbon__stars--note" data-qr-ribbon-target><i class="fas fa-wand-magic-sparkles"></i></span>`;
+    return `
+    <div class="qr-ribbon__band"${v ? ` style="--qr-virtue:${v.color}"` : ''}>
+        <span class="qr-ribbon__face">${face}</span>
+        <span class="qr-ribbon__text">
+            <strong>${esc(name)}</strong>
+            <small>${v ? `<i class="fas ${v.icon}" aria-hidden="true"></i> ${v.name}` : esc(note)}</small>
+        </span>
+        ${starRow}
+    </div>`;
 }
 
 const RING_R = 54;

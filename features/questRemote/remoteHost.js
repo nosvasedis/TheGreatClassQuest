@@ -15,17 +15,18 @@ import '../../styles/quest_remote.css';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
-import { FEATURE_DEFINITIONS, getUpgradeMessage } from '../../config/tiers/features.js';
+import { FEATURE_DEFINITIONS, getUpgradeMessage, TAB_FEATURE_FLAGS } from '../../config/tiers/features.js';
 import { playSound, ensureAudioReady } from '../../audio.js';
 import { showToast } from '../../ui/effects.js';
 import { getSchoolId, DEFAULT_SCHOOL_ID } from '../../utils/tenant.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import { getTodayDateString } from '../../utils.js';
 import * as channel from './remoteChannel.js';
 import {
     validateCommand, createCommandLedger, isStaleCommand, makeSessionCode, makeSessionId, buildWandLink,
     buildStageSummary, stageFingerprint, formatTimerClock, CAST_TABS, HEARTBEAT_MS, HOST_LIVE_MS, STAGE_MIN_INTERVAL_MS
 } from './remoteCore.mjs';
-import { bindingHtml, glyphHtml, timerHtml, curtainHtml } from './remoteStageView.mjs';
+import { bindingHtml, timerHtml, curtainHtml, starRibbonHtml } from './remoteStageView.mjs';
 import { sparkTo, starComet, burstOn, bindBeam, isStillFx } from './remoteFx.js';
 
 const STORE_KEY = 'gcq.questRemote.host';
@@ -74,8 +75,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     stopTimer();
     setBlackout(false);
     (await import('./showdown.js').catch(() => null))?.closeShowdown?.({ silent: true });
-    document.getElementById('qr-glyph-host')?.remove();
-    window.removeEventListener('resize', placeGlyph);
+    document.getElementById('qr-star-ribbon')?.remove();
     closeBindingCircle();
     syncLaunchButtons();
     await channel.closeHostSession(h.id);
@@ -128,7 +128,6 @@ async function startHosting({ resume = null } = {}) {
     document.addEventListener('keydown', h.onAnyInput, true);
     h.safetyScan = setInterval(() => scheduleStage(), 4000);
 
-    mountGlyph();
     syncLaunchButtons();
     if (!resume) openBindingCircle();
     scheduleStage(0);
@@ -164,11 +163,11 @@ function onWandBound() {
             setTimeout(() => closeBindingCircle(), isStillFx() ? 900 : 1800);
         });
     } else {
-        showToast('✨ The Wand is awake.', 'success');
-        const glyph = document.querySelector('#qr-glyph-host .qr-glyph');
-        if (glyph) burstOn(glyph, { color: '#fcd34d', count: 18 });
+        // Reconnected without the circle on screen: the header wand answers instead.
+        const btn = launchButton();
+        if (btn) sparkTo(btn, { color: '#fcd34d', size: 20, duration: 520, burst: 16 });
+        else showToast('✨ The Wand is awake.', 'success');
     }
-    syncGlyph();
     syncLaunchButtons();
     scheduleStage(0);
 }
@@ -178,7 +177,7 @@ function refreshBondState() {
     const alive = host.wandId && Date.now() - (host.wandSeenAt || 0) < HOST_LIVE_MS + 10_000;
     const was = host.bound;
     host.bound = Boolean(alive);
-    if (was !== host.bound) { syncGlyph(); syncLaunchButtons(); }
+    if (was !== host.bound) syncLaunchButtons();
 }
 
 // ─── Binding circle, glyph, launch buttons ──────────────────────────────────
@@ -235,35 +234,9 @@ function closeBindingCircle() {
     setTimeout(() => modal.remove(), 380);
 }
 
-function mountGlyph() {
-    let slot = document.getElementById('qr-glyph-host');
-    if (!slot) {
-        slot = document.createElement('div');
-        slot.id = 'qr-glyph-host';
-        slot.dataset.qrIgnore = '';
-        document.body.appendChild(slot);
-        slot.addEventListener('click', () => openBindingCircle());
-        window.addEventListener('resize', placeGlyph, { passive: true });
-    }
-    placeGlyph();
-    syncGlyph();
-}
-
-/** Keeps the medallion clear of the cloud dock at the bottom of the screen. */
-function placeGlyph() {
-    const slot = document.getElementById('qr-glyph-host');
-    if (!slot) return;
-    const dock = document.getElementById('bottom-nav-bar');
-    // offsetHeight ignores the dock's sink-when-idle transform, so the medallion never ends up under
-    // the clouds when they float back up.
-    const height = dock && dock.getClientRects().length ? dock.offsetHeight : 0;
-    const clear = height > 0 ? height + 14 : 16;
-    slot.style.setProperty('--qr-glyph-bottom', `${Math.round(clear)}px`);
-}
-
-function syncGlyph() {
-    const slot = document.getElementById('qr-glyph-host');
-    if (slot) slot.innerHTML = glyphHtml({ state: host?.bound ? 'bound' : 'waiting' });
+/** The visible wand button: the header one, or Projector Mode's when that covers the screen. */
+function launchButton() {
+    return [...document.querySelectorAll('[data-wall-action="wand"], #quest-remote-btn')].find(isShown) || null;
 }
 
 /** Header and projector buttons glow while a Wand is awake. */
@@ -274,6 +247,8 @@ function syncLaunchButtons() {
         btn.classList.toggle('is-wand-awake', on);
         btn.classList.toggle('is-wand-bound', bound);
         btn.setAttribute('aria-pressed', String(on));
+        btn.title = bound ? 'Quest Remote: your phone is the Wand (click for the circle or to sleep)'
+            : on ? 'Quest Remote: waiting for your phone' : 'Quest Remote: your phone runs the projector';
     });
 }
 
@@ -333,20 +308,82 @@ function pressKey(key) {
     target.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true, cancelable: true }));
 }
 
-async function showTab(tab) {
-    const nav = await import('../../ui/tabs/navigation.js');
-    await nav.showTab(tab);
-}
-
 function activeTabId() { return document.querySelector('.app-tab:not(.hidden)')?.id || ''; }
 
-async function ensureTab(tab) {
-    if (activeTabId() === tab && !topOverlay()) return true;
-    const navBtn = document.querySelector(`.nav-button[data-tab="${tab}"]`);
-    if (isShown(navBtn)) await sparkTo(navBtn, { size: 16, duration: 420, burst: 8 });
-    await showTab(tab);
-    await wait(120);
+function wallpaperRunning() {
+    const wall = document.getElementById('dynamic-wallpaper-screen');
+    return Boolean(wall && !wall.classList.contains('hidden'));
+}
+
+/** Is this screen part of the school's plan? Same gate as the dock (config/tiers/features.js TAB_FEATURE_FLAGS). */
+function tabAllowed(tab) {
+    const flag = TAB_FEATURE_FLAGS[tab];
+    return !flag || canUseFeature(flag);
+}
+
+/**
+ * The dock cloud for a tab, ready to be touched. On a mouse PC the dock sinks out of sight when idle
+ * (ui/core/cloudDock.js); then only this one cloud rises for the Wand, and sinks back a moment later.
+ */
+async function riseCloud(tab) {
+    const dock = document.getElementById('bottom-nav-bar');
+    const cloud = dock?.querySelector(`.nav-button[data-tab="${tab}"]`);
+    if (!cloud || !dock.getClientRects().length) return null;
+    if (dock.classList.contains('cloud-dock--asleep')) {
+        clearTimeout(cloud._qrSink);
+        cloud.classList.add('qr-summoned');
+        cloud._qrSink = setTimeout(() => cloud.classList.remove('qr-summoned'), 2600);
+        await wait(isStillFx() ? 0 : 420);
+    }
+    return isShown(cloud) ? cloud : null;
+}
+
+/** showTab reveals the new tab only after the old one has faded out: wait for it to really be there. */
+async function waitForTab(tab, timeout = 1800) {
+    const end = performance.now() + timeout;
+    while (performance.now() < end) {
+        if (activeTabId() === tab) return true;
+        await wait(60);
+    }
     return activeTabId() === tab;
+}
+
+/**
+ * Brings a tab to the screen the way the mouse does: the Wand touches its cloud in the dock (the
+ * cloud's own click handler plays the sound and switches). Under a covering window there is no
+ * cloud to see, so the tab simply switches underneath.
+ */
+async function ensureTab(tab, { spark } = {}) {
+    if (activeTabId() === tab) return true;
+    if (!tabAllowed(tab)) return false;
+    const cloud = (spark ?? !topOverlay()) ? await riseCloud(tab) : null;
+    if (cloud) {
+        await sparkTo(cloud, { size: 18, duration: 480, burst: 14 });
+        cloud.click();
+    } else {
+        const nav = await import('../../ui/tabs/navigation.js');
+        await nav.showTab(tab);
+    }
+    return waitForTab(tab);
+}
+
+/** "Show this" commands (cast, crown, wheel, picker) first let Projector Mode step aside, or it would hide them. */
+async function stepAsideProjectorMode() {
+    if (!wallpaperRunning()) return;
+    const { toggleWallpaperMode } = await import('../../ui/wallpaper.js');
+    toggleWallpaperMode();
+    await wait(isStillFx() ? 60 : 480);
+}
+
+async function runCast(cmd, tab) {
+    const label = CAST_TABS.find((t) => t.tab === tab)?.label || 'That screen';
+    if (!tabAllowed(tab)) return report(cmd, false, `${label} is not part of this school's plan`);
+    await stepAsideProjectorMode();
+    const overlay = topOverlay();
+    const ok = await ensureTab(tab, { spark: !overlay });
+    if (!ok) return report(cmd, false, `${label} did not open`);
+    if (overlay) return report(cmd, true, `${label} is ready behind this window: press Back`);
+    return report(cmd, true, `On screen: ${label}`);
 }
 
 function ensureClass(classId) {
@@ -371,11 +408,7 @@ async function run(cmd) {
             pressKey(p.key);
             return report(cmd, true, '');
         }
-        case 'cast': {
-            const ok = await ensureTab(p.tab);
-            const label = CAST_TABS.find((t) => t.tab === p.tab)?.label || 'that screen';
-            return report(cmd, ok, ok ? `On screen: ${label}` : `${label} is not open on this plan`);
-        }
+        case 'cast': return runCast(cmd, p.tab);
         case 'class': {
             const btn = document.getElementById('header-class-selector-btn');
             if (isShown(btn)) await sparkTo(btn, { size: 16, duration: 420, burst: 10 });
@@ -443,19 +476,27 @@ function runScroll(cmd, dir) {
     return report(cmd, true, '');
 }
 
+/**
+ * The hero's own cloud on Award Stars, wherever the projector is. Awards always go through that
+ * cloud (the same buttons, guards and saving as the mouse). If a window covers the screen (Projector
+ * Mode, a show, a quiz) the tab switches quietly underneath and the class sees a star ribbon instead.
+ */
 async function cardFor(studentId) {
     const student = studentById(studentId);
     if (!student) return { error: 'Hero not found' };
     ensureClass(student.classId);
-    if (!(await ensureTab('award-stars-tab'))) return { error: 'Award Stars could not open' };
-    const card = await waitFor(`#award-stars-student-list .student-cloud-card[data-studentid="${CSS.escape(studentId)}"]`, { timeout: 3000 });
-    if (!card) return { error: `${firstName(student)} is not on the Award Stars screen` };
-    const r = card.getBoundingClientRect();
-    if (r.top < 60 || r.bottom > window.innerHeight - 20) {
-        card.scrollIntoView({ block: 'center', behavior: isStillFx() ? 'auto' : 'smooth' });
-        await wait(isStillFx() ? 40 : 420);
+    const covered = Boolean(topOverlay());
+    if (!(await ensureTab('award-stars-tab', { spark: !covered }))) return { error: 'Award Stars could not open' };
+    const card = await waitFor(`#award-stars-student-list .student-cloud-card[data-studentid="${CSS.escape(studentId)}"]`, { timeout: 3000, visible: !covered });
+    if (!card) return { error: `${firstName(student)} is not in this class on Award Stars` };
+    if (!covered) {
+        const r = card.getBoundingClientRect();
+        if (r.top < 60 || r.bottom > window.innerHeight - 20) {
+            card.scrollIntoView({ block: 'center', behavior: isStillFx() ? 'auto' : 'smooth' });
+            await wait(isStillFx() ? 40 : 420);
+        }
     }
-    return { card, student };
+    return { card, student, covered };
 }
 
 async function runAward(cmd, { studentId, reason, stars }) {
@@ -465,41 +506,86 @@ async function runAward(cmd, { studentId, reason, stars }) {
 
 /** One star award through the hero's own cloud on the Award Stars screen (same path as the mouse). */
 async function awardHero(studentId, reason, stars) {
-    const { card, student, error } = await cardFor(studentId);
+    const { card, student, covered, error } = await cardFor(studentId);
     if (error) return { ok: false, message: error };
     if (card.classList.contains('is-locked')) return { ok: false, message: `${firstName(student)} already has today's stars` };
-    const reasonBtn = card.querySelector(`.reason-btn[data-reason="${reason}"]`);
-    if (!reasonBtn) return { ok: false, message: 'That virtue is not on the cloud' };
-    if (!reasonBtn.classList.contains('active')) {
-        await sparkTo(reasonBtn, { color: '#c4b5fd', size: 16, duration: 460, burst: 8 });
-        reasonBtn.click();
-        await wait(isStillFx() ? 60 : 280);
+    if (card.classList.contains('is-absent')) {
+        return { ok: false, message: card.querySelector('[data-action="welcome-back"]')
+            ? `${firstName(student)} was away last lesson: welcome them back first`
+            : `${firstName(student)} is marked away today` };
     }
+    const reasonBtn = card.querySelector(`.reason-btn[data-reason="${reason}"]`);
     const starBtn = card.querySelector(`.star-award-btn[data-stars="${stars}"]`);
-    if (!starBtn) return { ok: false, message: 'Star button missing' };
-    await starComet(isShown(starBtn) ? starBtn : card, stars);
+    if (!reasonBtn || !starBtn) return { ok: false, message: 'This cloud cannot take a star right now' };
+    if (!reasonBtn.classList.contains('active')) {
+        if (!covered) await sparkTo(reasonBtn, { color: '#c4b5fd', size: 16, duration: 440, burst: 8 });
+        reasonBtn.click();
+        await wait(isStillFx() || covered ? 60 : 260);
+    }
+    const target = covered
+        ? await showRibbon(student, { stars, reason })
+        : (isShown(starBtn) ? starBtn : card);
+    await starComet(target, stars);
     starBtn.click();
     return { ok: true, message: `${'★'.repeat(stars)} ${firstName(student)}` };
 }
 
 async function runCardAction(cmd, studentId, selector, okMessage) {
-    const { card, student, error } = await cardFor(studentId);
+    const { card, student, covered, error } = await cardFor(studentId);
     if (error) return report(cmd, false, error);
     const btn = card.querySelector(selector);
     if (!btn || (btn.classList.contains('hidden') && !isShown(btn))) return report(cmd, false, `Nothing to do for ${firstName(student)}`);
-    await sparkTo(isShown(btn) ? btn : card, { size: 18, duration: 480, burst: 10 });
+    const target = covered ? await showRibbon(student, { note: okMessage }) : (isShown(btn) ? btn : card);
+    await sparkTo(target, { size: 18, duration: 480, burst: 10 });
     btn.click();
     return report(cmd, true, `${okMessage}: ${firstName(student)}`);
 }
 
+// ─── Star ribbon (when a window covers the Award Stars clouds) ──────────────
+
+let ribbonTimer = 0;
+
+/** Drops a golden ribbon with the hero over whatever is on screen; resolves with the comet target. */
+async function showRibbon(student, { stars = 0, reason = '', note = '' } = {}) {
+    let el = document.getElementById('qr-star-ribbon');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'qr-star-ribbon';
+        el.className = `qr-ribbon${LITE ? ' qr-lite' : ''}`;
+        el.dataset.qrIgnore = '';
+        el.setAttribute('role', 'status');
+        document.body.appendChild(el);
+    }
+    clearTimeout(ribbonTimer);
+    el.innerHTML = starRibbonHtml({ name: firstName(student), avatar: student.avatar || '', stars, reason, note });
+    el.classList.remove('is-out', 'is-in');
+    void el.offsetWidth;
+    el.classList.add('is-in');
+    ribbonTimer = setTimeout(() => {
+        el.classList.remove('is-in');
+        el.classList.add('is-out');
+    }, 2800);
+    await wait(isStillFx() ? 0 : 280);
+    return el.querySelector('[data-qr-ribbon-target]') || el;
+}
+
 async function runCrown(cmd) {
     if (!canUseFeature('adventureLog')) return report(cmd, false, 'Hero of the Day needs the Adventure Log (Pro)');
+    // The same checks the crown button makes, answered on the phone instead of a toast nobody reads.
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) return report(cmd, false, 'Choose a class first (top right)');
+    const today = getTodayDateString();
+    const page = (state.get('allAdventureLogs') || []).find((l) => l.classId === classId && l.date === today);
+    const stars = state.get('todaysStars') || {};
+    const shining = (state.get('allStudents') || []).some((s) => s.classId === classId && Number(stars[s.id]?.stars) > 0);
+    if (!page && !shining) return report(cmd, false, `Award some stars first, then crown today's hero`);
+    await stepAsideProjectorMode();
     if (!(await ensureTab('adventure-log-tab'))) return report(cmd, false, 'The Adventure Log could not open');
     const btn = await waitFor('#log-adventure-btn', { timeout: 2500 });
     if (!btn || btn.disabled) return report(cmd, false, 'No crown to give right now');
     await sparkTo(btn, { color: '#fde047', size: 30, duration: 820, burst: 30 });
     btn.click();
-    return report(cmd, true, 'The crown is chosen…');
+    return report(cmd, true, page ? `Today's hero is already crowned: opening the page` : 'The crown is chosen…');
 }
 
 async function runWheel(cmd, { action, power }) {
@@ -508,6 +594,7 @@ async function runWheel(cmd, { action, power }) {
     if (action === 'open') {
         if (open) return report(cmd, true, '');
         if (!canUseFeature('guilds')) return report(cmd, false, "Fortune's Wheel needs the Guild Hall (Pro)");
+        await stepAsideProjectorMode();
         if (!(await ensureTab('guilds-tab'))) return report(cmd, false, 'The Guild Hall could not open');
         const btn = await waitFor('#fortunes-wheel-btn', { timeout: 3000 });
         if (!btn || btn.disabled) return report(cmd, false, document.getElementById('fortunes-wheel-status')?.textContent?.trim() || 'The wheel is resting');
@@ -544,6 +631,7 @@ async function runPicker(cmd, action) {
     const open = modal && !modal.classList.contains('hidden');
     if (action === 'open' || (!open && action === 'pick')) {
         if (!open) {
+            await stepAsideProjectorMode();
             const { openFairPicker } = await import('../../ui/modals/fairPicker.js');
             await sparkTo(findSurface().el, { color: '#f9a8d4', size: 22 });
             await openFairPicker(state.get('globalSelectedClassId'));
@@ -887,6 +975,8 @@ async function publishStage() {
         scrollable: Boolean(scrollContainerOf(surface.el)) || document.documentElement.scrollHeight > window.innerHeight + 40
     });
     stage.timer = timerState();
+    // What the class actually sees: a covering window hides the tab underneath (the Wand words its hints by this).
+    stage.covered = !sdPanel && surface.kind === 'overlay';
     stage.blackout = Boolean(document.getElementById('qr-curtain'));
     stage.wall = Boolean(document.getElementById('dynamic-wallpaper-screen') && !document.getElementById('dynamic-wallpaper-screen').classList.contains('hidden'));
     // timer remaining changes every tick: leave it out of the "did anything change" check

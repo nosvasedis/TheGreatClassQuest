@@ -2,8 +2,8 @@
 
 import '../../../../styles/quest_remote.css';
 import '../../../../styles/quest_remote_wand.css';
-import { wandShellHtml, starsHtml, awardSheetHtml, magicHtml, showHtml, stageHtml } from '../../../../features/questRemote/remoteWandView.mjs';
-import { bindingHtml, showdownHtml, timerHtml } from '../../../../features/questRemote/remoteStageView.mjs';
+import { wandShellHtml, nowStripHtml, starsHtml, awardSheetHtml, magicHtml, showHtml, stageHtml } from '../../../../features/questRemote/remoteWandView.mjs';
+import { bindingHtml, showdownHtml, timerHtml, starRibbonHtml } from '../../../../features/questRemote/remoteStageView.mjs';
 import { createShowdown, scoreShowdown, showdownPanel, buildStageSummary } from '../../../../features/questRemote/remoteCore.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
 
@@ -54,15 +54,18 @@ export function hideRemote() {
   document.getElementById(ROOT_ID)?.remove();
 }
 
-/** The phone: `stars` (hero orbs), `award` (the award card with the star to flick), `magic`, `show`, `stage`. */
+/** The phone: `stars` (hero orbs), `several` (choosing heroes), `award` (the star to flick), `magic`, `show`, `stage`. */
 export function showWand(view = 'stars') {
-  const mode = view === 'award' ? 'stars' : view;
+  const mode = view === 'award' || view === 'several' ? 'stars' : view;
   const root = mount(`<div class="qw qw-still is-in" data-phase="bound">${wandShellHtml({})}</div>`, 'capture-wand');
   const qw = root.querySelector('.qw');
   qw.querySelector('[data-qw-link]').dataset.state = 'bound';
   qw.querySelector('[data-qw-link-text]').textContent = 'Bound · K M 4 R';
   qw.querySelector('[data-qw-class]').textContent = '📚 Junior B';
+  qw.dataset.mode = mode;
   qw.querySelectorAll('[data-qw-mode]').forEach((b) => b.classList.toggle('is-on', b.dataset.qwMode === mode));
+  const now = qw.querySelector('[data-qw-now]');
+  if (now) now.innerHTML = nowStripHtml({ tab: 'about-tab', title: 'Home', covered: false, timer: mode === 'magic' ? { remainingMs: 42000, total: 60, label: 'Pair' } : null });
   const sd = sampleShowdown();
   const stage = buildStageSummary({
     surface: 'overlay', tab: 'guilds-tab', title: "Fortune's Wheel",
@@ -70,10 +73,10 @@ export function showWand(view = 'stars') {
     panel: { kind: 'wheel', ready: true, caption: 'Dragon Flame steps up to the wheel.', next: '' }
   });
   let html = '';
-  if (mode === 'stars') html = starsHtml(HEROES, { className: '📚 Junior B' });
+  if (mode === 'stars') html = starsHtml(HEROES, { className: '📚 Junior B', multi: view === 'several', picked: view === 'several' ? ['b', 'd', 'h'] : [], note: view === 'stars' ? 'Award Stars opens on the projector with your first star.' : '' });
   else if (mode === 'magic') html = magicHtml({ timer: { label: 'Pair', total: 60, remainingMs: 42000 }, blackout: false, wall: false });
   else if (mode === 'show') html = showHtml({ panel: showdownPanel(sd) });
-  else html = stageHtml(stage, { castAllowed: () => true });
+  else html = stageHtml({ ...stage, scrollable: true }, { castAllowed: () => true });
   qw.querySelector('[data-qw-main]').innerHTML = `<div class="qw-view">${html}</div>`;
   if (view === 'award') {
     const sheet = qw.querySelector('[data-qw-sheet]');
@@ -91,6 +94,10 @@ export async function showProjectorRemote(view = 'bind') {
       qr = await renderQrSvg('https://great-class-quest-school.pages.dev/#wand=wguidebook0000', { color: '#1e1b4b', accent: '#d97706', title: 'Quest Remote', emblem: true });
     } catch { /* the circle still shows */ }
     mount(`<div class="qr-bind is-open" style="position:relative;inset:auto;width:1100px;height:820px">${bindingHtml({ qrSvg: qr, code: 'KM4R' })}</div>`, 'capture-qr');
+    return;
+  }
+  if (view === 'ribbon') {
+    mount(`<div class="capture-qr-timer-stage capture-qr-ribbon-stage"><div class="qr-ribbon is-in" style="position:absolute;animation:none;opacity:1;transform:translate(-50%,0)">${starRibbonHtml({ name: 'Maya', avatar: face('🐼', '#bfdbfe'), stars: 2, reason: 'teamwork' })}</div></div>`, 'capture-qr');
     return;
   }
   if (view === 'showdown') {

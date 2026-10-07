@@ -14,7 +14,7 @@ You should not have to go back to the keyboard to praise a child. With the Wand 
 
 **No camera?** On your phone, open **More › Quest Remote**. It lists your projectors that are awake. Match the four runes shown under the circle.
 
-While a Wand is bound, a small wand medallion glows in the bottom-left corner of the projector. Click it to see the circle again, or to **put the Wand to sleep**. If the classroom computer reloads the page, the session comes back by itself.
+The header wand is the Wand's status light. A turning lilac ring means it is waiting for your phone. A gold wand with a gentle glow means your phone is bound. Click it at any time to see the circle again, or to **put the Wand to sleep**. If the classroom computer reloads the page, the session comes back by itself.
 
 Only your own phone, signed in as you, can command your projector. Nothing is shown to anyone else.
 
@@ -22,12 +22,14 @@ Only your own phone, signed in as you, can command your projector. Nothing is sh
 
 | Mode | What you can do |
 |---|---|
-| **Stars** | The class as hero orbs (today's stars, who is away). Tap a hero, choose the virtue (Teamwork, Creativity, Respect, Focus), then **flick the star up** towards the screen. With **Flick** chosen, a faster flick gives more stars (1–3). You can also fix the size (★, ★★ or ★★★) and just tap. A comet flies into the hero's cloud and the usual star celebration plays. **Undo** stays on your phone for a few seconds. In the hero's card you can also mark them away, present, or give the Welcome Back bonus. |
-| **Stage** | Shows what is on the projector and lists **the buttons of that screen**, whatever it is: a window, a ceremony, the Market, a story. Tap one and it is pressed on the projector. **Back** closes the top window, the arrows scroll, and **Cast a screen** opens Home, Award Stars, Team Quest, Hero's Challenge, Guild Hall, the Adventure Log, the Market and more. When Fortune's Wheel, the Fair Picker or Projector Mode is open, their controls appear here first. |
+| **Stars** | The class as hero orbs (today's stars, who is away). Tap a hero, choose the virtue (Teamwork, Creativity, Respect, Focus), then **flick the star up** towards the screen. With **Flick** chosen, a faster flick gives more stars (1–3). You can also fix the size (★, ★★ or ★★★) and just tap. **Several** lets you tap a few heroes who earned it together (a pair, a table) and give them all the same star in one flick. **Undo** stays on your phone for a few seconds. In a hero's card you can also mark them away, present, or give the Welcome Back bonus. Stars work from any screen: if the projector shows something else, Award Stars opens and a comet flies into the hero's cloud. If a window covers the screen (Projector Mode, a show), a golden ribbon with the hero's name drops in instead, and the star is saved on their cloud underneath. |
+| **Screen** | The same clouds as the bottom of the projector: tap one to show that screen (Projector Mode steps aside first). On the projector the matching cloud rises, even when the dock is resting out of sight, and the Wand touches it. Below are **the buttons of whatever is on screen**: a window, a ceremony, the Market, a story. Tap one and it is pressed on the projector. **Back** closes the top window, the arrows scroll, **OK** is Enter. When Fortune's Wheel, the Fair Picker, Projector Mode or the quiz is open, their controls come first. |
 | **Magic** | **Crown Today's Hero**: hold the crown until the ring fills. **Fortune's Wheel**: open it, then **pull the lever down and let go**. A harder pull gives a wilder spin; the result is still the wheel's own luck. **Fair Picker**: shake your phone (or tap) to summon the next hero. **Quiet Dragon** and **Projector Mode** start from here too. **Timers**: Think 30 s · Pair 60 s · Share 90 s, 2 or 5 minutes, shown as a large ember ring on the projector (pause, +30 s, stop). **Eyes on me**: velvet curtains close over the projector; lift them from the phone, or click the projector. |
 | **Show** | **Showdown Arena** (below), and the **Quiz host console** when Quiz of the Week is on screen (Elite). |
 
-Settings, the student roster and other forms are never cast to the projector and stay on the computer. The Stage list leaves out delete, remove and sign-out buttons.
+A strip under the top of the Wand always shows what the class sees (and a running timer). Tap it to jump to **Screen**. The Wand remembers the mode you used last.
+
+Settings, the student roster and other forms are never cast to the projector and stay on the computer. The Screen list leaves out delete, remove and sign-out buttons.
 
 ## Showdown Arena
 

@@ -282,7 +282,9 @@ try {
   await captureExtra('Quest Remote Showdown', () => window.__gcqCapture.showProjectorRemote('showdown'), '#capture-quest-remote .qr-sd', 'quest-remote-showdown.png');
   await captureExtra('Quest Remote timer', () => window.__gcqCapture.showProjectorRemote('timer'), '#capture-quest-remote .capture-qr-timer-stage', 'quest-remote-timer.png');
   await captureExtra('Wand: stars', () => window.__gcqCapture.showWand('stars'), '#capture-quest-remote .qw', 'wand-stars.png');
+  await captureExtra('Wand: several', () => window.__gcqCapture.showWand('several'), '#capture-quest-remote .qw', 'wand-several.png');
   await captureExtra('Wand: award', () => window.__gcqCapture.showWand('award'), '#capture-quest-remote .qw', 'wand-award.png');
+  await captureExtra('Quest Remote star ribbon', () => window.__gcqCapture.showProjectorRemote('ribbon'), '#capture-quest-remote .capture-qr-ribbon-stage', 'quest-remote-ribbon.png');
   await captureExtra('Wand: stage', () => window.__gcqCapture.showWand('stage'), '#capture-quest-remote .qw', 'wand-stage.png');
   await captureExtra('Wand: magic', () => window.__gcqCapture.showWand('magic'), '#capture-quest-remote .qw', 'wand-magic.png');
   await captureExtra('Wand: show', () => window.__gcqCapture.showWand('show'), '#capture-quest-remote .qw', 'wand-show.png');

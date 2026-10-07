@@ -88,6 +88,7 @@ export const KICKERS = {
   'award-stars': { en: 'Tab · Award Stars', el: 'Καρτέλα · Award Stars' },
   'adventure-log': { en: 'Tab · Adventure Log', el: 'Καρτέλα · Adventure Log' },
   'hero-campfire': { en: 'Hero Campfire', el: 'Hero Campfire' },
+  'quest-remote': { en: 'Quest Remote', el: 'Quest Remote' },
   'scholars-scroll': { en: "Tab · Scholar's Scroll", el: "Καρτέλα · Scholar's Scroll" },
   'quest-calendar': { en: 'Tab · Quest Calendar', el: 'Καρτέλα · Quest Calendar' },
   'story-weavers': { en: 'Tab · Training Grounds', el: 'Καρτέλα · Training Grounds' },

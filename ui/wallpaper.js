@@ -329,9 +329,15 @@ function handleWallpaperKeydown(e) {
         case 'd': case 'D': panelOpen ? closeDeckPanel() : openDeckPanel(); break;
         case 'f': case 'F': toggleWallFullscreen(); break;
         case 'q': case 'Q': openQuietDragonFrom('wallpaper'); break;
+        case 'w': case 'W': openQuestRemoteFromWall(); break;
         default: return;
     }
     wakeWallControls();
+}
+
+// Quest Remote: the teacher's phone becomes a Wand for this screen (Pro). Loads only when pressed.
+function openQuestRemoteFromWall() {
+    import('./questRemoteButton.js').then((m) => m.openQuestRemoteHost());
 }
 
 function bindWallControls() {
@@ -354,6 +360,7 @@ function bindWallControls() {
             else if (action === 'fullscreen') toggleWallFullscreen();
             else if (action === 'dragon') openQuietDragonFrom('wallpaper');
             else if (action === 'raid') import('../features/realmRaid.js').then(({ openRealmRaid }) => openRealmRaid());
+            else if (action === 'wand') openQuestRemoteFromWall();
         });
     });
 

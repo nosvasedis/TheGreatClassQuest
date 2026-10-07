@@ -1301,6 +1301,9 @@ function setupAuthListeners() {
                         await waitForLoadingScreenSettled(loadingScreen);
                         if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
                         if (isCurrentSession()) maybeOpenOperatorConsole();
+                        if (isCurrentSession() && profile.role !== ROLE_SECRETARY) {
+                            import('./ui/questRemoteButton.js').then((m) => m.onTeacherAppReady()).catch(() => {});
+                        }
                     }, {
                         role: profile.role,
                         profile,
@@ -1319,6 +1322,7 @@ function setupAuthListeners() {
         } else {
             cancelAuthGate();
             resetAuthSubmitState();
+            import('./ui/questRemoteButton.js').then((m) => m.onSignedOut()).catch(() => {});
             stopSubscription?.();
             if (state) state.resetState();
             setSchoolId(readDeviceSchoolId());
@@ -1376,6 +1380,7 @@ async function initApp() {
         }
 
         import('./ui/quietDragonButton.js').then((m) => m.initQuietDragonButton()).catch((e) => console.warn('Quiet Dragon button failed to start', e));
+        import('./ui/questRemoteButton.js').then((m) => m.initQuestRemoteButton()).catch((e) => console.warn('Quest Remote button failed to start', e));
 
         const exitWallBtn = document.getElementById('exit-wallpaper-btn');
         if (exitWallBtn) {

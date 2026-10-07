@@ -107,6 +107,7 @@ import {
   showCampfireScene,
   showOathBoard
 } from './fill-campfire.js';
+import { hideRemote, showProjectorRemote, showWand } from './fill-remote.js';
 
 const DATE_TEXT = 'Sunday, 30 August 2026';
 const TIME_TEXT = '09:15';
@@ -254,6 +255,9 @@ window.__gcqCapture = {
   hideHeroClass,
   hideCampfire,
   showOathBoard,
+  showWand,
+  showProjectorRemote,
+  hideRemote,
   showCampfireScene,
   hideRedesign,
   showBountyPoster,

@@ -39,6 +39,10 @@ export const FEATURE_DEFINITIONS = {
         name: 'Hero Campfire', emoji: '🔥', tier: 'Pro',
         description: 'A gentle closing ritual, lesson words and Ember Oaths',
     },
+    questRemote: {
+        name: 'Quest Remote', emoji: '🪄', tier: 'Pro',
+        description: 'Your phone runs the projector: stars, crown, wheel, timers and the Showdown Arena',
+    },
     adventureLog: {
         name: 'Adventure Log',
         emoji: '📓',
@@ -135,6 +139,7 @@ export const UPGRADE_MESSAGES = {
         advancedAttendance: 'The Attendance Chronicle (month view and history) is available on the Pro plan.',
         heroProgression: 'Hero Classes and Skill Tree progression are available on the Pro plan.',
         heroCampfire: 'Hero Campfire (closing reflection) and Ember Oaths (personal promises) are available on the Pro plan.',
+        questRemote: 'Quest Remote turns your phone into a Wand that runs the projector: stars, crowns, the wheel, timers and the Showdown Arena.',
         maxClasses: 'You have reached your plan limit. Upgrade to add more classes.',
         maxTeachers: 'Your school has reached the teacher limit. Upgrade to add more teachers.'
     },

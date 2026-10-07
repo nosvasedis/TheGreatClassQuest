@@ -670,6 +670,11 @@ a:hover { color: #155e75; }
   max-width: 22rem;
   margin: 0 auto;
 }
+/* A row of phone screenshots (Quest Remote). */
+.ui-shot-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; margin: 0 0 1.2rem; }
+.ui-shot-row .ui-shot { margin: 0; }
+.ui-shot-row .ui-shot-portrait img { max-width: 100%; }
+
 .ui-shot figcaption {
   font-size: 0.82rem;
   color: var(--muted);

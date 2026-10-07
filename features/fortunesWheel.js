@@ -1221,7 +1221,7 @@ function _setCanvasRotation(canvas, angle) {
  * @param {{ startAngle?: number, quick?: boolean }} options - quick: the Whirlwind's shorter second spin
  * @returns {Promise<{ rotationAngle: number }>} resolves when animation completes
  */
-export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick, { startAngle = 0, quick = false } = {}) {
+export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick, { startAngle = 0, quick = false, power = null } = {}) {
     return new Promise((resolve) => {
         const segCount = segments.length;
         const segAngle = TAU / segCount;
@@ -1234,12 +1234,15 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
         const base = ((startAngle % TAU) + TAU) % TAU;
         const targetAngle = -winnerCenterAngle - Math.PI / 2;
         const normalizedTarget = ((targetAngle - base) % TAU + TAU) % TAU;
-        const turns = quick ? 4 + Math.floor(Math.random() * 2) : 8 + Math.floor(Math.random() * 4);
+        // Quest Remote slingshot: a harder pull (power 0..1) spins more turns for longer; the winner is already chosen.
+        const pulled = !quick && Number.isFinite(power) ? Math.min(1, Math.max(0, power)) : null;
+        const turns = quick ? 4 + Math.floor(Math.random() * 2)
+            : pulled !== null ? 6 + Math.round(pulled * 7) : 8 + Math.floor(Math.random() * 4);
         const travel = turns * TAU + normalizedTarget;
 
         const nearMiss = !quick && Math.random() < 0.34;
         const overshoot = nearMiss ? segAngle * (0.6 + Math.random() * 0.15) : 0;
-        const duration = (quick ? 3800 : 6500 + Math.random() * 1500) + (nearMiss ? 900 : 0);
+        const duration = (quick ? 3800 : pulled !== null ? 5200 + pulled * 3200 : 6500 + Math.random() * 1500) + (nearMiss ? 900 : 0);
         const windUp = quick ? 0 : 0.07;
         const rollback = nearMiss ? 0.13 : 0;
         const startTime = performance.now();
@@ -1555,7 +1558,7 @@ function _closeAfterSpin() {
 }
 
 /** Spins the wheel to `winnerIndex` (from wherever it rests) with ticks and pointer flicks. */
-async function _spinTo(winnerIndex, { quick = false } = {}) {
+async function _spinTo(winnerIndex, { quick = false, power = null } = {}) {
     const canvas = document.getElementById('fortunes-wheel-canvas');
     const guildDef = getGuildById(_wheelState.guildOrder[_wheelState.currentGuildIndex]);
     const stageFrame = document.getElementById('fw-stage-frame');
@@ -1563,7 +1566,7 @@ async function _spinTo(winnerIndex, { quick = false } = {}) {
     const anim = await animateWheelSpin(canvas, _wheelState.segments, winnerIndex, guildDef, () => {
         try { playSound('click'); } catch (_) { /* optional */ }
         _flickPointer();
-    }, { startAngle: _wheelState.rotationAngle || 0, quick });
+    }, { startAngle: _wheelState.rotationAngle || 0, quick, power });
     stageFrame?.classList.remove('is-spinning');
     _wheelState.winnerIndex = winnerIndex;
     _wheelState.rotationAngle = anim?.rotationAngle || 0;
@@ -1605,8 +1608,9 @@ function _stageOptions(seg, cardEl) {
 
 /**
  * Called when teacher clicks "Spin!" for the current guild.
+ * `power` (0..1, optional) comes from the Quest Remote slingshot.
  */
-export async function triggerSpin() {
+export async function triggerSpin({ power = null } = {}) {
     if (_wheelState.phase !== 'ready') return;
     _wheelState.phase = 'spinning';
     _wheelState.winnerIndex = null;
@@ -1626,7 +1630,7 @@ export async function triggerSpin() {
     _setStageCaption('The wheel whirls… every eye on the pointer.');
     _updateSpinButton(true, 'Spinning...');
 
-    await _spinTo(spinWheel(segments.length));
+    await _spinTo(spinWheel(segments.length), { power });
     if (stale()) return;
     if (_wheelState._aborting) return _closeAfterSpin();
 

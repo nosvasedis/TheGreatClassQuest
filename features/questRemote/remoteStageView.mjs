@@ -1,0 +1,171 @@
+// features/questRemote/remoteStageView.mjs — Quest Remote projector markup (pure strings, no DOM, no
+// state): the binding rune circle, the Wand glyph, the stage timer, the Blackout curtain and the
+// Showdown Arena. Styles: styles/quest_remote.css. Driven by remoteHost.js and showdown.js.
+
+import { runeForCodeChar, formatTimerClock, showdownBarLevels, showdownStandings, showdownWinners } from './remoteCore.mjs';
+
+export function esc(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const RING_RUNES = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
+
+function skyStars(count) {
+    let html = '';
+    for (let i = 0; i < count; i += 1) {
+        // deterministic scatter (no Math.random, so the markup is testable and stable)
+        const x = (i * 37.17) % 100;
+        const y = (i * 61.31) % 100;
+        const s = 1 + (i % 3);
+        html += `<i style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--s:${s}px;--d:${(i % 7) * 0.6}s"></i>`;
+    }
+    return html;
+}
+
+/** The binding circle: QR in the middle, a slowly turning ring of runes, the 4-letter code. */
+export function bindingHtml({ qrSvg = '', code = '', lite = false, bound = false } = {}) {
+    const runes = Array.from({ length: 24 }, (_, i) => `<span class="qr-ring__rune" style="--i:${i}">${RING_RUNES[i % RING_RUNES.length]}</span>`).join('');
+    const codeHtml = String(code).split('').map((ch, i) => `<span class="qr-code__cell" style="--i:${i}"><b>${esc(ch)}</b><small aria-hidden="true">${runeForCodeChar(ch)}</small></span>`).join('');
+    return `
+    <div class="qr-bind__sky" aria-hidden="true">${skyStars(lite ? 18 : 46)}</div>
+    <div class="qr-bind__card">
+        <button type="button" class="qr-bind__x" data-qr-close aria-label="Close"><i class="fas fa-times" aria-hidden="true"></i></button>
+        <p class="qr-bind__eyebrow"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> Quest Remote</p>
+        <h2 id="qr-bind-title" class="qr-bind__title">${bound ? 'The Wand is awake' : 'Wake the Wand'}</h2>
+        <p class="qr-bind__lead" data-qr-lead>${bound
+        ? 'Your phone now commands this screen. Award stars, crown heroes, spin the wheel, run the show.'
+        : 'Point your phone’s camera at the circle. Your phone becomes the Wand for this screen.'}</p>
+        <div class="qr-circle${bound ? ' is-bound' : ''}">
+            <div class="qr-ring" aria-hidden="true">${runes}</div>
+            <div class="qr-circle__halo" aria-hidden="true"></div>
+            <div class="qr-circle__qr" data-qr-target>${qrSvg || '<span class="qr-circle__loading"><i class="fas fa-spinner fa-spin"></i></span>'}</div>
+            <div class="qr-circle__seal" aria-hidden="true"><i class="fas fa-wand-magic-sparkles"></i></div>
+        </div>
+        <div class="qr-code" aria-label="Wand code ${esc(String(code).split('').join(' '))}">${codeHtml}</div>
+        <p class="qr-bind__status" data-qr-status role="status">${bound ? '<i class="fas fa-circle-check"></i> Bound to your phone' : '<span class="qr-dots" aria-hidden="true"><i></i><i></i><i></i></span> Waiting for your Wand…'}</p>
+        <div class="qr-bind__actions">
+            <button type="button" class="qr-btn qr-btn--ghost" data-qr-sleep><i class="fas fa-moon" aria-hidden="true"></i> Put the Wand to sleep</button>
+            <button type="button" class="qr-btn qr-btn--gold" data-qr-close>${bound ? 'Begin' : 'Keep it waiting'}</button>
+        </div>
+        <p class="qr-bind__hint">No camera? On your phone, open <b>More › Quest Remote</b> and choose this screen.</p>
+    </div>`;
+}
+
+/** The little medallion in the corner while a Wand is bound. */
+export function glyphHtml({ state = 'waiting' } = {}) {
+    const label = state === 'bound' ? 'Quest Remote: the Wand is bound' : 'Quest Remote: waiting for the Wand';
+    return `<button type="button" class="qr-glyph" data-state="${esc(state)}" aria-label="${esc(label)}" title="${esc(label)}">
+        <span class="qr-glyph__halo" aria-hidden="true"></span>
+        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+    </button>`;
+}
+
+const RING_R = 54;
+export const TIMER_CIRCUMFERENCE = Math.round(2 * Math.PI * RING_R * 100) / 100;
+
+/** The stage timer: a large ember ring (CSS-animated, so no JavaScript runs per frame). */
+export function timerHtml({ label = 'Timer', seconds = 30, remainingMs = seconds * 1000, paused = false } = {}) {
+    const total = Math.max(1, seconds) * 1000;
+    const done = Math.max(0, Math.min(1, 1 - remainingMs / total));
+    return `
+    <div class="qr-timer__ring${paused ? ' is-paused' : ''}" style="--qr-dur:${(remainingMs / 1000).toFixed(2)}s;--qr-c:${TIMER_CIRCUMFERENCE};--qr-from:${(done * TIMER_CIRCUMFERENCE).toFixed(2)}">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="qr-timer__track" cx="60" cy="60" r="${RING_R}"/>
+            <circle class="qr-timer__run" cx="60" cy="60" r="${RING_R}"/>
+        </svg>
+        <div class="qr-timer__face">
+            <span class="qr-timer__label">${esc(label)}</span>
+            <strong class="qr-timer__clock" data-qr-clock>${formatTimerClock(remainingMs)}</strong>
+        </div>
+    </div>`;
+}
+
+/** Blackout: velvet curtains with a calm "Eyes on me" seal. */
+export function curtainHtml({ lite = false } = {}) {
+    return `
+    <div class="qr-curtain__half qr-curtain__half--l" aria-hidden="true"></div>
+    <div class="qr-curtain__half qr-curtain__half--r" aria-hidden="true"></div>
+    <div class="qr-curtain__seal">
+        ${lite ? '' : '<span class="qr-curtain__glow" aria-hidden="true"></span>'}
+        <i class="fas fa-eye" aria-hidden="true"></i>
+        <strong>Eyes on me</strong>
+        <small>The Wand has paused the screen</small>
+    </div>`;
+}
+
+// ─── Showdown Arena ─────────────────────────────────────────────────────────
+
+const FLOWER_STAGES = ['🌱', '🌿', '🌷', '🌸', '🌻', '🌺'];
+
+/** The flower a Growth Festival team shows after `score` good answers (no number ever shown). */
+export function growthFlower(score) {
+    const n = Math.max(0, Math.floor(Number(score) || 0));
+    return FLOWER_STAGES[Math.min(FLOWER_STAGES.length - 1, Math.floor(n / 2))];
+}
+
+function laneHtml(team, index, level, growth) {
+    const style = `--qr-team:${esc(team.color)};--qr-level:${level.toFixed(3)};--i:${index}`;
+    const badge = team.emoji ? esc(team.emoji) : esc(team.shape);
+    if (growth) {
+        return `<li class="qr-lane qr-lane--growth" data-team="${index}" style="${style}">
+            <div class="qr-lane__pot" aria-hidden="true"><span class="qr-lane__flower" data-qr-flower>${growthFlower(team.score)}</span></div>
+            <div class="qr-lane__name"><span class="qr-lane__badge">${badge}</span>${esc(team.name)}</div>
+        </li>`;
+    }
+    return `<li class="qr-lane" data-team="${index}" style="${style}">
+        <div class="qr-lane__score" data-qr-score>${team.score}</div>
+        <div class="qr-lane__track"><div class="qr-lane__bar"><span class="qr-lane__shine" aria-hidden="true"></span></div>
+            ${team.streak >= 2 ? `<span class="qr-lane__streak" aria-label="${team.streak} in a row"><i class="fas fa-fire"></i>${team.streak}</span>` : ''}
+        </div>
+        <div class="qr-lane__name"><span class="qr-lane__badge">${badge}</span>${esc(team.name)}</div>
+    </li>`;
+}
+
+export function showdownHtml(sd, { secondsLeft = null } = {}) {
+    if (!sd) return '';
+    const levels = showdownBarLevels(sd);
+    const lanes = sd.teams.map((t, i) => laneHtml(t, i, levels[i], sd.growth)).join('');
+    return `
+    <div class="qr-sd__lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <header class="qr-sd__head">
+        <p class="qr-sd__eyebrow"><i class="fas fa-bolt" aria-hidden="true"></i> ${sd.growth ? 'Garden Showdown' : 'Showdown Arena'}</p>
+        <h2 class="qr-sd__title">${esc(sd.title)}</h2>
+        ${sd.growth ? '<p class="qr-sd__round">Every good answer helps your flower grow</p>' : `<p class="qr-sd__round">Question <b data-qr-round>${sd.round}</b></p>`}
+        ${secondsLeft != null ? `<div class="qr-sd__count" data-qr-count>${secondsLeft}</div>` : ''}
+    </header>
+    <ol class="qr-sd__lanes" style="--n:${sd.teams.length}">${lanes}</ol>
+    <p class="qr-sd__foot">Answer out loud: the Wand gives the point</p>`;
+}
+
+/** The finale: a podium (or, for Growth Festival, the whole garden in bloom: everyone wins). */
+export function showdownFinaleHtml(sd) {
+    if (!sd) return '';
+    if (sd.growth) {
+        return `
+        <div class="qr-sd__finale qr-sd__finale--growth">
+            <h2 class="qr-sd__title">What a garden!</h2>
+            <ul class="qr-garden">${sd.teams.map((t, i) => `<li style="--qr-team:${esc(t.color)};--i:${i}"><span class="qr-garden__flower">${growthFlower(t.score + 4)}</span><b>${esc(t.name)}</b></li>`).join('')}</ul>
+            <p class="qr-sd__foot">Every team helped the garden grow.</p>
+        </div>`;
+    }
+    const standings = showdownStandings(sd);
+    const winners = new Set(showdownWinners(sd));
+    const top = standings.slice(0, 3);
+    // podium order: 2nd, 1st, 3rd
+    const order = [top[1], top[0], top[2]].filter(Boolean);
+    const step = (t) => `<li class="qr-podium__step qr-podium__step--${t.place}" style="--qr-team:${esc(t.color)}">
+        <span class="qr-podium__badge">${t.emoji ? esc(t.emoji) : esc(t.shape)}</span>
+        <b class="qr-podium__name">${esc(t.name)}</b>
+        <span class="qr-podium__score">${t.score}</span>
+        <span class="qr-podium__block">${t.place === 1 ? '<i class="fas fa-crown"></i>' : t.place}</span>
+    </li>`;
+    const champion = standings.filter((t) => winners.has(t.index)).map((t) => esc(t.name)).join(' & ');
+    return `
+    <div class="qr-sd__finale">
+        <p class="qr-sd__eyebrow"><i class="fas fa-trophy" aria-hidden="true"></i> Showdown champions</p>
+        <h2 class="qr-sd__title">${champion || 'A draw!'}</h2>
+        <ol class="qr-podium">${order.map(step).join('')}</ol>
+    </div>`;
+}

@@ -36,6 +36,7 @@ function getTierDefaults(tier) {
                 guilds: false,
                 adventureLog: false,
                 heroCampfire: false,
+                questRemote: false,
                 calendar: false,
                 schoolYearPlanner: false,
                 scholarScroll: false,
@@ -60,6 +61,7 @@ function getTierDefaults(tier) {
                 guilds: true,
                 adventureLog: true,
                 heroCampfire: true,
+                questRemote: true,
                 calendar: true,
                 schoolYearPlanner: true,
                 scholarScroll: true,
@@ -84,6 +86,7 @@ function getTierDefaults(tier) {
                 guilds: true,
                 adventureLog: true,
                 heroCampfire: true,
+                questRemote: true,
                 calendar: true,
                 schoolYearPlanner: true,
                 scholarScroll: true,
@@ -118,6 +121,7 @@ function getStarterDefaults() {
         guilds: false,
         adventureLog: false,
         heroCampfire: false,
+                questRemote: false,
         calendar: false,
         schoolYearPlanner: false,
         scholarScroll: false,
@@ -144,6 +148,7 @@ function getExpiredDefaults() {
         guilds: false,
         adventureLog: false,
         heroCampfire: false,
+                questRemote: false,
         calendar: false,
         schoolYearPlanner: false,
         scholarScroll: false,
@@ -293,7 +298,7 @@ export function canUseFeature(featureFlag) {
     if (val === true) return true;
 
     // Backward compatibility: old Pro/Elite docs may not include this new flag yet.
-    if ((featureFlag === 'heroProgression' || featureFlag === 'heroCampfire') && val === undefined) {
+    if ((featureFlag === 'heroProgression' || featureFlag === 'heroCampfire' || featureFlag === 'questRemote') && val === undefined) {
         const tier = getTier();
         return tier === 'pro' || tier === 'elite';
     }

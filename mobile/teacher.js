@@ -6,6 +6,7 @@ import { getDeviceCacheChoice, clearLocalAppData } from '../utils/deviceCache.js
 import { escapeHtml } from '../features/roles/shared.js';
 import { renderMobileHome } from './home.js';
 import { getTodayDateString, getClassesOnDay } from '../utils.js';
+import { canUseFeature } from '../utils/subscription.js';
 
 const TEACHER_APP_SCREEN = 'app-screen';
 const SECRETARY_SCREEN = 'secretary-screen';
@@ -187,6 +188,8 @@ function openMoreSheet() {
         const desktopBtn = document.getElementById('secretary-console-btn');
         item.classList.toggle('hidden', !desktopBtn || desktopBtn.classList.contains('hidden'));
     }
+    // Quest Remote (Pro): the phone becomes the Wand for a projector.
+    document.getElementById('m-quest-remote-item')?.classList.toggle('hidden', !canUseFeature('questRemote'));
     const sheet = document.getElementById('m-more-sheet');
     setSheetOpen(sheet, true);
     const moreBtn = document.getElementById('m-more-btn');
@@ -556,6 +559,12 @@ function wire() {
         }
         if (event.target.closest('#m-secretary-console-item')) {
             void openSecretaryConsole();
+            return;
+        }
+        if (event.target.closest('#m-quest-remote-item')) {
+            playSound('click');
+            closeMoreSheet();
+            import('../ui/questRemoteButton.js').then((m) => m.openQuestRemoteWand());
         }
     });
 

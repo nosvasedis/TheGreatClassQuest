@@ -62,6 +62,7 @@
 - **AI-powered narrative (Elite):** **DeepSeek V4.1 Flash** writes daily chronicles, certificates, reports, and story text.
 - **Read aloud:** English narration uses **MeloTTS** through the authenticated Cloudflare Worker when the account's Workers Free plan is confirmed. Device voices are the fallback when cloud narration is unavailable. Generated audio is reused within the session; the shared daily AI allowance can also be used by artwork and text fallback.
 - **Live display:** **Projector Mode** turns a classroom PC into a real-time quest dashboard with day/night, weather-aware sky, rotating Director cards, and celebrations.
+- **Quest Remote (Pro):** the teacher's phone becomes a **Wand** for the projector. Scan a rune circle, then flick stars to heroes, hold to crown Today's Hero, slingshot Fortune's Wheel, shake for the Fair Picker, run timers and an **Eyes on me** curtain, press any on-screen button from the phone, and host a Kahoot-style **Showdown Arena** team race (no student devices). The PC runs every action through the app's own buttons, so the usual rules apply.
 
 Teachers in the app can open **The Adventurer's Guide** (information button) for a short classroom explainer.
 
@@ -69,7 +70,7 @@ Teachers in the app can open **The Adventurer's Guide** (information button) for
 
 ## 🏫 Three Interfaces
 
-The same school year is shared. Each person only sees what they need. All three layouts also exist on **mobile**; the **teacher desktop** is the classroom-PC home (Projector Mode is not on the phone).
+The same school year is shared. Each person only sees what they need. All three layouts also exist on **mobile**; the **teacher desktop** is the classroom-PC home (Projector Mode is not on the phone; on Pro the phone can drive it as the **Quest Remote** Wand).
 
 | Interface | Who | What it is for |
 |-----------|-----|----------------|

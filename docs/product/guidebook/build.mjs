@@ -39,6 +39,7 @@ const CHAPTERS = [
   { id: 'award-stars', file: 'teacher/08-award-stars.md', icon: 'fa-star', color: 'rose', group: 'The classroom', kicker: 'Tab · Award Stars' },
   { id: 'adventure-log', file: 'teacher/09-adventure-log.md', icon: 'fa-book-open', color: 'teal', group: 'The classroom', kicker: 'Tab · Adventure Log' },
   { id: 'hero-campfire', file: 'teacher/15-hero-campfire.md', icon: 'fa-fire', color: 'amber', group: 'The classroom', kicker: 'Hero Campfire' },
+  { id: 'quest-remote', file: 'teacher/16-quest-remote.md', icon: 'fa-wand-magic-sparkles', color: 'purple', group: 'The classroom', kicker: 'Quest Remote' },
   { id: 'scholars-scroll', file: 'teacher/10-scholars-scroll.md', icon: 'fa-scroll', color: 'pink', group: 'The classroom', kicker: "Tab · Scholar's Scroll" },
   { id: 'quest-calendar', file: 'teacher/11-quest-calendar.md', icon: 'fa-calendar-alt', color: 'blue', group: 'The classroom', kicker: 'Tab · Quest Calendar' },
   { id: 'story-weavers', file: 'teacher/12-story-weavers.md', icon: 'fa-bullseye', color: 'indigo', group: 'The classroom', kicker: 'Tab · Training Grounds' },
@@ -565,6 +566,9 @@ function widgets(id, print = false) {
   if (id === 'hero-campfire') {
     return '';
   }
+  if (id === 'quest-remote') {
+    return '';
+  }
   if (id === 'scholars-scroll') {
     return '';
   }
@@ -785,6 +789,13 @@ function headingWidgets(id) {
     return [
       { match: ['Home — the front desk', 'Home — η υποδοχή'], html: uiShot('office-home.png', 'The front desk: the school’s counts, what is waiting on you today, the latest grade and message, the office drawers, and the former students on file.') },
       { match: ['Admin → Students & Classes'], html: uiShot('office-registry.png', 'Students & Classes as one path: open a class, then enrol students into it. Each class drawer has its own Enrol, and students waiting for a class come first.') }
+    ];
+  }
+  if (id === 'quest-remote') {
+    return [
+      { match: ['Waking the Wand', 'Ξυπνώντας το Ραβδί'], html: uiShot('quest-remote-bind.png', 'The rune circle on the projector. Scan it with your phone’s camera; the four runes underneath are for phones without a camera.') },
+      { match: ['The four modes on your phone', 'Οι τέσσερις λειτουργίες στο κινητό'], html: `<div class="ui-shot-row">${uiShot('wand-stars.png', 'Stars: the class as hero orbs. Gold rings shine today; the moon marks a hero who is away.', 'ui-shot-portrait')}${uiShot('wand-award.png', 'Choose the virtue, then flick the star up to the screen. Faster flick, more stars.', 'ui-shot-portrait')}${uiShot('wand-stage.png', 'Stage: the buttons of whatever is on the projector, plus Back, scrolling and Cast a screen.', 'ui-shot-portrait')}${uiShot('wand-magic.png', 'Magic: hold the crown, the wheel lever, the Fair Picker, timers and Eyes on me.', 'ui-shot-portrait')}</div>${uiShot('quest-remote-timer.png', 'A timer started from the phone: an ember ring in the corner of the projector.')}` },
+      { match: ['Showdown Arena'], html: `${uiShot('quest-remote-showdown.png', 'The Showdown Arena on the projector: bars leap when you give a point, a flame shows a streak, and the clock counts down.')}${uiShot('wand-show.png', 'The same Showdown on your phone: one big button per team.', 'ui-shot-portrait')}` }
     ];
   }
   if (id === 'hero-campfire') {

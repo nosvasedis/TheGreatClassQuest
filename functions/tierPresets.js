@@ -15,6 +15,7 @@ module.exports = {
     storyWeavers: false,
     heroProgression: false,
     heroCampfire: false,
+    questRemote: false,
     familiars: false,
     parentAccess: false,
     secretaryAccess: false,
@@ -45,7 +46,8 @@ module.exports = {
     prioritySupport: false,
     customFeatures: false,
     quizOfTheWeek: false,
-    heroCampfire: false
+    heroCampfire: false,
+    questRemote: false
   },
   pro: {
     tier: 'pro',
@@ -68,7 +70,8 @@ module.exports = {
     prioritySupport: false,
     customFeatures: false,
     quizOfTheWeek: false,
-    heroCampfire: true
+    heroCampfire: true,
+    questRemote: true
   },
   elite: {
     tier: 'elite',
@@ -91,7 +94,8 @@ module.exports = {
     prioritySupport: true,
     customFeatures: true,
     quizOfTheWeek: true,
-    heroCampfire: true
+    heroCampfire: true,
+    questRemote: true
   },
   expired: {
     tier: 'expired',
@@ -107,6 +111,7 @@ module.exports = {
     storyWeavers: false,
     heroProgression: false,
     heroCampfire: false,
+    questRemote: false,
     familiars: false,
     eliteAI: false,
     earlyAccess: false,

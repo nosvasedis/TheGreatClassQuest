@@ -40,6 +40,13 @@ let timers = [];
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+/** Read-only view of the show for the Quest Remote host console (it acts through the show's own keys). */
+export function getQuizRemoteView() {
+    const modal = document.getElementById(MODAL_ID);
+    const open = Boolean(modal && !modal.classList.contains('hidden') && currentClassId);
+    return { open, screen: open ? screen : 'idle', classId: open ? currentClassId : null, busy };
+}
+
 function later(fn, ms) {
     const id = setTimeout(fn, ms);
     timers.push(id);

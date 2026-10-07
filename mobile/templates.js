@@ -129,6 +129,11 @@ const moreSheetHTML = `
                     <span class="text">School Office</span>
                     <span class="m-more-item__hint">Front desk</span>
                 </button>
+                <button type="button" id="m-quest-remote-item" class="nav-button m-more-item m-pressable nav-color-amber hidden" aria-label="Quest Remote">
+                    <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas fa-wand-magic-sparkles icon"></i></span>
+                    <span class="text">Quest Remote</span>
+                    <span class="m-more-item__hint">Run the projector</span>
+                </button>
                 ${moreItem('options-tab', 'nav-color-gray', 'fa-cog', 'Settings', 'Classes & tools')}
             </div>
             <div class="m-sheet__footer">

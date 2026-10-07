@@ -163,6 +163,11 @@ export const headerHTML = `
                             title="The Quiet Dragon" aria-label="Open The Quiet Dragon">
                             <i class="fas fa-dragon"></i>
                         </button>
+                        <button id="quest-remote-btn" type="button"
+                            class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            title="Quest Remote: your phone runs the projector" aria-label="Quest Remote" aria-pressed="false">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                        </button>
                         <button id="projector-mode-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Projector Mode" aria-label="Toggle Projector Mode">

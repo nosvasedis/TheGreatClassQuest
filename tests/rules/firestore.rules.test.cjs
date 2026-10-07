@@ -528,3 +528,61 @@ rulesTest('platform records (operators, schools) are server-only', async () => {
     await assertFails(setDoc(doc(db, 'schools/school-c'), { name: 'Self-made', status: 'active', subscription: { tier: 'elite' } }));
   }
 });
+
+// ---- Quest Remote: owner-only sessions, Pro/Elite only, a fixed list of small commands. ----
+function remoteSession(uid = 'teacher') {
+  return { teacherId: uid, hostId: 'h1', code: 'KM4R', classId: '', stage: { surface: 'tab', pad: [] },
+    hostHeartbeatAt: serverTimestamp(), createdAt: serverTimestamp(), expiresAt: new Date(Date.now() + 3600e3), closed: false };
+}
+function remoteCommand(uid = 'teacher', extra = {}) {
+  return { teacherId: uid, type: 'award', payload: { studentId: 'student-1', reason: 'teamwork', stars: 1 },
+    clientSeq: 1, wandId: 'wand1', sentAt: Date.now(), createdAt: serverTimestamp(), ...extra };
+}
+
+rulesTest('Quest Remote: the owner hosts and commands; nobody else reads or writes', async () => {
+  await seedCampfire('pro');
+  const mine = env.authenticatedContext('teacher').firestore();
+  const other = env.authenticatedContext('other-teacher').firestore();
+  const office = env.authenticatedContext('secretary').firestore();
+  const parent = env.authenticatedContext('parent').firestore();
+  const session = doc(mine, DATA + '/quest_remote/wand-session-1');
+  await assertSucceeds(setDoc(session, remoteSession()));
+  await assertSucceeds(updateDoc(session, { wandId: 'wand1', wandHeartbeatAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(session, { stage: { surface: 'overlay', pad: [{ id: 'p1', label: 'Go' }] }, secret: { quizCorrect: 2 } }));
+  await assertFails(updateDoc(session, { grades: { 'student-1': 90 } }), 'unknown fields are refused');
+  await assertSucceeds(getDocs(query(collection(mine, DATA + '/quest_remote'), where('teacherId', '==', 'teacher'))));
+  for (const db of [other, office, parent]) {
+    await assertFails(getDoc(doc(db, DATA + '/quest_remote/wand-session-1')));
+    await assertFails(setDoc(doc(db, DATA + '/quest_remote/wand-session-1/commands/c1'), remoteCommand('other-teacher')));
+  }
+  await assertFails(setDoc(doc(other, DATA + '/quest_remote/stolen'), remoteSession('teacher')), 'cannot open a session in someone else\'s name');
+
+  const cmd = doc(mine, DATA + '/quest_remote/wand-session-1/commands/c1');
+  await assertSucceeds(setDoc(cmd, remoteCommand()));
+  await assertSucceeds(getDoc(cmd));
+  await assertFails(updateDoc(cmd, { clientSeq: 2 }), 'commands are never edited');
+  await assertSucceeds(deleteDoc(cmd));
+  await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c2'), remoteCommand('teacher', { type: 'deleteEverything' })));
+  await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c3'), remoteCommand('teacher', { clientSeq: 'one' })));
+  await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c4'),
+    remoteCommand('teacher', { payload: Object.fromEntries(Array.from({ length: 13 }, (_, i) => ['k' + i, i])) })), 'oversized payload');
+  await assertFails(setDoc(doc(mine, DATA + '/quest_remote/wand-session-1/commands/c5'), remoteCommand('teacher', { extra: true })));
+  await assertSucceeds(deleteDoc(session));
+});
+
+rulesTest('Quest Remote: Starter schools cannot start a Wand', async () => {
+  await seedCampfire('starter');
+  const mine = env.authenticatedContext('teacher').firestore();
+  await assertFails(setDoc(doc(mine, DATA + '/quest_remote/starter-session'), remoteSession()));
+});
+
+rulesTest('Quest Remote: a teacher of another school never reaches this school\'s sessions', async () => {
+  await seedCampfire('pro');
+  await seedSchoolB({ tier: 'pro' });
+  const mine = env.authenticatedContext('teacher').firestore();
+  const teacherB = env.authenticatedContext('teacher-b').firestore();
+  await assertSucceeds(setDoc(doc(mine, DATA + '/quest_remote/a-session'), remoteSession()));
+  await assertFails(getDoc(doc(teacherB, DATA + '/quest_remote/a-session')));
+  await assertFails(setDoc(doc(teacherB, DATA + '/quest_remote/a-session/commands/x'), remoteCommand('teacher-b')));
+  await assertSucceeds(setDoc(doc(teacherB, DATA_B + '/quest_remote/b-session'), remoteSession('teacher-b')));
+});

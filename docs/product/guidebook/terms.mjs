@@ -651,6 +651,30 @@ export const TERMS = [
     confuse: { en: 'Quest Assignment (homework); Hero’s Goal (Oracle text)', el: 'Quest Assignment (εργασία)· Hero’s Goal (κείμενο Oracle)' }
   },
   {
+    id: 'quest-remote',
+    chapter: 'quest-remote',
+    widget: 'none',
+    names: { en: 'Quest Remote', el: 'Quest Remote' },
+    aliases: ['quest remote', 'the wand', 'wand', 'phone remote', 'wake the wand', 'rune circle'],
+    def: {
+      en: 'Pro: your phone becomes a Wand for the projector. Flick stars to heroes, hold to crown Today’s Hero, pull the lever to spin Fortune’s Wheel, shake for the Fair Picker, start timers, close the Eyes on me curtain, and press any button on the screen from the phone. The classroom computer does every action with its own buttons, so the usual rules apply.',
+      el: 'Pro: το κινητό σας γίνεται Ραβδί για τον projector. Πετάτε αστέρια στους ήρωες, κρατάτε το στέμμα για τον Hero of the Day, τραβάτε τον μοχλό του Fortune’s Wheel, κουνάτε το κινητό για το Fair Picker, βάζετε χρονόμετρα και πατάτε οποιοδήποτε κουμπί της οθόνης. Ο υπολογιστής της τάξης κάνει κάθε ενέργεια με τα δικά του κουμπιά, οπότε ισχύουν οι συνήθεις κανόνες.'
+    },
+    confuse: { en: 'Projector Mode’s on-screen remote (the pin/skip buttons on the wallpaper)', el: 'Το τηλεχειριστήριο μέσα στο Projector Mode (κουμπιά pin/skip στην ταπετσαρία)' }
+  },
+  {
+    id: 'showdown-arena',
+    chapter: 'quest-remote',
+    widget: 'none',
+    names: { en: 'Showdown Arena', el: 'Showdown Arena' },
+    aliases: ['showdown arena', 'showdown', 'team race', 'garden showdown'],
+    def: {
+      en: 'A team race on the projector run from the Wand: you ask out loud and give the point to the team that answered. Optional Teamwork star for the winners (the usual one award a day). Nursery and Pre-Junior grow flowers instead: no numbers, everyone blooms.',
+      el: 'Αγώνας ομάδων στον projector από το Ραβδί: ρωτάτε προφορικά και δίνετε τον πόντο στην ομάδα που απάντησε. Προαιρετικό αστέρι Teamwork για τους νικητές (ο συνηθισμένος κανόνας ενός βραβείου τη μέρα). Στα Nursery και Pre-Junior μεγαλώνουν λουλούδια: χωρίς αριθμούς, ανθίζουν όλοι.'
+    },
+    confuse: { en: 'Quiz of the Week (Elite, one hero answers at a time); Bounties (class star-vs-timer)', el: 'Quiz of the Week (Elite, ένας ήρωας τη φορά)· Bounties (αστέρια τάξης κόντρα στον χρόνο)' }
+  },
+  {
     id: 'sky-theater',
     chapter: 'classroom-chrome',
     widget: 'none',
@@ -863,7 +887,9 @@ export const TERM_ICONS = {
   patron: 'fa-gift',
   gold: 'fa-coins',
   'hero-campfire': 'fa-fire',
-  'ember-oath': 'fa-scroll'
+  'ember-oath': 'fa-scroll',
+  'quest-remote': 'fa-wand-magic-sparkles',
+  'showdown-arena': 'fa-bolt'
 };
 
 /** Icons on Starter / Pro / Elite plan chips (labels may be longer than a single term). */
@@ -892,6 +918,7 @@ export const PLAN_CHIP_ICONS = {
   "Scholar's Scroll, Starfall, make-ups": 'fa-meteor',
   'Adventure Log, Hero of the Day, Hall of Heroes': 'fa-crown',
   'Hero Campfire & Ember Oaths': 'fa-fire',
+  'Quest Remote & Showdown Arena': 'fa-wand-magic-sparkles',
   'Attendance Chronicle': 'fa-user-check',
   'My Planning': 'fa-calendar-check',
   'Class grading override': 'fa-sliders-h',
@@ -917,7 +944,7 @@ export const PLAN_EXPLORER = {
     has: [
       'Everything in Starter', 'Guild Hall, Wheel, Ledger, sorting quiz',
       'Hero Path / Skill Tree', 'Quest Calendar / Day Planner', "Scholar's Scroll, Starfall, make-ups",
-      'Adventure Log, Hero of the Day, Hall of Heroes', 'Hero Campfire & Ember Oaths', 'Attendance Chronicle',
+      'Adventure Log, Hero of the Day, Hall of Heroes', 'Hero Campfire & Ember Oaths', 'Quest Remote & Showdown Arena', 'Attendance Chronicle',
       'Family Access', 'My Planning', 'Class grading override'
     ],
     later: ['Story Weavers', 'Familiars', 'Quiz of the Week', 'School Office', 'AI chronicler & images']
@@ -946,6 +973,7 @@ export const CHAPTER_SEARCH = {
   'award-stars': ['boon', 'teacher boon', 'hero boon', 'welcome back', 'virtues', 'heart'],
   'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'quest board', 'attendance chronicle', 'campfire', 'ember oaths'],
   'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope'],
+  'quest-remote': ['quest remote', 'wand', 'showdown', 'timers', 'eyes on me'],
   'scholars-scroll': ['starfall', 'tests', 'dictation', 'make-up'],
   'story-weavers': ['writing', 'elite'],
   'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle', 'passport', 'avatar forge', 'class charter', 'emblem'],

@@ -641,6 +641,11 @@
       animation: none !important;
       transition: none !important;
     }
+    /* Quest Remote: the Wand as a phone, projector pieces at a fixed size. */
+    #capture-quest-remote { position: absolute; left: 0; top: 0; z-index: 5000; padding: 24px; background: #0b1026; }
+    #capture-quest-remote.capture-wand .qw { position: relative; inset: auto; width: 390px; height: 800px; border-radius: 36px; overflow: hidden; border: 10px solid #111827; }
+    #capture-quest-remote.capture-wand .qw-sheet { position: absolute; }
+    #capture-quest-remote .capture-qr-timer-stage { position: relative; width: 560px; height: 380px; border-radius: 18px; background: radial-gradient(ellipse at 30% 40%, #1e3a8a, #0b1026 70%); }
   </style>
 </head>
 <body class="flex flex-col h-screen">

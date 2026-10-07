@@ -277,6 +277,16 @@ try {
   await captureExtra('Office front desk', () => window.__gcqCapture.showOffice('home'), '#secretary-screen.capture-office', 'office-home.png');
   await captureExtra('Office Students & Classes', () => window.__gcqCapture.showOffice('registry'), '#secretary-screen.capture-office', 'office-registry.png');
   await captureExtra("Adventurer's Guide", () => window.__gcqCapture.showAdventurersGuide(), '#app-info-modal.capture-ag .ag-book', 'adventurers-guide.png');
+  // Quest Remote last: its capture layer sits above everything until the shoot ends.
+  await captureExtra('Quest Remote binding circle', () => window.__gcqCapture.showProjectorRemote('bind'), '#capture-quest-remote .qr-bind', 'quest-remote-bind.png');
+  await captureExtra('Quest Remote Showdown', () => window.__gcqCapture.showProjectorRemote('showdown'), '#capture-quest-remote .qr-sd', 'quest-remote-showdown.png');
+  await captureExtra('Quest Remote timer', () => window.__gcqCapture.showProjectorRemote('timer'), '#capture-quest-remote .capture-qr-timer-stage', 'quest-remote-timer.png');
+  await captureExtra('Wand: stars', () => window.__gcqCapture.showWand('stars'), '#capture-quest-remote .qw', 'wand-stars.png');
+  await captureExtra('Wand: award', () => window.__gcqCapture.showWand('award'), '#capture-quest-remote .qw', 'wand-award.png');
+  await captureExtra('Wand: stage', () => window.__gcqCapture.showWand('stage'), '#capture-quest-remote .qw', 'wand-stage.png');
+  await captureExtra('Wand: magic', () => window.__gcqCapture.showWand('magic'), '#capture-quest-remote .qw', 'wand-magic.png');
+  await captureExtra('Wand: show', () => window.__gcqCapture.showWand('show'), '#capture-quest-remote .qw', 'wand-show.png');
+  await page.evaluate(() => window.__gcqCapture.hideRemote());
 
   console.log('Captured UI chrome into', OUT);
 } finally {

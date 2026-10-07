@@ -366,6 +366,9 @@ img { max-width: 100%; height: auto; }
   margin: 0 auto;
   object-fit: contain;
 }
+.ui-shot-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8pt; break-inside: avoid; }
+.ui-shot-row .ui-shot-portrait img { max-width: 100%; }
+
 .ui-shot figcaption {
   font-size: 8pt;
   color: var(--muted);

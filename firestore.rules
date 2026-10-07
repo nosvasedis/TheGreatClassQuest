@@ -398,6 +398,28 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Quest Remote: the teacher's phone (the Wand) sends commands to the teacher's own projector
+    // session. Owner-only, short-lived, no student data beyond what the teacher already reads.
+    function remotePlan() {
+      let plan = schoolPlan();
+      return plan.get('tier', '') in ['pro', 'elite'] && plan.get('questRemote', true) == true;
+    }
+    function validRemoteSession(d) {
+      return d.teacherId == request.auth.uid &&
+        d.keys().hasOnly(['teacherId', 'hostId', 'code', 'classId', 'stage', 'secret', 'hostHeartbeatAt', 'wandHeartbeatAt', 'wandId', 'createdAt', 'expiresAt', 'closed']) &&
+        (!('code' in d) || (d.code is string && d.code.size() <= 12)) &&
+        (!('stage' in d) || d.stage is map) &&
+        (!('secret' in d) || d.secret is map);
+    }
+    function validRemoteCommand(d) {
+      return d.teacherId == request.auth.uid &&
+        d.keys().hasOnly(['teacherId', 'type', 'payload', 'clientSeq', 'wandId', 'sentAt', 'createdAt']) &&
+        d.type in ['bind', 'pad', 'key', 'cast', 'class', 'scroll', 'award', 'undo', 'attendance', 'crown',
+          'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz'] &&
+        (!('payload' in d) || (d.payload is map && d.payload.size() <= 12)) &&
+        d.clientSeq is int;
+    }
+
     function campfirePlan() {
       let plan = schoolPlan();
       return plan.get('tier', '') in ['pro', 'elite'] && plan.get('heroCampfire', true) == true;
@@ -497,8 +519,24 @@ service cloud.firestore {
         (resource.data.status != 'completed' || request.resource.data.status == 'completed'));
       allow delete: if false;
     }
+    match /artifacts/{schoolId}/public/data/quest_remote/{sessionId} {
+      allow get: if inSchool(schoolId) && isTeacher() && (resource == null || resource.data.teacherId == request.auth.uid);
+      allow list: if inSchool(schoolId) && isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow create: if inSchool(schoolId) && isTeacher() && remotePlan() && validRemoteSession(request.resource.data);
+      allow update: if inSchool(schoolId) && isTeacher() && remotePlan() &&
+        resource.data.teacherId == request.auth.uid && validRemoteSession(request.resource.data);
+      allow delete: if inSchool(schoolId) && isTeacher() && resource.data.teacherId == request.auth.uid;
+
+      match /commands/{commandId} {
+        allow get, list: if inSchool(schoolId) && isTeacher() && resource.data.teacherId == request.auth.uid;
+        allow create: if inSchool(schoolId) && isTeacher() && remotePlan() && validRemoteCommand(request.resource.data) &&
+          get(/databases/$(database)/documents/artifacts/$(schoolId)/public/data/quest_remote/$(sessionId)).data.teacherId == request.auth.uid;
+        allow update: if false;
+        allow delete: if inSchool(schoolId) && isTeacher() && resource.data.teacherId == request.auth.uid;
+      }
+    }
     match /artifacts/{schoolId}/public/data/{collection}/{docId} {
-      allow read: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && (
+      allow read: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions','quest_remote']) && hasActiveProfile() && (
         isStaff() ||
         (collection == 'school_settings') ||
         (collection == 'guild_scores' && isParent()) ||
@@ -506,7 +544,7 @@ service cloud.firestore {
         (collection == 'guild_champions' && isParent())
       ));
 
-      allow create: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(request.resource.data) && (
+      allow create: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions','quest_remote']) && hasActiveProfile() && isActiveMutableData(request.resource.data) && (
         (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsCreate(collection))) ||
         (isTeacher() && (
         (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
@@ -539,7 +577,7 @@ service cloud.firestore {
         ))
       ));
 
-      allow update: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) &&
+      allow update: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions','quest_remote']) && hasActiveProfile() && isActiveMutableData(resource.data) &&
         isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && (
         (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsUpdate(collection))) ||
         (isTeacher() && (
@@ -566,7 +604,7 @@ service cloud.firestore {
         ))
       ));
 
-      allow delete: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions']) && hasActiveProfile() && isActiveMutableData(resource.data) && (
+      allow delete: if inSchool(schoolId) && (!(collection in ['ember_oaths','campfire_sessions','quest_remote']) && hasActiveProfile() && isActiveMutableData(resource.data) && (
         hasFullSecretaryConsole() ||
         (isTeacher() && (
         resource.data.createdBy.uid == request.auth.uid ||

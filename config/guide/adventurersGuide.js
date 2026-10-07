@@ -369,6 +369,13 @@ export const GUIDE_CHAPTERS = {
                     keys: 'projector tv wallpaper sky window sky cards remote sky deck clock'
                 },
                 {
+                    id: 'quest-remote', icon: 'fa-wand-magic-sparkles', name: 'Quest Remote', tier: 'pro',
+                    where: 'The wand button in the header or the projector remote (W); on the phone, More › Quest Remote',
+                    text: `Your phone becomes a Wand for the projector. Scan the rune circle, then walk the room: flick a star up to a hero (pick the virtue first), hold the crown to choose Today's Hero, pull the lever to spin Fortune's Wheel, shake for the Fair Picker, start timers or close the curtains for Eyes on me. Stage lists the buttons of whatever is on screen, so every window works. Show runs a Showdown Arena team race; with Quiz of the Week (Elite) your phone shows the answer only to you. Every action goes through the app's own buttons, so the usual rules apply.`,
+                    why: 'You praise the action where it happens, and the class sees it land on the screen.',
+                    keys: 'remote phone wand control projector showdown kahoot team race timer curtain flick'
+                },
+                {
                     id: 'quiet-dragon', icon: 'fa-dragon', name: 'The Quiet Dragon', tier: 'starter',
                     where: 'The dragon on the projector remote (Q), or the header button (Settings, Profile)',
                     text: `A noise meter for writing time and tests. Pick how quiet (Test silence, Whispers, Soft voices), how long (5 to 30 calm minutes) and the dragon's gift: Gold or a Calm Star for every hero here, a Team Quest boost, and/or a classroom treat you give in person. The microphone only measures loudness; nothing is recorded or sent. The dragon stirs as the room gets louder and wakes if it stays loud; then the moon clock waits for calm. It never takes anything away. Teacher speaking (Space) stops it listening while you talk. A finished sleep counts as a completed class bounty.`,
@@ -384,7 +391,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'phone', icon: 'fa-mobile-screen', name: 'On your phone', tier: 'starter',
                     where: 'Any phone browser',
-                    text: `Five clouds at the bottom: Home, Team Quest, Hero's Challenge, Award Stars and More. Tap the class crest in the header to change class. This guide and Log out sit in the More sheet. Projector Mode stays on the classroom PC.`,
+                    text: `Five clouds at the bottom: Home, Team Quest, Hero's Challenge, Award Stars and More. Tap the class crest in the header to change class. This guide and Log out sit in the More sheet. Projector Mode stays on the classroom PC; on Pro, More › Quest Remote turns the phone into its Wand.`,
                     keys: 'mobile phone more sheet dock'
                 }
             ]
@@ -657,6 +664,7 @@ export const NAMES_APART = [
 
 export const HEADER_KEYS = [
     { icon: 'fa-info', name: 'This guide' },
+    { icon: 'fa-wand-magic-sparkles', name: 'Quest Remote (Pro)' },
     { icon: 'fa-tv', name: 'Projector Mode' },
     { icon: 'fa-building-shield', name: 'School Office' },
     { icon: 'fa-gear', name: 'Teacher Settings' }
@@ -680,7 +688,7 @@ export const PLAN_TIERS = [
         tier: 'pro',
         name: 'Pro',
         line: 'Adds houses, a calendar and the class diary.',
-        items: ['Guild Hall and Fortune\'s Wheel', 'Hero Classes and Skill Trees', 'Quest Calendar and Special Quests', 'Scholar\'s Scroll and Starfall', 'Adventure Log and Hero of the Day', 'Hero Campfire and Ember Oaths', 'Attendance Chronicle', 'Family Portal']
+        items: ['Guild Hall and Fortune\'s Wheel', 'Hero Classes and Skill Trees', 'Quest Calendar and Special Quests', 'Scholar\'s Scroll and Starfall', 'Adventure Log and Hero of the Day', 'Hero Campfire and Ember Oaths', 'Quest Remote and the Showdown Arena', 'Attendance Chronicle', 'Family Portal']
     },
     {
         tier: 'elite',

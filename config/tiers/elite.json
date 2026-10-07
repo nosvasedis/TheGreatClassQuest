@@ -19,5 +19,6 @@
   "prioritySupport": true,
   "customFeatures": true,
   "quizOfTheWeek": true,
-  "heroCampfire": true
+  "heroCampfire": true,
+  "questRemote": true
 }

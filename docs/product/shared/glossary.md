@@ -68,6 +68,8 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Bounty** | Shared challenge (whole class, one guild, or chosen heroes) from the Bounty poster on Home: **Star Hunt** (star target) or **Race the Clock** (countdown) | Hero’s Challenge ranks |
 | **Adventurer’s Guide** | The (i) field guide in the app: chapter tabs, search, Take me there, and a For the class view | This guidebook |
 | **Hero Campfire** | Pro 2-minute closing reflection on the projector, after Hero of the Day | Ceremony of the Month; Grand Guild Ceremony |
+| **Quest Remote / the Wand** | Pro: the teacher's phone commands the projector (stars, crown, wheel, timers, Showdown) | Projector Mode's on-screen remote (the pin/skip buttons on the wallpaper) |
+| **Showdown Arena** | Quest Remote team race on the projector; the teacher gives the points; optional Teamwork star for winners | Quiz of the Week (Elite, individual turns); Bounties (class star-vs-timer) |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |
 | **Star-Ember** | Keepsake in the Trophy Room for a kept oath; worth no stars or Gold | Stars; Starfall; Growth Starfall |
 | **Realm Raid** | Three times a year (before Christmas, before Clean Monday, the last school week) every class fights Eldhorn the Realm Guardian together; one shield shard per class, sized to that class's own Team Quest pace | Team Quest (class vs class each month); Bounty |

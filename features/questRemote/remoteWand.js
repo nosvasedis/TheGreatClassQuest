@@ -334,7 +334,7 @@ function starsNote(stage) {
 
 function render({ fresh = false } = {}) {
     if (!wand || wand.root.dataset.phase !== 'bound') return;
-    if (wand.gesture) { wand.renderQueued = true; return; }
+    if (wand.gesture || isTyping()) { wand.renderQueued = true; return; }
     const stage = wand.stage || {};
     let html = '';
     if (wand.mode === 'stars') {
@@ -369,6 +369,12 @@ function render({ fresh = false } = {}) {
     const chip = wand.root.querySelector('[data-qw-class]');
     const label = classLabel() || 'Class';
     if (chip && chip.textContent !== label) chip.textContent = label;
+}
+
+/** A field on the Wand has the keyboard: redrawing now would throw away what is being typed. */
+function isTyping() {
+    const a = document.activeElement;
+    return Boolean(a && wand?.main.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
 }
 
 function currentClassId() {
@@ -576,6 +582,36 @@ function wireEvents(root) {
             const payload = datasetPayload(cmdEl);
             if (send(type, payload)) pressFeedback(cmdEl);
         }
+    });
+
+    // The projector's own controls: a dropdown choice, or text typed on the phone (sent on Send / Enter).
+    root.addEventListener('change', (e) => {
+        const sel = e.target.closest?.('[data-qw-select]');
+        if (!sel || !wand) return;
+        if (send('pad', { id: sel.dataset.qwSelect, value: sel.value })) { buzz(10); sel.blur(); }
+    });
+    root.addEventListener('submit', (e) => {
+        const form = e.target.closest?.('[data-qw-text]');
+        if (!form || !wand) return;
+        e.preventDefault();
+        const field = form.querySelector('[name="v"]');
+        if (send('pad', { id: form.dataset.qwText, value: String(field?.value ?? '').slice(0, 500) })) {
+            buzz([10, 30, 10]);
+            form.classList.remove('is-sent');
+            void form.offsetWidth;
+            form.classList.add('is-sent');
+            field?.blur();
+        }
+    });
+    root.addEventListener('keydown', (e) => {
+        // Enter in a one-line box sends; in a text area it is a new line.
+        if (e.key === 'Enter' && e.target?.matches?.('[data-qw-text] input')) {
+            e.preventDefault();
+            e.target.form?.requestSubmit?.();
+        }
+    });
+    root.addEventListener('focusout', () => {
+        setTimeout(() => { if (wand?.renderQueued && !isTyping() && !wand.gesture) { wand.renderQueued = false; render(); } }, 0);
     });
 
     // Star Flick, Hold to Crown, Wheel Slingshot, deck swipe: pointer gestures.

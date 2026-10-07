@@ -38,6 +38,26 @@ function sampleShowdown() {
   return sd;
 }
 
+/** The Training Grounds as the Wand mirrors it: the game tabs, then that game's own controls. */
+function trainingStage() {
+  const g = 'Training Grounds games';
+  return buildStageSummary({
+    surface: 'tab', tab: 'reward-ideas-tab', title: 'Training Grounds',
+    padActions: [
+      { id: 'g1', label: 'Story Weavers', icon: 'fa-feather', kind: 'tab', on: false, group: g, x: 0.2, y: 0.12, inView: true, bg: '#ec4899', bg2: '#be185d', fg: '#ffffff', round: 'soft' },
+      { id: 'g2', label: 'The Vanishing Hoard', icon: 'fa-gem', kind: 'tab', on: true, group: g, x: 0.4, y: 0.12, inView: true, bg: '#f59e0b', bg2: '#c2410c', fg: '#5b2408', round: 'soft' },
+      { id: 'g3', label: 'The Torn Map', icon: 'fa-map', kind: 'tab', on: false, group: g, x: 0.6, y: 0.12, inView: true, bg: '#8b5cf6', bg2: '#4338ca', fg: '#ffffff', round: 'soft' },
+      { id: 'g4', label: 'The Round Table', icon: 'fa-users', kind: 'tab', on: false, group: g, x: 0.8, y: 0.12, inView: true, bg: '#10b981', bg2: '#047857', fg: '#ffffff', round: 'soft' },
+      { id: 'h1', label: 'Use lesson words', kind: 'toggle', on: true, group: 'The Vanishing Hoard', x: 0.25, y: 0.4, inView: true },
+      { id: 'h2', label: 'Lesson words, separated by commas', kind: 'text', multiline: true, value: 'castle, lantern, brave', placeholder: 'castle, lantern, brave…', group: 'The Vanishing Hoard', x: 0.5, y: 0.46, inView: true },
+      { id: 'h3', label: 'Hide the treasure', icon: 'fa-eye-slash', group: 'The Vanishing Hoard', x: 0.4, y: 0.62, inView: true, bg: '#f59e0b', bg2: '#c2410c', fg: '#ffffff', round: 'pill' },
+      { id: 'h4', label: 'Reveal', icon: 'fa-eye', group: 'The Vanishing Hoard', x: 0.6, y: 0.62, inView: true, bg: '#ffffff', fg: '#7c2d12', border: '#fdba74', round: 'pill' },
+      { id: 'h5', label: 'How to play', icon: 'fa-circle-question', group: 'The Vanishing Hoard', x: 0.5, y: 1.2, inView: false, bg: '#fff7ed', fg: '#9a3412', round: 'soft' }
+    ],
+    scrollable: true
+  });
+}
+
 function mount(html, cls) {
   hideRemote();
   hideExtras();
@@ -56,7 +76,7 @@ export function hideRemote() {
 
 /** The phone: `stars` (hero orbs), `several` (choosing heroes), `award` (the star to flick), `magic`, `show`, `stage`. */
 export function showWand(view = 'stars') {
-  const mode = view === 'award' || view === 'several' ? 'stars' : view;
+  const mode = view === 'award' || view === 'several' ? 'stars' : view === 'controls' ? 'stage' : view;
   const root = mount(`<div class="qw qw-still is-in" data-phase="bound">${wandShellHtml({})}</div>`, 'capture-wand');
   const qw = root.querySelector('.qw');
   qw.querySelector('[data-qw-link]').dataset.state = 'bound';
@@ -69,14 +89,20 @@ export function showWand(view = 'stars') {
   const sd = sampleShowdown();
   const stage = buildStageSummary({
     surface: 'overlay', tab: 'guilds-tab', title: "Fortune's Wheel",
-    padActions: [{ id: 'p1', label: 'Spin!', icon: 'fa-dharmachakra', explicit: true, primary: true }, { id: 'p2', label: 'Close', icon: 'fa-times' }],
+    padActions: [
+      { id: 'p2', label: 'Close Fortune’s Wheel', icon: 'fa-times', x: 0.93, y: 0.06, inView: true, bg: '#1e293b', fg: '#e2e8f0', round: 'pill', iconOnly: true },
+      { id: 'p1', label: 'Spin!', icon: 'fa-dharmachakra', x: 0.5, y: 0.82, inView: true, bg: '#fbbf24', bg2: '#d97706', fg: '#451a03', round: 'pill', group: 'Dragon Flame at the wheel' },
+      { id: 'p3', label: 'Skip this guild', icon: 'fa-forward', x: 0.62, y: 0.82, inView: true, bg: '#ffffff', fg: '#334155', border: '#cbd5e1', round: 'soft', group: 'Dragon Flame at the wheel' },
+      { id: 'p4', label: 'Fortune Ledger', icon: 'fa-book', x: 0.5, y: 1.3, inView: false, bg: '#7c3aed', fg: '#ffffff', round: 'soft', group: 'This week' }
+    ],
     panel: { kind: 'wheel', ready: true, caption: 'Dragon Flame steps up to the wheel.', next: '' }
   });
   let html = '';
   if (mode === 'stars') html = starsHtml(HEROES, { className: '📚 Junior B', multi: view === 'several', picked: view === 'several' ? ['b', 'd', 'h'] : [], note: view === 'stars' ? 'Award Stars opens on the projector with your first star.' : '' });
   else if (mode === 'magic') html = magicHtml({ timer: { label: 'Pair', total: 60, remainingMs: 42000 }, blackout: false, wall: false });
   else if (mode === 'show') html = showHtml({ panel: showdownPanel(sd) });
-  else html = stageHtml({ ...stage, scrollable: true }, { castAllowed: () => true });
+  else if (view === 'controls') html = stageHtml(trainingStage(), { castAllowed: () => true });
+  else html = stageHtml({ ...stage, scroll: { canUp: true, canDown: true, at: 0.35 } }, { castAllowed: () => true });
   qw.querySelector('[data-qw-main]').innerHTML = `<div class="qw-view">${html}</div>`;
   if (view === 'award') {
     const sheet = qw.querySelector('[data-qw-sheet]');

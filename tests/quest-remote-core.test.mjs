@@ -116,7 +116,7 @@ test('Stage Pad: explicit buttons first, no empty or duplicate labels, capped', 
     assert.equal(pad[0].icon, 'fa-play');
     assert.equal(pad[3].icon, '');
     const many = buildPadActions(Array.from({ length: 50 }, (_, i) => ({ id: `p${i}`, label: `Button ${i}` })));
-    assert.equal(many.length, 30);
+    assert.equal(many.length, 40);
 });
 
 test('stage summary carries labels only, never private fields', () => {
@@ -267,4 +267,81 @@ test('the Wand layout pins each part to its row (hiding the strip must not stret
     for (const [part, row] of [['qw-top', 1], ['qw-now', 2], ['qw-main', 3], ['qw-modes', 4]]) {
         assert.match(css, new RegExp(`\.qw > \.${part} \{ grid-row: ${row};`), part);
     }
+});
+
+test('Screen buttons: reading order, real looks (validated), and where they sit', async () => {
+    const pad = buildPadActions([
+        { id: 'below', label: 'Save', x: 0.5, y: 1.4, inView: false, bg: '#22c55e' },
+        { id: 'right', label: 'Next', x: 0.8, y: 0.31, inView: true, bg: '#F59E0B', bg2: '#b45309', fg: '#422006', round: 'pill' },
+        { id: 'left', label: 'Back', x: 0.2, y: 0.3, inView: true, bg: 'red', fg: 'url(x)', round: 'blob' },
+        { id: 'top', label: 'Close', x: 0.9, y: 0.05, inView: true, iconOnly: true }
+    ]);
+    assert.deepEqual(pad.map((p) => p.id), ['top', 'left', 'right', 'below'], 'in sight first, then row by row, left to right');
+    const next = pad.find((p) => p.id === 'right');
+    assert.equal(next.bg, '#f59e0b');
+    assert.equal(next.round, 'pill');
+    const back = pad.find((p) => p.id === 'left');
+    assert.equal(back.bg, undefined, 'only real #rrggbb colours travel');
+    assert.equal(back.fg, undefined);
+    assert.equal(back.round, undefined);
+    assert.equal(pad.find((p) => p.id === 'below').y, 1.4);
+
+    const { padButtonStyle, hexLuminance } = await import('../features/questRemote/remoteWandView.mjs');
+    assert.match(padButtonStyle(next), /--pb-fill:linear-gradient\(180deg, #f59e0b, #b45309\)/);
+    assert.match(padButtonStyle(next), /--pb-ink:#422006/, 'the screen\'s own ink when it reads');
+    assert.match(padButtonStyle({ bg: '#ffffff', fg: '#fefefe' }), /--pb-ink:#1e1b4b/, 'white on white becomes navy');
+    assert.match(padButtonStyle({ bg: '#111827' }), /--pb-ink:#ffffff/);
+    assert.equal(padButtonStyle({ bg: '' }), '', 'no colour: the Wand look');
+    assert.ok(hexLuminance('#ffffff') > 0.99 && hexLuminance('#000000') === 0);
+
+    const html = stageHtml({ pad, scroll: { canUp: false, canDown: true, at: 0 } });
+    assert.match(html, /data-dir="up" aria-label="Scroll up" disabled/, 'at the top the up arrow rests');
+    assert.doesNotMatch(html, /data-dir="down" aria-label="Scroll down" disabled/);
+    assert.match(html, /qw-padbtn__off/, 'a button out of sight shows which way it is');
+    assert.match(html, /qw-padbtn__where/);
+});
+
+test('the projector scrolls the box that really scrolls (tabs share the <main> around them)', () => {
+    const host = read('features/questRemote/remoteHost.js');
+    const body = host.slice(host.indexOf('function scrollContainerOf('), host.indexOf('function scrollInfo('));
+    assert.match(body, /for \(let n = el; n && n !== document\.body/, 'walks up past the tab to its scroller');
+    assert.doesNotMatch(body, /!surfaceEl\.contains\(n\)/, 'never stops at the tab edge again');
+    assert.match(read('templates/app/tabs/index.js'), /<main class="[^"]*overflow-y-auto/);
+});
+
+test('Screen mirrors every kind of control: tabs, switches, dropdowns, text boxes', () => {
+    assert.equal(validateCommand({ type: 'pad', clientSeq: 1, payload: { id: 'p1', value: 'castle, lantern' } }).ok, true);
+    assert.equal(validateCommand({ type: 'pad', clientSeq: 1, payload: { id: 'p1', value: 'x'.repeat(501) } }).ok, false);
+    assert.equal(validateCommand({ type: 'pad', clientSeq: 1, payload: { id: 'p1', value: 5 } }).ok, false);
+    const pad = buildPadActions([
+        { id: 't1', label: 'Story Weavers', kind: 'tab', on: true, group: 'Training Grounds games', x: 0.2, y: 0.1, inView: true },
+        { id: 't2', label: 'The Vanishing Hoard', kind: 'tab', on: false, group: 'Training Grounds games', x: 0.4, y: 0.1, inView: true },
+        { id: 'c1', label: 'Use lesson words', kind: 'toggle', on: true, x: 0.2, y: 0.4, inView: true },
+        { id: 'w1', label: 'Lesson words', kind: 'text', value: 'castle, lantern', placeholder: 'castle, lantern, brave…', multiline: true, inputType: 'evil', x: 0.2, y: 0.5, inView: true },
+        { id: 's1', label: 'Rounds', kind: 'select', value: '3', options: [{ label: 'Three', value: '3' }, { label: '<b>Five</b>', value: '5' }], x: 0.2, y: 0.6, inView: true },
+        { id: 'z1', label: 'Weird', kind: 'rocket', x: 0.2, y: 0.7, inView: true }
+    ]);
+    const by = Object.fromEntries(pad.map((p) => [p.id, p]));
+    assert.equal(by.t1.kind, 'tab');
+    assert.equal(by.t1.on, true);
+    assert.equal(by.c1.kind, 'toggle');
+    assert.equal(by.w1.inputType, 'text', 'unknown input types become plain text');
+    assert.equal(by.s1.options.length, 2);
+    assert.equal(by.z1.kind, undefined, 'unknown kinds are plain buttons');
+
+    const html = stageHtml({ pad });
+    assert.match(html, /class="qw-tabrow" role="tablist">[\s\S]*Story Weavers[\s\S]*The Vanishing Hoard/, 'the games sit in one tab row');
+    assert.match(html, /aria-selected="true" class="qw-tabchip is-on"/);
+    assert.match(html, /role="switch" aria-checked="true"/);
+    assert.match(html, /<form class="qw-field qw-field--text" data-qw-text="w1">[\s\S]*<textarea[^>]*>castle, lantern<\/textarea>/);
+    assert.match(html, /<select data-qw-select="s1"><option value="3" selected>Three<\/option>/);
+    assert.doesNotMatch(html, /<b>Five<\/b>/, 'option labels are escaped');
+});
+
+test('the projector types into real fields the way a keyboard would', () => {
+    const host = read('features/questRemote/remoteHost.js');
+    assert.match(host, /function setFieldValue\(el, value\)/);
+    assert.match(host, /new Event\('input', \{ bubbles: true \}\)/);
+    assert.match(host, /new Event\('change', \{ bubbles: true \}\)/);
+    assert.match(host, /input:not\(\[type="hidden"\]\):not\(\[type="password"\]\)/, 'passwords never travel to the phone');
 });

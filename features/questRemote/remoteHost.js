@@ -27,7 +27,7 @@ import {
     buildStageSummary, stageFingerprint, formatTimerClock, CAST_TABS, HEARTBEAT_MS, HOST_LIVE_MS, STAGE_MIN_INTERVAL_MS
 } from './remoteCore.mjs';
 import { bindingHtml, timerHtml, curtainHtml, starRibbonHtml } from './remoteStageView.mjs';
-import { sparkTo, starComet, burstOn, bindBeam, isStillFx } from './remoteFx.js';
+import { sparkTo, starComet, burstOn, bindBeam, isStillFx, touchRing } from './remoteFx.js';
 
 const STORE_KEY = 'gcq.questRemote.host';
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
@@ -72,6 +72,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     h.observer?.disconnect();
     document.removeEventListener('click', h.onAnyInput, true);
     document.removeEventListener('keydown', h.onAnyInput, true);
+    document.removeEventListener('scroll', h.onScroll, { capture: true });
     stopTimer();
     setBlackout(false);
     (await import('./showdown.js').catch(() => null))?.closeShowdown?.({ silent: true });
@@ -126,6 +127,9 @@ async function startHosting({ resume = null } = {}) {
     h.onAnyInput = () => scheduleStage(300);
     document.addEventListener('click', h.onAnyInput, true);
     document.addEventListener('keydown', h.onAnyInput, true);
+    // Scrolling moves buttons in and out of sight: the Wand's list and arrows follow.
+    h.onScroll = () => scheduleStage(350);
+    document.addEventListener('scroll', h.onScroll, { capture: true, passive: true });
     h.safetyScan = setInterval(() => scheduleStage(), 4000);
 
     syncLaunchButtons();
@@ -401,7 +405,7 @@ async function run(cmd) {
     const p = cmd.payload || {};
     switch (cmd.type) {
         case 'bind': return report(cmd, true, '✨ The Wand is awake');
-        case 'pad': return runPad(cmd, p.id);
+        case 'pad': return runPad(cmd, p.id, p.value);
         case 'key': {
             const surface = findSurface();
             await sparkTo(surface.el, { size: 14, duration: 360, burst: 6 });
@@ -445,34 +449,88 @@ async function run(cmd) {
     }
 }
 
-async function runPad(cmd, id) {
+async function runPad(cmd, id, value) {
     const el = host.pad.get(id)?.deref?.();
-    if (!isShown(el) || el.disabled) return report(cmd, false, 'That button is no longer on screen');
-    await sparkAndClick(el);
+    const target = el && (isShown(el) ? el : el.labels?.[0]);
+    if (!el || !isShown(target) || el.disabled) return report(cmd, false, 'That control is no longer on screen');
+    if (typeof value === 'string' && /^(SELECT|INPUT|TEXTAREA)$/.test(el.tagName) && !/^(checkbox|radio)$/.test(el.type)) {
+        await sparkTo(target, { size: 18, duration: 460, burst: 10 });
+        setFieldValue(el, value);
+        touchRing(target, { color: '#fcd34d' });
+        return report(cmd, true, el.tagName === 'SELECT' ? (el.selectedOptions?.[0]?.textContent || '').trim() : 'Typed on the projector');
+    }
+    await sparkAndClick(target);
     return report(cmd, true, '');
 }
 
-function scrollContainerOf(surfaceEl) {
-    // Walk up from the middle of the surface to the first scrollable box.
+/** Puts a value into a real field the way typing would, so the screen's own listeners react. */
+function setFieldValue(el, value) {
+    const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    if (setter) setter.call(el, value); else el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function isScrollBox(n) {
+    if (!n || n.scrollHeight <= n.clientHeight + 20) return false;
+    return /(auto|scroll|overlay)/.test(getComputedStyle(n).overflowY);
+}
+
+/**
+ * The box that really scrolls what the class sees. Tabs share one scroller (the <main> around every
+ * tab, templates/app/tabs/index.js), so the search goes up past the tab; inside a window it looks for
+ * the window's own scrolling part first; the page itself is the last resort.
+ */
+function scrollContainerOf(surface) {
+    const el = surface?.el || surface;
+    if (!el) return null;
     const probe = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight * 0.55)
-        .find((el) => !el.closest('[data-qr-ignore]'));
-    for (let n = probe; n && n !== document.documentElement; n = n.parentElement) {
-        if (surfaceEl && !surfaceEl.contains(n) && n !== surfaceEl) break;
-        const cs = getComputedStyle(n);
-        if (/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 20) return n;
+        .find((n) => !n.closest('[data-qr-ignore]'));
+    if (probe && el.contains(probe)) {
+        for (let n = probe; n; n = n.parentElement) {
+            if (isScrollBox(n)) return n;
+            if (n === el) break;
+        }
     }
-    return null;
+    for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+        if (isScrollBox(n)) return n;
+    }
+    if (surface?.kind === 'overlay') {
+        let best = null;
+        for (const n of el.querySelectorAll('div, section, main, ul, ol, article, form')) {
+            if (n.scrollHeight <= n.clientHeight + 20 || !n.getClientRects().length) continue;
+            if (!isScrollBox(n)) continue;
+            if (!best || n.clientHeight > best.clientHeight) best = n;
+        }
+        if (best) return best;
+    }
+    const page = document.scrollingElement;
+    return page && page.scrollHeight > page.clientHeight + 20 ? page : null;
+}
+
+/** Where the scroller is: can it go up / down, and how far down it is (0..1). */
+function scrollInfo(surface) {
+    const box = scrollContainerOf(surface);
+    if (!box) return { canUp: false, canDown: false, at: 0 };
+    const max = box.scrollHeight - box.clientHeight;
+    const top = box.scrollTop;
+    return { canUp: top > 4, canDown: top < max - 4, at: max > 0 ? Math.round((top / max) * 100) / 100 : 0 };
 }
 
 function runScroll(cmd, dir) {
     const surface = findSurface();
-    const box = scrollContainerOf(surface.el);
+    const box = scrollContainerOf(surface);
+    if (!box) return report(cmd, false, 'Nothing to scroll on this screen');
     const behavior = isStillFx() ? 'auto' : 'smooth';
-    if (box) {
-        if (dir === 'top') box.scrollTo({ top: 0, behavior });
-        else box.scrollBy({ top: (dir === 'down' ? 1 : -1) * box.clientHeight * 0.7, behavior });
-    } else if (dir === 'top') window.scrollTo({ top: 0, behavior });
-    else window.scrollBy({ top: (dir === 'down' ? 1 : -1) * window.innerHeight * 0.7, behavior });
+    const max = box.scrollHeight - box.clientHeight;
+    if (dir === 'top') box.scrollTo({ top: 0, behavior });
+    else {
+        if (dir === 'down' && box.scrollTop >= max - 4) return report(cmd, false, 'Already at the bottom');
+        if (dir === 'up' && box.scrollTop <= 4) return report(cmd, false, 'Already at the top');
+        box.scrollBy({ top: (dir === 'down' ? 1 : -1) * Math.round(box.clientHeight * 0.65), behavior });
+    }
+    scheduleStage(450);
     return report(cmd, true, '');
 }
 
@@ -848,17 +906,100 @@ function iconOf(el) {
 }
 
 function labelOf(el) {
-    return el.dataset.remote || el.getAttribute('aria-label') || el.textContent || el.getAttribute('title') || '';
+    if (el.dataset.remote) return el.dataset.remote;
+    if (/^(SELECT|INPUT|TEXTAREA)$/.test(el.tagName)) {
+        return el.getAttribute('aria-label') || el.labels?.[0]?.textContent || el.getAttribute('placeholder') || el.getAttribute('title') || el.name || '';
+    }
+    return el.getAttribute('aria-label') || el.textContent || el.getAttribute('title') || '';
+}
+
+/** What kind of control this is, so the Wand can show the same kind (tabs, switch, dropdown, text box). */
+function controlOf(el) {
+    const role = el.getAttribute('role') || '';
+    if (el.tagName === 'SELECT') {
+        return {
+            kind: 'select',
+            value: el.value,
+            options: [...el.options].slice(0, 16).map((o) => ({ label: (o.textContent || '').trim(), value: o.value }))
+        };
+    }
+    if (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset|image|range|color)$/.test(el.type))) {
+        return { kind: 'text', value: String(el.value || '').slice(0, 300), placeholder: el.getAttribute('placeholder') || '', multiline: el.tagName === 'TEXTAREA', inputType: el.type || 'text' };
+    }
+    if (el.tagName === 'INPUT') return { kind: 'toggle', on: el.checked };
+    if (role === 'tab') return { kind: 'tab', on: el.getAttribute('aria-selected') === 'true' || el.classList.contains('is-active') };
+    if (role === 'radio') return { kind: 'tab', on: el.getAttribute('aria-checked') === 'true' || el.classList.contains('is-active') };
+    if (role === 'switch' || role === 'checkbox') return { kind: 'toggle', on: el.getAttribute('aria-checked') === 'true' };
+    if (el.hasAttribute('aria-pressed')) return { kind: 'toggle', on: el.getAttribute('aria-pressed') === 'true' };
+    return { kind: 'button' };
+}
+
+const COLOR_RE = /rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi;
+
+/** "rgb(…)" / "rgba(…)" / "#abc" → "#rrggbb", or '' when (nearly) transparent. */
+function toHex(css) {
+    const c = String(css || '').trim();
+    if (!c || c === 'transparent') return '';
+    if (c.startsWith('#')) {
+        const h = c.slice(1);
+        if (h.length === 3) return `#${h.split('').map((x) => x + x).join('')}`.toLowerCase();
+        if (h.length === 8 && parseInt(h.slice(6), 16) < 90) return '';
+        return `#${h.slice(0, 6)}`.toLowerCase();
+    }
+    const m = c.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?/i);
+    if (!m) return '';
+    const alpha = m[4] == null ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+    if (alpha < 0.35) return '';
+    return `#${[m[1], m[2], m[3]].map((v) => Math.max(0, Math.min(255, Math.round(+v))).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** How a button really looks on the projector: fill (or gradient ends), ink, border, roundness. */
+function looksOf(el, rect) {
+    const cs = getComputedStyle(el);
+    let bg = toHex(cs.backgroundColor);
+    let bg2 = '';
+    if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+        const stops = (cs.backgroundImage.match(COLOR_RE) || []).map(toHex).filter(Boolean);
+        if (stops.length) { bg = bg || stops[0]; bg2 = stops[stops.length - 1] !== bg ? stops[stops.length - 1] : ''; }
+    }
+    const radius = parseFloat(cs.borderTopLeftRadius) || 0;
+    const borderW = parseFloat(cs.borderTopWidth) || 0;
+    return {
+        bg, bg2,
+        fg: toHex(cs.color),
+        border: borderW >= 1 ? toHex(cs.borderTopColor) : '',
+        round: radius >= Math.min(rect.height, rect.width) / 2 - 1 ? 'pill' : radius >= 10 ? 'soft' : 'square'
+    };
+}
+
+/** The heading a button sits under (its card, panel or section), so the Wand can group like the screen does. */
+function sectionOf(el, surfaceEl) {
+    let depth = 0;
+    for (let n = el.parentElement; n && depth < 7; n = n.parentElement, depth += 1) {
+        if (n.matches?.('[role="group"], [role="toolbar"], [role="tablist"], [role="radiogroup"], fieldset, nav, section, form') && n.getAttribute('aria-label')) {
+            return n.getAttribute('aria-label');
+        }
+        const h = n.querySelector(':scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > legend, :scope > header h2, :scope > header h3, :scope > header h4');
+        if (h && !h.contains(el) && h.textContent.trim()) return h.textContent;
+        if (n === surfaceEl) break;
+    }
+    return '';
 }
 
 function collectPad(surface) {
     const items = [];
-    const nodes = surface.el.querySelectorAll('button, [role="button"], a[href^="#"], [data-remote]');
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const nodes = surface.el.querySelectorAll('button, [role="button"], [role="tab"], [role="radio"], [role="switch"], [role="checkbox"], a[href^="#"], [data-remote], select, textarea, input:not([type="hidden"]):not([type="password"]):not([type="file"])');
     for (const el of nodes) {
-        if (items.length > 90) break;
+        if (items.length >= 60) break;
         if (el.closest('[data-remote-skip], [data-qr-ignore], #award-stars-student-list')) continue;
-        if (el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
-        if (!el.getClientRects().length) continue;
+        if (el.disabled || el.readOnly || el.getAttribute('aria-disabled') === 'true') continue;
+        let rect = el.getBoundingClientRect();
+        // Custom toggles hide the real checkbox and show its label: measure (and paint) the label.
+        let face = el;
+        if ((!rect.width || !rect.height) && el.labels?.[0]) { face = el.labels[0]; rect = face.getBoundingClientRect(); }
+        if (!rect.width || !rect.height) continue;
         const explicit = el.hasAttribute('data-remote');
         const label = labelOf(el);
         if (!explicit && DANGER_RE.test(label)) continue;
@@ -869,13 +1010,20 @@ function collectPad(surface) {
             host.elIds.set(el, id);
         }
         host.pad.set(id, new WeakRef(el));
-        const cls = String(el.className || '');
+        const looks = looksOf(face, rect);
+        const control = controlOf(el);
         items.push({
             id, label, icon: iconOf(el), explicit,
-            group: el.dataset.remoteGroup || '',
+            group: el.dataset.remoteGroup || sectionOf(el, surface.el),
             order: Number(el.dataset.remoteOrder),
-            primary: explicit ? el.dataset.remotePrimary === 'true' : /(primary|success|hero|gold|cta)/i.test(cls),
-            danger: DANGER_RE.test(label)
+            primary: explicit && el.dataset.remotePrimary === 'true',
+            danger: DANGER_RE.test(label),
+            iconOnly: control.kind === 'button' && !el.textContent.trim(),
+            ...control,
+            x: (rect.left + rect.width / 2) / vw,
+            y: (rect.top + rect.height / 2) / vh,
+            inView: rect.bottom > 0 && rect.top < vh && rect.right > 0 && rect.left < vw,
+            ...looks
         });
     }
     // forget buttons that are gone
@@ -956,6 +1104,7 @@ function scheduleStage(delay = 250) {
 async function publishStage() {
     if (!host) return;
     const surface = findSurface();
+    const scroll = scrollInfo(surface);
     let panel = panelFor();
     let secret = null;
     const quiz = await quizPanel();
@@ -972,8 +1121,9 @@ async function publishStage() {
         padActions: sdPanel ? [] : collectPad(surface),
         panel,
         lastResult: host.lastResult,
-        scrollable: Boolean(scrollContainerOf(surface.el)) || document.documentElement.scrollHeight > window.innerHeight + 40
+        scrollable: scroll.canUp || scroll.canDown
     });
+    stage.scroll = scroll;
     stage.timer = timerState();
     // What the class actually sees: a covering window hides the tab underneath (the Wand words its hints by this).
     stage.covered = !sdPanel && surface.kind === 'overlay';

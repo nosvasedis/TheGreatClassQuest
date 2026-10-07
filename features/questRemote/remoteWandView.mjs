@@ -22,7 +22,7 @@ export const WAND_MODES = Object.freeze([
 ]);
 
 /** How many Stage Pad buttons show before "Show all". */
-export const PAD_PREVIEW = 8;
+export const PAD_PREVIEW = 12;
 
 export function wandShellHtml({ lite = false } = {}) {
     return `
@@ -271,22 +271,111 @@ export function screensHtml(stage, castAllowed = () => true) {
         </button>`).join('')}</div>`;
 }
 
-/** Screen mode: what is on the projector, its buttons, and the dock's screens. */
+const HEX6 = /^#[0-9a-f]{6}$/i;
+
+/** Relative luminance 0..1 of "#rrggbb" (for picking readable ink when the screen gives none). */
+export function hexLuminance(hex) {
+    if (!HEX6.test(hex || '')) return null;
+    const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+}
+
+/** Inline style that paints a Wand button like its twin on the projector (or '' to keep the Wand look). */
+export function padButtonStyle(a) {
+    if (!HEX6.test(a?.bg || '')) return '';
+    const fill = HEX6.test(a.bg2 || '') ? `linear-gradient(180deg, ${a.bg}, ${a.bg2})` : a.bg;
+    const lum = hexLuminance(a.bg);
+    const inkLum = hexLuminance(a.fg);
+    // Keep the screen's own ink when it reads on that fill; otherwise pick white or deep navy.
+    const readable = inkLum != null && Math.abs(inkLum - lum) > 0.28;
+    const ink = readable ? a.fg : (lum > 0.45 ? '#1e1b4b' : '#ffffff');
+    const border = HEX6.test(a.border || '') ? a.border : 'transparent';
+    return `--pb-fill:${fill};--pb-ink:${ink};--pb-line:${border}`;
+}
+
+function padButtonHtml(a) {
+    const style = padButtonStyle(a);
+    const placed = Number.isFinite(a.x) && Number.isFinite(a.y);
+    const where = !placed ? ''
+        : a.inView
+            ? `<span class="qw-padbtn__where" aria-hidden="true"><i style="left:${Math.round(Math.max(0, Math.min(1, a.x)) * 100)}%;top:${Math.round(Math.max(0, Math.min(1, a.y)) * 100)}%"></i></span>`
+            : `<span class="qw-padbtn__off" title="${a.y < 0 ? 'Above' : 'Below'} the screen: the projector scrolls to it">${a.y < 0 ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>'}</span>`;
+    const cls = ['qw-padbtn', style ? 'is-real' : '', a.primary && !style ? 'is-primary' : '', a.danger ? 'is-danger' : '',
+        a.round ? `is-${a.round}` : '', a.iconOnly ? 'is-icon' : '', placed && !a.inView ? 'is-off' : ''].filter(Boolean).join(' ');
+    const toggle = a.kind === 'toggle';
+    return `<button type="button" class="${cls}${toggle ? ' is-toggle' : ''}${toggle && a.on ? ' is-on' : ''}" data-qw-pad="${esc(a.id)}"${toggle ? ` role="switch" aria-checked="${Boolean(a.on)}"` : ''}${style ? ` style="${style}"` : ''}>
+            ${safeIcon(a.icon) ? `<span class="qw-padbtn__icon" aria-hidden="true"><i class="fas ${safeIcon(a.icon)}"></i></span>` : ''}<span class="qw-padbtn__label">${esc(a.label)}</span>${toggle ? '<span class="qw-switch" aria-hidden="true"><i></i></span>' : where}</button>`;
+}
+
+/** A row of tabs (or a choice group) drawn like the screen's own: the chosen one lit. */
+function tabRowHtml(items) {
+    return `<div class="qw-tabrow" role="tablist">${items.map((a) => {
+        const style = padButtonStyle(a);
+        return `<button type="button" role="tab" aria-selected="${Boolean(a.on)}" class="qw-tabchip${a.on ? ' is-on' : ''}${style ? ' is-real' : ''}" data-qw-pad="${esc(a.id)}"${style ? ` style="${style}"` : ''}>
+            ${safeIcon(a.icon) ? `<i class="fas ${safeIcon(a.icon)}" aria-hidden="true"></i>` : ''}<span>${esc(a.label)}</span></button>`;
+    }).join('')}</div>`;
+}
+
+/** A dropdown with the same choices as the projector's (the phone's own picker opens). */
+function selectHtml(a) {
+    const options = (a.options || []).map((o) => `<option value="${esc(o.value)}"${o.value === a.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
+    return `<label class="qw-field">
+        <span class="qw-field__label">${esc(a.label)}</span>
+        <span class="qw-field__select"><select data-qw-select="${esc(a.id)}">${options}</select><i class="fas fa-chevron-down" aria-hidden="true"></i></span>
+    </label>`;
+}
+
+/** A text box: type on the phone's keyboard, Send puts it into the projector's field. */
+function textFieldHtml(a) {
+    const attrs = `name="v" placeholder="${esc(a.placeholder || '')}" autocomplete="off" enterkeyhint="send"`;
+    const field = a.multiline
+        ? `<textarea ${attrs} rows="2">${esc(a.value || '')}</textarea>`
+        : `<input type="${a.inputType === 'number' ? 'number' : a.inputType === 'date' ? 'date' : a.inputType === 'time' ? 'time' : 'text'}" ${attrs} value="${esc(a.value || '')}">`;
+    return `<form class="qw-field qw-field--text" data-qw-text="${esc(a.id)}">
+        <span class="qw-field__label">${esc(a.label)}</span>
+        <span class="qw-field__row">${field}<button type="submit" class="qw-field__send" aria-label="Send to the projector"><i class="fas fa-paper-plane" aria-hidden="true"></i></button></span>
+    </form>`;
+}
+
+/** The screen's controls in its own order: group headings, tab rows, switches, dropdowns, text boxes. */
+function padControlsHtml(items) {
+    const out = [];
+    let lastGroup = null;
+    for (let i = 0; i < items.length; i += 1) {
+        const a = items[i];
+        const group = a.group || '';
+        if (group !== lastGroup && group) out.push(`<p class="qw-pad__group">${esc(group)}</p>`);
+        lastGroup = group;
+        if (a.kind === 'tab') {
+            const run = [a];
+            while (items[i + 1]?.kind === 'tab' && (items[i + 1].group || '') === group) run.push(items[(i += 1)]);
+            out.push(tabRowHtml(run));
+        } else if (a.kind === 'select') out.push(selectHtml(a));
+        else if (a.kind === 'text') out.push(textFieldHtml(a));
+        else out.push(padButtonHtml(a));
+    }
+    return out.join('');
+}
+
+/** Screen mode: what is on the projector, its buttons (looking like the real ones), and the dock's screens. */
 export function stageHtml(stage, { secret = null, castAllowed = () => true, padOpen = false } = {}) {
     const pad = Array.isArray(stage?.pad) ? stage.pad : [];
     const shown = padOpen ? pad : pad.slice(0, PAD_PREVIEW);
-    const padHtml = shown.map((a) => `<button type="button" class="qw-padbtn${a.primary ? ' is-primary' : ''}${a.danger ? ' is-danger' : ''}" data-qw-pad="${esc(a.id)}">
-            <span class="qw-padbtn__icon" aria-hidden="true"><i class="fas ${safeIcon(a.icon) || 'fa-hand-pointer'}"></i></span><span class="qw-padbtn__label">${esc(a.label)}</span></button>`).join('');
+    const padHtml = padControlsHtml(shown);
+    const scroll = stage?.scroll || { canUp: Boolean(stage?.scrollable), canDown: Boolean(stage?.scrollable), at: 0 };
+    const scrolls = scroll.canUp || scroll.canDown;
     return `<section class="qw-stage">
         <h3 class="qw-sub"><i class="fas fa-cloud" aria-hidden="true"></i> Screens</h3>
         ${screensHtml(stage, castAllowed)}
         ${panelHtml(stage?.panel, secret)}
         <div class="qw-remote" role="group" aria-label="Move around the screen">
             <button type="button" class="qw-remote__btn qw-remote__btn--back" data-qw-cmd="key" data-key="Escape"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back</span></button>
-            <button type="button" class="qw-remote__btn" data-qw-cmd="scroll" data-dir="up" aria-label="Scroll up"${stage?.scrollable ? '' : ' disabled'}><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
-            <button type="button" class="qw-remote__btn" data-qw-cmd="scroll" data-dir="down" aria-label="Scroll down"${stage?.scrollable ? '' : ' disabled'}><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+            <button type="button" class="qw-remote__btn" data-qw-cmd="scroll" data-dir="up" aria-label="Scroll up"${scroll.canUp ? '' : ' disabled'}><i class="fas fa-chevron-up" aria-hidden="true"></i></button>
+            <button type="button" class="qw-remote__btn" data-qw-cmd="scroll" data-dir="down" aria-label="Scroll down"${scroll.canDown ? '' : ' disabled'}><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
             <button type="button" class="qw-remote__btn qw-remote__btn--ok" data-qw-cmd="key" data-key="Enter" aria-label="OK (Enter)"><span>OK</span></button>
         </div>
+        ${scrolls ? `<div class="qw-scrollpos" aria-label="Scrolled ${Math.round((scroll.at || 0) * 100)}% down"><i style="--at:${(scroll.at || 0).toFixed(2)}"></i></div>` : ''}
         <h3 class="qw-sub"><i class="fas fa-hand-pointer" aria-hidden="true"></i> On this screen ${pad.length ? `<span class="qw-badge qw-badge--soft">${pad.length}</span>` : ''}</h3>
         ${pad.length ? `<div class="qw-pad">${padHtml}</div>
             ${pad.length > PAD_PREVIEW ? `<button type="button" class="qw-more" data-qw="pad-toggle">${padOpen ? 'Show fewer' : `Show all ${pad.length}`} <i class="fas fa-chevron-${padOpen ? 'up' : 'down'}" aria-hidden="true"></i></button>` : ''}`

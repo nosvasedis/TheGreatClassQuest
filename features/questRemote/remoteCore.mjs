@@ -67,7 +67,11 @@ export const HOST_LIVE_MS = 45_000;
 export const HEARTBEAT_MS = 15_000;
 /** Stage summaries are written at most this often. */
 export const STAGE_MIN_INTERVAL_MS = 1000;
-export const MAX_PAD_ACTIONS = 30;
+export const MAX_PAD_ACTIONS = 40;
+
+/** Kinds of control the Wand can mirror. */
+export const PAD_KINDS = Object.freeze(['button', 'tab', 'toggle', 'select', 'text']);
+const TEXT_TYPES = new Set(['text', 'search', 'number', 'email', 'url', 'tel', 'date', 'time']);
 
 function isPlainObject(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -94,7 +98,11 @@ export function validateCommand(cmd) {
     if (Object.keys(p).length > 12) return { ok: false, reason: 'payload-too-big' };
     const fail = (reason) => ({ ok: false, reason });
     switch (cmd.type) {
-        case 'pad': return shortString(p.id, 24) ? { ok: true } : fail('bad-pad-id');
+        case 'pad':
+            if (!shortString(p.id, 24)) return fail('bad-pad-id');
+            // A dropdown choice or the text for a field on the projector (rides on the same command).
+            if (p.value != null && !(typeof p.value === 'string' && p.value.length <= 500)) return fail('bad-value');
+            return { ok: true };
         case 'key': return KEYS.has(p.key) ? { ok: true } : fail('key-not-allowed');
         case 'cast': return CAST_TAB_IDS.includes(p.tab) ? { ok: true } : fail('bad-tab');
         case 'class': return shortString(p.classId, 64) ? { ok: true } : fail('bad-class');
@@ -278,27 +286,64 @@ export function buildPadActions(items, max = MAX_PAD_ACTIONS) {
     const list = (Array.isArray(items) ? items : [])
         .map((item, domIndex) => ({ ...item, domIndex, label: cleanPadLabel(item?.label) }))
         .filter((item) => item.label && shortString(item.id, 24));
+    const placed = (i) => Number.isFinite(i.x) && Number.isFinite(i.y);
+    // Reading order of the projector: buttons in sight first, then row by row (a 4%-of-screen band
+    // counts as one row) and left to right. Without positions, page order.
     list.sort((a, b) => {
         if (Boolean(b.explicit) !== Boolean(a.explicit)) return a.explicit ? -1 : 1;
-        if (Boolean(b.primary) !== Boolean(a.primary)) return a.primary ? -1 : 1;
-        const ao = Number.isFinite(a.order) ? a.order : 1000;
-        const bo = Number.isFinite(b.order) ? b.order : 1000;
-        return ao - bo || a.domIndex - b.domIndex;
+        if (a.explicit && b.explicit) {
+            if (Boolean(b.primary) !== Boolean(a.primary)) return a.primary ? -1 : 1;
+            const ao = Number.isFinite(a.order) ? a.order : 1000;
+            const bo = Number.isFinite(b.order) ? b.order : 1000;
+            if (ao !== bo) return ao - bo;
+        }
+        if (placed(a) && placed(b)) {
+            if (Boolean(b.inView) !== Boolean(a.inView)) return a.inView ? -1 : 1;
+            const ra = Math.round(a.y / 0.04);
+            const rb = Math.round(b.y / 0.04);
+            if (ra !== rb) return ra - rb;
+            if (a.x !== b.x) return a.x - b.x;
+        }
+        return a.domIndex - b.domIndex;
     });
     const seen = new Set();
     const out = [];
+    const hex = (v) => (HEX_RE.test(v || '') ? v.toLowerCase() : '');
+    const unit = (v) => (Number.isFinite(v) ? Math.round(Math.max(-1, Math.min(2, v)) * 1000) / 1000 : null);
     for (const item of list) {
-        const key = `${item.group || ''}|${item.label.toLowerCase()}`;
+        const key = `${item.group || ''}|${item.label.toLowerCase()}|${placed(item) ? `${Math.round(item.x * 20)}:${Math.round(item.y * 20)}` : ''}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        out.push({
+        const action = {
             id: item.id,
             label: item.label,
             icon: ICON_RE.test(item.icon || '') ? item.icon : '',
-            group: cleanPadLabel(item.group, 24),
+            group: cleanPadLabel(item.group, 30),
             primary: Boolean(item.primary),
             danger: Boolean(item.danger)
-        });
+        };
+        // How the button looks and where it sits on the projector (only what checks out).
+        for (const k of ['bg', 'bg2', 'fg', 'border']) { const v = hex(item[k]); if (v) action[k] = v; }
+        if (['pill', 'soft', 'square'].includes(item.round)) action.round = item.round;
+        if (placed(item)) { action.x = unit(item.x); action.y = unit(item.y); action.inView = Boolean(item.inView); }
+        if (item.iconOnly) action.iconOnly = true;
+        // The kind of control, and what it holds right now.
+        const kind = PAD_KINDS.includes(item.kind) ? item.kind : 'button';
+        if (kind !== 'button') action.kind = kind;
+        if (kind === 'tab' || kind === 'toggle') action.on = Boolean(item.on);
+        if (kind === 'select') {
+            action.options = (Array.isArray(item.options) ? item.options : []).slice(0, 16)
+                .map((o) => ({ label: cleanPadLabel(o?.label, 40) || String(o?.value ?? '').slice(0, 40), value: String(o?.value ?? '').slice(0, 60) }))
+                .filter((o) => o.label);
+            action.value = String(item.value ?? '').slice(0, 60);
+        }
+        if (kind === 'text') {
+            action.value = String(item.value ?? '').slice(0, 300);
+            action.placeholder = cleanPadLabel(item.placeholder, 60);
+            action.multiline = Boolean(item.multiline);
+            action.inputType = TEXT_TYPES.has(item.inputType) ? item.inputType : 'text';
+        }
+        out.push(action);
         if (out.length >= max) break;
     }
     return out;

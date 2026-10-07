@@ -286,6 +286,7 @@ try {
   await captureExtra('Wand: award', () => window.__gcqCapture.showWand('award'), '#capture-quest-remote .qw', 'wand-award.png');
   await captureExtra('Quest Remote star ribbon', () => window.__gcqCapture.showProjectorRemote('ribbon'), '#capture-quest-remote .capture-qr-ribbon-stage', 'quest-remote-ribbon.png');
   await captureExtra('Wand: stage', () => window.__gcqCapture.showWand('stage'), '#capture-quest-remote .qw', 'wand-stage.png');
+  await captureExtra('Wand: Training Grounds controls', () => window.__gcqCapture.showWand('controls'), '#capture-quest-remote .qw', 'wand-controls.png');
   await captureExtra('Wand: magic', () => window.__gcqCapture.showWand('magic'), '#capture-quest-remote .qw', 'wand-magic.png');
   await captureExtra('Wand: show', () => window.__gcqCapture.showWand('show'), '#capture-quest-remote .qw', 'wand-show.png');
   await page.evaluate(() => window.__gcqCapture.hideRemote());

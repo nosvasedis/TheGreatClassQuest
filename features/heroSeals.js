@@ -11,11 +11,13 @@
 // quiz history read once per session per class.
 //
 // When seals are pressed, the app's ordinary notification says so; its button opens a
-// summary of who pressed what. Seen-ness is kept per teacher per device.
+// summary of who pressed what. Seen-ness is kept per teacher in Firestore (teacher_metadata),
+// so each seal is told once, on one computer, and never again after the summary is read.
 import '../styles/hero_seals.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { db, doc, updateDoc, deleteField, collection, query, where, getDocs } from '../firebase.js';
+import { db, doc, updateDoc, deleteField, collection, query, where, getDocs, onSnapshot, runTransaction } from '../firebase.js';
+import { getTeacherMetadataRef } from './teacherJourney.js';
 import { getSchoolYearOpeningDay } from '../utils/schoolYearOpening.mjs';
 import { fetchAllTrialsForClass } from '../db/queries.js';
 import { getClassAssessmentUsage, getNormalizedPercentForScore } from './assessmentConfig.js';
@@ -340,7 +342,19 @@ async function evaluateClass(classId, { refreshQuiz = false } = {}) {
         Object.entries(presses).forEach(([id, press]) => { patch[`heroSeals.earned.${id}`] = press; });
         if (!Object.keys(patch).length) continue;
         Object.keys(presses).forEach((id) => written.add(`${student.id}|${id}`));
-        writes.push(updateDoc(doc(db, `${ROOT}/student_scores`, student.id), patch).catch((error) => {
+        const ref = doc(db, `${ROOT}/student_scores`, student.id);
+        const pressIds = Object.keys(presses);
+        // A press is news, so it goes in a transaction: when another computer pressed the same
+        // seal a moment ago, its press (and its time) stands and nobody is told twice.
+        const write = pressIds.length
+            ? runTransaction(db, async (tx) => {
+                const snap = await tx.get(ref);
+                const already = snap.data()?.heroSeals?.earned || {};
+                pressIds.forEach((id) => { if (already[id]) delete patch[`heroSeals.earned.${id}`]; });
+                if (Object.keys(patch).length) tx.update(ref, patch);
+            })
+            : updateDoc(ref, patch);
+        writes.push(write.catch((error) => {
             Object.keys(presses).forEach((id) => written.delete(`${student.id}|${id}`));
             console.warn('Hero Seals: could not press for a hero', error?.code || error?.message);
         }));
@@ -400,6 +414,8 @@ export function startHeroSeals() {
     state.subscribe(['allAwardLogs', 'allAttendanceRecords', 'allWrittenScores', 'globalSelectedClassId', 'allSchoolClasses'], () => schedule());
     state.subscribe(['allStudentScores', 'currentUserId'], () => refreshNotice());
     state.subscribe('allAttendanceRecords', () => classCache.forEach((cache) => { cache.absencesStale = true; }));
+    // A tab that was in the background tells what nobody else has told yet when it comes forward.
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshNotice(); });
     schedule();
 }
 
@@ -417,12 +433,85 @@ export function noteQuizChampion(classId) {
 
 // ─── The notice ──────────────────────────────────────────────────────────────
 
-function readSeen() {
-    try { return Number(localStorage.getItem(SEEN_KEY(uid()))) || 0; } catch { return 0; }
+// What the teacher has been told and has looked at lives on their own teacher_metadata
+// doc (heroSealsMark: { told, seen }), so it follows them to every computer. localStorage
+// keeps a copy for offline starts. Raising either mark is a small transaction that only
+// ever moves it forward, so two computers can never both claim the same news.
+const TOLD_KEY = (uid) => `gcq.heroSeals.told.${uid}`;
+
+function readLocal(key) {
+    try { return Number(localStorage.getItem(key)) || 0; } catch { return 0; }
 }
 
-function writeSeen(value) {
-    try { localStorage.setItem(SEEN_KEY(uid()), String(value)); } catch { /* private mode: the notice simply returns next time */ }
+function writeLocal(key, value) {
+    try { localStorage.setItem(key, String(value)); } catch { /* private mode: Firestore still keeps it */ }
+}
+
+/** The signed-in teacher's marks; `ready` once Firestore has answered (or failed). */
+let mark = { uid: '', told: 0, seen: 0, ready: false };
+let markUnsub = null;
+
+function takeMark(remote = {}) {
+    mark.seen = Math.max(mark.seen, Number(remote.seen) || 0);
+    mark.told = Math.max(mark.told, Number(remote.told) || 0, mark.seen);
+    writeLocal(SEEN_KEY(mark.uid), mark.seen);
+    writeLocal(TOLD_KEY(mark.uid), mark.told);
+}
+
+function watchMark() {
+    const me = isTeacher() ? uid() : '';
+    if (me === mark.uid) return;
+    markUnsub?.();
+    markUnsub = null;
+    hideNotice();
+    mark = { uid: me, told: 0, seen: 0, ready: false };
+    if (!me) return;
+    takeMark({ seen: readLocal(SEEN_KEY(me)), told: readLocal(TOLD_KEY(me)) });
+    markUnsub = onSnapshot(getTeacherMetadataRef(me), (snap) => {
+        if (mark.uid !== me) return;
+        const remote = snap.data()?.heroSealsMark || {};
+        const firstAnswer = !mark.ready;
+        takeMark(remote);
+        mark.ready = true;
+        // A computer that knew more than Firestore (older builds kept marks per device) shares it once.
+        if (firstAnswer && (mark.told > (Number(remote.told) || 0) || mark.seen > (Number(remote.seen) || 0))) {
+            raiseMark({ told: mark.told, seen: mark.seen });
+        }
+        refreshNotice();
+    }, (error) => {
+        console.warn('Hero Seals: could not read the notice marks', error?.code || error?.message);
+        if (mark.uid !== me) return;
+        mark.ready = true;
+        refreshNotice();
+    });
+}
+
+/**
+ * Moves the marks forward in Firestore and returns true when `told` went up here
+ * (this computer won the news). Offline, it falls back to this computer's marks.
+ */
+async function raiseMark({ told = 0, seen = 0 } = {}) {
+    const me = mark.uid;
+    if (!me) return false;
+    try {
+        const result = await runTransaction(db, async (tx) => {
+            const ref = getTeacherMetadataRef(me);
+            const snap = await tx.get(ref);
+            const cur = snap.data()?.heroSealsMark || {};
+            const curSeen = Number(cur.seen) || 0;
+            const curTold = Number(cur.told) || 0;
+            const next = { seen: Math.max(curSeen, seen), told: Math.max(curTold, told, seen, curSeen) };
+            if (next.seen !== curSeen || next.told !== curTold) tx.set(ref, { heroSealsMark: next }, { merge: true });
+            return { next, won: told > curTold };
+        });
+        if (mark.uid === me) takeMark(result.next);
+        return result.won;
+    } catch (error) {
+        console.warn('Hero Seals: could not save the notice marks', error?.code || error?.message);
+        const won = told > mark.told;
+        if (mark.uid === me) takeMark({ told, seen });
+        return won;
+    }
 }
 
 function classLabel(classId) {
@@ -431,48 +520,46 @@ function classLabel(classId) {
 }
 
 function pendingGroups() {
-    if (!isTeacher()) return [];
+    if (!isTeacher() || mark.uid !== uid()) return [];
     const own = new Set(ownClasses().map((c) => c.id));
     const scores = new Map((state.get('allStudentScores') || []).map((s) => [s.id, s]));
     const rows = (state.get('allStudents') || [])
         .filter((s) => own.has(s.classId) && scores.get(s.id)?.heroSeals?.earned)
         .map((s) => ({ student: s, heroSeals: scores.get(s.id).heroSeals, classLabel: classLabel(s.classId) }));
-    return collectNewSeals(rows, readSeen());
-}
-
-const TOLD_KEY = (uid) => `gcq.heroSeals.told.${uid}`;
-
-let told = 0;
-
-function readTold() {
-    try { return Number(localStorage.getItem(TOLD_KEY(uid()))) || told; } catch { return told; }
-}
-
-function writeTold(value) {
-    told = value;
-    try { localStorage.setItem(TOLD_KEY(uid()), String(value)); } catch { /* private mode: kept for this session */ }
+    return collectNewSeals(rows, mark.seen);
 }
 
 let herald = null;
+let claiming = false;
 
 /**
  * New seals ride the app's ordinary notification: one herald that names who pressed
  * what and opens the summary. It covers every seal not yet looked at, and appears again
- * only when a newer seal is pressed.
+ * only when a newer seal is pressed. Only one computer (a visible one) tells each piece
+ * of news; the others stay quiet, and the herald leaves everywhere once the summary is read.
  */
-function refreshNotice() {
+async function refreshNotice() {
     if (!started) return;
+    watchMark();
+    if (!mark.ready) return;
     const groups = pendingGroups();
     if (!groups.length) { hideNotice(); return; }
     const newest = groups.reduce((m, g) => Math.max(m, g.newest), 0);
-    if (newest <= readTold()) return;
-    writeTold(newest);
-    const { title, sub } = heroSealsNoticeCopy(groups);
+    if (newest <= mark.told || claiming) return;
+    // A tab in the background waits; the computer in use tells it.
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    claiming = true;
+    let won = false;
+    try { won = await raiseMark({ told: newest }); } finally { claiming = false; }
+    if (!won) return;
+    const current = pendingGroups();
+    if (!current.length) return;
+    const { title, sub } = heroSealsNoticeCopy(current);
     herald = notify({
         key: 'hero-seals',
         type: 'praise',
         title: 'Hero Seals',
-        icon: sealArtHtml(groups[0].seals[0], { size: 34, className: 'hs-herald-seal' }),
+        icon: sealArtHtml(current[0].seals[0], { size: 34, className: 'hs-herald-seal' }),
         message: `${escSeal(title)}<span class="hs-herald-sub">${escSeal(sub)}</span>`,
         duration: 10000,
         action: { label: 'See who', icon: 'fa-scroll', onClick: () => openHeroSealsSummary() },
@@ -486,9 +573,10 @@ function hideNotice() {
 
 function markAllSeen() {
     const groups = pendingGroups();
-    const newest = groups.reduce((m, g) => Math.max(m, g.newest), readSeen());
-    writeSeen(Math.max(newest, readSeen()));
-    if (newest > readTold()) writeTold(newest);
+    const newest = groups.reduce((m, g) => Math.max(m, g.newest), mark.seen);
+    if (newest <= mark.seen) return;
+    takeMark({ seen: newest, told: newest });
+    raiseMark({ seen: newest, told: newest });
 }
 
 // ─── The summary ─────────────────────────────────────────────────────────────

@@ -38,7 +38,7 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
-import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock } from './homeGreetingScene.js';
+import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from './homeGreetingScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import {
@@ -48,6 +48,7 @@ import {
 import { fetchLiveWeather, applyLiveSky, isWeatherForActiveLocation } from './liveWeather.js';
 import { getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
 import { getWeatherCardHtml, getClockHandAngles, formatClockTime, refreshWeatherCardInPlace } from './weatherCard.js';
+import { morphChildNodes } from '../utils/domMorph.mjs';
 import { PUBLIC_DATA_PATH, dataPath } from '../utils/tenant.mjs';
 
 export { initializeHeaderQuote, fetchDailySpice };
@@ -58,6 +59,7 @@ let homeClockInterval = null;
 let renderDebounce = null;
 let currentRenderedViewId = null;
 let hasPlayedInitialHomeEntrance = false;
+let homeEntrancePending = false;
 
 // v2: day-seeded prompts + recent-quote memory. The new doc id also retires the
 // old per-day cache entries that were generated from one fixed prompt.
@@ -252,7 +254,13 @@ if (typeof window !== 'undefined') {
     });
 }
 
-export function renderHomeTab() {
+/**
+ * Draws Home. Live data (a colleague's stars, attendance, the school's settings) calls this
+ * often, so a refresh of the same view only patches what changed (see patchHomeDashboard).
+ * `entrance: true` (opening the Home tab) redraws it whole so the cards play their entrance.
+ */
+export function renderHomeTab({ entrance = false } = {}) {
+    if (entrance) homeEntrancePending = true;
     const container = document.getElementById('home-dashboard-container');
     if (!container) return;
 
@@ -323,12 +331,23 @@ async function executeRenderHome() {
         contentHtml = getGeneralDashboard(teacherName, theme, spice);
     }
 
-    // DOM Update
+    // DOM Update. A new view (another class, General) or opening the tab redraws the whole
+    // dashboard; a live refresh of the same view only patches the cards that changed, so a
+    // colleague's stars never make every card replay its entrance (the Home "flashing").
     const isViewChange = currentRenderedViewId !== viewId;
     currentRenderedViewId = viewId;
-
-    if (isViewChange) container.innerHTML = `<div class="home-fade w-full h-full">${contentHtml}</div>`;
-    else container.innerHTML = `<div class="w-full h-full">${contentHtml}</div>`;
+    const entrance = homeEntrancePending;
+    homeEntrancePending = false;
+    const fragment = homeDashboardFragment(contentHtml);
+    const wrapper = container.firstElementChild;
+    if (!isViewChange && !entrance && wrapper?.querySelector('.horizons-grid')) {
+        patchHomeDashboard(wrapper, fragment, theme);
+    } else {
+        const fresh = document.createElement('div');
+        fresh.className = isViewChange ? 'home-fade w-full h-full' : 'w-full h-full';
+        fresh.appendChild(fragment);
+        container.replaceChildren(fresh);
+    }
 
     // The coherent dashboard is now visible. Everything below enhances it and
     // must not hold the authenticated loading screen open.
@@ -355,6 +374,56 @@ async function executeRenderHome() {
     startHomeClockTicker();
     startDayRingClock(container);
 
+}
+
+/** Classes Home's scripts add for a while (an unfolded Chronicle page, its ink bloom): a patch keeps them. */
+const HOME_SCRIPT_CLASSES = ['is-open', 'has-open', 'is-inking', 'date-pill--quest-tone-shift', 'date-pill--quest-exit'];
+
+function hashMarkup(text) {
+    let h = 0;
+    for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+}
+
+/**
+ * The dashboard markup as nodes, each card stamped with a signature of its markup. A card whose
+ * signature has not changed since the last draw is left exactly as it is on the next refresh.
+ * The greeting hills get fresh gradient ids on every draw, so those are left out of the signature.
+ */
+function homeDashboardFragment(contentHtml) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = contentHtml;
+    tpl.content.querySelectorAll('.horizons-grid > *').forEach((card) => {
+        card.setAttribute('data-home-sig', hashMarkup(card.outerHTML.replace(/\bgh-\d+-/g, 'gh-')));
+    });
+    return tpl.content;
+}
+
+/**
+ * Brings the dashboard on screen up to date in place. Unchanged cards stay untouched; changed
+ * ones are morphed (only the differing text and attributes move). Parts that look after
+ * themselves stay put: the weather card (refreshed in place, like the live sky does), the
+ * greeting's sky and hills (painted by the sky stage) and the day ring (its own clock).
+ */
+function patchHomeDashboard(wrapper, fragment, theme) {
+    morphChildNodes(wrapper, fragment, {
+        keep(from, to) {
+            const sig = to.getAttribute('data-home-sig');
+            if (sig && from.getAttribute('data-home-sig') === sig) return true;
+            if (from.classList.contains('weather-card--v3') && to.classList.contains('weather-card--v3')) {
+                if (from.className !== to.className) from.className = to.className;
+                if (sig) from.setAttribute('data-home-sig', sig);
+                refreshWeatherCardInPlace(from, theme, theme.sky, { reading: theme.reading, sun: theme.sun });
+                return true;
+            }
+            if (from.classList.contains('greeting-sky') && to.classList.contains('greeting-sky')) return true;
+            if (from.hasAttribute('data-day-ring') && to.hasAttribute('data-day-ring')) return syncDayRing(from, to);
+            return false;
+        },
+        // Badges other code mounts into the greeting (the Campfire) are theirs to keep.
+        isForeign: (node) => node.classList.contains('campfire-entry'),
+        keepClasses: HOME_SCRIPT_CLASSES,
+    });
 }
 
 /** Moves the weather card clock hands each second; stops once the card leaves the DOM. */
@@ -894,6 +963,7 @@ function wireChronicleDeck(deck) {
     }
 
     deck.querySelectorAll('.ch-page').forEach(page => {
+        if (!firstWiring(page)) return;
         page.addEventListener('pointerdown', (e) => {
             const rect = page.getBoundingClientRect();
             page.style.setProperty('--ch-ink-x', `${e.clientX - rect.left}px`);
@@ -928,10 +998,19 @@ function wireChronicleDeck(deck) {
     });
 }
 
+// A live refresh keeps most of Home's nodes, so each one is wired once, never twice.
+const wiredHomeNodes = new WeakSet();
+const firstWiring = (node) => {
+    if (wiredHomeNodes.has(node)) return false;
+    wiredHomeNodes.add(node);
+    return true;
+};
+
 function attachListeners(container) {
     container.querySelectorAll('[data-chronicle-deck]').forEach(wireChronicleDeck);
 
     container.querySelectorAll('.schedule-class-peek-btn').forEach(btn => {
+        if (!firstWiring(btn)) return;
         const open = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -942,10 +1021,12 @@ function attachListeners(container) {
             if (e.key === 'Enter' || e.key === ' ') open(e);
         });
     });
-    container.querySelectorAll('.shortcut-tab-btn').forEach(btn => btn.addEventListener('click', () => tabs.showTab(btn.dataset.target)));
-    container.querySelectorAll('.shortcut-action-btn').forEach(btn => btn.addEventListener('click', () => {
-        handleAction(btn.dataset.action, btn.dataset);
-    }));
+    container.querySelectorAll('.shortcut-tab-btn').forEach(btn => {
+        if (firstWiring(btn)) btn.addEventListener('click', () => tabs.showTab(btn.dataset.target));
+    });
+    container.querySelectorAll('.shortcut-action-btn').forEach(btn => {
+        if (firstWiring(btn)) btn.addEventListener('click', () => handleAction(btn.dataset.action, btn.dataset));
+    });
 }
 
 /** School Schedule card → roster peek (lazy). Own classes get shortcuts; colleagues' are view-only. */
@@ -1061,6 +1142,19 @@ export function runScheduleBasedClassSyncOnce() {
     applyScheduleBasedClassSync();
 }
 
+/** Puts the quiz ticket in the weather card's footer; a live refresh with the same ticket leaves it be. */
+function setQuizFooter(footer, html, classId) {
+    if (!footer.isConnected) return;
+    const key = `${classId}:${hashMarkup(html)}`;
+    if (footer.dataset.quizKey === key && (footer.firstElementChild || !html)) return;
+    footer.innerHTML = html;
+    footer.dataset.quizKey = key;
+    if (!html) return;
+    footer.querySelector('#quiz-week-trigger-btn')?.addEventListener('click', () => {
+        import('../ui/modals.js').then(m => m.openQuizModal(classId));
+    });
+}
+
 async function injectQuizButton() {
     const footer = document.getElementById('weather-card-footer');
     if (!footer) return;
@@ -1082,20 +1176,15 @@ async function injectQuizButton() {
             );
             const questionCount = (quiz?.questions || []).filter(q => q.type === 'mcq').length;
 
-            footer.innerHTML = quizLaunchButtonHtml({ questionCount });
-
-            document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
-                import('../ui/modals.js').then(m => m.openQuizModal(classId));
-            });
+            setQuizFooter(footer, quizLaunchButtonHtml({ questionCount }), classId);
         } else if (quizState === 'completed') {
             // Show completed state with results button
-            footer.innerHTML = quizLaunchButtonHtml({ completed: true });
-
-            document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
-                import('../ui/modals.js').then(m => m.openQuizModal(classId));
-            });
+            setQuizFooter(footer, quizLaunchButtonHtml({ completed: true }), classId);
+        } else {
+            // All other states (not_first_lesson, outside_time, etc.): no ticket. A live
+            // refresh keeps the card, so a ticket from earlier is taken down here.
+            setQuizFooter(footer, '', classId);
         }
-        // For all other states (not_first_lesson, outside_time, etc.), footer stays empty
     } catch (e) {
         console.warn('Quiz button injection failed:', e);
     }

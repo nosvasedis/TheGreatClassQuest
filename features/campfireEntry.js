@@ -65,20 +65,23 @@ function readyCount(classId) {
 
 export function mountCampfireEntry(host, classId, { oathsOnly = false, home = false } = {}) {
     if (!host) return;
-    host.querySelector(':scope > .campfire-entry')?.remove();
-    if (!canUseFeature('heroCampfire')) return;
+    // Home redraws the greeting often; an unchanged badge stays put instead of popping in again.
+    // (Taking a node out and back in would restart its animations, so it is only moved if needed.)
+    const existing = host.querySelector(':scope > .campfire-entry');
+    if (!canUseFeature('heroCampfire')) { existing?.remove(); return; }
     if (!classId) {
+        existing?.remove();
         if (!home && !oathsOnly) mountDisabledOathsButton(host);
         return;
     }
-    const c = state.get('allTeachersClasses').find(item => item.id === classId); if (!c) return;
+    const c = state.get('allTeachersClasses').find(item => item.id === classId); if (!c) { existing?.remove(); return; }
     watchOaths();
     const log = todaysLog(classId);
     const celebrationClosed = document.getElementById('hero-celebration-modal')?.classList.contains('hidden') !== false;
     const key = classId + '_' + getTodayDateString();
     const held = completed.has(key);
     const ready = !oathsOnly && c.campfireEnabled !== false && log && celebrationClosed && !isDismissed(classId);
-    if (home && !ready) return;
+    if (home && !ready) { existing?.remove(); return; }
     const entry = document.createElement('div');
     entry.className = 'campfire-entry' + (home ? ' campfire-entry--home' : '') + (oathsOnly ? ' campfire-entry--class' : '');
     entry.dataset.classId = classId;
@@ -103,6 +106,12 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     if (oaths) oaths.onclick = () => import('../ui/modals/emberOaths.js').then(m => m.openOathBoard(classId)).catch(e => showToast(e.message, 'error'));
     // Older hosts kept the trash can last, so Oaths sits just left of it there.
     const trash = oathsOnly ? host.querySelector(':scope > .delete-class-btn') : null;
+    if (existing && existing.className === entry.className && existing.dataset.classId === entry.dataset.classId
+        && existing.innerHTML === entry.innerHTML) {
+        if (home && host.firstElementChild !== existing) host.prepend(existing);
+        return;
+    }
+    existing?.remove();
     if (trash) host.insertBefore(entry, trash); else if (home) host.prepend(entry); else host.append(entry);
 }
 

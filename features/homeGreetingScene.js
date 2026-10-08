@@ -455,6 +455,21 @@ export function getDayRingEmblemHtml(logo, { now = Date.now(), sunrise, sunset, 
     </div>`;
 }
 
+/**
+ * A live Home refresh meets the ring already on screen: it keeps that ring (its own clock moves
+ * it, and an intro under way plays on), only swapping the class logo in its face if it changed.
+ * Returns false when the ring must be redrawn (another day/night or new solar times).
+ */
+export function syncDayRing(ring, next) {
+    if (ring.dataset.kind !== next.dataset.kind
+        || ring.dataset.sunrise !== next.dataset.sunrise
+        || ring.dataset.sunset !== next.dataset.sunset) return false;
+    const face = ring.querySelector('.greeting-emblem__face');
+    const nextFace = next.querySelector('.greeting-emblem__face');
+    if (face && nextFace && face.innerHTML !== nextFace.innerHTML) face.innerHTML = nextFace.innerHTML;
+    return true;
+}
+
 /** Keeps the ring on the real time: moves the sun or moon, and redraws at sunrise and sunset. */
 export function startDayRingClock(root = document) {
     if (ringInterval) clearInterval(ringInterval);

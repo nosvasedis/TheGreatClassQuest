@@ -297,7 +297,7 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     if (tabId === 'about-tab') {
         // Opening Home plays the day/night ring's intro; background refreshes don't.
         requestDayRingIntro();
-        renderHomeTab();
+        renderHomeTab({ entrance: true });
     }
 
     if (tabId === 'shop-tab') {

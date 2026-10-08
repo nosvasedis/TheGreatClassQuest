@@ -14,7 +14,8 @@ import {
 import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
-import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock } from '../features/homeGreetingScene.js';
+import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from '../features/homeGreetingScene.js';
+import { morphInto } from '../utils/domMorph.mjs';
 import { getCuratedDailyQuote, isCuratedDailyQuote } from '../utils/dailyQuote.mjs';
 
 const SCHEDULE_GRADIENTS = [
@@ -41,6 +42,21 @@ const REASON_META = {
 let subscribed = false;
 let renderDebounce = null;
 let lastHtml = '';
+let lastViewKey = null;
+
+/**
+ * A live refresh of the same view (a colleague's stars, new attendance) patches the cards in
+ * place instead of redrawing them, so they don't replay their entrance each time. The sky and
+ * hills are painted by the sky stage and the day ring runs its own clock, so those stay put.
+ */
+const MOBILE_HOME_MORPH = {
+    keep(from, to) {
+        if (from.classList.contains('greeting-sky') && to.classList.contains('greeting-sky')) return true;
+        if (from.hasAttribute('data-day-ring') && to.hasAttribute('data-day-ring')) return syncDayRing(from, to);
+        return false;
+    },
+    keepClasses: ['m-home-quest--entered', 'm-home-chronicle--expanded', 'm-home-pop'],
+};
 let cachedQuote = '';
 let cachedQuoteDay = null;
 
@@ -399,6 +415,8 @@ function render() {
     if (!container || !document.body.classList.contains('gcq-mobile')) return;
 
     if (!state.get('allSchoolClasses')) {
+        lastHtml = '';
+        lastViewKey = null;
         container.innerHTML = `
             <div class="m-home" aria-hidden="true">
                 <div class="animate-pulse space-y-3">
@@ -419,10 +437,18 @@ function render() {
     const classData = activeClassId ? classes.find((c) => c.id === activeClassId) : null;
 
     const html = `<div class="m-home">${classData ? renderClassView(classData) : renderGeneralView()}</div>`;
-    if (html === lastHtml) return;
-    lastHtml = html;
+    // The hills get fresh gradient ids on every draw; they alone don't make it a change.
+    const sameAsBefore = html.replace(/\bgh-\d+-/g, 'gh-');
+    if (sameAsBefore === lastHtml) return;
+    lastHtml = sameAsBefore;
 
-    container.innerHTML = html;
+    const viewKey = classData ? `class:${classData.id}` : 'general';
+    if (viewKey === lastViewKey && container.firstElementChild?.classList.contains('m-home')) {
+        morphInto(container, html, MOBILE_HOME_MORPH);
+    } else {
+        container.innerHTML = html;
+    }
+    lastViewKey = viewKey;
     startDayRingClock(container);
     requestAnimationFrame(() => {
         const questCard = container.querySelector('.m-home-quest');

@@ -19,8 +19,10 @@ import {
     isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock, clampTimerMinutes, pushSpellLog
 } from './remoteCore.mjs';
 import {
-    wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, showHtml, spellsSheetHtml
+    wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, lessonHtml, showHtml,
+    spellsSheetHtml, WAND_MODES
 } from './remoteWandView.mjs';
+import { morphInto } from './wandMorph.mjs';
 
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
 const STILL = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
@@ -166,7 +168,7 @@ async function connect(sessionId) {
         syncLink();
     }, HEARTBEAT_MS));
     wand.timers.push(setInterval(() => { if (wand?.mode === 'stars' && !wand.sheetKind) refreshRosterIfChanged(); }, 1500));
-    wand.timers.push(setInterval(() => tickTimerBadge(), 1000));
+    wand.timers.push(setInterval(() => tickClocks(), 1000));
     wand.onVisible = () => {
         if (!wand || document.hidden) return;
         requestWakeLock();
@@ -211,6 +213,7 @@ function onSession(data) {
     const prevPanel = wand.stage?.panel?.kind || '';
     wand.stage = data.stage || null;
     wand.secret = data.secret || null;
+    syncClocks();
     if (wand.classOverride && wand.stage?.classId === wand.classOverride) wand.classOverride = '';
     syncLink();
     showResult(wand.stage?.lastResult);
@@ -319,7 +322,7 @@ function savedMinutes() {
 function remember(key, value) {
     try { localStorage.setItem(key, String(value)); } catch { /* this session only */ }
 }
-const MODES = new Set(['stars', 'stage', 'magic', 'show']);
+const MODES = new Set(WAND_MODES.map((m) => m.key));
 
 function savedMode() {
     try { const m = localStorage.getItem(MODE_KEY); return MODES.has(m) ? m : 'stars'; } catch { return 'stars'; }
@@ -327,6 +330,12 @@ function savedMode() {
 
 function setMode(mode) {
     if (!wand) return;
+    // The new view slides in from the side its mode sits on, and the wand-tip glides under it.
+    const order = WAND_MODES.map((m) => m.key);
+    const from = order.indexOf(wand.root.dataset.mode || '');
+    const to = Math.max(0, order.indexOf(mode));
+    wand.root.dataset.dir = from < 0 || from === to ? 'none' : to > from ? 'right' : 'left';
+    wand.root.style.setProperty('--mode-i', String(to));
     wand.mode = mode;
     wand.root.dataset.mode = mode;
     try { localStorage.setItem(MODE_KEY, mode); } catch { /* this session only */ }
@@ -364,21 +373,32 @@ function render({ fresh = false } = {}) {
     } else if (wand.mode === 'stage') {
         html = stageHtml(stage, { secret: wand.secret, castAllowed: (t) => !TAB_FEATURE_FLAGS[t.tab] || canUseFeature(TAB_FEATURE_FLAGS[t.tab]), padOpen: wand.padOpen });
     } else if (wand.mode === 'magic') {
-        html = magicHtml(stage, { canCrown: canUseFeature('adventureLog'), canWheel: canUseFeature('guilds'), customMinutes: wand.customMinutes });
+        html = magicHtml(stage, { canCrown: canUseFeature('adventureLog'), canWheel: canUseFeature('guilds') });
+    } else if (wand.mode === 'lesson') {
+        html = lessonHtml(stage, { customMinutes: wand.customMinutes });
     } else {
-        html = showHtml(stage, { secret: wand.secret });
+        html = showHtml(stage, { secret: wand.secret, clock: showClockLeft() });
     }
     // Only touch the page when something changed: no flicker, no lost taps, less work.
-    if (fresh || html !== wand.lastHtml) {
-        const keep = fresh ? 0 : wand.main.scrollTop;
+    const view = wand.main.firstElementChild;
+    if (fresh || !view) {
         wand.lastHtml = html;
-        wand.main.innerHTML = `<div class="qw-view qw-view--${wand.mode}${fresh ? ' is-fresh' : ''}">${html}</div>`;
-        wand.main.scrollTop = keep;
-        // The cloud of the screen on the projector is always in sight in the row of screens.
-        const onCloud = wand.main.querySelector('.qw-screens .qw-cloud.is-on');
-        const row = onCloud?.parentElement;
-        if (onCloud && row) row.scrollLeft = Math.max(0, onCloud.offsetLeft - (row.clientWidth - onCloud.offsetWidth) / 2);
+        wand.main.innerHTML = `<div class="qw-view qw-view--${wand.mode} is-fresh">${html}</div>`;
+        wand.main.scrollTop = 0;
+    } else if (html !== wand.lastHtml) {
+        // Live update: change only what differs, so nothing flickers and running animations go on.
+        wand.lastHtml = html;
+        morphInto(view, html);
     }
+    // The cloud of the screen on the projector is always in sight in the row of screens (only when
+    // that screen changed, so a thumb scrolling the row is never pulled back).
+    const onCloud = wand.main.querySelector('.qw-screens .qw-cloud.is-on');
+    const onTab = onCloud?.dataset.tab || '';
+    if (onCloud && (fresh || onTab !== wand.centredTab)) {
+        const row = onCloud.parentElement;
+        row.scrollTo({ left: Math.max(0, onCloud.offsetLeft - (row.clientWidth - onCloud.offsetWidth) / 2), behavior: fresh || STILL ? 'auto' : 'smooth' });
+    }
+    wand.centredTab = onTab;
     const now = nowStripHtml(wand.stage);
     if (now !== wand.lastNow) {
         wand.lastNow = now;
@@ -439,14 +459,58 @@ function refreshRosterIfChanged() {
     render();
 }
 
-function tickTimerBadge() {
-    const t = wand?.stage?.timer;
-    if (!t || t.paused || t.done) return;
-    t.remainingMs = Math.max(0, t.remainingMs - 1000);
-    const text = formatTimerClock(t.remainingMs);
-    wand.root.querySelectorAll('[data-qw-timer-left]').forEach((el) => { if (el.textContent !== text) el.textContent = text; });
-    const card = wand.root.querySelector('.qw-timer');
-    card?.style.setProperty('--p', (t.remainingMs / ((t.total || 1) * 1000)).toFixed(3));
+// ─── Clocks the phone runs itself ───────────────────────────────────────────
+// The projector only writes a timer's start, pause, +30 s and end (and the Showdown clock's start),
+// never every second. The phone counts down from the moment that news arrived. Heartbeat snapshots
+// repeat the same stage, so they never reset the count.
+
+function syncClocks() {
+    if (!wand) return;
+    const t = wand.stage?.timer;
+    const key = t ? `${t.id ?? ''}|${t.label}|${t.total}|${t.paused}|${t.done}|${t.remainingMs}` : '';
+    if (key !== wand.timerKey) {
+        wand.timerKey = key;
+        wand.timerBase = t ? { ms: Number(t.remainingMs) || 0, at: Date.now(), running: !t.paused && !t.done } : null;
+    }
+    if (t) t.remainingMs = timerLeftMs();
+    const panel = wand.stage?.panel;
+    const clock = panel?.kind === 'showdown' && Number.isInteger(panel.clock) ? panel.clock : 0;
+    if (clock !== wand.clockId) {
+        wand.clockId = clock;
+        wand.clockBase = clock ? { from: Number(panel.clockFrom) || 10, at: Date.now() } : null;
+    }
+}
+
+function timerLeftMs() {
+    const b = wand?.timerBase;
+    if (!b) return 0;
+    return b.running ? Math.max(0, b.ms - (Date.now() - b.at)) : b.ms;
+}
+
+function showClockLeft() {
+    const b = wand?.clockBase;
+    if (!b) return 0;
+    return Math.max(0, b.from - Math.floor((Date.now() - b.at) / 1000));
+}
+
+function tickClocks() {
+    if (!wand) return;
+    const t = wand.stage?.timer;
+    if (t && wand.timerBase?.running) {
+        t.remainingMs = timerLeftMs();
+        const text = formatTimerClock(t.remainingMs);
+        wand.root.querySelectorAll('[data-qw-timer-left]').forEach((el) => { if (el.textContent !== text) el.textContent = text; });
+        wand.root.querySelector('[data-qw-timer-card]')?.style.setProperty('--p', (t.remainingMs / ((t.total || 1) * 1000)).toFixed(3));
+    }
+    if (wand.clockBase) {
+        const left = showClockLeft();
+        const btn = wand.root.querySelector('[data-qw-clock]');
+        if (btn) {
+            btn.textContent = left ? `${left}s` : '10s';
+            btn.closest('button')?.classList.toggle('is-counting', left > 0);
+        }
+        if (!left) wand.clockBase = null;
+    }
 }
 
 // ─── Sheets ─────────────────────────────────────────────────────────────────
@@ -682,6 +746,7 @@ function pointAt(map, e) {
     buzz([12, 30, 12]);
     const ping = document.createElement('span');
     ping.className = 'qw-look__ping';
+    ping.dataset.qwTransient = '';
     ping.style.left = `${x * 100}%`;
     ping.style.top = `${y * 100}%`;
     map.appendChild(ping);

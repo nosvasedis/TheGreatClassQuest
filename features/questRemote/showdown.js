@@ -21,7 +21,8 @@ function classById(classId) {
         || (state.get('allTeachersClasses') || []).find((c) => c.id === classId) || null;
 }
 let sd = null;
-let count = null; // { left, tick }
+let count = null; // { left, tick, id, total }
+let countSeq = 0;
 
 function classRosterNow(classId) {
     const today = getTodayDateString();
@@ -149,7 +150,7 @@ function stopCount() {
 
 function startCount(seconds = 10) {
     stopCount();
-    count = { left: seconds };
+    count = { left: seconds, id: (countSeq += 1), total: seconds };
     const head = root()?.querySelector('.qr-sd__head');
     if (head) {
         const badge = document.createElement('div');
@@ -176,7 +177,9 @@ function startCount(seconds = 10) {
 export function getShowdownPanel() {
     if (!sd || !root()) return null;
     const panel = showdownPanel(sd);
-    panel.counting = count?.left ?? -1;
+    // The clock's start, not every tick: the Wand counts down itself, so the session doc is not
+    // rewritten each second (fewer Firestore writes, the free tier stays free).
+    if (count && count.left > 0) { panel.clock = count.id; panel.clockFrom = count.total; }
     return panel;
 }
 

@@ -2,7 +2,7 @@
 
 import '../../../../styles/quest_remote.css';
 import '../../../../styles/quest_remote_wand.css';
-import { wandShellHtml, nowStripHtml, starsHtml, awardSheetHtml, magicHtml, showHtml, stageHtml } from '../../../../features/questRemote/remoteWandView.mjs';
+import { wandShellHtml, nowStripHtml, starsHtml, awardSheetHtml, magicHtml, lessonHtml, showHtml, stageHtml, WAND_MODES } from '../../../../features/questRemote/remoteWandView.mjs';
 import { bindingHtml, showdownHtml, timerHtml, starRibbonHtml } from '../../../../features/questRemote/remoteStageView.mjs';
 import { createShowdown, scoreShowdown, showdownPanel, buildStageSummary } from '../../../../features/questRemote/remoteCore.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
@@ -83,9 +83,10 @@ export function showWand(view = 'stars') {
   qw.querySelector('[data-qw-link-text]').textContent = 'Bound · K M 4 R';
   qw.querySelector('[data-qw-class]').textContent = '📚 Junior B';
   qw.dataset.mode = mode;
+  qw.style.setProperty('--mode-i', String(Math.max(0, WAND_MODES.findIndex((m) => m.key === mode))));
   qw.querySelectorAll('[data-qw-mode]').forEach((b) => b.classList.toggle('is-on', b.dataset.qwMode === mode));
   const now = qw.querySelector('[data-qw-now]');
-  if (now) now.innerHTML = nowStripHtml({ tab: 'about-tab', title: 'Home', covered: false, timer: mode === 'magic' ? { remainingMs: 42000, total: 60, label: 'Pair' } : null });
+  if (now) now.innerHTML = nowStripHtml({ tab: 'about-tab', title: 'Home', covered: false, timer: mode === 'lesson' ? { remainingMs: 42000, total: 60, label: 'Pair' } : null });
   const sd = sampleShowdown();
   const stage = buildStageSummary({
     surface: 'overlay', tab: 'guilds-tab', title: "Fortune's Wheel",
@@ -99,7 +100,8 @@ export function showWand(view = 'stars') {
   });
   let html = '';
   if (mode === 'stars') html = starsHtml(HEROES, { className: '📚 Junior B', multi: view === 'several', picked: view === 'several' ? ['b', 'd', 'h'] : [], note: view === 'stars' ? 'Award Stars opens on the projector with your first star.' : '' });
-  else if (mode === 'magic') html = magicHtml({ timer: { label: 'Pair', total: 60, remainingMs: 42000 }, blackout: false, wall: false });
+  else if (mode === 'magic') html = magicHtml({ blackout: false, wall: false });
+  else if (mode === 'lesson') html = lessonHtml({ timer: { id: 1, label: 'Pair', total: 60, remainingMs: 42000 }, blackout: false });
   else if (mode === 'show') html = showHtml({ panel: showdownPanel(sd) });
   else if (view === 'controls') html = stageHtml(trainingStage(), { castAllowed: () => true });
   else html = stageHtml({ ...stage, scroll: { canUp: true, canDown: true, at: 0.35 } }, { castAllowed: () => true });

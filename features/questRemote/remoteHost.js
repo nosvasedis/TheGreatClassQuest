@@ -73,6 +73,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     document.removeEventListener('click', h.onAnyInput, true);
     document.removeEventListener('keydown', h.onAnyInput, true);
     document.removeEventListener('scroll', h.onScroll, { capture: true });
+    document.removeEventListener('visibilitychange', h.onVisible);
     stopTimer();
     setBlackout(false);
     closeSpotlight({ quiet: true });
@@ -123,7 +124,12 @@ async function startHosting({ resume = null } = {}) {
 
     // Keep the Wand's view of the screen fresh: DOM changes, the teacher's own clicks/keys, and a
     // slow safety scan (all coalesced into at most ~1 write per second).
-    h.observer = new MutationObserver(() => scheduleStage());
+    // Quest Remote's own layers (spark canvas, timer clock, ribbons, charms) change all the time and
+    // never change what the Wand can press: their mutations are not worth a rescan.
+    h.observer = new MutationObserver((records) => {
+        if (records.every((r) => isOwnLayer(r.target))) return;
+        scheduleStage();
+    });
     h.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'disabled', 'aria-hidden'] });
     h.onAnyInput = () => scheduleStage(300);
     document.addEventListener('click', h.onAnyInput, true);
@@ -132,6 +138,8 @@ async function startHosting({ resume = null } = {}) {
     h.onScroll = () => scheduleStage(350);
     document.addEventListener('scroll', h.onScroll, { capture: true, passive: true });
     h.safetyScan = setInterval(() => scheduleStage(), 4000);
+    h.onVisible = () => { if (!document.hidden) scheduleStage(0); };
+    document.addEventListener('visibilitychange', h.onVisible);
 
     syncLaunchButtons();
     if (!resume) openBindingCircle();
@@ -752,6 +760,7 @@ async function runQuiz(cmd, { action, index }) {
 // ─── Timer & Blackout (projector overlays) ──────────────────────────────────
 
 let timer = null;
+let timerSeq = 0;
 
 function runTimer(cmd, p) {
     if (p.action === 'start') startTimer(Math.round(p.seconds), timerLabel(p.seconds));
@@ -779,7 +788,7 @@ function startTimer(seconds, label, totalSeconds = seconds) {
     }
     const endsAt = performance.now() + seconds * 1000;
     timer = {
-        label, total: totalSeconds, endsAt, pausedLeft: null, el,
+        id: (timerSeq += 1), label, total: totalSeconds, endsAt, pausedLeft: null, el,
         remaining() { return this.pausedLeft ?? Math.max(0, this.endsAt - performance.now()); }
     };
     el.innerHTML = timerHtml({ label, seconds: totalSeconds, remainingMs: seconds * 1000 });
@@ -843,7 +852,7 @@ function stopTimer({ keepNode = false } = {}) {
 
 function timerState() {
     if (!timer) return null;
-    return { label: timer.label, total: timer.total, remainingMs: Math.round(timer.remaining()), paused: timer.pausedLeft != null, done: Boolean(timer.done) };
+    return { id: timer.id, label: timer.label, total: timer.total, remainingMs: Math.round(timer.remaining()), paused: timer.pausedLeft != null, done: Boolean(timer.done) };
 }
 
 function setBlackout(on) {
@@ -1196,8 +1205,16 @@ async function quizPanel() {
     return { panel, secret };
 }
 
+function isOwnLayer(node) {
+    const el = node?.nodeType === 1 ? node : node?.parentElement;
+    return Boolean(el?.closest?.('[data-qr-ignore], .qr-fx-canvas, .qr-touch-ring'));
+}
+
 function scheduleStage(delay = 250) {
     if (!host) return;
+    // Nobody to tell: no phone is bound (the bind itself asks for a fresh stage), or the projector tab
+    // is in the background. Scanning the screen then only costs the classroom laptop.
+    if (!host.wandId || document.hidden) return;
     if (host.stageTimer) return;
     const since = performance.now() - host.lastStageAt;
     const delayMs = Math.max(delay, STAGE_MIN_INTERVAL_MS - since, 0);
@@ -1237,8 +1254,9 @@ async function publishStage() {
     stage.blackout = Boolean(document.getElementById('qr-curtain'));
     stage.spotlight = Boolean(document.getElementById('qr-spotlight'));
     stage.wall = Boolean(document.getElementById('dynamic-wallpaper-screen') && !document.getElementById('dynamic-wallpaper-screen').classList.contains('hidden'));
-    // timer remaining changes every tick: leave it out of the "did anything change" check
-    const fp = stageFingerprint({ ...stage, timer: stage.timer ? { ...stage.timer, remainingMs: Math.round(stage.timer.remainingMs / 5000) } : null, secret });
+    // The timer's remaining time changes every tick: the Wand counts down by itself, so only a start,
+    // pause, +30 s or the end is news (one write instead of one every few seconds).
+    const fp = stageFingerprint({ ...stage, timer: stage.timer ? { ...stage.timer, remainingMs: stage.timer.paused ? stage.timer.remainingMs : 0 } : null, secret });
     if (fp === host.lastFp) return;
     host.lastFp = fp;
     host.lastStageAt = performance.now();

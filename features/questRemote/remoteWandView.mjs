@@ -18,6 +18,7 @@ export const WAND_MODES = Object.freeze([
     { key: 'stars', label: 'Stars', icon: 'fa-star' },
     { key: 'stage', label: 'Screen', icon: 'fa-display' },
     { key: 'magic', label: 'Magic', icon: 'fa-wand-sparkles' },
+    { key: 'lesson', label: 'Lesson', icon: 'fa-hourglass-half' },
     { key: 'show', label: 'Show', icon: 'fa-bolt' }
 ]);
 
@@ -41,7 +42,8 @@ export function wandShellHtml({ lite = false } = {}) {
     <button type="button" class="qw-now" data-qw="to-stage" data-qw-now aria-label="What is on the projector"></button>
     <div class="qw-toast" data-qw-toast role="status" aria-live="polite"></div>
     <main class="qw-main" data-qw-main></main>
-    <nav class="qw-modes" aria-label="Wand modes">
+    <nav class="qw-modes" aria-label="Wand modes" style="--n:${WAND_MODES.length}">
+        <span class="qw-modes__tip" aria-hidden="true"></span>
         ${WAND_MODES.map((m) => `<button type="button" class="qw-mode" data-qw-mode="${m.key}" aria-label="${m.label}"><span class="qw-mode__pill" aria-hidden="true"><i class="fas ${m.icon}"></i></span><span class="qw-mode__label">${m.label}</span></button>`).join('')}
     </nav>
     <div class="qw-sheet" data-qw-sheet aria-hidden="true"></div>
@@ -58,6 +60,7 @@ export function nowStripHtml(stage) {
     return `<span class="qw-now__cloud" style="${colour}" aria-hidden="true"><i class="fas ${icon}"></i></span>
         <span class="qw-now__text"><small>On the projector</small><b>${esc(stage.title || cast?.label || '…')}</b></span>
         ${stage.blackout ? '<span class="qw-now__tag"><i class="fas fa-eye"></i> Curtain</span>' : ''}
+        ${stage.spotlight ? '<span class="qw-now__tag"><i class="fas fa-lightbulb"></i> Spotlight</span>' : ''}
         ${stage.timer && !stage.timer.done ? `<span class="qw-now__tag qw-now__tag--timer" data-qw-timer-left>${formatTimerClock(stage.timer.remainingMs)}</span>` : ''}
         <i class="fas fa-chevron-right qw-now__go" aria-hidden="true"></i>`;
 }
@@ -432,10 +435,8 @@ export function customTimerHtml(minutes = 3) {
     </div>`;
 }
 
-/** Magic mode: crown, wheel, picker, dragon, projector mode, timers, charms, look here, curtain. */
-export function magicHtml(stage, { canCrown = true, canWheel = true, customMinutes = 3 } = {}) {
-    const t = stage?.timer && !stage.timer.done ? stage.timer : null;
-    const pct = t ? Math.max(0, Math.min(1, t.remainingMs / (t.total * 1000 || 1))) : 0;
+/** Magic mode: the class's big moments (crown, wheel, picker, dragon, Projector Mode) and Sound Charms. */
+export function magicHtml(stage, { canCrown = true, canWheel = true } = {}) {
     return `<section class="qw-magic">
         ${canCrown ? `<div class="qw-crown">
             <button type="button" class="qw-hold" data-qw-hold="crown" aria-label="Hold to crown today's hero">
@@ -449,34 +450,48 @@ export function magicHtml(stage, { canCrown = true, canWheel = true, customMinut
             <button type="button" class="qw-tile qw-tile--dragon" data-qw-cmd="dragon" data-action="open"><span class="qw-tile__icon" aria-hidden="true"><i class="fas fa-dragon"></i></span><b>Quiet Dragon</b><small>Calm the room</small></button>
             <button type="button" class="qw-tile qw-tile--wall${stage?.wall ? ' is-on' : ''}" data-qw-cmd="wall" data-action="toggle"><span class="qw-tile__icon" aria-hidden="true"><i class="fas fa-tv"></i></span><b>Projector Mode</b><small>${stage?.wall ? 'On · tap to leave' : 'The living wallpaper'}</small></button>
         </div>
+        <h3 class="qw-sub"><i class="fas fa-music" aria-hidden="true"></i> Sound charms</h3>
+        ${charmsHtml()}
+    </section>`;
+}
+
+/** The running timer as a large ember ring (the phone counts it down itself between updates). */
+export function timerCardHtml(t) {
+    if (!t) return '';
+    const pct = Math.max(0, Math.min(1, t.remainingMs / (t.total * 1000 || 1)));
+    return `<div class="qw-timer${t.paused ? ' is-paused' : ''}" style="--p:${pct.toFixed(3)}" data-qw-timer-card>
+        <span class="qw-timer__ring" aria-hidden="true"><span class="qw-timer__glow"></span></span>
+        <span class="qw-timer__text"><small>${esc(t.label)}${t.paused ? ' · paused' : ''}</small><b data-qw-timer-left>${formatTimerClock(t.remainingMs)}</b></span>
+        <span class="qw-timer__ctrl">
+            <button type="button" class="qw-roundbtn" data-qw-cmd="timer" data-action="${t.paused ? 'resume' : 'pause'}" aria-label="${t.paused ? 'Resume' : 'Pause'}"><i class="fas ${t.paused ? 'fa-play' : 'fa-pause'}"></i></button>
+            <button type="button" class="qw-roundbtn" data-qw-cmd="timer" data-action="add" aria-label="Add 30 seconds">+30</button>
+            <button type="button" class="qw-roundbtn" data-qw-cmd="timer" data-action="stop" aria-label="Stop the timer"><i class="fas fa-stop"></i></button>
+        </span>
+    </div>`;
+}
+
+/** Lesson mode: the running of the room. Timers, attention (curtain, spotlight) and Look here. */
+export function lessonHtml(stage, { customMinutes = 3 } = {}) {
+    const t = stage?.timer && !stage.timer.done ? stage.timer : null;
+    return `<section class="qw-lesson">
         <h3 class="qw-sub"><i class="fas fa-hourglass-half" aria-hidden="true"></i> Timers</h3>
-        ${t ? `<div class="qw-timer${t.paused ? ' is-paused' : ''}" style="--p:${pct.toFixed(3)}">
-            <span class="qw-timer__ring" aria-hidden="true"></span>
-            <span class="qw-timer__text"><small>${esc(t.label)}${t.paused ? ' · paused' : ''}</small><b data-qw-timer-left>${formatTimerClock(t.remainingMs)}</b></span>
-            <span class="qw-timer__ctrl">
-                <button type="button" class="qw-roundbtn" data-qw-cmd="timer" data-action="${t.paused ? 'resume' : 'pause'}" aria-label="${t.paused ? 'Resume' : 'Pause'}"><i class="fas ${t.paused ? 'fa-play' : 'fa-pause'}"></i></button>
-                <button type="button" class="qw-roundbtn" data-qw-cmd="timer" data-action="add" aria-label="Add 30 seconds">+30</button>
-                <button type="button" class="qw-roundbtn" data-qw-cmd="timer" data-action="stop" aria-label="Stop the timer"><i class="fas fa-stop"></i></button>
-            </span>
-        </div>` : ''}
+        ${timerCardHtml(t)}
         <div class="qw-dials">${TIMER_PRESETS.map((p) => `<button type="button" class="qw-dial" data-qw-cmd="timer" data-action="start" data-seconds="${p.seconds}">
             <span class="qw-dial__face" aria-hidden="true"><i class="fas ${p.icon}"></i></span><b>${esc(p.label)}</b>${p.seconds < 120 ? `<small>${p.seconds}s</small>` : ''}</button>`).join('')}</div>
         ${customTimerHtml(customMinutes)}
-        <h3 class="qw-sub"><i class="fas fa-music" aria-hidden="true"></i> Sound charms</h3>
-        ${charmsHtml()}
-        <h3 class="qw-sub"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> Look here</h3>
-        ${lookHereHtml(stage)}
-        ${stage?.spotlight ? `<button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw-cmd="charm" data-action="unspot"><i class="fas fa-lightbulb" aria-hidden="true"></i> Close the spotlight</button>` : ''}
         <h3 class="qw-sub"><i class="fas fa-eye" aria-hidden="true"></i> Attention</h3>
         <button type="button" class="qw-blackout${stage?.blackout ? ' is-on' : ''}" data-qw-cmd="blackout" data-on="${stage?.blackout ? 'false' : 'true'}">
             <span class="qw-blackout__icon" aria-hidden="true"><i class="fas ${stage?.blackout ? 'fa-sun' : 'fa-eye'}"></i></span>
             <span><b>${stage?.blackout ? 'Lift the curtain' : 'Eyes on me'}</b><small>${stage?.blackout ? 'Show the screen again' : 'Curtains close over the projector'}</small></span>
         </button>
+        ${stage?.spotlight ? `<button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw-cmd="charm" data-action="unspot"><i class="fas fa-lightbulb" aria-hidden="true"></i> Close the spotlight</button>` : ''}
+        <h3 class="qw-sub"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> Look here</h3>
+        ${lookHereHtml(stage)}
     </section>`;
 }
 
 /** Show mode: the Showdown Arena console (and the quiz host console when a quiz is on). */
-export function showHtml(stage, { secret = null } = {}) {
+export function showHtml(stage, { secret = null, clock = 0 } = {}) {
     const panel = stage?.panel;
     if (panel?.kind === 'quiz') return `<section class="qw-show">${quizHtml(panel, secret)}</section>`;
     if (panel?.kind !== 'showdown') {
@@ -501,24 +516,35 @@ export function showHtml(stage, { secret = null } = {}) {
             </div>
         </section>`;
     }
-    return `<section class="qw-show">
-        <p class="qw-hint">${panel.growth ? 'Tap the team that answered well' : `Question ${esc(panel.round)} · tap the team that got it`}</p>
-        <div class="qw-teams" style="--n:${panel.teams.length}">${panel.teams.map((t, i) => `
-            <div class="qw-team" style="--team:${esc(t.color)}">
-                <button type="button" class="qw-team__hit" data-qw-cmd="showdown" data-action="point" data-team="${i}">
+    const max = Math.max(1, ...panel.teams.map((t) => Number(t.score) || 0));
+    const top = Math.max(0, ...panel.teams.map((t) => Number(t.score) || 0));
+    const clockLeft = Number.isFinite(clock) && clock > 0 ? clock : 0;
+    return `<section class="qw-show${panel.golden ? ' is-golden' : ''}">
+        <div class="qw-showhead">
+            <span class="qw-showhead__round">${panel.growth ? '<i class="fas fa-seedling" aria-hidden="true"></i> Garden Showdown' : `<i class="fas fa-bolt" aria-hidden="true"></i> Question <b>${esc(panel.round)}</b>`}</span>
+            <span class="qw-showhead__hint">Tap the team that ${panel.growth ? 'answered well' : 'got it'}</span>
+        </div>
+        <div class="qw-teams" style="--n:${panel.teams.length}">${panel.teams.map((t, i) => {
+        const lead = !panel.growth && top > 0 && Number(t.score) === top;
+        return `
+            <div class="qw-team${lead ? ' is-leading' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : ((Number(t.score) || 0) / max).toFixed(3)}">
+                <button type="button" class="qw-team__hit" data-qw-cmd="showdown" data-action="point" data-team="${i}" aria-label="Point to ${esc(t.name)}">
                     <span class="qw-team__badge" aria-hidden="true">${esc(t.emoji || t.shape)}</span>
                     <span class="qw-team__name">${esc(t.name)}</span>
-                    ${panel.growth ? '' : `<span class="qw-team__score">${esc(t.score)}</span>`}
+                    ${panel.growth ? '<span class="qw-team__grow" aria-hidden="true"><i class="fas fa-seedling"></i> grow</span>' : `<span class="qw-team__score">${esc(t.score)}</span>`}
                     ${!panel.growth && t.streak >= 2 ? `<span class="qw-team__streak"><i class="fas fa-fire"></i>${esc(t.streak)}</span>` : ''}
+                    ${lead ? '<span class="qw-team__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}
+                    ${panel.growth ? '' : '<span class="qw-team__bar" aria-hidden="true"></span>'}
                 </button>
                 ${panel.growth ? '' : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
-            </div>`).join('')}</div>
+            </div>`;
+    }).join('')}</div>
         <button type="button" class="qw-golden${panel.golden ? ' is-on' : ''}" data-qw-cmd="showdown" data-action="golden" aria-pressed="${Boolean(panel.golden)}">
             <span class="qw-golden__coin" aria-hidden="true"><i class="fas fa-coins"></i></span>
             <span><b>${panel.golden ? 'Golden question is on' : 'Golden question'}</b><small>${panel.golden ? 'The next point counts double · tap to cancel' : (panel.growth ? 'The next good answer grows the flower twice' : 'The next point counts double')}</small></span>
         </button>
         <div class="qw-showctrl">
-            <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="timer" aria-label="Ten second clock"><i class="fas fa-stopwatch"></i><small>10s</small></button>
+            <button type="button" class="qw-roundbtn qw-roundbtn--lg${clockLeft ? ' is-counting' : ''}" data-qw-cmd="showdown" data-action="timer" aria-label="Ten second clock"><i class="fas fa-stopwatch"></i><small data-qw-clock>${clockLeft ? `${clockLeft}s` : '10s'}</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="next" aria-label="Next question"><i class="fas fa-forward"></i><small>Next</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg qw-roundbtn--gold" data-qw-cmd="showdown" data-action="finish" aria-label="Finish"><i class="fas fa-trophy"></i><small>Finish</small></button>
         </div>

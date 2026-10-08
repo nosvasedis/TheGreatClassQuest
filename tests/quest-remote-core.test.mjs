@@ -391,12 +391,17 @@ test('timers: dialled minutes stay in range and carry a readable label', async (
     assert.equal(timerLabelFor(30), 'Think');
     assert.equal(timerLabelFor(600), '10 min');
     assert.equal(timerLabelFor(330), 'Timer');
-    const { magicHtml } = await import('../features/questRemote/remoteWandView.mjs');
-    const html = magicHtml({}, { customMinutes: 10 });
+    const { magicHtml, lessonHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    const html = lessonHtml({}, { customMinutes: 10 });
     assert.match(html, /data-action="start" data-seconds="600"/);
-    assert.match(html, /data-qw-cmd="charm" data-action="sound" data-sound="tada"/);
     assert.match(html, /data-qw-map/);
-    assert.match(magicHtml({}, { customMinutes: 30 }), /data-qw="tmin-up" aria-label="One minute more" disabled/);
+    assert.match(html, /data-qw-cmd="blackout"/);
+    assert.match(magicHtml({}), /data-qw-cmd="charm" data-action="sound" data-sound="tada"/);
+    assert.doesNotMatch(magicHtml({}), /data-qw-cmd="timer"/, 'timers live in Lesson mode');
+    assert.match(lessonHtml({}, { customMinutes: 30 }), /data-qw="tmin-up" aria-label="One minute more" disabled/);
+    const running = lessonHtml({ timer: { id: 3, label: 'Think', total: 30, remainingMs: 15000, paused: false } });
+    assert.match(running, /data-qw-timer-card/);
+    assert.match(running, /--p:0\.500/);
 });
 
 test('Look here shows the buttons in sight as dots on the map', async () => {
@@ -444,4 +449,27 @@ test('projector charms: burst, beacon and spotlight markup', async () => {
     assert.match(beaconHtml(), /Look here!/);
     assert.match(spotlightHtml({ name: 'Maya' }), /qr-spot__name">Maya</);
     assert.doesNotMatch(spotlightHtml({ name: '<x>' }), /<x>/);
+});
+
+test('the Wand has five modes and Show counts the 10s clock itself', async () => {
+    const { WAND_MODES, wandShellHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    assert.deepEqual(WAND_MODES.map((m) => m.key), ['stars', 'stage', 'magic', 'lesson', 'show']);
+    assert.match(wandShellHtml(), /style="--n:5"/);
+    let sd = createShowdown([{ name: 'A' }, { name: 'B' }]);
+    sd = scoreShowdown(sd, 0);
+    const html = showHtml({ panel: showdownPanel(sd) }, { clock: 7 });
+    assert.match(html, /is-counting[\s\S]*data-qw-clock>7s</);
+    assert.match(html, /class="qw-team is-leading"/);
+    assert.match(html, /--lvl:1\.000/);
+    // The projector sends the clock's start only, never a number that changes every second.
+    const sdSrc = read('features/questRemote/showdown.js');
+    assert.doesNotMatch(sdSrc, /panel\.counting/);
+    assert.match(sdSrc, /panel\.clock = count\.id/);
+});
+
+test('the projector writes the stage less: no per-second timer writes, nothing while unbound', () => {
+    const host = read('features/questRemote/remoteHost.js');
+    assert.match(host, /remainingMs: stage\.timer\.paused \? stage\.timer\.remainingMs : 0/);
+    assert.match(host, /if \(!host\.wandId \|\| document\.hidden\) return;/);
+    assert.match(host, /records\.every\(\(r\) => isOwnLayer\(r\.target\)\)/);
 });

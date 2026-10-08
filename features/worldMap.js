@@ -57,7 +57,14 @@ export function getClassQuestProgressData(classroom, students = null, allScores 
     const classQuestBonus = Number.isFinite(classroom.classQuestBonus)
         ? Number(classroom.classQuestBonus)
         : fallbackTotals.classBonus;
-    const goal = classroom.goals?.diamond || 18;
+    // Classes read straight from Firestore (diary, projector) carry no precomputed goals:
+    // use the same monthly goal as the Team Quest tab and Home, never a bare 18.
+    const goal = Number(classroom.goals?.diamond) || Math.max(18, utils.calculateMonthlyClassGoal(
+        classroom,
+        classStudents.length,
+        state.get('schoolHolidayRanges'),
+        state.get('allScheduleOverrides')
+    ) || 0);
     const rawPct = goal > 0 ? (liveMonthlyStars / goal) * 100 : 0;
     const pct = Math.min(100, Math.max(0, rawPct));
 

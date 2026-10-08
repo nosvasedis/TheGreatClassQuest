@@ -3,7 +3,7 @@
 // must all be woven into the page; "background" sections (current unit, identities, upcoming
 // days, the sky, recent pages) are optional colour and are never required.
 import { normalizeQuestType, QUEST_TYPE_LABELS, isSchoolWideModifierType } from './specialQuestEngine.js';
-import { getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
+import { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
 import { realmArrivalsOn } from './realmMomentsCore.mjs';
 import { sealsPressedOn } from './heroSealsCore.mjs';
 import { TRIAL_TYPE_GUIDE } from './trialTypesCore.mjs';
@@ -11,7 +11,7 @@ import { normalizeChroniclerText } from './adventurePageCore.mjs';
 
 export { normalizeChroniclerText };
 
-export const ADVENTURE_CONTEXT_VERSION = 3;
+export const ADVENTURE_CONTEXT_VERSION = 4;
 const clean = (value, max = 240) => String(value ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 const list = value => Array.isArray(value) ? value : [];
 const unique = values => [...new Set(values.filter(Boolean))];
@@ -188,12 +188,30 @@ export function buildAdventureLogContext(input = {}) {
         const student = byId.get(score.id);
         return student.heroClass || score.familiar ? [{ hero: name(score.id), path: clean(student.heroClass, 40), title: clean(student.heroTitle, 50), familiar: score.familiar ? { type: clean(score.familiar.typeId, 45), name: clean(score.familiar.name, 50) } : null }] : [];
     }), false);
-    add('classQuest', 'Our Team Quest journey so far', input.questProgress ? [{ realm: getQuestMapZoneForProgressPercent(input.questProgress.pct)?.label || '', ...(early ? {} : { progressPercent: Math.round(Number(input.questProgress.pct) || 0) }) }] : [], false);
+    add('classQuest', 'Our Team Quest this month: where we stand on the road right now (not something reached or finished today)', input.questProgress && sameMonth(date, input.questProgress.asOf) ? [describeQuestJourney(input.questProgress.pct, early)] : [], false);
     add('festival', 'A festival season in the calendar (not a celebration we held)', input.festival ? [{ name: clean(input.festival.name, 80), occasionDate: `${input.festival.feast.year}-${String(input.festival.feast.month).padStart(2, '0')}-${String(input.festival.feast.day).padStart(2, '0')}` }] : [], false);
     add('upcoming', 'Coming soon (for the closing line only)', upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))), false);
     add('atmosphere', 'The sky outside', input.weather?.description ? [{ observed: clean(input.weather.description, 70) }] : [], false);
     add('continuity', 'Recent diary pages (for fresh phrasing; not today)', scoped(input.logs).filter(log => adventureDateKey(log.date) < date && String(log.pageStatus || '').toLowerCase() !== 'awaiting').sort((a, b) => adventureDateKey(b.date).localeCompare(adventureDateKey(a.date))).slice(0, 3).map(log => ({ date: adventureDateKey(log.date), title: clean(log.title, 90), highlights: list(log.highlights).slice(0, 3).map(h => clean(h, 100)) })), false);
     return { version: ADVENTURE_CONTEXT_VERSION, classId, schoolYearKey: year, date, className: clean(classroom.name, 90), league: clean(classroom.questLevel, 50), audience: clean(input.audience, 160), hero: clean(input.hero, 60), early, nextLessonDate: adventureDateKey(input.nextLessonDate), sections, sourceHealth: input.sourceHealth || {} };
+}
+
+const sameMonth = (dateKey, asOf) => !asOf || String(dateKey || '').slice(0, 7) === adventureDateKey(asOf).slice(0, 7);
+const ROAD_SHARE = [[100, "the whole of this month's road"], [75, "most of this month's road"], [60, "more than half of this month's road"], [45, "about half of this month's road"], [30, "about a third of this month's road"], [20, "about a quarter of this month's road"], [8, "the first steps of this month's road"], [0, "the very start of this month's road"]];
+
+/** The Team Quest as plain words, so the Chronicler cannot mistake a realm name for a finish line. */
+export function describeQuestJourney(pct, early = false) {
+    const value = Math.min(100, Math.max(0, Number(pct) || 0));
+    const zone = getQuestMapZoneForProgressPercent(value);
+    const next = QUEST_MAP_ZONES[QUEST_MAP_ZONES.indexOf(zone) + 1];
+    const finished = value >= 100;
+    return {
+        whereWeAre: finished ? `at the top of the ${zone.label}: this month's quest is complete` : `in the ${zone.label}`,
+        roadCovered: ROAD_SHARE.find(([min]) => value >= min)[1],
+        ...(early ? {} : { progressPercent: Math.round(value) }),
+        ...(finished ? {} : { nextRealm: next ? `the ${next.label}` : "the end of this month's road" }),
+        finishedThisMonth: finished
+    };
 }
 
 /** Sections that recorded something TODAY; every one must be woven into the page. */
@@ -241,6 +259,7 @@ FACT RULES
 - The Hero of the Day is chosen by a fair rotation so everyone gets a turn: celebrate the hero warmly, but never give a reason for the choice or imply they were the best.
 - Name only virtues that were recorded today (Teamwork, Creativity, Respect, Focus). Turn the star groups into moments ("Focus carried our lesson: ...") rather than a ledger of who got how many stars. observedAction is the teacher's own note of what happened; you may retell it. ${context.early ? 'Never mention stars, scores, ranks, grades, totals or any numbers.' : 'At most two numbers on the whole page; never a list of star counts.'}
 - ${TRIAL_TYPE_GUIDE} Say only that the written work happened and what it was about; never mention marks, results, counts or who did best.
+- background.classQuest is where our Team Quest stands right now on this month's road. It is never news from today. Only finishedThisMonth: true means the quest is complete; otherwise never say we finished, completed or reached the end of anything, never say "one hundred percent" and never claim we arrived in a realm (only realmArrival in "today" says that). If you mention it, use whereWeAre and nextRealm kindly, e.g. "We are still crossing the Bronze Meadows, and the Silver Peaks are ahead."
 - The Hero Campfire appears on the page only if campfire is in "today". Never mention a question or topic for a future lesson.
 - Never disclose grades, compare or rank classmates or guilds, quote private notes, or infer how someone felt. Use first names (full names only if two classmates share one) and avoid he/she: use the name or "we".
 

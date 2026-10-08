@@ -99,7 +99,7 @@ export async function gatherAdventureLogContext(classId, { date = new Date(), he
         if (reading) weather = { description: resolveWeatherTheme(reading.code)?.weatherText || '' };
     }
     const nextLesson = getNextLessonDate(classId, [data.classData], cached('allScheduleOverrides'), data.holidays, state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}, day);
-    const context = buildAdventureLogContext({ ...data, date: dateKey, schoolYearKey, hero, students, scores, events, weather, festival, learnedToday, weekKey: getISOWeekKey(day), questProgress: getClassQuestProgressData(data.classData, students, scores), nextLessonDate: nextLesson ? adventureDateKey(nextLesson) : '', audience: getLeagueAiAudience(data.classData.questLevel), sourceHealth: health });
+    const context = buildAdventureLogContext({ ...data, date: dateKey, schoolYearKey, hero, students, scores, events, weather, festival, learnedToday, weekKey: getISOWeekKey(day), questProgress: { ...getClassQuestProgressData(data.classData, students, scores), asOf: new Date() }, nextLessonDate: nextLesson ? adventureDateKey(nextLesson) : '', audience: getLeagueAiAudience(data.classData.questLevel), sourceHealth: health });
     if (!stillCurrent()) throw new Error('The teacher or school year changed while gathering the lesson.');
     return { context, learnedToday, classData: data.classData, students, attendance: data.attendance || [], awards: data.awards || [] };
 }

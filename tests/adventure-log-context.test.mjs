@@ -108,3 +108,18 @@ test('the Chronicler is told a dictation is written vocabulary work', () => {
     assert.match(systemPrompt, /never a listening, speaking or oral task/i);
     assert.match(userPrompt, /"kind":"Dictation"/);
 });
+
+test('Team Quest progress reads as where we stand, never as a finish', async () => {
+    const { describeQuestJourney } = await import('../features/adventureLogContextCore.mjs');
+    const bronze = describeQuestJourney(24);
+    assert.equal(bronze.whereWeAre, 'in the Bronze Meadows');
+    assert.equal(bronze.nextRealm, 'the Silver Peaks');
+    assert.equal(bronze.finishedThisMonth, false);
+    assert.match(bronze.roadCovered, /quarter/);
+    assert.equal(describeQuestJourney(90).finishedThisMonth, false);
+    assert.equal(describeQuestJourney(100).finishedThisMonth, true);
+    assert.equal(describeQuestJourney(24, true).progressPercent, undefined);
+    const context = buildAdventureLogContext(base({ questProgress: { pct: 24 } }));
+    assert.equal(context.sections.classQuest.items[0].whereWeAre, 'in the Bronze Meadows');
+    assert.match(buildChroniclerPrompts(context).systemPrompt, /never say we finished/);
+});

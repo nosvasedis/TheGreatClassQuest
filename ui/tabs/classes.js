@@ -350,17 +350,19 @@ export function renderManageClassesTab() {
                         <p class="mc-card__league">${escapeHtml(c.questLevel || 'Uncategorized')}</p>
                         ${slot ? CLASS_SLOT_CHIPS[slot] : ''}
                     </div>
-                    <div class="mc-card__setup">
-                        <button type="button" data-id="${c.id}" class="mc-when edit-class-btn${unscheduled ? ' is-nudge' : ''}" title="Change the class name, league, logo, days and times">
-                            <span class="mc-when__facts">
-                                <span class="mc-fact${days.length ? '' : ' is-missing'}"><i class="fas fa-calendar-day" aria-hidden="true"></i>${days.length ? days.join(', ') : 'No days set'}</span>
-                                <span class="mc-fact${hasTime ? '' : ' is-missing'}"><i class="fas fa-clock" aria-hidden="true"></i>${hasTime ? `${c.timeStart} – ${c.timeEnd}` : 'No time set'}</span>
-                            </span>
-                            <span class="mc-when__edit"><i class="fas fa-pen" aria-hidden="true"></i>${unscheduled ? 'Set days &amp; times' : 'Edit class details'}</span>
-                        </button>
-                        <button type="button" data-id="${c.id}" class="mc-delete delete-class-btn" title="Delete ${name} and all its students" aria-label="Delete ${name}">
-                            <i class="fas fa-trash-alt" aria-hidden="true"></i><span>Delete</span>
-                        </button>
+                    <div class="mc-card__side">
+                        <div class="mc-card__when">
+                            <span class="mc-fact${days.length ? '' : ' is-missing'}"><i class="fas fa-calendar-day" aria-hidden="true"></i>${days.length ? days.join(', ') : 'No days set'}</span>
+                            <span class="mc-fact${hasTime ? '' : ' is-missing'}"><i class="fas fa-clock" aria-hidden="true"></i>${hasTime ? `${c.timeStart} – ${c.timeEnd}` : 'No time set'}</span>
+                        </div>
+                        <div class="mc-setup" role="group" aria-label="Set up this class">
+                            <button type="button" data-id="${c.id}" class="mc-setup__btn mc-setup__btn--edit edit-class-btn${unscheduled ? ' is-nudge' : ''}" title="Change the class name, league, logo, days and times">
+                                <span class="mc-setup__icon" aria-hidden="true"><i class="fas fa-pen-to-square"></i></span><span>${unscheduled ? 'Set schedule' : 'Edit class'}</span>
+                            </button>
+                            <button type="button" data-id="${c.id}" class="mc-setup__btn mc-setup__btn--delete delete-class-btn" title="Delete ${name} and all its students" aria-label="Delete ${name}">
+                                <span class="mc-setup__icon" aria-hidden="true"><i class="fas fa-trash-can"></i></span><span>Delete class</span>
+                            </button>
+                        </div>
                     </div>
                 </header>
                 <div class="mc-tray">
@@ -375,10 +377,10 @@ export function renderManageClassesTab() {
                     <div class="mc-group mc-group--insight" role="group" aria-label="Insight">
                         <span class="mc-group__label">Insight</span>
                         <div class="mc-group__tools">
-                            ${classTool({ id: c.id, cls: 'greenhouse-class-btn', tone: 'greenhouse', icon: 'fa-seedling', name: 'Greenhouse', hint: 'How the class is growing',
+                            ${classTool({ id: c.id, cls: 'greenhouse-class-btn', tone: 'greenhouse', icon: 'fa-seedling', name: 'Greenhouse', hint: 'How they\'re growing',
                                 title: 'Class Greenhouse: understand and help the whole class' })}
                             ${classTool({ id: c.id, cls: 'report-class-btn', tone: 'report', icon: 'fa-feather-pointed', name: 'Weekly report',
-                                hint: eliteAI ? 'The week, ready to share' : 'Elite plan', locked: !eliteAI,
+                                hint: eliteAI ? 'This week\'s story' : 'Elite plan', locked: !eliteAI,
                                 title: 'Weekly report: what the class did this week, to read or save as a PDF' })}
                         </div>
                     </div>

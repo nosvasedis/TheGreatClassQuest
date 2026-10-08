@@ -30,16 +30,16 @@ export function wandShellHtml({ lite = false } = {}) {
     <div class="qw-sky" aria-hidden="true">${lite ? '' : '<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>'}</div>
     <header class="qw-top">
         <button type="button" class="qw-iconbtn" data-qw="leave" aria-label="Put the Wand down"><i class="fas fa-xmark" aria-hidden="true"></i></button>
-        <button type="button" class="qw-brand" data-qw="spells" aria-label="Recent spells">
+        <button type="button" class="qw-brand" data-qw="spells" title="Recent spells">
             <span class="qw-brand__seal" aria-hidden="true"><span class="qw-brand__gem"><i class="fas fa-wand-magic-sparkles"></i><span class="qw-brand__glint"></span></span><i class="fas fa-clock-rotate-left qw-brand__log"></i></span>
             <span class="qw-brand__text">
                 <b>Quest Remote</b>
-                <span class="qw-link" data-qw-link data-state="connecting"><span class="qw-link__dot" aria-hidden="true"></span><span data-qw-link-text>Connecting…</span></span>
+                <span class="qw-link" data-qw-link data-state="connecting" role="status"><span class="qw-link__dot" aria-hidden="true"></span><span data-qw-link-text>Connecting…</span></span>
             </span>
         </button>
-        <button type="button" class="qw-classchip" data-qw="class" aria-label="Choose the class"><span data-qw-class>Class</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <button type="button" class="qw-classchip" data-qw="class" title="Choose the class"><span data-qw-class>Class</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
     </header>
-    <button type="button" class="qw-now" data-qw="to-stage" data-qw-now aria-label="What is on the projector"></button>
+    <button type="button" class="qw-now" data-qw="to-stage" data-qw-now title="Open Screen mode"></button>
     <div class="qw-toast" data-qw-toast role="status" aria-live="polite"></div>
     <main class="qw-main" data-qw-main></main>
     <nav class="qw-modes" aria-label="Wand modes" style="--n:${WAND_MODES.length}">
@@ -114,7 +114,7 @@ export function starsHtml(allHeroes, { className = '', empty = '', multi = false
                 <button type="button" role="radio" aria-checked="${!multi}" class="qw-seg__btn${multi ? '' : ' is-on'}" data-qw-pick="one">One hero</button>
                 <button type="button" role="radio" aria-checked="${multi}" class="qw-seg__btn${multi ? ' is-on' : ''}" data-qw-pick="many">Several</button>
             </div>
-            <span class="qw-shine" style="--pct:${pct}" aria-label="${shining} of ${allHeroes.length} shine today"><span class="qw-shine__ring" aria-hidden="true"><i class="fas fa-star"></i></span>${shining}<small>/${allHeroes.length}</small></span>
+            <span class="qw-shine" style="--pct:${pct}" role="img" aria-label="${shining} of ${allHeroes.length} shine today"><span class="qw-shine__ring" aria-hidden="true"><i class="fas fa-star"></i></span>${shining}<small>/${allHeroes.length}</small></span>
         </div>
         <button type="button" class="qw-waitchip${waiting ? ' is-on' : ''}" data-qw="waiting" aria-pressed="${waiting}">
             <i class="fas ${waiting ? 'fa-filter-circle-xmark' : 'fa-hourglass-half'}" aria-hidden="true"></i>
@@ -126,8 +126,8 @@ export function starsHtml(allHeroes, { className = '', empty = '', multi = false
         <ul class="qw-orbs">${heroes.map((h, i) => {
         const isPicked = chosen.has(h.id);
         const locked = h.stars > 0 || h.away;
-        return `<li style="--i:${i % 24}">
-            <button type="button" class="qw-orb${h.stars > 0 ? ' is-shining' : ''}${h.away ? ' is-away' : ''}${h.pending ? ' is-pending' : ''}${isPicked ? ' is-picked' : ''}${multi && locked ? ' is-muted' : ''}" data-qw-hero="${esc(h.id)}" aria-pressed="${multi ? isPicked : 'false'}" aria-label="${esc(h.first)}${h.stars ? `, ${h.stars} stars today` : ''}${h.away ? ', away' : ''}">
+        return `<li style="--i:${i % 24}" data-qw-key="h-${esc(h.id)}">
+            <button type="button" class="qw-orb${h.stars > 0 ? ' is-shining' : ''}${h.away ? ' is-away' : ''}${h.pending ? ' is-pending' : ''}${isPicked ? ' is-picked' : ''}${multi && locked ? ' is-muted' : ''}" data-qw-hero="${esc(h.id)}" ${multi ? `aria-pressed="${isPicked}"` : 'aria-haspopup="dialog"'} aria-label="${esc(h.first)}${h.stars ? `, ${h.stars} stars today` : ''}${h.away ? ', away' : ''}">
                 ${face(h)}
                 <span class="qw-orb__name">${esc(h.first)}</span>
                 ${h.stars > 0 ? `<span class="qw-orb__stars" aria-hidden="true">${'★'.repeat(Math.min(3, Math.round(h.stars)))}</span>` : ''}
@@ -158,9 +158,9 @@ export function awardSheetHtml(heroOrHeroes, { reason = '', size = 'auto' } = {}
     <div class="qw-sheet__panel qw-award" role="dialog" aria-label="Award ${esc(title)}">
         <button type="button" class="qw-sheet__grab" data-qw="sheet-close" aria-label="Close"></button>
         <div class="qw-award__who">${faces}<div class="qw-award__title"><h3 class="qw-h3">${esc(title)}</h3>
-            <p class="qw-award__sub">${shining ? 'Already shining today' : many ? 'One star each, for the same virtue' : 'Name the virtue, then flick the star'}</p></div>
+            <p class="qw-award__sub">${!many && hero.away ? 'Away today' : shining ? 'Already shining today' : many ? 'One star each, for the same virtue' : 'Name the virtue, then flick the star'}</p></div>
             <button type="button" class="qw-iconbtn qw-iconbtn--sm" data-qw="sheet-close" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
-        ${shining ? `<button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw="undo" data-id="${esc(hero.id)}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Undo today's stars</button>` : `
+        ${!many && hero.away ? '<p class="qw-note"><i class="fas fa-moon" aria-hidden="true"></i> Away today: welcome them back first, then their star can fly.</p>' : shining ? `<button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw="undo" data-id="${esc(hero.id)}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Undo today's stars</button>` : `
         <div class="qw-virtues" role="radiogroup" aria-label="Virtue">
             ${WAND_VIRTUES.map((v) => `<button type="button" role="radio" aria-checked="${reason === v.key}" class="qw-virtue qw-virtue--${v.key}${reason === v.key ? ' is-on' : ''}" data-qw-virtue="${v.key}">
                 <span class="qw-virtue__icon" aria-hidden="true"><i class="fas ${v.icon}"></i></span><span class="qw-virtue__name">${v.name}</span></button>`).join('')}
@@ -267,7 +267,7 @@ function quizHtml(panel, secret) {
         <p class="qw-quiz__q">${esc(panel.question || '')}</p>
         <p class="qw-quiz__secret"><i class="fas fa-eye-slash" aria-hidden="true"></i> Only you see the answer. Tap what the hero says.</p>
         <div class="qw-quiz__answers">${(panel.options || []).map((o, i) => `<button type="button" class="qw-ans qw-ans--${i}${i === correct ? ' is-correct' : ''}" data-qw-cmd="quiz" data-action="answer" data-index="${i}"${o.closed ? ' disabled' : ''}>
-            <span class="qw-ans__key">${letters[i]}</span><span class="qw-ans__text">${esc(o.text)}</span>${i === correct ? '<i class="fas fa-check qw-ans__tick" aria-label="correct"></i>' : ''}</button>`).join('')}</div>
+            <span class="qw-ans__key">${letters[i]}</span><span class="qw-ans__text">${esc(o.text)}</span>${i === correct ? '<i class="fas fa-check qw-ans__tick" aria-hidden="true"></i><span class="qw-sr">correct</span>' : ''}</button>`).join('')}</div>
         <div class="qw-row">
             <button type="button" class="qw-chip" data-qw-cmd="quiz" data-action="listen"><i class="fas fa-volume-high" aria-hidden="true"></i> Listen</button>
             ${panel.canSkip ? '<button type="button" class="qw-chip" data-qw-cmd="quiz" data-action="skip"><i class="fas fa-forward" aria-hidden="true"></i> Skip</button>' : ''}
@@ -279,8 +279,8 @@ function quizHtml(panel, secret) {
 /** The dock's clouds on the phone: tap one to cast that screen to the projector. */
 export function screensHtml(stage, castAllowed = () => true) {
     const on = stage?.covered ? '' : stage?.tab || '';
-    return `<div class="qw-screens" role="list" aria-label="Cast a screen">${CAST_TABS.filter((t) => castAllowed(t)).map((t) => `
-        <button type="button" role="listitem" class="qw-cloud${t.tab === on ? ' is-on' : ''}" data-qw-cmd="cast" data-tab="${t.tab}" style="--cloud-from:${t.from};--cloud-to:${t.to}" aria-label="Show ${esc(t.label)} on the projector"${t.tab === on ? ' aria-current="true"' : ''}>
+    return `<div class="qw-screens" role="group" aria-label="Cast a screen">${CAST_TABS.filter((t) => castAllowed(t)).map((t) => `
+        <button type="button" class="qw-cloud${t.tab === on ? ' is-on' : ''}" data-qw-cmd="cast" data-tab="${t.tab}" style="--cloud-from:${t.from};--cloud-to:${t.to}" aria-label="Show ${esc(t.label)} on the projector"${t.tab === on ? ' aria-current="true"' : ''}>
             <span class="qw-cloud__puff" aria-hidden="true"><i class="fas ${t.icon}"></i></span>
             <span class="qw-cloud__label">${esc(t.label)}</span>
         </button>`).join('')}</div>`;
@@ -335,7 +335,7 @@ function tabRowHtml(items) {
 /** A dropdown with the same choices as the projector's (the phone's own picker opens). */
 function selectHtml(a) {
     const options = (a.options || []).map((o) => `<option value="${esc(o.value)}"${o.value === a.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
-    return `<label class="qw-field">
+    return `<label class="qw-field" data-qw-key="sel-${esc(a.id)}">
         <span class="qw-field__label">${esc(a.label)}</span>
         <span class="qw-field__select"><select data-qw-select="${esc(a.id)}">${options}</select><i class="fas fa-chevron-down" aria-hidden="true"></i></span>
     </label>`;
@@ -390,7 +390,7 @@ export function stageHtml(stage, { secret = null, castAllowed = () => true, padO
             <button type="button" class="qw-remote__btn" data-qw-cmd="scroll" data-dir="down" aria-label="Scroll down"${scroll.canDown ? '' : ' disabled'}><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
             <button type="button" class="qw-remote__btn qw-remote__btn--ok" data-qw-cmd="key" data-key="Enter" aria-label="OK (Enter)"><span>OK</span></button>
         </div>
-        ${scrolls ? `<div class="qw-scrollpos" aria-label="Scrolled ${Math.round((scroll.at || 0) * 100)}% down"><i style="--at:${(scroll.at || 0).toFixed(2)}"></i></div>` : ''}
+        ${scrolls ? `<div class="qw-scrollpos" role="img" aria-label="Scrolled ${Math.round((scroll.at || 0) * 100)}% down"><i style="--at:${(scroll.at || 0).toFixed(2)}"></i></div>` : ''}
         <h3 class="qw-sub"><i class="fas fa-hand-pointer" aria-hidden="true"></i> On this screen ${pad.length ? `<span class="qw-badge qw-badge--soft">${pad.length}</span>` : ''}</h3>
         ${pad.length ? `<div class="qw-pad">${padHtml}</div>
             ${pad.length > PAD_PREVIEW ? `<button type="button" class="qw-more" data-qw="pad-toggle">${padOpen ? 'Show fewer' : `Show all ${pad.length}`} <i class="fas fa-chevron-${padOpen ? 'up' : 'down'}" aria-hidden="true"></i></button>` : ''}`
@@ -530,10 +530,9 @@ export function showHtml(stage, { secret = null, clock = 0 } = {}) {
             <div class="qw-team${lead ? ' is-leading' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : ((Number(t.score) || 0) / max).toFixed(3)}">
                 <button type="button" class="qw-team__hit" data-qw-cmd="showdown" data-action="point" data-team="${i}" aria-label="Point to ${esc(t.name)}">
                     <span class="qw-team__badge" aria-hidden="true">${esc(t.emoji || t.shape)}</span>
-                    <span class="qw-team__name">${esc(t.name)}</span>
+                    <span class="qw-team__name">${lead ? '<span class="qw-team__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}${esc(t.name)}</span>
                     ${panel.growth ? '<span class="qw-team__grow" aria-hidden="true"><i class="fas fa-seedling"></i> grow</span>' : `<span class="qw-team__score">${esc(t.score)}</span>`}
                     ${!panel.growth && t.streak >= 2 ? `<span class="qw-team__streak"><i class="fas fa-fire"></i>${esc(t.streak)}</span>` : ''}
-                    ${lead ? '<span class="qw-team__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}
                     ${panel.growth ? '' : '<span class="qw-team__bar" aria-hidden="true"></span>'}
                 </button>
                 ${panel.growth ? '' : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
@@ -544,7 +543,7 @@ export function showHtml(stage, { secret = null, clock = 0 } = {}) {
             <span><b>${panel.golden ? 'Golden question is on' : 'Golden question'}</b><small>${panel.golden ? 'The next point counts double · tap to cancel' : (panel.growth ? 'The next good answer grows the flower twice' : 'The next point counts double')}</small></span>
         </button>
         <div class="qw-showctrl">
-            <button type="button" class="qw-roundbtn qw-roundbtn--lg${clockLeft ? ' is-counting' : ''}" data-qw-cmd="showdown" data-action="timer" aria-label="Ten second clock"><i class="fas fa-stopwatch"></i><small data-qw-clock>${clockLeft ? `${clockLeft}s` : '10s'}</small></button>
+            <button type="button" class="qw-roundbtn qw-roundbtn--lg${clockLeft ? ' is-counting' : ''}" data-qw-cmd="showdown" data-action="timer" aria-label="Ten second clock"><i class="fas fa-stopwatch"></i><small data-qw-clock>${clockLeft || Number(panel.clockFrom) || 10}s</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="next" aria-label="Next question"><i class="fas fa-forward"></i><small>Next</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg qw-roundbtn--gold" data-qw-cmd="showdown" data-action="finish" aria-label="Finish"><i class="fas fa-trophy"></i><small>Finish</small></button>
         </div>

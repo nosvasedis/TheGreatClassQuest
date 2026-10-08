@@ -74,7 +74,8 @@ function render({ finale = false } = {}) {
     const el = root();
     if (!el || !sd) return;
     el.dataset.growth = String(sd.growth);
-    el.innerHTML = finale ? showdownFinaleHtml(sd) : showdownHtml(sd, { secondsLeft: count?.left ?? null });
+    el.innerHTML = `${finale ? showdownFinaleHtml(sd) : showdownHtml(sd, { secondsLeft: count?.left ?? null })}
+        <button type="button" class="qr-sd__close" data-qr-sd-close aria-label="Close the arena" title="Close the arena (Esc)"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
 }
 
 /** Moves the bars and numbers without rebuilding the stage (smooth, cheap). */
@@ -169,7 +170,8 @@ function startCount(seconds = 10) {
             playQuizShowSfx('buzz');
             badge?.classList.add('is-zero');
             clearInterval(count.tick);
-            setTimeout(() => stopCount(), 1400);
+            const id = count.id;
+            setTimeout(() => { if (count?.id === id) stopCount(); }, 1400);
         }
     }, 1000);
 }
@@ -208,6 +210,8 @@ export async function runShowdownCommand(p, ctx) {
             if (teams.every((t) => !t.members.length)) return 'Nobody is here to play';
             sd = createShowdown(teams, { growth: isGrowthLeague(cls?.questLevel), title: `${cls?.logo || '⚔️'} ${cls?.name || 'Showdown'}` });
             let el = root();
+            // an arena still fading out is about to be removed: open a fresh one
+            if (el?.classList.contains('is-leaving')) { el.remove(); el = null; }
             if (!el) {
                 el = document.createElement('div');
                 el.id = ROOT_ID;
@@ -215,11 +219,15 @@ export async function runShowdownCommand(p, ctx) {
                 el.setAttribute('role', 'dialog');
                 el.setAttribute('aria-label', 'Showdown Arena');
                 document.body.appendChild(el);
-                el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeShowdown(); });
+                el.tabIndex = -1;
+                el.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeShowdown(); } });
+                // The PC can always end the show too (the phone may have gone quiet): a quiet close button.
+                el.addEventListener('click', (e) => { if (e.target.closest('[data-qr-sd-close]')) closeShowdown(); });
             }
             el.classList.remove('is-leaving');
             render();
             requestAnimationFrame(() => el.classList.add('is-in'));
+            el.focus({ preventScroll: true });
             playQuizShowSfx('curtain');
             ctx.scheduleStage(0);
             return 'Showdown!';

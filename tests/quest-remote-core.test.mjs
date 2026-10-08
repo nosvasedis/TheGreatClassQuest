@@ -470,6 +470,22 @@ test('the Wand has five modes and Show counts the 10s clock itself', async () =>
 test('the projector writes the stage less: no per-second timer writes, nothing while unbound', () => {
     const host = read('features/questRemote/remoteHost.js');
     assert.match(host, /remainingMs: stage\.timer\.paused \? stage\.timer\.remainingMs : 0/);
-    assert.match(host, /if \(!host\.wandId \|\| document\.hidden\) return;/);
+    assert.match(host, /if \(!host\.bound \|\| document\.hidden\) return;/);
     assert.match(host, /records\.every\(\(r\) => isOwnLayer\(r\.target\)\)/);
+});
+
+test('the Wand matches list items by identity when it morphs a live update', () => {
+    const morph = read('features/questRemote/wandMorph.mjs');
+    assert.match(morph, /function keyOf\(n\)/);
+    assert.match(morph, /data-qw-pad/);
+    const view = read('features/questRemote/remoteWandView.mjs');
+    assert.match(view, /data-qw-key="h-\$\{esc\(h\.id\)\}"/);
+});
+
+test('one host per tab, and stale binds never win on the phone', () => {
+    const host = read('features/questRemote/remoteHost.js');
+    assert.match(host, /starting \?\?= openHosting\(opts\)/);
+    assert.match(host, /data\.hostId && data\.hostId !== host\.hostId/);
+    const wand = read('features/questRemote/remoteWand.js');
+    assert.match(wand, /const stale = \(\) => wand !== w \|\| w\.connectSeq !== token;/);
 });

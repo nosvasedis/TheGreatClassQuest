@@ -40,10 +40,10 @@ export function bindingHtml({ qrSvg = '', code = '', lite = false, bound = false
         <div class="qr-circle${bound ? ' is-bound' : ''}">
             <div class="qr-ring" aria-hidden="true">${runes}</div>
             <div class="qr-circle__halo" aria-hidden="true"></div>
-            <div class="qr-circle__qr" data-qr-target>${qrSvg || '<span class="qr-circle__loading"><i class="fas fa-spinner fa-spin"></i></span>'}</div>
+            <div class="qr-circle__qr" data-qr-target>${qrSvg || '<span class="qr-circle__loading" role="img" aria-label="Drawing the circle"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></span>'}</div>
             <div class="qr-circle__seal" aria-hidden="true"><i class="fas fa-wand-magic-sparkles"></i></div>
         </div>
-        <div class="qr-code" aria-label="Wand code ${esc(String(code).split('').join(' '))}">${codeHtml}</div>
+        <div class="qr-code" role="img" aria-label="Wand code ${esc(String(code).split('').join(' '))}">${codeHtml}</div>
         <p class="qr-bind__status" data-qr-status role="status">${bound ? '<i class="fas fa-circle-check"></i> Bound to your phone' : '<span class="qr-dots" aria-hidden="true"><i></i><i></i><i></i></span> Waiting for your Wand…'}</p>
         <div class="qr-bind__actions">
             <button type="button" class="qr-btn qr-btn--ghost" data-qr-sleep><i class="fas fa-moon" aria-hidden="true"></i> Put the Wand to sleep</button>

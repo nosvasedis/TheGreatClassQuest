@@ -16,7 +16,7 @@ import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { FEATURE_DEFINITIONS, getUpgradeMessage, TAB_FEATURE_FLAGS } from '../../config/tiers/features.js';
-import { playSound, ensureAudioReady, playQuizShowSfx, warmQuizShowAudio } from '../../audio.js';
+import { playSound, ensureAudioReady, isAudioReady, playQuizShowSfx, warmQuizShowAudio } from '../../audio.js';
 import { showToast } from '../../ui/effects.js';
 import { getSchoolId, DEFAULT_SCHOOL_ID } from '../../utils/tenant.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
@@ -50,6 +50,8 @@ export async function toggleQuestRemote() {
     await startHosting();
 }
 
+let starting = null;
+
 /** After a page reload: quietly re-open the session this tab was hosting. */
 export async function resumeQuestRemoteIfHosting() {
     if (host || !canUseFeature('questRemote')) return;
@@ -59,10 +61,11 @@ export async function resumeQuestRemoteIfHosting() {
     await startHosting({ resume: saved });
 }
 
-export async function stopQuestRemote({ quiet = false } = {}) {
+export async function stopQuestRemote({ quiet = false, keepSession = false } = {}) {
     if (!host) return;
     const h = host;
     host = null;
+    h.cancelled = true;
     try { sessionStorage.removeItem(STORE_KEY); } catch { /* private mode */ }
     h.unsubSession?.();
     h.unsubCommands?.();
@@ -74,6 +77,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     document.removeEventListener('keydown', h.onAnyInput, true);
     document.removeEventListener('scroll', h.onScroll, { capture: true });
     document.removeEventListener('visibilitychange', h.onVisible);
+    document.removeEventListener('keydown', h.onEsc, true);
     stopTimer();
     setBlackout(false);
     closeSpotlight({ quiet: true });
@@ -81,6 +85,7 @@ export async function stopQuestRemote({ quiet = false } = {}) {
     document.getElementById('qr-star-ribbon')?.remove();
     closeBindingCircle();
     syncLaunchButtons();
+    if (keepSession) return;
     await channel.closeHostSession(h.id);
     if (!quiet) {
         playSound('click');
@@ -90,13 +95,23 @@ export async function stopQuestRemote({ quiet = false } = {}) {
 
 // ─── Session lifecycle ──────────────────────────────────────────────────────
 
-async function startHosting({ resume = null } = {}) {
-    try { await ensureAudioReady(); } catch { /* sounds are optional */ }
+function startHosting(opts = {}) {
+    // A double click, or a resume finishing on the same click: one host, never two.
+    starting ??= openHosting(opts).finally(() => { starting = null; });
+    return starting;
+}
+
+async function openHosting({ resume = null } = {}) {
+    if (host) return;
+    // After a reload there has been no click yet: the browser keeps audio locked until there is one,
+    // so a resume must not wait for it (the first click on the page unlocks the sounds).
+    if (resume) ensureAudioReady().catch(() => {});
+    else { try { await ensureAudioReady(); } catch { /* sounds are optional */ } }
     const id = resume?.id || makeSessionId();
     const code = resume?.code || makeSessionCode();
     const hostId = Math.random().toString(36).slice(2, 10);
     host = {
-        id, code, hostId,
+        id, code, hostId, resumed: Boolean(resume), firstSnap: true,
         bound: false, wandId: null, wandBeatMs: 0,
         ledger: createCommandLedger(),
         lastFp: '', lastStageAt: 0, stageTimer: 0, lastResult: null,
@@ -112,6 +127,8 @@ async function startHosting({ resume = null } = {}) {
         return;
     }
     try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ id, code })); } catch { /* private mode */ }
+    // Old sessions (closed, or from a tab that was simply shut) are tidied away so the phone's list stays short.
+    if (!resume) channel.sweepOldSessions(id).catch(() => {});
 
     const h = host;
     h.unsubSession = channel.watchSession(id, onSessionData, (e) => console.warn('Quest Remote session watch', e));
@@ -140,6 +157,13 @@ async function startHosting({ resume = null } = {}) {
     h.safetyScan = setInterval(() => scheduleStage(), 4000);
     h.onVisible = () => { if (!document.hidden) scheduleStage(0); };
     document.addEventListener('visibilitychange', h.onVisible);
+    // The PC can always take its screen back: Esc lifts the spotlight, then the curtain.
+    h.onEsc = (e) => {
+        if (e.key !== 'Escape') return;
+        if (document.querySelector('#qr-spotlight:not(.is-leaving)')) { e.stopPropagation(); closeSpotlight(); }
+        else if (document.querySelector('#qr-curtain:not(.is-lifting)')) { e.stopPropagation(); setBlackout(false); }
+    };
+    document.addEventListener('keydown', h.onEsc, true);
 
     syncLaunchButtons();
     if (!resume) openBindingCircle();
@@ -152,7 +176,19 @@ function onSessionData(data) {
         if (data?.closed) stopQuestRemote({ quiet: true });
         return;
     }
+    // A duplicated tab took this session over (it wrote its own hostId): only one screen obeys the Wand.
+    if (data.hostId && data.hostId !== host.hostId) {
+        stopQuestRemote({ quiet: true, keepSession: true });
+        showToast('Quest Remote moved to your other tab.', 'info');
+        return;
+    }
     const beatMs = channel.toMs(data.wandHeartbeatAt);
+    if (host.firstSnap) {
+        host.firstSnap = false;
+        // Back after a reload: the phone from before counts as bound only once it beats again
+        // (no welcome chime for a phone that may have left hours ago).
+        if (host.resumed && data.wandId) { host.wandId = data.wandId; host.wandBeatMs = beatMs; refreshBondState(); return; }
+    }
     if (data.wandId && Number.isFinite(beatMs)) {
         const isNewWand = data.wandId !== host.wandId;
         // Liveness is measured on this computer's clock (when a new beat arrived), never by
@@ -190,7 +226,10 @@ function refreshBondState() {
     const alive = host.wandId && Date.now() - (host.wandSeenAt || 0) < HOST_LIVE_MS + 10_000;
     const was = host.bound;
     host.bound = Boolean(alive);
-    if (was !== host.bound) syncLaunchButtons();
+    if (was !== host.bound) {
+        syncLaunchButtons();
+        if (host.bound) scheduleStage(0);
+    }
 }
 
 // ─── Binding circle, glyph, launch buttons ──────────────────────────────────
@@ -212,16 +251,26 @@ async function openBindingCircle() {
             if (e.target === modal || e.target.closest('[data-qr-close]')) { playSound('click'); closeBindingCircle(); return; }
             if (e.target.closest('[data-qr-sleep]')) stopQuestRemote();
         });
-        modal.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeBindingCircle(); } });
+        modal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { e.stopPropagation(); closeBindingCircle(); return; }
+            if (e.key !== 'Tab') return;
+            const items = [...modal.querySelectorAll('button')].filter(isShown);
+            if (!items.length) return;
+            const i = items.indexOf(document.activeElement);
+            const next = e.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : (i === items.length - 1 ? 0 : i + 1);
+            e.preventDefault();
+            items[next].focus();
+        });
         document.body.appendChild(modal);
     }
+    if (!modal.contains(document.activeElement)) host.circleReturn = document.activeElement;
     renderBinding(host.bound);
     modal.classList.remove('is-leaving');
     requestAnimationFrame(() => modal.classList.add('is-open'));
-    modal.querySelector('[data-qr-close]')?.focus({ preventScroll: true });
     playSound('magic_chime_short');
 
-    // The QR (lazy library, shared with the Family Access Kit)
+    // The QR (lazy library, shared with the Family Access Kit), drawn once per session.
+    if (host.qrSvg) return;
     try {
         const { renderQrSvg } = await import('../familyAccessKit.js');
         const schoolId = getSchoolId();
@@ -231,6 +280,8 @@ async function openBindingCircle() {
         if (slot && host) { slot.innerHTML = svg; host.qrSvg = svg; }
     } catch (error) {
         console.warn('Quest Remote QR failed', error);
+        const slot = modal.querySelector('[data-qr-target]');
+        if (slot) slot.innerHTML = '<span class="qr-circle__fallback">Use the code below</span>';
     }
 }
 
@@ -239,11 +290,18 @@ function renderBinding(bound) {
     if (!modal || !host) return;
     modal.innerHTML = bindingHtml({ qrSvg: host.qrSvg || '', code: host.code, lite: LITE, bound });
     modal.dataset.state = bound ? 'bound' : 'waiting';
+    // the redraw replaced the focused button: keep the keyboard inside the circle
+    (modal.querySelector('.qr-btn--gold') || modal.querySelector('[data-qr-close]'))?.focus({ preventScroll: true });
 }
 
 function closeBindingCircle() {
     const modal = document.getElementById('quest-remote-bind');
     if (!modal) return;
+    const back = host?.circleReturn;
+    if (host) host.circleReturn = null;
+    if (modal.contains(document.activeElement)) {
+        try { (back?.isConnected ? back : launchButton())?.focus({ preventScroll: true }); } catch { /* gone */ }
+    }
     if (isStillFx()) { modal.remove(); return; }
     modal.classList.add('is-leaving');
     modal.classList.remove('is-open');
@@ -252,7 +310,8 @@ function closeBindingCircle() {
 
 /** The visible wand button: the header one, or Projector Mode's when that covers the screen. */
 function launchButton() {
-    return [...document.querySelectorAll('[data-wall-action="wand"], #quest-remote-btn')].find(isShown) || null;
+    const wall = wallpaperRunning() ? [...document.querySelectorAll('[data-wall-action="wand"]')].find(isShown) : null;
+    return wall || [...document.querySelectorAll('[data-wall-action="wand"], #quest-remote-btn')].find(isShown) || null;
 }
 
 /** Header and projector buttons glow while a Wand is awake. */
@@ -276,6 +335,8 @@ function enqueue(cmd) {
     if (!check.ok) return;
     if (!host.ledger.accept(cmd.wandId, cmd.clientSeq)) return;
     if (isStaleCommand(cmd.createdMs, cmd.sentAt)) return;
+    // a command is the surest sign the phone is there
+    if (cmd.wandId === host.wandId) { host.wandSeenAt = Date.now(); refreshBondState(); }
     host.queue = host.queue.then(() => run(cmd)).catch((error) => {
         console.warn('Quest Remote command failed', cmd.type, error);
         report(cmd, false, 'That did not work on the projector.');
@@ -447,7 +508,7 @@ async function run(cmd) {
                 const { openQuietDragonFrom } = await import('../../ui/quietDragonButton.js');
                 await sparkTo(findSurface().el, { color: '#86efac', size: 22 });
                 await openQuietDragonFrom('remote');
-            } else pressKey('Escape');
+            } else if (document.getElementById('quiet-dragon-stage')) pressKey('Escape');
             return report(cmd, true, '');
         }
         case 'wall': return runWall(cmd, p.action);
@@ -577,6 +638,7 @@ async function runAward(cmd, { studentId, reason, stars }) {
 
 /** One star award through the hero's own cloud on the Award Stars screen (same path as the mouse). */
 async function awardHero(studentId, reason, stars) {
+    if (!host) return { ok: false, message: 'The Wand is asleep' };
     // A hero in the spotlight who earns a star: the room lights up again so the class sees it land.
     if (document.getElementById('qr-spotlight')) { closeSpotlight(); await wait(isStillFx() ? 0 : 320); }
     const { card, student, covered, error } = await cardFor(studentId);
@@ -897,6 +959,14 @@ async function runCharm(cmd, p) {
     if (p.action === 'sound') {
         const charm = CHARM_SOUNDS.find((c) => c.id === p.sound);
         if (!charm) return report(cmd, false, 'Unknown charm');
+        // After a reload the browser keeps sound locked until someone clicks the projector once.
+        if (!isAudioReady()) {
+            ensureAudioReady().catch(() => {});
+            if (!isAudioReady()) {
+                showCharmBurst(charm);
+                return report(cmd, false, 'Sound is asleep on the projector: click it once to wake it');
+            }
+        }
         try { warmQuizShowAudio(); } catch { /* sounds are optional */ }
         playQuizShowSfx(charm.sfx, charm.sfx === 'tally' ? { seconds: 2.4 } : charm.sfx === 'fanfare' ? { tier: 'epic' } : charm.sfx === 'cheer' ? { firstTry: true } : {});
         showCharmBurst(charm);
@@ -1039,7 +1109,7 @@ function labelOf(el) {
     if (/^(SELECT|INPUT|TEXTAREA)$/.test(el.tagName)) {
         return el.getAttribute('aria-label') || el.labels?.[0]?.textContent || el.getAttribute('placeholder') || el.getAttribute('title') || el.name || '';
     }
-    return el.getAttribute('aria-label') || el.textContent || el.getAttribute('title') || '';
+    return el.getAttribute('aria-label') || el.textContent.trim() || el.getAttribute('title') || '';
 }
 
 /** What kind of control this is, so the Wand can show the same kind (tabs, switch, dropdown, text box). */
@@ -1121,7 +1191,7 @@ function collectPad(surface) {
     const vh = window.innerHeight;
     const nodes = surface.el.querySelectorAll('button, [role="button"], [role="tab"], [role="radio"], [role="switch"], [role="checkbox"], a[href^="#"], [data-remote], select, textarea, input:not([type="hidden"]):not([type="password"]):not([type="file"])');
     for (const el of nodes) {
-        if (items.length >= 60) break;
+        if (items.length >= 160) break;
         if (el.closest('[data-remote-skip], [data-qr-ignore], #award-stars-student-list')) continue;
         if (el.disabled || el.readOnly || el.getAttribute('aria-disabled') === 'true') continue;
         let rect = el.getBoundingClientRect();
@@ -1227,7 +1297,7 @@ function scheduleStage(delay = 250) {
     if (!host) return;
     // Nobody to tell: no phone is bound (the bind itself asks for a fresh stage), or the projector tab
     // is in the background. Scanning the screen then only costs the classroom laptop.
-    if (!host.wandId || document.hidden) return;
+    if (!host.bound || document.hidden) return;
     if (host.stageTimer) return;
     const since = performance.now() - host.lastStageAt;
     const delayMs = Math.max(delay, STAGE_MIN_INTERVAL_MS - since, 0);
@@ -1272,10 +1342,17 @@ async function publishStage() {
     // pause, +30 s or the end is news (one write instead of one every few seconds).
     const fp = stageFingerprint({ ...stage, timer: stage.timer ? { ...stage.timer, remainingMs: stage.timer.paused ? stage.timer.remainingMs : 0 } : null, secret });
     if (fp === host.lastFp) return;
-    host.lastFp = fp;
-    host.lastStageAt = performance.now();
+    const h = host;
+    h.lastFp = fp;
+    h.lastStageAt = performance.now();
     const patch = { stage, classId: stage.classId, secret: secret || {} };
-    await channel.updateHostSession(host.id, patch);
+    try {
+        await channel.updateHostSession(h.id, patch);
+    } catch (error) {
+        // not written (a Wi-Fi blip): forget it, so the next scan tries again
+        if (h.lastFp === fp) h.lastFp = '';
+        throw error;
+    }
 }
 
 export { scheduleStage as requestQuestRemoteStage };

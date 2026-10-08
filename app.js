@@ -498,6 +498,7 @@ function setSecretaryReturnButtonVisible(isVisible) {
 }
 
 async function logoutWithLocalCleanup() {
+    await import('./ui/questRemoteButton.js').then((m) => m.beforeSignOut()).catch(() => {});
     await walkOutThroughGate(() => signOut(auth));
     if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
 }

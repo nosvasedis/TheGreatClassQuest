@@ -77,6 +77,18 @@ export function openQuestRemoteWand() {
         .catch((error) => console.warn('The Wand could not open:', error));
 }
 
+/**
+ * Just before signing out, while the teacher can still write: the projector's session is marked
+ * closed, so the phone hears at once instead of waiting for the heartbeat to go quiet.
+ */
+export async function beforeSignOut() {
+    if (!hostModule) return;
+    try {
+        const m = await hostModule;
+        await Promise.race([m.stopQuestRemote({ quiet: true }), new Promise((r) => setTimeout(r, 1500))]);
+    } catch { /* signing out anyway */ }
+}
+
 /** Sign-out: the projector session closes and the Wand is put down. */
 export function onSignedOut() {
     delete document.body.dataset.gcqTeacherReady;

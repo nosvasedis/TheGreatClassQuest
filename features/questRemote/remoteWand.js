@@ -88,10 +88,28 @@ export async function openWand({ sessionId = '' } = {}) {
         motionOn: false,
         waiting: savedFlag(WAITING_KEY),
         customMinutes: savedMinutes(),
-        spells: []
+        spells: [],
+        connectSeq: 0,
+        gestures: new Set(),
+        retry: 0
     };
+    wand.returnFocus = document.activeElement;
     wireEvents(root);
+    // Page and network listeners live as long as the Wand (not one set per projector bound).
+    wand.onVisible = () => {
+        if (!wand) return;
+        if (document.hidden) { cancelGestures(); return; }
+        if (wand.root.dataset.phase !== 'bound' || !wand.sessionId) return;
+        requestWakeLock();
+        channel.beatWand(wand.sessionId).catch(() => {});
+        syncLink();
+    };
+    wand.onNet = () => syncLink();
+    document.addEventListener('visibilitychange', wand.onVisible);
+    window.addEventListener('online', wand.onNet);
+    window.addEventListener('offline', wand.onNet);
     requestAnimationFrame(() => root.classList.add('is-in'));
+    root.querySelector('[data-qw="leave"]')?.focus({ preventScroll: true });
     if (sessionId) await connect(sessionId);
     else await showChooser();
 }
@@ -99,7 +117,9 @@ export async function openWand({ sessionId = '' } = {}) {
 export async function closeWand({ quiet = false } = {}) {
     if (!wand) return;
     const w = wand;
+    cancelGestures();
     wand = null;
+    w.connectSeq += 1;
     w.unsub?.();
     w.timers.forEach((t) => clearInterval(t));
     stopMotion(w);
@@ -108,6 +128,7 @@ export async function closeWand({ quiet = false } = {}) {
     window.removeEventListener('online', w.onNet);
     window.removeEventListener('offline', w.onNet);
     document.body.classList.remove('qw-open');
+    try { if (w.returnFocus?.isConnected) w.returnFocus.focus({ preventScroll: true }); } catch { /* gone */ }
     if (/wand=/.test(location.hash)) {
         try { history.replaceState(null, '', `${location.pathname}${location.search}`); } catch { /* ignore */ }
     }
@@ -130,61 +151,86 @@ async function showChooser(error = '') {
         setLink('asleep', sessions.length ? 'Choose a projector' : 'No projector awake');
     } catch (e) {
         console.warn('Quest Remote: list failed', e);
-        if (wand) wand.main.innerHTML = chooserHtml([], { error: 'Could not reach the school. Check the connection.' });
-        setLink('offline', 'No connection');
+        if (wand) wand.main.innerHTML = chooserHtml([], { error: isRefused(e) ? RULES_TEXT : 'Could not reach the school. Check the connection.' });
+        setLink(isRefused(e) ? 'asleep' : 'offline', isRefused(e) ? 'Refused by the school rules' : 'No connection');
     }
+}
+
+const RULES_TEXT = 'The school rules refused the Wand. They need updating (firestore rules deploy).';
+const isRefused = (e) => e?.code === 'permission-denied';
+
+/** Forgets everything about the projector the Wand was bound to (closed, lost, or swapped). */
+function endSession(w = wand) {
+    if (!w) return;
+    cancelGestures();
+    w.unsub?.();
+    w.unsub = null;
+    w.timers.forEach((t) => clearInterval(t));
+    w.timers = [];
+    w.sessionId = '';
+    stopMotion(w);
+    try { w.wakeLock?.release(); } catch { /* already released */ }
+    w.wakeLock = null;
+    if (w.sheetKind) closeSheet();
+    Object.assign(w, {
+        stage: null, secret: null, hostId: '', classOverride: '', classOverrideAt: 0, multi: false,
+        timerKey: '', timerBase: null, clockId: 0, clockBase: null, lastPanelKind: '', lastNow: '', lastHtml: '', centredTab: ''
+    });
+    w.pending.clear();
+    w.picked.clear();
 }
 
 async function connect(sessionId) {
     if (!wand) return;
-    wand.unsub?.();
-    wand.timers.forEach((t) => clearInterval(t));
-    wand.timers = [];
-    wand.root.dataset.phase = 'choose';
-    wand.main.innerHTML = chooserHtml([], { loading: true });
+    const w = wand;
+    const token = (w.connectSeq += 1);
+    // a double tap, a QR link or a retry can start a second bind: only the newest one goes on
+    const stale = () => wand !== w || w.connectSeq !== token;
+    endSession(w);
+    w.root.dataset.phase = 'choose';
+    w.main.innerHTML = chooserHtml([], { loading: true });
     setLink('connecting', 'Binding…');
     let data = null;
-    try { data = await channel.readSession(sessionId); } catch { data = null; }
-    if (!wand) return;
+    let refused = false;
+    try { data = await channel.readSession(sessionId); } catch (e) { refused = isRefused(e); data = null; }
+    if (stale()) return;
     if (!data || data.closed || data.teacherId !== state.get('currentUserId')) {
-        await showChooser('That projector is not awake any more. Press the wand button on the classroom computer.');
+        await showChooser(refused ? RULES_TEXT : 'That projector is not awake any more. Press the wand button on the classroom computer.');
         return;
     }
     try {
-        await channel.bindWand(sessionId, wand.wandId);
+        await channel.bindWand(sessionId, w.wandId);
     } catch (e) {
         console.warn('Quest Remote: bind failed', e);
-        await showChooser('The Wand could not bind. Try again.');
+        if (!stale()) await showChooser(isRefused(e) ? RULES_TEXT : 'The Wand could not bind. Try again.');
         return;
     }
-    wand.sessionId = sessionId;
-    wand.code = data.code || '';
-    wand.hostSeenAt = Date.now();
-    wand.root.dataset.phase = 'bound';
-    wand.unsub = channel.watchSession(sessionId, onSession, () => setLink('offline', 'Connection lost'));
-    wand.timers.push(setInterval(() => {
-        if (!wand) return;
-        channel.beatWand(wand.sessionId).catch(() => {});
+    if (stale()) return;
+    w.sessionId = sessionId;
+    w.code = data.code || '';
+    w.hostSeenAt = Date.now();
+    w.root.dataset.phase = 'bound';
+    w.unsub = channel.watchSession(sessionId, (d) => { if (!stale()) { w.retry = 0; onSession(d); } }, () => {
+        // The live link broke (network, token refresh): bind again instead of showing a frozen Wand.
+        if (stale()) return;
+        setLink('offline', 'Connection lost · trying again');
+        const delay = Math.min(30_000, 3000 * 2 ** w.retry);
+        w.retry = Math.min(4, w.retry + 1);
+        setTimeout(() => { if (!stale()) connect(sessionId); }, delay);
+    });
+    w.timers.push(setInterval(() => {
+        if (stale()) return;
+        channel.beatWand(w.sessionId).catch(() => {});
         syncLink();
     }, HEARTBEAT_MS));
-    wand.timers.push(setInterval(() => { if (wand?.mode === 'stars' && !wand.sheetKind) refreshRosterIfChanged(); }, 1500));
-    wand.timers.push(setInterval(() => tickClocks(), 1000));
-    wand.onVisible = () => {
-        if (!wand || document.hidden) return;
-        requestWakeLock();
-        channel.beatWand(wand.sessionId).catch(() => {});
-        syncLink();
-    };
-    wand.onNet = () => syncLink();
-    document.addEventListener('visibilitychange', wand.onVisible);
-    window.addEventListener('online', wand.onNet);
-    window.addEventListener('offline', wand.onNet);
+    w.timers.push(setInterval(() => { if (wand?.mode === 'stars' && !wand.sheetKind) refreshRosterIfChanged(); }, 1500));
+    w.timers.push(setInterval(() => tickClocks(), 1000));
     requestWakeLock();
     send('bind', {});
     buzz([20, 60, 30]);
-    wand.root.classList.add('is-bound');
+    w.root.classList.add('is-bound');
     setTimeout(() => wand?.root.classList.remove('is-bound'), 1400);
-    setMode(wand.mode);
+    setMode(w.mode);
 }
 
 async function requestWakeLock() {
@@ -201,20 +247,29 @@ function onSession(data) {
     if (!data || data.closed) {
         setLink('asleep', 'The projector put the Wand to sleep');
         wand.root.dataset.phase = 'choose';
-        wand.unsub?.();
-        wand.unsub = null;
-        wand.timers.forEach((t) => clearInterval(t));
-        wand.timers = [];
-        setTimeout(() => wand && showChooser('The projector put the Wand to sleep.'), 1200);
+        endSession();
+        const token = wand.connectSeq;
+        setTimeout(() => { if (wand && wand.connectSeq === token) showChooser('The projector put the Wand to sleep.'); }, 1200);
         return;
     }
+    // The projector reloaded (a new host on the same session): answer at once so it knows the Wand is here.
+    if (data.hostId && wand.hostId && data.hostId !== wand.hostId) channel.beatWand(wand.sessionId).catch(() => {});
+    wand.hostId = data.hostId || '';
     const beat = channel.toMs(data.hostHeartbeatAt);
     if (beat !== wand.hostBeat) { wand.hostBeat = beat; wand.hostSeenAt = Date.now(); }
     const prevPanel = wand.stage?.panel?.kind || '';
+    const prevClass = currentClassId();
     wand.stage = data.stage || null;
     wand.secret = data.secret || null;
     syncClocks();
-    if (wand.classOverride && wand.stage?.classId === wand.classOverride) wand.classOverride = '';
+    // The class asked for has arrived, or never will (refused or lost): the projector's class wins.
+    if (wand.classOverride && (wand.stage?.classId === wand.classOverride || Date.now() - wand.classOverrideAt > 10_000)) wand.classOverride = '';
+    if (currentClassId() !== prevClass) {
+        // Another class is in the room: last class's picks and award sheet go.
+        wand.picked.clear();
+        wand.multi = false;
+        if (wand.sheetKind === 'award') closeSheet();
+    }
     syncLink();
     showResult(wand.stage?.lastResult);
 
@@ -283,6 +338,7 @@ function showResult(result) {
     if (!result.ok) {
         // The projector said no: undo anything shown optimistically.
         wand.pending.clear();
+        wand.classOverride = '';
         if (wand.mode === 'stars') render();
         buzz([40, 50, 40]);
         if (result.message) toast(result.message, 'warn');
@@ -296,12 +352,21 @@ function showResult(result) {
 
 function send(type, payload = {}) {
     if (!wand?.sessionId) return false;
-    const cmd = { type, payload, clientSeq: (wand.seq += 1), wandId: wand.wandId };
-    if (!validateCommand(cmd).ok) { wand.seq -= 1; return false; }
+    const cmd = { type, payload, clientSeq: (wand.seq + 1), wandId: wand.wandId };
+    if (!validateCommand(cmd).ok) return false;
+    // Firestore would quietly queue a spell sent offline and the projector would drop it as too old:
+    // say so now instead of showing a star "on its way" that never lands.
+    if (type !== 'bind') {
+        if (!navigator.onLine) { buzz([40, 50, 40]); toast('No connection: nothing was sent', 'warn'); return false; }
+        if (!isHostLive(wand.hostSeenAt, Date.now(), HOST_LIVE_MS)) { buzz([40, 50, 40]); toast('The projector is not answering: nothing was sent', 'warn'); return false; }
+    }
+    wand.seq += 1;
     channel.sendCommand(wand.sessionId, cmd).catch((e) => {
         console.warn('Quest Remote: send failed', e);
+        if (!wand) return;
+        if (type === 'award' && payload.studentId) { wand.pending.delete(payload.studentId); render(); }
         // Refused (not offline): the school's Firestore rules are older than this Wand.
-        toast(e?.code === 'permission-denied' ? 'The projector refused this spell: the school rules need updating' : 'Not sent: check the connection', 'warn');
+        toast(isRefused(e) ? 'The projector refused this spell: the school rules need updating' : 'Not sent: check the connection', 'warn');
     });
     return true;
 }
@@ -507,7 +572,7 @@ function tickClocks() {
         const left = showClockLeft();
         const btn = wand.root.querySelector('[data-qw-clock]');
         if (btn) {
-            btn.textContent = left ? `${left}s` : '10s';
+            btn.textContent = `${left || wand.stage?.panel?.clockFrom || 10}s`;
             btn.closest('button')?.classList.toggle('is-counting', left > 0);
         }
         if (!left) wand.clockBase = null;
@@ -516,12 +581,21 @@ function tickClocks() {
 
 // ─── Sheets ─────────────────────────────────────────────────────────────────
 
+/** The Wand behind an open sheet: out of reach for taps, keys and screen readers. */
+function setBackdropInert(on) {
+    wand?.root.querySelectorAll(':scope > .qw-top, :scope > .qw-now, :scope > .qw-main, :scope > .qw-modes').forEach((n) => { n.inert = on; });
+}
+
 function openSheet(kind, html) {
     if (!wand) return;
+    if (!wand.sheetKind) wand.sheetFocus = document.activeElement;
     wand.sheetKind = kind;
     wand.sheet.innerHTML = html;
     wand.sheet.setAttribute('aria-hidden', 'false');
     wand.sheet.classList.add('is-open');
+    setBackdropInert(true);
+    const first = wand.sheet.querySelector('.qw-sheet__panel [data-qw="sheet-close"]:not(.qw-sheet__grab), .qw-sheet__panel button:not(.qw-sheet__grab)');
+    first?.focus({ preventScroll: true });
 }
 
 function closeSheet() {
@@ -529,6 +603,10 @@ function closeSheet() {
     wand.sheetKind = '';
     wand.sheet.classList.remove('is-open');
     wand.sheet.setAttribute('aria-hidden', 'true');
+    setBackdropInert(false);
+    const back = wand.sheetFocus;
+    wand.sheetFocus = null;
+    try { if (back?.isConnected && wand.root.contains(back)) back.focus({ preventScroll: true }); } catch { /* gone */ }
     setTimeout(() => { if (wand && !wand.sheetKind) wand.sheet.innerHTML = ''; }, 320);
 }
 
@@ -619,6 +697,16 @@ function wireEvents(root) {
     root.addEventListener('click', (e) => {
         if (!wand) return;
         const t = e.target;
+        // the click a swipe across the deck ends with is not a tap on a card
+        if (performance.now() < (wand.noClickUntil || 0)) { e.preventDefault(); return; }
+        // Keyboard / screen reader (a click with no pointer): the gestures get a plain tap path.
+        if (e.detail === 0) {
+            if (t.closest('[data-qw-hold]')) { if (send('crown', { action: 'crown' })) buzz([40, 40, 120]); return; }
+            const knob = t.closest('[data-qw-sling-knob]');
+            if (knob && !knob.disabled) { if (send('wheel', { action: 'spin', power: 0.6 })) buzz([30, 20, 60]); return; }
+            const star = t.closest('[data-qw-star]');
+            if (star && !star.disabled) { sendStar(wand.award.size === 'auto' ? 1 : Number(wand.award.size)); return; }
+        }
         const act = t.closest('[data-qw]')?.dataset.qw;
         if (act === 'leave') { buzz(10); closeWand(); return; }
         if (act === 'refresh') { showChooser(); return; }
@@ -673,7 +761,7 @@ function wireEvents(root) {
         const classOpt = t.closest('[data-qw-classid]');
         if (classOpt) {
             const id = classOpt.dataset.qwClassid;
-            if (send('class', { classId: id })) { wand.classOverride = id; wand.picked.clear(); buzz(10); closeSheet(); render(); }
+            if (send('class', { classId: id })) { wand.classOverride = id; wand.classOverrideAt = Date.now(); wand.picked.clear(); buzz(10); closeSheet(); render(); }
             return;
         }
         const pad = t.closest('[data-qw-pad]');
@@ -682,7 +770,13 @@ function wireEvents(root) {
         if (cmdEl && !cmdEl.disabled) {
             const type = cmdEl.dataset.qwCmd;
             const payload = datasetPayload(cmdEl);
+            // A quick double tap must not start a timer, a wheel or a show twice. Points, scrolling and
+            // keys stay rapid-fire.
+            const repeatable = type === 'scroll' || type === 'key' || (type === 'showdown' && (payload.action === 'point' || payload.action === 'minus'));
+            const nowMs = performance.now();
+            if (!repeatable && nowMs - (Number(cmdEl.dataset.qwSentAt) || 0) < 650) return;
             if (send(type, payload)) {
+                cmdEl.dataset.qwSentAt = String(nowMs);
                 pressFeedback(cmdEl);
                 // A hero called into the spotlight: the sheet steps away so the teacher sees the room.
                 if (type === 'charm' && payload.action === 'spotlight' && wand.sheetKind === 'award') closeSheet();
@@ -710,6 +804,7 @@ function wireEvents(root) {
         }
     });
     root.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && wand?.sheetKind) { e.preventDefault(); closeSheet(); return; }
         // Enter in a one-line box sends; in a text area it is a new line.
         if (e.key === 'Enter' && e.target?.matches?.('[data-qw-text] input')) {
             e.preventDefault();
@@ -731,7 +826,7 @@ function wireEvents(root) {
         const knob = e.target.closest('[data-qw-sling-knob]');
         if (knob && !knob.disabled) { startSling(e, knob); return; }
         const swipe = e.target.closest('[data-qw-swipe]');
-        if (swipe && !e.target.closest('button')) startSwipe(e, swipe);
+        if (swipe) startSwipe(e, swipe);
     });
 }
 
@@ -777,29 +872,52 @@ function pressFeedback(el) {
     setTimeout(() => el.classList.remove('is-pressed'), 420);
 }
 
-function trackPointer(e, el, { onMove, onEnd }) {
-    wand.gesture = true;
-    try { el.setPointerCapture(e.pointerId); } catch { /* old browser */ }
+/** Every gesture in flight, so a hidden page, a redraw or a closed Wand can end them all. */
+function cancelGestures() {
+    if (!wand) return;
+    [...wand.gestures].forEach((stop) => stop());
+}
+
+/**
+ * Follows one finger on `el` until it lifts. Ends on pointerup, pointercancel, lost capture (the
+ * element was redrawn away) or cancelGestures(); `onEnd(ev, cancelled)` always runs exactly once.
+ */
+function trackPointer(e, el, { onMove, onEnd, capture = true }) {
+    const w = wand;
+    // Without capture (the deck), taps still reach the card under the finger; the window hears the rest.
+    const src = capture ? el : window;
+    if (capture) { try { el.setPointerCapture(e.pointerId); } catch { /* old browser */ } }
     let frame = 0;
-    let last = null;
+    let last = e;
+    let done = false;
     const move = (ev) => {
         if (ev.pointerId !== e.pointerId) return;
         last = ev;
-        if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (last) onMove(last); });
+        if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (!done) onMove(last); });
     };
-    const end = (ev) => {
-        if (ev.pointerId !== e.pointerId) return;
-        el.removeEventListener('pointermove', move);
-        el.removeEventListener('pointerup', end);
-        el.removeEventListener('pointercancel', end);
+    const finish = (ev, cancelled) => {
+        if (done) return;
+        done = true;
+        src.removeEventListener('pointermove', move);
+        src.removeEventListener('pointerup', up);
+        src.removeEventListener('pointercancel', cancel);
+        src.removeEventListener('lostpointercapture', cancel);
         cancelAnimationFrame(frame);
-        wand && (wand.gesture = false);
-        onEnd(ev, ev.type === 'pointercancel');
-        if (wand?.renderQueued) { wand.renderQueued = false; render(); }
+        w.gestures.delete(stop);
+        w.gesture = w.gestures.size > 0;
+        onEnd(ev || last, cancelled);
+        if (wand === w && !w.gesture && w.renderQueued) { w.renderQueued = false; render(); }
     };
-    el.addEventListener('pointermove', move, { passive: true });
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', end);
+    const up = (ev) => { if (ev.pointerId === e.pointerId) finish(ev, false); };
+    const cancel = (ev) => { if (ev.pointerId === e.pointerId) finish(ev, true); };
+    const stop = () => finish(null, true);
+    w.gestures.add(stop);
+    w.gesture = true;
+    src.addEventListener('pointermove', move, { passive: true });
+    src.addEventListener('pointerup', up);
+    src.addEventListener('pointercancel', cancel);
+    if (capture) src.addEventListener('lostpointercapture', cancel);
+    return stop;
 }
 
 function startFlick(e, star) {
@@ -855,15 +973,23 @@ function startHold(e, el) {
     el.classList.add('is-holding');
     buzz(15);
     const pulse = setInterval(() => buzz(8), 300);
+    let stop = null;
     const timer = setTimeout(() => {
         clearInterval(pulse);
         el.classList.remove('is-holding');
+        if (document.hidden || !send('crown', { action: 'crown' })) { stop?.(); return; }
         el.classList.add('is-fired');
         buzz([40, 40, 120]);
-        send('crown', { action: 'crown' });
+        setTimeout(() => el.classList.remove('is-fired'), 1600);
+        stop?.();
     }, HOLD_MS);
-    trackPointer(e, el, {
-        onMove() {},
+    stop = trackPointer(e, el, {
+        onMove(ev) {
+            // sliding the finger off the crown lets go of it
+            const r = el.getBoundingClientRect();
+            const m = 28;
+            if (ev.clientX < r.left - m || ev.clientX > r.right + m || ev.clientY < r.top - m || ev.clientY > r.bottom + m) stop?.();
+        },
         onEnd() {
             clearInterval(pulse);
             clearTimeout(timer);
@@ -909,10 +1035,12 @@ function startSling(e, knob) {
 function startSwipe(e, el) {
     const x0 = e.clientX;
     trackPointer(e, el, {
+        capture: false,
         onMove() {},
         onEnd(ev, cancelled) {
             const dx = ev.clientX - x0;
             if (cancelled || Math.abs(dx) < 50) return;
+            if (wand) wand.noClickUntil = performance.now() + 400;
             send(el.dataset.qwSwipe, { action: dx < 0 ? 'next' : 'prev' });
             buzz(10);
         }

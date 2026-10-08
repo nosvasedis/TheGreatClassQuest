@@ -293,7 +293,7 @@
     position: fixed;
     top: 86px;
     right: 24px;
-    z-index: 1600;
+    z-index: 1660;
     width: clamp(150px, 21vmin, 250px);
     aspect-ratio: 1;
     pointer-events: none;
@@ -788,3 +788,10 @@
     .qr-sd__golden.is-in { animation: none; }
 }
 @keyframes qr-charm-fade { 0%, 100% { opacity: 0; } 12%, 80% { opacity: 1; } }
+
+/* The PC can always close the arena itself (Esc, or this quiet button). */
+.qr-sd__close { position: absolute; top: 14px; right: 14px; z-index: 3; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: rgba(255, 255, 255, 0.7); background: rgba(15, 23, 42, 0.35); border: 1px solid rgba(255, 255, 255, 0.18); opacity: 0.45; transition: opacity 0.2s ease, transform 0.2s ease; }
+.qr-sd__close:hover, .qr-sd__close:focus-visible { opacity: 1; transform: scale(1.06); }
+.qr-sd:focus { outline: none; }
+.qr-lane__name { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.qr-circle__fallback { display: grid; place-items: center; width: 100%; height: 100%; padding: 12px; text-align: center; font-weight: 700; color: #1e1b4b; }

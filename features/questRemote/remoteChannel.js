@@ -75,6 +75,11 @@ export function watchCommands(sessionId, onCommand, onError) {
     // No orderBy (that would need a composite index): new commands are sorted here instead.
     const q = query(commandsCol(sessionId), where('teacherId', '==', uid()), limit(50));
     return onSnapshot(q, (snap) => {
+        // The first word from the device cache is not the server's: leftovers may still be on their way.
+        if (first && snap.metadata.fromCache) {
+            snap.docs.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+            return;
+        }
         const changes = snap.docChanges().filter((c) => c.type === 'added')
             .sort((a, b) => {
                 const da = a.doc.data({ serverTimestamps: 'estimate' });
@@ -96,9 +101,25 @@ export function watchCommands(sessionId, onCommand, onError) {
 
 // ─── Wand side ──────────────────────────────────────────────────────────────
 
+/** Deletes this teacher's finished sessions (closed, or silent for a day), never `keepId`. */
+export async function sweepOldSessions(keepId) {
+    const q = query(collection(db, sessionsPath()), where('teacherId', '==', uid()), limit(30));
+    const snap = await getDocs(q);
+    const now = Date.now();
+    await Promise.all(snap.docs
+        .filter((d) => d.id !== keepId)
+        .filter((d) => {
+            const s = d.data();
+            const beat = toMs(s.hostHeartbeatAt);
+            return s.closed || !Number.isFinite(beat) || now - beat > 24 * 60 * 60 * 1000;
+        })
+        .map((d) => deleteDoc(d.ref).catch(() => {})));
+}
+
 /** The teacher's live projectors (newest first) for the Wand's "choose a projector" list. */
 export async function listLiveSessions() {
-    const q = query(collection(db, sessionsPath()), where('teacherId', '==', uid()), limit(20));
+    // Equality filters only (no composite index needed); closed sessions never fill the 20 slots.
+    const q = query(collection(db, sessionsPath()), where('teacherId', '==', uid()), where('closed', '==', false), limit(20));
     const snap = await getDocs(q);
     const now = Date.now();
     return snap.docs

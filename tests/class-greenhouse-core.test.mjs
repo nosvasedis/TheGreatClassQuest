@@ -220,3 +220,16 @@ test('a worry marked as getting better is a reason to praise, not to act', () =>
     assert.equal(a.better[0].id, 'focus');
     assert.equal(a.followUp, null);
 });
+
+test('the shared reader catches the wordings the Oracle found it missing', () => {
+    const tones = (text, category = 'General') => readNote({ text, category }).themes.map((t) => `${t.id}:${t.tone}`);
+    assert.ok(tones('Forgot her workbook again and the homework was not done.').includes('homework:worry'));
+    assert.ok(tones('Δεν έκανε πάλι τις ασκήσεις.').includes('homework:worry'));
+    assert.ok(tones('He keeps talking during the lesson.', 'Behavior').includes('chatty:worry'));
+    assert.ok(tones('Forgot her workbook.').includes('materials:worry'));
+    const happy = tones('Answered in full sentences during the role play! More confident with Maria.', 'Academic');
+    assert.ok(happy.includes('writing:strength'), 'a bare skill in a happy note is praise');
+    assert.ok(!happy.some((t) => t.endsWith(':worry')));
+    assert.ok(tones('Writing in class.', 'Academic').includes('writing:worry'), 'a bare skill in a plain Academic note stays a worry');
+    assert.ok(tones('He doesn’t pay attention.', 'Behavior').includes('focus:worry'), 'curly apostrophes read like straight ones');
+});

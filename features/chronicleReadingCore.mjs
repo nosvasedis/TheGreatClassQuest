@@ -34,16 +34,8 @@ export const ORACLE_EXTRA_THEMES = [
 ];
 const EXTRA_BY_ID = new Map(ORACLE_EXTRA_THEMES.map((t) => [t.id, t]));
 
-// Looser second looks at three shared themes, for wordings the class reader lets through
-// ("the homework was not done", "δεν έκανε πάλι τις ασκήσεις", "keeps talking", "forgot her workbook").
-const SECOND_LOOKS = [
-    { id: 'homework', re: rx('homework.{0,25}(not|n\'t|never|missing|incomplete|unfinished|half)|(not|n\'t|never|forgot|forgets|without|no) .{0,25}homework|δεν.{0,20}(εργασι|ασκησ)|ξεχ.{0,25}(εργασι|ασκησ)') },
-    { id: 'chatty', re: rx('keeps? talking|talking (during|in|all|a lot|over|to (his|her|their) (friend|neighbou?r))|chats? (during|in|all|a lot)|μιλαει (συνεχεια|ολη την ωρα|στο μαθημα)|κουβεντ') },
-    { id: 'materials', re: rx('(forg[eo]t|forgets|without|didn\'?t bring|left) .{0,20}(workbook|copybook|book|notebook|pencil|pen|case|materials|folder|things)|ξεχ.{0,25}(βιβλι|τετραδ|μολυβ|κασετιν|υλικ)') }
-];
-// The class reader files a bare skill mention in an Academic note as a worry. In a note
-// that is plainly happy ("Answered in full sentences in the role play!") it was praise.
-const CONCERN_CUE = rx('not\\b|n\'t|never|struggl|difficult|hard|problem|weak|poor|again|mistake|error|wrong|slow|behind|help|δεν|δυσκολ|λαθ|αδυνα|ξανα|παλι|βοηθ');
+// Homework, chatty and materials wordings, curly apostrophes and happy bare-skill notes are
+// all read by the shared reader (features/classGreenhouseNotes.mjs), one source of truth.
 const EXTRA_BETTER = rx('improv|better|progress|no longer|now (tries|tries hard|speaks english|answers in english)|βελτιω|καλυτερ|πλεον|πια δεν|τωρα προσπαθ');
 
 /** Theme metadata, from the shared reader or the Oracle's own two. */
@@ -103,21 +95,11 @@ export function readOracleNote(note, index = 0, classmates = []) {
     const themes = [...shared.themes];
     const sentences = sentencesOf(text);
     if (source !== 'oath') {
-        const happyNote = themes.some((t) => isGood(t.tone));
-        themes.forEach((t) => {
-            const meta = noteTheme(t.id);
-            const folded = foldText(t.quote);
-            if (meta?.kind === 'learning' && t.tone === 'worry' && !CONCERN_CUE.test(folded) && (happyNote || /!\s*$/.test(t.quote))) t.tone = 'strength';
-        });
         sentences.forEach((sentence) => {
             const folded = foldText(sentence);
             ORACLE_EXTRA_THEMES.forEach((theme) => {
                 if (themes.some((t) => t.id === theme.id) || !theme.re.test(folded)) return;
                 themes.push({ id: theme.id, tone: EXTRA_BETTER.test(folded) ? 'better' : 'worry', quote: clip(sentence) });
-            });
-            SECOND_LOOKS.forEach((look) => {
-                if (themes.some((t) => t.id === look.id) || !look.re.test(folded)) return;
-                themes.push({ id: look.id, tone: EXTRA_BETTER.test(folded) ? 'better' : 'worry', quote: clip(sentence) });
             });
         });
     }

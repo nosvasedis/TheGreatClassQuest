@@ -29,7 +29,7 @@ export const NOTE_THEMES = [
     // Behaviour and habits
     { id: 'chatty', kind: 'worry', sev: 1, label: 'Talks over others', icon: 'fa-comment-dots', group: 'behaviour',
         good: rx('less (chatty|talkative)|waits? (for )?(his|her|their) turn|puts? (his|her|their) hand up|λιγοτερο φλυαρ|περιμενει τη σειρα'),
-        re: rx('chatty|talkative|talks? (a lot|all the time|during|too much)|calls? out|shouts? out|interrupt|φλυαρ|μιλαει (πολυ|συνεχεια|ολη)|μιλα (πολυ|συνεχεια)|διακοπτ|πεταγεται|φωναζει'),
+        re: rx('chatty|talkative|talks? (a lot|all the time|during|too much)|keeps? talking|talking (during|in class|in the lesson|all|a lot|over|to (his|her|their) (friend|neighbou?r))|chats? (during|in|all|a lot)|μιλαει (στο μαθημα|ολη την ωρα)|κουβεντ|calls? out|shouts? out|interrupt|φλυαρ|μιλαει (πολυ|συνεχεια|ολη)|μιλα (πολυ|συνεχεια)|διακοπτ|πεταγεται|φωναζει'),
         techniques: ['talking-token', 'quiet-signal'], action: (n) => `Agree a hand signal with ${n} before the lesson, and star the first time they wait.` },
     { id: 'focus', kind: 'worry', sev: 1, label: 'Hard to focus', icon: 'fa-eye', group: 'behaviour',
         good: rx('more (focused|attentive|concentrated)|focus(es|ed)? better|concentrat\\p{L}* better|pays? attention|πιο (συγκεντρωμ|προσεκτικ)|προσεχει (πια|πλεον|περισσοτερο)'),
@@ -37,11 +37,11 @@ export const NOTE_THEMES = [
         techniques: ['seat-near', 'countdown-start', 'brain-break'], action: (n) => `Seat ${n} near you and give the task in two short steps.` },
     { id: 'homework', kind: 'worry', sev: 1, label: 'Homework not done', icon: 'fa-book', group: 'habits',
         good: rx('(always|now) (does|brings|hands in) (his |her |their |the )?homework|homework (is )?(always )?(done|complete)|κανει (παντα |πλεον )?τις (εργασι|ασκησ)'),
-        re: rx('(no|didn\'?t do|forgot|forgets|missing|without|incomplete|unfinished|never does) (his |her |the |their )?homework|homework (missing|not done|incomplete|again)|δεν (εκανε|κανει|εφερε|φερνει) (την |τις )?(εργασι|ασκησ)|ξεχ[αν].{0,20}(εργασι|ασκησ)|(εργασι|ασκησ)\\p{L}* (λειπ|δεν)'),
+        re: rx('(no|didn\'?t do|forgot|forgets|missing|without|incomplete|unfinished|never does) (his |her |the |their )?homework|homework (missing|not done|incomplete|again)|homework.{0,25}(\\<not\\b|n\'t|never|missing|incomplete|unfinished|half)|(\\<not|n\'t|never|forgot|forgets|without|\\<no) .{0,25}homework|δεν.{0,20}(εργασι|ασκησ)|δεν (εκανε|κανει|εφερε|φερνει) (την |τις )?(εργασι|ασκησ)|ξεχ[αν].{0,20}(εργασι|ασκησ)|(εργασι|ασκησ)\\p{L}* (λειπ|δεν)'),
         techniques: ['homework-checkpoint'], action: (n) => `Check ${n}'s homework quietly in the first minute, and praise any part that is done.` },
     { id: 'materials', kind: 'worry', sev: 1, label: 'Forgets books and things', icon: 'fa-bag-shopping', group: 'habits',
         good: rx('(always|now) brings (his |her |their )?(book|things|materials)|φερνει (πλεον |παντα )?(τα πραγματα|το βιβλι)'),
-        re: rx('(forg[eo]t|forgets|didn\'?t bring|doesn\'?t bring|without) (his |her |their |the )?(book|notebook|copybook|pencil|pen|case|materials|folder)|ξεχ[αν].{0,25}(βιβλι|τετραδ|μολυβ|κασετιν|υλικ)|δεν (εφερε|φερνει) (το |τα )?(βιβλι|τετραδ|μολυβ|κασετιν)'),
+        re: rx('(forg[eo]t|forgets|didn\'?t bring|doesn\'?t bring|without|left) .{0,20}(workbook|copybook|book|notebook|pencil|pen\\b|case|materials|folder)|ξεχ[αν].{0,25}(βιβλι|τετραδ|μολυβ|κασετιν|υλικ)|δεν (εφερε|φερνει) (το |τα )?(βιβλι|τετραδ|μολυβ|κασετιν)'),
         techniques: ['ready-kit'], action: (n) => `Keep a spare book and pencil ready for ${n}, without a fuss.` },
     { id: 'late', kind: 'worry', sev: 1, label: 'Arrives late', icon: 'fa-clock', group: 'habits',
         good: rx('(on time|punctual)|στην ωρα (του|της)'),
@@ -164,8 +164,9 @@ function toneOf(theme, folded, category, { behaviourHere = false, strengthHere =
     if (concern) return 'worry';
     if (praise) return 'strength';
     // A bare mention ("we did reading") says nothing either way, unless it sits in an Academic note
-    // and nothing good was said in the same sentence ("helps others with the new words").
-    return category === 'Academic' && !strengthHere ? 'worry' : null;
+    // and nothing good was said in the same sentence ("helps others with the new words"). Even then
+    // it is only provisional: readNote turns it into praise when the note as a whole is happy.
+    return category === 'Academic' && !strengthHere ? 'bare' : null;
 }
 
 function nameMatcher(student) {
@@ -183,7 +184,8 @@ function nameMatcher(student) {
 export function readNote(note, classmates = []) {
     const out = { themes: [], interests: [], mentions: [], tone: 'neutral' };
     if (!note || note.source === 'ember_oath') return out;
-    const text = String(note.text || note.noteText || '');
+    // Straight apostrophes, so "doesn’t" reads like "doesn't".
+    const text = String(note.text || note.noteText || '').replace(/[‘’ʼ´`]/g, '\'');
     if (!text.trim()) return out;
     const seen = new Set();
     let worries = 0, goods = 0;
@@ -198,10 +200,20 @@ export function readNote(note, classmates = []) {
             const tone = toneOf(theme, folded, note.category, here);
             if (!tone) return;
             seen.add(theme.id);
-            out.themes.push({ id: theme.id, tone, quote: clip(sentence) });
+            out.themes.push({ id: theme.id, tone, quote: clip(sentence), exclaimed: /!\s*$/.test(sentence) });
             if (tone === 'worry') worries += 1;
             if (tone === 'strength' || tone === 'better') goods += 1;
         });
+    });
+    // A bare skill in an Academic note: praise when the note is happy ("Answered in full sentences
+    // during the role play! More confident with Maria."), a worry otherwise.
+    const happy = out.themes.some((t) => t.tone === 'strength' || t.tone === 'better');
+    out.themes.forEach((t) => {
+        if (t.tone === 'bare') {
+            t.tone = happy || t.exclaimed ? 'strength' : 'worry';
+            if (t.tone === 'worry') worries += 1; else goods += 1;
+        }
+        delete t.exclaimed;
     });
     // "Progress" only stands alone; when a worry theme is already marked better it says the same thing.
     if (out.themes.some((t) => t.tone === 'better')) out.themes = out.themes.filter((t) => t.id !== 'progress');

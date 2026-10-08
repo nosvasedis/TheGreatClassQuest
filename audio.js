@@ -508,6 +508,7 @@ export function playWritingLoop() {
     if (!soundsReady) return;
     const v = heroBusUp();
     if (!v) return;
+    getHeroMarchPlayer(); // start fetching the crowning music while the page is written
     stopWritingLoop();
     writingLoop = new Tone.Loop(time => {
         v.quillFilter.frequency.setValueAtTime(2600 + Math.random() * 1400, time);
@@ -601,7 +602,41 @@ export function playHeroDrawSound(hopTimes = [], hushSeconds = 0) {
 
 /** Build the reveal voices ahead of time so the reverb is ready when the draw starts. */
 export function primeHeroRevealSound() {
-    if (soundsReady && Tone) getHeroVoices();
+    if (soundsReady && Tone) {
+        getHeroVoices();
+        getHeroMarchPlayer();
+    }
+}
+
+// The Hero's March is played from a recording of the anthem below (rendered offline
+// once, committed as a small MP3). Synthesising all of it live, on top of the
+// crowning's animations, fell behind real time and stuttered or went silent on
+// school laptops; one recording plays smoothly anywhere. The live version stays
+// as the fallback for when the file has not loaded.
+const HERO_MARCH_URL = 'assets/hero/heros-march.mp3';
+let heroMarch = null;
+function getHeroMarchPlayer() {
+    if (heroMarch || !Tone) return heroMarch;
+    const gain = new Tone.Gain(1).toDestination();
+    const player = new Tone.Player({
+        url: HERO_MARCH_URL,
+        volume: -3,
+        fadeOut: 0.3,
+        onerror: (e) => console.warn("Hero's March failed to load", e)
+    }).connect(gain);
+    heroMarch = { player, gain };
+    return heroMarch;
+}
+
+function playHeroMarchRecording() {
+    const march = getHeroMarchPlayer();
+    if (!march?.player.loaded) return false;
+    const now = Tone.now();
+    march.gain.gain.cancelScheduledValues(now);
+    march.gain.gain.setValueAtTime(1, now);
+    if (march.player.state === 'started') march.player.stop(now);
+    march.player.start(now + 0.02);
+    return true;
 }
 
 /** Cut the draw short (the teacher tapped to reveal now). */
@@ -649,7 +684,18 @@ function resetHeroVoices() {
 }
 
 export function playHeroCrowningSound() {
-    if (ceremonyMuted || !isAudioReady()) return;
+    if (ceremonyMuted) return;
+    if (!isAudioReady()) {
+        // The context can be asleep (for example after the tab was in the background).
+        // Wake it and play straight away rather than crowning in silence.
+        const askedAt = Date.now();
+        ensureAudioReady().then((ready) => {
+            if (ready && Date.now() - askedAt < 1500) playHeroCrowningSound();
+        }).catch(() => {});
+        return;
+    }
+    // The impact's boom is part of the recording too, so play one or the other.
+    if (playHeroMarchRecording()) return;
     // A second crowning while the last anthem is still scheduled would collide on
     // the one-voice synths, so start from fresh voices in that rare case.
     if (heroVoices && Tone.now() < heroAnthemEndsAt) resetHeroVoices();
@@ -724,7 +770,15 @@ function scheduleHeroAnthem(v) {
 
 /** Fade out whatever the Hero of the Day reveal still has scheduled. */
 export function stopHeroRevealSound() {
-    if (!heroVoices || !Tone) return;
+    if (!Tone) return;
+    if (heroMarch?.player.state === 'started') {
+        const now = Tone.now();
+        heroMarch.gain.gain.cancelScheduledValues(now);
+        heroMarch.gain.gain.setValueAtTime(heroMarch.gain.gain.value, now);
+        heroMarch.gain.gain.linearRampToValueAtTime(0, now + 0.4);
+        heroMarch.player.stop(now + 0.45);
+    }
+    if (!heroVoices) return;
     fadeHeroBus('drawBus');
     fadeHeroBus('bus');
 }

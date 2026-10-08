@@ -1,12 +1,8 @@
 // /ui/modals/hero.js
 import * as state from '../../state.js';
-import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
-import { TRIAL_TYPE_GUIDE, getTrialTypeMeta } from '../../features/trialTypesCore.mjs';
 import { showAnimatedModal, hideModal } from './base.js';
-import { callGeminiApi } from '../../api.js';
-import { showToast } from '../effects.js';
 
 /** Shows the hero level-up celebration modal. Called after a student levels up in the skill tree. */
 export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLevel, heroClass }) {
@@ -40,8 +36,6 @@ export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLeve
 
 import { canUseFeature } from '../../utils/subscription.js';
 import { openAdventurersGuide } from './adventurersGuide.js';
-import { publishParentSummary as publishParentSummaryToRuntime } from '../../utils/adminRuntime.js';
-import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 // --- NEW: HERO'S CHRONICLE MODAL ---
 
@@ -86,6 +80,7 @@ function openHeroChronicleModalContent(studentId, student) {
     }
 
     bindChronicleCategoryChips();
+    bindQuillHears();
 
     // Reset Tabs
     switchHeroChronicleTab('notes');
@@ -93,12 +88,14 @@ function openHeroChronicleModalContent(studentId, student) {
     resetHeroChronicleForm();
     renderHeroChronicleContent(studentId);
     
-    // Reset AI output
+    // The Oracle page is read fresh when its tab opens
     markChosenCounsel(null);
-    document.getElementById('hero-chronicle-ai-output').innerHTML = `
+    const oracleOutput = document.getElementById('hero-chronicle-ai-output');
+    oracleOutput.dataset.view = 'idle';
+    oracleOutput.innerHTML = `
         <div class="hc-oracle-empty">
             <span class="hc-orb" aria-hidden="true"></span>
-            <p>Choose a counsel to receive the Oracle's wisdom.</p>
+            <p>The Oracle is opening ${student.name.split(' ')[0]}'s notes…</p>
         </div>
     `;
 
@@ -143,6 +140,12 @@ export function switchHeroChronicleTab(tabId) {
         oracleBtn.classList.add('active');
         notesBtn.setAttribute('aria-selected', 'false');
         oracleBtn.setAttribute('aria-selected', 'true');
+        // The reading opens first; a counsel already on the page stays until "The reading" is tapped.
+        const studentId = chronicleModal?.dataset.studentId;
+        const output = document.getElementById('hero-chronicle-ai-output');
+        if (studentId && !['answer', 'thinking'].includes(output?.dataset.view)) {
+            import('./heroOracle.js').then(m => m.renderOracleReading(studentId));
+        }
     }
 }
 
@@ -163,6 +166,7 @@ export function renderHeroChronicleContent(studentId) {
                 <p class="hc-feed-empty__hint">Write the first deed and it will appear here.</p>
             </div>
         `;
+        refreshOracleIfOpen(studentId);
         return;
     }
 
@@ -184,7 +188,7 @@ export function renderHeroChronicleContent(studentId) {
         const year = date.getFullYear();
         
         return `
-            <article class="hc-entry hc-entry--${tone}" style="--i:${Math.min(index, 8)}">
+            <article class="hc-entry hc-entry--${tone}" data-note-id="${note.id}" style="--i:${Math.min(index, 8)}">
                 <time class="hc-entry__date" title="${dateStr}">
                     <span class="hc-entry__day">${day}</span>
                     <span class="hc-entry__month">${month}</span>
@@ -208,6 +212,34 @@ export function renderHeroChronicleContent(studentId) {
             </article>
         `;
     }).join('');
+    refreshOracleIfOpen(studentId);
+}
+
+function refreshOracleIfOpen(studentId) {
+    if (document.getElementById('hero-chronicle-ai-output')?.dataset.view !== 'reading') return;
+    import('./heroOracle.js').then(m => m.refreshOracleReading(studentId));
+}
+
+/** Opens the Notes page on one entry, as the Oracle's [N3] chips do. */
+export function showChronicleNote(noteId) {
+    switchHeroChronicleTab('notes');
+    const entry = document.querySelector(`#hero-chronicle-notes-feed .hc-entry[data-note-id="${CSS.escape(noteId)}"]`);
+    if (!entry) return;
+    entry.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    entry.classList.remove('is-cited');
+    void entry.offsetWidth;
+    entry.classList.add('is-cited');
+    setTimeout(() => entry.classList.remove('is-cited'), 2600);
+}
+
+/** Opens the quill with a question to answer, as the Oracle's "Not in your notes yet" cards do. */
+export function startChronicleNote({ prompt = '' } = {}) {
+    switchHeroChronicleTab('notes');
+    resetHeroChronicleForm();
+    const text = document.getElementById('hero-chronicle-note-text');
+    if (!text) return;
+    if (prompt) text.placeholder = prompt;
+    text.focus();
 }
 
 /** Category chips mirror the hidden <select>, which stays the form's source of truth. */
@@ -254,7 +286,29 @@ export function resetHeroChronicleForm() {
     document.getElementById('hero-chronicle-cancel-edit-btn').classList.add('hidden');
     form.querySelector('button[type="submit"]').textContent = 'Save Note';
     form.classList.remove('is-editing');
+    const text = document.getElementById('hero-chronicle-note-text');
+    if (text) text.placeholder = "What happened on today's quest?";
+    renderQuillHears('');
     syncChronicleCategoryChips();
+}
+
+/** Under the quill: the themes the Oracle will read in what is being written. */
+function renderQuillHears(value) {
+    const el = document.getElementById('hc-quill-hears');
+    if (!el) return;
+    if (!String(value || '').trim()) { el.innerHTML = ''; return; }
+    import('./heroOracle.js').then(m => { el.innerHTML = m.quillHears(document.getElementById('hero-chronicle-note-text')?.value || ''); });
+}
+
+function bindQuillHears() {
+    const text = document.getElementById('hero-chronicle-note-text');
+    if (!text || text.dataset.hearsBound) return;
+    text.dataset.hearsBound = 'true';
+    let timer = null;
+    text.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => renderQuillHears(text.value), 350);
+    });
 }
 
 export function setupNoteForEditing(noteId) {
@@ -267,163 +321,21 @@ export function setupNoteForEditing(noteId) {
     document.getElementById('hero-chronicle-cancel-edit-btn').classList.remove('hidden');
     document.getElementById('hero-chronicle-note-form').querySelector('button[type="submit"]').textContent = 'Update Note';
     document.getElementById('hero-chronicle-note-form').classList.add('is-editing');
+    renderQuillHears(note.noteText);
     syncChronicleCategoryChips();
     document.getElementById('hero-chronicle-note-text').focus();
 }
 
-function buildInsightPrompts(studentName) {
-    return {
-        parent: {
-            persona: "You are a thoughtful educational psychologist writing a summary for a parent-teacher meeting. Your tone is balanced, positive, and constructive. Use clear, jargon-free language.",
-            task: `Summarize the student's progress. Structure your response with clear headings in markdown: '### Key Strengths' and '### Areas for Growth'. Under each, provide 2-3 bullet points. Conclude with a positive, encouraging sentence.`
-        },
-        teacher: {
-            persona: "You are an experienced teaching coach and mentor providing confidential advice to another teacher. Your tone is practical, supportive, and insightful.",
-            task: `Analyze the student's complete record and provide actionable strategies. Structure your response with clear headings in markdown: '### In-Classroom Strategies', '### Motivation Techniques', and '### Potential Challenges to Watch For'. Provide 2-3 specific, bulleted suggestions under each heading.`
-        },
-        analysis: {
-            persona: "You are a concise data analyst summarizing student performance patterns. Your tone is objective and direct.",
-            task: `Identify key patterns from the data. Structure your response with two markdown lists: '### Key Strengths' and '### Areas to Develop'. Provide 3-4 bullet points for each, citing specific data types (e.g., 'academic scores', 'behavior notes') where patterns emerge.`
-        },
-        goal: {
-            persona: "You are a goal-setting expert for students, focusing on SMART (Specific, Measurable, Achievable, Relevant, Time-bound) goals. Your tone is positive and forward-looking.",
-            task: `Based on the student's record, suggest ONE specific and achievable goal for the upcoming month. Explain the goal and why it's relevant in a single paragraph. Do not use markdown.`
-        }
-    };
-}
-
-function collectStudentInsightData(studentId) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return null;
-
-    const notes = state.get('allHeroChronicleNotes')
-        .filter(n => n.studentId === studentId)
-        .sort((a, b) => (a.createdAt?.toDate() || new Date()) - (b.createdAt?.toDate() || new Date()))
-        .map(n => `[${(n.createdAt ? n.createdAt.toDate() : new Date()).toLocaleDateString('en-GB')} - ${n.category}] ${n.noteText}`)
-        .join('\n');
-
-    const academicScores = state.get('allWrittenScores')
-        .filter(s => s.studentId === studentId)
-        .sort((a, b) => (utils.parseFlexibleDate(a.date) || 0) - (utils.parseFlexibleDate(b.date) || 0))
-        .map(s => `[${s.date}] Scored ${s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`} on a ${getTrialTypeMeta(s.type).label.toLowerCase()} titled "${s.title || getTrialTypeMeta(s.type).label}". Note: ${s.notes || 'N/A'}`)
-        .join('\n');
-
-    const behavioralAwards = state.get('allAwardLogs')
-        .filter(l => l.studentId === studentId)
-        .sort((a, b) => utils.parseDDMMYYYY(a.date) - utils.parseDDMMYYYY(b.date))
-        .map(l => `[${l.date}] Awarded ${l.stars} star(s) for ${l.reason}. Note: ${l.note || 'N/A'}`)
-        .join('\n');
-
-    return { student, notes, academicScores, behavioralAwards };
-}
-
-async function requestAIInsight(studentId, insightType) {
-    let emberContext = '';
-    if (canUseFeature('heroCampfire')) {
-        try {
-            const { loadEmberOaths } = await import('../../db/actions/emberOaths.js');
-            const oaths = (await loadEmberOaths()).filter(o => o.studentId === studentId);
-            emberContext = JSON.stringify(oaths.map(o => ({ text: o.text, status: o.status, ...(insightType === 'parent' ? {} : { reflection: o.reflection }) })));
-        } catch { /* optional context; the original insight remains available */ }
-    }
-    const insightData = collectStudentInsightData(studentId);
-    if (!insightData) return '';
-    const { student, notes, academicScores, behavioralAwards } = insightData;
-    const prompts = buildInsightPrompts(student.name);
-    const prompt = prompts[insightType];
-    const systemPrompt = `${prompt.persona} ${TRIAL_TYPE_GUIDE} Your task is to analyze a comprehensive record for a student named ${student.name} and generate a specific type of summary. ${prompt.task}`;
-    const userPrompt = `Here is the complete record for ${student.name}:
-    
-    --- TEACHER'S PRIVATE NOTES ---
-    ${notes || "No private notes recorded."}
-
-    --- ACADEMIC TRIAL SCORES ---
-    ${academicScores || "No academic scores recorded."}
-
-    --- BEHAVIORAL STAR AWARDS ---
-    ${behavioralAwards || "No behavioral awards recorded."}
-
-    Please generate the requested summary.`;
-
-    return callGeminiApi(systemPrompt, userPrompt + '\n--- EMBER OATHS (personal goals, not grades) ---\n' + emberContext);
-}
+// --- The Oracle: ui/modals/heroOracle.js (loaded when the tab opens) ---
 
 export async function generateAIInsight(studentId, insightType) {
-    if (!requireEliteAI({ feature: 'The Oracle' })) return;
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-
-    const outputEl = document.getElementById('hero-chronicle-ai-output');
-    markChosenCounsel(insightType);
-    outputEl.innerHTML = `
-        <div class="hc-oracle-empty is-thinking">
-            <span class="hc-orb" aria-hidden="true"></span>
-            <p>The Oracle is consulting the records...</p>
-        </div>
-    `;
-    // On phones the answer sits below the counsel buttons
-    outputEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-
-    try {
-        const insight = await requestAIInsight(studentId, insightType);
-        // Basic markdown to HTML conversion
-        let htmlInsight = insight
-            .replace(/\*\*\*(.*?)\*\*\*/g, '<b>$1</b>') // Handle ***bold***
-            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')   // Handle **bold**
-            .replace(/### (.*?)\n/g, '<h4 class="hc-oracle-h font-title">$1</h4>')
-            .replace(/\* (.*?)\n/g, '<li class="hc-oracle-li"><i class="fas fa-star" aria-hidden="true"></i><span>$1</span></li>')
-            .replace(/(\n)/g, '<br>');
-            
-        outputEl.innerHTML = `<div class="ai-response-container animate-fade-in"><ul class="list-none">${htmlInsight}</ul></div>`;
-    } catch (error) {
-        console.error("AI Insight Error:", error);
-        outputEl.innerHTML = `
-            <div class="hc-oracle-empty is-error">
-                <i class="fas fa-cloud-bolt" aria-hidden="true"></i>
-                <p>The Oracle could not process the records at this time.</p>
-                <button onclick="location.reload()" class="hc-ghost-btn">Retry Connection</button>
-            </div>
-        `;
-    }
+    const { askOracleCounsel } = await import('./heroOracle.js');
+    return askOracleCounsel(studentId, insightType);
 }
 
 export async function publishParentSummary(studentId) {
-    if (!requireEliteAI({ feature: 'The Oracle' })) return;
-    const outputEl = document.getElementById('hero-chronicle-ai-output');
-    const publishBtn = document.getElementById('hero-chronicle-publish-parent-btn');
-    const publishBtnHtml = publishBtn?.innerHTML;
-    if (publishBtn) {
-        publishBtn.disabled = true;
-        publishBtn.innerHTML = '<span class="hc-publish__icon" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span><span class="hc-publish__text"><span class="hc-publish__name">Publishing...</span></span>';
-    }
-    markChosenCounsel(null);
-    outputEl.innerHTML = `
-        <div class="hc-oracle-empty is-thinking">
-            <span class="hc-orb" aria-hidden="true"></span>
-            <p>Preparing a parent-safe summary...</p>
-        </div>
-    `;
-
-    try {
-        const summary = await requestAIInsight(studentId, 'parent');
-        await publishParentSummaryToRuntime({ studentId, summary });
-        outputEl.innerHTML = `<div class="hc-oracle-published"><p class="hc-oracle-published__stamp"><i class="fas fa-circle-check" aria-hidden="true"></i> Published to the Parent Portal</p><div class="hc-oracle-published__text">${summary}</div></div>`;
-        showToast('Parent summary published to the portal.', 'success');
-    } catch (error) {
-        console.error('Could not publish parent summary:', error);
-        outputEl.innerHTML = `
-            <div class="hc-oracle-empty is-error">
-                <i class="fas fa-cloud-bolt" aria-hidden="true"></i>
-                <p>The summary could not be published right now.</p>
-            </div>
-        `;
-        showToast(error?.message || 'Could not publish the parent summary.', 'error');
-    } finally {
-        if (publishBtn) {
-            publishBtn.disabled = false;
-            publishBtn.innerHTML = publishBtnHtml;
-        }
-    }
+    const { publishOracleParentSummary } = await import('./heroOracle.js');
+    return publishOracleParentSummary(studentId);
 }
 
 /** The Adventurer's Guide lives in its own module; kept here so existing callers still work. */

@@ -1,0 +1,639 @@
+/* styles/hero_oracle.css
+   The Oracle page of the Hero's Chronicle (ui/modals/heroOracle.js): the reading of the
+   teacher's notes on the crystal-lit vellum sheet, counsel pages with note citations, the
+   ask box under the counsels, and the "Oracle hears" line under the quill. Loaded with
+   the Oracle module, so it never weighs on the first paint. */
+
+#hero-chronicle-modal {
+    --hco-ink: #2e2445;
+    --hco-soft: #6b5b95;
+    --hco-violet: #5b21b6;
+    --hco-rule: rgba(109, 40, 217, 0.16);
+    --hco-worry: #b45309;
+    --hco-worry-bg: #fff4e2;
+    --hco-good: #047857;
+    --hco-good-bg: #e8f8ef;
+    --hco-care: #0e7490;
+    --hco-care-bg: #e6f6f9;
+}
+
+/* ── The reading ─────────────────────────────────────────────────────────── */
+.hco-reading {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    animation: hco-rise 0.45s ease-out;
+}
+
+@keyframes hco-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+.hco-lede {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--hco-rule);
+}
+
+.hco-kicker {
+    margin: 0 0 0.35rem;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.hco-headline {
+    margin: 0;
+    font-size: 1.12rem;
+    line-height: 1.5;
+    color: var(--hco-ink);
+}
+
+.hco-meta {
+    margin: 0.35rem 0 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--hco-soft);
+}
+
+.hco-tone {
+    display: flex;
+    gap: 2px;
+    height: 0.45rem;
+    margin-top: 0.75rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(109, 40, 217, 0.08);
+}
+
+.hco-tone__part { min-width: 0.4rem; }
+.hco-tone__part--good { background: linear-gradient(90deg, #34d399, #10b981); }
+.hco-tone__part--mixed { background: linear-gradient(90deg, #c4b5fd, #a78bfa); }
+.hco-tone__part--worry { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.hco-tone__part--neutral { background: #ddd6fe; }
+
+.hco-tone__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin: 0.35rem 0 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--hco-soft);
+}
+
+.hco-tone__legend span::before {
+    content: '';
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.3rem;
+    border-radius: 50%;
+    vertical-align: 0;
+}
+
+.hco-tone__legend .is-good::before { background: #10b981; }
+.hco-tone__legend .is-mixed::before { background: #a78bfa; }
+.hco-tone__legend .is-worry::before { background: #f59e0b; }
+
+.hco-nudge {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.8rem;
+    border: 1px dashed rgba(124, 58, 237, 0.35);
+    background: rgba(237, 233, 254, 0.55);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.82rem;
+    color: #4c1d95;
+}
+
+.hco-nudge i { margin-top: 0.2rem; color: #7c3aed; }
+
+.hco-sec__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.55rem;
+    font-size: 1.12rem;
+    color: var(--hco-violet);
+}
+
+.hco-sec__title i { font-size: 0.85rem; color: #a78bfa; }
+
+.hco-sec__hint {
+    margin: -0.25rem 0 0.6rem;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.74rem;
+    color: var(--hco-soft);
+}
+
+/* Threads: one card per theme, with the sentence that said it */
+.hco-threads {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hco-thread {
+    --tone: var(--hco-worry);
+    --tone-bg: var(--hco-worry-bg);
+    display: grid;
+    grid-template-columns: 2.1rem minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), var(--tone-bg));
+    border: 1px solid color-mix(in srgb, var(--tone) 22%, transparent);
+    border-left: 3px solid var(--tone);
+}
+
+.hco-thread--good { --tone: var(--hco-good); --tone-bg: var(--hco-good-bg); }
+.hco-thread--care { --tone: var(--hco-care); --tone-bg: var(--hco-care-bg); }
+
+.hco-thread__icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--tone);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 30%, transparent);
+    font-size: 0.85rem;
+}
+
+.hco-thread__body { min-width: 0; }
+
+.hco-thread__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin: 0 0 0.3rem;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.86rem;
+    color: var(--hco-ink);
+}
+
+.hco-thread__count {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--hco-soft);
+}
+
+.hco-pill {
+    padding: 0.08rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.hco-pill--persistent,
+.hco-pill--slipping { background: #fde68a; color: #92400e; }
+.hco-pill--new-worry { background: #fef3c7; color: #a16207; }
+.hco-pill--easing { background: #d1fae5; color: #047857; }
+.hco-pill--strength { background: #bbf7d0; color: #166534; }
+.hco-pill--context { background: #cffafe; color: #155e75; }
+
+.hco-quote {
+    margin: 0;
+    padding: 0 0 0 0.6rem;
+    border-left: 2px solid color-mix(in srgb, var(--tone, #7c3aed) 35%, transparent);
+    font-style: italic;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: #3b2f58;
+}
+
+.hco-thread__first {
+    margin: 0.3rem 0 0;
+    font-size: 0.78rem;
+    color: var(--hco-soft);
+}
+
+.hco-thread__move {
+    display: flex;
+    gap: 0.45rem;
+    margin: 0.45rem 0 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #4c1d95;
+}
+
+.hco-thread__move i { margin-top: 0.18rem; color: #a78bfa; }
+
+/* Citations: [N3] chips open the note on the Notes page */
+.hco-cite {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0.12rem;
+    padding: 0 0.38rem;
+    border-radius: 0.4rem;
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    background: #f5f3ff;
+    font-family: 'Open Sans', sans-serif;
+    font-style: normal;
+    font-size: 0.66rem;
+    font-weight: 800;
+    line-height: 1.45;
+    color: #6d28d9;
+    vertical-align: 0.1em;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.hco-cite:hover { background: #7c3aed; color: #fff; }
+.hco-cite:focus-visible { outline: 2px solid #7c3aed; outline-offset: 1px; }
+
+/* Tried moves and what came after */
+.hco-tried {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hco-tried__item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem 0.8rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--hco-rule);
+}
+
+.hco-tried__item p { margin: 0; flex: 1 1 14rem; font-size: 0.9rem; }
+
+.hco-outcome {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.hco-outcome--good { background: #d1fae5; color: #047857; }
+.hco-outcome--worry { background: #fef3c7; color: #92400e; }
+.hco-outcome--mixed { background: #ede9fe; color: #5b21b6; }
+.hco-outcome--quiet { background: #f1f5f9; color: #475569; }
+
+/* Notes and numbers */
+.hco-cross {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hco-cross__item {
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: start;
+    font-size: 0.88rem;
+}
+
+.hco-cross__item i {
+    width: 1.6rem;
+    height: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    font-size: 0.72rem;
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.hco-cross__item--disagree i { background: #fef3c7; color: #b45309; }
+.hco-cross__item--agree i { background: #d1fae5; color: #047857; }
+.hco-cross__item--quiet i { background: #f1f5f9; color: #475569; }
+
+/* Chips: classmates, passions, every theme */
+.hco-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.hco-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid var(--hco-rule);
+    background: #fff;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--hco-ink);
+}
+
+.hco-chip small { font-weight: 600; color: var(--hco-soft); }
+.hco-chip i { font-size: 0.7rem; }
+.hco-chip--worry i, .hco-chip--friction i { color: var(--hco-worry); }
+.hco-chip--good i, .hco-chip--warm i { color: var(--hco-good); }
+.hco-chip--care i { color: var(--hco-care); }
+.hco-chip--worry { background: var(--hco-worry-bg); }
+.hco-chip--good, .hco-chip--warm { background: var(--hco-good-bg); }
+.hco-chip--care { background: var(--hco-care-bg); }
+.hco-chip--friction { background: #fff1f2; }
+.hco-chip--passion { background: #fdf4ff; border-color: rgba(192, 38, 211, 0.25); }
+
+.hco-oaths {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.9rem;
+}
+
+.hco-oaths li::marker { content: '🔥 '; }
+
+/* What the notes miss: each opens the quill with the question */
+.hco-gaps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.5rem;
+}
+
+.hco-gap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.8rem;
+    border: 1px dashed rgba(124, 58, 237, 0.4);
+    background: rgba(255, 255, 255, 0.6);
+    text-align: left;
+    color: var(--hco-ink);
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.hco-gap b { font-family: 'Open Sans', sans-serif; font-size: 0.8rem; color: #6d28d9; }
+.hco-gap span { font-size: 0.82rem; line-height: 1.4; }
+.hco-gap:hover { background: #fff; border-style: solid; transform: translateY(-1px); }
+.hco-gap:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
+
+.hco-foot {
+    margin: 0.2rem 0 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--hco-rule);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.72rem;
+    color: var(--hco-soft);
+}
+
+.hco-foot i { margin-right: 0.3rem; }
+
+/* ── Counsel pages and answers ───────────────────────────────────────────── */
+.hco-answer { animation: hco-rise 0.45s ease-out; }
+
+.hco-answer__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--hco-rule);
+}
+
+.hco-back,
+.hco-fresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    background: #fff;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: #6d28d9;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.hco-back:hover,
+.hco-fresh:hover { background: #7c3aed; color: #fff; }
+.hco-back:focus-visible,
+.hco-fresh:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
+
+.hco-answer__dateline {
+    margin: 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--hco-soft);
+}
+
+.hco-stale {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.8rem;
+    background: #fff7e6;
+    border: 1px solid #fcd34d;
+}
+
+.hco-stale p { margin: 0; font-family: 'Open Sans', sans-serif; font-size: 0.8rem; font-weight: 600; color: #92400e; }
+
+.hco-answer__text h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1.15rem 0 0.45rem;
+    font-family: 'Cinzel', 'Lora', serif;
+    font-size: 1.12rem;
+    color: var(--hco-violet);
+}
+
+.hco-answer__text h4::before { content: '✦'; font-size: 0.8rem; color: #a78bfa; }
+.hco-answer__text > h4:first-child { margin-top: 0; }
+.hco-answer__text p { margin: 0.35rem 0; }
+
+.hco-answer__text ul,
+.hco-answer__text ol {
+    margin: 0.3rem 0 0.6rem;
+    padding-left: 1.25rem;
+}
+
+.hco-answer__text li { margin: 0.3rem 0; padding-left: 0.2rem; }
+.hco-answer__text li::marker { color: #a78bfa; }
+.hco-answer__text strong { color: #3b0764; }
+
+.hco-answer__note {
+    margin: 1.1rem 0 0;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--hco-rule);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.75rem;
+    color: var(--hco-soft);
+}
+
+.hco-answer__note.is-published { font-weight: 800; color: #047857; }
+
+.hco-asked {
+    margin-bottom: 0.9rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--hco-rule);
+}
+
+.hco-asked__q {
+    display: flex;
+    gap: 0.45rem;
+    margin: 0 0 0.4rem;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: #4c1d95;
+}
+
+.hco-asked__q i { margin-top: 0.2rem; color: #a78bfa; }
+
+/* ── Ask box under the counsels (night-sky side) ─────────────────────────── */
+.hc-ask {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.hc-ask__label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #c4b8f5;
+}
+
+.hc-ask__row {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.hc-ask__input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.8rem;
+    border: 1px solid rgba(196, 181, 253, 0.35);
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.84rem;
+    color: #fff;
+}
+
+.hc-ask__input::placeholder { color: rgba(221, 214, 254, 0.6); }
+.hc-ask__input:focus { outline: none; border-color: #c4b5fd; background: rgba(255, 255, 255, 0.14); }
+
+.hc-ask__btn {
+    flex-shrink: 0;
+    width: 2.5rem;
+    border-radius: 0.8rem;
+    border: 1px solid rgba(196, 181, 253, 0.45);
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    color: #fff;
+    transition: filter 0.15s ease;
+}
+
+.hc-ask__btn:hover { filter: brightness(1.15); }
+.hc-ask__btn:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+
+/* ── Under the quill: what the Oracle hears ──────────────────────────────── */
+.hc-hears {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 0;
+    margin: 0.4rem 0 0;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7rem;
+}
+
+.hc-hears:empty { display: none; }
+
+.hc-hears__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.hc-hears__chip {
+    padding: 0.08rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 700;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.hc-hears__chip--worry { background: #fef3c7; color: #92400e; }
+.hc-hears__chip--good { background: #d1fae5; color: #047857; }
+.hc-hears__chip--care { background: #cffafe; color: #155e75; }
+
+.hc-hears__tip {
+    flex-basis: 100%;
+    font-style: italic;
+    color: #7c6a9a;
+}
+
+/* A cited note flashes when the Oracle opens it */
+.hc-entry.is-cited .hc-entry__body {
+    animation: hco-cited 2.4s ease-out;
+}
+
+@keyframes hco-cited {
+    0%, 30% { box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.55), 0 0 26px rgba(167, 139, 250, 0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+}
+
+@media (max-width: 900px) {
+    .hco-gaps { grid-template-columns: 1fr; }
+    .hco-headline { font-size: 1.02rem; }
+    .hco-thread { grid-template-columns: 1.8rem minmax(0, 1fr); padding: 0.6rem 0.65rem; }
+    .hco-thread__icon { width: 1.8rem; height: 1.8rem; font-size: 0.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hco-reading,
+    .hco-answer,
+    .hc-entry.is-cited .hc-entry__body { animation: none !important; }
+}

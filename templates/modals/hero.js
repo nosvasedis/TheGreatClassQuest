@@ -253,6 +253,7 @@ export const heroModalsHTML = `
                                 <label for="hero-chronicle-note-text" class="hc-field__label">What happened?</label>
                                 <textarea id="hero-chronicle-note-text" rows="5" class="hc-lined"
                                     placeholder="What happened on today's quest?"></textarea>
+                                <p id="hc-quill-hears" class="hc-hears" aria-live="polite"></p>
                             </div>
 
                             <div class="hc-quill__actions">
@@ -273,28 +274,36 @@ export const heroModalsHTML = `
                             <span class="hc-orb hc-orb--small" aria-hidden="true"></span>
                             <div>
                                 <h3 class="hc-oracle-ask__title font-title">Ask the Oracle</h3>
-                                <p class="hc-oracle-ask__sub">It reads the notes, trials and stars in this book.</p>
+                                <p class="hc-oracle-ask__sub">It reads what you wrote, then the papers and stars.</p>
                             </div>
                         </div>
 
                         <div class="hc-counsels">
-                            <button type="button" data-type="parent" class="ai-insight-btn hc-counsel">
-                                <span class="hc-counsel__glyph" aria-hidden="true">👪</span>
-                                <span class="hc-counsel__text"><span class="hc-counsel__name">Parent Summary</span><span class="hc-counsel__hint">Balanced &amp; constructive</span></span>
-                            </button>
                             <button type="button" data-type="teacher" class="ai-insight-btn hc-counsel">
                                 <span class="hc-counsel__glyph" aria-hidden="true">🧑‍🏫</span>
-                                <span class="hc-counsel__text"><span class="hc-counsel__name">Teacher Strategy</span><span class="hc-counsel__hint">Actionable classroom tips</span></span>
+                                <span class="hc-counsel__text"><span class="hc-counsel__name">Teaching Plan</span><span class="hc-counsel__hint">Moves that answer your notes</span></span>
                             </button>
                             <button type="button" data-type="analysis" class="ai-insight-btn hc-counsel">
-                                <span class="hc-counsel__glyph" aria-hidden="true">📊</span>
-                                <span class="hc-counsel__text"><span class="hc-counsel__name">Traits &amp; Trends</span><span class="hc-counsel__hint">Strengths and weaknesses</span></span>
+                                <span class="hc-counsel__glyph" aria-hidden="true">🔍</span>
+                                <span class="hc-counsel__text"><span class="hc-counsel__name">Deep Reading</span><span class="hc-counsel__hint">Patterns, causes, blind spots</span></span>
                             </button>
                             <button type="button" data-type="goal" class="ai-insight-btn hc-counsel">
                                 <span class="hc-counsel__glyph" aria-hidden="true">🎯</span>
-                                <span class="hc-counsel__text"><span class="hc-counsel__name">Hero's Goal</span><span class="hc-counsel__hint">A SMART target for the month</span></span>
+                                <span class="hc-counsel__text"><span class="hc-counsel__name">Hero's Goal</span><span class="hc-counsel__hint">A four-week target and an oath</span></span>
+                            </button>
+                            <button type="button" data-type="parent" class="ai-insight-btn hc-counsel">
+                                <span class="hc-counsel__glyph" aria-hidden="true">👪</span>
+                                <span class="hc-counsel__text"><span class="hc-counsel__name">Parent Summary</span><span class="hc-counsel__hint">Warm, honest, with home tips</span></span>
                             </button>
                         </div>
+
+                        <form id="hero-chronicle-ask-form" class="hc-ask" autocomplete="off">
+                            <label for="hero-chronicle-ask-input" class="hc-ask__label">Ask about this hero</label>
+                            <div class="hc-ask__row">
+                                <input id="hero-chronicle-ask-input" class="hc-ask__input" type="text" maxlength="300" placeholder="Why is she quiet in pair work?">
+                                <button type="submit" class="hc-ask__btn" aria-label="Ask the Oracle"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+                            </div>
+                        </form>
 
                         <button type="button" id="hero-chronicle-publish-parent-btn" class="hc-publish">
                             <span class="hc-publish__icon" aria-hidden="true"><i class="fas fa-paper-plane"></i></span>
@@ -304,7 +313,7 @@ export const heroModalsHTML = `
 
                     <section class="hc-oracle-main" aria-label="The Oracle's response">
                         <div class="hc-oracle-main__head">
-                            <h3 class="hc-page__title"><i class="fas fa-eye" aria-hidden="true"></i> The Oracle's Response</h3>
+                            <h3 class="hc-page__title"><i class="fas fa-eye" aria-hidden="true"></i> The Oracle's Page</h3>
                             <div id="oracle-status-badge" class="hc-oracle-badge">
                                 <span aria-hidden="true"></span>
                                 Elite AI Active
@@ -313,7 +322,7 @@ export const heroModalsHTML = `
                         <div id="hero-chronicle-ai-output" class="hc-oracle-sheet rich-text" aria-live="polite">
                             <div class="hc-oracle-empty">
                                 <span class="hc-orb" aria-hidden="true"></span>
-                                <p>Choose a counsel on the left to receive the Oracle's wisdom.</p>
+                                <p>The Oracle is opening the notes…</p>
                             </div>
                         </div>
                     </section>

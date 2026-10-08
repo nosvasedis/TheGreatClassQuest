@@ -10,6 +10,10 @@ export const REMOTE_COMMAND_TYPES = Object.freeze([
     'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz', 'charm'
 ]);
 
+/** The class picker's two other choices (sent as a `class` command's classId). */
+export const CLASS_GENERAL = '*general';
+export const CLASS_FOLLOW = '*follow';
+
 /** Keys the Wand may press on the projector (the app's own keyboard shortcuts). */
 export const REMOTE_KEYS = Object.freeze([
     'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ',

@@ -15,7 +15,7 @@ import { getTodayDateString } from '../../utils.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import * as channel from './remoteChannel.js';
 import {
-    validateCommand, classifyFlick, slingshotPower, SLINGSHOT_MIN_POWER, createShakeDetector,
+    validateCommand, CLASS_GENERAL, CLASS_FOLLOW, classifyFlick, slingshotPower, SLINGSHOT_MIN_POWER, createShakeDetector,
     isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock, clampTimerMinutes, pushSpellLog
 } from './remoteCore.mjs';
 import {
@@ -433,7 +433,9 @@ function render({ fresh = false } = {}) {
     let html = '';
     if (wand.mode === 'stars') {
         html = starsHtml(heroesNow(), {
-            className: classLabel(), empty: 'Choose a class (top right) to see its heroes.',
+            className: classLabel(),
+            empty: wand.stage?.follow ? 'Following the schedule: no lesson right now, so the projector shows the General view.'
+                : 'The projector is on the General view. Choose a class (top right) to see its heroes.',
             multi: wand.multi, picked: [...wand.picked], note: starsNote(wand.stage), waiting: wand.waiting
         });
     } else if (wand.mode === 'stage') {
@@ -472,7 +474,8 @@ function render({ fresh = false } = {}) {
         if (strip) { strip.innerHTML = now; strip.hidden = !now; }
     }
     const chip = wand.root.querySelector('[data-qw-class]');
-    const label = classLabel() || 'Class';
+    const label = classLabel() || (wand.stage ? 'General' : 'Class');
+    wand.root.querySelector('[data-qw="class"]')?.classList.toggle('is-following', Boolean(wand.stage?.follow));
     if (chip && chip.textContent !== label) chip.textContent = label;
 }
 
@@ -482,8 +485,11 @@ function isTyping() {
     return Boolean(a && wand?.main.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
 }
 
+/** The class on the projector ('' = General view). The projector decides; the phone's own pick never leaks in. */
 function currentClassId() {
-    return wand?.classOverride || wand?.stage?.classId || state.get('globalSelectedClassId') || '';
+    if (wand?.classOverride) return wand.classOverride;
+    if (wand?.stage) return wand.stage.classId || '';
+    return state.get('globalSelectedClassId') || '';
 }
 
 function classLabel() {
@@ -712,12 +718,13 @@ function wireEvents(root) {
         if (act === 'refresh') { showChooser(); return; }
         if (act === 'sheet-close') { closeSheet(); return; }
         if (act === 'to-stage') { buzz(6); setMode('stage'); return; }
+        if (act === 'to-stars') { buzz(6); setMode('stars'); return; }
         if (act === 'pad-toggle') { wand.padOpen = !wand.padOpen; render(); return; }
         if (act === 'multi-clear') { wand.picked.clear(); render(); return; }
         if (act === 'multi-go') { if (wand.picked.size) openAward([...wand.picked]); return; }
         if (act === 'class') {
             const classes = [...(state.get('allTeachersClasses') || [])].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-            openSheet('class', classSheetHtml(classes, currentClassId()));
+            openSheet('class', classSheetHtml(classes, currentClassId(), { follow: Boolean(wand.stage?.follow) }));
             return;
         }
         if (act === 'undo') {
@@ -761,7 +768,12 @@ function wireEvents(root) {
         const classOpt = t.closest('[data-qw-classid]');
         if (classOpt) {
             const id = classOpt.dataset.qwClassid;
-            if (send('class', { classId: id })) { wand.classOverride = id; wand.classOverrideAt = Date.now(); wand.picked.clear(); buzz(10); closeSheet(); render(); }
+            // General view and Follow the schedule are settled by the projector; a class shows at once.
+            const special = id === CLASS_GENERAL || id === CLASS_FOLLOW;
+            if (send('class', { classId: id })) {
+                if (!special) { wand.classOverride = id; wand.classOverrideAt = Date.now(); }
+                wand.picked.clear(); buzz(10); closeSheet(); render();
+            }
             return;
         }
         const pad = t.closest('[data-qw-pad]');

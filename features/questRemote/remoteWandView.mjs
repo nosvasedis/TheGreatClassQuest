@@ -3,7 +3,7 @@
 // Built for one thumb on a 360–430px phone: 48px+ targets, one scroll column, the four modes at the
 // bottom, and the projector's screens drawn as the same clouds the class sees in the dock.
 
-import { WAND_VIRTUES, CAST_TABS, TIMER_PRESETS, CHARM_SOUNDS, CUSTOM_TIMER_MIN, CUSTOM_TIMER_MAX, formatTimerClock } from './remoteCore.mjs';
+import { CLASS_GENERAL, CLASS_FOLLOW, WAND_VIRTUES, CAST_TABS, TIMER_PRESETS, CHARM_SOUNDS, CUSTOM_TIMER_MIN, CUSTOM_TIMER_MAX, formatTimerClock } from './remoteCore.mjs';
 
 export function esc(value) {
     return String(value ?? '')
@@ -182,12 +182,23 @@ export function awardSheetHtml(heroOrHeroes, { reason = '', size = 'auto' } = {}
     </div>`;
 }
 
-export function classSheetHtml(classes, currentId) {
+export function classSheetHtml(classes, currentId, { follow = false } = {}) {
+    const now = classes.find((c) => c.id === currentId);
     return `<div class="qw-sheet__panel" role="dialog" aria-label="Choose the class">
         <button type="button" class="qw-sheet__grab" data-qw="sheet-close" aria-label="Close"></button>
         <h3 class="qw-h3">Which class is on the projector?</h3>
-        <ul class="qw-classlist">${classes.map((c) => `<li><button type="button" class="qw-classopt${c.id === currentId ? ' is-on' : ''}" data-qw-classid="${esc(c.id)}">
-            <span class="qw-classopt__logo" aria-hidden="true">${esc(c.logo || '📚')}</span><span>${esc(c.name)}</span>${c.id === currentId ? '<i class="fas fa-check" aria-hidden="true"></i>' : ''}</button></li>`).join('')}</ul>
+        <button type="button" class="qw-follow${follow ? ' is-on' : ''}" data-qw-classid="${CLASS_FOLLOW}" role="switch" aria-checked="${follow}">
+            <span class="qw-follow__icon" aria-hidden="true"><i class="fas fa-clock"></i></span>
+            <span class="qw-follow__text"><b>Follow today's schedule</b><small>${follow
+        ? (now ? `On · now ${esc(now.name)}` : 'On · no lesson right now, General view')
+        : 'The class changes by itself with each lesson'}</small></span>
+            <span class="qw-switch" aria-hidden="true"><i></i></span>
+        </button>
+        <ul class="qw-classlist">
+            <li><button type="button" class="qw-classopt qw-classopt--general${!currentId && !follow ? ' is-on' : ''}" data-qw-classid="${CLASS_GENERAL}">
+                <span class="qw-classopt__logo" aria-hidden="true"><i class="fas fa-earth-europe"></i></span><span>General view<small>No class: the whole school</small></span>${!currentId && !follow ? '<i class="fas fa-check" aria-hidden="true"></i>' : ''}</button></li>
+            ${classes.map((c) => `<li><button type="button" class="qw-classopt${c.id === currentId ? ' is-on' : ''}" data-qw-classid="${esc(c.id)}">
+            <span class="qw-classopt__logo" aria-hidden="true">${esc(c.logo || '📚')}</span><span>${esc(c.name)}</span>${c.id === currentId && !follow ? '<i class="fas fa-check" aria-hidden="true"></i>' : ''}</button></li>`).join('')}</ul>
     </div>`;
 }
 
@@ -436,14 +447,45 @@ export function customTimerHtml(minutes = 3) {
 }
 
 /** Magic mode: the class's big moments (crown, wheel, picker, dragon, Projector Mode) and Sound Charms. */
-export function magicHtml(stage, { canCrown = true, canWheel = true } = {}) {
-    return `<section class="qw-magic">
-        ${canCrown ? `<div class="qw-crown">
+/**
+ * The crown, as smart as the diary's own button: it can only be held when there is a class with
+ * stars today; after the crowning it becomes "Write / Open today's page"; otherwise it says what's missing.
+ */
+export function crownHtml(crown) {
+    const mode = crown?.mode || 'no-class';
+    const hold = (label, sub) => `<div class="qw-crown">
             <button type="button" class="qw-hold" data-qw-hold="crown" aria-label="Hold to crown today's hero">
                 <svg class="qw-hold__ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44"/><circle class="qw-hold__run" cx="50" cy="50" r="44"/></svg>
                 <i class="fas fa-crown" aria-hidden="true"></i></button>
-            <div class="qw-crown__text"><b>Crown Today's Hero</b><small>Hold the crown until the ring is full</small></div>
-        </div>` : ''}
+            <div class="qw-crown__text"><b>${label}</b><small>${sub}</small></div>
+        </div>`;
+    if (mode === 'crown') return hold("Crown Today's Hero", 'Hold the crown until the ring is full');
+    const waiting = { 'no-class': ['fa-chalkboard-user', 'Choose a class first', 'The crown belongs to one class', 'class', 'Choose'],
+        'needs-stars': ['fa-star', 'Award some stars first', 'Then the crown can be held', 'to-stars', 'Stars'] }[mode];
+    if (waiting) {
+        const [icon, title, sub, act, btn] = waiting;
+        return `<div class="qw-crown is-waiting">
+            <span class="qw-crown__seal" aria-hidden="true"><i class="fas fa-crown"></i><i class="fas ${icon} qw-crown__need"></i></span>
+            <div class="qw-crown__text"><b>${title}</b><small>${sub}</small></div>
+            <button type="button" class="qw-chip qw-chip--gold" data-qw="${act}">${btn}</button>
+        </div>`;
+    }
+    if (mode === 'busy') {
+        return `<div class="qw-crown is-busy"><span class="qw-crown__seal" aria-hidden="true"><i class="fas fa-crown"></i></span>
+            <div class="qw-crown__text"><b>Summoning the crown…</b><small>Watch the big screen</small></div></div>`;
+    }
+    // Crowned already: the page is next.
+    const write = mode === 'write';
+    return `<div class="qw-crown is-crowned">
+            <span class="qw-crown__seal" aria-hidden="true"><i class="fas fa-crown"></i></span>
+            <div class="qw-crown__text"><b>${write ? "Today's hero is crowned" : "Today's page is written"}</b><small>${esc(crown?.hint || '')}</small></div>
+            <button type="button" class="qw-chip qw-chip--gold" data-qw-cmd="crown" data-action="crown"${crown?.disabled ? ' disabled' : ''}><i class="fas ${write ? 'fa-feather-pointed' : 'fa-book-open'}" aria-hidden="true"></i> ${write ? 'Write' : 'Open'}</button>
+        </div>`;
+}
+
+export function magicHtml(stage, { canCrown = true, canWheel = true } = {}) {
+    return `<section class="qw-magic">
+        ${canCrown ? crownHtml(stage?.crown) : ''}
         <div class="qw-grid">
             ${canWheel ? '<button type="button" class="qw-tile qw-tile--wheel" data-qw-cmd="wheel" data-action="open"><span class="qw-tile__icon" aria-hidden="true"><i class="fas fa-dharmachakra"></i></span><b>Fortune\'s Wheel</b><small>Open, then pull the lever</small></button>' : ''}
             <button type="button" class="qw-tile qw-tile--picker" data-qw-cmd="picker" data-action="open"><span class="qw-tile__icon" aria-hidden="true"><i class="fas fa-hand-sparkles"></i></span><b>Fair Picker</b><small>Shake to summon</small></button>

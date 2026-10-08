@@ -489,3 +489,17 @@ test('one host per tab, and stale binds never win on the phone', () => {
     const wand = read('features/questRemote/remoteWand.js');
     assert.match(wand, /const stale = \(\) => wand !== w \|\| w\.connectSeq !== token;/);
 });
+
+test('the Wand offers General view and Follow the schedule, and a crown that knows its class', async () => {
+    const { classSheetHtml, crownHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    const sheet = classSheetHtml([{ id: 'k1', name: 'Junior B' }], '', { follow: true });
+    assert.match(sheet, /data-qw-classid="\*follow"/);
+    assert.match(sheet, /data-qw-classid="\*general"/);
+    assert.match(sheet, /no lesson right now/);
+    assert.doesNotMatch(crownHtml({ mode: 'no-class' }), /data-qw-hold/);
+    assert.doesNotMatch(crownHtml({ mode: 'needs-stars' }), /data-qw-hold/);
+    assert.match(crownHtml({ mode: 'crown' }), /data-qw-hold="crown"/);
+    assert.match(crownHtml({ mode: 'write', hint: 'Maya wears today\'s crown.' }), /Write/);
+    const core = await import('../features/questRemote/remoteCore.mjs');
+    assert.equal(core.validateCommand({ type: 'class', payload: { classId: core.CLASS_GENERAL }, clientSeq: 1, wandId: 'w' }).ok, true);
+});

@@ -21,10 +21,12 @@ import { showToast } from '../../ui/effects.js';
 import { getSchoolId, DEFAULT_SCHOOL_ID } from '../../utils/tenant.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { getTodayDateString } from '../../utils.js';
+import { getCrownControlState } from '../adventurePageCore.mjs';
 import * as channel from './remoteChannel.js';
 import {
     validateCommand, createCommandLedger, isStaleCommand, makeSessionCode, makeSessionId, buildWandLink,
-    buildStageSummary, stageFingerprint, formatTimerClock, timerLabelFor, CAST_TABS, CHARM_SOUNDS, HEARTBEAT_MS, HOST_LIVE_MS, STAGE_MIN_INTERVAL_MS
+    buildStageSummary, stageFingerprint, formatTimerClock, timerLabelFor, CAST_TABS, CHARM_SOUNDS, HEARTBEAT_MS, HOST_LIVE_MS, STAGE_MIN_INTERVAL_MS,
+    CLASS_GENERAL, CLASS_FOLLOW
 } from './remoteCore.mjs';
 import { bindingHtml, timerHtml, curtainHtml, starRibbonHtml, charmBurstHtml, beaconHtml, spotlightHtml } from './remoteStageView.mjs';
 import { sparkTo, starComet, burstOn, bindBeam, isStillFx, touchRing } from './remoteFx.js';
@@ -463,6 +465,36 @@ async function runCast(cmd, tab) {
     return report(cmd, true, `On screen: ${label}`);
 }
 
+/** The header's two other choices, from the Wand: General view, or follow today's schedule. */
+async function runClassMode(cmd, mode) {
+    if (mode === CLASS_GENERAL) {
+        state.setGlobalSelectedClass(null, true);
+        import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(() => {});
+        return report(cmd, true, 'General view');
+    }
+    state.setClassFollowScheduleEnabled(true);
+    try { (await import('../home.js')).runScheduleBasedClassSyncOnce(); } catch (error) { console.warn('Quest Remote: schedule sync', error); }
+    import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(() => {});
+    scheduleStage(0);
+    const id = state.get('globalSelectedClassId');
+    const cls = id && (state.get('allTeachersClasses') || []).find((c) => c.id === id);
+    return report(cmd, true, cls ? `Following the schedule: ${`${cls.logo || ''} ${cls.name}`.trim()}` : 'Following the schedule: no lesson now, General view');
+}
+
+/** The diary's crown button, as the Wand should show it (same rules: features/adventurePageCore.mjs). */
+function crownStateNow() {
+    if (!canUseFeature('adventureLog')) return null;
+    const classId = state.get('globalSelectedClassId') || '';
+    const today = getTodayDateString();
+    const todayLog = classId ? (state.get('allAdventureLogs') || []).find((l) => l.classId === classId && l.date === today) || null : null;
+    const stars = state.get('todaysStars') || {};
+    const hasStarsToday = Boolean(classId) && (state.get('allStudents') || []).some((s) => s.classId === classId && Number(stars[s.id]?.stars) > 0);
+    const canWrite = !todayLog || (todayLog.createdBy?.uid === state.get('currentUserId') && todayLog.schoolYearKey === state.getActiveSchoolYearKey?.());
+    const c = getCrownControlState({ classId, hasStarsToday, todayLog, canWrite });
+    const busy = document.getElementById('log-adventure-btn')?.dataset.busy === '1';
+    return { mode: busy ? 'busy' : c.mode, label: busy ? 'Summoning the crown…' : c.label, hint: c.hint, disabled: busy || Boolean(c.disabled) };
+}
+
 function ensureClass(classId) {
     if (!classId || state.get('globalSelectedClassId') === classId) return;
     const mine = (state.get('allTeachersClasses') || []).some((c) => c.id === classId);
@@ -489,6 +521,7 @@ async function run(cmd) {
         case 'class': {
             const btn = document.getElementById('header-class-selector-btn');
             if (isShown(btn)) await sparkTo(btn, { size: 16, duration: 420, burst: 10 });
+            if (p.classId === CLASS_GENERAL || p.classId === CLASS_FOLLOW) return runClassMode(cmd, p.classId);
             ensureClass(p.classId);
             const cls = (state.get('allTeachersClasses') || []).find((c) => c.id === p.classId);
             return report(cmd, Boolean(cls), cls ? `${cls.logo || ''} ${cls.name}`.trim() : 'Class not found');
@@ -706,21 +739,19 @@ async function showRibbon(student, { stars = 0, reason = '', note = '' } = {}) {
 
 async function runCrown(cmd) {
     if (!canUseFeature('adventureLog')) return report(cmd, false, 'Hero of the Day needs the Adventure Log (Pro)');
-    // The same checks the crown button makes, answered on the phone instead of a toast nobody reads.
-    const classId = state.get('globalSelectedClassId');
-    if (!classId) return report(cmd, false, 'Choose a class first (top right)');
-    const today = getTodayDateString();
-    const page = (state.get('allAdventureLogs') || []).find((l) => l.classId === classId && l.date === today);
-    const stars = state.get('todaysStars') || {};
-    const shining = (state.get('allStudents') || []).some((s) => s.classId === classId && Number(stars[s.id]?.stars) > 0);
-    if (!page && !shining) return report(cmd, false, `Award some stars first, then crown today's hero`);
+    // The same rules as the diary's own button, answered on the phone instead of a toast nobody reads.
+    const crown = crownStateNow();
+    if (crown.mode === 'no-class') return report(cmd, false, 'Choose a class first: the crown belongs to one class');
+    if (crown.mode === 'needs-stars') return report(cmd, false, "Award some stars first, then crown today's hero");
+    if (crown.mode === 'busy') return report(cmd, true, 'The crown is already on its way');
+    if (crown.disabled) return report(cmd, false, crown.hint || 'Only the teacher who crowned today can write the page');
     await stepAsideProjectorMode();
     if (!(await ensureTab('adventure-log-tab'))) return report(cmd, false, 'The Adventure Log could not open');
     const btn = await waitFor('#log-adventure-btn', { timeout: 2500 });
     if (!btn || btn.disabled) return report(cmd, false, 'No crown to give right now');
     await sparkTo(btn, { color: '#fde047', size: 30, duration: 820, burst: 30 });
     btn.click();
-    return report(cmd, true, page ? `Today's hero is already crowned: opening the page` : 'The crown is chosen…');
+    return report(cmd, true, crown.mode === 'crown' ? 'The crown is chosen…' : crown.mode === 'write' ? "Writing today's page" : "Opening today's page");
 }
 
 async function runWheel(cmd, { action, power }) {
@@ -1109,7 +1140,35 @@ function labelOf(el) {
     if (/^(SELECT|INPUT|TEXTAREA)$/.test(el.tagName)) {
         return el.getAttribute('aria-label') || el.labels?.[0]?.textContent || el.getAttribute('placeholder') || el.getAttribute('title') || el.name || '';
     }
-    return el.getAttribute('aria-label') || el.textContent.trim() || el.getAttribute('title') || '';
+    return el.getAttribute('aria-label') || visibleText(el) || el.getAttribute('title') || '';
+}
+
+/**
+ * A button's words as the eye reads them: parts that sit on their own line or in their own box are
+ * kept apart ("Creativity · Story Weavers", not "CreativityStory Weavers"), hidden decoration is skipped.
+ */
+function visibleText(el) {
+    if (!el.firstElementChild) return el.textContent.trim();
+    const parts = [];
+    let run = '';
+    const flush = () => { const t = run.replace(/\s+/g, ' ').trim(); if (t) parts.push(t); run = ''; };
+    let budget = 40;
+    const walk = (node, parentFlow) => {
+        for (const n of node.childNodes) {
+            if (n.nodeType === 3) { run += n.nodeValue; continue; }
+            if (n.nodeType !== 1 || n.getAttribute('aria-hidden') === 'true' || n.tagName === 'I' || n.tagName === 'svg') continue;
+            if (budget-- <= 0) { run += n.textContent; continue; }
+            const cs = getComputedStyle(n);
+            if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+            const ownBox = parentFlow || /^(block|flex|grid|list-item|table)/.test(cs.display);
+            if (ownBox) flush();
+            walk(n, /flex|grid/.test(cs.display));
+            if (ownBox) flush();
+        }
+    };
+    walk(el, /flex|grid/.test(getComputedStyle(el).display));
+    flush();
+    return [...new Set(parts)].join(' · ');
 }
 
 /** What kind of control this is, so the Wand can show the same kind (tabs, switch, dropdown, text box). */
@@ -1337,6 +1396,8 @@ async function publishStage() {
     // A curtain lifting or a beam fading is already gone as far as the Wand is concerned.
     stage.blackout = Boolean(document.querySelector('#qr-curtain:not(.is-lifting)'));
     stage.spotlight = Boolean(document.querySelector('#qr-spotlight:not(.is-leaving)'));
+    stage.follow = Boolean(state.get('classFollowSchedule'));
+    stage.crown = crownStateNow();
     stage.wall = Boolean(document.getElementById('dynamic-wallpaper-screen') && !document.getElementById('dynamic-wallpaper-screen').classList.contains('hidden'));
     // The timer's remaining time changes every tick: the Wand counts down by itself, so only a start,
     // pause, +30 s or the end is news (one write instead of one every few seconds).

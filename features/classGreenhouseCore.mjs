@@ -10,10 +10,11 @@
 //   awards    [{ studentId, date, stars, reason }]          date: DD-MM-YYYY or YYYY-MM-DD
 //   trials    [{ studentId, date, pct, type, title }]       pct 0..100 or null
 //   absences  [{ studentId, date }]
-//   notes     [{ studentId, category, createdAtMs, text? }]
+//   notes     [{ id?, studentId, category, createdAtMs, text, source? }]  (text is read on this laptop only)
 //   oaths     [{ studentId, status }]                      optional
 
 import { VIRTUE_TECHNIQUES, getTechnique } from './classGreenhousePlaybook.mjs';
+import { readClassNotes } from './classGreenhouseNotes.mjs';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const WINDOW_DAYS = 42;   // six weeks: the growing season the reading looks at
@@ -140,7 +141,10 @@ export function buildGreenhouse({
         }))
         .filter((t) => ids.has(t.studentId) && t.day != null && t.day <= today);
     const noteRows = notes
-        .map((n) => ({ studentId: n.studentId, day: toDay(n.createdAtMs ?? n.date), category: String(n.category || 'General') }))
+        .map((n) => ({
+            id: n.id || '', studentId: n.studentId, day: toDay(n.createdAtMs ?? n.date), category: String(n.category || 'General'),
+            text: String(n.text ?? n.noteText ?? ''), source: n.source || ''
+        }))
         .filter((n) => ids.has(n.studentId) && n.day != null);
 
     // --- lesson days: any day the class has records for, inside the window ---
@@ -186,12 +190,16 @@ export function buildGreenhouse({
         lessonDays, recentLessons, priorLessons, today, windowStart, recentStart
     }));
 
+    // What the Chronicle notes actually say, read across the whole class
+    const notesReading = readClassNotes(noteRows, students, today);
+    readings.forEach((r) => { r.chronicle = notesReading.perChild.get(r.id) || null; });
+
     placeOnGrowthMap(readings);
     readings.forEach((r) => raiseSignals(r, { today }));
 
     const classReading = readClass(readings, {
         lessonDays, recentLessons, priorLessons, papers: paperList, awards: awardRows, absences: absenceRows,
-        today, windowStart, recentStart
+        today, windowStart, recentStart, notesReading
     });
     const plan = planNextLesson(readings, classReading);
 
@@ -281,7 +289,6 @@ function readStudent({ student, awards, absences, trials, notes, oaths, papers, 
     // Chronicle notes
     const noteDays = notes.map((n) => n.day).filter((d) => d != null);
     const lastNoteDay = noteDays.length ? Math.max(...noteDays) : null;
-    const behaviourNotes = notes.filter((n) => n.category === 'Behavior' && n.day >= today - 30).length;
 
     // Ember oaths
     const oathsActive = oaths.filter((o) => o.status === 'active' || o.status === 'pending').length;
@@ -321,8 +328,7 @@ function readStudent({ student, awards, absences, trials, notes, oaths, papers, 
         notes: {
             total: notes.length,
             lastDay: lastNoteDay,
-            daysSince: lastNoteDay == null ? null : today - lastNoteDay,
-            behaviour30: behaviourNotes
+            daysSince: lastNoteDay == null ? null : today - lastNoteDay
         },
         oaths: { active: oathsActive, kept: oathsKept },
         hasData: presentAll.length >= 2 || marked.length >= 1
@@ -369,7 +375,7 @@ function placeOnGrowthMap(readings) {
  */
 function raiseSignals(r, { today }) {
     const signals = [];
-    const add = (id, sev, icon, text, techniques = []) => signals.push({ id, sev, icon, text, techniques, kind: sev > 0 ? 'act' : 'good' });
+    const add = (id, sev, icon, text, techniques = [], extra = {}) => signals.push({ id, sev, icon, text, techniques, kind: sev > 0 ? 'act' : 'good', ...extra });
     const s = r.stars;
     const p = r.papers;
     const a = r.attendance;
@@ -418,14 +424,11 @@ function raiseSignals(r, { today }) {
             `No mark for ${p.missed.length === 1 ? `"${p.missed[0].title}"` : plural(p.missed.length, 'class paper')}.`,
             ['catch-up-paper']);
     }
-    if (r.notes.behaviour30 >= 2) {
-        add('behaviour', 2, 'fa-masks-theater',
-            `${r.notes.behaviour30} behaviour notes in the last 30 days.`, ['restorative-chat', 'seat-near']);
-    }
+    noteSignals(r, add, today);
     if (r.hasData && (r.notes.daysSince == null || r.notes.daysSince > 45)) {
         add('unnoted', 1, 'fa-feather-pointed',
             r.notes.daysSince == null ? 'No Chronicle notes yet.' : `No Chronicle note for ${r.notes.daysSince} days.`,
-            ['chronicle-sweep']);
+            ['chronicle-sweep'], { action: `Watch ${r.first} today and write one line in the Chronicle afterwards.` });
     }
     if (r.virtueTotal >= 8 && r.topVirtue && r.virtues[r.topVirtue.id] / r.virtueTotal >= 0.8) {
         const other = VIRTUES.filter((v) => v.id !== r.topVirtue.id).sort((x, y) => r.virtues[x.id] - r.virtues[y.id])[0];
@@ -436,13 +439,86 @@ function raiseSignals(r, { today }) {
     if (p.best && p.best.pct >= 90) add('best-paper', 0, 'fa-medal', `Best paper: ${p.best.pct}% in ${p.best.title || 'a paper'}.`);
     if (r.oaths.kept > 0) add('oath-kept', 0, 'fa-fire', `Kept ${plural(r.oaths.kept, 'Ember Oath')}.`);
 
-    signals.sort((x, y) => y.sev - x.sev);
+    // At equal weight, what the teacher wrote comes first: it is the most specific thing we know.
+    signals.sort((x, y) => y.sev - x.sev || (y.quote ? 1 : 0) - (x.quote ? 1 : 0));
     r.signals = signals;
     const profileWeight = { tending: 3, reaching: 2, roots: 2, steady: 0, bloom: 0, planted: 0 }[r.profile] || 0;
     r.priority = signals.reduce((t, x) => t + x.sev, 0) + profileWeight;
     r.summary = studentSummary(r);
     r.techniques = studentTechniques(r);
     r.action = studentAction(r);
+}
+
+/** How long a written worry keeps pulling attention (context like a family situation stays longer). */
+const NOTE_FRESH_DAYS = 60;
+const CONTEXT_FRESH_DAYS = 120;
+
+/**
+ * Signals from what the Chronicle notes SAY: each open worry with the sentence that said it,
+ * checked against the papers; strengths and things getting better; worries that went quiet.
+ */
+function noteSignals(r, add, today) {
+    const ch = r.chronicle;
+    if (!ch || !ch.written) return;
+    const p = r.papers;
+    const name = r.first;
+    const ago = (day) => (day == null ? null : today - day);
+    const when = (day) => (day == null ? '' : ` (${dayLabel(day)})`);
+
+    ch.worries.forEach((t) => {
+        const age = ago(t.last);
+        if (age != null && age > NOTE_FRESH_DAYS) return;
+        if (ch.followUp && ch.followUp.theme === t.id) return; // said below, as a follow-up
+        const theme = t.theme;
+        let sev = theme.sev || 1;
+        if (t.count >= 2 && (age == null || age <= 30)) sev += 1;
+        if (age != null && age > 30) sev -= 1;
+        let text = `Your notes: ${theme.label.toLowerCase()}${t.count > 1 ? ` (${t.count} notes)` : ''}.`;
+        if (theme.group === 'learning' && p.rel != null && p.rel <= -8) {
+            text += ` The papers agree: ${Math.abs(p.rel)} points under the class.`;
+            sev += 1;
+        } else if (theme.group === 'learning' && p.rel != null && p.rel >= 10) {
+            text += ` Yet the papers sit ${p.rel} points above the class, so it may be one narrow slip.`;
+        }
+        add(`note-${t.id}`, Math.max(1, Math.min(3, sev)), theme.icon, text, theme.techniques,
+            { quote: t.quote, day: t.last, theme: t.id, action: theme.action ? theme.action(name) : '' });
+    });
+
+    ch.context.forEach((t) => {
+        const age = ago(t.last);
+        if (age != null && age > CONTEXT_FRESH_DAYS) return;
+        add(`note-${t.id}`, t.theme.sev || 1, t.theme.icon, `From your notes: ${t.theme.label.toLowerCase()}.`, t.theme.techniques,
+            { quote: t.quote, day: t.last, theme: t.id, context: true, action: t.theme.action ? t.theme.action(name) : '' });
+    });
+
+    if (ch.followUp) {
+        const theme = ch.worries.find((t) => t.id === ch.followUp.theme)?.theme;
+        add('follow-up', 2, 'fa-reply', `You wrote about ${theme ? theme.label.toLowerCase() : 'a worry'} ${ch.followUp.daysAgo} days ago and nothing since. Settled, or still there?`,
+            ['check-in', ...(theme?.techniques || [])],
+            { quote: ch.followUp.quote, day: ch.followUp.day, theme: ch.followUp.theme,
+                action: `Watch how ${name}'s ${theme ? theme.label.toLowerCase() : 'worry'} is going today, then add one line to the Chronicle.` });
+    }
+
+    // A strength in the notes that the papers do not show yet
+    const learnStrength = ch.strengths.find((t) => t.theme.group === 'learning');
+    if (learnStrength && p.rel != null && p.rel <= -10) {
+        add('note-mismatch', 1, 'fa-scale-unbalanced', `Your notes praise ${name}'s ${learnStrength.theme.label.toLowerCase()}, but papers sit ${Math.abs(p.rel)} points under the class. Worth a closer look at the papers.`,
+            ['error-hunt'], { quote: learnStrength.quote, day: learnStrength.last, theme: learnStrength.id });
+    }
+
+    if (ch.onlyWorries) {
+        add('one-sided', 1, 'fa-scale-balanced', `Every note on ${name} is a worry. One line about a strength makes the picture fair, for you and for the Oracle.`,
+            ['strength-notes'], { action: `Notice one thing ${name} does well today and write it in the Chronicle.` });
+    }
+
+    ch.better.filter((t) => ago(t.last) == null || ago(t.last) <= NOTE_FRESH_DAYS).slice(0, 2).forEach((t) => {
+        add(`better-${t.id}`, 0, 'fa-arrow-trend-up', `Getting better, by your notes: ${t.theme.label.toLowerCase()}${when(t.last)}.`, ['specific-praise'], { quote: t.quote, day: t.last, theme: t.id });
+    });
+    const strengths = ch.strengths.filter((t) => ago(t.last) == null || ago(t.last) <= 120);
+    if (strengths.length) {
+        add('note-strengths', 0, 'fa-star', `Your notes: ${strengths.slice(0, 3).map((t) => t.theme.label.toLowerCase()).join(', ')}.`,
+            strengths[0].theme.techniques || [], { quote: strengths[0].quote, day: strengths[0].last, theme: strengths[0].id });
+    }
 }
 
 const PROFILE_TECHNIQUES = {
@@ -465,6 +541,10 @@ function studentTechniques(r) {
 function studentAction(r) {
     const top = r.signals.find((s) => s.kind === 'act' && s.sev >= 2);
     const name = r.first;
+    // A child your notes say is anxious or going through something at home gets the gentle move first.
+    const gentle = r.signals.find((s) => s.kind === 'act' && (s.theme === 'home' || s.theme === 'worry') && s.action);
+    if (gentle) return gentle.action;
+    if (top?.action) return top.action;
     const byId = {
         'absent-streak': `Welcome ${name} back by name and give a two-minute "what you missed".`,
         attendance: `Hand ${name} a "what you missed" card and check the homework is clear.`,
@@ -474,7 +554,6 @@ function studentAction(r) {
         'grades-down': `Ask ${name} one question from the last unit and see where it slips.`,
         'low-marks': `Give ${name} the key words before the task, and an easy first win.`,
         'missed-papers': `Give ${name} the catch-up for "${r.papers.missed[0]?.title || 'the missed paper'}".`,
-        behaviour: `Teach from beside ${name} at the start of tasks; one calm word, not a warning.`,
         unnoted: `Watch ${name} today and write one line in the Chronicle afterwards.`
     };
     if (top && byId[top.id]) return byId[top.id];
@@ -483,6 +562,7 @@ function studentAction(r) {
     if (r.profile === 'reaching') return `Praise ${name}'s effort out loud and scaffold the next task.`;
     if (r.profile === 'tending') return `Two minutes of non-school chat with ${name}.`;
     const minor = r.signals.find((s) => s.kind === 'act');
+    if (minor?.action) return minor.action;
     if (minor && byId[minor.id]) return byId[minor.id];
     return `Notice one specific thing ${name} does well.`;
 }
@@ -501,10 +581,10 @@ function studentSummary(r) {
 
 // ---------------------------------------------------------------- the class
 
-function readClass(readings, { lessonDays, recentLessons, priorLessons, papers, awards, absences, today, windowStart, recentStart }) {
+function readClass(readings, { lessonDays, recentLessons, priorLessons, papers, awards, absences, today, windowStart, recentStart, notesReading }) {
     const n = readings.length;
     const insights = [];
-    const add = (id, tone, title, text, techniques) => insights.push({ id, tone, title, text, techniques: techniques.filter((t) => getTechnique(t)) });
+    const add = (id, tone, title, text, techniques, source = 'records') => insights.push({ id, tone, title, text, source, techniques: techniques.filter((t) => getTechnique(t)) });
 
     // Stars a lesson for the whole class (per child present)
     const recognition = awards.filter((a) => a.stars > 0 && !NOT_RECOGNITION.has(a.reason) && a.day >= windowStart);
@@ -576,9 +656,9 @@ function readClass(readings, { lessonDays, recentLessons, priorLessons, papers, 
         });
     }
 
-    // Notes coverage
+    // What the notes say across the class
     const noted = readings.filter((r) => r.notes.daysSince != null && r.notes.daysSince <= 45).length;
-    const behaviourChildren = readings.filter((r) => r.notes.behaviour30 >= 2);
+    const chronicle = classChronicle(readings, notesReading, today);
 
     // Profiles
     const profileCounts = Object.fromEntries(PROFILE_ORDER.map((id) => [id, readings.filter((r) => r.profile === id).length]));
@@ -644,17 +724,8 @@ function readClass(readings, { lessonDays, recentLessons, priorLessons, papers, 
             `More children miss ${worstWeekday.day} lessons. Keep new language for the fuller days, or recap it next time.`,
             ['missed-it-card']);
     }
-    if (behaviourChildren.length >= 2) {
-        add('behaviour', 'warn', 'Behaviour notes are gathering',
-            `${behaviourChildren.map((r) => r.first).join(', ')} have 2+ behaviour notes this month.`,
-            ['quiet-signal', 'restorative-chat', 'countdown-start']);
-    }
-    if (n >= 4 && noted / n < 0.5) {
-        add('notes', 'idea', 'Few recent Chronicle notes',
-            `Only ${noted} of ${n} children have a Chronicle note from the last six weeks. Notes make every reading sharper.`,
-            ['chronicle-sweep']);
-    }
-    if (!insights.some((i) => i.tone === 'warn') && lessonDays.length >= 3) {
+    noteInsights(chronicle, (...args) => add(...args.slice(0, 5), 'notes'), n);
+    if (!insights.some((i) => i.tone === 'warn' || (i.source === 'notes' && i.tone === 'idea' && i.id !== 'notes-unwritten' && i.id !== 'notes-tone')) && lessonDays.length >= 3) {
         add('healthy', 'good', 'A healthy greenhouse',
             'No warning signs across the class. Keep stretching the strongest and noticing the quiet ones.',
             ['must-should-could', 'name-cards']);
@@ -685,18 +756,128 @@ function readClass(readings, { lessonDays, recentLessons, priorLessons, papers, 
         papers: { classAvg, spread: abilitySpread, trend: paperTrend, testAvg, dictationAvg, bands, count: markedPapers.length,
             last: lastPaper ? { title: lastPaper.title, avg: Math.round(lastPaper.avg), day: lastPaper.day } : null },
         attendance: { rate: attendanceRate, worstWeekday },
-        notes: { noted, behaviourChildren: behaviourChildren.length },
+        notes: { noted },
+        chronicle,
         profiles: profileCounts,
         insights
     };
 }
 
+// ---------------------------------------------------------------- the notes, class-wide
+
+const names = (list, max = 5) => `${list.slice(0, max).map((x) => x.first).join(', ')}${list.length > max ? ` and ${list.length - max} more` : ''}`;
+
+/** The class picture from the notes: shared worries, shared strengths, who with whom, interests, balance. */
+function classChronicle(readings, notesReading, today) {
+    const nr = notesReading || { clusters: [], interests: [], friction: [], warm: [], tone: {}, recentCount: 0, total: 0, unwritten: [], onlyWorries: [] };
+    const fresh = (x, days = NOTE_FRESH_DAYS) => x.last == null || today - x.last <= days;
+    const clusters = nr.clusters.map((c) => ({
+        id: c.theme.id, label: c.theme.label, icon: c.theme.icon, kind: c.theme.kind, group: c.theme.group,
+        techniques: c.theme.techniques.filter((t) => getTechnique(t)),
+        open: c.open.filter((x) => fresh(x, c.theme.kind === 'context' ? CONTEXT_FRESH_DAYS : NOTE_FRESH_DAYS)),
+        strong: c.strong.filter((x) => fresh(x, 120)),
+        improving: c.improving.filter((x) => fresh(x))
+    })).filter((c) => c.open.length || c.strong.length || c.improving.length);
+    const followUps = readings.filter((r) => r.chronicle?.followUp).map((r) => {
+        const f = r.chronicle.followUp;
+        return { id: r.id, first: r.first, theme: f.theme, label: clusters.find((c) => c.id === f.theme)?.label || f.theme, quote: f.quote, daysAgo: f.daysAgo };
+    });
+    return {
+        written: nr.total,
+        recent: nr.recentCount,
+        tone: nr.tone,
+        clusters,
+        interests: nr.interests,
+        friction: nr.friction.filter((p) => p.last == null || today - p.last <= 90),
+        warm: nr.warm.filter((p) => p.last == null || today - p.last <= 120),
+        unwritten: nr.unwritten,
+        onlyWorries: nr.onlyWorries,
+        followUps
+    };
+}
+
+// Wellbeing and background themes are never turned into a named group of children.
+const PRIVATE_THEMES = new Set(['home', 'worry', 'support', 'newcomer', 'temper', 'tired']);
+
+function noteInsights(ch, add, n) {
+    const open = ch.clusters.filter((c) => c.open.length >= 2 && c.kind !== 'context' && c.kind !== 'strength')
+        .sort((a, b) => b.open.length - a.open.length);
+    open.slice(0, 3).forEach((c) => {
+        const learning = c.group === 'learning';
+        const many = c.open.length >= Math.max(3, Math.ceil(n * 0.25));
+        add(`notes-${c.id}`, many && !learning ? 'warn' : 'idea',
+            `${c.open.length} children: ${c.label.toLowerCase()}`,
+            learning
+                ? `Your notes name ${c.label.toLowerCase()} for ${names(c.open)}. Ten minutes with them as a small group beats ${c.open.length} separate corrections.`
+                : PRIVATE_THEMES.has(c.id)
+                    ? `Your notes mention ${c.label.toLowerCase()} for ${c.open.length} children. A calm class routine helps all of them without singling anyone out.`
+                    : c.group === 'wellbeing'
+                        ? `Your notes say the same about ${names(c.open)}. One safe class routine helps all of them at once, without singling anyone out.`
+                        : `Your notes say the same about ${names(c.open)}. One class routine fixes it for everyone, instead of ${c.open.length} separate warnings.`,
+            c.techniques);
+    });
+    const support = ch.clusters.find((c) => c.id === 'support');
+    if (support && support.open.length >= 2) {
+        add('notes-support', 'idea', 'Adjusted copies for several children',
+            `${support.open.length} children have a learning-support note. Prepare one adjusted version of each task and keep it ready.`, support.techniques);
+    }
+    if (ch.friction.length) {
+        add('notes-friction', 'idea', 'Keep these apart in pair work',
+            `${ch.friction.slice(0, 3).map((p) => `${p.aFirst} & ${p.bFirst}`).join(', ')} come up together in rough notes. The partners in Next lesson already keep them apart.`,
+            ['seat-plan', 'restorative-chat']);
+    }
+    const improving = new Map();
+    ch.clusters.forEach((c) => c.improving.forEach((x) => {
+        const e = improving.get(x.id) || { first: x.first, labels: [] };
+        e.labels.push(c.label.toLowerCase());
+        improving.set(x.id, e);
+    }));
+    if (improving.size >= 2) {
+        add('notes-better', 'good', 'Your notes show progress',
+            `${[...improving.values()].slice(0, 4).map((x) => `${x.first} (${x.labels.join(', ')})`).join(', ')} are getting better, by your own notes. Tell them.`,
+            ['specific-praise', 'postcard-home']);
+    }
+    const hook = ch.interests.find((i) => i.children.length >= 2);
+    if (hook) {
+        add('notes-interests', 'idea', `${hook.label} comes up a lot`,
+            `Your notes mention ${hook.label.toLowerCase()} for ${names(hook.children, 4)}. Use it in the next example sentences and reading.`,
+            ['interest-hooks']);
+    }
+    const t = ch.tone || {};
+    if (ch.recent >= 5 && (t.worry || 0) / ch.recent >= 0.7) {
+        add('notes-tone', 'idea', 'Your notes lean on worries',
+            `${t.worry} of your last ${ch.recent} notes are worries. Strengths matter for the Oracle, for parents and for you.`, ['strength-notes']);
+    }
+    if (n >= 4 && ch.unwritten.length >= Math.max(3, Math.ceil(n * 0.3))) {
+        add('notes-unwritten', 'idea', 'Some children have no notes',
+            `Nothing written yet about ${names(ch.unwritten)}. One line each makes every reading sharper.`, ['chronicle-sweep']);
+    }
+}
+
 // ---------------------------------------------------------------- next lesson
 
+/** Swaps partners so no pair joins two children your notes put in friction. */
+function untangle(pairs, clash) {
+    const out = pairs.map((g) => [...g]);
+    for (let i = 0; i < out.length; i += 1) {
+        if (!out[i].some((x, k) => out[i].some((y, j) => j > k && clash(x.id, y.id)))) continue;
+        for (let j = 0; j < out.length; j += 1) {
+            if (j === i) continue;
+            const a = [out[i][0], out[j][1], ...out[i].slice(2)];
+            const b = [out[j][0], out[i][1], ...out[j].slice(2)];
+            const ok = (g) => !g.some((x, k) => g.some((y, m) => m > k && clash(x.id, y.id)));
+            if (ok(a) && ok(b)) { out[i] = a; out[j] = b; break; }
+        }
+    }
+    return out;
+}
+
 function planNextLesson(readings, classReading) {
+    const frictionKeys = new Set(classReading.chronicle.friction.map((p) => [p.a, p.b].sort().join('|')));
+    const clash = (a, b) => frictionKeys.has([a, b].sort().join('|'));
     const byPriority = [...readings].sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
     const focus = byPriority.filter((r) => r.signals.some((s) => s.sev >= 2)).slice(0, 4)
-        .map((r) => ({ id: r.id, name: r.name, first: r.first, action: r.action, reason: r.signals.find((s) => s.kind === 'act')?.text || '', technique: r.techniques[0] || null }));
+        .map((r) => ({ id: r.id, name: r.name, first: r.first, action: r.action, reason: (r.signals.find((s) => s.action && s.action === r.action) || r.signals.find((s) => s.kind === 'act'))?.text || '', technique: r.techniques[0] || null }));
     const focusIds = new Set(focus.map((f) => f.id));
 
     const spotlight = byPriority
@@ -728,12 +909,67 @@ function planNextLesson(readings, classReading) {
         pairs = [];
         for (let i = 0; i < half; i += 1) pairs.push([graded[i], graded[i + half]]);
         if (graded.length % 2) pairs[pairs.length - 1].push(graded[graded.length - 1]);
+        pairs = untangle(pairs, clash);
         pairs = pairs.map((group) => group.map((r) => ({ id: r.id, first: r.first })));
     }
 
+    // ---- from the notes ----
+    const ch = classReading.chronicle;
+    const followUps = ch.followUps.slice(0, 4);
+
+    // Small groups: children whose notes name the same skill, for ten minutes with the teacher.
+    const grouped = new Set();
+    const noteGroups = ch.clusters
+        .filter((c) => c.group === 'learning' && c.open.length >= 2)
+        .sort((a, b) => b.open.length - a.open.length)
+        .map((c) => {
+            const members = c.open.filter((x) => !grouped.has(x.id)).slice(0, 5);
+            if (members.length < 2) return null;
+            members.forEach((x) => grouped.add(x.id));
+            return { id: c.id, label: c.label, icon: c.icon, technique: c.techniques[0] || null, members: members.map((x) => ({ id: x.id, first: x.first, quote: x.quote })) };
+        })
+        .filter(Boolean)
+        .slice(0, 3);
+
+    // Buddies: a kind helper (by the notes, or a strong child) beside a child the notes say needs one.
+    const NEEDS = ['newcomer', 'shy', 'worry', 'support', 'listening', 'reading'];
+    const needOf = (r) => NEEDS.find((id) => r.chronicle?.worries.some((t) => t.id === id) || r.chronicle?.context.some((t) => t.id === id));
+    const needers = readings.map((r) => ({ r, need: needOf(r) })).filter((x) => x.need);
+    const helperScore = (r) => {
+        const st = r.chronicle?.strengths || [];
+        return (st.some((t) => t.id === 'helper') ? 3 : 0) + (st.some((t) => t.id === 'leader') ? 2 : 0)
+            + (st.some((t) => t.id === 'eager') ? 1 : 0) + (r.profile === 'bloom' ? 1 : 0);
+    };
+    const needIds = new Set(needers.map((x) => x.r.id));
+    const helpers = readings.filter((r) => !needIds.has(r.id) && helperScore(r) > 0 && !r.attendance.absentLastLesson)
+        .sort((a, b) => helperScore(b) - helperScore(a));
+    const usedHelpers = new Set();
+    const buddies = [];
+    const warmKeys = new Set(ch.warm.map((p) => [p.a, p.b].sort().join('|')));
+    const warmWith = (a, b) => warmKeys.has([a, b].sort().join('|'));
+    const matched = new Map();
+    // First pass: a partner your notes already say is good with this child.
+    needers.forEach(({ r }) => {
+        const h = readings.find((x) => x.id !== r.id && !needIds.has(x.id) && !usedHelpers.has(x.id) && !clash(x.id, r.id)
+            && warmWith(x.id, r.id) && !x.attendance.absentLastLesson);
+        if (h) { usedHelpers.add(h.id); matched.set(r.id, h); }
+    });
+    needers.forEach(({ r, need }) => {
+        const h = matched.get(r.id) || helpers.find((x) => !usedHelpers.has(x.id) && !clash(x.id, r.id));
+        if (!h) return;
+        usedHelpers.add(h.id);
+        const why = warmWith(h.id, r.id) ? 'Already good together'
+            : h.chronicle?.strengths.find((t) => ['helper', 'leader', 'eager'].includes(t.id))?.theme.label || 'Strong and steady';
+        buddies.push({ helper: { id: h.id, first: h.first, why },
+            child: { id: r.id, first: r.first, need } });
+    });
+
+    const keepApart = ch.friction.slice(0, 4).map((p) => ({ a: { id: p.a, first: p.aFirst }, b: { id: p.b, first: p.bFirst }, notes: p.friction }));
+    const hooks = ch.interests.slice(0, 3).map((i) => ({ id: i.id, label: i.label, icon: i.icon, words: (i.words || []).slice(0, 5), children: i.children.map((c) => c.first) }));
+
     const classMove = classReading.insights.find((i) => i.tone === 'warn' || i.tone === 'idea');
     return {
-        focus, spotlight, welcome, catchUps, crews, pairs,
+        focus, spotlight, welcome, catchUps, crews, pairs, followUps, noteGroups, buddies: buddies.slice(0, 5), keepApart, hooks,
         classMove: classMove ? { insight: classMove.id, title: classMove.title, technique: classMove.techniques[0] || null } : null
     };
 }
@@ -744,7 +980,9 @@ function planNextLesson(readings, classReading) {
 export function fingerprintOf(readings, classReading) {
     const basis = JSON.stringify([
         classReading.size, classReading.papers.classAvg, classReading.papers.count, classReading.stars.total,
-        readings.map((r) => [r.id, r.profile, r.signals.map((s) => s.id).join(','), r.papers.count, Math.round(r.stars.window)]).sort()
+        readings.map((r) => [r.id, r.profile, r.signals.map((s) => s.id).join(','), r.papers.count, Math.round(r.stars.window),
+            (r.chronicle?.themes || []).map((t) => `${t.id}:${t.tone}`).sort().join(',')]).sort(),
+        (classReading.chronicle?.interests || []).map((i) => `${i.id}:${i.children.length}`).join(',')
     ]);
     let h = 2166136261;
     for (let i = 0; i < basis.length; i += 1) {
@@ -754,7 +992,12 @@ export function fingerprintOf(readings, classReading) {
     return (h >>> 0).toString(36);
 }
 
-/** The compact class brief the Almanac's AI reads: numbers and signals only, never private note text. */
+/**
+ * The compact class brief the Almanac's AI reads: numbers, signals and the THEMES of the teacher's
+ * notes (labels such as "spelling (worry)"), never the private note text itself.
+ */
+const AI_PRIVATE = new Set(['home', 'support', 'worry', 'newcomer']);
+
 export function almanacBrief(green, { className = '', level = '' } = {}) {
     const c = green.classReading;
     const lines = [];
@@ -766,11 +1009,22 @@ export function almanacBrief(green, { className = '', level = '' } = {}) {
     if (c.attendance.rate != null) lines.push(`Attendance: ${Math.round(c.attendance.rate * 100)}%.`);
     lines.push(`Growth profiles: ${PROFILE_ORDER.filter((p) => c.profiles[p]).map((p) => `${PROFILES[p].label} ${c.profiles[p]}`).join(', ')}.`);
     lines.push(`Class signals: ${c.insights.map((i) => i.title).join('; ') || 'none'}.`);
-    lines.push('Children (first name: profile; stars a lesson; papers average; signals):');
+    const ch = c.chronicle;
+    if (ch && ch.written) {
+        const shared = ch.clusters.filter((x) => x.kind !== 'context' && !AI_PRIVATE.has(x.id) && (x.open.length + x.strong.length) >= 2)
+            .map((x) => `${x.label}${x.open.length ? ` worry ${x.open.length}` : ''}${x.strong.length ? ` strength ${x.strong.length}` : ''}${x.improving.length ? ` improving ${x.improving.length}` : ''}`);
+        if (shared.length) lines.push(`Themes in the teacher's notes (children per theme): ${shared.join('; ')}.`);
+        if (ch.interests.length) lines.push(`Interests from the notes: ${ch.interests.slice(0, 5).map((i) => `${i.label} (${i.children.map((x) => x.first).join(', ')})`).join('; ')}.`);
+        if (ch.friction.length) lines.push(`Keep apart in pair work: ${ch.friction.slice(0, 4).map((p) => `${p.aFirst} & ${p.bFirst}`).join('; ')}.`);
+    }
+    lines.push('Children (first name: profile; stars a lesson; papers average; signals; note themes):');
     green.students.forEach((r) => {
-        const sig = r.signals.filter((s) => s.kind === 'act').map((s) => s.id).join(', ');
+        const sig = r.signals.filter((s) => s.kind === 'act' && !s.context && !AI_PRIVATE.has(s.theme)).map((s) => s.id).join(', ');
         const good = r.signals.filter((s) => s.kind === 'good').map((s) => s.id).join(', ');
-        lines.push(`- ${r.first}: ${PROFILES[r.profile].label}; ${r.stars.perLesson ?? '?'}★; ${r.papers.avg != null ? `${r.papers.avg}%` : 'no papers'}${r.topVirtue ? `; best virtue ${r.topVirtue.label}` : ''}${sig ? `; watch: ${sig}` : ''}${good ? `; good: ${good}` : ''}`);
+        // Sensitive background (home, health, diagnoses) never goes to the AI, not even as a label.
+        const themes = (r.chronicle?.themes || []).filter((t) => t.tone !== 'context' && t.theme && !AI_PRIVATE.has(t.id))
+            .map((t) => `${t.theme.label.toLowerCase()} (${t.tone === 'better' ? 'improving' : t.tone})`).slice(0, 4).join(', ');
+        lines.push(`- ${r.first}: ${PROFILES[r.profile].label}; ${r.stars.perLesson ?? '?'}★; ${r.papers.avg != null ? `${r.papers.avg}%` : 'no papers'}${r.topVirtue ? `; best virtue ${r.topVirtue.label}` : ''}${sig ? `; watch: ${sig}` : ''}${good ? `; good: ${good}` : ''}${themes ? `; notes: ${themes}` : ''}`);
     });
     return lines.join('\n');
 }

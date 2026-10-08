@@ -45,13 +45,14 @@ import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 // --- NEW: HERO'S CHRONICLE MODAL ---
 
-export function openHeroChronicleModal(studentId) {
+export function openHeroChronicleModal(studentId, { tab = 'notes' } = {}) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
     import('../../db/listeners.js').then(({ ensureHeroChronicleNotesListener }) => {
         ensureHeroChronicleNotesListener();
         openHeroChronicleModalContent(studentId, student);
+        if (tab === 'oracle') switchHeroChronicleTab('oracle');
     });
 }
 

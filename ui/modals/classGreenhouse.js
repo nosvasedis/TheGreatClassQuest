@@ -2,13 +2,19 @@
 // The Class Greenhouse: the whole-class companion to the Hero's Chronicle.
 // Opened from a class card in My Classes, the class roster and the Chronicle itself.
 //
-//   Overview     health thermometer, the class signals with matched techniques, the growth
-//                map (effort against papers, every child a dot) and the class's virtue mix.
-//   Every hero   one pot per child: profile, plain-English reading, signals and the next move;
-//                a tap opens the child's full reading with a quick Chronicle note.
-//   Next lesson  the rounds for the next lesson: who to focus on, who to catch shining, who
-//                to welcome back, catch-up papers, ability crews and mixed-ability partners
-//                for one activity (guilds are never touched). Ticks are kept per laptop.
+//   Overview     health thermometer, the class signals with matched techniques, what the
+//                Chronicle notes say across the class (shared worries, strengths, interests,
+//                who to keep apart), the growth map and the class's virtue mix.
+//   Every hero   one pot per child: profile, plain-English reading, signals (with the sentence
+//                from the notes that raised them) and the next move; a tap opens the full reading.
+//   Next lesson  the rounds for the next lesson: who to focus on, notes to follow up, who to
+//                catch shining, small groups and buddies from the notes, who to keep apart,
+//                lesson hooks, ability crews and partners for one activity (guilds are never
+//                touched). Ticks are kept per laptop.
+//
+// Boundaries: the Hero's Chronicle owns writing notes and the Oracle owns AI advice about ONE
+// child. The Greenhouse only reads the notes (on this laptop, by keyword, no AI) and hands the
+// teacher over to the Chronicle or the Oracle for a single child.
 //   Playbook     seed packets: the techniques picked for this class, then the whole shelf.
 //   Almanac      Elite AI counsel, written once per class and shared school-wide
 //                (daily_cache/greenhouse_<classId>_<counsel>); only re-asked by hand.
@@ -188,8 +194,11 @@ function gatherInputs(classId) {
         title: t.title || ''
     }));
     const notes = (state.get('allHeroChronicleNotes') || []).filter((n) => ids.has(n.studentId)).map((n) => ({
+        id: n.id,
         studentId: n.studentId,
         category: n.category,
+        text: n.noteText || '',
+        source: n.source || '',
         createdAtMs: n.createdAt?.toMillis ? n.createdAt.toMillis() : (n.createdAt?.seconds ? n.createdAt.seconds * 1000 : Date.now())
     }));
     return { students, awards, absences, trials, notes, oaths: cached.oaths || [] };
@@ -209,9 +218,7 @@ function recompute({ keepScroll = false } = {}) {
     renderTabs();
     renderPanel();
     if (keepScroll && body()) body().scrollTop = scroll;
-    // Never wipe a note the teacher is in the middle of writing.
-    const draft = document.querySelector(`#${MODAL_ID} .gh-note__text`)?.value.trim();
-    if (view.drawerId && !draft) renderDrawer(view.drawerId);
+    if (view.drawerId) renderDrawer(view.drawerId);
 }
 
 // ------------------------------------------------------------------ shell
@@ -282,14 +289,10 @@ function onClick(e) {
     if (t.dataset.ghPacket) return openPacket(t.dataset.ghPacket);
     if (t.dataset.ghClosePacket != null) return closePacket();
     if (t.dataset.ghChronicle) return openChronicle(t.dataset.ghChronicle);
+    if (t.dataset.ghOracle) return openChronicle(t.dataset.ghOracle, { oracle: true });
     if (t.dataset.ghCloseDrawer != null) return closeDrawer();
     if (t.dataset.ghCounsel) return askAlmanac(t.dataset.ghCounsel, { fresh: t.dataset.ghFresh === '1' });
     if (t.dataset.ghCopyPlan != null) return copyPlan();
-    if (t.dataset.ghNoteCat) {
-        t.closest('.gh-note').querySelectorAll('[data-gh-note-cat]').forEach((c) => c.setAttribute('aria-checked', String(c === t)));
-        return;
-    }
-    if (t.dataset.ghSaveNote) return saveQuickNote(t.dataset.ghSaveNote, t);
     if (t.dataset.ghStudent) return openDrawer(t.dataset.ghStudent);
 }
 
@@ -354,13 +357,7 @@ function overviewHtml(g) {
         <div class="gh-grid-2">
             <section class="gh-card gh-card--signals">
                 <h3 class="gh-h"><i class="fas fa-binoculars" aria-hidden="true"></i> What the greenhouse sees</h3>
-                <ul class="gh-insights">${c.insights.map((i) => `
-                    <li class="gh-insight gh-insight--${i.tone}">
-                        <p class="gh-insight__title">${esc(i.title)}</p>
-                        <p class="gh-insight__text">${esc(i.text)}</p>
-                        ${i.techniques.length ? `<div class="gh-chips">${i.techniques.map(packetChip).join('')}</div>` : ''}
-                    </li>`).join('')}
-                </ul>
+                <ul class="gh-insights">${c.insights.filter((i) => i.source !== 'notes' || i.tone === 'warn').map(insightLi).join('')}</ul>
             </section>
             <section class="gh-card gh-card--map">
                 <h3 class="gh-h"><i class="fas fa-seedling" aria-hidden="true"></i> The growth map</h3>
@@ -374,6 +371,8 @@ function overviewHtml(g) {
             </section>
         </div>
 
+        ${notesCardHtml(g)}
+
         <div class="gh-grid-2">
             <section class="gh-card">
                 <h3 class="gh-h"><i class="fas fa-gem" aria-hidden="true"></i> Virtue mix</h3>
@@ -384,6 +383,60 @@ function overviewHtml(g) {
                 ${bandsHtml(c.papers)}
             </section>
         </div>`;
+}
+
+function insightLi(i) {
+    return `
+        <li class="gh-insight gh-insight--${i.tone}">
+            <p class="gh-insight__title">${esc(i.title)}</p>
+            <p class="gh-insight__text">${esc(i.text)}</p>
+            ${i.techniques.length ? `<div class="gh-chips">${i.techniques.map(packetChip).join('')}</div>` : ''}
+        </li>`;
+}
+
+/** The class picture from what the teacher wrote: shared themes, interests, who with whom, balance. */
+function notesCardHtml(g) {
+    const ch = g.classReading.chronicle;
+    const nameBtn = (x) => `<button type="button" class="gh-name" data-gh-student="${x.id}">${esc(x.first)}</button>`;
+    if (!ch.written) {
+        return `<section class="gh-card gh-card--notes">
+            <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> What your notes say</h3>
+            <p class="gh-hint">No Chronicle notes for this class yet. Write a line or two in a child's Hero's Chronicle (spelling, shyness, a passion for football, who argues with whom) and the greenhouse turns it into groups, buddies and lesson hooks for the whole class.</p>
+        </section>`;
+    }
+    const t = ch.tone || {};
+    const toneTotal = Math.max(1, (t.worry || 0) + (t.good || 0) + (t.mixed || 0) + (t.neutral || 0));
+    const seg = (k, label) => (t[k] ? `<span class="gh-tone-bar__seg gh-tone-bar--${k}" style="flex-grow:${t[k]}" title="${label}: ${t[k]}"></span>` : '');
+    const people = (list, tone) => list.map((x) => `<button type="button" class="gh-name gh-name--${tone}" data-gh-student="${x.id}" title="${esc(x.quote || '')}">${esc(x.first)}</button>`).join('');
+    const moves = g.classReading.insights.filter((i) => i.source === 'notes' && i.tone !== 'warn');
+    const rows = ch.clusters.slice().sort((a, b) => (b.open.length + b.strong.length + b.improving.length) - (a.open.length + a.strong.length + a.improving.length));
+    return `
+        <section class="gh-card gh-card--notes">
+            <div class="gh-notes-head">
+                <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> What your notes say</h3>
+                <p class="gh-hint">Read from ${ch.written} Chronicle ${ch.written === 1 ? 'note' : 'notes'}, word by word, on this computer. Tap a theme to see those heroes.</p>
+                ${ch.recent ? `<div class="gh-tone-bar" role="img" aria-label="Last six weeks: ${t.worry || 0} worries, ${t.good || 0} good news, ${t.mixed || 0} mixed, ${t.neutral || 0} plain">
+                    ${seg('worry', 'Worries')}${seg('mixed', 'Mixed')}${seg('good', 'Good news')}${seg('neutral', 'Plain notes')}
+                </div><p class="gh-tone-legend"><span class="gh-tone-bar--worry"></span>Worries ${Math.round(((t.worry || 0) / toneTotal) * 100)}%<span class="gh-tone-bar--good"></span>Good news ${Math.round(((t.good || 0) / toneTotal) * 100)}%<span class="gh-tone-bar--mixed"></span>Mixed</p>` : ''}
+            </div>
+            ${moves.length ? `<h4 class="gh-h4">What to do about it, class-wide</h4><ul class="gh-insights gh-insights--notes">${moves.map(insightLi).join('')}</ul>` : ''}
+            ${rows.length ? `<h4 class="gh-h4">Theme by theme</h4><ul class="gh-themes">${rows.map((c) => `
+                <li class="gh-theme">
+                    <button type="button" class="gh-theme__name" data-gh-tab="heroes" data-gh-filter-after="theme:${c.id}"><i class="fas ${c.icon}" aria-hidden="true"></i>${esc(c.label)}</button>
+                    <span class="gh-theme__who">
+                        ${c.open.length ? `<span class="gh-theme__group"><em>${c.kind === 'context' ? 'background' : 'worry'}</em>${people(c.open, c.kind === 'context' ? 'context' : 'worry')}</span>` : ''}
+                        ${c.improving.length ? `<span class="gh-theme__group"><em>better</em>${people(c.improving, 'better')}</span>` : ''}
+                        ${c.strong.length ? `<span class="gh-theme__group"><em>strength</em>${people(c.strong, 'strength')}</span>` : ''}
+                    </span>
+                </li>`).join('')}</ul>` : '<p class="gh-hint">The notes so far do not name a clear pattern yet.</p>'}
+            <div class="gh-notes-foot">
+                ${ch.interests.length ? `<p><b><i class="fas fa-heart" aria-hidden="true"></i> Passions</b>${ch.interests.slice(0, 6).map((i) => `<span class="gh-like">${esc(i.icon || '')} ${esc(i.label)} <small>${i.children.map((x) => esc(x.first)).join(', ')}</small></span>`).join('')}</p>` : ''}
+                ${ch.friction.length ? `<p><b><i class="fas fa-people-arrows" aria-hidden="true"></i> Keep apart</b>${ch.friction.slice(0, 4).map((x) => `<span class="gh-duo gh-duo--apart">${nameBtn({ id: x.a, first: x.aFirst })} &amp; ${nameBtn({ id: x.b, first: x.bFirst })}</span>`).join('')}</p>` : ''}
+                ${ch.warm.length ? `<p><b><i class="fas fa-handshake" aria-hidden="true"></i> Good together</b>${ch.warm.slice(0, 4).map((x) => `<span class="gh-duo">${nameBtn({ id: x.a, first: x.aFirst })} &amp; ${nameBtn({ id: x.b, first: x.bFirst })}</span>`).join('')}</p>` : ''}
+                ${ch.followUps.length ? `<p><b><i class="fas fa-reply" aria-hidden="true"></i> Gone quiet</b>${ch.followUps.map((f) => `<span class="gh-duo">${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small></span>`).join('')}</p>` : ''}
+                ${ch.unwritten.length ? `<p><b><i class="fas fa-feather" aria-hidden="true"></i> No notes yet</b>${ch.unwritten.slice(0, 8).map(nameBtn).join(', ')}${ch.unwritten.length > 8 ? ` +${ch.unwritten.length - 8}` : ''}</p>` : ''}
+            </div>
+        </section>`;
 }
 
 function virtueMixHtml(mix, readings = []) {
@@ -482,11 +535,17 @@ function heroesHtml(g) {
         { id: 'act', label: 'Need you', count: g.students.filter((r) => r.signals.some((s) => s.sev >= 2)).length },
         ...PROFILE_ORDER.map((p) => ({ id: p, label: PROFILES[p].short, count: g.classReading.profiles[p] })).filter((f) => f.count)
     ];
+    // A theme from the notes ("theme:spelling"), picked on the Overview, filters the pots too.
+    const themeId = view.heroFilter.startsWith('theme:') ? view.heroFilter.slice(6) : null;
+    const cluster = themeId ? g.classReading.chronicle.clusters.find((c) => c.id === themeId) : null;
+    if (themeId && !cluster) view.heroFilter = 'all';
+    const inCluster = (r) => cluster && [...cluster.open, ...cluster.strong, ...cluster.improving].some((x) => x.id === r.id);
     const list = g.students.filter((r) => view.heroFilter === 'all'
-        || (view.heroFilter === 'act' ? r.signals.some((s) => s.sev >= 2) : r.profile === view.heroFilter));
+        || (cluster ? inCluster(r) : view.heroFilter === 'act' ? r.signals.some((s) => s.sev >= 2) : r.profile === view.heroFilter));
     return `
         <div class="gh-filters" role="group" aria-label="Show">${filters.map((f) => `
             <button type="button" class="gh-filter${view.heroFilter === f.id ? ' is-active' : ''}${PROFILES[f.id] ? ` gh-tone--${f.id}` : ''}" data-gh-filter="${f.id}" aria-pressed="${view.heroFilter === f.id}">${f.label}<b>${f.count}</b></button>`).join('')}
+            ${cluster ? `<button type="button" class="gh-filter gh-filter--theme is-active" data-gh-filter="all" aria-pressed="true"><i class="fas ${cluster.icon}" aria-hidden="true"></i>Notes: ${esc(cluster.label)}<b>${list.length}</b><i class="fas fa-xmark" aria-hidden="true"></i></button>` : ''}
         </div>
         <div class="gh-pots">${list.map(potHtml).join('') || '<p class="gh-hint">Nobody here right now.</p>'}</div>`;
 }
@@ -506,15 +565,23 @@ function potHtml(r) {
             <p class="gh-pot__summary">${esc(r.summary)}</p>
             ${sparkHtml(r.stars.weekly)}
             <ul class="gh-signals">
-                ${act.map((s) => `<li class="gh-signal gh-signal--sev${s.sev}"><i class="fas ${s.icon}" aria-hidden="true"></i>${esc(s.text)}</li>`).join('')}
-                ${!act.length && good ? `<li class="gh-signal gh-signal--good"><i class="fas ${good.icon}" aria-hidden="true"></i>${esc(good.text)}</li>` : ''}
+                ${act.map((x) => signalLi(x)).join('')}
+                ${!act.length && good ? signalLi(good) : ''}
             </ul>
+            ${noteTagsHtml(r)}
             <p class="gh-pot__next"><span>Next</span>${esc(r.action)}</p>
             <div class="gh-pot__foot">
                 <button type="button" class="gh-btn gh-btn--ghost" data-gh-student="${r.id}"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Reading</button>
                 <button type="button" class="gh-btn gh-btn--ghost" data-gh-chronicle="${r.id}"><i class="fas fa-book-reader" aria-hidden="true"></i> Chronicle</button>
             </div>
         </article>`;
+}
+
+/** Small tags for what the notes say about this child (newest first). */
+function noteTagsHtml(r) {
+    const themes = (r.chronicle?.themes || []).filter((t) => t.theme).slice(0, 4);
+    if (!themes.length) return '';
+    return `<p class="gh-pot__notes" aria-label="From the Chronicle">${themes.map((t) => `<span class="gh-tag gh-read--${t.tone}"${t.tone === 'context' ? '' : ` title="${esc(t.quote)}"`}><i class="fas ${t.theme.icon}" aria-hidden="true"></i>${esc(t.theme.label)}</span>`).join('')}</p>`;
 }
 
 function sparkHtml(weekly) {
@@ -616,20 +683,51 @@ function renderDrawer(studentId) {
             ${sparkHtml(s.weekly)}
             ${p.series.length >= 2 ? paperLineSvg(p.series) : ''}
             <h4 class="gh-h4">Signals</h4>
-            <ul class="gh-signals gh-signals--all">${r.signals.map((x) => `<li class="gh-signal gh-signal--${x.kind === 'good' ? 'good' : `sev${x.sev}`}"><i class="fas ${x.icon}" aria-hidden="true"></i>${esc(x.text)}</li>`).join('') || '<li class="gh-signal">Nothing to flag.</li>'}</ul>
+            <ul class="gh-signals gh-signals--all">${r.signals.map((x) => signalLi(x, { quote: false })).join('') || '<li class="gh-signal">Nothing to flag.</li>'}</ul>
             ${p.missed.length ? `<h4 class="gh-h4">Papers without a mark</h4><ul class="gh-missed">${p.missed.map((m) => `<li>${esc(m.title)} · ${dayLabel(m.day)}${m.wasAbsent ? ' · absent that day' : ''}</li>`).join('')}</ul>` : ''}
+            ${chronicleReadHtml(r)}
             <h4 class="gh-h4">Seed packets for ${esc(r.first)}</h4>
             <div class="gh-chips">${r.techniques.map(packetChip).join('')}</div>
-            <div class="gh-note">
-                <h4 class="gh-h4">Quick Chronicle note</h4>
-                <div class="gh-note__cats" role="radiogroup" aria-label="Category">${['General', 'Academic', 'Behavior', 'Social', 'Goals'].map((c, i) => `
-                    <button type="button" role="radio" class="gh-note__cat" data-gh-note-cat="${c}" aria-checked="${i === 0}">${c === 'Behavior' ? 'Behaviour' : c}</button>`).join('')}
-                </div>
-                <textarea class="gh-note__text" rows="3" maxlength="1000" placeholder="What did you notice about ${esc(r.first)} today?" aria-label="Note about ${esc(r.first)}"></textarea>
-                <button type="button" class="gh-btn" data-gh-save-note="${r.id}"><i class="fas fa-feather-pointed" aria-hidden="true"></i> Save to Chronicle</button>
+            <div class="gh-handoff">
+                <button type="button" class="gh-btn gh-btn--wide" data-gh-chronicle="${r.id}"><i class="fas fa-feather-pointed" aria-hidden="true"></i> Write in ${esc(r.first)}'s Chronicle</button>
+                <button type="button" class="gh-btn gh-btn--wide gh-btn--ghost" data-gh-oracle="${r.id}"><i class="fas fa-hat-wizard" aria-hidden="true"></i> Ask the Oracle about ${esc(r.first)}</button>
             </div>
-            <button type="button" class="gh-btn gh-btn--wide gh-btn--ghost" data-gh-chronicle="${r.id}"><i class="fas fa-book-reader" aria-hidden="true"></i> Open ${esc(r.first)}'s Hero's Chronicle</button>
         </div>`;
+}
+
+const TONE_WORD = { worry: 'Worry', better: 'Getting better', strength: 'Strength', context: 'Background' };
+
+/** One signal line; signals raised by a note carry the sentence that raised them. */
+function signalLi(x, { quote = true } = {}) {
+    const cls = x.kind === 'good' ? 'good' : `sev${x.sev}`;
+    // Background notes (home, health, support) are never quoted on the open grid, only in the drawer.
+    const showQuote = quote && x.quote && !x.context;
+    return `<li class="gh-signal gh-signal--${cls}"><i class="fas ${x.icon}" aria-hidden="true"></i><span>${esc(x.text)}${showQuote ? `<q class="gh-quote">${esc(x.quote)}</q>` : ''}</span></li>`;
+}
+
+/** What this child's Chronicle notes say, theme by theme. Reading only: writing stays in the Chronicle. */
+function chronicleReadHtml(r) {
+    const ch = r.chronicle;
+    if (!ch || !ch.notes) {
+        return `<div class="gh-read"><h4 class="gh-h4"><i class="fas fa-book-reader" aria-hidden="true"></i> From the Chronicle</h4>
+            <p class="gh-hint">No notes about ${esc(r.first)} yet. Whatever you write in the Chronicle is read here across the whole class.</p></div>`;
+    }
+    const themes = ch.themes.slice(0, 6);
+    return `
+        <div class="gh-read">
+            <h4 class="gh-h4"><i class="fas fa-book-reader" aria-hidden="true"></i> From the Chronicle <span class="gh-h__count">${ch.written} ${ch.written === 1 ? 'note' : 'notes'}${ch.lastDay != null ? ` · last ${dayLabel(ch.lastDay)}` : ''}</span></h4>
+            ${themes.length ? `<ul class="gh-read__themes">${themes.map((t) => `
+                <li class="gh-read__theme gh-read--${t.tone}">
+                    <span class="gh-read__tag"><i class="fas ${t.theme?.icon || 'fa-feather'}" aria-hidden="true"></i>${esc(t.theme?.label || t.id)}<em>${TONE_WORD[t.tone] || ''}${t.count > 1 ? ` · ${t.count} notes` : ''}</em>${t.last != null ? `<span class="gh-read__day">${dayLabel(t.last)}</span>` : ''}</span>
+                    <q class="gh-quote">${esc(t.quote)}</q>
+                </li>`).join('')}</ul>`
+        : '<p class="gh-hint">The notes so far do not name a clear pattern (a skill, a habit, a strength).</p>'}
+            ${ch.interests.length ? `<p class="gh-read__likes"><i class="fas fa-heart" aria-hidden="true"></i> Loves ${ch.interests.map((id) => esc(interestLabel(id))).join(', ')}</p>` : ''}
+        </div>`;
+}
+
+function interestLabel(id) {
+    return view.green?.classReading.chronicle.interests.find((i) => i.id === id)?.label || id;
 }
 
 function paperLineSvg(series) {
@@ -642,26 +740,9 @@ function paperLineSvg(series) {
     </svg><figcaption>Last ${n} papers</figcaption></figure>`;
 }
 
-async function saveQuickNote(studentId, btn) {
-    const box = btn.closest('.gh-note');
-    const text = box.querySelector('.gh-note__text').value.trim();
-    const category = box.querySelector('[data-gh-note-cat][aria-checked="true"]')?.dataset.ghNoteCat || 'General';
-    if (!text) {
-        box.querySelector('.gh-note__text').focus();
-        return;
-    }
-    btn.disabled = true;
-    try {
-        const { addOrUpdateHeroChronicleNote } = await import('../../db/actions.js');
-        await addOrUpdateHeroChronicleNote(studentId, text, category);
-        box.querySelector('.gh-note__text').value = '';
-    } finally {
-        btn.disabled = false;
-    }
-}
-
-function openChronicle(studentId) {
-    import('./hero.js').then((m) => m.openHeroChronicleModal(studentId));
+/** One child's notes and AI advice live in the Hero's Chronicle; it opens above the Greenhouse. */
+function openChronicle(studentId, { oracle = false } = {}) {
+    import('./hero.js').then((m) => m.openHeroChronicleModal(studentId, { tab: oracle ? 'oracle' : 'notes' }));
 }
 
 // ------------------------------------------------------------------ next lesson
@@ -711,6 +792,7 @@ function lessonHtml(g) {
                 ${p.catchUps.length ? `<h4 class="gh-h4">Catch-up papers</h4>${p.catchUps.map((x) => tick(`catch-${x.id}`, `${nameBtn(x)} <small>${esc(x.papers.slice(0, 2).join(', '))}${x.papers.length > 2 ? ` +${x.papers.length - 2}` : ''}</small>`)).join('')}` : ''}
             </section>
         </div>
+        ${lessonNotesHtml(p, tick, nameBtn)}
         ${p.crews ? `
         <section class="gh-card">
             <h3 class="gh-h"><i class="fas fa-layer-group" aria-hidden="true"></i> Three crews for one activity</h3>
@@ -727,9 +809,32 @@ function lessonHtml(g) {
         ${p.pairs ? `
         <section class="gh-card">
             <h3 class="gh-h"><i class="fas fa-user-group" aria-hidden="true"></i> Mixed-ability partners</h3>
-            <p class="gh-hint">Stronger papers sit with middle ones, so the gap is small enough to help. For pair work only.</p>
+            <p class="gh-hint">Stronger papers sit with middle ones, so the gap is small enough to help${p.keepApart.length ? ', and nobody your notes say to keep apart sits together' : ''}. For pair work only.</p>
             <div class="gh-pairs">${p.pairs.map((pair) => `<span class="gh-pair">${pair.map(nameBtn).join('<i class="fas fa-plus" aria-hidden="true"></i>')}</span>`).join('')}</div>
         </section>` : ''}`;
+}
+
+const NEED_WORDS = { newcomer: 'new to the class', shy: 'shy to speak', worry: 'needs a calm start', support: 'learning support', listening: 'instructions', reading: 'reading' };
+
+/** The rounds that come from what the Chronicle notes say. */
+function lessonNotesHtml(p, tick, nameBtn) {
+    if (!p.followUps.length && !p.noteGroups.length && !p.buddies.length && !p.keepApart.length && !p.hooks.length) return '';
+    return `
+        <section class="gh-card gh-card--fromnotes">
+            <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> From your notes</h3>
+            <div class="gh-fromnotes">
+                ${p.followUps.length ? `<div><h4 class="gh-h4">Follow up</h4><p class="gh-hint">You wrote these down, then nothing more. See how it is going, then add a line in the Chronicle.</p>
+                    ${p.followUps.map((f) => tick(`follow-${f.id}`, `${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small><q class="gh-quote">${esc(f.quote)}</q>`)).join('')}</div>` : ''}
+                ${p.noteGroups.length ? `<div><h4 class="gh-h4">Small groups, ten minutes with you</h4><p class="gh-hint">Children your notes name for the same skill. While the class works, sit with one group.</p>
+                    ${p.noteGroups.map((gr) => tick(`group-${gr.id}`, `<b><i class="fas ${gr.icon}" aria-hidden="true"></i> ${esc(gr.label)}</b> ${gr.members.map(nameBtn).join(', ')}${gr.technique ? ` <button type="button" class="gh-chip" data-gh-packet="${gr.technique}">${esc(getTechnique(gr.technique)?.title || '')}</button>` : ''}`)).join('')}</div>` : ''}
+                ${p.buddies.length ? `<div><h4 class="gh-h4">Buddies</h4><p class="gh-hint">A kind helper beside a child who needs one, for pair work.</p>
+                    ${p.buddies.map((b) => tick(`buddy-${b.child.id}`, `${nameBtn(b.helper)} <i class="fas fa-hands-holding-child" aria-hidden="true"></i> ${nameBtn(b.child)} <small>${esc(b.helper.why.toLowerCase())} · ${esc(NEED_WORDS[b.child.need] || b.child.need)}</small>`)).join('')}</div>` : ''}
+                ${p.keepApart.length ? `<div><h4 class="gh-h4">Keep apart</h4><p class="gh-hint">Written about together in rough notes. Seat and pair them apart.</p>
+                    ${p.keepApart.map((k) => `<p class="gh-duo gh-duo--apart">${nameBtn(k.a)} <i class="fas fa-arrows-left-right" aria-hidden="true"></i> ${nameBtn(k.b)}</p>`).join('')}</div>` : ''}
+                ${p.hooks.length ? `<div><h4 class="gh-h4">Lesson hooks</h4><p class="gh-hint">Passions from your notes. Use them in example sentences and warm-ups.</p>
+                    ${p.hooks.map((h) => `<p class="gh-hook"><b>${esc(h.icon || '')} ${esc(h.label)}</b> <small>${esc(h.children.join(', '))}</small>${h.words.length ? `<span class="gh-hook__words">${h.words.map((w) => `<span>${esc(w)}</span>`).join('')}</span>` : ''}</p>`).join('')}</div>` : ''}
+            </div>
+        </section>`;
 }
 
 function planText(g) {
@@ -742,6 +847,11 @@ function planText(g) {
     if (p.spotlight.length) lines.push('', 'Catch them shining:', ...p.spotlight.map((x) => `- ${x.first}`));
     if (p.welcome.length) lines.push('', 'Welcome back:', ...p.welcome.map((x) => `- ${x.first}`));
     if (p.catchUps.length) lines.push('', 'Catch-up papers:', ...p.catchUps.map((x) => `- ${x.first}: ${x.papers.join(', ')}`));
+    if (p.followUps.length) lines.push('', 'Follow up:', ...p.followUps.map((f) => `- ${f.first}: ${f.label.toLowerCase()} (${f.daysAgo} days ago)`));
+    if (p.noteGroups.length) lines.push('', 'Small groups:', ...p.noteGroups.map((gr) => `- ${gr.label}: ${gr.members.map((m) => m.first).join(', ')}`));
+    if (p.buddies.length) lines.push('', 'Buddies:', ...p.buddies.map((b) => `- ${b.helper.first} with ${b.child.first}`));
+    if (p.keepApart.length) lines.push('', 'Keep apart:', ...p.keepApart.map((k) => `- ${k.a.first} / ${k.b.first}`));
+    if (p.hooks.length) lines.push('', 'Lesson hooks:', ...p.hooks.map((h) => `- ${h.label}: ${h.words.join(', ')}`));
     if (p.crews) lines.push('', 'Crews for one activity:', ...p.crews.map((c) => `- ${c.label}: ${c.members.map((m) => m.first).join(', ')}`));
     if (p.pairs) lines.push('', 'Partners:', ...p.pairs.map((pair) => `- ${pair.map((m) => m.first).join(' + ')}`));
     return lines.join('\n');
@@ -826,7 +936,7 @@ function almanacHtml() {
             <div class="gh-almanac__mast">
                 <p class="gh-almanac__kicker">Elite counsel · written once, shared by every computer in the school</p>
                 <h3 class="gh-almanac__title font-title">The Gardener's Almanac</h3>
-                <p class="gh-almanac__lede">The Almanac reads this class's numbers and signals (never your private note text) and writes advice for the whole class.</p>
+                <p class="gh-almanac__lede">The Almanac reads this class's numbers, signals and the themes of your notes (like "spelling" or "talks over others"), never the note text itself or anything about home or health, and writes advice for the whole class. For one child, ask the Oracle in their Chronicle.</p>
             </div>
             <div class="gh-counsels">${ALMANAC_COUNSELS.map((c) => `
                 <button type="button" class="gh-counsel" data-gh-counsel="${c.id}">

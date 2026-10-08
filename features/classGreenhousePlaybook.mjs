@@ -22,7 +22,8 @@ export const PLAYBOOK_AREAS = [
     { id: 'focus', label: 'Focus', icon: 'fa-bullseye' },
     { id: 'assessment', label: 'Assessment', icon: 'fa-clipboard-check' },
     { id: 'attendance', label: 'Attendance', icon: 'fa-door-open' },
-    { id: 'wellbeing', label: 'Wellbeing', icon: 'fa-seedling' }
+    { id: 'wellbeing', label: 'Wellbeing', icon: 'fa-seedling' },
+    { id: 'routine', label: 'Routines', icon: 'fa-repeat' }
 ];
 
 export const TECHNIQUES = [
@@ -189,7 +190,53 @@ export const TECHNIQUES = [
         tool: "Hero's Chronicle" },
     { id: 'seat-near', area: 'wellbeing', time: 'Any time', title: 'Teach from near them',
         how: 'Move around the room and teach from beside the child for the first minutes of a task instead of calling across the room.',
-        why: 'Proximity calms, refocuses and reassures without a word.' }
+        why: 'Proximity calms, refocuses and reassures without a word.' },
+    // Read from the Chronicle: routines for what several children share
+    { id: 'homework-checkpoint', area: 'routine', time: '2 min', title: 'Homework checkpoint',
+        how: 'Homework goes on the desk as children sit down; you walk the rows during the warm-up and tick it. Children who missed it finish one exercise in the first five minutes.',
+        why: 'When several children skip homework, a calm daily check works better than reminders, and nobody is told off in front of the class.' },
+    { id: 'ready-kit', area: 'routine', time: 'Set once', title: 'The ready kit',
+        how: 'Keep a box with spare pencils, rubbers and two old copies of the book. Borrowing costs nothing, but it goes back at the end.',
+        why: 'The lesson starts for everyone, and forgetting stops being a way to sit out.' },
+    { id: 'bell-work', area: 'routine', time: '5 min', title: 'Bell work',
+        how: 'A short task is on the board before the lesson starts (three words to copy and illustrate). Children who arrive start it at once.',
+        why: 'Late arrivals slip in without stopping the class, and the first minutes are never lost.' },
+    { id: 'seat-plan', area: 'routine', time: 'Set once', title: 'A seating plan with care',
+        how: 'Sit children your notes link to friction on different tables, and put each one next to a calm, kind classmate. Guilds stay as they are; this is only where they sit.',
+        why: 'Many conflicts are about who sits together. Moving the seat ends them without a word.' },
+    { id: 'calm-corner', area: 'wellbeing', time: 'Any time', title: 'A calm minute',
+        how: 'Agree a quiet signal a child can give when it is too much: they take one minute at the window or the back table, then rejoin.',
+        why: 'Anxious or angry children settle faster when they can step away without a scene.' },
+    { id: 'access-adjust', area: 'support', time: '5 min prep', title: 'The adjusted copy',
+        how: 'Prepare one version of the worksheet with bigger print, more space, fewer items and the first answer done as an example. Offer a little more time on papers.',
+        why: 'Children with dyslexia or attention difficulties show what they know when the page is not the obstacle.' },
+    { id: 'interest-hooks', area: 'engagement', time: '1 min prep', title: 'Hooks from their world',
+        how: 'Write your examples and questions about the things your notes say they love (football, animals, games): "If Messi has 3 balls…".',
+        why: 'Children listen harder to English about their own world, and quiet ones suddenly have something to say.' },
+
+    // Read from the Chronicle: language skills several children share
+    { id: 'paired-reading', area: 'language', time: '6 min', title: 'Paired reading',
+        how: 'A steady reader and a less confident one read the same text together: together aloud, then the weaker reader alone, with the partner helping on hard words.',
+        why: 'Reading practice that is safe and doubles the minutes each child reads aloud.' },
+    { id: 'model-text', area: 'language', time: '5 min', title: 'Model, then change it',
+        how: 'Show one short model (three sentences). Children copy its shape and change two or three words to make it their own.',
+        why: 'Weak writers need the shape of good writing before they can fill it.' },
+    { id: 'minimal-pairs', area: 'language', time: '3 min', title: 'Minimal pairs',
+        how: 'Say pairs that differ in one sound (ship/sheep, thin/tin, very/berry); children hold up 1 or 2. Then they say them.',
+        why: 'Greek speakers mix the same few English sounds; hearing the difference comes before saying it.' },
+    { id: 'guided-discovery', area: 'language', time: '6 min', title: 'Spot the rule',
+        how: 'Show four example sentences with the pattern; pairs work out the rule and write one more example before you explain.',
+        why: 'Grammar children discover themselves sticks longer than grammar they are told.' },
+    { id: 'word-wall', area: 'language', time: '2 min a lesson', title: 'The word wall',
+        how: 'Each unit\'s key words go on the wall with a picture. Start each lesson by pointing at three: the class says the word, then a sentence.',
+        why: 'Vocabulary needs to be met again and again; the wall does it for you.' },
+    { id: 'listen-for-three', area: 'language', time: '4 min', title: 'Listen for three',
+        how: 'Before an audio or story, give one simple job: "Listen for three animals." Check, then play it again with a harder job.',
+        why: 'Children who "don\'t understand" often just don\'t know what to listen for.' },
+    { id: 'strength-notes', area: 'wellbeing', time: '2 min after class', title: 'Write the good days too',
+        how: 'For every worry you write in the Chronicle, add one line about something that went well, for any child.',
+        why: 'A Chronicle of only worries hides the progress you need to see, and it is what the next teacher reads.',
+        tool: "Hero's Chronicle" }
 ];
 
 const TECHNIQUE_BY_ID = new Map(TECHNIQUES.map((t) => [t.id, t]));

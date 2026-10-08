@@ -458,17 +458,102 @@
 .gh-paperline__dot { fill: #fff; stroke: var(--gh-reaching); stroke-width: 2; }
 .gh-paperline figcaption { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #8aa087; }
 .gh-missed { font-size: 0.82rem; color: var(--gh-ink-soft); padding-left: 16px; list-style: disc; }
-.gh-note { margin-top: 6px; padding: 10px 12px 12px; border-radius: 14px; background: #fff; border: 1px solid #e2ebdd; }
-.gh-note .gh-h4 { margin-top: 0; }
-.gh-note__cats { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-.gh-note__cat { padding: 4px 9px; border-radius: 999px; font-size: 0.74rem; font-weight: 800; color: var(--gh-ink-soft); background: #f3f8ef; border: 1px solid #dbe7d5; }
-.gh-note__cat[aria-checked="true"] { color: #fff; background: var(--gh-leaf-deep); border-color: var(--gh-leaf-deep); }
-.gh-note__text {
-    width: 100%; resize: vertical; padding: 8px 10px; border-radius: 10px;
-    border: 2px solid #dbe7d5; background: #fbfdf9; font-size: 0.9rem; color: var(--gh-ink);
-    margin-bottom: 8px;
+/* What the Chronicle says: a ruled gardener's notebook pinned to the glass */
+#class-greenhouse-modal .gh-read--worry { --t: #c8673f; --tb: #fdf0e8; }
+#class-greenhouse-modal .gh-read--better { --t: #3f8fd0; --tb: #eaf3fb; }
+#class-greenhouse-modal .gh-read--strength { --t: #2a6f40; --tb: #e8f4e9; }
+#class-greenhouse-modal .gh-read--context { --t: #6b6a8f; --tb: #efeff6; }
+.gh-quote {
+    display: block; margin-top: 3px; padding: 2px 0 2px 9px;
+    border-left: 3px solid var(--t, #b9d0b1);
+    font-family: 'Georgia', 'Times New Roman', serif; font-style: italic; font-weight: 400;
+    font-size: 0.82rem; line-height: 1.4; color: #4a5a50;
 }
-.gh-note__text:focus { outline: none; border-color: var(--gh-leaf); }
+.gh-quote::before { content: '“'; }
+.gh-quote::after { content: '”'; }
+.gh-signal > span { min-width: 0; }
+.gh-signal--sev3 .gh-quote, .gh-signal--sev2 .gh-quote { --t: #e3a487; }
+.gh-signal--good .gh-quote { --t: #9fcfaa; }
+.gh-read {
+    margin-top: 14px; padding: 4px 14px 12px; border-radius: 6px 14px 14px 6px;
+    background:
+        linear-gradient(90deg, transparent 22px, rgba(200, 103, 63, 0.35) 22px, rgba(200, 103, 63, 0.35) 23px, transparent 23px),
+        repeating-linear-gradient(180deg, #fffdf6 0 25px, #e9efe3 25px 26px);
+    border: 1px solid #e6e0c8; box-shadow: 0 6px 14px -10px rgba(31, 61, 44, 0.45);
+    padding-left: 32px;
+}
+.gh-read .gh-h4 { margin-top: 10px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.gh-read__themes { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.gh-read__theme { position: relative; }
+.gh-read__tag { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 0.8rem; font-weight: 800; color: var(--t); }
+.gh-read__tag em { font-style: normal; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: var(--tb); }
+.gh-read__day { font-size: 0.68rem; font-weight: 700; color: #9aa596; }
+.gh-read__likes { margin-top: 10px; font-size: 0.8rem; font-weight: 700; color: #a6416a; }
+.gh-handoff { display: grid; gap: 8px; margin-top: 14px; }
+.gh-pot__notes { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.gh-tag {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 800; color: var(--t); background: var(--tb); border: 1px solid color-mix(in srgb, var(--t) 25%, transparent);
+}
+.gh-filter--theme { background: #fffdf6; border-style: dashed; }
+
+.gh-card--notes {
+    background:
+        linear-gradient(90deg, transparent 26px, rgba(200, 103, 63, 0.28) 26px, rgba(200, 103, 63, 0.28) 27px, transparent 27px),
+        repeating-linear-gradient(180deg, #fffdf6 0 29px, #edf1e6 29px 30px);
+    border-color: #e6e0c8;
+    padding-left: 40px;
+    position: relative;
+}
+.gh-card--notes::before {
+    content: ''; position: absolute; top: -9px; left: 50%; width: 74px; height: 20px; transform: translateX(-50%) rotate(-2deg);
+    background: rgba(223, 236, 207, 0.85); border: 1px solid rgba(63, 154, 92, 0.25); border-radius: 3px;
+}
+.gh-notes-head { display: grid; gap: 4px; margin-bottom: 8px; }
+.gh-insights--notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.gh-insights--notes .gh-insight { background: rgba(255, 255, 255, 0.82); }
+.gh-tone-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: #eef3ea; max-width: 420px; margin-top: 4px; }
+.gh-tone-bar__seg { min-width: 4px; }
+.gh-tone-bar--worry { background: #d98a63; }
+.gh-tone-bar--good { background: #4fa86a; }
+.gh-tone-bar--mixed { background: #e3bf55; }
+.gh-tone-bar--neutral { background: #c9d3c5; }
+.gh-tone-legend { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.72rem; font-weight: 700; color: var(--gh-ink-soft); }
+.gh-tone-legend span { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-left: 6px; }
+.gh-themes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 22px; }
+.gh-theme { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #e2e6d6; }
+.gh-theme__name { flex: none; width: 168px; display: inline-flex; align-items: baseline; gap: 7px; text-align: left; font-weight: 800; font-size: 0.86rem; color: var(--gh-ink); }
+.gh-theme__name i { color: var(--gh-clay); width: 15px; text-align: center; }
+.gh-theme__name:hover { color: var(--gh-leaf-deep); text-decoration: underline; }
+.gh-theme__who { display: flex; flex-wrap: wrap; gap: 4px 12px; min-width: 0; }
+.gh-theme__group { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.gh-theme__group em { font-style: normal; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: #9aa596; }
+#class-greenhouse-modal .gh-name--worry { color: #a14a24; border-bottom-color: rgba(200, 103, 63, 0.4); }
+#class-greenhouse-modal .gh-name--better { color: #2c6ea6; border-bottom-color: rgba(63, 143, 208, 0.4); }
+#class-greenhouse-modal .gh-name--strength { color: var(--gh-leaf-deep); }
+#class-greenhouse-modal .gh-name--context { color: #5a5980; border-bottom-color: rgba(107, 106, 143, 0.35); }
+.gh-notes-foot { display: grid; gap: 8px; margin-top: 12px; }
+.gh-notes-foot p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-size: 0.84rem; }
+.gh-notes-foot b { flex: none; min-width: 128px; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gh-clay-deep); }
+.gh-notes-foot b i { margin-right: 4px; }
+.gh-like { font-weight: 700; color: var(--gh-ink); }
+.gh-like small, .gh-duo small { font-weight: 600; color: var(--gh-ink-soft); }
+.gh-duo { display: inline-flex; align-items: baseline; gap: 5px; }
+#class-greenhouse-modal .gh-duo--apart .gh-name { color: #a14a24; }
+.gh-duo--apart i { color: var(--gh-clay); font-size: 0.75rem; }
+
+/* Next lesson: rounds that come from the notes */
+.gh-card--fromnotes { background: linear-gradient(180deg, #fffdf6, #fff 60%); border-color: #e6e0c8; }
+.gh-fromnotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 26px; }
+.gh-fromnotes > div > .gh-h4:first-child { margin-top: 6px; }
+.gh-fromnotes .gh-hint { margin-bottom: 4px; }
+.gh-fromnotes .gh-round__text b i { color: var(--gh-clay); }
+.gh-fromnotes .gh-round__text .gh-chip { margin-left: 6px; vertical-align: middle; }
+.gh-fromnotes .gh-duo { display: flex; padding: 6px 0; border-bottom: 1px dashed #e6e0c8; }
+.gh-hook { padding: 6px 0; border-bottom: 1px dashed #e6e0c8; font-size: 0.88rem; }
+.gh-hook small { color: var(--gh-ink-soft); font-weight: 600; }
+.gh-hook__words { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.gh-hook__words span { padding: 2px 9px; border-radius: 6px; background: #f6efda; border: 1px solid #e8dcb6; font-size: 0.76rem; font-weight: 700; color: #6d5521; font-family: 'Georgia', serif; }
 
 /* ---------------------------------------------------------------- next lesson */
 .gh-lesson-head { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
@@ -557,6 +642,7 @@
 .gh-area--assessment { --a: #4b5fb5; }
 .gh-area--attendance { --a: #0f8b8d; }
 .gh-area--wellbeing { --a: #5c8a3a; }
+.gh-area--routine { --a: #8a6d3b; }
 .gh-filter[class*="gh-area--"].is-active { background: var(--a); border-color: var(--a); }
 .gh-chip[class*="gh-area--"] i { color: var(--a); }
 
@@ -617,6 +703,7 @@
     .gh-labels .gh-label:first-child { grid-column: span 2; }
     .gh-counsels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .gh-crews { grid-template-columns: 1fr; }
+    .gh-themes, .gh-fromnotes, .gh-insights--notes { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
     #class-greenhouse-modal { padding: 0 !important; }
@@ -640,6 +727,10 @@
     .gh-pots, .gh-packets { grid-template-columns: 1fr; }
     .gh-counsels { grid-template-columns: 1fr; }
     .gh-almanac__page { padding: 14px; }
+    .gh-card--notes { padding-left: 30px; }
+    .gh-theme { flex-direction: column; gap: 4px; }
+    .gh-theme__name { width: auto; }
+    .gh-notes-foot b { min-width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

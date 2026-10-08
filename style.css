@@ -85,7 +85,7 @@
 /* 14. Loading screen star pulse, spinning rings */
 @import url('./styles/loading.css');
 
-/* 15. Scholar's Scroll: starfall, chart bars, trial history, bulk-log */
+/* 15. Scholar's Scroll: chart bars, trial history, bulk-log (Starfall loads styles/starfall.css with its module) */
 @import url('./styles/scholar.css');
 
 /* 16. Overview modal stat cards, overview-tab-btn */

@@ -20,6 +20,7 @@ import { isSecretaryOfficeActive } from '../../features/secretary/officeModal.js
 import { openMoveStudentModal } from './moveStudent.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { setupLeagueHomeworkImport } from './questBoardImport.js';
+import { prepareStarfall } from './starfall.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -756,69 +757,23 @@ export async function openQuestAssignmentModal() {
 
 export { openMoveStudentModal };
 
-// --- SINGLE STARFALL (Used for individual entry edit or correction) ---
+// --- STARFALL: bonus stars fall into a jar for each scholar (see ui/modals/starfall.js) ---
 export function showStarfallModal(studentId, studentName, bonusAmount, trialType) {
-    playSound('magic_chime');
-
-    // Toggle views
-    document.getElementById('starfall-single-view').classList.remove('hidden');
-    document.getElementById('starfall-batch-view').classList.add('hidden');
-
-    document.getElementById('starfall-student-name').innerText = studentName;
-    const confirmBtn = document.getElementById('starfall-confirm-btn');
-    confirmBtn.innerText = `Yes, Bestow ${bonusAmount} Star! ✨`;
-
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-    newConfirmBtn.addEventListener('click', () => {
-        handleAwardBonusStar(studentId, bonusAmount, trialType); 
-        hideModal('starfall-modal');
+    prepareStarfall({
+        mode: 'single',
+        students: [{ studentId, name: studentName, bonusAmount, trialType }],
+        onBestow: () => handleAwardBonusStar(studentId, bonusAmount, trialType),
+        close: () => hideModal('starfall-modal')
     });
-
     showAnimatedModal('starfall-modal');
 }
 
-// --- BATCH STARFALL (New Function) ---
 export function showBatchStarfallModal(eligibleStudents) {
-    playSound('magic_chime');
-
-    // Toggle views
-    document.getElementById('starfall-single-view').classList.add('hidden');
-    document.getElementById('starfall-batch-view').classList.remove('hidden');
-
-    const hasGrowth = eligibleStudents.some((s) => s.kind === 'growth');
-    const messageEl = document.querySelector('#starfall-batch-view .starfall-message');
-    if (messageEl) {
-        messageEl.textContent = hasGrowth
-            ? 'The stars are raining down! Some scholars shone, and some climbed far above their own recent best (🌱 Growth Starfall).'
-            : 'The stars are raining down! These scholars have triggered a Starfall Bonus!';
-    }
-
-    const listEl = document.getElementById('starfall-batch-list');
-    listEl.innerHTML = eligibleStudents.map(s => `
-        <div class="flex justify-between items-center gap-2 p-2 border-b border-white/20 last:border-0">
-            <span class="font-semibold text-white">${escapeHtml(s.name)}</span>
-            <span class="flex items-center gap-1.5">
-                ${s.kind === 'growth'
-                    ? `<span class="starfall-growth-chip" title="${escapeHtml(`About ${Math.round(Number(s.jump) || 0)} points above their recent average`)}">🌱 Growth</span>`
-                    : ''}
-                <span class="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">+${s.bonusAmount} ⭐</span>
-            </span>
-        </div>
-    `).join('');
-
-    const confirmBtn = document.getElementById('starfall-confirm-btn');
-    const totalStars = eligibleStudents.reduce((sum, s) => sum + s.bonusAmount, 0);
-    confirmBtn.innerText = `Yes, Bestow Bonus Stars! ✨`;
-
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-    newConfirmBtn.addEventListener('click', () => {
-        handleBatchAwardBonus(eligibleStudents); 
-        hideModal('starfall-modal');
+    prepareStarfall({
+        mode: 'batch',
+        students: eligibleStudents,
+        onBestow: () => handleBatchAwardBonus(eligibleStudents),
+        close: () => hideModal('starfall-modal')
     });
-
     showAnimatedModal('starfall-modal');
 }

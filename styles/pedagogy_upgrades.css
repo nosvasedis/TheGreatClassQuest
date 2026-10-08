@@ -319,22 +319,6 @@
 .qow-review-btn-secondary:disabled,
 .qow-review-btn-primary:disabled { opacity: 0.55; cursor: wait; transform: none; }
 
-/* ── Growth Starfall chip (Starfall batch modal) ───────────────────────── */
-.starfall-growth-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    padding: 0.15rem 0.55rem;
-    border-radius: 9999px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #064e3b;
-    background: linear-gradient(135deg, #bbf7d0, #86efac);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 1px 4px rgba(6, 78, 59, 0.25);
-    white-space: nowrap;
-}
-
 /* ── Adventure Log: "What we learned today" ───────────────────────────── */
 .learned-today {
     margin-top: 0.85rem;

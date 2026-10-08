@@ -928,6 +928,32 @@ function getQuizVoices() {
 // A C-major ladder the roulette climbs, one rung per name.
 const QUIZ_SPIN_LADDER = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6', 'C7'];
 
+// Starfall: a falling glissando and a soft chord as the window opens, one rising plink per
+// jar as its star lands, and a warm closing chord.
+const STARFALL_LADDER = ['E6', 'G6', 'A6', 'C7', 'D7', 'E7', 'G7', 'A7', 'C8'];
+
+export function playStarfallSfx(name, opts = {}) {
+    if (!soundsReady || Tone.context.state !== 'running' || !sounds.award_bell) return;
+    const t = Tone.now() + 0.03;
+    try {
+        if (name === 'open') {
+            sounds.award_sparkle.triggerAttackRelease('4n', t);
+            ['C8', 'G7', 'E7', 'C7', 'G6', 'E6'].forEach((note, i) => sounds.award_bell.triggerAttackRelease(note, '32n', t + i * 0.07, 0.22 + i * 0.06));
+            sounds.award_bell.triggerAttackRelease(['C6', 'G6', 'E7'], '8n', t + 0.68, 0.55);
+            sounds.award_pad.triggerAttackRelease(['C5', 'G5', 'E6'], '2n', t + 0.66);
+        } else if (name === 'catch') {
+            const step = Math.max(0, Number(opts.step) || 0);
+            sounds.award_bell.triggerAttackRelease(STARFALL_LADDER[step % STARFALL_LADDER.length], '32n', t, 0.5);
+            if (step % 3 === 0) sounds.award_sparkle.triggerAttackRelease('16n', t);
+        } else if (name === 'done') {
+            sounds.award_pad.triggerAttackRelease(['F5', 'A5', 'C6', 'E6'], '2n', t);
+            sounds.award_bell.triggerAttackRelease(['C7', 'E7', 'G7'], '8n', t + 0.06, 0.45);
+        }
+    } catch (e) {
+        console.warn('Starfall sound skipped:', e);
+    }
+}
+
 /** Builds the quiz voices ahead of time (the reverb takes a moment), so the first sound doesn't stall a frame. */
 export function warmQuizShowAudio() {
     if (!isAudioReady()) return;

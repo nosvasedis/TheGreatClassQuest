@@ -11,6 +11,23 @@ function pricingHeaderPrice(tier) {
                             <p class="text-sm font-semibold opacity-90 mb-2">or ${month.amount}/month, Sept–June · ${year.vat}</p>`;
 }
 
+// Starfall crest: a faceted gold star, each point split into a lit and a shaded half.
+function starfallCrestStarSvg() {
+    const cx = 50, cy = 52;
+    const pts = Array.from({ length: 10 }, (_, k) => {
+        const a = (-90 + k * 36) * Math.PI / 180;
+        const r = k % 2 === 0 ? 46 : 19;
+        return [+(cx + r * Math.cos(a)).toFixed(2), +(cy + r * Math.sin(a)).toFixed(2)];
+    });
+    const facets = pts.map((p, k) => {
+        const q = pts[(k + 1) % 10];
+        const fill = k % 2 === 0 ? '#ffe680' : '#f2a516';
+        return `<polygon points="${cx},${cy} ${p[0]},${p[1]} ${q[0]},${q[1]}" fill="${fill}"/>`;
+    }).join('');
+    const outline = pts.map((p) => p.join(',')).join(' ');
+    return `<svg class="sfl-crest__star" viewBox="0 0 100 100"><polygon points="${outline}" fill="url(#sfl-star-gold)"/>${facets}<polygon points="${outline}" fill="none" stroke="#fff7d1" stroke-opacity="0.85" stroke-width="2.2" stroke-linejoin="round"/><circle cx="${cx - 9}" cy="${cy - 12}" r="4" fill="#fffdf2" opacity="0.85"/></svg>`;
+}
+
 export const miscModalsHTML = `
     <div id="quest-update-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
@@ -232,61 +249,87 @@ export const miscModalsHTML = `
     </div>
 
     <div id="starfall-modal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[80] flex items-center justify-center p-4 hidden">
-        <div id="starfall-modal-content"
-            class="starfall-shell pop-in">
+        class="sfl-overlay fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="starfall-title">
+        <div id="starfall-modal-content" class="sfl-window pop-in" data-mode="batch">
+            <svg class="sfl-defs" aria-hidden="true" focusable="false">
+                <defs>
+                    <linearGradient id="sfl-star-gold" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#fff6c2"/>
+                        <stop offset="0.45" stop-color="#ffd54f"/>
+                        <stop offset="1" stop-color="#f59e0b"/>
+                    </linearGradient>
+                    <radialGradient id="sfl-jar-glow" cx="0.5" cy="0.5" r="0.5">
+                        <stop offset="0" stop-color="#fffbe0" stop-opacity="1"/>
+                        <stop offset="0.38" stop-color="#ffd760" stop-opacity="0.85"/>
+                        <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+                    </radialGradient>
+                    <linearGradient id="sfl-jar-glass" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#d6e2ff" stop-opacity="0.22"/>
+                        <stop offset="1" stop-color="#7f95e0" stop-opacity="0.08"/>
+                    </linearGradient>
+                    <linearGradient id="sfl-jar-cork" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#e2b47a"/>
+                        <stop offset="1" stop-color="#a06a38"/>
+                    </linearGradient>
+                    <mask id="sfl-moon-cut">
+                        <rect x="0" y="0" width="48" height="48" fill="#fff"/>
+                        <circle cx="31" cy="17" r="15" fill="#000"/>
+                    </mask>
+                </defs>
+            </svg>
 
-            <!-- Rotating deep-space background -->
-            <div class="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] starfall-bg" aria-hidden="true"></div>
-
-            <!-- Shooting star streaks -->
-            <div class="starfall-streaks" aria-hidden="true">
-                <div class="starfall-streak starfall-streak--1"></div>
-                <div class="starfall-streak starfall-streak--2"></div>
-                <div class="starfall-streak starfall-streak--3"></div>
+            <!-- The night sky outside the window: painted once; only opacity and transform move. -->
+            <div class="sfl-sky" aria-hidden="true">
+                <div class="sfl-sky__aurora"></div>
+                <div class="sfl-sky__stars sfl-sky__stars--far"></div>
+                <div class="sfl-sky__stars sfl-sky__stars--near"></div>
+                <svg class="sfl-moon" viewBox="0 0 48 48"><circle cx="22" cy="24" r="17" fill="#fdf3cf" mask="url(#sfl-moon-cut)"/></svg>
+                <svg class="sfl-constellation" viewBox="0 0 120 70">
+                    <path class="sfl-constellation__lines" d="M6 52 L26 40 L44 44 L60 28 L84 22 L104 8 M60 28 L70 48 L92 52"/>
+                    <circle cx="6" cy="52" r="1.6"/><circle cx="26" cy="40" r="2"/><circle cx="44" cy="44" r="1.5"/>
+                    <circle cx="60" cy="28" r="2.4"/><circle cx="84" cy="22" r="1.7"/><circle cx="104" cy="8" r="2.1"/>
+                    <circle cx="70" cy="48" r="1.5"/><circle cx="92" cy="52" r="1.8"/>
+                </svg>
+                <span class="sfl-shooting sfl-shooting--1"></span>
+                <span class="sfl-shooting sfl-shooting--2"></span>
+                <div class="sfl-sky__horizon"></div>
             </div>
+            <span class="sfl-meteor" aria-hidden="true"></span>
+            <div class="sfl-frame" aria-hidden="true"></div>
+            <div class="sfl-rain" aria-hidden="true"></div>
 
-            <!-- Floating particles -->
-            <div class="starfall-particles" aria-hidden="true">
-                <span class="starfall-particle starfall-particle--1">✦</span>
-                <span class="starfall-particle starfall-particle--2">✧</span>
-                <span class="starfall-particle starfall-particle--3">⭐</span>
-                <span class="starfall-particle starfall-particle--4">✦</span>
-                <span class="starfall-particle starfall-particle--5">✧</span>
-                <span class="starfall-particle starfall-particle--6">💫</span>
-            </div>
-
-            <!-- Content -->
-            <div class="relative z-10 flex flex-col items-center">
-                <!-- Multi-ring glowing star -->
-                <div class="starfall-icon-wrapper" aria-hidden="true">
-                    <span class="starfall-icon-ring starfall-icon-ring--3"></span>
-                    <span class="starfall-icon-ring starfall-icon-ring--2"></span>
-                    <span class="starfall-icon-ring starfall-icon-ring--1"></span>
-                    <div id="starfall-icon" class="starfall-icon-animate relative z-10">⭐</div>
+            <div class="sfl-body">
+                <div class="sfl-crest" aria-hidden="true">
+                    <span class="sfl-crest__rays"></span>
+                    <span class="sfl-crest__halo"></span>
+                    <span class="sfl-crest__burst"></span>
+                    ${starfallCrestStarSvg()}
                 </div>
 
-                <h2 class="starfall-title">A Starfall Opportunity!</h2>
+                <p class="sfl-eyebrow"><span>✦</span> Starfall <span>✦</span></p>
+                <h2 id="starfall-title" class="sfl-title">Stars are falling!</h2>
 
-                <div id="starfall-single-view">
-                    <p id="starfall-message" class="starfall-message">The stars have noticed <b
-                            id="starfall-student-name" class="starfall-student-name">Student Name's</b> incredible effort on
-                        their trial! Their brilliance has caused a star to fall from the sky.</p>
+                <div id="starfall-single-view" class="sfl-copy">
+                    <p id="starfall-message" class="sfl-message starfall-message">The stars noticed <b
+                            id="starfall-student-name" class="sfl-name">a scholar</b>'s brilliant work, and one slipped from the sky just for them.</p>
+                </div>
+                <div id="starfall-batch-view" class="sfl-copy hidden">
+                    <p class="sfl-message starfall-message">These scholars shone so brightly that stars slipped from the sky.</p>
                 </div>
 
-                <div id="starfall-batch-view" class="hidden w-full mb-5">
-                    <p class="starfall-message mb-3">The stars are raining down! These scholars have triggered a Starfall Bonus!</p>
-                    <div id="starfall-batch-list" class="starfall-batch-list"></div>
+                <div class="sfl-shelf">
+                    <div id="starfall-batch-list" class="sfl-jars"></div>
                 </div>
 
-                <p class="starfall-prompt">Shall we bestow these Bonus Stars?</p>
+                <p id="starfall-prompt" class="sfl-prompt">Shall we catch them and bestow the bonus?</p>
 
-                <div class="flex flex-col items-center gap-3 w-full">
-                    <button id="starfall-confirm-btn" class="starfall-confirm-btn">
-                        <span class="starfall-confirm-btn__shimmer"></span>
-                        Yes, Bestow Bonus Stars! ✨
+                <div class="sfl-actions">
+                    <button id="starfall-confirm-btn" type="button" class="sfl-catch">
+                        <span class="sfl-catch__shine" aria-hidden="true"></span>
+                        <span class="sfl-catch__label">Bestow the Bonus Stars</span>
                     </button>
-                    <button id="starfall-cancel-btn" class="starfall-cancel-btn">Not This Time</button>
+                    <button id="starfall-cancel-btn" type="button" class="sfl-later">Not this time</button>
                 </div>
             </div>
         </div>

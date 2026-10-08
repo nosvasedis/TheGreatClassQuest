@@ -173,6 +173,9 @@ export const heroModalsHTML = `
                     <div class="hc-cover__titles">
                         <h2 id="hero-chronicle-title" class="hc-cover__title font-title">Hero's Chronicle</h2>
                         <p id="hero-chronicle-student-name" class="hc-cover__name"></p>
+                        <button type="button" id="hero-chronicle-greenhouse-btn" class="hc-greenhouse-link" title="See this hero among the whole class">
+                            <i class="fas fa-seedling" aria-hidden="true"></i><span>Whole class in the Greenhouse</span>
+                        </button>
                     </div>
                 </div>
 

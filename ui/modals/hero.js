@@ -4,7 +4,7 @@ import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { TRIAL_TYPE_GUIDE, getTrialTypeMeta } from '../../features/trialTypesCore.mjs';
-import { showAnimatedModal } from './base.js';
+import { showAnimatedModal, hideModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
 import { showToast } from '../effects.js';
 
@@ -62,6 +62,15 @@ function openHeroChronicleModalContent(studentId, student) {
     if (oathsButton) {
         oathsButton.hidden = !canUseFeature('heroCampfire');
         oathsButton.onclick = () => switchHeroChronicleTab('oaths');
+    }
+
+    const greenhouseButton = document.getElementById('hero-chronicle-greenhouse-btn');
+    if (greenhouseButton) {
+        greenhouseButton.hidden = !student.classId;
+        greenhouseButton.onclick = () => {
+            hideModal('hero-chronicle-modal');
+            import('./classGreenhouse.js').then(m => m.openClassGreenhouse(student.classId, { tab: 'heroes', studentId }));
+        };
     }
 
     // Set student name

@@ -342,6 +342,9 @@ export function renderManageClassesTab() {
                     </div>
                     
                     <div class="flex flex-wrap md:flex-nowrap md:flex-col lg:flex-row justify-end gap-2.5 mt-2 md:mt-0">
+                        <button data-id="${c.id}" class="greenhouse-class-btn bg-gradient-to-r from-lime-100 to-emerald-100 text-emerald-800 hover:from-lime-200 hover:to-emerald-200 border border-emerald-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2" title="Class Greenhouse: understand and help the whole class">
+                            <i class="fas fa-seedling"></i><span class="hidden sm:inline">Greenhouse</span>
+                        </button>
                         <button data-id="${c.id}" class="report-class-btn bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 hover:from-emerald-200 hover:to-green-200 border border-green-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
                             <i class="fas fa-file-lines"></i><span class="hidden sm:inline">Report</span>
                         </button>
@@ -371,12 +374,19 @@ export function renderManageClassesTab() {
         list.querySelectorAll('.edit-class-btn').forEach(btn => mountCampfireEntry(btn.parentElement, btn.dataset.id, { oathsOnly: true }));
     });
     list.querySelectorAll('.report-class-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateReport(btn.dataset.id)));
+    list.querySelectorAll('.greenhouse-class-btn').forEach(btn => btn.addEventListener('click', () => openGreenhouse(btn.dataset.id)));
+}
+
+function openGreenhouse(classId, options) {
+    import('../modals/classGreenhouse.js').then(m => m.openClassGreenhouse(classId, options));
 }
 
 export function renderManageStudentsTab() {
     const list = document.getElementById('student-list');
     const currentManagingClassId = state.get('currentManagingClassId');
     if (!list || !currentManagingClassId) return;
+    const greenhouseBtn = document.getElementById('class-greenhouse-roster-btn');
+    if (greenhouseBtn) greenhouseBtn.onclick = () => openGreenhouse(currentManagingClassId);
 
     renderReturningStudentsPanel(currentManagingClassId);
 

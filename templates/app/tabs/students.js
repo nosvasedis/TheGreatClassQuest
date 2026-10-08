@@ -18,6 +18,11 @@ export const studentsTabHTML = `
                         <p class="text-[10px] font-bold text-teal-500 uppercase tracking-widest leading-none">Managing Class</p>
                         <h2 class="font-title text-2xl text-teal-700 truncate" id="manage-class-name"></h2>
                     </div>
+                    <button id="class-greenhouse-roster-btn" type="button" title="Class Greenhouse: understand and help the whole class"
+                        class="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold py-2 px-4 rounded-full bubbly-button flex-shrink-0 transition-colors">
+                        <i class="fas fa-seedling text-xs"></i>
+                        <span class="hidden sm:inline text-sm">Greenhouse</span>
+                    </button>
                     <button id="add-student-toggle-btn"
                         class="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-full bubbly-button flex-shrink-0 transition-colors shadow-sm">
                         <i class="fas fa-user-plus text-xs"></i>

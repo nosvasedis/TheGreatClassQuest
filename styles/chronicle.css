@@ -191,6 +191,27 @@
     text-overflow: ellipsis;
 }
 
+/* A gilt ribbon on the cover that leads to the whole class (the Class Greenhouse) */
+.hc-greenhouse-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+    padding: 0.18rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #f6e3c3;
+    background: rgba(246, 227, 195, 0.1);
+    border: 1px solid rgba(232, 196, 120, 0.45);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+}
+.hc-greenhouse-link:hover,
+.hc-greenhouse-link:focus-visible { background: rgba(246, 227, 195, 0.2); color: #fff; }
+.hc-greenhouse-link i { color: #9fd49a; }
+.hc-greenhouse-link[hidden] { display: none; }
+
 /* Page tabs: the open one is cut from the same paper as the page below it */
 .hc-tabs {
     grid-area: tabs;

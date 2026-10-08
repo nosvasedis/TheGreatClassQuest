@@ -503,3 +503,10 @@ test('the Wand offers General view and Follow the schedule, and a crown that kno
     const core = await import('../features/questRemote/remoteCore.mjs');
     assert.equal(core.validateCommand({ type: 'class', payload: { classId: core.CLASS_GENERAL }, clientSeq: 1, wandId: 'w' }).ok, true);
 });
+
+test('Training Grounds games reach the Wand by name, in their virtue colour', () => {
+    const tpl = read('templates/app/tabs/ideas.js');
+    assert.match(tpl, /data-remote-label="\$\{t\.name\}" data-remote-bg="\$\{t\.c1\}"/);
+    const host = read('features/questRemote/remoteHost.js');
+    assert.match(host, /el\.dataset\.remoteLabel \|\|/);
+});

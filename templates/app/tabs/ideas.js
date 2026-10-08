@@ -1,13 +1,13 @@
 // templates/app/tabs/ideas.js
 
 const TG_TAB_DEFS = [
-    { key: 'story', name: 'Story Weavers', skill: 'Creativity', icon: 'fa-feather-pointed' },
-    { key: 'hoard', name: 'The Vanishing Hoard', skill: 'Focus', icon: 'fa-eye' },
-    { key: 'map', name: 'The Torn Map', skill: 'Teamwork', icon: 'fa-compass' },
-    { key: 'council', name: 'The Round Table', skill: 'Respect', icon: 'fa-shield-heart' }
+    { key: 'story', name: 'Story Weavers', skill: 'Creativity', icon: 'fa-feather-pointed', c1: '#ec4899', c2: '#be185d' },
+    { key: 'hoard', name: 'The Vanishing Hoard', skill: 'Focus', icon: 'fa-eye', c1: '#f59e0b', c2: '#c2410c' },
+    { key: 'map', name: 'The Torn Map', skill: 'Teamwork', icon: 'fa-compass', c1: '#8b5cf6', c2: '#4338ca' },
+    { key: 'council', name: 'The Round Table', skill: 'Respect', icon: 'fa-shield-heart', c1: '#10b981', c2: '#047857' }
 ];
 
-const TG_TABS = TG_TAB_DEFS.map((t, i) => `                        <button type="button" id="tg-tab-${t.key}" class="tg-tab tg-tab--${t.key}${i === 0 ? ' is-active' : ''}" role="tab" data-tg-game="${t.key}" aria-selected="${i === 0}" aria-controls="tg-panel-${t.key}" style="--i:${i}">
+const TG_TABS = TG_TAB_DEFS.map((t, i) => `                        <button type="button" id="tg-tab-${t.key}" class="tg-tab tg-tab--${t.key}${i === 0 ? ' is-active' : ''}" role="tab" data-tg-game="${t.key}" aria-selected="${i === 0}" aria-controls="tg-panel-${t.key}" style="--i:${i}" data-remote-label="${t.name}" data-remote-bg="${t.c1}" data-remote-bg2="${t.c2}" data-remote-fg="#ffffff">
                             <span class="tg-tab__medal" aria-hidden="true"><i class="fas ${t.icon}"></i></span>
                             <span class="tg-tab__text"><span class="tg-tab__skill">${t.skill}</span><span class="tg-tab__name">${t.name}</span></span>
                             <span class="tg-tab__knots" data-tg-knots="${t.key}" aria-hidden="true"><span class="sw-knot"></span><span class="sw-knot"></span></span>

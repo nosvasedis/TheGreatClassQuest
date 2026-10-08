@@ -9,7 +9,7 @@
 // tab), lists its buttons (explicit `data-remote="Label"` first) and sends them to the Wand, so
 // every screen of the app can be driven, including ones added later.
 // Opt-outs: `data-remote-skip` on a container hides its buttons from the pad; `data-qr-ignore`
-// marks Quest Remote's own layers.
+// marks Quest Remote's own layers. `data-remote-label` and `data-remote-bg/-bg2/-fg` set a button's words and colour on the Wand.
 
 import '../../styles/quest_remote.css';
 import * as state from '../../state.js';
@@ -1140,7 +1140,8 @@ function labelOf(el) {
     if (/^(SELECT|INPUT|TEXTAREA)$/.test(el.tagName)) {
         return el.getAttribute('aria-label') || el.labels?.[0]?.textContent || el.getAttribute('placeholder') || el.getAttribute('title') || el.name || '';
     }
-    return el.getAttribute('aria-label') || visibleText(el) || el.getAttribute('title') || '';
+    // `data-remote-label`: the words the screen wants on the Wand (its colour says the rest).
+    return el.dataset.remoteLabel || el.getAttribute('aria-label') || visibleText(el) || el.getAttribute('title') || '';
 }
 
 /**
@@ -1222,9 +1223,12 @@ function looksOf(el, rect) {
     }
     const radius = parseFloat(cs.borderTopLeftRadius) || 0;
     const borderW = parseFloat(cs.borderTopWidth) || 0;
+    // `data-remote-bg` / `-bg2` / `-fg`: a button whose real colour is drawn by layers the scan can't read.
+    const d = el.dataset;
+    if (d.remoteBg) { bg = toHex(d.remoteBg); bg2 = d.remoteBg2 ? toHex(d.remoteBg2) : ''; }
     return {
         bg, bg2,
-        fg: toHex(cs.color),
+        fg: d.remoteFg ? toHex(d.remoteFg) : toHex(cs.color),
         border: borderW >= 1 ? toHex(cs.borderTopColor) : '',
         round: radius >= Math.min(rect.height, rect.width) / 2 - 1 ? 'pill' : radius >= 10 ? 'soft' : 'square'
     };

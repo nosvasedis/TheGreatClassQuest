@@ -236,6 +236,8 @@
 @import url('./styles/home_quest_road.css');
 
 @import url('./styles/student_roster.css');
+/* My Classes: class index cards with a grouped tool tray (ui/tabs/classes.js) */
+@import url('./styles/class_cards.css');
 @import url('./styles/history_archive.css');
 
 /* Adventure Log: the class diary (tab, pages, page editors, sticky note) */

@@ -1,0 +1,322 @@
+/* ==========================================================================
+   My Classes (Teacher Settings → ui/tabs/classes.js renderManageClassesTab)
+   Each class is an index card on the teacher's desk. Its tools sit in a tray
+   along the bottom, grouped In class · Insight · Set up, and every tool names
+   itself with a live hint (student count, missing times…) so no tooltip is needed.
+   ========================================================================== */
+
+.mc-card {
+    --mc-ink: #3b2f22;
+    --mc-ink-soft: #7a6a55;
+    --mc-line: #eadcc3;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+    border: 1px solid var(--mc-line);
+    box-shadow: 0 2px 0 #f1e4cb, 0 18px 32px -26px rgba(92, 64, 24, 0.55);
+    color: var(--mc-ink);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.mc-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 0 #f1e4cb, 0 24px 38px -26px rgba(92, 64, 24, 0.6);
+}
+/* the class in session gets a green index-card edge */
+.mc-card.is-live { border-color: #6ee7b7; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22), 0 18px 32px -26px rgba(4, 120, 87, 0.6); }
+.mc-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.4rem;
+    background: linear-gradient(180deg, #34d399, #0d9488);
+    opacity: 0.85;
+}
+
+/* ---------- Head: who the class is and when it meets ---------- */
+.mc-card__head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    padding: 1.05rem 1.25rem 0.95rem 1.5rem;
+}
+.mc-card__logo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 50%;
+    font-size: 1.9rem;
+    line-height: 1;
+    background: radial-gradient(circle at 35% 28%, #fff, #ecfdf5 70%);
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #a7f3d0, 0 6px 12px -6px rgba(4, 120, 87, 0.5);
+}
+.mc-card__id { flex: 1 1 10rem; min-width: 0; }
+.mc-card__name {
+    margin: 0;
+    font-size: 1.65rem;
+    line-height: 1.1;
+    color: #1f2937;
+    letter-spacing: 0.01em;
+    overflow-wrap: anywhere;
+}
+.mc-card__league {
+    margin: 0.15rem 0 0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0f766e;
+}
+/* When the class meets IS the way into its details: one button, facts + "Edit class details" */
+.mc-card__setup {
+    position: relative;
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+    gap: 0.1rem;
+    margin-left: auto;
+}
+.mc-when {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    padding: 0.45rem 0.55rem 0.4rem;
+    border: 0;
+    border-radius: 1rem;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.mc-when:hover { background: #f0f9ff; box-shadow: inset 0 0 0 1.5px #7dd3fc; }
+.mc-when:focus-visible { outline: 3px solid rgba(3, 105, 161, 0.35); outline-offset: 2px; }
+.mc-when__facts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+.mc-when__edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #0369a1;
+}
+.mc-when__edit i { font-size: 0.65rem; }
+.mc-when.is-nudge .mc-when__edit { color: #b45309; }
+.mc-when.is-nudge .mc-when__edit::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #f59e0b;
+    animation: mc-pulse 1.6s ease-in-out infinite;
+}
+.mc-fact,
+.mc-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.mc-fact { background: #fbf6ea; color: #5b4a35; box-shadow: inset 0 0 0 1px var(--mc-line); }
+.mc-fact i { color: #0d9488; }
+.mc-fact.is-missing { background: #fffbeb; color: #b45309; box-shadow: inset 0 0 0 1px #fcd34d; }
+.mc-fact.is-missing i { color: #d97706; }
+.mc-slot { margin-top: 0.45rem; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.mc-slot--now { background: #10b981; color: #fff; }
+.mc-slot--today { background: #fef3c7; color: #92400e; box-shadow: inset 0 0 0 1px #fde68a; }
+.mc-slot--done { background: #f3f4f6; color: #6b7280; box-shadow: inset 0 0 0 1px #e5e7eb; }
+.mc-slot__pulse { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #fff; animation: mc-pulse 1.6s ease-in-out infinite; }
+@keyframes mc-pulse { 50% { opacity: 0.35; transform: scale(0.7); } }
+
+/* ---------- Tray: the class's tools, grouped ---------- */
+.mc-tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem 0;
+    padding: 0.8rem 1rem 0.95rem 1.5rem;
+    background:
+        radial-gradient(circle, #e2d3b6 1.2px, transparent 1.6px) 0 0 / 0.75rem 3px repeat-x,
+        #fbf6ea;
+}
+.mc-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0 0.9rem;
+}
+.mc-group:first-child { padding-left: 0; }
+.mc-group + .mc-group { border-left: 1px dashed #e0cfae; }
+.mc-group--insight { flex: 1 1 auto; }
+.mc-group__label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mc-ink-soft);
+}
+.mc-group__tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+.mc-group__tools > .campfire-entry { display: contents; }
+
+.mc-tool {
+    --tool: #475569;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.45rem 0.85rem 0.45rem 0.45rem;
+    border: 0;
+    border-radius: 0.95rem;
+    background: #fff;
+    color: var(--mc-ink);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tool) 22%, #eadcc3), 0 2px 0 color-mix(in srgb, var(--tool) 14%, #eadcc3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.mc-tool:hover {
+    transform: translateY(-2px);
+    background: color-mix(in srgb, var(--tool) 5%, #fff);
+    box-shadow: inset 0 0 0 1.5px var(--tool), 0 8px 14px -8px color-mix(in srgb, var(--tool) 60%, transparent);
+}
+.mc-tool:active { transform: translateY(0) scale(0.97); }
+.mc-tool:focus-visible { outline: 3px solid color-mix(in srgb, var(--tool) 45%, transparent); outline-offset: 2px; }
+.mc-tool:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.mc-tool__icon {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--tool) 14%, #fff);
+    color: var(--tool);
+    font-size: 0.95rem;
+}
+.mc-tool__lock {
+    position: absolute;
+    right: -0.3rem;
+    bottom: -0.3rem;
+    display: grid;
+    place-items: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    background: #fff;
+    color: #64748b;
+    font-size: 0.55rem;
+    box-shadow: 0 0 0 1px #e2e8f0;
+}
+.mc-tool__text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.mc-tool__name { font-size: 0.88rem; font-weight: 800; white-space: nowrap; color: color-mix(in srgb, var(--tool) 70%, #1f2937); }
+.mc-tool__hint { margin-top: 0.1rem; font-size: 0.72rem; font-weight: 600; color: var(--mc-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.mc-tool--roster     { --tool: #0f766e; }
+.mc-tool--oaths      { --tool: #c2410c; }
+.mc-tool--greenhouse { --tool: #15803d; }
+.mc-tool--report     { --tool: #4338ca; }
+
+/* Roster is where most visits go: the one filled tool on the card */
+.mc-tool--roster {
+    color: #fff;
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 55%, #0f766e 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 0 #115e59, 0 8px 16px -10px rgba(15, 118, 110, 0.8);
+}
+.mc-tool--roster:hover { background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 55%, #0d9488 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 0 #115e59, 0 10px 18px -10px rgba(15, 118, 110, 0.9); }
+.mc-tool--roster .mc-tool__icon { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.mc-tool--roster .mc-tool__name { color: #fff; }
+.mc-tool--roster .mc-tool__hint { color: rgba(255, 255, 255, 0.85); }
+
+/* something to do here: no students yet */
+.mc-tool.is-nudge .mc-tool__hint { color: #b45309; }
+.mc-tool--roster.is-nudge .mc-tool__hint { color: #fef3c7; }
+.mc-tool.is-nudge .mc-tool__icon::after {
+    content: '';
+    position: absolute;
+    top: -0.2rem;
+    right: -0.2rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px #fff;
+}
+.mc-tool.is-locked .mc-tool__icon { filter: grayscale(0.6); }
+
+/* "N ready" from the Oath Board sits on the tool's corner */
+.mc-tool .campfire-oaths-badge {
+    position: absolute;
+    top: -0.45rem;
+    right: -0.35rem;
+    margin: 0;
+    padding: 0.05rem 0.45rem;
+    font-size: 0.64rem;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+/* Delete: present but quiet, it is the one tool you rarely want */
+.mc-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border: 0;
+    border-radius: 0.8rem;
+    background: transparent;
+    color: #b91c1c;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+.mc-delete:hover { opacity: 1; background: #fee2e2; }
+.mc-delete:focus-visible { outline: 3px solid rgba(220, 38, 38, 0.35); outline-offset: 2px; opacity: 1; }
+
+/* ---------- Narrow: groups stack, tools become tiles that share the width ---------- */
+@media (max-width: 767px) {
+    .mc-card__head { padding: 0.95rem 1rem 0.8rem 1.25rem; }
+    .mc-card__name { font-size: 1.4rem; }
+    .mc-card__logo { width: 2.9rem; height: 2.9rem; font-size: 1.6rem; }
+    .mc-card__setup { width: 100%; display: block; margin-left: 0; }
+    .mc-delete { position: absolute; right: 0; bottom: 0.1rem; margin: 0; }
+    .mc-when { align-items: flex-start; margin-left: -0.55rem; }
+    .mc-when__facts { justify-content: flex-start; }
+    .mc-tray { gap: 0.7rem 0.6rem; padding: 0.8rem 0.85rem 0.9rem 1.2rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .mc-group, .mc-group:first-child { padding: 0; }
+    .mc-group + .mc-group { border-left: 0; }
+    .mc-group__tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mc-group--class, .mc-group--insight { grid-column: 1 / -1; }
+    .mc-group--insight { padding-top: 0.7rem; border-top: 1px dashed #e0cfae; }
+    .mc-tool { flex-direction: column; align-items: flex-start; gap: 0.45rem; padding: 0.6rem 0.65rem 0.6rem; }
+    .mc-tool__hint { white-space: normal; }
+}
+@media (max-width: 767px) and (min-width: 600px) {
+    .mc-tray { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .mc-group--class, .mc-group--insight { grid-column: auto; }
+    .mc-group--insight { padding: 0 0 0 0.6rem; border-top: 0; border-left: 1px dashed #e0cfae; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mc-card, .mc-tool { transition: none; }
+    .mc-card:hover, .mc-tool:hover { transform: none; }
+    .mc-slot__pulse { animation: none; }
+}

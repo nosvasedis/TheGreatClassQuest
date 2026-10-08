@@ -1099,6 +1099,8 @@ export async function setupDataListeners(
                     renderClassLeaderboardTab();
                 if (isTabVisible("manage-students-tab"))
                     renderManageStudentsTab();
+                // My Classes cards show each class's student count.
+                if (isTabVisible("options-tab")) renderManageClassesTab();
                 if (isTabVisible("award-stars-tab"))
                     renderAwardStarsStudentList(
                         state.get("globalSelectedClassId"),

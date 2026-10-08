@@ -212,8 +212,8 @@ async function fillMyClasses() {
   const { renderManageClassesTab } = await import('../../../../ui/tabs/classes.js');
   renderManageClassesTab();
   const { mountCampfireEntry } = await import('../../../../features/campfireEntry.js');
-  document.querySelectorAll('#class-list .edit-class-btn').forEach((btn) => {
-    if (!btn.parentElement.querySelector('.campfire-entry')) mountCampfireEntry(btn.parentElement, btn.dataset.id, { oathsOnly: true });
+  document.querySelectorAll('#class-list .mc-oaths-host').forEach((host) => {
+    if (!host.querySelector('.campfire-entry')) mountCampfireEntry(host, host.closest('.mc-card').dataset.classId, { oathsOnly: true });
   });
 }
 

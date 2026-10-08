@@ -48,7 +48,8 @@ export function campfireHomePillMarkup({ held = false, igniting: ignite = false 
 export function oathsButtonMarkup({ ready = 0, variant = 'log', disabled = false } = {}) {
     const badge = ready ? '<span class="campfire-oaths-badge">' + ready + ' ready</span>' : '';
     const off = disabled ? ' disabled aria-disabled="true" title="Select a class in the header first"' : '';
-    if (variant === 'class') return '<button type="button" data-campfire-oaths class="campfire-class-oaths bg-gradient-to-r from-amber-100 to-orange-100 text-orange-800 hover:from-amber-200 hover:to-orange-200 border border-orange-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2" title="Ember Oaths"' + off + '><i class="fas fa-fire-alt"></i><span class="hidden sm:inline">Oaths</span>' + badge + '</button>';
+    // My Classes card tool (styles/class_cards.css): name plus a hint, like its neighbours.
+    if (variant === 'class') return '<button type="button" data-campfire-oaths class="mc-tool mc-tool--oaths campfire-class-oaths" title="Ember Oaths: the promises each student is keeping"' + off + '><span class="mc-tool__icon" aria-hidden="true"><i class="fas fa-fire-alt"></i></span><span class="mc-tool__text"><span class="mc-tool__name">Ember Oaths</span><span class="mc-tool__hint">Students\' promises</span></span>' + badge + '</button>';
     return '<button type="button" data-campfire-oaths class="al-primary-btn al-primary-btn--oaths bubbly-button"' + off + '><i class="fas fa-fire-alt"></i><span>Ember Oaths</span>' + badge + '</button>';
 }
 
@@ -100,7 +101,7 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     }
     const oaths = entry.querySelector('[data-campfire-oaths]');
     if (oaths) oaths.onclick = () => import('../ui/modals/emberOaths.js').then(m => m.openOathBoard(classId)).catch(e => showToast(e.message, 'error'));
-    // On a My Classes card the trash can stays the last button, so Oaths sits just left of it.
+    // Older hosts kept the trash can last, so Oaths sits just left of it there.
     const trash = oathsOnly ? host.querySelector(':scope > .delete-class-btn') : null;
     if (trash) host.insertBefore(entry, trash); else if (home) host.prepend(entry); else host.append(entry);
 }

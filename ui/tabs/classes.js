@@ -304,10 +304,24 @@ function sortClassesByTimeOfDay(classes, now = new Date()) {
 }
 
 const CLASS_SLOT_CHIPS = {
-    now: '<span class="inline-flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm"><span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>In session</span>',
-    today: '<span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"><i class="fas fa-hourglass-half"></i>Later today</span>',
-    done: '<span class="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 border border-gray-200 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"><i class="fas fa-check"></i>Done today</span>'
+    now: '<span class="mc-slot mc-slot--now"><span class="mc-slot__pulse" aria-hidden="true"></span>In session</span>',
+    today: '<span class="mc-slot mc-slot--today"><i class="fas fa-hourglass-half" aria-hidden="true"></i>Later today</span>',
+    done: '<span class="mc-slot mc-slot--done"><i class="fas fa-check" aria-hidden="true"></i>Done today</span>'
 };
+
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * One tool on a class card: an icon plus a name and a live hint, so it says what it does
+ * without a tooltip. `cls` keeps the old handler class names (report-class-btn, …).
+ */
+function classTool({ cls, tone, icon, name, hint, title, id, attrs = '', locked = false, nudge = false }) {
+    const lock = locked ? '<i class="fas fa-lock mc-tool__lock" aria-hidden="true"></i>' : '';
+    return `<button type="button" data-id="${id}" ${attrs}class="mc-tool mc-tool--${tone}${nudge ? ' is-nudge' : ''}${locked ? ' is-locked' : ''} ${cls}" title="${escapeHtml(title)}">
+                <span class="mc-tool__icon" aria-hidden="true"><i class="fas ${icon}"></i>${lock}</span>
+                <span class="mc-tool__text"><span class="mc-tool__name">${name}</span><span class="mc-tool__hint">${hint}</span></span>
+            </button>`;
+}
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -316,50 +330,60 @@ export function renderManageClassesTab() {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">You haven't created any classes yet.</p>`;
         return;
     }
+    const studentCounts = new Map();
+    (state.get('allStudents') || []).forEach(s => studentCounts.set(s.classId, (studentCounts.get(s.classId) || 0) + 1));
+    const eliteAI = canUseFeature('eliteAI');
+    const oaths = canUseFeature('heroCampfire');
+
     list.innerHTML = sortClassesByTimeOfDay(state.get('allTeachersClasses')).map(({ cls: c, slot }) => {
-        const schedule = (c.scheduleDays || []).map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
-        const time = (c.timeStart && c.timeEnd) ? `${c.timeStart} - ${c.timeEnd}` : 'No time set';
+        const days = (c.scheduleDays || []).map(d => WEEKDAY_SHORT[d]).filter(Boolean);
+        const hasTime = Boolean(c.timeStart && c.timeEnd);
+        const unscheduled = days.length === 0 || !hasTime;
+        const count = studentCounts.get(c.id) || 0;
+        const name = escapeHtml(c.name);
         return `
-            <div class="relative bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] shadow-lg border border-teal-100${slot === 'now' ? ' ring-4 ring-emerald-300/70' : ''} transform transition hover:shadow-xl hover:-translate-y-1 overflow-hidden group">
-                <div class="absolute -right-12 -top-12 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
-                <div class="absolute -left-12 -bottom-12 w-32 h-32 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
-                
-                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-4 mb-2">
-                            <span class="text-5xl drop-shadow-md floating-icon transition-transform duration-300 group-hover:scale-110">${c.logo || '📚'}</span>
-                            <div>
-                                <h3 class="font-title text-3xl text-gray-800 tracking-wide">${c.name}</h3>
-                                <p class="text-xs text-teal-600 font-bold uppercase tracking-widest mt-0.5">${c.questLevel || 'Uncategorized'}</p>
-                                ${slot ? `<div class="mt-2">${CLASS_SLOT_CHIPS[slot]}</div>` : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="flex flex-wrap gap-3 mt-4 text-sm font-semibold text-gray-600">
-                            <span class="bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2"><i class="fas fa-calendar-day text-teal-500"></i> ${schedule || 'No days set'}</span>
-                            <span class="bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2"><i class="fas fa-clock text-teal-500"></i> ${time}</span>
+            <article class="mc-card${slot === 'now' ? ' is-live' : ''}" data-class-id="${c.id}">
+                <header class="mc-card__head">
+                    <span class="mc-card__logo" aria-hidden="true">${c.logo || '📚'}</span>
+                    <div class="mc-card__id">
+                        <h3 class="font-title mc-card__name">${name}</h3>
+                        <p class="mc-card__league">${escapeHtml(c.questLevel || 'Uncategorized')}</p>
+                        ${slot ? CLASS_SLOT_CHIPS[slot] : ''}
+                    </div>
+                    <div class="mc-card__setup">
+                        <button type="button" data-id="${c.id}" class="mc-when edit-class-btn${unscheduled ? ' is-nudge' : ''}" title="Change the class name, league, logo, days and times">
+                            <span class="mc-when__facts">
+                                <span class="mc-fact${days.length ? '' : ' is-missing'}"><i class="fas fa-calendar-day" aria-hidden="true"></i>${days.length ? days.join(', ') : 'No days set'}</span>
+                                <span class="mc-fact${hasTime ? '' : ' is-missing'}"><i class="fas fa-clock" aria-hidden="true"></i>${hasTime ? `${c.timeStart} – ${c.timeEnd}` : 'No time set'}</span>
+                            </span>
+                            <span class="mc-when__edit"><i class="fas fa-pen" aria-hidden="true"></i>${unscheduled ? 'Set days &amp; times' : 'Edit class details'}</span>
+                        </button>
+                        <button type="button" data-id="${c.id}" class="mc-delete delete-class-btn" title="Delete ${name} and all its students" aria-label="Delete ${name}">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i><span>Delete</span>
+                        </button>
+                    </div>
+                </header>
+                <div class="mc-tray">
+                    <div class="mc-group mc-group--class" role="group" aria-label="In class">
+                        <span class="mc-group__label">In class</span>
+                        <div class="mc-group__tools mc-oaths-host">
+                            ${classTool({ id: c.id, cls: 'manage-students-btn', attrs: `data-name="${name}" `, tone: 'roster', icon: 'fa-users', name: 'Roster',
+                                hint: count ? `${count} student${count === 1 ? '' : 's'}` : 'Add your students', nudge: count === 0,
+                                title: `Open the ${c.name} roster: add, edit and move students` })}
                         </div>
                     </div>
-                    
-                    <div class="flex flex-wrap md:flex-nowrap md:flex-col lg:flex-row justify-end gap-2.5 mt-2 md:mt-0">
-                        <button data-id="${c.id}" class="greenhouse-class-btn bg-gradient-to-r from-lime-100 to-emerald-100 text-emerald-800 hover:from-lime-200 hover:to-emerald-200 border border-emerald-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2" title="Class Greenhouse: understand and help the whole class">
-                            <i class="fas fa-seedling"></i><span class="hidden sm:inline">Greenhouse</span>
-                        </button>
-                        <button data-id="${c.id}" class="report-class-btn bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 hover:from-emerald-200 hover:to-green-200 border border-green-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
-                            <i class="fas fa-file-lines"></i><span class="hidden sm:inline">Report</span>
-                        </button>
-                        <button data-id="${c.id}" class="edit-class-btn bg-gradient-to-r from-cyan-100 to-blue-100 text-blue-800 hover:from-cyan-200 hover:to-blue-200 border border-blue-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
-                            <i class="fas fa-pencil-alt"></i><span class="hidden sm:inline">Edit</span>
-                        </button>
-                        <button data-id="${c.id}" data-name="${c.name.replace(/'/g, "\\'")}" class="manage-students-btn bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-white border border-teal-400 font-bold py-2.5 px-6 rounded-2xl shadow-md bubbly-button transition-all flex items-center justify-center gap-2">
-                            <i class="fas fa-users"></i><span class="hidden sm:inline">Students</span>
-                        </button>
-                        <button data-id="${c.id}" class="delete-class-btn ml-auto bg-white text-red-500 hover:bg-red-50 hover:text-red-600 border border-red-200 font-bold w-12 h-12 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                    <div class="mc-group mc-group--insight" role="group" aria-label="Insight">
+                        <span class="mc-group__label">Insight</span>
+                        <div class="mc-group__tools">
+                            ${classTool({ id: c.id, cls: 'greenhouse-class-btn', tone: 'greenhouse', icon: 'fa-seedling', name: 'Greenhouse', hint: 'How the class is growing',
+                                title: 'Class Greenhouse: understand and help the whole class' })}
+                            ${classTool({ id: c.id, cls: 'report-class-btn', tone: 'report', icon: 'fa-feather-pointed', name: 'Weekly report',
+                                hint: eliteAI ? 'The week, ready to share' : 'Elite plan', locked: !eliteAI,
+                                title: 'Weekly report: what the class did this week, to read or save as a PDF' })}
+                        </div>
                     </div>
                 </div>
-            </div>`;
+            </article>`;
     }).join('');
 
     list.querySelectorAll('.manage-students-btn').forEach(btn => btn.addEventListener('click', () => {
@@ -370,8 +394,9 @@ export function renderManageClassesTab() {
     }));
     list.querySelectorAll('.delete-class-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Class?', 'Are you sure you want to delete this class and all its students? This cannot be undone.', () => deleteClass(btn.dataset.id))));
     list.querySelectorAll('.edit-class-btn').forEach(btn => btn.addEventListener('click', () => modals.openEditClassModal(btn.dataset.id)));
-    if (canUseFeature('heroCampfire')) import('../../features/campfireEntry.js').then(({ mountCampfireEntry }) => {
-        list.querySelectorAll('.edit-class-btn').forEach(btn => mountCampfireEntry(btn.parentElement, btn.dataset.id, { oathsOnly: true }));
+    // Ember Oaths joins Roster under "In class".
+    if (oaths) import('../../features/campfireEntry.js').then(({ mountCampfireEntry }) => {
+        list.querySelectorAll('.mc-oaths-host').forEach(host => mountCampfireEntry(host, host.closest('.mc-card').dataset.classId, { oathsOnly: true }));
     });
     list.querySelectorAll('.report-class-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateReport(btn.dataset.id)));
     list.querySelectorAll('.greenhouse-class-btn').forEach(btn => btn.addEventListener('click', () => openGreenhouse(btn.dataset.id)));

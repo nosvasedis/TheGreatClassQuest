@@ -277,6 +277,8 @@ button.roster-tool:focus-visible { outline: 3px solid color-mix(in srgb, var(--t
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tool-ink) 22%, #fff);
 }
 .roster-tool.is-set .roster-tool__icon { background: transparent; }
+/* a chosen hero class still opens the Deck of Paths to change it */
+button.roster-tool.is-set { cursor: pointer; }
 .roster-tool.is-set .guild-badge-wrap img,
 .roster-tool.is-set .guild-badge-wrap > * { width: 1.7rem !important; height: 1.7rem !important; }
 

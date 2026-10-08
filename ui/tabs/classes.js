@@ -9,7 +9,7 @@ import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { HERO_CLASSES, heroClassChangesRemaining, heroClassLockApplies } from '../../features/heroClasses.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
@@ -472,8 +472,15 @@ export function renderManageStudentsTab() {
             ? tool({ tag: 'span', tone: 'guild', cls: 'is-set', icon: `<span class="guild-badge-wrap">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`, label: 'Guild', title: guild ? `Guild: ${guild.name}` : 'Guild' })
             : tool({ cls: 'guild-quiz-btn', tone: 'guild', icon: fa('fa-hat-wizard'), label: 'Sort', locked: !guildsEnabled, title: guildsEnabled ? 'Take Guild Quiz' : 'Pro plan: Guild Sorting Quiz' });
 
+        const heroClassSetTitle = () => {
+            if (!heroProgressionEnabled) return `Hero class: ${s.heroClass}`;
+            const yearKey = state.getActiveSchoolYearKey();
+            if (heroClassLockApplies(s, yearKey)) return `Hero class: ${s.heroClass} (locked until next school year). Click to view the path.`;
+            const left = heroClassChangesRemaining(s, yearKey);
+            return `Hero class: ${s.heroClass}. Click to change (${left} change${left === 1 ? '' : 's'} left this school year).`;
+        };
         const heroClassTool = s.heroClass
-            ? tool({ tag: 'span', tone: 'class', cls: 'is-set', icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass, title: `Hero class: ${s.heroClass}` })
+            ? tool({ tag: heroProgressionEnabled ? 'button' : 'span', tone: 'class', cls: `is-set${heroProgressionEnabled ? ' hero-class-select-btn' : ''}`, icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass, title: heroClassSetTitle() })
             : tool({ cls: 'hero-class-select-btn', tone: 'class', icon: fa('fa-shield-halved'), label: 'Class', locked: !heroProgressionEnabled, title: heroProgressionEnabled ? 'Choose Hero Class' : 'Pro plan: Hero Classes & Skill Tree' });
 
         const skillTool = tool({

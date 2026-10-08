@@ -4,6 +4,8 @@
 // Shared by the Secretary's Family Logins desk and the teacher's access card.
 // The QR is drawn in the browser (qrcode-generator, MIT); no outside service is called.
 
+import { DEFAULT_SCHOOL_ID, getSchoolId, normalizeSchoolId } from '../utils/tenant.mjs';
+
 const LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 // ── Usernames ───────────────────────────────────────────────────────────────
@@ -77,17 +79,19 @@ export function generateFamilyPassword() {
 
 // ── Links & QR ──────────────────────────────────────────────────────────────
 
-/** The address that opens the sign-in screen straight on the Parent door. */
-export function getParentLoginUrl(baseHref = globalThis.location?.href || '') {
+/** The address that opens the sign-in screen straight on the Parent door. Other schools' links
+ *  carry their school code, so a family's new phone opens their school's gate, not the founding one. */
+export function getParentLoginUrl(baseHref = globalThis.location?.href || '', schoolId = getSchoolId()) {
+    const school = normalizeSchoolId(schoolId);
+    const query = school && school !== DEFAULT_SCHOOL_ID ? `?school=${school}&login=parent` : '?login=parent';
     try {
         const url = new URL(baseHref);
-        url.search = '';
         url.hash = '';
         url.pathname = url.pathname.replace(/index\.html$/, '');
-        url.searchParams.set('login', 'parent');
+        url.search = query;
         return url.toString();
     } catch (_) {
-        return '?login=parent';
+        return query;
     }
 }
 

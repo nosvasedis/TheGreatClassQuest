@@ -101,6 +101,18 @@ export const authHTML = `
                 <div id="login-form-container" class="auth-card auth-gate">
                     <div class="auth-gate__keystone" aria-hidden="true"><i class="fas fa-hat-wizard" data-auth-keystone-icon></i></div>
 
+                    <div id="auth-school-banner" class="auth-school-banner hidden" role="note">
+                        <span class="auth-school-banner__tail auth-school-banner__tail--left" aria-hidden="true"></span>
+                        <span class="auth-school-banner__cloth">
+                            <span class="auth-school-banner__crest" aria-hidden="true"><span data-auth-school-mark></span></span>
+                            <span class="auth-school-banner__text">
+                                <span class="auth-school-banner__kicker" data-auth-school-kicker>Welcome to</span>
+                                <span class="auth-school-banner__name" data-auth-school-name></span>
+                            </span>
+                        </span>
+                        <span class="auth-school-banner__tail auth-school-banner__tail--right" aria-hidden="true"></span>
+                    </div>
+
                     <div id="auth-availability-panel" class="auth-availability-panel hidden" role="status" aria-live="polite">
                         <p class="auth-availability-eyebrow"></p>
                         <div class="auth-availability-icon" aria-hidden="true"></div>
@@ -217,7 +229,6 @@ export const authHTML = `
                     </div>
 
                     <div id="auth-school-line" class="auth-school-line">
-                        <p id="auth-school-current" class="auth-school-current hidden"></p>
                         <button type="button" id="auth-school-change" class="auth-toggle-link auth-school-change">Another school? Enter its school code</button>
                         <form id="auth-school-form" class="auth-school-form hidden" novalidate>
                             <div class="auth-field">

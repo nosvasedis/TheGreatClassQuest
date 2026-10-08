@@ -7,6 +7,9 @@
 // module-level constant).
 
 export const DEFAULT_SCHOOL_ID = 'great-class-quest';
+// Shown over the sign-in gate on founding-school devices (other schools show their own name).
+export const FOUNDING_SCHOOL_NAME = 'Prodigies Language School';
+export const FOUNDING_SCHOOL_SHORT_NAME = 'Prodigies';
 
 const SCHOOL_ID_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 

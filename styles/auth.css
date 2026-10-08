@@ -587,21 +587,132 @@
 .auth-toggle-link:hover { background: var(--auth-accent-wash); }
 .auth-toggle-link:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Which school this device signs in to (founding school: only the quiet "Another school?" link). */
+/* ── School banner ──────────────────────────────────────────────────────────
+   The school's name hangs under the keystone like a carved ribbon over a gate.
+   Gold cloth for every role (it belongs to the school); only the round crest
+   takes the role's colour. It unfurls once when the school is known, with
+   transform/opacity only, so weak laptops never repaint it frame by frame. */
+.auth-school-banner {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin: -1.35rem auto 1rem;
+    max-width: 100%;
+}
+.auth-school-banner.hidden { display: none; }
+.auth-school-banner__cloth {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.36rem 1.15rem 0.36rem 0.38rem;
+    border-radius: 0.6rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 45%),
+        linear-gradient(180deg, #fff3cc 0%, #fde3a0 55%, #f3c96c 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(176, 116, 18, 0.38),
+        inset 0 0 0 3px rgba(255, 250, 230, 0.55),
+        0 7px 14px -9px rgba(120, 70, 10, 0.6);
+}
+.auth-school-banner__tail {
+    position: relative;
+    z-index: 0;
+    flex: none;
+    width: 1.55rem;
+    height: 1.8rem;
+    margin-top: 0.5rem;
+    background: linear-gradient(180deg, #e9b955 0%, #d39a33 100%);
+    filter: drop-shadow(0 4px 5px rgba(120, 70, 10, 0.18));
+}
+.auth-school-banner__tail--left {
+    margin-right: -0.55rem;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 36% 50%);
+}
+.auth-school-banner__tail--right {
+    margin-left: -0.55rem;
+    clip-path: polygon(0 0, 100% 0, 64% 50%, 100% 100%, 0 100%);
+}
+.auth-school-banner__crest {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.05rem;
+    height: 2.05rem;
+    border-radius: 50%;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    background: linear-gradient(160deg, var(--auth-accent-bright), var(--auth-accent));
+    box-shadow:
+        0 0 0 2px #fff7dc,
+        0 0 0 3.5px rgba(176, 116, 18, 0.45),
+        0 3px 6px rgba(15, 23, 42, 0.18);
+    transition: background 0.4s ease;
+}
+.auth-school-banner__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.1;
+    text-align: left;
+}
+.auth-school-banner__kicker {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(146, 64, 14, 0.78);
+}
+.auth-school-banner__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    color: #5b3608;
+}
+.auth-school-banner.is-unfurling .auth-school-banner__cloth {
+    animation: auth-banner-unfurl 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.auth-school-banner.is-unfurling .auth-school-banner__tail {
+    animation: auth-banner-tail 0.5s 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.auth-school-banner.is-unfurling .auth-school-banner__crest {
+    animation: auth-banner-crest 0.55s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.auth-school-banner.is-unfurling .auth-school-banner__text {
+    animation: auth-banner-text 0.45s 0.38s ease-out both;
+}
+@keyframes auth-banner-unfurl {
+    from { opacity: 0; transform: scaleX(0.18) scaleY(0.8); }
+    60%  { opacity: 1; }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes auth-banner-tail {
+    from { opacity: 0; transform: translateY(-0.4rem) scale(0.6); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes auth-banner-crest {
+    from { opacity: 0; transform: scale(0.3) rotate(-30deg); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes auth-banner-text {
+    from { opacity: 0; transform: translateX(-0.4rem); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Under the card: the quiet way to a different school (and its code form). */
 .auth-school-line {
     margin-top: 0.35rem;
     text-align: center;
 }
 .auth-school-line.hidden,
-.auth-school-current.hidden,
 .auth-school-form.hidden,
 .auth-school-change.hidden { display: none; }
-.auth-school-current {
-    margin: 0 0 0.1rem;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--auth-accent-text);
-}
 .auth-school-change {
     font-size: 0.8rem;
     font-weight: 600;
@@ -843,6 +954,8 @@
         border-radius: 10rem 10rem 1.6rem 1.6rem / 3.6rem 3.6rem 1.6rem 1.6rem;
     }
     .auth-card-title { font-size: 1.55rem; }
+    .auth-school-banner { margin: -1.15rem auto 0.85rem; }
+    .auth-school-banner__name { font-size: 0.98rem; }
     .auth-subtitle { font-size: 0.84rem; margin-bottom: 1rem; }
     #auth-screen .auth-role-btn { min-height: 3.8rem; font-size: 0.76rem; }
     .auth-footnote { margin-top: 1rem; font-size: 0.76rem; border-radius: 1rem; }
@@ -861,6 +974,7 @@
     .auth-crest img,
     .auth-content,
     .auth-welcome__list li,
+    .auth-school-banner *,
     .auth-arrival__wave,
     .auth-availability-icon,
     .auth-error,

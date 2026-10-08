@@ -60,3 +60,9 @@ test('a school link picks the device school from ?school= or the #fragment', () 
     assert.equal(parseSchoolCodeFromLocation('?school=../evil', ''), null);
     assert.equal(parseSchoolCodeFromLocation('', '#secretary-setup=tok'), null);
 });
+
+test('the family sign-in link keeps another school on its own gate', async () => {
+    const { getParentLoginUrl } = await import('../features/familyAccessKit.js');
+    assert.equal(getParentLoginUrl('https://x.io/app/index.html?school=a#z', 'great-class-quest'), 'https://x.io/app/?login=parent');
+    assert.equal(getParentLoginUrl('https://x.io/app/', 'alpha-patras'), 'https://x.io/app/?school=alpha-patras&login=parent');
+});

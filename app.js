@@ -3,7 +3,7 @@
 import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen } from './templates/loading.js';
 import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival, playAuthGateExit, consumeGateExit, walkOutThroughGate } from './ui/authGate.js';
-import { DEFAULT_SCHOOL_ID, PUBLIC_DATA_PATH, getSchoolId, normalizeSchoolId, resolveProfileSchoolId, setSchoolId } from './utils/tenant.mjs';
+import { DEFAULT_SCHOOL_ID, FOUNDING_SCHOOL_NAME, FOUNDING_SCHOOL_SHORT_NAME, PUBLIC_DATA_PATH, getSchoolId, normalizeSchoolId, resolveProfileSchoolId, setSchoolId } from './utils/tenant.mjs';
 import { readDeviceSchoolId, rememberDeviceSchoolId } from './utils/deviceSchool.mjs';
 injectHTML();
 
@@ -154,23 +154,49 @@ function maybeOpenOperatorConsole() {
 }
 window.addEventListener('hashchange', maybeOpenOperatorConsole);
 
+// The school's name hangs over the gate as a banner, so everyone sees whose gate this is.
+// Founding-school devices show Prodigies; a device that opened another school's link (or signed
+// in there before) only ever shows that school, never the founding one.
 function syncAuthSchoolUi() {
     const schoolId = getSchoolId();
     const isFounding = schoolId === DEFAULT_SCHOOL_ID;
-    const current = document.getElementById('auth-school-current');
     const change = document.getElementById('auth-school-change');
     const form = document.getElementById('auth-school-form');
     const line = document.getElementById('auth-school-line');
     line?.classList.toggle('hidden', Boolean(secretarySetupToken));
-    if (current) {
-        current.textContent = isFounding ? '' : `School: ${deviceSchoolName || schoolId}`;
-        current.classList.toggle('hidden', isFounding);
-    }
+    const name = isFounding ? FOUNDING_SCHOOL_NAME : deviceSchoolName;
+    renderAuthSchoolBanner(secretarySetupToken || schoolAuthState === 'unknown' ? '' : name, schoolId);
     if (change) {
-        change.textContent = isFounding ? 'Another school? Enter its school code' : 'Change school';
+        change.textContent = schoolAuthState === 'unknown' ? 'Enter a different school code'
+            : (isFounding ? `Not from ${FOUNDING_SCHOOL_SHORT_NAME}? Enter your school code` : 'Not your school? Change it');
         change.classList.toggle('hidden', !form?.classList.contains('hidden'));
     }
     document.getElementById('signup-join-code-wrap')?.classList.toggle('hidden', isFounding);
+}
+
+function renderAuthSchoolBanner(name, schoolId) {
+    const banner = document.getElementById('auth-school-banner');
+    if (!banner) return;
+    const key = name ? `${schoolId}|${name}` : '';
+    if (banner.dataset.school === key) return;
+    banner.dataset.school = key;
+    banner.classList.toggle('hidden', !name);
+    if (!name) return;
+    banner.querySelector('[data-auth-school-name]').textContent = name;
+    banner.querySelector('[data-auth-school-mark]').textContent = schoolMonogram(name);
+    banner.setAttribute('aria-label', `You are signing in to ${name}`);
+    // Unfurl once each time the school changes (transform/opacity only, no repaint loop).
+    banner.classList.remove('is-unfurling');
+    void banner.offsetWidth;
+    banner.classList.add('is-unfurling');
+}
+
+// "Prodigies Language School" → "P", "Alpha Patras" → "AP".
+function schoolMonogram(name) {
+    const skip = /^(the|of|school|language|languages|centre|center|academy|institute|and|&)$/i;
+    const words = String(name).split(/\s+/).filter((word) => word && !skip.test(word));
+    const letters = (words.length ? words : String(name).split(/\s+/)).slice(0, 2).map((word) => Array.from(word)[0] || '');
+    return letters.join('').toUpperCase() || '★';
 }
 
 function useDeviceSchool(schoolId) {
@@ -908,6 +934,7 @@ async function initializeAuthAvailability() {
     if (nextState !== schoolAuthState) {
         schoolAuthState = nextState;
         syncAuthRoleUi();
+        syncAuthSchoolUi();
     }
     })().finally(() => { authAvailabilityPromise = null; });
     return authAvailabilityPromise;

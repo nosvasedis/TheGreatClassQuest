@@ -45,3 +45,9 @@ test('moon path lights the right side while waxing and the left while waning', a
   assert.match(moonLitPath(0.25, 10), /A 10 10 0 0 1 0 10/);
   assert.match(moonLitPath(0.75, 10), /A 10 10 0 0 0 0 10/);
 });
+
+test('moon shadow is the whole disc at new moon and disc minus the lit part otherwise', async () => {
+  const { moonShadowPath, moonLitPath } = await load();
+  assert.equal(moonShadowPath(0), 'M50 0 A50 50 0 1 1 50 100 A50 50 0 1 1 50 0 Z');
+  assert.ok(moonShadowPath(0.3).endsWith(moonLitPath(0.3, 50, 50, 50)));
+});

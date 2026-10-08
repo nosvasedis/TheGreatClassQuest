@@ -109,6 +109,15 @@ export function moonLitPath(phase, r, cx = 0, cy = 0) {
     return `M ${top} A ${f(r)} ${f(r)} 0 0 ${limbSweep} ${bottom} A ${f(rx)} ${f(r)} 0 0 ${termSweep} ${top} Z`;
 }
 
+/**
+ * SVG path (evenodd) for the DARK part of a moon disc in a 100×100 box (or radius r at cx, cy):
+ * the full disc minus tonight's lit part. Every photo moon in the app is shaded with this.
+ */
+export function moonShadowPath(phase, r = 50, cx = 50, cy = 50) {
+    const lit = moonLitPath(phase, r, cx, cy);
+    return `M${cx} ${cy - r} A${r} ${r} 0 1 1 ${cx} ${cy + r} A${r} ${r} 0 1 1 ${cx} ${cy - r} Z ${lit}`.trim();
+}
+
 /** Point on a circle for a dial angle (degrees clockwise from top). */
 export function pointOnDial(angle, radius, cx, cy) {
     const rad = (angle * Math.PI) / 180;

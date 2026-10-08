@@ -12,12 +12,36 @@ function makeSprite(stops, w = 128, h = 128) {
     return c;
 }
 
+/**
+ * A soft teardrop flame tongue (round base, pointed tip), drawn once. Concentric passes give it a
+ * soft edge without any canvas filter, so it renders the same on every browser.
+ */
+function makeTongue(stops, w = 96, h = 224) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, h, 0, 0);
+    stops.forEach(([p, color]) => g.addColorStop(p, color));
+    const passes = 6;
+    for (let k = 0; k < passes; k++) {
+        const s = 1 - k * 0.11, cx = w / 2, base = h * 0.93, r = w * 0.42 * s, top = h * (0.04 + k * 0.05);
+        x.globalAlpha = k === 0 ? 0.28 : 0.2;
+        x.fillStyle = g;
+        x.beginPath();
+        x.moveTo(cx, top);
+        x.bezierCurveTo(cx + r * 0.25, h * 0.38, cx + r * 1.15, base - r * 1.3, cx + r, base - r * 0.55);
+        x.arc(cx, base - r * 0.55, r, 0, Math.PI, false);
+        x.bezierCurveTo(cx - r * 1.15, base - r * 1.3, cx - r * 0.25, h * 0.38, cx, top);
+        x.fill();
+    }
+    return c;
+}
+
 export function createCampfireFire(canvas, options = {}) {
     const perf = { ...detectDevicePerformance(), ...options };
     const dpr = Math.min(globalThis.devicePixelRatio || 1, perf.dpr || 1);
     canvas.width = Math.round(FIRE_W * dpr); canvas.height = Math.round(FIRE_H * dpr);
     const ctx = canvas.getContext('2d', { alpha: true });
-    const noop = { setIntensity() {}, burst() {}, riseEmber() {}, flare() {}, feed() {}, ignite() {}, dim() {}, dispose() {}, get intensity() { return 1; } };
+    const noop = { setIntensity() {}, burst() {}, riseEmber() {}, flare() {}, feed() {}, ignite() {}, dim() {}, setIdle() {}, dispose() {}, get intensity() { return 1; } };
     if (!ctx) return noop;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
@@ -27,15 +51,25 @@ export function createCampfireFire(canvas, options = {}) {
         tip: makeSprite([[0, '#ff9a4a'], [0.35, '#ff5a1f99'], [0.7, '#c2261033'], [1, '#8a100000']]),
         ember: makeSprite([[0, '#ffffff'], [0.25, '#fff2b0'], [0.55, '#ffb54a88'], [1, '#ff8c0000']], 32, 32),
         glow: makeSprite([[0, '#ffb65e55'], [0.35, '#ff8c3a26'], [0.7, '#ff6a2a0c'], [1, '#ff5a1f00']], 256, 256),
-        smoke: makeSprite([[0, '#9f96b418'], [0.55, '#6f6a8a0a'], [1, '#5a557000']])
+        smoke: makeSprite([[0, '#9f96b418'], [0.55, '#6f6a8a0a'], [1, '#5a557000']]),
+        tongueOuter: makeTongue([[0, '#ff9a3c'], [0.35, '#ff6a1f'], [0.75, '#d8361299'], [1, '#a0180000']]),
+        tongueInner: makeTongue([[0, '#ffefb0'], [0.3, '#ffcf62'], [0.7, '#ffa040bb'], [1, '#ff7a2a00']], 72, 180)
     };
+    // Each tongue: horizontal offset, height, width, sway speed and phase. A few licking flames give the
+    // fire a real shape; the particles fill it with life.
+    const tongueCount = { low: 4, mid: 6, high: 7 }[perf.tier] || 5;
+    const tongues = Array.from({ length: tongueCount }, (_, i) => {
+        const side = i === 0 ? 0 : (i % 2 ? -1 : 1) * Math.ceil(i / 2);
+        return { off: side * 17, h: 250 - Math.abs(side) * 42, w: 94 - Math.abs(side) * 12, speed: 2.2 + i * 0.37, phase: i * 1.9 };
+    });
     const reduced = options.reducedMotion ?? Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     const sparkCount = { low: 10, mid: 18, high: 28 }[perf.tier] || 14;
     const pool = createFirePool(perf.particles);
     const sparks = Array.from({ length: sparkCount }, (_, i) => createSpark(Math.random, i * 0.2));
     const bursts = [];
     let control = { limit: perf.particles }, intensity = options.startIntensity ?? 1, goal = intensity;
-    let frame = 0, last = 0, drawAt = 0, lightAt = 0, disposed = false, time = 0, boost = 0;
+    let frame = 0, last = 0, drawAt = 0, lightAt = 0, disposed = false, time = 0, boost = 0, idle = false;
+    const lightEvery = perf.tier === 'low' ? 140 : 100;
     const lightTarget = options.lightTarget || null;
 
     function drawFrame(dt, random = Math.random, clear = true, gain = 1) {
@@ -58,6 +92,23 @@ export function createCampfireFire(canvas, options = {}) {
             ctx.globalAlpha = p.alpha * fade * gain * (0.85 + (p.depth + 1) * 0.08);
             const w = p.size, h = p.kind === 'ember' ? p.size : p.size * 1.75;
             ctx.drawImage(sprites[p.kind], p.x - w / 2, p.y - h * 0.62, w, h);
+        }
+        // Licking tongues: one sprite each, leaned with a skew (no per-frame paths or gradients).
+        const tongueGain = Math.max(0, Math.min(1.25, (I - 0.08) / 0.85));
+        if (tongueGain > 0.01) {
+            for (const layer of ['tongueOuter', 'tongueInner']) {
+                const inner = layer === 'tongueInner';
+                for (const t of tongues) {
+                    const wave = Math.sin(time * t.speed + t.phase), wave2 = Math.sin(time * t.speed * 1.73 + t.phase * 0.7);
+                    const h = t.h * (inner ? 0.62 : 1) * tongueGain * (0.84 + 0.12 * wave + 0.06 * wave2) * (0.8 + 0.2 * flicker);
+                    const w = t.w * (inner ? 0.62 : 1) * (0.9 + 0.1 * Math.min(1.2, I)) * (0.94 + 0.06 * wave2);
+                    const lean = 0.2 * wave + 0.08 * wave2 - t.off * 0.004;
+                    ctx.globalAlpha = Math.min(1, (inner ? 0.5 : 0.62) * gain * (0.7 + 0.3 * flicker));
+                    ctx.setTransform(dpr, 0, lean * dpr, dpr, (FIRE_CX + t.off * (inner ? 0.6 : 1) + wave * 3) * dpr, (FIRE_BASE + 8) * dpr);
+                    ctx.drawImage(sprites[layer], -w / 2, -h, w, h);
+                }
+            }
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
         // A bright bed of coals at the base.
         const coal = 0.4 + 0.1 * Math.sin(time * 1.7) + 0.25 * Math.min(1.2, I);
@@ -112,14 +163,14 @@ export function createCampfireFire(canvas, options = {}) {
         const frameMs = last ? now - last : 16.7;
         last = now;
         control = governFire(control, frameMs, Math.min(0.05, frameMs / 1000), perf.particles);
-        if (now - drawAt < 1000 / perf.fps - 1) return;
+        if (now - drawAt < 1000 / (idle ? Math.min(20, perf.fps) : perf.fps) - 1) return;
         const dt = Math.min(0.05, (now - (drawAt || now - 16.7)) / 1000); drawAt = now;
         time += dt;
         intensity += (goal - intensity) * Math.min(1, dt * 2.2);
         const flicker = drawFrame(dt);
         const lit = Math.min(1.35, intensity + boost);
         // Light the scene (ground, trees, faces) ~10× per second, never every frame.
-        if (lightTarget && now - lightAt > 100) {
+        if (lightTarget && now - lightAt > lightEvery) {
             lightAt = now;
             lightTarget.style.setProperty('--fire-light', Math.max(0.12, lit * flicker).toFixed(3));
         }
@@ -148,6 +199,8 @@ export function createCampfireFire(canvas, options = {}) {
         feed(color = '#ffd27a') { boost = Math.min(1.1, boost + 0.75); goal = Math.min(1.3, Math.max(goal, 1) + 0.05); burst(color, 18, { spread: 60, lift: 1.7 }); burst('#fff3c4', 12, { spread: 200 }); if (reduced) { intensity = goal; paintStill(); } },
         ignite() { goal = 1; boost = 0.7; burst('#fff0c2', 30); if (reduced) { intensity = 1; paintStill(); } },
         dim() { this.setIntensity(0.3); },
+        /** The class is looking at the sky (or a big moment covers the hearth): draw fewer frames. */
+        setIdle(value) { idle = Boolean(value); },
         dispose() { disposed = true; cancelAnimationFrame(frame); bursts.length = 0; ctx.clearRect(0, 0, FIRE_W, FIRE_H); }
     };
 }

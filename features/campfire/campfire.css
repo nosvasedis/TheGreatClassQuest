@@ -5,32 +5,56 @@
 .cf-scene button:focus-visible{outline:3px solid #ffe6a8;outline-offset:4px}.cf-scene button:disabled{cursor:default}
 .cf-scene h1,.cf-scene h2,.cf-scene h3{margin:0}
 
-/* Sky and land */
-.cf-sky{position:absolute;inset:0;z-index:-5;background:linear-gradient(#070b1d 0%,#161a3a 38%,#28264a 62%,#33283f 100%);transform-origin:50% 100%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1)}
-.cf-aurora{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 22% 8%,#6f6cc026,transparent 70%),radial-gradient(ellipse 45% 30% at 78% 22%,#5aa3a61a,transparent 70%);animation:cf-aurora 26s ease-in-out infinite alternate}
-.cf-moon-wrap{position:absolute;right:9%;top:10%;width:clamp(60px,6vw,100px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#f3f0ff2e 0,#d8ddfa12 45%,transparent 70%);filter:drop-shadow(0 0 30px #e8e6ff33);transition:top 1.15s cubic-bezier(.22,.8,.28,1),right 1.15s,transform 1.15s}
-.cf-moon{display:block;width:100%;height:100%;object-fit:cover;clip-path:circle(46% at 50% 50%);opacity:.9;filter:sepia(.2) brightness(1.15)}
+/* Sky and land. The landscape is one static SVG; only whole roots and small HTML layers move. */
+.cf-sky{position:absolute;inset:0;z-index:-5;background:linear-gradient(#050817 0%,#0f1433 30%,#1d1d44 56%,#2c2547 78%,#35283f 100%);transform-origin:50% 100%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1)}
+.cf-milky{position:absolute;left:-20%;top:-30%;width:140%;height:90%;transform:rotate(-14deg);opacity:.85;pointer-events:none;
+  background:radial-gradient(ellipse 50% 9% at 52% 50%,#b9b6ff14,transparent 70%),radial-gradient(ellipse 34% 5% at 38% 49%,#fff1dc12,transparent 70%),radial-gradient(ellipse 30% 4% at 66% 52%,#cfe4ff10,transparent 70%)}
+.cf-aurora{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 22% 8%,#6f6cc022,transparent 70%),radial-gradient(ellipse 45% 30% at 78% 22%,#5aa3a618,transparent 70%);animation:cf-aurora 26s ease-in-out infinite alternate;will-change:opacity,transform}
 .cf-landscape{position:absolute;inset:0;width:100%;height:100%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1);transform-origin:50% 100%}
-.cf-landscape .cf-twinkle{animation:cf-twinkle 4.5s ease-in-out infinite}.cf-landscape .cf-twinkle:nth-child(3n){animation-delay:-2s}
-.cf-layer-1{animation:cf-drift 60s ease-in-out infinite alternate}.cf-layer-2{animation:cf-drift 44s ease-in-out infinite alternate-reverse}
+.cf-moonlit{opacity:calc(.25 + var(--cf-moonlight,.5) * .75)}
+.cf-twinkles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;animation:cf-twinkle 5.2s ease-in-out infinite;will-change:opacity}
+.cf-twinkles--b{animation-delay:-2.6s;animation-duration:6.4s}
+.cf-shooting{position:absolute;left:62%;top:9%;width:150px;height:2px;border-radius:2px;opacity:0;pointer-events:none;transform-origin:100% 50%;
+  background:linear-gradient(90deg,transparent,#fff6dd 85%,#fff);animation:cf-shooting 23s linear 6s infinite;will-change:transform,opacity}
+.cf-scene[data-stage=sleep] .cf-shooting{animation-duration:11s;animation-delay:1.4s}
+/* Tonight's real moon. Its glow and the moonlit ridges follow how much of it is lit. */
+.cf-moon-wrap{position:absolute;right:8.5%;top:13%;z-index:-4;width:clamp(58px,6vw,96px);aspect-ratio:1;padding:0;border:0;background:none;color:inherit;border-radius:50%;cursor:pointer;pointer-events:auto;
+  transform-origin:50% 50%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1),opacity .8s}
+.cf-moon-halo{position:absolute;inset:-70%;border-radius:50%;pointer-events:none;opacity:calc(.12 + var(--cf-moonlight,.5) * .88);
+  background:radial-gradient(circle,#e8ecff38 0%,#c6d0ff1a 34%,#8a96e00a 52%,transparent 70%)}
+.cf-moon{position:absolute;inset:0;display:block;opacity:calc(.82 + var(--cf-moonlight,.5) * .18)}
+.cf-moon.gcq-moon{box-shadow:-6px 10px 20px #0f172a55,0 0 14px #ffecb333,0 0 34px #bae6fd22}
+.cf-moon{border-radius:50%;overflow:hidden;isolation:isolate}
+.cf-moon .gcq-moon__body{display:block;width:100%;height:100%;max-width:none;object-fit:cover;border-radius:50%;transform:scale(1.16)}
+.cf-moon .gcq-moon__phase{position:absolute;inset:0;z-index:1;width:100%;height:100%}
+.cf-moon .gcq-moon__phase path{fill:#0b1030e8}
+.cf-moon-label{position:absolute;right:50%;top:calc(100% + 14px);transform:translate(50%,-4px);display:grid;gap:1px;white-space:nowrap;padding:.4rem .8rem;border-radius:12px;
+  background:#0e1326e6;border:1px solid #c9d4ff44;color:#eef1ff;font-size:.85rem;font-weight:600;text-align:center;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}
+.cf-moon-label small{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#aeb8e8;font-weight:600}
+.cf-moon-wrap:hover .cf-moon-label,.cf-moon-wrap:focus-visible .cf-moon-label,.cf-moon-wrap.is-told .cf-moon-label{opacity:1;transform:translate(50%,0)}
+.cf-moon-wrap:focus-visible{outline:3px solid #dfe6ff;outline-offset:6px}
+/* Fireflies at the edge of the clearing (HTML, transform/opacity only; none on low-power laptops). */
+.cf-fireflies{position:absolute;inset:0;z-index:-3;pointer-events:none}
+.cf-fireflies i{position:absolute;left:var(--x);top:var(--y);width:9px;height:9px;margin:-4px;border-radius:50%;opacity:0;
+  background:radial-gradient(circle,#fbffd0 0,#e6ff8a 35%,#c9f26a33 60%,transparent 72%);animation:cf-firefly var(--t) ease-in-out var(--d) infinite;will-change:transform,opacity}
 /* The fire lights the forest floor, the nearest trees and the faces */
 .cf-warmth{position:absolute;left:50%;bottom:0;width:min(1600px,140vw);height:70vh;transform:translateX(-50%);z-index:-3;pointer-events:none;
-  background:radial-gradient(ellipse 50% 60% at 50% 100%,#ff9d4a5c 0%,#ff7a2a2e 38%,#ff6a2a0d 62%,transparent 76%);mix-blend-mode:screen;opacity:var(--fire-light);transition:opacity .15s linear}
+  background:radial-gradient(ellipse 50% 60% at 50% 100%,#ff9d4a4a 0%,#ff7a2a24 38%,#ff6a2a0a 62%,transparent 76%);opacity:var(--fire-light);transition:opacity .15s linear;will-change:opacity}
 .cf-tint{position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.2s ease,background 1.2s ease}
 .cf-scene[data-glow=flame] .cf-tint{opacity:1;background:radial-gradient(ellipse 80% 70% at 50% 100%,#ff8a3d24,transparent 70%)}
 .cf-scene[data-glow=candle] .cf-tint{opacity:1;background:radial-gradient(ellipse 80% 70% at 50% 100%,#ffd98a18,transparent 70%)}
 .cf-scene[data-glow=moon] .cf-tint{opacity:1;background:radial-gradient(ellipse 90% 80% at 50% 20%,#7e9cff1f,transparent 70%)}
 .cf-vignette{position:absolute;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(ellipse 85% 75% at 50% 70%,transparent 50%,#03060dcc 100%)}
-.cf-sky-stars{--cf-zoom:1;--cf-pan-x:0px;--cf-pan-y:0px;--cf-look-y:0px;position:absolute;inset:2.5% 16% auto 8%;height:26%;z-index:0;pointer-events:none;
+.cf-sky-stars{--cf-zoom:1;--cf-pan-x:0px;--cf-pan-y:0px;--cf-look-y:0px;position:absolute;inset:calc(clamp(14px,2.6vh,30px) + 64px) 14% auto 10%;height:24%;z-index:0;pointer-events:none;
   transform:translate3d(var(--cf-pan-x),calc(var(--cf-pan-y) + var(--cf-look-y)),0) scale(var(--cf-zoom));transform-origin:50% 50%;
-  transition:filter .8s,opacity 1s}
-.cf-sky-stars.is-gaze-animate{transition:filter .8s,opacity 1s,transform .9s cubic-bezier(.22,.8,.28,1)}
+  transition:opacity 1s}
+.cf-sky-stars.is-gaze-animate{transition:opacity 1s,transform .9s cubic-bezier(.22,.8,.28,1)}
 .cf-constellation{width:100%;height:100%;overflow:visible}
 .cf-star-mark{opacity:.32;transform-origin:center;transform-box:fill-box;transform:scale(.62)}
 .cf-star-lines{opacity:0}
 .cf-star.is-waiting .cf-star-mark{opacity:0;animation:none;transform:scale(.12)}
 .cf-star.is-new .cf-star-halo{animation:cf-star-pop 2.4s ease-out 1}
-.cf-scene.is-sky-featured .cf-sky-stars,.cf-scene[data-stage=kept] .cf-sky-stars{z-index:1;filter:brightness(1.08)}
+.cf-scene.is-sky-featured .cf-sky-stars,.cf-scene[data-stage=kept] .cf-sky-stars{z-index:1}
 .cf-scene.is-sky-featured .cf-star:not(.is-waiting) .cf-star-mark,
 .cf-scene[data-stage=kept] .cf-star:not(.is-waiting) .cf-star-mark{
   opacity:1;transform:scale(1);
@@ -42,15 +66,9 @@
 .cf-scene.is-sky-gaze .cf-star:not(.is-waiting) .cf-star-mark{opacity:1;transform:scale(1);animation:none;transition:opacity .45s,transform .45s}
 .cf-scene.is-sky-gaze .cf-star-lines{opacity:1;transition:opacity .45s}
 .cf-scene.is-sky-gaze .cf-star-lines path{stroke-dashoffset:0;animation:none}
-.cf-scene[data-stage=kept] .cf-content{margin-top:clamp(28px,8vh,64px)}
+.cf-scene[data-stage=kept] .cf-content{margin-top:clamp(40px,17vh,170px)}
 /* Our sky of promises: the words sit under the constellations, never on top of them. */
 .cf-scene[data-stage=kept].is-sky-featured:not(.is-sky-gaze) .cf-content{margin-top:clamp(40px,19vh,190px)}
-.cf-star--speak .cf-star-mark{filter:drop-shadow(0 0 2px #38bdf888)}
-.cf-star--words .cf-star-mark{filter:drop-shadow(0 0 2px #8b5cf688)}
-.cf-star--write .cf-star-mark{filter:drop-shadow(0 0 2px #fb718588)}
-.cf-star--read-listen .cf-star-mark{filter:drop-shadow(0 0 2px #14b8a688)}
-.cf-star--habit .cf-star-mark{filter:drop-shadow(0 0 2px #34d39988)}
-.cf-star--virtue .cf-star-mark{filter:drop-shadow(0 0 2px #f59e0b88)}
 .cf-sky-key{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem .9rem;margin:18px auto 0;padding:0;list-style:none;max-width:720px}
 .cf-sky-key li{display:flex;align-items:center;gap:.4rem;font-size:.8rem;letter-spacing:.06em;color:#f6ead0;font-weight:600}
 .cf-sky-key i{width:11px;height:11px;border-radius:50%;box-shadow:0 0 10px currentColor}
@@ -61,24 +79,26 @@
 .cf-sky-key--habit i{background:#86efac;color:#86efac}
 .cf-sky-key--virtue i{background:#fcd34d;color:#fcd34d}
 
-/* Hearth */
-.cf-hearth{position:absolute;left:50%;bottom:calc(-58px * var(--cf-scale));width:480px;height:600px;transform:translateX(-50%) scale(var(--cf-scale));transform-origin:50% 100%;pointer-events:none;z-index:-2;transition:transform .9s cubic-bezier(.3,.7,.3,1),opacity .9s}
-.cf-ground-light{position:absolute;left:-150px;right:-150px;bottom:24px;height:190px;border-radius:50%;background:radial-gradient(ellipse,#f0a04a66 0%,#d9803a28 42%,transparent 72%);opacity:var(--fire-light)}
-.cf-stones{position:absolute;left:0;bottom:36px;width:480px;height:140px}
-.cf-stone-rock{filter:brightness(calc(.55 + var(--fire-light) * .5))}
+/* Hearth: back stones + sticks, a "lit" root, the fire canvas, front logs + stones, a second "lit" root.
+   The fire lights it by fading the two lit roots (opacity is cheap; filters are never used). */
+.cf-hearth{position:absolute;left:50%;bottom:calc(-36px * var(--cf-scale));width:480px;height:600px;transform:translateX(-50%) scale(var(--cf-scale));transform-origin:50% 100%;pointer-events:none;z-index:-2;transition:transform .9s cubic-bezier(.3,.7,.3,1),opacity .9s}
+.cf-ground-light{position:absolute;left:-190px;right:-190px;bottom:28px;height:200px;border-radius:50%;background:radial-gradient(ellipse,#f0a04a5c 0%,#d9803a24 42%,transparent 72%);opacity:var(--fire-light);will-change:opacity}
+.cf-hearth-layer{position:absolute;left:0;top:0;width:480px;height:600px;overflow:visible}
+.cf-lit{opacity:var(--fire-light);will-change:opacity}
+.cf-lit-front{opacity:calc(var(--fire-light) * .9)}
 .cf-fire{position:absolute;left:0;top:0;width:480px;height:600px}
-.cf-logs{position:absolute;left:0;bottom:60px;width:480px;height:120px;filter:brightness(calc(.6 + var(--fire-light) * .45))}
-.cf-coals circle{opacity:calc(.45 + var(--fire-light) * .5)}
+.cf-coals circle{opacity:.85}
 .cf-scene[data-stage=question] .cf-hearth{opacity:.85}
 .cf-scene[data-stage=circle] .cf-hearth{transform:translateX(-50%) scale(calc(var(--cf-scale) * .86))}
 .cf-scene.has-moment .cf-hearth{opacity:.6}
 .cf-scene.is-sky-gaze .cf-sky{transform:none;filter:none}
 .cf-scene.is-sky-gaze .cf-landscape{transform:translateY(52%) scale(1.14)}
-.cf-scene.is-sky-gaze .cf-moon-wrap{top:16%;right:8%;transform:scale(1.28)}
+.cf-scene.is-sky-gaze .cf-moon-wrap{transform:translateY(4vh) scale(1.3)}
 .cf-scene.is-sky-gaze .cf-hearth{transform:translateX(-50%) translateY(68%) scale(calc(var(--cf-scale) * .3));opacity:.12}
+.cf-scene.is-sky-gaze .cf-fireflies,.cf-scene.has-moment .cf-fireflies{opacity:0;transition:opacity .6s}
 .cf-scene.is-sky-gaze .cf-warmth{opacity:calc(var(--fire-light) * .18)}
 .cf-scene.is-sky-gaze .cf-vignette{background:radial-gradient(ellipse 100% 90% at 50% 48%,transparent 46%,#03060d88 100%)}
-.cf-scene.is-sky-gaze .cf-sky-stars{--cf-look-y:28vh;z-index:4;pointer-events:auto;filter:none;cursor:grab}
+.cf-scene.is-sky-gaze .cf-sky-stars{--cf-look-y:28vh;z-index:4;pointer-events:auto;cursor:grab}
 .cf-scene.is-sky-gaze.is-panning .cf-sky-stars{cursor:grabbing}
 .cf-scene.is-sky-gaze .cf-content,
 .cf-scene.is-sky-gaze .cf-content.is-entering,
@@ -90,20 +110,32 @@
 .cf-scene.is-sky-gaze .cf-star{cursor:pointer}
 
 /* Top bar */
-.cf-top{position:relative;padding:clamp(14px,2.6vh,30px) clamp(20px,3.2vw,50px);display:flex;justify-content:space-between;align-items:center;gap:1rem;z-index:3}
+.cf-top{position:relative;padding:clamp(14px,2.6vh,30px) clamp(20px,3.2vw,50px);display:flex;justify-content:space-between;align-items:center;gap:1rem;z-index:3;pointer-events:none}
+.cf-top>*{pointer-events:auto}
 .cf-brand{display:flex;align-items:center;gap:.8rem}.cf-brand svg{width:26px;height:36px;filter:drop-shadow(0 0 12px #ffc76a55)}
 .cf-brand span{font-size:9px;letter-spacing:.24em;color:#c4bdca}.cf-brand h1{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:1.25rem;margin-top:2px}
-.cf-tools{display:flex;gap:8px}.cf-tools button{display:grid;place-items:center;padding:0;border:1px solid #f9dfb026;color:#e8ddce;border-radius:50%;height:42px;min-width:42px;background:#121a2a99;backdrop-filter:blur(4px);font-size:1rem}
+.cf-tools{display:flex;gap:8px}.cf-tools button{display:grid;place-items:center;padding:0;border:1px solid #f9dfb026;color:#e8ddce;border-radius:50%;height:42px;min-width:42px;background:#121a2acc;font-size:1rem}
 .cf-tools button:hover{background:#26304899}
 .cf-tools button[aria-pressed=true]{background:#3a2a18cc;border-color:#f2c17888;box-shadow:0 0 18px #ffb45c55}
 .cf-tools .cf-telescope{overflow:visible}
 .cf-telescope-icon{display:grid;place-items:center;width:24px;height:24px;font-size:19px;line-height:1;pointer-events:none}
 .cf-scene.is-sky-gaze .cf-tools .cf-telescope{background:#3a2a18ee;border-color:#f2c178aa;box-shadow:0 0 22px #ffb45c66}
-.cf-progress{display:flex;gap:9px;padding:8px 12px;border-radius:20px;background:#0d131f88}
-.cf-progress span{height:6px;width:6px;border-radius:50%;background:#a9a4bd44;transition:all .4s}.cf-progress .is-past{background:#c9a26a}.cf-progress .is-lit{width:20px;border-radius:4px;background:#f4ce88;box-shadow:0 0 10px #edb56d66}
+/* The path of the evening: seven embers the teacher can tap to jump to a moment. */
+.cf-progress{display:flex;align-items:center;gap:4px;padding:5px 8px;border-radius:22px;background:#0d131fb3;border:1px solid #f9dfb014}
+.cf-progress button{position:relative;display:flex;align-items:center;gap:.45rem;height:26px;min-width:22px;padding:0 6px;border:0;border-radius:13px;background:none;color:#e9dccb;font-size:.78rem;font-weight:600;letter-spacing:.02em;transition:background .35s}
+.cf-progress button i{width:7px;height:7px;flex:none;border-radius:50%;background:#a9a4bd55;transition:transform .35s,background .35s,box-shadow .35s}
+.cf-progress button.is-past i{background:#c9a26a}
+.cf-progress button.is-lit{background:#3a2716cc;padding:0 11px 0 8px}
+.cf-progress button.is-lit i{background:#ffd27a;box-shadow:0 0 10px #ffb45c;transform:scale(1.25)}
+.cf-progress button span{display:none;white-space:nowrap}
+.cf-progress button.is-lit span{display:inline}
+.cf-progress button:hover:not(.is-lit){background:#ffffff10}
+.cf-progress button:hover i{transform:scale(1.35)}
+.cf-progress button:disabled{cursor:default}
 
 /* Content */
-.cf-content{position:relative;text-align:center;margin:clamp(0px,1.6vh,22px) auto 0;padding:0 2rem;width:min(1180px,95vw);z-index:2;transition:opacity .7s}
+.cf-content{position:relative;text-align:center;margin:clamp(0px,1.6vh,22px) auto 0;padding:0 2rem;width:min(1180px,95vw);z-index:2;transition:opacity .7s;pointer-events:none}
+.cf-content button,.cf-content [role=group],.cf-content .cf-sky-key{pointer-events:auto}
 .cf-content.is-leaving{animation:cf-stage-out .32s cubic-bezier(.4,0,.6,1) both;pointer-events:none}
 .cf-content.is-entering{animation:cf-stage-in .55s cubic-bezier(.2,.7,.3,1) both}
 .cf-eyebrow{font-size:11px;letter-spacing:.34em;color:var(--cf-gold);margin:0 0 14px;font-weight:600}
@@ -121,7 +153,7 @@
   box-shadow:0 0 calc(18px + 40px * var(--cf-kindle, .12)) rgba(255,160,70,calc(.15 + var(--cf-kindle, .12) * .55)),inset 0 1px 0 #ffe9c244;
   transition:box-shadow .35s,border-color .35s,background .35s,opacity .45s,transform .7s cubic-bezier(.22,.8,.28,1),bottom .7s cubic-bezier(.22,.8,.28,1),top .7s cubic-bezier(.22,.8,.28,1),left .7s cubic-bezier(.22,.8,.28,1),right .7s cubic-bezier(.22,.8,.28,1),padding .45s,font-size .45s}
 .cf-star-plaque[hidden]{display:none}
-.cf-star-plaque__mark{font-size:1.35em;color:#ffd98a;text-shadow:0 0 12px #ffb45c,0 0 28px #ff8a3a88;animation:cf-plaque-spark 1.8s ease-in-out infinite}
+.cf-star-plaque__mark{display:inline-block;font-size:1.35em;color:#ffd98a;text-shadow:0 0 12px #ffb45c,0 0 28px #ff8a3a88;animation:cf-plaque-spark 1.8s ease-in-out infinite}
 .cf-star-plaque__copy{font-weight:600}
 .cf-star-plaque b{font-family:"Fredoka One",sans-serif;font-weight:400;font-size:1.45em;color:#ffe7a8;min-width:1.15em;display:inline-block;text-shadow:0 0 18px #ffb45c99}
 .cf-star-plaque.is-counting{transform:translateX(-50%) scale(1.04)}
@@ -140,12 +172,14 @@
 .cf-scene.is-sky-gaze .cf-star-plaque{opacity:0}
 .cf-star-plaque__burst{position:absolute;inset:-18px;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(circle,#ffe3a055,transparent 70%)}
 .cf-star-plaque.is-lit .cf-star-plaque__burst{animation:cf-plaque-burst 1.2s ease-out both}
-@keyframes cf-plaque-spark{50%{filter:brightness(1.35) drop-shadow(0 0 8px #ffd27a)}}
+@keyframes cf-plaque-spark{50%{opacity:.7;transform:scale(1.18) rotate(20deg)}}
 @keyframes cf-plaque-bloom{from{transform:translateX(-50%) scale(.82);filter:brightness(1.8)}to{transform:translateX(-50%) scale(1)}}
 @keyframes cf-plaque-burst{from{opacity:.9;transform:scale(.6)}to{opacity:0;transform:scale(1.4)}}
-.cf-kindle-star{position:fixed;width:var(--size,26px);height:var(--size,26px);margin:calc(var(--size,26px) / -2) 0 0 calc(var(--size,26px) / -2);filter:drop-shadow(0 0 6px #ffe39a) drop-shadow(0 0 16px #ffb54a);will-change:transform,opacity}
+.cf-kindle-star{position:fixed;width:var(--size,26px);height:var(--size,26px);margin:calc(var(--size,26px) / -2) 0 0 calc(var(--size,26px) / -2);will-change:transform,opacity}
+.cf-kindle-star::before{content:"";position:absolute;inset:-70%;border-radius:50%;background:radial-gradient(circle,#ffe39a88 0,#ffb54a33 38%,transparent 66%)}
 .cf-kindle-star svg{width:100%;height:100%;animation:cf-spin 1.4s linear infinite}
-.cf-kindle-star::after{content:"";position:absolute;left:50%;bottom:55%;width:3px;height:calc(var(--size,26px) * 2.2);transform:translateX(-50%);border-radius:3px;background:linear-gradient(to top,#ffe39acc,transparent);filter:blur(1px)}
+.cf-kindle-star::after{content:"";position:absolute;left:50%;bottom:55%;width:3px;height:calc(var(--size,26px) * 2.2);transform:translateX(-50%);border-radius:3px;background:linear-gradient(to top,#ffe39aaa,transparent)}
+.cf-kindle-star svg{position:relative}
 
 /* 1 · Word embers */
 .cf-fx{position:absolute;inset:0;pointer-events:none;z-index:6}
@@ -205,7 +239,7 @@
 .cf-seat-bubble p{margin:0;font-size:clamp(14px,1.05vw,17px);line-height:1.35;font-weight:600;text-align:center}
 .cf-seat.is-empty .cf-seat-bubble{background:#ffffff14;color:#e4d6cc;box-shadow:none;border:1px dashed #f2d5a544}.cf-seat.is-empty .cf-seat-bubble::after{display:none}
 .cf-seat-avatar{position:relative;width:clamp(80px,6.6vw,104px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#5b6480,#343c52);
-  border:3px solid var(--guild);box-shadow:0 0 0 4px #0b0f1acc,0 calc(8px * var(--fire-light)) calc(34px * var(--fire-light)) #ff9a4a88;transition:box-shadow .5s,border-color .5s}
+  border:3px solid var(--guild);box-shadow:0 0 0 4px #0b0f1acc,0 8px 30px #ff9a4a40;transition:box-shadow .5s,border-color .5s}
 .cf-seat.is-flame .cf-seat-avatar,.cf-seat.is-candle .cf-seat-avatar,.cf-seat.is-moon .cf-seat-avatar{border-color:var(--mood);box-shadow:0 0 0 4px #0b0f1acc,0 0 0 8px color-mix(in srgb,var(--mood) 35%,transparent),0 0 44px var(--mood)}
 .cf-seat-avatar img,.cf-seat-avatar>span{width:100%;height:100%;border-radius:50%;object-fit:cover;display:grid;place-items:center;font-family:"Fredoka One",sans-serif;font-size:2.2rem;color:#fce9c8}
 .cf-seat-avatar::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(to top,#ff8a3a66,transparent 58%);opacity:var(--fire-light);pointer-events:none}
@@ -269,7 +303,7 @@
 .cf-nav{display:flex;gap:12px;align-items:center}
 .cf-error{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);max-width:80vw;padding:12px 20px;border-radius:14px;background:#713c38;color:#fff2e6;z-index:8;font-size:.9rem}
 .cf-gaze-hint{position:absolute;left:50%;bottom:1.35rem;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:.55rem;padding:.45rem .55rem .45rem 1rem;border-radius:999px;
-  background:#12182ccc;border:1px solid #f2c17844;color:#f6ead0;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .6s;backdrop-filter:blur(8px)}
+  background:#12182cee;border:1px solid #f2c17844;color:#f6ead0;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .6s}
 .cf-scene.is-sky-gaze .cf-gaze-hint:not([hidden]){opacity:1;pointer-events:auto;visibility:visible}
 .cf-gaze-hint span{font-size:.82rem;letter-spacing:.04em;white-space:nowrap}
 .cf-gaze-hint button{border:1px solid #f9dfb044;color:#e8ddce;border-radius:50%;height:36px;min-width:36px;background:#1a2238cc;font-size:1rem}
@@ -294,8 +328,9 @@
 @keyframes cf-pop-in{from{opacity:0;transform:scale(.6)}}
 @keyframes cf-seat-in{from{opacity:0;transform:translateY(calc(var(--seat) * -44px + 30px)) scale(.9)}}
 @keyframes cf-ember-float{50%{transform:translateY(calc(var(--lift) - 7px))}}
-@keyframes cf-twinkle{50%{opacity:.15}}
-@keyframes cf-drift{to{transform:translateX(-18px)}}
+@keyframes cf-twinkle{50%{opacity:.2}}
+@keyframes cf-shooting{0%,93%{opacity:0;transform:translate(0,0) rotate(-24deg) scaleX(.2)}94%{opacity:1}100%{opacity:0;transform:translate(-340px,150px) rotate(-24deg) scaleX(1)}}
+@keyframes cf-firefly{0%,100%{opacity:0;transform:translate(0,0)}20%{opacity:.95}45%{opacity:.25;transform:translate(calc(var(--dx) * .5),var(--dy))}70%{opacity:.9}85%{opacity:0;transform:translate(var(--dx),calc(var(--dy) * .4))}}
 @keyframes cf-aurora{to{opacity:.55;transform:translateX(2%)}}
 @keyframes cf-spin{to{transform:rotate(360deg)}}
 @keyframes cf-star-appear{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:scale(1)}}
@@ -309,7 +344,12 @@
 
 @media(max-height:760px){.cf-content h2{font-size:clamp(26px,3.2vw,44px)}.cf-subtitle{margin-top:10px}.cf-word-arc{margin-top:16px}.cf-glow{margin-top:18px}.cf-seats{bottom:80px}.cf-seat-bubble{padding:9px 11px}}
 @media(max-width:1100px){.cf-seat{width:clamp(140px,17vw,200px)}.cf-seat-gap{width:min(calc(230px * var(--cf-scale)),21vw)}}
-.cf-scene.cf-still .cf-aurora,.cf-scene.cf-still .cf-layer-1,.cf-scene.cf-still .cf-layer-2{animation:none}
+.cf-scene.cf-still .cf-aurora,.cf-scene.cf-still .cf-twinkles,.cf-scene.cf-still .cf-star-plaque__mark{animation:none}
+.cf-scene.cf-still .cf-fireflies,.cf-scene.cf-still .cf-shooting{display:none}
+.cf-scene.cf-still .cf-moon-wrap{transition:none}
+/* Low-power laptops: no aurora drift, no breathing stars; everything else stays. */
+.cf-scene.cf-lite .cf-aurora,.cf-scene.cf-lite .cf-twinkles--b{animation:none}
+.cf-scene.cf-lite .cf-star .cf-star-halo{animation:none!important}
 .cf-scene.cf-still .cf-star-mark{animation:none;opacity:1}
 .cf-scene.cf-still .cf-star-lines{opacity:1}
 .cf-scene.cf-still .cf-star-lines path{animation:none;stroke-dashoffset:0}
@@ -318,10 +358,10 @@
 
 /* ── Words feed the fire ── */
 .cf-word-ghost{position:fixed;transform:translate(-50%,-50%);font-family:"Fredoka One",sans-serif;font-size:clamp(30px,3vw,46px);color:#fff3cf;white-space:nowrap;
-  text-shadow:0 0 12px #ffd27a,0 0 30px #ff9d4a,0 0 60px #ff7a2a;animation:cf-ghost 2.5s cubic-bezier(.2,.7,.3,1) forwards;pointer-events:none}
+  text-shadow:0 0 12px #ffd27a,0 0 30px #ff9d4a;animation:cf-ghost 2.5s cubic-bezier(.2,.7,.3,1) forwards;pointer-events:none}
 .cf-feed-ring{position:fixed;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid #ffd27a;box-shadow:0 0 30px #ffb45c,inset 0 0 20px #ffb45c;animation:cf-ring 1.1s ease-out forwards;pointer-events:none}
 .cf-word-count.is-bumping{animation:cf-pop-in .5s cubic-bezier(.34,1.56,.64,1)}
-@keyframes cf-ghost{0%{opacity:0;transform:translate(-50%,-30%) scale(.6);filter:blur(4px)}18%{opacity:1;transform:translate(-50%,-60%) scale(1.05);filter:blur(0)}100%{opacity:0;transform:translate(-50%,-420%) scale(1.25);filter:blur(6px)}}
+@keyframes cf-ghost{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}18%{opacity:1;transform:translate(-50%,-60%) scale(1.05)}100%{opacity:0;transform:translate(-50%,-420%) scale(1.25)}}
 @keyframes cf-ring{from{opacity:1;transform:scale(.3)}to{opacity:0;transform:scale(7)}}
 
 /* ── Check-ins react in place ── */
@@ -340,7 +380,7 @@
 .cf-moment{background:none}
 .cf-moment::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 40%,#1c1532f0,#05060efa 70%);transition:opacity .7s ease}
 .cf-moment.is-leaving::before{opacity:0}
-.cf-traveller{position:fixed;width:110px;height:110px;margin:-55px 0 0 -55px;pointer-events:none;border-radius:50%;background:radial-gradient(circle,#fff8dd 0,#ffd27a55 30%,transparent 62%);filter:drop-shadow(0 0 14px #ffd27a) drop-shadow(0 0 30px #ff9d4a)}
+.cf-traveller{position:fixed;width:110px;height:110px;margin:-55px 0 0 -55px;pointer-events:none;border-radius:50%;background:radial-gradient(circle,#fff8dd 0,#ffd27a66 22%,#ff9d4a26 42%,transparent 64%)}
 .cf-traveller svg{width:100%;height:100%;animation:cf-spin 1.2s linear infinite}
 .cf-trail{position:fixed;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:radial-gradient(circle,#fff6d6,#ffc766 45%,transparent 70%);animation:cf-trail .9s ease-out forwards;pointer-events:none}
 @keyframes cf-trail{from{opacity:.95;transform:scale(1.4)}to{opacity:0;transform:scale(.2) translateY(6px)}}
@@ -355,3 +395,47 @@
 .cf-line-new{stroke:#ffe3a0;stroke-opacity:.9;stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1;animation:cf-draw 1.4s .3s ease-out forwards}
 @keyframes cf-draw{to{stroke-dashoffset:0}}
 .cf-star.is-landed .cf-star-halo{animation:cf-star-pop 2.4s ease-out 1}
+
+/* ── 2 · Who speaks first? A fair spark hops round the circle and lands on one name ── */
+.cf-pick{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;margin:clamp(16px,3vh,28px) auto 0;min-height:64px}
+.cf-pick-btn{border:1px solid #f2c17888;background:linear-gradient(180deg,#2b1d16f0,#170f14f0);color:#ffe9c2;border-radius:999px;padding:12px 22px;font-family:"Fredoka One","Fredoka",sans-serif;font-size:clamp(15px,1.15vw,18px);box-shadow:0 0 24px #ffb45c33,inset 0 1px 0 #ffe9c233;transition:transform .25s,box-shadow .25s}
+.cf-pick-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 34px #ffb45c66,inset 0 1px 0 #ffe9c233}
+.cf-pick-btn:disabled{opacity:.55}
+.cf-pick-slot{--guild:#e0a55e;display:flex;align-items:center;gap:.75rem;min-width:12rem;padding:6px 22px 6px 6px;border-radius:999px;background:linear-gradient(180deg,#2c1d14f2,#170f14f2);border:2px solid #f2c17855;box-shadow:0 10px 26px #0007}
+.cf-pick-slot[hidden]{display:none}
+.cf-pick-face{width:54px;height:54px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#3a3f55;border:3px solid var(--guild)}
+.cf-pick-face img,.cf-pick-face span{width:100%;height:100%;object-fit:cover;display:grid;place-items:center;font-family:"Fredoka One",sans-serif;font-size:1.5rem;color:#fce9c8}
+.cf-pick-slot b{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:clamp(22px,2vw,30px);color:#fff0d4;white-space:nowrap}
+.cf-pick-slot.is-chosen{border-color:#ffd27a;box-shadow:0 0 0 6px #ffd27a22,0 0 44px #ffb45c88,0 10px 26px #0007;animation:cf-pick-land .7s cubic-bezier(.34,1.56,.64,1) both}
+.cf-pick-slot.is-chosen b{color:#ffe7a8}
+@keyframes cf-pick-land{from{transform:scale(.82)}}
+
+/* Seats catch the firelight from below (opacity on a pseudo-element, never an animated shadow). */
+.cf-seat-avatar::before{content:"";position:absolute;inset:-18px;border-radius:50%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 50% 80%,#ff9a4a55,transparent 66%);opacity:var(--fire-light)}
+
+/* Projector sizes: 1024×768 and 1280×720 laptops keep everything on screen. */
+@media(max-width:1180px){.cf-progress button.is-lit span{display:none}.cf-progress button.is-lit{padding:0 8px}}
+@media(max-height:720px){.cf-content h2{font-size:clamp(24px,3vw,40px)}.cf-eyebrow{margin-bottom:8px}.cf-starter-label{margin-top:16px}.cf-starters span{padding:9px 18px}.cf-pick{margin-top:12px}.cf-seat-bubble p{font-size:13px}.cf-seat-avatar{width:clamp(64px,5.6vw,88px)}}
+/* Phones / narrow previews (the classroom flow opens the Oath Board instead, but the scene must not break). */
+@media(max-width:760px){
+  .cf-top{padding:12px 14px;gap:.5rem}
+  .cf-brand span{display:none}.cf-brand h1{font-size:1rem}.cf-brand svg{width:20px;height:28px}
+  .cf-progress{position:absolute;left:50%;top:58px;transform:translateX(-50%);padding:3px 6px}
+  .cf-progress button{min-width:16px;padding:0 3px}.cf-progress button span{display:none!important}
+  .cf-tools{gap:5px}.cf-tools button{height:36px;min-width:36px;font-size:.9rem}
+  .cf-content{margin-top:42px;padding:0 1rem}
+  .cf-star-plaque.is-resting{top:96px;left:14px}
+  .cf-moon-wrap{top:15%;right:6%}
+  .cf-seats{bottom:84px;padding:0 6px}
+  .cf-seat-gap{display:none}
+  .cf-seat-side{flex:none;gap:6px}
+  .cf-seat{width:23vw;transform:none}
+  .cf-seat-bubble{padding:6px 7px;margin-bottom:8px}.cf-seat-bubble p{font-size:11px}
+  .cf-seat-avatar{width:54px}.cf-seat-avatar img,.cf-seat-avatar>span{font-size:1.4rem}
+  .cf-seat-name{font-size:14px}
+  .cf-seat-orbs{gap:3px}.cf-orb{width:28px;font-size:13px}
+  .cf-crown{font-size:20px;top:-10px;left:-6px}
+  .cf-glow-orb{width:28vw}.cf-glow-icon{font-size:32px}
+  .cf-footer{padding:10px 12px;gap:.5rem}.cf-next{padding:11px 16px}.cf-quiet{padding:9px 10px}
+}
+.cf-scene.cf-still .cf-word-ghost,.cf-scene.cf-still .cf-feed-ring{display:none}

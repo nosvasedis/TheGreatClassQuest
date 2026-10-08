@@ -11,7 +11,7 @@
 
 import { resolveSkyScene, sceneLayoutKey } from './skyWeather.mjs';
 import { buildCloudsHtml, buildWeatherFxHtml, BOLT_PATHS } from './skyWeatherArt.js';
-import { moonPhase, moonLitPath } from '../utils/dayCycle.mjs';
+import { moonPhase, moonShadowPath } from '../utils/dayCycle.mjs';
 
 let currentScene = null;
 let lastReading = null;
@@ -118,8 +118,7 @@ function setHtmlState(scene) {
 
 /** Shade the Award and Projector moons to tonight's real phase. */
 function paintMoonPhase(now = Date.now()) {
-    const lit = moonLitPath(moonPhase(now), 50, 50, 50);
-    const d = `M50 0 A50 50 0 1 1 50 100 A50 50 0 1 1 50 0 Z ${lit}`;
+    const d = moonShadowPath(moonPhase(now));
     document.querySelectorAll('.gcq-moon__phase path').forEach((path) => {
         if (path.getAttribute('d') !== d) path.setAttribute('d', d);
     });

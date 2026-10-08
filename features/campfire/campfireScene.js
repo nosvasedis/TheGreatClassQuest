@@ -4,7 +4,8 @@ import './campfire.css';
 import starEmberUrl from '../../assets/campfire/star-ember.png?url';
 import { CAMPFIRE_STAGES, campfireWordHint } from '../heroCampfireCore.mjs';
 import { evaluateOathEvidence, CATEGORY_META } from '../emberOathCore.mjs';
-import { campfireScenery, constellationMarkup, constellationKinds, flameMark, telescopeMark, escapeCampfire as esc } from './campfireArt.js';
+import { campfireScenery, campfireMoon, constellationMarkup, constellationKinds, flameMark, telescopeMark, escapeCampfire as esc } from './campfireArt.js';
+import { detectDevicePerformance } from '../../utils/devicePerformance.mjs';
 import { SKY_ZOOM_REST, SKY_ZOOM_LOOK, zoomSky } from '../campfireSkyCamera.mjs';
 import { createCampfireFire } from './campfireFire.js';
 import { FIRE_H, FIRE_BASE } from './fireParticlesCore.mjs';
@@ -14,6 +15,7 @@ import { getGuildById } from '../guilds.js';
 
 const MOODS = [['flame', '🔥', 'I tried', 1.35], ['candle', '🕯️', 'Still growing', 0.85], ['moon', '🌙', 'A quiet day', 0.55]];
 const EARLY_MOODS = [['flame', '😄', 'Happy', 1.35], ['candle', '🙂', 'Okay', 0.85], ['moon', '😴', 'Sleepy', 0.55]];
+const STAGE_NAMES = { kindling: 'Kindling', words: 'Word Embers', question: 'The Question', glow: 'Class Glow', circle: 'Oath Circle', kept: 'Promises Kept', sleep: 'Embers Sleep' };
 const SPARKLE = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 0C21.6 12 28 18.4 40 20C28 21.6 21.6 28 20 40C18.4 28 12 21.6 0 20C12 18.4 18.4 12 20 0Z" fill="#fff6d6"/><circle cx="20" cy="20" r="4" fill="#fff"/></svg>';
 let activeClose = null;
 
@@ -22,11 +24,14 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
     const previousFocus = document.activeElement, app = document.getElementById('app-screen'), oldInert = app?.inert;
     if (app) app.inert = true;
     const reducedMotion = performance.reducedMotion ?? Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    const tier = performance.tier || detectDevicePerformance().tier, lite = tier === 'low';
+    const moon = campfireMoon();
     const root = document.createElement('section');
     root.id = 'hero-campfire-scene'; root.className = 'cf-scene';
     root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Hero Campfire');
-    root.innerHTML = campfireScenery() + '<div class="cf-sky-stars">' + constellationMarkup(oaths, { students }) + '</div><div class="cf-tint" aria-hidden="true"></div>' +
-        '<header class="cf-top"><div class="cf-brand">' + flameMark + '<div><span>THE GREAT CLASS QUEST</span><h1>Hero Campfire</h1></div></div><div class="cf-progress" aria-label="Ceremony progress"></div>' +
+    root.style.setProperty('--cf-moonlight', moon.light.toFixed(3));
+    root.innerHTML = campfireScenery({ lite: lite || reducedMotion }) + '<div class="cf-sky-stars">' + constellationMarkup(oaths, { students }) + '</div><div class="cf-tint" aria-hidden="true"></div>' +
+        '<header class="cf-top"><div class="cf-brand">' + flameMark + '<div><span>THE GREAT CLASS QUEST</span><h1>Hero Campfire</h1></div></div><nav class="cf-progress" aria-label="Moments of the campfire"></nav>' +
         '<div class="cf-tools"><button data-action="telescope" class="cf-telescope" aria-label="Look up at our sky" aria-pressed="false" title="Look up at our sky">' + telescopeMark + '</button><button data-action="audio" aria-label="Mute the fire" title="Sound">🔊</button><button data-action="fullscreen" aria-label="Toggle full screen" title="Full screen">⛶</button><button data-action="close" aria-label="Close campfire">✕</button></div></header>' +
         '<div class="cf-content" aria-live="polite"></div><p class="cf-star-plaque" hidden></p><div class="cf-seats" hidden></div><div class="cf-fx" aria-hidden="true"></div><div class="cf-moment" hidden></div>' +
         '<aside class="cf-star-peek" hidden><b></b><p></p></aside>' +
@@ -36,6 +41,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         '<div class="cf-nav"><button data-action="back" class="cf-quiet">← Back</button><button data-action="next" class="cf-next">✦ Light our fire</button></div></footer>';
     document.body.append(root);
     if (reducedMotion) root.classList.add('cf-still');
+    if (lite) root.classList.add('cf-lite');
 
     const hearth = root.querySelector('.cf-hearth');
     const fire = createCampfireFire(root.querySelector('canvas.cf-fire'), { ...performance, reducedMotion, startIntensity: 0, lightTarget: root });
@@ -60,6 +66,9 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
     const peek = root.querySelector('.cf-star-peek');
     const extras = Object.fromEntries((script.embellishments || []).map(e => [String(e.word).toLowerCase(), e]));
     let gazing = false, zoom = 1, panX = 0, panY = 0, dragging = null;
+    // "Who speaks first?": a fair spark that visits everyone present before anyone is picked twice.
+    const spokeIds = new Set();
+    let lastSpeaker = null, picking = false;
 
     // Warm sound starts with the scene (the teacher's click allows it); the 🔊 button mutes it.
     createCampfireAudio().then(created => { if (disposed) { created.dispose(); return; } audio = created; audio.setIntensity(0.1); syncAudioButton(); }).catch(() => { root.querySelector('[data-action="audio"]').hidden = true; });
@@ -128,6 +137,8 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         gazing = !!on;
         root.classList.toggle('is-sky-gaze', gazing);
         root.classList.remove('is-panning');
+        fx.querySelectorAll('.cf-star-name').forEach(tag => tag.remove());
+        fire.setIdle(gazing || !moment.hidden);
         root.querySelectorAll('[data-action="telescope"]').forEach(b => {
             b.setAttribute('aria-pressed', String(gazing));
             if (b.closest('.cf-tools')) b.setAttribute('aria-label', gazing ? 'Look back at the fire' : 'Look up at our sky');
@@ -179,18 +190,37 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         return { x: r.left + r.width / 2, y: r.top + r.height * (FIRE_BASE / FIRE_H) - 10 };
     }
     /** Move a fixed element along a gentle arc (Web Animations; resolves when it lands). */
-    function fly(el, from, to, duration, { arc = -80, endScale = 0.45, easing = 'cubic-bezier(.45,.05,.7,.4)' } = {}) {
+    function fly(el, from, to, duration, { arc = -80, endScale = 0.45, easing = 'cubic-bezier(.45,.05,.7,.4)', trail = false } = {}) {
         el.style.left = '0px'; el.style.top = '0px';
         fx.append(el);
         if (reducedMotion || !el.animate) { el.remove(); return Promise.resolve(); }
         const mid = { x: (from.x + to.x) / 2 + (to.x > from.x ? -arc / 2 : arc / 2) * 0.4, y: Math.min(from.y, to.y) + arc };
+        const stops = [[0, from], [0.08, from], [0.55, mid], [1, to]];
         const anim = el.animate([
             { transform: 'translate(' + from.x + 'px,' + from.y + 'px) scale(1)', opacity: 0 },
             { transform: 'translate(' + from.x + 'px,' + from.y + 'px) scale(1)', opacity: 1, offset: 0.08 },
             { transform: 'translate(' + mid.x + 'px,' + mid.y + 'px) scale(' + ((1 + endScale) / 2) + ')', opacity: 1, offset: 0.55 },
             { transform: 'translate(' + to.x + 'px,' + to.y + 'px) scale(' + endScale + ')', opacity: 0.85 }
         ], { duration, easing, fill: 'forwards' });
-        return anim.finished.catch(() => {}).then(() => el.remove());
+        let trailTimer = 0;
+        if (trail) {
+            // Where the traveller is comes from the animation's own progress: no layout reads per dot.
+            const at = p => {
+                for (let i = 1; i < stops.length; i++) {
+                    const [o1, a] = stops[i - 1], [o2, b] = stops[i];
+                    if (p <= o2) { const k = (p - o1) / Math.max(0.0001, o2 - o1); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }; }
+                }
+                return to;
+            };
+            trailTimer = setInterval(() => {
+                const p = anim.effect?.getComputedTiming?.().progress;
+                if (p == null || disposed) return;
+                const point = at(p), dot = document.createElement('span');
+                dot.className = 'cf-trail'; dot.style.left = point.x + 'px'; dot.style.top = point.y + 'px';
+                fx.append(dot); later(() => dot.remove(), 900);
+            }, lite ? 70 : 40);
+        }
+        return anim.finished.catch(() => {}).then(() => { clearInterval(trailTimer); el.remove(); });
     }
 
     // ─── 0 · Kindling: today's stars fall into the sleeping coals ──────────────────
@@ -303,6 +333,41 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         requestAnimationFrame(() => { if (!disposed && step === 4) seats.classList.add('is-open'); });
     }
 
+    // ─── 2 · Who speaks first? ──────────────────────────────────────────────────
+    function speakerSlot(student, chosen = false) {
+        if (!student) return '<div class="cf-pick-slot" hidden aria-live="polite"></div>';
+        const guild = getGuildById(student.guildId);
+        return '<div class="cf-pick-slot' + (chosen ? ' is-chosen' : '') + '" aria-live="polite"' + (guild?.primary ? ' style="--guild:' + esc(guild.primary) + '"' : '') + '>' +
+            '<span class="cf-pick-face">' + avatar(student) + '</span><b>' + esc(student.name) + '</b></div>';
+    }
+    async function passTheSpark(btn) {
+        if (picking || students.length < 2) return;
+        picking = true; btn.disabled = true;
+        let pool = students.filter(st => !spokeIds.has(st.id));
+        if (!pool.length) { spokeIds.clear(); pool = students.filter(st => st.id !== lastSpeaker?.id); }
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        const show = (student, final) => {
+            const slot = content.querySelector('.cf-pick-slot');
+            if (slot) slot.outerHTML = speakerSlot(student, final);
+        };
+        const hops = reducedMotion ? 0 : 11 + Math.floor(Math.random() * 5);
+        let previous = lastSpeaker?.id;
+        for (let i = 0; i < hops; i++) {
+            let next = students[Math.floor(Math.random() * students.length)];
+            if (next.id === previous) next = students[(students.indexOf(next) + 1) % students.length];
+            previous = next.id;
+            show(next, false); audio?.tink();
+            await wait(50 + Math.pow(i / hops, 2.2) * 340);
+            if (disposed || step !== 2) { picking = false; return; }
+        }
+        spokeIds.add(chosen.id); lastSpeaker = chosen;
+        show(chosen, true);
+        fire.flare(getGuildById(chosen.guildId)?.primary || '#ffe6a8', 0.45); audio?.glow(); audio?.twinkle();
+        const button = content.querySelector('[data-pick]');
+        if (button) { button.disabled = false; button.textContent = '✦ Pass the spark on'; }
+        picking = false;
+    }
+
     // ─── 5 · An ember kept ───────────────────────────────────────────────────────
     const readyOaths = () => early ? [] : localOaths.filter(o => o.status === 'active' && script.readyOathIds?.includes(o.id));
     const keptCount = () => localOaths.filter(o => o.status === 'kept').length;
@@ -318,6 +383,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             '<p class="cf-moment-quote">' + esc('“' + (keptNow?.text || keptNow?.projectorText || '') + '”') + '</p>' +
             '<button class="cf-next cf-moment-continue" data-moment-continue>✦ Place it in our sky</button></div>';
         root.classList.add('has-moment', 'is-sky-featured');
+        fire.setIdle(true);
         // The ember leaves the fire and climbs to the centre of the sky.
         const stage = moment.querySelector('.cf-moment-stage').getBoundingClientRect();
         const ember = document.createElement('span'); ember.className = 'cf-rising-ember';
@@ -338,15 +404,8 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         if (r && !reducedMotion) {
             const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
             const traveller = document.createElement('span'); traveller.className = 'cf-traveller'; traveller.innerHTML = SPARKLE;
-            const trail = setInterval(() => {
-                const t = traveller.getBoundingClientRect(); if (!t.width) return;
-                const dot = document.createElement('span'); dot.className = 'cf-trail';
-                dot.style.left = (t.left + t.width / 2) + 'px'; dot.style.top = (t.top + t.height / 2) + 'px';
-                fx.append(dot); later(() => dot.remove(), 900);
-            }, 30);
             audio?.whoosh();
-            await fly(traveller, { x: imgRect.left + imgRect.width / 2, y: imgRect.top + imgRect.height / 2 }, to, 1700, { arc: -140, endScale: 0.16, easing: 'cubic-bezier(.55,0,.25,1)' });
-            clearInterval(trail);
+            await fly(traveller, { x: imgRect.left + imgRect.width / 2, y: imgRect.top + imgRect.height / 2 }, to, 1700, { arc: -140, endScale: 0.16, easing: 'cubic-bezier(.55,0,.25,1)', trail: true });
             if (disposed) return;
             const land = document.createElement('span'); land.className = 'cf-land'; land.style.left = to.x + 'px'; land.style.top = to.y + 'px';
             land.innerHTML = '<i></i><i></i>' + Array.from({ length: 8 }, (_, i) => '<b style="--a:' + (i * 45) + 'deg"></b>').join('');
@@ -358,13 +417,18 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         }
         target?.classList.remove('is-waiting'); target?.classList.add('is-landed');
         moment.hidden = true; moment.className = 'cf-moment'; root.classList.remove('has-moment');
+        fire.setIdle(gazing);
         await showStage(step, { animate: true, force: true });
     }
 
     // ─── Render ──────────────────────────────────────────────────────────────────
     function paint() {
         root.dataset.stage = CAMPFIRE_STAGES[step]; root.dataset.early = String(early);
-        root.querySelector('.cf-progress').innerHTML = CAMPFIRE_STAGES.map((name, i) => '<span class="' + (i < step ? 'is-past' : i === step ? 'is-lit' : '') + '" aria-label="' + name + (i === step ? ', current' : '') + '"></span>').join('');
+        root.querySelector('.cf-progress').innerHTML = CAMPFIRE_STAGES.map((name, i) => {
+            const label = early && name === 'circle' ? 'Class Promise' : STAGE_NAMES[name] || name;
+            return '<button type="button" data-stage-jump="' + i + '" class="' + (i < step ? 'is-past' : i === step ? 'is-lit' : '') + '"' + (i === step ? ' aria-current="step"' : '') +
+                ' aria-label="' + esc(label) + (i === step ? ', now' : '') + '" title="' + esc(label) + '"><i aria-hidden="true"></i><span>' + esc(label) + '</span></button>';
+        }).join('');
         root.querySelector('[data-action="back"]').disabled = step === 0 || busy;
         nextBtn.textContent = step === 6 ? 'Keep the embers · Finish' : step === 0 && kindle === 'dark' ? '✦ Light our fire' : step === 0 ? 'Gather →' : 'Continue →';
         root.dataset.glow = step === 3 ? selfCheck || '' : '';
@@ -402,17 +466,24 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             setFire(0.9);
             content.innerHTML = heading('THE QUESTION', script.question, script.followUp) +
                 (script.pattern?.example ? '<p class="cf-grammar-ex">For example: “' + esc(script.pattern.example) + '”</p>' : '') +
-                ((script.starters || []).length ? '<p class="cf-starter-label">Try starting with…</p><div class="cf-starters">' + script.starters.map((s, i) => '<span style="--i:' + i + '">' + esc(s) + '</span>').join('') + '</div>' : '');
+                ((script.starters || []).length ? '<p class="cf-starter-label">Try starting with…</p><div class="cf-starters">' + script.starters.map((s, i) => '<span style="--i:' + i + '">' + esc(s) + '</span>').join('') + '</div>' : '') +
+                (students.length > 1 ? '<div class="cf-pick">' + speakerSlot(lastSpeaker, true) +
+                    '<button type="button" class="cf-pick-btn" data-pick>' + (lastSpeaker ? '✦ Pass the spark on' : '✦ Who speaks first?') + '</button></div>' : '');
         } else if (step === 3) {
+            // Coming back from Embers Sleep must wake the fire again (it used to stay dimmed).
+            setFire((early ? EARLY_MOODS : MOODS).find(m => m[0] === selfCheck)?.[3] || 1);
             content.innerHTML = heading('CLASS GLOW', early ? 'How does our circle feel?' : 'How brightly did we learn today?', 'Show it with your hands. Every answer is welcome.') +
                 '<div class="cf-glow" role="group" aria-label="Class glow">' + (early ? EARLY_MOODS : MOODS).map(([m, icon, label]) =>
                     '<button data-mood="' + m + '" class="cf-glow-orb cf-glow-orb--' + m + '" aria-pressed="' + (selfCheck === m) + '"><span class="cf-glow-icon">' + icon + '</span><small>' + label + '</small></button>').join('') + '</div>';
         } else if (step === 4 && early) {
+            setFire(1);
             content.innerHTML = heading('OUR CLASS PROMISE', script.classPromise || 'We listen, we help, and we try together.', 'Everyone, hands near the fire… and together!') +
                 '<button class="cf-hands" data-hands>🤲 Warm our hands together</button>';
         } else if (step === 4) {
+            setFire(1);
             content.innerHTML = heading('THE OATH CIRCLE', 'Small promises. Room to grow.', circle.length ? 'How did your promise go?' : 'Our class brings its light together.');
         } else if (step === 5) {
+            setFire(1);
             const ready = readyOaths();
             const kept = keptCount();
             root.classList.toggle('is-sky-featured', !ready.length);
@@ -493,7 +564,9 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         if (action === 'telescope') return setGaze(!gazing);
         if (action === 'zoom-in') return nudgeZoom(0.22);
         if (action === 'zoom-out') return nudgeZoom(-0.22);
+        if (action === 'moon') { const told = b.classList.toggle('is-told'); if (told) audio?.twinkle(); return; }
         if (busy) return;
+        if (b.dataset.stageJump != null) { if (!moment.hidden || moving) return; if (gazing) setGaze(false); return goTo(Number(b.dataset.stageJump), { animate: true }); }
         if (action === 'next') return next();
         if (action === 'back') { if (!moment.hidden || moving || step === 0) return; return showStage(step - 1); }
         if (action === 'fullscreen') { try { if (document.fullscreenElement === root) await document.exitFullscreen(); else await root.requestFullscreen?.(); } catch {} return; }
@@ -512,7 +585,8 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             feedTheFire(word);
             return;
         }
-        if (b.hasAttribute('data-hands')) { b.disabled = true; setFire(1.4); fire.flare('#ffe6a8', 0.8); audio?.ignite(); later(() => setFire(1), 2500); return; }
+        if (b.hasAttribute('data-pick')) return passTheSpark(b);
+        if (b.hasAttribute('data-hands')) { b.disabled = true; setFire(1.4); fire.flare('#ffe6a8', 0.8); audio?.ignite(); later(() => { if (step === 4) setFire(1); }, 2500); return; }
         if (b.dataset.mood && b.dataset.oath) return checkIn(b);
         if (b.dataset.mood) return guard(async () => {
             const mood = b.dataset.mood;
@@ -584,6 +658,12 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
         }
+        if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.target.closest?.('input,textarea,select')) {
+            const key = event.key.toLowerCase();
+            if (key === 'm') { event.preventDefault(); root.querySelector('[data-action="audio"]')?.click(); return; }
+            if (key === 'f') { event.preventDefault(); root.querySelector('[data-action="fullscreen"]')?.click(); return; }
+            if (key === 'l' && moment.hidden) { event.preventDefault(); setGaze(!gazing); return; }
+        }
         if (event.target.closest?.('button,input,textarea,select') || busy || moving || gazing) return;
         if ([' ', 'Enter', 'ArrowRight'].includes(event.key)) {
             event.preventDefault(); event.stopPropagation();
@@ -638,11 +718,11 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
     if (!reducedMotion) content.classList.add('is-entering');
     root.tabIndex = -1; root.focus();
     /** Jump to a named stage (preview / guidebook capture). Lights the fire if we skip kindling. */
-    function goTo(name) {
+    function goTo(name, { animate = false } = {}) {
         const i = typeof name === 'number' ? name : CAMPFIRE_STAGES.indexOf(name);
-        if (i < 0 || i > 6 || disposed) return;
+        if (i < 0 || i > 6 || disposed || (animate && i === step)) return;
         if (i > 0 && kindle !== 'lit') ignite();
-        showStage(i, { animate: false });
+        return showStage(i, { animate });
     }
     return { close, element: root, goTo };
 }

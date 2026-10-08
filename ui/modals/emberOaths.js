@@ -8,7 +8,9 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { getLocalIsoDateString as isoToday } from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { getLeagueBand } from '../../features/languageScaffolds.mjs';
-import { suggestOaths, oathTemplates, evaluateOathEvidence, oathDate, CATEGORY_META, QUICK_MOMENTS, CLASS_PROMISES, nextChildWithoutOath } from '../../features/emberOathCore.mjs';
+import { suggestOaths, buildOathSuggestions, oathTemplates, evaluateOathEvidence, oathDate, CATEGORY_META, QUICK_MOMENTS, CLASS_PROMISES, nextChildWithoutOath } from '../../features/emberOathCore.mjs';
+import { emberSigns, LENS_KINDS, matchesLens } from '../../features/oathSuggestCore.mjs';
+import { INTERESTS, SPIRITS, oathTitle, spiritForKey, detectInterests } from '../../features/oathForge.mjs';
 import { cleanCampfireText } from '../../features/heroCampfireCore.mjs';
 import { getGuildById } from '../../features/guilds.js';
 import * as oathActions from '../../db/actions/emberOaths.js';
@@ -48,6 +50,17 @@ function avatarHtml(student, size = 'md') {
 function categoryChip(category) {
     const meta = CATEGORY_META[category] || { icon: '✨', label: 'Promise', hue: 'amber' };
     return '<span class="eo-chip eo-chip--' + meta.hue + '"><span aria-hidden="true">' + meta.icon + '</span>' + esc(meta.label) + '</span>';
+}
+/** The poetic name and spirit of a stored promise (derived from its template, so nothing new is stored). */
+function oathName(oath) {
+    const key = String(oath?.templateId || '').replace(/^(early|junior|mid|upper|exam)_/, '');
+    return { title: oath?.templateId === 'custom' ? 'In Their Own Words' : oathTitle({ templateId: oath?.templateId, category: oath?.category, text: oath?.text, target: oath?.target, seed: oath?.studentId }),
+        spirit: oath?.templateId === 'custom' ? 'own' : spiritForKey(key) };
+}
+const OWN_SPIRIT = { icon: '✏️', label: 'Their words', hint: 'Exactly what the child said', tone: 'slate' };
+function spiritRibbon(spirit) {
+    const meta = SPIRITS[spirit] || OWN_SPIRIT;
+    return '<span class="eo-ribbon eo-ribbon--' + meta.tone + '" title="' + esc(meta.hint) + '"><span aria-hidden="true">' + meta.icon + '</span>' + esc(meta.label) + '</span>';
 }
 function emberRow(count, target, big = false) {
     const total = Math.max(1, Math.min(12, target));
@@ -162,7 +175,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             (r.ready ? '<span class="eo-ready-flag">✨ Ready to keep</span>' : '') +
             '<button type="button" class="eo-card-open" data-open="' + esc(oath.id) + '" aria-label="Open ' + esc(student.name) + '’s promise"></button>' +
             '<div class="eo-card-top"><span class="eo-avatar-wrap">' + avatarHtml(student) + keptBadge + '</span>' + '<div class="eo-card-name"><h3>' + esc(student.name) + '</h3>' + categoryChip(oath.category) + '</div></div>' +
-            '<p class="eo-card-oath">' + esc(oath.text) + '</p>' +
+            '<p class="eo-card-title">' + esc(oathName(oath).title) + '</p><p class="eo-card-oath">' + esc(oath.text) + '</p>' +
             '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-card-due' + (due <= 1 ? ' is-soon' : '') + '">' + esc(dueLabel(oath)) + '</span></div>' +
             moodButtons(oath) + '</article>';
     }
@@ -223,6 +236,10 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const vaultWords = (state.get('allQuestEvents') || [])
             .filter(e => e.classId === classId && /vocab|vault/i.test(String(e.type || '') + ' ' + String(e.label || '')))
             .reduce((n, e) => n + (Number(e.progress?.count ?? e.count) || 0), 0);
+        // The teacher's own Chronicle notes (newest first) reveal passions and needs; they never leave this laptop.
+        const notes = (state.get('allHeroChronicleNotes') || []).filter(n => n.studentId === student.id)
+            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 30)
+            .map(n => ({ text: n.noteText || n.text || '', category: n.category || '' }));
         return {
             league: c.questLevel, seed: student.id, name: student.name, heroClass: student.heroClass,
             awards: state.get('allAwardLogs').filter(x => x.studentId === student.id), writtenScores: written,
@@ -234,26 +251,87 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             bookTitle: String(lesson?.summary || '').split('·')[0].trim().slice(0, 40), unit: lesson?.unit || null,
             bookKind: lesson?.bookKind || (lesson?.summary && /grammar/i.test(String(lesson.summary)) ? 'grammar' : 'coursebook'),
             storyWord: story?.currentWord || '', vaultWords, day: isoToday(),
-            guildName: getGuildById(student.guildId)?.name || '',
+            guildName: getGuildById(student.guildId)?.name || '', birthday: student.birthday || '', notes,
+            liveInterests: [...(student.oathInterests || [])],
+            classActiveKeys: local.filter(o => o.status === 'active' && o.studentId !== student.id).map(o => String(o.templateId || '').replace(/^(early|junior|mid|upper|exam)_/, '')),
             previousOaths: local.filter(o => o.studentId === student.id)
         };
     }
-    function optionsHtml() {
-        return choosing.suggestions.map((t, i) => {
-            const meta = CATEGORY_META[t.category] || { icon: '✨', label: 'Promise', hue: 'amber' };
-            return '<button type="button" class="eo-option eo-option--' + meta.hue + '" data-pick="' + i + '" style="--i:' + i + '" aria-pressed="' + (choosing.selected === i) + '">' +
-                '<span class="eo-option-icon" aria-hidden="true">' + meta.icon + '</span><span class="eo-option-label">' + esc(meta.label) + '</span>' +
-                '<span class="eo-option-text font-title">' + esc(t.text) + '</span><span class="eo-option-why">' + esc(t.why || '') + '</span><span class="eo-option-check" aria-hidden="true">✓</span></button>';
-        }).join('') +
-            '<button type="button" class="eo-option eo-option--own" data-pick="own" style="--i:3" aria-pressed="' + (choosing.selected === 'own') + '"><span class="eo-option-icon" aria-hidden="true">✏️</span><span class="eo-option-label">Their own words</span>' +
-            '<span class="eo-option-text font-title">Something else…</span><span class="eo-option-why">Write exactly what the child says.</span><span class="eo-option-check" aria-hidden="true">✓</span></button>';
+    const firstName = name => String(name || '').trim().split(/\s+/)[0] || 'this hero';
+    /** Rebuild the whole spectrum (after a passion is tapped) and deal the current page. */
+    function deal() {
+        choosing.profile.liveInterests = [...choosing.loves];
+        choosing.all = buildOathSuggestions(choosing.profile);
+        if (choosing.lens && !choosing.all.some(x => matchesLens(x, choosing.lens))) choosing.lens = '';
+        choosing.suggestions = suggestOaths(choosing.profile, { offset: choosing.offset, lens: choosing.lens, all: choosing.all });
     }
-    function ceremonyStrip(currentId) {
-        const done = roster.filter(r => activeFor(r.id)).length;
-        return '<div class="eo-strip-wrap"><span class="eo-strip-count">' + done + ' of ' + roster.length + ' lit</span><div class="eo-strip" aria-label="Choosing ceremony progress">' + roster.map(r => {
-            const lit = Boolean(activeFor(r.id)), current = r.id === currentId;
-            return '<span class="eo-strip-item' + (lit ? ' is-done' : '') + (current ? ' is-current' : '') + '" title="' + esc(r.name) + (lit ? ' · promise chosen' : '') + '">' + avatarHtml(r, 'sm') + (lit ? '<i aria-hidden="true">🔥</i>' : '') + '</span>';
-        }).join('') + '</div></div>';
+    function oathCardHtml(t, i) {
+        const meta = CATEGORY_META[t.category] || { icon: '✨', label: 'Promise', hue: 'amber' };
+        const n = Math.max(1, Math.min(6, Number(t.target?.count) || 1)), weeks = Number(t.weeks) || 1;
+        return '<button type="button" class="eo-oath eo-oath--' + meta.hue + '" data-pick="' + i + '" style="--i:' + i + '" aria-pressed="' + (choosing.selected === i) + '">' +
+            spiritRibbon(t.spirit) + '<span class="eo-oath-seal" aria-hidden="true"><span>' + meta.icon + '</span></span>' +
+            '<span class="eo-oath-title">' + esc(t.title || meta.label) + '</span>' +
+            '<span class="eo-oath-text font-title">' + esc(t.text) + '</span>' +
+            '<span class="eo-oath-why"><span aria-hidden="true">💡</span>' + esc(t.why || '') + '</span>' +
+            '<span class="eo-oath-foot"><span class="eo-oath-kind">' + esc(meta.label) + '</span><span class="eo-oath-measure" title="' + n + ' moment' + (n > 1 ? 's' : '') + ' and one 🔥 check-in">' +
+                '<span class="eo-oath-dots" aria-hidden="true">' + '<i></i>'.repeat(n) + '</span>' + n + (n > 1 ? ' moments' : ' moment') + ' · ' + weeks + (weeks > 1 ? ' weeks' : ' week') + '</span></span>' +
+            '<span class="eo-option-check" aria-hidden="true">✓</span></button>';
+    }
+    function optionsHtml() {
+        return choosing.suggestions.map(oathCardHtml).join('') +
+            '<button type="button" class="eo-oath eo-oath--own" data-pick="own" style="--i:3" aria-pressed="' + (choosing.selected === 'own') + '">' + spiritRibbon('own') +
+            '<span class="eo-oath-seal" aria-hidden="true"><span>✏️</span></span><span class="eo-oath-title">In Their Own Words</span>' +
+            '<span class="eo-oath-text font-title">Something else…</span><span class="eo-oath-why"><span aria-hidden="true">🗣️</span>Write exactly what the child says.</span><span class="eo-option-check" aria-hidden="true">✓</span></button>';
+    }
+    function lensesHtml() {
+        const all = choosing.all, first = firstName(choosing.student.name);
+        const kinds = LENS_KINDS.map(k => [k, CATEGORY_META[k].icon, CATEGORY_META[k].label === 'Reading & listening' ? 'Reading' : CATEGORY_META[k].label === 'Hero virtue' ? 'Heart' : CATEGORY_META[k].label, all.filter(x => x.category === k).length]).filter(x => x[3]);
+        const spirits = ['passion', 'ladder', 'hero', 'gift', 'bridge', 'quest', 'season', 'home'].map(k => ['spirit:' + k, SPIRITS[k].icon, SPIRITS[k].label, all.filter(x => x.spirit === k).length]).filter(x => x[3]);
+        const chip = ([key, icon, label, n]) => '<button type="button" class="eo-lens" data-lens="' + esc(key) + '" aria-pressed="' + (choosing.lens === key) + '"><span aria-hidden="true">' + icon + '</span>' + esc(label) + (n != null ? '<b>' + n + '</b>' : '') + '</button>';
+        const passions = INTERESTS.filter(x => all.some(o => o.interest === x.id)).map(x => ['interest:' + x.id, x.icon, x.label.split(' & ')[0], all.filter(o => o.interest === x.id).length]);
+        return chip(['', '✨', 'Best for ' + first, null]) + (passions.length ? '<span class="eo-lens-sep" aria-hidden="true"></span>' + passions.map(chip).join('') : '') +
+            '<span class="eo-lens-sep" aria-hidden="true"></span>' + kinds.map(chip).join('') + '<span class="eo-lens-sep" aria-hidden="true"></span>' + spirits.map(chip).join('');
+    }
+    function lovesHtml() {
+        const fromNotes = new Set(detectInterests(choosing.profile.notes));
+        const on = id => choosing.loves.has(id) || fromNotes.has(id);
+        const ordered = [...INTERESTS].sort((a, b) => Number(on(b.id)) - Number(on(a.id)));
+        const shown = choosing.lovesOpen ? ordered : ordered.slice(0, Math.max(8, ordered.filter(x => on(x.id)).length));
+        return shown.map(x => '<button type="button" class="eo-love' + (fromNotes.has(x.id) ? ' is-noted' : '') + '" data-love="' + x.id + '" aria-pressed="' + on(x.id) + '" title="' + esc(fromNotes.has(x.id) ? x.label + ' · from your Chronicle notes' : x.label) + '"><span aria-hidden="true">' + x.icon + '</span>' + esc(x.label) + '</button>').join('') +
+            (choosing.lovesOpen ? '' : '<button type="button" class="eo-love is-more" data-loves-more><span aria-hidden="true">＋</span>More passions</button>');
+    }
+    function readingHtml(student) {
+        const signs = emberSigns(choosing.profile);
+        const kept = keptFor(student.id).length;
+        const guild = getGuildById(student.guildId);
+        return '<aside class="eo-reading" aria-label="What the embers know about ' + esc(student.name) + '">' +
+            '<div class="eo-reading-hero"><span class="eo-reading-ring" aria-hidden="true">' + Array.from({ length: 12 }, (_, i) => '<i style="--i:' + i + '"' + (i < kept * 3 ? ' class="is-lit"' : '') + '></i>').join('') + '</span>' + avatarHtml(student, 'xl') + '</div>' +
+            '<h3 class="font-title">' + esc(student.name) + '</h3>' +
+            '<p class="eo-reading-sub">' + [student.heroClass, guild?.name].filter(Boolean).map(esc).join(' · ') + (kept ? (student.heroClass || guild ? ' · ' : '') + '⭐ ' + kept + ' kept' : '') + '</p>' +
+            '<details class="eo-signs-box"' + (matchMedia('(max-width: 640px)').matches ? '' : ' open') + '><summary><span>What the embers know</span><small>for your eyes</small></summary><div class="eo-signs">' +
+                (signs.length ? signs.map(x => '<span class="eo-sign eo-sign--' + x.tone + '" title="' + esc(x.hint) + '"><span aria-hidden="true">' + x.icon + '</span>' + esc(x.label) + '</span>').join('') : '<span class="eo-muted">Little is known yet. The ideas start broad.</span>') +
+            '</div></details>' +
+            '<div class="eo-loves-box"><p class="eo-loves-title">What does ' + esc(firstName(student.name)) + ' love?</p><p class="eo-loves-hint">Ask them. Each tap forges promises from it.</p><div class="eo-loves">' + lovesHtml() + '</div></div>' +
+            '</aside>';
+    }
+    function refreshAltar({ shuffle = false } = {}) {
+        const box = view.querySelector('.eo-options'); if (!box || !choosing) return;
+        box.innerHTML = optionsHtml();
+        if (shuffle) { box.classList.remove('is-shuffling'); void box.offsetWidth; box.classList.add('is-shuffling'); }
+        const lenses = view.querySelector('.eo-lenses');
+        if (lenses) {
+            lenses.innerHTML = lensesHtml();
+            const on = lenses.querySelector('[aria-pressed="true"]');
+            if (on) lenses.scrollLeft = Math.max(0, on.offsetLeft - (lenses.clientWidth - on.offsetWidth) / 2); // keep the chosen lens in sight
+        }
+        const loves = view.querySelector('.eo-loves'); if (loves) loves.innerHTML = lovesHtml();
+        const count = view.querySelector('[data-forge-count]'); if (count) count.textContent = String(choosing.all.length);
+        const own = view.querySelector('.eo-own'); if (own) own.hidden = choosing.selected !== 'own' && !choosing.editing;
+        syncAdjust(); refreshCommit();
+    }
+    function syncAdjust() {
+        const adjust = view.querySelector('[data-adjust]');
+        if (adjust) adjust.hidden = typeof choosing?.selected !== 'number' || choosing.editing;
     }
     async function choose(id, { fromCeremony = ceremony } = {}) {
         const student = roster.find(r => r.id === id); if (!student) return;
@@ -263,24 +341,34 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             campfire()
         ]);
         const profile = profileFor(student, quiz, fire);
-        choosing = { id, profile, offset: 0, suggestions: suggestOaths(profile), selected: null };
-        setView('<div class="eo-choose">' +
+        choosing = { id, student, profile, offset: 0, lens: '', selected: null, editing: false, loves: new Set(student.oathInterests || []), lovesOpen: false, all: [], suggestions: [] };
+        deal();
+        const first = firstName(student.name);
+        setView('<div class="eo-choose eo-forge">' +
+            '<span class="eo-forge-embers" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' +
             '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button>' + (ceremony ? ceremonyStrip(id) : '') + '</div>' +
-            '<div class="eo-choose-hero"><span class="eo-choose-halo" aria-hidden="true"></span>' + avatarHtml(student, 'xl') + '<h3 class="font-title">Which promise will ' + esc(student.name) + ' choose?</h3><p class="eo-muted">Read them aloud. Let the child pick.</p></div>' +
+            '<div class="eo-forge-grid">' + readingHtml(student) +
+            '<section class="eo-altar"><div class="eo-altar-head"><p class="eo-altar-eyebrow">The Oath Fire</p><h3 class="font-title">Which promise will ' + esc(first) + ' choose?</h3><p>Read them aloud. Let ' + esc(first) + ' pick, or say it in their own words.</p></div>' +
+            '<div class="eo-lenses" role="group" aria-label="Look through">' + lensesHtml() + '</div>' +
             '<div class="eo-options">' + optionsHtml() + '</div>' +
-            '<label class="eo-own" hidden><span>Their promise</span><input type="text" maxlength="200" placeholder="I will…"></label>' +
-            '<div class="eo-choose-more"><button type="button" class="eo-more" data-more><span aria-hidden="true">🔄</span> Other ideas</button>' +
-            (canUseFeature('eliteAI') ? '<button type="button" class="eo-oracle" data-oracle><span aria-hidden="true">🔮</span> Ask the Oracle</button>' : '') + '</div>' +
-            '<div class="eo-choose-actions"><button type="button" class="eo-quiet" data-skip-child>' + (ceremony ? 'Skip for now' : 'Cancel') + '</button><button type="button" class="eo-primary" data-commit disabled><span aria-hidden="true">🔥</span> Light this promise</button></div></div>', 'choose');
+            '<label class="eo-own" hidden><span>Their promise, in their words</span><input type="text" maxlength="200" placeholder="I will…"></label>' +
+            '<div class="eo-choose-more"><button type="button" class="eo-more" data-more><span aria-hidden="true">🔄</span> Deal three more</button>' +
+            '<button type="button" class="eo-more is-soft" data-adjust hidden><span aria-hidden="true">✏️</span> Change the words</button>' +
+            (canUseFeature('eliteAI') ? '<button type="button" class="eo-oracle" data-oracle><span aria-hidden="true">🔮</span> Ask the Oracle</button>' : '') +
+            '<span class="eo-forge-count"><b data-forge-count>' + choosing.all.length + '</b> promises forged for ' + esc(first) + '</span></div>' +
+            '<div class="eo-choose-actions"><button type="button" class="eo-quiet" data-skip-child>' + (ceremony ? 'Skip for now' : 'Cancel') + '</button><button type="button" class="eo-primary" data-commit disabled><span aria-hidden="true">🔥</span> Light this promise</button></div>' +
+            '</section></div></div>', 'choose');
     }
     function selectedTemplate() {
         if (!choosing) return null;
+        const typed = cleanCampfireText(view.querySelector('.eo-own input')?.value || '', 200);
         if (choosing.selected === 'own') {
-            const text = cleanCampfireText(view.querySelector('.eo-own input')?.value || '', 200);
-            if (!text) return null;
-            return { ...oathTemplates(c.questLevel)[4], id: 'custom', category: 'habit', text, evidenceRule: 'manual', target: { kind: 'manual', count: 2 } };
+            if (!typed) return null;
+            return { ...oathTemplates(c.questLevel)[4], id: 'custom', category: 'habit', text: typed, evidenceRule: 'manual', target: { kind: 'manual', count: 2 } };
         }
-        return choosing.suggestions[choosing.selected] || null;
+        const picked = choosing.suggestions[choosing.selected];
+        if (!picked) return null;
+        return choosing.editing ? (typed ? { ...picked, text: typed } : null) : picked;
     }
     function refreshCommit() {
         const btn = view.querySelector('[data-commit]');
@@ -316,12 +404,13 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const r = resultFor(oath), meta = CATEGORY_META[oath.category] || CATEGORY_META.virtue;
         const missing = r.count < r.target ? (r.target - r.count) + ' more moment' + (r.target - r.count > 1 ? 's' : '') : '';
         const needsFlame = !r.hasFlame;
-        const moments = QUICK_MOMENTS[oath.category] || QUICK_MOMENTS.habit;
+        const moments = ['Kept their word today', ...(QUICK_MOMENTS[oath.category] || QUICK_MOMENTS.habit)];
         const kept = keptFor(oath.studentId).length;
         setView('<div class="eo-story eo-story--' + meta.hue + (r.ready ? ' is-ready' : '') + '">' +
             '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button><span class="eo-pill">🗓️ ' + esc(dueLabel(oath)) + ' · until ' + esc(prettyDate(oath.dueDate)) + '</span></div>' +
             '<div class="eo-story-grid"><section class="eo-scroll">' +
                 '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">' + esc(student?.name) + '</h3><div class="eo-story-tags">' + categoryChip(oath.category) + (kept ? '<span class="eo-chip eo-chip--gold">⭐ ' + kept + ' kept before</span>' : '') + '</div></div></div>' +
+                '<div class="eo-story-name">' + spiritRibbon(oathName(oath).spirit) + '<span class="eo-story-title">' + esc(oathName(oath).title) + '</span></div>' +
                 '<blockquote class="eo-story-oath font-title"><span class="eo-quote" aria-hidden="true">“</span>' + esc(oath.text) + '</blockquote>' +
                 '<div class="eo-story-progress">' + emberRow(r.count, r.target, true) + '<p>' + (r.ready ? '<b>Ready to keep!</b> Every ember is glowing.' : 'Growing: ' + [missing, needsFlame ? 'one 🔥 check-in' : ''].filter(Boolean).join(' and ') + ' to go.') + '</p></div>' +
                 (r.ready ? '<section class="eo-keep"><h4 class="font-title">✨ Keep the Ember</h4><p>How does ' + esc(student?.name) + ' feel about it?</p><div class="eo-feelings">' +
@@ -343,7 +432,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const student = roster.find(s => s.id === oath.studentId);
         setView('<div class="eo-kept"><div class="eo-kept-rays" aria-hidden="true"></div><div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
             '<div class="eo-kept-star" aria-hidden="true">🌟</div>' + avatarHtml(student, 'lg') +
-            '<p class="eo-kept-eyebrow">A promise kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
+            '<p class="eo-kept-eyebrow">' + esc(oathName(oath).title) + ' · kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
             '<p class="eo-muted">A Star-Ember is in their Trophy Room, and a new star shines in the Campfire sky.</p>' +
             '<div class="eo-kept-actions">' + (canUseFeature('parentAccess') ? '<button type="button" class="eo-secondary" data-share="' + esc(oath.id) + '"><span aria-hidden="true">💌</span> Share with family</button>' : '') +
             '<button type="button" class="eo-secondary" data-new-for="' + esc(oath.studentId) + '"><span aria-hidden="true">✨</span> Choose the next promise</button>' +
@@ -369,20 +458,45 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         if (b.dataset.newFor) return work(() => choose(b.dataset.newFor, { fromCeremony: false }));
         if (b.hasAttribute('data-more')) {
             if (!choosing) return;
-            choosing.offset += 3; choosing.selected = null;
-            choosing.suggestions = suggestOaths(choosing.profile, { offset: choosing.offset });
-            const box = view.querySelector('.eo-options'); if (!box) return;
-            box.innerHTML = optionsHtml(); box.classList.remove('is-shuffling'); void box.offsetWidth; box.classList.add('is-shuffling');
-            const own = view.querySelector('.eo-own'); if (own) own.hidden = true; return refreshCommit();
+            choosing.offset += 3; choosing.selected = null; choosing.editing = false;
+            choosing.suggestions = suggestOaths(choosing.profile, { offset: choosing.offset, lens: choosing.lens, all: choosing.all });
+            return refreshAltar({ shuffle: true });
+        }
+        if (b.dataset.lens !== undefined) {
+            if (!choosing) return;
+            choosing.lens = b.dataset.lens; choosing.offset = 0; choosing.selected = null; choosing.editing = false;
+            choosing.suggestions = suggestOaths(choosing.profile, { offset: 0, lens: choosing.lens, all: choosing.all });
+            return refreshAltar({ shuffle: true });
+        }
+        if (b.dataset.love) {
+            if (!choosing || b.classList.contains('is-noted')) return;
+            const id = b.dataset.love, on = !choosing.loves.has(id);
+            if (on) choosing.loves.add(id); else choosing.loves.delete(id);
+            choosing.lens = on ? 'interest:' + id : (choosing.lens === 'interest:' + id ? '' : choosing.lens);
+            choosing.offset = 0; choosing.selected = null; choosing.editing = false;
+            deal(); refreshAltar({ shuffle: true });
+            saveLoves(choosing.student, [...choosing.loves]);
+            return;
+        }
+        if (b.hasAttribute('data-loves-more')) { if (!choosing) return; choosing.lovesOpen = true; const loves = view.querySelector('.eo-loves'); if (loves) { loves.classList.add('is-open'); loves.innerHTML = lovesHtml(); } return; }
+        if (b.hasAttribute('data-adjust')) {
+            if (!choosing || typeof choosing.selected !== 'number') return;
+            choosing.editing = true;
+            const own = view.querySelector('.eo-own'), input = own?.querySelector('input');
+            if (own && input) { own.hidden = false; own.querySelector('span').textContent = 'Their promise, in their words'; input.value = choosing.suggestions[choosing.selected]?.text || ''; input.focus(); input.select(); }
+            syncAdjust(); return refreshCommit();
         }
         if (b.dataset.open) return work(() => openOath(b.dataset.open));
         if (b.dataset.pick !== undefined) {
             if (!choosing) return;
-            choosing.selected = b.dataset.pick === 'own' ? 'own' : Number(b.dataset.pick);
+            const next = b.dataset.pick === 'own' ? 'own' : Number(b.dataset.pick);
+            if (next !== choosing.selected) choosing.editing = false;
+            choosing.selected = next;
             view.querySelectorAll('[data-pick]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
             const own = view.querySelector('.eo-own'); if (!own) return refreshCommit();
-            own.hidden = choosing.selected !== 'own';
-            if (!own.hidden) own.querySelector('input')?.focus();
+            own.hidden = choosing.selected !== 'own' && !choosing.editing;
+            if (choosing.selected === 'own') { const input = own.querySelector('input'); if (input && !choosing.ownTyped) input.value = ''; input?.focus(); }
+            syncAdjust();
             return refreshCommit();
         }
         if (b.hasAttribute('data-skip-child')) {
@@ -401,11 +515,12 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             const result = await requestCampfireAi(system, data);
             const idea = acceptOracleIdea(result, shown, band);
             if (!idea) throw new Error('The Oracle has nothing new this time — the ideas above are ready.');
-            const own = view.querySelector('.eo-option--own');
-            choosing.selected = 'own'; view.querySelectorAll('[data-pick]').forEach(x => x.setAttribute('aria-pressed', String(x === own)));
+            const own = view.querySelector('.eo-oath--own');
+            choosing.selected = 'own'; choosing.editing = false; choosing.ownTyped = true; view.querySelectorAll('[data-pick]').forEach(x => x.setAttribute('aria-pressed', String(x === own)));
             const field = view.querySelector('.eo-own');
             if (field) { field.hidden = false; const input = field.querySelector('input'); if (input) input.value = idea.text; }
-            const why = own?.querySelector('.eo-option-why'); if (why) why.textContent = idea.why;
+            const why = own?.querySelector('.eo-oath-why'); if (why) why.textContent = '🔮 ' + idea.why;
+            syncAdjust();
             b.remove(); refreshCommit();
         });
         if (b.dataset.check) return work(async () => {
@@ -459,7 +574,13 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             showToast('Shared with the family 💌', 'success'); renderBoard();
         });
     }
-    function onInput(event) { if (event.target.closest('.eo-own')) refreshCommit(); }
+    function onInput(event) { if (event.target.closest('.eo-own')) { if (choosing?.selected === 'own') choosing.ownTyped = true; refreshCommit(); } }
+    /** A tapped passion is remembered on the student, so next time the forge already knows. Best effort. */
+    async function saveLoves(student, ids) {
+        student.oathInterests = ids;
+        if (preview) return;
+        try { await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/students`, student.id), { oathInterests: ids.slice(0, 6) }); } catch { /* a student the teacher does not own: the session still remembers */ }
+    }
     function onKey(event) {
         if (modal.classList.contains('hidden')) return;
         // "Let this promise go?" sits on top: Escape belongs to it, not to the board.
@@ -531,7 +652,7 @@ export async function renderChronicleOaths(studentId) {
                 const r = o.status === 'active' ? evaluateOathEvidence(o, activeFacts) : null;
                 const status = o.status === 'kept' ? '<span class="eo-status is-kept">⭐ Kept</span>' : o.status === 'released' ? '<span class="eo-status is-released">🍃 Released</span>' : '<span class="eo-status is-active">🔥 Growing</span>';
                 return '<article class="eo-chron-item is-' + o.status + '" style="--i:' + i + '"><div class="eo-chron-item-top">' + categoryChip(o.category) + status + '</div>' +
-                    '<p class="eo-chron-text">' + esc(o.text) + '</p>' +
+                    '<p class="eo-card-title">' + esc(oathName(o).title) + '</p><p class="eo-chron-text">' + esc(o.text) + '</p>' +
                     (r ? '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + '/' + r.target + ' · until ' + esc(prettyDate(o.dueDate)) + '</span></div>' : '') +
                     (o.status === 'kept' && (o.reflection?.helped || o.reflection?.emoji) ? '<p class="eo-chron-reflection">' + esc(o.reflection.emoji || '') + ' ' + esc(o.reflection.helped || '') + '</p>' : '') + '</article>';
             }).join('') + '</div>'

@@ -174,20 +174,6 @@ button.eo-focus:hover{transform:translateY(-2px)}
 .eo-choose-halo{position:absolute;top:-1.5rem;left:50%;width:12rem;height:12rem;margin-left:-6rem;border-radius:50%;background:radial-gradient(closest-side,#fed7aa,transparent);opacity:.8;pointer-events:none;animation:eo-warm 3.4s ease-in-out infinite}
 .eo-choose-hero>*:not(.eo-choose-halo){position:relative}
 .eo-choose-hero h3{margin:.5rem 0 0;font-size:clamp(1.45rem,2.4vw,1.95rem);color:#5b2410}
-.eo-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:.9rem}
-.eo-option{--tint:#f97316;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;text-align:left;padding:1.15rem 1rem 1rem;border-radius:1.5rem;border:2px solid #f3e3d2;background:#fff;overflow:hidden;isolation:isolate;
-  box-shadow:0 10px 22px -12px #7c2d1240;animation:eo-in .5s cubic-bezier(.2,.8,.3,1) both;animation-delay:calc(var(--i) * 80ms);transition:transform .2s,box-shadow .2s,border-color .2s}
-.eo-option::before{content:"";position:absolute;inset:0 0 auto 0;height:5rem;z-index:-1;background:linear-gradient(180deg,color-mix(in srgb,var(--tint) 12%,#fff),transparent)}
-.eo-option:hover{transform:translateY(-4px) rotate(-.4deg);box-shadow:0 18px 32px -14px #7c2d1255}
-.eo-option[aria-pressed=true]{border-color:var(--tint);box-shadow:0 0 0 5px color-mix(in srgb,var(--tint) 20%,transparent),0 18px 32px -14px #7c2d1255;transform:translateY(-4px)}
-.eo-option-icon{font-size:2.3rem;line-height:1;animation:eo-bob 3.4s ease-in-out infinite;animation-delay:calc(var(--i) * -.6s)}
-.eo-option-label{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tint)}
-.eo-option-text{font-size:1.08rem;line-height:1.25;color:var(--eo-ink)}
-.eo-option-why{font-size:.78rem;color:var(--eo-soft);line-height:1.4}
-.eo-option-check{position:absolute;top:.7rem;right:.8rem;display:grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--tint);color:#fff;font-weight:900;transform:scale(0);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
-.eo-option[aria-pressed=true] .eo-option-check{transform:scale(1)}
-.eo-option--sky{--tint:#0284c7}.eo-option--violet{--tint:#7c3aed}.eo-option--rose{--tint:#e11d48}.eo-option--teal{--tint:#0d9488}.eo-option--emerald{--tint:#059669}.eo-option--amber{--tint:#d97706}
-.eo-option--own{--tint:#64748b;background:#fffdf9;border:2px dashed #e7d5c4}
 .eo-own{display:flex;flex-direction:column;gap:.35rem;margin-top:.9rem;font-weight:800;font-size:.85rem;color:#7c2d12;animation:eo-in .3s ease-out}
 .eo-own[hidden]{display:none}
 .eo-own input,.eo-moment-form input,.eo-helped,.eo-share textarea,.eo-promise-form input{width:100%;border:1.5px solid #f3d6b6;border-radius:1rem;padding:.75rem 1rem;font:inherit;font-size:1rem;background:#fff;color:var(--eo-ink)}
@@ -197,8 +183,154 @@ button.eo-focus:hover{transform:translateY(-2px)}
 .eo-more:hover span{display:inline-block;animation:eo-spin .6s ease}
 .eo-oracle{border:1.5px solid #e9d5ff;background:#faf5ff;color:#7e22ce;border-radius:999px;padding:.5rem 1rem;font-weight:800;font-size:.88rem}
 .eo-choose-actions{position:sticky;bottom:-1.8rem;z-index:3;display:flex;justify-content:flex-end;align-items:center;gap:.7rem;margin:1.3rem -1.6rem -1.8rem;padding:1rem 1.6rem 1.2rem;background:linear-gradient(#fff3e400,#fff3e4 38%)}
-.eo-choose.is-lit .eo-option[aria-pressed=true]{animation:eo-lit .65s ease-out forwards}
-.eo-options.is-shuffling .eo-option{animation:eo-shuffle .5s cubic-bezier(.2,.8,.3,1.2) both;animation-delay:calc(var(--i) * 70ms)}
+
+/* ─── The Oath Fire (choosing): a dark hearth, the child's reading, oath cards like sealed parchment ─── */
+.eo-shell[data-screen=choose] .eo-view{scrollbar-color:#7a4a35 transparent;
+  background:radial-gradient(70% 45% at 50% 105%,#ff8a3d55,transparent 70%),radial-gradient(50% 40% at 0% 0%,#5b2a6b55,transparent 70%),linear-gradient(180deg,#1c1328,#271630 45%,#341a26)}
+.eo-forge{position:relative;max-width:1120px;min-height:100%;color:#fbe9cf;isolation:isolate}
+.eo-forge-embers{position:fixed;inset:auto 0 0 0;height:60%;pointer-events:none;z-index:-1}
+.eo-forge-embers i{position:absolute;bottom:-6px;left:calc(4% + var(--i) * 6.8%);width:4px;height:4px;border-radius:50%;background:#ffcf7a;box-shadow:0 0 8px #ff9d3c,0 0 2px #fff;opacity:0;
+  animation:eo-drift 7s ease-in infinite;animation-delay:calc(var(--i) * -.53s)}
+.eo-forge .eo-back{background:#ffffff10;border-color:#ffd7a033;color:#fde3b8}.eo-forge .eo-back:hover{background:#ffffff1c}
+.eo-forge .eo-strip-count{color:#e9c9a4}
+.eo-forge .eo-strip-item .eo-avatar{box-shadow:0 0 0 2px #2a1630,0 0 0 3px #ffffff33}
+.eo-forge-grid{display:grid;grid-template-columns:minmax(250px,290px) minmax(0,1fr);gap:1.4rem;align-items:start}
+
+/* The child's reading */
+.eo-reading{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;padding:1.4rem 1.1rem 1.1rem;border-radius:1.8rem;
+  background:linear-gradient(180deg,#ffffff12,#ffffff06);border:1px solid #ffd9a02e;box-shadow:inset 0 1px 0 #ffffff1a,0 24px 50px -30px #000}
+.eo-reading-hero{position:relative;display:grid;place-items:center;width:8.6rem;height:8.6rem;margin-bottom:.3rem}
+.eo-reading-hero::before{content:"";position:absolute;inset:.6rem;border-radius:50%;background:radial-gradient(closest-side,#ff9d3c55,transparent);animation:eo-warm 3.4s ease-in-out infinite}
+.eo-reading-hero .eo-avatar{box-shadow:0 0 0 3px #2a1630,0 0 0 5px #f5b53d,0 0 30px #ff9d3c88}
+.eo-reading-ring{position:absolute;inset:0}
+.eo-reading-ring i{position:absolute;top:50%;left:50%;width:.55rem;height:.55rem;margin:-.275rem;border-radius:50%;background:#ffffff1f;transform:rotate(calc(var(--i) * 30deg)) translateY(-4.15rem)}
+.eo-reading-ring i.is-lit{background:radial-gradient(circle at 50% 60%,#fff7cc,#fbbf24 50%,#f97316);box-shadow:0 0 8px #fb923c;animation:eo-ember 2.2s ease-in-out infinite;animation-delay:calc(var(--i) * -.2s)}
+.eo-reading h3{margin:0;font-size:1.55rem;line-height:1.1;color:#fff4dc;text-shadow:0 0 18px #ff9d3c55}
+.eo-reading-sub{margin:0;font-size:.78rem;font-weight:700;color:#e9c9a4}
+.eo-signs-box{width:100%;margin-top:.7rem;text-align:left}
+.eo-signs-box summary{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;cursor:pointer;list-style:none;padding:.15rem .1rem .45rem;border-bottom:1px dashed #ffd9a033}
+.eo-signs-box summary::-webkit-details-marker{display:none}
+.eo-signs-box summary span{font-size:.66rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#fcd34d}
+.eo-signs-box summary small{font-size:.66rem;font-weight:700;color:#c9a888}
+.eo-signs{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
+.eo-sign{display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .55rem;border-radius:999px;font-size:.72rem;font-weight:700;background:#ffffff10;border:1px solid #ffffff1f;color:#f6e3c6}
+.eo-sign--gold{background:#fbbf2420;border-color:#fbbf2455;color:#fde68a}
+.eo-sign--ember{background:#f9731618;border-color:#fb923c44;color:#fed7aa}
+.eo-sign--rose{background:#f43f5e1c;border-color:#fb718555;color:#fecdd3}
+.eo-sign--violet{background:#8b5cf620;border-color:#a78bfa55;color:#ddd6fe}
+.eo-sign--sky{background:#0ea5e918;border-color:#38bdf844;color:#bae6fd}
+.eo-loves-box{width:100%;margin-top:.8rem;padding-top:.75rem;border-top:1px dashed #ffd9a033;text-align:left}
+.eo-loves-title{margin:0;font-family:'Fredoka One',sans-serif;font-size:1rem;color:#fff4dc}
+.eo-loves-hint{margin:.1rem 0 .55rem;font-size:.72rem;color:#c9a888}
+.eo-loves{display:flex;flex-wrap:wrap;gap:.3rem}
+.eo-love{display:inline-flex;align-items:center;gap:.3rem;border:1px solid #ffffff24;background:#ffffff0c;color:#f6e3c6;border-radius:999px;padding:.3rem .62rem;font-size:.74rem;font-weight:700;transition:background .2s,transform .15s,border-color .2s}
+.eo-love:hover{background:#ffffff1c;transform:translateY(-1px)}
+.eo-love[aria-pressed=true]{background:linear-gradient(135deg,#fb7185,#f97316);border-color:#fda4af;color:#fff;box-shadow:0 6px 16px -6px #f43f5ecc}
+.eo-love.is-noted{cursor:default}.eo-love.is-noted::after{content:"📓";font-size:.68rem;margin-left:.1rem}
+.eo-love.is-more{border-style:dashed;color:#fcd34d}
+
+/* The altar */
+.eo-altar{min-width:0}
+.eo-altar-head{text-align:center;margin:.1rem 0 1rem}
+.eo-altar-eyebrow{margin:0;font-size:.68rem;font-weight:900;letter-spacing:.3em;text-transform:uppercase;color:#fcd34d}
+.eo-altar-head h3{margin:.25rem 0 .2rem;font-size:clamp(1.5rem,2.6vw,2.15rem);line-height:1.1;color:#fff4dc;text-shadow:0 2px 0 #0005,0 0 26px #ff9d3c66}
+.eo-altar-head p{margin:0;font-size:.86rem;color:#e9c9a4}
+.eo-lenses{display:flex;align-items:center;gap:.35rem;margin:0 -.2rem 1.6rem;padding:.2rem .2rem .45rem;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#7a4a35 transparent;
+  -webkit-mask:linear-gradient(90deg,#000 92%,transparent);mask:linear-gradient(90deg,#000 92%,transparent)}
+.eo-lens{flex:none;display:inline-flex;align-items:center;gap:.32rem;border:1px solid #ffd7a02e;background:#ffffff0d;color:#f6dfbf;border-radius:999px;padding:.42rem .8rem;font-size:.8rem;font-weight:800;white-space:nowrap;transition:background .2s,color .2s,transform .15s}
+.eo-lens:hover{background:#ffffff1a;transform:translateY(-1px)}
+.eo-lens b{display:inline-grid;place-items:center;min-width:1.25rem;height:1.25rem;padding:0 .3rem;border-radius:999px;background:#ffffff14;font-size:.66rem;color:#fcd34d}
+.eo-lens[aria-pressed=true]{background:linear-gradient(135deg,#fde68a,#fbbf24 55%,#f59e0b);border-color:#fde68a;color:#4a1d0a;box-shadow:0 8px 18px -8px #f59e0bcc}
+.eo-lens[aria-pressed=true] b{background:#ffffff80;color:#7c2d12}
+.eo-lens-sep{flex:none;width:1px;height:1.4rem;background:#ffd7a033;margin:0 .2rem}
+
+.eo-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.6rem 1rem;perspective:900px}
+.eo-oath{--tint:#f97316;--ink:color-mix(in srgb,var(--tint) 62%,#3a2622);position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:.5rem;text-align:left;
+  padding:2.15rem 1.1rem 1rem;border:0;border-radius:1.25rem 1.25rem 1.5rem 1.5rem;color:#3a2622;isolation:isolate;
+  background:radial-gradient(120% 55% at 50% 0%,#fffdf6,transparent 70%),radial-gradient(90% 60% at 100% 100%,#f6d8ad66,transparent 70%),linear-gradient(180deg,#fff7e8,#fbe6c8);
+  box-shadow:inset 0 0 0 4px #fff9ee,inset 0 0 0 5px color-mix(in srgb,var(--tint) 32%,#efcd9f),0 1px 0 1px #e5bf8c,0 24px 40px -20px #000d,0 0 46px -18px color-mix(in srgb,var(--tint) 70%,transparent);
+  animation:eo-deal .6s cubic-bezier(.2,.8,.3,1.1) both;animation-delay:calc(var(--i) * 90ms);transition:transform .25s cubic-bezier(.2,.8,.3,1.2),box-shadow .25s}
+.eo-oath::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;opacity:.5;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 23px,#c9965b14 23px 24px)}
+.eo-oath:hover{transform:translateY(-5px) rotate(-.6deg)}
+.eo-oath:nth-child(2):hover{transform:translateY(-5px) rotate(.5deg)}
+.eo-oath[aria-pressed=true]{transform:translateY(-8px) scale(1.025);
+  box-shadow:inset 0 0 0 4px #fff9ee,inset 0 0 0 5px var(--tint),0 0 0 3px color-mix(in srgb,var(--tint) 75%,#fff),0 30px 50px -22px #000,0 0 70px -6px color-mix(in srgb,var(--tint) 85%,#ff9d3c)}
+.eo-oath--sky{--tint:#0284c7}.eo-oath--violet{--tint:#7c3aed}.eo-oath--rose{--tint:#e11d48}.eo-oath--teal{--tint:#0d9488}.eo-oath--emerald{--tint:#059669}.eo-oath--amber{--tint:#d97706}
+.eo-oath-seal{position:absolute;top:-1.25rem;right:1rem;display:grid;place-items:center;width:3.1rem;height:3.1rem;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--tint) 45%,#fff),var(--tint) 58%,color-mix(in srgb,var(--tint) 65%,#000));
+  box-shadow:inset 0 0 0 3px #ffffff38,inset 0 -4px 8px #0004,0 6px 14px -4px #000a}
+.eo-oath-seal::before{content:"";position:absolute;inset:-4px;border-radius:50%;z-index:-1;background:conic-gradient(from 10deg,color-mix(in srgb,var(--tint) 80%,#000) 0 10%,transparent 0 12.5%,color-mix(in srgb,var(--tint) 80%,#000) 0 22.5%,transparent 0 25%,color-mix(in srgb,var(--tint) 80%,#000) 0 35%,transparent 0 37.5%,color-mix(in srgb,var(--tint) 80%,#000) 0 47.5%,transparent 0 50%,color-mix(in srgb,var(--tint) 80%,#000) 0 60%,transparent 0 62.5%,color-mix(in srgb,var(--tint) 80%,#000) 0 72.5%,transparent 0 75%,color-mix(in srgb,var(--tint) 80%,#000) 0 85%,transparent 0 87.5%,color-mix(in srgb,var(--tint) 80%,#000) 0 97.5%,transparent 0);opacity:.55}
+.eo-oath-seal span{font-size:1.45rem;line-height:1;filter:drop-shadow(0 1px 1px #0005)}
+.eo-oath[aria-pressed=true] .eo-oath-seal{animation:eo-seal 1.6s ease-in-out infinite}
+.eo-ribbon{display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .6rem .2rem .5rem;border-radius:.5rem .9rem .9rem .5rem;font-size:.64rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;border:1px solid}
+.eo-oath>.eo-ribbon{position:absolute;top:.85rem;left:.95rem}
+.eo-ribbon--rose{background:#fff1f2;color:#be123c;border-color:#fecdd3}.eo-ribbon--violet{background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe}
+.eo-ribbon--emerald{background:#ecfdf5;color:#047857;border-color:#a7f3d0}.eo-ribbon--amber{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.eo-ribbon--sky{background:#f0f9ff;color:#0369a1;border-color:#bae6fd}.eo-ribbon--teal{background:#f0fdfa;color:#0f766e;border-color:#99f6e4}
+.eo-ribbon--indigo{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}.eo-ribbon--orange{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+.eo-ribbon--gold{background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#92400e;border-color:#fcd34d}.eo-ribbon--slate{background:#f8fafc;color:#475569;border-color:#e2e8f0}
+.eo-oath-title{margin-top:.15rem;font-size:.68rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--ink)}
+.eo-oath-text{font-size:1.16rem;line-height:1.27;color:#3a2622}
+.eo-oath-why{display:flex;gap:.35rem;font-size:.77rem;line-height:1.4;color:#86685a}
+.eo-oath-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.3rem .6rem;width:100%;margin-top:auto;padding-top:.6rem;border-top:1px dashed #e3c49b;font-size:.68rem;font-weight:800;color:#a0705a}
+.eo-oath-kind{text-transform:uppercase;letter-spacing:.1em;color:var(--ink)}
+.eo-oath-measure{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+.eo-oath-dots{display:inline-flex;gap:.18rem}.eo-oath-dots i{width:.5rem;height:.5rem;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;background:radial-gradient(circle at 50% 70%,#fff2b8,#fbbf24 50%,#f97316)}
+.eo-oath .eo-option-check{position:absolute;bottom:-.8rem;left:50%;display:grid;place-items:center;width:1.7rem;height:1.7rem;margin-left:-.85rem;border-radius:50%;background:var(--tint);color:#fff;font-weight:900;
+  box-shadow:0 0 0 3px #2a1630;transform:scale(0);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.eo-oath[aria-pressed=true] .eo-option-check{transform:scale(1)}
+.eo-oath--own{--tint:#94a3b8;grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;gap:.3rem .8rem;padding:.85rem 1.1rem;
+  background:#ffffff0c;color:#f6e3c6;box-shadow:inset 0 0 0 1.5px #ffd7a040;border-radius:1.2rem;animation-delay:.3s}
+.eo-oath--own:hover{transform:translateY(-2px)}
+.eo-oath--own[aria-pressed=true]{transform:none;background:#ffffff16;box-shadow:inset 0 0 0 2px #fcd34d,0 0 40px -10px #fbbf24aa}
+.eo-oath--own>.eo-ribbon{position:static;order:2}
+.eo-oath--own .eo-oath-seal{position:static;order:0;width:2.4rem;height:2.4rem;background:#ffffff14;box-shadow:inset 0 0 0 1px #ffffff30}.eo-oath--own .eo-oath-seal::before{display:none}
+.eo-oath--own .eo-oath-seal span{font-size:1.15rem}
+.eo-oath--own .eo-oath-title{display:none}
+.eo-oath--own .eo-oath-text{order:1;font-size:1.05rem;color:#fff4dc}
+.eo-oath--own .eo-oath-why{order:3;flex-basis:100%;padding-left:3.2rem;color:#c9a888}
+.eo-oath--own .eo-option-check{box-shadow:0 0 0 3px #2a1630;--tint:#f59e0b}
+.eo-options.is-shuffling .eo-oath{animation:eo-deal .55s cubic-bezier(.2,.8,.3,1.15) both;animation-delay:calc(var(--i) * 80ms)}
+.eo-forge.is-lit .eo-oath[aria-pressed=true]{animation:eo-swear .65s ease-out forwards}
+.eo-forge.is-lit .eo-oath:not([aria-pressed=true]){opacity:.35;transition:opacity .4s}
+.eo-forge .eo-own{margin-top:1.3rem;color:#fde3b8}
+.eo-forge .eo-own input{background:#fff9ee;border-color:#fcd34d}
+.eo-forge .eo-choose-more{align-items:center;margin-top:1.5rem}
+.eo-forge .eo-more{background:#ffffff10;border-color:#ffd7a038;color:#fde3b8}.eo-forge .eo-more:hover{background:#ffffff1e}
+.eo-forge .eo-more.is-soft{border-style:dashed}.eo-forge .eo-more[hidden]{display:none}
+.eo-forge .eo-oracle{background:#8b5cf622;border-color:#a78bfa66;color:#ede9fe}
+.eo-forge-count{flex-basis:100%;text-align:center;font-size:.76rem;font-weight:700;color:#c9a888}.eo-forge-count b{font-family:'Fredoka One',sans-serif;font-weight:400;font-size:1rem;color:#fcd34d}
+.eo-forge .eo-choose-actions{background:linear-gradient(#2c172c00,#2e182a 40%)}
+.eo-forge .eo-quiet{color:#e9c9a4}.eo-forge .eo-quiet:hover{background:#ffffff12}
+
+/* Board, story, kept: the promise's name */
+.eo-card-title{margin:0;font-size:.64rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#b45309}
+.eo-card .eo-card-title{color:color-mix(in srgb,var(--tint) 70%,#3a2622);margin-bottom:-.35rem}
+.eo-chron-item .eo-card-title{margin-bottom:.2rem}
+.eo-story-name{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:0 0 .55rem}
+.eo-story-title{font-size:.74rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:color-mix(in srgb,var(--tint) 70%,#3a2622)}
+
+@keyframes eo-deal{from{opacity:0;transform:translateY(26px) rotateX(28deg) scale(.94)}}
+@keyframes eo-swear{40%{transform:translateY(-14px) scale(1.06)}100%{transform:translateY(-8px) scale(1.03);filter:brightness(1.08)}}
+@keyframes eo-seal{50%{box-shadow:inset 0 0 0 3px #ffffff38,inset 0 -4px 8px #0004,0 0 22px 4px color-mix(in srgb,var(--tint) 70%,#ff9d3c)}}
+@keyframes eo-drift{0%{opacity:0;transform:translate(0,0) scale(.6)}12%{opacity:.95}100%{opacity:0;transform:translate(18px,-58vh) scale(1)}}
+@media(max-width:1000px){.eo-forge-grid{grid-template-columns:1fr}.eo-reading{position:static;display:grid;grid-template-columns:auto 1fr;text-align:left;align-items:center;column-gap:1rem}
+  .eo-reading-hero{grid-row:span 2;width:6.4rem;height:6.4rem;margin:0}.eo-reading-hero .eo-avatar--xl{width:4.6rem;height:4.6rem}.eo-reading-ring i{transform:rotate(calc(var(--i) * 30deg)) translateY(-3.05rem)}
+  .eo-reading h3{align-self:end}.eo-reading-sub{align-self:start}.eo-signs-box,.eo-loves-box{grid-column:1/-1}}
+@media(max-width:760px){.eo-options{grid-template-columns:1fr;gap:1.7rem}.eo-oath-text{font-size:1.1rem}}
+@media(max-width:640px){
+  /* Phones: the reading stays a compact strip so the oath cards arrive quickly. */
+  .eo-reading{padding:.9rem .9rem .8rem;border-radius:1.4rem}
+  .eo-reading-hero{width:5rem;height:5rem}.eo-reading-hero .eo-avatar--xl{width:3.6rem;height:3.6rem}.eo-reading-hero .eo-avatar--xl span{font-size:1.6rem}
+  .eo-reading-ring i{width:.42rem;height:.42rem;margin:-.21rem;transform:rotate(calc(var(--i) * 30deg)) translateY(-2.35rem)}
+  .eo-reading h3{font-size:1.3rem}
+  .eo-signs-box{margin-top:.4rem}.eo-signs-box summary{padding-bottom:.3rem}
+  .eo-loves-box{margin-top:.55rem;padding-top:.55rem}.eo-loves-hint{display:none}
+  .eo-loves:not(.is-open) .eo-love:nth-child(n+5):not([aria-pressed=true]):not(.is-more){display:none}
+  .eo-altar-head{margin-bottom:.8rem}.eo-altar-head p{font-size:.8rem}
+  .eo-lenses{margin-bottom:1.4rem}
+}
 
 /* ─── A promise's story ───────────────────────────────────────────────────── */
 .eo-story{--tint:#f59e0b;max-width:1060px;margin:0 auto}
@@ -324,7 +456,8 @@ button.eo-focus:hover{transform:translateY(-2px)}
 }
 /* Weak laptops and reduced motion: same look, no endless loops. */
 .eo-shell.is-lite .eo-stars,.eo-shell.is-lite .eo-glow,.eo-shell.is-lite .eo-floaters,.eo-shell.is-lite .eo-flame,.eo-shell.is-lite .eo-embers i.is-lit,
-.eo-shell.is-lite .eo-ready-flag,.eo-shell.is-lite .eo-avatar--xl,.eo-shell.is-lite .eo-option-icon,.eo-shell.is-lite .eo-choose-halo,.eo-shell.is-lite .eo-empty-state span,
+.eo-shell.is-lite .eo-ready-flag,.eo-shell.is-lite .eo-avatar--xl,.eo-shell.is-lite .eo-forge-embers i,.eo-shell.is-lite .eo-oath[aria-pressed=true] .eo-oath-seal,.eo-shell.is-lite .eo-reading-ring i.is-lit,.eo-shell.is-lite .eo-choose-halo,.eo-shell.is-lite .eo-empty-state span,
 .eo-shell.is-lite .eo-focus--ready::after,.eo-shell.is-lite .eo-kept-rays{animation:none!important}
-.eo-shell.is-lite .eo-floaters,.eo-shell.is-lite .eo-focus--ready::after{display:none}
-@media(prefers-reduced-motion:reduce){.eo-shell *,.eo-shell *::before,.eo-shell *::after{animation:none!important;transition:none!important}.eo-floaters,.eo-focus--ready::after{display:none}}
+.eo-shell.is-lite .eo-floaters,.eo-shell.is-lite .eo-focus--ready::after,.eo-shell.is-lite .eo-forge-embers{display:none}
+@media(prefers-reduced-motion:reduce){.eo-shell *,.eo-shell *::before,.eo-shell *::after{animation:none!important;transition:none!important}.eo-floaters,.eo-focus--ready::after,.eo-forge-embers{display:none}}
+.eo-signs-box:not([open]) summary small::after{content:" · tap to open"}

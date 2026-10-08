@@ -74,15 +74,22 @@ import('./features/bookProgress.js').then(m => {
 // ─── In-memory Oath Board ───
 document.getElementById('open-board').onclick = async () => {
   const league = document.getElementById('board-band').value, classId = 'studio', today = new Date().toISOString().slice(0, 10);
+  const ago = d => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
   const cls = { id: classId, name: league + ' · Tuesday', questLevel: league, campfireEnabled: true, classOath: null };
   state.setAllTeachersClasses([cls]);
   state.setAllStudents(students.map(s => ({ ...s, classId })));
-  state.setAllAwardLogs([{ studentId: 'a', reason: 'teamwork', stars: 1, date: today, classId }, { studentId: 'a', reason: 'focus', stars: 1, date: today, classId }]);
-  state.setAllWrittenScores([]);
+  state.setAllAwardLogs([{ studentId: 'a', reason: 'teamwork', stars: 1, date: today, classId }, { studentId: 'a', reason: 'focus', stars: 1, date: today, classId },
+    ...['teamwork', 'teamwork', 'teamwork', 'teamwork', 'creativity'].map(reason => ({ studentId: 'f', reason, stars: 1, date: today, classId }))]);
+  state.setAllWrittenScores([{ studentId: 'f', classId, type: 'dictation', date: ago(9), normalizedPercent: 60 }, { studentId: 'f', classId, type: 'dictation', date: ago(2), normalizedPercent: 66 }]);
+  // A few Chronicle notes and hero details, so the Oath Fire can show personal promises.
+  state.setAllStudents(students.map(s => ({ ...s, classId, ...({ f: { heroClass: 'Paladin', guildId: 'grizzly_might', birthday: '2016-' + today.slice(5, 7) + '-21' }, c: { heroClass: 'Artificer' }, g: { heroClass: 'Sage' } }[s.id] || {}) })));
+  state.setAllHeroChronicleNotes([
+    { id: 'n1', studentId: 'f', category: 'Social', noteText: 'Λατρεύει το ποδόσφαιρο. Λίγο ντροπαλός όταν μιλάει μπροστά σε όλους.', createdAt: { seconds: 2 } },
+    { id: 'n2', studentId: 'c', category: 'General', noteText: 'Loves Minecraft and drawing. Sometimes forgets homework.', createdAt: { seconds: 1 } }
+  ]);
   const { oathTemplates } = await import('./features/emberOathCore.mjs');
   const t = oathTemplates(league), base = { classId, teacherId: 'me', schoolYearKey: '2026-2027', date: new Date(Date.now() - 5 * 864e5).toISOString().slice(0, 10) };
   let n = 0;
-  const ago = d => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
   const make = (tpl, studentId, extra = {}) => ({ id: 'o' + (++n), ...createOathDraft(tpl, { ...base, studentId }), ...extra });
   let oaths = [
     make(t[0], 'a', { checkIns: [{ date: ago(3), mood: 'candle' }, { date: today, mood: 'flame' }], evidence: [{ kind: 'manual', label: 'Spoke up in English', date: ago(4), refId: 'x1' }, { kind: 'manual', label: 'Asked a question in English', date: ago(2), refId: 'x2' }] }),

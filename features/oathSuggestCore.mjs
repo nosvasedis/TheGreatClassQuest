@@ -11,12 +11,16 @@
  *  · the words of the unit we are practising, the unit theme / Big Question, the unit grammar pattern,
  *    the next lesson's focus, the book being used (coursebook vs grammar)
  *  · Story Weavers' Word of the Day, the Vocabulary Vault count, pending make-ups
- *  · the child's own earlier promises (never repeat; prefer kinds they have not tried)
+ *  · the child's own earlier promises (never repeat; prefer kinds they have not tried), and the rung
+ *    above every promise they kept
+ *  · and, through oathForge.mjs: passions and needs from the teacher's Chronicle notes, the Hero Class
+ *    voice, the guild, class roles, word crafts, home and the season (birthday month included)
  *
  * The child always chooses; every suggestion carries a one-line "why" for the teacher, quoting the real
  * reason where possible. Nothing here ranks, grades, rewards with Gold, or compares children publicly.
  */
 import { getLeagueBand, getClassroomPhrase, getMinimalPair } from './languageScaffolds.mjs';
+import { forgeOaths, passionOaths, detectInterests, detectNeeds, spiritForKey, oathTitle, interestById } from './oathForge.mjs';
 
 const VIRTUES = ['Teamwork', 'Creativity', 'Respect', 'Focus'];
 const HERO_VIRTUE = { Guardian: 'Respect', Sage: 'Creativity', Paladin: 'Teamwork', Artificer: 'Focus' };
@@ -192,6 +196,18 @@ const BANK = [
         s => (s.falling ? 'A calm start helps after a dip.' : ''), s => (s.falling ? 2.2 : 0))
 ];
 
+/** Kept promises by kind, oldest first: the ladder climbs from the newest. */
+function keptByCategory(previous) {
+    const out = {};
+    for (const o of previous.filter(o => o.status === 'kept').sort((a, b) => String(a.startDate || '').localeCompare(String(b.startDate || '')))) (out[o.category] ||= []).push(o);
+    return out;
+}
+/** Month (1–12) of a "YYYY-MM-DD" or "--MM-DD" birthday, or 0. */
+function birthdayMonth(value) {
+    const m = String(value || '').match(/-(\d{2})-(\d{2})$/);
+    return m ? Number(m[1]) : 0;
+}
+
 /** Everything the bank can read, computed once from the profile. */
 export function readOathSignals(p = {}) {
     const band = getLeagueBand(p.league);
@@ -206,7 +222,7 @@ export function readOathSignals(p = {}) {
     const totalVirtue = Object.values(counts).reduce((a, b) => a + b, 0);
     const byCount = [...VIRTUES].sort((a, b) => counts[a] - counts[b] || hash(seed + a) - hash(seed + b));
     const weakest = byCount[0], strongest = byCount.at(-1);
-    const percents = (type, min) => (p.writtenScores || []).filter(s => (!type || s.type === type) && (!min || (s.percent ?? 0) >= min)).map(s => Number(s.percent)).filter(Number.isFinite);
+    const percents = (type, min) => (p.writtenScores || []).filter(s => (!type || s.type === type) && (!min || (s.percent ?? 0) >= min)).filter(s => s.percent != null && s.percent !== '').map(s => Number(s.percent)).filter(Number.isFinite);
     const dictations = percents('dictation'), tests = percents('test'), allScores = percents(null);
     const avgLast = (list, n) => avg(list.slice(-n));
     const dictationAvg = avgLast(dictations, 5), testAvg = avgLast(tests, 5), overall = avgLast(allScores, 6);
@@ -224,7 +240,7 @@ export function readOathSignals(p = {}) {
     return {
         band, early, junior, seed, day, league: p.league, name: clean(p.name, 24),
         counts, reasons, totalVirtue, weakest, strongest, heroVirtue: HERO_VIRTUE[p.heroClass] || '',
-        heroClass: clean(p.heroClass, 20),
+        heroClass: p.heroClass === 'Weaver' ? 'Vanguard' : clean(p.heroClass, 20),
         dictationAvg, testAvg, overall, falling, excellence: overall != null && overall >= 90,
         quiz, quizRate, quizMissed, missedSample,
         absences: Math.max(0, Number(p.absences) || 0),
@@ -236,7 +252,12 @@ export function readOathSignals(p = {}) {
         makeUp: Math.max(0, Number(p.makeUp) || 0), guildName: clean(p.guildName, 24),
         phrase: getClassroomPhrase(p.league, rng) || 'Can you help me, please?',
         pair, tps: '',
-        previous: p.previousOaths || []
+        previous: p.previousOaths || [],
+        keptByCategory: keptByCategory(p.previousOaths || []),
+        interests: [...new Set([...(p.interests || []).filter(id => interestById(id)), ...detectInterests(p.notes || [])])].slice(0, 4),
+        needs: detectNeeds(p.notes || []).slice(0, 5),
+        birthdayMonth: birthdayMonth(p.birthday),
+        classTaken: new Set(p.classActiveKeys || [])
     };
 }
 
@@ -247,11 +268,18 @@ export function buildOathSuggestions(p = {}) {
     const s = readOathSignals(p);
     const count = n => (s.early ? 1 : s.junior ? Math.min(2, n) : n);
     const out = [];
-    const push = (key, category, text, why, score, target = { kind: 'manual', count: count(2) }, rule = 'manual', weeks) => {
+    const push = (key, category, text, why, score, target = { kind: 'manual', count: count(2) }, rule = 'manual', weeks, extra = {}) => {
         const body = clean(text, 200);
-        if (!body || !why || !(score > 0)) return;
-        out.push({ id: s.band + '_' + key, key, band: s.band, category, text: body, projectorText: body,
-            weeks: weeks || (s.early || s.junior ? 1 : 2), target, evidenceRule: rule, why: clean(why, 120), score });
+        if (!body || !why || !(score > 0) || out.some(o => o.key === key || o.text === body)) return;
+        const item = { id: s.band + '_' + key, key, band: s.band, category, text: body, projectorText: body,
+            weeks: weeks || (s.early || s.junior ? 1 : 2), target, evidenceRule: rule, why: clean(why, 120), score,
+            spirit: extra.spirit || spiritForKey(key), ...(extra.interest ? { interest: extra.interest } : {}) };
+        item.title = extra.title || oathTitle({ key, category, text: body, target, seed: s.seed });
+        out.push(item);
+    };
+    const pushForged = f => {
+        const target = f.target ? { ...f.target, count: count(f.target.count || 2) } : { kind: 'manual', count: count(2) };
+        push(f.key, f.category, f.text, f.why, f.score, target, f.rule || (target.kind === 'manual' ? 'manual' : target.kind), f.weeks, f);
     };
 
     // Virtues built from the child's own distribution (weakest → stretch, strongest → share, Hero Class).
@@ -281,12 +309,16 @@ export function buildOathSuggestions(p = {}) {
         push(f.key, f.category, text, why, score, target, f.rule || 'manual', f.weeks);
     }
 
+    // The forge: passions, needs, Hero Class, guild, ladder, roles, word crafts, home, season.
+    for (const f of forgeOaths(s)) pushForged(f);
+    for (const id of p.liveInterests || []) for (const f of passionOaths(s, id)) pushForged(f);
+
     // Earlier promises: never repeat one, prefer kinds they have not tried, avoid what was released.
     for (const item of out) {
         if (s.previous.some(o => o.templateId === item.id || (o.text && o.text === item.text))) item.score -= 4;
         if (s.previous.some(o => o.status === 'released' && o.category === item.category)) item.score -= 0.8;
         if (s.previous.length && !s.previous.some(o => o.category === item.category)) item.score += 0.5;
-        if (item.key.startsWith('virtue_') || item.key.startsWith('share_')) item.score += 0;
+        if (s.classTaken.has(item.key)) item.score -= 0.9; // a classmate is already growing this one
         item.score += ((hash(s.seed + s.day + item.key) % 100) / 400) + ((hash(s.seed + item.key) % 100) / 900); // stable per child, varied per day
     }
     return out.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
@@ -305,14 +337,35 @@ export function pickDiverseOaths(all, count = 3, offset = 0) {
     const page = Math.max(0, Math.floor(offset / count));
     const start = (page * count) % cats.length;
     const rotated = cats.slice(start).concat(cats.slice(0, start));
-    const chosen = [];
+    const chosen = [], spirits = new Set();
     for (const c of rotated) {
         if (chosen.length >= count) break;
         const group = groups.get(c);
-        chosen.push(group[page % group.length]);
+        // Within the kind, prefer a spirit not yet on the table (a Passion, a Ladder and a Spark, say).
+        const near = [0, 1, 2].map(i => group[(page + i) % group.length]).filter((x, i, a) => a.indexOf(x) === i);
+        const pick = near.find(x => !spirits.has(x.spirit)) || near[0];
+        chosen.push(pick); spirits.add(pick.spirit);
     }
     for (const s of all) { if (chosen.length >= count) break; if (!chosen.includes(s)) chosen.push(s); }
     return chosen;
+}
+
+/** Lenses the teacher can look through: the six kinds, the spirits present, and passions. */
+export const LENS_KINDS = Object.freeze(['speak', 'words', 'write', 'read/listen', 'habit', 'virtue']);
+export function matchesLens(item, lens = '') {
+    if (!lens) return true;
+    if (lens.startsWith('spirit:')) return item.spirit === lens.slice(7);
+    if (lens.startsWith('interest:')) return item.interest === lens.slice(9);
+    return item.category === lens;
+}
+/** One page of a single lens, best first, never the same family twice in a row. */
+export function pageLens(all, lens, count = 3, offset = 0) {
+    const pool = all.filter(x => matchesLens(x, lens));
+    if (!pool.length) return [];
+    const start = (Math.max(0, offset) * 1) % pool.length;
+    const out = [];
+    for (let i = 0; out.length < Math.min(count, pool.length) && i < pool.length; i++) out.push(pool[(start + i) % pool.length]);
+    return out;
 }
 
 /** A short, human-readable digest of what the app knows — the raw material for the Oracle prompt. */
@@ -341,6 +394,40 @@ export function profileDigest(p = {}) {
     const before = s.previous.map(o => o.category + ':' + (o.status || 'active')).join(', ');
     if (before) lines.push('Earlier promises: ' + before);
     return lines;
+}
+
+const HERO_ICON = { Guardian: '🛡️', Sage: '🔮', Paladin: '⚔️', Artificer: '⚙️', Scholar: '📜', Vanguard: '⚜️', Nomad: '👟', Patron: '💝' };
+const NEED_LABEL = id => ({ shy: 'Finding their voice', chatty: 'Sharing the stage', homework: 'Steady homework', late: 'Starting on time', focus: 'Steady focus', handwriting: 'Clear handwriting',
+    pronunciation: 'Clear pronunciation', reading: 'Reading with confidence', spelling: 'Spelling', worry: 'Calm courage', frustration: 'Keeping going', helper: 'A natural helper',
+    newcomer: 'Settling in', grammar: 'Grammar patterns', vocabulary: 'Growing vocabulary', advanced: 'Ready for more' })[id] || id;
+/**
+ * "What the embers know": the few facts the suggestions were built from, as short chips for the teacher.
+ * Tones: gold (strength), ember (to grow), sky (fact), rose (heart/passion), violet (hero).
+ */
+export function emberSigns(p = {}) {
+    const s = readOathSignals(p);
+    const out = [];
+    const add = (icon, label, tone = 'sky', hint = '') => out.push({ icon, label, tone, hint });
+    if (s.heroClass) add(HERO_ICON[s.heroClass] || '🛡️', s.heroClass, 'violet', 'Hero Class');
+    if (s.totalVirtue) {
+        add('⭐', s.strongest + ' ×' + s.counts[s.strongest], 'gold', 'Strongest virtue this month');
+        if (s.counts[s.weakest] < s.counts[s.strongest]) add('🌱', s.weakest + ' ×' + s.counts[s.weakest], 'ember', 'Quietest virtue this month');
+    } else add('🌱', 'No virtue stars yet', 'ember', 'This month');
+    if (s.quiet) add('🌙', 'A quieter month', 'ember', 'Fewer stars than the class median');
+    if (s.shining) add('🌟', 'A shining month', 'gold', 'More stars than most');
+    if (s.dictationAvg != null) add('✏️', 'Dictation ' + Math.round(s.dictationAvg) + '%', s.dictationAvg < 72 ? 'ember' : 'gold', 'Recent average');
+    if (s.testAvg != null) add('📝', 'Tests ' + Math.round(s.testAvg) + '%' + (s.falling ? ' ↘' : ''), s.falling || s.testAvg < 65 ? 'ember' : 'gold', s.falling ? 'Last test dipped' : 'Recent average');
+    if (s.quiz) add('❓', 'Quiz ' + s.quiz.correctCount + '/' + s.quiz.attemptedCount, s.quizRate < 0.7 ? 'ember' : 'gold', 'Quiz of the Week');
+    if (s.absences) add('🗓️', 'Away ' + s.absences + (s.absences === 1 ? ' lesson' : ' lessons'), 'ember', 'Last 30 days');
+    if (s.makeUp) add('📌', s.makeUp + ' to catch up', 'ember', 'Make-ups');
+    for (const id of s.interests) { const x = interestById(id); if (x) add(x.icon, x.label, 'rose', 'From your Chronicle notes'); }
+    for (const id of s.needs) add('📓', NEED_LABEL(id), 'ember', 'From your Chronicle notes');
+    const kept = s.previous.filter(o => o.status === 'kept').length;
+    if (kept) add('🔥', kept + (kept === 1 ? ' promise kept' : ' promises kept'), 'gold', 'The ladder starts here');
+    if (s.birthdayMonth && s.birthdayMonth === Number(String(s.day).slice(5, 7))) add('🎂', 'Birthday month', 'rose', '');
+    if (s.words.length) add('📘', s.words.length + ' unit words', 'sky', s.words.slice(0, 4).join(', '));
+    if (s.guildName) add('🏰', s.guildName, 'violet', 'Guild');
+    return out;
 }
 
 /** Oracle system prompt — strict, dignified, and told exactly what has already been shown. */

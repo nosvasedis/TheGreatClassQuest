@@ -1,6 +1,6 @@
 import { getLeagueBand } from './languageScaffolds.mjs';
 import { cleanCampfireText } from './heroCampfireCore.mjs';
-import { buildOathSuggestions, pickDiverseOaths } from './oathSuggestCore.mjs';
+import { buildOathSuggestions, pickDiverseOaths, pageLens } from './oathSuggestCore.mjs';
 // Evidence and readiness live in a tiny module so always-loaded entry points can share them.
 export { oathDate, dedupeEvidence, evaluateOathEvidence } from './emberOathEvidence.mjs';
 import { oathDate } from './emberOathEvidence.mjs';
@@ -33,10 +33,12 @@ export const CATEGORY_META = Object.freeze({
  * Three promises that fit this child (see oathSuggestCore.mjs for the signals), each with a one-line
  * reason for the teacher. `offset` shows the next ideas ("Other ideas"). The child chooses.
  */
-export function suggestOaths(profile = {}, { offset = 0, count = 3 } = {}) {
-    const all = buildOathSuggestions(profile);
-    return pickDiverseOaths(all, count, offset % Math.max(1, all.length)).map(t => ({ ...t, icon: CATEGORY_META[t.category]?.icon || '✨' }));
+export function suggestOaths(profile = {}, { offset = 0, count = 3, lens = '', all = null } = {}) {
+    const bank = all || buildOathSuggestions(profile);
+    const picks = lens ? pageLens(bank, lens, count, offset) : pickDiverseOaths(bank, count, offset % Math.max(1, bank.length));
+    return picks.map(t => ({ ...t, icon: CATEGORY_META[t.category]?.icon || '✨' }));
 }
+export { buildOathSuggestions };
 
 /** One-tap evidence moments per kind of promise (the teacher can still type their own). */
 export const QUICK_MOMENTS = Object.freeze({

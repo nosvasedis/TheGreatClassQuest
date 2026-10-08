@@ -75,7 +75,7 @@ export async function keepEmberOath(id, { confirmed = false, reflection = {} } =
     if (!confirmed) throw new Error('The teacher must confirm the promise was kept.');
     const c = oathContext(), ref = doc(db, dataPath('ember_oaths'), id);
     const initial = await getDoc(ref), oath = { id, ...initial.data() }; ownedOath(oath, c);
-    const facts = await getOathFacts(oath);
+    const [facts, { oathTitle }] = await Promise.all([getOathFacts(oath), import('../../features/oathForge.mjs')]);
     return runTransaction(db, async tx => {
         const fresh = await tx.get(ref), current = { id, ...fresh.data() }; ownedOath(current, c);
         if (current.status === 'kept') return current; // deterministic note and inventory receipt
@@ -84,7 +84,8 @@ export async function keepEmberOath(id, { confirmed = false, reflection = {} } =
         const scoreRef = doc(db, dataPath('student_scores'), current.studentId);
         const score = await tx.get(scoreRef);
         if (!score.exists() || score.data().activeSchoolYearKey !== c.schoolYearKey) throw new Error('The active-year student record is unavailable.');
-        const legendLine = 'Kept a promise: ' + current.text;
+        const title = current.templateId && current.templateId !== 'custom' ? oathTitle({ templateId: current.templateId, category: current.category, text: current.text, target: current.target, seed: current.studentId }) : '';
+        const legendLine = cleanCampfireText((title ? 'Kept ' + title + ': ' : 'Kept a promise: ') + current.text, 280);
         const kept = { ...current, status: 'kept', evidence: result.evidence, legendLine,
             reflection: { helped: cleanCampfireText(reflection.helped, 240), next: cleanCampfireText(reflection.next, 240), emoji: cleanCampfireText(reflection.emoji, 12) } };
         const keepsake = buildOathKeepsake(kept, new Date().toISOString());

@@ -222,7 +222,6 @@ body {
 
 #app-info-btn,
 #projector-mode-btn,
-#secretary-console-btn,
 #header-settings-btn,
 #logout-btn {
     display: inline-flex;
@@ -234,7 +233,6 @@ body {
 /* Shared icon face — same SVG carve as title/clock, matched weight */
 #app-info-btn i,
 #projector-mode-btn i,
-#secretary-console-btn i,
 #header-settings-btn i,
 #logout-btn i {
     font-size: 0.9rem;
@@ -269,7 +267,6 @@ body {
 
     #app-info-btn i,
     #projector-mode-btn i,
-    #secretary-console-btn i,
     #header-settings-btn i,
     #logout-btn i {
         font-size: 0.95rem;

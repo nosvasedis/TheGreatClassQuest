@@ -1,12 +1,6 @@
 import { DEFAULT_SKY_SCENE } from './app/header.js';
 import { buildCloudsHtml } from '../features/skyWeatherArt.js';
 
-const secretaryHeaderActions = `
-    <button type="button" id="secretary-open-teacher-app-btn"
-        class="role-header-icon-btn bubbly-button" title="Open Teacher App" aria-label="Open Teacher App">
-        <i class="fas fa-chalkboard-teacher text-xs"></i>
-    </button>`;
-
 const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
     <div class="role-header-atmosphere role-header-atmosphere--${role} relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
          style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
@@ -20,7 +14,6 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
                 </div>
             </div>
             <div class="z-10 flex shrink-0 items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md">
-                ${secretaryHeaderActions}
                 <button type="button" id="${logoutId}"
                     class="role-header-icon-btn role-header-icon-btn--danger bubbly-button" title="Log Out" aria-label="Log Out">
                     <i class="fas fa-sign-out-alt text-xs"></i>

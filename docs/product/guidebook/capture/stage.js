@@ -123,7 +123,6 @@ function fillHeader(night) {
   const quoteText = document.getElementById('header-quote-text');
   const classText = document.getElementById('header-class-selector-text');
   const classLogo = document.getElementById('header-class-selector-logo');
-  const office = document.getElementById('secretary-console-btn');
   const dateEl = document.getElementById('current-date');
   const timeEl = document.getElementById('current-time');
   const header = document.querySelector('#award-header-atmosphere header');
@@ -133,7 +132,6 @@ function fillHeader(night) {
   if (quoteText) quoteText.textContent = QUOTE;
   if (classText) classText.textContent = 'Junior B';
   if (classLogo) classLogo.textContent = '📚';
-  office?.classList.remove('hidden');
   if (dateEl) {
     dateEl.dataset.text = DATE_TEXT;
     dateEl.textContent = DATE_TEXT;

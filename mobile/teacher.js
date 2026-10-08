@@ -8,8 +8,6 @@ import { renderMobileHome } from './home.js';
 import { getTodayDateString, getClassesOnDay } from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 
-const TEACHER_APP_SCREEN = 'app-screen';
-const SECRETARY_SCREEN = 'secretary-screen';
 
 let clockInterval = null;
 let updateMirrorObserver = null;
@@ -183,11 +181,6 @@ function renderClassPickerList() {
 }
 
 function openMoreSheet() {
-    const item = document.getElementById('m-secretary-console-item');
-    if (item) {
-        const desktopBtn = document.getElementById('secretary-console-btn');
-        item.classList.toggle('hidden', !desktopBtn || desktopBtn.classList.contains('hidden'));
-    }
     // Quest Remote (Pro): the phone becomes the Wand for a projector.
     document.getElementById('m-quest-remote-item')?.classList.toggle('hidden', !canUseFeature('questRemote'));
     const sheet = document.getElementById('m-more-sheet');
@@ -361,17 +354,6 @@ function observeOptionsSubtabs() {
     subtabObserver = new MutationObserver(() => syncOptionsSubtabTrigger());
     subtabObserver.observe(bar, { attributes: true, attributeFilter: ['class'], subtree: true });
     syncOptionsSubtabTrigger();
-}
-
-async function openSecretaryConsole() {
-    document.getElementById(TEACHER_APP_SCREEN)?.classList.add('hidden');
-    document.getElementById(SECRETARY_SCREEN)?.classList.remove('hidden');
-    document.getElementById('secretary-console-btn')?.classList.remove('hidden');
-    closeMoreSheet();
-    const nav = await import('../ui/roles/navigation.js');
-    nav.activateSecretaryTab('home');
-    const consoleModule = await import('../features/secretaryConsole.js');
-    consoleModule.renderSecretaryConsole();
 }
 
 function startClock() {
@@ -555,10 +537,6 @@ function wire() {
             playSound('click');
             import('../ui/tabs.js').then((tabs) => tabs.showTab(item.dataset.tab));
             closeMoreSheet();
-            return;
-        }
-        if (event.target.closest('#m-secretary-console-item')) {
-            void openSecretaryConsole();
             return;
         }
         if (event.target.closest('#m-quest-remote-item')) {

@@ -493,10 +493,6 @@ function hideAllExperienceScreens() {
     document.getElementById('setup-screen')?.classList.add('hidden');
 }
 
-function setSecretaryReturnButtonVisible(isVisible) {
-    document.getElementById('secretary-console-btn')?.classList.toggle('hidden', !isVisible);
-}
-
 async function logoutWithLocalCleanup() {
     await import('./ui/questRemoteButton.js').then((m) => m.beforeSignOut()).catch(() => {});
     await walkOutThroughGate(() => signOut(auth));
@@ -517,24 +513,16 @@ function ensureAuthenticatedUiWired() {
     });
     wireSecretaryConsoleListeners({
         onLogout: logoutWithLocalCleanup,
-        onOpenTeacherView: async () => {
-            document.getElementById('secretary-screen')?.classList.add('hidden');
-            document.getElementById('app-screen')?.classList.remove('hidden');
-            const tabs = await import('./ui/tabs.js');
-            await tabs.showTab('about-tab');
-        },
         onSelectThread: (threadId) => watchCommunicationThread(threadId)
-    });
-    document.getElementById('secretary-console-btn')?.addEventListener('click', () => {
-        document.getElementById('app-screen')?.classList.add('hidden');
-        document.getElementById('secretary-screen')?.classList.remove('hidden');
-        setSecretaryReturnButtonVisible(true);
-        activateSecretaryTab('home');
-        renderSecretaryConsole();
     });
 }
 
 async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen }) {
+    // The School Office is the secretary's whole app; they never enter the Teacher App.
+    if (state.get('currentUserRole') === ROLE_SECRETARY) {
+        await openSecretaryConsole({ loadingScreen, authScreen });
+        return;
+    }
     hideAllExperienceScreens();
     hideAuthScreen(authScreen);
     appScreen.classList.remove('hidden');
@@ -569,7 +557,6 @@ async function openSecretaryConsole({ loadingScreen, authScreen }) {
     if (secretaryScreen) secretaryScreen.classList.remove('hidden');
     activateSecretaryTab('home');
     renderSecretaryConsole();
-    setSecretaryReturnButtonVisible(true);
     resetAuthSubmitState();
     animateLoadingScreenOut(loadingScreen);
 }
@@ -1341,7 +1328,6 @@ function setupAuthListeners() {
             const subScreen = document.getElementById('subscribe-screen');
             if (subScreen) subScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');
-            setSecretaryReturnButtonVisible(false);
             secretarySetupToken = readSecretarySetupToken();
             if (secretarySetupToken) {
                 syncAuthRoleUi();

@@ -124,11 +124,6 @@ const moreSheetHTML = `
                 ${moreItem('calendar-tab', 'nav-color-blue', 'fa-calendar-alt', 'Quest Calendar', 'Plan the days')}
                 ${moreItem('reward-ideas-tab', 'nav-color-indigo', 'fa-bullseye', 'Training Grounds', 'Class games')}
                 ${moreItem('manage-students-tab', 'nav-color-fuchsia', 'fa-user-graduate', 'Student Roster', 'Your heroes')}
-                <button type="button" id="m-secretary-console-item" class="nav-button m-more-item m-pressable nav-color-cyan hidden" aria-label="School Office">
-                    <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas fa-building-shield icon"></i></span>
-                    <span class="text">School Office</span>
-                    <span class="m-more-item__hint">Front desk</span>
-                </button>
                 <button type="button" id="m-quest-remote-item" class="nav-button m-more-item m-pressable nav-color-amber hidden" aria-label="Quest Remote">
                     <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas fa-wand-magic-sparkles icon"></i></span>
                     <span class="text">Quest Remote</span>
@@ -230,7 +225,6 @@ const secretaryHeaderHTML = roleHeaderHTML(
     'School Office',
     'm-secretary-title',
     'm-school-name',
-    HEADER_ACTION_BTN('m-secretary-open-teacher-app-btn', 'fa-chalkboard-teacher', 'Open Teacher App') +
     HEADER_ACTION_BTN('m-secretary-logout-btn', 'fa-sign-out-alt', 'Log out', 'm-header-btn--danger')
 );
 

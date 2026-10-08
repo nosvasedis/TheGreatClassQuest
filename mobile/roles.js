@@ -32,13 +32,6 @@ function mirrorText(sourceSelector, targetId) {
 }
 
 function wireSecretary() {
-    document.getElementById('m-secretary-open-teacher-app-btn')?.addEventListener('click', () => {
-        playSound('click');
-        document.getElementById('secretary-screen')?.classList.add('hidden');
-        document.getElementById('app-screen')?.classList.remove('hidden');
-        import('../ui/tabs.js').then((tabs) => tabs.showTab('about-tab'));
-    });
-
     document.getElementById('m-secretary-logout-btn')?.addEventListener('click', logout);
     mirrorText('#secretary-screen [data-secretary-title]', 'm-secretary-title');
     mirrorText('#secretary-screen [data-school-name]', 'm-school-name');

@@ -187,9 +187,6 @@ function renderSchoolSettings() {
                             <button type="submit" id="secretary-school-name-save-btn" class="role-btn-primary">
                                 <i class="fas fa-save" aria-hidden="true"></i> Save school name
                             </button>
-                            <button type="button" id="secretary-open-teacher-from-settings-btn" class="role-btn-secondary">
-                                <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i> Open Teacher App
-                            </button>
                         </div>
                     </form>
                 </article>
@@ -241,7 +238,7 @@ function renderSchoolSettings() {
                     </div>
                     <details class="secretary-disclosure">
                         <summary><span><i class="fas fa-circle-info" aria-hidden="true"></i> What can I do here?</span><i class="fas fa-chevron-down secretary-disclosure__chevron" aria-hidden="true"></i></summary>
-                        <p>You can look after school details, classes, students, grading, and family messages. Open the Teacher App whenever you want to use the classroom tools.</p>
+                        <p>You can look after school details, classes, students, grading, and family messages. Classroom tools such as stars, lessons and quests belong to each teacher's own app.</p>
                     </details>
                 </article>
             </div>

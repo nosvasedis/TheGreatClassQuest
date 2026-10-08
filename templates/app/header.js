@@ -173,11 +173,6 @@ export const headerHTML = `
                             title="Projector Mode" aria-label="Toggle Projector Mode">
                             <i class="fas fa-tv"></i>
                         </button>
-                        <button id="secretary-console-btn"
-                            class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
-                            title="School Office" aria-label="Open School Office">
-                            <i class="fas fa-building-shield"></i>
-                        </button>
                         <button id="header-settings-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Settings" aria-label="Settings">

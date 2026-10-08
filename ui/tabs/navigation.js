@@ -462,6 +462,8 @@ export async function showOptionsSubtab(key) {
 }
 
 export async function showTab(tabName) {
+    // Teacher App tabs never open for a secretary: the School Office is their whole app.
+    if (state.get('currentUserRole') === 'secretary') return;
     updateBottomNavGateState();
 
     const allTabs = document.querySelectorAll('.app-tab');

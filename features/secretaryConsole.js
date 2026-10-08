@@ -52,7 +52,6 @@ import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 let listenersWired = false;
 let secretaryCallbacks = {
     onLogout: null,
-    onOpenTeacherView: null,
     onSelectThread: null
 };
 
@@ -334,8 +333,8 @@ async function saveSecretaryAssessmentSettings(button) {
     }
 }
 
-export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onSelectThread }) {
-    secretaryCallbacks = { onLogout, onOpenTeacherView, onSelectThread };
+export function wireSecretaryConsoleListeners({ onLogout, onSelectThread }) {
+    secretaryCallbacks = { onLogout, onSelectThread };
     wireSchoolYearConsoleHandlers({ onRerender: () => renderSecretaryTab('admin') });
     setFormerStudentsListener(() => {
         const tab = getActiveTabKey();
@@ -350,7 +349,6 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
     listenersWired = true;
 
     document.getElementById('secretary-logout-btn')?.addEventListener('click', () => secretaryCallbacks.onLogout?.());
-    document.getElementById('secretary-open-teacher-app-btn')?.addEventListener('click', () => secretaryCallbacks.onOpenTeacherView?.());
 
     document.getElementById('secretary-screen')?.addEventListener('click', async (event) => {
         if (handleSchoolYearConsoleClick(event)) return;
@@ -640,12 +638,6 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         const billingBtn = event.target.closest('#secretary-manage-subscription-btn');
         if (billingBtn) {
             await openSecretaryBillingPortal(billingBtn);
-            return;
-        }
-
-        const teacherBtn = event.target.closest('#secretary-open-teacher-from-settings-btn');
-        if (teacherBtn) {
-            secretaryCallbacks.onOpenTeacherView?.();
         }
     });
 

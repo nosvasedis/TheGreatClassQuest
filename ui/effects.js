@@ -27,10 +27,11 @@ function heraldReadingTime(message, duration) {
     return Math.max(Number(duration) || 0, Math.min(9000, 1800 + plain.length * 50));
 }
 
-function dismissHerald(el) {
+function dismissHerald(el, reason = 'closed') {
     if (!el || el.dataset.state === 'leaving') return;
     el.dataset.state = 'leaving';
     clearTimeout(el.__heraldTimer);
+    try { el.__heraldOnDismiss?.(reason); } catch (error) { console.warn('Notification dismiss hook failed:', error); }
     el.style.setProperty('--herald-height', `${el.offsetHeight}px`);
     el.classList.add('is-leaving');
     setTimeout(() => el.remove(), HERALD_EXIT_MS);
@@ -46,6 +47,12 @@ function dismissHerald(el) {
  * @param {number} [options.duration]     Milliseconds before it leaves (0 = stays).
  * @param {string} [options.key]          Replaces any open notification with the same key.
  * @param {{label: string, icon?: string, busyLabel?: string, onClick: Function}} [options.action]
+ * @param {Array<{label: string, icon?: string, busyLabel?: string, className?: string, onClick: Function}>} [options.actions]
+ *        A row of choices under the message. An onClick that resolves to false keeps the notification open.
+ * @param {boolean} [options.sticky]      Stays until a choice or the ×: no timer, never pushed out by newer ones.
+ * @param {string} [options.className]   Extra class on the notification (its own tone or look).
+ * @param {string} [options.closeLabel]  Screen-reader name of the × (default "Dismiss").
+ * @param {Function} [options.onDismiss]  Called once when it leaves, with 'closed' (the ×), 'action', 'replaced' or 'code'.
  * @returns {{ dismiss: Function, element: HTMLElement } | null}
  */
 export function notify(options = {}) {
@@ -54,56 +61,82 @@ export function notify(options = {}) {
 
     const tone = heraldTone(options.type);
     const preset = HERALD_TONES[tone];
-    const duration = options.duration === 0 ? 0 : heraldReadingTime(options.message, options.duration ?? 3000);
+    const sticky = Boolean(options.sticky);
+    const duration = sticky || options.duration === 0 ? 0 : heraldReadingTime(options.message, options.duration ?? 3000);
 
     if (options.key) {
         container.querySelectorAll('.herald').forEach((el) => {
-            if (el.dataset.key === options.key) dismissHerald(el);
+            if (el.dataset.key === options.key) dismissHerald(el, 'replaced');
         });
     }
 
     const el = document.createElement('div');
-    el.className = `herald herald--${tone}`;
+    el.className = `herald herald--${tone}${sticky ? ' herald--sticky' : ''}${options.className ? ` ${options.className}` : ''}`;
     el.setAttribute('role', tone === 'error' ? 'alert' : 'status');
     if (options.key) el.dataset.key = options.key;
     const action = options.action;
+    const choices = Array.isArray(options.actions) ? options.actions.filter(Boolean) : [];
+    const buttonInner = (a) => `${a.icon ? `<i class="fas ${a.icon}" aria-hidden="true"></i>` : ''}<span>${a.label}</span>`;
     el.innerHTML = `
         <div class="herald__gem" aria-hidden="true"><span class="herald__gem-core">${options.icon || preset.icon}</span></div>
         <div class="herald__body">
             <span class="herald__kicker">${options.title || preset.kicker}</span>
             <span class="herald__message">${options.message ?? ''}</span>
+            ${choices.length ? `<span class="herald__actions">${choices.map((a, i) =>
+                `<button type="button" class="herald__action${a.className ? ` ${a.className}` : ''}" data-herald-choice="${i}">${buttonInner(a)}</button>`).join('')}</span>` : ''}
         </div>
-        ${action ? `<button type="button" class="herald__action">${action.icon ? `<i class="fas ${action.icon}" aria-hidden="true"></i>` : ''}<span>${action.label}</span></button>` : ''}
-        <button type="button" class="herald__close" aria-label="Dismiss"><i class="fas fa-times" aria-hidden="true"></i></button>
+        ${action ? `<button type="button" class="herald__action">${buttonInner(action)}</button>` : ''}
+        <button type="button" class="herald__close" aria-label="${options.closeLabel || 'Dismiss'}"><i class="fas fa-times" aria-hidden="true"></i></button>
         ${duration ? `<span class="herald__timer" style="animation-duration:${duration}ms" aria-hidden="true"></span>` : ''}
     `;
+    el.__heraldOnDismiss = typeof options.onDismiss === 'function' ? options.onDismiss : null;
 
-    el.querySelector('.herald__close').addEventListener('click', (event) => {
+    const closeBtn = el.querySelector('.herald__close');
+    closeBtn.addEventListener('click', (event) => {
         event.stopPropagation();
-        dismissHerald(el);
+        if (closeBtn.disabled) return;
+        dismissHerald(el, 'closed');
     });
 
+    // While an action works, every button waits (the × too), so a choice cannot be taken twice.
+    const runAction = async (btn, a) => {
+        if (btn.disabled || el.dataset.state === 'leaving') return;
+        const buttons = [...el.querySelectorAll('button')];
+        const original = btn.innerHTML;
+        buttons.forEach((b) => { b.disabled = true; });
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>${a.busyLabel || 'Working...'}</span>`;
+        el.classList.add('is-busy');
+        clearTimeout(el.__heraldTimer);
+        el.classList.add('is-paused');
+        const restore = () => {
+            buttons.forEach((b) => { b.disabled = false; });
+            btn.innerHTML = original;
+            el.classList.remove('is-busy');
+        };
+        try {
+            const keepOpen = (await a.onClick?.()) === false;
+            if (keepOpen) restore();
+            else dismissHerald(el, 'action');
+        } catch (error) {
+            console.error('Notification action failed:', error);
+            restore();
+            showToast(error?.message || 'That did not work. Please try again.', 'error');
+        }
+    };
+
     if (action) {
-        const btn = el.querySelector('.herald__action');
-        btn.addEventListener('click', async (event) => {
+        const btn = el.querySelector(':scope > .herald__action');
+        btn.addEventListener('click', (event) => {
             event.stopPropagation();
-            if (btn.disabled) return;
-            const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>${action.busyLabel || 'Working...'}</span>`;
-            clearTimeout(el.__heraldTimer);
-            el.classList.add('is-paused');
-            try {
-                await action.onClick?.();
-                dismissHerald(el);
-            } catch (error) {
-                console.error('Notification action failed:', error);
-                btn.disabled = false;
-                btn.innerHTML = original;
-                showToast(error?.message || 'That did not work. Please try again.', 'error');
-            }
+            runAction(btn, action);
         });
     }
+    el.querySelectorAll('[data-herald-choice]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            runAction(btn, choices[Number(btn.dataset.heraldChoice)]);
+        });
+    });
 
     // Timer pauses while the pointer rests on the notification.
     let remaining = duration;
@@ -126,11 +159,13 @@ export function notify(options = {}) {
     });
 
     container.appendChild(el);
-    const live = [...container.querySelectorAll('.herald:not(.is-leaving)')];
-    live.slice(0, Math.max(0, live.length - HERALD_MAX_VISIBLE)).forEach(dismissHerald);
+    // Newer notifications push the oldest out, but never one that is waiting for a choice.
+    const live = [...container.querySelectorAll('.herald:not(.is-leaving):not(.herald--sticky)')];
+    const room = HERALD_MAX_VISIBLE - container.querySelectorAll('.herald--sticky:not(.is-leaving)').length;
+    live.slice(0, Math.max(0, live.length - Math.max(1, room))).forEach((old) => dismissHerald(old, 'replaced'));
     arm();
 
-    return { element: el, dismiss: () => dismissHerald(el) };
+    return { element: el, dismiss: (reason = 'code') => dismissHerald(el, reason) };
 }
 
 export function showToast(message, type = 'info', duration = 3000) {

@@ -1181,11 +1181,12 @@ export function setupUIListeners() {
                 announceCrowning();
                 return;
             }
-            // Crown first, then the page: let the reveal fade before the chooser rises. The Campfire
-            // hears about the crowning once a path is chosen, so its AI prep queues behind the Chronicler.
+            // Crown first, then the page: once the reveal fades, a Today's Page notice asks Auto or
+            // Manual and waits while the teacher moves around the app. The Campfire hears about the
+            // crowning once a path is chosen, so its AI prep queues behind the Chronicler.
             setTimeout(() => {
-                import('../modals/diaryChooser.js')
-                    .then(m => m.openDiaryChooser(diaryLogId, { onSettled: announceCrowning }))
+                import('./todaysPageNotice.js')
+                    .then(m => m.showTodaysPageNotice(diaryLogId, { onSettled: announceCrowning }))
                     .catch(announceCrowning);
             }, 260);
         });

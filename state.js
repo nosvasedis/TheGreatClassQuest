@@ -387,6 +387,7 @@ export function setAllAwardLogs(logs) {
 export function setAllAdventureLogs(logs) {
     state.allAdventureLogs = logs;
     updateReigningHero();
+    _notify("allAdventureLogs");
 }
 export function setAllQuestEvents(events) {
     state.allQuestEvents = events;
@@ -473,6 +474,15 @@ export function setClassFollowScheduleEnabled(enabled) {
     state.classFollowSchedule = !!enabled;
 }
 
+/** Tells listeners (e.g. the Today's Page notice) that the header class changed. */
+function announceClassSelected(previousClassId) {
+    const classId = state.globalSelectedClassId;
+    if (previousClassId === classId || typeof window === "undefined") return;
+    try {
+        window.dispatchEvent(new CustomEvent("gcq:class-selected", { detail: { classId, previousClassId } }));
+    } catch { /* no DOM events here */ }
+}
+
 export function setGlobalSelectedClass(classId, isManual = false) {
     if (classId === state.globalSelectedClassId && !isManual) {
         // When the same class is selected programmatically, still allow re-render
@@ -486,7 +496,9 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         state.classFollowSchedule = false;
     }
 
+    const previousClassId = state.globalSelectedClassId;
     state.globalSelectedClassId = classId;
+    announceClassSelected(previousClassId);
     // Don't persist class selection to localStorage - use smart selector on each load
     // if (classId) {
     //     localStorage.setItem('quest_last_class_id', classId);
@@ -555,6 +567,7 @@ export function setGlobalSelectedLeague(league, isManual = false) {
         const activeClass = findLessonClassWithGrace(myLeagueClasses);
         const bestClass = activeClass || myLeagueClasses[0] || null;
 
+        const previousClassId = state.globalSelectedClassId;
         if (bestClass) {
             state.globalSelectedClassId = bestClass.id;
             localStorage.setItem("quest_last_class_id", bestClass.id);
@@ -562,6 +575,7 @@ export function setGlobalSelectedLeague(league, isManual = false) {
             state.globalSelectedClassId = null;
             localStorage.removeItem("quest_last_class_id");
         }
+        announceClassSelected(previousClassId);
         updateReigningHero();
     }
 

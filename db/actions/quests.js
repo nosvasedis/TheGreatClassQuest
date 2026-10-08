@@ -701,17 +701,17 @@ function getPresentStudentsForClass(classId) {
     return state.get('allStudents').filter(s => s.classId === classId && s.enrollmentStatus !== 'inactive' && !absentStudentIds.has(s.id));
 }
 
-/** Opens the Today's Page chooser straight away when there is no crowning to watch first. */
-function openDiaryChooserNow(diaryLogId) {
+/** Asks Auto or Manual straight away (the Today's Page notice) when there is no crowning to watch first. */
+function offerTodaysPageNow(diaryLogId) {
     if (!diaryLogId) return;
-    import('../../ui/modals/diaryChooser.js').then(m => m.openDiaryChooser(diaryLogId)).catch(() => {});
+    import('../../ui/core/todaysPageNotice.js').then(m => m.showTodaysPageNotice(diaryLogId)).catch(() => {});
 }
 
 async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!', campfireDetail = null, { diaryLogId = null } = {}) {
     const heroStudent = heroStudentId ? state.get('allStudents').find(s => s.id === heroStudentId) : null;
     if (!heroStudent) {
         if (campfireDetail) window.dispatchEvent(new CustomEvent('gcq:hero-crowned', { detail: campfireDetail }));
-        openDiaryChooserNow(diaryLogId);
+        offerTodaysPageNow(diaryLogId);
         return;
     }
 

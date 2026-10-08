@@ -1,5 +1,7 @@
-// /ui/modals/diaryChooser.js — "Today's Page": opens after Huzzah! (and from the diary's
-// Write Today's Page button) on a crowned page that is still blank. Auto hands the page to the
+// /ui/modals/diaryChooser.js — "Today's Page": opens from the diary's Write Today's Page
+// button (and the crown button, the Wand) on a crowned page that is still blank. Right after
+// Huzzah! the same choice comes as a notice instead (ui/core/todaysPageNotice.js), so the
+// teacher can keep moving around the app; opening this sheet takes that notice's place. Auto hands the page to the
 // AI Chronicler (db/actions/quests.js#writeAdventurePageWithChronicler); Manual opens the
 // full page writer (features/adventurePageWriter.js); Later leaves the page waiting in the diary.
 // Lazy: loaded only when a page is waiting. Markup in ./diaryChooserView.mjs.
@@ -68,28 +70,46 @@ async function focusPage(logId) {
 }
 
 /**
+ * The page and the chooser's model, when this teacher can write it now; otherwise null.
+ * `explain` shows the toast for a page that belongs to another teacher.
+ */
+export async function readWaitingPage(logId, { explain = true } = {}) {
+    if (!logId || !canUseFeature('adventureLog')) return null;
+    const log = await loadLog(logId);
+    if (!log || !isAwaitingAdventurePage(log)) return null;
+    if (!isOwnActivePage(log)) {
+        if (explain) showToast('Only the teacher who crowned this hero can write the page.', 'info');
+        return null;
+    }
+    return { log, model: buildModel(log) };
+}
+
+/**
  * Opens the chooser for a crowned, still-blank page owned by this teacher.
  * `onSettled` runs once, when the teacher has picked a path (or the chooser cannot open), so
  * after-crowning work (the Campfire's AI prep) queues behind the Chronicler, never in front.
  */
 export async function openDiaryChooser(logId, { onSettled } = {}) {
+    // A Today's Page notice for this page hands its after-choice hook over and steps aside.
+    let handoff = null;
+    try {
+        const notice = await import('../core/todaysPageNotice.js');
+        handoff = notice.handOffTodaysPageNotice(logId);
+    } catch { /* no notice to take over */ }
     let settled = false;
     const settle = () => {
         if (settled) return;
         settled = true;
         try { onSettled?.(); } catch (error) { console.warn('After-choice hook failed:', error); }
+        handoff?.settle?.();
     };
-    if (!logId || !canUseFeature('adventureLog')) return settle();
-    const log = await loadLog(logId);
-    if (!log || !isAwaitingAdventurePage(log)) return settle();
-    if (!isOwnActivePage(log)) {
-        showToast('Only the teacher who crowned this hero can write the page.', 'info');
-        return settle();
-    }
+    if (handoff?.busy) return settle(); // the notice is already writing or opening this page
+    const waiting = await readWaitingPage(logId);
+    if (!waiting) return settle();
 
     document.getElementById(MODAL_ID)?._cleanup?.();
     document.getElementById(MODAL_ID)?.remove();
-    const model = buildModel(log);
+    const { model } = waiting;
     const overlay = document.createElement('div');
     overlay.id = MODAL_ID;
     overlay.className = 'diary-chooser-overlay';

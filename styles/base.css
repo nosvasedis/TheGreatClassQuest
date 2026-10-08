@@ -232,6 +232,8 @@ body {
 
 /* Shared icon face — same SVG carve as title/clock, matched weight */
 #app-info-btn i,
+#quiet-dragon-btn i,
+#quest-remote-btn i,
 #projector-mode-btn i,
 #header-settings-btn i,
 #logout-btn i {
@@ -266,6 +268,8 @@ body {
     }
 
     #app-info-btn i,
+    #quiet-dragon-btn i,
+    #quest-remote-btn i,
     #projector-mode-btn i,
     #header-settings-btn i,
     #logout-btn i {

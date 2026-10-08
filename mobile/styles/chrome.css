@@ -170,7 +170,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    -webkit-text-stroke: 1.15px currentColor;
+    -webkit-text-stroke: 0.6px currentColor;
     paint-order: stroke fill;
     filter: url(#gcq-inner-soft-stroke);
 }
@@ -180,7 +180,7 @@
 }
 
 #m-app-info-btn i {
-    -webkit-text-stroke: 1.35px currentColor;
+    -webkit-text-stroke: 0.85px currentColor;
 }
 
 .m-class-pill__chev {

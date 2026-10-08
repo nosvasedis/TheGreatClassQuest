@@ -167,7 +167,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const keptBadge = kept ? '<span class="eo-kept-badge" title="' + kept + ' kept">⭐' + (kept > 1 ? kept : '') + '</span>' : '';
         if (!oath) {
             return '<article class="eo-card is-empty" style="--i:' + i + '"><div class="eo-card-top"><span class="eo-avatar-wrap">' + avatarHtml(student) + keptBadge + '</span><div class="eo-card-name"><h3>' + esc(student.name) + '</h3><span class="eo-muted">' + (kept ? 'Ready for a new promise' : 'No promise yet') + '</span></div></div>' +
-                (checkInOnly ? '' : '<button type="button" class="eo-choose-btn" data-choose="' + esc(student.id) + '"><span aria-hidden="true">✨</span> Choose a promise</button>') + '</article>';
+                (checkInOnly ? '' : '<button type="button" class="eo-choose-btn" data-choose="' + esc(student.id) + '"><span class="eo-choose-btn__flame" aria-hidden="true">🔥</span><span>Choose a promise</span><span class="eo-choose-btn__go" aria-hidden="true">→</span></button>') + '</article>';
         }
         const r = resultFor(oath), meta = CATEGORY_META[oath.category] || CATEGORY_META.virtue;
         const due = daysBetween(isoToday(), oath.dueDate);
@@ -197,7 +197,10 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const items = [];
         if (ready.length) items.push('<button type="button" class="eo-focus eo-focus--ready" data-open="' + esc(activeFor(ready[0].id).id) + '"><span class="eo-focus-icon" aria-hidden="true">⭐</span><span><b>' + (ready.length === 1 ? esc(ready[0].name) + '’s promise is ready' : ready.length + ' promises are ready') + '</b><small>Keep it and a Star-Ember rises</small></span></button>');
         if (toCheck.length && !early) items.push('<button type="button" class="eo-focus eo-focus--check" data-filter="check"><span class="eo-focus-icon" aria-hidden="true">🔥</span><span><b>' + toCheck.length + ' to check in today</b><small>Tried it, growing or a quiet day</small></span></button>');
-        if (waiting.length && !checkInOnly) items.push('<button type="button" class="eo-focus eo-focus--ceremony" data-ceremony><span class="eo-focus-icon" aria-hidden="true">✨</span><span><b>Choosing ceremony · ' + waiting.length + '</b><small>' + (waiting.length === 1 ? esc(waiting[0].name) + ' needs a promise' : waiting.length + ' heroes need a promise') + '</small></span></button>');
+        if (waiting.length && !checkInOnly) items.push('<button type="button" class="eo-focus eo-focus--ceremony" data-ceremony><span class="eo-focus-icon" aria-hidden="true">' + FLAME + '</span>' +
+            '<span class="eo-focus-body"><b>The Choosing Ceremony</b><small>' + (waiting.length === 1 ? esc(waiting[0].name) + ' is waiting for a promise' : waiting.length + ' heroes are waiting for a promise') + '</small>' +
+            '<span class="eo-focus-faces" aria-hidden="true">' + waiting.slice(0, 5).map(s => avatarHtml(s, 'sm')).join('') + (waiting.length > 5 ? '<em>+' + (waiting.length - 5) + '</em>' : '') + '</span></span>' +
+            '<span class="eo-focus-go" aria-hidden="true">Begin →</span></button>');
         if (!items.length && roster.length) items.push('<div class="eo-focus eo-focus--calm"><span class="eo-focus-icon" aria-hidden="true">🌙</span><span><b>All tended for today</b><small>Every promise has its check-in. The embers rest.</small></span></div>');
         return items.length ? '<div class="eo-focus-row">' + items.join('') + '</div>' : '';
     }
@@ -332,6 +335,14 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function syncAdjust() {
         const adjust = view.querySelector('[data-adjust]');
         if (adjust) adjust.hidden = typeof choosing?.selected !== 'number' || choosing.editing;
+    }
+    /** The ceremony's progress: every child as a little ember, lit once their promise is chosen. */
+    function ceremonyStrip(currentId) {
+        const done = roster.filter(r => activeFor(r.id)).length;
+        return '<div class="eo-strip-wrap"><span class="eo-strip-count"><b>' + done + '</b> of ' + roster.length + ' lit</span><div class="eo-strip" aria-label="Choosing ceremony progress">' + roster.map(r => {
+            const lit = Boolean(activeFor(r.id)), current = r.id === currentId;
+            return '<span class="eo-strip-item' + (lit ? ' is-done' : '') + (current ? ' is-current' : '') + '" title="' + esc(r.name) + (lit ? ' · promise chosen' : current ? ' · choosing now' : '') + '">' + avatarHtml(r, 'sm') + (lit ? '<i aria-hidden="true">🔥</i>' : '') + '</span>';
+        }).join('') + '</div></div>';
     }
     async function choose(id, { fromCeremony = ceremony } = {}) {
         const student = roster.find(r => r.id === id); if (!student) return;

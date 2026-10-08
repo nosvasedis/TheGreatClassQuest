@@ -198,10 +198,13 @@ function refreshBondState() {
 async function openBindingCircle() {
     if (!host) return;
     let modal = document.getElementById('quest-remote-bind');
+    if (modal?.classList.contains('is-leaving')) { modal.remove(); modal = null; }
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'quest-remote-bind';
         modal.className = `qr-bind${LITE ? ' qr-lite' : ''}`;
+        // The circle is the projector's own: the Wand keeps showing the screen underneath it.
+        modal.dataset.qrIgnore = '';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'qr-bind-title');
@@ -767,7 +770,12 @@ function runTimer(cmd, p) {
     else if (p.action === 'stop') stopTimer();
     else if (p.action === 'pause') pauseTimer(true);
     else if (p.action === 'resume') pauseTimer(false);
-    else if (p.action === 'add' && timer) startTimer(Math.round(timer.remaining() / 1000) + 30, timer.label, timer.total + 30);
+    else if (p.action === 'add' && timer && !timer.done) {
+        // +30 s keeps a paused timer paused.
+        const paused = timer.pausedLeft != null;
+        startTimer(Math.round(timer.remaining() / 1000) + 30, timer.label, timer.total + 30);
+        if (paused) pauseTimer(true);
+    }
     return report(cmd, true, '');
 }
 
@@ -778,6 +786,8 @@ function timerLabel(seconds) {
 function startTimer(seconds, label, totalSeconds = seconds) {
     stopTimer({ keepNode: true });
     let el = document.getElementById('qr-timer');
+    // A timer still fading out is about to be removed: start on a fresh one.
+    if (el?.classList.contains('is-leaving')) { el.remove(); el = null; }
     if (!el) {
         el = document.createElement('div');
         el.id = 'qr-timer';
@@ -857,6 +867,8 @@ function timerState() {
 
 function setBlackout(on) {
     let el = document.getElementById('qr-curtain');
+    // Asked down again while it is still lifting: start a fresh curtain instead of losing it.
+    if (on && el?.classList.contains('is-lifting')) { el.remove(); el = null; }
     if (on) {
         if (!el) {
             el = document.createElement('div');
@@ -871,7 +883,7 @@ function setBlackout(on) {
             requestAnimationFrame(() => el.classList.add('is-down'));
             playSound('magic_chime_short');
         }
-    } else if (el) {
+    } else if (el && !el.classList.contains('is-lifting')) {
         el.classList.remove('is-down');
         el.classList.add('is-lifting');
         setTimeout(() => el.remove(), isStillFx() ? 0 : 700);
@@ -942,6 +954,7 @@ let spotTimer = 0;
 /** Hero Spotlight: the room dims and a beam falls on one hero, to call them up or celebrate them. */
 async function openSpotlight(student) {
     let el = document.getElementById('qr-spotlight');
+    if (el?.classList.contains('is-leaving')) { el.remove(); el = null; }
     if (!el) {
         el = document.createElement('div');
         el.id = 'qr-spotlight';
@@ -1251,8 +1264,9 @@ async function publishStage() {
     stage.timer = timerState();
     // What the class actually sees: a covering window hides the tab underneath (the Wand words its hints by this).
     stage.covered = !sdPanel && surface.kind === 'overlay';
-    stage.blackout = Boolean(document.getElementById('qr-curtain'));
-    stage.spotlight = Boolean(document.getElementById('qr-spotlight'));
+    // A curtain lifting or a beam fading is already gone as far as the Wand is concerned.
+    stage.blackout = Boolean(document.querySelector('#qr-curtain:not(.is-lifting)'));
+    stage.spotlight = Boolean(document.querySelector('#qr-spotlight:not(.is-leaving)'));
     stage.wall = Boolean(document.getElementById('dynamic-wallpaper-screen') && !document.getElementById('dynamic-wallpaper-screen').classList.contains('hidden'));
     // The timer's remaining time changes every tick: the Wand counts down by itself, so only a start,
     // pause, +30 s or the end is news (one write instead of one every few seconds).

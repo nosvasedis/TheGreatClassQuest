@@ -300,7 +300,8 @@ function send(type, payload = {}) {
     if (!validateCommand(cmd).ok) { wand.seq -= 1; return false; }
     channel.sendCommand(wand.sessionId, cmd).catch((e) => {
         console.warn('Quest Remote: send failed', e);
-        toast('Not sent: check the connection', 'warn');
+        // Refused (not offline): the school's Firestore rules are older than this Wand.
+        toast(e?.code === 'permission-denied' ? 'The projector refused this spell: the school rules need updating' : 'Not sent: check the connection', 'warn');
     });
     return true;
 }

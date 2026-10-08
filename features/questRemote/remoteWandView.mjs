@@ -163,7 +163,7 @@ export function awardSheetHtml(heroOrHeroes, { reason = '', size = 'auto' } = {}
         ${shining ? `<button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw="undo" data-id="${esc(hero.id)}"><i class="fas fa-rotate-left" aria-hidden="true"></i> Undo today's stars</button>` : `
         <div class="qw-virtues" role="radiogroup" aria-label="Virtue">
             ${WAND_VIRTUES.map((v) => `<button type="button" role="radio" aria-checked="${reason === v.key}" class="qw-virtue qw-virtue--${v.key}${reason === v.key ? ' is-on' : ''}" data-qw-virtue="${v.key}">
-                <span class="qw-virtue__icon" aria-hidden="true"><i class="fas ${v.icon}"></i></span><span class="qw-virtue__name">${v.name}</span><span class="qw-virtue__rune" aria-hidden="true">${v.rune}</span></button>`).join('')}
+                <span class="qw-virtue__icon" aria-hidden="true"><i class="fas ${v.icon}"></i></span><span class="qw-virtue__name">${v.name}</span></button>`).join('')}
         </div>
         <div class="qw-sizes" role="radiogroup" aria-label="How many stars">${sizes.map(([k, l]) => `<button type="button" role="radio" aria-checked="${size === k}" class="qw-size${size === k ? ' is-on' : ''}" data-qw-size="${k}">${l}</button>`).join('')}</div>
         <div class="qw-flick${reason ? ' is-ready' : ''}" data-qw-flick>

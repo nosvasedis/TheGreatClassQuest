@@ -86,7 +86,7 @@ body.qw-open { overflow: hidden; }
 .qw-link[data-state="connecting"] .qw-link__dot { background: var(--qw-amber); animation: qw-blink 1s ease-in-out infinite; }
 .qw-link[data-state="offline"] .qw-link__dot { background: #f87171; }
 @keyframes qw-blink { 50% { opacity: 0.3; } }
-.qw-classchip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 40vw; min-height: 40px; padding: 0 12px; border-radius: 999px; font-weight: 600; font-size: 0.86rem; background: var(--qw-glass); box-shadow: inset 0 0 0 1px rgba(252, 211, 77, 0.35); }
+.qw-classchip { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: min(34vw, 150px); min-height: 40px; padding: 0 12px; border-radius: 999px; font-weight: 600; font-size: 0.86rem; background: var(--qw-glass); box-shadow: inset 0 0 0 1px rgba(252, 211, 77, 0.35); }
 .qw-classchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qw-classchip i { font-size: 0.65rem; color: var(--qw-gold); }
 .qw[data-phase="choose"] .qw-classchip { visibility: hidden; }
@@ -226,7 +226,6 @@ body.qw-open { overflow: hidden; }
 .qw-virtue { --v: #8b5cf6; position: relative; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px 6px 8px; border-radius: 16px; text-align: left; font-weight: 700; background: rgba(139, 92, 246, 0.14) !important; background: color-mix(in srgb, var(--v) 16%, transparent) !important; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--v) 50%, transparent); transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease; }
 .qw-virtue__icon { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; font-size: 1.05rem; color: var(--v); background: rgba(255, 255, 255, 0.08); }
 .qw-virtue__name { flex: 1; font-size: 0.95rem; }
-.qw-virtue__rune { position: absolute; right: 9px; top: 5px; font: 700 0.9rem/1 'Cinzel', serif; opacity: 0.4; }
 .qw-virtue--creativity { --v: #ec4899; }
 .qw-virtue--respect { --v: #10b981; }
 .qw-virtue--focus { --v: #f59e0b; }
@@ -432,7 +431,7 @@ body.qw-open { overflow: hidden; }
 .qw-team { position: relative; display: grid; }
 .qw-team__hit { position: relative; display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 132px; padding: 12px 8px 18px; border-radius: 22px; overflow: hidden; color: #fff; background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 45%), var(--team) !important; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.3), 0 8px 20px -10px var(--team); transition: transform 0.12s ease; }
 .qw-team.is-leading .qw-team__hit { box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.3), 0 0 0 3px var(--qw-gold), 0 10px 24px -8px var(--team); }
-.qw-team__crown { position: absolute; top: 8px; left: 50%; margin-left: -10px; font-size: 0.9rem; color: var(--qw-gold); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); animation: qw-bob 2s ease-in-out infinite; }
+.qw-team__crown { position: absolute; top: 9px; right: 12px; font-size: 0.9rem; color: var(--qw-gold); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); animation: qw-bob 2s ease-in-out infinite; }
 .qw-team__bar { position: absolute; left: 12px; right: 12px; bottom: 8px; height: 6px; border-radius: 3px; background: rgba(0, 0, 0, 0.25); overflow: hidden; }
 .qw-team__bar::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: #fff; transform-origin: 0 50%; transform: scaleX(var(--lvl, 0)); transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1); }
 .qw-team__grow { font-size: 0.78rem; font-weight: 700; opacity: 0.9; }
@@ -559,4 +558,17 @@ body.qw-open { overflow: hidden; }
     .qw-main { width: min(640px, 100%); margin: 0 auto; }
     .qw-now { width: min(616px, calc(100% - 24px)); margin-left: auto; margin-right: auto; }
     .qw-teams { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+/* Narrow phones: the title and the class chip share the bar without both being cut. */
+@media (max-width: 389px) {
+    .qw-top { gap: 8px; padding-left: 10px; padding-right: 10px; }
+    .qw-brand__text b { font-size: 0.92rem; }
+    .qw-classchip { max-width: 30vw; padding: 0 10px; font-size: 0.8rem; }
+}
+/* A phone on its side: the bars shrink so the controls keep most of the screen. */
+@media (max-height: 480px) and (orientation: landscape) {
+    .qw-top { padding-top: 6px; padding-bottom: 4px; }
+    .qw > .qw-now { display: none; }
+    .qw-mode__label { display: none; }
+    .qw-modes { padding-top: 4px; padding-bottom: max(4px, env(safe-area-inset-bottom)); }
 }

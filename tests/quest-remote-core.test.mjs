@@ -510,3 +510,25 @@ test('Training Grounds games reach the Wand by name, in their virtue colour', ()
     const host = read('features/questRemote/remoteHost.js');
     assert.match(host, /el\.dataset\.remoteLabel \|\|/);
 });
+
+test('the phone can hand the projector back, and the computer hears it at once', async () => {
+    const { spellsSheetHtml } = await import('../features/questRemote/remoteWandView.mjs');
+    const bound = spellsSheetHtml([], Date.now(), { bound: true });
+    assert.match(bound, /data-qw="disconnect"/);
+    assert.doesNotMatch(spellsSheetHtml([], Date.now()), /data-qw="disconnect"/);
+
+    const channel = read('features/questRemote/remoteChannel.js');
+    assert.match(channel, /export function releaseWand\(sessionId\) \{[\s\S]*wandId: null/);
+
+    const wand = read('features/questRemote/remoteWand.js');
+    // the Wand only gives back a projector that is still bound to this phone
+    assert.match(wand, /if \(!w\?\.sessionId \|\| w\.boundWandId !== w\.wandId\) return;/);
+    // putting the Wand down, switching projector and Disconnect all release it
+    assert.match(wand, /if \(release\) releaseProjector\(w\);/);
+    assert.match(wand, /if \(w\.sessionId && w\.sessionId !== sessionId\) releaseProjector\(w\);/);
+    assert.match(wand, /act === 'disconnect'/);
+
+    const host = read('features/questRemote/remoteHost.js');
+    assert.match(host, /if \(host\.wandId && !data\.wandId && !fromCache\) \{ onWandReleased\(\); return; \}/);
+    assert.match(host, /function onWandReleased\(\)[\s\S]*host\.bound = false;[\s\S]*syncLaunchButtons\(\);/);
+});

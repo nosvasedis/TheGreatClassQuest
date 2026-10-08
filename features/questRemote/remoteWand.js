@@ -68,6 +68,7 @@ export async function openWand({ sessionId = '' } = {}) {
         sessionId: '',
         code: '',
         wandId: `wand${Math.random().toString(36).slice(2, 10)}`,
+        boundWandId: '',
         seq: 0,
         stage: null,
         secret: null,
@@ -114,9 +115,11 @@ export async function openWand({ sessionId = '' } = {}) {
     else await showChooser();
 }
 
-export async function closeWand({ quiet = false } = {}) {
+export async function closeWand({ quiet = false, release = true } = {}) {
     if (!wand) return;
     const w = wand;
+    // Hand the projector back before everything is torn down: the PC's wand goes dark at once.
+    if (release) releaseProjector(w);
     cancelGestures();
     wand = null;
     w.connectSeq += 1;
@@ -159,9 +162,30 @@ async function showChooser(error = '') {
 const RULES_TEXT = 'The school rules refused the Wand. They need updating (firestore rules deploy).';
 const isRefused = (e) => e?.code === 'permission-denied';
 
+/** While a projector is bound, the X is the disconnect: it hands the projector back and closes. */
+function setLeaveLabel(bound) {
+    const btn = wand?.root.querySelector('[data-qw="leave"]');
+    if (!btn) return;
+    const label = bound ? 'Disconnect and put the Wand down' : 'Put the Wand down';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+}
+
+/**
+ * Tells the projector the Wand is leaving (fire and forget: the PC also notices a silent phone,
+ * this just makes it instant). Only ours to give back — a phone that took over keeps it.
+ */
+function releaseProjector(w = wand) {
+    if (!w?.sessionId || w.boundWandId !== w.wandId) return;
+    const id = w.sessionId;
+    w.boundWandId = '';
+    channel.releaseWand(id).catch(() => { /* the heartbeat going stale ends it anyway */ });
+}
+
 /** Forgets everything about the projector the Wand was bound to (closed, lost, or swapped). */
 function endSession(w = wand) {
     if (!w) return;
+    setLeaveLabel(false);
     cancelGestures();
     w.unsub?.();
     w.unsub = null;
@@ -173,7 +197,7 @@ function endSession(w = wand) {
     w.wakeLock = null;
     if (w.sheetKind) closeSheet();
     Object.assign(w, {
-        stage: null, secret: null, hostId: '', classOverride: '', classOverrideAt: 0, multi: false,
+        stage: null, secret: null, hostId: '', boundWandId: '', classOverride: '', classOverrideAt: 0, multi: false,
         timerKey: '', timerBase: null, clockId: 0, clockBase: null, lastPanelKind: '', lastNow: '', lastHtml: '', centredTab: ''
     });
     w.pending.clear();
@@ -186,6 +210,8 @@ async function connect(sessionId) {
     const token = (w.connectSeq += 1);
     // a double tap, a QR link or a retry can start a second bind: only the newest one goes on
     const stale = () => wand !== w || w.connectSeq !== token;
+    // Moving to another projector: give the old one back instead of leaving it looking bound.
+    if (w.sessionId && w.sessionId !== sessionId) releaseProjector(w);
     endSession(w);
     w.root.dataset.phase = 'choose';
     w.main.innerHTML = chooserHtml([], { loading: true });
@@ -207,10 +233,11 @@ async function connect(sessionId) {
     }
     if (stale()) return;
     w.sessionId = sessionId;
+    w.boundWandId = w.wandId;
     w.code = data.code || '';
     w.hostSeenAt = Date.now();
     w.root.dataset.phase = 'bound';
-    w.unsub = channel.watchSession(sessionId, (d) => { if (!stale()) { w.retry = 0; onSession(d); } }, () => {
+    w.unsub = channel.watchSession(sessionId, (d, meta) => { if (!stale()) { w.retry = 0; onSession(d, meta); } }, () => {
         // The live link broke (network, token refresh): bind again instead of showing a frozen Wand.
         if (stale()) return;
         setLink('offline', 'Connection lost · trying again');
@@ -228,6 +255,7 @@ async function connect(sessionId) {
     requestWakeLock();
     send('bind', {});
     buzz([20, 60, 30]);
+    setLeaveLabel(true);
     w.root.classList.add('is-bound');
     setTimeout(() => wand?.root.classList.remove('is-bound'), 1400);
     setMode(w.mode);
@@ -242,7 +270,7 @@ async function requestWakeLock() {
 
 // ─── Session updates ────────────────────────────────────────────────────────
 
-function onSession(data) {
+function onSession(data, { fromCache = false } = {}) {
     if (!wand) return;
     if (!data || data.closed) {
         setLink('asleep', 'The projector put the Wand to sleep');
@@ -252,6 +280,17 @@ function onSession(data) {
         setTimeout(() => { if (wand && wand.connectSeq === token) showChooser('The projector put the Wand to sleep.'); }, 1200);
         return;
     }
+    // Another phone bound to the same projector: that one has it now, this one steps back.
+    if (!fromCache && data.wandId && data.wandId !== wand.wandId) {
+        wand.boundWandId = data.wandId;
+        setLink('asleep', 'Another phone took the Wand');
+        wand.root.dataset.phase = 'choose';
+        endSession();
+        const taken = wand.connectSeq;
+        setTimeout(() => { if (wand && wand.connectSeq === taken) showChooser('Another phone is holding the Wand now.'); }, 1200);
+        return;
+    }
+    if (data.wandId && !fromCache) wand.boundWandId = data.wandId;
     // The projector reloaded (a new host on the same session): answer at once so it knows the Wand is here.
     if (data.hostId && wand.hostId && data.hostId !== wand.hostId) channel.beatWand(wand.sessionId).catch(() => {});
     wand.hostId = data.hostId || '';
@@ -334,7 +373,7 @@ function showResult(result) {
     if (result.seq > wand.seq) return; // a result for an earlier Wand on this session
     wand.lastResultSeq = result.seq;
     if (result.message) wand.spells = pushSpellLog(wand.spells, { at: Date.now(), ok: result.ok, text: result.message });
-    if (wand.sheetKind === 'spells') wand.sheet.innerHTML = spellsSheetHtml(wand.spells);
+    if (wand.sheetKind === 'spells') wand.sheet.innerHTML = spellsSheetHtml(wand.spells, Date.now(), { bound: wand.root.dataset.phase === 'bound' });
     if (!result.ok) {
         // The projector said no: undo anything shown optimistically.
         wand.pending.clear();
@@ -744,7 +783,17 @@ function wireEvents(root) {
         if (act === 'spells') {
             if (wand.root.dataset.phase !== 'bound') return;
             buzz(6);
-            openSheet('spells', spellsSheetHtml(wand.spells));
+            openSheet('spells', spellsSheetHtml(wand.spells, Date.now(), { bound: true }));
+            return;
+        }
+        if (act === 'disconnect') {
+            buzz([20, 40, 20]);
+            releaseProjector();
+            closeSheet();
+            endSession();
+            wand.root.dataset.phase = 'choose';
+            setLink('asleep', 'Disconnected');
+            showChooser();
             return;
         }
         const map = t.closest('[data-qw-map]');

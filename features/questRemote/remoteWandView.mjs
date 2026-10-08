@@ -593,7 +593,7 @@ export function showHtml(stage, { secret = null, clock = 0 } = {}) {
 }
 
 /** Recent spells: what the projector did with the Wand's last commands (this phone only). */
-export function spellsSheetHtml(log = [], nowMs = Date.now()) {
+export function spellsSheetHtml(log = [], nowMs = Date.now(), { bound = false } = {}) {
     const ago = (at) => {
         const s = Math.max(0, Math.round((nowMs - at) / 1000));
         if (s < 10) return 'just now';
@@ -609,5 +609,8 @@ export function spellsSheetHtml(log = [], nowMs = Date.now()) {
             <span class="qw-spell__icon" aria-hidden="true"><i class="fas ${e.ok ? 'fa-wand-magic-sparkles' : 'fa-triangle-exclamation'}"></i></span>
             <span class="qw-spell__text">${esc(e.text)}</span><small class="qw-spell__time">${ago(e.at)}</small></li>`).join('')}</ol>`
         : '<p class="qw-hint qw-hint--center">Nothing cast yet. Every star, spin and charm the projector performs shows here.</p>'}
+        ${bound ? `<button type="button" class="qw-btn qw-btn--leave" data-qw="disconnect">
+            <i class="fas fa-link-slash" aria-hidden="true"></i> Disconnect from the projector</button>
+            <p class="qw-hint qw-hint--center">The computer gets its own controls back straight away.</p>` : ''}
     </div>`;
 }

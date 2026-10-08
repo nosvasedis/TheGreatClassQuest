@@ -172,7 +172,7 @@ async function openHosting({ resume = null } = {}) {
     scheduleStage(0);
 }
 
-function onSessionData(data) {
+function onSessionData(data, { fromCache = false } = {}) {
     if (!host) return;
     if (!data || data.closed) {
         if (data?.closed) stopQuestRemote({ quiet: true });
@@ -191,6 +191,8 @@ function onSessionData(data) {
         // (no welcome chime for a phone that may have left hours ago).
         if (host.resumed && data.wandId) { host.wandId = data.wandId; host.wandBeatMs = beatMs; refreshBondState(); return; }
     }
+    // The phone pressed Disconnect (or left for another projector): let go now, don't wait for the beat to go stale.
+    if (host.wandId && !data.wandId && !fromCache) { onWandReleased(); return; }
     if (data.wandId && Number.isFinite(beatMs)) {
         const isNewWand = data.wandId !== host.wandId;
         // Liveness is measured on this computer's clock (when a new beat arrived), never by
@@ -221,6 +223,17 @@ function onWandBound() {
     }
     syncLaunchButtons();
     scheduleStage(0);
+}
+
+function onWandReleased() {
+    if (!host) return;
+    host.wandId = null;
+    host.wandBeatMs = 0;
+    host.wandSeenAt = 0;
+    host.bound = false;
+    syncLaunchButtons();
+    if (document.getElementById('quest-remote-bind')) renderBinding(false);
+    showToast('The phone put the Wand down. The circle is open for it again.', 'info');
 }
 
 function refreshBondState() {

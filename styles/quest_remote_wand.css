@@ -76,7 +76,7 @@ body.qw-open { overflow: hidden; }
 .qw-iconbtn--sm { width: 44px; height: 44px; font-size: 1rem; }
 .qw-iconbtn:active { transform: scale(0.9); }
 .qw-brand { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; }
-.qw-brand__gem { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: #422006; background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 70%); box-shadow: 0 4px 14px rgba(251, 191, 36, 0.35); }
+.qw-brand__gem { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; font-size: 1.05rem; color: var(--qw-gold); background: linear-gradient(165deg, #3f3a86, #221e58 72%); box-shadow: inset 0 0 0 1.5px rgba(252, 211, 77, 0.5), 0 4px 14px rgba(15, 12, 46, 0.45); }
 .qw-brand__text { min-width: 0; display: grid; }
 .qw-brand__text b { font: 400 1rem/1.15 var(--qw-title); color: #fff7d6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qw-link { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--qw-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -462,10 +462,10 @@ body.qw-open { overflow: hidden; }
 .qw-brand { text-align: left; border-radius: 14px; padding: 2px 4px 2px 2px !important; margin-left: -2px; transition: background-color 0.2s ease; }
 .qw-brand:active { background: var(--qw-glass) !important; }
 .qw-brand__gem { position: relative; overflow: hidden; }
-.qw-brand__glint { position: absolute; top: -20%; left: -60%; width: 40%; height: 140%; background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0)); transform: rotate(20deg); animation: qw-glint 5.5s ease-in-out infinite; }
+.qw-brand__glint { position: absolute; top: -20%; left: -60%; width: 40%; height: 140%; background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(252, 211, 77, 0.45), rgba(255, 255, 255, 0)); transform: rotate(20deg); animation: qw-glint 5.5s ease-in-out infinite; }
 @keyframes qw-glint { 0%, 70% { transform: translateX(0) rotate(20deg); } 100% { transform: translateX(320%) rotate(20deg); } }
 .qw-brand__seal { position: relative; flex: none; }
-.qw-brand__log { position: absolute; right: -5px; bottom: -4px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; font-size: 0.56rem; color: var(--qw-gold); background: #1e1b4b; box-shadow: 0 0 0 1.5px rgba(252, 211, 77, 0.55); }
+.qw-brand__log { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 0.5rem; color: #1e1b4b; background: var(--qw-gold); box-shadow: 0 0 0 2.5px #1b1840; }
 .qw[data-phase="choose"] .qw-brand__log { display: none; }
 
 /* ── Stars: the shine ring and "Still to shine" ── */
@@ -529,6 +529,9 @@ body.qw-open { overflow: hidden; }
 .qw-spell.is-warn .qw-spell__icon { color: #fdba74; background: rgba(251, 146, 60, 0.14); }
 .qw-spell__text { flex: 1; min-width: 0; font-weight: 600; font-size: 0.9rem; }
 .qw-spell__time { flex: none; font-size: 0.72rem; color: var(--qw-mute); }
+.qw-btn--leave { width: 100%; margin-top: 14px; color: #fecaca !important; background: rgba(239, 68, 68, 0.14) !important; box-shadow: inset 0 0 0 1.5px rgba(248, 113, 113, 0.5); }
+.qw-btn--leave i { font-size: 0.9em; }
+.qw-spells .qw-hint--center { margin-top: 6px; }
 
 /* ── Low-power phones and reduced motion ─────────────────── */
 .qw-lite .qw-sky, .qw-lite .qw-showintro__lights { display: none; }

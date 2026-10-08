@@ -61,7 +61,9 @@ export async function closeHostSession(sessionId) {
 
 /** Watches the session doc (the Wand's heartbeat / binding). */
 export function watchSession(sessionId, onData, onError) {
-    return onSnapshot(sessionRef(sessionId), (snap) => onData(snap.exists() ? snap.data() : null), onError);
+    // The second argument says whether this came from the device cache: a cached doc can still show
+    // the binding as it was before the newest write, so decisions about who holds the Wand wait for the server.
+    return onSnapshot(sessionRef(sessionId), (snap) => onData(snap.exists() ? snap.data() : null, { fromCache: snap.metadata.fromCache }), onError);
 }
 
 /**
@@ -136,6 +138,11 @@ export async function readSession(sessionId) {
 /** Joins as the Wand: writes the Wand's id + heartbeat on the session. */
 export function bindWand(sessionId, wandId) {
     return updateDoc(sessionRef(sessionId), { wandId, wandHeartbeatAt: serverTimestamp() });
+}
+
+/** Hands the projector back: the PC sees the Wand leave at once instead of waiting for the beat to go stale. */
+export function releaseWand(sessionId) {
+    return updateDoc(sessionRef(sessionId), { wandId: null, wandHeartbeatAt: null });
 }
 
 export function beatWand(sessionId) {

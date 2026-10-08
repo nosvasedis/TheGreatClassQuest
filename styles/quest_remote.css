@@ -54,9 +54,14 @@
 }
 #quest-remote-btn.is-wand-awake::after { opacity: 1; animation: qr-spin 9s linear infinite; }
 #quest-remote-btn.is-wand-bound {
-    color: #422006;
-    background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 70%);
+    color: #4a2a06;
+    background: radial-gradient(circle at 35% 30%, #fff7e0, #fbbf24 72%);
     border-color: #fde68a;
+}
+/* On gold, the carved white stroke the other header icons wear turns the wand into a dark blot. */
+#quest-remote-btn.is-wand-bound i {
+    -webkit-text-stroke: 0;
+    filter: none;
 }
 #quest-remote-btn.is-wand-bound::after { border: 2px solid rgba(252, 211, 77, 0.85); animation: qr-breathe 2.6s ease-in-out infinite; }
 .wall-remote [data-wall-action="wand"].is-wand-awake { color: var(--qr-lilac); }

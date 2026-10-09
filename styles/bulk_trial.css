@@ -516,6 +516,51 @@
 }
 .tl-row.is-graded .tl-score::before { opacity: 1; transform: rotate(-4deg) scale(1); }
 
+/* "?" - the paper could not be marked: a violet ink query mark beside the grade, recorded with no score */
+.tl-row__grade { display: flex; align-items: center; gap: 0.45rem; }
+.tl-unmark {
+    --tl-stamp: #7c3aed;
+    flex-shrink: 0;
+    width: 2.1rem;
+    height: 2.1rem;
+    display: inline-grid;
+    place-items: center;
+    border: 2px dashed color-mix(in srgb, var(--tl-stamp) 40%, transparent);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    color: #6d28d9;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+.tl-unmark:hover:not(:disabled) {
+    border-color: var(--tl-stamp);
+    background: color-mix(in srgb, var(--tl-stamp) 8%, transparent);
+    transform: translateY(-1px);
+}
+.tl-unmark:focus-visible { outline: 2px solid #facc15; outline-offset: 1px; }
+.tl-unmark.active {
+    border-style: solid;
+    border-color: var(--tl-stamp);
+    background: var(--tl-stamp);
+    color: #fff;
+    transform: rotate(-6deg);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55), 0 2px 6px color-mix(in srgb, var(--tl-stamp) 45%, transparent);
+}
+.tl-unmark.just-stamped { animation: tl-unmark-down 260ms cubic-bezier(0.3, 1.5, 0.6, 1); }
+@keyframes tl-unmark-down {
+    0% { transform: scale(1.4) rotate(-14deg); opacity: 0.4; }
+    100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+}
+.tl-unmark:disabled { cursor: not-allowed; }
+.tl-row.is-unmarkable .tl-stamps,
+.tl-row.is-unmarkable .tl-score { opacity: 0.38; }
+.tl-row.is-unmarkable .tl-score::before { opacity: 0; }
+.tl-row.is-unmarkable .tl-score__input::placeholder { color: #7c3aed; opacity: 1; }
+.tl-row.is-unmarkable .tl-row__avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #a78bfa, 0 3px 6px rgba(31, 47, 92, 0.18); }
+
 /* Absent: name struck through in red pen, an ABSENT stamp over the grade */
 .tl-row__absent-stamp { display: none; }
 .tl-row.absent .tl-row__name {
@@ -708,7 +753,7 @@
     .tl-sheet__lines { padding: 0 0.8rem 0.3rem var(--tl-gutter); }
     .tl-row { flex-wrap: wrap; gap: 0.5rem 0.7rem; }
     .tl-row__grade:has(.tl-stamps) { flex-basis: 100%; }
-    .tl-stamps { width: 100%; grid-template-columns: repeat(auto-fit, minmax(4.1rem, 1fr)); }
+    .tl-stamps { width: 100%; min-width: 0; flex: 1; grid-template-columns: repeat(auto-fit, minmax(4.1rem, 1fr)); }
     .tl-row.absent .tl-row__grade:has(.tl-stamps) { display: none; }
     .tl-row.absent .tl-row__absent-stamp { right: 0.4rem; font-size: 0.85rem; }
     .tl-sheet__foot { padding: 0.7rem 0.8rem 0.75rem var(--tl-gutter); }
@@ -720,7 +765,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .tl-row, .tl-sheet--flip, .tl-stamp.just-stamped, .tl-btn--save.is-ready { animation: none !important; }
+    .tl-row, .tl-sheet--flip, .tl-stamp.just-stamped, .tl-unmark.just-stamped, .tl-btn--save.is-ready { animation: none !important; }
 }
 
 /* Attendance Column Delete Button */

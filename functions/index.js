@@ -728,8 +728,10 @@ async function countPublishedHomework(studentId) {
   return Number(snap.data().count || 0);
 }
 
+// A "?" (unmarkable) trial was recorded on purpose with no score; it is never a percent.
 function assessmentPercent(item) {
-  const percent = Number(item.normalizedPercent);
+  if (item.unmarkable === true) return null;
+  const percent = item.normalizedPercent == null || item.normalizedPercent === '' ? NaN : Number(item.normalizedPercent);
   if (Number.isFinite(percent)) return Math.max(0, Math.min(100, Math.round(percent)));
   const score = Number(item.scoreNumeric);
   const max = Number(item.maxScore);
@@ -738,6 +740,7 @@ function assessmentPercent(item) {
 }
 
 function assessmentScoreLabel(item) {
+  if (item.unmarkable === true) return '?';
   return item.scoreQualitative || `${item.scoreNumeric || 0}${item.maxScore ? ` / ${item.maxScore}` : ''}`;
 }
 

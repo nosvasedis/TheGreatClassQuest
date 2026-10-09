@@ -132,7 +132,8 @@ export function buildWeeklyReportModel(input = {}) {
         adventureLogs = [],
         week,
         starCredit = (log) => Number(log?.stars) || 0,
-        scorePercent = (score) => (Number.isFinite(Number(score?.normalizedPercent)) ? Number(score.normalizedPercent) : null),
+        scorePercent = (score) => (score?.unmarkable !== true && score?.normalizedPercent != null && score.normalizedPercent !== ''
+            && Number.isFinite(Number(score.normalizedPercent)) ? Number(score.normalizedPercent) : null),
         scoreLabel = (score) => String(score?.scoreValue ?? score?.value ?? ''),
         youngLearners = false,
     } = input;
@@ -239,7 +240,8 @@ export function buildWeeklyReportModel(input = {}) {
         g.count += 1;
         const pct = scorePercent(score);
         if (Number.isFinite(pct)) g.percents.push(pct);
-        const label = scoreLabel(score);
+        // A "?" (unmarkable) result counts as sat but never stands in as the sample mark.
+        const label = score?.unmarkable === true ? '' : scoreLabel(score);
         if (label) g.labels.push(label);
         groups.set(key, g);
     }

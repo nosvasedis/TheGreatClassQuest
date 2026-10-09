@@ -108,6 +108,7 @@ import {
     getScheduledAssignmentForClassOnDate,
     classUsesTests,
     isAssessmentSchemeEnabled,
+    isUnmarkableScore,
     normalizeAssessmentScheme,
     getUpcomingScheduledAssessment,
     listScheduledAssessmentsNeedingGrades
@@ -119,7 +120,9 @@ import {
     trialTipHtml,
     trialTally,
     trialTallyText,
-    numericBandFor
+    trialRowValue,
+    numericBandFor,
+    UNMARKABLE_VALUE
 } from './trialLogCore.mjs';
 import {
     SCROLL_TIERS,
@@ -205,13 +208,20 @@ function setTrialDateDisplay(isoDate) {
     if (el) el.textContent = trialDateLabel(isoDate, todayIsoDate());
 }
 
+/** The mark on one sheet row: "?" when flagged unmarkable, else the stamp or typed score. */
+function trialRowMark(row) {
+    return trialRowValue({
+        unmarkable: row.classList.contains('is-unmarkable'),
+        value: row.querySelector('.bulk-grade-input')?.value ?? ''
+    });
+}
+
 /** Reads what the teacher has put on the sheet so far, keyed by student id. */
 function readTrialSheet() {
     const marks = new Map();
     document.querySelectorAll('#bulk-student-list .bulk-log-item').forEach((row) => {
-        const input = row.querySelector('.bulk-grade-input');
         marks.set(row.dataset.studentId, {
-            value: input ? input.value : '',
+            value: trialRowMark(row),
             absent: !!row.querySelector('.toggle-absent-btn')?.classList.contains('is-absent')
         });
     });
@@ -222,7 +232,7 @@ function updateTrialTally() {
     const rows = [...document.querySelectorAll('#bulk-student-list .bulk-log-item')];
     const tally = trialTally(rows.map((row) => ({
         absent: !!row.querySelector('.toggle-absent-btn')?.classList.contains('is-absent'),
-        value: row.querySelector('.bulk-grade-input')?.value ?? ''
+        value: trialRowMark(row)
     })));
     const text = document.getElementById('bulk-trial-tally');
     const fill = document.getElementById('bulk-trial-tally-fill');
@@ -232,9 +242,45 @@ function updateTrialTally() {
     if (saveBtn) saveBtn.classList.toggle('is-ready', tally.graded > 0 && tally.graded === tally.present);
 }
 
+/** Flags a row "?" (could not be marked) or clears it; any stamp or typed score is wiped either way. */
+function setRowUnmarkable(row, unmarkable) {
+    const input = row.querySelector('.bulk-grade-input');
+    const toggle = row.querySelector('.tl-unmark');
+    row.classList.toggle('is-unmarkable', unmarkable);
+    toggle?.classList.toggle('active', unmarkable);
+    toggle?.setAttribute('aria-pressed', unmarkable ? 'true' : 'false');
+    if (toggle) toggle.title = unmarkable ? 'Clear the ?' : 'Unmarkable: write ? when this could not be marked';
+    row.querySelectorAll('.tl-stamp').forEach((stamp) => {
+        stamp.disabled = unmarkable;
+        stamp.classList.remove('active', 'just-stamped');
+        stamp.setAttribute('aria-pressed', 'false');
+    });
+    if (input) {
+        if (input.type === 'hidden') {
+            input.value = unmarkable ? UNMARKABLE_VALUE : '';
+        } else {
+            input.value = '';
+            input.disabled = unmarkable;
+            input.placeholder = unmarkable ? UNMARKABLE_VALUE : '–';
+            input.removeAttribute('data-grade');
+        }
+    }
+    row.classList.toggle('is-graded', unmarkable);
+    if (unmarkable && toggle) {
+        toggle.classList.remove('just-stamped');
+        void toggle.offsetWidth;
+        toggle.classList.add('just-stamped');
+    } else if (!unmarkable && input && input.type !== 'hidden') {
+        input.focus();
+    }
+}
+
 function setRowAbsent(row, isAbsent) {
     const btn = row.querySelector('.toggle-absent-btn');
     const input = row.querySelector('.bulk-grade-input');
+    if (isAbsent && row.classList.contains('is-unmarkable')) setRowUnmarkable(row, false);
+    const unmarkToggle = row.querySelector('.tl-unmark');
+    if (unmarkToggle) unmarkToggle.disabled = isAbsent;
     btn?.classList.toggle('is-absent', isAbsent);
     if (btn && !btn.classList.contains('hidden')) {
         btn.setAttribute('aria-pressed', isAbsent ? 'true' : 'false');
@@ -271,6 +317,13 @@ function wireTrialSheet(listContainer) {
             updateTrialTally();
             return;
         }
+        const unmark = e.target.closest('.tl-unmark');
+        if (unmark && !unmark.disabled && listContainer.contains(unmark)) {
+            const row = unmark.closest('.bulk-log-item');
+            setRowUnmarkable(row, !row.classList.contains('is-unmarkable'));
+            updateTrialTally();
+            return;
+        }
         const stamp = e.target.closest('.tl-stamp');
         if (stamp && !stamp.disabled) {
             const row = stamp.closest('.bulk-log-item');
@@ -301,12 +354,17 @@ function wireTrialSheet(listContainer) {
         updateTrialTally();
     };
     listContainer.onkeydown = (e) => {
-        if (e.key !== 'Enter') return;
+        if (e.key !== 'Enter' && e.key !== UNMARKABLE_VALUE) return;
         const input = e.target.closest('.bulk-grade-numeric');
         if (!input) return;
         e.preventDefault();
         const inputs = [...listContainer.querySelectorAll('.bulk-grade-numeric:not(:disabled)')];
         const next = inputs[inputs.indexOf(input) + 1];
+        if (e.key === UNMARKABLE_VALUE) {
+            // Typing "?" in a score box writes the unmarkable mark, then moves on like Enter.
+            setRowUnmarkable(input.closest('.bulk-log-item'), true);
+            updateTrialTally();
+        }
         if (next) {
             next.focus();
             next.select();
@@ -1539,7 +1597,7 @@ function historyResultHtml(score, student, pct, currentUserId) {
         <li class="th-result trial-history-item${student ? '' : ' th-result--former'}" data-tier="${tierForPercent(pct)}">
             ${avatarMarkup(student || { name: '?' }, 'th-av')}
             <span class="th-result__name">${esc(name)}</span>
-            <span class="th-pill" data-tier="${tierForPercent(pct)}"><b>${esc(label)}</b>${numeric && pct !== null ? `<small>${formatPct(pct, 0)}</small>` : ''}</span>
+            <span class="th-pill" data-tier="${isUnmarkableScore(score) ? 'unmarkable' : tierForPercent(pct)}"${isUnmarkableScore(score) ? ' title="Could not be marked"' : ''}><b>${esc(label)}</b>${numeric && pct !== null ? `<small>${formatPct(pct, 0)}</small>` : ''}</span>
             ${isOwner ? `
                 <span class="th-result__tools">
                     <button type="button" data-trial-id="${esc(score.id)}" class="edit-trial-btn th-tool" title="Edit result" aria-label="Edit ${esc(name)}'s result"><i class="fas fa-pen" aria-hidden="true"></i></button>
@@ -1581,7 +1639,7 @@ function historyByStudentHtml({ classId, view, ofView, students, pctOf, timeOf, 
             const d = utils.parseFlexibleDate(score.date);
             const label = getAssessmentValueLabel(score) || (pct !== null ? formatPct(pct, 0) : '—');
             const title = score.title || (view === 'dictation' ? 'Dictation' : 'Test');
-            const tip = `${title} · ${d ? shortDate(d, true) : score.date}${pct !== null ? ` · ${formatPct(pct, 0)}` : ''}`;
+            const tip = `${title} · ${d ? shortDate(d, true) : score.date}${pct !== null ? ` · ${formatPct(pct, 0)}` : ''}${isUnmarkableScore(score) ? ' · could not be marked' : ''}`;
             const isOwner = score.teacherId === currentUserId;
             const inner = `<small>${d ? shortDate(d) : ''}</small><b>${esc(label)}</b>`;
             return isOwner
@@ -1653,7 +1711,9 @@ export function openSingleTrialEditModal(classId, trialId) {
 
     const student = state.get('allStudents').find(s => s.id === score.studentId);
     if (student) {
-        const value = score.scoreQualitative || (score.scoreNumeric !== null && score.scoreNumeric !== undefined ? String(score.scoreNumeric) : '');
+        const value = isUnmarkableScore(score)
+            ? UNMARKABLE_VALUE
+            : (score.scoreQualitative || (score.scoreNumeric !== null && score.scoreNumeric !== undefined ? String(score.scoreNumeric) : ''));
         listContainer.innerHTML = trialRowHtml({ student, scheme: assessmentScheme, value });
         listContainer.querySelector('.bulk-log-item').dataset.trialId = trialId;
     }

@@ -2682,7 +2682,8 @@ function getClassAttendanceCard(classId) {
 }
 
 function getHighScoreCard(classId, type) {
-    const scores = state.get('allWrittenScores').filter(s => s.classId === classId && s.type === type);
+    // A "?" (could not be marked) is never anyone's champion score.
+    const scores = state.get('allWrittenScores').filter(s => s.classId === classId && s.type === type && s.unmarkable !== true);
     if (scores.length === 0) return null;
 
     scores.sort((a, b) => (utils.parseFlexibleDate(b.date) || 0) - (utils.parseFlexibleDate(a.date) || 0));

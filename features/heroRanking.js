@@ -39,12 +39,14 @@ export function buildHeroTieStats(logs = [], scores = [], normalizePercent = () 
         else if (credit >= 2) count2 += 1;
         if (log.reason) reasons.add(log.reason);
     });
+    // A "?" (unmarkable) trial was sat but has no mark: it is neither a zero nor part of the average.
+    const marked = (scores || []).filter((score) => score?.unmarkable !== true);
     let academicSum = 0;
-    (scores || []).forEach((score) => {
+    marked.forEach((score) => {
         const value = Number(normalizePercent(score));
         if (Number.isFinite(value)) academicSum += value;
     });
-    const scoreCount = (scores || []).length;
+    const scoreCount = marked.length;
     return {
         count3,
         count2,

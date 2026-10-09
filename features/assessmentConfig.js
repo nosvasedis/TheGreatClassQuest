@@ -4,6 +4,17 @@ import { EARLY_LEAGUES, JUNIOR_LEAGUES, questLeagues } from '../constants.js';
 
 export const ASSESSMENT_NONE_MIGRATION_KEY = 'assessmentNoneMigrationV1';
 
+/** What the teacher writes when a trial could not be marked at all (e.g. an illegible dictation). */
+export const UNMARKABLE_MARK = '?';
+
+/**
+ * An unmarkable result is its own recorded state: the student sat the trial, but it could not be graded.
+ * It has no score and no percent, so it never counts in averages, ranks, stars or readings.
+ */
+export function isUnmarkableScore(scoreRecord) {
+    return scoreRecord?.unmarkable === true;
+}
+
 export const QUALITATIVE_SCALE_FALLBACK = [
     { id: 'great_3', label: 'Great!!!', normalizedPercent: 100 },
     { id: 'great_2', label: 'Great!!', normalizedPercent: 75 },
@@ -270,8 +281,9 @@ export function getSchemeForScore(scoreRecord, classData = null, schoolDefaults 
 }
 
 export function getNormalizedPercentForScore(scoreRecord, classData = null, schoolDefaults = getSchoolAssessmentDefaults()) {
-    if (!scoreRecord) return null;
-    if (Number.isFinite(Number(scoreRecord.normalizedPercent))) {
+    if (!scoreRecord || isUnmarkableScore(scoreRecord)) return null;
+    if (scoreRecord.normalizedPercent !== null && scoreRecord.normalizedPercent !== undefined && scoreRecord.normalizedPercent !== ''
+        && Number.isFinite(Number(scoreRecord.normalizedPercent))) {
         return clampNormalizedPercent(scoreRecord.normalizedPercent, 0);
     }
 
@@ -289,6 +301,7 @@ export function getNormalizedPercentForScore(scoreRecord, classData = null, scho
 
 export function getAssessmentValueLabel(scoreRecord, classData = null, schoolDefaults = getSchoolAssessmentDefaults()) {
     if (!scoreRecord) return '';
+    if (isUnmarkableScore(scoreRecord)) return UNMARKABLE_MARK;
     const scheme = getSchemeForScore(scoreRecord, classData, schoolDefaults);
 
     if (scheme.mode === 'qualitative' || scoreRecord.scoreQualitative) {
@@ -346,8 +359,15 @@ export function createAssessmentScorePayload({ studentId, classId, type, title, 
         maxScore: scheme.mode === 'numeric' ? scheme.maxScore : null,
         gradingMode: scheme.mode,
         gradingSnapshot: snapshot,
-        normalizedPercent: null
+        normalizedPercent: null,
+        unmarkable: false
     };
+
+    if (String(value ?? '').trim() === UNMARKABLE_MARK) {
+        // Recorded on purpose with no score: scoreNumeric, scoreQualitative and normalizedPercent stay null.
+        payload.unmarkable = true;
+        return payload;
+    }
 
     if (scheme.mode === 'qualitative') {
         const selected = (scheme.scale || []).find((entry) => entry.label === value)
@@ -357,6 +377,9 @@ export function createAssessmentScorePayload({ studentId, classId, type, title, 
         payload.normalizedPercent = selected.normalizedPercent;
     } else {
         const numericValue = Number(value);
+        if (String(value ?? '').trim() === '' || !Number.isFinite(numericValue)) {
+            throw new Error('Please write a number or ? for each score.');
+        }
         payload.scoreNumeric = numericValue;
         payload.maxScore = scheme.maxScore;
         payload.normalizedPercent = clampNormalizedPercent((numericValue / scheme.maxScore) * 100, 0);

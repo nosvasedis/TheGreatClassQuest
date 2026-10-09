@@ -126,7 +126,9 @@ function renderScrollBoard({ classId, search, page }) {
         ].join(' '), search);
     });
 
-    const numericScores = scores.filter((item) => item.gradingMode !== 'qualitative');
+    // A "?" (could not be marked) is recorded but is neither a mark nor a word grade.
+    const unmarkableCount = scores.filter((item) => item.unmarkable === true).length;
+    const numericScores = scores.filter((item) => item.unmarkable !== true && item.gradingMode !== 'qualitative');
     const normalizedValues = scores
         .map((item) => getNormalizedPercentForScore(item, classMap.get(item.classId)))
         .filter((value) => Number.isFinite(value));
@@ -151,7 +153,7 @@ function renderScrollBoard({ classId, search, page }) {
             ${renderBoardStat('Recorded', scores.length, 'sky', 'fa-file-circle-check')}
             ${renderBoardStat('Average', averagePercent, 'emerald', 'fa-chart-line')}
             ${renderBoardStat('With marks', numericScores.length, 'amber', 'fa-hashtag')}
-            ${renderBoardStat('With words', scores.length - numericScores.length, 'violet', 'fa-comment-dots')}
+            ${renderBoardStat('With words', scores.length - numericScores.length - unmarkableCount, 'violet', 'fa-comment-dots')}
         </div>
         ${renderSearchBar(search, 'Search by student, class, or assessment…')}
         <div data-secretary-live="grades-results">

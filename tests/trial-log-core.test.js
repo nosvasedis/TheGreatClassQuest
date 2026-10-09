@@ -57,6 +57,6 @@ test('names are escaped', async () => {
 test('tally counts marked, present and absent students', async () => {
     const m = await load();
     const tally = m.trialTally([{ absent: false, value: '5' }, { absent: true, value: '' }, { absent: false, value: '' }]);
-    assert.deepEqual(tally, { graded: 1, absent: 1, present: 2, total: 3 });
+    assert.deepEqual(tally, { graded: 1, unmarkable: 0, absent: 1, present: 2, total: 3 });
     assert.equal(m.trialTallyText(tally), '1 of 2 marked · 1 absent');
 });

@@ -317,13 +317,16 @@ function formatNumber(n) {
     return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
+// A "?" (unmarkable) trial has no score: it never counts as a percent.
 function defaultScorePercent(s) {
-    if (Number.isFinite(Number(s?.normalizedPercent))) return Number(s.normalizedPercent);
+    if (s?.unmarkable === true) return null;
+    if (s?.normalizedPercent != null && s.normalizedPercent !== '' && Number.isFinite(Number(s.normalizedPercent))) return Number(s.normalizedPercent);
     const max = Number(s?.maxScore), val = Number(s?.scoreNumeric);
     return max > 0 && Number.isFinite(val) ? (val / max) * 100 : null;
 }
 
 function defaultScoreLabel(s) {
+    if (s?.unmarkable === true) return '?';
     if (s?.scoreQualitative) return String(s.scoreQualitative);
     const max = Number(s?.maxScore);
     return max > 0 && Number.isFinite(Number(s?.scoreNumeric)) ? `${s.scoreNumeric}/${max}` : '';

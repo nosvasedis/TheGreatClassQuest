@@ -176,7 +176,7 @@ export function isAcademicSeal(id) {
 
 function quillFor({ usesTrials = true, trials = [] } = {}) {
     if (!usesTrials) return 'quill_star';
-    const pcts = trials.map((t) => Number(t.pct)).filter(Number.isFinite);
+    const pcts = trials.filter((t) => t.pct !== null && t.pct !== undefined && t.pct !== '').map((t) => Number(t.pct)).filter(Number.isFinite);
     if (!pcts.length) return 'quill_rising';
     const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
     if (avg >= 85) return 'quill_golden';
@@ -298,7 +298,7 @@ export function evaluateSeals(ids = [], facts = {}) {
     const starsOn = new Map();
     awards.forEach((a) => starsOn.set(a.date, (starsOn.get(a.date) || 0) + (Number(a.stars) || 0)));
     const trials = (facts.trials || [])
-        .filter((t) => t && t.date && Number.isFinite(Number(t.pct)))
+        .filter((t) => t && t.date && t.pct !== null && t.pct !== '' && Number.isFinite(Number(t.pct)))
         .map((t) => ({ ...t, pct: Number(t.pct) }))
         .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     const out = {};

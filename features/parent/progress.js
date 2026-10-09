@@ -108,7 +108,7 @@ function renderResults(snapshot) {
                                     <span class="fp-result__title">${escapeHtml(title)}</span>
                                     <span class="fp-result__date">${escapeHtml(shortDate(item.date))}</span>
                                 </span>
-                                <span class="fp-result__score fp-result__score--${toneForPercent(percent)}">${escapeHtml(item.scoreLabel || '—')}</span>
+                                <span class="fp-result__score fp-result__score--${toneForPercent(percent)}"${item.scoreLabel === '?' ? ` title="${escapeHtml(tr('Could not be marked', 'Δεν μπόρεσε να βαθμολογηθεί'))}"` : ''}>${escapeHtml(item.scoreLabel || '—')}</span>
                                 ${percent !== null ? `<span class="fp-result__bar" aria-hidden="true"><span style="width:${Math.max(3, percent)}%"></span></span>` : ''}
                             </li>`;
                     }).join('')}

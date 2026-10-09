@@ -8,6 +8,9 @@ const esc = (value) => String(value ?? '')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
+/** The mark for a trial that could not be marked at all (kept in step with UNMARKABLE_MARK in assessmentConfig.js). */
+export const UNMARKABLE_VALUE = '?';
+
 /** Ink colour family for a qualitative grade, by its normalized percent. */
 export function gradeToneForPercent(pct) {
     const p = Number(pct) || 0;
@@ -63,9 +66,11 @@ export function trialScaleLegendHtml(scheme) {
 /**
  * One student's line on the marking sheet.
  * Contract read by handleBulkSaveTrial: .bulk-log-item[data-student-id][data-trial-id?],
- * .toggle-absent-btn(.is-absent)[data-was-absent], .bulk-grade-input (value).
+ * .toggle-absent-btn(.is-absent)[data-was-absent], .bulk-grade-input (value),
+ * .is-unmarkable on the row when the teacher wrote "?" (read the mark with trialRowValue).
  */
 export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = isAbsent, value = '', note = '', lockAttendance = false }) {
+    const unmarkable = !isAbsent && String(value ?? '') === UNMARKABLE_VALUE;
     const name = esc(student?.name || 'Student');
     const initial = esc((student?.name || '?').charAt(0).toUpperCase());
     const avatar = student?.avatar
@@ -75,9 +80,9 @@ export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = is
     let gradeHtml;
     if (scheme?.mode === 'qualitative') {
         const stamps = (scheme.scale || []).map((entry) => {
-            const active = value && String(value) === String(entry.label);
+            const active = !unmarkable && value && String(value) === String(entry.label);
             return `<button type="button" class="tl-stamp tl-ink--${gradeToneForPercent(entry.normalizedPercent)}${active ? ' active' : ''}"
-                data-value="${esc(entry.label)}" aria-pressed="${active ? 'true' : 'false'}" ${isAbsent ? 'disabled' : ''}>${esc(entry.label)}</button>`;
+                data-value="${esc(entry.label)}" aria-pressed="${active ? 'true' : 'false'}" ${isAbsent || unmarkable ? 'disabled' : ''}>${esc(entry.label)}</button>`;
         }).join('');
         gradeHtml = `
             <div class="tl-stamps" role="group" aria-label="Grade for ${name}">
@@ -86,12 +91,13 @@ export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = is
             </div>`;
     } else {
         const max = Number(scheme?.maxScore) || 100;
-        const band = numericBandFor(value, max);
+        const typed = unmarkable ? '' : value;
+        const band = numericBandFor(typed, max);
         gradeHtml = `
             <label class="tl-score">
                 <input type="number" inputmode="decimal" class="tl-score__input bulk-grade-input bulk-grade-numeric"
-                    placeholder="–" min="0" max="${max}" value="${esc(value)}" ${band ? `data-grade="${band}"` : ''}
-                    aria-label="Score for ${name} out of ${max}" ${isAbsent ? 'disabled' : ''}>
+                    placeholder="${unmarkable ? UNMARKABLE_VALUE : '–'}" min="0" max="${max}" value="${esc(typed)}" ${band ? `data-grade="${band}"` : ''}
+                    aria-label="Score for ${name} out of ${max}" ${isAbsent || unmarkable ? 'disabled' : ''}>
                 <span class="tl-score__max">/${max}</span>
             </label>`;
     }
@@ -104,8 +110,13 @@ export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = is
                 <span>${isAbsent ? 'Absent' : 'Present'}</span>
             </button>`;
 
+    const unmark = `<button type="button" class="tl-unmark${unmarkable ? ' active' : ''}" data-unmarkable-toggle
+                aria-pressed="${unmarkable ? 'true' : 'false'}" ${isAbsent ? 'disabled' : ''}
+                title="${unmarkable ? 'Clear the ?' : 'Unmarkable: write ? when this could not be marked'}"
+                aria-label="Unmarkable (?) for ${name}">${UNMARKABLE_VALUE}</button>`;
+
     return `
-        <div class="tl-row bulk-log-item${isAbsent ? ' absent' : ''}${value !== '' && value != null ? ' is-graded' : ''}" data-student-id="${esc(student?.id || '')}">
+        <div class="tl-row bulk-log-item${isAbsent ? ' absent' : ''}${unmarkable ? ' is-unmarkable' : ''}${value !== '' && value != null ? ' is-graded' : ''}" data-student-id="${esc(student?.id || '')}">
             <div class="tl-row__who">
                 ${avatar}
                 <div class="tl-row__id">
@@ -114,7 +125,7 @@ export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = is
                     ${note ? attendance : ''}
                 </div>
             </div>
-            <div class="tl-row__grade grade-input-wrapper">${gradeHtml}</div>
+            <div class="tl-row__grade grade-input-wrapper">${gradeHtml}${unmark}</div>
             <span class="tl-row__absent-stamp" aria-hidden="true">Absent</span>
         </div>`;
 }
@@ -124,23 +135,34 @@ export function trialTipHtml(scheme) {
     const how = scheme?.mode === 'qualitative'
         ? 'Tap a stamp again to clear it.'
         : 'Press <b class="tl-tip__key">Enter</b> to jump to the next student.';
-    return `<i class="fas fa-lightbulb" aria-hidden="true"></i> Tap <b>Present</b> to mark someone absent. ${how}`;
+    return `<i class="fas fa-lightbulb" aria-hidden="true"></i> Tap <b>Present</b> to mark someone absent, <b>?</b> if it could not be marked. ${how}`;
 }
 
-/** Counts for the live tally: graded / present / absent. */
+/** The mark a row holds: "?" when flagged unmarkable, else what was stamped or typed. */
+export function trialRowValue({ unmarkable = false, value = '' } = {}) {
+    return unmarkable ? UNMARKABLE_VALUE : String(value ?? '');
+}
+
+/** Counts for the live tally: graded (a "?" counts as marked) / unmarkable / present / absent. */
 export function trialTally(rows) {
     let graded = 0;
+    let unmarkable = 0;
     let absent = 0;
     let total = 0;
     rows.forEach((row) => {
         total += 1;
         if (row.absent) absent += 1;
-        else if (row.value !== '' && row.value != null) graded += 1;
+        else if (row.value !== '' && row.value != null) {
+            graded += 1;
+            if (String(row.value) === UNMARKABLE_VALUE) unmarkable += 1;
+        }
     });
-    return { graded, absent, present: total - absent, total };
+    return { graded, unmarkable, absent, present: total - absent, total };
 }
 
-export function trialTallyText({ graded, absent, present }) {
-    const main = present === 0 ? 'Nobody present' : `${graded} of ${present} marked`;
-    return absent ? `${main} · ${absent} absent` : main;
+export function trialTallyText({ graded, unmarkable = 0, absent, present }) {
+    let text = present === 0 ? 'Nobody present' : `${graded} of ${present} marked`;
+    if (unmarkable) text += ` · ${unmarkable} unmarkable`;
+    if (absent) text += ` · ${absent} absent`;
+    return text;
 }

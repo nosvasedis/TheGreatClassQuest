@@ -27,6 +27,7 @@ import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/ye
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { trialRowValue } from '../../features/trialLogCore.mjs';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -407,7 +408,8 @@ export async function handleBulkSaveTrial() {
             const trialId = row.dataset.trialId;
             const isAbsent = row.querySelector('.toggle-absent-btn').classList.contains('is-absent');
             const input = row.querySelector('.bulk-grade-input');
-            const val = input.value;
+            // "?" (unmarkable) is saved as its own record with no score.
+            const val = trialRowValue({ unmarkable: row.classList.contains('is-unmarkable'), value: input?.value ?? '' });
 
             if (isAbsent) {
                 absentStudentIds.push(studentId);

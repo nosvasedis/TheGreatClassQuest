@@ -200,11 +200,14 @@ export function resolveTeacherBoonStatus({ boon = null, studentId = '', today = 
  * @param {Array<{type:string,date:string}>} scores
  * @param {{ percentFor: (score:object)=>number|null, dateOf: (score:object)=>Date|null }} fns
  */
+/** A real percent, or NaN for null / undefined / '' (a "?" unmarkable trial has none; Number(null) would be 0). */
+const percentValue = (raw) => (raw === null || raw === undefined || raw === '' ? NaN : Number(raw));
+
 export function buildTrialSeries(scores = [], { percentFor, dateOf }) {
     const time = (s) => dateOf(s)?.getTime?.() || 0;
     const sorted = (Array.isArray(scores) ? scores : []).filter(Boolean).slice().sort((a, b) => time(a) - time(b));
     const pct = (s) => {
-        const v = Number(percentFor(s));
+        const v = percentValue(percentFor(s));
         return Number.isFinite(v) ? Math.round(v * 10) / 10 : null;
     };
     return {
@@ -221,7 +224,7 @@ export function pickBestTest(scores = [], percentFor) {
     let bestPct = -Infinity;
     for (const s of Array.isArray(scores) ? scores : []) {
         if (s?.type !== 'test') continue;
-        const v = Number(percentFor(s));
+        const v = percentValue(percentFor(s));
         if (Number.isFinite(v) && v > bestPct) { best = s; bestPct = v; }
     }
     return best ? { score: best, percent: Math.round(bestPct) } : null;

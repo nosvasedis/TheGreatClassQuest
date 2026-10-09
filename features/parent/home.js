@@ -70,7 +70,12 @@ function buildSummary(snapshot, name, lesson, test) {
     if (latest?.label && snapshotAssessmentUses(snapshot).any) {
         const isDictation = latest.type === 'dictation' && (!latest.title || latest.title === 'dictation');
         const title = isDictation ? tr('dictation', 'υπαγόρευση') : latest.title;
-        sentences.push(tr(
+        // "?" is what the teacher writes when a paper could not be marked at all.
+        const unmarkable = latest.label === '?';
+        sentences.push(unmarkable ? tr(
+            `The latest ${title ? `result (${title})` : 'result'} could not be marked.`,
+            `Ο τελευταίος βαθμός${title ? ` (${title})` : ''} δεν μπόρεσε να βαθμολογηθεί.`
+        ) : tr(
             `Latest ${title ? `result (${title})` : 'result'}: ${latest.label}.`,
             `Τελευταίος βαθμός${title ? ` (${title})` : ''}: ${latest.label}.`
         ));

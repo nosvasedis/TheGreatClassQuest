@@ -491,6 +491,7 @@
 .th-pill[data-tier="high"] { --pill: var(--th-high); }
 .th-pill[data-tier="mid"] { --pill: var(--th-mid); }
 .th-pill[data-tier="low"] { --pill: var(--th-low); }
+.th-pill[data-tier="unmarkable"] { --pill: #7c3aed; border-style: dashed; }
 .th-pill b { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 0.88rem; }
 .th-pill small { font-size: 0.7rem; font-weight: 700; opacity: 0.75; }
 

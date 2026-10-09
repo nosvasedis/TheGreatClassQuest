@@ -706,6 +706,31 @@ export function undoShowdown(sd) {
     };
 }
 
+/**
+ * Heroes marked absent leave the show: out of their team, the hot seat order and the star players.
+ * The hero at the microphone keeps it when still here; otherwise the next hero in line takes it.
+ * Scores stay (a team keeps what it won). Returns the same object when nobody had to leave.
+ */
+export function removeShowdownMembers(sd, ids) {
+    const gone = new Set([...(ids || [])].map(String));
+    if (!sd || !gone.size || !sd.teams.some((t) => t.members.some((id) => gone.has(id)))) return sd;
+    const teams = sd.teams.map((t) => {
+        if (!t.members.some((id) => gone.has(id))) return t;
+        const len = t.order.length;
+        const seat = len ? t.seat % len : 0;
+        // the first hero from the current seat onwards who is still here keeps (or takes) the microphone
+        let next = '';
+        for (let k = 0; k < len; k++) {
+            const id = t.order[(seat + k) % len];
+            if (!gone.has(id)) { next = id; break; }
+        }
+        const order = t.order.filter((id) => !gone.has(id));
+        return { ...t, members: t.members.filter((id) => !gone.has(id)), order, seat: next ? order.indexOf(next) : 0 };
+    });
+    const credits = Object.fromEntries(Object.entries(sd.credits || {}).filter(([id]) => !gone.has(id)));
+    return { ...sd, teams, credits };
+}
+
 /** Standings with shared places for ties (1, 1, 3). */
 export function showdownStandings(sd) {
     const order = (sd?.teams || []).map((t, index) => ({ ...t, index }))

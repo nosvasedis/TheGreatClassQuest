@@ -400,6 +400,7 @@ export function setAllWrittenScores(scores) {
 }
 export function setAllAttendanceRecords(records) {
     state.allAttendanceRecords = records;
+    _notify("allAttendanceRecords");
 }
 export function setAllScheduleOverrides(overrides) {
     state.allScheduleOverrides = overrides;

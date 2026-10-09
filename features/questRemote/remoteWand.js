@@ -116,6 +116,14 @@ export async function openWand({ sessionId = '' } = {}) {
     document.addEventListener('visibilitychange', wand.onVisible);
     window.addEventListener('online', wand.onNet);
     window.addEventListener('offline', wand.onNet);
+    // Today's register on this phone too (the phone may never open a tab that loads it), and a fresh
+    // Forge the moment someone is marked absent or arrives: an absent hero is never put in a team.
+    import('../../db/listeners.js').then((m) => m.activateDataFeature?.('attendance')).catch(() => {});
+    wand.onRoster = () => {
+        clearTimeout(wand?.rosterTimer);
+        if (wand) wand.rosterTimer = setTimeout(() => { if (wand) render(); }, 150);
+    };
+    wand.unwatchRoster = state.subscribe(['allAttendanceRecords', 'allStudents'], wand.onRoster);
     requestAnimationFrame(() => root.classList.add('is-in'));
     root.querySelector('[data-qw="leave"]')?.focus({ preventScroll: true });
     if (sessionId) await connect(sessionId);
@@ -131,6 +139,8 @@ export async function closeWand({ quiet = false, release = true } = {}) {
     wand = null;
     w.connectSeq += 1;
     w.unsub?.();
+    w.unwatchRoster?.();
+    clearTimeout(w.rosterTimer);
     w.timers.forEach((t) => clearInterval(t));
     stopMotion(w);
     try { await w.wakeLock?.release(); } catch { /* already released */ }
@@ -526,6 +536,7 @@ function forgeModel({ reroll = false } = {}) {
     }));
     return {
         className: classLabel(), here: here.length, away: heroes.length - here.length,
+        awayNames: heroes.filter((h) => h.away).map((h) => h.first),
         split: f.split, count: f.count, minCount: MIN_TEAMS, maxCount, canToday, canGuilds,
         growth: isGrowthLeague(cls?.questLevel), teams, rules: f.rules,
         note: counted && pastSets.length ? 'Teammates from last time are kept apart where possible.' : (f.split === 'today' && !canToday ? 'No Team Maker teams today.' : '')

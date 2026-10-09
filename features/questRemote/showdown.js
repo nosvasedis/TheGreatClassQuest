@@ -21,7 +21,7 @@ import { getTodayDateString } from '../../utils.js';
 import {
     createShowdown, scoreShowdown, nextShowdownQuestion, passShowdownSeats, finishShowdown, undoShowdown, rematchShowdown,
     showdownWinners, showdownPanel, isGrowthLeague, showdownBarLevels, showdownAnswerer, showdownGoalText, showdownRewardIds,
-    showdownTeamLooks, normalizeShowdownRules
+    showdownTeamLooks, normalizeShowdownRules, removeShowdownMembers
 } from './remoteCore.mjs';
 import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml } from './remoteStageView.mjs';
 import { burstOn, confettiRain, isLiteFx, isStillFx } from './remoteFx.js';
@@ -42,6 +42,8 @@ let autoTimer = 0;
 let cardTimer = 0;
 let rollTimer = 0;
 let lastCtx = null;
+let showClassId = '';
+let unwatchAttendance = null;
 // The deck of a show that brings its own questions: card i belongs to question i + 1.
 let deck = [];
 let shownRound = 0; // the question whose card is on screen
@@ -50,10 +52,15 @@ const revealed = new Set(); // questions whose answer has been shown
 const nameOf = (id) => names.get(id) || '';
 const faceOf = (id) => faces.get(id) || null;
 
-function classRosterNow(classId) {
+/** Heroes marked absent today: they never play (not in a team, the hot seat, the roll call or the rewards). */
+function awayToday(classId) {
     const today = getTodayDateString();
-    const away = new Set((state.get('allAttendanceRecords') || [])
+    return new Set((state.get('allAttendanceRecords') || [])
         .filter((r) => r.classId === classId && r.date === today).map((r) => r.studentId));
+}
+
+function classRosterNow(classId) {
+    const away = awayToday(classId);
     return (state.get('allStudents') || []).filter((s) => s.classId === classId && !away.has(s.id));
 }
 
@@ -92,10 +99,13 @@ async function buildTeams(classId) {
     ];
 }
 
-/** The Team Forge's teams, checked against the class (a stale phone never smuggles in another class's heroes). */
+/**
+ * The Team Forge's teams, checked against the class and today's register: a stale phone never smuggles
+ * in another class's heroes, and a hero marked absent here (on the projector) never plays.
+ */
 async function forgedTeams(classId, p) {
     const cls = classById(classId);
-    const inClass = new Set((state.get('allStudents') || []).filter((s) => s.classId === classId).map((s) => s.id));
+    const inClass = new Set(classRosterNow(classId).map((s) => s.id));
     const packed = p.teams.map((t) => ({ ...t, ids: (t.ids || []).filter((id) => inClass.has(id)) }));
     const [{ getGuildById }, { teamBanner }] = await Promise.all([import('../guilds.js'), import('../teamMakerCore.mjs')]);
     const looks = showdownTeamLooks(p.split, packed, {
@@ -148,6 +158,20 @@ function cardFor(round) {
 }
 
 function root() { return document.getElementById(ROOT_ID); }
+
+/** A hero marked absent while the show runs leaves it at once (team, microphone, star players). */
+function watchAttendance() {
+    unwatchAttendance?.();
+    unwatchAttendance = state.subscribe(['allAttendanceRecords'], () => {
+        if (!sd || !showClassId) return;
+        const next = removeShowdownMembers(sd, awayToday(showClassId));
+        if (next === sd) return;
+        sd = next;
+        render({ finale: sd.finished });
+        root()?.classList.remove('is-rollcall');
+        lastCtx?.scheduleStage(0);
+    });
+}
 
 function render({ finale = false } = {}) {
     const el = root();
@@ -421,6 +445,9 @@ export function closeShowdown({ silent = false } = {}) {
     sd = null;
     deck = [];
     revealed.clear();
+    unwatchAttendance?.();
+    unwatchAttendance = null;
+    showClassId = '';
     if (!el) return;
     if (!silent) playShowdownSfx('close');
     el.classList.remove('is-in');
@@ -519,13 +546,17 @@ export async function runShowdownCommand(p, ctx) {
                 title: `${cls?.logo || '⚔️'} ${cls?.name || 'Showdown'}`,
                 rules
             });
+            showClassId = classId;
+            watchAttendance();
             openArena();
             playShowdownSfx('open', { teams: sd.teams.length });
             rollCall();
             armClock(deck.length ? 3600 : 3000);
             ctx.scheduleStage(0);
-            if (rules.deck !== 'voice' && !deck.length) return 'Showdown! No questions found for this class yet: ask out loud';
-            return deck.length ? `Showdown! ${deck.length} questions · ${loaded.label}` : 'Showdown!';
+            const away = awayToday(classId).size;
+            const awayNote = away ? ` · ${away} away, not playing` : '';
+            if (rules.deck !== 'voice' && !deck.length) return `Showdown!${awayNote} · No questions found for this class yet: ask out loud`;
+            return deck.length ? `Showdown!${awayNote} · ${deck.length} questions · ${loaded.label}` : `Showdown!${awayNote}`;
         }
         case 'point':
         case 'minus': {
@@ -653,7 +684,8 @@ export async function runShowdownCommand(p, ctx) {
             clearTimeout(goalTimer);
             clearTimeout(cardTimer);
             stopCount();
-            sd = rematchShowdown(sd);
+            // the same teams, minus anyone marked absent since
+            sd = removeShowdownMembers(rematchShowdown(sd), awayToday(showClassId));
             revealed.clear();
             // a rematch with a deck asks the questions in a fresh order
             deck = [...deck].sort(() => Math.random() - 0.5);
@@ -666,7 +698,9 @@ export async function runShowdownCommand(p, ctx) {
         case 'reward': {
             if (!sd?.finished) return 'Finish the Showdown first';
             const scope = p.scope || 'winners';
-            const ids = showdownRewardIds(sd, scope);
+            // never a star for a hero marked absent (even one marked after the show began)
+            const away = awayToday(showClassId);
+            const ids = showdownRewardIds(sd, scope).filter((id) => !away.has(id));
             if (!ids.length) return scope === 'stars' ? 'No star players yet (turn on the hot seat)' : 'Nobody to reward';
             const stars = p.stars || 1;
             closeShowdown({ silent: true });

@@ -795,3 +795,41 @@ test('Showdown projector: crews of faces with names, the deck card, the clock ri
     const host = read('features/questRemote/remoteHost.js');
     assert.match(host, /secret = showdownMod\.getShowdownSecret\?\.\(\) \|\| null/);
 });
+
+test('Showdown: heroes marked absent never play (teams, hot seat, star players, rewards)', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    let sd = c.createShowdown([{ name: 'A', members: ['a', 'b', 'c'] }, { name: 'B', members: ['d'] }], { rules: { hotseat: true }, rng: () => 0.99 });
+    const order = sd.teams[0].order;
+    // the hero at the microphone stays put when someone else leaves
+    sd = c.scoreShowdown(sd, 0);
+    const seated = c.showdownAnswerer(sd, 0);
+    const other = order.find((id) => id !== seated && id !== c.showdownAnswerer(c.passShowdownSeats(sd), 0)) || order.find((id) => id !== seated);
+    let out = c.removeShowdownMembers(sd, [other]);
+    assert.equal(c.showdownAnswerer(out, 0), seated);
+    assert.ok(!out.teams[0].members.includes(other) && !out.teams[0].order.includes(other));
+    // the seated hero leaves: the next in line takes the microphone, their credits go
+    const credited = sd.history.length ? Object.keys(sd.credits)[0] : '';
+    out = c.removeShowdownMembers(sd, [seated]);
+    assert.notEqual(c.showdownAnswerer(out, 0), seated);
+    assert.ok(out.teams[0].order.includes(c.showdownAnswerer(out, 0)));
+    if (credited === seated) assert.ok(!(seated in out.credits));
+    assert.ok(!c.showdownRewardIds(c.finishShowdown(out), 'all').includes(seated));
+    assert.equal(out.teams[0].score, sd.teams[0].score, 'the team keeps its points');
+    assert.equal(c.removeShowdownMembers(sd, ['nobody']), sd, 'nothing to change: same object');
+    // the Forge never deals an absent hero, in any split
+    const heroes = [{ id: 'a', guildId: 'g1' }, { id: 'b', guildId: 'g2', away: true }, { id: 'c', guildId: 'g2' }, { id: 'd', guildId: 'g1' }];
+    const makeTeams = ({ heroes: hs }) => ({ teams: [hs.slice(0, 2).map((h) => h.id), hs.slice(2).map((h) => h.id)] });
+    for (const split of ['fair', 'mixed', 'random', 'guilds', 'dragon', 'today']) {
+        const teams = c.forgeShowdownTeams({ heroes, split, makeTeams, today: { teams: [['a', 'b'], ['c', 'd']] } });
+        assert.ok(teams.length, split);
+        assert.ok(!teams.some((t) => t.ids.includes('b')), `${split} leaves the absent hero out`);
+    }
+    const src = read('features/questRemote/showdown.js');
+    assert.match(src, /const inClass = new Set\(classRosterNow\(classId\)/, 'the projector checks today\'s register too');
+    assert.match(src, /state\.subscribe\(\['allAttendanceRecords'\]/, 'marked absent mid-show: out at once');
+    assert.match(src, /showdownRewardIds\(sd, scope\)\.filter\(\(id\) => !away\.has\(id\)\)/);
+    assert.match(read('state.js'), /state\.allAttendanceRecords = records;\s*_notify\("allAttendanceRecords"\);/);
+    const wand = read('features/questRemote/remoteWand.js');
+    assert.match(wand, /activateDataFeature\?\.\('attendance'\)/);
+    assert.match(wand, /state\.subscribe\(\['allAttendanceRecords', 'allStudents'\]/);
+});

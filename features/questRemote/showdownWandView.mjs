@@ -92,6 +92,7 @@ export function forgeHtml(model) {
                 ${COUNTED.has(m.split) ? `<span class="qw-forge__label">Teams</span>${stepper('forge-count', m.count, 'Number of teams', { min: m.minCount || 2, max: m.maxCount || 6 })}` : `<span class="qw-forge__label">${esc(m.split === 'dragon' ? 'The whole class plays as one team' : m.split === 'guilds' ? 'Guilds stay as they are, this show only' : 'Today\'s Team Maker teams')}</span>`}
                 ${COUNTED.has(m.split) ? '<button type="button" class="qw-chip" data-qw="forge-shuffle"><i class="fas fa-dice" aria-hidden="true"></i> Shuffle</button>' : ''}
             </div>
+            ${m.awayNames?.length ? `<p class="qw-hint qw-forge__away"><i class="fas fa-cloud-rain" aria-hidden="true"></i> Away today, not playing: ${esc(m.awayNames.join(', '))}</p>` : ''}
             ${m.note ? `<p class="qw-hint">${esc(m.note)}</p>` : ''}
             <div class="qw-forge__teams" style="--n:${teams.length}">${teamCards}</div>
             ${movable ? '<p class="qw-hint qw-hint--center">Tap a name to move that hero to the next team.</p>' : ''}

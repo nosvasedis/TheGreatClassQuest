@@ -26,7 +26,7 @@ import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/ye
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
-import { trialRowValue } from '../../features/trialLogCore.mjs';
+import { parseTrialScore, trialRowValue, UNMARKABLE_VALUE } from '../../features/trialLogCore.mjs';
 import { showShopPurchasePopup } from '../../ui/core/marketParcel.js';
 // GUILD_IDS not needed at module level but kept for reference
 
@@ -283,6 +283,24 @@ export async function handleBulkSaveTrial() {
 
     const rows = document.querySelectorAll('.bulk-log-item');
     if (rows.length === 0) return;
+
+    // Only real marks, the grade stamps or "?" may be saved: check every typed score before anything is written.
+    for (const row of rows) {
+        if (row.querySelector('.toggle-absent-btn')?.classList.contains('is-absent')) continue;
+        if (row.classList.contains('is-unmarkable')) continue;
+        const scoreInput = row.querySelector('.bulk-grade-numeric');
+        if (!scoreInput || scoreInput.value.trim() === '' || scoreInput.value.trim() === UNMARKABLE_VALUE) continue;
+        const check = parseTrialScore(scoreInput.value, scoreInput.dataset.max);
+        if (!check.ok) {
+            const name = row.querySelector('.tl-row__name')?.textContent?.trim() || 'A student';
+            showToast(check.reason === 'above-max'
+                ? `${name}: the most for this paper is ${check.max}. Fix the score, or write ? if it could not be marked.`
+                : `${name}: write a number, or ? if it could not be marked.`, 'error');
+            scoreInput.focus();
+            scoreInput.select?.();
+            return;
+        }
+    }
 
     const btn = document.getElementById('bulk-trial-save-btn');
     btn.disabled = true;

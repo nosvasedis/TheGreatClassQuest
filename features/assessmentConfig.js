@@ -370,15 +370,21 @@ export function createAssessmentScorePayload({ studentId, classId, type, title, 
     }
 
     if (scheme.mode === 'qualitative') {
-        const selected = (scheme.scale || []).find((entry) => entry.label === value)
-            || (scheme.scale || [])[0]
-            || QUALITATIVE_SCALE_FALLBACK[0];
+        // Only one of the class's own grade words may be saved (never a silent fallback to the top grade).
+        const selected = (scheme.scale || []).find((entry) => entry.label === value);
+        if (!selected) {
+            throw new Error('Please choose one of the grade stamps, or ? if it could not be marked.');
+        }
         payload.scoreQualitative = selected.label;
         payload.normalizedPercent = selected.normalizedPercent;
     } else {
         const numericValue = Number(value);
-        if (String(value ?? '').trim() === '' || !Number.isFinite(numericValue)) {
+        const text = String(value ?? '').trim();
+        if (!/^\d+(\.\d+)?$/.test(text) || !Number.isFinite(numericValue)) {
             throw new Error('Please write a number or ? for each score.');
+        }
+        if (numericValue > scheme.maxScore) {
+            throw new Error(`Scores for this paper go up to ${scheme.maxScore}.`);
         }
         payload.scoreNumeric = numericValue;
         payload.maxScore = scheme.maxScore;

@@ -11,6 +11,39 @@ const esc = (value) => String(value ?? '')
 /** The mark for a trial that could not be marked at all (kept in step with UNMARKABLE_MARK in assessmentConfig.js). */
 export const UNMARKABLE_VALUE = '?';
 
+/** Keys that write the unmarkable mark in a score box: "?" and "-" mean the same thing. */
+export const UNMARKABLE_KEYS = ['?', '-'];
+
+/**
+ * Cleans what was typed into a score box: only digits and one decimal point survive
+ * (a comma becomes a point). "?" or "-" anywhere means "could not be marked".
+ */
+export function sanitizeScoreInput(raw) {
+    const text = String(raw ?? '');
+    if (UNMARKABLE_KEYS.some((key) => text.includes(key))) return { unmarkable: true, value: '' };
+    let seenPoint = false;
+    let value = '';
+    for (const ch of text.replace(/,/g, '.')) {
+        if (ch >= '0' && ch <= '9') value += ch;
+        else if (ch === '.' && !seenPoint) {
+            seenPoint = true;
+            value += ch;
+        }
+    }
+    return { unmarkable: false, value };
+}
+
+/** A typed score is valid only as a plain number from 0 up to the paper's maximum. */
+export function parseTrialScore(raw, maxScore) {
+    const text = String(raw ?? '').trim().replace(',', '.');
+    if (!/^\d+(\.\d+)?$/.test(text)) return { ok: false, reason: 'not-a-number' };
+    const value = Number(text);
+    const max = Number(maxScore) || 100;
+    if (!Number.isFinite(value) || value < 0) return { ok: false, reason: 'not-a-number' };
+    if (value > max) return { ok: false, reason: 'above-max', max };
+    return { ok: true, value };
+}
+
 /** Ink colour family for a qualitative grade, by its normalized percent. */
 export function gradeToneForPercent(pct) {
     const p = Number(pct) || 0;
@@ -25,6 +58,7 @@ export function numericBandFor(value, maxScore) {
     const v = parseFloat(value);
     if (Number.isNaN(v) || value === '' || value == null) return '';
     const max = Number(maxScore) || 100;
+    if (v > max) return 'over';
     const p = Math.min(100, Math.max(0, Math.round((v / max) * 100)));
     if (p >= 80) return 'high';
     if (p >= 60) return 'good';
@@ -95,8 +129,8 @@ export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = is
         const band = numericBandFor(typed, max);
         gradeHtml = `
             <label class="tl-score">
-                <input type="number" inputmode="decimal" class="tl-score__input bulk-grade-input bulk-grade-numeric"
-                    placeholder="${unmarkable ? UNMARKABLE_VALUE : '–'}" min="0" max="${max}" value="${esc(typed)}" ${band ? `data-grade="${band}"` : ''}
+                <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="6" class="tl-score__input bulk-grade-input bulk-grade-numeric"
+                    placeholder="${unmarkable ? UNMARKABLE_VALUE : '–'}" data-max="${max}" value="${esc(typed)}" ${band ? `data-grade="${band}"` : ''}
                     aria-label="Score for ${name} out of ${max}" ${isAbsent || unmarkable ? 'disabled' : ''}>
                 <span class="tl-score__max">/${max}</span>
             </label>`;
@@ -134,7 +168,7 @@ export function trialRowHtml({ student, scheme, isAbsent = false, wasAbsent = is
 export function trialTipHtml(scheme) {
     const how = scheme?.mode === 'qualitative'
         ? 'Tap a stamp again to clear it.'
-        : 'Press <b class="tl-tip__key">Enter</b> to jump to the next student.';
+        : 'Type <b class="tl-tip__key">?</b> or <b class="tl-tip__key">-</b> for unmarkable. Press <b class="tl-tip__key">Enter</b> to jump to the next student.';
     return `<i class="fas fa-lightbulb" aria-hidden="true"></i> Tap <b>Present</b> to mark someone absent, <b>?</b> if it could not be marked. ${how}`;
 }
 

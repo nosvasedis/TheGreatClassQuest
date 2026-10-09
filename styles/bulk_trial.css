@@ -499,6 +499,9 @@
 .tl-score__input[data-grade="mid"] { color: #b45309; border-bottom-color: #fbbf24; }
 .tl-score__input[data-grade="low"] { color: #c2410c; border-bottom-color: #fb923c; }
 .tl-score__input[data-grade="fail"] { color: var(--tl-red-ink); border-bottom-color: #f87171; }
+/* Above the paper's maximum: wavy red, and Save refuses it */
+.tl-score__input[data-grade="over"] { color: var(--tl-red-ink); border-bottom-color: var(--tl-red-ink); text-decoration: underline wavy var(--tl-red-ink); text-underline-offset: 0.25em; }
+.tl-row:has(.tl-score__input[data-grade="over"]) .tl-score::before { opacity: 0; }
 /* A hand-drawn red-pen ring around a written score */
 .tl-score::before {
     content: '';

@@ -122,6 +122,8 @@ import {
     trialTallyText,
     trialRowValue,
     numericBandFor,
+    sanitizeScoreInput,
+    UNMARKABLE_KEYS,
     UNMARKABLE_VALUE
 } from './trialLogCore.mjs';
 import {
@@ -344,32 +346,60 @@ function wireTrialSheet(listContainer) {
             updateTrialTally();
         }
     };
+    /** Next open score box after this one (worked out before the row may be locked by a "?"). */
+    const focusNextScore = (input) => {
+        const inputs = [...listContainer.querySelectorAll('.bulk-grade-numeric:not(:disabled)')];
+        return () => {
+            const next = inputs[inputs.indexOf(input) + 1];
+            if (next && !next.disabled) {
+                next.focus();
+                next.select();
+            } else {
+                document.getElementById('bulk-trial-save-btn')?.focus();
+            }
+        };
+    };
+    /** "?" or "-" in a score box: the paper could not be marked. The row is stamped "?" and the pen moves on. */
+    const markUnmarkableFrom = (input) => {
+        const moveOn = focusNextScore(input);
+        setRowUnmarkable(input.closest('.bulk-log-item'), true);
+        updateTrialTally();
+        moveOn();
+    };
     listContainer.oninput = (e) => {
         const input = e.target.closest('.bulk-grade-numeric');
         if (!input) return;
-        const band = numericBandFor(input.value, input.max);
+        // Only marks survive: digits and one decimal point. Anything else (pasted text, phone keyboards) is dropped.
+        const cleaned = sanitizeScoreInput(input.value);
+        if (cleaned.unmarkable) {
+            markUnmarkableFrom(input);
+            return;
+        }
+        if (cleaned.value !== input.value) input.value = cleaned.value;
+        const max = input.dataset.max;
+        const band = numericBandFor(input.value, max);
         if (band) input.setAttribute('data-grade', band);
         else input.removeAttribute('data-grade');
+        input.title = band === 'over' ? `The most for this paper is ${max}` : '';
         input.closest('.bulk-log-item')?.classList.toggle('is-graded', input.value !== '');
         updateTrialTally();
     };
     listContainer.onkeydown = (e) => {
-        if (e.key !== 'Enter' && e.key !== UNMARKABLE_VALUE) return;
         const input = e.target.closest('.bulk-grade-numeric');
         if (!input) return;
-        e.preventDefault();
-        const inputs = [...listContainer.querySelectorAll('.bulk-grade-numeric:not(:disabled)')];
-        const next = inputs[inputs.indexOf(input) + 1];
-        if (e.key === UNMARKABLE_VALUE) {
-            // Typing "?" in a score box writes the unmarkable mark, then moves on like Enter.
-            setRowUnmarkable(input.closest('.bulk-log-item'), true);
-            updateTrialTally();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            focusNextScore(input)();
+            return;
         }
-        if (next) {
-            next.focus();
-            next.select();
-        } else {
-            document.getElementById('bulk-trial-save-btn')?.focus();
+        if (UNMARKABLE_KEYS.includes(e.key)) {
+            e.preventDefault();
+            markUnmarkableFrom(input);
+            return;
+        }
+        // Block every other printable key that is not part of a mark (letters, signs, spaces).
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !/[0-9.,]/.test(e.key)) {
+            e.preventDefault();
         }
     };
     listContainer.onwheel = (e) => {

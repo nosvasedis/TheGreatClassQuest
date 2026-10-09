@@ -99,3 +99,28 @@ test('reports, certificates and the roster chart never turn "?" into 0%', async 
   assert.equal(roster.pickBestTest([{ type: 'test', unmarkable: true }], () => null), null);
   assert.equal(typeof report.buildWeeklyReportModel, 'function');
 });
+
+test('score boxes keep only marks; "?" and "-" both mean unmarkable', async () => {
+  const m = await sheet();
+  assert.deepEqual(m.sanitizeScoreInput('-'), { unmarkable: true, value: '' });
+  assert.deepEqual(m.sanitizeScoreInput('?'), { unmarkable: true, value: '' });
+  assert.deepEqual(m.sanitizeScoreInput('1e2'), { unmarkable: false, value: '12' });
+  assert.deepEqual(m.sanitizeScoreInput('12,5'), { unmarkable: false, value: '12.5' });
+  assert.deepEqual(m.sanitizeScoreInput('3.2.1 abc'), { unmarkable: false, value: '3.21' });
+  assert.deepEqual(m.parseTrialScore('38', 40), { ok: true, value: 38 });
+  assert.equal(m.parseTrialScore('45', 40).reason, 'above-max');
+  assert.equal(m.parseTrialScore('abc', 40).ok, false);
+  assert.equal(m.parseTrialScore('', 40).ok, false);
+  assert.equal(m.numericBandFor('45', 40), 'over');
+  const row = m.trialRowHtml({ student: { id: 's', name: 'A' }, scheme: { mode: 'numeric', maxScore: 40 } });
+  assert.match(row, /type="text" inputmode="decimal"/);
+  assert.match(row, /data-max="40"/);
+});
+
+test('saving refuses anything that is not a mark, a stamp word or "?"', async () => {
+  const { createAssessmentScorePayload } = await config();
+  assert.throws(() => createAssessmentScorePayload({ ...base, type: 'test', title: 'x', value: '-5' }));
+  assert.throws(() => createAssessmentScorePayload({ ...base, type: 'test', title: 'x', value: '41' }));
+  assert.throws(() => createAssessmentScorePayload({ ...base, type: 'dictation', value: 'Brilliant' }));
+  assert.equal(createAssessmentScorePayload({ ...base, type: 'test', title: 'x', value: '40' }).scoreNumeric, 40);
+});

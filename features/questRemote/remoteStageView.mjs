@@ -131,18 +131,46 @@ export function seatHtml(name) {
     return `<span class="qr-lane__seat" data-qr-seat${name ? '' : ' hidden'}><i class="fas fa-microphone" aria-hidden="true"></i><b>${esc(name)}</b></span>`;
 }
 
-function laneHtml(sd, team, index, level, nameOf) {
+const CREW_SHOWN = 10;
+
+/** One hero's face: the avatar, or the first letter on the team's colour. The name is its tooltip. */
+export function faceHtml(id, face, { cls = '', i = 0 } = {}) {
+    const name = String(face?.name || 'Hero');
+    const inner = face?.avatar
+        ? `<img src="${esc(face.avatar)}" alt="" loading="lazy" decoding="async">`
+        : `<span>${esc(name.charAt(0).toUpperCase())}</span>`;
+    return `<li class="qr-face${cls}" data-qr-face="${esc(id)}" data-name="${esc(name)}" title="${esc(name)}" style="--i:${i}">${inner}<small class="qr-face__name">${esc(name)}</small></li>`;
+}
+
+/** The team's heroes under its name (the hot seat hero ringed); a long team ends in "+N" naming the rest. */
+export function crewHtml(sd, team, index, faceOf = () => null) {
+    if (team.dragon) return '<ul class="qr-lane__crew qr-lane__crew--dragon" aria-hidden="true"><li class="qr-face qr-face--dragon"><span>🐉</span></li></ul>';
+    const members = team.members || [];
+    if (!members.length) return '';
+    const seated = showdownAnswerer(sd, index);
+    // the hot seat hero is never hidden behind "+N"
+    const order = seated ? [seated, ...members.filter((id) => id !== seated)] : members;
+    const shown = order.length > CREW_SHOWN + 1 ? order.slice(0, CREW_SHOWN) : order;
+    const rest = order.slice(shown.length);
+    const faces = shown.map((id, i) => faceHtml(id, faceOf(id), { cls: id === seated ? ' is-seat' : '', i })).join('');
+    const restNames = rest.map((id) => faceOf(id)?.name || 'Hero').join(', ');
+    const more = rest.length ? `<li class="qr-face qr-face--more" data-name="${esc(restNames)}" title="${esc(restNames)}" style="--i:${shown.length}"><span>+${rest.length}</span></li>` : '';
+    return `<ul class="qr-lane__crew" aria-label="${esc(team.name)}: ${esc(order.map((id) => faceOf(id)?.name || 'Hero').join(', '))}" style="--n:${shown.length + (rest.length ? 1 : 0)}">${faces}${more}</ul>`;
+}
+
+function laneHtml(sd, team, index, level, nameOf, faceOf) {
     const style = `--qr-team:${esc(team.color)};--qr-level:${level.toFixed(3)};--i:${index}`;
     const badge = team.emoji ? esc(team.emoji) : esc(team.shape);
     const got = sd.roundScorers?.includes(index) ? ' is-got' : '';
     const dragon = team.dragon ? ' qr-lane--dragon' : '';
     // every lane keeps the chip's row (an empty one stays invisible), so the bars line up
     const seat = sd.rules?.hotseat ? seatHtml(team.dragon ? '' : nameOf(showdownAnswerer(sd, index))) : '';
+    const crew = crewHtml(sd, team, index, faceOf);
     if (sd.growth) {
         return `<li class="qr-lane qr-lane--growth${got}${dragon}" data-team="${index}" style="${style}">
             <div class="qr-lane__pot" aria-hidden="true"><span class="qr-lane__flower" data-qr-flower>${growthFlower(team.score)}</span></div>
             <div class="qr-lane__name"><span class="qr-lane__badge">${badge}</span>${esc(team.name)}</div>
-            ${seat}
+            ${crew}${seat}
         </li>`;
     }
     const finish = sd.rules?.goal === 'points' ? '<span class="qr-lane__finish" aria-hidden="true"></span>' : '';
@@ -153,15 +181,41 @@ function laneHtml(sd, team, index, level, nameOf) {
             <span class="qr-lane__tick" aria-hidden="true"><i class="fas fa-check"></i></span>
         </div>
         <div class="qr-lane__name"><span class="qr-lane__badge">${badge}</span>${esc(team.name)}</div>
-        ${seat}
+        ${crew}${seat}
     </li>`;
 }
 
-/** The arena. `nameOf(id)` gives a hero's first name (hot seat). */
-export function showdownHtml(sd, { secondsLeft = null, nameOf = () => '' } = {}) {
+const CARD_MARKS = ['▲', '◆', '●', '■'];
+
+/**
+ * The question card of a deck show: the question, up to four options (A–D with game-show shapes), and,
+ * once revealed, the right one lit with a line of why. card: { q, opts[], correct, why, src, n, total, revealed }.
+ */
+export function deckCardHtml(card) {
+    if (!card) return '';
+    const opts = (card.opts || []).slice(0, 4).map((t, i) => {
+        const state = card.revealed ? (i === card.correct ? ' is-right' : ' is-out') : '';
+        return `<li class="qr-card__opt qr-card__opt--${i}${state}" style="--i:${i}"><span class="qr-card__mark" aria-hidden="true">${CARD_MARKS[i]}</span><b>${String.fromCharCode(65 + i)}</b><span class="qr-card__text">${esc(t)}</span></li>`;
+    }).join('');
+    return `<div class="qr-card__inner">
+        <p class="qr-card__src"><i class="fas fa-${card.tag === 'quiz' ? 'scroll' : 'book-open'}" aria-hidden="true"></i> ${esc(card.src || 'Question')}${card.total ? ` · ${card.n} of ${card.total}` : ''}</p>
+        <p class="qr-card__q">${esc(card.q)}</p>
+        <ol class="qr-card__opts" style="--n:${Math.min(4, (card.opts || []).length)}">${opts}</ol>
+        <p class="qr-card__why"${card.revealed && card.why ? '' : ' hidden'}><i class="fas fa-lightbulb" aria-hidden="true"></i> ${esc(card.why || '')}</p>
+    </div>`;
+}
+
+/** The answer clock: a ring that empties second by second (a CSS variable, no per-frame work). */
+export function clockHtml(left, total) {
+    const k = total > 0 ? Math.max(0, Math.min(1, left / total)) : 0;
+    return `<div class="qr-sd__count${left <= 3 ? ' is-low' : ''}" data-qr-count style="--k:${k.toFixed(3)}" role="timer" aria-label="${left} seconds left"><b data-qr-count-n>${left}</b></div>`;
+}
+
+/** The arena. `nameOf(id)` gives a hero's first name (hot seat), `faceOf(id)` { name, avatar } for the crews, `card` the deck's question. */
+export function showdownHtml(sd, { secondsLeft = null, secondsTotal = 0, nameOf = () => '', faceOf = () => null, card = null } = {}) {
     if (!sd) return '';
     const levels = showdownBarLevels(sd);
-    const lanes = sd.teams.map((t, i) => laneHtml(sd, t, i, levels[i], nameOf)).join('');
+    const lanes = sd.teams.map((t, i) => laneHtml(sd, t, i, levels[i], nameOf, faceOf)).join('');
     const everyone = sd.rules?.style === 'all';
     const foot = sd.rules?.hotseat ? 'The hero at the microphone answers for the team'
         : everyone ? 'Every team writes its answer: the Wand gives the points' : 'Answer out loud: the Wand gives the point';
@@ -174,20 +228,21 @@ export function showdownHtml(sd, { secondsLeft = null, nameOf = () => '' } = {})
         : `<p class="qr-sd__round"><span data-qr-goal>${esc(showdownGoalText(sd))}</span>${sd.rules?.goal === 'points' ? ` · Question <b data-qr-round>${sd.round}</b>` : ''}</p>`}
         <p class="qr-sd__golden" data-qr-golden${sd.golden ? '' : ' hidden'}><i class="fas fa-coins" aria-hidden="true"></i> ${sd.growth ? 'Golden question · flowers grow twice' : 'Golden question · double points'}</p>
         <p class="qr-sd__blind" data-qr-blind${sd.blind && !sd.growth ? '' : ' hidden'}><i class="fas fa-eye-slash" aria-hidden="true"></i> Scores hidden · the big reveal comes at the end</p>
-        ${secondsLeft != null ? `<div class="qr-sd__count" data-qr-count>${secondsLeft}</div>` : ''}
+        ${secondsLeft != null ? clockHtml(secondsLeft, secondsTotal || secondsLeft) : ''}
     </header>
+    <section class="qr-card" data-qr-card${card ? '' : ' hidden'}>${deckCardHtml(card)}</section>
     <ol class="qr-sd__lanes" style="--n:${sd.teams.length}">${lanes}</ol>
     <p class="qr-sd__foot">${foot}</p>`;
 }
 
 /** The finale: a podium and the star players (or, for Growth Festival, the whole garden in bloom: everyone wins). */
-export function showdownFinaleHtml(sd, { nameOf = () => '' } = {}) {
+export function showdownFinaleHtml(sd, { nameOf = () => '', faceOf = () => null } = {}) {
     if (!sd) return '';
     if (sd.growth) {
         return `
         <div class="qr-sd__finale qr-sd__finale--growth">
             <h2 class="qr-sd__title">What a garden!</h2>
-            <ul class="qr-garden">${sd.teams.map((t, i) => `<li style="--qr-team:${esc(t.color)};--i:${i}"><span class="qr-garden__flower">${growthFlower(t.score + 4)}</span><b>${esc(t.name)}</b></li>`).join('')}</ul>
+            <ul class="qr-garden">${sd.teams.map((t, i) => `<li style="--qr-team:${esc(t.color)};--i:${i}"><span class="qr-garden__flower">${growthFlower(t.score + 4)}</span><b>${esc(t.name)}</b>${finaleFaces(t, faceOf)}</li>`).join('')}</ul>
             <p class="qr-sd__foot">Every team helped the garden grow.</p>
         </div>`;
     }
@@ -199,6 +254,7 @@ export function showdownFinaleHtml(sd, { nameOf = () => '' } = {}) {
     const step = (t) => `<li class="qr-podium__step qr-podium__step--${t.place}" style="--qr-team:${esc(t.color)}">
         <span class="qr-podium__badge">${t.emoji ? esc(t.emoji) : esc(t.shape)}</span>
         <b class="qr-podium__name">${esc(t.name)}</b>
+        ${t.place === 1 ? finaleFaces(t, faceOf) : ''}
         <span class="qr-podium__score">${t.score}</span>
         <span class="qr-podium__block">${t.place === 1 ? '<i class="fas fa-crown"></i>' : t.place}</span>
     </li>`;
@@ -211,8 +267,19 @@ export function showdownFinaleHtml(sd, { nameOf = () => '' } = {}) {
         <h2 class="qr-sd__title">${champion || 'A draw!'}</h2>
         <ol class="qr-podium">${order.map(step).join('')}</ol>
         ${stars.length ? `<div class="qr-stars"><p class="qr-stars__title"><i class="fas fa-microphone" aria-hidden="true"></i> Star players</p>
-            <ul>${stars.map((p, i) => `<li style="--i:${i}"><b>${esc(nameOf(p.id) || 'Hero')}</b><span>${p.pts}</span></li>`).join('')}</ul></div>` : ''}
+            <ul>${stars.map((p, i) => `<li style="--i:${i}">${starFace(p.id, faceOf)}<b>${esc(nameOf(p.id) || 'Hero')}</b><span>${p.pts}</span></li>`).join('')}</ul></div>` : ''}
     </div>`;
+}
+
+/** The winners' faces on the podium (up to 12; the names are the tooltips). */
+function finaleFaces(team, faceOf) {
+    if (team.dragon || !team.members?.length) return '';
+    return `<ul class="qr-podium__crew">${team.members.slice(0, 12).map((id, i) => faceHtml(id, faceOf(id), { i })).join('')}</ul>`;
+}
+
+function starFace(id, faceOf) {
+    const f = faceOf(id);
+    return f?.avatar ? `<span class="qr-stars__face"><img src="${esc(f.avatar)}" alt="" decoding="async"></span>` : '';
 }
 
 // ─── Charms (Sound Charms, Look here, Spotlight) ────────────────────────────

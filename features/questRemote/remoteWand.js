@@ -557,7 +557,7 @@ function forgeTap(t) {
         const value = rule.dataset.value;
         if (key === 'reward-scope') wand.sdReward.scope = value;
         else if (key === 'reward-stars') wand.sdReward.stars = Number(value) || 1;
-        else if (['streak', 'underdog', 'hotseat'].includes(key)) f.rules = normalizeShowdownRules({ ...f.rules, [key]: !f.rules[key] });
+        else if (['streak', 'underdog', 'hotseat', 'autoClock'].includes(key)) f.rules = normalizeShowdownRules({ ...f.rules, [key]: !f.rules[key] });
         else f.rules = normalizeShowdownRules({ ...f.rules, [key]: key === 'clock' ? Number(value) : value });
         rememberForge(); buzz(6); render(); return true;
     }
@@ -574,7 +574,8 @@ function forgeTap(t) {
     else if (act === 'forge-start') {
         const model = forgeModel();
         if (!model) return true;
-        const payload = { action: 'open', split: f.split, teams: packShowdownTeams(f.teams), ...f.rules };
+        // the rules travel as one map: a command holds at most 12 keys
+        const payload = { action: 'open', split: f.split, teams: packShowdownTeams(f.teams), rules: { ...f.rules } };
         if (send('showdown', payload)) { wand.sdPoints = 1; wand.sdReward = { scope: 'winners', stars: 1 }; buzz([20, 40, 60]); }
         return true;
     }
@@ -772,10 +773,17 @@ function tickClocks() {
         const left = showClockLeft();
         const btn = wand.root.querySelector('[data-qw-clock]');
         if (btn) {
-            btn.textContent = `${left || wand.stage?.panel?.clockFrom || 10}s`;
-            btn.closest('button')?.classList.toggle('is-counting', left > 0);
+            btn.textContent = `${left || wand.stage?.panel?.clockSecs || wand.stage?.panel?.clockFrom || 10}s`;
+            const b = btn.closest('button');
+            if (b) {
+                // counting: a tap stops it; done: a tap starts it again
+                b.classList.toggle('is-counting', left > 0);
+                b.dataset.action = left > 0 ? 'stopclock' : 'timer';
+                const icon = b.querySelector('i');
+                if (icon) icon.className = `fas ${left > 0 ? 'fa-stop' : 'fa-stopwatch'}`;
+            }
         }
-        if (!left) wand.clockBase = null;
+        if (!left) { wand.clockBase = null; buzz([60, 40, 60]); }
     }
 }
 

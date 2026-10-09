@@ -1,8 +1,9 @@
 // features/questRemote/showdownWandView.mjs — the Wand's Showdown screens (pure markup).
-// The Team Forge (split the room, move heroes, set the rules), the host console while the show runs,
-// and the finale's rewards. remoteWand.js builds the plain data; styles: styles/quest_remote_wand.css.
+// The Team Forge (split the room, move heroes, set the rules and where the questions come from), the host
+// console while the show runs (with the deck's question and its answer, for the teacher's eyes only), and
+// the finale's rewards. remoteWand.js builds the plain data; styles: styles/quest_remote_wand.css.
 
-import { SHOWDOWN_CLOCKS, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX } from './remoteCore.mjs';
+import { SHOWDOWN_CLOCK_CHOICES, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX } from './remoteCore.mjs';
 
 function esc(value) {
     return String(value ?? '')
@@ -21,6 +22,14 @@ export const FORGE_SPLITS = Object.freeze([
 ]);
 
 const COUNTED = new Set(['fair', 'mixed', 'random']);
+
+/** Where the questions come from. */
+export const FORGE_DECKS = Object.freeze([
+    { key: 'voice', label: 'I ask', icon: 'fa-comment-dots', hint: 'You ask out loud, as always. The arena keeps the score.' },
+    { key: 'quiz', label: 'Past quizzes', icon: 'fa-scroll', hint: 'Questions from Quiz of the Week quizzes this class has already played, the ones it missed first. This week\'s quiz stays a secret until it is played.' },
+    { key: 'words', label: 'Book words', icon: 'fa-book-open', hint: 'Quick questions from the words of the book units you have been teaching (from your homework notes): gap-fills, meanings in Greek and back.' },
+    { key: 'mix', label: 'Both', icon: 'fa-layer-group', hint: 'Past quiz questions and book words take turns.' }
+]);
 
 function seg(rule, value, options) {
     return `<div class="qw-seg qw-seg--${options.length}" role="radiogroup">${options.map((o) => `
@@ -66,6 +75,7 @@ export function forgeHtml(model) {
         ? `<button type="button" class="qw-fhero" data-qw-move="${esc(h.id)}" aria-label="Move ${esc(h.first)} to the next team">${esc(h.first)}</button>`
         : `<span class="qw-fhero">${esc(h.first)}</span>`).join('') || '<span class="qw-fteam__empty">Nobody yet</span>'}</div>`}
         </div>`).join('');
+    const deck = FORGE_DECKS.find((d) => d.key === rules.deck) || FORGE_DECKS[0];
     const goalOptions = m.growth
         ? [{ key: 'open', label: 'Open' }, { key: 'questions', label: 'Questions' }]
         : [{ key: 'open', label: 'Open' }, { key: 'points', label: 'First to' }, { key: 'questions', label: 'Questions' }];
@@ -96,13 +106,24 @@ export function forgeHtml(model) {
             <div class="qw-forge__row">${seg('goal', rules.goal, goalOptions)}
                 ${rules.goal !== 'open' ? stepper('forge-goal', rules.goalN, rules.goal === 'points' ? 'Points to win' : 'Questions', { min: SHOWDOWN_GOAL_MIN, max: SHOWDOWN_GOAL_MAX }) : ''}</div>
             <p class="qw-forge__label">Answer clock</p>
-            <div class="qw-forge__clocks">${SHOWDOWN_CLOCKS.map((s) => `<button type="button" class="qw-chip${s === rules.clock ? ' qw-chip--gold' : ''}" data-qw-rule="clock" data-value="${s}" aria-pressed="${s === rules.clock}">${s}s</button>`).join('')}</div>
+            <div class="qw-forge__clocks">${SHOWDOWN_CLOCK_CHOICES.map((s) => `<button type="button" class="qw-chip${s === rules.clock ? ' qw-chip--gold' : ''}" data-qw-rule="clock" data-value="${s}" aria-pressed="${s === rules.clock}">${s ? `${s}s` : 'Off'}</button>`).join('')}</div>
+            ${rules.clock ? '' : '<p class="qw-hint">No clock: take all the time you need.</p>'}
             <div class="qw-forge__toggles">
+                ${rules.clock ? toggle('autoClock', rules.autoClock, 'Clock starts by itself', rules.autoClock ? 'With every new question (a gong when time is up)' : 'Only when you tap the stopwatch', 'fa-stopwatch') : ''}
                 ${toggle('hotseat', rules.hotseat, 'Hot seat', 'Heroes take turns at the microphone; star players are crowned', 'fa-microphone')}
                 ${m.growth ? '' : toggle('streak', rules.streak, 'Streak bonus', 'Three questions in a row: +1', 'fa-fire')}
                 ${m.growth ? '' : toggle('underdog', rules.underdog, 'Underdog boost', 'A team 3 behind the leader earns +1', 'fa-bolt')}
             </div>
             ${m.growth ? '<p class="qw-hint">Garden Showdown: flowers grow, no numbers on the screen.</p>' : ''}
+        </div>
+
+        <div class="qw-forge__card">
+            <h3 class="qw-forge__h"><span>3</span> Questions</h3>
+            <div class="qw-decks" role="radiogroup" aria-label="Where the questions come from">${FORGE_DECKS.map((d) => `
+                <button type="button" class="qw-split${d.key === deck.key ? ' is-on' : ''}" data-qw-rule="deck" data-value="${d.key}" role="radio" aria-checked="${d.key === deck.key}">
+                    <span class="qw-split__icon" aria-hidden="true"><i class="fas ${d.icon}"></i></span><b>${esc(d.label)}</b></button>`).join('')}</div>
+            <p class="qw-hint">${esc(deck.hint)}</p>
+            ${deck.key !== 'voice' ? '<p class="qw-hint">The question shows on the big screen; your Wand shows the answer, for your eyes only.</p>' : ''}
         </div>
 
         <button type="button" class="qw-btn qw-btn--gold qw-btn--wide qw-forge__go" data-qw="forge-start"${teams.filter((t) => !t.dragon && t.members.length).length ? '' : ' disabled'}>
@@ -112,7 +133,21 @@ export function forgeHtml(model) {
 }
 
 /** The host console while the show runs. `points` is the value the next tap gives (1–3). */
-export function arenaHtml(panel, { clock = 0, points = 1 } = {}) {
+/** The deck's question on the phone: the right answer ticked (only the teacher sees this), and Reveal. */
+function cardHtml(panel, secret) {
+    if (!panel.q) return '';
+    const right = Number.isInteger(secret?.sdCorrect) ? secret.sdCorrect : -1;
+    const opts = (panel.opts || []).map((o, i) => `<li class="qw-qcard__opt${i === right ? ' is-right' : ''}"><b>${String.fromCharCode(65 + i)}</b><span>${esc(o.t)}</span>${i === right ? '<i class="fas fa-check" aria-label="right answer"></i>' : ''}</li>`).join('');
+    return `<div class="qw-qcard${panel.revealed ? ' is-revealed' : ''}" data-qw-key="qcard-${esc(panel.card)}">
+        <p class="qw-qcard__src">${esc(panel.cardSrc || 'Question')} · ${esc(panel.card)} of ${esc(panel.cards)}</p>
+        <p class="qw-qcard__q">${esc(panel.q)}</p>
+        <ol class="qw-qcard__opts">${opts}</ol>
+        ${panel.revealed ? '<p class="qw-qcard__shown"><i class="fas fa-eye" aria-hidden="true"></i> The answer is on the big screen</p>'
+        : '<button type="button" class="qw-chip qw-chip--gold" data-qw-cmd="showdown" data-action="reveal"><i class="fas fa-eye" aria-hidden="true"></i> Reveal the answer</button>'}
+    </div>`;
+}
+
+export function arenaHtml(panel, { clock = 0, points = 1, secret = null } = {}) {
     const scored = (t) => Number(t.score) || 0;
     const max = Math.max(1, ...panel.teams.map(scored));
     const top = Math.max(0, ...panel.teams.map(scored));
@@ -126,6 +161,8 @@ export function arenaHtml(panel, { clock = 0, points = 1 } = {}) {
             <span class="qw-showhead__round">${panel.growth ? '<i class="fas fa-seedling" aria-hidden="true"></i>' : '<i class="fas fa-bolt" aria-hidden="true"></i>'} <b>${esc(panel.goalText || `Question ${panel.round}`)}</b></span>
             <span class="qw-showhead__hint">${esc(hint)}</span>
         </div>
+        ${cardHtml(panel, secret)}
+        ${!panel.q && panel.deckLeft === 0 ? '<p class="qw-hint qw-hint--center"><i class="fas fa-layer-group" aria-hidden="true"></i> The deck is finished: ask out loud from here.</p>' : ''}
         ${panel.growth ? '' : `<div class="qw-pts" role="radiogroup" aria-label="Points for the next tap"><span>Next tap</span>${[1, 2, 3].map((n) => `
             <button type="button" class="qw-pts__btn${n === points ? ' is-on' : ''}" data-qw-points="${n}" role="radio" aria-checked="${n === points}">+${n}</button>`).join('')}
             ${panel.blind ? '<span class="qw-pts__blind"><i class="fas fa-eye-slash" aria-hidden="true"></i> hidden</span>' : ''}</div>`}
@@ -150,7 +187,7 @@ export function arenaHtml(panel, { clock = 0, points = 1 } = {}) {
             <span><b>${panel.golden ? 'Golden question is on' : 'Golden question'}</b><small>${panel.golden ? `${everyone ? 'Points this question count double' : 'The next point counts double'} · tap to cancel` : (panel.growth ? 'The next good answer grows the flower twice' : 'The next point counts double')}</small></span>
         </button>
         <div class="qw-showctrl">
-            <button type="button" class="qw-roundbtn qw-roundbtn--lg${clockLeft ? ' is-counting' : ''}" data-qw-cmd="showdown" data-action="timer" data-seconds="${esc(panel.clockSecs || 10)}" aria-label="${esc(panel.clockSecs || 10)} second clock"><i class="fas fa-stopwatch"></i><small data-qw-clock>${clockLeft || Number(panel.clockFrom) || panel.clockSecs || 10}s</small></button>
+            ${panel.clockSecs ? `<button type="button" class="qw-roundbtn qw-roundbtn--lg${clockLeft ? ' is-counting' : ''}" data-qw-cmd="showdown" data-action="${clockLeft ? 'stopclock' : 'timer'}" data-seconds="${esc(panel.clockSecs)}" aria-label="${clockLeft ? 'Stop the clock' : `Start the ${esc(panel.clockSecs)} second clock`}"><i class="fas ${clockLeft ? 'fa-stop' : 'fa-stopwatch'}"></i><small data-qw-clock>${clockLeft || panel.clockSecs}s</small></button>` : ''}
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="next" aria-label="${everyone ? 'Next question' : dragon ? 'Skip this question' : 'Nobody got it: next question'}"><i class="fas ${everyone || dragon ? 'fa-forward' : 'fa-forward-step'}"></i><small>${everyone ? 'Next' : dragon ? 'Skip' : 'No one'}</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="undo" aria-label="Undo the last step"${panel.undo ? '' : ' disabled'}><i class="fas fa-rotate-left"></i><small>Undo</small></button>
             <button type="button" class="qw-roundbtn qw-roundbtn--lg qw-roundbtn--gold" data-qw-cmd="showdown" data-action="finish" aria-label="Finish"><i class="fas fa-trophy"></i><small>Finish</small></button>

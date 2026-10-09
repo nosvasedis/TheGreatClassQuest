@@ -414,7 +414,7 @@
     inset: 0;
     z-index: 1650;
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr auto;
     padding: clamp(16px, 3vh, 36px) clamp(16px, 4vw, 64px);
     overflow: hidden;
     color: #fff;
@@ -452,23 +452,45 @@
 .qr-sd__title { margin: 6px 0 2px; font: 700 clamp(1.8rem, 4.6vmin, 3.4rem)/1.1 var(--qr-caps); color: #fff7d6; }
 .qr-sd__round { margin: 0; font: 500 clamp(0.95rem, 2vmin, 1.35rem)/1.3 'Fredoka', sans-serif; color: #c7d2fe; }
 .qr-sd__round b { color: #fff; }
+/* The answer clock: a gold ring that empties second by second (top left: the close button owns the right). */
+@property --k { syntax: '<number>'; inherits: false; initial-value: 1; }
 .qr-sd__count {
     position: absolute;
-    right: 0;
+    left: 0;
     top: 0;
     display: grid;
     place-items: center;
-    width: clamp(64px, 10vmin, 110px);
+    width: clamp(70px, 12vmin, 124px);
     aspect-ratio: 1;
     border-radius: 50%;
-    font: 400 clamp(2rem, 5vmin, 3.6rem)/1 var(--qr-ui);
-    color: #422006;
-    background: radial-gradient(circle at 35% 30%, #fef08a, #f59e0b);
-    border: 4px solid #fff7d6;
+    background: conic-gradient(var(--qr-clock, #fbbf24) calc(var(--k) * 360deg), rgba(255, 255, 255, 0.1) 0);
+    box-shadow: 0 10px 30px -10px rgba(251, 191, 36, 0.7);
+    transition: --k 1s linear;
 }
-.qr-sd__count.is-tick { animation: qr-tick 0.4s ease; }
-.qr-sd__count.is-zero { background: radial-gradient(circle at 35% 30%, #fecaca, #dc2626); color: #fff; }
+.qr-sd__count b {
+    display: grid;
+    place-items: center;
+    width: 78%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    font: 400 clamp(2rem, 5.4vmin, 3.8rem)/1 var(--qr-ui);
+    color: #fff7d6;
+    background: radial-gradient(circle at 35% 30%, #3b3a8f, #1e1b4b);
+    font-variant-numeric: tabular-nums;
+}
+.qr-sd__count.is-low { --qr-clock: #f87171; box-shadow: 0 10px 34px -8px rgba(248, 113, 113, 0.9); }
+.qr-sd__count.is-low b { color: #fecaca; }
+.qr-sd__count.is-tick b { animation: qr-tick 0.4s ease; }
+.qr-sd__count.is-zero { --qr-clock: #dc2626; }
+.qr-sd__count.is-zero b { color: #fff; background: radial-gradient(circle at 35% 30%, #f87171, #b91c1c); animation: qr-ring-bell 0.5s ease 2; }
+@keyframes qr-ring-bell { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+.qr-sd.is-timesup::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(220, 38, 38, 0.45)); animation: qr-timesup 1.3s ease both; }
+@keyframes qr-timesup { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes qr-tick { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.qr-sd__head { grid-row: 1; }
+.qr-card { grid-row: 2; }
+.qr-sd__lanes { grid-row: 3; }
+.qr-sd__foot { grid-row: 4; }
 .qr-sd__lanes {
     list-style: none;
     margin: clamp(10px, 2vh, 24px) 0 0;
@@ -479,7 +501,7 @@
     align-items: end;
     min-height: 0;
 }
-.qr-lane { display: grid; grid-template-rows: auto 1fr auto; height: 100%; min-height: 0; text-align: center; }
+.qr-lane { display: grid; grid-template-rows: auto 1fr auto; grid-auto-rows: auto; height: 100%; min-height: 0; text-align: center; }
 .qr-lane__score { font: 400 clamp(2rem, 6vmin, 4.6rem)/1 var(--qr-ui); color: #fff; font-variant-numeric: tabular-nums; }
 .qr-lane__track {
     position: relative;
@@ -590,6 +612,9 @@
 .qr-lite.qr-bind { background: rgba(11, 16, 38, 0.96); }
 .qr-lite .qr-timer__ring::before, .qr-lite .qr-bind__card, .qr-lite .qr-circle__qr { box-shadow: none; }
 .qr-lite .qr-lane__streak { animation: none; }
+.qr-lite .qr-sd__count { transition: none; box-shadow: none; }
+.qr-lite .qr-card.is-flip, .qr-lite .qr-face, .qr-lite .qr-lane__crew.is-cheer, .qr-lite .qr-face.is-scored { animation: none; }
+.qr-lite .qr-card__inner { box-shadow: none; }
 
 @media (prefers-reduced-motion: reduce) {
     .qr-ring, .qr-circle__halo, .qr-bind__sky i, .qr-sd__lights i, .qr-lane__shine, .qr-lane__streak,
@@ -833,3 +858,109 @@
 .qr-sd:focus { outline: none; }
 .qr-lane__name { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
 .qr-circle__fallback { display: grid; place-items: center; width: 100%; height: 100%; padding: 12px; text-align: center; font-weight: 700; color: #1e1b4b; }
+
+/* ── Showdown crews: every team's faces under its name (names are the tooltips) ── */
+.qr-lane__crew { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(3px, 0.6vmin, 7px); margin: 8px auto 0; padding: 0; max-width: 100%; }
+.qr-face { --size: clamp(28px, 4.6vmin, 48px); position: relative; display: grid; justify-items: center; flex: none; animation: qr-face-in 0.5s cubic-bezier(0.22, 1.6, 0.36, 1) both; animation-delay: calc(0.6s + var(--i, 0) * 0.07s); }
+.qr-lane:nth-child(2) .qr-face { animation-delay: calc(0.86s + var(--i, 0) * 0.07s); }
+.qr-lane:nth-child(3) .qr-face { animation-delay: calc(1.12s + var(--i, 0) * 0.07s); }
+.qr-lane:nth-child(n+4) .qr-face { animation-delay: calc(1.38s + var(--i, 0) * 0.07s); }
+@keyframes qr-face-in { from { opacity: 0; transform: translateY(10px) scale(0.4); } }
+.qr-face > img, .qr-face > span {
+    display: grid;
+    place-items: center;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    object-fit: cover;
+    font: 400 calc(var(--size) * 0.46)/1 var(--qr-ui);
+    color: #fff;
+    background: color-mix(in srgb, var(--qr-team) 60%, #1e1b4b);
+    box-shadow: 0 0 0 2px var(--qr-team), 0 4px 10px -4px rgba(0, 0, 0, 0.6);
+}
+.qr-face__name { display: none; max-width: calc(var(--size) + 26px); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 clamp(0.62rem, 1.3vmin, 0.85rem)/1.1 'Fredoka', sans-serif; color: #e0e7ff; }
+.qr-sd.is-rollcall .qr-face__name { display: block; }
+/* hover (the teacher's mouse): the name in a little tag */
+.qr-face[data-name]:hover::after {
+    content: attr(data-name);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 3;
+    max-width: 280px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font: 500 0.9rem/1.2 'Fredoka', sans-serif;
+    white-space: nowrap;
+    color: #1e1b4b;
+    background: #fff7d6;
+    box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+.qr-face--more > span { font-size: calc(var(--size) * 0.34); background: rgba(255, 255, 255, 0.14); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+.qr-face--dragon > span { --size: clamp(40px, 7vmin, 70px); font-size: calc(var(--size) * 0.7); background: radial-gradient(circle, rgba(220, 38, 38, 0.4), transparent 70%); box-shadow: none; }
+.qr-face.is-seat > img, .qr-face.is-seat > span { box-shadow: 0 0 0 3px #fbbf24, 0 0 16px 2px rgba(251, 191, 36, 0.7); }
+.qr-face.is-seat::before { content: '\f130'; position: absolute; right: -5px; top: -4px; z-index: 2; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font: 900 9px/1 'Font Awesome 6 Free', 'Font Awesome 5 Free'; color: #fde68a; background: #422006; }
+.qr-face.is-scored { animation: qr-face-score 0.8s cubic-bezier(0.22, 1.6, 0.36, 1); }
+@keyframes qr-face-score { 0% { transform: none; } 35% { transform: translateY(-14px) scale(1.4); } 100% { transform: none; } }
+.qr-lane__crew.is-cheer { animation: qr-crew-cheer 0.6s cubic-bezier(0.22, 1.6, 0.36, 1); }
+@keyframes qr-crew-cheer { 0%, 100% { transform: none; } 40% { transform: translateY(-8px); } }
+.qr-sd__lanes[style*="--n:5"] .qr-face, .qr-sd__lanes[style*="--n:6"] .qr-face, .qr-sd__lanes[style*="--n:7"] .qr-face, .qr-sd__lanes[style*="--n:8"] .qr-face { --size: clamp(24px, 3.6vmin, 38px); }
+
+.qr-podium__crew { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: clamp(120px, 22vw, 300px); margin: 2px 0 4px; padding: 0; }
+.qr-podium__crew .qr-face { --size: clamp(24px, 3.6vmin, 38px); animation-delay: calc(1.1s + var(--i, 0) * 0.06s); }
+.qr-podium__crew .qr-face__name { display: none; }
+.qr-garden .qr-podium__crew { margin-top: 4px; }
+.qr-stars__face { display: inline-grid; width: 1.9em; height: 1.9em; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px #fbbf24; }
+.qr-stars__face img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── The deck's question card (the arena brings its own questions) ── */
+.qr-card { position: relative; z-index: 1; width: min(100%, 1100px); justify-self: center; margin-top: clamp(6px, 1.4vh, 16px); perspective: 900px; }
+.qr-card[hidden] { display: none; }
+.qr-card__inner {
+    display: grid;
+    gap: clamp(6px, 1.2vh, 12px);
+    padding: clamp(10px, 1.8vh, 18px) clamp(14px, 2.4vw, 28px);
+    border-radius: 22px;
+    text-align: center;
+    background: linear-gradient(170deg, rgba(55, 48, 163, 0.92), rgba(30, 27, 75, 0.94));
+    border: 2px solid rgba(252, 211, 77, 0.55);
+    box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.qr-card.is-flip .qr-card__inner { animation: qr-card-flip 0.65s cubic-bezier(0.22, 1.2, 0.36, 1) both; transform-origin: 50% 0; }
+@keyframes qr-card-flip { from { opacity: 0; transform: rotateX(-75deg) translateY(-10px); } }
+.qr-card__src { margin: 0; font: 600 clamp(0.72rem, 1.4vmin, 0.95rem)/1 'Fredoka', sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--qr-gold); }
+.qr-card__q { margin: 0; font: 500 clamp(1.15rem, 3.2vmin, 2.2rem)/1.25 'Fredoka', sans-serif; color: #fff; text-wrap: balance; }
+.qr-card__opts { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(6px, 1vmin, 12px); margin: 0; padding: 0; }
+.qr-card__opt {
+    --o: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: clamp(40px, 6.4vh, 64px);
+    padding: 6px 14px 6px 8px;
+    border-radius: 16px;
+    text-align: left;
+    font: 400 clamp(1rem, 2.5vmin, 1.7rem)/1.15 var(--qr-ui);
+    color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--o) 82%, #fff), var(--o));
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1.4, 0.36, 1), filter 0.4s ease;
+}
+.qr-card__opt--1 { --o: #3b82f6; }
+.qr-card__opt--2 { --o: #d97706; }
+.qr-card__opt--3 { --o: #16a34a; }
+.qr-card__mark { display: grid; place-items: center; flex: none; width: 1.7em; height: 1.7em; border-radius: 10px; font-size: 0.8em; background: rgba(0, 0, 0, 0.2); }
+.qr-card__opt > b { flex: none; opacity: 0.8; }
+.qr-card__text { flex: 1; min-width: 0; }
+.qr-card__opt.is-out { opacity: 0.32; filter: saturate(0.4); }
+.qr-card__opt.is-right { transform: scale(1.04); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25), 0 0 0 4px #fde047, 0 0 34px 4px rgba(253, 224, 71, 0.55); }
+.qr-card__opt.is-right::after { content: '\f00c'; font: 900 0.9em/1 'Font Awesome 6 Free', 'Font Awesome 5 Free'; color: #fde047; }
+.qr-card__why { margin: 0; font: 500 clamp(0.85rem, 1.9vmin, 1.25rem)/1.3 'Fredoka', sans-serif; color: #c7d2fe; }
+.qr-card__why i { color: #fde047; }
+
+@media (prefers-reduced-motion: reduce) {
+    .qr-face, .qr-face.is-scored, .qr-lane__crew.is-cheer, .qr-card.is-flip .qr-card__inner, .qr-sd__count b, .qr-sd.is-timesup::after { animation: none !important; }
+    .qr-sd__count { transition: none; }
+}

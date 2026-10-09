@@ -548,13 +548,13 @@ export function showHtml(stage, { secret = null, clock = 0, forge = null, points
                 <div class="qw-showintro__lights" aria-hidden="true"><i></i><i></i><i></i></div>
                 <span class="qw-showintro__badge" aria-hidden="true"><i class="fas fa-bolt"></i></span>
                 <h2 class="qw-h2">Showdown Arena</h2>
-                <p>Teams race on the big screen. You ask out loud; your Wand gives the points. Choose a class (top right) to build the teams.</p>
+                <p>Teams race on the big screen. Ask out loud or let the arena bring the questions; your Wand gives the points. Choose a class (top right) to build the teams.</p>
             </div>
             <p class="qw-hint qw-hint--center">With Quiz of the Week on screen (Elite), this becomes your private host console.</p>
         </section>`;
     }
     if (panel.finished) return finaleHtml(panel, reward);
-    return arenaHtml(panel, { clock, points });
+    return arenaHtml(panel, { clock, points, secret });
 }
 
 /** Recent spells: what the projector did with the Wand's last commands (this phone only). */

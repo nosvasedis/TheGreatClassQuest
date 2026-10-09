@@ -455,10 +455,13 @@ test('the Wand has five modes and Show counts the 10s clock itself', async () =>
     const { WAND_MODES, wandShellHtml } = await import('../features/questRemote/remoteWandView.mjs');
     assert.deepEqual(WAND_MODES.map((m) => m.key), ['stars', 'stage', 'magic', 'lesson', 'show']);
     assert.match(wandShellHtml(), /style="--n:5"/);
-    let sd = createShowdown([{ name: 'A' }, { name: 'B' }]);
+    let sd = createShowdown([{ name: 'A' }, { name: 'B' }], { rules: { clock: 10 } });
     sd = scoreShowdown(sd, 0);
     const html = showHtml({ panel: showdownPanel(sd) }, { clock: 7 });
-    assert.match(html, /is-counting[\s\S]*data-qw-clock>7s</);
+    assert.match(html, /is-counting[^>]*data-action="stopclock"[\s\S]*data-qw-clock>7s</);
+    // no clock chosen: no stopwatch at all
+    const off = showHtml({ panel: showdownPanel(createShowdown([{ name: 'A' }, { name: 'B' }])) }, {});
+    assert.doesNotMatch(off, /data-action="timer"/);
     assert.match(html, /class="qw-team is-leading"/);
     assert.match(html, /--lvl:1\.000/);
     // The projector sends the clock's start only, never a number that changes every second.
@@ -666,7 +669,7 @@ test('Showdown screens: the Forge, the console, the finale and the arena', async
     assert.match(arena, /data-qr-seat hidden/, 'an empty chip keeps its row, invisibly');
 
     const wand = read('features/questRemote/remoteWand.js');
-    assert.match(wand, /action: 'open', split: f\.split, teams: packShowdownTeams\(f\.teams\), \.\.\.f\.rules/);
+    assert.match(wand, /action: 'open', split: f\.split, teams: packShowdownTeams\(f\.teams\), rules: \{ \.\.\.f\.rules \}/);
     // trying splits costs nothing: the Forge only writes when the show starts
     assert.doesNotMatch(wand.slice(wand.indexOf('function forgeModel'), wand.indexOf('function forgeTap')), /send\(/);
 });
@@ -677,4 +680,118 @@ test('Class against the Dragon always plays buzz-in: one side takes each questio
     assert.equal(sd.rules.style, 'buzz');
     sd = c.scoreShowdown(sd, 1);
     assert.deepEqual([sd.round, sd.teams[1].score, c.showdownAnswerer(sd, 1)], [2, 1, ''], 'the Dragon never sits in the hot seat');
+});
+
+test('Showdown clock: optional, self-starting by choice, rules travel as one map', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    assert.equal(c.SHOWDOWN_RULES_DEFAULT.clock, 0, 'no clock unless the teacher picks one');
+    assert.deepEqual(c.SHOWDOWN_CLOCK_CHOICES, [0, 5, 10, 20, 30]);
+    assert.equal(c.normalizeShowdownRules({ clock: 0 }).clock, 0);
+    assert.equal(c.normalizeShowdownRules({ clock: 20 }).autoClock, true);
+    assert.equal(c.normalizeShowdownRules({ clock: 7 }).clock, 0);
+    assert.equal(c.normalizeShowdownRules({ deck: 'mix' }).deck, 'mix');
+    assert.equal(c.normalizeShowdownRules({ deck: 'ai' }).deck, 'voice');
+    const ok = (payload) => c.validateCommand({ type: 'showdown', clientSeq: 1, payload }).ok;
+    const teams = [{ ids: ['a'] }, { ids: ['b'] }];
+    assert.ok(ok({ action: 'open', split: 'fair', teams, rules: { style: 'all', goal: 'questions', goalN: 8, clock: 0, autoClock: true, streak: true, underdog: false, hotseat: true, deck: 'quiz' } }));
+    assert.ok(ok({ action: 'open', split: 'fair', teams, clock: 10, streak: true }), 'an older Wand sends the rules flat');
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'open', rules: { deck: 'ai' } } }).reason, 'bad-deck');
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'open', rules: { clock: 15 } } }).reason, 'bad-clock');
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'open', rules: { autoClock: 'yes' } } }).reason, 'bad-rule');
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'open', rules: [1] } }).reason, 'bad-rule');
+    assert.ok(ok({ action: 'reveal' }) && ok({ action: 'stopclock', seconds: 10 }));
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'timer', seconds: 0 } }).reason, 'bad-seconds');
+    // the panel says whether the clock starts by itself
+    const sd = c.createShowdown([{ name: 'A' }, { name: 'B' }], { rules: { clock: 10, autoClock: false } });
+    assert.equal(c.showdownPanel(sd).autoClock, false);
+    assert.equal(c.showdownPanel(c.createShowdown([{ name: 'A' }, { name: 'B' }])).autoClock, false, 'no clock, nothing starts');
+    // the projector's clock starts itself with each question and rings at zero; points stop it in Buzz-in only
+    const src = read('features/questRemote/showdown.js');
+    assert.match(src, /function armClock\(/);
+    assert.match(src, /if \(!up \|\| sd\.rules\.style !== 'all'\) stopCount\(\);/);
+    assert.match(src, /function timesUp\(/);
+});
+
+test('Showdown deck: played quizzes only, missed questions first, book words made into questions', async () => {
+    const d = await import('../features/questRemote/showdownDeck.mjs');
+    let n = 0;
+    const rng = () => ((n = (n * 9301 + 49297) % 233280) / 233280);
+    const quizzes = [
+        { weekKey: '2026-W41', status: 'ready', questions: [{ id: 'q1', question: 'Secret?', options: ['a', 'b'], correctIndex: 0 }] },
+        {
+            weekKey: '2026-W40', status: 'completed',
+            results: { questionStats: [{ questionId: 'q2', asked: true, firstTryCorrect: false }, { questionId: 'q1', asked: true, firstTryCorrect: true }] },
+            questions: [
+                { id: 'q1', question: 'Cat is a…', options: ['animal', 'colour', 'number'], correctIndex: 0, kind: 'choice' },
+                { id: 'q2', question: 'Pick the past of go', options: ['goed', 'went', 'gone'], correctIndex: 1, kind: 'fix', explanation: 'go → went' },
+                { id: 'q3', question: 'Listen!', options: ['a', 'b'], correctIndex: 0, kind: 'listen' },
+                { id: 'q4', question: 'Cat is a…', options: ['animal', 'tree'], correctIndex: 0 }
+            ]
+        }
+    ];
+    const cards = d.quizDeckCards(quizzes, { rng });
+    assert.equal(cards.length, 2, 'the unplayed quiz stays secret, listening questions stay in the quiz, duplicates once');
+    assert.equal(cards[0].q, 'Pick the past of go', 'a missed question comes first');
+    assert.ok(cards[0].missed && /missed/.test(cards[0].src));
+    assert.equal(cards[0].opts[cards[0].correct], 'went', 'the right answer is followed through the shuffle');
+    assert.equal(cards[0].why, 'go → went');
+
+    const words = [
+        { w: 'recipe', pos: 'n', gr: 'συνταγή', example: 'This is the recipe for making chocolate cake.' },
+        { w: 'agree', pos: 'v', gr: 'συμφωνώ', example: "I don't agree with your idea." },
+        { w: 'food', pos: 'n', gr: 'τροφή', example: 'Learning about healthy foods is good for you.' },
+        { w: 'disagree', pos: 'v', gr: 'διαφωνώ', example: 'I disagree with your opinion.' },
+        { w: 'kitchen', pos: 'n', gr: 'κουζίνα', example: '' }
+    ];
+    const wc = d.wordDeckCards(words, { src: 'Unit 3', rng });
+    assert.ok(wc.length >= 4);
+    for (const card of wc) {
+        assert.ok(card.opts.length >= 3 && card.opts.length <= 4);
+        assert.ok(card.correct >= 0 && card.correct < card.opts.length);
+        assert.equal(new Set(card.opts.map((o) => o.toLowerCase())).size, card.opts.length, 'no option twice');
+    }
+    const gap = wc.find((c) => c.tag === 'gap' && /recipe|agree|disagree/.test(c.why));
+    assert.ok(gap && /_____/.test(gap.q) && !gap.q.includes(gap.opts[gap.correct] + ' for'));
+    assert.ok(!wc.some((c) => c.tag === 'gap' && c.opts[c.correct] === 'food'), '"foods" is not "food": no gap made from it');
+    assert.equal(d.wordDeckCards(words.slice(0, 2)).length, 0, 'too few words for fair options');
+    assert.ok(d.wordDeckCards(words, { young: true, rng }).every((c) => c.opts.length === 3), 'younger leagues get three options');
+
+    const mix = d.buildShowdownDeck('mix', { quiz: [1, 2, 3], words: ['a', 'b'] });
+    assert.deepEqual(mix, [1, 'a', 2, 'b', 3]);
+    assert.deepEqual(d.buildShowdownDeck('voice', { quiz: [1] }), []);
+    const units = d.deckUnits({ currentBookId: 'cpp2', unit: 3, history: [
+        { bookId: 'cpp2', unit: 2, date: '2026-10-01' }, { bookId: 'cpp2', unit: 3, date: '2026-10-07' }, { bookId: 'x', unit: 9, date: '2026-10-08', unconfirmed: true }
+    ] });
+    assert.deepEqual(units.map((u) => u.unit), [3, 2], 'newest practised unit first, unsure entries skipped, no repeats');
+});
+
+test('Showdown projector: crews of faces with names, the deck card, the clock ring', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    const v = await import('../features/questRemote/remoteStageView.mjs');
+    const members = Array.from({ length: 14 }, (_, i) => `s${i}`);
+    const sd = c.createShowdown([{ name: 'Foxes', members }, { name: 'Dolphins', members: ['d1'] }, { name: 'Dragon', dragon: true }], { rules: { hotseat: true } });
+    const faceOf = (id) => ({ name: `Kid${id}`, avatar: id === 'd1' ? 'https://x/a.png' : '' });
+    const html = v.showdownHtml(sd, { nameOf: (id) => faceOf(id).name, faceOf, card: { q: 'Q?', opts: ['a', 'b', 'c'], correct: 1, src: 'Unit 3', n: 1, total: 5, revealed: false } });
+    assert.match(html, /title="Kids\d+"/);
+    assert.match(html, /<img src="https:\/\/x\/a\.png"/);
+    assert.match(html, /qr-face--more[^>]*title="Kid[^"]+"[^>]*><span>\+4</, 'a long team ends in +N naming the rest');
+    assert.match(html, /class="qr-face is-seat"/, 'the hot seat hero is ringed');
+    assert.match(html, /qr-face--dragon/);
+    assert.match(html, /aria-label="Foxes: Kid/);
+    assert.match(html, /data-qr-card>/);
+    assert.match(html, /qr-card__opt--2/);
+    assert.doesNotMatch(html, /is-right/, 'the answer stays hidden until revealed');
+    assert.match(v.deckCardHtml({ q: 'Q', opts: ['a', 'b'], correct: 1, revealed: true, why: 'because' }), /qr-card__opt--1 is-right[\s\S]*because/);
+    assert.match(v.showdownHtml(sd, {}), /data-qr-card hidden/);
+    assert.match(v.clockHtml(3, 10), /is-low[^>]*--k:0\.300/);
+    const fin = v.showdownFinaleHtml(c.finishShowdown(c.scoreShowdown(sd, 1)), { faceOf });
+    assert.match(fin, /qr-podium__crew/);
+    // the Wand: the deck's question with the right answer ticked, for the teacher only
+    const { arenaHtml } = await import('../features/questRemote/showdownWandView.mjs');
+    const panel = { ...c.showdownPanel(sd), q: 'Q?', opts: [{ t: 'a' }, { t: 'b' }], card: 1, cards: 5, cardSrc: 'Unit 3', revealed: false };
+    const wand = arenaHtml(panel, { secret: { sdCorrect: 1 } });
+    assert.match(wand, /qw-qcard__opt is-right"><b>B</);
+    assert.match(wand, /data-action="reveal"/);
+    const host = read('features/questRemote/remoteHost.js');
+    assert.match(host, /secret = showdownMod\.getShowdownSecret\?\.\(\) \|\| null/);
 });

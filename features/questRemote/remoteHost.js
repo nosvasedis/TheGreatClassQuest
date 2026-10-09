@@ -1394,7 +1394,7 @@ async function publishStage() {
     if (quiz) { panel = quiz.panel; secret = quiz.secret; }
     const showdownMod = document.getElementById('qr-showdown') ? await import('./showdown.js') : null;
     const sdPanel = showdownMod?.getShowdownPanel?.();
-    if (sdPanel) panel = sdPanel;
+    if (sdPanel) { panel = sdPanel; secret = showdownMod.getShowdownSecret?.() || null; }
 
     const stage = buildStageSummary({
         surface: sdPanel ? 'showdown' : surface.kind === 'tab' ? 'tab' : 'overlay',

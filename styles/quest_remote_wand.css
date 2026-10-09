@@ -550,7 +550,7 @@ body.qw-open { overflow: hidden; }
 .qw-forge__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .qw-forge__row > .qw-forge__label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 0.86rem; font-weight: 600; color: var(--qw-soft); }
 .qw-forge__row .qw-seg { flex: 1 1 200px; }
-.qw-forge__clocks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.qw-forge__clocks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .qw-forge__clocks .qw-chip { justify-content: center; padding: 0; font-variant-numeric: tabular-nums; }
 .qw-forge__toggles { display: grid; gap: 6px; margin-top: 4px; }
 .qw-forge__go { min-height: 58px; font-size: 1.08rem; }
@@ -698,3 +698,20 @@ button.qw-fhero:active { transform: scale(0.92); background: var(--team) !import
 .qw-crown.is-crowned .qw-crown__text { flex: 1; }
 .qw-crown.is-busy .qw-crown__seal i { animation: qw-bob 1.2s ease-in-out infinite; }
 .qw-lite .qw-crown.is-busy .qw-crown__seal i { animation: none; }
+
+/* ── Showdown: where the questions come from, and the deck's question on the phone ── */
+.qw-decks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.qw-decks .qw-split { min-height: 64px; }
+.qw-qcard { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: linear-gradient(170deg, rgba(49, 46, 129, 0.9), rgba(30, 27, 75, 0.92)); box-shadow: inset 0 0 0 1px rgba(252, 211, 77, 0.35); animation: qw-fteam-in 0.35s cubic-bezier(0.22, 1.3, 0.36, 1) both; }
+.qw-qcard__src { margin: 0; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--qw-gold); }
+.qw-qcard__q { margin: 0; font: 500 1rem/1.3 'Fredoka', sans-serif; color: #fff; }
+.qw-qcard__opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.qw-qcard__opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 12px; font-size: 0.88rem; color: #e0e7ff; background: rgba(255, 255, 255, 0.06); }
+.qw-qcard__opt b { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 8px; font-size: 0.8rem; color: #fff; background: rgba(255, 255, 255, 0.12); }
+.qw-qcard__opt span { flex: 1; min-width: 0; }
+.qw-qcard__opt.is-right { color: #052e16; background: linear-gradient(170deg, #bbf7d0, #4ade80); font-weight: 600; }
+.qw-qcard__opt.is-right b { color: #bbf7d0; background: #14532d; }
+.qw-qcard__opt.is-right i { color: #14532d; }
+.qw-qcard > .qw-chip { justify-self: center; }
+.qw-qcard__shown { margin: 0; text-align: center; font-size: 0.8rem; color: #a5b4fc; }
+.qw-lite .qw-qcard { animation: none; }

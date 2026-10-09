@@ -11,7 +11,7 @@ export const REMOTE_COMMAND_TYPES = Object.freeze([
 ]);
 
 /** What the Wand can ask of a Showdown. */
-export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch']);
+export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch', 'reveal', 'stopclock']);
 
 /** The class picker's two other choices (sent as a `class` command's classId). */
 export const CLASS_GENERAL = '*general';
@@ -171,11 +171,10 @@ export function validateCommand(cmd) {
             if (p.action === 'open') {
                 if (p.split != null && !SHOWDOWN_SPLITS.includes(p.split)) return fail('bad-split');
                 if (p.teams != null && !validShowdownTeams(p.teams)) return fail('bad-teams');
-                if (p.style != null && !SHOWDOWN_STYLES.includes(p.style)) return fail('bad-style');
-                if (p.goal != null && !SHOWDOWN_GOALS.includes(p.goal)) return fail('bad-goal');
-                if (p.goalN != null && !(Number.isInteger(p.goalN) && p.goalN >= SHOWDOWN_GOAL_MIN && p.goalN <= SHOWDOWN_GOAL_MAX)) return fail('bad-goal');
-                if (p.clock != null && !SHOWDOWN_CLOCKS.includes(p.clock)) return fail('bad-clock');
-                for (const k of ['streak', 'underdog', 'hotseat']) if (p[k] != null && typeof p[k] !== 'boolean') return fail('bad-rule');
+                // rules travel as one map (a command holds at most 12 keys); an older Wand sends them flat
+                if (p.rules != null && (typeof p.rules !== 'object' || Array.isArray(p.rules))) return fail('bad-rule');
+                const problem = showdownRulesProblem(p.rules || p);
+                if (problem) return fail(problem);
             }
             return { ok: true };
         case 'quiz': return ['answer', 'next', 'skip', 'listen', 'close'].includes(p.action)
@@ -497,12 +496,29 @@ export const SHOWDOWN_SPLITS = Object.freeze(['fair', 'mixed', 'random', 'guilds
 /** Buzz in: one team answers and the point ends the question. Everyone: every team writes an answer, several can score, then Next. */
 export const SHOWDOWN_STYLES = Object.freeze(['buzz', 'all']);
 export const SHOWDOWN_GOALS = Object.freeze(['open', 'points', 'questions']);
+/** Seconds the answer clock can run (a stopwatch tap or a timer command). */
 export const SHOWDOWN_CLOCKS = Object.freeze([5, 10, 20, 30]);
+/** The Forge's clock choice: 0 is "Off" (no clock at all). */
+export const SHOWDOWN_CLOCK_CHOICES = Object.freeze([0, ...SHOWDOWN_CLOCKS]);
+/** Where the questions come from: the teacher's own voice, past Quiz of the Week questions, the book's words, or both. */
+export const SHOWDOWN_DECKS = Object.freeze(['voice', 'quiz', 'words', 'mix']);
 export const SHOWDOWN_GOAL_MIN = 3;
 export const SHOWDOWN_GOAL_MAX = 30;
 export const SHOWDOWN_MAX_MEMBERS = 40;
 export const SHOWDOWN_REWARD_SCOPES = Object.freeze(['winners', 'all', 'stars']);
-export const SHOWDOWN_RULES_DEFAULT = Object.freeze({ style: 'buzz', goal: 'open', goalN: 10, clock: 10, streak: true, underdog: false, hotseat: false });
+export const SHOWDOWN_RULES_DEFAULT = Object.freeze({ style: 'buzz', goal: 'open', goalN: 10, clock: 0, autoClock: true, streak: true, underdog: false, hotseat: false, deck: 'voice' });
+const SHOWDOWN_RULE_FLAGS = Object.freeze(['streak', 'underdog', 'hotseat', 'autoClock']);
+
+/** Why a set of rules from a command is not acceptable ('' when it is). Missing rules are fine (defaults). */
+function showdownRulesProblem(r) {
+    if (r.style != null && !SHOWDOWN_STYLES.includes(r.style)) return 'bad-style';
+    if (r.goal != null && !SHOWDOWN_GOALS.includes(r.goal)) return 'bad-goal';
+    if (r.goalN != null && !(Number.isInteger(r.goalN) && r.goalN >= SHOWDOWN_GOAL_MIN && r.goalN <= SHOWDOWN_GOAL_MAX)) return 'bad-goal';
+    if (r.clock != null && !SHOWDOWN_CLOCK_CHOICES.includes(r.clock)) return 'bad-clock';
+    if (r.deck != null && !SHOWDOWN_DECKS.includes(r.deck)) return 'bad-deck';
+    for (const k of SHOWDOWN_RULE_FLAGS) if (r[k] != null && typeof r[k] !== 'boolean') return 'bad-rule';
+    return '';
+}
 const HISTORY_KEEP = 25;
 
 /** Rules from anywhere (the phone's saved choice, a command) made safe; unknown values fall back to the defaults. */
@@ -514,10 +530,12 @@ export function normalizeShowdownRules(raw = {}) {
         style: SHOWDOWN_STYLES.includes(r.style) ? r.style : d.style,
         goal: SHOWDOWN_GOALS.includes(r.goal) ? r.goal : d.goal,
         goalN: Number.isFinite(n) ? Math.min(SHOWDOWN_GOAL_MAX, Math.max(SHOWDOWN_GOAL_MIN, n)) : d.goalN,
-        clock: SHOWDOWN_CLOCKS.includes(Number(r.clock)) ? Number(r.clock) : d.clock,
+        clock: r.clock != null && SHOWDOWN_CLOCK_CHOICES.includes(Number(r.clock)) ? Number(r.clock) : d.clock,
+        autoClock: typeof r.autoClock === 'boolean' ? r.autoClock : d.autoClock,
         streak: typeof r.streak === 'boolean' ? r.streak : d.streak,
         underdog: typeof r.underdog === 'boolean' ? r.underdog : d.underdog,
-        hotseat: typeof r.hotseat === 'boolean' ? r.hotseat : d.hotseat
+        hotseat: typeof r.hotseat === 'boolean' ? r.hotseat : d.hotseat,
+        deck: SHOWDOWN_DECKS.includes(r.deck) ? r.deck : d.deck
     };
 }
 
@@ -759,6 +777,7 @@ export function showdownPanel(sd, nameOf = () => '') {
         goal: r.goal,
         goalN: r.goalN,
         clockSecs: r.clock,
+        autoClock: Boolean(r.clock && r.autoClock),
         hotseat: r.hotseat,
         undo: Boolean(sd.history?.length),
         goalText: showdownGoalText(sd),

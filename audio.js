@@ -1142,3 +1142,191 @@ export function stopQuizShowSound() {
     gain.setValueAtTime(gain.value, now);
     gain.linearRampToValueAtTime(0, now + 0.25);
 }
+
+// ─── Showdown Arena (Quest Remote) ──────────────────────────────────────────
+// Its own game-show voice on the quiz bus: every team has a signature motif in its own key (so the class
+// hears WHO scored without looking), a clock that ticks like a stage clock and beats like a heart at the
+// end, a gong for time's up, a reveal sparkle, a lead-change sting, a drum roll into the champions'
+// fanfare. All synthesised (no files to download), short, and a weak laptop plays them as easily as a click.
+
+// One pentatonic root per team (red, blue, amber, green, purple, pink, teal, orange lanes).
+const SHOWDOWN_TEAM_KEYS = ['C', 'E', 'G', 'A', 'D', 'F', 'B', 'D#'];
+const SD_MAJOR_PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+function sdNote(root, step, octave) {
+    const base = NOTE_NAMES.indexOf(root);
+    const semis = base + SD_MAJOR_PENTA[step % SD_MAJOR_PENTA.length] + 12 * Math.floor(step / SD_MAJOR_PENTA.length);
+    return `${NOTE_NAMES[((semis % 12) + 12) % 12]}${octave + Math.floor(semis / 12)}`;
+}
+
+/**
+ * Showdown sound effects.
+ * 'open' the arena opens ({ teams }) · 'rollcall' one face pops in ({ team, step }) · 'score' a point
+ * ({ team, points, golden, growth }) · 'streak' ({ n }) · 'underdog' · 'lead' a new leader · 'minus' ·
+ * 'question' a new question ({ last }) · 'card' a deck card flips in · 'reveal' the answer is shown ·
+ * 'clockstart' · 'tick' ({ left }) · 'timeup' · 'golden' · 'blind' ({ on }) · 'pass' the microphone moves ·
+ * 'undo' · 'goal' the goal is reached · 'finale' ({ dragon }) the champions · 'close'.
+ */
+export function playShowdownSfx(name, opts = {}) {
+    if (!isAudioReady()) return;
+    const v = getQuizVoices();
+    if (!v) return;
+    const now = Tone.now();
+    v.bus.gain.cancelScheduledValues(now);
+    v.bus.gain.setValueAtTime(0.9, now);
+    const t = now + 0.03;
+    const key = SHOWDOWN_TEAM_KEYS[Math.abs(Number(opts.team) || 0) % SHOWDOWN_TEAM_KEYS.length];
+    try {
+        if (name === 'open') {
+            v.whooshFilter.frequency.setValueAtTime(250, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(3000, t + 0.7);
+            v.whoosh.triggerAttackRelease(0.6, t, 0.9);
+            for (let dt = 0, i = 0; dt < 1.1; dt += 0.05, i++) {
+                const k = dt / 1.1;
+                v.snare.triggerAttackRelease(0.04, t + 0.2 + dt, 0.15 + 0.6 * k * k);
+                if (i % 5 === 0) v.boom.triggerAttackRelease('G1', 0.15, t + 0.2 + dt, 0.25 + 0.4 * k);
+            }
+            const at = t + 1.35;
+            v.boom.triggerAttackRelease('C2', 0.6, at, 1);
+            v.cymbal.triggerAttackRelease(1.6, at, 0.9);
+            v.brass.triggerAttackRelease(['G3', 'C4', 'E4', 'G4'], 0.14, at, 0.85);
+            v.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], 0.9, at + 0.18, 1);
+            const teams = Math.max(2, Math.min(8, Number(opts.teams) || 2));
+            for (let i = 0; i < teams; i++) {
+                v.bell.triggerAttackRelease(sdNote(SHOWDOWN_TEAM_KEYS[i], 4, 5), 0.5, at + 0.45 + i * 0.12, 0.45);
+            }
+        } else if (name === 'rollcall') {
+            const step = Math.max(0, Number(opts.step) || 0);
+            v.mallet.triggerAttackRelease(sdNote(key, step % 6, 5), 0.1, t, 0.35);
+            v.block.triggerAttackRelease(step % 2 ? 'A5' : 'E5', 0.03, t, 0.25);
+        } else if (name === 'score') {
+            const points = Math.max(1, Math.min(6, Number(opts.points) || 1));
+            if (opts.growth) {
+                // little ones: a soft marimba bloom, no brass
+                [0, 2, 4].forEach((s, i) => v.mallet.triggerAttackRelease(sdNote(key, s, 5), 0.25, t + i * 0.09, 0.5));
+                v.bell.triggerAttackRelease(sdNote(key, 5, 5), 0.8, t + 0.3, 0.4);
+                return;
+            }
+            // the team's motif: a run up its pentatonic scale, one step longer per point
+            const steps = Math.min(7, 2 + points);
+            for (let i = 0; i < steps; i++) v.mallet.triggerAttackRelease(sdNote(key, i, 5), 0.14, t + i * 0.065, 0.45 + i * 0.06);
+            const land = t + steps * 0.065;
+            v.brass.triggerAttackRelease([sdNote(key, 0, 4), sdNote(key, 2, 4), sdNote(key, 4, 4)], points > 1 ? 0.6 : 0.35, land, 0.8);
+            v.boom.triggerAttackRelease(points > 1 ? 'C2' : 'G2', 0.3, land, 0.7);
+            v.bell.triggerAttackRelease([sdNote(key, 5, 5), sdNote(key, 7, 5)], 0.7, land + 0.05, 0.5);
+            if (points > 1) v.cymbal.triggerAttackRelease(1, land, 0.7);
+            if (opts.golden) ['C7', 'G6', 'E7', 'C7', 'G7', 'E7', 'C8'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.3, land + 0.15 + i * 0.045, 0.35));
+        } else if (name === 'streak') {
+            const n = Math.max(2, Number(opts.n) || 3);
+            v.whooshFilter.frequency.setValueAtTime(400, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(4000, t + 0.4);
+            v.whoosh.triggerAttackRelease(0.35, t, 0.8);
+            const top = ['E4', 'G4', 'A4', 'C5'][Math.min(3, Math.floor(n / 3))];
+            v.brass.triggerAttackRelease(['C4', top], 0.1, t + 0.32, 0.8);
+            v.brass.triggerAttackRelease(['E4', 'G4', top.replace('4', '5')], 0.45, t + 0.46, 0.9);
+        } else if (name === 'underdog') {
+            ['C5', 'E5', 'G5', 'C6', 'E6', 'G6', 'C7'].forEach((n, i) => v.mallet.triggerAttackRelease(n, 0.08, t + i * 0.03, 0.4));
+            v.bell.triggerAttackRelease(['G6', 'C7'], 0.6, t + 0.24, 0.5);
+        } else if (name === 'lead') {
+            // "Oooh, a new leader!": dominant to tonic on the horns
+            v.horn.triggerAttackRelease('G3', 0.18, t, 0.7);
+            v.hornFilter.frequency.setValueAtTime(600, t);
+            v.hornFilter.frequency.exponentialRampToValueAtTime(1800, t + 0.3);
+            v.brass.triggerAttackRelease(['C4', 'E4', 'G4'], 0.4, t + 0.22, 0.7);
+        } else if (name === 'minus') {
+            v.mallet.triggerAttackRelease('E5', 0.12, t, 0.4);
+            v.mallet.triggerAttackRelease('A4', 0.25, t + 0.12, 0.4);
+        } else if (name === 'question') {
+            v.whooshFilter.frequency.setValueAtTime(500, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(2600, t + 0.3);
+            v.whoosh.triggerAttackRelease(0.25, t, 0.6);
+            if (opts.last) {
+                // the last question: a low swell and a held breath
+                v.boom.triggerAttackRelease('D2', 0.8, t + 0.15, 0.9);
+                v.brass.triggerAttackRelease(['D3', 'A3', 'D4'], 0.9, t + 0.15, 0.6);
+                for (let dt = 0; dt < 0.7; dt += 0.05) v.snare.triggerAttackRelease(0.04, t + 0.2 + dt, 0.1 + 0.5 * (dt / 0.7));
+            } else {
+                v.bell.triggerAttackRelease(['E6', 'B6'], 0.5, t + 0.2, 0.4);
+            }
+        } else if (name === 'card') {
+            v.block.triggerAttackRelease('C6', 0.03, t, 0.4);
+            v.whooshFilter.frequency.setValueAtTime(3000, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(900, t + 0.25);
+            v.whoosh.triggerAttackRelease(0.2, t, 0.5);
+            ['G5', 'C6', 'E6'].forEach((n, i) => v.mallet.triggerAttackRelease(n, 0.12, t + 0.12 + i * 0.05, 0.35));
+        } else if (name === 'reveal') {
+            ['C6', 'E6', 'G6', 'C7'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.6, t + i * 0.06, 0.45));
+            v.brass.triggerAttackRelease(['F4', 'A4', 'C5'], 0.5, t + 0.2, 0.55);
+        } else if (name === 'clockstart') {
+            v.block.triggerAttackRelease('G5', 0.04, t, 0.6);
+            v.block.triggerAttackRelease('C6', 0.05, t + 0.18, 0.75);
+        } else if (name === 'tick') {
+            const left = Math.max(0, Number(opts.left) || 0);
+            if (left <= 3) {
+                // the heart beats: lub-dub, and the tick climbs
+                v.boom.triggerAttackRelease('A1', 0.12, t, 0.55);
+                v.boom.triggerAttackRelease('A1', 0.1, t + 0.16, 0.4);
+                v.block.triggerAttackRelease(['G5', 'A5', 'C6'][3 - Math.max(1, left)] || 'C6', 0.04, t, 0.7);
+            } else {
+                v.block.triggerAttackRelease(left % 2 ? 'E5' : 'A5', 0.03, t, left <= 5 ? 0.45 : 0.25);
+            }
+        } else if (name === 'timeup') {
+            // a gong rather than a harsh buzzer: boom, wash and a falling horn
+            v.boom.triggerAttackRelease('C2', 1.2, t, 1);
+            v.cymbal.triggerAttackRelease(2.2, t, 1);
+            v.bell.triggerAttackRelease(['C4', 'G4', 'C5'], 1.6, t, 0.6);
+            v.horn.triggerAttackRelease('G3', 0.5, t + 0.1, 0.6);
+            v.hornFilter.frequency.setValueAtTime(1400, t + 0.1);
+            v.hornFilter.frequency.exponentialRampToValueAtTime(380, t + 0.6);
+        } else if (name === 'golden') {
+            ['C7', 'E7', 'G7', 'C8', 'G7', 'E7', 'C7', 'E7', 'G7'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.3, t + i * 0.05, 0.35 + (i % 3) * 0.08));
+            v.brass.triggerAttackRelease(['E4', 'G4', 'C5'], 0.5, t + 0.35, 0.6);
+        } else if (name === 'blind') {
+            const notes = opts.on ? ['E5', 'C5', 'A4', 'E4'] : ['E4', 'A4', 'C5', 'E5'];
+            notes.forEach((n, i) => v.mallet.triggerAttackRelease(n, 0.3, t + i * 0.09, 0.4));
+            if (opts.on) v.boom.triggerAttackRelease('E1', 0.6, t + 0.3, 0.5);
+        } else if (name === 'pass') {
+            v.mallet.triggerAttackRelease('G5', 0.08, t, 0.4);
+            v.mallet.triggerAttackRelease('D6', 0.12, t + 0.08, 0.45);
+            v.block.triggerAttackRelease('C6', 0.03, t + 0.08, 0.3);
+        } else if (name === 'undo') {
+            v.whooshFilter.frequency.setValueAtTime(2600, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(300, t + 0.35);
+            v.whoosh.triggerAttackRelease(0.3, t, 0.6);
+            ['C6', 'A5', 'F5', 'D5'].forEach((n, i) => v.mallet.triggerAttackRelease(n, 0.07, t + i * 0.04, 0.35));
+        } else if (name === 'goal') {
+            for (let dt = 0; dt < 1.2; dt += 0.04) {
+                const k = dt / 1.2;
+                v.snare.triggerAttackRelease(0.04, t + dt, 0.15 + 0.75 * k * k);
+            }
+            v.boom.triggerAttackRelease('G1', 1.2, t, 0.5);
+        } else if (name === 'finale') {
+            v.boom.triggerAttackRelease('C2', 0.6, t, 1);
+            v.cymbal.triggerAttackRelease(2.2, t, 1);
+            if (opts.dragon) {
+                // the Dragon wins: a grand minor roar, then a hopeful turn ("next time!")
+                v.brass.triggerAttackRelease(['C3', 'G3', 'C4', 'D#4'], 0.9, t, 0.95);
+                v.horn.triggerAttackRelease('C3', 0.9, t, 0.8);
+                v.brass.triggerAttackRelease(['F3', 'C4', 'F4', 'A4'], 1.2, t + 1, 0.8);
+                return;
+            }
+            v.brass.triggerAttackRelease(['G3', 'C4', 'E4'], 0.12, t, 0.75);
+            v.brass.triggerAttackRelease(['G3', 'C4', 'E4'], 0.12, t + 0.16, 0.75);
+            v.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], 0.6, t + 0.32, 0.95);
+            v.brass.triggerAttackRelease(['C4', 'F4', 'A4', 'C5'], 0.3, t + 0.95, 0.85);
+            v.brass.triggerAttackRelease(['D4', 'G4', 'B4', 'D5'], 0.3, t + 1.25, 0.85);
+            v.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5', 'E5'], 1.6, t + 1.55, 1);
+            v.boom.triggerAttackRelease('C2', 0.6, t + 1.55, 0.95);
+            v.cymbal.triggerAttackRelease(2.2, t + 1.55, 0.85);
+            // the podium rises: third, second, first
+            ['G5', 'C6', 'E6'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.6, t + 2.3 + i * 0.3, 0.5));
+            ['C7', 'E7', 'G7', 'C8'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.8, t + 3.2 + i * 0.07, 0.45));
+        } else if (name === 'close') {
+            v.whooshFilter.frequency.setValueAtTime(2400, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(300, t + 0.5);
+            v.whoosh.triggerAttackRelease(0.45, t, 0.8);
+            ['C7', 'G6', 'E6', 'C6'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.5, t + 0.1 + i * 0.07, 0.35));
+        }
+    } catch (_) { /* overlapping triggers are harmless */ }
+}

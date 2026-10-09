@@ -18,7 +18,7 @@ import {
     validateCommand, CLASS_GENERAL, CLASS_FOLLOW, classifyFlick, slingshotPower, SLINGSHOT_MIN_POWER, createShakeDetector,
     isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock, clampTimerMinutes, pushSpellLog,
     SHOWDOWN_SPLITS, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX, normalizeShowdownRules, forgeShowdownTeams, showdownTeamLooks,
-    packShowdownTeams, isGrowthLeague
+    packShowdownTeams, isGrowthLeague, showdownModeFor
 } from './remoteCore.mjs';
 import { makeTeams, moveHero, teamBanner, teamsForDay, pastTeamSets, clampTeamCount, suggestTeamCount, MIN_TEAMS, MAX_TEAMS } from '../teamMakerCore.mjs';
 import { getGuildById } from '../guilds.js';
@@ -97,6 +97,9 @@ export async function openWand({ sessionId = '' } = {}) {
         spells: [],
         forge: savedForge(),
         sdPoints: 1,
+        // "Several teams": team taps pick, one button gives them all the point (or, in Survivor, the miss)
+        sdMulti: false,
+        sdPick: new Set(),
         sdReward: { scope: 'winners', stars: 1 },
         connectSeq: 0,
         gestures: new Set(),
@@ -631,13 +634,33 @@ function forgeModel({ reroll = false } = {}) {
         words: f.rules.deck === 'words' || f.rules.deck === 'mix' ? wordsModel(classId) : null,
         split: f.split, count: f.count, minCount: MIN_TEAMS, maxCount, canToday, canGuilds,
         growth: isGrowthLeague(cls?.questLevel), teams, rules: f.rules,
+        canTug: counted || teams.length === 2,
+        mode: forgeMode(f, teams, isGrowthLeague(cls?.questLevel)),
         note: counted && pastSets.length ? 'Teammates from last time are kept apart where possible.' : (f.split === 'today' && !canToday ? 'No Team Maker teams today.' : '')
     };
+}
+
+/** The game these teams will play: the teacher's pick, unless the teams cannot play it (the projector agrees). */
+function forgeMode(f, teams, growth) {
+    return showdownModeFor(f.rules.mode, { teams: teams.length, dragon: teams.some((t) => t.dragon), growth });
 }
 
 /** Taps inside the Forge (and the finale's reward choice). True when the tap was the Forge's. */
 function forgeTap(t) {
     const f = wand.forge;
+    const pick = t.closest('[data-qw-sdpick]');
+    if (pick && !pick.disabled) {
+        const i = Number(pick.dataset.qwSdpick);
+        if (wand.sdPick.has(i)) wand.sdPick.delete(i); else wand.sdPick.add(i);
+        buzz(6); render(); return true;
+    }
+    const sdAct = t.closest('[data-qw^="sd-"]')?.dataset.qw;
+    if (sdAct === 'sd-multi') { wand.sdMulti = !wand.sdMulti; wand.sdPick.clear(); buzz(8); render(); return true; }
+    if (sdAct === 'sd-pick-all') {
+        const teams = (wand.stage?.panel?.teams || []).map((x, i) => (x.out ? -1 : i)).filter((i) => i >= 0);
+        if (wand.sdPick.size === teams.length) wand.sdPick.clear(); else wand.sdPick = new Set(teams);
+        buzz(6); render(); return true;
+    }
     const split = t.closest('[data-qw-split]');
     if (split && !split.disabled) {
         if (f.split !== split.dataset.qwSplit) { f.split = split.dataset.qwSplit; f.teams = null; rememberForge(); }
@@ -662,6 +685,12 @@ function forgeTap(t) {
         if (key === 'reward-scope') wand.sdReward.scope = value;
         else if (key === 'reward-stars') wand.sdReward.stars = Number(value) || 1;
         else if (['streak', 'underdog', 'hotseat', 'autoClock'].includes(key)) f.rules = normalizeShowdownRules({ ...f.rules, [key]: !f.rules[key] });
+        else if (key === 'mode') {
+            if (rule.disabled) return true;
+            f.rules = normalizeShowdownRules({ ...f.rules, mode: value });
+            // Tug of War is two teams: a counted split re-deals into two
+            if (value === 'tug' && ['fair', 'mixed', 'random'].includes(f.split) && f.count !== 2) f.count = 2;
+        }
         else f.rules = normalizeShowdownRules({ ...f.rules, [key]: key === 'clock' ? Number(value) : value });
         rememberForge(); buzz(6); render(); return true;
     }
@@ -673,17 +702,23 @@ function forgeTap(t) {
     else if (act === 'forge-goal-down' || act === 'forge-goal-up') {
         f.rules = normalizeShowdownRules({ ...f.rules, goalN: Math.min(SHOWDOWN_GOAL_MAX, Math.max(SHOWDOWN_GOAL_MIN, f.rules.goalN + (act.endsWith('up') ? 1 : -1))) });
         rememberForge();
+    } else if (act === 'forge-tug-down' || act === 'forge-tug-up') {
+        f.rules = normalizeShowdownRules({ ...f.rules, tugN: f.rules.tugN + (act.endsWith('up') ? 1 : -1) });
+        rememberForge();
+    } else if (act === 'forge-lives-down' || act === 'forge-lives-up') {
+        f.rules = normalizeShowdownRules({ ...f.rules, lives: f.rules.lives + (act.endsWith('up') ? 1 : -1) });
+        rememberForge();
     } else if (act === 'forge-shuffle') { forgeModel({ reroll: true }); buzz([10, 30, 10]); render(); return true; }
     else if (act === 'forge-new') { if (send('showdown', { action: 'close' })) { f.teams = null; buzz(10); } return true; }
     else if (act === 'forge-start') {
         const model = forgeModel();
         if (!model) return true;
         // the rules travel as one map: a command holds at most 12 keys
-        const payload = { action: 'open', split: f.split, teams: packShowdownTeams(f.teams), rules: { ...f.rules } };
+        const payload = { action: 'open', split: f.split, teams: packShowdownTeams(f.teams), rules: { ...f.rules, mode: model.mode } };
         // the book, units and kinds of word question the teacher chose (the projector checks them against the atlas)
         const words = f.rules.deck === 'words' || f.rules.deck === 'mix' ? wordChoiceFor(currentClassId()) : null;
         if (words) payload.words = { book: words.book, units: [...words.units], kinds: [...words.kinds] };
-        if (send('showdown', payload)) { wand.sdPoints = 1; wand.sdReward = { scope: 'winners', stars: 1 }; buzz([20, 40, 60]); }
+        if (send('showdown', payload)) { wand.sdPoints = 1; wand.sdMulti = false; wand.sdPick.clear(); wand.sdReward = { scope: 'winners', stars: 1 }; buzz([20, 40, 60]); }
         return true;
     }
     buzz(6); render(); return true;
@@ -747,7 +782,7 @@ function render({ fresh = false } = {}) {
         html = lessonHtml(stage, { customMinutes: wand.customMinutes });
     } else {
         const showdownOn = stage.panel?.kind === 'showdown' || stage.panel?.kind === 'quiz';
-        html = showHtml(stage, { secret: wand.secret, clock: showClockLeft(), forge: showdownOn ? null : forgeModel(), points: wand.sdPoints, reward: wand.sdReward });
+        html = showHtml(stage, { secret: wand.secret, clock: showClockLeft(), forge: showdownOn ? null : forgeModel(), points: wand.sdPoints, reward: wand.sdReward, multi: wand.sdMulti, picks: [...wand.sdPick] });
     }
     // Only touch the page when something changed: no flicker, no lost taps, less work.
     const view = wand.main.firstElementChild;
@@ -992,6 +1027,7 @@ function datasetPayload(el) {
     if (d.sound) p.sound = d.sound;
     if (d.student) p.studentId = d.student;
     if (d.points) p.points = Number(d.points);
+    if (d.teams) p.teams = d.teams.split(',').filter(Boolean).map(Number);
     if (d.scope) p.scope = d.scope;
     if (d.stars) p.stars = Number(d.stars);
     return p;
@@ -1117,6 +1153,8 @@ function wireEvents(root) {
                 if (type === 'charm' && payload.action === 'spotlight' && wand.sheetKind === 'award') closeSheet();
                 // a +2 or +3 is for one tap only: the next point is a plain one again
                 if (type === 'showdown' && payload.action === 'point' && wand.sdPoints !== 1) { wand.sdPoints = 1; render(); }
+                // the picked teams got their point (or their miss): the picks clear for the next question
+                if (type === 'showdown' && payload.teams) { wand.sdPick.clear(); render(); }
             }
         }
     });

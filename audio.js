@@ -1167,6 +1167,9 @@ function sdNote(root, step, octave) {
  * 'question' a new question ({ last }) · 'card' a deck card flips in · 'reveal' the answer is shown ·
  * 'clockstart' · 'tick' ({ left }) · 'timeup' · 'golden' · 'blind' ({ on }) · 'pass' the microphone moves ·
  * 'undo' · 'goal' the goal is reached · 'finale' ({ dragon }) the champions · 'close'.
+ * The other games: 'chorus' several teams scored at once ({ n }) · 'tug' a heave on the rope ({ team }) ·
+ * 'miss' a Survivor heart cracks ({ team }) · 'knockout' a team is out · 'chest' a Treasure chest opens
+ * ({ kind: coins | double | steal }) · 'steal' a coin is snatched from another team.
  */
 export function playShowdownSfx(name, opts = {}) {
     if (!isAudioReady()) return;
@@ -1322,6 +1325,63 @@ export function playShowdownSfx(name, opts = {}) {
             // the podium rises: third, second, first
             ['G5', 'C6', 'E6'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.6, t + 2.3 + i * 0.3, 0.5));
             ['C7', 'E7', 'G7', 'C8'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.8, t + 3.2 + i * 0.07, 0.45));
+        } else if (name === 'chorus') {
+            // several teams at once: their motifs ring together and a big chord crowns them
+            const n = Math.max(2, Math.min(8, Number(opts.n) || 3));
+            v.cymbal.triggerAttackRelease(1.2, t, 0.6);
+            v.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], 0.7, t, 0.8);
+            for (let i = 0; i < n; i++) v.bell.triggerAttackRelease(sdNote(SHOWDOWN_TEAM_KEYS[i], 5, 5), 0.6, t + 0.08 + i * 0.05, 0.35);
+        } else if (name === 'tug') {
+            // a heave: a low thud, the rope creaks (a falling filtered rasp) and the team's two-note "hup!"
+            v.boom.triggerAttackRelease('D2', 0.25, t, 0.8);
+            v.whooshFilter.frequency.setValueAtTime(1400, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(350, t + 0.3);
+            v.whoosh.triggerAttackRelease(0.22, t, 0.55);
+            v.horn.triggerAttackRelease(sdNote(key, 0, 3), 0.12, t + 0.05, 0.55);
+            v.hornFilter.frequency.setValueAtTime(500, t + 0.05);
+            v.hornFilter.frequency.exponentialRampToValueAtTime(1600, t + 0.2);
+            v.horn.triggerAttackRelease(sdNote(key, 2, 3), 0.16, t + 0.2, 0.6);
+        } else if (name === 'miss') {
+            // a heart cracks: a glassy tink, a little fall, a soft thud
+            v.bell.triggerAttackRelease('E7', 0.2, t, 0.4);
+            v.bell.triggerAttackRelease('A#6', 0.25, t + 0.06, 0.35);
+            ['E5', 'C5', 'G#4'].forEach((n, i) => v.mallet.triggerAttackRelease(n, 0.14, t + 0.12 + i * 0.09, 0.4));
+            v.boom.triggerAttackRelease('E1', 0.3, t + 0.3, 0.45);
+        } else if (name === 'knockout') {
+            // out: a buzzer, a falling horn (the "wah-wah") and a gong
+            v.buzz.triggerAttackRelease('A2', 0.3, t, 0.5);
+            [['G3', 0.3], ['F#3', 0.3], ['F3', 0.7]].forEach(([n, d], i) => {
+                const at = t + 0.35 + i * 0.32;
+                v.horn.triggerAttackRelease(n, d, at, 0.65);
+                v.hornFilter.frequency.setValueAtTime(400, at);
+                v.hornFilter.frequency.exponentialRampToValueAtTime(1500, at + 0.12);
+                v.hornFilter.frequency.exponentialRampToValueAtTime(400, at + d);
+            });
+            v.boom.triggerAttackRelease('C2', 1, t + 1.3, 0.8);
+            v.cymbal.triggerAttackRelease(1.4, t + 1.3, 0.6);
+        } else if (name === 'chest') {
+            // the lid creaks open (a wood block and a rising rasp), then what is inside sings out
+            v.block.triggerAttackRelease('C5', 0.04, t, 0.5);
+            v.whooshFilter.frequency.setValueAtTime(300, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(2200, t + 0.25);
+            v.whoosh.triggerAttackRelease(0.2, t, 0.5);
+            const at = t + 0.28;
+            if (opts.kind === 'double') {
+                ['E6', 'B6', 'E7', 'G#7', 'B7'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.5, at + i * 0.06, 0.4));
+                v.brass.triggerAttackRelease(['E4', 'G#4', 'B4'], 0.5, at + 0.2, 0.6);
+            } else if (opts.kind === 'steal') {
+                // sneaky: a pizzicato tiptoe in minor
+                ['A4', 'C5', 'E5', 'D#5', 'E5'].forEach((n, i) => v.mallet.triggerAttackRelease(n, 0.08, at + i * 0.1, 0.45));
+            } else {
+                // coins: a shower of bright clinks
+                for (let i = 0; i < 7; i++) v.bell.triggerAttackRelease(['C7', 'G7', 'E7', 'C8', 'A7', 'D8', 'G7'][i], 0.18, at + i * 0.045, 0.3);
+                v.brass.triggerAttackRelease(['C5', 'E5', 'G5'], 0.35, at + 0.3, 0.55);
+            }
+        } else if (name === 'steal') {
+            v.whooshFilter.frequency.setValueAtTime(3000, t);
+            v.whooshFilter.frequency.exponentialRampToValueAtTime(600, t + 0.3);
+            v.whoosh.triggerAttackRelease(0.25, t, 0.5);
+            v.bell.triggerAttackRelease(['E7', 'C7'], 0.2, t + 0.25, 0.35);
         } else if (name === 'close') {
             v.whooshFilter.frequency.setValueAtTime(2400, t);
             v.whooshFilter.frequency.exponentialRampToValueAtTime(300, t + 0.5);

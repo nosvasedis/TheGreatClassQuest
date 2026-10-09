@@ -3,7 +3,7 @@
 // console while the show runs (with the deck's question and its answer, for the teacher's eyes only), and
 // the finale's rewards. remoteWand.js builds the plain data; styles: styles/quest_remote_wand.css.
 
-import { SHOWDOWN_CLOCK_CHOICES, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX } from './remoteCore.mjs';
+import { SHOWDOWN_CLOCK_CHOICES, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX, SHOWDOWN_LIVES_MIN, SHOWDOWN_LIVES_MAX, SHOWDOWN_TUG_MIN, SHOWDOWN_TUG_MAX } from './remoteCore.mjs';
 
 function esc(value) {
     return String(value ?? '')
@@ -31,6 +31,23 @@ export const FORGE_DECKS = Object.freeze([
     { key: 'mix', label: 'Both', icon: 'fa-layer-group', hint: 'Past quiz questions and book words take turns.' }
 ]);
 
+/** The games. */
+export const FORGE_MODES = Object.freeze([
+    { key: 'race', label: 'Race', icon: 'fa-flag-checkered', hint: 'Bars climb; the most points wins.' },
+    { key: 'tug', label: 'Tug of War', icon: 'fa-arrows-left-right', hint: 'Two teams pull one rope: every point moves the knot their way. Pull far enough ahead to win.' },
+    { key: 'survivor', label: 'Survivor', icon: 'fa-heart', hint: 'Every team has hearts. A wrong answer costs one; no hearts left, the team is out. The last team standing wins.' },
+    { key: 'treasure', label: 'Treasure', icon: 'fa-gem', hint: 'Every point opens a chest: 1–3 coins, a double next point, or a steal from the leader. Teams behind find better chests.' }
+]);
+
+/** Why a game cannot be picked for these teams ('' when it can). */
+function modeBlock(key, m) {
+    if (m.growth) return key === 'race' ? '' : 'Garden plays the race';
+    if (key === 'tug' && m.split === 'dragon') return 'Not with the Dragon';
+    if (key === 'tug' && !m.canTug) return 'Needs 2 teams';
+    if (key === 'survivor' && m.split === 'dragon') return 'Not with the Dragon';
+    return '';
+}
+
 function seg(rule, value, options) {
     return `<div class="qw-seg qw-seg--${options.length}" role="radiogroup">${options.map((o) => `
         <button type="button" class="qw-seg__btn${o.key === value ? ' is-on' : ''}" role="radio" aria-checked="${o.key === value}"
@@ -55,7 +72,7 @@ function stepper(act, value, label, { min, max }) {
 
 /**
  * The Team Forge. model: { className, here, away, split, count, minCount, maxCount, canToday, canGuilds,
- * growth, teams: [{ name, color, emoji, dragon, stars, members: [{ id, first }] }], rules, note }.
+ * canTug, mode (the game these teams will play), growth, teams: [{ name, color, emoji, dragon, stars, members: [{ id, first }] }], rules, note }.
  */
 export function forgeHtml(model) {
     const m = model || {};
@@ -76,6 +93,7 @@ export function forgeHtml(model) {
         : `<span class="qw-fhero">${esc(h.first)}</span>`).join('') || '<span class="qw-fteam__empty">Nobody yet</span>'}</div>`}
         </div>`).join('');
     const deck = FORGE_DECKS.find((d) => d.key === rules.deck) || FORGE_DECKS[0];
+    const mode = FORGE_MODES.find((g) => g.key === (m.mode || rules.mode)) || FORGE_MODES[0];
     const goalOptions = m.growth
         ? [{ key: 'open', label: 'Open' }, { key: 'questions', label: 'Questions' }]
         : [{ key: 'open', label: 'Open' }, { key: 'points', label: 'First to' }, { key: 'questions', label: 'Questions' }];
@@ -99,13 +117,25 @@ export function forgeHtml(model) {
         </div>
 
         <div class="qw-forge__card">
-            <h3 class="qw-forge__h"><span>2</span> How it plays</h3>
+            <h3 class="qw-forge__h"><span>2</span> The game</h3>
+            <div class="qw-modes" role="radiogroup" aria-label="Which game">${FORGE_MODES.map((g) => {
+        const block = modeBlock(g.key, m);
+        return `<button type="button" class="qw-split qw-mode qw-mode--${g.key}${g.key === mode.key ? ' is-on' : ''}" data-qw-rule="mode" data-value="${g.key}" role="radio" aria-checked="${g.key === mode.key}"${block ? ' disabled' : ''}>
+                    <span class="qw-split__icon" aria-hidden="true"><i class="fas ${g.icon}"></i></span><b>${esc(g.label)}</b>${block ? `<small>${esc(block)}</small>` : ''}</button>`;
+    }).join('')}</div>
+            <p class="qw-hint">${esc(mode.hint)}</p>
+            ${mode.key === 'tug' ? `<div class="qw-forge__row"><span class="qw-forge__label">Win by pulling ahead</span>${stepper('forge-tug', rules.tugN, 'Points ahead to win', { min: SHOWDOWN_TUG_MIN, max: SHOWDOWN_TUG_MAX })}</div>` : ''}
+            ${mode.key === 'survivor' ? `<div class="qw-forge__row"><span class="qw-forge__label">Hearts per team</span>${stepper('forge-lives', rules.lives, 'Hearts per team', { min: SHOWDOWN_LIVES_MIN, max: SHOWDOWN_LIVES_MAX })}</div>` : ''}
+        </div>
+
+        <div class="qw-forge__card">
+            <h3 class="qw-forge__h"><span>3</span> How it plays</h3>
             <p class="qw-forge__label">Answers</p>
             ${m.split === 'dragon' ? '<p class="qw-hint">The class answers together: right, the class scores; wrong, the Dragon does.</p>' : `${seg('style', rules.style, [{ key: 'buzz', label: 'Buzz in' }, { key: 'all', label: 'Every team' }])}
             <p class="qw-hint">${rules.style === 'all' ? 'Every team writes an answer (whiteboards). Tap each team that got it, then Next.' : 'One team answers; their point ends the question.'}</p>`}
-            <p class="qw-forge__label">Goal</p>
+            ${mode.key === 'tug' || mode.key === 'survivor' ? '' : `<p class="qw-forge__label">Goal</p>
             <div class="qw-forge__row">${seg('goal', rules.goal, goalOptions)}
-                ${rules.goal !== 'open' ? stepper('forge-goal', rules.goalN, rules.goal === 'points' ? 'Points to win' : 'Questions', { min: SHOWDOWN_GOAL_MIN, max: SHOWDOWN_GOAL_MAX }) : ''}</div>
+                ${rules.goal !== 'open' ? stepper('forge-goal', rules.goalN, rules.goal === 'points' ? 'Points to win' : 'Questions', { min: SHOWDOWN_GOAL_MIN, max: SHOWDOWN_GOAL_MAX }) : ''}</div>`}
             <p class="qw-forge__label">Answer clock</p>
             <div class="qw-forge__clocks">${SHOWDOWN_CLOCK_CHOICES.map((s) => `<button type="button" class="qw-chip${s === rules.clock ? ' qw-chip--gold' : ''}" data-qw-rule="clock" data-value="${s}" aria-pressed="${s === rules.clock}">${s ? `${s}s` : 'Off'}</button>`).join('')}</div>
             ${rules.clock ? '' : '<p class="qw-hint">No clock: take all the time you need.</p>'}
@@ -119,7 +149,7 @@ export function forgeHtml(model) {
         </div>
 
         <div class="qw-forge__card">
-            <h3 class="qw-forge__h"><span>3</span> Questions</h3>
+            <h3 class="qw-forge__h"><span>4</span> Questions</h3>
             <div class="qw-decks" role="radiogroup" aria-label="Where the questions come from">${FORGE_DECKS.map((d) => `
                 <button type="button" class="qw-split${d.key === deck.key ? ' is-on' : ''}" data-qw-rule="deck" data-value="${d.key}" role="radio" aria-checked="${d.key === deck.key}">
                     <span class="qw-split__icon" aria-hidden="true"><i class="fas ${d.icon}"></i></span><b>${esc(d.label)}</b></button>`).join('')}</div>
@@ -175,41 +205,86 @@ function cardHtml(panel, secret) {
     </div>`;
 }
 
-export function arenaHtml(panel, { clock = 0, points = 1, secret = null } = {}) {
+/** Survivor's hearts on a team's button. */
+function heartsRow(t, max) {
+    if (!max) return '';
+    return `<span class="qw-team__hearts" aria-label="${esc(t.lives)} hearts left">${Array.from({ length: max }, (_, i) => `<i class="fas ${i < t.lives ? 'fa-heart' : 'fa-heart-crack is-lost'}"></i>`).join('')}</span>`;
+}
+
+/**
+ * The host console while the show runs. `points` is the value the next tap gives (1–3); `multi` turns
+ * team taps into picks (`picks`: the chosen team indexes) so one tap gives several teams the point.
+ */
+export function arenaHtml(panel, { clock = 0, points = 1, secret = null, multi = false, picks = [] } = {}) {
     const scored = (t) => Number(t.score) || 0;
     const max = Math.max(1, ...panel.teams.map(scored));
     const top = Math.max(0, ...panel.teams.map(scored));
     const clockLeft = Number.isFinite(clock) && clock > 0 ? clock : 0;
     const everyone = panel.style === 'all';
     const dragon = panel.teams.some((t) => t.dragon);
-    const hint = dragon ? 'Class when right, Dragon when wrong' : everyone ? 'Tap every team that got it' : `Tap the team that ${panel.growth ? 'answered well' : 'got it'}`;
+    const mode = panel.mode || 'race';
+    const survivor = mode === 'survivor';
+    const canMulti = !dragon && panel.teams.length > 1;
+    const many = canMulti && multi;
+    const picked = new Set((picks || []).filter((i) => panel.teams[i] && !panel.teams[i].out));
+    const hint = many ? 'Tap every team, then give them the point'
+        : dragon ? 'Class when right, Dragon when wrong'
+            : survivor ? 'Got it: tap the team · wrong: Miss'
+                : mode === 'tug' ? 'Every point pulls the rope their way'
+                    : everyone ? 'Tap every team that got it' : `Tap the team that ${panel.growth ? 'answered well' : 'got it'}`;
     const level = (t) => (panel.goal === 'points' ? Math.min(1, scored(t) / Math.max(1, panel.goalN)) : scored(t) / max);
-    return `<section class="qw-show${panel.golden ? ' is-golden' : ''}">
+    const give = panel.growth ? 1 : points;
+    const pickList = [...picked].sort((a, b) => a - b);
+    const tug = mode === 'tug' && panel.teams.length === 2 ? (() => {
+        const [a, b] = panel.teams;
+        const k = 0.5 + Math.max(-1, Math.min(1, (scored(a) - scored(b)) / Math.max(1, panel.tugN))) / 2;
+        return `<div class="qw-tug" style="--pull:${k.toFixed(3)};--a:${esc(a.color)};--b:${esc(b.color)}" aria-label="The rope: ${esc(a.name)} ${esc(scored(a))}, ${esc(b.name)} ${esc(scored(b))}">
+            <span class="qw-tug__end">${esc(a.emoji || a.shape)}</span><span class="qw-tug__rope"><i class="qw-tug__knot"></i></span><span class="qw-tug__end">${esc(b.emoji || b.shape)}</span></div>`;
+    })() : '';
+    return `<section class="qw-show qw-show--${esc(mode)}${panel.golden ? ' is-golden' : ''}">
         <div class="qw-showhead">
-            <span class="qw-showhead__round">${panel.growth ? '<i class="fas fa-seedling" aria-hidden="true"></i>' : '<i class="fas fa-bolt" aria-hidden="true"></i>'} <b>${esc(panel.goalText || `Question ${panel.round}`)}</b></span>
+            <span class="qw-showhead__round">${panel.growth ? '<i class="fas fa-seedling" aria-hidden="true"></i>' : `<i class="fas ${(FORGE_MODES.find((g) => g.key === mode) || FORGE_MODES[0]).icon.replace('fa-flag-checkered', 'fa-bolt')}" aria-hidden="true"></i>`} <b>${esc(panel.goalText || `Question ${panel.round}`)}</b></span>
             <span class="qw-showhead__hint">${esc(hint)}</span>
         </div>
         ${cardHtml(panel, secret)}
         ${!panel.q && panel.deckLeft === 0 ? '<p class="qw-hint qw-hint--center"><i class="fas fa-layer-group" aria-hidden="true"></i> The deck is finished: ask out loud from here.</p>' : ''}
-        ${panel.growth ? '' : `<div class="qw-pts" role="radiogroup" aria-label="Points for the next tap"><span>Next tap</span>${[1, 2, 3].map((n) => `
-            <button type="button" class="qw-pts__btn${n === points ? ' is-on' : ''}" data-qw-points="${n}" role="radio" aria-checked="${n === points}">+${n}</button>`).join('')}
-            ${panel.blind ? '<span class="qw-pts__blind"><i class="fas fa-eye-slash" aria-hidden="true"></i> hidden</span>' : ''}</div>`}
-        <div class="qw-teams" style="--n:${panel.teams.length}">${panel.teams.map((t, i) => {
-        const lead = !panel.growth && top > 0 && scored(t) === top;
+        ${tug}
+        <div class="qw-pts" role="group" aria-label="Points for the next tap">${panel.growth ? '' : `<span>Next tap</span>${[1, 2, 3].map((n) => `
+            <button type="button" class="qw-pts__btn${n === points ? ' is-on' : ''}" data-qw-points="${n}" role="radio" aria-checked="${n === points}">+${n}</button>`).join('')}`}
+            ${canMulti ? `<button type="button" class="qw-pts__multi${many ? ' is-on' : ''}" data-qw="sd-multi" aria-pressed="${many}"><i class="fas fa-check-double" aria-hidden="true"></i> Several</button>` : ''}
+            ${panel.blind ? '<span class="qw-pts__blind"><i class="fas fa-eye-slash" aria-hidden="true"></i> hidden</span>' : ''}</div>
+        <div class="qw-teams${many ? ' is-picking' : ''}" style="--n:${panel.teams.length}">${panel.teams.map((t, i) => {
+        const lead = !panel.growth && top > 0 && scored(t) === top && !survivor;
+        const on = picked.has(i);
+        const tap = many
+            ? `data-qw-sdpick="${i}" aria-pressed="${on}" aria-label="${on ? 'Unpick' : 'Pick'} ${esc(t.name)}"`
+            : `data-qw-cmd="showdown" data-action="point" data-team="${i}" data-points="${give}" aria-label="${t.dragon ? 'The Dragon scores' : `Point to ${esc(t.name)}`}"`;
         return `
-            <div class="qw-team${lead ? ' is-leading' : ''}${t.got ? ' is-got' : ''}${t.dragon ? ' qw-team--dragon' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : level(t).toFixed(3)}" data-qw-key="team-${i}">
-                <button type="button" class="qw-team__hit" data-qw-cmd="showdown" data-action="point" data-team="${i}" data-points="${panel.growth ? 1 : points}" aria-label="${t.dragon ? 'The Dragon scores' : `Point to ${esc(t.name)}`}">
+            <div class="qw-team${lead ? ' is-leading' : ''}${t.got ? ' is-got' : ''}${t.dragon ? ' qw-team--dragon' : ''}${t.out ? ' is-out' : ''}${on ? ' is-picked' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : level(t).toFixed(3)}" data-qw-key="team-${i}">
+                <button type="button" class="qw-team__hit" ${tap}${t.out ? ' disabled' : ''}>
                     <span class="qw-team__badge" aria-hidden="true">${esc(t.emoji || t.shape)}</span>
                     <span class="qw-team__name">${lead ? '<span class="qw-team__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}${esc(t.name)}</span>
                     ${panel.growth ? '<span class="qw-team__grow" aria-hidden="true"><i class="fas fa-seedling"></i> grow</span>' : `<span class="qw-team__score">${esc(t.score)}</span>`}
+                    ${survivor ? heartsRow(t, panel.livesMax) : ''}
                     ${t.hot ? `<span class="qw-team__hot"><i class="fas fa-microphone" aria-hidden="true"></i>${esc(t.hot)}</span>` : ''}
                     ${!panel.growth && t.streak >= 2 ? `<span class="qw-team__streak"><i class="fas fa-fire"></i>${esc(t.streak)}</span>` : ''}
-                    ${t.got ? '<span class="qw-team__got" aria-label="Got it this question"><i class="fas fa-check"></i></span>' : ''}
+                    ${t.dbl ? '<span class="qw-team__dbl" aria-label="Their next point counts double"><i class="fas fa-gem"></i>×2</span>' : ''}
+                    ${t.out ? '<span class="qw-team__out">Out</span>' : ''}
+                    ${t.got && !many ? '<span class="qw-team__got" aria-label="Got it this question"><i class="fas fa-check"></i></span>' : ''}
+                    ${many ? `<span class="qw-team__pick" aria-hidden="true"><i class="fas ${on ? 'fa-circle-check' : 'fa-circle'}"></i></span>` : ''}
                     ${panel.growth ? '' : '<span class="qw-team__bar" aria-hidden="true"></span>'}
                 </button>
-                ${panel.growth ? '' : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
+                ${panel.growth || many || t.out ? '' : survivor
+            ? `<button type="button" class="qw-team__minus qw-team__miss" data-qw-cmd="showdown" data-action="miss" data-team="${i}" aria-label="${esc(t.name)} missed: lose a heart"><i class="fas fa-heart-crack" aria-hidden="true"></i></button>`
+            : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
             </div>`;
     }).join('')}</div>
+        ${many ? `<div class="qw-multi" data-qw-key="multi">
+            <button type="button" class="qw-chip" data-qw="sd-pick-all">${picked.size === panel.teams.filter((t) => !t.out).length ? 'None' : 'All teams'}</button>
+            <button type="button" class="qw-btn qw-btn--gold qw-multi__go" data-qw-cmd="showdown" data-action="point" data-teams="${pickList.join(',')}" data-points="${give}"${picked.size ? '' : ' disabled'}>
+                <i class="fas fa-check-double" aria-hidden="true"></i> ${picked.size ? (panel.growth ? `Grow ${picked.size} flower${picked.size === 1 ? '' : 's'}` : `+${give} to ${picked.size} team${picked.size === 1 ? '' : 's'}`) : 'Pick the teams'}</button>
+            ${survivor ? `<button type="button" class="qw-btn qw-multi__miss" data-qw-cmd="showdown" data-action="miss" data-teams="${pickList.join(',')}"${picked.size ? '' : ' disabled'}><i class="fas fa-heart-crack" aria-hidden="true"></i> Miss</button>` : ''}
+        </div>` : ''}
         <button type="button" class="qw-golden${panel.golden ? ' is-on' : ''}" data-qw-cmd="showdown" data-action="golden" aria-pressed="${Boolean(panel.golden)}">
             <span class="qw-golden__coin" aria-hidden="true"><i class="fas fa-coins"></i></span>
             <span><b>${panel.golden ? 'Golden question is on' : 'Golden question'}</b><small>${panel.golden ? `${everyone ? 'Points this question count double' : 'The next point counts double'} · tap to cancel` : (panel.growth ? 'The next good answer grows the flower twice' : 'The next point counts double')}</small></span>

@@ -11,7 +11,7 @@ export const REMOTE_COMMAND_TYPES = Object.freeze([
 ]);
 
 /** What the Wand can ask of a Showdown. */
-export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch', 'reveal', 'stopclock']);
+export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch', 'reveal', 'stopclock', 'miss']);
 
 /** The class picker's two other choices (sent as a `class` command's classId). */
 export const CLASS_GENERAL = '*general';
@@ -162,6 +162,9 @@ export function validateCommand(cmd) {
         case 'showdown':
             if (!SHOWDOWN_ACTIONS.includes(p.action)) return fail('bad-action');
             if (p.team != null && !(Number.isInteger(p.team) && p.team >= 0 && p.team < 8)) return fail('bad-team');
+            // several teams got it at once: a point to each, in one step (one undo)
+            if ((p.action === 'point' || p.action === 'miss') && p.teams != null && !(Array.isArray(p.teams) && p.teams.length >= 1 && p.teams.length <= 8
+                && new Set(p.teams).size === p.teams.length && p.teams.every((t) => Number.isInteger(t) && t >= 0 && t < 8))) return fail('bad-team');
             if (p.points != null && ![1, 2, 3].includes(p.points)) return fail('bad-points');
             if (p.seconds != null && !SHOWDOWN_CLOCKS.includes(p.seconds)) return fail('bad-seconds');
             if (p.action === 'reward') {
@@ -506,7 +509,17 @@ export const SHOWDOWN_GOAL_MIN = 3;
 export const SHOWDOWN_GOAL_MAX = 30;
 export const SHOWDOWN_MAX_MEMBERS = 40;
 export const SHOWDOWN_REWARD_SCOPES = Object.freeze(['winners', 'all', 'stars']);
-export const SHOWDOWN_RULES_DEFAULT = Object.freeze({ style: 'buzz', goal: 'open', goalN: 10, clock: 0, autoClock: true, streak: true, underdog: false, hotseat: false, deck: 'voice' });
+/**
+ * The games: Race (bars climb to the goal), Tug of War (two teams pull a rope; win by N), Survivor
+ * (every team has hearts; a miss costs one; the last team standing wins) and Treasure (every point
+ * opens a chest: coins, a steal from the leader, or a double next point; teams behind find better luck).
+ */
+export const SHOWDOWN_MODES = Object.freeze(['race', 'tug', 'survivor', 'treasure']);
+export const SHOWDOWN_LIVES_MIN = 1;
+export const SHOWDOWN_LIVES_MAX = 5;
+export const SHOWDOWN_TUG_MIN = 3;
+export const SHOWDOWN_TUG_MAX = 10;
+export const SHOWDOWN_RULES_DEFAULT = Object.freeze({ style: 'buzz', goal: 'open', goalN: 10, clock: 0, autoClock: true, streak: true, underdog: false, hotseat: false, deck: 'voice', mode: 'race', lives: 3, tugN: 5 });
 const SHOWDOWN_RULE_FLAGS = Object.freeze(['streak', 'underdog', 'hotseat', 'autoClock']);
 /** Kinds of book-word question (showdownDeck.mjs WORD_KINDS keeps the same keys). */
 export const SHOWDOWN_WORD_KINDS = Object.freeze(['meaning', 'define', 'gap', 'spell', 'letter']);
@@ -530,6 +543,9 @@ function showdownRulesProblem(r) {
     if (r.goalN != null && !(Number.isInteger(r.goalN) && r.goalN >= SHOWDOWN_GOAL_MIN && r.goalN <= SHOWDOWN_GOAL_MAX)) return 'bad-goal';
     if (r.clock != null && !SHOWDOWN_CLOCK_CHOICES.includes(r.clock)) return 'bad-clock';
     if (r.deck != null && !SHOWDOWN_DECKS.includes(r.deck)) return 'bad-deck';
+    if (r.mode != null && !SHOWDOWN_MODES.includes(r.mode)) return 'bad-mode';
+    if (r.lives != null && !(Number.isInteger(r.lives) && r.lives >= SHOWDOWN_LIVES_MIN && r.lives <= SHOWDOWN_LIVES_MAX)) return 'bad-rule';
+    if (r.tugN != null && !(Number.isInteger(r.tugN) && r.tugN >= SHOWDOWN_TUG_MIN && r.tugN <= SHOWDOWN_TUG_MAX)) return 'bad-rule';
     for (const k of SHOWDOWN_RULE_FLAGS) if (r[k] != null && typeof r[k] !== 'boolean') return 'bad-rule';
     return '';
 }
@@ -549,8 +565,27 @@ export function normalizeShowdownRules(raw = {}) {
         streak: typeof r.streak === 'boolean' ? r.streak : d.streak,
         underdog: typeof r.underdog === 'boolean' ? r.underdog : d.underdog,
         hotseat: typeof r.hotseat === 'boolean' ? r.hotseat : d.hotseat,
-        deck: SHOWDOWN_DECKS.includes(r.deck) ? r.deck : d.deck
+        deck: SHOWDOWN_DECKS.includes(r.deck) ? r.deck : d.deck,
+        mode: SHOWDOWN_MODES.includes(r.mode) ? r.mode : d.mode,
+        lives: clampInt(r.lives, SHOWDOWN_LIVES_MIN, SHOWDOWN_LIVES_MAX, d.lives),
+        tugN: clampInt(r.tugN, SHOWDOWN_TUG_MIN, SHOWDOWN_TUG_MAX, d.tugN)
     };
+}
+
+function clampInt(value, min, max, fallback) {
+    const n = Math.round(Number(value));
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+/**
+ * Which game a set of teams can play: Tug of War needs exactly two teams, Survivor never runs
+ * against the Dragon (the Dragon has no answers to miss), the Garden plays the race.
+ */
+export function showdownModeFor(mode, { teams = 2, dragon = false, growth = false } = {}) {
+    if (growth) return 'race';
+    if (mode === 'tug' && teams !== 2) return 'race';
+    if (mode === 'survivor' && dragon) return 'race';
+    return SHOWDOWN_MODES.includes(mode) ? mode : 'race';
 }
 
 function shuffled(list, rng = Math.random) {
@@ -573,6 +608,9 @@ export function createShowdown(teams, { growth = false, title = 'Showdown', rule
     if (growth) Object.assign(r, { streak: false, underdog: false, goal: r.goal === 'points' ? 'questions' : r.goal });
     // Class against the Dragon: an answer is right or wrong, never both, so one side takes each question
     if (list.some((t) => t?.dragon)) r.style = 'buzz';
+    r.mode = showdownModeFor(r.mode, { teams: list.length, dragon: list.some((t) => t?.dragon), growth });
+    // Tug of War and Survivor bring their own finish (a lead of tugN, the last team standing)
+    if (r.mode === 'tug' || r.mode === 'survivor') r.goal = 'open';
     return {
         title: cleanPadLabel(title, 40) || 'Showdown',
         growth: Boolean(growth),
@@ -592,6 +630,9 @@ export function createShowdown(teams, { growth = false, title = 'Showdown', rule
                 dragon: Boolean(t?.dragon),
                 score: 0,
                 streak: 0,
+                lives: r.mode === 'survivor' ? r.lives : 0,
+                out: false,
+                dbl: false,
                 color: HEX_RE.test(t?.color || '') ? t.color : SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length],
                 shape: SHOWDOWN_SHAPES[i % SHOWDOWN_SHAPES.length],
                 emoji: typeof t?.emoji === 'string' ? t.emoji.slice(0, 4) : ''
@@ -602,6 +643,7 @@ export function createShowdown(teams, { growth = false, title = 'Showdown', rule
         prevScorers: [],
         credits: {},
         lastGain: null,
+        lastGains: [],
         history: []
     };
 }
@@ -622,7 +664,7 @@ export function showdownAnswerer(sd, teamIndex) {
 
 function snapshotOf(sd) {
     return {
-        scores: sd.teams.map((t) => [t.score, t.streak, t.seat]),
+        scores: sd.teams.map((t) => [t.score, t.streak, t.seat, t.lives, t.out, t.dbl]),
         round: sd.round, golden: sd.golden, finished: sd.finished, reached: sd.reached, lastScorer: sd.lastScorer,
         roundScorers: [...sd.roundScorers], prevScorers: [...sd.prevScorers], credits: { ...sd.credits }
     };
@@ -634,6 +676,8 @@ function withHistory(sd) {
 
 function goalReached(sd) {
     const r = sd.rules || SHOWDOWN_RULES_DEFAULT;
+    if (r.mode === 'tug') return sd.teams.length === 2 && Math.abs(sd.teams[0].score - sd.teams[1].score) >= r.tugN;
+    if (r.mode === 'survivor') return sd.teams.filter((t) => !t.out).length <= 1;
     if (r.goal === 'points') return sd.teams.some((t) => t.score >= r.goalN);
     if (r.goal === 'questions') return sd.round > r.goalN;
     return false;
@@ -651,21 +695,34 @@ function advance(sd) {
 }
 
 /**
- * `points` (1–3, or negative for a penalty) to a team. A Golden Question doubles a gain. With the
- * Streak bonus, every third question in a row earns +1; with the Underdog boost, a team 3+ behind the
- * leader earns +1. In Buzz-in style the point ends the question; in Everyone style several teams can
- * score, each once per question for streaks and bonuses, until Next. The hot seat hero is credited.
+ * What a Treasure chest holds. Teams behind the leader find better chests (more coins, a steal), the
+ * leader never steals from itself, and a steal needs someone with points to steal from.
+ * Returns { kind: 'coins'|'steal'|'double', amount, from? }.
  */
-export function scoreShowdown(sd, teamIndex, points = 1) {
-    if (!sd || sd.finished || !sd.teams[teamIndex]) return sd;
-    const base = Math.round(Number(points) || 0);
-    if (!base) return sd;
-    const history = withHistory(sd);
+export function rollTreasure(sd, teamIndex, rng = Math.random) {
+    const team = sd.teams[teamIndex];
+    const others = sd.teams.map((t, i) => ({ t, i })).filter(({ t, i }) => i !== teamIndex && !t.dragon && t.score > 0);
+    const top = others.length ? others.reduce((a, b) => (b.t.score > a.t.score ? b : a)) : null;
+    const behind = top ? Math.max(0, top.t.score - team.score) : 0;
+    const table = [
+        { kind: 'coins', amount: 1, w: 34 },
+        { kind: 'coins', amount: 2, w: 22 + behind * 2 },
+        { kind: 'coins', amount: 3, w: 6 + behind * 3 },
+        { kind: 'double', amount: 0, w: 16 },
+        { kind: 'steal', amount: 1, w: top && behind > 0 ? 10 + behind * 3 : 0 }
+    ].filter((x) => x.w > 0);
+    let roll = rng() * table.reduce((sum, x) => sum + x.w, 0);
+    const pick = table.find((x) => (roll -= x.w) < 0) || table[0];
+    return pick.kind === 'steal' ? { kind: 'steal', amount: 1, from: top.i } : { kind: pick.kind, amount: pick.amount };
+}
+
+/** One team's point (or penalty) without history or moving on: the shared heart of every score. */
+function scoreOne(sd, teamIndex, base, rng) {
     const rules = sd.rules || SHOWDOWN_RULES_DEFAULT;
     const team = sd.teams[teamIndex];
     if (base < 0) {
         const teams = sd.teams.map((t, i) => (i === teamIndex ? { ...t, score: Math.max(0, t.score + base), streak: 0 } : t));
-        return { ...sd, teams, history, lastGain: { team: teamIndex, total: base, bonus: [] } };
+        return { ...sd, teams, lastGain: { team: teamIndex, total: base, bonus: [] } };
     }
     const first = !sd.roundScorers.includes(teamIndex);
     let gain = base * (sd.golden ? 2 : 1);
@@ -674,16 +731,82 @@ export function scoreShowdown(sd, teamIndex, points = 1) {
     if (rules.underdog && first && !sd.growth && leader - team.score >= 3) { gain += 1; bonus.push('underdog'); }
     const streak = first ? (sd.prevScorers.includes(teamIndex) ? team.streak + 1 : 1) : team.streak;
     if (rules.streak && first && !sd.growth && streak >= 3 && streak % 3 === 0) { gain += 1; bonus.push('streak'); }
+    let dbl = team.dbl;
+    let chest = null;
+    let teams = sd.teams;
+    if (rules.mode === 'treasure' && !team.dragon) {
+        if (dbl) { gain *= 2; bonus.push('double'); dbl = false; }
+        chest = rollTreasure(sd, teamIndex, rng);
+        if (chest.kind === 'coins') gain += chest.amount;
+        if (chest.kind === 'double') dbl = true;
+        if (chest.kind === 'steal') {
+            gain += 1;
+            teams = teams.map((t, i) => (i === chest.from ? { ...t, score: Math.max(0, t.score - 1) } : t));
+        }
+    }
     const seated = showdownAnswerer(sd, teamIndex);
     const credits = seated ? { ...sd.credits, [seated]: (sd.credits[seated] || 0) + gain } : sd.credits;
-    const teams = sd.teams.map((t, i) => (i === teamIndex ? { ...t, score: t.score + gain, streak } : t));
-    let out = {
-        ...sd, teams, credits, history, lastScorer: teamIndex,
+    teams = teams.map((t, i) => (i === teamIndex ? { ...t, score: t.score + gain, streak, dbl } : t));
+    return {
+        ...sd, teams, credits, lastScorer: teamIndex,
         roundScorers: first ? [...sd.roundScorers, teamIndex] : sd.roundScorers,
-        lastGain: { team: teamIndex, total: gain, bonus, golden: Boolean(sd.golden), answerer: seated }
+        lastGain: { team: teamIndex, total: gain, bonus, golden: Boolean(sd.golden), answerer: seated, chest }
     };
-    if (rules.style !== 'all') out = advance(out);
+}
+
+/**
+ * `points` (1–3, or negative for a penalty) to one or several teams at once ("two teams got it"), as
+ * one step for Undo. A Golden Question doubles a gain. With the Streak bonus, every third question in
+ * a row earns +1; with the Underdog boost, a team 3+ behind the leader earns +1; in Treasure every point
+ * opens a chest. In Buzz-in style the point ends the question; in Everyone style several teams can
+ * score, each once per question for streaks and bonuses, until Next. A knocked-out team cannot score.
+ * `lastGains` lists every team's gain, `lastGain` the first.
+ */
+export function scoreShowdownTeams(sd, indices, points = 1, { rng = Math.random } = {}) {
+    if (!sd || sd.finished) return sd;
+    const base = Math.round(Number(points) || 0);
+    const list = [...new Set((indices || []).map(Number))].filter((i) => sd.teams[i] && !sd.teams[i].out);
+    if (!base || !list.length) return sd;
+    const history = withHistory(sd);
+    let out = sd;
+    const gains = [];
+    for (const i of list) {
+        out = scoreOne(out, i, base, rng);
+        gains.push(out.lastGain);
+    }
+    out = { ...out, history, lastGain: gains[0], lastGains: gains };
+    if (base > 0 && (sd.rules || SHOWDOWN_RULES_DEFAULT).style !== 'all') out = advance(out);
     return { ...out, reached: goalReached(out) };
+}
+
+/** `points` to one team (see scoreShowdownTeams). */
+export function scoreShowdown(sd, teamIndex, points = 1, opts = {}) {
+    return scoreShowdownTeams(sd, [teamIndex], points, opts);
+}
+
+/**
+ * Survivor: one or several teams missed (a wrong answer, or no answer in time), as one step for Undo.
+ * Each loses a heart and its streak; with no hearts left a team is knocked out. If a miss would knock
+ * out every team still standing at once, they all keep their last heart instead (`saved`): a Survivor
+ * show always ends with a team standing. The show is won when one team is left.
+ */
+export function missShowdownTeams(sd, indices) {
+    if (!sd || sd.finished || sd.rules?.mode !== 'survivor') return sd;
+    const list = [...new Set((indices || []).map(Number))].filter((i) => sd.teams[i] && !sd.teams[i].out && !sd.teams[i].dragon);
+    if (!list.length) return sd;
+    let teams = sd.teams.map((t, i) => (list.includes(i) ? { ...t, lives: Math.max(0, t.lives - 1), streak: 0 } : t));
+    const standing = (ts) => ts.filter((t) => !t.dragon && !(t.out || t.lives === 0)).length;
+    const saved = standing(teams) === 0;
+    if (saved) teams = teams.map((t, i) => (list.includes(i) ? { ...t, lives: Math.max(1, t.lives) } : t));
+    teams = teams.map((t) => ({ ...t, out: t.out || t.lives === 0 }));
+    const gains = list.map((i) => ({ team: i, total: 0, bonus: [], miss: true, out: teams[i].out && !sd.teams[i].out, saved }));
+    const out = { ...sd, teams, history: withHistory(sd), lastGain: gains[0], lastGains: gains };
+    return { ...out, reached: goalReached(out) };
+}
+
+/** Survivor: one team missed (see missShowdownTeams). */
+export function missShowdown(sd, teamIndex) {
+    return missShowdownTeams(sd, [teamIndex]);
 }
 
 /** Next question (in Buzz-in style: nobody got it). */
@@ -710,13 +833,13 @@ export function undoShowdown(sd) {
     const last = sd?.history?.[sd.history.length - 1];
     if (!last) return sd;
     const teams = sd.teams.map((t, i) => {
-        const [score, streak, seat] = last.scores[i] || [t.score, t.streak, t.seat];
-        return { ...t, score, streak, seat };
+        const [score, streak, seat, lives = t.lives, out = t.out, dbl = t.dbl] = last.scores[i] || [t.score, t.streak, t.seat];
+        return { ...t, score, streak, seat, lives, out: Boolean(out), dbl: Boolean(dbl) };
     });
     return {
         ...sd, teams, round: last.round, golden: last.golden, finished: last.finished, reached: last.reached,
         lastScorer: last.lastScorer, roundScorers: last.roundScorers, prevScorers: last.prevScorers, credits: last.credits,
-        history: sd.history.slice(0, -1), lastGain: null
+        history: sd.history.slice(0, -1), lastGain: null, lastGains: []
     };
 }
 
@@ -745,22 +868,36 @@ export function removeShowdownMembers(sd, ids) {
     return { ...sd, teams, credits };
 }
 
-/** Standings with shared places for ties (1, 1, 3). */
+/**
+ * Standings with shared places for ties (1, 1, 3). Survivor ranks the teams still standing first, then
+ * by hearts left, then by points.
+ */
 export function showdownStandings(sd) {
-    const order = (sd?.teams || []).map((t, index) => ({ ...t, index }))
-        .sort((a, b) => b.score - a.score || a.index - b.index);
+    const survivor = sd?.rules?.mode === 'survivor';
+    const key = (t) => (survivor ? [t.out ? 0 : 1, t.lives, t.score] : [t.score]);
+    const cmp = (a, b) => {
+        const ka = key(a);
+        const kb = key(b);
+        for (let i = 0; i < ka.length; i++) if (kb[i] !== ka[i]) return kb[i] - ka[i];
+        return 0;
+    };
+    const order = (sd?.teams || []).map((t, index) => ({ ...t, index })).sort((a, b) => cmp(a, b) || a.index - b.index);
     let place = 0;
-    let lastScore = null;
+    let last = null;
     return order.map((t, i) => {
-        if (t.score !== lastScore) { place = i + 1; lastScore = t.score; }
+        if (!last || cmp(t, last) !== 0) { place = i + 1; last = t; }
         return { ...t, place };
     });
 }
 
-/** Indices of the winning team(s); empty while nobody has scored. */
+/** Indices of the winning team(s); empty while nothing has happened yet. */
 export function showdownWinners(sd) {
     const standings = showdownStandings(sd);
-    if (!standings.length || standings[0].score === 0) return [];
+    if (!standings.length) return [];
+    if (sd.rules?.mode === 'survivor') {
+        const untouched = sd.teams.every((t) => !t.out && t.lives === sd.teams[0].lives && t.score === 0);
+        if (untouched) return [];
+    } else if (standings[0].score === 0) return [];
     return standings.filter((t) => t.place === 1).map((t) => t.index);
 }
 
@@ -778,6 +915,11 @@ export function showdownStarPlayers(sd, max = 3) {
  */
 export function showdownBarLevels(sd) {
     const teams = sd?.teams || [];
+    if (sd?.rules?.mode === 'tug' && teams.length === 2) {
+        // where the rope's knot is: 0.5 the middle, 1 at the first team's winning line, 0 at the second's
+        const k = 0.5 + Math.max(-1, Math.min(1, (teams[0].score - teams[1].score) / sd.rules.tugN)) / 2;
+        return [k, 1 - k];
+    }
     if (sd?.rules?.goal === 'points') return teams.map((t) => Math.min(1, Math.max(0.06, t.score / sd.rules.goalN)));
     const max = Math.max(0, ...teams.map((t) => t.score));
     return teams.map((t) => (max === 0 ? 0.06 : Math.max(0.06, t.score / max)));
@@ -794,6 +936,11 @@ export function showdownRewardIds(sd, scope = 'winners') {
 /** "Question 3 of 10", "First to 10", or "Question 3". */
 export function showdownGoalText(sd) {
     const r = sd?.rules || SHOWDOWN_RULES_DEFAULT;
+    if (r.mode === 'tug') return `Pull ${r.tugN} ahead to win`;
+    if (r.mode === 'survivor') {
+        const left = (sd?.teams || []).filter((t) => !t.out).length;
+        return `Last team standing · ${left} still in`;
+    }
     if (r.goal === 'questions') return `Question ${Math.min(sd.round, r.goalN)} of ${r.goalN}`;
     if (r.goal === 'points') return `First to ${r.goalN}`;
     return `Question ${sd?.round ?? 1}`;
@@ -816,6 +963,9 @@ export function showdownPanel(sd, nameOf = () => '') {
         goal: r.goal,
         goalN: r.goalN,
         clockSecs: r.clock,
+        mode: r.mode,
+        tugN: r.tugN,
+        livesMax: r.mode === 'survivor' ? r.lives : 0,
         autoClock: Boolean(r.clock && r.autoClock),
         hotseat: r.hotseat,
         undo: Boolean(sd.history?.length),
@@ -824,7 +974,8 @@ export function showdownPanel(sd, nameOf = () => '') {
         teams: sd.teams.map((t, i) => {
             const base = {
                 name: t.name, color: t.color, shape: t.shape, emoji: t.emoji, dragon: Boolean(t.dragon),
-                got: sd.roundScorers.includes(i), hot: String(nameOf(showdownAnswerer(sd, i)) || ''), size: t.members.length
+                got: sd.roundScorers.includes(i), hot: String(nameOf(showdownAnswerer(sd, i)) || ''), size: t.members.length,
+                lives: t.lives, out: Boolean(t.out), dbl: Boolean(t.dbl)
             };
             return sd.growth ? base : { ...base, score: t.score, streak: t.streak };
         })

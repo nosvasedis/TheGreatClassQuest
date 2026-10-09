@@ -11,6 +11,9 @@
 // question if the teacher wants). A show can bring its own questions (showdownDeck.mjs): past Quiz of the
 // Week questions, the ones the class missed first, and quick questions from the book atlas wordlists
 // (the book, units and kinds of question the teacher picks in the Forge).
+// Four games: Race (bars climb), Tug of War (two teams pull a rope; win by N), Survivor (hearts; a miss
+// costs one; the last team standing wins) and Treasure (every point opens a chest: coins, a steal from
+// the leader, or a double next point). Several teams can get a point in one tap (one step for Undo).
 // Nursery / Pre-Junior play the Growth Festival way: flowers grow, no numbers, everyone blooms.
 // Rewards are ordinary Teamwork stars through the Award Stars cloud (one award per hero per day,
 // exactly as with the mouse), so the Showdown never invents a new kind of star.
@@ -20,12 +23,12 @@ import * as state from '../../state.js';
 import { playShowdownSfx } from '../../audio.js';
 import { getTodayDateString } from '../../utils.js';
 import {
-    createShowdown, scoreShowdown, nextShowdownQuestion, passShowdownSeats, finishShowdown, undoShowdown, rematchShowdown,
+    createShowdown, scoreShowdown, scoreShowdownTeams, missShowdownTeams, nextShowdownQuestion, passShowdownSeats, finishShowdown, undoShowdown, rematchShowdown,
     showdownWinners, showdownPanel, isGrowthLeague, showdownBarLevels, showdownAnswerer, showdownGoalText, showdownRewardIds,
     showdownTeamLooks, normalizeShowdownRules, removeShowdownMembers
 } from './remoteCore.mjs';
-import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml } from './remoteStageView.mjs';
-import { burstOn, confettiRain, isLiteFx, isStillFx } from './remoteFx.js';
+import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml } from './remoteStageView.mjs';
+import { burstOn, confettiRain, isLiteFx, isStillFx, sparkTo, centreOf } from './remoteFx.js';
 
 const ROOT_ID = 'qr-showdown';
 
@@ -189,6 +192,7 @@ function render({ finale = false } = {}) {
     const el = root();
     if (!el || !sd) return;
     el.dataset.growth = String(sd.growth);
+    el.dataset.mode = sd.rules?.mode || 'race';
     el.classList.toggle('is-blind', Boolean(sd.blind && !sd.growth && !finale));
     if (!finale) shownRound = sd.round;
     el.innerHTML = `${finale ? showdownFinaleHtml(sd, { nameOf, faceOf })
@@ -196,13 +200,19 @@ function render({ finale = false } = {}) {
         <button type="button" class="qr-sd__close" data-qr-sd-close aria-label="Close the arena" title="Close the arena (Esc)"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
 }
 
-/** Moves the bars and numbers without rebuilding the stage (smooth, cheap). */
-function update(scoredIndex = -1) {
+/** A team's lane (or its side of the rope in Tug of War). */
+function laneOf(i) {
+    return root()?.querySelector(`[data-team="${i}"]`) || null;
+}
+
+/** Moves the bars and numbers without rebuilding the stage (smooth, cheap). `scored`: the team(s) that just scored. */
+function update(scored = []) {
     const el = root();
     if (!el || !sd) return;
     const levels = showdownBarLevels(sd);
+    const hit = new Set([].concat(scored));
     sd.teams.forEach((t, i) => {
-        const lane = el.querySelector(`.qr-lane[data-team="${i}"]`);
+        const lane = el.querySelector(`[data-team="${i}"]`);
         if (!lane) return;
         lane.style.setProperty('--qr-level', levels[i].toFixed(3));
         const score = lane.querySelector('[data-qr-score]');
@@ -218,7 +228,7 @@ function update(scoredIndex = -1) {
             if (!streak) {
                 streak = document.createElement('span');
                 streak.className = 'qr-lane__streak';
-                track?.appendChild(streak);
+                (track || lane).appendChild(streak);
             }
             streak.innerHTML = `<i class="fas fa-fire"></i>${t.streak}`;
             streak.setAttribute('aria-label', `${t.streak} in a row`);
@@ -226,8 +236,10 @@ function update(scoredIndex = -1) {
         lane.classList.toggle('is-leading', !sd.blind && levels[i] >= 1 && t.score > 0 && sd.rules.goal !== 'points');
         lane.classList.toggle('is-got', sd.roundScorers.includes(i));
         syncSeat(lane, i);
-        if (i === scoredIndex) restartAnim(lane, 'is-scored');
+        syncModeBits(lane, t);
+        if (hit.has(i)) restartAnim(lane, 'is-scored');
     });
+    syncTug(levels);
     const round = el.querySelector('[data-qr-round]');
     if (round) round.textContent = String(sd.round);
     const goal = el.querySelector('[data-qr-goal]');
@@ -236,6 +248,45 @@ function update(scoredIndex = -1) {
     const blind = el.querySelector('[data-qr-blind]');
     if (blind) blind.hidden = !(sd.blind && !sd.growth);
     syncGolden();
+}
+
+/** Survivor's hearts and Out stamp, Treasure's ×2 badge. */
+function syncModeBits(lane, t) {
+    const mode = sd.rules?.mode;
+    if (mode === 'survivor') {
+        const hearts = lane.querySelector('[data-qr-hearts]');
+        const had = hearts ? hearts.querySelectorAll('.qr-heart:not(.is-lost)').length : -1;
+        if (hearts && had !== t.lives) {
+            hearts.outerHTML = heartsHtml(t.lives, sd.rules.lives);
+            // the heart just lost cracks; one given back (Undo) glows in
+            const now = lane.querySelector('[data-qr-hearts]');
+            const k = had > t.lives ? t.lives : t.lives - 1;
+            const one = now?.querySelectorAll('.qr-heart')[k];
+            if (one && !isStillFx()) one.classList.add(had > t.lives ? 'is-break' : 'is-back');
+        }
+        lane.classList.toggle('is-out', Boolean(t.out));
+        const stamp = lane.querySelector('[data-qr-stamp]');
+        if (stamp) stamp.hidden = !t.out;
+    }
+    if (mode === 'treasure') {
+        const dbl = lane.querySelector('[data-qr-dbl]');
+        if (dbl) {
+            const was = !dbl.hidden;
+            dbl.hidden = !t.dbl;
+            if (t.dbl && !was) restartAnim(dbl, 'is-in');
+        }
+    }
+}
+
+/** Tug of War: the knot slides to where the lead puts it; the team ahead leans back, a near win trembles. */
+function syncTug(levels) {
+    const box = root()?.querySelector('[data-qr-tug]');
+    if (!box || sd.teams.length !== 2) return;
+    box.style.setProperty('--pull', levels[0].toFixed(3));
+    const diff = sd.teams[0].score - sd.teams[1].score;
+    box.classList.toggle('is-near', !sd.blind && Math.abs(diff) === sd.rules.tugN - 1);
+    box.classList.toggle('is-a', diff > 0);
+    box.classList.toggle('is-b', diff < 0);
 }
 
 /** The hot seat chip of one lane: a new name slides in. */
@@ -270,7 +321,7 @@ function rollCall() {
     clearTimeout(rollTimer);
     el.classList.add('is-rollcall');
     if (!isStillFx() && !isLiteFx()) {
-        const lanes = [...el.querySelectorAll('.qr-lane')];
+        const lanes = [...el.querySelectorAll('[data-team]')];
         let step = 0;
         lanes.forEach((lane, li) => {
             const n = lane.querySelectorAll('[data-qr-face]').length;
@@ -517,11 +568,64 @@ function openArena() {
     el.focus({ preventScroll: true });
 }
 
+/** One team's point lands: its sound (a team's motif), sparks, faces, bonus words and, in Treasure, its chest. */
+function celebrate(gain) {
+    if (!sd || !gain) return;
+    const i = gain.team;
+    const t = sd.teams[i];
+    const lane = laneOf(i);
+    if (!t) return;
+    playShowdownSfx('score', { team: i, points: gain.total, golden: gain.golden, growth: sd.growth });
+    if (sd.rules?.mode === 'tug') {
+        setTimeout(() => playShowdownSfx('tug', { team: i }), 160);
+        const box = root()?.querySelector('[data-qr-tug]');
+        if (box && !isStillFx()) restartAnim(box, i ? 'is-yank-b' : 'is-yank-a');
+    }
+    if (!sd.growth && gain.bonus.includes('streak')) setTimeout(() => playShowdownSfx('streak', { n: t.streak }), 650);
+    if (!sd.growth && gain.bonus.includes('underdog')) setTimeout(() => playShowdownSfx('underdog'), 900);
+    if (lane) burstOn(lane.querySelector('.qr-lane__name') || lane, { color: t.color, count: t.streak >= 3 || gain.total > 1 ? 26 : 14 });
+    popFaces(lane, gain.answerer);
+    if (!sd.growth && !sd.blind) {
+        if (gain.total > 1 && !gain.chest) popOn(lane, `+${gain.total}`);
+        if (gain.bonus.includes('double')) popOn(lane, '💎 Double!', 'gem');
+        if (gain.bonus.includes('streak')) setTimeout(() => popOn(lane, '🔥 Streak +1', 'fire'), 260);
+        if (gain.bonus.includes('underdog')) setTimeout(() => popOn(lane, '⚡ Underdog +1', 'bolt'), 520);
+    }
+    if (gain.chest) openChest(lane, gain.chest);
+}
+
+/** Treasure: the chest pops open over the lane; a steal flies a coin over from the team it robbed. */
+function openChest(lane, chest) {
+    if (!lane) return;
+    const from = chest.kind === 'steal' ? sd.teams[chest.from] : null;
+    setTimeout(() => {
+        if (!lane.isConnected) return;
+        playShowdownSfx('chest', { kind: chest.kind });
+        lane.querySelector('.qr-chest')?.remove();
+        lane.insertAdjacentHTML('beforeend', chestHtml(chest, { from: from?.name || '' }));
+        const box = lane.querySelector('.qr-chest');
+        setTimeout(() => box?.remove(), isStillFx() ? 2000 : 2800);
+        if (from) {
+            const victim = laneOf(chest.from);
+            setTimeout(() => {
+                if (!victim?.isConnected) return;
+                playShowdownSfx('steal');
+                popOn(victim, '−1 stolen!', 'steal');
+                restartAnim(victim, 'is-robbed');
+                const fromEl = victim.querySelector('[data-qr-score]') || victim;
+                sparkTo(lane.querySelector('[data-qr-score]') || lane, { color: '#fcd34d', size: 16, duration: 560, burst: 10, from: centreOf(fromEl) });
+            }, 520);
+        }
+    }, 420);
+}
+
 function pointMessage(team, gain) {
     if (sd.growth) return gain.golden ? `${team.name}'s flower grows twice` : `${team.name}'s flower grows`;
     if (gain.total < 0) return `${gain.total} ${team.name}`.replace('-', '−');
     const extras = [gain.golden && 'golden', gain.bonus.includes('streak') && 'streak bonus', gain.bonus.includes('underdog') && 'underdog boost'].filter(Boolean);
     const who = gain.answerer ? ` (${nameOf(gain.answerer) || 'hero'})` : '';
+    const c = gain.chest;
+    if (c) extras.push(c.kind === 'double' ? 'chest: double next point' : c.kind === 'steal' ? `chest: steal from ${sd.teams[c.from]?.name || 'the leader'}` : `chest: +${c.amount}`);
     if (team.dragon) return `+${gain.total} The Dragon${extras.length ? ` · ${extras.join(' · ')}` : ''}`;
     return `+${gain.total} ${team.name}${who}${extras.length ? ` · ${extras.join(' · ')}` : ''}`;
 }
@@ -573,40 +677,62 @@ export async function runShowdownCommand(p, ctx) {
         case 'point':
         case 'minus': {
             if (!sd || sd.finished) return 'No Showdown on screen';
-            const team = sd.teams[p.team];
-            if (!team) return '';
             const up = p.action === 'point';
-            const lane = root()?.querySelector(`.qr-lane[data-team="${p.team}"]`);
-            const target = lane?.querySelector('.qr-lane__bar, .qr-lane__flower') || lane;
-            if (up && target) await ctx.sparkTo(target, { color: team.color, size: 24, duration: 520, burst: 16 });
+            // several teams can get it at once ("Foxes and Dolphins both got it"): one tap, one Undo
+            const asked = up && Array.isArray(p.teams) ? p.teams : [p.team];
+            const list = [...new Set(asked)].filter((i) => sd.teams[i] && !(up && sd.teams[i].out));
+            if (!list.length) return sd.teams[p.team]?.out ? `${sd.teams[p.team].name} is out` : '';
+            if (up) {
+                // the sparks fly together, a beat apart, and the points land as the last one arrives
+                await Promise.all(list.map((i, k) => {
+                    const lane = laneOf(i);
+                    const target = lane?.querySelector('.qr-lane__bar, .qr-lane__flower, [data-qr-score]') || lane;
+                    if (!target) return null;
+                    return new Promise((done) => setTimeout(() => sparkTo(target, { color: sd?.teams[i]?.color || '#fcd34d', size: 24, duration: 520, burst: 16 }).then(done), k * 110));
+                }));
+            }
             if (!sd || sd.finished) return '';
             const leaderBefore = showdownWinners(sd);
-            sd = scoreShowdown(sd, p.team, up ? (p.points || 1) : -1);
+            sd = up ? scoreShowdownTeams(sd, list, p.points || 1) : scoreShowdown(sd, list[0], -1);
             // Buzz-in: the point ends the question, so the clock stops; Everyone: the other teams still write
             if (!up || sd.rules.style !== 'all') stopCount();
-            update(up ? p.team : -1);
-            const t = sd.teams[p.team];
-            const gain = sd.lastGain || { total: up ? 1 : -1, bonus: [] };
+            update(up ? list : []);
+            const gains = up ? (sd.lastGains?.length ? sd.lastGains : [sd.lastGain]).filter(Boolean) : [];
             if (up) {
-                playShowdownSfx('score', { team: p.team, points: gain.total, golden: gain.golden, growth: sd.growth });
-                if (!sd.growth && gain.bonus.includes('streak')) setTimeout(() => playShowdownSfx('streak', { n: t.streak }), 650);
-                if (!sd.growth && gain.bonus.includes('underdog')) setTimeout(() => playShowdownSfx('underdog'), 900);
+                gains.forEach((gain, k) => setTimeout(() => { if (root()) celebrate(gain); }, k * 280));
                 const leaderNow = showdownWinners(sd);
                 if (!sd.growth && !sd.blind && leaderNow.length === 1 && leaderBefore.length && !leaderBefore.includes(leaderNow[0])) {
-                    setTimeout(() => playShowdownSfx('lead'), 1150);
+                    setTimeout(() => playShowdownSfx('lead'), 1150 + (gains.length - 1) * 280);
                 }
-                if (lane) burstOn(lane.querySelector('.qr-lane__name') || lane, { color: team.color, count: t.streak >= 3 || gain.total > 1 ? 26 : 14 });
-                popFaces(lane, gain.answerer);
-                if (!sd.growth && !sd.blind) {
-                    if (gain.total > 1) popOn(lane, `+${gain.total}`);
-                    if (gain.bonus.includes('streak')) setTimeout(() => popOn(lane, '🔥 Streak +1', 'fire'), 260);
-                    if (gain.bonus.includes('underdog')) setTimeout(() => popOn(lane, '⚡ Underdog +1', 'bolt'), 520);
-                }
+                if (gains.length > 2 && !isStillFx()) setTimeout(() => playShowdownSfx('chorus', { n: gains.length }), gains.length * 280 + 200);
             } else playShowdownSfx('minus');
             if (sd.reached) onGoal(ctx);
             else if (up && sd.rules.style !== 'all') moveCard();
             ctx.scheduleStage(0);
-            return pointMessage(team, gain);
+            if (!up) return pointMessage(sd.teams[list[0]], sd.lastGain || { total: -1, bonus: [] });
+            if (gains.length === 1) return pointMessage(sd.teams[gains[0].team], gains[0]);
+            return gains.map((g) => (sd.growth ? sd.teams[g.team].name : `+${g.total} ${sd.teams[g.team].name}`)).join(' · ') + (sd.growth ? ': flowers grow' : '');
+        }
+        case 'miss': {
+            if (!sd || sd.finished || sd.rules.mode !== 'survivor') return '';
+            const list = [...new Set(Array.isArray(p.teams) ? p.teams : [p.team])].filter((i) => sd.teams[i] && !sd.teams[i].out);
+            if (!list.length) return '';
+            sd = missShowdownTeams(sd, list);
+            const gains = sd.lastGains || [];
+            update();
+            gains.forEach((g, k) => setTimeout(() => {
+                const lane = laneOf(g.team);
+                if (lane && !isStillFx()) restartAnim(lane, g.out ? 'is-knocked' : 'is-hit');
+                playShowdownSfx(g.out ? 'knockout' : 'miss', { team: g.team });
+            }, k * 320));
+            if (sd.reached) setTimeout(() => onGoal(ctx), gains.length * 320 + 400);
+            ctx.scheduleStage(0);
+            const names = gains.map((g) => sd.teams[g.team].name);
+            const and = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} & ${xs[xs.length - 1]}` : xs[0] || '');
+            if (gains[0]?.saved) return 'Every team missed: all keep their last heart';
+            const outs = gains.filter((g) => g.out).map((g) => sd.teams[g.team].name);
+            if (outs.length) return `${and(outs)} ${outs.length === 1 ? 'is' : 'are'} knocked out!`;
+            return `${and(names)} lose${names.length === 1 ? 's' : ''} a heart`;
         }
         case 'next': {
             if (!sd || sd.finished) return '';

@@ -538,7 +538,7 @@ export function lessonHtml(stage, { customMinutes = 3 } = {}) {
  * Show mode: Quiz of the Week's host console, the Team Forge before a Showdown, the host console while
  * it runs, and the finale. `forge` is the Forge's model (built by remoteWand.js from the class roster).
  */
-export function showHtml(stage, { secret = null, clock = 0, forge = null, points = 1, reward = { scope: 'winners', stars: 1 } } = {}) {
+export function showHtml(stage, { secret = null, clock = 0, forge = null, points = 1, reward = { scope: 'winners', stars: 1 }, multi = false, picks = [] } = {}) {
     const panel = stage?.panel;
     if (panel?.kind === 'quiz') return `<section class="qw-show">${quizHtml(panel, secret)}</section>`;
     if (panel?.kind !== 'showdown') {
@@ -554,7 +554,7 @@ export function showHtml(stage, { secret = null, clock = 0, forge = null, points
         </section>`;
     }
     if (panel.finished) return finaleHtml(panel, reward);
-    return arenaHtml(panel, { clock, points, secret });
+    return arenaHtml(panel, { clock, points, secret, multi, picks });
 }
 
 /** Recent spells: what the projector did with the Wand's last commands (this phone only). */

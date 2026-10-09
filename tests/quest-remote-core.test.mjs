@@ -669,7 +669,7 @@ test('Showdown screens: the Forge, the console, the finale and the arena', async
     assert.match(arena, /data-qr-seat hidden/, 'an empty chip keeps its row, invisibly');
 
     const wand = read('features/questRemote/remoteWand.js');
-    assert.match(wand, /action: 'open', split: f\.split, teams: packShowdownTeams\(f\.teams\), rules: \{ \.\.\.f\.rules \}/);
+    assert.match(wand, /action: 'open', split: f\.split, teams: packShowdownTeams\(f\.teams\), rules: \{ \.\.\.f\.rules, mode: model\.mode \}/);
     // trying splits costs nothing: the Forge only writes when the show starts
     assert.doesNotMatch(wand.slice(wand.indexOf('function forgeModel'), wand.indexOf('function forgeTap')), /send\(/);
 });
@@ -890,4 +890,117 @@ test('Showdown book words: every wordlist book makes questions, from the units t
     assert.match(panel, /data-qw-wunit="2" aria-pressed="true"/);
     assert.match(panel, /qw-wunit is-on is-reached/);
     assert.match(panel, /data-qw="forge-words-sofar"/);
+});
+
+test('Showdown: several teams score in one tap (one Undo), and the new games play by their rules', async () => {
+    const core = await import('../features/questRemote/remoteCore.mjs');
+    const view = await import('../features/questRemote/remoteStageView.mjs');
+    const wandView = await import('../features/questRemote/showdownWandView.mjs');
+    const teams = (n) => Array.from({ length: n }, (_, i) => ({ name: `T${i}`, members: [`s${i}a`, `s${i}b`] }));
+    const cmd = (payload) => core.validateCommand({ type: 'showdown', payload, clientSeq: 1, wandId: 'w', sentAt: Date.now() });
+
+    // several teams at once: one step, each team scores, buzz-in moves on once
+    let sd = core.createShowdown(teams(3), { rules: { style: 'buzz' } });
+    sd = core.scoreShowdownTeams(sd, [0, 2], 2);
+    assert.deepEqual(sd.teams.map((t) => t.score), [2, 0, 2]);
+    assert.equal(sd.lastGains.length, 2);
+    assert.equal(sd.round, 2);
+    assert.equal(sd.history.length, 1);
+    sd = core.undoShowdown(sd);
+    assert.deepEqual(sd.teams.map((t) => t.score), [0, 0, 0]);
+    assert.equal(sd.round, 1);
+    assert.equal(cmd({ action: 'point', teams: [0, 2], points: 1 }).ok, true);
+    assert.equal(cmd({ action: 'point', teams: [0, 0] }).ok, false, 'no team twice');
+    assert.equal(cmd({ action: 'point', teams: [9] }).ok, false);
+    assert.equal(cmd({ action: 'miss', teams: [1] }).ok, true);
+
+    // the game a set of teams can play
+    assert.equal(core.showdownModeFor('tug', { teams: 3 }), 'race');
+    assert.equal(core.showdownModeFor('tug', { teams: 2 }), 'tug');
+    assert.equal(core.showdownModeFor('survivor', { teams: 2, dragon: true }), 'race');
+    assert.equal(core.showdownModeFor('treasure', { teams: 4, growth: true }), 'race');
+    assert.equal(cmd({ action: 'open', rules: { mode: 'chess' } }).ok, false);
+    assert.equal(cmd({ action: 'open', rules: { mode: 'survivor', lives: 9 } }).ok, false);
+    assert.equal(core.normalizeShowdownRules({ mode: 'tug', tugN: 99, lives: 0 }).tugN, core.SHOWDOWN_TUG_MAX);
+    assert.equal(core.normalizeShowdownRules({ lives: 0 }).lives, core.SHOWDOWN_LIVES_MIN);
+
+    // Tug of War: the knot follows the lead, a lead of tugN wins
+    let tug = core.createShowdown(teams(2), { rules: { mode: 'tug', tugN: 3, goal: 'points', goalN: 5 } });
+    assert.equal(tug.rules.goal, 'open', 'the rope is its own finish');
+    assert.deepEqual(core.showdownBarLevels(tug), [0.5, 0.5]);
+    tug = core.scoreShowdown(tug, 0, 2);
+    assert.ok(core.showdownBarLevels(tug)[0] > 0.8 && !tug.reached);
+    tug = core.scoreShowdown(tug, 0, 1);
+    assert.equal(tug.reached, true);
+    assert.match(core.showdownGoalText(tug), /Pull 3 ahead/);
+    const tugMarkup = view.showdownHtml(tug, {});
+    assert.match(tugMarkup, /class="qr-tug"[^>]*--pull:1\.000/);
+    assert.match(tugMarkup, /data-team="0"[\s\S]*data-team="1"/);
+    assert.match(tugMarkup, /Tug of War/);
+
+    // Survivor: misses cost hearts, the last team standing wins, nobody can score once out
+    let sv = core.createShowdown(teams(3), { rules: { mode: 'survivor', lives: 2 } });
+    assert.deepEqual(sv.teams.map((t) => t.lives), [2, 2, 2]);
+    assert.deepEqual(core.showdownWinners(sv), [], 'nothing has happened yet');
+    sv = core.missShowdown(sv, 1);
+    sv = core.missShowdown(sv, 1);
+    assert.equal(sv.teams[1].out, true);
+    assert.equal(sv.lastGain.out, true);
+    assert.equal(core.scoreShowdown(sv, 1, 1).teams[1].score, 0, 'an out team cannot score');
+    assert.match(core.showdownGoalText(sv), /2 still in/);
+    // both remaining teams miss on their last heart at once: they keep it (a Survivor show always has a winner)
+    sv = core.missShowdownTeams(sv, [0, 2]);
+    sv = core.missShowdownTeams(sv, [0, 2]);
+    assert.equal(sv.lastGain.saved, true);
+    assert.deepEqual(sv.teams.map((t) => [t.lives, t.out]), [[1, false], [0, true], [1, false]]);
+    sv = core.missShowdown(sv, 2);
+    assert.equal(sv.reached, true);
+    assert.deepEqual(core.showdownWinners(sv), [0]);
+    sv = core.undoShowdown(sv);
+    assert.deepEqual(sv.teams.map((t) => t.out), [false, true, false], 'Undo gives the heart back');
+    assert.match(view.showdownHtml(sv, {}), /qr-lane__hearts[\s\S]*is-out[\s\S]*qr-lane__stamp/);
+    assert.equal(core.missShowdown(core.createShowdown(teams(2)), 0).teams[0].lives, 0, 'no misses outside Survivor');
+
+    // Treasure: every point opens a chest; a seeded roll is repeatable
+    const seq = (values) => { let i = 0; return () => values[i++ % values.length]; };
+    let tr = core.createShowdown(teams(2), { rules: { mode: 'treasure', streak: false } });
+    tr = core.scoreShowdown(tr, 0, 1, { rng: seq([0]) }); // the first slot: +1 coin
+    assert.deepEqual(tr.lastGain.chest, { kind: 'coins', amount: 1 });
+    assert.equal(tr.teams[0].score, 2);
+    // a steal: only for a team behind, from the leader
+    const steal = core.rollTreasure(tr, 1, () => 0.999);
+    assert.deepEqual(steal, { kind: 'steal', amount: 1, from: 0 });
+    tr = core.scoreShowdown(tr, 1, 1, { rng: () => 0.999 });
+    assert.deepEqual([tr.teams[0].score, tr.teams[1].score], [1, 2]);
+    assert.notEqual(core.rollTreasure(core.createShowdown(teams(2), { rules: { mode: 'treasure' } }), 0, () => 0.999).kind, 'steal', 'nobody to steal from');
+    // a double chest doubles the team's next point
+    let dbl = core.createShowdown(teams(2), { rules: { mode: 'treasure', streak: false } });
+    // weights 34 / 22 / 6 / 16 (coins 1, 2, 3, double) with nobody ahead: a roll just past the coins
+    dbl = core.scoreShowdown(dbl, 0, 1, { rng: () => (34 + 22 + 6 + 1) / 78 });
+    assert.equal(dbl.lastGain.chest.kind, 'double');
+    assert.equal(dbl.teams[0].dbl, true);
+    dbl = core.scoreShowdown(dbl, 0, 1, { rng: seq([0]) });
+    assert.ok(dbl.lastGain.bonus.includes('double'));
+    assert.equal(dbl.lastGain.total, 3, '1 doubled to 2, plus a coin');
+    assert.equal(dbl.teams[0].dbl, false);
+    assert.match(view.chestHtml({ kind: 'steal', amount: 1 }, { from: 'Foxes' }), /Steal! \+1 from Foxes/);
+    assert.match(view.chestHtml({ kind: 'coins', amount: 2 }), /\+2 coins/);
+
+    // the Wand: Several teams turns taps into picks and one button; Survivor's Miss; the Forge's game step
+    const panel = core.showdownPanel(core.createShowdown(teams(3), { rules: { mode: 'survivor', lives: 3 } }));
+    assert.equal(panel.livesMax, 3);
+    const one = wandView.arenaHtml(panel, {});
+    assert.match(one, /data-action="miss" data-team="0"/);
+    assert.match(one, /data-qw="sd-multi"/);
+    const many = wandView.arenaHtml(panel, { multi: true, picks: [0, 2] });
+    assert.match(many, /data-qw-sdpick="0"/);
+    assert.match(many, /data-action="point" data-teams="0,2" data-points="1"/);
+    assert.match(many, /data-action="miss" data-teams="0,2"/);
+    assert.match(many, /\+1 to 2 teams/);
+    const forge = wandView.forgeHtml({ split: 'guilds', teams: [{ name: 'A', members: [] }, { name: 'B', members: [] }, { name: 'C', members: [] }], rules: core.normalizeShowdownRules({ mode: 'survivor' }), mode: 'survivor', canTug: false });
+    assert.match(forge, /data-value="tug"[^>]*disabled/);
+    assert.match(forge, /forge-lives-up/);
+    assert.doesNotMatch(forge, /data-qw-rule="goal"/, 'Survivor has no goal row');
+    const wandSrc = readFileSync(new URL('../features/questRemote/remoteWand.js', import.meta.url), 'utf8');
+    assert.match(wandSrc, /if \(d\.teams\) p\.teams = /);
 });

@@ -731,3 +731,38 @@ button.qw-fhero:active { transform: scale(0.92); background: var(--team) !import
 .qw-wunit.is-reached::after { content: ''; position: absolute; right: 4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 2px rgba(15, 12, 46, 0.8); }
 .qw-words__legend { display: flex; align-items: center; gap: 6px; }
 .qw-words__legend .qw-wunit { width: 18px; min-height: 18px; border-radius: 6px; }
+
+/* ── Showdown games on the Wand: the Forge's game tiles, Several teams, hearts, ×2, the rope ── */
+.qw-modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.qw-mode { min-height: 72px; }
+.qw-mode--survivor .qw-split__icon { color: #fb7185; }
+.qw-mode--treasure .qw-split__icon { color: #22d3ee; }
+.qw-mode--tug .qw-split__icon { color: #a3e635; }
+.qw-mode.is-on .qw-split__icon { color: #fde68a; }
+.qw-pts__multi { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; font-weight: 700; font-size: 0.82rem; color: var(--qw-soft); background: var(--qw-glass) !important; box-shadow: inset 0 0 0 1px var(--qw-line); }
+.qw-pts__multi.is-on { color: #052e16; background: linear-gradient(180deg, #bbf7d0, #22c55e) !important; box-shadow: 0 4px 12px -4px rgba(34, 197, 94, 0.7); }
+.qw-pts__blind { margin-left: 6px; }
+.qw-teams.is-picking .qw-team__hit { opacity: 0.72; transform: scale(0.97); transition: transform 0.15s ease, opacity 0.15s ease; }
+.qw-teams.is-picking .qw-team.is-picked .qw-team__hit { opacity: 1; transform: none; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.3), 0 0 0 3px #4ade80, 0 10px 24px -8px var(--team); }
+.qw-team__pick { position: absolute; top: 10px; left: 12px; font-size: 1.3rem; color: rgba(255, 255, 255, 0.55); }
+.qw-team.is-picked .qw-team__pick { color: #fff; filter: drop-shadow(0 0 6px rgba(74, 222, 128, 0.9)); }
+.qw-multi { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin-top: 10px; }
+.qw-multi .qw-btn { min-height: 48px; }
+.qw-multi__go:disabled, .qw-multi__miss:disabled { opacity: 0.45; }
+.qw-multi__miss { color: #fff1f2 !important; background: linear-gradient(180deg, #fb7185, #be123c) !important; box-shadow: inset 0 -4px 0 #881337; padding-bottom: 3px; }
+.qw-team__hearts { display: inline-flex; gap: 3px; font-size: 0.82rem; color: #fff; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
+.qw-team__hearts .is-lost { opacity: 0.4; }
+.qw-team__miss { font-size: 1rem; color: #fecdd3 !important; }
+.qw-team__dbl { position: absolute; bottom: 20px; right: 10px; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; color: #ecfeff; background: linear-gradient(180deg, #22d3ee, #0e7490); box-shadow: 0 0 10px rgba(34, 211, 238, 0.6); }
+.qw-team.is-out .qw-team__hit { filter: grayscale(0.9) brightness(0.6); }
+.qw-team__out { position: absolute; top: 44%; left: 50%; padding: 2px 12px; border: 3px solid #f43f5e; border-radius: 8px; font: 400 1.2rem/1 var(--qw-title); letter-spacing: 0.1em; text-transform: uppercase; color: #ffe4e6; background: rgba(76, 5, 25, 0.8); transform: translate(-50%, -50%) rotate(-12deg); }
+.qw-tug { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 0 0 12px; }
+.qw-tug__end { font-size: 1.4rem; }
+.qw-tug__rope { position: relative; height: 12px; border-radius: 999px; background: linear-gradient(90deg, var(--a) 0 12%, transparent 12% 88%, var(--b) 88%), repeating-linear-gradient(115deg, #d6a461 0 6px, #a87532 6px 10px); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); }
+.qw-tug__knot { position: absolute; top: 50%; left: calc(12% + (1 - var(--pull)) * 76%); width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fca5a5, #dc2626 60%, #7f1d1d); border: 2px solid #fff7d6; transform: translate(-50%, -50%); transition: left 0.6s cubic-bezier(0.2, 1.3, 0.4, 1); }
+.qw-show--survivor .qw-showhead__round { color: #fecdd3; }
+.qw-show--treasure .qw-showhead__round { color: #a5f3fc; background: rgba(34, 211, 238, 0.12); box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.4); }
+.qw-show--tug .qw-showhead__round { color: #d9f99d; background: rgba(132, 204, 22, 0.12); box-shadow: inset 0 0 0 1px rgba(163, 230, 53, 0.4); }
+.qw-lite .qw-team__dbl, .qw-lite .qw-pts__multi.is-on { box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .qw-tug__knot, .qw-teams.is-picking .qw-team__hit { transition: none; } }
+@media (max-width: 360px) { .qw-modes { grid-template-columns: repeat(2, 1fr); } }

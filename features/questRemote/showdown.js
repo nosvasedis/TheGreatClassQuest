@@ -9,7 +9,8 @@
 // Every lane shows its heroes' faces (names as tooltips, a roll call as the arena opens), so the class
 // sees who is in which team. The answer clock is optional (Off, or 5–30 s, starting by itself with each
 // question if the teacher wants). A show can bring its own questions (showdownDeck.mjs): past Quiz of the
-// Week questions, the ones the class missed first, and quick questions from the book's words.
+// Week questions, the ones the class missed first, and quick questions from the book atlas wordlists
+// (the book, units and kinds of question the teacher picks in the Forge).
 // Nursery / Pre-Junior play the Growth Festival way: flowers grow, no numbers, everyone blooms.
 // Rewards are ordinary Teamwork stars through the Award Stars cloud (one award per hero per day,
 // exactly as with the mouse), so the Showdown never invents a new kind of star.
@@ -119,9 +120,9 @@ async function forgedTeams(classId, p) {
  * missed questions first, and quick questions from the book units it has been practising. One Firestore
  * read for the quizzes, the wordlists ship with the app, nothing is written and no AI is asked.
  */
-async function loadDeck(classId, cls, source) {
+async function loadDeck(classId, cls, source, wordChoice = null) {
     if (!source || source === 'voice') return { cards: [], label: '' };
-    const { quizDeckCards, wordDeckCards, buildShowdownDeck, deckUnits, deckUnitLabel } = await import('./showdownDeck.mjs');
+    const { quizDeckCards, wordDeckCards, buildShowdownDeck, deckUnitLabel, cleanWordChoice, defaultWordChoice, shortBookTitle } = await import('./showdownDeck.mjs');
     let quiz = [];
     let words = [];
     const labels = [];
@@ -135,16 +136,27 @@ async function loadDeck(classId, cls, source) {
     if (source === 'words' || source === 'mix') {
         try {
             const [{ getClassBookPlan }, atlas] = await Promise.all([import('../bookProgress.js'), import('../bookAtlas.mjs')]);
-            const units = deckUnits(getClassBookPlan(classId));
-            const young = ['Nursery', 'Pre-Junior', 'Junior A', 'Junior B'].includes(cls?.questLevel);
-            for (const u of units) {
-                const list = await atlas.getUnitWords(u.bookId, u.unit, { component: u.component, limit: 24 }).catch(() => []);
-                const src = deckUnitLabel(u, (x) => atlas.describeUnit(atlas.BOOK_ATLAS, x.bookId, x.unit));
-                const cards = wordDeckCards(list, { src, young, max: 12 });
-                if (cards.length) { words.push(...cards); labels.push(src); }
+            const ctx = { atlas: atlas.BOOK_ATLAS, wordBooks: atlas.WORDLIST_BOOK_IDS };
+            // the teacher's choice from the Forge (book, units, kinds); an older Wand sends none: the class's own units
+            const choice = cleanWordChoice(wordChoice, ctx)
+                || defaultWordChoice({ ...ctx, bookPlan: getClassBookPlan(classId), league: cls?.questLevel });
+            if (choice) {
+                const young = ['Nursery', 'Pre-Junior', 'Junior A', 'Junior B'].includes(cls?.questLevel);
+                const pool = [];
+                for (const unit of choice.units) {
+                    const src = deckUnitLabel({ bookId: choice.book, unit }, (x) => atlas.describeUnit(atlas.BOOK_ATLAS, x.bookId, x.unit));
+                    const list = await atlas.getUnitWords(choice.book, unit, { component: 'sb' }).catch(() => []);
+                    pool.push(...list.map((w) => ({ ...w, src })));
+                }
+                words = wordDeckCards(pool, { kinds: choice.kinds, young, max: 30 });
+                if (words.length) {
+                    const book = atlas.BOOK_ATLAS.find((b) => b.id === choice.book);
+                    const u = choice.units;
+                    const run = u[u.length - 1] - u[0] === u.length - 1;
+                    const list = u.length === 1 ? `unit ${u[0]}` : run ? `units ${u[0]}–${u[u.length - 1]}` : `units ${u.slice(0, 4).join(', ')}${u.length > 4 ? '…' : ''}`;
+                    labels.push(`${shortBookTitle(book)} · ${list}`);
+                }
             }
-            // newest unit first, but mixed a little so two units take turns
-            words = words.slice(0, 30);
         } catch (error) { console.warn('Showdown deck: book words', error); }
     }
     return { cards: buildShowdownDeck(source, { quiz, words }), label: labels.join(' · ') };
@@ -528,7 +540,7 @@ export async function runShowdownCommand(p, ctx) {
             const rules = normalizeShowdownRules(p.rules && typeof p.rules === 'object' ? p.rules : p);
             const [teams, loaded] = await Promise.all([
                 Array.isArray(p.teams) ? forgedTeams(classId, p) : buildTeams(classId),
-                loadDeck(classId, cls, rules.deck).catch(() => ({ cards: [], label: '' }))
+                loadDeck(classId, cls, rules.deck, p.words).catch(() => ({ cards: [], label: '' }))
             ]);
             if (teams.filter((t) => !t.dragon).every((t) => !t.members.length)) return 'Nobody is here to play';
             const roster = (state.get('allStudents') || []).filter((s) => s.classId === classId);

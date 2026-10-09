@@ -27,7 +27,7 @@ const COUNTED = new Set(['fair', 'mixed', 'random']);
 export const FORGE_DECKS = Object.freeze([
     { key: 'voice', label: 'I ask', icon: 'fa-comment-dots', hint: 'You ask out loud, as always. The arena keeps the score.' },
     { key: 'quiz', label: 'Past quizzes', icon: 'fa-scroll', hint: 'Questions from Quiz of the Week quizzes this class has already played, the ones it missed first. This week\'s quiz stays a secret until it is played.' },
-    { key: 'words', label: 'Book words', icon: 'fa-book-open', hint: 'Quick questions from the words of the book units you have been teaching (from your homework notes): gap-fills, meanings in Greek and back.' },
+    { key: 'words', label: 'Book words', icon: 'fa-book-open', hint: 'Quick questions made from the book atlas wordlists: pick the book, the units (earlier ones too) and the kinds of question.' },
     { key: 'mix', label: 'Both', icon: 'fa-layer-group', hint: 'Past quiz questions and book words take turns.' }
 ]);
 
@@ -124,6 +124,7 @@ export function forgeHtml(model) {
                 <button type="button" class="qw-split${d.key === deck.key ? ' is-on' : ''}" data-qw-rule="deck" data-value="${d.key}" role="radio" aria-checked="${d.key === deck.key}">
                     <span class="qw-split__icon" aria-hidden="true"><i class="fas ${d.icon}"></i></span><b>${esc(d.label)}</b></button>`).join('')}</div>
             <p class="qw-hint">${esc(deck.hint)}</p>
+            ${m.words ? wordsPanelHtml(m.words) : ''}
             ${deck.key !== 'voice' ? '<p class="qw-hint">The question shows on the big screen; your Wand shows the answer, for your eyes only.</p>' : ''}
         </div>
 
@@ -131,6 +132,32 @@ export function forgeHtml(model) {
             <i class="fas fa-bolt" aria-hidden="true"></i> Start the Showdown</button>
         <p class="qw-hint qw-hint--center">With Quiz of the Week on screen (Elite), this becomes your private host console.</p>
     </section>`;
+}
+
+/**
+ * The Book words panel: which book, which units (chips; the class's reached unit marked), quick ranges,
+ * and the kinds of question the book's wordlist can make. words: { loading } | { none } |
+ * { books[{ id, label, on }], reached, units[{ n, title, on }], kinds[{ key, label, hint, on }], summary[] }.
+ */
+export function wordsPanelHtml(words) {
+    if (words.loading) return '<p class="qw-hint"><i class="fas fa-book-open" aria-hidden="true"></i> Opening the book atlas…</p>';
+    if (words.none) return '<p class="qw-hint">No book with a wordlist yet.</p>';
+    const on = words.units.filter((u) => u.on).length;
+    return `<div class="qw-words" data-qw-key="words">
+        <p class="qw-forge__label">Book</p>
+        <div class="qw-words__books">${words.books.map((b) => `<button type="button" class="qw-chip${b.on ? ' qw-chip--gold' : ''}" data-qw-wbook="${esc(b.id)}" aria-pressed="${b.on}">${esc(b.label)}</button>`).join('')}</div>
+        <div class="qw-forge__row"><p class="qw-forge__label">Units · ${on} chosen</p>
+            <span class="qw-words__quick">
+                <button type="button" class="qw-chip" data-qw="forge-words-latest">Latest 3</button>
+                <button type="button" class="qw-chip" data-qw="forge-words-sofar">All so far</button>
+                <button type="button" class="qw-chip" data-qw="forge-words-all">Whole book</button>
+            </span></div>
+        <div class="qw-words__units">${words.units.map((u) => `<button type="button" class="qw-wunit${u.on ? ' is-on' : ''}${u.n === words.reached ? ' is-reached' : ''}" data-qw-wunit="${u.n}" aria-pressed="${u.on}" title="${esc(u.title)}" aria-label="Unit ${u.n}${u.title ? `: ${esc(u.title)}` : ''}${u.n === words.reached ? ' (where the class is)' : ''}">${u.n}</button>`).join('')}</div>
+        ${words.reached ? '<p class="qw-hint qw-words__legend"><span class="qw-wunit is-reached" aria-hidden="true"></span> where the class is now (from your homework notes)</p>' : ''}
+        ${words.summary.length ? `<p class="qw-hint">${esc(words.summary.join(' · '))}${on > 3 ? ' …' : ''}</p>` : ''}
+        <p class="qw-forge__label">Kinds of question</p>
+        <div class="qw-words__kinds">${words.kinds.map((k) => `<button type="button" class="qw-chip${k.on ? ' qw-chip--gold' : ''}" data-qw-wkind="${esc(k.key)}" aria-pressed="${k.on}"><b>${esc(k.label)}</b><small>${esc(k.hint)}</small></button>`).join('')}</div>
+    </div>`;
 }
 
 /** The host console while the show runs. `points` is the value the next tap gives (1–3). */

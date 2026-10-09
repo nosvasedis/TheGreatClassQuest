@@ -22,6 +22,7 @@ import {
 } from './remoteCore.mjs';
 import { makeTeams, moveHero, teamBanner, teamsForDay, pastTeamSets, clampTeamCount, suggestTeamCount, MIN_TEAMS, MAX_TEAMS } from '../teamMakerCore.mjs';
 import { getGuildById } from '../guilds.js';
+import { defaultWordChoice, cleanWordChoice, reachedUnit, wordKindsForBook, WORD_KINDS, shortBookTitle } from './showdownDeck.mjs';
 import {
     wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, lessonHtml, showHtml,
     spellsSheetHtml, WAND_MODES
@@ -457,6 +458,8 @@ function savedForge() {
         split: SHOWDOWN_SPLITS.includes(saved.split) ? saved.split : 'fair',
         count: Number(saved.count) || 0,
         rules: normalizeShowdownRules(saved.rules),
+        // book words per class: { [classId]: { book, units, kinds } }
+        words: saved.words && typeof saved.words === 'object' && !Array.isArray(saved.words) ? saved.words : {},
         teams: null,
         sig: '',
         present: ''
@@ -466,7 +469,7 @@ function savedForge() {
 function rememberForge() {
     const f = wand?.forge;
     if (!f) return;
-    try { localStorage.setItem(FORGE_KEY, JSON.stringify({ split: f.split, count: f.count, rules: f.rules })); } catch { /* this session only */ }
+    try { localStorage.setItem(FORGE_KEY, JSON.stringify({ split: f.split, count: f.count, rules: f.rules, words: f.words })); } catch { /* this session only */ }
 }
 
 function classObj(classId) {
@@ -486,6 +489,94 @@ function forgeRoster(classId) {
             id: x.id, first: String(x.name || 'Hero').split(/\s+/)[0], guildId: x.guildId || '',
             stars: Number(scores.get(x.id)?.monthlyStars) || 0, away: away.has(x.id)
         }));
+}
+
+// ─── Book words for the Showdown (the book atlas, loaded only when the teacher picks Book words) ───
+
+/** The class's book plan (what bookProgress.getClassBookPlan reads), without loading the atlas up front. */
+function getClassBookPlan(classId) {
+    return classObj(classId)?.bookPlan || {};
+}
+
+function wandAtlas() {
+    if (wand?.atlas) return wand.atlas;
+    if (wand && !wand.atlasLoading) {
+        wand.atlasLoading = import('../bookAtlas.mjs').then((m) => {
+            if (!wand) return;
+            wand.atlas = { atlas: m.BOOK_ATLAS, wordBooks: [...m.WORDLIST_BOOK_IDS] };
+            render();
+        }).catch(() => { if (wand) wand.atlasLoading = null; });
+    }
+    return null;
+}
+
+/** The class's choice of book words (the teacher's own, or a fresh default from the class's book and units). */
+function wordChoiceFor(classId) {
+    const a = wandAtlas();
+    if (!a || !classId) return null;
+    const f = wand.forge;
+    const saved = cleanWordChoice(f.words[classId], a);
+    if (saved) return saved;
+    const fresh = defaultWordChoice({ ...a, bookPlan: getClassBookPlan(classId), league: classObj(classId)?.questLevel });
+    if (fresh) f.words[classId] = fresh;
+    return fresh;
+}
+
+/** What the Forge's "Book words" panel shows: the books with wordlists, the units (chosen ones lit), the kinds. */
+function wordsModel(classId) {
+    const a = wandAtlas();
+    if (!a) return { loading: true };
+    const choice = wordChoiceFor(classId);
+    if (!choice) return { none: true };
+    const book = a.atlas.find((b) => b.id === choice.book);
+    const plan = getClassBookPlan(classId);
+    const can = wordKindsForBook(choice.book);
+    const chosen = new Set(choice.units);
+    return {
+        books: a.atlas.filter((b) => a.wordBooks.includes(b.id)).map((b) => ({ id: b.id, label: shortBookTitle(b), on: b.id === choice.book })),
+        reached: reachedUnit(plan, choice.book),
+        units: (book?.units || []).map((u) => ({ n: u.n, title: String(u.title || ''), on: chosen.has(u.n) })),
+        kinds: WORD_KINDS.filter((k) => can.includes(k.key)).map((k) => ({ ...k, on: choice.kinds.includes(k.key) })),
+        summary: choice.units.slice(0, 3).map((n) => book?.units?.find((u) => u.n === n)?.title).filter(Boolean)
+    };
+}
+
+/** A tap in the Book words panel (book, unit, kind, or a quick unit range). */
+function wordsTap(t, classId) {
+    const a = wandAtlas();
+    const f = wand.forge;
+    const choice = a && wordChoiceFor(classId);
+    if (!choice) return false;
+    const book = a.atlas.find((b) => b.id === choice.book);
+    const size = book?.units?.length || 1;
+    const reached = Math.min(size, reachedUnit(getClassBookPlan(classId), choice.book) || Math.max(...choice.units));
+    const range = (from, to) => Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
+    const el = t.closest('[data-qw-wbook], [data-qw-wunit], [data-qw-wkind], [data-qw^="forge-words-"]');
+    if (!el) return false;
+    let next = { ...choice };
+    if (el.dataset.qwWbook) {
+        const id = el.dataset.qwWbook;
+        const r = Math.max(1, reachedUnit(getClassBookPlan(classId), id));
+        next = { book: id, units: range(Math.max(1, r - 2), r), kinds: wordKindsForBook(id) };
+    } else if (el.dataset.qwWunit) {
+        const n = Number(el.dataset.qwWunit);
+        const has = choice.units.includes(n);
+        if (has && choice.units.length === 1) { buzz([20, 30, 20]); toast('Keep at least one unit', 'warn'); return true; }
+        next.units = has ? choice.units.filter((u) => u !== n) : [...choice.units, n].sort((x, y) => x - y).slice(0, 40);
+    } else if (el.dataset.qwWkind) {
+        const k = el.dataset.qwWkind;
+        const has = choice.kinds.includes(k);
+        if (has && choice.kinds.length === 1) { buzz([20, 30, 20]); toast('Keep at least one kind of question', 'warn'); return true; }
+        next.kinds = has ? choice.kinds.filter((x) => x !== k) : [...choice.kinds, k];
+    } else {
+        const act = el.dataset.qw;
+        if (act === 'forge-words-latest') next.units = range(Math.max(1, reached - 2), reached);
+        else if (act === 'forge-words-sofar') next.units = range(1, reached).slice(-40);
+        else if (act === 'forge-words-all') next.units = range(1, size).slice(0, 40);
+    }
+    f.words[classId] = next;
+    rememberForge(); buzz(6); render();
+    return true;
 }
 
 /**
@@ -537,6 +628,7 @@ function forgeModel({ reroll = false } = {}) {
     return {
         className: classLabel(), here: here.length, away: heroes.length - here.length,
         awayNames: heroes.filter((h) => h.away).map((h) => h.first),
+        words: f.rules.deck === 'words' || f.rules.deck === 'mix' ? wordsModel(classId) : null,
         split: f.split, count: f.count, minCount: MIN_TEAMS, maxCount, canToday, canGuilds,
         growth: isGrowthLeague(cls?.questLevel), teams, rules: f.rules,
         note: counted && pastSets.length ? 'Teammates from last time are kept apart where possible.' : (f.split === 'today' && !canToday ? 'No Team Maker teams today.' : '')
@@ -562,6 +654,7 @@ function forgeTap(t) {
         f.teams = f.teams.map((x, i) => ({ ...x, ids: moved[i] }));
         buzz(8); render(); return true;
     }
+    if (wordsTap(t, currentClassId())) return true;
     const rule = t.closest('[data-qw-rule]');
     if (rule) {
         const key = rule.dataset.qwRule;
@@ -587,6 +680,9 @@ function forgeTap(t) {
         if (!model) return true;
         // the rules travel as one map: a command holds at most 12 keys
         const payload = { action: 'open', split: f.split, teams: packShowdownTeams(f.teams), rules: { ...f.rules } };
+        // the book, units and kinds of word question the teacher chose (the projector checks them against the atlas)
+        const words = f.rules.deck === 'words' || f.rules.deck === 'mix' ? wordChoiceFor(currentClassId()) : null;
+        if (words) payload.words = { book: words.book, units: [...words.units], kinds: [...words.kinds] };
         if (send('showdown', payload)) { wand.sdPoints = 1; wand.sdReward = { scope: 'winners', stars: 1 }; buzz([20, 40, 60]); }
         return true;
     }

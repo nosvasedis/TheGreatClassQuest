@@ -173,7 +173,7 @@ export function validateCommand(cmd) {
                 if (p.teams != null && !validShowdownTeams(p.teams)) return fail('bad-teams');
                 // rules travel as one map (a command holds at most 12 keys); an older Wand sends them flat
                 if (p.rules != null && (typeof p.rules !== 'object' || Array.isArray(p.rules))) return fail('bad-rule');
-                const problem = showdownRulesProblem(p.rules || p);
+                const problem = showdownRulesProblem(p.rules || p) || showdownWordsProblem(p.words);
                 if (problem) return fail(problem);
             }
             return { ok: true };
@@ -508,6 +508,20 @@ export const SHOWDOWN_MAX_MEMBERS = 40;
 export const SHOWDOWN_REWARD_SCOPES = Object.freeze(['winners', 'all', 'stars']);
 export const SHOWDOWN_RULES_DEFAULT = Object.freeze({ style: 'buzz', goal: 'open', goalN: 10, clock: 0, autoClock: true, streak: true, underdog: false, hotseat: false, deck: 'voice' });
 const SHOWDOWN_RULE_FLAGS = Object.freeze(['streak', 'underdog', 'hotseat', 'autoClock']);
+/** Kinds of book-word question (showdownDeck.mjs WORD_KINDS keeps the same keys). */
+export const SHOWDOWN_WORD_KINDS = Object.freeze(['meaning', 'define', 'gap', 'spell', 'letter']);
+export const SHOWDOWN_WORD_UNITS_MAX = 40;
+
+/** The teacher's choice of book words: { book, units: [n…], kinds: [...] } ('' when acceptable). */
+function showdownWordsProblem(w) {
+    if (w == null) return '';
+    if (typeof w !== 'object' || Array.isArray(w)) return 'bad-words';
+    if (!shortString(w.book, 40)) return 'bad-words';
+    if (!Array.isArray(w.units) || !w.units.length || w.units.length > SHOWDOWN_WORD_UNITS_MAX
+        || !w.units.every((u) => Number.isInteger(u) && u >= 1 && u <= 99)) return 'bad-words';
+    if (w.kinds != null && !(Array.isArray(w.kinds) && w.kinds.length && w.kinds.every((k) => SHOWDOWN_WORD_KINDS.includes(k)))) return 'bad-words';
+    return '';
+}
 
 /** Why a set of rules from a command is not acceptable ('' when it is). Missing rules are fine (defaults). */
 function showdownRulesProblem(r) {

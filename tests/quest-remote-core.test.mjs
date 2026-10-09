@@ -833,3 +833,61 @@ test('Showdown: heroes marked absent never play (teams, hot seat, star players, 
     assert.match(wand, /activateDataFeature\?\.\('attendance'\)/);
     assert.match(wand, /state\.subscribe\(\['allAttendanceRecords', 'allStudents'\]/);
 });
+
+test('Showdown book words: every wordlist book makes questions, from the units the teacher picks', async () => {
+    const d = await import('../features/questRemote/showdownDeck.mjs');
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    const atlasMod = await import('../features/bookAtlas.mjs');
+    const atlas = atlasMod.BOOK_ATLAS;
+    const wordBooks = [...atlasMod.WORDLIST_BOOK_IDS];
+    assert.deepEqual(d.WORD_KINDS.map((k) => k.key), [...c.SHOWDOWN_WORD_KINDS], 'the Wand and the projector agree on the kinds');
+    let n = 7;
+    const rng = () => ((n = (n * 9301 + 49297) % 233280) / 233280);
+    // the cause of "it finds nothing": half the wordlists have no Greek meanings and no example sentences
+    for (const id of wordBooks) {
+        const pool = [...await atlasMod.getUnitWords(id, 1), ...await atlasMod.getUnitWords(id, 2)];
+        const cards = d.wordDeckCards(pool, { kinds: d.wordKindsForBook(id), rng });
+        assert.ok(cards.length >= Math.min(5, pool.length - 1), `${id} makes questions (${cards.length} from ${pool.length} words)`);
+        for (const card of cards) {
+            assert.ok(card.opts[card.correct], `${id}: the right answer is an option`);
+            assert.equal(new Set(card.opts.map((o) => o.toLowerCase())).size, card.opts.length, `${id}: no option twice (${card.q})`);
+        }
+    }
+    const spell = d.wordDeckCards([{ w: 'kite' }, { w: 'ball' }, { w: 'doll' }, { w: 'teddy' }], { kinds: ['spell'], rng });
+    assert.ok(spell.length && spell.every((card) => card.tag === 'spell' && card.opts.filter((o) => ['kite', 'ball', 'doll', 'teddy'].includes(o)).length === 1));
+    assert.ok(!d.misspellings('hurt', 6, rng).includes('hut'), 'no dropped letter in short words (a real word)');
+    const letter = d.wordDeckCards([{ w: 'kite' }, { w: 'ball' }, { w: 'doll' }], { kinds: ['letter'], rng });
+    assert.ok(letter.every((card) => /Which letter is missing\? \S( \S)+/.test(card.q) && card.opts[card.correct].length === 1));
+    const define = d.wordDeckCards([
+        { w: 'natural', def: 'from nature and not made by people ● This furniture is made of natural materials.' },
+        { w: 'cause', def: 'to make sth happen ● The storm caused a lot of problems.' },
+        { w: 'affect', def: 'to make a change to sb/sth ● The bad weather has affected our plans.' }
+    ], { kinds: ['define'], rng });
+    assert.ok(define.length === 3 && define[0].q.startsWith('Which word means'));
+
+    // the Forge's first choice: the class's book and the unit it reached plus the two before, without homework too
+    const plan = { currentBookId: 'yeti-2', unit: 6, history: [] };
+    assert.deepEqual(d.defaultWordChoice({ atlas, wordBooks, bookPlan: plan }), { book: 'yeti-2', units: [4, 5, 6], kinds: ['spell', 'letter'] });
+    assert.equal(d.defaultWordChoice({ atlas, wordBooks, bookPlan: {}, league: 'B' }).book, 'primary-path-2', 'no plan yet: the league\'s book');
+    assert.deepEqual(d.defaultWordChoice({ atlas, wordBooks, bookPlan: {}, league: 'B' }).units, [1]);
+    assert.equal(d.defaultWordChoice({ atlas, wordBooks, bookPlan: { currentBookId: 'burlington-grammar-2', history: [{ bookId: 'primary-path-3', unit: 4, date: '2026-10-01' }] } }).book, 'primary-path-3', 'a grammar book has no wordlist: the coursebook from the history');
+    assert.equal(d.reachedUnit({ history: [{ bookId: 'b', unit: 2 }, { bookId: 'b', unit: 5, unconfirmed: true }, { bookId: 'x', unit: 9, books: [{ bookId: 'b', unit: 3 }] }] }, 'b'), 3);
+    assert.deepEqual(d.cleanWordChoice({ book: 'primary-path-1', units: [2, 99, 2, 1], kinds: ['define', 'gap'] }, { atlas, wordBooks }), { book: 'primary-path-1', units: [1, 2], kinds: ['gap'] });
+    assert.equal(d.cleanWordChoice({ book: 'nope', units: [1] }, { atlas, wordBooks }), null);
+
+    // the open command carries the choice; the projector honours it
+    const ok = (words) => c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'open', rules: { deck: 'words' }, words } });
+    assert.ok(ok({ book: 'yeti-2', units: [1, 2, 3], kinds: ['spell'] }).ok);
+    assert.equal(ok({ book: 'yeti-2', units: [] }).reason, 'bad-words');
+    assert.equal(ok({ book: 'yeti-2', units: [1], kinds: ['riddle'] }).reason, 'bad-words');
+    assert.equal(ok({ book: 'yeti-2', units: [0] }).reason, 'bad-words');
+    assert.match(read('features/questRemote/showdown.js'), /loadDeck\(classId, cls, rules\.deck, p\.words\)/);
+    assert.match(read('features/questRemote/remoteWand.js'), /if \(words\) payload\.words = \{ book: words\.book, units: \[\.\.\.words\.units\], kinds: \[\.\.\.words\.kinds\] \};/);
+    // the phone does not load the atlas until Book words is chosen
+    assert.doesNotMatch(read('features/questRemote/remoteWand.js'), /^import[^\n]*bookAtlas|^import[^\n]*bookProgress/m);
+    const { wordsPanelHtml } = await import('../features/questRemote/showdownWandView.mjs');
+    const panel = wordsPanelHtml({ books: [{ id: 'yeti-2', label: 'Yeti 2', on: true }], reached: 2, units: [{ n: 1, title: 'Lesson 1', on: false }, { n: 2, title: 'Lesson 2', on: true }], kinds: [{ key: 'spell', label: 'Spelling', hint: '', on: true }], summary: ['Lesson 2'] });
+    assert.match(panel, /data-qw-wunit="2" aria-pressed="true"/);
+    assert.match(panel, /qw-wunit is-on is-reached/);
+    assert.match(panel, /data-qw="forge-words-sofar"/);
+});

@@ -715,3 +715,19 @@ button.qw-fhero:active { transform: scale(0.92); background: var(--team) !import
 .qw-qcard > .qw-chip { justify-self: center; }
 .qw-qcard__shown { margin: 0; text-align: center; font-size: 0.8rem; color: #a5b4fc; }
 .qw-lite .qw-qcard { animation: none; }
+
+/* ── Showdown: the Book words panel (book, units, kinds) ── */
+.qw-words { display: grid; gap: 6px; margin-top: 8px; padding: 10px; border-radius: 16px; background: rgba(0, 0, 0, 0.22); box-shadow: inset 0 0 0 1px var(--qw-line); }
+.qw-words .qw-forge__label { margin: 4px 0 0; }
+.qw-words__books, .qw-words__kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.qw-words__kinds .qw-chip { display: grid; justify-items: start; gap: 1px; padding: 6px 12px; line-height: 1.1; }
+.qw-words__kinds .qw-chip small { font-size: 0.68rem; font-weight: 500; opacity: 0.8; }
+.qw-words__quick { display: inline-flex; gap: 4px; }
+.qw-words__quick .qw-chip { padding: 4px 9px; font-size: 0.74rem; min-height: 30px; }
+.qw-words__units { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 5px; }
+.qw-wunit { position: relative; display: grid; place-items: center; min-height: 38px; border-radius: 11px; font: 600 0.9rem/1 'Fredoka', sans-serif; color: #e0e7ff; background: var(--qw-glass) !important; box-shadow: inset 0 0 0 1px var(--qw-line); transition: transform 0.15s ease; }
+.qw-wunit:active { transform: scale(0.92); }
+.qw-wunit.is-on { color: #422006; background: linear-gradient(170deg, #fde68a, #f59e0b) !important; box-shadow: 0 4px 12px -5px rgba(245, 158, 11, 0.7); }
+.qw-wunit.is-reached::after { content: ''; position: absolute; right: 4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 2px rgba(15, 12, 46, 0.8); }
+.qw-words__legend { display: flex; align-items: center; gap: 6px; }
+.qw-words__legend .qw-wunit { width: 18px; min-height: 18px; border-radius: 6px; }

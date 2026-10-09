@@ -412,6 +412,8 @@ const loaders = {
     bamboo: () => import('./bookAtlas/data/bamboo1.json', { with: { type: 'json' } }),
     'yeti-2': () => import('./bookAtlas/data/yeti2.json', { with: { type: 'json' } })
 };
+/** The books whose wordlists ship with the app (the ones getUnitWords can read). */
+export const WORDLIST_BOOK_IDS = Object.freeze(Object.keys(loaders));
 export async function getUnitWords(bookId, unit, { component = 'sb', pages = [], lessonCode = null, limit = Infinity } = {}) {
     if (!loaders[bookId] || !unit) return [];
     const data = (await loaders[bookId]()).default;

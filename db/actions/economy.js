@@ -21,13 +21,13 @@ import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { classUsesDictations, classUsesTests, createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
-import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { trialRowValue } from '../../features/trialLogCore.mjs';
+import { showShopPurchasePopup } from '../../ui/core/marketParcel.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -75,103 +75,6 @@ function emitShopPurchaseEvent(name, detail) {
     try {
         window.dispatchEvent(new CustomEvent(name, { detail }));
     } catch (_) { /* non-browser context */ }
-}
-
-function showShopPurchasePopup({
-    itemName,
-    itemDescription,
-    itemVisualHtml,
-    finalPrice,
-    newGoldBalance,
-    studentName,
-    cta = 'Awesome!',
-    useContext = null
-}) {
-    const purchaseModal = document.getElementById('shop-purchase-modal');
-    if (!purchaseModal) return false;
-
-    document.getElementById('shop-purchase-icon').innerHTML = itemVisualHtml;
-    document.getElementById('shop-purchase-name').innerText = itemName;
-    document.getElementById('shop-purchase-desc').innerText = itemDescription || 'A rare artifact for your collection!';
-    document.getElementById('shop-purchase-cost').innerText = `-${finalPrice} 🪙`;
-    document.getElementById('shop-purchase-balance').innerText = `${newGoldBalance} 🪙`;
-    document.getElementById('shop-purchase-student').innerHTML = `<i class="fas fa-user mr-2"></i><span class="font-bold">${studentName}</span>'s inventory`;
-    document.getElementById('shop-purchase-close-btn').innerHTML = `<i class="fas fa-check mr-2"></i>${cta}`;
-
-    purchaseModal.classList.remove('hidden');
-
-    const timerBar = document.getElementById('shop-purchase-timer-bar');
-    if (timerBar) {
-        timerBar.style.transition = 'none';
-        timerBar.style.width = '100%';
-        timerBar.offsetWidth;
-        timerBar.style.transition = 'width 3s linear';
-        timerBar.style.width = '0%';
-    }
-
-    const closeBtn = document.getElementById('shop-purchase-close-btn');
-    const useBtn = document.getElementById('shop-purchase-use-btn');
-    let autoCloseTimer = null;
-    let useInFlight = false;
-    const closeModal = () => {
-        if (useInFlight) return;
-        clearTimeout(autoCloseTimer);
-        purchaseModal.classList.add('hidden');
-        if (useBtn) {
-            useBtn.disabled = false;
-            useBtn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Use Now';
-        }
-        if (timerBar) {
-            timerBar.style.transition = 'none';
-            timerBar.style.width = '100%';
-        }
-    };
-
-    if (useBtn) {
-        useBtn.classList.add('hidden');
-        useBtn.onclick = null;
-        useBtn.disabled = false;
-        useBtn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Use Now';
-    }
-
-    const canUseNow = Boolean(
-        useContext &&
-        useContext.studentId &&
-        Number.isInteger(useContext.itemIndex) && useContext.itemIndex >= 0 &&
-        isItemUsable(useContext.itemName)
-    );
-
-    if (canUseNow && useBtn) {
-        useBtn.classList.remove('hidden');
-        useBtn.onclick = async () => {
-            if (useInFlight) return;
-            useInFlight = true;
-            clearTimeout(autoCloseTimer);
-            useBtn.disabled = true;
-            useBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Using...';
-
-            try {
-                const result = await handleUseItem(useContext.studentId, useContext.itemIndex);
-                if (result?.success) {
-                    useInFlight = false;
-                    closeModal();
-                    return;
-                }
-            } catch (error) {
-                console.error('Use from purchase modal failed:', error);
-            } finally {
-                useInFlight = false;
-            }
-
-            useBtn.disabled = false;
-            useBtn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Use Now';
-            autoCloseTimer = setTimeout(closeModal, 3000);
-        };
-    }
-
-    closeBtn.onclick = closeModal;
-    autoCloseTimer = setTimeout(closeModal, 3000);
-    return true;
 }
 
 function assertGameplaySeasonLive(actionLabel = 'The market') {
@@ -715,6 +618,7 @@ export async function handleBuyItem(studentId, itemId) {
             itemDescription: item.description || 'A rare artifact for your collection!',
             itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
             finalPrice: appliedFinalPrice,
+            basePrice: item.price,
             newGoldBalance,
             studentName: student.name,
             useContext: {
@@ -722,7 +626,10 @@ export async function handleBuyItem(studentId, itemId) {
                 itemIndex: purchasedItemIndex,
                 itemName: item.name
             },
-            cta: 'Awesome!'
+            kind: isLegendary ? 'legendary' : 'ware',
+            soldOut: !isLegendary && remainingAfterBuy <= 0,
+            discountNote: voucherUsed ? 'Aurum Satchel' : (appliedFinalPrice < item.price ? (isHero ? 'Hero of the Day' : 'Legend discount') : ''),
+            cta: 'Into the satchel!'
         });
         if (!popupShown) {
             showToast(`${student.name} bought "${item.name}" for ${appliedFinalPrice}🪙${voucherUsed ? ' (Aurum discount applied)' : ''}.`, 'success');
@@ -1048,9 +955,12 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             itemDescription: `A new companion has joined ${student.name}. Earn ${20} stars to hatch it!`,
             itemVisualHtml: `<div class="familiar-egg-wobble" style="width:7rem;height:7rem;margin:0 auto;filter:drop-shadow(0 0 12px ${typeDef.eggColor});">${familiarArtSvg(familiarData, studentId, { egg: true, progress: 0 }) || '🥚'}</div>`,
             finalPrice,
+            basePrice: typeDef.price,
             newGoldBalance,
             studentName: student.name,
-            cta: 'Egg Acquired!'
+            kind: 'familiar',
+            discountNote: voucherUsed ? 'Aurum Satchel' : '',
+            cta: 'Egg acquired!'
         });
         if (!popupShown) {
             showToast(`${typeDef.name} Egg purchased! Earn ${20} stars to hatch it!`, 'success');

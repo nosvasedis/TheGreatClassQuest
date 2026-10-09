@@ -2,7 +2,7 @@
 // state): the binding rune circle, the star ribbon, the stage timer, the Blackout curtain and the
 // Showdown Arena. Styles: styles/quest_remote.css. Driven by remoteHost.js and showdown.js.
 
-import { runeForCodeChar, formatTimerClock, showdownBarLevels, showdownStandings, showdownWinners } from './remoteCore.mjs';
+import { runeForCodeChar, formatTimerClock, showdownBarLevels, showdownStandings, showdownWinners, showdownAnswerer, showdownGoalText, showdownStarPlayers } from './remoteCore.mjs';
 
 export function esc(value) {
     return String(value ?? '')
@@ -126,43 +126,62 @@ export function growthFlower(score) {
     return FLOWER_STAGES[Math.min(FLOWER_STAGES.length - 1, Math.floor(n / 2))];
 }
 
-function laneHtml(team, index, level, growth) {
+/** The hot seat chip under a team: who answers this question ('' hides it). */
+export function seatHtml(name) {
+    return `<span class="qr-lane__seat" data-qr-seat${name ? '' : ' hidden'}><i class="fas fa-microphone" aria-hidden="true"></i><b>${esc(name)}</b></span>`;
+}
+
+function laneHtml(sd, team, index, level, nameOf) {
     const style = `--qr-team:${esc(team.color)};--qr-level:${level.toFixed(3)};--i:${index}`;
     const badge = team.emoji ? esc(team.emoji) : esc(team.shape);
-    if (growth) {
-        return `<li class="qr-lane qr-lane--growth" data-team="${index}" style="${style}">
+    const got = sd.roundScorers?.includes(index) ? ' is-got' : '';
+    const dragon = team.dragon ? ' qr-lane--dragon' : '';
+    // every lane keeps the chip's row (an empty one stays invisible), so the bars line up
+    const seat = sd.rules?.hotseat ? seatHtml(team.dragon ? '' : nameOf(showdownAnswerer(sd, index))) : '';
+    if (sd.growth) {
+        return `<li class="qr-lane qr-lane--growth${got}${dragon}" data-team="${index}" style="${style}">
             <div class="qr-lane__pot" aria-hidden="true"><span class="qr-lane__flower" data-qr-flower>${growthFlower(team.score)}</span></div>
             <div class="qr-lane__name"><span class="qr-lane__badge">${badge}</span>${esc(team.name)}</div>
+            ${seat}
         </li>`;
     }
-    return `<li class="qr-lane" data-team="${index}" style="${style}">
+    const finish = sd.rules?.goal === 'points' ? '<span class="qr-lane__finish" aria-hidden="true"></span>' : '';
+    return `<li class="qr-lane${got}${dragon}" data-team="${index}" style="${style}">
         <div class="qr-lane__score" data-qr-score>${team.score}</div>
-        <div class="qr-lane__track"><div class="qr-lane__bar"><span class="qr-lane__shine" aria-hidden="true"></span></div>
+        <div class="qr-lane__track">${finish}<div class="qr-lane__bar"><span class="qr-lane__shine" aria-hidden="true"></span></div>
             ${team.streak >= 2 ? `<span class="qr-lane__streak" aria-label="${team.streak} in a row"><i class="fas fa-fire"></i>${team.streak}</span>` : ''}
+            <span class="qr-lane__tick" aria-hidden="true"><i class="fas fa-check"></i></span>
         </div>
         <div class="qr-lane__name"><span class="qr-lane__badge">${badge}</span>${esc(team.name)}</div>
+        ${seat}
     </li>`;
 }
 
-export function showdownHtml(sd, { secondsLeft = null } = {}) {
+/** The arena. `nameOf(id)` gives a hero's first name (hot seat). */
+export function showdownHtml(sd, { secondsLeft = null, nameOf = () => '' } = {}) {
     if (!sd) return '';
     const levels = showdownBarLevels(sd);
-    const lanes = sd.teams.map((t, i) => laneHtml(t, i, levels[i], sd.growth)).join('');
+    const lanes = sd.teams.map((t, i) => laneHtml(sd, t, i, levels[i], nameOf)).join('');
+    const everyone = sd.rules?.style === 'all';
+    const foot = sd.rules?.hotseat ? 'The hero at the microphone answers for the team'
+        : everyone ? 'Every team writes its answer: the Wand gives the points' : 'Answer out loud: the Wand gives the point';
     return `
     <div class="qr-sd__lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
     <header class="qr-sd__head">
         <p class="qr-sd__eyebrow"><i class="fas fa-bolt" aria-hidden="true"></i> ${sd.growth ? 'Garden Showdown' : 'Showdown Arena'}</p>
         <h2 class="qr-sd__title">${esc(sd.title)}</h2>
-        ${sd.growth ? '<p class="qr-sd__round">Every good answer helps your flower grow</p>' : `<p class="qr-sd__round">Question <b data-qr-round>${sd.round}</b></p>`}
+        ${sd.growth ? `<p class="qr-sd__round">${sd.rules?.goal === 'questions' ? `<span data-qr-goal>${esc(showdownGoalText(sd))}</span> · ` : ''}Every good answer helps your flower grow</p>`
+        : `<p class="qr-sd__round"><span data-qr-goal>${esc(showdownGoalText(sd))}</span>${sd.rules?.goal === 'points' ? ` · Question <b data-qr-round>${sd.round}</b>` : ''}</p>`}
         <p class="qr-sd__golden" data-qr-golden${sd.golden ? '' : ' hidden'}><i class="fas fa-coins" aria-hidden="true"></i> ${sd.growth ? 'Golden question · flowers grow twice' : 'Golden question · double points'}</p>
+        <p class="qr-sd__blind" data-qr-blind${sd.blind && !sd.growth ? '' : ' hidden'}><i class="fas fa-eye-slash" aria-hidden="true"></i> Scores hidden · the big reveal comes at the end</p>
         ${secondsLeft != null ? `<div class="qr-sd__count" data-qr-count>${secondsLeft}</div>` : ''}
     </header>
     <ol class="qr-sd__lanes" style="--n:${sd.teams.length}">${lanes}</ol>
-    <p class="qr-sd__foot">Answer out loud: the Wand gives the point</p>`;
+    <p class="qr-sd__foot">${foot}</p>`;
 }
 
-/** The finale: a podium (or, for Growth Festival, the whole garden in bloom: everyone wins). */
-export function showdownFinaleHtml(sd) {
+/** The finale: a podium and the star players (or, for Growth Festival, the whole garden in bloom: everyone wins). */
+export function showdownFinaleHtml(sd, { nameOf = () => '' } = {}) {
     if (!sd) return '';
     if (sd.growth) {
         return `
@@ -184,11 +203,15 @@ export function showdownFinaleHtml(sd) {
         <span class="qr-podium__block">${t.place === 1 ? '<i class="fas fa-crown"></i>' : t.place}</span>
     </li>`;
     const champion = standings.filter((t) => winners.has(t.index)).map((t) => esc(t.name)).join(' & ');
+    const dragonWon = standings.some((t) => t.dragon && winners.has(t.index)) && winners.size === 1;
+    const stars = showdownStarPlayers(sd).slice(0, 3);
     return `
     <div class="qr-sd__finale">
-        <p class="qr-sd__eyebrow"><i class="fas fa-trophy" aria-hidden="true"></i> Showdown champions</p>
+        <p class="qr-sd__eyebrow"><i class="fas fa-trophy" aria-hidden="true"></i> ${dragonWon ? 'The Dragon wins this time' : 'Showdown champions'}</p>
         <h2 class="qr-sd__title">${champion || 'A draw!'}</h2>
         <ol class="qr-podium">${order.map(step).join('')}</ol>
+        ${stars.length ? `<div class="qr-stars"><p class="qr-stars__title"><i class="fas fa-microphone" aria-hidden="true"></i> Star players</p>
+            <ul>${stars.map((p, i) => `<li style="--i:${i}"><b>${esc(nameOf(p.id) || 'Hero')}</b><span>${p.pts}</span></li>`).join('')}</ul></div>` : ''}
     </div>`;
 }
 

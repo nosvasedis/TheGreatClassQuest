@@ -10,6 +10,9 @@ export const REMOTE_COMMAND_TYPES = Object.freeze([
     'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz', 'charm'
 ]);
 
+/** What the Wand can ask of a Showdown. */
+export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch']);
+
 /** The class picker's two other choices (sent as a `class` command's classId). */
 export const CLASS_GENERAL = '*general';
 export const CLASS_FOLLOW = '*follow';
@@ -157,8 +160,23 @@ export function validateCommand(cmd) {
         case 'dragon': return ['open', 'close'].includes(p.action) ? { ok: true } : fail('bad-action');
         case 'wall': return ['toggle', 'next', 'prev', 'pin', 'reveal', 'deck'].includes(p.action) ? { ok: true } : fail('bad-action');
         case 'showdown':
-            if (!['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden'].includes(p.action)) return fail('bad-action');
+            if (!SHOWDOWN_ACTIONS.includes(p.action)) return fail('bad-action');
             if (p.team != null && !(Number.isInteger(p.team) && p.team >= 0 && p.team < 8)) return fail('bad-team');
+            if (p.points != null && ![1, 2, 3].includes(p.points)) return fail('bad-points');
+            if (p.seconds != null && !SHOWDOWN_CLOCKS.includes(p.seconds)) return fail('bad-seconds');
+            if (p.action === 'reward') {
+                if (p.scope != null && !SHOWDOWN_REWARD_SCOPES.includes(p.scope)) return fail('bad-scope');
+                if (p.stars != null && ![1, 2, 3].includes(p.stars)) return fail('bad-stars');
+            }
+            if (p.action === 'open') {
+                if (p.split != null && !SHOWDOWN_SPLITS.includes(p.split)) return fail('bad-split');
+                if (p.teams != null && !validShowdownTeams(p.teams)) return fail('bad-teams');
+                if (p.style != null && !SHOWDOWN_STYLES.includes(p.style)) return fail('bad-style');
+                if (p.goal != null && !SHOWDOWN_GOALS.includes(p.goal)) return fail('bad-goal');
+                if (p.goalN != null && !(Number.isInteger(p.goalN) && p.goalN >= SHOWDOWN_GOAL_MIN && p.goalN <= SHOWDOWN_GOAL_MAX)) return fail('bad-goal');
+                if (p.clock != null && !SHOWDOWN_CLOCKS.includes(p.clock)) return fail('bad-clock');
+                for (const k of ['streak', 'underdog', 'hotseat']) if (p[k] != null && typeof p[k] !== 'boolean') return fail('bad-rule');
+            }
             return { ok: true };
         case 'quiz': return ['answer', 'next', 'skip', 'listen', 'close'].includes(p.action)
             && (p.action !== 'answer' || [0, 1, 2, 3].includes(p.index)) ? { ok: true } : fail('bad-quiz');
@@ -460,6 +478,9 @@ function sanitizeFlat(obj) {
 }
 
 // ─── Showdown Arena (Kahoot-style team race, no student devices) ─────────────
+// The teacher builds the teams on the Wand (the Team Forge), sets the rules, then runs the show:
+// every point, bonus, hot seat and undo is decided here so the phone, the projector and the tests agree.
+// Teams last for one show only: a guild split uses the guilds as they are and never moves anyone.
 
 export const SHOWDOWN_COLORS = Object.freeze(['#ef4444', '#3b82f6', '#f59e0b', '#22c55e', '#a855f7', '#ec4899', '#14b8a6', '#f97316']);
 const HEX_RE = /^#[0-9a-f]{6}$/i;
@@ -471,47 +492,199 @@ export function isGrowthLeague(level) {
 
 export const SHOWDOWN_SHAPES = Object.freeze(['▲', '◆', '●', '■', '★', '⬟', '⬢', '✚']);
 
-/**
- * A new showdown. teams: [{ name, members?: string[] }] (2–8). `growth` (Nursery / Pre-Junior)
- * keeps every number off the screen: teams grow flowers, nobody ranks.
- */
-export function createShowdown(teams, { growth = false, title = 'Showdown' } = {}) {
-    const list = (Array.isArray(teams) ? teams : []).slice(0, 8);
+/** How the Team Forge splits the room: fair on stars, guilds mixed, pure luck, the guilds as teams, today's Team Maker teams, or everyone against the Dragon. */
+export const SHOWDOWN_SPLITS = Object.freeze(['fair', 'mixed', 'random', 'guilds', 'today', 'dragon']);
+/** Buzz in: one team answers and the point ends the question. Everyone: every team writes an answer, several can score, then Next. */
+export const SHOWDOWN_STYLES = Object.freeze(['buzz', 'all']);
+export const SHOWDOWN_GOALS = Object.freeze(['open', 'points', 'questions']);
+export const SHOWDOWN_CLOCKS = Object.freeze([5, 10, 20, 30]);
+export const SHOWDOWN_GOAL_MIN = 3;
+export const SHOWDOWN_GOAL_MAX = 30;
+export const SHOWDOWN_MAX_MEMBERS = 40;
+export const SHOWDOWN_REWARD_SCOPES = Object.freeze(['winners', 'all', 'stars']);
+export const SHOWDOWN_RULES_DEFAULT = Object.freeze({ style: 'buzz', goal: 'open', goalN: 10, clock: 10, streak: true, underdog: false, hotseat: false });
+const HISTORY_KEEP = 25;
+
+/** Rules from anywhere (the phone's saved choice, a command) made safe; unknown values fall back to the defaults. */
+export function normalizeShowdownRules(raw = {}) {
+    const d = SHOWDOWN_RULES_DEFAULT;
+    const r = raw && typeof raw === 'object' ? raw : {};
+    const n = Math.round(Number(r.goalN));
     return {
-        title: cleanPadLabel(title, 40) || 'Showdown',
-        growth: Boolean(growth),
-        round: 1,
-        finished: false,
-        golden: false,
-        teams: list.map((t, i) => ({
-            name: cleanPadLabel(t?.name, 28) || `Team ${i + 1}`,
-            members: (Array.isArray(t?.members) ? t.members : []).slice(0, 12),
-            score: 0,
-            streak: 0,
-            color: HEX_RE.test(t?.color || '') ? t.color : SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length],
-            shape: SHOWDOWN_SHAPES[i % SHOWDOWN_SHAPES.length],
-            emoji: typeof t?.emoji === 'string' ? t.emoji.slice(0, 4) : ''
-        })),
-        lastScorer: -1
+        style: SHOWDOWN_STYLES.includes(r.style) ? r.style : d.style,
+        goal: SHOWDOWN_GOALS.includes(r.goal) ? r.goal : d.goal,
+        goalN: Number.isFinite(n) ? Math.min(SHOWDOWN_GOAL_MAX, Math.max(SHOWDOWN_GOAL_MIN, n)) : d.goalN,
+        clock: SHOWDOWN_CLOCKS.includes(Number(r.clock)) ? Number(r.clock) : d.clock,
+        streak: typeof r.streak === 'boolean' ? r.streak : d.streak,
+        underdog: typeof r.underdog === 'boolean' ? r.underdog : d.underdog,
+        hotseat: typeof r.hotseat === 'boolean' ? r.hotseat : d.hotseat
     };
 }
 
+function shuffled(list, rng = Math.random) {
+    const out = [...list];
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
 /**
- * One point (or `points`) to a team; the streak grows when the same team scores again.
- * A Golden Question (sd.golden) doubles the next point and is then spent.
+ * A new showdown. teams: [{ name, members?, color?, emoji?, dragon? }] (2–8). `growth` (Nursery /
+ * Pre-Junior) keeps every number off the screen: teams grow flowers, nobody ranks, no bonuses, and a
+ * "first to N points" goal becomes "N questions". The hot seat order is shuffled once per show.
+ */
+export function createShowdown(teams, { growth = false, title = 'Showdown', rules = null, rng = Math.random } = {}) {
+    const list = (Array.isArray(teams) ? teams : []).slice(0, 8);
+    const r = normalizeShowdownRules(rules || {});
+    if (growth) Object.assign(r, { streak: false, underdog: false, goal: r.goal === 'points' ? 'questions' : r.goal });
+    // Class against the Dragon: an answer is right or wrong, never both, so one side takes each question
+    if (list.some((t) => t?.dragon)) r.style = 'buzz';
+    return {
+        title: cleanPadLabel(title, 40) || 'Showdown',
+        growth: Boolean(growth),
+        rules: r,
+        round: 1,
+        finished: false,
+        golden: false,
+        blind: false,
+        reached: false,
+        teams: list.map((t, i) => {
+            const members = (Array.isArray(t?.members) ? t.members : []).map(String).filter(Boolean).slice(0, SHOWDOWN_MAX_MEMBERS);
+            return {
+                name: cleanPadLabel(t?.name, 28) || `Team ${i + 1}`,
+                members,
+                order: shuffled(members, rng),
+                seat: 0,
+                dragon: Boolean(t?.dragon),
+                score: 0,
+                streak: 0,
+                color: HEX_RE.test(t?.color || '') ? t.color : SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length],
+                shape: SHOWDOWN_SHAPES[i % SHOWDOWN_SHAPES.length],
+                emoji: typeof t?.emoji === 'string' ? t.emoji.slice(0, 4) : ''
+            };
+        }),
+        lastScorer: -1,
+        roundScorers: [],
+        prevScorers: [],
+        credits: {},
+        lastGain: null,
+        history: []
+    };
+}
+
+/** The same teams and rules, every score back to zero (and a fresh hot seat order). */
+export function rematchShowdown(sd, { rng = Math.random } = {}) {
+    if (!sd) return sd;
+    return createShowdown(sd.teams.map((t) => ({ name: t.name, members: t.members, color: t.color, emoji: t.emoji, dragon: t.dragon })),
+        { growth: sd.growth, title: sd.title, rules: sd.rules, rng });
+}
+
+/** Who is in the hot seat for a team right now ('' when the hot seat is off or the team has nobody). */
+export function showdownAnswerer(sd, teamIndex) {
+    const t = sd?.teams?.[teamIndex];
+    if (!t || !sd.rules?.hotseat || t.dragon || !t.order.length) return '';
+    return t.order[t.seat % t.order.length];
+}
+
+function snapshotOf(sd) {
+    return {
+        scores: sd.teams.map((t) => [t.score, t.streak, t.seat]),
+        round: sd.round, golden: sd.golden, finished: sd.finished, reached: sd.reached, lastScorer: sd.lastScorer,
+        roundScorers: [...sd.roundScorers], prevScorers: [...sd.prevScorers], credits: { ...sd.credits }
+    };
+}
+
+function withHistory(sd) {
+    return [...(sd.history || []), snapshotOf(sd)].slice(-HISTORY_KEEP);
+}
+
+function goalReached(sd) {
+    const r = sd.rules || SHOWDOWN_RULES_DEFAULT;
+    if (r.goal === 'points') return sd.teams.some((t) => t.score >= r.goalN);
+    if (r.goal === 'questions') return sd.round > r.goalN;
+    return false;
+}
+
+/** The question is over: streaks of teams that did not score break, the hot seats move on, golden is spent. */
+function advance(sd) {
+    const scored = new Set(sd.roundScorers);
+    const teams = sd.teams.map((t, i) => ({
+        ...t,
+        streak: scored.has(i) ? t.streak : 0,
+        seat: sd.rules?.hotseat && !t.dragon && t.order.length ? (t.seat + 1) % t.order.length : t.seat
+    }));
+    return { ...sd, teams, round: sd.round + 1, prevScorers: [...scored], roundScorers: [], golden: false };
+}
+
+/**
+ * `points` (1–3, or negative for a penalty) to a team. A Golden Question doubles a gain. With the
+ * Streak bonus, every third question in a row earns +1; with the Underdog boost, a team 3+ behind the
+ * leader earns +1. In Buzz-in style the point ends the question; in Everyone style several teams can
+ * score, each once per question for streaks and bonuses, until Next. The hot seat hero is credited.
  */
 export function scoreShowdown(sd, teamIndex, points = 1) {
     if (!sd || sd.finished || !sd.teams[teamIndex]) return sd;
-    if (points > 0 && sd.golden) points *= 2;
+    const base = Math.round(Number(points) || 0);
+    if (!base) return sd;
+    const history = withHistory(sd);
+    const rules = sd.rules || SHOWDOWN_RULES_DEFAULT;
+    const team = sd.teams[teamIndex];
+    if (base < 0) {
+        const teams = sd.teams.map((t, i) => (i === teamIndex ? { ...t, score: Math.max(0, t.score + base), streak: 0 } : t));
+        return { ...sd, teams, history, lastGain: { team: teamIndex, total: base, bonus: [] } };
+    }
+    const first = !sd.roundScorers.includes(teamIndex);
+    let gain = base * (sd.golden ? 2 : 1);
+    const bonus = [];
+    const leader = Math.max(0, ...sd.teams.map((t) => t.score));
+    if (rules.underdog && first && !sd.growth && leader - team.score >= 3) { gain += 1; bonus.push('underdog'); }
+    const streak = first ? (sd.prevScorers.includes(teamIndex) ? team.streak + 1 : 1) : team.streak;
+    if (rules.streak && first && !sd.growth && streak >= 3 && streak % 3 === 0) { gain += 1; bonus.push('streak'); }
+    const seated = showdownAnswerer(sd, teamIndex);
+    const credits = seated ? { ...sd.credits, [seated]: (sd.credits[seated] || 0) + gain } : sd.credits;
+    const teams = sd.teams.map((t, i) => (i === teamIndex ? { ...t, score: t.score + gain, streak } : t));
+    let out = {
+        ...sd, teams, credits, history, lastScorer: teamIndex,
+        roundScorers: first ? [...sd.roundScorers, teamIndex] : sd.roundScorers,
+        lastGain: { team: teamIndex, total: gain, bonus, golden: Boolean(sd.golden), answerer: seated }
+    };
+    if (rules.style !== 'all') out = advance(out);
+    return { ...out, reached: goalReached(out) };
+}
+
+/** Next question (in Buzz-in style: nobody got it). */
+export function nextShowdownQuestion(sd) {
+    if (!sd || sd.finished) return sd;
+    const out = advance({ ...sd, history: withHistory(sd), lastGain: null });
+    return { ...out, reached: goalReached(out) };
+}
+
+/** The hot seat passes to the next hero in every team without ending the question. */
+export function passShowdownSeats(sd) {
+    if (!sd || sd.finished || !sd.rules?.hotseat) return sd;
+    const teams = sd.teams.map((t) => (t.dragon || !t.order.length ? t : { ...t, seat: (t.seat + 1) % t.order.length }));
+    return { ...sd, teams, history: withHistory(sd) };
+}
+
+export function finishShowdown(sd) {
+    if (!sd || sd.finished) return sd;
+    return { ...sd, history: withHistory(sd), finished: true, golden: false };
+}
+
+/** One step back (a point, a penalty, a Next, a finish). */
+export function undoShowdown(sd) {
+    const last = sd?.history?.[sd.history.length - 1];
+    if (!last) return sd;
     const teams = sd.teams.map((t, i) => {
-        if (i !== teamIndex) return { ...t, streak: points > 0 ? 0 : t.streak };
-        const score = Math.max(0, t.score + points);
-        const streak = points > 0 ? (sd.lastScorer === teamIndex ? t.streak + 1 : 1) : 0;
-        return { ...t, score, streak };
+        const [score, streak, seat] = last.scores[i] || [t.score, t.streak, t.seat];
+        return { ...t, score, streak, seat };
     });
     return {
-        ...sd, teams, lastScorer: points > 0 ? teamIndex : sd.lastScorer,
-        round: points > 0 ? sd.round + 1 : sd.round, golden: points > 0 ? false : Boolean(sd.golden)
+        ...sd, teams, round: last.round, golden: last.golden, finished: last.finished, reached: last.reached,
+        lastScorer: last.lastScorer, roundScorers: last.roundScorers, prevScorers: last.prevScorers, credits: last.credits,
+        history: sd.history.slice(0, -1), lastGain: null
     };
 }
 
@@ -534,25 +707,139 @@ export function showdownWinners(sd) {
     return standings.filter((t) => t.place === 1).map((t) => t.index);
 }
 
-/** Bar heights 0..1 for the projector (relative to the leader, never below a visible stub). */
-export function showdownBarLevels(sd) {
-    const max = Math.max(0, ...(sd?.teams || []).map((t) => t.score));
-    return (sd?.teams || []).map((t) => (max === 0 ? 0.06 : Math.max(0.06, t.score / max)));
+/** The heroes the hot seat credited most (up to three, ties kept together), as [{ id, pts }]. */
+export function showdownStarPlayers(sd, max = 3) {
+    const list = Object.entries(sd?.credits || {}).filter(([, pts]) => pts > 0).sort((a, b) => b[1] - a[1]);
+    if (!list.length) return [];
+    const cut = list[Math.min(max, list.length) - 1][1];
+    return list.filter(([, pts]) => pts >= cut).slice(0, max + 2).map(([id, pts]) => ({ id, pts }));
 }
 
-/** What the Wand shows of a showdown (Growth Festival: no scores). */
-export function showdownPanel(sd) {
+/**
+ * Bar heights 0..1 for the projector: towards the finish line in a "first to N" race, otherwise
+ * relative to the leader (never below a visible stub).
+ */
+export function showdownBarLevels(sd) {
+    const teams = sd?.teams || [];
+    if (sd?.rules?.goal === 'points') return teams.map((t) => Math.min(1, Math.max(0.06, t.score / sd.rules.goalN)));
+    const max = Math.max(0, ...teams.map((t) => t.score));
+    return teams.map((t) => (max === 0 ? 0.06 : Math.max(0.06, t.score / max)));
+}
+
+/** The heroes a reward reaches: the winners' members, everyone who played, or the star players. */
+export function showdownRewardIds(sd, scope = 'winners') {
+    if (!sd) return [];
+    if (scope === 'stars') return showdownStarPlayers(sd).map((p) => p.id);
+    const teams = scope === 'all' || sd.growth ? sd.teams : showdownWinners(sd).map((i) => sd.teams[i]);
+    return [...new Set(teams.flatMap((t) => t.members))];
+}
+
+/** "Question 3 of 10", "First to 10", or "Question 3". */
+export function showdownGoalText(sd) {
+    const r = sd?.rules || SHOWDOWN_RULES_DEFAULT;
+    if (r.goal === 'questions') return `Question ${Math.min(sd.round, r.goalN)} of ${r.goalN}`;
+    if (r.goal === 'points') return `First to ${r.goalN}`;
+    return `Question ${sd?.round ?? 1}`;
+}
+
+/** What the Wand shows of a showdown (Growth Festival: no scores). `nameOf(id)` gives a hero's first name. */
+export function showdownPanel(sd, nameOf = () => '') {
     if (!sd) return null;
+    const r = sd.rules || SHOWDOWN_RULES_DEFAULT;
+    const stars = sd.growth ? [] : showdownStarPlayers(sd).slice(0, 3).map((p) => ({ name: String(nameOf(p.id) || 'Hero'), pts: p.pts }));
     return {
         kind: 'showdown',
         growth: sd.growth,
         finished: sd.finished,
         round: sd.round,
         golden: Boolean(sd.golden),
-        teams: sd.teams.map((t) => (sd.growth
-            ? { name: t.name, color: t.color, shape: t.shape, emoji: t.emoji }
-            : { name: t.name, color: t.color, shape: t.shape, emoji: t.emoji, score: t.score, streak: t.streak }))
+        blind: Boolean(sd.blind),
+        reached: Boolean(sd.reached),
+        style: r.style,
+        goal: r.goal,
+        goalN: r.goalN,
+        clockSecs: r.clock,
+        hotseat: r.hotseat,
+        undo: Boolean(sd.history?.length),
+        goalText: showdownGoalText(sd),
+        stars,
+        teams: sd.teams.map((t, i) => {
+            const base = {
+                name: t.name, color: t.color, shape: t.shape, emoji: t.emoji, dragon: Boolean(t.dragon),
+                got: sd.roundScorers.includes(i), hot: String(nameOf(showdownAnswerer(sd, i)) || ''), size: t.members.length
+            };
+            return sd.growth ? base : { ...base, score: t.score, streak: t.streak };
+        })
     };
+}
+
+// ─── The Team Forge (the Wand splits the room for one show) ────────────────────
+
+const DRAGON_LOOK = Object.freeze({ name: 'The Dragon', color: '#dc2626', emoji: '🐉' });
+
+/**
+ * Splits the heroes who are here. heroes: [{ id, guildId?, stars?, away? }]. Returns
+ * [{ ids: string[], guild?: string, dragon?: true }]. `makeTeams` is Team Maker's own splitter
+ * (fair on stars, guilds mixed, luck; never the same pairs as last time when `pastSets` is given).
+ */
+export function forgeShowdownTeams({ heroes = [], split = 'fair', count = 2, today = null, pastSets = [], makeTeams = null, rng = Math.random } = {}) {
+    const here = (heroes || []).filter((h) => h && h.id != null && !h.away).map((h) => ({ ...h, id: String(h.id) }));
+    if (!here.length) return [];
+    const ids = here.map((h) => h.id);
+    if (split === 'dragon') return [{ ids }, { ids: [], dragon: true }];
+    if (split === 'today') {
+        const present = new Set(ids);
+        const sets = (today?.teams || []).map((t) => (Array.isArray(t) ? t : t?.ids || []).map(String).filter((id) => present.has(id))).filter((t) => t.length);
+        return sets.length >= 2 ? sets.slice(0, 8).map((t) => ({ ids: t })) : [];
+    }
+    if (split === 'guilds') {
+        const byGuild = new Map();
+        const loose = [];
+        here.forEach((h) => { if (h.guildId) byGuild.set(h.guildId, [...(byGuild.get(h.guildId) || []), h.id]); else loose.push(h.id); });
+        if (byGuild.size < 2) return [];
+        const teams = [...byGuild.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]))).slice(0, 8).map(([guild, members]) => ({ ids: members, guild }));
+        // a hero with no guild yet plays with the smallest guild for this show only
+        loose.forEach((id) => { teams.reduce((a, b) => (b.ids.length < a.ids.length ? b : a)).ids.push(id); });
+        return teams;
+    }
+    if (typeof makeTeams !== 'function') return [];
+    const mode = split === 'fair' ? 'stars' : split === 'mixed' ? 'guild' : 'random';
+    const { teams } = makeTeams({ heroes: here, count, mode, avoidPairs: Boolean(pastSets?.length), pastSets, rng });
+    return (teams || []).filter((t) => t.length).map((t) => ({ ids: t }));
+}
+
+/**
+ * Names, colours and badges of forged teams: guilds look like their guild, the Dragon like a dragon,
+ * everything else wears Team Maker's banners (`bannerOf(i)` → { short, primary, emoji }).
+ */
+export function showdownTeamLooks(split, teams, { guildOf = () => null, bannerOf = () => null, classLook = null } = {}) {
+    return (teams || []).map((t, i) => {
+        if (t.dragon) return { ...DRAGON_LOOK, dragon: true };
+        if (split === 'dragon') return { name: classLook?.name || 'The Class', color: '#38bdf8', emoji: classLook?.emoji || '🛡️' };
+        if (split === 'guilds' && t.guild) {
+            const g = guildOf(t.guild);
+            if (g) return { name: g.name || 'Guild', color: g.primary || SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length], emoji: g.emoji || '🛡️' };
+        }
+        const b = bannerOf(i);
+        return b ? { name: b.short || b.name, color: b.primary, emoji: b.emoji } : { name: `Team ${i + 1}`, color: SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length], emoji: '' };
+    });
+}
+
+/** The forged teams as they travel in an `open` command (no nested arrays: Firestore refuses them). */
+export function packShowdownTeams(teams) {
+    return (teams || []).slice(0, 8).map((t) => {
+        const out = { ids: (t.ids || []).map(String).slice(0, SHOWDOWN_MAX_MEMBERS) };
+        if (t.guild) out.guild = String(t.guild).slice(0, 64);
+        if (t.dragon) out.dragon = true;
+        return out;
+    });
+}
+
+function validShowdownTeams(teams) {
+    if (!Array.isArray(teams) || teams.length < 2 || teams.length > 8) return false;
+    return teams.every((t) => t && typeof t === 'object' && !Array.isArray(t)
+        && Array.isArray(t.ids) && t.ids.length <= SHOWDOWN_MAX_MEMBERS && t.ids.every((id) => shortString(id, 64))
+        && (t.guild == null || shortString(t.guild, 64)) && (t.dragon == null || typeof t.dragon === 'boolean'));
 }
 
 // ─── Timers ──────────────────────────────────────────────────────────────────

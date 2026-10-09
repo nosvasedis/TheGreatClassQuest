@@ -16,8 +16,12 @@ import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import * as channel from './remoteChannel.js';
 import {
     validateCommand, CLASS_GENERAL, CLASS_FOLLOW, classifyFlick, slingshotPower, SLINGSHOT_MIN_POWER, createShakeDetector,
-    isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock, clampTimerMinutes, pushSpellLog
+    isHostLive, HEARTBEAT_MS, HOST_LIVE_MS, formatTimerClock, clampTimerMinutes, pushSpellLog,
+    SHOWDOWN_SPLITS, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX, normalizeShowdownRules, forgeShowdownTeams, showdownTeamLooks,
+    packShowdownTeams, isGrowthLeague
 } from './remoteCore.mjs';
+import { makeTeams, moveHero, teamBanner, teamsForDay, pastTeamSets, clampTeamCount, suggestTeamCount, MIN_TEAMS, MAX_TEAMS } from '../teamMakerCore.mjs';
+import { getGuildById } from '../guilds.js';
 import {
     wandShellHtml, nowStripHtml, chooserHtml, starsHtml, awardSheetHtml, classSheetHtml, stageHtml, magicHtml, lessonHtml, showHtml,
     spellsSheetHtml, WAND_MODES
@@ -90,6 +94,9 @@ export async function openWand({ sessionId = '' } = {}) {
         waiting: savedFlag(WAITING_KEY),
         customMinutes: savedMinutes(),
         spells: [],
+        forge: savedForge(),
+        sdPoints: 1,
+        sdReward: { scope: 'winners', stars: 1 },
         connectSeq: 0,
         gestures: new Set(),
         retry: 0
@@ -427,6 +434,153 @@ function savedMinutes() {
 function remember(key, value) {
     try { localStorage.setItem(key, String(value)); } catch { /* this session only */ }
 }
+// ─── The Team Forge (Show mode, before a Showdown) ──────────────────────────
+// The teams are built on the phone from the roster it already has: nothing is written until Start,
+// so trying splits, shuffling and moving heroes costs no Firestore writes at all.
+
+const FORGE_KEY = 'gcq.questRemote.forge';
+
+function savedForge() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(FORGE_KEY) || '{}') || {}; } catch { saved = {}; }
+    return {
+        split: SHOWDOWN_SPLITS.includes(saved.split) ? saved.split : 'fair',
+        count: Number(saved.count) || 0,
+        rules: normalizeShowdownRules(saved.rules),
+        teams: null,
+        sig: '',
+        present: ''
+    };
+}
+
+function rememberForge() {
+    const f = wand?.forge;
+    if (!f) return;
+    try { localStorage.setItem(FORGE_KEY, JSON.stringify({ split: f.split, count: f.count, rules: f.rules })); } catch { /* this session only */ }
+}
+
+function classObj(classId) {
+    return (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
+        || (state.get('allSchoolClasses') || []).find((c) => c.id === classId) || null;
+}
+
+/** The class's heroes with what the Forge needs: first name, guild, this month's stars, away today. */
+function forgeRoster(classId) {
+    const today = getTodayDateString();
+    const away = new Set((state.get('allAttendanceRecords') || []).filter((r) => r.classId === classId && r.date === today).map((r) => r.studentId));
+    const scores = new Map((state.get('allStudentScores') || []).map((x) => [x.id, x]));
+    return (state.get('allStudents') || [])
+        .filter((x) => x.classId === classId)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+        .map((x) => ({
+            id: x.id, first: String(x.name || 'Hero').split(/\s+/)[0], guildId: x.guildId || '',
+            stars: Number(scores.get(x.id)?.monthlyStars) || 0, away: away.has(x.id)
+        }));
+}
+
+/**
+ * Builds (or keeps) the Forge's teams and returns the model the view draws. Teams are re-dealt when
+ * the class, the split or the team count changes, or on Shuffle; a hero marked away leaves their team
+ * and a hero who arrives joins the smallest one, so the teacher's own moves are kept.
+ */
+function forgeModel({ reroll = false } = {}) {
+    const classId = currentClassId();
+    if (!classId || !wand) return null;
+    const f = wand.forge;
+    const cls = classObj(classId);
+    const heroes = forgeRoster(classId);
+    const here = heroes.filter((h) => !h.away);
+    const today = teamsForDay(cls?.teamMaker, getTodayDateString());
+    const canToday = forgeShowdownTeams({ heroes, split: 'today', today }).length >= 2;
+    const canGuilds = new Set(here.map((h) => h.guildId).filter(Boolean)).size >= 2;
+    if ((f.split === 'today' && !canToday) || (f.split === 'guilds' && !canGuilds)) f.split = 'fair';
+    const maxCount = Math.max(MIN_TEAMS, Math.min(MAX_TEAMS, here.length));
+    f.count = clampTeamCount(f.count || suggestTeamCount(here.length), here.length) || MIN_TEAMS;
+    const counted = f.split === 'fair' || f.split === 'mixed' || f.split === 'random';
+    const sig = `${classId}|${f.split}|${counted ? f.count : ''}`;
+    const present = here.map((h) => h.id).join(',');
+    const pastSets = pastTeamSets(cls?.teamMaker);
+    if (reroll || sig !== f.sig || !f.teams) {
+        f.teams = forgeShowdownTeams({ heroes, split: f.split, count: f.count, today, pastSets, makeTeams });
+        f.sig = sig;
+        f.present = present;
+    } else if (present !== f.present) {
+        const hereIds = new Set(here.map((h) => h.id));
+        const placed = new Set();
+        f.teams = f.teams.map((t) => ({ ...t, ids: t.ids.filter((id) => hereIds.has(id) && !placed.has(id) && placed.add(id)) }));
+        if (f.split !== 'today') {
+            here.filter((h) => !placed.has(h.id)).forEach((h) => {
+                const open = f.teams.filter((t) => !t.dragon);
+                const home = (f.split === 'guilds' && open.find((t) => t.guild === h.guildId)) || open.reduce((a, b) => (b.ids.length < a.ids.length ? b : a), open[0]);
+                home?.ids.push(h.id);
+            });
+        }
+        f.present = present;
+    }
+    const byId = new Map(heroes.map((h) => [h.id, h]));
+    const looks = showdownTeamLooks(f.split, f.teams, { guildOf: getGuildById, bannerOf: teamBanner, classLook: cls ? { name: cls.name, emoji: cls.logo } : null });
+    const teams = f.teams.map((t, i) => ({
+        ...looks[i],
+        members: t.ids.map((id) => ({ id, first: byId.get(id)?.first || 'Hero' })),
+        stars: Math.round(t.ids.reduce((sum, id) => sum + (byId.get(id)?.stars || 0), 0))
+    }));
+    return {
+        className: classLabel(), here: here.length, away: heroes.length - here.length,
+        split: f.split, count: f.count, minCount: MIN_TEAMS, maxCount, canToday, canGuilds,
+        growth: isGrowthLeague(cls?.questLevel), teams, rules: f.rules,
+        note: counted && pastSets.length ? 'Teammates from last time are kept apart where possible.' : (f.split === 'today' && !canToday ? 'No Team Maker teams today.' : '')
+    };
+}
+
+/** Taps inside the Forge (and the finale's reward choice). True when the tap was the Forge's. */
+function forgeTap(t) {
+    const f = wand.forge;
+    const split = t.closest('[data-qw-split]');
+    if (split && !split.disabled) {
+        if (f.split !== split.dataset.qwSplit) { f.split = split.dataset.qwSplit; f.teams = null; rememberForge(); }
+        buzz(6); render(); return true;
+    }
+    const move = t.closest('[data-qw-move]');
+    if (move && f.teams) {
+        const id = move.dataset.qwMove;
+        const from = f.teams.findIndex((x) => x.ids.includes(id));
+        const open = f.teams.map((x, i) => (x.dragon ? -1 : i)).filter((i) => i >= 0);
+        if (from < 0 || open.length < 2) return true;
+        const to = open[(open.indexOf(from) + 1) % open.length];
+        const moved = moveHero(f.teams.map((x) => x.ids), id, to);
+        f.teams = f.teams.map((x, i) => ({ ...x, ids: moved[i] }));
+        buzz(8); render(); return true;
+    }
+    const rule = t.closest('[data-qw-rule]');
+    if (rule) {
+        const key = rule.dataset.qwRule;
+        const value = rule.dataset.value;
+        if (key === 'reward-scope') wand.sdReward.scope = value;
+        else if (key === 'reward-stars') wand.sdReward.stars = Number(value) || 1;
+        else if (['streak', 'underdog', 'hotseat'].includes(key)) f.rules = normalizeShowdownRules({ ...f.rules, [key]: !f.rules[key] });
+        else f.rules = normalizeShowdownRules({ ...f.rules, [key]: key === 'clock' ? Number(value) : value });
+        rememberForge(); buzz(6); render(); return true;
+    }
+    const pts = t.closest('[data-qw-points]');
+    if (pts) { wand.sdPoints = Number(pts.dataset.qwPoints) || 1; buzz(6); render(); return true; }
+    const act = t.closest('[data-qw]')?.dataset.qw;
+    if (!act?.startsWith('forge-')) return false;
+    if (act === 'forge-count-down' || act === 'forge-count-up') { f.count += act.endsWith('up') ? 1 : -1; rememberForge(); }
+    else if (act === 'forge-goal-down' || act === 'forge-goal-up') {
+        f.rules = normalizeShowdownRules({ ...f.rules, goalN: Math.min(SHOWDOWN_GOAL_MAX, Math.max(SHOWDOWN_GOAL_MIN, f.rules.goalN + (act.endsWith('up') ? 1 : -1))) });
+        rememberForge();
+    } else if (act === 'forge-shuffle') { forgeModel({ reroll: true }); buzz([10, 30, 10]); render(); return true; }
+    else if (act === 'forge-new') { if (send('showdown', { action: 'close' })) { f.teams = null; buzz(10); } return true; }
+    else if (act === 'forge-start') {
+        const model = forgeModel();
+        if (!model) return true;
+        const payload = { action: 'open', split: f.split, teams: packShowdownTeams(f.teams), ...f.rules };
+        if (send('showdown', payload)) { wand.sdPoints = 1; wand.sdReward = { scope: 'winners', stars: 1 }; buzz([20, 40, 60]); }
+        return true;
+    }
+    buzz(6); render(); return true;
+}
+
 const MODES = new Set(WAND_MODES.map((m) => m.key));
 
 function savedMode() {
@@ -484,7 +638,8 @@ function render({ fresh = false } = {}) {
     } else if (wand.mode === 'lesson') {
         html = lessonHtml(stage, { customMinutes: wand.customMinutes });
     } else {
-        html = showHtml(stage, { secret: wand.secret, clock: showClockLeft() });
+        const showdownOn = stage.panel?.kind === 'showdown' || stage.panel?.kind === 'quiz';
+        html = showHtml(stage, { secret: wand.secret, clock: showClockLeft(), forge: showdownOn ? null : forgeModel(), points: wand.sdPoints, reward: wand.sdReward });
     }
     // Only touch the page when something changed: no flicker, no lost taps, less work.
     const view = wand.main.firstElementChild;
@@ -721,6 +876,9 @@ function datasetPayload(el) {
     if (d.index) p.index = Number(d.index);
     if (d.sound) p.sound = d.sound;
     if (d.student) p.studentId = d.student;
+    if (d.points) p.points = Number(d.points);
+    if (d.scope) p.scope = d.scope;
+    if (d.stars) p.stars = Number(d.stars);
     return p;
 }
 
@@ -825,6 +983,7 @@ function wireEvents(root) {
             }
             return;
         }
+        if (wand.mode === 'show' && forgeTap(t)) return;
         const pad = t.closest('[data-qw-pad]');
         if (pad) { pressFeedback(pad); send('pad', { id: pad.dataset.qwPad }); return; }
         const cmdEl = t.closest('[data-qw-cmd]');
@@ -841,6 +1000,8 @@ function wireEvents(root) {
                 pressFeedback(cmdEl);
                 // A hero called into the spotlight: the sheet steps away so the teacher sees the room.
                 if (type === 'charm' && payload.action === 'spotlight' && wand.sheetKind === 'award') closeSheet();
+                // a +2 or +3 is for one tap only: the next point is a plain one again
+                if (type === 'showdown' && payload.action === 'point' && wand.sdPoints !== 1) { wand.sdPoints = 1; render(); }
             }
         }
     });

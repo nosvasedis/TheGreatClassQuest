@@ -3,6 +3,7 @@
 // Built for one thumb on a 360–430px phone: 48px+ targets, one scroll column, the four modes at the
 // bottom, and the projector's screens drawn as the same clouds the class sees in the dock.
 
+import { forgeHtml, arenaHtml, finaleHtml } from './showdownWandView.mjs';
 import { CLASS_GENERAL, CLASS_FOLLOW, WAND_VIRTUES, CAST_TABS, TIMER_PRESETS, CHARM_SOUNDS, CUSTOM_TIMER_MIN, CUSTOM_TIMER_MAX, formatTimerClock } from './remoteCore.mjs';
 
 export function esc(value) {
@@ -533,63 +534,27 @@ export function lessonHtml(stage, { customMinutes = 3 } = {}) {
 }
 
 /** Show mode: the Showdown Arena console (and the quiz host console when a quiz is on). */
-export function showHtml(stage, { secret = null, clock = 0 } = {}) {
+/**
+ * Show mode: Quiz of the Week's host console, the Team Forge before a Showdown, the host console while
+ * it runs, and the finale. `forge` is the Forge's model (built by remoteWand.js from the class roster).
+ */
+export function showHtml(stage, { secret = null, clock = 0, forge = null, points = 1, reward = { scope: 'winners', stars: 1 } } = {}) {
     const panel = stage?.panel;
     if (panel?.kind === 'quiz') return `<section class="qw-show">${quizHtml(panel, secret)}</section>`;
     if (panel?.kind !== 'showdown') {
+        if (forge) return forgeHtml(forge);
         return `<section class="qw-show">
             <div class="qw-showintro">
                 <div class="qw-showintro__lights" aria-hidden="true"><i></i><i></i><i></i></div>
                 <span class="qw-showintro__badge" aria-hidden="true"><i class="fas fa-bolt"></i></span>
                 <h2 class="qw-h2">Showdown Arena</h2>
-                <p>Teams race on the big screen. You ask out loud; your Wand gives the points. Today's Team Maker teams play, or the guilds.</p>
-                <button type="button" class="qw-btn qw-btn--gold qw-btn--wide" data-qw-cmd="showdown" data-action="open"><i class="fas fa-bolt" aria-hidden="true"></i> Start a Showdown</button>
+                <p>Teams race on the big screen. You ask out loud; your Wand gives the points. Choose a class (top right) to build the teams.</p>
             </div>
             <p class="qw-hint qw-hint--center">With Quiz of the Week on screen (Elite), this becomes your private host console.</p>
         </section>`;
     }
-    if (panel.finished) {
-        return `<section class="qw-show">
-            <div class="qw-showintro">
-                <span class="qw-showintro__badge" aria-hidden="true"><i class="fas ${panel.growth ? 'fa-seedling' : 'fa-trophy'}"></i></span>
-                <h2 class="qw-h2">${panel.growth ? 'The garden is in bloom' : 'The champions are crowned'}</h2>
-                <button type="button" class="qw-btn qw-btn--gold qw-btn--wide" data-qw-cmd="showdown" data-action="reward"><i class="fas fa-star" aria-hidden="true"></i> ${panel.growth ? 'Teamwork star for everyone' : 'Teamwork stars for the winners'}</button>
-                <button type="button" class="qw-btn qw-btn--ghost qw-btn--wide" data-qw-cmd="showdown" data-action="close">Close the arena</button>
-            </div>
-        </section>`;
-    }
-    const max = Math.max(1, ...panel.teams.map((t) => Number(t.score) || 0));
-    const top = Math.max(0, ...panel.teams.map((t) => Number(t.score) || 0));
-    const clockLeft = Number.isFinite(clock) && clock > 0 ? clock : 0;
-    return `<section class="qw-show${panel.golden ? ' is-golden' : ''}">
-        <div class="qw-showhead">
-            <span class="qw-showhead__round">${panel.growth ? '<i class="fas fa-seedling" aria-hidden="true"></i> Garden Showdown' : `<i class="fas fa-bolt" aria-hidden="true"></i> Question <b>${esc(panel.round)}</b>`}</span>
-            <span class="qw-showhead__hint">Tap the team that ${panel.growth ? 'answered well' : 'got it'}</span>
-        </div>
-        <div class="qw-teams" style="--n:${panel.teams.length}">${panel.teams.map((t, i) => {
-        const lead = !panel.growth && top > 0 && Number(t.score) === top;
-        return `
-            <div class="qw-team${lead ? ' is-leading' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : ((Number(t.score) || 0) / max).toFixed(3)}">
-                <button type="button" class="qw-team__hit" data-qw-cmd="showdown" data-action="point" data-team="${i}" aria-label="Point to ${esc(t.name)}">
-                    <span class="qw-team__badge" aria-hidden="true">${esc(t.emoji || t.shape)}</span>
-                    <span class="qw-team__name">${lead ? '<span class="qw-team__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}${esc(t.name)}</span>
-                    ${panel.growth ? '<span class="qw-team__grow" aria-hidden="true"><i class="fas fa-seedling"></i> grow</span>' : `<span class="qw-team__score">${esc(t.score)}</span>`}
-                    ${!panel.growth && t.streak >= 2 ? `<span class="qw-team__streak"><i class="fas fa-fire"></i>${esc(t.streak)}</span>` : ''}
-                    ${panel.growth ? '' : '<span class="qw-team__bar" aria-hidden="true"></span>'}
-                </button>
-                ${panel.growth ? '' : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
-            </div>`;
-    }).join('')}</div>
-        <button type="button" class="qw-golden${panel.golden ? ' is-on' : ''}" data-qw-cmd="showdown" data-action="golden" aria-pressed="${Boolean(panel.golden)}">
-            <span class="qw-golden__coin" aria-hidden="true"><i class="fas fa-coins"></i></span>
-            <span><b>${panel.golden ? 'Golden question is on' : 'Golden question'}</b><small>${panel.golden ? 'The next point counts double · tap to cancel' : (panel.growth ? 'The next good answer grows the flower twice' : 'The next point counts double')}</small></span>
-        </button>
-        <div class="qw-showctrl">
-            <button type="button" class="qw-roundbtn qw-roundbtn--lg${clockLeft ? ' is-counting' : ''}" data-qw-cmd="showdown" data-action="timer" aria-label="Ten second clock"><i class="fas fa-stopwatch"></i><small data-qw-clock>${clockLeft || Number(panel.clockFrom) || 10}s</small></button>
-            <button type="button" class="qw-roundbtn qw-roundbtn--lg" data-qw-cmd="showdown" data-action="next" aria-label="Next question"><i class="fas fa-forward"></i><small>Next</small></button>
-            <button type="button" class="qw-roundbtn qw-roundbtn--lg qw-roundbtn--gold" data-qw-cmd="showdown" data-action="finish" aria-label="Finish"><i class="fas fa-trophy"></i><small>Finish</small></button>
-        </div>
-    </section>`;
+    if (panel.finished) return finaleHtml(panel, reward);
+    return arenaHtml(panel, { clock, points });
 }
 
 /** Recent spells: what the projector did with the Wand's last commands (this phone only). */

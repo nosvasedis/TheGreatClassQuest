@@ -532,3 +532,149 @@ test('the phone can hand the projector back, and the computer hears it at once',
     assert.match(host, /if \(host\.wandId && !data\.wandId && !fromCache\) \{ onWandReleased\(\); return; \}/);
     assert.match(host, /function onWandReleased\(\)[\s\S]*host\.bound = false;[\s\S]*syncLaunchButtons\(\);/);
 });
+
+test('Showdown rules: answer styles, goals, bonuses, golden, undo', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    assert.deepEqual(c.normalizeShowdownRules({ goalN: 99, clock: 7, style: 'x', hotseat: 'yes' }),
+        { ...c.SHOWDOWN_RULES_DEFAULT, goalN: c.SHOWDOWN_GOAL_MAX });
+
+    // Buzz in: a point ends the question; the third question in a row earns the streak bonus
+    let sd = c.createShowdown([{ name: 'A' }, { name: 'B' }], { rules: { streak: true } });
+    sd = c.scoreShowdown(sd, 0); sd = c.scoreShowdown(sd, 0);
+    assert.equal(sd.round, 3);
+    sd = c.scoreShowdown(sd, 0);
+    assert.deepEqual(sd.lastGain.bonus, ['streak']);
+    assert.equal(sd.teams[0].score, 4, '1 + 1 + (1 + streak bonus)');
+    sd = c.nextShowdownQuestion(sd);
+    assert.equal(sd.teams[0].streak, 0, 'nobody got it: the streak breaks');
+
+    // Every team: several teams score the same question, golden doubles them all, Next spends it
+    let all = c.createShowdown([{ name: 'A' }, { name: 'B' }, { name: 'C' }], { rules: { style: 'all', streak: false } });
+    all = { ...all, golden: true };
+    all = c.scoreShowdown(all, 0); all = c.scoreShowdown(all, 1);
+    assert.equal(all.round, 1, 'the question stays open until Next');
+    assert.deepEqual(all.teams.map((t) => t.score), [2, 2, 0]);
+    assert.deepEqual(all.roundScorers, [0, 1]);
+    all = c.nextShowdownQuestion(all);
+    assert.equal(all.golden, false);
+    assert.equal(all.round, 2);
+
+    // Underdog boost: three behind the leader earns +1
+    let u = c.createShowdown([{ name: 'A' }, { name: 'B' }], { rules: { underdog: true, streak: false } });
+    u = c.scoreShowdown(u, 0, 3);
+    u = c.scoreShowdown(u, 1);
+    assert.deepEqual(u.lastGain.bonus, ['underdog']);
+    assert.equal(u.teams[1].score, 2);
+
+    // Goals: first to N points, or N questions; undo takes back the point, even after the finish
+    let g = c.createShowdown([{ name: 'A' }, { name: 'B' }], { rules: { goal: 'points', goalN: 3 } });
+    g = c.scoreShowdown(g, 0, 3);
+    assert.equal(g.reached, true);
+    assert.deepEqual(c.showdownBarLevels(g), [1, 0.06], 'bars race to the finish line');
+    g = c.finishShowdown(g);
+    g = c.undoShowdown(g);
+    assert.equal(g.finished, false);
+    g = c.undoShowdown(g);
+    assert.deepEqual([g.teams[0].score, g.reached, g.history.length], [0, false, 0]);
+    let q = c.createShowdown([{ name: 'A' }, { name: 'B' }], { rules: { goal: 'questions', goalN: 3 } });
+    for (let i = 0; i < 3; i++) q = c.nextShowdownQuestion(q);
+    assert.equal(q.reached, true);
+    assert.equal(c.showdownGoalText({ ...q, round: 2 }), 'Question 2 of 3');
+
+    // Growth Festival: no bonuses, and a points goal becomes questions (nobody races ahead)
+    const garden = c.createShowdown([{ name: 'A' }, { name: 'B' }], { growth: true, rules: { goal: 'points', streak: true, underdog: true } });
+    assert.deepEqual([garden.rules.goal, garden.rules.streak, garden.rules.underdog], ['questions', false, false]);
+});
+
+test('Showdown hot seat: everyone takes a turn, star players are credited and rewarded', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    let sd = c.createShowdown([{ name: 'A', members: ['a1', 'a2'] }, { name: 'B', members: ['b1'] }], { rules: { hotseat: true }, rng: () => 0 });
+    const first = c.showdownAnswerer(sd, 0);
+    sd = c.scoreShowdown(sd, 0);
+    assert.equal(sd.credits[first], 1);
+    assert.notEqual(c.showdownAnswerer(sd, 0), first, 'the microphone moves on with the question');
+    sd = c.passShowdownSeats(sd);
+    assert.equal(c.showdownAnswerer(sd, 0), first, 'two heroes: back to the first');
+    sd = c.scoreShowdown(sd, 0);
+    assert.deepEqual(c.showdownStarPlayers(sd), [{ id: first, pts: 2 }]);
+    assert.deepEqual(c.showdownRewardIds(sd, 'stars'), [first]);
+    assert.deepEqual(c.showdownRewardIds(sd, 'winners').sort(), ['a1', 'a2']);
+    assert.deepEqual(c.showdownRewardIds(sd, 'all').sort(), ['a1', 'a2', 'b1']);
+    const panel = c.showdownPanel(sd, (id) => id.toUpperCase());
+    assert.equal(panel.teams[0].hot, c.showdownAnswerer(sd, 0).toUpperCase());
+    assert.equal(panel.stars[0].name, first.toUpperCase());
+    const re = c.rematchShowdown(sd);
+    assert.deepEqual([re.teams[0].score, re.teams[0].members, re.rules.hotseat], [0, ['a1', 'a2'], true]);
+});
+
+test('Team Forge: splits for one show, guilds never re-sorted, packed for Firestore', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    const { makeTeams, teamBanner } = await import('../features/teamMakerCore.mjs');
+    const heroes = Array.from({ length: 12 }, (_, i) => ({ id: `s${i}`, guildId: i === 11 ? '' : ['g1', 'g2', 'g3'][i % 3], stars: i, away: i === 10 }));
+    const guilds = c.forgeShowdownTeams({ heroes, split: 'guilds' });
+    for (const t of guilds) {
+        const own = t.ids.filter((id) => heroes.find((h) => h.id === id).guildId);
+        assert.ok(own.every((id) => heroes.find((h) => h.id === id).guildId === t.guild), 'a guild team holds only its own guild');
+    }
+    assert.equal(guilds.flatMap((t) => t.ids).includes('s10'), false, 'away heroes sit out');
+    assert.equal(guilds.flatMap((t) => t.ids).includes('s11'), true, 'a hero with no guild still plays');
+    const fair = c.forgeShowdownTeams({ heroes, split: 'fair', count: 3, makeTeams });
+    assert.equal(fair.length, 3);
+    assert.equal(fair.flatMap((t) => t.ids).length, 11);
+    const dragon = c.forgeShowdownTeams({ heroes, split: 'dragon' });
+    assert.deepEqual([dragon[0].ids.length, dragon[1].dragon], [11, true]);
+    assert.deepEqual(c.forgeShowdownTeams({ heroes, split: 'today', today: null }), [], 'no Team Maker teams today: nothing to use');
+    const looks = c.showdownTeamLooks('dragon', dragon, { classLook: { name: 'Junior B', emoji: '🦁' } });
+    assert.deepEqual(looks.map((l) => l.name), ['Junior B', 'The Dragon']);
+    assert.equal(c.showdownTeamLooks('fair', fair, { bannerOf: teamBanner })[0].name, teamBanner(0).short);
+
+    const teams = c.packShowdownTeams(dragon);
+    const open = { action: 'open', split: 'dragon', teams, style: 'all', goal: 'questions', goalN: 10, clock: 20, streak: true, underdog: false, hotseat: true };
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: open }).ok, true);
+    assert.ok(teams.every((t) => !t.ids.some(Array.isArray)), 'no arrays inside arrays');
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { ...open, teams: [['s1'], ['s2']] } }).ok, false);
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { ...open, goalN: 99 } }).ok, false);
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'point', team: 0, points: 4 } }).ok, false);
+    assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action: 'reward', scope: 'stars', stars: 2 } }).ok, true);
+    for (const action of ['undo', 'blind', 'pass', 'rematch']) assert.equal(c.validateCommand({ type: 'showdown', clientSeq: 1, payload: { action } }).ok, true);
+});
+
+test('Showdown screens: the Forge, the console, the finale and the arena', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    const { forgeHtml, arenaHtml, finaleHtml, FORGE_SPLITS } = await import('../features/questRemote/showdownWandView.mjs');
+    const forge = forgeHtml({ split: 'fair', count: 2, canToday: false, canGuilds: true, rules: c.SHOWDOWN_RULES_DEFAULT,
+        teams: [{ name: 'Foxes', color: '#f97316', emoji: '🦊', stars: 4, members: [{ id: 'a', first: 'Maya' }] }, { name: 'Bees', color: '#eab308', emoji: '🐝', stars: 3, members: [{ id: 'b', first: 'Leo' }] }] });
+    assert.equal((forge.match(/data-qw-split=/g) || []).length, FORGE_SPLITS.length);
+    assert.match(forge, /data-qw-split="today"[^>]*disabled/);
+    assert.match(forge, /data-qw-move="a"/);
+    assert.match(forge, /data-qw="forge-start"(?![^>]*disabled)/);
+
+    let sd = c.createShowdown([{ name: 'A', members: ['a'] }, { name: 'B', members: ['b'] }], { rules: { hotseat: true, goal: 'points', goalN: 5 } });
+    const fresh = arenaHtml(c.showdownPanel(sd, () => 'Maya'), { points: 2 });
+    assert.match(fresh, /data-action="undo"[^>]*disabled/);
+    assert.match(fresh, /data-points="2"/);
+    assert.match(fresh, /data-action="pass"/);
+    assert.match(fresh, /qw-team__hot/);
+    sd = c.finishShowdown(c.scoreShowdown(sd, 0));
+    const fin = finaleHtml(c.showdownPanel(sd, () => 'Maya'), { scope: 'stars', stars: 3 });
+    assert.match(fin, /data-action="reward" data-scope="stars" data-stars="3"/);
+    assert.match(fin, /qw-starplayers/);
+
+    const arena = showdownHtml(c.createShowdown([{ name: 'A', members: ['a'] }, { name: 'B', members: [] }], { rules: { hotseat: true, goal: 'points' } }), { nameOf: (id) => (id ? 'Maya' : '') });
+    assert.match(arena, /qr-lane__finish/);
+    assert.match(arena, /data-qr-seat><i[^>]*><\/i><b>Maya<\/b>/);
+    assert.match(arena, /data-qr-seat hidden/, 'an empty chip keeps its row, invisibly');
+
+    const wand = read('features/questRemote/remoteWand.js');
+    assert.match(wand, /action: 'open', split: f\.split, teams: packShowdownTeams\(f\.teams\), \.\.\.f\.rules/);
+    // trying splits costs nothing: the Forge only writes when the show starts
+    assert.doesNotMatch(wand.slice(wand.indexOf('function forgeModel'), wand.indexOf('function forgeTap')), /send\(/);
+});
+
+test('Class against the Dragon always plays buzz-in: one side takes each question', async () => {
+    const c = await import('../features/questRemote/remoteCore.mjs');
+    let sd = c.createShowdown([{ name: 'Class', members: ['a'] }, { name: 'The Dragon', dragon: true }], { rules: { style: 'all' } });
+    assert.equal(sd.rules.style, 'buzz');
+    sd = c.scoreShowdown(sd, 1);
+    assert.deepEqual([sd.round, sd.teams[1].score, c.showdownAnswerer(sd, 1)], [2, 1, ''], 'the Dragon never sits in the hot seat');
+});
